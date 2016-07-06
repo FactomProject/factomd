@@ -54,13 +54,10 @@ func (s *State) Process() (progress bool) {
 	dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
 
 	if s.Saving && ((s.LLeaderHeight == 0 && dbstate != nil) || (dbstate != nil && dbstate.Locked)) {
-
 		s.NewMinute()
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-
 		s.Saving = false
-
 	}
 
 	return s.ProcessQueues()
@@ -504,7 +501,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	e := msg.(*messages.EOM)
 
-	if s.EOM && int(e.Minute) != s.EOMMinute {
+	if s.EOM && int(e.Minute) > s.EOMMinute {
 		return false
 	}
 
@@ -531,6 +528,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 	}
 
+	// What I do for each EOM
 	if !e.Processed {
 		vm.LeaderMinute++
 		vm.Synced = true
@@ -539,8 +537,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	vm.missingTime = ask(pl, msg.GetVMIndex(), 1, vm, vm.missingTime, vm.Height)
-
-	// What I do once for each vm, for each EOM:
 
 	// After all EOM markers are processed, but before anything else is done
 	// we do any cleanup required, for all VMs for this EOM
@@ -603,7 +599,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 					//	fmt.Println("dddd ERROR:", s.FactomNodeName, err.Error())
 					panic(err)
 				}
-				fmt.Println("**** DBSig:", s.FactomNodeName, dbs.String())
 				dbs.LeaderExecute(s)
 			}
 		}

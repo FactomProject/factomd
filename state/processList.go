@@ -115,10 +115,8 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 		return false, -1
 	}
 
-	for i, fedix := range p.ServerMap[minute] {
-		if i == len(p.FedServers) {
-			break
-		}
+	for i := 0; i < len(p.FedServers); i++ {
+		fedix := p.ServerMap[minute][i]
 		if fedix == fedIndex {
 			return true, i
 		}
@@ -341,8 +339,6 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
-	fmt.Println("**** ProcessList", state.FactomNodeName, p.DBHeight)
-
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
@@ -354,7 +350,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
-			fmt.Println("**** ProcessList", state.FactomNodeName, p.DBHeight, "VM", i, j)
 			if vm.List[j] == nil {
 				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "HT", j, "vm.Height", vm.Height, "len(List)", len(vm.List))
 				vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
@@ -404,7 +399,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				}
 			}
 
-			fmt.Println("**** ProcessList", state.FactomNodeName, p.DBHeight, vm.List[j].String())
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.

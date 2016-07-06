@@ -195,6 +195,56 @@ func SimControl(listenTo int) {
 						fmt.Println("Error: ", err, msg)
 					}
 				}
+			case 'k' == b[0]:
+				mLog.all = false
+				for _, fnode := range fnodes {
+					fnode.State.SetOut(false)
+				}
+				if listenTo < 0 || listenTo > len(fnodes) {
+					fmt.Println("Select a node first")
+					break
+				}
+				f := fnodes[listenTo]
+				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
+				if len(b) < 2 {
+					fmt.Println("No Parms found.")
+					break
+				}
+
+				parms := strings.Split(string(b[1:]), ".")
+				if len(parms) >= 2 {
+					os.Stderr.WriteString("Print Entry String with:  k<db #>.<entry #>\n")
+				}
+				db, err1 := strconv.Atoi(string(parms[0]))
+				entry, err2 := strconv.Atoi(string(parms[1]))
+				if err1 != nil || err2 != nil {
+					os.Stderr.WriteString("Bad Parameters")
+				} else {
+					msg, err := f.State.LoadDBState(uint32(db))
+					if err == nil && msg != nil {
+						dsmsg := msg.(*messages.DBStateMsg)
+						DBlock := dsmsg.DirectoryBlock
+						entries := DBlock.GetDBEntries()
+						if entry < len(entries) && entry >= 0 {
+							fmt.Println(fmt.Sprintf("Looking for EB with KeyMR %x", entries[entry].GetKeyMR().Bytes()))
+							eb1, _ := f.State.DB.FetchEBlockHead(entries[entry].GetChainID())
+							if eb1 != nil {
+								fmt.Println("Chain Head:")
+								fmt.Println(eb1.String())
+							}
+							eb2, _ := f.State.DB.FetchEBlock(entries[entry].GetKeyMR())
+							if eb2 != nil {
+								fmt.Println("Entry Block:")
+								fmt.Println(eb2.String())
+							} else {
+								fmt.Println("No Entry Block Found")
+							}
+						}
+					} else {
+						fmt.Println("Error: ", err, msg)
+					}
+				}
+
 			case 'x' == b[0]:
 
 				if listenTo >= 0 && listenTo < len(fnodes) {
@@ -408,6 +458,8 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("eN            Show Entry Credit Block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("fN            Show Factoid block  			 N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("dN            Show Directory block			 N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("kN.M          Show Entry Block and Chain Head.  N is the directory block, and M is the Entry in that block.\n")
+				os.Stderr.WriteString("                 So K3.6 gets the directory block at height 3, and prints the entry at index 6.\n")
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
