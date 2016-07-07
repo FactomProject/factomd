@@ -203,6 +203,8 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	hash, _ = p.EntryCreditBlock.GetFullHash()
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
 
+	hash = p.AdminBlock.GetHash()
+
 	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
