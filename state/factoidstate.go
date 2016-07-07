@@ -220,7 +220,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 		panic("Invalid state on initialization")
 	}
 
-	hash = fs.CurrentBlock.GetHash()
+	hash = fs.CurrentBlock.GetKeyMR()
 	hash2 = fs.CurrentBlock.GetFullHash()
 
 	// 	outstr := fs.CurrentBlock.String()
@@ -242,7 +242,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 
 	if hash != nil {
 		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
-		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
+		fs.CurrentBlock.SetPrevLedgerKeyMR(hash2.Bytes())
 	}
 
 	// Monitor for changes in Identity

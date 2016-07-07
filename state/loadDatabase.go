@@ -6,13 +6,14 @@ package state
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"time"
 )
 
 var _ = fmt.Print
@@ -63,6 +64,10 @@ func LoadDatabase(s *State) {
 		ecblk := entryCreditBlock.NewECBlock()
 
 		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
+
+		dblk.SetABlockHash(ablk)
+		dblk.SetECBlockHash(ecblk)
+		dblk.SetFBlockHash(fblk)
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 		s.InMsgQueue() <- msg

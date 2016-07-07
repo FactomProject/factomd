@@ -113,3 +113,7 @@ func (e *ServerIndexNumber) JSONString() (string, error) {
 func (e *ServerIndexNumber) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
+
+func (e *ServerIndexNumber) GetTimestamp() interfaces.Timestamp {
+	return nil
+}

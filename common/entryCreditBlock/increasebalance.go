@@ -139,3 +139,7 @@ func (e *IncreaseBalance) JSONString() (string, error) {
 func (e *IncreaseBalance) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
+
+func (e *IncreaseBalance) GetTimestamp() interfaces.Timestamp {
+	return nil
+}

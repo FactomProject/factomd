@@ -46,14 +46,26 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidParamsError()
 	}
 
-	status, timestamp, err := state.GetACKStatus(txhash)
+	status, h, txTime, blockTime, err := state.GetACKStatus(txhash)
 	if err != nil {
 		return nil, NewInternalError()
 	}
 
 	answer := new(FactoidTxStatus)
-	answer.TxID = txid
-	answer.TransactionDate = timestamp.GetTimeMilli()
+	answer.TxID = h.String()
+
+	if txTime != nil {
+		answer.TransactionDate = txTime.GetTimeMilli()
+		if txTime.GetTimeMilli() > 0 {
+			answer.TransactionDateString = txTime.String()
+		}
+	}
+	if blockTime != nil {
+		answer.BlockDate = blockTime.GetTimeMilli()
+		if blockTime.GetTimeMilli() > 0 {
+			answer.BlockDateString = blockTime.String()
+		}
+	}
 
 	switch status {
 	case constants.AckStatusInvalid:
@@ -181,12 +193,25 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, timestamp, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
 
-		answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
+		answer.CommitTxID = txid.String()
+
+		if txTime != nil {
+			answer.CommitData.TransactionDate = txTime.GetTimeMilli()
+			if txTime.GetTimeMilli() > 0 {
+				answer.CommitData.TransactionDateString = txTime.String()
+			}
+		}
+		if blockTime != nil {
+			answer.CommitData.BlockDate = blockTime.GetTimeMilli()
+			if blockTime.GetTimeMilli() > 0 {
+				answer.CommitData.BlockDateString = blockTime.String()
+			}
+		}
 
 		switch status {
 		case constants.AckStatusInvalid:
@@ -221,12 +246,25 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, timestamp, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
 
-		answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
+		answer.EntryHash = txid.String()
+
+		if txTime != nil {
+			answer.EntryData.TransactionDate = txTime.GetTimeMilli()
+			if txTime.GetTimeMilli() > 0 {
+				answer.EntryData.TransactionDateString = txTime.String()
+			}
+		}
+		if blockTime != nil {
+			answer.EntryData.BlockDate = blockTime.GetTimeMilli()
+			if blockTime.GetTimeMilli() > 0 {
+				answer.EntryData.BlockDateString = blockTime.String()
+			}
+		}
 
 		switch status {
 		case constants.AckStatusInvalid:
@@ -319,9 +357,13 @@ type ReserveInfo struct {
 }
 
 type GeneralTransactionData struct {
-	TransactionDate int64      `json:"transactiondate"` //Unix time
-	Malleated       *Malleated `json:"malleated,omitempty"`
-	Status          string     `json:"status"`
+	TransactionDate       int64  `json:"transactiondate,omitempty"`       //Unix time
+	TransactionDateString string `json:"transactiondatestring,omitempty"` //ISO8601 time
+	BlockDate             int64  `json:"blockdate,omitempty"`             //Unix time
+	BlockDateString       string `json:"blockdatestring,omitempty"`       //ISO8601 time
+
+	Malleated *Malleated `json:"malleated,omitempty"`
+	Status    string     `json:"status"`
 }
 
 type Malleated struct {
