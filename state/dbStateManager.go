@@ -395,6 +395,8 @@ func (list *DBStateList) Put(dbState *DBState) {
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
+	fmt.Println("Justin DBStateList Put", dbState.String())
+
 	// Count completed states, starting from the beginning (since base starts at
 	// zero.
 	cnt := 0

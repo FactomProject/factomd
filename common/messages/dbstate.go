@@ -116,6 +116,7 @@ func (m *DBStateMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *DBStateMsg) FollowerExecute(state interfaces.IState) {
+	fmt.Println("Justin FollEx DBState: ", m.String())
 	state.FollowerExecuteDBState(m)
 }
 

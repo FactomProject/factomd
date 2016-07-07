@@ -147,7 +147,8 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
-	fmt.Println("Justin AddDBState", ht)
+	fmt.Println("Justin AddDBState", ht, isNew)
+	fmt.Println("Justin DBS:", dbState.String())
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
@@ -157,10 +158,6 @@ func (s *State) AddDBState(isNew bool,
 		s.LLeaderHeight = 1
 	}
 
-	/*    d.SetABlockHash(a)
-	d.SetECBlockHash(e)
-	d.SetFBlockHash(f)
-	*/
 	return dbState
 }
 
