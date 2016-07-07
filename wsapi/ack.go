@@ -46,13 +46,13 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidParamsError()
 	}
 
-	status, txTime, blockTime, err := state.GetACKStatus(txhash)
+	status, h, txTime, blockTime, err := state.GetACKStatus(txhash)
 	if err != nil {
 		return nil, NewInternalError()
 	}
 
 	answer := new(FactoidTxStatus)
-	answer.TxID = txid
+	answer.TxID = h.String()
 
 	if txTime != nil {
 		answer.TransactionDate = txTime.GetTimeMilli()
@@ -193,10 +193,12 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, txTime, blockTime, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
+
+		answer.CommitTxID = txid.String()
 
 		if txTime != nil {
 			answer.CommitData.TransactionDate = txTime.GetTimeMilli()
@@ -244,10 +246,12 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, txTime, blockTime, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
+
+		answer.EntryHash = txid.String()
 
 		if txTime != nil {
 			answer.EntryData.TransactionDate = txTime.GetTimeMilli()
