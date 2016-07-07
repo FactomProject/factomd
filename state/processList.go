@@ -524,7 +524,7 @@ func (p *ProcessList) String() string {
 				}
 
 				if msg != nil {
-					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:3])
+					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:4])
 					buf.WriteString("   " + leader + msg.String() + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
