@@ -229,7 +229,12 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	//}
 
 	for _, eb := range pl.NewEBlocks {
-		key := eb.GetHash()
+		key, err := eb.KeyMR()
+		if err != nil {
+			panic(err.Error())
+		}
+		fmt.Println("Justin Fixup AddEntry:", key.String()[:8], eb.GetHash().String()[:8])
+		fmt.Println("Justin FixA full:", eb.String())
 		d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 	}
 

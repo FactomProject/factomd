@@ -7,6 +7,7 @@ package directoryBlock
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -356,6 +357,7 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
 	dbentry.SetChainID(chainID)
 	dbentry.SetKeyMR(keyMR)
 
+	fmt.Println("Justin AddEntry:", keyMR.String()[:8])
 	if b.DBEntries == nil {
 		b.DBEntries = []interfaces.IDBEntry{}
 	}
