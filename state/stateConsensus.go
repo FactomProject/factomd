@@ -236,6 +236,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
+	if dbstatemsg.DirectoryBlock.GetDatabaseHeight() < s.GetHighestRecordedBlock() {
+		return
+	}
+
 	s.DBStates.LastTime = s.GetTimestamp()
 	dbstate := s.AddDBState(false, // Not a new block; got it from the network
 		dbstatemsg.DirectoryBlock,
