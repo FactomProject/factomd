@@ -153,7 +153,7 @@ func (s *State) AddDBState(isNew bool,
 		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
 	}
-	if ht == 0 {
+	if ht == 0 && s.GetDirectoryBlockByHeight(ht) == nil {
 		s.LLeaderHeight = 1
 	}
 
