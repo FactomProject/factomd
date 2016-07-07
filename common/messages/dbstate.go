@@ -249,10 +249,6 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 
 	msg.Timestamp = timestamp
 
-	d.SetABlockHash(a)
-	d.SetECBlockHash(e)
-	d.SetFBlockHash(f)
-
 	msg.DirectoryBlock = d
 	msg.AdminBlock = a
 	msg.FactoidBlock = f

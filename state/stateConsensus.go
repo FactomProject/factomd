@@ -157,6 +157,10 @@ func (s *State) AddDBState(isNew bool,
 		s.LLeaderHeight = 1
 	}
 
+	/*    d.SetABlockHash(a)
+	d.SetECBlockHash(e)
+	d.SetFBlockHash(f)
+	*/
 	return dbState
 }
 
