@@ -1,4 +1,5 @@
-#import addresses 
+#!/usr/bin/env bash
+#import addresses
 factom-cli  importaddress Fs2DNirmGDtnAZGXqca3XHkukTNMxoMGFFQxJA3bAjJnKzzsZBMH
 factom-cli  importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa
 factom-cli  importaddress Es2Zp56srDCV1QBFreSqYNSEkLSys2sj54L5qE3M88dWnoVL9sEf
