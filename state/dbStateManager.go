@@ -229,10 +229,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	//}
 
 	for _, eb := range pl.NewEBlocks {
-		key, err := eb.KeyMR()
-		if err != nil {
-			panic(err.Error())
-		}
+		key := eb.GetHash()
 		d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 	}
 
