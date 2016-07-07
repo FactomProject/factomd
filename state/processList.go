@@ -318,14 +318,14 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	if thetime == 0 {
 		thetime = now
 	}
-	if now-thetime > waitSeconds {
+	if now-thetime >= waitSeconds {
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 		}
 		thetime = now
 	}
-	if p.State.Leader && now-thetime > waitSeconds+2 {
+	if p.State.Leader && now-thetime >= waitSeconds+2 {
 		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 		if sf != nil {
