@@ -147,8 +147,6 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
-	fmt.Println("Justin AddDBState", ht, isNew)
-	fmt.Println("Justin DBS:", dbState.String())
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
@@ -236,8 +234,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
-	dheight := dbstatemsg.DirectoryBlock.GetDatabaseHeight()
-	fmt.Println("Justin FollExDBS", dheight)
 
 	s.DBStates.LastTime = s.GetTimestamp()
 	dbstate := s.AddDBState(false, // Not a new block; got it from the network

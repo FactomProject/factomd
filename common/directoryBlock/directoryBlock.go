@@ -354,7 +354,6 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
 	dbentry.SetChainID(chainID)
 	dbentry.SetKeyMR(keyMR)
 
-	fmt.Println("Justin AddEntry:", keyMR.String()[:8])
 	if b.DBEntries == nil {
 		b.DBEntries = []interfaces.IDBEntry{}
 	}
