@@ -17,7 +17,7 @@ func newSearchResponse(ftype string, found foundItemInterface) string {
 	if err != nil {
 		return ""
 	}
-	searchJson := `{"Type":"` + ftype + `","item"` + jsonStr + "}"
+	searchJson := `{"Type":"` + ftype + `","item":` + jsonStr + "}"
 	return searchJson
 }
 

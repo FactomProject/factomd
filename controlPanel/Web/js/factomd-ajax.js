@@ -18,7 +18,7 @@ $("#factom-search-submit").click(function() {
     if(x.readyState == 4) {
       console.log(x.response)
       obj = JSON.parse(x.response)
-      $("#changeme").text(obj.Type)
+      $("#testing_area").text(obj.Type)
     }
   }
   var formData = new FormData();
