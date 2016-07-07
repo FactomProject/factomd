@@ -53,9 +53,9 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.Timestamp, 
 
 	if in == nil {
 		if s.IsStateFullySynced() {
-			return constants.AckStatusNotConfirmed, nil, nil
+			return constants.AckStatusNotConfirmed, primitives.NewTimestampFromSeconds(0), nil
 		} else {
-			return constants.AckStatusUnknown, nil, nil
+			return constants.AckStatusUnknown, primitives.NewTimestampFromSeconds(0), nil
 		}
 	}
 

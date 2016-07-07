@@ -53,7 +53,9 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 
 	answer := new(FactoidTxStatus)
 	answer.TxID = txid
-	answer.TransactionDate = timestamp.GetTimeMilli()
+	if timestamp != nil {
+		answer.TransactionDate = timestamp.GetTimeMilli()
+	}
 
 	switch status {
 	case constants.AckStatusInvalid:
@@ -186,7 +188,9 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInternalError()
 		}
 
-		answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
+		if timestamp != nil {
+			answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
+		}
 
 		switch status {
 		case constants.AckStatusInvalid:
@@ -226,7 +230,9 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInternalError()
 		}
 
-		answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
+		if timestamp != nil {
+			answer.CommitData.TransactionDate = timestamp.GetTimeMilli()
+		}
 
 		switch status {
 		case constants.AckStatusInvalid:
