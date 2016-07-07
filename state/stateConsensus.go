@@ -145,8 +145,9 @@ func (s *State) AddDBState(isNew bool,
 	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
-	s.DBStates.Put(dbState)
+
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+	fmt.Println("Justin AddDBState", ht)
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
@@ -233,10 +234,11 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
-
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
+	dheight := dbstatemsg.DirectoryBlock.GetDatabaseHeight()
+	fmt.Println("Justin FollExDBS", dheight)
 
-	if s.GetDBState(dbstatemsg.DirectoryBlock.GetDatabaseHeight()) != nil {
+	if s.GetDBState(dheight) != nil {
 		return
 	}
 
