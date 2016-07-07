@@ -515,6 +515,9 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if dblk == nil {
 		return nil, nil
 	}
+	fmt.Println("Justin LoadDBS:", dblk.GetHash().String()[:8])
+	fmt.Println("Justin LoadDBSA:", dblk.GetDBEntries()[0].GetKeyMR().String()[:8])
+
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
 		return nil, err
