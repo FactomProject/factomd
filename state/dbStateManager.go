@@ -163,9 +163,9 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		for list.State.ProcessLists.Get(begin) != nil && list.State.ProcessLists.Get(begin).Complete() {
+		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
 			begin++
-			if begin >= plHeight-1 {
+			if uint32(begin) >= plHeight-1 {
 				return
 			}
 		}
