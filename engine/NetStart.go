@@ -16,6 +16,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
@@ -343,6 +344,7 @@ func NetStart(s *state.State) {
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
+	go controlPanel.ServeControlPanel(8090, fnodes[0].State)
 
 	// Listen for commands:
 	SimControl(listenTo)

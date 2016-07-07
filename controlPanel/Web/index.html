@@ -1,0 +1,216 @@
+<!doctype html>
+<html class="no-js" lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Node Visualizer - Factom Foundation</title>
+        <link rel="stylesheet" href="css/foundation.min.css">
+        <link rel="stylesheet" href="css/font-awesome.min.css">
+        <link rel="stylesheet" href="css/app.css">
+    </head>
+    <body>
+        
+        <header>
+            <div class="row">
+                <div class="large-3 medium-5 columns logo">
+                    <img src="img/factom-foundation_horizontal.svg" alt="Factom Foundation">
+                </div>
+                <div class="large-6 medium-5 columns search">
+                    <div class="input-group">
+                        <span class="input-group-label"><i class="fa fa-search" aria-hidden="true"></i></span>
+                        <input type="search" name="q" class="input-group-field" id="factom-search" placeholder="Search a public address, transaction ID, etc..">
+                        <div class="input-group-button">
+                            <input type="submit" id="factom-search-submit" class="button dark" value="Go">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <section id="local">
+            <div class="row">
+                <div class="columns">
+                    <h1>Your Node <small>v2.1 <a href="#">(Upgrade Available)</a></small></h1>
+                </div>
+            </div>
+            <div class="row">
+                <div class="large-3 medium-4 small-12 columns">
+                    <div class="metric">
+                        <label for="nodeHeight">Block Height:</label>
+                        <input type="text" id="nodeHeight" name="nodeHeight" disabled="true" value="0">
+                    </div>
+                    <div class="metric">
+                        <label for="syncFirst">Node Sync Status (1st pass):</label>
+                        <div id="syncFirst" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="100 percent" aria-valuemax="100">
+                            <span class="progress-meter" style="width: 100%">
+                                <p id="testing" class="progress-meter-text">100% Synced (0 of 0)</p>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <label for="syncSecond">Node Sync Status (2nd pass):</label>
+                        <div id="syncSecond" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="84 percent" aria-valuemax="100">
+                            <span class="progress-meter" style="width: 84%">
+                                <p class="progress-meter-text">23,554 of 28,123</p>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <label for="ipQual">Peer IP Quality:</label>
+                        <div id="ipQual" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="68 percent" aria-valuemax="100">
+                            <span class="progress-meter medium" style="width: 68%">
+                                <p class="progress-meter-text">6.8 of 10</p>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="large-8 medium-7 small-12 columns">
+                    <div class="metric">
+                        <label for="peerList">Peers:</label>
+                        <table id="peerList">
+                            <thead>
+                                <tr>
+                                    <th>IP</th>
+                                    <th>In/Out</th>
+                                    <th>Quality</th>
+                                    <th>Height</th>
+                                    <th>Up</th>
+                                    <th>Down</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>59.19.1.130</td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td>59.19.1.130</td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td>59.19.1.130</td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td>59.19.1.130</td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td>59.19.1.130</td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td>59.19.1.130</td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td>59.19.1.130</td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>TOTAL/AVG</td>
+                                    <td></td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="columns">
+                    <div class="metric">
+                        <label for="traxList">Your Recent Transactions &amp; Status:</label>
+                        <table id="traxList">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Status</th>
+                                    <th>Process List</th>
+                                    <th>Sent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>5c4f57763b33de</td>
+                                    <td>Unconfirmed</td>
+                                    <td>4</td>
+                                    <td>2016-06-02 16:32</td>
+                                </tr>
+                                <tr>
+                                    <td>5c4f57763b33de</td>
+                                    <td>Unconfirmed</td>
+                                    <td>7</td>
+                                    <td>2016-06-02 16:32</td>
+                                </tr>
+                                <tr>
+                                    <td>5c4f57763b33de</td>
+                                    <td>Confirmed</td>
+                                    <td>1</td>
+                                    <td>2016-06-02 16:32</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div id="changeme"></div>
+        <form action=/post id="test_form" action="post">
+          <input type=text name=textfield />
+          <input type=submit />
+        </form>
+
+        <button id="Test_Button" onclick="getHeight()" >Test Button</button>
+        
+        <script src="js/vendor/jquery.js"></script>
+        <script src="js/vendor/what-input.js"></script>
+        <script src="js/vendor/foundation.min.js"></script>
+        <script src="js/app.js"></script>
+        <script src="js/factomd-ajax.js"></script>
+        <script src="js/controlPanel.js"></script>
+    </body>
+</html>
