@@ -236,7 +236,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
-	if dbstatemsg.DirectoryBlock.GetDatabaseHeight() < s.GetHighestRecordedBlock() {
+	if s.GetDBState(dbstatemsg.DirectoryBlock.GetDatabaseHeight()) != nil {
 		return
 	}
 
