@@ -163,10 +163,10 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if list.Complete >= plHeight-2 {
+		if list.Complete+list.Base >= plHeight-1 {
 			return
 		}
-		fmt.Println("Justin list.Complete:", list.Complete, "plHeight:", plHeight)
+		fmt.Println("Justin list.Complete:", list.Complete, "list.Base:", list.Base, "plHeight:", plHeight)
 	}
 
 	list.Lastreq = begin
