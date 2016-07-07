@@ -60,4 +60,5 @@ type IECBlockEntry interface {
 	GetHash() IHash
 	GetEntryHash() IHash
 	GetSigHash() IHash
+	GetTimestamp() Timestamp
 }
