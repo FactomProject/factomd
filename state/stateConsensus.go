@@ -27,16 +27,21 @@ var _ = (*hash.Hash32)(nil)
 //
 // Returns true if some message was processed.
 //***************************************************************
-func (s *State) NewMinute() {
+func (s *State) ReviewHolding() {
 	// Anything we are holding, we need to reprocess.
+	s.XReview = append(make([]interfaces.IMsg, 0), s.XReview...)
 	for k := range s.Holding {
 		v := s.Holding[k]
 		if v.Resend() < 40 {
-			s.networkOutMsgQueue <- v
 			v.ComputeVMIndex(s)
-			s.XReview = append(s.XReview, v)
+			s.networkOutMsgQueue <- v
+			if v.GetVMIndex() == s.LeaderVMIndex {
+				s.XReview = append(s.XReview, v)
+				delete(s.Holding, k)
+			}
+		} else {
+			delete(s.Holding, k)
 		}
-		delete(s.Holding, k)
 	}
 }
 
@@ -118,6 +123,9 @@ func (s *State) ProcessQueues() (progress bool) {
 	case msg := <-s.msgQueue:
 		if executeMsg(msg) {
 			s.networkOutMsgQueue <- msg
+		}
+		if s.Leader {
+			s.ReviewHolding()
 		}
 	default:
 	}
@@ -438,14 +446,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	msg := m.(*messages.RevealEntryMsg)
 	myhash := msg.Entry.GetHash()
 
-	if m.Validate(s) != 1 {
-		commit := s.NextCommit(myhash)
-		if commit == nil {
-			return false
-		}
-		return s.ProcessRevealEntry(dbheight, m)
-	}
-
 	chainID := msg.Entry.GetChainID()
 
 	s.NextCommit(myhash)
@@ -512,18 +512,23 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	e := msg.(*messages.EOM)
 
-	if s.EOM && int(e.Minute) > s.EOMMinute {
-		return false
-	}
-
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && s.EOMProcessed > 0 {
 		s.EOMProcessed--
 		if s.EOMProcessed == 0 {
+			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 			s.EOM = false
+			s.EOMDone = false
+			s.ReviewHolding()
+			s.Syncing = false
 		}
 		return true
+	}
+
+	if s.EOM && int(e.Minute) > s.EOMMinute {
+		return false
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
@@ -535,7 +540,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOM = true
 		s.EOMMinute = int(e.Minute)
 		s.EOMsyncing = true
-		s.EOMDone = false
 		s.EOMProcessed = 0
 
 		for _, vm := range pl.VMs {
@@ -557,7 +561,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// we do any cleanup required, for all VMs for this EOM
 	if s.EOMProcessed == len(pl.FedServers) && !s.EOMDone {
 
-		s.Syncing = false
 		s.EOMDone = true
 		s.FactoidState.EndOfPeriod(int(e.Minute))
 
@@ -583,7 +586,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		case s.CurrentMinute > 0:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-			s.NewMinute()
 		case s.CurrentMinute == 0:
 			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			dbht := int(dbstate.DirectoryBlock.GetHeader().GetDBHeight())
@@ -677,7 +679,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			dbstate.ReadyToSave = true
 			s.DBStates.SaveDBStateToDB(dbstate)
 		}
-		s.NewMinute()
+		s.ReviewHolding()
 		s.Saving = false
 		s.DBSigDone = true
 		s.DBSig = false
