@@ -153,7 +153,7 @@ func (s *State) AddDBState(isNew bool,
 		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
 	}
-	if ht == 0 && s.GetDirectoryBlockByHeight(ht) == nil {
+	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
 	}
 
@@ -237,10 +237,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 	dheight := dbstatemsg.DirectoryBlock.GetDatabaseHeight()
 	fmt.Println("Justin FollExDBS", dheight)
-
-	if s.GetDBState(dheight) != nil {
-		return
-	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
 	dbstate := s.AddDBState(false, // Not a new block; got it from the network
