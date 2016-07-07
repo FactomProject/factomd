@@ -272,14 +272,18 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
 
+	fmt.Println("Justin ProcessBlocks finished:", d.String())
 	return
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
+	fmt.Println("Justin SaveDBStateToDB:", d.String())
 
 	if !d.Locked || !d.ReadyToSave {
 		return
 	}
+
+	fmt.Println("Justin SaveDBStateToDB1:", d.String())
 
 	if d.Saved {
 		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
@@ -289,6 +293,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
+		fmt.Println("Justin SaveDBStateToDB .Saved:", d.String())
 		return
 	}
 
