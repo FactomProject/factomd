@@ -150,6 +150,9 @@ func (s *State) AddDBState(isNew bool,
 	s.DBStates.Put(dbState)
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
+		s.Syncing = false
+		s.EOM = false
+		s.DBSig = false
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
