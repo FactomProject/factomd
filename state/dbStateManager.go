@@ -215,8 +215,8 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetFullHash().Bytes())
+	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerMR())
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())

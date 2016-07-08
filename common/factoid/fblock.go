@@ -458,18 +458,16 @@ func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
 	return b.PrevKeyMR
 }
 
-func (b *FBlock) SetPrevKeyMR(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevKeyMR = h
+func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
+	b.PrevKeyMR = hash
 }
 
 func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
 	return b.PrevLedgerKeyMR
 }
 
-func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevLedgerKeyMR = h
+func (b *FBlock) SetPrevLedgerKeyMR(hash interfaces.IHash) {
+	b.PrevLedgerKeyMR = hash
 }
 
 func (b *FBlock) CalculateHashes() {
@@ -750,7 +748,7 @@ func CheckBlockPairIntegrity(block interfaces.IFBlock, prev interfaces.IFBlock) 
 			return fmt.Errorf("Invalid DBHeight")
 		}
 	} else {
-		if block.GetPrevKeyMR().IsSameAs(prev.GetHash()) == false {
+		if block.GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
 			return fmt.Errorf("Invalid PrevKeyMR")
 		}
 		if block.GetPrevLedgerKeyMR().IsSameAs(prev.GetLedgerMR()) == false {
