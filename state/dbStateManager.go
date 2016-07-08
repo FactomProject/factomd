@@ -170,7 +170,6 @@ func (list *DBStateList) Catchup() {
 			}
 		}
 
-		fmt.Println("Justin begin:", begin)
 	}
 
 	list.Lastreq = begin
