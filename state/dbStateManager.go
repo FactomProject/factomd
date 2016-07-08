@@ -207,6 +207,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	hash, _ = p.EntryCreditBlock.GetFullHash()
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 
 	hash = p.AdminBlock.GetHash()
 
@@ -316,6 +317,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 		panic(err.Error())
 	}
+	fmt.Printf("ProcessECBlockMultiBatch - %v", d.EntryCreditBlock.String())
 	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 	if pl != nil {
 		for _, eb := range pl.NewEBlocks {
