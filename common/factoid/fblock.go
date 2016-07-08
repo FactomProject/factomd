@@ -733,3 +733,33 @@ func NewFBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	}
 	return scb
 }
+
+func CheckBlockPairIntegrity(block interfaces.IFBlock, prev interfaces.IFBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
+	}
+
+	if prev == nil {
+		if block.GetPrevKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		if block.GetPrevKeyMR().IsSameAs(prev.GetHash()) == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsSameAs(prev.GetLedgerMR()) == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != (prev.GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
+}

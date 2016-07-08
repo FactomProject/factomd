@@ -326,15 +326,12 @@ func NewAdminBlock(prev interfaces.IAdminBlock) interfaces.IAdminBlock {
 	return block
 }
 
-func CheckBlockPairIntegrity(block interfaces.IDirectoryBlock, prev interfaces.IDirectoryBlock) error {
+func CheckBlockPairIntegrity(block interfaces.IAdminBlock, prev interfaces.IAdminBlock) error {
 	if block == nil {
-		return fmt.Errorf("no Block specified")
+		return fmt.Errorf("No block specified")
 	}
 
 	if prev == nil {
-		if block.GetHeader().GetPrevKeyMR().IsZero() == false {
-			return fmt.Errorf("Invalid PrevKeyMR")
-		}
 		if block.GetHeader().GetPrevFullHash().IsZero() == false {
 			return fmt.Errorf("Invalid PrevFullHash")
 		}
@@ -342,10 +339,7 @@ func CheckBlockPairIntegrity(block interfaces.IDirectoryBlock, prev interfaces.I
 			return fmt.Errorf("Invalid DBHeight")
 		}
 	} else {
-		if block.GetHeader().GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
-			return fmt.Errorf("Invalid PrevKeyMR")
-		}
-		if block.GetHeader().GetPrevFullHash().IsSameAs(prev.GetFullHash()) == false {
+		if block.GetHeader().GetPrevFullHash().IsSameAs(prev.GetHash()) == false {
 			return fmt.Errorf("Invalid PrevFullHash")
 		}
 		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
