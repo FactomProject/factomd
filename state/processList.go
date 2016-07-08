@@ -77,7 +77,7 @@ func (p *ProcessList) Complete() bool {
 		if vm.LeaderMinute < 10 {
 			return false
 		}
-		if vm.Height != len(vm.List) {
+		if vm.Height < len(vm.List) {
 			return false
 		}
 	}
@@ -318,14 +318,14 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	if thetime == 0 {
 		thetime = now
 	}
-	if now-thetime > waitSeconds {
+	if now-thetime >= waitSeconds {
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 		}
 		thetime = now
 	}
-	if p.State.Leader && now-thetime > waitSeconds+2 {
+	if p.State.Leader && now-thetime >= waitSeconds+2 {
 		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 		if sf != nil {
@@ -390,7 +390,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd his Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 					fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
-					fmt.Println(p.PrintMap())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
@@ -454,8 +453,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			return
 		}
 
-		fmt.Println(p.String())
-		fmt.Println(p.PrintMap())
 		fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
 		fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
 		fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())

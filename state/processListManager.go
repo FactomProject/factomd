@@ -36,7 +36,10 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	}
 
 	pl := lists.Get(dbheight)
-
+	for pl.Complete() {
+		dbheight++
+		pl = lists.Get(dbheight)
+	}
 	return pl.Process(lists.State)
 
 }

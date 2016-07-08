@@ -99,11 +99,13 @@ type State struct {
 	EOMsyncing bool
 
 	EOM          bool // Set to true when the first EOM is encountered
+	EOMLimit     int
 	EOMProcessed int
 	EOMDone      bool
 	EOMMinute    int
 
 	DBSig          bool
+	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
 
@@ -724,9 +726,11 @@ func (s *State) UpdateState() (progress bool) {
 
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
-
-	if plbase <= dbheight+1 {
-		progress = s.ProcessLists.UpdateState(dbheight + 1)
+	if dbheight == 0 {
+		dbheight++
+	}
+	if plbase <= dbheight {
+		progress = s.ProcessLists.UpdateState(dbheight)
 	}
 
 	p2 := s.DBStates.UpdateState()
@@ -1111,11 +1115,12 @@ func (s *State) SetString() {
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v Syncing %5v ",
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v EOMDone %5v Syncing %5v ",
 		lmin,
 		s.CurrentMinute,
 		s.LLeaderHeight,
-		s.EOMsyncing,
+		s.EOM,
+		s.EOMDone,
 		s.Syncing)
 
 	str = str + fmt.Sprintf("EOMCnt %5d DBSCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
