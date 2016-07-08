@@ -7,6 +7,7 @@ package directoryBlock
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -43,10 +44,7 @@ func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int)
 }
 
 func (c *DirectoryBlock) SetABlockHash(aBlock interfaces.IAdminBlock) error {
-	hash, err := aBlock.PartialHash()
-	if err != nil {
-		return err
-	}
+	hash := aBlock.GetHash()
 	c.SetEntryHash(hash, aBlock.GetChainID(), 0)
 	return nil
 }

@@ -163,9 +163,14 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if list.Complete >= plHeight-2 {
-			return
+		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
+			begin++
+			if uint32(begin) >= plHeight || begin > end {
+				return
+			}
 		}
+
+		fmt.Println("Justin begin:", begin)
 	}
 
 	list.Lastreq = begin
@@ -202,6 +207,8 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	hash, _ = p.EntryCreditBlock.GetFullHash()
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+
+	hash = p.AdminBlock.GetHash()
 
 	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
 
@@ -243,7 +250,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
-	if d.isNew || d.Locked {
+	if d.Locked {
 		return
 	}
 

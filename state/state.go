@@ -517,6 +517,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if dblk == nil {
 		return nil, nil
 	}
+
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
 		return nil, err
