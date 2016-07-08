@@ -365,7 +365,7 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
  * Support
  *********************************************************************/
 
-func NewDirectoryBlock(prev *DirectoryBlock) interfaces.IDirectoryBlock {
+func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlock {
 	newdb := new(DirectoryBlock)
 
 	newdb.Header = new(DBlockHeader)

@@ -59,7 +59,7 @@ func LoadDatabase(s *State) {
 		s.Println("******* New Database **************")
 		s.Println("***********************************\n")
 
-		dblk := directoryBlock.NewDirectoryBlock(0, nil)
+		dblk := directoryBlock.NewDirectoryBlock(nil)
 		ablk := adminBlock.NewAdminBlock(nil)
 		fblk := factoid.GetGenesisFBlock()
 		ecblk := entryCreditBlock.NewECBlock()

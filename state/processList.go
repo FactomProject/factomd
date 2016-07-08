@@ -583,12 +583,11 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 
-	s := state.(*State)
 	var err error
 
-	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
+	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(previous.DirectoryBlock)
 	pl.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
-	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
 
 	pl.ResetDiffSigTally()
 

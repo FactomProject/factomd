@@ -6,10 +6,8 @@ package state
 
 import (
 	"fmt"
-
 	"hash"
 
-	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
