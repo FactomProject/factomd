@@ -1,20 +1,19 @@
 package state
 
 import (
-	"fmt"
-
 	"bytes"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"fmt"
 	"log"
-
 	"time"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 var _ = fmt.Print
@@ -588,7 +587,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	var err error
 
 	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
-	pl.AdminBlock = s.NewAdminBlock(dbheight)
+	pl.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
 	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
 
 	pl.ResetDiffSigTally()

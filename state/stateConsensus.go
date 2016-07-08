@@ -813,23 +813,6 @@ func (s *State) ComputeVMIndex(hash []byte) int {
 	return s.LeaderPL.VMIndexFor(hash)
 }
 
-func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
-	ab := new(adminBlock.AdminBlock)
-	ab.Header = s.NewAdminBlockHeader(dbheight)
-	return ab
-}
-
-func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
-	header := new(adminBlock.ABlockHeader)
-	header.DBHeight = dbheight
-	header.PrevFullHash = primitives.NewHash(constants.ZERO_HASH)
-	header.HeaderExpansionSize = 0
-	header.HeaderExpansionArea = make([]byte, 0)
-	header.MessageCount = 0
-	header.BodySize = 0
-	return header
-}
-
 func (s *State) GetNetworkName() string {
 	return (s.Cfg.(util.FactomdConfig)).App.Network
 

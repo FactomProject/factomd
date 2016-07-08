@@ -116,14 +116,8 @@ func (c *AdminBlock) SetABEntries(abentries []interfaces.IABEntry) {
 	c.ABEntries = abentries
 }
 
-func NewAdminBlock() interfaces.IAdminBlock {
-	block := new(AdminBlock)
-	block.Header = new(ABlockHeader)
-	return block
-}
-
 func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return NewAdminBlock()
+	return NewAdminBlock(nil)
 }
 
 func (c *AdminBlock) GetDatabaseHeight() uint32 {
@@ -229,7 +223,7 @@ func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 }
 
 func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
-	block := NewAdminBlock()
+	block := NewAdminBlock(nil)
 	err := block.UnmarshalBinary(data)
 	if err != nil {
 		return nil, err
@@ -314,4 +308,50 @@ func (e *AdminBlock) JSONString() (string, error) {
 
 func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+/*********************************************************************
+ * Support
+ *********************************************************************/
+
+func NewAdminBlock(prev interfaces.IAdminBlock) interfaces.IAdminBlock {
+	block := new(AdminBlock)
+	block.Header = new(ABlockHeader)
+	if prev != nil {
+		block.Header.SetPrevFullHash(primitives.NewZeroHash())
+		block.Header.SetDBHeight(prev.GetDBHeight() + 1)
+	} else {
+		block.Header.SetPrevFullHash(primitives.NewZeroHash())
+	}
+	return block
+}
+
+func CheckBlockPairIntegrity(block interfaces.IDirectoryBlock, prev interfaces.IDirectoryBlock) error {
+	if block == nil {
+		return fmt.Errorf("no Block specified")
+	}
+
+	if prev == nil {
+		if block.GetHeader().GetPrevKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetHeader().GetPrevFullHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		if block.GetHeader().GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetHeader().GetPrevFullHash().IsSameAs(prev.GetFullHash()) == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }
