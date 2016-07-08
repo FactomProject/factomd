@@ -370,15 +370,17 @@ func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlo
 
 	newdb.Header = new(DBlockHeader)
 	newdb.Header.SetVersion(constants.VERSION_0)
-	newdb.Header.SetPrevFullHash(primitives.NewZeroHash())
-	newdb.Header.SetPrevKeyMR(primitives.NewZeroHash())
 
 	if prev != nil {
 		newdb.GetHeader().SetPrevFullHash(prev.GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
+		newdb.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+	} else {
+		newdb.Header.SetPrevFullHash(primitives.NewZeroHash())
+		newdb.Header.SetPrevKeyMR(primitives.NewZeroHash())
+		newdb.GetHeader().SetDBHeight(0)
 	}
 
-	newdb.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
 	newdb.SetDBEntries(make([]interfaces.IDBEntry, 0))
 
 	newdb.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())

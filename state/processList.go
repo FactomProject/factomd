@@ -585,9 +585,15 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	var err error
 
-	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(previous.DirectoryBlock)
-	pl.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
-	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
+	if previous != nil {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(previous.DirectoryBlock)
+		pl.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
+	} else {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
+		pl.AdminBlock = adminBlock.NewAdminBlock(nil)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	}
 
 	pl.ResetDiffSigTally()
 
