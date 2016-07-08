@@ -71,6 +71,34 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 	*/
 }
 
+func TestAdminBlockHash(t *testing.T) {
+	block := new(AdminBlock)
+	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000A8D665EE36947529E660101ADF2D2A7D7CA0B045F7932E76F86409AE0CA9123B000000005000000000000000000")
+	_, err := block.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fullHash, err := block.FullHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	partialHash, err := block.PartialHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Current hashes - %s, %s", fullHash.String(), partialHash.String())
+
+	if fullHash.String() != "9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d" {
+		t.Error("Invalid fullHash")
+	}
+	if partialHash.String() != "f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5" {
+		t.Error("Invalid partialHash")
+	}
+}
+
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
 
