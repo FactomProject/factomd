@@ -390,7 +390,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd his Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 					fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
-					fmt.Println(p.PrintMap())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
@@ -454,8 +453,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			return
 		}
 
-		fmt.Println(p.String())
-		fmt.Println(p.PrintMap())
 		fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
 		fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
 		fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())

@@ -238,7 +238,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
-	if d.isNew || d.Locked {
+	if d.Locked {
 		return
 	}
 

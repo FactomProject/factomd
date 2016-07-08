@@ -130,6 +130,13 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 		}
 	}
+	for k := range s.Acks {
+		v := s.Acks[k].(*messages.Ack)
+		if v.DBHeight < s.LLeaderHeight {
+			delete(s.Acks, k)
+		}
+	}
+
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -507,20 +514,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	if s.EOMDone && s.EOMProcessed > 0 {
 		s.EOMProcessed--
 		if s.EOMProcessed == 0 {
-			s.FactoidState.EndOfPeriod(int(e.Minute))
-
-			// Add EOM to the EBlocks.  We only do this once, so
-			// we piggy back on the fact that we only do the FactoidState
-			// EndOfPeriod once too.
-
-			for _, eb := range pl.NewEBlocks {
-				eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
-			}
-
-			ecblk := pl.EntryCreditBlock
-			ecbody := ecblk.GetBody()
-			mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
-			ecbody.AddEntry(mn)
 
 			s.CurrentMinute++
 			if s.CurrentMinute > 9 {
@@ -601,7 +594,18 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+
 		s.EOMDone = true
+		for _, eb := range pl.NewEBlocks {
+			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
+		}
+
+		s.FactoidState.EndOfPeriod(int(e.Minute))
+
+		ecblk := pl.EntryCreditBlock
+		ecbody := ecblk.GetBody()
+		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
+		ecbody.AddEntry(mn)
 	}
 
 	return false
