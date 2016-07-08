@@ -97,6 +97,17 @@ func TestAdminBlockHash(t *testing.T) {
 	if partialHash.String() != "f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5" {
 		t.Error("Invalid partialHash")
 	}
+
+	j, err := block.JSONString()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if strings.Contains(j, `"FullHash":"9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d"`) == false {
+		t.Errorf("JSON printout does not contain the full hash - %v", j)
+	}
+	if strings.Contains(j, `"PartialHash":"f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5"`) == false {
+		t.Errorf("JSON printout does not contain the full hash - %v", j)
+	}
 }
 
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
