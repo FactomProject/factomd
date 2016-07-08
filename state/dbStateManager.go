@@ -165,7 +165,7 @@ func (list *DBStateList) Catchup() {
 
 		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
 			begin++
-			if uint32(begin) >= plHeight-1 {
+			if uint32(begin) >= plHeight || begin > end {
 				return
 			}
 		}
