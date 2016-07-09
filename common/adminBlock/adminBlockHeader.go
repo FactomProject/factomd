@@ -7,7 +7,9 @@ package adminBlock
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -159,4 +161,18 @@ func (e *ABlockHeader) JSONString() (string, error) {
 
 func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+type ExpandedABlockHeader ABlockHeader
+
+func (e ABlockHeader) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedABlockHeader
+		AdminChainID string
+		ChainID      string
+	}{
+		ExpandedABlockHeader: ExpandedABlockHeader(e),
+		AdminChainID:         "000000000000000000000000000000000000000000000000000000000000000a",
+		ChainID:              "000000000000000000000000000000000000000000000000000000000000000a",
+	})
 }

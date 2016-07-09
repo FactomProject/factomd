@@ -106,26 +106,25 @@ func (c *CommitEntry) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
-// Return the timestamp in milliseconds.
-func (c *CommitEntry) GetMilliTime() int64 {
+// Return the timestamp
+func (c *CommitEntry) GetTimestamp() interfaces.Timestamp {
 	a := make([]byte, 2, 8)
 	a = append(a, c.MilliTime[:]...)
-	milli := int64(binary.BigEndian.Uint64(a))
-	return milli
+	milli := uint64(binary.BigEndian.Uint64(a))
+	return primitives.NewTimestampFromMilliseconds(milli)
 }
 
 // InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
 // whitin +/- 12 hours of the current time.
 func (c *CommitEntry) InTime() bool {
 	now := time.Now()
-	sec := c.GetMilliTime() / 1000
+	sec := c.GetTimestamp().GetTimeSeconds()
 	t := time.Unix(sec, 0)
 
 	return t.After(now.Add(-constants.COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(constants.COMMIT_TIME_WINDOW*time.Hour))
 }
 
 func (c *CommitEntry) IsValid() bool {
-
 	//double check the credits in the commit
 	if c.Credits < 1 || c.Version != 0 {
 		return false

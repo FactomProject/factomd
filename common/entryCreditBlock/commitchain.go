@@ -111,12 +111,12 @@ func (c *CommitChain) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
-// Return the timestamp in milliseconds.
-func (c *CommitChain) GetMilliTime() int64 {
+// Return the timestamp
+func (c *CommitChain) GetTimestamp() interfaces.Timestamp {
 	a := make([]byte, 2, 8)
 	a = append(a, c.MilliTime[:]...)
-	milli := int64(binary.BigEndian.Uint64(a))
-	return milli
+	milli := uint64(binary.BigEndian.Uint64(a))
+	return primitives.NewTimestampFromMilliseconds(milli)
 }
 
 func (c *CommitChain) IsValid() bool {

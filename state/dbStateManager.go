@@ -7,10 +7,11 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
-	"time"
 )
 
 var _ = hex.EncodeToString
@@ -161,6 +162,10 @@ func (list *DBStateList) Catchup() {
 		} else {
 			return
 		}
+
+		if list.Complete >= plHeight-2 {
+			return
+		}
 	}
 
 	list.Lastreq = begin
@@ -203,7 +208,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-	d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetFullHash().Bytes())
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
@@ -427,10 +432,6 @@ searchLoop:
 	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
 	}
-
-	dbState.DirectoryBlock.SetABlockHash(dbState.AdminBlock)
-	dbState.DirectoryBlock.SetECBlockHash(dbState.EntryCreditBlock)
-	dbState.DirectoryBlock.SetFBlockHash(dbState.FactoidBlock)
 }
 
 func (list *DBStateList) Get(height int) *DBState {

@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/directoryBlock"
@@ -318,3 +319,15 @@ func TestDBlockTimestamp(t *testing.T) {
 
 }
 */
+
+func TestExpandedDBlockHeader(t *testing.T) {
+	block := createTestDirectoryBlock()
+	j, err := block.JSONString()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000d"`) {
+		t.Error("Header does not contain ChainID")
+	}
+}

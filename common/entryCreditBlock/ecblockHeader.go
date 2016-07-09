@@ -7,14 +7,15 @@ package entryCreditBlock
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type ECBlockHeader struct {
-	ECChainID           interfaces.IHash
 	BodyHash            interfaces.IHash
 	PrevHeaderHash      interfaces.IHash
 	PrevFullHash        interfaces.IHash
@@ -29,7 +30,7 @@ var _ interfaces.Printable = (*ECBlockHeader)(nil)
 
 func (e *ECBlockHeader) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECChainID", e.ECChainID.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECChainID", e.GetECChainID().Bytes()[:3]))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "BodyHash", e.BodyHash.Bytes()[:3]))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "PrevHeaderHash", e.PrevHeaderHash.Bytes()[:3]))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "PrevFullHash", e.PrevFullHash.Bytes()[:3]))
@@ -69,23 +70,21 @@ func (e *ECBlockHeader) SetBodyHash(prev interfaces.IHash) {
 	e.BodyHash = prev
 }
 
-func (e *ECBlockHeader) GetBodyHash() (prev interfaces.IHash) {
+func (e *ECBlockHeader) GetBodyHash() interfaces.IHash {
 	return e.BodyHash
 }
 
-func (e *ECBlockHeader) SetECChainID(prev interfaces.IHash) {
-	e.ECChainID = prev
-}
-
-func (e *ECBlockHeader) GetECChainID() (prev interfaces.IHash) {
-	return e.ECChainID
+func (e *ECBlockHeader) GetECChainID() interfaces.IHash {
+	h := primitives.NewZeroHash()
+	h.SetBytes(constants.EC_CHAINID)
+	return h
 }
 
 func (e *ECBlockHeader) SetPrevHeaderHash(prev interfaces.IHash) {
 	e.PrevHeaderHash = prev
 }
 
-func (e *ECBlockHeader) GetPrevHeaderHash() (prev interfaces.IHash) {
+func (e *ECBlockHeader) GetPrevHeaderHash() interfaces.IHash {
 	return e.PrevHeaderHash
 }
 
@@ -93,7 +92,7 @@ func (e *ECBlockHeader) SetPrevFullHash(prev interfaces.IHash) {
 	e.PrevFullHash = prev
 }
 
-func (e *ECBlockHeader) GetPrevFullHash() (prev interfaces.IHash) {
+func (e *ECBlockHeader) GetPrevFullHash() interfaces.IHash {
 	return e.PrevFullHash
 }
 
@@ -107,8 +106,6 @@ func (e *ECBlockHeader) GetDBHeight() (height uint32) {
 
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
-	h.ECChainID = primitives.NewZeroHash()
-	h.ECChainID.SetBytes(constants.EC_CHAINID)
 	h.BodyHash = primitives.NewZeroHash()
 	h.PrevHeaderHash = primitives.NewZeroHash()
 	h.PrevFullHash = primitives.NewZeroHash()
@@ -183,7 +180,10 @@ func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err er
 	if _, err = buf.Read(hash); err != nil {
 		return
 	} else {
-		e.ECChainID.SetBytes(hash)
+		if fmt.Sprintf("%x", hash) != "000000000000000000000000000000000000000000000000000000000000000c" {
+			err = fmt.Errorf("Invalid ChainID - %x", hash)
+			return
+		}
 	}
 
 	if _, err = buf.Read(hash); err != nil {
@@ -231,4 +231,18 @@ func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err er
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {
 	_, err := e.UnmarshalBinaryData(data)
 	return err
+}
+
+type ExpandedECBlockHeader ECBlockHeader
+
+func (e ECBlockHeader) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedECBlockHeader
+		ChainID   string
+		ECChainID string
+	}{
+		ExpandedECBlockHeader: ExpandedECBlockHeader(e),
+		ChainID:               "000000000000000000000000000000000000000000000000000000000000000c",
+		ECChainID:             "000000000000000000000000000000000000000000000000000000000000000c",
+	})
 }
