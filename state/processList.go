@@ -185,19 +185,20 @@ func (p *ProcessList) PrintMap() string {
 
 	n := len(p.FedServers)
 	prt := fmt.Sprintf("===PrintMapStart=== %d\n", p.DBHeight)
-	prt = prt + " min"
+	prt = prt + fmt.Sprintf("dddd %s minute map:  s.LeaderVMIndex %d pl.dbht %d  s.dbht %d s.EOM %v\ndddd     ",
+		p.State.FactomNodeName, p.State.LeaderVMIndex, p.DBHeight, p.State.LLeaderHeight, p.State.EOM)
 	for i := 0; i < n; i++ {
 		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
-	prt = prt + "\n"
+	prt = prt + "\ndddd "
 	for i := 0; i < 10; i++ {
 		prt = fmt.Sprintf("%s%3d  ", prt, i)
 		for j := 0; j < len(p.FedServers); j++ {
 			prt = fmt.Sprintf("%s%2d ", prt, p.ServerMap[i][j])
 		}
-		prt = prt + "\n"
+		prt = prt + "\ndddd "
 	}
-	prt = prt + fmt.Sprintf("===PrintMapEnd=== %d\n", p.DBHeight)
+	prt = prt + fmt.Sprintf("\n===PrintMapEnd=== %d\n", p.DBHeight)
 	return prt
 }
 

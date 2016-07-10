@@ -183,9 +183,6 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
-
-		fmt.Println("dddd ======================Ask for blocks", begin, end2)
-
 		list.State.RunLeader = false
 		list.State.StartDelay = list.State.GetTimestamp()
 		list.State.NetworkOutMsgQueue() <- msg
@@ -369,8 +366,8 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		progress = list.SaveDBStateToDB(d) || progress
 
-		// Make sure the directory block is properly synced up with the prior block, if there
-		// is one.
+		// Make sure we move forward the Adminblock state in the process lists
+		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
 
 	}
 	return
