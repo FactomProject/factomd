@@ -30,9 +30,10 @@ func LoadDatabase(s *State) {
 
 	s.Println("Loading ", blkCnt, " Directory Blocks")
 
-	msg, err := s.LoadDBState(blkCnt)
+	//msg, err := s.LoadDBState(blkCnt)
 
 	for i := 0; true; i++ {
+		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
 			s.Println(err.Error())
 			break
@@ -48,7 +49,6 @@ func LoadDatabase(s *State) {
 				break
 			}
 		}
-		msg, err = s.LoadDBState(uint32(i))
 
 		s.Print("\r", "\\|/-"[i%4:i%4+1])
 	}
