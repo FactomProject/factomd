@@ -244,19 +244,21 @@ func (c *Controller) runloop() {
 
 	for c.keepRunning { // Run until we get the exit command
 		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
-		// Process commands...
-		// verbose("ctrlr", "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
 		for 0 < len(c.commandChannel) {
 			command := <-c.commandChannel
+			significant("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
 			c.handleCommand(command)
 		}
 		// route messages to and from application
-		// verbose("ctrlr", "Controller.runloop() Calling router")
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
 		c.route() // Route messages
 		// Manage peers
-		// verbose("ctrlr", "Controller.runloop() Calling managePeers")
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
 		c.managePeers()
+		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
 		if CurrentLoggingLevel > 0 {
+			significant("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
 			c.networkStatusReport()
 		}
 	}
@@ -492,14 +494,14 @@ func (c *Controller) shutdown() {
 }
 
 func (c *Controller) networkStatusReport() {
-	reportDuration := time.Since(c.lastStatusReport)
-	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
-	if reportDuration > NetworkStatusInterval {
+	durationSinceLastReport := time.Since(c.lastStatusReport)
+	note("ctrlr", "networkStatusReport() NetworkStatusInterval: %s durationSinceLastReport: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), durationSinceLastReport.String(), c.lastStatusReport.String())
+	if durationSinceLastReport > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
-		c.updateConnectionAddressMap()
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")
+		c.updateConnectionAddressMap()
 		silence("ctrlr", "     # Connections: %d", len(c.connections))
 		silence("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
 		silence("ctrlr", "     Command Queue: %d", len(c.commandChannel))
