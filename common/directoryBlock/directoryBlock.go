@@ -44,22 +44,19 @@ func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int)
 }
 
 func (c *DirectoryBlock) SetABlockHash(aBlock interfaces.IAdminBlock) error {
-	hash := aBlock.GetHash()
+	hash := aBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, aBlock.GetChainID(), 0)
 	return nil
 }
 
 func (c *DirectoryBlock) SetECBlockHash(ecBlock interfaces.IEntryCreditBlock) error {
-	hash, err := ecBlock.HeaderHash()
-	if err != nil {
-		return err
-	}
+	hash := ecBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, ecBlock.GetChainID(), 1)
 	return nil
 }
 
 func (c *DirectoryBlock) SetFBlockHash(fBlock interfaces.IFBlock) error {
-	hash := fBlock.GetKeyMR()
+	hash := fBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, fBlock.GetChainID(), 2)
 	return nil
 }

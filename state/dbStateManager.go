@@ -202,14 +202,23 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	d.DirectoryBlock.MarshalBinary()
 
-	hash, _ := p.EntryCreditBlock.HeaderHash()
+	hash, err := p.EntryCreditBlock.HeaderHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
-	hash, _ = p.EntryCreditBlock.GetFullHash()
+	hash, err = p.EntryCreditBlock.GetFullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
 	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 
-	hash = p.AdminBlock.GetHash()
+	hash, err = p.AdminBlock.FullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 
 	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
 
