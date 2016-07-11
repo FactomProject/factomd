@@ -10,6 +10,10 @@
 		MEM[cnt]=$2; 
 		cnt++
 	}
+	simscale = 600/60           # assume 60 second blocks
+	if (blktime>0){
+	    simscale = 600/blktime
+	}
 }
 
 
@@ -18,7 +22,7 @@
 END {
 	scale 	 = 500 / cnt
 	realdays = 10/60/60/24  	   # Value of each data point in real time.
-	simdays  = realdays * 10           # We assume 1 minute blocks;  maybe not a good assumption
+	simdays  = realdays * simscale
 		
 	for (i=0;i<cnt;i++){
 		oldptr = ptr		# Remember the old pointer

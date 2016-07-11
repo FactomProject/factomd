@@ -185,19 +185,20 @@ func (p *ProcessList) PrintMap() string {
 
 	n := len(p.FedServers)
 	prt := fmt.Sprintf("===PrintMapStart=== %d\n", p.DBHeight)
-	prt = prt + " min"
+	prt = prt + fmt.Sprintf("dddd %s minute map:  s.LeaderVMIndex %d pl.dbht %d  s.dbht %d s.EOM %v\ndddd     ",
+		p.State.FactomNodeName, p.State.LeaderVMIndex, p.DBHeight, p.State.LLeaderHeight, p.State.EOM)
 	for i := 0; i < n; i++ {
 		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
-	prt = prt + "\n"
+	prt = prt + "\ndddd "
 	for i := 0; i < 10; i++ {
 		prt = fmt.Sprintf("%s%3d  ", prt, i)
 		for j := 0; j < len(p.FedServers); j++ {
 			prt = fmt.Sprintf("%s%2d ", prt, p.ServerMap[i][j])
 		}
-		prt = prt + "\n"
+		prt = prt + "\ndddd "
 	}
-	prt = prt + fmt.Sprintf("===PrintMapEnd=== %d\n", p.DBHeight)
+	prt = prt + fmt.Sprintf("\n===PrintMapEnd=== %d\n", p.DBHeight)
 	return prt
 }
 
@@ -350,7 +351,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "HT", j, "vm.Height", vm.Height, "len(List)", len(vm.List))
 				vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
 				break VMListLoop
 			}
@@ -366,8 +366,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "Err", err.Error())
-					// cannot create a expectedSerialHash to compare to
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
@@ -402,7 +400,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
-				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "Process returns false", p.State.FactomNodeName, "vm", j, "msg", vm.List[j].String())
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 		}
@@ -415,13 +412,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
-
 	}
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()", p.State.FactomNodeName, "Msg", m.String())
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()", p.State.FactomNodeName, "Ack", ack.String())
+
 	if p == nil {
 		return
 	}
@@ -492,9 +484,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
-
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()+", p.State.FactomNodeName, "Msg", m.String())
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()+", p.State.FactomNodeName, "Ack", ack.String())
 
 }
 
