@@ -60,7 +60,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.Write([]byte(""))
+	w.Write([]byte(`{"Type": "None"}`))
 }
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
