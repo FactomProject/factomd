@@ -37,6 +37,19 @@ var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
 var _ interfaces.IECBlockEntry = (*CommitEntry)(nil)
 var _ interfaces.ISignable = (*CommitEntry)(nil)
 
+func (e *CommitEntry) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitEntry"))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "MilliTime", e.MilliTime))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Credits", e.Credits))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Sig", e.Sig[:3]))
+
+	return (string)(out.DeepCopyBytes())
+}
+
 func (a *CommitEntry) GetEntryHash() interfaces.IHash {
 	return a.EntryHash
 }
@@ -93,26 +106,25 @@ func (c *CommitEntry) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
-// Return the timestamp in milliseconds.
-func (c *CommitEntry) GetMilliTime() int64 {
+// Return the timestamp
+func (c *CommitEntry) GetTimestamp() interfaces.Timestamp {
 	a := make([]byte, 2, 8)
 	a = append(a, c.MilliTime[:]...)
-	milli := int64(binary.BigEndian.Uint64(a))
-	return milli
+	milli := uint64(binary.BigEndian.Uint64(a))
+	return primitives.NewTimestampFromMilliseconds(milli)
 }
 
 // InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
 // whitin +/- 12 hours of the current time.
 func (c *CommitEntry) InTime() bool {
 	now := time.Now()
-	sec := c.GetMilliTime() / 1000
+	sec := c.GetTimestamp().GetTimeSeconds()
 	t := time.Unix(sec, 0)
 
 	return t.After(now.Add(-constants.COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(constants.COMMIT_TIME_WINDOW*time.Hour))
 }
 
 func (c *CommitEntry) IsValid() bool {
-
 	//double check the credits in the commit
 	if c.Credits < 1 || c.Version != 0 {
 		return false
@@ -122,11 +134,6 @@ func (c *CommitEntry) IsValid() bool {
 
 func (c *CommitEntry) GetHash() interfaces.IHash {
 	h, _ := c.MarshalBinary()
-	return primitives.Sha(h)
-}
-
-func (c *CommitEntry) GetTransactionHash() interfaces.IHash {
-	h, _ := c.MarshalBinaryTransaction()
 	return primitives.Sha(h)
 }
 
@@ -321,11 +328,6 @@ func (c *CommitEntry) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}
 
-	err = c.ValidateSignatures()
-	if err != nil {
-		return
-	}
-
 	newData = buf.DeepCopyBytes()
 
 	return
@@ -346,9 +348,4 @@ func (e *CommitEntry) JSONString() (string, error) {
 
 func (e *CommitEntry) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *CommitEntry) String() string {
-	str, _ := e.JSONString()
-	return str
 }

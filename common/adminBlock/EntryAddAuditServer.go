@@ -18,6 +18,12 @@ type AddAuditServer struct {
 var _ interfaces.IABEntry = (*AddAuditServer)(nil)
 var _ interfaces.BinaryMarshallable = (*AddAuditServer)(nil)
 
+func (e *AddAuditServer) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %20s -- %20s %10x %20s %10d\n", "AddAuditServer", "IdentityChainID", e.IdentityChainID.Bytes()[:3], "DBHeight", e.DBHeight))
+	return (string)(out.DeepCopyBytes())
+}
+
 func (c *AddAuditServer) UpdateState(state interfaces.IState) {
 	state.AddAuditServer(c.DBHeight, c.IdentityChainID)
 	state.UpdateAuthorityFromABEntry(c)
@@ -87,11 +93,6 @@ func (e *AddAuditServer) JSONString() (string, error) {
 
 func (e *AddAuditServer) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *AddAuditServer) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *AddAuditServer) IsInterpretable() bool {

@@ -59,6 +59,9 @@ func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
 }
 
 func (m *RevealEntryMsg) GetTimestamp() interfaces.Timestamp {
+	if m.Timestamp == nil {
+		m.Timestamp = new(primitives.Timestamp)
+	}
 	return m.Timestamp
 }
 
@@ -148,12 +151,12 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
-	t := new(interfaces.Timestamp)
+	t := new(primitives.Timestamp)
 	newData, err = t.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	m.Timestamp = *t
+	m.Timestamp = t
 
 	e := entryBlock.NewEntry()
 	newData, err = e.UnmarshalBinaryData(newData)

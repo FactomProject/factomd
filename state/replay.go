@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const numBuckets = 27
+const HourRange = 4                // Double this for the period we protect, i.e. 4 means +/- 4 hours
+const numBuckets = HourRange*2 + 3 // cover an hour each way, and an hour in the middle.
 
 var _ = time.Now()
 var _ = fmt.Print
@@ -37,11 +39,13 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 	systemTimeSeconds := systemtime.GetTimeSeconds()
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
-	if timeSeconds-systemTimeSeconds > 60*60*12 || systemTimeSeconds-timeSeconds > 60*60*12 {
+	if hours(timeSeconds-systemTimeSeconds) > HourRange || hours(systemTimeSeconds-timeSeconds) > HourRange {
+		fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
 		return -1, false
 	}
 
 	now := hours(systemTimeSeconds)
+	t := hours(timeSeconds)
 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -53,7 +57,7 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 
 	if r.center == 0 {
 		r.center = now
-		r.basetime = now - (numBuckets / 2)
+		r.basetime = now - (numBuckets / 2) + 1
 	}
 	for r.center < now {
 		copy(r.buckets[:], r.buckets[1:])
@@ -62,10 +66,10 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 		r.basetime++
 	}
 
-	t := hours(timeSeconds)
+	// Just take the time of the thing in hours less the basetime to get the index.
 	index = t - r.basetime
+
 	if index < 0 || index >= numBuckets {
-		fmt.Println("dddd Timestamp false on time:", index)
 		return 0, false
 	}
 
@@ -86,7 +90,7 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 // this code remembers hashes tested in the past, and rejects the
 // second submission of the same hash.
 func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces.Timestamp) bool {
-	return r.IsTSValid_(mask, hash.Fixed(), timestamp, *interfaces.NewTimestampNow())
+	return r.IsTSValid_(mask, hash.Fixed(), timestamp, primitives.NewTimestampNow())
 }
 
 // To make the function testable, the logic accepts the current time

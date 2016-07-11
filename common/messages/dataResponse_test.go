@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
@@ -53,7 +54,7 @@ func TestMarshalUnmarshalDataResponse(t *testing.T) {
 
 func newDataResponseEntry() *DataResponse {
 	dr := new(DataResponse)
-	dr.Timestamp.SetTimeNow()
+	dr.Timestamp = primitives.NewTimestampNow()
 	dr.DataType = 0
 	entry := testHelper.CreateFirstTestEntry()
 	dr.DataObject = entry
@@ -63,7 +64,7 @@ func newDataResponseEntry() *DataResponse {
 
 func newDataResponseEntryBlock() *DataResponse {
 	dr := new(DataResponse)
-	dr.Timestamp.SetTimeNow()
+	dr.Timestamp = primitives.NewTimestampNow()
 	dr.DataType = 1
 	entry, _ := testHelper.CreateTestEntryBlock(nil)
 	dr.DataObject = entry

@@ -30,7 +30,7 @@ func (a *InvalidDirectoryBlock) IsSameAs(b *InvalidDirectoryBlock) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -117,6 +117,7 @@ func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

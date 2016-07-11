@@ -37,6 +37,7 @@ func Start(state interfaces.IState) {
 
 	if Servers[state.GetPort()] == nil {
 		server = web.NewServer()
+
 		Servers[state.GetPort()] = server
 		server.Env["state"] = state
 
@@ -189,8 +190,8 @@ func HandleCommitEntry(ctx *web.Context) {
 
 func HandleRevealEntry(ctx *web.Context) {
 	ServersMutex.Lock()
-
 	defer ServersMutex.Unlock()
+
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
 	type revealentry struct {
@@ -403,7 +404,6 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 }
 
 func HandleChainHead(ctx *web.Context, chainid string) {
-
 	ServersMutex.Lock()
 	defer ServersMutex.Unlock()
 
@@ -516,11 +516,11 @@ func HandleFactoidSubmit(ctx *web.Context) {
 }
 
 func HandleFactoidBalance(ctx *web.Context, address string) {
-
 	type x struct {
 		Response string
 		Success  bool
 	}
+
 	ServersMutex.Lock()
 	defer ServersMutex.Unlock()
 

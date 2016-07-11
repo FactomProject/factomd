@@ -33,7 +33,6 @@ type ITransaction interface {
 	// This is the TxID of a factoid transaction
 	GetSigHash() IHash
 
-
 	// Get the full hash of the transaction (including signatures)
 	GetFullHash() IHash
 

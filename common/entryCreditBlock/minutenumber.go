@@ -104,6 +104,12 @@ func (e *MinuteNumber) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *MinuteNumber) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "MinuteNumber"))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Number", e.Number))
+	return (string)(out.DeepCopyBytes())
+}
+
+func (e *MinuteNumber) GetTimestamp() interfaces.Timestamp {
+	return nil
 }

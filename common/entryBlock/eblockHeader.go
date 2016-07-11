@@ -3,6 +3,7 @@ package entryBlock
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -45,8 +46,16 @@ func (e *EBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *EBlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out primitives.Buffer
+	out.WriteString("  Entry Block Header\n")
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "ChainID", e.ChainID.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "BodyMR", e.BodyMR.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "PrevKeyMR", e.PrevKeyMR.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "PrevFullHash", e.PrevFullHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "EBSequence", e.EBSequence))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "EntryCount", e.EntryCount))
+	return (string)(out.DeepCopyBytes())
 }
 
 func (c *EBlockHeader) GetChainID() interfaces.IHash {

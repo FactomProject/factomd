@@ -7,6 +7,7 @@ package directoryBlock
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -73,7 +74,7 @@ func (h *DBlockHeader) SetPrevFullHash(PrevFullHash interfaces.IHash) {
 }
 
 func (h *DBlockHeader) GetTimestamp() interfaces.Timestamp {
-	return *interfaces.NewTimestampFromMinutes(h.Timestamp)
+	return primitives.NewTimestampFromMinutes(h.Timestamp)
 }
 
 func (h *DBlockHeader) SetTimestamp(timestamp interfaces.Timestamp) {
@@ -204,6 +205,18 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	_, err = b.UnmarshalBinaryData(data)
 	return
+}
+
+type ExpandedDBlockHeader DBlockHeader
+
+func (e DBlockHeader) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedDBlockHeader
+		ChainID string
+	}{
+		ExpandedDBlockHeader: ExpandedDBlockHeader(e),
+		ChainID:              "000000000000000000000000000000000000000000000000000000000000000d",
+	})
 }
 
 /************************************************

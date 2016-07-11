@@ -22,6 +22,16 @@ func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) {
 	state.UpdateAuthorityFromABEntry(c)
 }
 
+func (e *AddFederatedServerSigningKey) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %35s -- %20s %10x %20s %10x %20s %10s\n",
+		"AddFederatedServerBitcoinAnchorKey",
+		"IdentityChainID", e.IdentityChainID.Bytes()[:3],
+		"KeyPriority", e.KeyPriority,
+		"PublicKey", e.PublicKey.String()))
+	return (string)(out.DeepCopyBytes())
+}
+
 // Create a new DB Signature Entry
 func NewAddFederatedServerSigningKey(identityChainID interfaces.IHash, keyPriority byte, publicKey primitives.PublicKey) (e *AddFederatedServerSigningKey) {
 	e = new(AddFederatedServerSigningKey)
@@ -101,11 +111,6 @@ func (e *AddFederatedServerSigningKey) JSONString() (string, error) {
 
 func (e *AddFederatedServerSigningKey) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *AddFederatedServerSigningKey) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *AddFederatedServerSigningKey) IsInterpretable() bool {
