@@ -67,8 +67,6 @@ func (s *State) Process() (progress bool) {
 		case 0:
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		default:
-			if s.DebugConsensus {
-			}
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 			s.networkInvalidMsgQueue <- msg
 		}
@@ -76,8 +74,10 @@ func (s *State) Process() (progress bool) {
 		return
 	}
 
+	s.ReviewHolding()
+
 	// Reprocess any stalled Acknowledgements
-	for len(s.XReview) > 0 {
+	for i := 0; i < 5 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
@@ -94,7 +94,6 @@ func (s *State) Process() (progress bool) {
 		if executeMsg(msg) {
 			s.networkOutMsgQueue <- msg
 		}
-		s.ReviewHolding()
 	default:
 	}
 	return
@@ -108,21 +107,37 @@ func (s *State) Process() (progress bool) {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
+	if len(s.XReview) > 0 {
+		return
+	}
 	// Anything we are holding, we need to reprocess.
-	s.XReview = append(make([]interfaces.IMsg, 0), s.XReview...)
+	s.XReview = make([]interfaces.IMsg, 0)
+
 	for k := range s.Holding {
 		v := s.Holding[k]
-		if v.Resend() < 40 {
+
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		if !ok {
+			delete(s.Holding, k)
+		}
+
+		if v.Resend(s) {
+			s.ResendCnt++
 			v.ComputeVMIndex(s)
 			s.networkOutMsgQueue <- v
-			if !s.Leader || v.GetVMIndex() == s.LeaderVMIndex {
-				s.XReview = append(s.XReview, v)
-				delete(s.Holding, k)
-			}
-		} else {
+		}
+
+		if s.Leader && v.GetVMIndex() == s.LeaderVMIndex {
+			s.XReview = append(s.XReview, v)
+			delete(s.Holding, k)
+		}
+
+		if v.Expire(s) {
+			s.ExpireCnt++
 			delete(s.Holding, k)
 		}
 	}
+
 	for k := range s.Acks {
 		v := s.Acks[k].(*messages.Ack)
 		if v.DBHeight < s.LLeaderHeight {
@@ -204,17 +219,10 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	eom, _ := m.(*messages.EOM)
-
 	s.Holding[m.GetMsgHash().Fixed()] = m
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
-
-		// For debugging, note who the leader is for this message, and the minute.
-		m.SetLeaderChainID(ack.GetLeaderChainID())
-		m.SetMinute(eom.Minute + 1)
-
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 	}
@@ -242,6 +250,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
 	dbstate.ReadyToSave = true
+
+	s.DBStateCnt++
 }
 
 func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
@@ -291,6 +301,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(ackResp.DBHeight)
 	pl.AddToProcessList(ackResp, mmr.MsgResponse)
+	s.MissingCnt++
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {

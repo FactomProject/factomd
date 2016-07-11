@@ -22,15 +22,35 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
-	ResendCnt     int // Followers try resending old messages, then give up.
+	resend        int64 // Time to resend (milliseconds)
+	expire        int64 // Time to expire (milliseconds)
 
 	Stalled bool // This message is currently stalled
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
-func (m *MessageBase) Resend() int {
-	m.ResendCnt++
-	return m.ResendCnt
+func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
+	now := s.GetTimestamp().GetTimeMilli()
+	if m.resend == 0 {
+		m.resend = now
+	}
+	if now-m.resend > 1000 && len(s.NetworkOutMsgQueue()) < 100 { // Resend every second
+		m.resend = now + 1000
+		rtn = true
+	}
+	return
+}
+
+// Try and Resend.  Return true if we should keep the message, false if we should give up.
+func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
+	now := s.GetTimestamp().GetTimeMilli()
+	if m.expire == 0 {
+		m.expire = now
+	}
+	if now-m.expire > 180*1000 { // Keep messages for some length before giving up.
+		rtn = true
+	}
+	return
 }
 
 func (m *MessageBase) IsStalled() bool {
