@@ -243,22 +243,25 @@ func (c *Controller) runloop() {
 	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
-		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
+		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
+		if CurrentLoggingLevel > 1 {
+			fmt.Printf("@")
+		}
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
 		for 0 < len(c.commandChannel) {
 			command := <-c.commandChannel
-			significant("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
+			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
 			c.handleCommand(command)
 		}
 		// route messages to and from application
-		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
 		c.route() // Route messages
 		// Manage peers
-		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
 		c.managePeers()
-		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
 		if CurrentLoggingLevel > 0 {
-			significant("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
+			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
 			c.networkStatusReport()
 		}
 	}
