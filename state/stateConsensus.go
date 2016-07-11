@@ -112,14 +112,14 @@ func (s *State) ReviewHolding() {
 	s.XReview = append(make([]interfaces.IMsg, 0), s.XReview...)
 	for k := range s.Holding {
 		v := s.Holding[k]
-		if v.Resend() < 40 {
+		if v.Resend(s) {
 			v.ComputeVMIndex(s)
 			s.networkOutMsgQueue <- v
 			if !s.Leader || v.GetVMIndex() == s.LeaderVMIndex {
 				s.XReview = append(s.XReview, v)
 				delete(s.Holding, k)
 			}
-		} else {
+		} else if v.Expire(s) {
 			delete(s.Holding, k)
 		}
 	}
