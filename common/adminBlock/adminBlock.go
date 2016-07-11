@@ -126,7 +126,7 @@ func (c *AdminBlock) GetChainID() interfaces.IHash {
 }
 
 func (c *AdminBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.PartialHash()
+	key, _ := c.LookupHash()
 	return key
 }
 
@@ -155,7 +155,7 @@ func (b *AdminBlock) FullHash() (interfaces.IHash, error) {
 }
 
 // Returns the SHA256 hash for the admin block
-func (b *AdminBlock) PartialHash() (interfaces.IHash, error) {
+func (b *AdminBlock) LookupHash() (interfaces.IHash, error) {
 	var binaryAB []byte
 	binaryAB, err := b.MarshalBinary()
 	if err != nil {
@@ -295,19 +295,19 @@ func (e AdminBlock) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	partialHash, err := e.PartialHash()
+	lookupHash, err := e.LookupHash()
 	if err != nil {
 		return nil, err
 	}
 
 	return json.Marshal(struct {
 		ExpandedABlock
-		FullHash    string
-		PartialHash string
+		FullHash   string
+		LookupHash string
 	}{
 		ExpandedABlock: ExpandedABlock(e),
 		FullHash:       fullHash.String(),
-		PartialHash:    partialHash.String(),
+		LookupHash:     lookupHash.String(),
 	})
 }
 

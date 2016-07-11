@@ -27,18 +27,18 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	partialHash, err := block.PartialHash()
+	lookupHash, err := block.LookupHash()
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Logf("Current hashes - %s, %s", fullHash.String(), partialHash.String())
+	t.Logf("Current hashes - %s, %s", fullHash.String(), lookupHash.String())
 
 	if fullHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
 		t.Error("Invalid fullHash")
 	}
-	if partialHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
-		t.Error("Invalid partialHash")
+	if lookupHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
+		t.Error("Invalid lookupHash")
 	}
 	/*
 		block2, err := CreateAdminBlock(s, block, 5)
@@ -51,12 +51,12 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 			t.Error(err)
 		}
 
-		partialHash2, err := block2.PartialHash()
+		lookupHash2, err := block2.LookupHash()
 		if err != nil {
 			t.Error(err)
 		}
 
-		t.Logf("Second hashes - %s, %s", fullHash2.String(), partialHash2.String())
+		t.Logf("Second hashes - %s, %s", fullHash2.String(), lookupHash2.String())
 		t.Logf("Previous hash - %s", block2.Header.PrevFullHash.String())
 
 		marshalled, err := block2.MarshalBinary()
@@ -84,18 +84,18 @@ func TestAdminBlockHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	partialHash, err := block.PartialHash()
+	lookupHash, err := block.LookupHash()
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Logf("Current hashes - %s, %s", fullHash.String(), partialHash.String())
+	t.Logf("Current hashes - %s, %s", fullHash.String(), lookupHash.String())
 
 	if fullHash.String() != "9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d" {
 		t.Error("Invalid fullHash")
 	}
-	if partialHash.String() != "f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5" {
-		t.Error("Invalid partialHash")
+	if lookupHash.String() != "f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5" {
+		t.Error("Invalid lookupHash")
 	}
 
 	j, err := block.JSONString()
@@ -105,7 +105,7 @@ func TestAdminBlockHash(t *testing.T) {
 	if strings.Contains(j, `"FullHash":"9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d"`) == false {
 		t.Errorf("JSON printout does not contain the full hash - %v", j)
 	}
-	if strings.Contains(j, `"PartialHash":"f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5"`) == false {
+	if strings.Contains(j, `"LookupHash":"f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5"`) == false {
 		t.Errorf("JSON printout does not contain the full hash - %v", j)
 	}
 }
@@ -215,7 +215,7 @@ func TestUnmarshalABlock(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	h, err := a.PartialHash()
+	h, err := a.LookupHash()
 	if err != nil {
 		t.Error(err)
 	}
