@@ -12,13 +12,27 @@ import (
 	"log"
 )
 
+// MessageEvents encapsulates the whole lifetime of a message, its orgination and all of the times it was recieved.
 type MessageEvents struct {
     hash string
     minute int // Minute this message belongs to for time series
-    time int64  // time message was originated
+    time int64  // time message was originated, for multiple sends, store earliest.
     reciepts map[string]time.Time  // map of recievers and time of reciept
-    sends int // number of times this message has been sent
+    sends map[string]time.Time  // map of senders and time sent
 	target string // the intended node for the message
+}
+
+
+func main() {
+	path := "/Volumes/Extra/factomdp2p/july4test/messages/"
+	files := [string]{"m2p2pa-messagelog.csv", "m2p2pb-messagelog.csv", "m2p2pc-messagelog.csv", "m2p2pd-messagelog.csv", "m2p2pe-messagelog.csv", "m2p2pf-messagelog.csv", "m2p2pg-messagelog.csv", "m2p2ph-messagelog.csv"}
+
+	for file := range files {
+		importFile(path+file)
+	}
+
+	analyze()
+	printResults()
 }
 
 // Structure:
@@ -43,18 +57,13 @@ type MessageEvents struct {
 			// - Add 
 
 
-func main() {
-	path := "/Volumes/Extra/factomdp2p/july4test/messages/"
-	files := [string]{"m2p2pa-messagelog.csv", "m2p2pb-messagelog.csv", "m2p2pc-messagelog.csv", "m2p2pd-messagelog.csv", "m2p2pe-messagelog.csv", "m2p2pf-messagelog.csv", "m2p2pg-messagelog.csv", "m2p2ph-messagelog.csv"}
+	// r := csv.NewReader(strings.NewReader(string(b)))
+	// s, _ := r.ReadAll()
+	// for i := 0; i < len(s); i++ {
+	// 	fmt.Println(s[i][0])
+	// }
 
-	for file := range files {
-		importFile(path+file)
-	}
-	r := csv.NewReader(strings.NewReader(string(b)))
-	s, _ := r.ReadAll()
-	for i := 0; i < len(s); i++ {
-		fmt.Println(s[i][0])
-	}
+
 
 // 	in := `first_name;last_name;username
 // "Rob";"Pike";rob
@@ -85,4 +94,10 @@ func importFile(file string) {
 
 	b, _ := ioutil.ReadFile("1.csv")
 
+}
+
+func analyze() {
+}
+
+func printResults() {
 }
