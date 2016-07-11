@@ -310,7 +310,6 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 	}
 
 	batch := []interfaces.Record{}
-
 	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
 
 	if numberBucket != nil {
@@ -346,7 +345,6 @@ func (db *Overlay) ProcessBlockBatchWithoutHead(blockBucket, numberBucket, secon
 	}
 
 	batch := []interfaces.Record{}
-
 	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
 
 	if numberBucket != nil {

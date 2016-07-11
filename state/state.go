@@ -99,11 +99,13 @@ type State struct {
 	EOMsyncing bool
 
 	EOM          bool // Set to true when the first EOM is encountered
+	EOMLimit     int
 	EOMProcessed int
 	EOMDone      bool
 	EOMMinute    int
 
 	DBSig          bool
+	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
 
@@ -313,7 +315,9 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.PeersFile = "peers.json"
-		s.SeedURL = "http://factomstatus.com/seed/seed.txt"
+		// BUGBUG JAYJAY Switch to shipping version
+		// s.SeedURL = "http://factomstatus.com/seed/seed.txt"
+		s.SeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/seed.txt"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
@@ -515,6 +519,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if dblk == nil {
 		return nil, nil
 	}
+
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
 		return nil, err
@@ -1112,11 +1117,12 @@ func (s *State) SetString() {
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v Syncing %5v ",
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v EOMDone %5v Syncing %5v ",
 		lmin,
 		s.CurrentMinute,
 		s.LLeaderHeight,
-		s.EOMsyncing,
+		s.EOM,
+		s.EOMDone,
 		s.Syncing)
 
 	str = str + fmt.Sprintf("EOMCnt %5d DBSCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",

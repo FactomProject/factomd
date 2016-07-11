@@ -479,3 +479,41 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 
 	return e, nil
 }
+
+func CheckBlockPairIntegrity(block interfaces.IEntryCreditBlock, prev interfaces.IEntryCreditBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
+	}
+
+	if prev == nil {
+		if block.GetHeader().GetPrevHeaderHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevHeaderHash")
+		}
+		if block.GetHeader().GetPrevFullHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		h, err := prev.HeaderHash()
+		if err != nil {
+			return err
+		}
+		if block.GetHeader().GetPrevHeaderHash().IsSameAs(h) == false {
+			return fmt.Errorf("Invalid PrevHeaderHash")
+		}
+		h, err = prev.GetFullHash()
+		if err != nil {
+			return err
+		}
+		if block.GetHeader().GetPrevFullHash().IsSameAs(h) == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
+}

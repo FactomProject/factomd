@@ -1,20 +1,19 @@
 package state
 
 import (
-	"fmt"
-
 	"bytes"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"fmt"
 	"log"
-
 	"time"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 var _ = fmt.Print
@@ -318,14 +317,14 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	if thetime == 0 {
 		thetime = now
 	}
-	if now-thetime > waitSeconds {
+	if now-thetime >= waitSeconds {
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 		}
 		thetime = now
 	}
-	if p.State.Leader && now-thetime > waitSeconds+2 {
+	if p.State.Leader && now-thetime >= waitSeconds+2 {
 		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 		if sf != nil {
@@ -390,7 +389,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd his Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 					fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
-					fmt.Println(p.PrintMap())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
@@ -454,8 +452,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			return
 		}
 
-		fmt.Println(p.String())
-		fmt.Println(p.PrintMap())
 		fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
 		fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
 		fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
@@ -587,12 +583,17 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 
-	s := state.(*State)
 	var err error
 
-	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
-	pl.AdminBlock = s.NewAdminBlock(dbheight)
-	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	if previous != nil {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(previous.DirectoryBlock)
+		pl.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
+	} else {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
+		pl.AdminBlock = adminBlock.NewAdminBlock(nil)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	}
 
 	pl.ResetDiffSigTally()
 

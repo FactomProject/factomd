@@ -6,6 +6,7 @@ package adminBlock
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -23,10 +24,6 @@ type AdminBlock struct {
 	//Marshalized
 	Header    interfaces.IABlockHeader
 	ABEntries []interfaces.IABEntry //Interface
-
-	//Not Marshalized
-	Full_Hash   interfaces.IHash //SHA512Half
-	partialHash interfaces.IHash //SHA256
 }
 
 var _ interfaces.IAdminBlock = (*AdminBlock)(nil)
@@ -116,14 +113,8 @@ func (c *AdminBlock) SetABEntries(abentries []interfaces.IABEntry) {
 	c.ABEntries = abentries
 }
 
-func NewAdminBlock() interfaces.IAdminBlock {
-	block := new(AdminBlock)
-	block.Header = new(ABlockHeader)
-	return block
-}
-
 func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
-	return NewAdminBlock()
+	return NewAdminBlock(nil)
 }
 
 func (c *AdminBlock) GetDatabaseHeight() uint32 {
@@ -153,44 +144,24 @@ func (c *AdminBlock) GetKeyMR() (interfaces.IHash, error) {
 	return c.FullHash()
 }
 
-func (ab *AdminBlock) FullHash() (interfaces.IHash, error) {
-	err := ab.BuildFullBHash()
+// Returns the SHA512Half hash for the admin block
+func (b *AdminBlock) FullHash() (interfaces.IHash, error) {
+	var binaryAB []byte
+	binaryAB, err := b.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	return ab.Full_Hash, nil
+	return primitives.Sha512Half(binaryAB), nil
 }
 
-func (ab *AdminBlock) PartialHash() (interfaces.IHash, error) {
-	if ab.partialHash == nil {
-		err := ab.BuildPartialHash()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return ab.partialHash, nil
-}
-
-// Build the SHA512Half hash for the admin block
-func (b *AdminBlock) BuildFullBHash() (err error) {
+// Returns the SHA256 hash for the admin block
+func (b *AdminBlock) PartialHash() (interfaces.IHash, error) {
 	var binaryAB []byte
-	binaryAB, err = b.MarshalBinary()
+	binaryAB, err := b.MarshalBinary()
 	if err != nil {
-		return
+		return nil, err
 	}
-	b.Full_Hash = primitives.Sha512Half(binaryAB)
-	return
-}
-
-// Build the SHA256 hash for the admin block
-func (b *AdminBlock) BuildPartialHash() (err error) {
-	var binaryAB []byte
-	binaryAB, err = b.MarshalBinary()
-	if err != nil {
-		return
-	}
-	b.partialHash = primitives.Sha(binaryAB)
-	return
+	return primitives.Sha(binaryAB), nil
 }
 
 // Add an Admin Block entry to the block
@@ -229,7 +200,7 @@ func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 }
 
 func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
-	block := NewAdminBlock()
+	block := NewAdminBlock(nil)
 	err := block.UnmarshalBinary(data)
 	if err != nil {
 		return nil, err
@@ -314,4 +285,68 @@ func (e *AdminBlock) JSONString() (string, error) {
 
 func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+type ExpandedABlock AdminBlock
+
+func (e AdminBlock) MarshalJSON() ([]byte, error) {
+	fullHash, err := e.FullHash()
+	if err != nil {
+		return nil, err
+	}
+
+	partialHash, err := e.PartialHash()
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(struct {
+		ExpandedABlock
+		FullHash    string
+		PartialHash string
+	}{
+		ExpandedABlock: ExpandedABlock(e),
+		FullHash:       fullHash.String(),
+		PartialHash:    partialHash.String(),
+	})
+}
+
+/*********************************************************************
+ * Support
+ *********************************************************************/
+
+func NewAdminBlock(prev interfaces.IAdminBlock) interfaces.IAdminBlock {
+	block := new(AdminBlock)
+	block.Header = new(ABlockHeader)
+	if prev != nil {
+		block.Header.SetPrevFullHash(primitives.NewZeroHash())
+		block.Header.SetDBHeight(prev.GetDBHeight() + 1)
+	} else {
+		block.Header.SetPrevFullHash(primitives.NewZeroHash())
+	}
+	return block
+}
+
+func CheckBlockPairIntegrity(block interfaces.IAdminBlock, prev interfaces.IAdminBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
+	}
+
+	if prev == nil {
+		if block.GetHeader().GetPrevFullHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		if block.GetHeader().GetPrevFullHash().IsSameAs(prev.GetHash()) == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }
