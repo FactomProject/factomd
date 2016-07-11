@@ -62,12 +62,16 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status    bool
-	starttime time.Time
-	transCnt  int
-	lasttime  time.Time
-	tps       float64
-	serverPrt string
+	Status     bool
+	starttime  time.Time
+	transCnt   int
+	lasttime   time.Time
+	tps        float64
+	serverPrt  string
+	DBStateCnt int
+	MissingCnt int
+	ResendCnt  int
+	ExpireCnt  int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -1117,17 +1121,16 @@ func (s *State) SetString() {
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v EOMDone %5v Syncing %5v ",
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v DBStateCnt %5d MissingCnt %5d ",
 		lmin,
 		s.CurrentMinute,
 		s.LLeaderHeight,
-		s.EOM,
-		s.EOMDone,
-		s.Syncing)
+		s.DBStateCnt,
+		s.MissingCnt)
 
-	str = str + fmt.Sprintf("EOMCnt %5d DBSCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
-		s.EOMProcessed,
-		s.DBSigProcessed,
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+		s.ResendCnt,
+		s.ExpireCnt,
 		s.Saving,
 		s.FactoidTrans,
 		s.NewEntryChains,

@@ -34,8 +34,8 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 	if m.resend == 0 {
 		m.resend = now
 	}
-	if m.resend > 1000 { // Resend every second
-		m.resend = 0
+	if now-m.resend > 1000 && len(s.NetworkOutMsgQueue()) < 100 { // Resend every second
+		m.resend = now + 1000
 		rtn = true
 	}
 	return
@@ -47,7 +47,7 @@ func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
 	if m.expire == 0 {
 		m.expire = now
 	}
-	if m.expire > 60*1000 { // Keep messages for a minute, then toss.
+	if now-m.expire > 180*1000 { // Keep messages for some length before giving up.
 		rtn = true
 	}
 	return
