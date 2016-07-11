@@ -526,7 +526,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
-		fmt.Println("dddd xxxxxxxx       Starting   ", s.FactomNodeName, "vm", e.VMIndex, "LMin", vm.LeaderMinute, "cmin", s.CurrentMinute, "pcnt", e.Processed)
 		s.Syncing = true
 		s.EOM = true
 		s.EOMLimit = len(s.LeaderPL.FedServers)
@@ -542,7 +541,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !e.Processed {
-		fmt.Println("dddd xxxxxxxx       Processing ", s.FactomNodeName, "vm", e.VMIndex, "cmin", s.CurrentMinute, "pcnt", e.Processed)
 		vm.LeaderMinute++
 		s.EOMProcessed++
 		e.Processed = true
@@ -554,7 +552,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
-		fmt.Println("dddd xxxxxxxx   EOMLimit       ", s.FactomNodeName, "lmin", vm.LeaderMinute, "cmin", s.CurrentMinute, "pcnt", e.Processed)
 
 		s.EOMDone = true
 		for _, eb := range pl.NewEBlocks {
@@ -574,7 +571,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		case s.CurrentMinute < 10:
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-			fmt.Printf("dddd xxxxxxx------ %8s VM %2d dbht %2d minute %2d [%x]\n", s.FactomNodeName, s.LeaderVMIndex, s.LLeaderHeight, s.CurrentMinute, s.IdentityChainID.Bytes()[:3])
 		case s.CurrentMinute == 10:
 			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
 			dbht := int(dbstate.DirectoryBlock.GetHeader().GetDBHeight())
@@ -588,7 +584,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LLeaderHeight++
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
-			fmt.Printf("dddd xxxxxxxxxxxxx %8s VM %2d dbht %2d minute %2d [%x]\n", s.FactomNodeName, s.LeaderVMIndex, s.LLeaderHeight, s.CurrentMinute, s.IdentityChainID.Bytes()[:3])
 
 			s.DBSigProcessed = 0
 
@@ -604,7 +599,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				dbs.Sign(s)
 				err := dbs.Sign(s)
 				if err != nil {
-					//	fmt.Println("dddd ERROR:", s.FactomNodeName, err.Error())
 					panic(err)
 				}
 				dbs.LeaderExecute(s)
@@ -624,7 +618,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
-		fmt.Println("dddd xxxxxxxx  DSig Bump       ", s.FactomNodeName, "vm", dbs.VMIndex, "cmin", s.CurrentMinute, "dcnt", s.DBSigProcessed)
 		return false
 	}
 
@@ -633,7 +626,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// If we are done with DBSigs, and this message is processed, then we are done.  Let everything go!
 	if s.DBSig && s.DBSigDone {
-		fmt.Println("dddd xxxxxxxx DSig  Done RTN   ", s.FactomNodeName, "vm", dbs.VMIndex, "cmin", s.CurrentMinute, "dcnt", s.DBSigProcessed)
 		s.DBSigProcessed--
 		if s.DBSigProcessed <= 0 {
 			s.DBSig = false
@@ -645,7 +637,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
-		fmt.Println("dddd xxxxxxxx      Start DSig  ", s.FactomNodeName, "vm", dbs.VMIndex, "cmin", s.CurrentMinute, "dcnt", s.DBSigProcessed)
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
 		s.ProcessLists.Get(dbheight).VMs[dbs.VMIndex].Synced = false
@@ -659,7 +650,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
-		fmt.Println("dddd xxxxxxxx     Process Dsig ", s.FactomNodeName, "vm", dbs.VMIndex, "cmin", s.CurrentMinute, "dcnt", s.DBSigProcessed)
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
@@ -670,7 +660,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
 	if s.DBSigProcessed >= s.DBSigLimit {
-		fmt.Println("dddd xxxxxxxx      DONE DSig   ", s.FactomNodeName, "vm", dbs.VMIndex, "cmin", s.CurrentMinute, "dcnt", s.DBSigProcessed)
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
@@ -678,7 +667,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// our neighbors.
 
 		if !dbstate.Saved {
-			fmt.Println("dddd xxxxxxxx      Saving  DSig", s.FactomNodeName, "vm", dbs.VMIndex, "cmin", s.CurrentMinute, "dcnt", s.DBSigProcessed)
 			dbstate.ReadyToSave = true
 			s.DBStates.SaveDBStateToDB(dbstate)
 		}
