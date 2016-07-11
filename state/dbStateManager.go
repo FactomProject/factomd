@@ -163,9 +163,14 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if list.Complete >= plHeight-2 {
-			return
+		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
+			begin++
+			if uint32(begin) >= plHeight || begin > end {
+				return
+			}
 		}
+
+		fmt.Println("Justin begin:", begin)
 	}
 
 	list.Lastreq = begin
@@ -197,18 +202,30 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	d.DirectoryBlock.MarshalBinary()
 
-	hash, _ := p.EntryCreditBlock.HeaderHash()
+	hash, err := p.EntryCreditBlock.HeaderHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
-	hash, _ = p.EntryCreditBlock.GetFullHash()
+	hash, err = p.EntryCreditBlock.GetFullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+
+	hash, err = p.AdminBlock.FullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 
 	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetFullHash().Bytes())
+	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerMR())
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
@@ -243,7 +260,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
-	if d.isNew || d.Locked {
+	if d.Locked {
 		return
 	}
 

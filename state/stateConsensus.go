@@ -6,10 +6,8 @@ package state
 
 import (
 	"fmt"
-
 	"hash"
 
-	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -130,6 +128,13 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 		}
 	}
+	for k := range s.Acks {
+		v := s.Acks[k].(*messages.Ack)
+		if v.DBHeight < s.LLeaderHeight {
+			delete(s.Acks, k)
+		}
+	}
+
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -140,14 +145,17 @@ func (s *State) AddDBState(isNew bool,
 	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
-	s.DBStates.Put(dbState)
+
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	if ht > s.LLeaderHeight {
+		s.Syncing = false
+		s.EOM = false
+		s.DBSig = false
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
 		s.CurrentMinute = 0
 	}
-	if ht == 0 {
+	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
 	}
 
@@ -228,7 +236,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
-
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
 	s.DBStates.LastTime = s.GetTimestamp()
@@ -525,20 +532,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	if s.EOMDone && s.EOMProcessed > 0 {
 		s.EOMProcessed--
 		if s.EOMProcessed == 0 {
-			s.FactoidState.EndOfPeriod(int(e.Minute))
-
-			// Add EOM to the EBlocks.  We only do this once, so
-			// we piggy back on the fact that we only do the FactoidState
-			// EndOfPeriod once too.
-
-			for _, eb := range pl.NewEBlocks {
-				eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
-			}
-
-			ecblk := pl.EntryCreditBlock
-			ecbody := ecblk.GetBody()
-			mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
-			ecbody.AddEntry(mn)
 
 			s.CurrentMinute++
 			if s.CurrentMinute > 9 {
@@ -619,7 +612,18 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+
 		s.EOMDone = true
+		for _, eb := range pl.NewEBlocks {
+			eb.AddEndOfMinuteMarker(byte(e.Minute + 1))
+		}
+
+		s.FactoidState.EndOfPeriod(int(e.Minute))
+
+		ecblk := pl.EntryCreditBlock
+		ecbody := ecblk.GetBody()
+		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
+		ecbody.AddEntry(mn)
 	}
 
 	return false
@@ -823,23 +827,6 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // returns -1 if we are not the leader for this hash
 func (s *State) ComputeVMIndex(hash []byte) int {
 	return s.LeaderPL.VMIndexFor(hash)
-}
-
-func (s *State) NewAdminBlock(dbheight uint32) interfaces.IAdminBlock {
-	ab := new(adminBlock.AdminBlock)
-	ab.Header = s.NewAdminBlockHeader(dbheight)
-	return ab
-}
-
-func (s *State) NewAdminBlockHeader(dbheight uint32) interfaces.IABlockHeader {
-	header := new(adminBlock.ABlockHeader)
-	header.DBHeight = dbheight
-	header.PrevFullHash = primitives.NewHash(constants.ZERO_HASH)
-	header.HeaderExpansionSize = 0
-	header.HeaderExpansionArea = make([]byte, 0)
-	header.MessageCount = 0
-	header.BodySize = 0
-	return header
 }
 
 func (s *State) GetNetworkName() string {

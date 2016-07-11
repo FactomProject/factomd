@@ -93,7 +93,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: FRIDAY JULY 1 7:45PM")
+	silence("#################", "META: Last touched: WEDNESDAY JULY 6 7:45PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -243,20 +243,25 @@ func (c *Controller) runloop() {
 	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
-		// Process commands...
-		// verbose("ctrlr", "Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
+		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
+		if CurrentLoggingLevel > 1 {
+			fmt.Printf("@")
+		}
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
 		for 0 < len(c.commandChannel) {
 			command := <-c.commandChannel
+			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
 			c.handleCommand(command)
 		}
 		// route messages to and from application
-		// verbose("ctrlr", "Controller.runloop() Calling router")
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
 		c.route() // Route messages
 		// Manage peers
-		// verbose("ctrlr", "Controller.runloop() Calling managePeers")
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
 		c.managePeers()
+		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
 		if CurrentLoggingLevel > 0 {
+			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
 			c.networkStatusReport()
 		}
 	}
@@ -466,7 +471,7 @@ func (c *Controller) fillOutgoingSlots() {
 	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for _, v := range c.connectionsByAddress {
-		significant("controller", "%s", v.peer.AddressPort)
+		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
@@ -476,7 +481,7 @@ func (c *Controller) fillOutgoingSlots() {
 	// dial into the peers
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) {
-			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort)
+			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
 			c.DialPeer(peer, false)
 		}
 	}
@@ -495,14 +500,14 @@ func (c *Controller) shutdown() {
 }
 
 func (c *Controller) networkStatusReport() {
-	reportDuration := time.Since(c.lastStatusReport)
-	// silence("ctrlr", "networkStatusReport() NetworkStatusInterval: %s reportDuration: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), reportDuration.String(), c.lastPeerManagement.String())
-	if reportDuration > NetworkStatusInterval {
+	durationSinceLastReport := time.Since(c.lastStatusReport)
+	note("ctrlr", "networkStatusReport() NetworkStatusInterval: %s durationSinceLastReport: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), durationSinceLastReport.String(), c.lastStatusReport.String())
+	if durationSinceLastReport > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
-		c.updateConnectionAddressMap()
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")
+		c.updateConnectionAddressMap()
 		silence("ctrlr", "     # Connections: %d", len(c.connections))
 		silence("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
 		silence("ctrlr", "     Command Queue: %d", len(c.commandChannel))
