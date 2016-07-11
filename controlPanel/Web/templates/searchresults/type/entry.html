@@ -1,0 +1,12 @@
+{{define "entry"}}
+	{{template "header"}}
+	<!-- Body -->
+	<div>2.0</div>
+	<p>{{.Content.ChainID}}</p>
+	<p>{{.Content.ExtIDs}}</p>
+	<p>{{.Content.Content}}</p>
+	<p>{{.Content.Version}}</p>
+	<!-- End Body -->
+	{{template "scripts"}}
+	{{template "footer"}}
+{{end}}

@@ -31,7 +31,7 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
 		bal := fmt.Sprintf("%d", st.FactoidState.GetECBalance(fixed))
-		return true, bal
+		return true, newSearchResponse("EC", bal)
 	case "FA":
 		hash := base58.Decode(searchitem)
 		if len(hash) < 34 {
@@ -40,7 +40,7 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
 		bal := fmt.Sprintf("%.3f", float64(st.FactoidState.GetFactoidBalance(fixed))/1e8)
-		return true, bal
+		return true, newSearchResponse("FA", bal)
 	}
 	if len(searchitem) == 64 {
 		hash, err := primitives.HexToHash(searchitem)

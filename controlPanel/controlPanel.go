@@ -76,7 +76,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 
 type SearchedStruct struct {
 	Type    string      `json:"Type"`
-	content interface{} `json:"item"`
+	Content interface{} `json:"item"`
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +88,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	searchResult := new(SearchedStruct)
 	json.Unmarshal([]byte(data), searchResult)
-	fmt.Println(searchResult.Type)
+	fmt.Println(searchResult.Content)
 	handleSearchResult(searchResult, w)
 	//search, _ := ioutil.ReadFile("./ControlPanel/Web/searchresult.html")
 	//w.Write([]byte(searchResult.Type))

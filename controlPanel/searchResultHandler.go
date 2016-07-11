@@ -10,10 +10,12 @@ type Content struct {
 }
 
 func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
-	templates.ParseGlob(TEMPLATE_PATH + "searchresults/*.html")
+	fmt.Print("Content: ")
+	fmt.Println(content.Content)
+	fmt.Println("type: " + content.Type)
 	templates.ParseFiles(TEMPLATE_PATH + "searchresults/type/" + content.Type + ".html")
-	fmt.Println(content)
-	err := templates.ExecuteTemplate(w, "searchResult", content)
+	templates.ParseGlob(TEMPLATE_PATH + "searchresults/*.html")
+	err := templates.ExecuteTemplate(w, content.Type, content)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,6 +1,9 @@
-{{define "searchReturn"}}
-<section>
-	This is a chainhead
-	{{.content.item}}
-</section>
+{{define "chainhead"}}
+	{{template "header"}}
+	<!-- Body -->
+	<div>2.0</div>
+	Hash: {{.Content}}
+	<!-- End Body -->
+	{{template "scripts"}}
+	{{template "footer"}}
 {{end}}
