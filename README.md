@@ -169,9 +169,25 @@ While the simulator is running, you can perform a number of commands to poke at,
 * dN -- Dump the Directory block at directory block height N.  d4 or d21230
 * <enter> -- gives the state of all nodes in the simulated network.
 * D -- Dumps all the messages in the system to standard out, including the directory blocks and the process lists.
-* s -- Make this server a leader  
-
+* l -- Attempt to make this server a leader (must have a valid identity to become one) 
+* o -- Attempt to make this server an auditor (must have a valid identity to become one) 
+* s -- Show the state of all nodes as their state changes in the simulator.
+* i -- Shows the current identities being monitored for changes
+* u -- shows the current authorities (federated/audit servers)
 * N -- typing a node number shifts focus.  You now are talking to said node from the CLI or wallet
+
+### Simulator Commands Continued -- Identity
+M2 requires servers to have identities if they wish to have the ability to become a federated or audit server. To create an identity, entries must be entered into the blockchain, so controls were added to the simulator to assist in the creation and attachment of identities. Identites take about a minute to generate on a (macbook pro laptop) to meet the proper requirements, so a stack of identities are pregenerated to make testing easier.
+
+How the simulator controls work. First every instance of factomd will share the same stack of identites. Each instance will also have a local pool of identities they can use and attach to their nodes. To load their local pool of identities, they can pop identities off the shared stack, then attach the next open identity in their local identity pool to the current node:
+
+* gN -- Moves N identities from the shared stack to local identity pool
+  * Be mindful everyone shares the stack and it can run out.
+* t -- Attaches the next identity in the local pool that has not been taken to the current node
+
+<i>The 'gN' command will load entry credits into the zeros entry credit wallet to fund all identity sim controls if the wallet is low on funds. </i>
+
+### Launching Factomd
  
 Personally I open two consoles.  I run factomd redirected to out.txt, and in another console I run tail -f out.txt.
 
@@ -287,5 +303,6 @@ FNode0 is currently a "magic name", and the node with that name becomes the firs
 Multi-computer example:
 Computer Leader (ip x.69) `factomd -count=2 -p2pAddress="tcp://:8108" -peers="tcp://192.168.1.72:8108"`
 Computer Follower (ip x.72) `factomd -count=5 -p2pAddress="tcp://:8108" -peers="tcp://192.168.1.69:8108" -follower=true -prefix=a_`
+
 
 

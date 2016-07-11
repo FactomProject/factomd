@@ -21,12 +21,12 @@ var _ interfaces.BinaryMarshallable = (*AddFederatedServerBitcoinAnchorKey)(nil)
 
 func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %35s -- %20s %10x %20s %10x %20s %10x %20s %10x\n",
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8x %12s %8s\n",
 		"AddFederatedServerBitcoinAnchorKey",
-		"IdentityChainID", e.IdentityChainID.Bytes()[:3],
+		"IdentityChainID", e.IdentityChainID.Bytes()[:4],
 		"KeyPriority", e.KeyPriority,
 		"KeyType", e.KeyType,
-		"ECDSAPublicKey", e.ECDSAPublicKey.String()))
+		"ECDSAPublicKey", e.ECDSAPublicKey.String()[:8]))
 	return (string)(out.DeepCopyBytes())
 }
 

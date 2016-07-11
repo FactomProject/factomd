@@ -21,7 +21,6 @@ import (
 var _ = fmt.Print
 
 func SimControl(listenTo int) {
-
 	var _ = time.Sleep
 	var summary int
 	var watchPL int
@@ -56,6 +55,35 @@ func SimControl(listenTo int) {
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
+			case 'g' == b[0]:
+				if nextAuthority == -1 {
+					fundWallet(fnodes[listenTo].State, 2e6)
+					setUpAuthorites(fnodes[listenTo].State)
+					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
+				}
+				if len(b) == 1 {
+					os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
+				}
+				if len(b) > 1 {
+					count, err := strconv.Atoi(b[1:])
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error in input bN, %s\n", err.Error()))
+					} else {
+						if count > 100 {
+							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
+							count = 100
+						}
+						fundWallet(fnodes[listenTo].State, uint64(count*5e6))
+						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
+						if err != nil {
+							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
+						}
+						os.Stderr.WriteString(fmt.Sprintf("=== %d Authorities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
+						for _, ele := range auths {
+							fmt.Println(ele.ChainID.String())
+						}
+					}
+				}
 			case 'w' == b[0]:
 				if listenTo >= 0 && listenTo < len(fnodes) {
 					wsapiNode = listenTo
@@ -275,13 +303,62 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
-			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
-				msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
-				fnodes[listenTo].State.InMsgQueue() <- msg
-				os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
+			case 'z' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
+				if len(b) > 1 && b[1] == 'a' {
+					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 1)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+				} else {
+					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 0)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+				}
 				fallthrough
-			case 'l' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
+				if b[0] == 'o' { // (Don't do anything if just passing along the remove server)
+					if len(b) > 1 && b[1] == 'n' {
+						index := 0
+						for index < len(authKeyLibrary) {
+							if authKeyLibrary[index].Taken == false {
+								authKeyLibrary[index].Taken = true
+								fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
+								key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+								fnodes[listenTo].State.LocalServerPrivKey = key
+								fnodes[listenTo].State.SimSetNewKeys(pKey)
+								os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
+								break
+							}
+							index++
+						}
+					}
+
+					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
+					fnodes[listenTo].State.InMsgQueue() <- msg
+					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
+				}
+				fallthrough
+			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
+					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" {
+						index := 0
+						for index < len(authKeyLibrary) {
+							if authKeyLibrary[index].Taken == false {
+								authKeyLibrary[index].Taken = true
+								fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
+								key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+								fnodes[listenTo].State.LocalServerPrivKey = key
+								fnodes[listenTo].State.SimSetNewKeys(pKey)
+								os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
+								break
+							}
+							index++
+						}
+						if index >= len(authKeyLibrary) {
+							os.Stderr.WriteString(fmt.Sprintf("Did not make a leader, ran out of identities. Type 'g1' for one more identity.\n"))
+							break
+						}
+					}
+
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
 					fnodes[listenTo].State.InMsgQueue() <- msg
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
@@ -313,104 +390,182 @@ func SimControl(listenTo int) {
 			case 'i' == b[0]:
 				show := 0
 				amt := -1
-				if len(b) > 1 {
-					if b[1] == 'h' {
-						show = 1
-					} else if b[1] == 'm' {
-						show = 2
-					} else if b[1] == 'b' {
-						show = 3
-					} else if b[1] == 'a' {
-						show = 4
-					}
-					if len(b) > 2 {
-						amt, err = strconv.Atoi(b[2:])
-						if b[1] == 's' {
-							show = 5
-						} else if err == nil {
-						} else {
-							show = 0
-							amt = -1
-						}
-					}
-				}
-				if amt == -1 {
-					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnodes[listenTo].State.Identities)))
+				if len(b) > 1 && (b[1] == 'H' || b[1] == 'h') {
+					os.Stderr.WriteString("------------------------   Identity Commands   --------------------------------\n")
+					os.Stderr.WriteString("iH           -Show this help\n")
+					os.Stderr.WriteString("gN           -Adds 'N' identities to your identity pool from the identity stack. Cannot add \n")
+					os.Stderr.WriteString("              identities that another instance of Factomd has added to their identity pool.\n")
+					os.Stderr.WriteString("              Each Factomd instance has its own identity pool it can use (t), but everyone\n")
+					os.Stderr.WriteString("              will share the identities in the identity stack. This stack is fixed and will\n")
+					os.Stderr.WriteString("              be the same each time Factomd launches. It may grow in the future. Used for testing\n")
+					os.Stderr.WriteString("tN           -Attaches Nth identity in pool to current node. If that identity is taken, will grab\n")
+					os.Stderr.WriteString("              the next available identity in the local identity pool. Can also just type 't' and\n")
+					os.Stderr.WriteString("              it will grab the next available identity.\n")
+					os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
+					os.Stderr.WriteString("i[t/m/b/a][N] Shows only the Chains, Mhash, block signing key, or anchor key up to the Nth identity\n")
+					os.Stderr.WriteString("isN           Shows only Nth identity\n")
+					os.Stderr.WriteString("-------------------------------------------------------------------------------\n\n")
 
-				} else if show == 5 {
-					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnodes[listenTo].State.Identities), amt))
 				} else {
-					os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[listenTo].State.Identities), amt))
-				}
-				for c, i := range fnodes[listenTo].State.Identities {
-					if amt != -1 && c == amt+1 {
-						break
-					}
-					stat := returnStatString(i.Status)
-					if show == 5 {
-						if c != amt {
-
-						} else {
-							os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", amt, "---------------------------------------\n"))
+					if len(b) > 1 {
+						if b[1] == 't' {
+							show = 1
+						} else if b[1] == 'm' {
+							show = 2
+						} else if b[1] == 'b' {
+							show = 3
+						} else if b[1] == 'a' {
+							show = 4
 						}
-					} else {
-						os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", c, "---------------------------------------\n"))
+						if len(b) > 2 {
+							amt, err = strconv.Atoi(b[2:])
+							if b[1] == 's' {
+								show = 5
+							} else if err == nil {
+							} else {
+								show = 0
+								amt = -1
+							}
+						}
 					}
-					if show == 0 || show == 5 {
-						if show == 0 || c == amt {
+					if amt == -1 {
+						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: All\n", len(fnodes[listenTo].State.Identities)))
+
+					} else if show == 5 {
+						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying Only: %d\n", len(fnodes[listenTo].State.Identities), amt))
+					} else {
+						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[listenTo].State.Identities), amt))
+					}
+					for c, i := range fnodes[listenTo].State.Identities {
+						if amt != -1 && c == amt+1 {
+							break
+						}
+						stat := returnStatString(i.Status)
+						if show == 5 {
+							if c != amt {
+
+							} else {
+								os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", amt, "---------------------------------------\n"))
+							}
+						} else {
+							os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", c, "---------------------------------------\n"))
+						}
+						if show == 0 || show == 5 {
+							if show == 0 || c == amt {
+								os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+								for _, a := range i.AnchorKeys {
+									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+								}
+							}
+						} else if show == 1 {
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+						} else if show == 2 {
+							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
+						} else if show == 3 {
+							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+						} else if show == 4 {
+							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							for _, a := range i.AnchorKeys {
 								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 							}
 						}
-					} else if show == 1 {
-						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
-					} else if show == 2 {
-						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
-					} else if show == 3 {
-						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
-					} else if show == 4 {
-						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-						for _, a := range i.AnchorKeys {
-							os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
-						}
 					}
 				}
-				//os.Stderr.WriteString(fmt.Sprint(fnodes[listenTo].State.Identities))
-
 			case 't' == b[0]:
-				if len(b) > 1 {
-					index, err := strconv.Atoi(string(b[1:]))
+				if len(b) == 2 && b[1] == 'm' {
+					_, _, auth := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+					if auth == nil {
+						break
+					}
+					fullSk := []byte{0x4d, 0xb6, 0xc9}
+					fullSk = append(fullSk[:], auth.Sk1[:32]...)
+					shadSk := shad(fullSk)
+					fullSk = append(fullSk[:], shadSk[:4]...)
+
+					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
+					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", auth.ChainID))
+					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
+					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
+					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))
+
+					break
+				} else if len(b) == 2 && b[1] == 'c' {
+					_, _, auth := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+					if auth == nil {
+						break
+					}
+					fundWallet(fnodes[listenTo].State, 1e7)
+					newKey, err := changeSigningKey(fnodes[listenTo].State.IdentityChainID, fnodes[listenTo].State)
 					if err != nil {
-						fmt.Println("Incorrect input. bN where N is a number")
+						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
 						break
 					}
-					if index >= len(fnodes[listenTo].State.Identities) {
-						fmt.Println("Identity index does not exist")
+					fnodes[listenTo].State.LocalServerPrivKey = newKey.PrivateKeyString()
+					fnodes[listenTo].State.SetPendingSigningKey(*newKey)
+					os.Stderr.WriteString(fmt.Sprintf("New public key for [%s]: %s\n", fnodes[listenTo].State.IdentityChainID.String()[:8], newKey.Pub.String()))
+					break
+				}
+				index := 0
+				if len(b) == 65 {
+					hash, err := fnodes[listenTo].State.IdentityChainID.HexToHash(b[1:])
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
+					} else {
+						fnodes[listenTo].State.IdentityChainID = hash
+						key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+						if len(key) == 64 {
+							fnodes[listenTo].State.LocalServerPrivKey = key
+							fnodes[listenTo].State.SimSetNewKeys(pKey)
+						}
+						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + hash.String()[:10] + "]\n"))
+					}
+					break
+				} else if len(authKeyLibrary) == 0 {
+					os.Stderr.WriteString(fmt.Sprintf("There are no available identities in this node. Type 'g1' to claim another identity\n"))
+					break
+				} else if len(b) > 1 {
+					index, err = strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Incorrect input. bN where N is a number\n"))
 						break
 					}
-					id := fnodes[listenTo].State.Identities[index].IdentityChainID
-					if id == nil {
-						fmt.Println("Invalid identity, try 'isN' to see if identity exists.")
+				}
+				if index >= len(authKeyLibrary) {
+					os.Stderr.WriteString(fmt.Sprintf("Identity index out of bounds, only %d in the list.\n", len(authKeyLibrary)))
+					break
+				}
+				if authKeyLibrary[index].Taken == true {
+					os.Stderr.WriteString(fmt.Sprintf("Identity %d already taken, taking next available identity in list\n", index))
+				}
+				for index < len(authKeyLibrary) {
+					if authKeyLibrary[index].Taken == false {
+						authKeyLibrary[index].Taken = true
+						fnodes[listenTo].State.IdentityChainID = authKeyLibrary[index].ChainID
+						key, pKey, _ := authKeyLookup(fnodes[listenTo].State.IdentityChainID)
+						fnodes[listenTo].State.LocalServerPrivKey = key
+						fnodes[listenTo].State.SimSetNewKeys(pKey)
+						os.Stderr.WriteString(fmt.Sprintf("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + authKeyLibrary[index].ChainID.String()[:10] + "]\n"))
 						break
 					}
-					fnodes[listenTo].State.IdentityChainID = id
-					fmt.Println("Identity of " + fnodes[listenTo].State.GetFactomNodeName() + " changed to [" + id.String()[:10] + "]")
+					index++
+				}
+				if index >= len(authKeyLibrary) {
+					os.Stderr.WriteString(fmt.Sprintf("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
 				}
 			case 'u' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))
@@ -439,7 +594,7 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
-					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n"))
 					for _, a := range i.AnchorKeys {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
@@ -467,12 +622,18 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")
 				os.Stderr.WriteString("l             Make focused node the Leader.\n")
+				os.Stderr.WriteString("lt            Attach the next available identity to node and make focused node the Leader.\n")
+				os.Stderr.WriteString("z             Attempt to remove focused node as a federated server\n")
+				os.Stderr.WriteString("za            Attempt to remove focused node as a audit server\n")
+				os.Stderr.WriteString("o             Make focused an audit server.\n")
 				os.Stderr.WriteString("x             Take the given node out of the netork or bring an offline node back in.\n")
 				os.Stderr.WriteString("w             Point the WSAPI to send API calls to the current node.\n")
-				os.Stderr.WriteString("i             Shows the identities in the current state.\n")
-				os.Stderr.WriteString("tN            Attaches identity N to the current node\n")
-				os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
-				os.Stderr.WriteString("isN           Shows only Nth identity\n")
+				os.Stderr.WriteString("iH            To learn about identity control through simulator.\n")
+				os.Stderr.WriteString("gN            Adds 'N' identities to your identity pool. (Cannot add identities already taken)\n")
+				os.Stderr.WriteString("tN            Attaches Nth identity in pool to current node. Can also just press 't' to grab the next\n")
+				os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
+				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
+				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
 				os.Stderr.WriteString("\n")
 				os.Stderr.WriteString("Most commands are case insensitive.\n")

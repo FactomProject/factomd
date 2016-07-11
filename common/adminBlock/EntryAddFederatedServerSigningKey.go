@@ -24,11 +24,11 @@ func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) {
 
 func (e *AddFederatedServerSigningKey) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %35s -- %20s %10x %20s %10x %20s %10s\n",
-		"AddFederatedServerBitcoinAnchorKey",
-		"IdentityChainID", e.IdentityChainID.Bytes()[:3],
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8s\n",
+		"AddFederatedServerSigningKey",
+		"IdentityChainID", e.IdentityChainID.Bytes()[:4],
 		"KeyPriority", e.KeyPriority,
-		"PublicKey", e.PublicKey.String()))
+		"PublicKey", e.PublicKey.String()[:8]))
 	return (string)(out.DeepCopyBytes())
 }
 

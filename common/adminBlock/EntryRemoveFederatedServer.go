@@ -19,13 +19,20 @@ type RemoveFederatedServer struct {
 var _ interfaces.IABEntry = (*RemoveFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*RemoveFederatedServer)(nil)
 
+func (e *RemoveFederatedServer) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d\n", "Remove Federated Server", "IdentityChainID", e.IdentityChainID.Bytes()[:4], "DBHeight", e.DBHeight))
+	return (string)(out.DeepCopyBytes())
+}
+
 func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
-	if len(state.GetFedServers(c.DBHeight)) == 0 {
-		state.AddFedServer(c.DBHeight, c.IdentityChainID)
+	if len(state.GetFedServers(c.DBHeight)) != 0 {
+		state.RemoveFedServer(c.DBHeight, c.IdentityChainID)
 	}
 	if state.GetOut() {
-		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:3]))
+		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:4]))
 	}
+	state.UpdateAuthorityFromABEntry(c)
 }
 
 // Create a new DB Signature Entry
@@ -93,11 +100,6 @@ func (e *RemoveFederatedServer) JSONString() (string, error) {
 
 func (e *RemoveFederatedServer) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *RemoveFederatedServer) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *RemoveFederatedServer) IsInterpretable() bool {
