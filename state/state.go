@@ -315,7 +315,9 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.PeersFile = "peers.json"
-		s.SeedURL = "http://factomstatus.com/seed/seed.txt"
+		// BUGBUG JAYJAY Switch to shipping version
+		// s.SeedURL = "http://factomstatus.com/seed/seed.txt"
+		s.SeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/seed.txt"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
