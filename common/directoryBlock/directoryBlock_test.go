@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/directoryBlock"
@@ -236,7 +237,7 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 	header.SetNetworkID(0xffff)
 	header.SetPrevFullHash(primitives.NewZeroHash())
 	header.SetPrevKeyMR(primitives.NewZeroHash())
-	header.SetTimestamp(1234)
+	header.SetTimestamp(primitives.NewTimestampFromSeconds(1234))
 	header.SetVersion(1)
 
 	return header
@@ -266,7 +267,7 @@ func TestKeyMRs(t *testing.T) {
 		dbEntries = append(dbEntries, entry)
 	}
 
-	dBlock := NewDirectoryBlock(0, nil)
+	dBlock := NewDirectoryBlock(nil)
 	err = dBlock.SetDBEntries(dbEntries)
 	if err != nil {
 		t.Error(err)
@@ -318,3 +319,15 @@ func TestDBlockTimestamp(t *testing.T) {
 
 }
 */
+
+func TestExpandedDBlockHeader(t *testing.T) {
+	block := createTestDirectoryBlock()
+	j, err := block.JSONString()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000d"`) {
+		t.Error("Header does not contain ChainID")
+	}
+}

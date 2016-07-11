@@ -36,7 +36,7 @@ type IMsg interface {
 	// Hash for this message as used by Consensus (i.e. what we match)
 	GetHash() IHash
 
-	// Hash of this message.  Each message must be unique (excludes signatures)
+	// Hash of this message.  Each message must be unique includes signatures
 	GetMsgHash() IHash
 
 	// Returns the full message hash of a message (includes signatures)
@@ -85,4 +85,6 @@ type IMsg interface {
 	// Stall handling
 	IsStalled() bool
 	SetStall(bool)
+	Resend(IState) bool
+	Expire(IState) bool
 }

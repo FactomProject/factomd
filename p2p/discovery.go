@@ -50,6 +50,7 @@ func (d *Discovery) Init(peersFile string) *Discovery {
 
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) updatePeer(peer Peer) {
+	significant("discovery", "Updating peer: %v", peer)
 	UpdateKnownPeers.Lock()
 	d.knownPeers[peer.Address] = peer
 	UpdateKnownPeers.Unlock()
@@ -248,7 +249,7 @@ func (d *Discovery) getPeerSelection() []byte {
 }
 
 // DiscoverPeers gets a set of peers from a DNS Seed
-func (d *Discovery) DiscoverPeers() {
+func (d *Discovery) DiscoverPeersFromSeed() {
 	resp, err := http.Get(d.seedURL)
 	if nil != err {
 		logerror("discovery", "DiscoverPeers getting peers from %s produced error %+v", d.seedURL, err)

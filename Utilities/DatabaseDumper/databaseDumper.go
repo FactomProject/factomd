@@ -111,11 +111,7 @@ func ExportDatabaseJSON(db interfaces.IDatabase, convertNames bool) error {
 }
 
 func KeyToName(key []byte) string {
-	//fmt.Printf("KeyToName - %x\n", key)
-	if len(key) > 1 {
-		return fmt.Sprintf("%x", key)
-	}
-	name, ok := databaseOverlay.ConstantNamesMap[key[0]]
+	name, ok := databaseOverlay.ConstantNamesMap[string(key)]
 	if ok == true {
 		return name
 	}

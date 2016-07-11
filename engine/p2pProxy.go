@@ -71,6 +71,9 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		return err
 	}
 	message := factomMessage{message: data, peerHash: msg.GetNetworkOrigin()}
+	if !msg.IsPeer2Peer() {
+		message.peerHash = ""
+	}
 	if len(f.BroadcastOut) < 10000 {
 		f.BroadcastOut <- message
 	}
@@ -207,7 +210,7 @@ func (f *P2PProxy) ManageInChannel() {
 func (f *P2PProxy) ProxyStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 3) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 9)
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
 			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
@@ -222,7 +225,7 @@ func (f *P2PProxy) ProxyStatusReport(fnodes []*FactomNode) {
 func PeriodicStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 2) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 15)
+		time.Sleep(time.Second * 5)
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {

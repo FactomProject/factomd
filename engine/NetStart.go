@@ -51,12 +51,12 @@ func NetStart(s *state.State) {
 	networkPortPtr := flag.String("p2pPort", "8108", "Port to listen for peers on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
-	runtimeLogPtr := flag.Bool("runtimeLog", true, "If true, maintain runtime logs of messages passed.")
+	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
-	profilePtr := flag.String("profile", "", "If true, turn on the go Profiler to profile execution of Factomd")
-	multiLeaderPtr := flag.Bool("multileader", true, "If true, split responsiblity over all leaders. If false, only one leader rules at a time.")
+	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
+	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 
 	flag.Parse()
 
@@ -78,8 +78,8 @@ func NetStart(s *state.State) {
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
 	prefix := *prefixNodePtr
-	profile := *profilePtr
-	multiLeader := *multiLeaderPtr
+	rotate := *rotatePtr
+	timeOffset := *timeOffsetPtr
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -87,7 +87,8 @@ func NetStart(s *state.State) {
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
 
-	s.OneLeader = !multiLeader
+	s.OneLeader = rotate
+	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
@@ -161,11 +162,7 @@ func NetStart(s *state.State) {
 		s.CloneDBType = db
 	}
 
-	if profile == "true" {
-		go StartProfiler()
-	} else {
-		profile = "false"
-	}
+	go StartProfiler()
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
@@ -183,8 +180,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", blkTime))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "profile", profile))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "multiLeader", multiLeader))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -288,11 +285,8 @@ func NetStart(s *state.State) {
 		n := len(fnodes)
 		for i := 0; i < n; i++ {
 			AddSimPeer(fnodes, i, (i+1)%n)
-			AddSimPeer(fnodes, i, (i+3)%n)
 			AddSimPeer(fnodes, i, (i+5)%n)
 			AddSimPeer(fnodes, i, (i+7)%n)
-			AddSimPeer(fnodes, i, (i+17)%n)
-			AddSimPeer(fnodes, i, (i+31)%n)
 		}
 
 	case "tree":

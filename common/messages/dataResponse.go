@@ -34,7 +34,7 @@ func (a *DataResponse) IsSameAs(b *DataResponse) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.DataType != b.DataType {
@@ -225,6 +225,7 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

@@ -42,7 +42,7 @@ func CreateAndPopulateTestState() *state.State {
 	state.LoadDatabase(s)
 	s.UpdateState()
 	go s.ValidatorLoop()
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(30 * time.Millisecond)
 
 	return s
 }
@@ -54,10 +54,10 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	for i := 0; i < BlockCount; i++ {
 		prev = CreateTestBlockSet(prev)
 
-		timestamp := interfaces.NewTimestampNow()
+		timestamp := primitives.NewTimestampNow()
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
 
-		answer[i] = messages.NewDBStateMsg(*timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
+		answer[i] = messages.NewDBStateMsg(timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
 	}
 	return answer
 }
@@ -314,7 +314,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 		header.SetDBHeight(0)
 		header.SetPrevFullHash(primitives.NewZeroHash())
 		header.SetPrevKeyMR(primitives.NewZeroHash())
-		header.SetTimestamp(1234)
+		header.SetTimestamp(primitives.NewTimestampFromMinutes(1234))
 	} else {
 		header.SetDBHeight(prevBlock.Header.GetDBHeight() + 1)
 		header.SetPrevFullHash(prevBlock.GetHash())
@@ -323,7 +323,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 			panic(err)
 		}
 		header.SetPrevKeyMR(keyMR)
-		header.SetTimestamp(prevBlock.Header.GetTimestamp() + 1)
+		header.SetTimestamp(primitives.NewTimestampFromMinutes(prevBlock.Header.GetTimestamp().GetTimeMinutesUInt32() + 1))
 	}
 
 	header.SetVersion(1)

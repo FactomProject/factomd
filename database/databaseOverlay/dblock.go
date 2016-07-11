@@ -5,11 +5,12 @@
 package databaseOverlay
 
 import (
+	"sort"
+
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
-	"sort"
 )
 
 // ProcessDBlockBatche inserts the DBlock and update all it's dbentries in DB
@@ -20,6 +21,7 @@ func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBlockWithEntries
 	if err != nil {
 		return err
 	}
+
 	return db.SaveIncludedInMultiFromBlock(dblock, false)
 }
 
@@ -30,6 +32,7 @@ func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEn
 	if err != nil {
 		return err
 	}
+
 	return db.SaveIncludedInMultiFromBlockMultiBatch(dblock, false)
 }
 

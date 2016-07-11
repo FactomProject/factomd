@@ -32,7 +32,7 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.DBHeightStart != b.DBHeightStart {
@@ -150,6 +150,7 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 
 	m.Peer2Peer = true // This is always a Peer2peer message
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

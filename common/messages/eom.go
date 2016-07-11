@@ -28,6 +28,7 @@ type EOM struct {
 	FactoidVM bool
 
 	//Not marshalled
+	Processed  bool
 	hash       interfaces.IHash
 	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
 }
@@ -40,7 +41,7 @@ func (a *EOM) IsSameAs(b *EOM) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.Minute != b.Minute {
@@ -96,6 +97,9 @@ func (m *EOM) GetMsgHash() interfaces.IHash {
 }
 
 func (m *EOM) GetTimestamp() interfaces.Timestamp {
+	if m.Timestamp == nil {
+		m.Timestamp = new(primitives.Timestamp)
+	}
 	return m.Timestamp
 }
 
@@ -192,6 +196,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

@@ -72,61 +72,91 @@ To get the current list of flags, type the command:
 
 Which will get you something like:
 	
-	//////////////////////// Copyright 2015 Factom Foundation
-	//////////////////////// Use of this source code is governed by the MIT
-	//////////////////////// license that can be found in the LICENSE file.
-	Go compiler version: go1.5
-	Using build: 
-	len(Args) 2
-	Usage of factomd:
-	-count int
-			The number of nodes to generate (default 1)
-	-db string
-			Override the Database in the Config file and use this Database implementation
-	-follower
-			If true, force node to be a follower.  Only used when replaying a journal.
-	-journal string
-			Rerun a Journal of messages
-	-net string
-			The default algorithm to build the network connections (default "tree")
-	-node int
-			Node Number the simulator will set as the focus
-	-test.bench string
-			regular expression to select benchmarks to run
-	-test.benchmem
-			print memory allocations for benchmarks
-	-test.benchtime duration
-			approximate run time for each benchmark (default 1s)
-	-test.blockprofile string
-			write a goroutine blocking profile to the named file after execution
-	-test.blockprofilerate int
-			if >= 0, calls runtime.SetBlockProfileRate() (default 1)
-	-test.count n
-			run tests and benchmarks n times (default 1)
-	-test.coverprofile string
-			write a coverage profile to the named file after execution
-	-test.cpu string
-			comma-separated list of number of CPUs to use for each test
-	-test.cpuprofile string
-			write a cpu profile to the named file during execution
-	-test.memprofile string
-			write a memory profile to the named file after execution
-	-test.memprofilerate int
-			if >=0, sets runtime.MemProfileRate
-	-test.outputdir string
-			directory in which to write profiles
-	-test.parallel int
-			maximum test parallelism (default 8)
-	-test.run string
-			regular expression to select tests and examples to run
-	-test.short
-			run smaller test suite to save time
-	-test.timeout duration
-			if positive, sets an aggregate time limit for all tests
-	-test.trace string
-			write an execution trace to the named file after execution
-	-test.v
-			verbose: print additional output
+    //////////////////////// Copyright 2015 Factom Foundation
+    //////////////////////// Use of this source code is governed by the MIT
+    //////////////////////// license that can be found in the LICENSE file.
+    Go compiler version: go1.6.2
+    Using build: 
+    len(Args) 2
+    Usage of factomd:
+    -blktime int
+            Seconds per block.  Production is 600.
+    -clonedb string
+            Override the main node and use this database for the clones in a Network.
+    -count int
+            The number of nodes to generate (default 1)
+    -db string
+            Override the Database in the Config file and use this Database implementation
+    -drop int
+            Number of messages to drop out of every thousand
+    -exclusive
+            If true, we only dial out to special/trusted peers.
+    -folder string
+            Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)
+    -follower
+            If true, force node to be a follower.  Only used when replaying a journal.
+    -journal string
+            Rerun a Journal of messages
+    -leader
+            If true, force node to be a leader.  Only used when replaying a journal. (default true)
+    -net string
+            The default algorithm to build the network connections (default "tree")
+    -netdebug int
+            0-5: 0 = quiet, >0 = increasing levels of logging
+    -node int
+            Node Number the simulator will set as the focus
+    -p2pPort string
+            Port to listen for peers on. (default "8108")
+    -peers string
+            Array of peer addresses. 
+    -port int
+            Address to serve WSAPI on
+    -prefix string
+            Prefix the Factom Node Names with this value; used to create leaderless networks.
+    -profile string
+            If true, turn on the go Profiler to profile execution of Factomd
+    -rotate
+            If true, responsiblity is owned by one leader, and rotated over the leaders.
+    -runtimeLog
+            If true, maintain runtime logs of messages passed.
+    -test.bench string
+            regular expression to select benchmarks to run
+    -test.benchmem
+            print memory allocations for benchmarks
+    -test.benchtime duration
+            approximate run time for each benchmark (default 1s)
+    -test.blockprofile string
+            write a goroutine blocking profile to the named file after execution
+    -test.blockprofilerate int
+            if >= 0, calls runtime.SetBlockProfileRate() (default 1)
+    -test.count n
+            run tests and benchmarks n times (default 1)
+    -test.coverprofile string
+            write a coverage profile to the named file after execution
+    -test.cpu string
+            comma-separated list of number of CPUs to use for each test
+    -test.cpuprofile string
+            write a cpu profile to the named file during execution
+    -test.memprofile string
+            write a memory profile to the named file after execution
+    -test.memprofilerate int
+            if >=0, sets runtime.MemProfileRate
+    -test.outputdir string
+            directory in which to write profiles
+    -test.parallel int
+            maximum test parallelism (default 1)
+    -test.run string
+            regular expression to select tests and examples to run
+    -test.short
+            run smaller test suite to save time
+    -test.timeout duration
+            if positive, sets an aggregate time limit for all tests
+    -test.trace string
+            write an execution trace to the named file after execution
+    -test.v
+            verbose: print additional output
+    -timedelta int
+            Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.
 
 The flags that begin with "test." are supplied by the profiling package installed.  The flags that relate to running factomd and the simulator are the following, with a little more explaination.  That follows below.
 

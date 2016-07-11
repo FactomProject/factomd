@@ -18,8 +18,15 @@ type AddFederatedServer struct {
 var _ interfaces.IABEntry = (*AddFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServer)(nil)
 
+func (e *AddFederatedServer) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %20s -- %20s %10x %20s %10d\n", "AddAuditServer", "IdentityChainID", e.IdentityChainID.Bytes()[:3], "DBHeight", e.DBHeight))
+	return (string)(out.DeepCopyBytes())
+}
+
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
 	state.AddFedServer(c.DBHeight, c.IdentityChainID)
+	state.UpdateAuthorityFromABEntry(c)
 }
 
 // Create a new DB Signature Entry
@@ -86,11 +93,6 @@ func (e *AddFederatedServer) JSONString() (string, error) {
 
 func (e *AddFederatedServer) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *AddFederatedServer) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *AddFederatedServer) IsInterpretable() bool {

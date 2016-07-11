@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package interfaces_test
+package primitives_test
 
 import (
 	"fmt"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestTimestamp(t *testing.T) {

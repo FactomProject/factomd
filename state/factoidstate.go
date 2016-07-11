@@ -32,6 +32,9 @@ type FactoidState struct {
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
 
 func (fs *FactoidState) EndOfPeriod(period int) {
+	if period > 9 || period < 0 {
+		panic(fmt.Sprintf("Minute is out of range: %d", period))
+	}
 	fs.GetCurrentBlock().EndOfPeriod(period)
 }
 
@@ -45,7 +48,9 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
-		fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
+		fs.CurrentBlock = factoid.NewFBlock(nil)
+		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
+		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
 		t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {
@@ -125,7 +130,8 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		if err == nil {
 			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
 			// all transactions here.
-			fs.State.InternalReplay.IsTSValid(trans.GetHash(), trans.GetTimestamp())
+			fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetHash(), trans.GetTimestamp())
+			fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetHash(), trans.GetTimestamp())
 		}
 		return err
 	}
@@ -210,14 +216,9 @@ func (fs *FactoidState) ClearRealTime() error {
 // End of Block means packing the current block away, and setting
 // up the next
 func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
-	var hash, hash2 interfaces.IHash
-
 	if fs.GetCurrentBlock() == nil {
 		panic("Invalid state on initialization")
 	}
-
-	hash = fs.CurrentBlock.GetHash()
-	hash2 = fs.CurrentBlock.GetFullHash()
 
 	// 	outstr := fs.CurrentBlock.String()
 	// 	if len(outstr) < 10000 {
@@ -227,7 +228,10 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	//		}
 	// 	}
 
-	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
+	fBlock := factoid.NewFBlock(fs.CurrentBlock)
+	fBlock.SetExchRate(fs.State.GetFactoshisPerEC())
+
+	fs.CurrentBlock = fBlock
 
 	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 	err := fs.CurrentBlock.AddCoinbase(t)
@@ -236,14 +240,8 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	}
 	fs.UpdateTransaction(true, t)
 
-	if hash != nil {
-		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
-		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
-	}
-
-	LoadIdentityByDirectoryBlockHeight(fs.DBHeight, fs.State, true)
-	LoadAuthorityByAdminBlockHeight(fs.DBHeight, fs.State, true)
-
+	dblk, _ := fs.State.DB.FetchDirectoryBlockHead()
+	LoadIdentityByDirectoryBlock(dblk, fs.State, true)
 	fs.DBHeight++
 }
 

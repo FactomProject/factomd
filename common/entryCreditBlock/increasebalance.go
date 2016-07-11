@@ -25,6 +25,17 @@ var _ interfaces.Printable = (*IncreaseBalance)(nil)
 var _ interfaces.ShortInterpretable = (*IncreaseBalance)(nil)
 var _ interfaces.IECBlockEntry = (*IncreaseBalance)(nil)
 
+func (e *IncreaseBalance) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "IncreaseBalance"))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "TXID", e.TXID.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Index", e.Index))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "NumEC", e.NumEC))
+
+	return (string)(out.DeepCopyBytes())
+}
+
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)
 	r.TXID = primitives.NewZeroHash()
@@ -129,7 +140,6 @@ func (e *IncreaseBalance) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (e *IncreaseBalance) String() string {
-	str, _ := e.JSONString()
-	return str
+func (e *IncreaseBalance) GetTimestamp() interfaces.Timestamp {
+	return nil
 }

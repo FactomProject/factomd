@@ -14,9 +14,6 @@ type ProcessLists struct {
 	DBHeightBase uint32         // Height of the first Process List in this structure.
 	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 
-	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
-	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
-
 }
 
 func (lists *ProcessLists) LastList() *ProcessList {
@@ -28,21 +25,23 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
-	pl := lists.Get(dbheight)
-
 	// Look and see if we need to toss some previous blocks under construction.
-	diff := dbheight - lists.DBHeightBase
-	if diff > 1 && len(lists.Lists) > 1 {
+	diff := int(dbheight) - int(lists.DBHeightBase)
+	if diff > 2 && len(lists.Lists) > 1 {
 		progress = true
-		lists.DBHeightBase += (diff - 1)
+		lists.DBHeightBase++
 		var newlist []*ProcessList
-		newlist = append(newlist, lists.Lists[(diff-1):]...)
+		newlist = append(newlist, lists.Lists[1:]...)
 		lists.Lists = newlist
 	}
-	// Create DState blocks for all completed Process Lists
-	p2 := pl.Process(lists.State)
-	progress = p2 || progress
-	return
+
+	pl := lists.Get(dbheight)
+	for pl.Complete() {
+		dbheight++
+		pl = lists.Get(dbheight)
+	}
+	return pl.Process(lists.State)
+
 }
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
@@ -71,10 +70,10 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 func (lists *ProcessLists) String() string {
 	str := "Process Lists"
-	str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-	ht := lists.State.GetHighestRecordedBlock()
-	pl := lists.Get(ht + 1)
-	str = fmt.Sprintf("%s ht: %d pl: %s\n", str, ht+1, pl.String())
+	for _, pl := range lists.Lists {
+		str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
+		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
+	}
 	return str
 }
 
@@ -93,9 +92,6 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 	pls.State = s
 	pls.DBHeightBase = 0
 	pls.Lists = make([]*ProcessList, 0)
-
-	pls.Acks = new(map[[32]byte]interfaces.IMsg)
-	pls.Msgs = new(map[[32]byte]interfaces.IMsg)
 
 	return pls
 }

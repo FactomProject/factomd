@@ -349,6 +349,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics command, all metrics are: %+v", c.connectionMetrics)
 	case ConnectionIsClosed:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
+		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
@@ -366,6 +367,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		connection := *conn
 		connection.Start()
 		c.connections[connection.peer.Hash] = connection
+		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
@@ -379,6 +381,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
 		c.connections[connection.peer.Hash] = *connection
+		c.connectionsByAddress[connection.peer.Address] = *connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
 		silence("ctrlr", "handleCommand() Processing command: CommandShutdown")
@@ -472,7 +475,7 @@ func (c *Controller) fillOutgoingSlots() {
 	}
 	peers := c.discovery.GetOutgoingPeers()
 	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.DiscoverPeers()
+		c.discovery.GetOutgoingPeers()
 		peers = c.discovery.GetOutgoingPeers()
 	}
 	// dial into the peers

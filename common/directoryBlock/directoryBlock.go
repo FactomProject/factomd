@@ -7,6 +7,7 @@ package directoryBlock
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -43,25 +44,19 @@ func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int)
 }
 
 func (c *DirectoryBlock) SetABlockHash(aBlock interfaces.IAdminBlock) error {
-	hash, err := aBlock.PartialHash()
-	if err != nil {
-		return err
-	}
+	hash := aBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, aBlock.GetChainID(), 0)
 	return nil
 }
 
 func (c *DirectoryBlock) SetECBlockHash(ecBlock interfaces.IEntryCreditBlock) error {
-	hash, err := ecBlock.HeaderHash()
-	if err != nil {
-		return err
-	}
+	hash := ecBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, ecBlock.GetChainID(), 1)
 	return nil
 }
 
 func (c *DirectoryBlock) SetFBlockHash(fBlock interfaces.IFBlock) error {
-	hash := fBlock.GetKeyMR()
+	hash := fBlock.DatabasePrimaryIndex()
 	c.SetEntryHash(hash, fBlock.GetChainID(), 2)
 	return nil
 }
@@ -179,28 +174,20 @@ func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *DirectoryBlock) String() string {
 	var out primitives.Buffer
-	kmr, err := e.BuildKeyMerkleRoot()
 
-	if err != nil {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", err))
-	} else {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
-	}
+	kmr := e.GetKeyMR()
+	out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
 
-	kmr, err = e.BuildBodyMR()
-	if err != nil {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", err))
-	} else {
-		out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
-	}
+	kmr = e.BodyKeyMR()
+	out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
 
 	fh := e.GetFullHash()
-	out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", fh.String()))
+	out.WriteString(fmt.Sprintf("%20s %v\n", "FullHash:", fh.String()))
 
 	out.WriteString(e.Header.String())
 	out.WriteString("Entries: \n")
-	for _, entry := range e.DBEntries {
-		out.WriteString(entry.String())
+	for i, entry := range e.DBEntries {
+		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
 
 	return (string)(out.DeepCopyBytes())
@@ -375,20 +362,22 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
  * Support
  *********************************************************************/
 
-func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirectoryBlock {
+func NewDirectoryBlock(prev interfaces.IDirectoryBlock) interfaces.IDirectoryBlock {
 	newdb := new(DirectoryBlock)
 
 	newdb.Header = new(DBlockHeader)
 	newdb.Header.SetVersion(constants.VERSION_0)
-	newdb.Header.SetPrevFullHash(primitives.NewZeroHash())
-	newdb.Header.SetPrevKeyMR(primitives.NewZeroHash())
 
 	if prev != nil {
 		newdb.GetHeader().SetPrevFullHash(prev.GetFullHash())
 		newdb.GetHeader().SetPrevKeyMR(prev.GetKeyMR())
+		newdb.GetHeader().SetDBHeight(prev.GetHeader().GetDBHeight() + 1)
+	} else {
+		newdb.Header.SetPrevFullHash(primitives.NewZeroHash())
+		newdb.Header.SetPrevKeyMR(primitives.NewZeroHash())
+		newdb.GetHeader().SetDBHeight(0)
 	}
 
-	newdb.GetHeader().SetDBHeight(dbheight)
 	newdb.SetDBEntries(make([]interfaces.IDBEntry, 0))
 
 	newdb.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
@@ -396,4 +385,34 @@ func NewDirectoryBlock(dbheight uint32, prev *DirectoryBlock) interfaces.IDirect
 	newdb.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
 
 	return newdb
+}
+
+func CheckBlockPairIntegrity(block interfaces.IDirectoryBlock, prev interfaces.IDirectoryBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
+	}
+
+	if prev == nil {
+		if block.GetHeader().GetPrevKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetHeader().GetPrevFullHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		if block.GetHeader().GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetHeader().GetPrevFullHash().IsSameAs(prev.GetFullHash()) == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }

@@ -30,7 +30,7 @@ func (a *AuditServerFault) IsSameAs(b *AuditServerFault) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -113,6 +113,7 @@ func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

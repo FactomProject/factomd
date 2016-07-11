@@ -176,6 +176,7 @@ func (e *EBlock) BodyKeyMR() interfaces.IHash {
 // (e *EBlock) BuildHeader().
 func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 	// Sha(Sha(header) + BodyMR)
+	e.BuildHeader()
 	h, err := e.HeaderHash()
 	if err != nil {
 		return nil, err
@@ -298,7 +299,8 @@ func (e *EBlock) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *EBlock) String() string {
-	str, _ := e.JSONString()
+	str := e.Header.String()
+	str = str + e.Body.String()
 	return str
 }
 

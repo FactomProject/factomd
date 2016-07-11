@@ -5,6 +5,8 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -14,51 +16,88 @@ func (s *State) IsStateFullySynced() bool {
 	return s.ProcessLists.DBHeightBase == uint32(len(s.ProcessLists.Lists))
 }
 
-func (s *State) GetACKStatus(hash interfaces.IHash) (int, error) {
-	_, found := s.ProcessLists.LastList().OldMsgs[hash.Fixed()]
+//returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
+func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
+	m, found := s.ProcessLists.LastList().OldMsgs[hash.Fixed()]
 	if found {
-		return constants.AckStatusACK, nil
+		return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
 	}
 
 	for _, tx := range s.ProcessLists.LastList().NewEntries {
 		if hash.IsSameAs(tx.GetHash()) {
-			return constants.AckStatusACK, nil
+			return constants.AckStatusACK, hash, nil, s.ProcessLists.LastList().DirectoryBlock.GetHeader().GetTimestamp(), nil
 		}
 	}
 	ecBlock := s.ProcessLists.LastList().EntryCreditBlock
 	if ecBlock != nil {
 		tx := ecBlock.GetEntryByHash(hash)
 		if tx != nil {
-			return constants.AckStatusACK, nil
+			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), s.ProcessLists.LastList().DirectoryBlock.GetHeader().GetTimestamp(), nil
 		}
 	}
 	fBlock := s.FactoidState.GetCurrentBlock()
 	if fBlock != nil {
 		tx := fBlock.GetTransactionByHash(hash)
 		if tx != nil {
-			return constants.AckStatusACK, nil
+			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), s.ProcessLists.LastList().DirectoryBlock.GetHeader().GetTimestamp(), nil
 		}
 	}
 
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
-		return constants.AckStatusInvalid, nil
+		return constants.AckStatusInvalid, hash, nil, nil, nil
 	}
 
 	in, err := s.DB.FetchIncludedIn(hash)
 	if err != nil {
-		return 0, err
+		return 0, hash, nil, nil, err
 	}
 
 	if in == nil {
 		if s.IsStateFullySynced() {
-			return constants.AckStatusNotConfirmed, nil
+			return constants.AckStatusNotConfirmed, hash, nil, nil, nil
 		} else {
-			return constants.AckStatusUnknown, nil
+			return constants.AckStatusUnknown, hash, nil, nil, nil
 		}
 	}
 
-	return constants.AckStatusDBlockConfirmed, nil
+	in2, err := s.DB.FetchIncludedIn(in)
+	if err != nil {
+		return 0, hash, nil, nil, err
+	}
+
+	dBlock, err := s.DB.FetchDBlock(in2)
+	if err != nil {
+		return 0, hash, nil, nil, err
+	}
+
+	fBlock, err = s.DB.FetchFBlock(in)
+	if err != nil {
+		return 0, hash, nil, nil, err
+	}
+	if fBlock != nil {
+		tx := fBlock.GetTransactionByHash(hash)
+		if tx == nil {
+			return 0, hash, nil, nil, fmt.Errorf("Transaction not found in a block we were expecting")
+		}
+		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
+	}
+
+	ecBlock, err = s.DB.FetchECBlock(in)
+	if err != nil {
+		return 0, hash, nil, nil, err
+	}
+	if ecBlock != nil {
+		tx := ecBlock.GetEntryByHash(hash)
+		if tx == nil {
+			return 0, hash, nil, nil, fmt.Errorf("Transaction not found in a block we were expecting")
+		}
+		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
+	}
+
+	//entries have no timestamp of their own, so return nil
+
+	return constants.AckStatusDBlockConfirmed, hash, nil, dBlock.GetHeader().GetTimestamp(), nil
 }
 
 func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECBlockEntry, error) {

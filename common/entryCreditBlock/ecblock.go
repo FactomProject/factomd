@@ -36,6 +36,12 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*ECBlock)(nil)
 
+func (c *ECBlock) String() string {
+	str := c.Header.String()
+	str = str + c.Body.String()
+	return str
+}
+
 func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
 	return c.Body.GetEntries()
 }
@@ -307,7 +313,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			}
 			e.Body.SetEntries(append(e.Body.GetEntries(), s))
 		case ECIDMinuteNumber:
-			m := NewMinuteNumber()
+			m := NewMinuteNumber(0)
 			if buf.Len() < MinuteNumberSize {
 				err = io.EOF
 				return nil, err
@@ -433,11 +439,6 @@ func (e *ECBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (e *ECBlock) String() string {
-	str, _ := e.JSONString()
-	return str
-}
-
 /********************************************************
  * Support Functions
  ********************************************************/
@@ -477,4 +478,42 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 	}
 
 	return e, nil
+}
+
+func CheckBlockPairIntegrity(block interfaces.IEntryCreditBlock, prev interfaces.IEntryCreditBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
+	}
+
+	if prev == nil {
+		if block.GetHeader().GetPrevHeaderHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevHeaderHash")
+		}
+		if block.GetHeader().GetPrevFullHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		h, err := prev.HeaderHash()
+		if err != nil {
+			return err
+		}
+		if block.GetHeader().GetPrevHeaderHash().IsSameAs(h) == false {
+			return fmt.Errorf("Invalid PrevHeaderHash")
+		}
+		h, err = prev.GetFullHash()
+		if err != nil {
+			return err
+		}
+		if block.GetHeader().GetPrevFullHash().IsSameAs(h) == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }

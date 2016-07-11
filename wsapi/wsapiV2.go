@@ -37,7 +37,9 @@ func HandleV2(ctx *web.Context) {
 		return
 	}
 
+	ServersMutex.Lock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
+	ServersMutex.Unlock()
 
 	jsonResp, jsonError := HandleV2Request(state, j)
 
@@ -174,7 +176,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
-	resp.TxID = commit.GetTransactionHash().String()
+	resp.TxID = commit.GetSigHash().String()
 
 	return resp, nil
 }
@@ -207,7 +209,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
-	resp.TxID = commit.GetTransactionHash().String()
+	resp.TxID = commit.GetSigHash().String()
 
 	return resp, nil
 }
@@ -557,6 +559,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"
+	resp.TxID = msg.Transaction.GetSigHash().String()
 
 	return resp, nil
 }
