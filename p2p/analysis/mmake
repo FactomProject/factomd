@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "go install metrics.go"
+go install metrics.go
+if [ $? -eq 0 ]; then
+    echo "                            `date`"
+    echo "was binary updated?"
+    ls -G -lh metrics
+fi

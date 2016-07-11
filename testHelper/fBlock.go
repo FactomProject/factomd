@@ -63,7 +63,7 @@ func SignFactoidTransaction(n uint64, tx interfaces.ITransaction) {
 }
 
 func CreateTestFactoidBlockWithCoinbase(prev interfaces.IFBlock, address interfaces.IAddress, amount uint64) interfaces.IFBlock {
-	block := factoid.NewFBlockFromPreviousBlock(1, prev)
+	block := factoid.NewFBlock(prev)
 	tx := new(factoid.Transaction)
 	tx.AddOutput(address, amount)
 	tx.SetTimestamp(primitives.NewTimestampFromSeconds(60 * 10 * uint32(block.GetDBHeight())))

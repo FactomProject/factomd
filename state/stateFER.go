@@ -161,7 +161,7 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 
 	copy(sig[:], externalIds[0]) // First ext id needs to be the signature of the content
 
-	if !ed.Verify(pub, e.GetContent(), sig) {
+	if !ed.VerifyCanonical(pub, e.GetContent(), sig) {
 		return false
 	}
 

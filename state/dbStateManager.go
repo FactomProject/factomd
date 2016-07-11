@@ -182,9 +182,6 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
-
-		fmt.Println("dddd ======================Ask for blocks", begin, end2)
-
 		list.State.RunLeader = false
 		list.State.StartDelay = list.State.GetTimestamp()
 		list.State.NetworkOutMsgQueue() <- msg
@@ -201,20 +198,30 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	d.DirectoryBlock.MarshalBinary()
 
-	hash, _ := p.EntryCreditBlock.HeaderHash()
+	hash, err := p.EntryCreditBlock.HeaderHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
-	hash, _ = p.EntryCreditBlock.GetFullHash()
+	hash, err = p.EntryCreditBlock.GetFullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 
-	hash = p.AdminBlock.GetHash()
+	hash, err = p.AdminBlock.FullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 
 	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetFullHash().Bytes())
+	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerMR())
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
@@ -367,8 +374,8 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		progress = list.SaveDBStateToDB(d) || progress
 
-		// Make sure the directory block is properly synced up with the prior block, if there
-		// is one.
+		// Make sure we move forward the Adminblock state in the process lists
+		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
 
 	}
 	return

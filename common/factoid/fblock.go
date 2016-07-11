@@ -458,18 +458,16 @@ func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
 	return b.PrevKeyMR
 }
 
-func (b *FBlock) SetPrevKeyMR(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevKeyMR = h
+func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
+	b.PrevKeyMR = hash
 }
 
 func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
 	return b.PrevLedgerKeyMR
 }
 
-func (b *FBlock) SetPrevLedgerKeyMR(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevLedgerKeyMR = h
+func (b *FBlock) SetPrevLedgerKeyMR(hash interfaces.IHash) {
+	b.PrevLedgerKeyMR = hash
 }
 
 func (b *FBlock) CalculateHashes() {
@@ -717,22 +715,49 @@ func (e FBlock) MarshalJSON() ([]byte, error) {
  * Helper Functions
  **************************/
 
-func NewFBlock(exchRate uint64, dbHeight uint32) interfaces.IFBlock {
+func NewFBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	scb := new(FBlock)
 	scb.BodyMR = new(primitives.Hash)
-	scb.PrevKeyMR = new(primitives.Hash)
-	scb.PrevLedgerKeyMR = new(primitives.Hash)
-	scb.ExchRate = exchRate
-	scb.DBHeight = dbHeight
+	if prev != nil {
+		scb.PrevKeyMR = prev.GetKeyMR()
+		scb.PrevLedgerKeyMR = prev.GetLedgerMR()
+		scb.ExchRate = prev.GetExchRate()
+		scb.DBHeight = prev.GetDBHeight() + 1
+	} else {
+		scb.PrevKeyMR = primitives.NewZeroHash()
+		scb.PrevLedgerKeyMR = primitives.NewZeroHash()
+		scb.ExchRate = 1
+		scb.DBHeight = 0
+	}
 	return scb
 }
 
-func NewFBlockFromPreviousBlock(exchangeRate uint64, prev interfaces.IFBlock) interfaces.IFBlock {
-	if prev != nil {
-		newBlock := NewFBlock(exchangeRate, prev.GetDBHeight()+1)
-		newBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
-		newBlock.SetPrevLedgerKeyMR(prev.GetFullHash().Bytes())
-		return newBlock
+func CheckBlockPairIntegrity(block interfaces.IFBlock, prev interfaces.IFBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
 	}
-	return NewFBlock(exchangeRate, 0)
+
+	if prev == nil {
+		if block.GetPrevKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		if block.GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsSameAs(prev.GetLedgerMR()) == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != (prev.GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }
