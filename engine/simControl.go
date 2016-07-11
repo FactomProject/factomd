@@ -78,7 +78,7 @@ func SimControl(listenTo int) {
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
 						}
-						os.Stderr.WriteString(fmt.Sprintf("=== %d Authorities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
+						os.Stderr.WriteString(fmt.Sprintf("=== %d Identities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
 						for _, ele := range auths {
 							fmt.Println(ele.ChainID.String())
 						}
@@ -401,6 +401,7 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("tN           -Attaches Nth identity in pool to current node. If that identity is taken, will grab\n")
 					os.Stderr.WriteString("              the next available identity in the local identity pool. Can also just type 't' and\n")
 					os.Stderr.WriteString("              it will grab the next available identity.\n")
+					os.Stderr.WriteString("u             Shows the authorities being monitored for change.\n")
 					os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
 					os.Stderr.WriteString("i[t/m/b/a][N] Shows only the Chains, Mhash, block signing key, or anchor key up to the Nth identity\n")
 					os.Stderr.WriteString("isN           Shows only Nth identity\n")
@@ -632,6 +633,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("gN            Adds 'N' identities to your identity pool. (Cannot add identities already taken)\n")
 				os.Stderr.WriteString("tN            Attaches Nth identity in pool to current node. Can also just press 't' to grab the next\n")
 				os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
+				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
