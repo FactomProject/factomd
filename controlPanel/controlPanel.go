@@ -1,14 +1,19 @@
 package controlPanel
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/FactomProject/factomd/state"
 )
+
+var TEMPLATE_PATH string = "./controlPanel/Web/templates/"
+var templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html")) //Cache general templates
 
 var INDEX_HTML []byte
 var mux *http.ServeMux
@@ -25,6 +30,7 @@ func ServeControlPanel(port int, state *state.State) {
 	INDEX_HTML, _ = ioutil.ReadFile("./ControlPanel/Web/index.html")
 
 	http.HandleFunc("/", static(indexHandler))
+	http.HandleFunc("/search", searchHandler)
 	http.HandleFunc("/post", postHandler)
 	http.HandleFunc("/factomd", factomdHandler)
 
@@ -42,7 +48,12 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(INDEX_HTML)
+	templates.ParseGlob(TEMPLATE_PATH + "/index/*.html")
+	err := templates.ExecuteTemplate(w, "indexPage", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +74,26 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"Type": "None"}`))
 }
 
+type SearchedStruct struct {
+	Type    string      `json:"Type"`
+	content interface{} `json:"item"`
+}
+
+func searchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.NotFound(w, r)
+		return
+	}
+	data := r.FormValue("content")
+
+	searchResult := new(SearchedStruct)
+	json.Unmarshal([]byte(data), searchResult)
+	fmt.Println(searchResult.Type)
+	handleSearchResult(searchResult, w)
+	//search, _ := ioutil.ReadFile("./ControlPanel/Web/searchresult.html")
+	//w.Write([]byte(searchResult.Type))
+}
+
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.NotFound(w, r)
@@ -76,6 +107,9 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	case "leaderHeight":
 		data := fmt.Sprintf("%d", st.GetLeaderHeight())
 		w.Write([]byte(data)) // Return leader height
+	case "completeHeight": // Second Pass Sync info
+		data := fmt.Sprintf("%d", st.GetEBDBHeightComplete())
+		w.Write([]byte(data)) // Return EBDB complete height
 	case "peers":
 
 	}

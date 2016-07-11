@@ -21,6 +21,15 @@ function getHeight() {
     percent = Math.floor(percent)
     $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
   })
+
+    resp = queryState("completeHeight",function(resp){
+    //$("#nodeHeight").val(resp)
+    completeHeight = parseInt(resp)
+    updateProgressBar("#syncSecond > .progress-meter", currentHeight, completeHeight)
+    percent = (completeHeight/completeHeight) * 100
+    percent = Math.floor(percent)
+    $('#syncSecond > .progress-meter > .progress-meter-text').text(currentHeight + " of " + leaderHeight)
+  })
 }
 
 function updateProgressBar(id, current, max) {

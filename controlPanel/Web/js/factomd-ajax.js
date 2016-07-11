@@ -18,7 +18,12 @@ $("#factom-search-submit").click(function() {
     if(x.readyState == 4) {
       console.log(x.response)
       obj = JSON.parse(x.response)
-      $("#testing_area").text(obj.Type)
+      alert(x.response)
+      if (obj.Type != "None") {
+        redirect("search", "post", x.response) // Something found
+      } else {
+        $("#testing_area").text(obj.Type)
+      }
     }
   }
   var formData = new FormData();
@@ -28,6 +33,18 @@ $("#factom-search-submit").click(function() {
   x.open("POST", "/post")
   x.send(formData)
 })
+
+// Redirect with post content
+var redirect = function(url, method, content) {
+  var input = $("<input>").attr("type", "hidden").val(content).attr("name", "content")
+  var x = $('<form>', {
+      method: method,
+      action: url
+  })
+  x.append(input)
+  x.submit();
+};
+
 
 // Example Code to use for forms
 /*
