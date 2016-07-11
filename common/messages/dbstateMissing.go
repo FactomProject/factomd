@@ -9,6 +9,7 @@ import (
 	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -112,6 +113,7 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 		msg, err := state.LoadDBState(dbs)
 		if msg != nil && err == nil { // If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
+			msg.SetPeer2Peer(true)
 			state.NetworkOutMsgQueue() <- msg
 		}
 	}
