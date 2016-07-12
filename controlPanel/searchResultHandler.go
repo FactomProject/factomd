@@ -1,6 +1,7 @@
 package controlPanel
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"text/template"
@@ -85,17 +86,17 @@ func getEntry(hash string) *EntryHolder {
 	holder.Content = string(entry.GetContent())
 	max := byte(0x80)
 	for _, data := range entry.ExternalIDs() {
-		hex := false
+		hexString := false
 		for _, bytes := range data {
 			if bytes > max {
-				hex == true
+				hexString = true
 				break
 			}
 		}
-		if hex {
-
+		if hexString {
+			holder.ExtIDs = append(holder.ExtIDs[:], "<span id='encoding'><a>Hex  : </a></span><span id='data'>"+hex.EncodeToString(data)+"</span>")
 		} else {
-			holder.ExtIDs = append(holder.ExtIDs[:], string(data))
+			holder.ExtIDs = append(holder.ExtIDs[:], "<span id='encoding'><a>Ascii: </a></span><span id='data'>"+string(data)+"</span>")
 		}
 	}
 	holder.Version = 0
@@ -106,21 +107,25 @@ func getEntry(hash string) *EntryHolder {
 func getAllChainEntries(chainIDString string) []SearchedStruct {
 	arr := make([]SearchedStruct, 0)
 	chainID, err := primitives.HexToHash(chainIDString)
+	if err != nil {
+		return nil
+	}
 	s := new(SearchedStruct)
 	s.Type = "chainhead"
 	s.Input = chainID.String()
 	mr, err := st.DB.FetchHeadIndexByChainID(chainID)
-	if err == nil {
-		s.Content = mr.String()
+	if err != nil || mr == nil {
+		return nil
 	}
+	s.Content = mr.String()
 	arr = append(arr[:], *s)
 	if err != nil {
-		return arr
+		return nil
 	}
 
 	entries, err := st.DB.FetchAllEntriesByChainID(chainID)
 	if err != nil {
-		return arr
+		return nil
 	}
 	for _, entry := range entries {
 		s := new(SearchedStruct)

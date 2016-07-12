@@ -14,14 +14,14 @@
                 	<tbody>
                 		<tr>
                 			<td>Entry Hash:</td>
-                			<td><a href="" id="factom-search-link link-{{$i}}" type="entry">{{$ele.Input}}</a></td>
+                			<td><a href="" id="factom-search-link" type="entry">{{$ele.Input}}</a></td>
                 		</tr>
                 		<tr>
                 			<td>External IDs:</td>
                 			<td>
 								<ul>
 							    {{ range $ID := $ele.Content.ExtIDs }}
-							        <li>{{$ID}}</li> 
+							        <li id="entry-external-id">{{$ID}}</li> 
 							    {{ end }}
 							</ul>
                 			</td>
@@ -41,5 +41,6 @@
 	</section>
 	<!-- End Body -->
 	{{template "scripts"}}
+    {{template "toolScripts"}}
 	{{template "footer"}}
 {{end}}

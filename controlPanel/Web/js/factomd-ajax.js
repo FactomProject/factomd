@@ -35,7 +35,6 @@ $("#factom-search-submit").click(function() {
 $("#factom-search-link").click(function() {
   type = jQuery(this).attr("type")
   hash = jQuery(this).text()
-  alert(hash)
   var x = new XMLHttpRequest()
   x.onreadystatechange = function() {
     if(x.readyState == 4) {

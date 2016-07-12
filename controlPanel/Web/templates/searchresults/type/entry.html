@@ -20,7 +20,7 @@
 							<td>
 								<ul>
 								    {{ range $ID := .Content.ExtIDs }}
-								        <li>{{$ID}}</li> 
+								        <li id="entry-external-id">{{$ID}}</li> 
 								    {{ end }}
 								</ul>
 							</td>
@@ -38,5 +38,6 @@
 	</section>
 	<!-- End Body -->
 	{{template "scripts"}}
+	{{template "toolScripts"}}
 	{{template "footer"}}
 {{end}}
