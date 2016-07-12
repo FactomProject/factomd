@@ -402,6 +402,7 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("              will grab the next available identity in the local identity pool. Can also just type \n")
 					os.Stderr.WriteString("              't' and it will grab the next available identity.\n")
 					os.Stderr.WriteString("tm           -Shows the current node's identity information. \n")
+					os.Stderr.WriteString("tc           -Changes the current node's signing key. \n")
 					os.Stderr.WriteString("t[CHAINID]   -Attaches the identity associated with the root chainID given to current node \n")
 					os.Stderr.WriteString("u             Shows the authorities being monitored for change.\n")
 					os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
