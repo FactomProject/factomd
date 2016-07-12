@@ -64,7 +64,6 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		fmt.Println(r.FormValue("search"))
 		found, respose := searchDB(r.FormValue("search"), st)
 		if found {
 			w.Write([]byte(respose))
@@ -77,6 +76,8 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 type SearchedStruct struct {
 	Type    string      `json:"Type"`
 	Content interface{} `json:"item"`
+
+	Input string
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +89,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	searchResult := new(SearchedStruct)
 	json.Unmarshal([]byte(data), searchResult)
-	fmt.Println(searchResult.Content)
+	searchResult.Input = r.FormValue("input")
 	handleSearchResult(searchResult, w)
 	//search, _ := ioutil.ReadFile("./ControlPanel/Web/searchresult.html")
 	//w.Write([]byte(searchResult.Type))

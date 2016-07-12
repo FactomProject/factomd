@@ -20,7 +20,7 @@ $("#factom-search-submit").click(function() {
       obj = JSON.parse(x.response)
       alert(x.response)
       if (obj.Type != "None") {
-        redirect("search", "post", x.response) // Something found
+        redirect("search?input=" + $("#factom-search").val(), "post", x.response) // Something found
       } else {
         $("#testing_area").text(obj.Type)
       }

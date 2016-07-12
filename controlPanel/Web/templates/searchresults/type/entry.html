@@ -1,12 +1,87 @@
 {{define "entry"}}
 	{{template "header"}}
 	<!-- Body -->
-	<div>2.0</div>
-	<p>{{.Content.ChainID}}</p>
-	<p>{{.Content.ExtIDs}}</p>
-	<p>{{.Content.Content}}</p>
-	<p>{{.Content.Version}}</p>
+	3.9
+	<section id="explorer">
+		<div class="row">
+			<div class="columns">
+				<h1>Entry Data</h1>
+				<table>
+					<tbody>
+						<tr>
+							<td>Entry Hash:</td>
+							<td>{{.Input}}</td>
+						</tr>
+						<tr>
+							<td>Chain ID</td>
+							<td><a href="#">{{.Content.ChainID}}</a></td>
+						</tr>
+						<tr>
+							<td>External IDs:</td>
+							<td>
+								<ul>
+								    {{ range $ID := .Content.ExtIDs }}
+								        <li>h{{$ID}}</li> 
+								    {{ end }}
+								</ul>
+							</td>
+						</tr>
+						<tr>
+							<td>Content:</td>
+							<td>
+								{{truncate .Content.Content}}
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</section>
+
 	<!-- End Body -->
 	{{template "scripts"}}
 	{{template "footer"}}
 {{end}}
+<!--
+        <section id="explorer">
+            <div class="row">
+                <div class="columns">
+                    <h1>Entry Data</h1>
+                    <table>
+                    	<tbody>
+                    		<tr>
+                    			<td>Entry Hash:</td>
+                    			<td>972a785a64a7da275f17b3be613271ac90f1e7167ded52db4f9ee6215191b017</td>
+                    		</tr>
+                    		<tr>
+                    			<td>Chain Hash:</td>
+                    			<td><a href="#">37d36e0fa75e74ecb59180a0e34d2b5e044f1e011fe01f3ce3e863cacbce686d</a></td>
+                    		</tr>
+                    		<tr>
+                    			<td>External IDs:</td>
+                    			<td>
+                    				<ul>
+                    					<li>Version: 0</li>
+                    					<li>ChainID: 37d36e0fa75e74ecb59180a0e34d2b5e044f1e011fe01f3ce3e863cacbce686d</li>
+                    					<li>ExtIDs: ShCXdvyMRkXzVHsgqpgRDcyMcJvppy0LwDjTzHujp6nF96Dcn9X1SsyIukAwLKz4ecaOI50UjOy4BxU6SKQ2Cw==, RmFjdG9tIEluYyBCYXNlIENoYWlu, RmFjdG9taXplIEV2ZXJ5dGhpbmc=, SW50cmluaW8=, RE9XIDMw, QkE=</li>
+                    					<li>Content: eyJzb3VyY2UiOiJ3d3cuaW50cmluaW8uY29tIiwicXVvdGVfZGF0ZSI6IjIwMTYwNzEwXzE4MDAwOSIsImRhdGEiOlt7IkJBIjoxMzAuMDl9XX0=</li>
+                    				</ul>
+                    			</td>
+                    		</tr>
+                    		<tr>
+                    			<td>Content:</td>
+                    			<td>
+                    				<ul>
+                    					<li>source: www.intrinio.com</li>
+                    					<li>quote_date: 20160710_180009</li>
+                    					<li>data: (BA: 130.09)</li>
+									</ul>
+                				</td>
+                    		</tr>
+                    	</tbody>
+                    </table>
+        		</div>
+        	</div>
+        </section>
+
+-->
