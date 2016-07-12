@@ -22,8 +22,6 @@ type IAdminBlock interface {
 	GetHash() IHash
 	FullHash() (IHash, error)
 	PartialHash() (IHash, error)
-	BuildFullBHash() (err error)
-	BuildPartialHash() (err error)
 	AddABEntry(e IABEntry) (err error)
 	GetDBSignature() IABEntry
 	AddFedServer(IHash)

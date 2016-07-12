@@ -778,11 +778,11 @@ func CheckSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 
 	/*if idKey == nil {
 		log.Println("Identity Issue: No identity currently exist to check public key against identity key. Not full validation")
-		return ed.Verify(&pubFix, msg, &sigFix)
+		return ed.VerifyCanonical(&pubFix, msg, &sigFix)
 	}*/
 
 	if id.IsSameAs(idKey) {
-		return ed.Verify(&pubFix, msg, &sigFix)
+		return ed.VerifyCanonical(&pubFix, msg, &sigFix)
 	} else {
 		return false
 	}

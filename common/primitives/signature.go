@@ -162,7 +162,7 @@ func VerifySignature(data, publicKey, signature []byte) error {
 		return fmt.Errorf("Invalid signature length")
 	}
 
-	valid := ed25519.Verify(&pub, data, &sig)
+	valid := ed25519.VerifyCanonical(&pub, data, &sig)
 	if valid == false {
 		return fmt.Errorf("Invalid signature")
 	}

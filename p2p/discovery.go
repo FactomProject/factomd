@@ -185,16 +185,20 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	if len(peerPool) < desiredQuantity*2 {
 		return peerPool
 	}
-	// First, get half the peers with geographic diversity
-	for index := 1; index < int(desiredQuantity/2); index++ {
-		newPeer := peerPool[int(index/desiredQuantity*len(peerPool))]
+	// Algo is to divide peers up into buckets, sorted by distance.
+	// Number of buckets is the number of peers we want to get.
+	// Then given the size of each bucket, pick a random peer in the bucket.
+	bucketSize := 1 + int(len(peerPool)-1/desiredQuantity)
+	for index := 0; index < int(desiredQuantity); index++ {
+		bucketIndex := int(index / desiredQuantity * len(peerPool))
+		newPeerIndex := bucketIndex + rand.Intn(bucketSize)
+		if newPeerIndex > len(peerPool)-1 {
+			newPeerIndex = len(peerPool) - 1
+		}
+		newPeer := peerPool[newPeerIndex]
 		selectedPeers[newPeer.Address] = newPeer
 	}
-	// Next, get half the peers with pure randomness
-	for desiredQuantity > len(selectedPeers) {
-		newPeer := peerPool[rand.Intn(len(peerPool))]
-		selectedPeers[newPeer.Address] = newPeer // overwrites if already there.
-	}
+
 	// Now derive a slice of peers to return
 	finalSet := []Peer{}
 	for _, v := range selectedPeers {
@@ -205,24 +209,18 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 }
 
 // SharePeers gets a set of peers to send to other hosts
-// For now, this gives a random set of 24 of the total known peers.
+// For now, this gives a random set of  the total known peers.
 // The peers are in a json encoded string as byte slice
 func (d *Discovery) SharePeers() []byte {
 	return d.getPeerSelection()
 }
 
-// // Returns a set of peers from the ones we know about.
-// // Right now returns the set of all peers we know about.
-// // sharePeers is called from the Controllers runloop goroutine
-// // The peers are in a json encoded string
-// func (d *Discovery) ServePeers() string {
-// 	return string(d.getPeerSelection())
-// }
+// For now we use 4 * NumberPeersToConnect to share, which if connection
+// rate is %25 will result in NumberPeersToConnect connections.
 
 // getPeerSelection gets a selection of peers for SHARING.  So we want to share quality peers with the
 // network.  Therefore, we sort by quality, and filter out special peers
 func (d *Discovery) getPeerSelection() []byte {
-
 	// var peer, currentBest Peer
 	// var currentBestDistance float64
 	selectedPeers := []Peer{}
@@ -236,6 +234,9 @@ func (d *Discovery) getPeerSelection() []byte {
 	for _, peer := range peerPool {
 		if SpecialPeer != peer.Type { // we don't share special peers
 			selectedPeers = append(selectedPeers, peer)
+		}
+		if 4*NumberPeersToConnect <= len(selectedPeers) {
+			break
 		}
 	}
 

@@ -23,11 +23,11 @@ import (
 //
 type FBlock struct {
 	//  ChainID         interfaces.IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
-	BodyMR       interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
-	PrevKeyMR    interfaces.IHash // Key Merkle root of previous block.
-	PrevFullHash interfaces.IHash // Sha3 of the previous Factoid Block
-	ExchRate     uint64           // Factoshis per Entry Credit
-	DBHeight     uint32           // Directory Block height
+	BodyMR          interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
+	PrevKeyMR       interfaces.IHash // Key Merkle root of previous block.
+	PrevLedgerKeyMR interfaces.IHash // Sha3 of the previous Factoid Block
+	ExchRate        uint64           // Factoshis per Entry Credit
+	DBHeight        uint32           // Directory Block height
 	// Header Expansion Size  varint
 	// Transaction count
 	// body size
@@ -192,10 +192,10 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	}
 	out.Write(data)
 
-	if b.PrevFullHash == nil {
-		b.PrevFullHash = new(primitives.Hash)
+	if b.PrevLedgerKeyMR == nil {
+		b.PrevLedgerKeyMR = new(primitives.Hash)
 	}
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -279,8 +279,8 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 		return nil, err
 	}
 
-	b.PrevFullHash = new(primitives.Hash)
-	newdata, err = b.PrevFullHash.UnmarshalBinaryData(newdata)
+	b.PrevLedgerKeyMR = new(primitives.Hash)
+	newdata, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newdata)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 	if r != nil {
 		return append(r, b1)
 	}
-	r = b1.PrevFullHash.IsEqual(b2.PrevFullHash)
+	r = b1.PrevLedgerKeyMR.IsEqual(b2.PrevLedgerKeyMR)
 	if r != nil {
 		return append(r, b1)
 	}
@@ -458,18 +458,16 @@ func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
 	return b.PrevKeyMR
 }
 
-func (b *FBlock) SetPrevKeyMR(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevKeyMR = h
+func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
+	b.PrevKeyMR = hash
 }
 
-func (b *FBlock) GetPrevFullHash() interfaces.IHash {
-	return b.PrevFullHash
+func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
+	return b.PrevLedgerKeyMR
 }
 
-func (b *FBlock) SetPrevFullHash(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevFullHash = h
+func (b *FBlock) SetPrevLedgerKeyMR(hash interfaces.IHash) {
+	b.PrevLedgerKeyMR = hash
 }
 
 func (b *FBlock) CalculateHashes() {
@@ -647,11 +645,11 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	}
 	out.WriteString("\n  PrevKeyMR:     ")
 	out.WriteString(b.PrevKeyMR.String())
-	if b.PrevFullHash == nil {
-		b.PrevFullHash = new(primitives.Hash)
+	if b.PrevLedgerKeyMR == nil {
+		b.PrevLedgerKeyMR = new(primitives.Hash)
 	}
-	out.WriteString("\n  PrevFullHash:  ")
-	out.WriteString(b.PrevFullHash.String())
+	out.WriteString("\n  PrevLedgerKeyMR:  ")
+	out.WriteString(b.PrevLedgerKeyMR.String())
 	out.WriteString("\n  ExchRate:      ")
 	primitives.WriteNumber64(&out, b.ExchRate)
 	out.WriteString(fmt.Sprintf("\n  DBHeight:      %v", b.DBHeight))
@@ -702,10 +700,14 @@ type ExpandedFBlock FBlock
 func (e FBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ExpandedFBlock
-		ChainID string
+		ChainID     string
+		KeyMR       string
+		LedgerKeyMR string
 	}{
 		ExpandedFBlock: ExpandedFBlock(e),
 		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",
+		KeyMR:          e.GetKeyMR().String(),
+		LedgerKeyMR:    e.GetFullHash().String(),
 	})
 }
 
@@ -713,22 +715,49 @@ func (e FBlock) MarshalJSON() ([]byte, error) {
  * Helper Functions
  **************************/
 
-func NewFBlock(exchRate uint64, dbHeight uint32) interfaces.IFBlock {
+func NewFBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	scb := new(FBlock)
 	scb.BodyMR = new(primitives.Hash)
-	scb.PrevKeyMR = new(primitives.Hash)
-	scb.PrevFullHash = new(primitives.Hash)
-	scb.ExchRate = exchRate
-	scb.DBHeight = dbHeight
+	if prev != nil {
+		scb.PrevKeyMR = prev.GetKeyMR()
+		scb.PrevLedgerKeyMR = prev.GetLedgerMR()
+		scb.ExchRate = prev.GetExchRate()
+		scb.DBHeight = prev.GetDBHeight() + 1
+	} else {
+		scb.PrevKeyMR = primitives.NewZeroHash()
+		scb.PrevLedgerKeyMR = primitives.NewZeroHash()
+		scb.ExchRate = 1
+		scb.DBHeight = 0
+	}
 	return scb
 }
 
-func NewFBlockFromPreviousBlock(exchangeRate uint64, prev interfaces.IFBlock) interfaces.IFBlock {
-	if prev != nil {
-		newBlock := NewFBlock(exchangeRate, prev.GetDBHeight()+1)
-		newBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
-		newBlock.SetPrevFullHash(prev.GetFullHash().Bytes())
-		return newBlock
+func CheckBlockPairIntegrity(block interfaces.IFBlock, prev interfaces.IFBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
 	}
-	return NewFBlock(exchangeRate, 0)
+
+	if prev == nil {
+		if block.GetPrevKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		if block.GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsSameAs(prev.GetLedgerMR()) == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != (prev.GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }

@@ -23,5 +23,6 @@ c2 { out2[on2++]=$0 }
 /===PrintMapStart===/ {
     on2=0
     c2=1
+    out2[on2++]=$0
 }
 

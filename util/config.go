@@ -268,7 +268,6 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + folder + cfg.Wallet.BoltDBPath
 	cfg.App.ExportDataSubpath = cfg.App.HomeDir + folder + cfg.App.ExportDataSubpath
 	cfg.App.PeersFile = cfg.App.HomeDir + cfg.App.PeersFile
-	cfg.App.SeedURL = cfg.App.HomeDir + cfg.App.SeedURL
 
 	return cfg
 }
