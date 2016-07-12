@@ -17,8 +17,8 @@ import (
 
 // Admin Block Header
 type ABlockHeader struct {
-	PrevFullHash interfaces.IHash
-	DBHeight     uint32
+	BackReferenceHash interfaces.IHash
+	DBHeight          uint32
 
 	HeaderExpansionSize uint64
 	HeaderExpansionArea []byte
@@ -32,7 +32,7 @@ var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 func (e *ABlockHeader) String() string {
 	var out primitives.Buffer
 	out.WriteString("  Admin Block Header\n")
-	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "PrevFullHash", e.PrevFullHash.String()))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "BackReferenceHash", e.BackReferenceHash.String()))
 	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "DBHeight", e.DBHeight))
 	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "HeaderExpansionSize", e.HeaderExpansionSize))
 	out.WriteString(fmt.Sprintf("    %20s: %x\n", "HeaderExpansionArea", e.HeaderExpansionArea))
@@ -73,8 +73,8 @@ func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 	return b.HeaderExpansionSize
 }
 
-func (b *ABlockHeader) GetPrevFullHash() interfaces.IHash {
-	return b.PrevFullHash
+func (b *ABlockHeader) GetBackReferenceHash() interfaces.IHash {
+	return b.BackReferenceHash
 }
 
 func (b *ABlockHeader) SetDBHeight(dbheight uint32) {
@@ -85,8 +85,8 @@ func (b *ABlockHeader) SetHeaderExpansionArea(area []byte) {
 	b.HeaderExpansionArea = area
 }
 
-func (b *ABlockHeader) SetPrevFullHash(FullHash interfaces.IHash) {
-	b.PrevFullHash = FullHash
+func (b *ABlockHeader) SetBackReferenceHash(BackReferenceHash interfaces.IHash) {
+	b.BackReferenceHash = BackReferenceHash
 }
 
 // Write out the ABlockHeader to binary.
@@ -99,7 +99,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.BackReferenceHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +128,8 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevFullHash = new(primitives.Hash)
-	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	b.BackReferenceHash = new(primitives.Hash)
+	newData, err = b.BackReferenceHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
