@@ -48,7 +48,6 @@ func NetStart(s *state.State) {
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
-	networkPortPtr := flag.String("p2pPort", "8108", "Port to listen for peers on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
@@ -201,22 +200,32 @@ func NetStart(s *state.State) {
 
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
+	var peersFile, seedURL, networkPort string
 	switch s.Network {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
-	case "LOCAL", "local":
-		networkID = p2p.LocalNet
+		seedURL = s.MainSeedURL
+		networkPort = s.MainNetworkPort
+		peersFile = s.MainPeersFile
 	case "TEST", "test":
 		networkID = p2p.TestNet
+		seedURL = s.TestSeedURL
+		networkPort = s.TestNetworkPort
+		peersFile = s.TestPeersFile
+	case "LOCAL", "local":
+		networkID = p2p.LocalNet
+		seedURL = s.LocalSeedURL
+		networkPort = s.LocalNetworkPort
+		peersFile = s.LocalPeersFile
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 	}
 	ci := p2p.ControllerInit{
 		Port:      networkPort,
-		PeersFile: s.PeersFile,
+		PeersFile: peersFile,
 		Network:   networkID,
 		Exclusive: exclusive,
-		SeedURL:   s.SeedURL,
+		SeedURL:   seedURL,
 	}
 	p2pController := new(p2p.Controller).Init(ci)
 	network = *p2pController
