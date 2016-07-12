@@ -16,13 +16,11 @@ $("#factom-search-submit").click(function() {
   var x = new XMLHttpRequest()
   x.onreadystatechange = function() {
     if(x.readyState == 4) {
-      console.log(x.response)
       obj = JSON.parse(x.response)
-      alert(x.response)
       if (obj.Type != "None") {
         redirect("search?input=" + $("#factom-search").val(), "post", x.response) // Something found
       } else {
-        $("#testing_area").text(obj.Type)
+        console.log(x.response)
       }
     }
   }
@@ -34,8 +32,32 @@ $("#factom-search-submit").click(function() {
   x.send(formData)
 })
 
+$("#factom-search-link").click(function() {
+  type = jQuery(this).attr("type")
+  hash = jQuery(this).text()
+  alert(hash)
+  var x = new XMLHttpRequest()
+  x.onreadystatechange = function() {
+    if(x.readyState == 4) {
+      console.log(x.response)
+      obj = JSON.parse(x.response)
+      if (obj.Type != "None") {
+        redirect("search?input=" + hash +"&type=" + type, "post", x.response) // Something found
+      } else {
+        console.log(x.response)
+      }
+    }
+  }
+  var formDataLink = new FormData();
+  formDataLink.append("method", "search")
+  formDataLink.append("search", hash)
+
+  x.open("POST", "/post")
+  x.send(formDataLink)
+})
+
 // Redirect with post content
-var redirect = function(url, method, content) {
+function redirect(url, method, content) {
   var input = $("<input>").attr("type", "hidden").val(content).attr("name", "content")
   var x = $('<form>', {
       method: method,

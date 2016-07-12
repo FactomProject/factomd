@@ -56,10 +56,14 @@ label {
 }
 .input-group input[type=text], .input-group input[type=search], .input-group input[type=email], .input-group input[type=password] { border-radius: 0; }
 .input-group-label { background-color: #4a4a4a; border: none; color: #939598; }
-table {
-    border-radius: 8px;
-    overflow: hidden;
-}
+.tabs { background: none; border: none; }
+.tabs-title { margin-left: 1rem; background: #2f2f2f; border-radius: 8px; overflow: hidden; }
+.tabs-title:first-child { margin: 0; }
+.tabs-title>a:focus, .tabs-title>a[aria-selected=true] { background: #28495f; color: #fff; }
+.tabs-title>a:hover { background: #474747; color: #fff; }
+.tabs-title a { color: #aaa; }
+.tabs-content { background: none; border: none; }
+.tabs-panel { padding: 1rem 0 0; }
 table thead {
     background-color: #28495f;
     border: none;
@@ -92,6 +96,15 @@ table tr td:first-child, table tr th:first-child { padding-left: 1.5rem; }
 
 /* custom styles */
 
+#dataDump textarea {
+	min-height: 336px;
+	background: #000;
+	overflow-y: scroll;
+	font-family: monospace;
+}
+#explorer table { table-layout: fixed; }
+#explorer table td { overflow: auto; }
+#explorer table td:first-child { width: 15%; }
 header {
     padding: 22px 0 56px;
 }

@@ -1,8 +1,44 @@
 {{define "chainhead"}}
 	{{template "header"}}
 	<!-- Body -->
-	<div>2.0</div>
-	Hash: {{.Content}}
+	 <section id="explorer">
+        <div class="row">
+            <div class="columns">
+            {{range $i, $ele := .}}
+    			{{$k := eq $i 0}}
+    			{{if $k}}
+    				<small>Chainhead: {{$ele.Content}}</small>
+        			 <h1>Chain <small>ID:({{$ele.Input}})</small></h1>
+        		{{else}}
+        		 <table>
+                	<tbody>
+                		<tr>
+                			<td>Entry Hash:</td>
+                			<td><a href="" id="factom-search-link link-{{$i}}" type="entry">{{$ele.Input}}</a></td>
+                		</tr>
+                		<tr>
+                			<td>External IDs:</td>
+                			<td>
+								<ul>
+							    {{ range $ID := $ele.Content.ExtIDs }}
+							        <li>{{$ID}}</li> 
+							    {{ end }}
+							</ul>
+                			</td>
+                		</tr>
+                		<tr>
+  							<td>Content:</td>
+						<td>
+							{{truncate $ele.Content.Content}}
+						</td>
+                		</tr>
+                	</tbody>
+                </table>
+        		{{end}}
+            {{end}} 
+           </div>
+		</div>
+	</section>
 	<!-- End Body -->
 	{{template "scripts"}}
 	{{template "footer"}}

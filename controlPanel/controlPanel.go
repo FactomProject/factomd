@@ -81,14 +81,13 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.NotFound(w, r)
-		return
-	}
-	data := r.FormValue("content")
-
 	searchResult := new(SearchedStruct)
-	json.Unmarshal([]byte(data), searchResult)
+	if r.Method == "POST" {
+		data := r.FormValue("content")
+		json.Unmarshal([]byte(data), searchResult)
+	} else {
+		searchResult.Type = r.FormValue("type")
+	}
 	searchResult.Input = r.FormValue("input")
 	handleSearchResult(searchResult, w)
 	//search, _ := ioutil.ReadFile("./ControlPanel/Web/searchresult.html")
