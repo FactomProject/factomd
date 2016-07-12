@@ -22,6 +22,9 @@ func newSearchResponse(ftype string, found foundItemInterface) string {
 }
 
 func searchDB(searchitem string, st *state.State) (bool, string) {
+	if len(searchitem) < 10 {
+		return false, ""
+	}
 	switch searchitem[:2] {
 	case "EC":
 		hash := base58.Decode(searchitem)

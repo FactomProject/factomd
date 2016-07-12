@@ -10,7 +10,7 @@
     				<small>Chainhead: {{$ele.Content}}</small>
         			 <h1>Chain <small>ID:({{$ele.Input}})</small></h1>
         		{{else}}
-        		 <table>
+        		 <table id="search-table">
                 	<tbody>
                 		<tr>
                 			<td>Entry Hash:</td>
@@ -28,9 +28,10 @@
                 		</tr>
                 		<tr>
   							<td>Content:</td>
-						<td>
-							{{truncate $ele.Content.Content}}
-						</td>
+                            <td>
+                                <span id="entry-content-summary">Content Summary: <a><small>Show All</small></a><br />{{truncate $ele.Content.Content}}</span>
+                                <span id="entry-content-body" style="display:none;">All Content: <a><small>Show Summary</small></a><br />{{$ele.Content.Content}}</span>
+                            </td>
                 		</tr>
                 	</tbody>
                 </table>
@@ -41,6 +42,6 @@
 	</section>
 	<!-- End Body -->
 	{{template "scripts"}}
-    {{template "toolScripts"}}
+    {{template "tools"}}
 	{{template "footer"}}
 {{end}}

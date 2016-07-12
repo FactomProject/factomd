@@ -1,6 +1,7 @@
 package controlPanel
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -12,7 +13,11 @@ import (
 func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	funcMap := template.FuncMap{
 		"truncate": func(s string) string {
-			str := s
+			bytes := []byte(s)
+			hash := sha256.Sum256(bytes)
+			str := fmt.Sprintf(" - Bytes: %d <br /> - Hash: %x", len(bytes), hash)
+			return str
+			/*str := s
 			ret := ""
 			if len(s) > 100 {
 				for len(str) > 100 {
@@ -21,7 +26,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 				}
 			}
 			ret = ret + str[:]
-			return ret
+			return ret*/
 		},
 	}
 	templates.Funcs(funcMap)
