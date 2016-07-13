@@ -114,6 +114,9 @@ type State struct {
 	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
+	KeepMismatch   bool // By default, this is false, which means DBstates are discarded
+	//when a majority of leaders disagree with the hash we have via DBSigs
+	MismatchCnt int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
@@ -1124,10 +1127,10 @@ func (s *State) SetString() {
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v DBStateCnt %5d MissingCnt %5d ",
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v MismatchCnt %v DBStateCnt %5d MissingCnt %5d ",
 		lmin,
 		s.CurrentMinute,
-		s.LLeaderHeight,
+		s.MismatchCnt,
 		s.DBStateCnt,
 		s.MissingCnt)
 

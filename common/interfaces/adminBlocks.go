@@ -20,8 +20,8 @@ type IAdminBlock interface {
 	GetDBHeight() uint32
 	GetKeyMR() (IHash, error)
 	GetHash() IHash
-	FullHash() (IHash, error)
-	PartialHash() (IHash, error)
+	BackReferenceHash() (IHash, error)
+	LookupHash() (IHash, error)
 	AddABEntry(e IABEntry) (err error)
 	GetDBSignature() IABEntry
 	AddFedServer(IHash)
@@ -39,8 +39,8 @@ type IABlockHeader interface {
 	BinaryMarshallable
 
 	GetAdminChainID() IHash
-	GetPrevFullHash() IHash
-	SetPrevFullHash(IHash)
+	GetPrevBackRefHash() IHash
+	SetPrevBackRefHash(IHash)
 	GetDBHeight() uint32
 	SetDBHeight(uint32)
 

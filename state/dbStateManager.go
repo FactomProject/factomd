@@ -115,6 +115,10 @@ func (list *DBStateList) GetHighestRecordedBlock() uint32 {
 	for i, dbstate := range list.DBStates {
 		if dbstate != nil && dbstate.Locked {
 			ht = list.Base + uint32(i)
+		} else {
+			if dbstate == nil {
+				return ht
+			}
 		}
 	}
 	return ht
@@ -213,12 +217,12 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
 	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 
-	hash, err = p.AdminBlock.FullHash()
+	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
+	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
@@ -267,9 +271,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
 
-	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-	fmt.Println("dddd aaaa ", list.State.FactomNodeName, "DBHT", list.State.LLeaderHeight, "PL DBHT", pl.DBHeight, "Last PL", int(list.Base)+len(list.State.ProcessLists.Lists))
-
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
@@ -306,8 +307,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
-
-	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
@@ -380,6 +379,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		progress = list.ProcessBlocks(d) || progress
 
 		progress = list.SaveDBStateToDB(d) || progress
+
+		// Make sure we move forward the Adminblock state in the process lists
+		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
 
 	}
 	return

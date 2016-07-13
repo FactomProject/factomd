@@ -305,12 +305,14 @@ func (p *ProcessList) IncrementDiffSigTally() {
 	p.diffSigTally++
 }
 
-func (p *ProcessList) CheckDiffSigTally() {
+func (p *ProcessList) CheckDiffSigTally() bool {
 	// If the majority of VMs' signatures do not match our
 	// saved block, we discard that block from our database.
 	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
 		p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+		return false
 	}
+	return true
 }
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
