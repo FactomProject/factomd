@@ -194,9 +194,8 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 				if err != nil {
 					log.Println("Error in making identities: " + err.Error())
 				}
-				time.Sleep(50 * time.Millisecond)
 			}
-			time.Sleep(200 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			for i, mes := range ele.EntryCommits {
 				m := new(wsapi.EntryRequest)
 				m.Entry = mes
