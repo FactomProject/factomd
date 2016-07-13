@@ -710,9 +710,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				s.DBStates.SaveDBStateToDB(dbstate)
 			}
 		} else {
-			//fmt.Println(s.FactomNodeName, "JUST DISCARDED:", dbstate.DirectoryBlock.GetKeyMR().String()[:10])
 			s.MismatchCnt++
-			s.DBStates.Catchup()
+			s.DBStates.DBStates = s.DBStates.DBStates[:len(s.DBStates.DBStates)-1]
+
+			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
+
+			if msg != nil {
+				s.RunLeader = false
+				s.StartDelay = s.GetTimestamp()
+				s.NetworkOutMsgQueue() <- msg
+			}
 		}
 		s.ReviewHolding()
 		s.Saving = false

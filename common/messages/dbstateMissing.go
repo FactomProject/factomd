@@ -202,5 +202,7 @@ func NewDBStateMissing(state interfaces.IState, dbheightStart uint32, dbheightEn
 	msg.DBHeightStart = dbheightStart
 	msg.DBHeightEnd = dbheightEnd
 
+	fmt.Println("NEWDBS:", dbheightStart, dbheightEnd, state.GetFactomNodeName())
+
 	return msg
 }
