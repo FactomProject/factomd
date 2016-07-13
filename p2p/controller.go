@@ -243,7 +243,7 @@ func (c *Controller) runloop() {
 	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 100) // This can be a tight loop, don't want to starve the application
+		time.Sleep(time.Millisecond * 5) // This can be a tight loop, don't want to starve the application
 		if CurrentLoggingLevel > 1 {
 			fmt.Printf("@")
 		}

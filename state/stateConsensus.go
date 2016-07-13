@@ -383,11 +383,34 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
-	if as.ServerType == 0 {
-		s.LeaderPL.AdminBlock.AddFedServer(as.ServerChainID)
-	} else if as.ServerType == 1 {
-		s.LeaderPL.AdminBlock.AddAuditServer(as.ServerChainID)
+	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
+		return true
 	}
+	return true
+}
+
+func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.IMsg) bool {
+	rs, ok := removeServerMsg.(*messages.RemoveServerMsg)
+	if !ok {
+		return true
+	}
+
+	if !s.VerifyIsAuthority(rs.ServerChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block.")
+		return true
+	}
+
+	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
+		return true
+	}
+
+	if len(s.LeaderPL.FedServers) < 2 {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
+		return true
+	}
+	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
 
 	return true
 }
@@ -398,21 +421,21 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 		return true
 	}
 
-	// TODO: Signiture && Checking
+	if !s.VerifyIsAuthority(ask.IdentityChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
+		return true
+	}
 
 	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte
 		copy(btcKey[:], ask.Key.Bytes()[:20])
-		fmt.Println("Add BTC to admin block")
 		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, &btcKey)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
 		pub := ask.Key.Fixed()
-		fmt.Println("Add Block Key to admin block : " + s.IdentityChainID.String())
 		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, &pub)
 	case constants.TYPE_ADD_MATRYOSHKA:
-		fmt.Println("Add MHash to admin block")
 		s.LeaderPL.AdminBlock.AddMatryoshkaHash(ask.IdentityChainID, ask.Key)
 	}
 	return true

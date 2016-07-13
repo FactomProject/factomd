@@ -86,8 +86,10 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
+	serverPrivKey         primitives.PrivateKey
+	serverPubKey          primitives.PublicKey
+	serverPendingPrivKeys []primitives.PrivateKey
+	serverPendingPubKeys  []primitives.PublicKey
 
 	// Server State
 	StartDelay    interfaces.Timestamp
@@ -461,7 +463,7 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
-	LoadIdentityCache(s)
+	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
 
 	s.starttime = time.Now()
@@ -749,9 +751,6 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.SetString()
 
-	if s.DebugConsensus {
-		fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Update State:>>>>", s.FactomNodeName, "progress:", progress)
-	}
 	return
 }
 
@@ -784,6 +783,10 @@ func (s *State) catchupEBlocks() {
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
+}
+
+func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
+	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
@@ -853,7 +856,8 @@ func (s *State) initServerKeys() {
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
+	s.serverPubKey = *(s.serverPrivKey.Pub)
+	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 func (s *State) LogInfo(args ...interface{}) {
@@ -1045,7 +1049,6 @@ func (s *State) SetString() {
 	}
 	s.Status = false
 
-	// fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
 	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
 		vmi = s.LeaderVMIndex
@@ -1114,7 +1117,7 @@ func (s *State) SetString() {
 
 	str := fmt.Sprintf("%8s[%6x]%4s %4s ",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:3],
+		s.IdentityChainID.Bytes()[:4],
 		vmIndex,
 		stype)
 
@@ -1221,4 +1224,9 @@ func (s *State) ProcessInvalidMsgQueue() {
 			s.InvalidMessages[msg.GetHash().Fixed()] = msg
 		}
 	}
+}
+
+func (s *State) SetPendingSigningKey(p primitives.PrivateKey) {
+	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
+	s.serverPendingPubKeys = append(s.serverPendingPubKeys, *(p.Pub))
 }

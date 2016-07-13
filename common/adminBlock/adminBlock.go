@@ -65,6 +65,11 @@ func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) {
 	c.ABEntries = append(c.ABEntries, entry)
 }
 
+func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) {
+	entry := NewRemoveFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
+	c.ABEntries = append(c.ABEntries, entry)
+}
+
 func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) {
 	entry := NewAddReplaceMatryoshkaHash(identityChainID, mHash)
 	c.ABEntries = append(c.ABEntries, entry)

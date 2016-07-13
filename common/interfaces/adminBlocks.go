@@ -25,6 +25,7 @@ type IAdminBlock interface {
 	AddABEntry(e IABEntry) (err error)
 	GetDBSignature() IABEntry
 	AddFedServer(IHash)
+	RemoveFederatedServer(IHash)
 	AddMatryoshkaHash(IHash, IHash)
 	AddFederatedServerBitcoinAnchorKey(IHash, byte, byte, *[20]byte) (err error)
 	AddFederatedServerSigningKey(IHash, *[32]byte) (err error)

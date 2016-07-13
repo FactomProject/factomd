@@ -40,6 +40,7 @@ type IState interface {
 	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
+	RemoveFedServer(uint32, IHash)
 	AddAuditServer(uint32, IHash) int
 	GetAuditServers(uint32) []IFctServer
 
@@ -145,6 +146,7 @@ type IState interface {
 	FollowerExecuteMMR(m IMsg)     // Handle Missing Message Responses
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
+	ProcessRemoveServer(dbheight uint32, removeServerMsg IMsg) bool
 	ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
 	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
@@ -188,6 +190,9 @@ type IState interface {
 	GetPredictiveFER() uint64
 
 	// Identity Section
-	VerifyIdentityAdminInfo(cid IHash) bool // True if identity exists and is audit or fed server
+	VerifyIsAuthority(cid IHash) bool // True if is authority
 	UpdateAuthorityFromABEntry(entry IABEntry) error
+
+	//Authority Section
+	VerifyFederatedSignature(Message []byte, signature *[64]byte) (bool, error)
 }

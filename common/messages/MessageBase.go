@@ -33,12 +33,13 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 	now := s.GetTimestamp().GetTimeMilli()
 	if m.resend == 0 {
 		m.resend = now
+		return false
 	}
-	if now-m.resend > 1000 && len(s.NetworkOutMsgQueue()) < 100 { // Resend every second
+	if now-m.resend > 2000 && len(s.NetworkOutMsgQueue()) < 100 { // Resend every second
 		m.resend = now + 1000
-		rtn = true
+		return true
 	}
-	return
+	return false
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
