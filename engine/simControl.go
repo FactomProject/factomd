@@ -106,6 +106,11 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
 				}
+			case 'v' == b[0]:
+				audits := fnodes[listenTo].State.LeaderPL.AuditServers
+				for _, aud := range audits {
+					os.Stderr.WriteString(aud.String() + "\n")
+				}
 			case 'r' == b[0]:
 				rotate++
 				if rotate%2 == 1 {
@@ -339,13 +344,8 @@ func SimControl(listenTo int) {
 				fallthrough
 			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
-					feds := fnodes[listenTo].State.LeaderPL.FedServers
-					exists := false
-					for _, fed := range feds {
-						if fed.GetChainID().IsSameAs(fnodes[listenTo].State.IdentityChainID) {
-							exists = true
-						}
-					}
+					found, _ := fnodes[listenTo].State.LeaderPL.GetFedServerIndexHash(fnodes[listenTo].State.IdentityChainID)
+					exists := found
 					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" && !exists {
 						index := 0
 						for index < len(authKeyLibrary) {

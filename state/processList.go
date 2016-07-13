@@ -236,6 +236,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if !found {
+		p.RemoveAuditServerHash(identityChainID)
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
