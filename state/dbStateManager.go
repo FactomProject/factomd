@@ -7,12 +7,10 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -255,11 +253,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	d.DirectoryBlock.BuildBodyMR()
 	d.DirectoryBlock.MarshalBinary()
-
-	//Sabotage here to test mismatch code
-	if strings.HasSuffix(list.State.FactomNodeName, "3") {
-		d.DirectoryBlock.AddEntry(primitives.NewZeroHash(), primitives.NewZeroHash())
-	}
 
 	progress = true
 	d.isNew = false
