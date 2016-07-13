@@ -29,8 +29,8 @@ var _ = (*hash.Hash32)(nil)
 func (s *State) Process() (progress bool) {
 
 	if !s.RunLeader {
-		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
-		if now.GetTimeMilli()-s.StartDelay.GetTimeMilli() > 5*1000 {
+		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+		if now-s.StartDelay > 10*1000 {
 			s.RunLeader = true
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -53,7 +53,8 @@ func (s *State) Process() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.Leader &&
+			if s.RunLeader &&
+				s.Leader &&
 				!s.Saving &&
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
@@ -166,6 +167,7 @@ func (s *State) AddDBState(isNew bool,
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
+		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1

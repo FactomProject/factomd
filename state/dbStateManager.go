@@ -47,7 +47,7 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 1 // Default
+const SecondsBetweenTests = 20 // Default
 
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"
@@ -153,6 +153,7 @@ func (list *DBStateList) Catchup() {
 		plHeight := list.State.GetHighestKnownBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
+			list.LastTime = now
 			return
 		}
 
@@ -160,17 +161,17 @@ func (list *DBStateList) Catchup() {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
+			list.LastTime = now
 			return
 		}
 
 		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
 			begin++
 			if uint32(begin) >= plHeight || begin > end {
+				list.LastTime = now
 				return
 			}
 		}
-
-		fmt.Println("Justin begin:", begin)
 	}
 
 	list.Lastreq = begin
@@ -184,7 +185,7 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 		list.State.RunLeader = false
-		list.State.StartDelay = list.State.GetTimestamp()
+		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		list.State.NetworkOutMsgQueue() <- msg
 	}
 
@@ -266,6 +267,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
 
+	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+	fmt.Println("dddd aaaa ", list.State.FactomNodeName, "DBHT", list.State.LLeaderHeight, "PL DBHT", pl.DBHeight, "Last PL", int(list.Base)+len(list.State.ProcessLists.Lists))
+
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
@@ -302,6 +306,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
+
+	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
@@ -374,9 +380,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		progress = list.ProcessBlocks(d) || progress
 
 		progress = list.SaveDBStateToDB(d) || progress
-
-		// Make sure we move forward the Adminblock state in the process lists
-		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
 
 	}
 	return

@@ -90,7 +90,7 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 
 	// Server State
-	StartDelay    interfaces.Timestamp
+	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
 	RunLeader     bool
 	LLeaderHeight uint32
 	Leader        bool
@@ -338,7 +338,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 
 func (s *State) Init() {
 
-	s.StartDelay = s.GetTimestamp() // We cant start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
@@ -735,7 +735,7 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight == 0 {
 		dbheight++
 	}
-	if plbase <= dbheight {
+	if plbase <= dbheight && s.RunLeader {
 		progress = s.ProcessLists.UpdateState(dbheight)
 	}
 
