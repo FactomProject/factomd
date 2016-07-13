@@ -60,11 +60,11 @@ type IFBlock interface {
 	GetBodyMR() IHash
 	// Get the KeyMR of the previous block.
 	GetPrevKeyMR() IHash
-	SetPrevKeyMR([]byte)
+	SetPrevKeyMR(IHash)
 	GetLedgerMR() IHash
 	GetFullHash() IHash
-	GetPrevFullHash() IHash
-	SetPrevFullHash([]byte)
+	GetPrevLedgerKeyMR() IHash
+	SetPrevLedgerKeyMR(IHash)
 	// Accessors for the Directory Block Height
 	SetDBHeight(uint32)
 	GetDBHeight() uint32

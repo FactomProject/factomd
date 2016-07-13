@@ -109,3 +109,7 @@ func (e *MinuteNumber) String() string {
 	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Number", e.Number))
 	return (string)(out.DeepCopyBytes())
 }
+
+func (e *MinuteNumber) GetTimestamp() interfaces.Timestamp {
+	return nil
+}

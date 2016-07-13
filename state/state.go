@@ -62,12 +62,16 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status    bool
-	starttime time.Time
-	transCnt  int
-	lasttime  time.Time
-	tps       float64
-	serverPrt string
+	Status     bool
+	starttime  time.Time
+	transCnt   int
+	lasttime   time.Time
+	tps        float64
+	serverPrt  string
+	DBStateCnt int
+	MissingCnt int
+	ResendCnt  int
+	ExpireCnt  int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -86,7 +90,7 @@ type State struct {
 	serverPubKey  primitives.PublicKey
 
 	// Server State
-	StartDelay    interfaces.Timestamp
+	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
 	RunLeader     bool
 	LLeaderHeight uint32
 	Leader        bool
@@ -99,11 +103,13 @@ type State struct {
 	EOMsyncing bool
 
 	EOM          bool // Set to true when the first EOM is encountered
+	EOMLimit     int
 	EOMProcessed int
 	EOMDone      bool
 	EOMMinute    int
 
 	DBSig          bool
+	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
 
@@ -313,7 +319,9 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.PeersFile = "peers.json"
-		s.SeedURL = "http://factomstatus.com/seed/seed.txt"
+		// BUGBUG JAYJAY Switch to shipping version
+		// s.SeedURL = "http://factomstatus.com/seed/seed.txt"
+		s.SeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/seed.txt"
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
@@ -330,7 +338,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 
 func (s *State) Init() {
 
-	s.StartDelay = s.GetTimestamp() // We cant start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
@@ -515,6 +523,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if dblk == nil {
 		return nil, nil
 	}
+
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
 		return nil, err
@@ -726,7 +735,7 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight == 0 {
 		dbheight++
 	}
-	if plbase <= dbheight {
+	if plbase <= dbheight && s.RunLeader {
 		progress = s.ProcessLists.UpdateState(dbheight)
 	}
 
@@ -1108,16 +1117,16 @@ func (s *State) SetString() {
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v Syncing %5v ",
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v DBStateCnt %5d MissingCnt %5d ",
 		lmin,
 		s.CurrentMinute,
 		s.LLeaderHeight,
-		s.EOMsyncing,
-		s.Syncing)
+		s.DBStateCnt,
+		s.MissingCnt)
 
-	str = str + fmt.Sprintf("EOMCnt %5d DBSCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
-		s.EOMProcessed,
-		s.DBSigProcessed,
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+		s.ResendCnt,
+		s.ExpireCnt,
 		s.Saving,
 		s.FactoidTrans,
 		s.NewEntryChains,

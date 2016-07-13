@@ -1,20 +1,19 @@
 package state
 
 import (
-	"fmt"
-
 	"bytes"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/directoryBlock"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"fmt"
 	"log"
-
 	"time"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 var _ = fmt.Print
@@ -186,19 +185,20 @@ func (p *ProcessList) PrintMap() string {
 
 	n := len(p.FedServers)
 	prt := fmt.Sprintf("===PrintMapStart=== %d\n", p.DBHeight)
-	prt = prt + " min"
+	prt = prt + fmt.Sprintf("dddd %s minute map:  s.LeaderVMIndex %d pl.dbht %d  s.dbht %d s.EOM %v\ndddd     ",
+		p.State.FactomNodeName, p.State.LeaderVMIndex, p.DBHeight, p.State.LLeaderHeight, p.State.EOM)
 	for i := 0; i < n; i++ {
 		prt = fmt.Sprintf("%s%3d", prt, i)
 	}
-	prt = prt + "\n"
+	prt = prt + "\ndddd "
 	for i := 0; i < 10; i++ {
 		prt = fmt.Sprintf("%s%3d  ", prt, i)
 		for j := 0; j < len(p.FedServers); j++ {
 			prt = fmt.Sprintf("%s%2d ", prt, p.ServerMap[i][j])
 		}
-		prt = prt + "\n"
+		prt = prt + "\ndddd "
 	}
-	prt = prt + fmt.Sprintf("===PrintMapEnd=== %d\n", p.DBHeight)
+	prt = prt + fmt.Sprintf("\n===PrintMapEnd=== %d\n", p.DBHeight)
 	return prt
 }
 
@@ -318,14 +318,14 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	if thetime == 0 {
 		thetime = now
 	}
-	if now-thetime > waitSeconds {
+	if now-thetime >= waitSeconds {
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 		}
 		thetime = now
 	}
-	if p.State.Leader && now-thetime > waitSeconds+2 {
+	if p.State.Leader && now-thetime >= waitSeconds+2 {
 		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 		if sf != nil {
@@ -351,7 +351,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "HT", j, "vm.Height", vm.Height, "len(List)", len(vm.List))
 				vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
 				break VMListLoop
 			}
@@ -367,8 +366,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "ListLoop-", p.State.FactomNodeName, "Err", err.Error())
-					// cannot create a expectedSerialHash to compare to
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
@@ -390,7 +387,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd his Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 					fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
-					fmt.Println(p.PrintMap())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
@@ -404,7 +400,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
-				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "Process returns false", p.State.FactomNodeName, "vm", j, "msg", vm.List[j].String())
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 		}
@@ -417,13 +412,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	toss := func(hint string) {
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", m.String())
-		//fmt.Println("dddd", hint, p.State.FactomNodeName, "Toss", ack.String())
-
 	}
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()", p.State.FactomNodeName, "Msg", m.String())
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()", p.State.FactomNodeName, "Ack", ack.String())
+
 	if p == nil {
 		return
 	}
@@ -454,8 +444,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			return
 		}
 
-		fmt.Println(p.String())
-		fmt.Println(p.PrintMap())
 		fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
 		fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
 		fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
@@ -497,9 +485,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.OldMsgs[m.GetHash().Fixed()] = m
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()+", p.State.FactomNodeName, "Msg", m.String())
-	//fmt.Printf("dddd %20s %10s --- %10s %s \n", "AddToPL()+", p.State.FactomNodeName, "Ack", ack.String())
-
 }
 
 func (p *ProcessList) String() string {
@@ -540,8 +525,8 @@ func (p *ProcessList) String() string {
 			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
+		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	}
-	buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	return buf.String()
 }
 
@@ -587,12 +572,17 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 
-	s := state.(*State)
 	var err error
 
-	pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(dbheight, nil)
-	pl.AdminBlock = s.NewAdminBlock(dbheight)
-	pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	if previous != nil {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(previous.DirectoryBlock)
+		pl.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
+	} else {
+		pl.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
+		pl.AdminBlock = adminBlock.NewAdminBlock(nil)
+		pl.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	}
 
 	pl.ResetDiffSigTally()
 

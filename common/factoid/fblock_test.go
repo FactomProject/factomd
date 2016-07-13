@@ -86,28 +86,32 @@ func TestMerkleTrees(t *testing.T) {
 func TestFBlockDump(t *testing.T) {
 	var i uint32
 	i = 1
-	f := NewFBlock(1, i)
+	f := NewFBlock(nil)
+	f.SetDBHeight(i)
 	str := f.String()
 	line := findLine(str, "DBHeight")
 	if strings.Contains(line, fmt.Sprintf("%v", i)) == false {
 		t.Errorf("Did not find proper height for %v", i)
 	}
 	i = 10
-	f = NewFBlock(1, i)
+	f = NewFBlock(nil)
+	f.SetDBHeight(i)
 	str = f.String()
 	line = findLine(str, "DBHeight")
 	if strings.Contains(line, fmt.Sprintf("%v", i)) == false {
 		t.Errorf("Did not find proper height for %v", i)
 	}
 	i = 255
-	f = NewFBlock(1, i)
+	f = NewFBlock(nil)
+	f.SetDBHeight(i)
 	str = f.String()
 	line = findLine(str, "DBHeight")
 	if strings.Contains(line, fmt.Sprintf("%v", i)) == false {
 		t.Errorf("Did not find proper height for %v", i)
 	}
 	i = 0xFFFF
-	f = NewFBlock(1, i)
+	f = NewFBlock(nil)
+	f.SetDBHeight(i)
 	str = f.String()
 	line = findLine(str, "DBHeight")
 	if strings.Contains(line, fmt.Sprintf("%v", i)) == false {
@@ -126,7 +130,7 @@ func findLine(full, toFind string) string {
 }
 
 func TestExpandedDBlockHeader(t *testing.T) {
-	block := NewFBlock(1, 1)
+	block := NewFBlock(nil)
 	j, err := block.JSONString()
 	if err != nil {
 		t.Error(err)

@@ -47,7 +47,7 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 1 // Default
+const SecondsBetweenTests = 20 // Default
 
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"
@@ -153,6 +153,7 @@ func (list *DBStateList) Catchup() {
 		plHeight := list.State.GetHighestKnownBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
+			list.LastTime = now
 			return
 		}
 
@@ -160,7 +161,16 @@ func (list *DBStateList) Catchup() {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
+			list.LastTime = now
 			return
+		}
+
+		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
+			begin++
+			if uint32(begin) >= plHeight || begin > end {
+				list.LastTime = now
+				return
+			}
 		}
 	}
 
@@ -175,7 +185,7 @@ func (list *DBStateList) Catchup() {
 
 	if msg != nil {
 		list.State.RunLeader = false
-		list.State.StartDelay = list.State.GetTimestamp()
+		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		list.State.NetworkOutMsgQueue() <- msg
 	}
 
@@ -190,18 +200,30 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	d.DirectoryBlock.MarshalBinary()
 
-	hash, _ := p.EntryCreditBlock.HeaderHash()
+	hash, err := p.EntryCreditBlock.HeaderHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
 
-	hash, _ = p.EntryCreditBlock.GetFullHash()
+	hash, err = p.EntryCreditBlock.GetFullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+
+	hash, err = p.AdminBlock.FullHash()
+	if err != nil {
+		panic(err.Error())
+	}
 
 	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-	d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
+	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerMR())
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
@@ -236,7 +258,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
-	if d.isNew || d.Locked {
+	if d.Locked {
 		return
 	}
 
@@ -244,6 +266,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
+
+	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+	fmt.Println("dddd aaaa ", list.State.FactomNodeName, "DBHT", list.State.LLeaderHeight, "PL DBHT", pl.DBHeight, "Last PL", int(list.Base)+len(list.State.ProcessLists.Lists))
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
@@ -281,6 +306,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
+
+	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
@@ -353,9 +380,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		progress = list.ProcessBlocks(d) || progress
 
 		progress = list.SaveDBStateToDB(d) || progress
-
-		// Make sure the directory block is properly synced up with the prior block, if there
-		// is one.
 
 	}
 	return
