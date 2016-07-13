@@ -90,7 +90,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	} else if mr == nil {
 		removeIdentity(index, st)
 		//log.Println("Identity Error: No main Root Identity Chain chain created")
-		return nil
+		return errors.New("Identity Error: Identity Chain not found")
 	}
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
 		eblk, err := st.DB.FetchEBlock(mr)
@@ -149,7 +149,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	if st.Identities[index].ManagementChainID == nil {
 		removeIdentity(index, st)
 		//log.Println("Identity Error: No management chain found")
-		return nil
+		return errors.New("Identity Error: No management chain found")
 	}
 	mr, err = st.DB.FetchHeadIndexByChainID(st.Identities[index].ManagementChainID)
 	if err != nil {
