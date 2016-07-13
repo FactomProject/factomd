@@ -688,6 +688,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		} else {
 			fmt.Println(s.FactomNodeName, "JUST TOSSED:", dbstate.DirectoryBlock.GetKeyMR().String()[:10])
+			s.DBStates.Catchup()
 		}
 		s.ReviewHolding()
 		s.Saving = false
