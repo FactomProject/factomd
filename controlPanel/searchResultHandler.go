@@ -51,6 +51,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		err = templates.ExecuteTemplate(w, content.Type, arr)
 	case "eblock":
 		eblk := getEblock(content.Input)
+		fmt.Println(content.Input)
 		if eblk == nil {
 			break
 		}
@@ -72,10 +73,44 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 }
 
 type EblockHolder struct {
+	Header struct {
+		Height       int
+		EntryCount   int
+		PrevFullHash string
+		PrevKeyMr    string
+	}
+	KeyMr   string
+	Hash    string
+	Entries []EntryHolder
 }
 
 func getEblock(hash string) *EblockHolder {
-	return nil
+	mr, err := primitives.HexToHash(hash)
+	if err != nil {
+		return nil
+	}
+	holder := new(EblockHolder)
+	holder.Header = new(EblockHolder.Header)
+	eblk, err := st.DB.FetchEBlock(mr)
+
+	// Header
+	header := eblk.GetHeader()
+	holder.Header.Height = header.GetDBHeight()
+	holder.Header.EntryCount = header.GetEntryCount()
+	holder.Header.PrevFullHash = header.GetPrevFullHash().String()
+	holder.Header.PrevKeyMr = header.GetPrevKeyMR()
+
+	// Block
+	holder.Hash = eblk.GetHash().String()
+	holder.KeyMr = eblk.KeyMR().String()
+	entries := eblk.GetEntryHashes()
+	holder.Entries = make([]EntryHolder, 0)
+	for _, entry := range entries {
+		ent := getEntry(entry.String())
+		holder.Entries = append(holder.Entries, *ent)
+	}
+
+	return holder
 }
 
 type EntryHolder struct {

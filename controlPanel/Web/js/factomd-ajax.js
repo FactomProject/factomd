@@ -21,7 +21,7 @@ $("#factom-search-submit").click(function() {
     if(x.readyState == 4) {
       obj = JSON.parse(x.response)
       if (obj.Type != "None") {
-        redirect("search?input=" + $("#factom-search").val(), "post", x.response) // Something found
+        redirect("search?input=" + $("#factom-search").val() + "&type=" + obj.Type, "post", x.response) // Something found
       } else {
         $(".factom-search-error").slideDown(300)
         console.log(x.response)
@@ -45,7 +45,7 @@ $("td > #factom-search-link").click(function() {
       console.log(x.response)
       obj = JSON.parse(x.response)
       if (obj.Type != "None") {
-        redirect("search?input=" + hash +"&type=" + type, "post", x.response) // Something found
+        redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
       } else {
         console.log(x.response)
       }
