@@ -49,6 +49,12 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 			break
 		}
 		err = templates.ExecuteTemplate(w, content.Type, arr)
+	case "eblock":
+		eblk := getEblock(content.Input)
+		if eblk == nil {
+			break
+		}
+		err = templates.ExecuteTemplate(w, content.Type, eblk)
 		/*	case "address":
 			if content.Input[:2] == "EC" {
 				st.DB.
@@ -63,6 +69,13 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+type EblockHolder struct {
+}
+
+func getEblock(hash string) *EblockHolder {
+	return nil
 }
 
 type EntryHolder struct {
