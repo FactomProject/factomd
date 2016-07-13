@@ -78,7 +78,7 @@ func SimControl(listenTo int) {
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
 						}
-						os.Stderr.WriteString(fmt.Sprintf("=== %d Authorities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
+						os.Stderr.WriteString(fmt.Sprintf("=== %d Identities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
 						for _, ele := range auths {
 							fmt.Println(ele.ChainID.String())
 						}
@@ -105,6 +105,11 @@ func SimControl(listenTo int) {
 					go printProcessList(&watchPL, watchPL, &listenTo)
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
+				}
+			case 'v' == b[0]:
+				audits := fnodes[listenTo].State.LeaderPL.AuditServers
+				for _, aud := range audits {
+					os.Stderr.WriteString(aud.String() + "\n")
 				}
 			case 'r' == b[0]:
 				rotate++
@@ -339,7 +344,9 @@ func SimControl(listenTo int) {
 				fallthrough
 			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
-					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" {
+					found, _ := fnodes[listenTo].State.LeaderPL.GetFedServerIndexHash(fnodes[listenTo].State.IdentityChainID)
+					exists := found
+					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" && !exists {
 						index := 0
 						for index < len(authKeyLibrary) {
 							if authKeyLibrary[index].Taken == false {
@@ -398,9 +405,13 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("              Each Factomd instance has its own identity pool it can use (t), but everyone\n")
 					os.Stderr.WriteString("              will share the identities in the identity stack. This stack is fixed and will\n")
 					os.Stderr.WriteString("              be the same each time Factomd launches. It may grow in the future. Used for testing\n")
-					os.Stderr.WriteString("tN           -Attaches Nth identity in pool to current node. If that identity is taken, will grab\n")
-					os.Stderr.WriteString("              the next available identity in the local identity pool. Can also just type 't' and\n")
-					os.Stderr.WriteString("              it will grab the next available identity.\n")
+					os.Stderr.WriteString("tN           -Attaches Nth identity in pool(0 indexed) to current node. If that identity is taken, \n")
+					os.Stderr.WriteString("              will grab the next available identity in the local identity pool. Can also just type \n")
+					os.Stderr.WriteString("              't' and it will grab the next available identity.\n")
+					os.Stderr.WriteString("tm           -Shows the current node's identity information. \n")
+					os.Stderr.WriteString("tc           -Changes the current node's signing key. \n")
+					os.Stderr.WriteString("t[CHAINID]   -Attaches the identity associated with the root chainID given to current node \n")
+					os.Stderr.WriteString("u             Shows the authorities being monitored for change.\n")
 					os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
 					os.Stderr.WriteString("i[t/m/b/a][N] Shows only the Chains, Mhash, block signing key, or anchor key up to the Nth identity\n")
 					os.Stderr.WriteString("isN           Shows only Nth identity\n")
@@ -632,6 +643,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("gN            Adds 'N' identities to your identity pool. (Cannot add identities already taken)\n")
 				os.Stderr.WriteString("tN            Attaches Nth identity in pool to current node. Can also just press 't' to grab the next\n")
 				os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
+				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")

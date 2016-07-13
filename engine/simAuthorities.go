@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -178,25 +180,39 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 				m := new(wsapi.MessageRequest)
 				m.Message = mes
 				j := primitives.NewJSON2Request("commit-chain", i, m)
-				_, _ = v2Request(j)
+				_, err := v2Request(j)
+				if err != nil {
+					log.Println("Error in making identities: " + err.Error())
+				}
+				time.Sleep(50 * time.Millisecond)
 			}
 			for i, mes := range ele.ChainReveals {
 				m := new(wsapi.EntryRequest)
 				m.Entry = mes
 				j := primitives.NewJSON2Request("reveal-chain", i, m)
-				_, _ = v2Request(j)
+				_, err := v2Request(j)
+				if err != nil {
+					log.Println("Error in making identities: " + err.Error())
+				}
 			}
+			time.Sleep(100 * time.Millisecond)
 			for i, mes := range ele.EntryCommits {
 				m := new(wsapi.EntryRequest)
 				m.Entry = mes
 				j := primitives.NewJSON2Request("commit-entry", i, m)
-				_, _ = v2Request(j)
+				_, err := v2Request(j)
+				if err != nil {
+					log.Println("Error in making identities: " + err.Error())
+				}
 			}
 			for i, mes := range ele.EntryReveals {
 				m := new(wsapi.EntryRequest)
 				m.Entry = mes
 				j := primitives.NewJSON2Request("reveal-entry", i, m)
-				_, _ = v2Request(j)
+				_, err := v2Request(j)
+				if err != nil {
+					log.Println("Error in making identities: " + err.Error())
+				}
 			}
 			sec, _ := hex.DecodeString(ecSec)
 			ec, _ := factom.MakeECAddress(sec[:32])

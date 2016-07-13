@@ -58,6 +58,7 @@ func NetStart(s *state.State) {
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
+	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 
 	flag.Parse()
 
@@ -81,6 +82,7 @@ func NetStart(s *state.State) {
 	prefix := *prefixNodePtr
 	rotate := *rotatePtr
 	timeOffset := *timeOffsetPtr
+	keepMismatch := *keepMismatchPtr
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -151,6 +153,8 @@ func NetStart(s *state.State) {
 		s.NodeMode = "SERVER"
 	}
 
+	s.KeepMismatch = keepMismatch
+
 	if len(db) > 0 {
 		s.DBType = db
 	} else {
@@ -183,6 +187,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -288,11 +293,8 @@ func NetStart(s *state.State) {
 		n := len(fnodes)
 		for i := 0; i < n; i++ {
 			AddSimPeer(fnodes, i, (i+1)%n)
-			AddSimPeer(fnodes, i, (i+3)%n)
 			AddSimPeer(fnodes, i, (i+5)%n)
 			AddSimPeer(fnodes, i, (i+7)%n)
-			AddSimPeer(fnodes, i, (i+17)%n)
-			AddSimPeer(fnodes, i, (i+31)%n)
 		}
 
 	case "tree":

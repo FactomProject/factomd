@@ -8,10 +8,11 @@ import (
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/testHelper"
 	//"github.com/FactomProject/factomd/common/interfaces"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	"testing"
 )
 
 func TestSaveLoadABlockHead(t *testing.T) {
@@ -112,7 +113,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 			t.Fatal("Block not found")
 		}
 		fetchedCount++
-		hash, err := current.PartialHash()
+		hash, err := current.LookupHash()
 		if err != nil {
 			t.Error(err)
 		}
