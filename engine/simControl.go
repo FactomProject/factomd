@@ -339,7 +339,14 @@ func SimControl(listenTo int) {
 				fallthrough
 			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
-					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" {
+					feds := fnodes[listenTo].State.LeaderPL.FedServers
+					exists := false
+					for _, fed := range feds {
+						if fed.GetChainID().IsSameAs(fnodes[listenTo].State.IdentityChainID) {
+							exists = true
+						}
+					}
+					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" && !exists {
 						index := 0
 						for index < len(authKeyLibrary) {
 							if authKeyLibrary[index].Taken == false {
