@@ -64,7 +64,7 @@ func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 	// Check to see if identity exists and is audit or fed server
-	if !state.VerifyIdentityAdminInfo(m.IdentityChainID) {
+	if !state.VerifyIsAuthority(m.IdentityChainID) {
 		return -1
 	}
 
@@ -77,13 +77,25 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
-	// TODO: Check signatures
-	return 1
-	isVer, err := m.VerifySignature()
-	if err != nil || !isVer {
-		// if there is an error during signature verification
-		// or if the signature is invalid
-		// the message is considered invalid
+	// Check signatures
+	bytes, err := m.MarshalForSignature()
+	if err != nil {
+		fmt.Println("ChangeServerKey Error: Err is not nil, err: ", err.Error())
+		return -1
+	}
+	if m.Signature == nil {
+		fmt.Println("ChangeServerKey Error: No signiture on ChangeServerKeyMessage")
+		return -1
+	}
+	sig := m.Signature.GetSignature()
+	authSigned, err := state.VerifyFederatedSignature(bytes, sig)
+
+	//ackSigned, err := m.VerifySignature()
+	if err != nil {
+		fmt.Println("ChangeServerKey Error: Err is not nil, err: ", err.Error())
+		return -1
+	}
+	if !authSigned {
 		return -1
 	}
 	return 1
