@@ -34,11 +34,11 @@ var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 func (c *AdminBlock) String() string {
 	var out primitives.Buffer
 
-	fh, _ := c.LookupHash()
+	fh, _ := c.BackReferenceHash()
 	if fh == nil {
 		fh = primitives.NewZeroHash()
 	}
-	out.WriteString(fmt.Sprintf("%20s %v\n", "LookupHash:", fh.String()))
+	out.WriteString(fmt.Sprintf("%20s %v\n", "BackReferenceHash:", fh.String()))
 
 	out.WriteString(c.Header.String())
 	out.WriteString("Entries: \n")
@@ -290,7 +290,7 @@ func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
 type ExpandedABlock AdminBlock
 
 func (e AdminBlock) MarshalJSON() ([]byte, error) {
-	backReferenceHash, err := e.BackReferenceHash()
+	backRefHash, err := e.BackReferenceHash()
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func (e AdminBlock) MarshalJSON() ([]byte, error) {
 		LookupHash        string
 	}{
 		ExpandedABlock:    ExpandedABlock(e),
-		BackReferenceHash: backReferenceHash.String(),
+		BackReferenceHash: backRefHash.String(),
 		LookupHash:        lookupHash.String(),
 	})
 }
@@ -319,10 +319,10 @@ func NewAdminBlock(prev interfaces.IAdminBlock) interfaces.IAdminBlock {
 	block := new(AdminBlock)
 	block.Header = new(ABlockHeader)
 	if prev != nil {
-		block.Header.SetBackReferenceHash(primitives.NewZeroHash())
+		block.Header.SetPrevBackRefHash(primitives.NewZeroHash())
 		block.Header.SetDBHeight(prev.GetDBHeight() + 1)
 	} else {
-		block.Header.SetBackReferenceHash(primitives.NewZeroHash())
+		block.Header.SetPrevBackRefHash(primitives.NewZeroHash())
 	}
 	return block
 }
@@ -333,15 +333,15 @@ func CheckBlockPairIntegrity(block interfaces.IAdminBlock, prev interfaces.IAdmi
 	}
 
 	if prev == nil {
-		if block.GetHeader().GetBackReferenceHash().IsZero() == false {
-			return fmt.Errorf("Invalid BackReferenceHash")
+		if block.GetHeader().GetPrevBackRefHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevBackRefHash")
 		}
 		if block.GetHeader().GetDBHeight() != 0 {
 			return fmt.Errorf("Invalid DBHeight")
 		}
 	} else {
-		if block.GetHeader().GetBackReferenceHash().IsSameAs(prev.GetHash()) == false {
-			return fmt.Errorf("Invalid BackReferenceHash")
+		if block.GetHeader().GetPrevBackRefHash().IsSameAs(prev.GetHash()) == false {
+			return fmt.Errorf("Invalid PrevBackRefHash")
 		}
 		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
 			return fmt.Errorf("Invalid DBHeight")

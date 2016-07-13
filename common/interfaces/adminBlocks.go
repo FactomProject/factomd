@@ -38,8 +38,8 @@ type IABlockHeader interface {
 	BinaryMarshallable
 
 	GetAdminChainID() IHash
-	GetBackReferenceHash() IHash
-	SetBackReferenceHash(IHash)
+	GetPrevBackRefHash() IHash
+	SetPrevBackRefHash(IHash)
 	GetDBHeight() uint32
 	SetDBHeight(uint32)
 

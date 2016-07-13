@@ -22,7 +22,7 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	backReferenceHash, err := block.BackReferenceHash()
+	backRefHash, err := block.BackReferenceHash()
 	if err != nil {
 		t.Error(err)
 	}
@@ -32,10 +32,10 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Logf("Current hashes - %s, %s", backReferenceHash.String(), lookupHash.String())
+	t.Logf("Current hashes - %s, %s", backRefHash.String(), lookupHash.String())
 
-	if backReferenceHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
-		t.Error("Invalid backReferenceHash")
+	if backRefHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
+		t.Error("Invalid backRefHash")
 	}
 	if lookupHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
 		t.Error("Invalid lookupHash")
@@ -46,7 +46,7 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 			t.Error(err)
 		}
 
-		backReferenceHash2, err := block2.BackReferenceHash()
+		backRefHash2, err := block2.BackReferenceHash()
 		if err != nil {
 			t.Error(err)
 		}
@@ -56,8 +56,8 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 			t.Error(err)
 		}
 
-		t.Logf("Second hashes - %s, %s", backReferenceHash2.String(), lookupHash2.String())
-		t.Logf("Previous hash - %s", block2.Header.BackReferenceHash.String())
+		t.Logf("Second hashes - %s, %s", backRefHash2.String(), lookupHash2.String())
+		t.Logf("Previous hash - %s", block2.Header.PrevBackRefHash.String())
 
 		marshalled, err := block2.MarshalBinary()
 		if err != nil {
@@ -65,8 +65,8 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		}
 		t.Logf("Marshalled - %X", marshalled)
 
-		if block2.Header.BackReferenceHash.String() != backReferenceHash.String() {
-			t.Error("BackReferenceHash does not match ABHash")
+		if block2.Header.PrevBackRefHash.String() != backRefHash.String() {
+			t.Error("PrevBackRefHash does not match ABHash")
 		}
 	*/
 }
@@ -79,7 +79,7 @@ func TestAdminBlockHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	backReferenceHash, err := block.BackReferenceHash()
+	backRefHash, err := block.BackReferenceHash()
 	if err != nil {
 		t.Error(err)
 	}
@@ -89,10 +89,10 @@ func TestAdminBlockHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Logf("Current hashes - %s, %s", backReferenceHash.String(), lookupHash.String())
+	t.Logf("Current hashes - %s, %s", backRefHash.String(), lookupHash.String())
 
-	if backReferenceHash.String() != "9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d" {
-		t.Error("Invalid backReferenceHash")
+	if backRefHash.String() != "9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d" {
+		t.Error("Invalid backRefHash")
 	}
 	if lookupHash.String() != "f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5" {
 		t.Error("Invalid lookupHash")
@@ -103,10 +103,10 @@ func TestAdminBlockHash(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 	if strings.Contains(j, `"BackReferenceHash":"9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d"`) == false {
-		t.Errorf("JSON printout does not contain the full hash - %v", j)
+		t.Errorf("JSON printout does not contain the backreference hash - %v", j)
 	}
 	if strings.Contains(j, `"LookupHash":"f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5"`) == false {
-		t.Errorf("JSON printout does not contain the full hash - %v", j)
+		t.Errorf("JSON printout does not contain the lookup hash - %v", j)
 	}
 }
 
@@ -179,8 +179,8 @@ func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
 		t.Error("AdminChainIDs are not identical")
 	}
 
-	if bytes.Compare(header.GetBackReferenceHash().Bytes(), header2.GetBackReferenceHash().Bytes()) != 0 {
-		t.Error("BackReferenceHash are not identical")
+	if bytes.Compare(header.GetPrevBackRefHash().Bytes(), header2.GetPrevBackRefHash().Bytes()) != 0 {
+		t.Error("PrevBackRefHashes are not identical")
 	}
 
 	if header.GetDBHeight() != header2.GetDBHeight() {
@@ -382,7 +382,7 @@ func createTestAdminHeader() *ABlockHeader {
 
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	hash, _ := primitives.NewShaHash(p)
-	header.BackReferenceHash = hash
+	header.PrevBackRefHash = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 5
@@ -398,7 +398,7 @@ func createSmallTestAdminHeader() *ABlockHeader {
 
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	hash, _ := primitives.NewShaHash(p)
-	header.BackReferenceHash = hash
+	header.PrevBackRefHash = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 0

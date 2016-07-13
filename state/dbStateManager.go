@@ -216,7 +216,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
-	d.AdminBlock.GetHeader().SetBackReferenceHash(hash)
+	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
