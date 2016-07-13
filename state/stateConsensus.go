@@ -737,7 +737,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 			if msg != nil {
 				s.RunLeader = false
-				s.StartDelay = s.GetTimestamp()
+				s.StartDelay = s.GetTimestamp().GetTimeMilli()
 				s.NetworkOutMsgQueue() <- msg
 			}
 		}
