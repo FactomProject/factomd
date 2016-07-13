@@ -259,7 +259,7 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 }
 
 func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress, random bool) (string, string, string) {
-	blockKey, key, err := identity.MakeBlockSigningKey(ele.ChainID.String(), ele.ManageChain.String(), &(ele.Sk1), random)
+	blockKey, key, err := identity.MakeBlockSigningKeyFixed(ele.ChainID.String(), ele.ManageChain.String(), &(ele.Sk1), random)
 	if err != nil {
 		return "", "", ""
 	}

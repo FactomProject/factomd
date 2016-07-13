@@ -196,6 +196,7 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 			hs := eHash.String()
 			if hs[0:10] != "0000000000" { //ignore minute markers
 				ent, _ := st.DB.FetchEntry(eHash)
+				log.Printfln("DEBUG!!: %d", len(ent.ExternalIDs()))
 				if len(ent.ExternalIDs()) > 1 {
 					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
 						// this is an Identity that should have been registered already with a 0 status.
