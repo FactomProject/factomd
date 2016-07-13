@@ -196,39 +196,41 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 			hs := eHash.String()
 			if hs[0:10] != "0000000000" { //ignore minute markers
 				ent, _ := st.DB.FetchEntry(eHash)
-				if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-					// this is an Identity that should have been registered already with a 0 status.
-					//  this registers it with the management chain.  Now it can be assigned as federated or audit.
-					//  set it to status 6 - Pending Full
-					registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
-				} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
-					// this is the Signing Key for this Identity
-					if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-						// Hold
-						holdEntry = append(holdEntry, ent)
-					}
+				if len(ent.ExternalIDs()) > 1 {
+					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
+						// this is an Identity that should have been registered already with a 0 status.
+						//  this registers it with the management chain.  Now it can be assigned as federated or audit.
+						//  set it to status 6 - Pending Full
+						registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
+					} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
+							// Hold
+							holdEntry = append(holdEntry, ent)
+						}
 
-				} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-					// this is the Signing Key for this Identity
-					if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
-						// Hold
-						holdEntry = append(holdEntry, ent)
-					}
+					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
+							// Hold
+							holdEntry = append(holdEntry, ent)
+						}
 
-				} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-					// this is the Signing Key for this Identity
-					if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-						// hold
-						holdEntry = append(holdEntry, ent)
-					}
-				} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-					// this is a new identity
-					addIdentity(ent.ExternalIDs(), cid, st, height)
-				} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-					// this is a new identity
-					if len(ent.ExternalIDs()) == 4 {
-						// update management should have 4 items
-						updateManagementKey(ent.ExternalIDs(), cid, st, height)
+					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
+							// hold
+							holdEntry = append(holdEntry, ent)
+						}
+					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
+						// this is a new identity
+						addIdentity(ent.ExternalIDs(), cid, st, height)
+					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
+						// this is a new identity
+						if len(ent.ExternalIDs()) == 4 {
+							// update management should have 4 items
+							updateManagementKey(ent.ExternalIDs(), cid, st, height)
+						}
 					}
 				}
 			}

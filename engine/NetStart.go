@@ -88,7 +88,6 @@ func NetStart(s *state.State) {
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
-
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 
@@ -145,7 +144,10 @@ func NetStart(s *state.State) {
 	}
 	if follower {
 		s.NodeMode = "FULL"
-		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+		leadID := primitives.Sha([]byte(s.Prefix + "FNode0"))
+		if s.IdentityChainID.IsSameAs(leadID) {
+			s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+		}
 	}
 	if leader {
 		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
@@ -398,7 +400,7 @@ func setupBlankAuthority(s *state.State) {
 	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 	//fmt.Printf("DEBUG: State Public: %x\n", s.GetServerPublicKey())
 	//fmt.Printf("DEBUG: State Private: %x\n", *(s.GetServerPrivateKey().Key))
-	pub := s.GetServerPublicKey() // primitives.PubKeyFromString("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+	pub := primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 	data, _ := pub.MarshalBinary()
 	id.SigningKey = primitives.NewHash(data)
 	id.MatryoshkaHash = primitives.NewZeroHash()
@@ -415,7 +417,7 @@ func setupBlankAuthority(s *state.State) {
 
 	var auth state.Authority
 	auth.Status = 1
-	auth.SigningKey = s.GetServerPublicKey() //primitives.PubKeyFromString("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+	auth.SigningKey = primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 	auth.MatryoshkaHash = primitives.NewZeroHash()
 	auth.AuthorityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")

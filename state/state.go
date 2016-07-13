@@ -282,7 +282,6 @@ func (s *State) SetNetStateOff(net bool) {
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
-
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
@@ -309,9 +308,12 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
-
-		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
+		if err != nil {
+			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		} else {
+			s.IdentityChainID = identity
+		}
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"

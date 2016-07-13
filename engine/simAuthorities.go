@@ -217,7 +217,7 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 			sec, _ := hex.DecodeString(ecSec)
 			ec, _ := factom.MakeECAddress(sec[:32])
 
-			com, rev, key := makeBlockKey(ele, ec)
+			com, rev, key := makeBlockKey(ele, ec, false)
 			ele.NewBlockKey = key
 			m := new(wsapi.EntryRequest)
 			m.Entry = com
@@ -258,8 +258,8 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 	return madeAuths, skipped, nil
 }
 
-func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress) (string, string, string) {
-	blockKey, key, err := identity.MakeBlockSigningKey(ele.ChainID.String(), ele.ManageChain.String(), &(ele.Sk1))
+func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress, random bool) (string, string, string) {
+	blockKey, key, err := identity.MakeBlockSigningKey(ele.ChainID.String(), ele.ManageChain.String(), &(ele.Sk1), random)
 	if err != nil {
 		return "", "", ""
 	}
@@ -320,7 +320,7 @@ func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.Priva
 	}
 	for _, ele := range authKeyLibrary {
 		if auth.IsSameAs(ele.ChainID) {
-			com, rev, newKey := makeBlockKey(ele, ec)
+			com, rev, newKey := makeBlockKey(ele, ec, true)
 			ele.NewBlockKey = newKey
 			m := new(wsapi.EntryRequest)
 			m.Entry = com

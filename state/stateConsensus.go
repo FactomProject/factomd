@@ -417,7 +417,7 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 	}
 
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block.")
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
 		return true
 	}
 
