@@ -29,8 +29,8 @@ var _ = (*hash.Hash32)(nil)
 func (s *State) Process() (progress bool) {
 
 	if !s.RunLeader {
-		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
-		if now.GetTimeMilli()-s.StartDelay.GetTimeMilli() > 5*1000 {
+		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+		if now-s.StartDelay > 10*1000 {
 			s.RunLeader = true
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -53,7 +53,8 @@ func (s *State) Process() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.Leader &&
+			if s.RunLeader &&
+				s.Leader &&
 				!s.Saving &&
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
@@ -166,6 +167,7 @@ func (s *State) AddDBState(isNew bool,
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
+		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
@@ -379,6 +381,24 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
+	if as.ServerType == 0 {
+		audits := s.LeaderPL.AuditServers
+		for _, audit := range audits {
+			if audit.GetChainID().IsSameAs(as.ServerChainID) {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
+				return true
+			}
+		}
+	} else if as.ServerType == 1 {
+		feds := s.LeaderPL.FedServers
+		for _, fed := range feds {
+			if fed.GetChainID().IsSameAs(as.ServerChainID) {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Audit server message did not add to admin block, server is a federated server and cannot be both.")
+				return true
+			}
+		}
+	}
+
 	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader {
 		return true
 	}
@@ -406,7 +426,7 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 		return true
 	}
 
-	if len(s.LeaderPL.FedServers) < 2 {
+	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
 		return true
 	}

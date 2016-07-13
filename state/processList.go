@@ -236,6 +236,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if !found {
+		p.RemoveAuditServerHash(identityChainID)
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
@@ -530,8 +531,8 @@ func (p *ProcessList) String() string {
 			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
+		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	}
-	buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	return buf.String()
 }
 
