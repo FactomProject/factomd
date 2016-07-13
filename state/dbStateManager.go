@@ -211,12 +211,12 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
 	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 
-	hash, err = p.AdminBlock.FullHash()
+	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
+	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())

@@ -657,12 +657,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
+		pl.ResetDiffSigTally()
 	}
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
+		}
+		if !dbs.DirectoryBlockKeyMR.IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR()) {
+			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockKeyMR.String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR().String()[:10])
+			pl.IncrementDiffSigTally()
 		}
 		dbs.Processed = true
 		s.DBSigProcessed++
@@ -676,10 +681,13 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
-
-		if !dbstate.Saved {
-			dbstate.ReadyToSave = true
-			s.DBStates.SaveDBStateToDB(dbstate)
+		if pl.CheckDiffSigTally() {
+			if !dbstate.Saved {
+				dbstate.ReadyToSave = true
+				s.DBStates.SaveDBStateToDB(dbstate)
+			}
+		} else {
+			fmt.Println(s.FactomNodeName, "JUST TOSSED:", dbstate.DirectoryBlock.GetKeyMR().String()[:10])
 		}
 		s.ReviewHolding()
 		s.Saving = false
