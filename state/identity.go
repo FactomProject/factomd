@@ -170,10 +170,10 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	for i := len(eblkStackSub) - 1; i >= 0; i-- {
 		LoadIdentityByEntryBlock(eblkStackSub[i], st, false)
 	}
-	checkIdentityForFull(index, st)
-	if st.Identities[index].Status == constants.IDENTITY_PENDING {
+	err = checkIdentityForFull(index, st)
+	if err != nil { //st.Identities[index].Status == constants.IDENTITY_PENDING ||{
 		removeIdentity(index, st)
-		return errors.New("Error: Identity not full")
+		return errors.New("Error: Identity not full - " + err.Error())
 	}
 
 	return nil
@@ -391,7 +391,7 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height ui
 	return nil
 }
 
-func checkIdentityForFull(identityIndex int, st *State) {
+func checkIdentityForFull(identityIndex int, st *State) error {
 	st.Identities[identityIndex].Status = constants.IDENTITY_PENDING
 	id := st.Identities[identityIndex]
 	// if all needed information is ready for the Identity , set it to IDENTITY_FULL
@@ -400,7 +400,7 @@ func checkIdentityForFull(identityIndex int, st *State) {
 		dif = -dif
 	}
 	if dif > TIME_WINDOW {
-		return
+		return errors.New("Time window of identity create and register invalid")
 	}
 
 	dif = id.ManagementCreated - id.ManagementRegistered
@@ -408,22 +408,23 @@ func checkIdentityForFull(identityIndex int, st *State) {
 		dif = -dif
 	}
 	if dif > TIME_WINDOW {
-		return
+		return errors.New("Time window of management create and register invalid")
 	}
 
 	if id.IdentityChainID == nil {
-		return
+		return errors.New("Identity Error: No identity chain found")
 	}
 	if id.ManagementChainID == nil {
-		return
+		return errors.New("Identity Error: No management chain found")
 	}
 	if id.SigningKey == nil {
-		return
+		return errors.New("Identity Error: No block signing key found")
 	}
 	if id.Key1 == nil || id.Key2 == nil || id.Key3 == nil || id.Key4 == nil {
-		return
+		return errors.New("Identity Error: Missing an identity key")
 	}
 	st.Identities[identityIndex].Status = constants.IDENTITY_FULL
+	return nil
 }
 
 func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) error {
