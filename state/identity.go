@@ -121,7 +121,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 			hs := eHash.String()
 			if hs[0:10] != "0000000000" { //ignore minute markers
 				ent, err := st.DB.FetchEntry(eHash)
-				if err != nil {
+				if err != nil || ent == nil {
 					continue
 				}
 				if len(ent.ExternalIDs()) > 3 {
@@ -195,8 +195,10 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 		for _, eHash := range entryHashes {
 			hs := eHash.String()
 			if hs[0:10] != "0000000000" { //ignore minute markers
-				ent, _ := st.DB.FetchEntry(eHash)
-				log.Printfln("DEBUG!!: %d", len(ent.ExternalIDs()))
+				ent, err := st.DB.FetchEntry(eHash)
+				if err != nil || ent == nil {
+					continue
+				}
 				if len(ent.ExternalIDs()) > 1 {
 					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
 						// this is an Identity that should have been registered already with a 0 status.

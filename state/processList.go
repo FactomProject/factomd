@@ -313,6 +313,7 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 		p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
 		return false
 	}
+
 	return true
 }
 

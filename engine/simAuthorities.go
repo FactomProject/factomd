@@ -170,90 +170,105 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 			return madeAuths, skipped, errors.New("No hardcoded authorities remain")
 		}
 		ele := authStack.Pop()
-		exists, err := st.DB.FetchHeadIndexByChainID(ele.ChainID)
-		if exists != nil && err == nil {
+		existsEB := st.LeaderPL.GetNewEBlocks(ele.ChainID)
+		if existsEB != nil {
 			skipped++
 			count--
-		} else {
-			nextAuthority++
-			for i, mes := range ele.ChainCommits {
-				m := new(wsapi.MessageRequest)
-				m.Message = mes
-				j := primitives.NewJSON2Request("commit-chain", i, m)
-				_, err := v2Request(j)
-				if err != nil {
-					log.Println("Error in making identities: " + err.Error())
-				}
-				time.Sleep(50 * time.Millisecond)
-			}
-			for i, mes := range ele.ChainReveals {
-				m := new(wsapi.EntryRequest)
-				m.Entry = mes
-				j := primitives.NewJSON2Request("reveal-chain", i, m)
-				_, err := v2Request(j)
-				if err != nil {
-					log.Println("Error in making identities: " + err.Error())
-				}
-			}
-			time.Sleep(100 * time.Millisecond)
-			for i, mes := range ele.EntryCommits {
-				m := new(wsapi.EntryRequest)
-				m.Entry = mes
-				j := primitives.NewJSON2Request("commit-entry", i, m)
-				_, err := v2Request(j)
-				if err != nil {
-					log.Println("Error in making identities: " + err.Error())
-				}
-			}
-			for i, mes := range ele.EntryReveals {
-				m := new(wsapi.EntryRequest)
-				m.Entry = mes
-				j := primitives.NewJSON2Request("reveal-entry", i, m)
-				_, err := v2Request(j)
-				if err != nil {
-					log.Println("Error in making identities: " + err.Error())
-				}
-			}
-			sec, _ := hex.DecodeString(ecSec)
-			ec, _ := factom.MakeECAddress(sec[:32])
-
-			com, rev, key := makeBlockKey(ele, ec, false)
-			ele.NewBlockKey = key
-			m := new(wsapi.EntryRequest)
-			m.Entry = com
-			j := primitives.NewJSON2Request("commit-entry", 0, m)
-			_, _ = v2Request(j)
-
-			m = new(wsapi.EntryRequest)
-			m.Entry = rev
-			j = primitives.NewJSON2Request("reveal-entry", 0, m)
-			_, _ = v2Request(j)
-
-			com, rev = makeMHash(ele, ec)
-			m = new(wsapi.EntryRequest)
-			m.Entry = com
-			j = primitives.NewJSON2Request("commit-entry", 0, m)
-			_, _ = v2Request(j)
-
-			m = new(wsapi.EntryRequest)
-			m.Entry = rev
-			j = primitives.NewJSON2Request("reveal-entry", 0, m)
-			_, _ = v2Request(j)
-
-			com, rev = makeBTCKey(ele, ec)
-			m = new(wsapi.EntryRequest)
-			m.Entry = com
-			j = primitives.NewJSON2Request("commit-entry", 0, m)
-			_, _ = v2Request(j)
-
-			m = new(wsapi.EntryRequest)
-			m.Entry = rev
-			j = primitives.NewJSON2Request("reveal-entry", 0, m)
-			_, _ = v2Request(j)
-
-			madeAuths = append(madeAuths, ele)
-			authKeyLibrary = append(authKeyLibrary, ele)
+			continue
 		}
+
+		existsEB = st.ProcessLists.Get(st.LLeaderHeight - 1).GetNewEBlocks(ele.ChainID)
+		if existsEB != nil {
+			skipped++
+			count--
+			continue
+		}
+
+		exists, _ := st.DB.FetchHeadIndexByChainID(ele.ChainID)
+		if exists != nil {
+			skipped++
+			count--
+			continue
+		}
+
+		nextAuthority++
+		for i, mes := range ele.ChainCommits {
+			m := new(wsapi.MessageRequest)
+			m.Message = mes
+			j := primitives.NewJSON2Request("commit-chain", i, m)
+			_, err := v2Request(j)
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+		for i, mes := range ele.ChainReveals {
+			m := new(wsapi.EntryRequest)
+			m.Entry = mes
+			j := primitives.NewJSON2Request("reveal-chain", i, m)
+			_, err := v2Request(j)
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+		for i, mes := range ele.EntryCommits {
+			m := new(wsapi.EntryRequest)
+			m.Entry = mes
+			j := primitives.NewJSON2Request("commit-entry", i, m)
+			_, err := v2Request(j)
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+		}
+		for i, mes := range ele.EntryReveals {
+			m := new(wsapi.EntryRequest)
+			m.Entry = mes
+			j := primitives.NewJSON2Request("reveal-entry", i, m)
+			_, err := v2Request(j)
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+		}
+		sec, _ := hex.DecodeString(ecSec)
+		ec, _ := factom.MakeECAddress(sec[:32])
+
+		com, rev, key := makeBlockKey(ele, ec, false)
+		ele.NewBlockKey = key
+		m := new(wsapi.EntryRequest)
+		m.Entry = com
+		j := primitives.NewJSON2Request("commit-entry", 0, m)
+		_, _ = v2Request(j)
+
+		m = new(wsapi.EntryRequest)
+		m.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, m)
+		_, _ = v2Request(j)
+
+		com, rev = makeMHash(ele, ec)
+		m = new(wsapi.EntryRequest)
+		m.Entry = com
+		j = primitives.NewJSON2Request("commit-entry", 0, m)
+		_, _ = v2Request(j)
+
+		m = new(wsapi.EntryRequest)
+		m.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, m)
+		_, _ = v2Request(j)
+
+		com, rev = makeBTCKey(ele, ec)
+		m = new(wsapi.EntryRequest)
+		m.Entry = com
+		j = primitives.NewJSON2Request("commit-entry", 0, m)
+		_, _ = v2Request(j)
+
+		m = new(wsapi.EntryRequest)
+		m.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, m)
+		_, _ = v2Request(j)
+
+		madeAuths = append(madeAuths, ele)
+		authKeyLibrary = append(authKeyLibrary, ele)
 	}
 	return madeAuths, skipped, nil
 }
