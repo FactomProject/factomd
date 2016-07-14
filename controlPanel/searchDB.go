@@ -86,8 +86,15 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 			}
 		}
 		// Search for Factoid Block
-		if fBlock, err := st.DB.FetchFBlockByPrimary(hash); err == nil && fBlock != nil {
+		if fBlock, err := st.DB.FetchFBlock(hash); err == nil && fBlock != nil {
 			resp := newSearchResponse("fblock", fBlock)
+			if len(resp) > 1 {
+				return true, resp
+			}
+		}
+		// Search for Entry Credit Block
+		if ecBlock, err := st.DB.FetchECBlock(hash); err == nil && ecBlock != nil {
+			resp := newSearchResponse("ecblock", ecBlock)
 			if len(resp) > 1 {
 				return true, resp
 			}

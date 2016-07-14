@@ -1,0 +1,50 @@
+{{define "ecblock"}}
+	{{template "header"}}
+	<!-- Body -->
+	 <section id="explorer">
+        <div class="row">
+            <div class="columns"> 
+                <h1>Entry Credit Block</h1>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>Hash:</td>
+                            <td>{{.GetHash}}</td>
+                        </tr>
+                        <tr>
+                            <td>Body Hash:</td>
+                            <td>{{.GetHeader.GetBodyHash}}</td>
+                        </tr>
+                        <tr>
+                            <td>Height:</td>
+                            <td>{{.GetHeader.GetDBHeight}}</td>
+                        </tr>
+                        <tr>
+                            <td>Previous Entry Credit Block:</td>
+                            <td>
+                                <a href="" id="factom-search-link" type="ablock">{{.GetHeader.GetPrevHeaderHash}}</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                 <h3>Entries Contained in Entry Credit Block</h3> 
+                 <table id="search-table">
+                    <tbody>
+                        {{range $i, $ele := .GetEntries}}
+                        {{if $ele.GetEntryHash}}
+                        <tr>
+                            <td>Entry Hash:</td>
+                            <td><a href="" id="factom-search-link" type="entry">{{$ele.GetEntryHash}}</a></td>
+                        </tr>  
+                        {{end}}
+                        {{end}}
+                    </tbody>
+                </table>
+           </div>
+		</div>
+	</section>
+	<!-- End Body -->
+	{{template "scripts"}}
+    {{template "tools"}}
+	{{template "footer"}}
+{{end}}

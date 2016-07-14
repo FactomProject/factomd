@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"text/template"
 
+	"github.com/FactomProject/btcutil/base58"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -23,6 +25,43 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 			hash := sha256.Sum256(bytes)
 			str := fmt.Sprintf(" - Bytes: %d <br /> - Hash: %x", len(bytes), hash)
 			return str
+		},
+		"AddressFACorrect": func(s string) string {
+			hash, err := primitives.HexToHash(s)
+			if err != nil {
+				return "There has been an error converting the address"
+			}
+			prefix := []byte{0x5f, 0xb1}
+			addr := hash.Bytes()
+			addr = append(prefix, addr[:]...)
+			oneSha := sha256.Sum256(addr)
+			twoSha := sha256.Sum256(oneSha[:])
+			addr = append(addr, twoSha[:4]...)
+			str := base58.Encode(addr)
+			return str
+		},
+		"AddressECCorrect": func(s string) string {
+			hash, err := primitives.HexToHash(s)
+			if err != nil {
+				return "There has been an error converting the address"
+			}
+			prefix := []byte{0x59, 0x2a}
+			addr := hash.Bytes()
+			addr = append(prefix, addr[:]...)
+			oneSha := sha256.Sum256(addr)
+			twoSha := sha256.Sum256(oneSha[:])
+			addr = append(addr, twoSha[:4]...)
+			str := base58.Encode(addr)
+			return str
+		},
+		"TransactionAmountCorrect": func(u uint64) string {
+			s := fmt.Sprintf("%d", u)
+			f, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				return s
+			}
+			f = f / 1e8
+			return fmt.Sprintf("%f", f)
 		},
 	}
 	templates.Funcs(funcMap)
@@ -70,7 +109,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		}
 		err = templates.ExecuteTemplate(w, content.Type, fblk)
 	case "ecblock":
-		ecblock := getAblock(content.Input)
+		ecblock := getECblock(content.Input)
 		if ecblock == nil {
 			break
 		}
@@ -85,12 +124,30 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	}
 }
 
+func getECblock(hash string) interfaces.IEntryCreditBlock {
+	mr, err := primitives.HexToHash(hash)
+	if err != nil {
+		return nil
+	}
+	ecblk, err := st.DB.FetchECBlock(mr)
+	if ecblk == nil || err != nil {
+		return nil
+	}
+	if ecblk.GetHeader() == nil {
+		return nil
+	}
+
+	fmt.Println(ecblk)
+
+	return ecblk
+}
+
 func getFblock(hash string) *factoid.FBlock {
 	mr, err := primitives.HexToHash(hash)
 	if err != nil {
 		return nil
 	}
-	fblk, err := st.DB.FetchFBlockByPrimary(mr)
+	fblk, err := st.DB.FetchFBlock(mr)
 	if fblk == nil || err != nil {
 		return nil
 	}
@@ -103,10 +160,8 @@ func getFblock(hash string) *factoid.FBlock {
 	if err != nil {
 		return nil
 	}
-	fmt.Println(holder.String())
 
 	return holder
-
 }
 
 type AblockHolder struct {
