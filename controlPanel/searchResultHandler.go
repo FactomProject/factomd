@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	"github.com/FactomProject/factomd/common/factoid"
 )
 
 func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
@@ -62,7 +64,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		}
 		err = templates.ExecuteTemplate(w, content.Type, ablk)
 	case "fblock":
-		fblk := getAblock(content.Input)
+		fblk := getFblock(content.Input)
 		if fblk == nil {
 			break
 		}
@@ -81,6 +83,30 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func getFblock(hash string) *factoid.FBlock {
+	mr, err := primitives.HexToHash(hash)
+	if err != nil {
+		return nil
+	}
+	fblk, err := st.DB.FetchFBlockByPrimary(mr)
+	if fblk == nil || err != nil {
+		return nil
+	}
+	bytes, err := fblk.MarshalBinary()
+	if err != nil {
+		return nil
+	}
+	holder := new(factoid.FBlock)
+	err = holder.UnmarshalBinary(bytes)
+	if err != nil {
+		return nil
+	}
+	fmt.Println(holder.String())
+
+	return holder
+
 }
 
 type AblockHolder struct {

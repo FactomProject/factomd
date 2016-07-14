@@ -85,6 +85,13 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 				return true, resp
 			}
 		}
+		// Search for Factoid Block
+		if fBlock, err := st.DB.FetchFBlockByPrimary(hash); err == nil && fBlock != nil {
+			resp := newSearchResponse("fblock", fBlock)
+			if len(resp) > 1 {
+				return true, resp
+			}
+		}
 	}
 
 	return false, ""
