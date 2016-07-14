@@ -78,6 +78,13 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 				return true, resp
 			}
 		}
+		// Search for ABlock
+		if aBlock, err := st.DB.FetchABlock(hash); err == nil && aBlock != nil {
+			resp := newSearchResponse("ablock", aBlock)
+			if len(resp) > 1 {
+				return true, resp
+			}
+		}
 	}
 
 	return false, ""

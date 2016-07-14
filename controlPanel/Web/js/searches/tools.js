@@ -26,3 +26,15 @@ function convertToHex(str) {
     }
     return hex;
 }
+
+$("td > #entry-content-summary > a").click(function() {
+  td = jQuery(this).parent().parent()
+  td.find("#entry-content-summary").hide()
+  td.find("#entry-content-body").show()//slideDown(100)
+})
+
+$("td > #entry-content-body > a").click(function() {
+  td = jQuery(this).parent().parent()
+    td.find("#entry-content-body").hide()
+  td.find("#entry-content-summary").show()//slideDown(100)
+})
