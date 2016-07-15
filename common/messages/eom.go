@@ -76,10 +76,6 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessEOM(dbheight, e)
 }
 
-func (m *EOM) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
-}
-
 func (m *EOM) GetHash() interfaces.IHash {
 	data, err := m.MarshalForSignature()
 	if err != nil {

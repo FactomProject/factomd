@@ -130,8 +130,8 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		if err == nil {
 			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
 			// all transactions here.
-			fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
-			fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+			fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetHash(), trans.GetTimestamp())
+			fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetHash(), trans.GetTimestamp())
 		}
 		return err
 	}
@@ -168,14 +168,11 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitChain)
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
-		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
-		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
+
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
-		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
-		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 
 	case entryCreditBlock.ECIDBalanceIncrease:
 		t := trans.(*entryCreditBlock.IncreaseBalance)

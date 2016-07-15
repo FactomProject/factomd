@@ -17,7 +17,7 @@ import (
 //A placeholder structure for messages
 type CommitEntryMsg struct {
 	MessageBase
-
+	Timestamp   interfaces.Timestamp
 	CommitEntry *entryCreditBlock.CommitEntry
 
 	Signature interfaces.IFullSignature
@@ -34,6 +34,9 @@ var _ Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if b == nil {
+		return false
+	}
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -74,10 +77,6 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessCommitEntry(dbheight, m)
 }
 
-func (m *CommitEntryMsg) GetRepeatHash() interfaces.IHash {
-	return m.CommitEntry.GetSigHash()
-}
-
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
@@ -94,7 +93,7 @@ func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
-	return m.CommitEntry.GetTimestamp()
+	return m.Timestamp
 }
 
 func (m *CommitEntryMsg) Type() byte {
@@ -138,6 +137,13 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
+	t := new(primitives.Timestamp)
+	newData, err = t.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.Timestamp = t
+
 	ce := entryCreditBlock.NewCommitEntry()
 	newData, err = ce.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -165,6 +171,13 @@ func (m *CommitEntryMsg) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
+
+	t := m.GetTimestamp()
+	data, err = t.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
 
 	data, err = m.CommitEntry.MarshalBinary()
 	if err != nil {

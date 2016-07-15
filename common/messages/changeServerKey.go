@@ -31,10 +31,6 @@ type ChangeServerKeyMsg struct {
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
 var _ Signable = (*ChangeServerKeyMsg)(nil)
 
-func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
-}
-
 func (m *ChangeServerKeyMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

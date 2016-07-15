@@ -34,7 +34,7 @@ func Peers(fnode *FactomNode) {
 				}
 				cnt++
 				msg.SetOrigin(0)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 
@@ -72,7 +72,7 @@ func Peers(fnode *FactomNode) {
 				}
 
 				msg.SetOrigin(i + 1)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
@@ -122,7 +122,7 @@ func NetworkOutputs(fnode *FactomNode) {
 				// ourselves.
 				fnode.State.Replay.IsTSValid_(
 					constants.NETWORK_REPLAY,
-					msg.GetRepeatHash().Fixed(),
+					msg.GetMsgHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())
 

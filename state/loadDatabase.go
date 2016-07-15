@@ -40,13 +40,12 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
-				msg.SetLocal(true)
-				if len(s.APIQueue()) > 100 {
-					for len(s.APIQueue()) > 30 {
-						time.Sleep(10 * time.Millisecond)
+				if len(s.InMsgQueue()) > 100 {
+					for len(s.InMsgQueue()) > 30 {
+						time.Sleep(100 * time.Millisecond)
 					}
 				}
-				s.APIQueue() <- msg
+				s.InMsgQueue() <- msg
 			} else {
 				break
 			}

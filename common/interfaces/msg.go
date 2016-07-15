@@ -33,13 +33,7 @@ type IMsg interface {
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
 
-	// This is the hash used to check for repeated messages.  Almost always this
-	// is the MsgHash, however for Chain Commits, Entry Commits, and Factoid Transactions,
-	// this is the GetHash().
-	GetRepeatHash() IHash
-
-	// Hash for this message as used by Consensus (i.e. what we match). Does not include
-	// signatures to avoid Signature Maliation attacks.
+	// Hash for this message as used by Consensus (i.e. what we match)
 	GetHash() IHash
 
 	// Hash of this message.  Each message must be unique includes signatures

@@ -36,10 +36,6 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessRevealEntry(dbheight, m)
 }
 
-func (m *RevealEntryMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
-}
-
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
