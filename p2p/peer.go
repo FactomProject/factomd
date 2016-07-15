@@ -15,12 +15,13 @@ import (
 // Data structures and functions related to peers (eg other nodes in the network)
 
 type Peer struct {
-	QualityScore int32  // 0 is neutral quality, negative is a bad peer.
-	Address      string // Must be in form of x.x.x.x
-	Port         string // Must be in form of xxxx
-	NodeID       uint64 // a nonce to distinguish multiple nodes behind one IP address
-	Hash         string // This is more of a connection ID than hash right now.
-	Location     uint32 // IP address as an int.
+	QualityScore int32     // 0 is neutral quality, negative is a bad peer.
+	Address      string    // Must be in form of x.x.x.x
+	Port         string    // Must be in form of xxxx
+	NodeID       uint64    // a nonce to distinguish multiple nodes behind one IP address
+	Hash         string    // This is more of a connection ID than hash right now.
+	Location     uint32    // IP address as an int.
+	Network      NetworkID // The network this peer reference lives on.
 	Type         uint8
 	Connections  int                  // Number of successful connections.
 	LastContact  time.Time            // Keep track of how long ago we talked to the peer.
@@ -40,6 +41,7 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 	p.Type = peerType
 	p.Location = p.locationFromAddress()
 	p.Source = map[string]time.Time{}
+	p.Network = CurrentNetwork
 	return p
 }
 

@@ -70,8 +70,18 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	ExportDataSubpath                     = "export/"
 	; --------------- Network: MAIN | TEST | LOCAL
 	Network                               = LOCAL
-    PeersFile                             = "~/.factom/peers.json"
-	SeedURL                               = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/seed.txt"
+	MainNetworkPort      = 8108
+	MainPeersFile        = "MainPeers.json"
+	MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+	MainSpecialPeers     = ""
+	TestNetworkPort      = 8109
+	TestPeersFile        = "TestPeers.json"
+	TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+	TestSpecialPeers     = ""
+	LocalNetworkPort     = 8110
+	LocalPeersFile       = "LocalPeers.json"
+	LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+	LocalSpecialPeers     = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 	NodeMode                              = FULL
 	LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
