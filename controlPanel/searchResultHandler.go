@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	htemp "html/template"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -77,8 +78,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		if entry == nil {
 			break
 		}
-		content.Content = entry
-		err = templates.ExecuteTemplate(w, content.Type, content)
+		err = templates.ExecuteTemplate(w, content.Type, entry)
 	case "chainhead":
 		arr := getAllChainEntries(content.Input)
 		if arr == nil {
@@ -122,7 +122,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		}
 		err = templates.ExecuteTemplate(w, content.Type, entryAck)
 	case "factoidack":
-		factoidAck := getEntryAck(content.Input)
+		factoidAck := getFactoidAck(content.Input)
 		if factoidAck == nil {
 			break
 		}
@@ -202,7 +202,11 @@ func getFactTransaction(hash string) interfaces.ITransaction {
 	if trans.GetInputs() == nil {
 		return nil
 	}
-	return trans
+	status := getFactoidAck(hash)
+	return struct {
+		interfaces.ITransaction
+		*wsapi.FactoidTxStatus
+	}{trans, status}
 }
 
 func getFactoidAck(hash string) *wsapi.FactoidTxStatus {
@@ -553,14 +557,15 @@ func getDblock(hash string) *DblockHolder {
 }
 
 type EntryHolder struct {
-	ChainID string   `json:"ChainID"`
-	Content string   `json:"Content"`
-	ExtIDs  []string `json:"ExtIDs"`
-	Version int      `json:"Version"`
+	ChainID string     `json:"ChainID"`
+	Content htemp.HTML `json:"Content"`
+	ExtIDs  []string   `json:"ExtIDs"`
+	Version int        `json:"Version"`
 
 	Height        string
 	Hash          string
 	ContentLength int
+	ContentHash   string
 }
 
 func getEntry(hash string) *EntryHolder {
@@ -597,6 +602,9 @@ func getEntry(hash string) *EntryHolder {
 	holder.Version = 0
 	holder.Height = fmt.Sprintf("%d", entry.GetDatabaseHeight())
 	holder.ContentLength = len(holder.Content)
+	data := sha256.Sum256(entry.GetContent())
+	holder.Content = htemp.HTML(primitives.NewHash(data[:]).String())
+	//holder.ContentHash = primitives.NewHash(data[:]).String()
 	return holder
 }
 
