@@ -5,6 +5,7 @@ echo
 echo "Compiling..."
 go install -a 
 if [ $? -eq 0 ]; then
+    pkill factomd
     echo "Running..."
     factomd -count=2 -folder="test1-" -network="TEST" -peers="127.0.0.1:34343" -netdebug=4 -db=Map & 
 #     sleep 6

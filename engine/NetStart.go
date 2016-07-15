@@ -257,6 +257,7 @@ func NetStart(s *state.State) {
 	p2pProxy.startProxy()
 	// Command line peers lets us manually set special peers
 	network.DialSpecialPeersString(peers)
+	fmt.Println(">>>>>>>>>>>>>>>>")
 
 	switch net {
 	case "square":
@@ -346,16 +347,17 @@ func NetStart(s *state.State) {
 	} else {
 		startServers(true)
 	}
+	fmt.Println(">>>>>>>>>>>>>>>>")
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
+	fmt.Println(">>>>>>>>>>>>>>>>")
 
 	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
 	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
 	drain := func() {
 		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 		for {
-			fmt.Printf("-?/")
 			select {
 			case _ = <-connectionMetricsChannel:
 				time.Sleep(500 * time.Millisecond)
@@ -365,8 +367,15 @@ func NetStart(s *state.State) {
 		}
 	}
 	go drain()
+	fmt.Println(">>>>>>>>>>>>>>>>")
 
 	// Listen for commands:
+	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	SimControl(listenTo)
 
 }

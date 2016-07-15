@@ -273,7 +273,9 @@ func (c *Controller) runloop() {
 	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 5) // This can be a tight loop, don't want to starve the application
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() BEGINNGIN OF LOOP : c.keepRunning = %v", c.keepRunning)
+		time.Sleep(time.Millisecond * 51) // This can be a tight loop, don't want to starve the application
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Woke up : c.keepRunning = %v", c.keepRunning)
 		if CurrentLoggingLevel > 3 {
 			fmt.Printf("@")
 		}
@@ -294,10 +296,13 @@ func (c *Controller) runloop() {
 			note("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
 			c.networkStatusReport()
 		}
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() lastConnectionMetricsUpdate()")
 		if time.Second < time.Since(c.lastConnectionMetricsUpdate) {
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() Sending Metrics()")
 			c.lastConnectionMetricsUpdate = time.Now()
 			c.connectionMetricsChannel <- c.connectionMetrics
 		}
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() END OF LOOP : c.keepRunning = %v", c.keepRunning)
 	}
 	silence("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
 	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
