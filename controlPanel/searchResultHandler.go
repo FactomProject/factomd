@@ -20,6 +20,8 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 )
 
+var _ = htemp.HTMLEscaper("sdf")
+
 func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	funcMap := template.FuncMap{
 		"truncate": func(s string) string {
@@ -557,10 +559,10 @@ func getDblock(hash string) *DblockHolder {
 }
 
 type EntryHolder struct {
-	ChainID string     `json:"ChainID"`
-	Content htemp.HTML `json:"Content"`
-	ExtIDs  []string   `json:"ExtIDs"`
-	Version int        `json:"Version"`
+	ChainID string   `json:"ChainID"`
+	Content string   `json:"Content"`
+	ExtIDs  []string `json:"ExtIDs"`
+	Version int      `json:"Version"`
 
 	Height        string
 	Hash          string
@@ -583,7 +585,6 @@ func getEntry(hash string) *EntryHolder {
 	holder := new(EntryHolder)
 	holder.Hash = hash
 	holder.ChainID = entry.GetChainID().String()
-	holder.Content = string(entry.GetContent())
 	max := byte(0x80)
 	for _, data := range entry.ExternalIDs() {
 		hexString := false
@@ -594,17 +595,21 @@ func getEntry(hash string) *EntryHolder {
 			}
 		}
 		if hexString {
-			holder.ExtIDs = append(holder.ExtIDs[:], "<span id='encoding'><a>Hex  : </a></span><span id='data'>"+hex.EncodeToString(data)+"</span>")
+			str := hex.EncodeToString(data)
+			holder.ExtIDs = append(holder.ExtIDs[:], "<span id='encoding'><a>Hex  : </a></span><span id='data'>"+htemp.HTMLEscaper(str)+"</span>")
 		} else {
-			holder.ExtIDs = append(holder.ExtIDs[:], "<span id='encoding'><a>Ascii: </a></span><span id='data'>"+string(data)+"</span>")
+			str := string(data)
+			holder.ExtIDs = append(holder.ExtIDs[:], "<span id='encoding'><a>Ascii: </a></span><span id='data'>"+htemp.HTMLEscaper(str)+"</span>")
 		}
 	}
 	holder.Version = 0
 	holder.Height = fmt.Sprintf("%d", entry.GetDatabaseHeight())
 	holder.ContentLength = len(holder.Content)
 	data := sha256.Sum256(entry.GetContent())
-	holder.Content = htemp.HTML(primitives.NewHash(data[:]).String())
-	//holder.ContentHash = primitives.NewHash(data[:]).String()
+	content := string(entry.GetContent())
+	holder.Content = htemp.HTMLEscaper(content)
+	//holder.Content = string(entry.GetContent())
+	holder.ContentHash = primitives.NewHash(data[:]).String()
 	return holder
 }
 
