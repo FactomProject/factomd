@@ -28,6 +28,10 @@ type RemoveServerMsg struct {
 var _ interfaces.IMsg = (*RemoveServerMsg)(nil)
 var _ Signable = (*RemoveServerMsg)(nil)
 
+func (m *RemoveServerMsg) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *RemoveServerMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

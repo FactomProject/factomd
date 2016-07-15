@@ -49,6 +49,10 @@ func (a *SignatureTimeout) IsSameAs(b *SignatureTimeout) bool {
 
 func (m *SignatureTimeout) Process(uint32, interfaces.IState) bool { return true }
 
+func (m *SignatureTimeout) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *SignatureTimeout) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
