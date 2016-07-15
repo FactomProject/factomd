@@ -279,7 +279,7 @@ func (d *Discovery) getPeerSelection() []byte {
 func (d *Discovery) DiscoverPeersFromSeed() {
 	resp, err := http.Get(d.seedURL)
 	if nil != err {
-		logerror("discovery", "DiscoverPeers getting peers from %s produced error %+v", d.seedURL, err)
+		logerror("discovery", "DiscoverPeersFromSeed getting peers from %s produced error %+v", d.seedURL, err)
 		return
 	}
 	defer resp.Body.Close()

@@ -204,6 +204,7 @@ func NetStart(s *state.State) {
 	if 0 < len(networkName) { // Command line overrides the config file.
 		networkOverride = networkName
 	}
+	fmt.Printf("Network Override: %s", networkOverride)
 	switch networkOverride {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
@@ -236,6 +237,7 @@ func NetStart(s *state.State) {
 		SpecialPeers:             specialPeers,
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
+	fmt.Printf("p2p.ControllerInit: %+v", ci)
 	p2pController := new(p2p.Controller).Init(ci)
 	network = *p2pController
 	network.StartNetwork()
@@ -353,6 +355,7 @@ func NetStart(s *state.State) {
 	drain := func() {
 		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 		for {
+			fmt.Printf("-?/")
 			select {
 			case _ = <-connectionMetricsChannel:
 				time.Sleep(500 * time.Millisecond)
