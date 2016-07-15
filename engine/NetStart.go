@@ -8,9 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"time"
-	"unicode"
 
 	"math"
 
@@ -48,6 +46,7 @@ func NetStart(s *state.State) {
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
+	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
@@ -70,8 +69,8 @@ func NetStart(s *state.State) {
 	cloneDB := *cloneDBPtr
 	folder := *folderPtr
 	portOverride := *portOverridePtr
-	networkPort := *networkPortPtr
 	peers := *peersPtr
+	networkName := *networkNamePtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
 	netdebug := *netdebugPtr
@@ -173,7 +172,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", cloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "folder", folder))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "networkPort", networkPort))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "network", networkName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
@@ -200,32 +199,42 @@ func NetStart(s *state.State) {
 
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
-	var peersFile, seedURL, networkPort string
-	switch s.Network {
+	var peersFile, seedURL, networkPort, specialPeers string
+	networkOverride := s.Network
+	if 0 < len(networkName) { // Command line overrides the config file.
+		networkOverride = networkName
+	}
+	switch networkOverride {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 		seedURL = s.MainSeedURL
 		networkPort = s.MainNetworkPort
 		peersFile = s.MainPeersFile
+		specialPeers = s.MainSpecialPeers
 	case "TEST", "test":
 		networkID = p2p.TestNet
 		seedURL = s.TestSeedURL
 		networkPort = s.TestNetworkPort
 		peersFile = s.TestPeersFile
+		specialPeers = s.TestSpecialPeers
 	case "LOCAL", "local":
 		networkID = p2p.LocalNet
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
 		peersFile = s.LocalPeersFile
+		specialPeers = s.LocalSpecialPeers
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 	}
+	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 	ci := p2p.ControllerInit{
-		Port:      networkPort,
-		PeersFile: peersFile,
-		Network:   networkID,
-		Exclusive: exclusive,
-		SeedURL:   seedURL,
+		Port:                     networkPort,
+		PeersFile:                peersFile,
+		Network:                  networkID,
+		Exclusive:                exclusive,
+		SeedURL:                  seedURL,
+		SpecialPeers:             specialPeers,
+		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 	p2pController := new(p2p.Controller).Init(ci)
 	network = *p2pController
@@ -245,18 +254,7 @@ func NetStart(s *state.State) {
 	}
 	p2pProxy.startProxy()
 	// Command line peers lets us manually set special peers
-	// Parse the peers into an array.
-	parseFunc := func(c rune) bool {
-		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
-	}
-	peerAddresses := strings.FieldsFunc(peers, parseFunc)
-	for _, peerAddress := range peerAddresses {
-		fmt.Println("Dialing Peer: ", peerAddress)
-		ipPort := strings.Split(peerAddress, ":")
-		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
-		peer.Source["Command Line"] = time.Now()
-		network.DialPeer(*peer, true) // these are persistent connections
-	}
+	network.DialSpecialPeersString(peers)
 
 	switch net {
 	case "square":
@@ -349,6 +347,21 @@ func NetStart(s *state.State) {
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
+
+	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
+	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
+	drain := func() {
+		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
+		for {
+			select {
+			case _ = <-connectionMetricsChannel:
+				time.Sleep(500 * time.Millisecond)
+			default:
+				time.Sleep(200 * time.Millisecond)
+			}
+		}
+	}
+	go drain()
 
 	// Listen for commands:
 	SimControl(listenTo)

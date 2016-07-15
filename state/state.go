@@ -34,27 +34,40 @@ type State struct {
 
 	Cfg interfaces.IFactomConfig
 
-	Prefix                  string
-	FactomNodeName          string
-	FactomdVersion          int
-	LogPath                 string
-	LdbPath                 string
-	BoltDBPath              string
-	LogLevel                string
-	ConsoleLogLevel         string
-	NodeMode                string
-	DBType                  string
-	CloneDBType             string
-	ExportData              bool
-	ExportDataSubpath       string
-	Network                 string
-	PeersFile               string
-	SeedURL                 string
+	Prefix            string
+	FactomNodeName    string
+	FactomdVersion    int
+	LogPath           string
+	LdbPath           string
+	BoltDBPath        string
+	LogLevel          string
+	ConsoleLogLevel   string
+	NodeMode          string
+	DBType            string
+	CloneDBType       string
+	ExportData        bool
+	ExportDataSubpath string
+
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
 	DropRate                int
+
+	// Network Configuration
+	Network           string
+	MainNetworkPort   string
+	MainPeersFile     string
+	MainSeedURL       string
+	MainSpecialPeers  string
+	TestNetworkPort   string
+	TestPeersFile     string
+	TestSeedURL       string
+	TestSpecialPeers  string
+	LocalNetworkPort  string
+	LocalPeersFile    string
+	LocalSeedURL      string
+	LocalSpecialPeers string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []Identity       // Identities of all servers in management chain
@@ -218,8 +231,19 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
-	clone.PeersFile = s.PeersFile
-	clone.SeedURL = s.SeedURL
+	clone.MainNetworkPort = s.MainNetworkPort
+	clone.MainPeersFile = s.MainPeersFile
+	clone.MainSeedURL = s.MainSeedURL
+	clone.MainSpecialPeers = s.MainSpecialPeers
+	clone.TestNetworkPort = s.TestNetworkPort
+	clone.TestPeersFile = s.TestPeersFile
+	clone.TestSeedURL = s.TestSeedURL
+	clone.TestSpecialPeers = s.TestSpecialPeers
+	clone.LocalNetworkPort = s.LocalNetworkPort
+	clone.LocalPeersFile = s.LocalPeersFile
+	clone.LocalSeedURL = s.LocalSeedURL
+	clone.LocalSpecialPeers = s.LocalSpecialPeers
+
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -292,8 +316,18 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
-		s.PeersFile = cfg.App.PeersFile
-		s.SeedURL = cfg.App.SeedURL
+		s.MainNetworkPort = cfg.App.MainNetworkPort
+		s.MainPeersFile = cfg.App.MainPeersFile
+		s.MainSeedURL = cfg.App.MainSeedURL
+		s.MainSpecialPeers = cfg.App.MainSpecialPeers
+		s.TestNetworkPort = cfg.App.TestNetworkPort
+		s.TestPeersFile = cfg.App.TestPeersFile
+		s.TestSeedURL = cfg.App.TestSeedURL
+		s.TestSpecialPeers = cfg.App.TestSpecialPeers
+		s.LocalNetworkPort = cfg.App.LocalNetworkPort
+		s.LocalPeersFile = cfg.App.LocalPeersFile
+		s.LocalSeedURL = cfg.App.LocalSeedURL
+		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
@@ -314,10 +348,19 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
-		s.PeersFile = "peers.json"
-		// BUGBUG JAYJAY Switch to shipping version
-		// s.SeedURL = "http://factomstatus.com/seed/seed.txt"
-		s.SeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/seed.txt"
+		s.MainNetworkPort = "8108"
+		s.MainPeersFile = "MainPeers.json"
+		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+		s.MainSpecialPeers = ""
+		s.TestNetworkPort = "8109"
+		s.TestPeersFile = "TestPeers.json"
+		s.TestSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+		s.TestSpecialPeers = ""
+		s.LocalNetworkPort = "8110"
+		s.LocalPeersFile = "LocalPeers.json"
+		s.LocalSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+		s.LocalSpecialPeers = ""
+
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
