@@ -22,7 +22,7 @@
                         <tr>
                             <td>Previous Entry Credit Block:</td>
                             <td>
-                                <a href="" id="factom-search-link" type="ablock">{{.GetHeader.GetPrevHeaderHash}}</a>
+                                <a id="factom-search-link" type="ecblock">{{.GetHeader.GetPrevHeaderHash}}</a>
                             </td>
                         </tr>
                     </tbody>
@@ -34,7 +34,7 @@
                         {{if $ele.GetEntryHash}}
                         <tr>
                             <td>Entry Hash:</td>
-                            <td><a href="" id="factom-search-link" type="entry">{{$ele.GetEntryHash}}</a></td>
+                            <td><a id="factom-search-link" type="entry">{{$ele.GetEntryHash}}</a></td>
                         </tr>  
                         {{end}}
                         {{end}}

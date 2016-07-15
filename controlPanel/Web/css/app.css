@@ -105,6 +105,7 @@ table tr td:first-child, table tr th:first-child { padding-left: 1.5rem; }
 #explorer table { table-layout: fixed; }
 #explorer table td { overflow: auto; }
 #explorer table td:first-child { width: 15%; }
+#panDirectoryBlock table td:first-child { width: 15%; }
 header {
     padding: 22px 0 56px;
 }

@@ -17,7 +17,7 @@
                         </tr>
                         <tr>
                             <td>ChainID:</td>
-                            <td><a href="" id="factom-search-link" type="chainhead">{{.Header.ChainID}}</a></td>
+                            <td><a id="factom-search-link" type="chainhead">{{.Header.ChainID}}</a></td>
                         </tr>
                         <tr>
                             <td>Block Height:</td>
@@ -26,7 +26,7 @@
                         <tr>
                             <td>Previous Entry Block:</td>
                             <td>
-                                Previous KeyMR     :   <a href="" id="factom-search-link" type="eblock">{{.Header.PrevKeyMR}}</a><br />
+                                Previous KeyMR     :   <a id="factom-search-link" type="eblock">{{.Header.PrevKeyMR}}</a><br />
                                 Previous Full Hash :   {{.Header.PrevFullHash}}
                             </td>
                         </tr>
@@ -38,7 +38,7 @@
                 	<tbody>
                 		<tr>
                 			<td>Entry Hash:</td>
-                			<td><a href="" id="factom-search-link" type="entry">{{$ele.Hash}}</a></td>
+                			<td><a id="factom-search-link" type="entry">{{$ele.Hash}}</a></td>
                 		</tr>
                 		<tr>
                 			<td>External IDs:</td>

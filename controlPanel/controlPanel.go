@@ -94,6 +94,26 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	//w.Write([]byte(searchResult.Type))
 }
 
+type LastDirectoryBlockTransactions struct {
+	DirectoryBlock struct {
+		KeyMR     string
+		BodyKeyMR string
+		FullHash  string
+		DBHeight  string
+
+		PrevFullHash string
+		PrevKeyMR    string
+	}
+	FactoidTransactions []struct {
+		TxID         string
+		TotalInput   string
+		Status       string
+		TotalInputs  int
+		TotalOutputs int
+	}
+	Entries []EntryHolder
+}
+
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.NotFound(w, r)
@@ -111,6 +131,71 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		data := fmt.Sprintf("%d", st.GetEBDBHeightComplete())
 		w.Write([]byte(data)) // Return EBDB complete height
 	case "peers":
+	case "recentTransactions":
+		last := st.GetDirectoryBlock()
+		if last == nil {
+			w.Write([]byte(`{"list":"none"}`))
+		}
+		holder := new(LastDirectoryBlockTransactions)
 
+		holder.DirectoryBlock = struct {
+			KeyMR     string
+			BodyKeyMR string
+			FullHash  string
+			DBHeight  string
+
+			PrevFullHash string
+			PrevKeyMR    string
+		}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
+
+		entries := last.GetDBEntries()
+		for _, entry := range entries {
+			if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
+				mr := entry.GetKeyMR()
+				fblock, err := st.DB.FetchFBlock(mr)
+				if err != nil || fblock == nil {
+					continue
+				}
+				transactions := fblock.GetTransactions()
+				for _, trans := range transactions {
+					input, err := trans.TotalInputs()
+					if err != nil {
+						continue
+					}
+					totalInputs := len(trans.GetInputs())
+					totalOutputs := len(trans.GetECOutputs())
+					totalOutputs = totalOutputs + len(trans.GetOutputs())
+					inputStr := fmt.Sprintf("%f", float64(input)/1e8)
+					holder.FactoidTransactions = append(holder.FactoidTransactions, struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+				}
+			} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
+				mr := entry.GetKeyMR()
+				ecblock, err := st.DB.FetchECBlock(mr)
+				if err != nil || ecblock == nil {
+					continue
+				}
+				ents := ecblock.GetEntries()
+				for _, entry := range ents {
+					if entry.GetEntryHash() != nil {
+						e := getEntry(entry.GetEntryHash().String())
+						if e != nil {
+							holder.Entries = append(holder.Entries, *e)
+						}
+					}
+				}
+			}
+		}
+
+		ret, err := json.Marshal(holder)
+		if err != nil {
+			w.Write([]byte(`{"list":"none"}`))
+		}
+		w.Write(ret)
 	}
 }

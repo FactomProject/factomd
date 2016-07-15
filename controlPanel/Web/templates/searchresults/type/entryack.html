@@ -1,0 +1,31 @@
+{{define "entryack"}}
+	{{template "header"}}
+	<!-- Body -->
+	<section id="explorer">
+		<div class="row">
+			<div class="columns">
+				<h1>Entry Transaction Data</h1>
+                    <table>
+                    	<tbody>
+                    		<tr>
+                    			<td>EntryHash:</td>
+                    			<td><a id="factom-search-link" type="entry">{{.EntryHash}}</a></td>
+                    		</tr>
+                    		<tr>
+                    			<td>Conflicting Entry Reveals:</td>
+                    			<td>
+                                        {{ range $entry := .ConflictingRevealEntryHashes }}
+                                             <td><a id="factom-search-link" type="entry">{{$entry}}</a></td>
+                                        {{end}}
+                                   </td>
+                    		</tr>
+                    	</tbody>
+                    </table>
+			</div>
+		</div>
+	</section>
+	<!-- End Body -->
+	{{template "scripts"}}
+     {{template "tools"}}
+	{{template "footer"}}
+{{end}}

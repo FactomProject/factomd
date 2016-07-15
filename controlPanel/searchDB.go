@@ -6,6 +6,7 @@ import (
 	"github.com/FactomProject/btcutil/base58"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 type foundItemInterface interface {
@@ -13,9 +14,15 @@ type foundItemInterface interface {
 }
 
 func newSearchResponse(ftype string, found foundItemInterface) string {
-	jsonStr, err := found.JSONString()
-	if err != nil {
-		return ""
+	jsonStr := ""
+	if found == nil {
+		jsonStr = `"none"`
+	} else {
+		var err error
+		jsonStr, err = found.JSONString()
+		if err != nil {
+			jsonStr = `"none"`
+		}
 	}
 	searchJson := `{"Type":"` + ftype + `","item":` + jsonStr + "}"
 	return searchJson
@@ -99,6 +106,43 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 				return true, resp
 			}
 		}
+
+		// Search for Factoid Transaction
+		if trans, err := st.DB.FetchFactoidTransaction(hash); err == nil && trans != nil {
+			resp := newSearchResponse("facttransaction", trans)
+			if len(resp) > 1 {
+				return true, resp
+			}
+		}
+
+		// Search for Entry Credit Transaction
+		if trans, err := st.DB.FetchECTransaction(hash); err == nil && trans != nil {
+			resp := newSearchResponse("ectransaction", trans)
+			if len(resp) > 1 {
+				return true, resp
+			}
+		}
+
+		// Search for Entry Transaction
+		ackReq := new(wsapi.AckRequest)
+		ackReq.TxID = hash.String()
+		if entryAck, err := wsapi.HandleV2EntryACK(st, ackReq); err == nil && entryAck != nil && len(entryAck.(*wsapi.EntryStatus).EntryHash) == 64 {
+			resp := newSearchResponse("entryack", nil)
+			if len(resp) > 1 {
+				return true, resp
+			}
+		}
+
+		// Search for Factoid Transaction
+		ackReq = new(wsapi.AckRequest)
+		ackReq.TxID = hash.String()
+		if factoidAck, err := wsapi.HandleV2FactoidACK(st, ackReq); err == nil && factoidAck != nil && factoidAck.(*wsapi.FactoidTxStatus).BlockDate > 0 {
+			resp := newSearchResponse("factoidack", nil)
+			if len(resp) > 1 {
+				return true, resp
+			}
+		}
+
 	}
 
 	return false, ""

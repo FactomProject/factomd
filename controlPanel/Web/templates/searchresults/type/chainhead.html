@@ -7,14 +7,14 @@
             {{range $i, $ele := .}}
     			{{$k := eq $i 0}}
     			{{if $k}}
-    				<small>Chainhead: {{$ele.Content}}</small>
+    				<small>Chainhead: <a id="factom-search-link" type="eblock">{{$ele.Content}}</a></small>
         			 <h1>Chain <small>ID:({{$ele.Input}})</small></h1>
         		{{else}}
         		 <table id="search-table">
                 	<tbody>
                 		<tr>
                 			<td>Entry Hash:</td>
-                			<td><a href="" id="factom-search-link" type="entry">{{$ele.Input}}</a></td>
+                			<td><a id="factom-search-link" type="entry">{{$ele.Input}}</a></td>
                 		</tr>
                 		<tr>
                 			<td>External IDs:</td>

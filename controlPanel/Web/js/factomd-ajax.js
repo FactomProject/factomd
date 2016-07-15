@@ -36,17 +36,18 @@ $("#factom-search-submit").click(function() {
   x.send(formData)
 })
 
-$("td > #factom-search-link").click(function() {
+$("section #factom-search-link").click(function() {
   type = jQuery(this).attr("type")
   hash = jQuery(this).text()
   var x = new XMLHttpRequest()
   x.onreadystatechange = function() {
     if(x.readyState == 4) {
-      console.log(x.response)
       obj = JSON.parse(x.response)
       if (obj.Type != "None") {
-        redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
+        window.location = "search?input=" + hash + "&type=" + type
+        //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
       } else {
+        $(".factom-search-error").slideDown(300)
         console.log(x.response)
       }
     }
@@ -69,6 +70,8 @@ function redirect(url, method, content) {
   x.append(input)
   x.submit();
 };
+
+
 // Example Code to use for forms
 /*
 var form = document.getElementById("test_form")

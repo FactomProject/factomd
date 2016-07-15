@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/wsapi"
 
 	"github.com/FactomProject/factomd/common/factoid"
 )
@@ -114,6 +115,56 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 			break
 		}
 		err = templates.ExecuteTemplate(w, content.Type, ecblock)
+	case "entryack":
+		entryAck := getEntryAck(content.Input)
+		if entryAck == nil {
+			break
+		}
+		err = templates.ExecuteTemplate(w, content.Type, entryAck)
+	case "factoidack":
+		factoidAck := getEntryAck(content.Input)
+		if factoidAck == nil {
+			break
+		}
+		err = templates.ExecuteTemplate(w, content.Type, factoidAck)
+	case "facttransaction":
+		transaction := getFactTransaction(content.Input)
+		if transaction == nil {
+			break
+		}
+		err = templates.ExecuteTemplate(w, content.Type, transaction)
+	case "ectransaction":
+		transaction := getEcTransaction(content.Input)
+		if transaction == nil {
+			break
+		}
+		err = templates.ExecuteTemplate(w, content.Type, transaction)
+	case "EC":
+		hash := base58.Decode(content.Input)
+		if len(hash) < 34 {
+			break
+		}
+		var fixed [32]byte
+		copy(fixed[:], hash[2:34])
+		bal := fmt.Sprintf("%d", st.FactoidState.GetECBalance(fixed))
+		templates.ExecuteTemplate(w, content.Type,
+			struct {
+				Balance string
+				Address string
+			}{bal, content.Input})
+	case "FA":
+		hash := base58.Decode(content.Input)
+		if len(hash) < 34 {
+			break
+		}
+		var fixed [32]byte
+		copy(fixed[:], hash[2:34])
+		bal := fmt.Sprintf("%.3f", float64(st.FactoidState.GetFactoidBalance(fixed))/1e8)
+		templates.ExecuteTemplate(w, content.Type,
+			struct {
+				Balance string
+				Address string
+			}{bal, content.Input})
 	default:
 		err = templates.ExecuteTemplate(w, content.Type, content)
 	}
@@ -122,6 +173,56 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func getEcTransaction(hash string) interfaces.IECBlockEntry {
+	mr, err := primitives.HexToHash(hash)
+	if err != nil {
+		return nil
+	}
+	trans, err := st.DB.FetchECTransaction(mr)
+	if trans == nil || err != nil {
+		return nil
+	}
+	if trans.GetEntryHash() == nil {
+		return nil
+	}
+	return trans
+}
+
+func getFactTransaction(hash string) interfaces.ITransaction {
+	mr, err := primitives.HexToHash(hash)
+	if err != nil {
+		return nil
+	}
+	trans, err := st.DB.FetchFactoidTransaction(mr)
+	if trans == nil || err != nil {
+		return nil
+	}
+	if trans.GetInputs() == nil {
+		return nil
+	}
+	return trans
+}
+
+func getFactoidAck(hash string) *wsapi.FactoidTxStatus {
+	ackReq := new(wsapi.AckRequest)
+	ackReq.TxID = hash
+	answers, err := wsapi.HandleV2FactoidACK(st, ackReq)
+	if answers == nil || err != nil {
+		return nil
+	}
+	return answers.(*wsapi.FactoidTxStatus)
+}
+
+func getEntryAck(hash string) *wsapi.EntryStatus {
+	ackReq := new(wsapi.AckRequest)
+	ackReq.TxID = hash
+	answers, err := wsapi.HandleV2EntryACK(st, ackReq)
+	if answers == nil || err != nil {
+		return nil
+	}
+	return (answers.(*wsapi.EntryStatus))
 }
 
 func getECblock(hash string) interfaces.IEntryCreditBlock {
@@ -136,8 +237,6 @@ func getECblock(hash string) interfaces.IEntryCreditBlock {
 	if ecblk.GetHeader() == nil {
 		return nil
 	}
-
-	fmt.Println(ecblk)
 
 	return ecblk
 }
@@ -459,8 +558,9 @@ type EntryHolder struct {
 	ExtIDs  []string `json:"ExtIDs"`
 	Version int      `json:"Version"`
 
-	Height string
-	Hash   string
+	Height        string
+	Hash          string
+	ContentLength int
 }
 
 func getEntry(hash string) *EntryHolder {
@@ -476,6 +576,7 @@ func getEntry(hash string) *EntryHolder {
 		return nil
 	}
 	holder := new(EntryHolder)
+	holder.Hash = hash
 	holder.ChainID = entry.GetChainID().String()
 	holder.Content = string(entry.GetContent())
 	max := byte(0x80)
@@ -495,6 +596,7 @@ func getEntry(hash string) *EntryHolder {
 	}
 	holder.Version = 0
 	holder.Height = fmt.Sprintf("%d", entry.GetDatabaseHeight())
+	holder.ContentLength = len(holder.Content)
 	return holder
 }
 
