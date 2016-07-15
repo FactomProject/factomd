@@ -53,6 +53,7 @@ type State struct {
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
+	ControlPanelPort        int
 	Replay                  *Replay
 	DropRate                int
 
@@ -307,6 +308,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
+		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 
@@ -333,6 +335,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
+		s.ControlPanelPort = 8090
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))

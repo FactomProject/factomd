@@ -348,7 +348,7 @@ func NetStart(s *state.State) {
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
-	go controlPanel.ServeControlPanel(8090, fnodes[0].State)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, fnodes[0].State)
 
 	// Listen for commands:
 	SimControl(listenTo)
