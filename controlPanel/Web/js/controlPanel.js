@@ -6,19 +6,45 @@ setInterval(updateHTML,1000);
 function updateHTML() {
   getHeight() // Update items related to height
   updateTransactions()
+  updataDataDumps()
+}
+
+$("#indexnav-main > a").click(function() {
+  if (jQuery(this).hasClass("is-active")) {
+
+  } else {
+    $("#transactions").removeClass("hide")
+    $("#local").removeClass("hide")
+    $("#dataDump").addClass("hide")
+  }
+})
+
+$("#indexnav-more > a").click(function() {
+  if (jQuery(this).hasClass("is-active")) {
+
+  } else {
+    $("#transactions").addClass("hide")
+    $("#local").addClass("hide")
+    $("#dataDump").removeClass("hide")
+  }
+})
+
+function updataDataDumps() {
+  resp = queryState("dataDump",function(resp){
+    obj = JSON.parse(resp)
+    console.log(resp)
+    $("#dump1 > textarea").text(obj.DataDump1.Dump)
+  })
 }
 
 function updateTransactions() {
   resp = queryState("recentTransactions",function(resp){
     obj = JSON.parse(resp)
-    console.log(obj)
     if($("#DBKeyMR > a").text() != obj.DirectoryBlock.KeyMR) {
       $("#DBKeyMR > a").text(obj.DirectoryBlock.KeyMR)
       $("#DBBodyKeyMR").text(obj.DirectoryBlock.BodyKeyMR)
       $("#DBFullHash").text(obj.DirectoryBlock.FullHash)
       $("#DBBlockHeight").text(obj.DirectoryBlock.DBHeight)
-
-      console.log(obj)
 
       $("#panFactoids > #traxList > tbody").html("")
       obj.FactoidTransactions.forEach(function(trans) {

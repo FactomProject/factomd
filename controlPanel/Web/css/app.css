@@ -97,7 +97,7 @@ table tr td:first-child, table tr th:first-child { padding-left: 1.5rem; }
 /* custom styles */
 
 #dataDump textarea {
-	min-height: 336px;
+	min-height: 500px;
 	background: #000;
 	overflow-y: scroll;
 	font-family: monospace;
@@ -138,3 +138,4 @@ section .metric .progress .progress-meter .progress-meter-text {
     font-size: 16px;
 }
 section .metric table .button { margin: 0; }
+.tabs-control-panel {padding-left:1rem; padding-bottom: 1rem; }

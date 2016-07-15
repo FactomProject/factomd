@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
 )
 
@@ -18,9 +19,11 @@ var templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html
 var INDEX_HTML []byte
 var mux *http.ServeMux
 var st *state.State
+var fnodes []*state.State
 
-func ServeControlPanel(port int, state *state.State) {
-	st = state
+func ServeControlPanel(port int, states []*state.State, peers [][]interfaces.IPeer) {
+	st = states[0]
+	fnodes = states
 	portStr := ":" + strconv.Itoa(port)
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 	// Mux for static files
@@ -131,6 +134,9 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		data := fmt.Sprintf("%d", st.GetEBDBHeightComplete())
 		w.Write([]byte(data)) // Return EBDB complete height
 	case "peers":
+	case "dataDump":
+		data := getDataDumps()
+		w.Write([]byte(data))
 	case "recentTransactions":
 		last := st.GetDirectoryBlock()
 		if last == nil {

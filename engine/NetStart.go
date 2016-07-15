@@ -348,7 +348,15 @@ func NetStart(s *state.State) {
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, fnodes[0].State)
+
+	// To avoid invalid imports for control panel, yet still monitor all nodes
+	states := make([]*state.State, 0)
+	peersArray := make([][]interfaces.IPeer, 0)
+	for _, f := range fnodes {
+		states = append(states, f.State)
+		peersArray = append(peersArray, f.Peers)
+	}
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, peersArray)
 
 	// Listen for commands:
 	SimControl(listenTo)
