@@ -101,7 +101,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: WEDNESDAY JULY 6 7:45PM")
+	silence("#################", "META: Last touched: FRIDAY JULY 15, 4:01AM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -274,24 +274,24 @@ func (c *Controller) runloop() {
 
 	for c.keepRunning { // Run until we get the exit command
 		time.Sleep(time.Millisecond * 5) // This can be a tight loop, don't want to starve the application
-		if CurrentLoggingLevel > 1 {
+		if CurrentLoggingLevel > 3 {
 			fmt.Printf("@")
 		}
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
 		for 0 < len(c.commandChannel) {
 			command := <-c.commandChannel
-			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
 			c.handleCommand(command)
 		}
 		// route messages to and from application
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
 		c.route() // Route messages
 		// Manage peers
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
 		c.managePeers()
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
 		if CurrentLoggingLevel > 0 {
-			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
 			c.networkStatusReport()
 		}
 		if time.Second < time.Since(c.lastConnectionMetricsUpdate) {
