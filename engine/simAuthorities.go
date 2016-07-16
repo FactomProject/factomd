@@ -114,7 +114,7 @@ func fundWallet(st *state.State, amt uint64) error {
 	outAdd := factoid.NewAddress(outEC.Bytes())
 
 	trans := new(factoid.Transaction)
-	trans.AddInput(inAdd, amt*2)
+	trans.AddInput(inAdd, amt)
 	trans.AddECOutput(outAdd, amt)
 
 	trans.AddRCD(rcd)
