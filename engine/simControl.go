@@ -57,7 +57,11 @@ func SimControl(listenTo int) {
 			switch {
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
-					fundWallet(fnodes[listenTo].State, 2e6)
+					err := fundWallet(fnodes[listenTo].State, 2e7)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+						break
+					}
 					setUpAuthorites(fnodes[listenTo].State)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
 				}
@@ -73,7 +77,11 @@ func SimControl(listenTo int) {
 							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						fundWallet(fnodes[listenTo].State, uint64(count*5e6))
+						err := fundWallet(fnodes[listenTo].State, uint64(count*5e7))
+						if err != nil {
+							os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+							break
+						}
 						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
@@ -524,7 +532,11 @@ func SimControl(listenTo int) {
 					if auth == nil {
 						break
 					}
-					fundWallet(fnodes[listenTo].State, 1e7)
+					err := fundWallet(fnodes[listenTo].State, 1e8)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+						break
+					}
 					newKey, err := changeSigningKey(fnodes[listenTo].State.IdentityChainID, fnodes[listenTo].State)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
