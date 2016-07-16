@@ -39,7 +39,7 @@ func (s *State) Process() (progress bool) {
 
 	// Executing a message means looking if it is valid, checking if we are a leader.
 	executeMsg := func(msg interfaces.IMsg) (ret bool) {
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			return
 		}
@@ -117,7 +117,7 @@ func (s *State) ReviewHolding() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			delete(s.Holding, k)
 			continue
@@ -335,7 +335,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return

@@ -29,6 +29,10 @@ type AddServerMsg struct {
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
 var _ Signable = (*AddServerMsg)(nil)
 
+func (m *AddServerMsg) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *AddServerMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

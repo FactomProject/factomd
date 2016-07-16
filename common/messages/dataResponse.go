@@ -69,6 +69,10 @@ func (a *DataResponse) IsSameAs(b *DataResponse) bool {
 	return true
 }
 
+func (m *DataResponse) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *DataResponse) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

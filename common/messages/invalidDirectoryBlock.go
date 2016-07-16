@@ -67,6 +67,10 @@ func (m *InvalidDirectoryBlock) VerifySignature() (bool, error) {
 
 func (m *InvalidDirectoryBlock) Process(uint32, interfaces.IState) bool { return true }
 
+func (m *InvalidDirectoryBlock) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()

@@ -40,6 +40,10 @@ func (a *RequestBlock) IsSameAs(b *RequestBlock) bool {
 
 func (m *RequestBlock) Process(uint32, interfaces.IState) bool { return true }
 
+func (m *RequestBlock) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *RequestBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()
