@@ -5,14 +5,14 @@
 package engine
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
-
-	"math/rand"
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/wsapi"
@@ -515,7 +515,8 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
 					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))
 					p := fnodes[listenTo].State.GetServerPrivateKey()
-					os.Stderr.WriteString(fmt.Sprintf("Private Key (hex): %s\n", p.PrivateKeyString()))
+					str := hex.EncodeToString((p.Key)[:32])
+					os.Stderr.WriteString(fmt.Sprintf("Private Key (hex): %s\n", str))
 
 					break
 				} else if len(b) == 2 && b[1] == 'c' {

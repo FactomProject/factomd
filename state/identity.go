@@ -396,16 +396,18 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 	id := st.Identities[identityIndex]
 	// if all needed information is ready for the Identity , set it to IDENTITY_FULL
 	dif := id.IdentityCreated - id.IdentityRegistered
-	if dif < 0 {
-		dif = -dif
+	//log.Printfln("DEBUG: IDC:%d, IDR:%d, dif:%d\n", id.IdentityCreated, id.IdentityRegistered, dif)
+	if id.IdentityRegistered > id.IdentityCreated {
+		dif = id.IdentityRegistered - id.IdentityCreated
 	}
 	if dif > TIME_WINDOW {
 		return errors.New("Time window of identity create and register invalid")
 	}
 
+	//log.Printfln("DEBUG: IDC:%d, IDR:%d, dif:%d\n", id.IdentityCreated, id.ManagementRegistered, dif)
 	dif = id.ManagementCreated - id.ManagementRegistered
-	if dif < 0 {
-		dif = -dif
+	if id.ManagementRegistered > id.ManagementCreated {
+		dif = id.IdentityRegistered - id.IdentityCreated
 	}
 	if dif > TIME_WINDOW {
 		return errors.New("Time window of management create and register invalid")

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"text/template"
@@ -12,8 +13,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-var TEMPLATE_PATH string = "./controlPanel/Web/templates/"
-var templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html")) //Cache general templates
+var TEMPLATE_PATH string
+var templates *template.Template
 
 var INDEX_HTML []byte
 var mux *http.ServeMux
@@ -22,9 +23,20 @@ var index int = 0
 var fnodes []*state.State
 
 func ServeControlPanel(port int, states []*state.State) {
+	defer func() {
+		// recover from panic if files path is incorrect
+		if recover() != nil {
+			fmt.Println("Control Panel has encountered a panic and will not be served")
+		}
+	}()
+
 	st = states[index]
 	fnodes = states
 	portStr := ":" + strconv.Itoa(port)
+	factomdDir := "$GOPATH/src/github.com/FactomProject/factomd/"
+	TEMPLATE_PATH = factomdDir + "/controlPanel/Web/templates/"
+	templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html")) //Cache general templates
+
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 	// Mux for static files
 	mux = http.NewServeMux()
