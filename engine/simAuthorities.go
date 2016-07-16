@@ -115,24 +115,23 @@ func fundWallet(st *state.State, amt uint64) error {
 
 	trans := new(factoid.Transaction)
 	trans.AddInput(inAdd, amt*2)
-
-	// Fee isn't working
-	/*
-		fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
-		if err != nil {
-			return err
-		}
-		input, err := trans.GetInput(0)
-		if err != nil {
-			return err
-		}
-		input.SetAmount(amt + fee)
-	*/
+	trans.AddECOutput(outAdd, amt)
 
 	trans.AddRCD(rcd)
 	trans.AddAuthorization(rcd)
-	trans.AddECOutput(outAdd, amt)
 	trans.SetTimestamp(primitives.NewTimestampNow())
+
+	// Fee isn't working
+
+	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
+	if err != nil {
+		return err
+	}
+	input, err := trans.GetInput(0)
+	if err != nil {
+		return err
+	}
+	input.SetAmount(amt + fee)
 
 	dataSig, err := trans.MarshalBinarySig()
 	if err != nil {
