@@ -16,6 +16,7 @@ import (
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -169,7 +170,30 @@ func setUpAuthorites(st *state.State) []hardCodedAuthority {
 }
 
 func buildMainChain(port int) {
-	mC := new(wsapi.MessageRequest)
+	sec, _ := hex.DecodeString(ecSec)
+	ec, _ := factom.MakeECAddress(sec[:32])
+	e := new(factom.Entry)
+	e.ExtIDs = make([][]byte, 0)
+	c := factom.NewChain(e)
+
+	com, rev := getMessageStringChain(c, ec)
+	paramsRev := new(wsapi.EntryRequest)
+	paramsCom := new(wsapi.MessageRequest)
+
+	paramsCom.Message = com
+	paramsRev.Entry = rev
+	jCommit := primitives.NewJSON2Request("commit-chain", 0, paramsCom)
+	jRev := primitives.NewJSON2Request("reveal-chain", 0, paramsRev)
+
+	_, err := v2Request(jCommit, port)
+	if err != nil {
+		log.Println("Error in making identities: " + err.Error())
+	}
+	_, err = v2Request(jRev, port)
+	if err != nil {
+		log.Println("Error in making identities: " + err.Error())
+	}
+	/*mC := new(wsapi.MessageRequest)
 	mC.Message = "0001553ba74d8faa6ac2d4961882f42a345c7615f4133dde8e6d6e7c1b6b40ae4ff6ee52c393d024cbe2e7f360baad36a66b4f063f1f1b9f57f25deb35aad8fba8905cf2893eec1be40ce17636636117d9469de0f027cd74754e0e1871d249dfefac958d0f91de0b3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da299999aa8cfd722db62c61e53c7dbf9fa4de1a64b9891844f1d53b78a4cea3294fb6b88e5b53e5f132e32e1b1176335ead8ed351787457b9219f7743cc51b42803"
 	j := primitives.NewJSON2Request("commit-chain", 0, mC)
 	_, _ = v2Request(j, port)
@@ -177,12 +201,14 @@ func buildMainChain(port int) {
 	mR := new(wsapi.EntryRequest)
 	mR.Entry = "00e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85500004d61696e204964656e74697479204c697374"
 	j = primitives.NewJSON2Request("reveal-chain", 1, mR)
-	_, _ = v2Request(j, port)
+	_, _ = v2Request(j, port)*/
 }
 
 func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, int, error) {
 	madeAuths := make([]hardCodedAuthority, 0)
 	skipped := 0
+	sec, _ := hex.DecodeString(ecSec)
+	ec, _ := factom.MakeECAddress(sec[:32])
 	//for index, ele := range list {
 	for count := 0; count < total; count++ {
 		if authStack.Length() == 0 {
@@ -211,50 +237,93 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		}
 
 		nextAuthority++
-		for i, mes := range ele.ChainCommits {
-			m := new(wsapi.MessageRequest)
-			m.Message = mes
-			j := primitives.NewJSON2Request("commit-chain", i, m)
-			_, err := v2Request(j, st.GetPort())
+		//for _, mes := range ele.ChainCommits {
+		/*m := new(wsapi.MessageRequest)
+		m.Message = mes
+		j := primitives.NewJSON2Request("commit-chain", i, m)
+		_, err := v2Request(j, st.GetPort())
+		if err != nil {
+			log.Println("Error in making identities: " + err.Error())
+		}
+		time.Sleep(50 * time.Millisecond)*/
+		//}
+		for i, mes := range ele.ChainReveals {
+			entry, err := getFactomPackageEntryFromString(mes)
+			if err != nil {
+				continue
+			}
+			paramsRev := new(wsapi.EntryRequest)
+			paramsCom := new(wsapi.MessageRequest)
+
+			chain := factom.NewChain(entry)
+			com, rev := getMessageStringChain(chain, ec)
+			paramsCom.Message = com
+			paramsRev.Entry = rev
+			jCommit := primitives.NewJSON2Request("commit-chain", i, paramsCom)
+			jRev := primitives.NewJSON2Request("reveal-chain", i, paramsRev)
+
+			_, err = v2Request(jCommit, st.GetPort())
 			if err != nil {
 				log.Println("Error in making identities: " + err.Error())
 			}
-			time.Sleep(50 * time.Millisecond)
-		}
-		for i, mes := range ele.ChainReveals {
-			m := new(wsapi.EntryRequest)
+			_, err = v2Request(jRev, st.GetPort())
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+
+			/*m := new(wsapi.EntryRequest)
 			m.Entry = mes
 			j := primitives.NewJSON2Request("reveal-chain", i, m)
 			_, err := v2Request(j, st.GetPort())
 			if err != nil {
 				log.Println("Error in making identities: " + err.Error())
 			}
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(50 * time.Millisecond)*/
 		}
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 
-		for i, mes := range ele.EntryCommits {
-			m := new(wsapi.EntryRequest)
-			m.Entry = mes
-			j := primitives.NewJSON2Request("commit-entry", i, m)
-			_, err := v2Request(j, st.GetPort())
+		//for i, mes := range ele.EntryCommits {
+		/*m := new(wsapi.EntryRequest)
+		m.Entry = mes
+		j := primitives.NewJSON2Request("commit-entry", i, m)
+		_, err := v2Request(j, st.GetPort())
+		if err != nil {
+			log.Println("Error in making identities: " + err.Error())
+		}*/
+		//}
+		for i, mes := range ele.EntryReveals {
+			entry, err := getFactomPackageEntryFromString(mes)
+			if err != nil {
+				continue
+			}
+			paramsRev := new(wsapi.EntryRequest)
+			paramsCom := new(wsapi.EntryRequest)
+
+			com, rev := getMessageStringEntry(entry, ec)
+			paramsCom.Entry = com
+			paramsRev.Entry = rev
+			jCommit := primitives.NewJSON2Request("commit-entry", i, paramsCom)
+			jRev := primitives.NewJSON2Request("reveal-entry", i, paramsRev)
+
+			_, err = v2Request(jCommit, st.GetPort())
 			if err != nil {
 				log.Println("Error in making identities: " + err.Error())
 			}
-		}
-		for i, mes := range ele.EntryReveals {
-			m := new(wsapi.EntryRequest)
+			_, err = v2Request(jRev, st.GetPort())
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+
+			/*m := new(wsapi.EntryRequest)
 			m.Entry = mes
 			j := primitives.NewJSON2Request("reveal-entry", i, m)
 			_, err := v2Request(j, st.GetPort())
 			if err != nil {
 				log.Println("Error in making identities: " + err.Error())
-			}
+			}*/
 		}
-		sec, _ := hex.DecodeString(ecSec)
-		ec, _ := factom.MakeECAddress(sec[:32])
 
-		com, rev, key := makeBlockKey(ele, ec, false)
+		com, rev, key, _ := makeBlockKey(ele, ec, false)
 		ele.NewBlockKey = key
 		m := new(wsapi.EntryRequest)
 		m.Entry = com
@@ -266,7 +335,7 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		j = primitives.NewJSON2Request("reveal-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 
-		com, rev = makeMHash(ele, ec)
+		com, rev, _ = makeMHash(ele, ec)
 		m = new(wsapi.EntryRequest)
 		m.Entry = com
 		j = primitives.NewJSON2Request("commit-entry", 0, m)
@@ -277,7 +346,7 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		j = primitives.NewJSON2Request("reveal-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 
-		com, rev = makeBTCKey(ele, ec)
+		com, rev, _ = makeBTCKey(ele, ec)
 		m = new(wsapi.EntryRequest)
 		m.Entry = com
 		j = primitives.NewJSON2Request("commit-entry", 0, m)
@@ -294,38 +363,40 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 	return madeAuths, skipped, nil
 }
 
-func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress, random bool) (string, string, string) {
+func makeBlockKey(ele hardCodedAuthority, ec *factom.ECAddress, random bool) (string, string, string, *factom.Entry) {
 	blockKey, key, err := identity.MakeBlockSigningKeyFixed(ele.ChainID.String(), ele.ManageChain.String(), &(ele.Sk1), random)
 	if err != nil {
-		return "", "", ""
+		return "", "", "", nil
 	}
 	entry := blockKey.GetEntry()
 	entry.Content = []byte(primitives.NewTimestampNow().String())
-	str1, str2 := getMessageString(entry, ec)
-	return str1, str2, hex.EncodeToString(key)
+	str1, str2 := getMessageStringEntry(entry, ec)
+	return str1, str2, hex.EncodeToString(key), entry
 }
 
-func makeMHash(ele hardCodedAuthority, ec *factom.ECAddress) (string, string) {
+func makeMHash(ele hardCodedAuthority, ec *factom.ECAddress) (string, string, *factom.Entry) {
 	mHash, err := identity.MakeMHash(ele.ChainID.String(), ele.ManageChain.String(), ele.ChainID.String(), &(ele.Sk1))
 	if err != nil {
-		return "", ""
+		return "", "", nil
 	}
 	entry := mHash.GetEntry()
 	entry.ChainID = ele.ManageChain.String()
-	return getMessageString(entry, ec)
+	str1, str2 := getMessageStringEntry(entry, ec)
+	return str1, str2, entry
 }
 
-func makeBTCKey(ele hardCodedAuthority, ec *factom.ECAddress) (string, string) {
+func makeBTCKey(ele hardCodedAuthority, ec *factom.ECAddress) (string, string, *factom.Entry) {
 	btcKey, err := identity.MakeBitcoinKey(ele.ChainID.String(), ele.ManageChain.String(), 0, 0, ele.ChainID.Bytes()[:20], &(ele.Sk1))
 	if err != nil {
-		return "", ""
+		return "", "", nil
 	}
 	entry := btcKey.GetEntry()
 	entry.ChainID = ele.ManageChain.String()
-	return getMessageString(entry, ec)
+	str1, str2 := getMessageStringEntry(entry, ec)
+	return str1, str2, entry
 }
 
-func getMessageString(e *factom.Entry, ec *factom.ECAddress) (string, string) {
+func getMessageStringEntry(e *factom.Entry, ec *factom.ECAddress) (string, string) {
 	j, err := factom.ComposeEntryCommit(e, ec)
 	if err != nil {
 		return "", ""
@@ -348,6 +419,29 @@ func getMessageString(e *factom.Entry, ec *factom.ECAddress) (string, string) {
 	return tC.Params.Message, tR.Params.Message
 }
 
+func getMessageStringChain(c *factom.Chain, ec *factom.ECAddress) (string, string) {
+	j, err := factom.ComposeChainCommit(c, ec)
+	if err != nil {
+		return "", ""
+	}
+	tC := new(identity.Commit)
+	err = identity.MapToObject(j, tC)
+	if err != nil {
+		return "", ""
+	}
+
+	j, err = factom.ComposeChainReveal(c)
+	if err != nil {
+		return "", ""
+	}
+	tR := new(identity.Reveal)
+	err = identity.MapToObject(j, tR)
+	if err != nil {
+		return "", ""
+	}
+	return tC.Params.Message, tR.Params.Message
+}
+
 func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.PrivateKey, error) {
 	sec, _ := hex.DecodeString(ecSec)
 	ec, _ := factom.MakeECAddress(sec[:32])
@@ -356,7 +450,7 @@ func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.Priva
 	}
 	for _, ele := range authKeyLibrary {
 		if auth.IsSameAs(ele.ChainID) {
-			com, rev, newKey := makeBlockKey(ele, ec, true)
+			com, rev, newKey, _ := makeBlockKey(ele, ec, true)
 			ele.NewBlockKey = newKey
 			m := new(wsapi.EntryRequest)
 			m.Entry = com
@@ -498,6 +592,25 @@ func buildMessages() []hardCodedAuthority {
 	return list
 }
 
+func getFactomPackageEntryFromString(message string) (*factom.Entry, error) {
+	entry := entryBlock.NewEntry()
+	if p, err := hex.DecodeString(message); err != nil {
+		return nil, errors.New("Invalid Reveal Entry")
+	} else {
+		_, err := entry.UnmarshalBinaryData(p)
+		if err != nil {
+			return nil, errors.New("Invalid Reveal Entry")
+		}
+		fEntry := new(factom.Entry)
+		// build factom pkg entry.
+		fEntry.ChainID = entry.ChainID.String()
+		fEntry.ExtIDs = entry.ExternalIDs()
+		fEntry.Content = entry.Content
+
+		return fEntry, nil
+	}
+}
+
 func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Response, error) {
 	j, err := json.Marshal(req)
 	if err != nil {
@@ -524,8 +637,7 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	if err := json.Unmarshal(body, r); err != nil {
 		return nil, err
 	}
-
-	return r, nil
+	return nil, nil
 }
 
 func shad(data []byte) []byte {
