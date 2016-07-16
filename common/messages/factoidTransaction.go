@@ -89,6 +89,9 @@ func (m *FactoidTransaction) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
+	if err := m.Transaction.Validate(1); err != nil {
+		return -1
+	}
 	err := state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
 		return -1
