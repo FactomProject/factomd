@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -101,37 +100,21 @@ var (
 
 func fundWallet(st *state.State, amt uint64) error {
 	inSec, _ := primitives.HexToHash("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
+	inAdd := new(factoid.Address)
+	inFS, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
+	inAdd.SetBytes(inFS.Bytes())
+
+	outAdd := new(factoid.Address)
 	outEC, _ := primitives.HexToHash("3B6A27BCCEB6A42D62A3A8D02A6F0D73653215771DE243A63AC048A18B59DA29")
-	inHash, _ := primitives.HexToHash("646F3E8750C550E4582ECA5047546FFEF89C13A175985E320232BACAC81CC428")
-	var sec [64]byte
-	copy(sec[:32], inSec.Bytes())
-
-	pub := ed.GetPublicKey(&sec)
-	//inRcd := shad(inPub.Bytes())
-
-	rcd := factoid.NewRCD_1(pub[:])
-	inAdd := factoid.NewAddress(inHash.Bytes())
-	outAdd := factoid.NewAddress(outEC.Bytes())
+	outAdd.SetBytes(outEC.Bytes())
 
 	trans := new(factoid.Transaction)
-	trans.AddInput(inAdd, amt)
+	trans.AddInput(inAdd, amt+uint64(amt/50))
 	trans.AddECOutput(outAdd, amt)
 
-	trans.AddRCD(rcd)
-	trans.AddAuthorization(rcd)
-	trans.SetTimestamp(primitives.NewTimestampNow())
-
-	// Fee isn't working
-
-	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
-	if err != nil {
-		return err
-	}
-	input, err := trans.GetInput(0)
-	if err != nil {
-		return err
-	}
-	input.SetAmount(amt + fee)
+	trans.SetTimestamp(st.GetTimestamp())
+	nrcd := factoid.NewRCD_1(inFS.Bytes())
+	trans.AddAuthorization(nrcd)
 
 	dataSig, err := trans.MarshalBinarySig()
 	if err != nil {
@@ -148,7 +131,6 @@ func fundWallet(st *state.State, amt uint64) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

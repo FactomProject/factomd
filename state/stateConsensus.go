@@ -120,12 +120,21 @@ func (s *State) ReviewHolding() {
 		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			delete(s.Holding, k)
+			continue
+		}
+
+		if v.Expire(s) {
+			s.ExpireCnt++
+			delete(s.Holding, k)
+			continue
 		}
 
 		if v.Resend(s) {
-			s.ResendCnt++
-			v.ComputeVMIndex(s)
-			s.networkOutMsgQueue <- v
+			if v.Validate(s) == 1 {
+				s.ResendCnt++
+				v.ComputeVMIndex(s)
+				s.networkOutMsgQueue <- v
+			}
 		}
 
 		if s.Leader && v.GetVMIndex() == s.LeaderVMIndex {
@@ -133,9 +142,27 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 		}
 
-		if v.Expire(s) {
-			s.ExpireCnt++
-			delete(s.Holding, k)
+	}
+
+	for k := range s.Commits {
+		vs := s.Commits[k]
+		if len(vs) == 0 {
+			delete(s.Commits, k)
+			continue
+		}
+		v, ok := vs[0].(interfaces.IMsg)
+		if ok {
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if !ok {
+				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
+					s.FactomNodeName,
+					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
+					v.String())
+
+				copy(vs, vs[1:])
+				vs[len(vs)-1] = nil
+				s.Commits[k] = vs[:len(vs)-1]
+			}
 		}
 	}
 
