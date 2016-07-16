@@ -18,6 +18,20 @@ import (
 	"time"
 )
 
+// config file keys:
+// MainNetworkPort
+// MainPeersFile
+// MainSeedURL
+// MainSpecialPeers
+// TestNetworkPort
+// TestPeersFile
+// TestSeedURL
+// TestSpecialPeers
+// LocalNetworkPort
+// LocalPeersFile
+// LocalSeedURL
+// LocalSpecialPeers
+
 type Discovery struct {
 	knownPeers map[string]Peer // peers we know about indexed by hash
 
@@ -41,6 +55,7 @@ func (d *Discovery) Init(peersFile string) *Discovery {
 	UpdateKnownPeers.Unlock()
 	d.peersFilePath = peersFile
 	d.LoadPeers()
+	d.DiscoverPeersFromSeed()
 	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return d
 }
@@ -128,7 +143,8 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
 		return
 	}
-	for _, value := range peerArray {
+	filteredArray := d.filterPeersFromOtherNetworks(peerArray)
+	for _, value := range filteredArray {
 		value.QualityScore = 0
 		switch d.isPeerPresent(value) {
 		case true:
@@ -155,6 +171,15 @@ func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
 	return peer
 }
 
+func (d *Discovery) filterPeersFromOtherNetworks(peers []Peer) (filtered []Peer) {
+	for _, peer := range peers {
+		if CurrentNetwork == peer.Network {
+			filtered = append(filtered, peer)
+		}
+	}
+	return
+}
+
 // GetOutgoingPeers gets a set of peers to connect to on startup
 // For now, this gives a set of 12 of the total known peers.
 // We want peers from diverse networks.  So,method is this:
@@ -165,19 +190,20 @@ func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
 //  -- remove each candidate from the list.
 //  -- continue until there are no candidates left, or we have our set.
 func (d *Discovery) GetOutgoingPeers() []Peer {
-	peerPool := []Peer{}
+	firstPassPeers := []Peer{}
 	selectedPeers := map[string]Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
 		case OnlySpecialPeers && SpecialPeer == peer.Type:
-			peerPool = append(peerPool, peer)
+			firstPassPeers = append(firstPassPeers, peer)
 		case !OnlySpecialPeers:
-			peerPool = append(peerPool, peer)
+			firstPassPeers = append(firstPassPeers, peer)
 		default:
 		}
 	}
 	UpdateKnownPeers.Unlock()
+	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
 	sort.Sort(PeerDistanceSort(peerPool))
 	// Get four times as many as who knows how many will be online
 	desiredQuantity := NumberPeersToConnect * 4
@@ -224,12 +250,13 @@ func (d *Discovery) getPeerSelection() []byte {
 	// var peer, currentBest Peer
 	// var currentBestDistance float64
 	selectedPeers := []Peer{}
-	peerPool := []Peer{}
+	firstPassPeers := []Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
-		peerPool = append(peerPool, peer)
+		firstPassPeers = append(firstPassPeers, peer)
 	}
 	UpdateKnownPeers.Unlock()
+	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
 	sort.Sort(PeerQualitySort(peerPool))
 	for _, peer := range peerPool {
 		if SpecialPeer != peer.Type { // we don't share special peers
@@ -265,7 +292,7 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 		ipAndPort := strings.Split(line, ":")
 		peerp := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
 		peer := *peerp
-		d.updatePeer(d.updatePeerSource(peer, "DNS Seed"))
+		d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
 	}
 	silence("discovery", "DiscoverPeers got peers: %+v", lines)
 }

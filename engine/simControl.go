@@ -107,6 +107,7 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
 				}
 			case 'v' == b[0]:
+				os.Stderr.WriteString(fmt.Sprintf("Isleader: %t\n", fnodes[listenTo].State.IsLeader()))
 				audits := fnodes[listenTo].State.LeaderPL.AuditServers
 				for _, aud := range audits {
 					os.Stderr.WriteString(aud.String() + "\n")
@@ -509,10 +510,12 @@ func SimControl(listenTo int) {
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
 					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
-					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", auth.ChainID))
+					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.GetIdentityChainID().String()))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
 					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))
+					p := fnodes[listenTo].State.GetServerPrivateKey()
+					os.Stderr.WriteString(fmt.Sprintf("Private Key (hex): %s\n", p.PrivateKeyString()))
 
 					break
 				} else if len(b) == 2 && b[1] == 'c' {

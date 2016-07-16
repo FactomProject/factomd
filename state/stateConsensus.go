@@ -78,7 +78,7 @@ func (s *State) Process() (progress bool) {
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 5 && len(s.XReview) > 0; i++ {
+	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
@@ -417,7 +417,7 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 	}
 
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block.")
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
 		return true
 	}
 
@@ -730,9 +730,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				s.DBStates.SaveDBStateToDB(dbstate)
 			}
 		} else {
-			//fmt.Println(s.FactomNodeName, "JUST DISCARDED:", dbstate.DirectoryBlock.GetKeyMR().String()[:10])
 			s.MismatchCnt++
-			s.DBStates.Catchup()
+			s.DBStates.DBStates = s.DBStates.DBStates[:len(s.DBStates.DBStates)-1]
+
+			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
+
+			if msg != nil {
+				s.RunLeader = false
+				s.StartDelay = s.GetTimestamp().GetTimeMilli()
+				s.NetworkOutMsgQueue() <- msg
+			}
 		}
 		s.ReviewHolding()
 		s.Saving = false
