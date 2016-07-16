@@ -1182,10 +1182,9 @@ func (s *State) SetString() {
 		s.DBStateCnt,
 		s.MissingCnt)
 
-	str = str + fmt.Sprintf("Resend %5d Expire %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct:%3d Ec:%3d E:%3d tps t/i %7.2f/%7.2f",
 		s.ResendCnt,
 		s.ExpireCnt,
-		s.Saving,
 		s.FactoidTrans,
 		s.NewEntryChains,
 		s.NewEntries,
