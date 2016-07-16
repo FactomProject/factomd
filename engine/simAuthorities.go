@@ -113,7 +113,7 @@ func fundWallet(st *state.State, amt uint64) error {
 	trans.AddECOutput(outAdd, amt)
 
 	trans.SetTimestamp(st.GetTimestamp())
-	nrcd := factoid.NewRCD_1(outEC.Bytes())
+	nrcd := factoid.NewRCD_1(inFS.Bytes())
 	trans.AddAuthorization(nrcd)
 
 	dataSig, err := trans.MarshalBinarySig()

@@ -225,6 +225,7 @@ func (m *CommitEntryMsg) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) {
+	state.PutCommit(m.CommitEntry.EntryHash, m)
 	state.LeaderExecute(m)
 }
 

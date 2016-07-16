@@ -160,11 +160,13 @@ func (m *DataResponse) FollowerExecute(state interfaces.IState) {
 				if ebKeyMR.IsSameAs(m.DataHash) {
 					if !state.DatabaseContains(ebKeyMR) {
 						state.FollowerExecuteAddData(m) // Save EBlock
-
-						for _, hashMatchAttempt := range state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete()).GetEntryHashes() {
-							if hashMatchAttempt.IsSameAs(ebKeyMR) {
-								if state.GetAllEntries(ebKeyMR) {
-									state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
+						d := state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete())
+						if d != nil && d.GetEntryHashes() != nil {
+							for _, hashMatchAttempt := range state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete()).GetEntryHashes() {
+								if hashMatchAttempt.IsSameAs(ebKeyMR) {
+									if state.GetAllEntries(ebKeyMR) {
+										state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
+									}
 								}
 							}
 						}

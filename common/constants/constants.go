@@ -42,6 +42,7 @@ const (
 	// Replay
 	INTERNAL_REPLAY = 1
 	NETWORK_REPLAY  = 2
+	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
 
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key

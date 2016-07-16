@@ -106,12 +106,6 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
 				}
-			case 'v' == b[0]:
-				os.Stderr.WriteString(fmt.Sprintf("Isleader: %t\n", fnodes[listenTo].State.IsLeader()))
-				audits := fnodes[listenTo].State.LeaderPL.AuditServers
-				for _, aud := range audits {
-					os.Stderr.WriteString(aud.String() + "\n")
-				}
 			case 'r' == b[0]:
 				rotate++
 				if rotate%2 == 1 {
@@ -345,8 +339,13 @@ func SimControl(listenTo int) {
 				fallthrough
 			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
-					found, _ := fnodes[listenTo].State.LeaderPL.GetFedServerIndexHash(fnodes[listenTo].State.IdentityChainID)
-					exists := found
+					feds := fnodes[listenTo].State.LeaderPL.FedServers
+					exists := false
+					for _, fed := range feds {
+						if fed.GetChainID().IsSameAs(fnodes[listenTo].State.IdentityChainID) {
+							exists = true
+						}
+					}
 					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" && !exists {
 						index := 0
 						for index < len(authKeyLibrary) {
@@ -510,12 +509,10 @@ func SimControl(listenTo int) {
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
 					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
-					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.GetIdentityChainID().String()))
+					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", auth.ChainID))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
 					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))
-					p := fnodes[listenTo].State.GetServerPrivateKey()
-					os.Stderr.WriteString(fmt.Sprintf("Private Key (hex): %s\n", p.PrivateKeyString()))
 
 					break
 				} else if len(b) == 2 && b[1] == 'c' {
@@ -736,6 +733,24 @@ func printSummary(summary *int, value int, listenTo *int) {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.Commits))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Commits", list)
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEntries))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Pending Entries", list)
 
 		list = ""
 		for _, f := range fnodes {
