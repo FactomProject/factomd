@@ -9,6 +9,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/state"
 )
 
@@ -187,7 +189,62 @@ func getRecentTransactions() []byte {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
+	vms := st.LeaderPL.VMs
+	for _, vm := range vms {
+		for _, msg := range vm.List {
+			switch msg.Type() {
+			case constants.COMMIT_CHAIN_MSG:
+			case constants.COMMIT_ENTRY_MSG:
+			case constants.REVEAL_ENTRY_MSG:
+				data, err := msg.MarshalBinary()
+				if err != nil {
+					continue
+				}
+				rev := new(messages.RevealEntryMsg)
+				err = rev.UnmarshalBinary(data)
+				if rev.Entry == nil || err != nil {
+					continue
+				}
+				e := new(EntryHolder)
+				ack := getEntryAck(rev.Entry.GetHash().String())
+				if ack == nil {
+					continue
+				}
+				e.Hash = ack.EntryHash
+				e.ChainID = "Processing"
+				holder.Entries = append(holder.Entries, *e)
+			case constants.FACTOID_TRANSACTION_MSG:
+				data, err := msg.MarshalBinary()
+				if err != nil {
+					continue
+				}
+				transMsg := new(messages.FactoidTransaction)
+				err = transMsg.UnmarshalBinary(data)
+				if transMsg.Transaction == nil || err != nil {
+					continue
+				}
+				trans := transMsg.Transaction
+				input, err := trans.TotalInputs()
+				if err != nil {
+					continue
+				}
+				totalInputs := len(trans.GetInputs())
+				totalOutputs := len(trans.GetECOutputs())
+				totalOutputs = totalOutputs + len(trans.GetOutputs())
+				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
+				holder.FactoidTransactions = append(holder.FactoidTransactions, struct {
+					TxID         string
+					TotalInput   string
+					Status       string
+					TotalInputs  int
+					TotalOutputs int
+				}{trans.GetHash().String(), inputStr, "Processing", totalInputs, totalOutputs})
+			}
+		}
+	}
+
 	entries := last.GetDBEntries()
+	//entries = append(entries, pl.DirectoryBlock.GetDBEntries()[:]...)
 	for _, entry := range entries {
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
