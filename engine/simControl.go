@@ -106,12 +106,6 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
 				}
-			case 'v' == b[0]:
-				os.Stderr.WriteString(fmt.Sprintf("Isleader: %t\n", fnodes[listenTo].State.IsLeader()))
-				audits := fnodes[listenTo].State.LeaderPL.AuditServers
-				for _, aud := range audits {
-					os.Stderr.WriteString(aud.String() + "\n")
-				}
 			case 'r' == b[0]:
 				rotate++
 				if rotate%2 == 1 {
