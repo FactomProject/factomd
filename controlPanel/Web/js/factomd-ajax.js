@@ -72,6 +72,12 @@ function redirect(url, method, content) {
 };
 
 
+function nextNode() {
+  resp = queryState("nextNode",function(resp){
+    $("#current-node-number").text(resp)
+  })
+}
+
 // Example Code to use for forms
 /*
 var form = document.getElementById("test_form")

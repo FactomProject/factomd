@@ -139,3 +139,12 @@ section .metric .progress .progress-meter .progress-meter-text {
 }
 section .metric table .button { margin: 0; }
 .tabs-control-panel {padding-left:1rem; padding-bottom: 1rem; }
+.dump-tab{    
+    color: #aaa;
+    float: left;
+    display: block;
+    line-height: 1;
+    font-size: .75rem;
+    border-radius: 0;
+    margin: 0;
+}

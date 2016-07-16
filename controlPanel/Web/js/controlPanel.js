@@ -29,11 +29,22 @@ $("#indexnav-more > a").click(function() {
   }
 })
 
+function updatePeers() {
+  
+}
+
 function updataDataDumps() {
   resp = queryState("dataDump",function(resp){
     obj = JSON.parse(resp)
-    console.log(resp)
-    $("#dump1 > textarea").text(obj.DataDump1.Dump)
+    $("#dump1 > #dumpShort").text(obj.DataDump1.ShortDump)
+    $("#dump1 > #dumpRaw").text(obj.DataDump1.RawDump)
+
+    $("#dump2 > #dumpRaw").text(obj.DataDump2.RawDump)
+
+    $("#dump3 > #dumpRaw").text(obj.DataDump3.RawDump)
+
+    $("#dump4 > #dumpAuth").text(obj.DataDump4.Authorities)
+    $("#dump4 > #dumpIdent").text(obj.DataDump4.Identities)
   })
 }
 
