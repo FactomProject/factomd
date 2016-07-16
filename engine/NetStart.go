@@ -377,8 +377,9 @@ func NetStart(s *state.State) {
 	for _, f := range fnodes {
 		states = append(states, f.State)
 	}
-
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
+	_ = states
+	_ = controlPanel.INDEX_HTML
+	//go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
 	// Listen for commands:
 	SimControl(listenTo)
 

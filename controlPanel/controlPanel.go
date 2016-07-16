@@ -28,9 +28,9 @@ func ServeControlPanel(port int, states []*state.State) {
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 	// Mux for static files
 	mux = http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("./ControlPanel/Web")))
+	mux.Handle("/", http.FileServer(http.Dir("./controlPanel/Web")))
 
-	INDEX_HTML, _ = ioutil.ReadFile("./ControlPanel/Web/index.html")
+	INDEX_HTML, _ = ioutil.ReadFile("./controlPanel/Web/index.html")
 
 	http.HandleFunc("/", static(indexHandler))
 	http.HandleFunc("/search", searchHandler)
