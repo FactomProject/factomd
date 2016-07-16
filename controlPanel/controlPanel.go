@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 	"text/template"
@@ -33,8 +32,9 @@ func ServeControlPanel(port int, states []*state.State) {
 	st = states[index]
 	fnodes = states
 	portStr := ":" + strconv.Itoa(port)
-	factomdDir := "$GOPATH/src/github.com/FactomProject/factomd/"
-	TEMPLATE_PATH = factomdDir + "/controlPanel/Web/templates/"
+
+	//factomdDir := ""
+	TEMPLATE_PATH = "./controlPanel/Web/templates/"
 	templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html")) //Cache general templates
 
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
