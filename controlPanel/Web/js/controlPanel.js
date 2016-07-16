@@ -51,37 +51,50 @@ function updataDataDumps() {
 function updateTransactions() {
   resp = queryState("recentTransactions",function(resp){
     obj = JSON.parse(resp)
-    if($("#DBKeyMR > a").text() != obj.DirectoryBlock.KeyMR) {
+    //if($("#DBBlockHeight").text() != obj.DirectoryBlock.DBHeight) {
       $("#DBKeyMR > a").text(obj.DirectoryBlock.KeyMR)
       $("#DBBodyKeyMR").text(obj.DirectoryBlock.BodyKeyMR)
       $("#DBFullHash").text(obj.DirectoryBlock.FullHash)
       $("#DBBlockHeight").text(obj.DirectoryBlock.DBHeight)
 
-      $("#panFactoids > #traxList > tbody").html("")
+      //$("#panFactoids > #traxList > tbody").html("")
       obj.FactoidTransactions.forEach(function(trans) {
         if(trans.TotalInput > 0.0001) {
-          $("#panFactoids > #traxList > tbody").append("\
+          $("\
           <tr>\
               <td><a id='factom-search-link' type='facttransaction'>" + trans.TxID + "</a></td>\
               <td>" + trans.TotalInput + "</td>\
               <td>" + trans.TotalInputs + "</td>\
               <td>" + trans.TotalOutputs + "</td>\
-          </tr>")
+          </tr>").insertBefore("#panFactoids > #traxList > tbody >tr:first")
+          /*$("#panFactoids > #traxList > tbody").append("\
+          <tr>\
+              <td><a id='factom-search-link' type='facttransaction'>" + trans.TxID + "</a></td>\
+              <td>" + trans.TotalInput + "</td>\
+              <td>" + trans.TotalInputs + "</td>\
+              <td>" + trans.TotalOutputs + "</td>\
+          </tr>")*/
         }
       })
 
-      $("#panEntries > #traxList > tbody").html("")
+      //$("#panEntries > #traxList > tbody").html("")
       if(obj.Entries != null){
         obj.Entries.forEach(function(entry) {
-          $("#panEntries > #traxList > tbody").append("\
+          $("\
           <tr>\
               <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
               <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
               <td>" + entry.ContentLength + "</td>\
-          </tr>")
+          </tr>").insertBefore("#panEntries > #traxList > tbody > tr:first")
+          
+          /*$("#panEntries > #traxList > tbody").append("\
+          <tr>\
+              <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
+              <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+              <td>" + entry.ContentLength + "</td>\
+          </tr>")*/
         })
       }
-
       $("section #factom-search-link").click(function() {
         type = jQuery(this).attr("type")
         hash = jQuery(this).text()
@@ -105,7 +118,7 @@ function updateTransactions() {
         x.open("POST", "/post")
         x.send(formDataLink)
       })
-    }
+ //   }
   })
 }
 

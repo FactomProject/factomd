@@ -109,26 +109,6 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	//w.Write([]byte(searchResult.Type))
 }
 
-type LastDirectoryBlockTransactions struct {
-	DirectoryBlock struct {
-		KeyMR     string
-		BodyKeyMR string
-		FullHash  string
-		DBHeight  string
-
-		PrevFullHash string
-		PrevKeyMR    string
-	}
-	FactoidTransactions []struct {
-		TxID         string
-		TotalInput   string
-		Status       string
-		TotalInputs  int
-		TotalOutputs int
-	}
-	Entries []EntryHolder
-}
-
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.NotFound(w, r)
@@ -165,6 +145,26 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 
 func getPeers() []byte {
 	return []byte("")
+}
+
+type LastDirectoryBlockTransactions struct {
+	DirectoryBlock struct {
+		KeyMR     string
+		BodyKeyMR string
+		FullHash  string
+		DBHeight  string
+
+		PrevFullHash string
+		PrevKeyMR    string
+	}
+	FactoidTransactions []struct {
+		TxID         string
+		TotalInput   string
+		Status       string
+		TotalInputs  int
+		TotalOutputs int
+	}
+	Entries []EntryHolder
 }
 
 func getRecentTransactions() []byte {
