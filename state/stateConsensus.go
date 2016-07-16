@@ -804,17 +804,20 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
 	cs := s.Commits[hash.Fixed()]
-	if cs == nil || len(cs) == 0 {
+	if cs == nil {
 		return nil
 	}
-	r := cs[0]
-	if len(cs) == 1 {
+
+	if len(cs) == 0 {
 		delete(s.Commits, hash.Fixed())
-	} else {
-		copy(cs[:], cs[1:])
-		cs[len(cs)-1] = nil
-		s.Commits[hash.Fixed()] = cs
+		return nil
 	}
+
+	r := cs[0]
+
+	copy(cs[:], cs[1:])
+	cs[len(cs)-1] = nil
+	s.Commits[hash.Fixed()] = cs[:len(cs)-1]
 
 	return r
 }
