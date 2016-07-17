@@ -66,10 +66,6 @@ func (e *EOMTimeout) Process(uint32, interfaces.IState) bool {
 	panic("EOMTimeout is not implemented.")
 }
 
-func (m *EOMTimeout) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
-}
-
 func (m *EOMTimeout) GetHash() interfaces.IHash {
 	return nil
 }

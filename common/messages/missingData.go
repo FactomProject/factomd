@@ -52,10 +52,6 @@ func (m *MissingData) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
-func (m *MissingData) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
-}
-
 func (m *MissingData) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalBinary()

@@ -171,6 +171,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
+	msg.Timestamp = state.GetTimestamp()
 	state.APIQueue() <- msg
 
 	resp := new(CommitChainResponse)
@@ -203,6 +204,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
+	msg.Timestamp = state.GetTimestamp()
 	state.APIQueue() <- msg
 
 	resp := new(CommitEntryResponse)
@@ -536,6 +538,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 	}
 
 	msg := new(messages.FactoidTransaction)
+	msg.Timestamp = state.GetTimestamp()
 
 	p, err := hex.DecodeString(t.Transaction)
 	if err != nil {
