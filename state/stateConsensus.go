@@ -29,8 +29,8 @@ var _ = (*hash.Hash32)(nil)
 func (s *State) Process() (progress bool) {
 
 	if !s.RunLeader {
-		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
-		if now.GetTimeMilli()-s.StartDelay.GetTimeMilli() > 5*1000 {
+		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+		if now-s.StartDelay > 10*1000 {
 			s.RunLeader = true
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -53,7 +53,8 @@ func (s *State) Process() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.Leader &&
+			if s.RunLeader &&
+				s.Leader &&
 				!s.Saving &&
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
@@ -67,8 +68,6 @@ func (s *State) Process() (progress bool) {
 		case 0:
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		default:
-			if s.DebugConsensus {
-			}
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 			s.networkInvalidMsgQueue <- msg
 		}
@@ -76,8 +75,10 @@ func (s *State) Process() (progress bool) {
 		return
 	}
 
+	s.ReviewHolding()
+
 	// Reprocess any stalled Acknowledgements
-	for len(s.XReview) > 0 {
+	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
@@ -94,7 +95,6 @@ func (s *State) Process() (progress bool) {
 		if executeMsg(msg) {
 			s.networkOutMsgQueue <- msg
 		}
-		s.ReviewHolding()
 	default:
 	}
 	return
@@ -108,21 +108,37 @@ func (s *State) Process() (progress bool) {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
+	if len(s.XReview) > 0 {
+		return
+	}
 	// Anything we are holding, we need to reprocess.
-	s.XReview = append(make([]interfaces.IMsg, 0), s.XReview...)
+	s.XReview = make([]interfaces.IMsg, 0)
+
 	for k := range s.Holding {
 		v := s.Holding[k]
+
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		if !ok {
+			delete(s.Holding, k)
+		}
+
 		if v.Resend(s) {
+			s.ResendCnt++
 			v.ComputeVMIndex(s)
 			s.networkOutMsgQueue <- v
-			if !s.Leader || v.GetVMIndex() == s.LeaderVMIndex {
-				s.XReview = append(s.XReview, v)
-				delete(s.Holding, k)
-			}
-		} else if v.Expire(s) {
+		}
+
+		if s.Leader && v.GetVMIndex() == s.LeaderVMIndex {
+			s.XReview = append(s.XReview, v)
+			delete(s.Holding, k)
+		}
+
+		if v.Expire(s) {
+			s.ExpireCnt++
 			delete(s.Holding, k)
 		}
 	}
+
 	for k := range s.Acks {
 		v := s.Acks[k].(*messages.Ack)
 		if v.DBHeight < s.LLeaderHeight {
@@ -151,6 +167,7 @@ func (s *State) AddDBState(isNew bool,
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
+		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
@@ -204,17 +221,10 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	eom, _ := m.(*messages.EOM)
-
 	s.Holding[m.GetMsgHash().Fixed()] = m
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
-
-		// For debugging, note who the leader is for this message, and the minute.
-		m.SetLeaderChainID(ack.GetLeaderChainID())
-		m.SetMinute(eom.Minute + 1)
-
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 	}
@@ -242,6 +252,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
 	dbstate.ReadyToSave = true
+
+	s.DBStateCnt++
 }
 
 func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
@@ -291,6 +303,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(ackResp.DBHeight)
 	pl.AddToProcessList(ackResp, mmr.MsgResponse)
+	s.MissingCnt++
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -368,15 +381,56 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
+	if as.ServerType == 0 {
+		audits := s.LeaderPL.AuditServers
+		for _, audit := range audits {
+			if audit.GetChainID().IsSameAs(as.ServerChainID) {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
+				return true
+			}
+		}
+	} else if as.ServerType == 1 {
+		feds := s.LeaderPL.FedServers
+		for _, fed := range feds {
+			if fed.GetChainID().IsSameAs(as.ServerChainID) {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Audit server message did not add to admin block, server is a federated server and cannot be both.")
+				return true
+			}
+		}
+	}
+
 	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader {
 		return true
 	}
 
-	if as.ServerType == 0 {
-		s.LeaderPL.AdminBlock.AddFedServer(as.ServerChainID)
-	} else if as.ServerType == 1 {
-		s.LeaderPL.AdminBlock.AddAuditServer(as.ServerChainID)
+	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
+		return true
 	}
+	return true
+}
+
+func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.IMsg) bool {
+	rs, ok := removeServerMsg.(*messages.RemoveServerMsg)
+	if !ok {
+		return true
+	}
+
+	if !s.VerifyIsAuthority(rs.ServerChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
+		return true
+	}
+
+	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
+		return true
+	}
+
+	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
+		return true
+	}
+	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
 
 	return true
 }
@@ -387,21 +441,21 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 		return true
 	}
 
-	// TODO: Signiture && Checking
+	if !s.VerifyIsAuthority(ask.IdentityChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
+		return true
+	}
 
 	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte
 		copy(btcKey[:], ask.Key.Bytes()[:20])
-		fmt.Println("Add BTC to admin block")
 		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, &btcKey)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
 		pub := ask.Key.Fixed()
-		fmt.Println("Add Block Key to admin block : " + s.IdentityChainID.String())
 		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, &pub)
 	case constants.TYPE_ADD_MATRYOSHKA:
-		fmt.Println("Add MHash to admin block")
 		s.LeaderPL.AdminBlock.AddMatryoshkaHash(ask.IdentityChainID, ask.Key)
 	}
 	return true
@@ -646,12 +700,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
+		pl.ResetDiffSigTally()
 	}
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
+		}
+		if !dbs.DirectoryBlockKeyMR.IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR()) {
+			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockKeyMR.String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR().String()[:10])
+			pl.IncrementDiffSigTally()
 		}
 		dbs.Processed = true
 		s.DBSigProcessed++
@@ -665,10 +724,22 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
+		if s.KeepMismatch || pl.CheckDiffSigTally() {
+			if !dbstate.Saved {
+				dbstate.ReadyToSave = true
+				s.DBStates.SaveDBStateToDB(dbstate)
+			}
+		} else {
+			s.MismatchCnt++
+			s.DBStates.DBStates = s.DBStates.DBStates[:len(s.DBStates.DBStates)-1]
 
-		if !dbstate.Saved {
-			dbstate.ReadyToSave = true
-			s.DBStates.SaveDBStateToDB(dbstate)
+			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
+
+			if msg != nil {
+				s.RunLeader = false
+				s.StartDelay = s.GetTimestamp().GetTimeMilli()
+				s.NetworkOutMsgQueue() <- msg
+			}
 		}
 		s.ReviewHolding()
 		s.Saving = false

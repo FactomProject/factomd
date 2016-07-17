@@ -47,12 +47,16 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 1 // Default
+const SecondsBetweenTests = 20 // Default
 
 func (list *DBStateList) String() string {
 	str := "\nDBStates\n"
 	str = fmt.Sprintf("%s  Base      = %d\n", str, list.Base)
-	str = fmt.Sprintf("%s  timestamp = %s\n", str, list.LastTime.String())
+	ts := "-nil-"
+	if list.LastTime != nil {
+		ts = list.LastTime.String()
+	}
+	str = fmt.Sprintf("%s  timestamp = %s\n", str, ts)
 	str = fmt.Sprintf("%s  Complete  = %d\n", str, list.Complete)
 	rec := "M"
 	last := ""
@@ -115,6 +119,10 @@ func (list *DBStateList) GetHighestRecordedBlock() uint32 {
 	for i, dbstate := range list.DBStates {
 		if dbstate != nil && dbstate.Locked {
 			ht = list.Base + uint32(i)
+		} else {
+			if dbstate == nil {
+				return ht
+			}
 		}
 	}
 	return ht
@@ -128,10 +136,6 @@ func (list *DBStateList) Catchup() {
 	dbsHeight := list.GetHighestRecordedBlock()
 
 	// We only check if we need updates once every so often.
-	if now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < SecondsBetweenTests {
-		return
-	}
-	list.LastTime = now
 
 	begin := -1
 	end := -1
@@ -153,6 +157,7 @@ func (list *DBStateList) Catchup() {
 		plHeight := list.State.GetHighestKnownBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
+			list.LastTime = nil
 			return
 		}
 
@@ -160,17 +165,17 @@ func (list *DBStateList) Catchup() {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
+			list.LastTime = nil
 			return
 		}
 
 		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
 			begin++
 			if uint32(begin) >= plHeight || begin > end {
+				list.LastTime = nil
 				return
 			}
 		}
-
-		fmt.Println("Justin begin:", begin)
 	}
 
 	list.Lastreq = begin
@@ -180,12 +185,19 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
+	if list.LastTime != nil && now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < SecondsBetweenTests {
+		return
+	}
+
+	list.LastTime = now
+
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
 		list.State.RunLeader = false
-		list.State.StartDelay = list.State.GetTimestamp()
+		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		list.State.NetworkOutMsgQueue() <- msg
+		list.LastTime = now
 	}
 
 }
@@ -212,12 +224,12 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
 	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
 
-	hash, err = p.AdminBlock.FullHash()
+	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	d.AdminBlock.GetHeader().SetPrevFullHash(hash)
+	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
 	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
@@ -261,7 +273,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
-	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
+	list.LastTime = nil // If I saved or processed stuff, I'm good for a while
 
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
@@ -402,9 +414,6 @@ func (list *DBStateList) Highest() uint32 {
 }
 
 func (list *DBStateList) Put(dbState *DBState) {
-
-	// Hold off on any requests if I'm actually processing...
-	list.LastTime = list.State.GetTimestamp()
 
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()

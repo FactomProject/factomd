@@ -51,6 +51,7 @@ type State struct {
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
+	ControlPanelPort        int
 	Replay                  *Replay
 	DropRate                int
 
@@ -75,12 +76,16 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status    bool
-	starttime time.Time
-	transCnt  int
-	lasttime  time.Time
-	tps       float64
-	serverPrt string
+	Status     bool
+	starttime  time.Time
+	transCnt   int
+	lasttime   time.Time
+	tps        float64
+	serverPrt  string
+	DBStateCnt int
+	MissingCnt int
+	ResendCnt  int
+	ExpireCnt  int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -95,11 +100,13 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
+	serverPrivKey         primitives.PrivateKey
+	serverPubKey          primitives.PublicKey
+	serverPendingPrivKeys []primitives.PrivateKey
+	serverPendingPubKeys  []primitives.PublicKey
 
 	// Server State
-	StartDelay    interfaces.Timestamp
+	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
 	RunLeader     bool
 	LLeaderHeight uint32
 	Leader        bool
@@ -121,6 +128,9 @@ type State struct {
 	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
+	KeepMismatch   bool // By default, this is false, which means DBstates are discarded
+	//when a majority of leaders disagree with the hash we have via DBSigs
+	MismatchCnt int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
@@ -297,7 +307,6 @@ func (s *State) SetNetStateOff(net bool) {
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
-
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
@@ -332,11 +341,15 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
+		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
-
-		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
+		if err != nil {
+			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		} else {
+			s.IdentityChainID = identity
+		}
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"
@@ -367,6 +380,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
+		s.ControlPanelPort = 8090
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -377,7 +391,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 
 func (s *State) Init() {
 
-	s.StartDelay = s.GetTimestamp() // We cant start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
@@ -497,7 +511,7 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
-	LoadIdentityCache(s)
+	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
 
 	s.starttime = time.Now()
@@ -774,7 +788,7 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight == 0 {
 		dbheight++
 	}
-	if plbase <= dbheight {
+	if plbase <= dbheight && s.RunLeader {
 		progress = s.ProcessLists.UpdateState(dbheight)
 	}
 
@@ -785,9 +799,6 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.SetString()
 
-	if s.DebugConsensus {
-		fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Update State:>>>>", s.FactomNodeName, "progress:", progress)
-	}
 	return
 }
 
@@ -820,6 +831,10 @@ func (s *State) catchupEBlocks() {
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
+}
+
+func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
+	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
@@ -889,7 +904,8 @@ func (s *State) initServerKeys() {
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
+	s.serverPubKey = *(s.serverPrivKey.Pub)
+	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 func (s *State) LogInfo(args ...interface{}) {
@@ -1081,7 +1097,6 @@ func (s *State) SetString() {
 	}
 	s.Status = false
 
-	// fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
 	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
 		vmi = s.LeaderVMIndex
@@ -1150,7 +1165,7 @@ func (s *State) SetString() {
 
 	str := fmt.Sprintf("%8s[%6x]%4s %4s ",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:3],
+		s.IdentityChainID.Bytes()[:4],
 		vmIndex,
 		stype)
 
@@ -1160,17 +1175,16 @@ func (s *State) SetString() {
 		s.ProcessLists.DBHeightBase,
 		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v EOM %5v EOMDone %5v Syncing %5v ",
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v MismatchCnt %v DBStateCnt %5d MissingCnt %5d ",
 		lmin,
 		s.CurrentMinute,
-		s.LLeaderHeight,
-		s.EOM,
-		s.EOMDone,
-		s.Syncing)
+		s.MismatchCnt,
+		s.DBStateCnt,
+		s.MissingCnt)
 
-	str = str + fmt.Sprintf("EOMCnt %5d DBSCnt %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
-		s.EOMProcessed,
-		s.DBSigProcessed,
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+		s.ResendCnt,
+		s.ExpireCnt,
 		s.Saving,
 		s.FactoidTrans,
 		s.NewEntryChains,
@@ -1258,4 +1272,9 @@ func (s *State) ProcessInvalidMsgQueue() {
 			s.InvalidMessages[msg.GetHash().Fixed()] = msg
 		}
 	}
+}
+
+func (s *State) SetPendingSigningKey(p primitives.PrivateKey) {
+	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
+	s.serverPendingPubKeys = append(s.serverPendingPubKeys, *(p.Pub))
 }

@@ -8,10 +8,13 @@
 package anchor
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"strings"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 //AnchorRecord is used to construct anchor chain
@@ -30,7 +33,25 @@ type AnchorRecord struct {
 	}
 }
 
+var _ interfaces.Printable = (*AnchorRecord)(nil)
 var _ interfaces.IAnchorRecord = (*AnchorRecord)(nil)
+
+func (e *AnchorRecord) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *AnchorRecord) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *AnchorRecord) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *AnchorRecord) String() string {
+	str, _ := e.JSONString()
+	return str
+}
 
 func (ar *AnchorRecord) Marshal() ([]byte, error) {
 	data, err := json.Marshal(ar)

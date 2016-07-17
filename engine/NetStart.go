@@ -14,6 +14,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
@@ -55,6 +56,7 @@ func NetStart(s *state.State) {
 	prefixNodePtr := flag.String("prefix", "", "Prefix the Factom Node Names with this value; used to create leaderless networks.")
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
+	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 
 	flag.Parse()
 
@@ -78,13 +80,13 @@ func NetStart(s *state.State) {
 	prefix := *prefixNodePtr
 	rotate := *rotatePtr
 	timeOffset := *timeOffsetPtr
+	keepMismatch := *keepMismatchPtr
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
-
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 
@@ -141,12 +143,17 @@ func NetStart(s *state.State) {
 	}
 	if follower {
 		s.NodeMode = "FULL"
-		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+		leadID := primitives.Sha([]byte(s.Prefix + "FNode0"))
+		if s.IdentityChainID.IsSameAs(leadID) {
+			s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+		}
 	}
 	if leader {
 		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
 		s.NodeMode = "SERVER"
 	}
+
+	s.KeepMismatch = keepMismatch
 
 	if len(db) > 0 {
 		s.DBType = db
@@ -180,6 +187,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -187,6 +195,8 @@ func NetStart(s *state.State) {
 	s.SetDropRate(droprate)
 
 	mLog.init(runtimeLog, cnt)
+
+	setupBlankAuthority(s)
 
 	//************************************************
 	// Actually setup the Network
@@ -369,6 +379,13 @@ func NetStart(s *state.State) {
 	go drain()
 	fmt.Println(">>>>>>>>>>>>>>>>")
 
+	states := make([]*state.State, 0)
+	for _, f := range fnodes {
+		states = append(states, f.State)
+	}
+	_ = states
+	_ = controlPanel.INDEX_HTML
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
 	// Listen for commands:
 	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
@@ -417,4 +434,34 @@ func startServers(load bool) {
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
 	}
+}
+
+func setupBlankAuthority(s *state.State) {
+	var id state.Identity
+	id.IdentityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
+	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
+	//fmt.Printf("DEBUG: State Public: %x\n", s.GetServerPublicKey())
+	//fmt.Printf("DEBUG: State Private: %x\n", *(s.GetServerPrivateKey().Key))
+	pub := primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	data, _ := pub.MarshalBinary()
+	id.SigningKey = primitives.NewHash(data)
+	id.MatryoshkaHash = primitives.NewZeroHash()
+	id.ManagementCreated = 0
+	id.ManagementRegistered = 0
+	id.IdentityCreated = 0
+	id.IdentityRegistered = 0
+	id.Key1 = primitives.NewZeroHash()
+	id.Key2 = primitives.NewZeroHash()
+	id.Key3 = primitives.NewZeroHash()
+	id.Key4 = primitives.NewZeroHash()
+	id.Status = 1
+	s.Identities = append(s.Identities, id)
+
+	var auth state.Authority
+	auth.Status = 1
+	auth.SigningKey = primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	auth.MatryoshkaHash = primitives.NewZeroHash()
+	auth.AuthorityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
+	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
+	s.Authorities = append(s.Authorities, auth)
 }

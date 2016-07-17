@@ -35,6 +35,7 @@ const (
 	DBSTATE_MISSING_MSG  // 20
 	ADDSERVER_MSG        // 21
 	CHANGESERVER_KEY_MSG // 22
+	REMOVESERVER_MSG     // 23
 )
 
 const (

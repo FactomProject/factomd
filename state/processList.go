@@ -236,9 +236,11 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if !found {
+		p.RemoveAuditServerHash(identityChainID)
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+	p.MakeMap()
 }
 
 // Remove the given serverChain from this processlist's Audit Servers
@@ -304,12 +306,15 @@ func (p *ProcessList) IncrementDiffSigTally() {
 	p.diffSigTally++
 }
 
-func (p *ProcessList) CheckDiffSigTally() {
+func (p *ProcessList) CheckDiffSigTally() bool {
 	// If the majority of VMs' signatures do not match our
 	// saved block, we discard that block from our database.
 	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
 		p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+		return false
 	}
+
+	return true
 }
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
@@ -508,7 +513,7 @@ func (p *ProcessList) String() string {
 				}
 
 				if msg != nil {
-					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:3])
+					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:4])
 					buf.WriteString("   " + leader + msg.String() + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
@@ -525,8 +530,8 @@ func (p *ProcessList) String() string {
 			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
+		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	}
-	buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	return buf.String()
 }
 

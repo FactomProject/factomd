@@ -121,6 +121,7 @@ checkout snappy-go    $branch $default
 checkout websocket    $branch $default
 checkout factom-cli   $branch $default
 checkout factom-walletd $branch $default
+checkout serveridentity $branch $default
 
 echo "
 ********************************************************

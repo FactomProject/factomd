@@ -101,7 +101,7 @@ type CommandChangeLogging struct {
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: FRIDAY JULY 15, 4:01AM")
+	silence("#################", "META: Last touched: SUNDAY JULY 17th, 3:22PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -273,10 +273,10 @@ func (c *Controller) runloop() {
 	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		note("ctrlr", "@@@@@@@@@@ Controller.runloop() BEGINNGIN OF LOOP : c.keepRunning = %v", c.keepRunning)
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() BEGINNING OF LOOP : c.keepRunning = %v", c.keepRunning)
 		time.Sleep(time.Millisecond * 51) // This can be a tight loop, don't want to starve the application
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Woke up : c.keepRunning = %v", c.keepRunning)
-		if CurrentLoggingLevel > 3 {
+		if CurrentLoggingLevel > 0 {
 			fmt.Printf("@")
 		}
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
