@@ -100,7 +100,8 @@ type CommandChangeLogging struct {
 //////////////////////////////////////////////////////////////////////
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
-	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
+	significant("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
+	significant("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
 	silence("#################", "META: Last touched: SUNDAY JULY 17th, 3:22PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
@@ -171,7 +172,7 @@ func (c *Controller) ChangeLogLevel(level uint8) {
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
-	debug("ctrlr", "DialPeer message for %s", peer.Address)
+	debug("ctrlr", "DialPeer message for %s", peer.PeerIdent())
 	c.commandChannel <- CommandDialPeer{peer: peer, persistent: persistent}
 }
 
@@ -181,7 +182,7 @@ func (c *Controller) AddPeer(conn net.Conn) {
 }
 
 func (c *Controller) NetworkStop() {
-	debug("ctrlr", "NetworkStop ")
+	debug("ctrlr", "NetworkStop %+v", c)
 	c.commandChannel <- CommandShutdown{}
 }
 
@@ -269,8 +270,16 @@ func (c *Controller) runloop() {
 	}
 	defer reportExit()
 
-	note("ctrlr", "Controller.runloop() starting up")
-	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
+	startDelay := 24
+	i := 1
+	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
+	for i <= startDelay {
+		time.Sleep(time.Second * 1)
+		note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay-i)
+		i = i + 1
+	}
+	// time.Sleep(time.Second * time.Duration(startDelay)) // Wait a few seconds to let the system come up.
+	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
 
 	for c.keepRunning { // Run until we get the exit command
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() BEGINNING OF LOOP : c.keepRunning = %v", c.keepRunning)
@@ -301,6 +310,7 @@ func (c *Controller) runloop() {
 			note("ctrlr", "@@@@@@@@@@ Controller.runloop() Sending Metrics()")
 			c.lastConnectionMetricsUpdate = time.Now()
 			c.connectionMetricsChannel <- c.connectionMetrics
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() Metrics Sent")
 		}
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() END OF LOOP : c.keepRunning = %v", c.keepRunning)
 	}
@@ -458,7 +468,9 @@ func (c *Controller) managePeers() {
 		// If it's been awhile, update peers from the DNS seed.
 		discoveryDuration := time.Since(c.lastDiscoveryRequest)
 		if PeerDiscoveryInterval < discoveryDuration {
+			note("ctrlr", "calling c.discovery.DiscoverPeersFromSeed()")
 			c.discovery.DiscoverPeersFromSeed()
+			note("ctrlr", "back from c.discovery.DiscoverPeersFromSeed()")
 		}
 		// If we are low on outgoing onnections, attempt to connect to some more.
 		// If the connection is not online, we don't count it as connected.

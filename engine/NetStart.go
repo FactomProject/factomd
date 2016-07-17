@@ -31,7 +31,7 @@ type FactomNode struct {
 
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
-var network p2p.Controller
+var p2pNetwork *p2p.Controller
 var p2pProxy *P2PProxy
 
 func NetStart(s *state.State) {
@@ -48,6 +48,7 @@ func NetStart(s *state.State) {
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
+	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
@@ -73,6 +74,7 @@ func NetStart(s *state.State) {
 	portOverride := *portOverridePtr
 	peers := *peersPtr
 	networkName := *networkNamePtr
+	networkPortOverride := *networkPortOverridePtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
 	netdebug := *netdebugPtr
@@ -127,7 +129,7 @@ func NetStart(s *state.State) {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 			fnode.State.ShutdownChan <- 0
 		}
-		network.NetworkStop()
+		p2pNetwork.NetworkStop()
 		// NODE_TALK_FIX
 		p2pProxy.stopProxy()
 		fmt.Print("Waiting...\r\n")
@@ -214,7 +216,7 @@ func NetStart(s *state.State) {
 	if 0 < len(networkName) { // Command line overrides the config file.
 		networkOverride = networkName
 	}
-	fmt.Printf("Network Override: %s", networkOverride)
+	fmt.Printf("\n\nNetwork Override: %s\n", networkOverride)
 	switch networkOverride {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
@@ -237,6 +239,9 @@ func NetStart(s *state.State) {
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 	}
+	if 0 < networkPortOverride {
+		networkPort = fmt.Sprintf("%d", networkPortOverride)
+	}
 	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 	ci := p2p.ControllerInit{
 		Port:                     networkPort,
@@ -247,26 +252,25 @@ func NetStart(s *state.State) {
 		SpecialPeers:             specialPeers,
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
-	fmt.Printf("p2p.ControllerInit: %+v", ci)
-	p2pController := new(p2p.Controller).Init(ci)
-	network = *p2pController
-	network.StartNetwork()
+	fmt.Printf("\np2p.ControllerInit: %+v\n", ci)
+	p2pNetwork := new(p2p.Controller).Init(ci)
+	p2pNetwork.StartNetwork()
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 	p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
-	p2pProxy.FromNetwork = network.FromNetwork
-	p2pProxy.ToNetwork = network.ToNetwork
+	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
 	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport(fnodes)
-		network.StartLogging(uint8(netdebug))
+		p2pNetwork.StartLogging(uint8(netdebug))
 	} else {
-		network.StartLogging(uint8(0))
+		p2pNetwork.StartLogging(uint8(0))
 	}
 	p2pProxy.startProxy()
 	// Command line peers lets us manually set special peers
-	network.DialSpecialPeersString(peers)
+	p2pNetwork.DialSpecialPeersString(peers)
 	fmt.Println(">>>>>>>>>>>>>>>>")
 
 	switch net {
@@ -369,10 +373,11 @@ func NetStart(s *state.State) {
 		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 		for {
 			select {
-			case _ = <-connectionMetricsChannel:
+			case metrics := <-connectionMetricsChannel:
+				fmt.Printf("Channel Metrics: %+v", metrics)
 				time.Sleep(500 * time.Millisecond)
 			default:
-				time.Sleep(200 * time.Millisecond)
+				time.Sleep(2 * time.Second)
 			}
 		}
 	}
@@ -390,10 +395,13 @@ func NetStart(s *state.State) {
 	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	SimControl(listenTo)
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 
 }
 
