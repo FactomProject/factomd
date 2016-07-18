@@ -98,6 +98,25 @@ func (p *ProcessList) VMIndexFor(hash []byte) int {
 	return r
 }
 
+func (p *ProcessList) SortFedServers() {
+	for i := 0; i < len(p.FedServers)-1; i++ {
+		done := true
+		for j := 0; j < len(p.FedServers)-1-i; j++ {
+			fs1 := p.FedServers[j].GetChainID().Bytes()
+			fs2 := p.FedServers[j+1].GetChainID().Bytes()
+			if bytes.Compare(fs1, fs2) < 0 {
+				tmp := p.FedServers[j]
+				p.FedServers[j] = p.FedServers[j+1]
+				p.FedServers[j+1] = tmp
+				done = false
+			}
+		}
+		if done {
+			return
+		}
+	}
+}
+
 // Returns the Federated Server responsible for this hash in this minute
 func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer {
 	vs := p.VMIndexFor(hash)
@@ -133,15 +152,23 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 
 	scid := identityChainID.Bytes()
 
+	outoforder1 := false
+	insert := 0
 	for i, fs := range p.FedServers {
 		// Find and remove
 		comp := bytes.Compare(scid, fs.GetChainID().Bytes())
 		if comp == 0 {
+			if outoforder1 {
+				return true, -1
+			}
 			return true, i
 		}
 		if comp < 0 {
-			return false, i
+			insert = i
 		}
+	}
+	if outoforder1 {
+		return false, insert
 	}
 	return false, len(p.FedServers)
 }
@@ -205,6 +232,7 @@ func (p *ProcessList) PrintMap() string {
 // Add the given serverChain to this processlist as a Federated Server, and return
 // the server index number of the added server
 func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
+	p.SortFedServers()
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		return i
@@ -553,6 +581,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
+		pl.SortFedServers()
 	} else {
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}
