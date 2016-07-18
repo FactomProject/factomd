@@ -375,7 +375,7 @@ func NetStart(s *state.State) {
 		for {
 			select {
 			case metrics := <-connectionMetricsChannel:
-				fmt.Printf("Channel Metrics: %+v", metrics)
+				// fmt.Printf("Channel Metrics: %+v", metrics)
 				time.Sleep(500 * time.Millisecond)
 			default:
 				time.Sleep(2 * time.Second)
