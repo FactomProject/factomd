@@ -27,16 +27,20 @@ func SimControl(listenTo int) {
 	var watchMessages int
 	var rotate int
 	var wsapiNode int
+	// fmt.Printf(">>>>>>>>>>>>>>>> SimControl AAA p2pNetwork is: %+v\n", p2pNetwork)
 
 	for {
+		// fmt.Printf(">>>>>>>>>>>>>>>> SimControl BBB p2pNetwork is: %+v\n", p2pNetwork)
 		l := make([]byte, 100)
 		var err error
 		// When running as a detatched process, this routine becomes a very tight loop and starves other goroutines.
 		// So, we will sleep before letting it check to see if Stdin has been reconnected
 		if _, err = os.Stdin.Read(l); err != nil {
 			time.Sleep(2 * time.Second)
+			// fmt.Printf(">>>>>>>>>>>>>>>> SimControl CCC p2pNetwork is: %+v\n", p2pNetwork)
 			continue
 		}
+		// fmt.Printf(">>>>>>>>>>>>>>>> SimControl DDD p2pNetwork is: %+v\n", p2pNetwork)
 
 		// This splits up the command at anycodepoint that is not a letter, number of punctuation, so usually by spaces.
 		parseFunc := func(c rune) bool {

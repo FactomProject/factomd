@@ -31,10 +31,10 @@ type FactomNode struct {
 
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
-var p2pNetwork *p2p.Controller
 var p2pProxy *P2PProxy
 
 func NetStart(s *state.State) {
+	var p2pNetwork *p2p.Controller
 
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
@@ -253,7 +253,7 @@ func NetStart(s *state.State) {
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 	fmt.Printf("\np2p.ControllerInit: %+v\n", ci)
-	p2pNetwork := new(p2p.Controller).Init(ci)
+	p2pNetwork = new(p2p.Controller).Init(ci)
 	p2pNetwork.StartNetwork()
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 	p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
@@ -261,6 +261,7 @@ func NetStart(s *state.State) {
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
+	fmt.Printf(">>>>>>>>>>>>>>>> p2pNetwork is: %+v\n\n\n", p2pNetwork)
 	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport(fnodes)
@@ -271,7 +272,7 @@ func NetStart(s *state.State) {
 	p2pProxy.startProxy()
 	// Command line peers lets us manually set special peers
 	p2pNetwork.DialSpecialPeersString(peers)
-	fmt.Println(">>>>>>>>>>>>>>>>")
+	fmt.Printf(">>>>>>>>>>>>>>>> p2pNetwork is: %+v\n\n\n", p2pNetwork)
 
 	switch net {
 	case "square":
@@ -361,11 +362,11 @@ func NetStart(s *state.State) {
 	} else {
 		startServers(true)
 	}
-	fmt.Println(">>>>>>>>>>>>>>>>")
+	fmt.Printf(">>>>>>>>>>>>>>>> before wsapi.Start is: %+v\n\n\n", p2pNetwork)
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
-	fmt.Println(">>>>>>>>>>>>>>>>")
+	fmt.Printf(">>>>>>>>>>>>>>>> before connectionMetricsChannel is: %+v\n\n\n", p2pNetwork)
 
 	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
 	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
@@ -382,7 +383,7 @@ func NetStart(s *state.State) {
 		}
 	}
 	go drain()
-	fmt.Println(">>>>>>>>>>>>>>>>")
+	fmt.Printf(">>>>>>>>>>>>>>>> before ServeControlPanel p2pNetwork is: %+v\n\n\n", p2pNetwork)
 
 	states := make([]*state.State, 0)
 	for _, f := range fnodes {
@@ -392,17 +393,8 @@ func NetStart(s *state.State) {
 	_ = controlPanel.INDEX_HTML
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
 	// Listen for commands:
-	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println(">>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+	fmt.Printf(">>>>>>>>>>>>>>>> before SimControlp2pNetwork is: %+v\n\n\n", p2pNetwork)
 	SimControl(listenTo)
-	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-
 }
 
 //**********************************************************************
