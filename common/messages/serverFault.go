@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -184,7 +185,22 @@ func (m *ServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *ServerFault) Validate(state interfaces.IState) int {
-	return 1 //ToDo:  Need to Validate the sigature against known federated servers
+	// Check signature
+	bytes, err := m.MarshalForSignature()
+	if err != nil {
+		fmt.Println("Err is not nil on ServerFault sig check (marshalling): ", err)
+		return -1
+	}
+	sig := m.Signature.GetSignature()
+	sfSigned, err := state.VerifyFederatedSignature(bytes, sig)
+	if err != nil {
+		fmt.Println("Err is not nil on ServerFault sig check (verifying): ", err)
+		return -1
+	}
+	if !sfSigned {
+		return -1
+	}
+	return 1 // err == nil and sfSigned == true
 }
 
 func (m *ServerFault) ComputeVMIndex(state interfaces.IState) {
@@ -243,6 +259,6 @@ func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, v
 	sf.VMIndex = byte(vmIndex)
 	sf.DBHeight = dbheight
 	sf.Height = height
-	sf.ServerID = primitives.NewZeroHash()
+	sf.ServerID = serverID
 	return sf
 }

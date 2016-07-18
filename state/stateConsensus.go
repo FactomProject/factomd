@@ -290,7 +290,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		pl.FaultCnt[sf.ServerID.Fixed()]++
 		cnt := pl.FaultCnt[sf.ServerID.Fixed()]
 		if s.Leader && cnt > len(pl.FedServers)/2 {
-
+			fmt.Println(s.FactomNodeName, "FAULTING", sf.ServerID.String())
 		}
 	}
 }
