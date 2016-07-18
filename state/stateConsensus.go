@@ -295,6 +295,13 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	}
 }
 
+func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
+	// JUSTIN TODO: this is a stub right now, but eventually this will be where we demote a fed server
+	// and promote an audit server and fiddle with the admin block to reflect this
+	fsf, _ := m.(*messages.FullServerFault)
+	fmt.Println("Follower execute FullServerFault:", fsf)
+}
+
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 	ackResp := mmr.AckResponse.(*messages.Ack)
