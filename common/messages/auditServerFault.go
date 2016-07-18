@@ -26,6 +26,10 @@ type AuditServerFault struct {
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
 var _ Signable = (*AuditServerFault)(nil)
 
+func (m *AuditServerFault) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (a *AuditServerFault) IsSameAs(b *AuditServerFault) bool {
 	if b == nil {
 		return false

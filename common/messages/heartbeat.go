@@ -70,6 +70,10 @@ func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
+func (m *Heartbeat) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *Heartbeat) GetHash() interfaces.IHash {
 	if m.hash == nil {
 		data, err := m.MarshalForSignature()

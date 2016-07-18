@@ -205,7 +205,7 @@ func (list *DBStateList) Catchup() {
 func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	// If this block is new, then make sure all hashes are fully computed.
-	if !d.isNew {
+	if !d.isNew || p == nil {
 		return
 	}
 
@@ -228,7 +228,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	if err != nil {
 		panic(err.Error())
 	}
-
 	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
 	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
@@ -269,7 +268,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
-	if d.Locked {
+	if d.Locked || d.isNew {
 		return
 	}
 

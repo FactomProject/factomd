@@ -39,7 +39,7 @@ func (s *State) Process() (progress bool) {
 
 	// Executing a message means looking if it is valid, checking if we are a leader.
 	executeMsg := func(msg interfaces.IMsg) (ret bool) {
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			return
 		}
@@ -117,15 +117,24 @@ func (s *State) ReviewHolding() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			delete(s.Holding, k)
+			continue
+		}
+
+		if v.Expire(s) {
+			s.ExpireCnt++
+			delete(s.Holding, k)
+			continue
 		}
 
 		if v.Resend(s) {
-			s.ResendCnt++
-			v.ComputeVMIndex(s)
-			s.networkOutMsgQueue <- v
+			if v.Validate(s) == 1 {
+				s.ResendCnt++
+				v.ComputeVMIndex(s)
+				s.networkOutMsgQueue <- v
+			}
 		}
 
 		if s.Leader && v.GetVMIndex() == s.LeaderVMIndex {
@@ -133,17 +142,6 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 		}
 
-		if v.Expire(s) {
-			s.ExpireCnt++
-			delete(s.Holding, k)
-		}
-	}
-
-	for k := range s.Acks {
-		v := s.Acks[k].(*messages.Ack)
-		if v.DBHeight < s.LLeaderHeight {
-			delete(s.Acks, k)
-		}
 	}
 
 }
@@ -308,7 +306,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
@@ -661,6 +659,35 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 	}
 
+	for k := range s.Commits {
+		vs := s.Commits[k]
+		if len(vs) == 0 {
+			delete(s.Commits, k)
+			continue
+		}
+		v, ok := vs[0].(interfaces.IMsg)
+		if ok {
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if !ok {
+				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
+					s.FactomNodeName,
+					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
+					v.String())
+
+				copy(vs, vs[1:])
+				vs[len(vs)-1] = nil
+				s.Commits[k] = vs[:len(vs)-1]
+			}
+		}
+	}
+
+	for k := range s.Acks {
+		v := s.Acks[k].(*messages.Ack)
+		if v.DBHeight < s.LLeaderHeight {
+			delete(s.Acks, k)
+		}
+	}
+
 	return false
 }
 
@@ -777,17 +804,20 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
 	cs := s.Commits[hash.Fixed()]
-	if cs == nil || len(cs) == 0 {
+	if cs == nil {
 		return nil
 	}
-	r := cs[0]
-	if len(cs) == 1 {
+
+	if len(cs) == 0 {
 		delete(s.Commits, hash.Fixed())
-	} else {
-		copy(cs[:], cs[1:])
-		cs[len(cs)-1] = nil
-		s.Commits[hash.Fixed()] = cs
+		return nil
 	}
+
+	r := cs[0]
+
+	copy(cs[:], cs[1:])
+	cs[len(cs)-1] = nil
+	s.Commits[hash.Fixed()] = cs[:len(cs)-1]
 
 	return r
 }

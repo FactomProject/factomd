@@ -36,6 +36,10 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessRevealEntry(dbheight, m)
 }
 
+func (m *RevealEntryMsg) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
@@ -84,8 +88,8 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	var okChain, okEntry bool
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
-	if !okChain && !okEntry {
-		return -1
+	if !okChain && !okEntry { // Discard any invalid entries in the map.  Should never happen.
+		return m.Validate(state)
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.
@@ -93,12 +97,12 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
-			return m.Validate(state)
+			return m.Validate(state) // Discard commits that are not funded properly.
 		}
 	} else {
 		m.IsEntry = false
 		ECs := int(m.commitChain.CommitChain.Credits)
-		if m.Entry.KSize()+10 > ECs {
+		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
 			return m.Validate(state)
 		}
 	}
