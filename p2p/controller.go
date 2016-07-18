@@ -102,21 +102,18 @@ type CommandChangeLogging struct {
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
 	significant("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
-	silence("#################", "META: Last touched: SUNDAY JULY 17th, 3:22PM")
+	silence("#################", "META: Last touched: MONDAY JULY 18th, 1:45PM")
+	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
+	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
 	c.ToNetwork = make(chan Parcel, 10000)          // Parcels from the app for the network
-	c.listenPort = ci.Port
-	NetworkListenPort = ci.Port
 	c.connections = make(map[string]Connection)
 	c.connectionMetrics = make(map[string]ConnectionMetrics)
-	discovery := new(Discovery).Init(ci.PeersFile)
-	c.discovery = *discovery
-	c.discovery.seedURL = ci.SeedURL
-	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
-	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
-	// Set this to the past so we will do peer management almost right away after starting up.
+	c.connectionMetricsChannel = ci.ConnectionMetricsChannel
+	c.listenPort = ci.Port
+	NetworkListenPort = ci.Port
 	c.lastPeerManagement = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	c.lastPeerRequest = time.Now()
 	CurrentNetwork = ci.Network
@@ -124,6 +121,10 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.specialPeersString = ci.SpecialPeers
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
+	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
+	c.discovery = *discovery
+	// Set this to the past so we will do peer management almost right away after starting up.
+	significant("ctrlr", "\n\n\n\n\nController.Init(%s) Controller is: %+v\n\n", ci.Port, c)
 	return c
 }
 
@@ -270,22 +271,22 @@ func (c *Controller) runloop() {
 	}
 	defer reportExit()
 
-	startDelay := 24
-	i := 1
-	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
-	for i <= startDelay {
-		time.Sleep(time.Second * 1)
-		note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay-i)
-		i = i + 1
-	}
-	// time.Sleep(time.Second * time.Duration(startDelay)) // Wait a few seconds to let the system come up.
-	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
+	// startDelay := 24
+	// i := 1
+	// note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
+	// for i <= startDelay {
+	// 	time.Sleep(time.Second * 1)
+	// 	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay-i)
+	// 	i = i + 1
+	// }
+	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
+	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() BEGINNING OF LOOP : c.keepRunning = %v", c.keepRunning)
 		time.Sleep(time.Millisecond * 51) // This can be a tight loop, don't want to starve the application
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Woke up : c.keepRunning = %v", c.keepRunning)
-		if CurrentLoggingLevel > 0 {
+		if CurrentLoggingLevel > 2 {
 			fmt.Printf("@")
 		}
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
