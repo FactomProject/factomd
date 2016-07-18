@@ -128,7 +128,7 @@ func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) 
 	newData = data
 	sl.Length, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	for i := 0; i < int(sl.Length); i++ {
+	for i := sl.Length; i > 0; i-- {
 		tempSig := new(primitives.Signature)
 		newData, err = tempSig.UnmarshalBinaryData(newData)
 		if err != nil {
