@@ -374,7 +374,7 @@ func NetStart(s *state.State) {
 		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 		for {
 			select {
-			case _ := <-connectionMetricsChannel:
+			case _ = <-connectionMetricsChannel:
 				// fmt.Printf("Channel Metrics: %+v", metrics)
 				time.Sleep(500 * time.Millisecond)
 			default:
