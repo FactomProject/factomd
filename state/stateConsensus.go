@@ -144,35 +144,6 @@ func (s *State) ReviewHolding() {
 
 	}
 
-	for k := range s.Commits {
-		vs := s.Commits[k]
-		if len(vs) == 0 {
-			delete(s.Commits, k)
-			continue
-		}
-		v, ok := vs[0].(interfaces.IMsg)
-		if ok {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-			if !ok {
-				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
-					s.FactomNodeName,
-					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
-					v.String())
-
-				copy(vs, vs[1:])
-				vs[len(vs)-1] = nil
-				s.Commits[k] = vs[:len(vs)-1]
-			}
-		}
-	}
-
-	for k := range s.Acks {
-		v := s.Acks[k].(*messages.Ack)
-		if v.DBHeight < s.LLeaderHeight {
-			delete(s.Acks, k)
-		}
-	}
-
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -685,6 +656,35 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				dbs.LeaderExecute(s)
 			}
 			s.Saving = true
+		}
+	}
+
+	for k := range s.Commits {
+		vs := s.Commits[k]
+		if len(vs) == 0 {
+			delete(s.Commits, k)
+			continue
+		}
+		v, ok := vs[0].(interfaces.IMsg)
+		if ok {
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if !ok {
+				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
+					s.FactomNodeName,
+					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
+					v.String())
+
+				copy(vs, vs[1:])
+				vs[len(vs)-1] = nil
+				s.Commits[k] = vs[:len(vs)-1]
+			}
+		}
+	}
+
+	for k := range s.Acks {
+		v := s.Acks[k].(*messages.Ack)
+		if v.DBHeight < s.LLeaderHeight {
+			delete(s.Acks, k)
 		}
 	}
 

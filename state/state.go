@@ -1103,10 +1103,10 @@ func (s *State) SetString() {
 	}
 	vmt0 := s.ProcessLists.Get(s.LLeaderHeight)
 	var vmt *VM
-	lmin := -1
+	lmin := "-"
 	if vmt0 != nil && vmi >= 0 {
 		vmt = vmt0.VMs[vmi]
-		lmin = vmt.LeaderMinute
+		lmin = fmt.Sprintf("%2d", vmt.LeaderMinute)
 	}
 
 	vmin := s.CurrentMinute
@@ -1163,33 +1163,33 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%8s[%6x]%4s %4s ",
+	str := fmt.Sprintf("%8s[%12x]%4s %3s ",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:4],
+		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
 		stype)
 
-	str = str + fmt.Sprintf("DB: %d[%6x] PL:%d/%d ",
+	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+
+	str = str + fmt.Sprintf("DB: %5d[%6x] PL:%-9s ",
 		dHeight,
 		keyMR[:3],
-		s.ProcessLists.DBHeightBase,
-		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+		pls)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v MismatchCnt %v DBStateCnt %5d MissingCnt %5d ",
+	dbstate := fmt.Sprintf("%d/%d", s.DBStateCnt, s.MismatchCnt)
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(+/-) %-10s MissCnt %5d ",
 		lmin,
 		s.CurrentMinute,
-		s.MismatchCnt,
-		s.DBStateCnt,
+		dbstate,
 		s.MissingCnt)
 
-	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct:%3d Ec:%3d E:%3d tps t/i %7.2f/%7.2f",
+	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
+	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-14s tps t/i %s",
 		s.ResendCnt,
 		s.ExpireCnt,
-		s.FactoidTrans,
-		s.NewEntryChains,
-		s.NewEntries,
-		tps,
-		s.tps)
+		trans,
+		stps)
 
 	s.serverPrt = str
 }
