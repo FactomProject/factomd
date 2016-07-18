@@ -3,11 +3,11 @@ echo "run this from factomproject/factomd eg:"
 echo "$ ./p2p/process_cluster_test.sh"
 echo
 echo "Compiling..."
-go install -a 
+go install 
 if [ $? -eq 0 ]; then
     pkill factomd
     echo "Running..."
-    factomd -count=2 -folder="test1-" -network="TEST" -networkPort=8118 -peers="127.0.0.1:8121" -netdebug=4 -db=Map & node0=$!
+    factomd -count=2 -folder="test1-" -network="TEST" -networkPort=8118 -peers="127.0.0.1:8121" -netdebug=2 -db=Map & node0=$!
     sleep 6
     factomd -count=2 -prefix="test2-" -port=9121 -networkPort=8119 -peers="127.0.0.1:8118" -netdebug=2 -db=Map & node1=$!
     sleep 6
