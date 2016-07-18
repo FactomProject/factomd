@@ -34,7 +34,7 @@ func Peers(fnode *FactomNode) {
 				}
 				cnt++
 				msg.SetOrigin(0)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 
@@ -72,7 +72,7 @@ func Peers(fnode *FactomNode) {
 				}
 
 				msg.SetOrigin(i + 1)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetMsgHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
@@ -122,7 +122,7 @@ func NetworkOutputs(fnode *FactomNode) {
 				// ourselves.
 				fnode.State.Replay.IsTSValid_(
 					constants.NETWORK_REPLAY,
-					msg.GetMsgHash().Fixed(),
+					msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())
 
@@ -163,7 +163,7 @@ func InvalidOutputs(fnode *FactomNode) {
 		invalidMsg := <-fnode.State.NetworkInvalidMsgQueue()
 		//fmt.Println(invalidMsg)
 		if len(invalidMsg.GetNetworkOrigin()) > 0 {
-			network.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
+			// p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2) JAYJAY BUGBUG commented out while network is private
 		}
 	}
 }
