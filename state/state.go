@@ -377,7 +377,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
-		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
+		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
@@ -513,7 +513,14 @@ func (s *State) Init() {
 	s.AuthorityServerCount = 0
 	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
-
+	//needed for multiple nodes with FER.  remove for singe node launch
+	if s.FERChainId == "" {
+	s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+	}
+	if s.ExchangeRateAuthorityAddress =="" {
+		s.ExchangeRateAuthorityAddress ="EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+	} 
+	// end of FER removal
 	s.starttime = time.Now()
 }
 
