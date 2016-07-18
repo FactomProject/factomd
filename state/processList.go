@@ -54,8 +54,7 @@ type ProcessList struct {
 	Matryoshka   []interfaces.IHash      // Reverse Hash
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
-	FaultCnt     map[[32]byte]int        // Count of faults against the Federated Servers
-
+	FaultList    map[[32]byte][][]byte   // Count of faults against the Federated Servers
 }
 
 type VM struct {

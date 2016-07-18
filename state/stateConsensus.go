@@ -287,8 +287,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
 	pl := s.ProcessLists.Get(sf.DBHeight)
 	if pl != nil {
-		pl.FaultCnt[sf.ServerID.Fixed()]++
-		cnt := pl.FaultCnt[sf.ServerID.Fixed()]
+		pl.FaultList[sf.ServerID.Fixed()] = append(pl.FaultList[sf.ServerID.Fixed()], sf.GetSignature().GetKey())
+		cnt := len(pl.FaultList[sf.ServerID.Fixed()])
 		if s.Leader && cnt > len(pl.FedServers)/2 {
 			fmt.Println(s.FactomNodeName, "FAULTING", sf.ServerID.String())
 		}
