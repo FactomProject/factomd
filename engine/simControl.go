@@ -5,6 +5,7 @@
 package engine
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strconv"
@@ -62,8 +63,8 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						break
 					}
-					setUpAuthorites(fnodes[listenTo].State)
-					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
+					setUpAuthorites(fnodes[listenTo].State, true)
+					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}
 				if len(b) == 1 {
 					os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
@@ -86,7 +87,7 @@ func SimControl(listenTo int) {
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
 						}
-						os.Stderr.WriteString(fmt.Sprintf("=== %d Identities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
+						os.Stderr.WriteString(fmt.Sprintf("=== %d Identities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), len(authStack), skipped))
 						for _, ele := range auths {
 							fmt.Println(ele.ChainID.String())
 						}
