@@ -77,6 +77,10 @@ func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.ISta
 	return state.ProcessDBSig(dbheight, e)
 }
 
+func (m *DirectoryBlockSignature) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

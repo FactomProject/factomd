@@ -46,6 +46,10 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 	return true
 }
 
+func (m *DBStateMissing) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *DBStateMissing) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
