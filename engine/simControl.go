@@ -57,8 +57,8 @@ func SimControl(listenTo int) {
 			switch {
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
-					fundWallet(fnodes[listenTo].State, 2e6)
-					setUpAuthorites(fnodes[listenTo].State)
+					fundWallet(fnodes[listenTo].State, 2e7)
+					setUpAuthorites(fnodes[listenTo].State, true)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
 				}
 				if len(b) == 1 {
@@ -73,7 +73,7 @@ func SimControl(listenTo int) {
 							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						fundWallet(fnodes[listenTo].State, uint64(count*5e6))
+						fundWallet(fnodes[listenTo].State, uint64(count*5e7))
 						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
@@ -509,7 +509,7 @@ func SimControl(listenTo int) {
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
 					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
-					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", auth.ChainID))
+					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.IdentityChainID.String()))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
 					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))

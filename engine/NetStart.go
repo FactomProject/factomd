@@ -206,6 +206,10 @@ func NetStart(s *state.State) {
 	for i := 0; i < cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
+	// Modify Identities of new nodes
+	if len(fnodes) > 1 && len(s.Prefix) == 0 {
+		modifyLoadIdentities() // We clone s to make all of our servers
+	}
 
 	// Start the P2P netowork
 	var networkID p2p.NetworkID

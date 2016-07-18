@@ -68,7 +68,7 @@ type hardCodedAuthority struct {
 }
 
 var (
-	STACK_HEIGHT = 110
+	STACK_HEIGHT = 100
 
 	nextAuthority  int = -1
 	authStack      *authStackImp
@@ -153,18 +153,19 @@ func fundWallet(st *state.State, amt uint64) error {
 	return nil
 }
 
-func setUpAuthorites(st *state.State) []hardCodedAuthority {
+func setUpAuthorites(st *state.State, buildMain bool) []hardCodedAuthority {
 	// 0201559923a3d401000183ddb4b300646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc42883dceb94003b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2901718b5edd2914acc2e4677f336c1a32736e5e9bde13663e6413894f57ec272e28da9e933ab39800c03e61b8740e2d7ec95d0019421a995d00bc4d1e52a1a3e1d68bf8d0d05e41396ba0fc867cc3d5febf5bf6baf187ef3291a874b876027c4e03
-	blank, _ := primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-	exists, err := st.DB.FetchHeadIndexByChainID(blank)
-
 	authStack = new(authStackImp)
 	authKeyLibrary = make([]hardCodedAuthority, 0)
 	list := buildMessages()
-	if exists != nil && err == nil {
+	if buildMain {
+		blank, _ := primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+		exists, err := st.DB.FetchHeadIndexByChainID(blank)
+		if exists != nil && err == nil {
 
-	} else {
-		buildMainChain(st.GetPort())
+		} else {
+			buildMainChain(st.GetPort())
+		}
 	}
 	return list
 }
@@ -582,12 +583,14 @@ func buildMessages() []hardCodedAuthority {
 		l.Ready = true
 		list[i] = l
 	}
-	for _, ele := range list {
+	/*for _, ele := range list {
 		if ele.Ready == true {
 			ele.Taken = false
 			authStack.Push(ele)
 		}
-	}
+	}*/
+
+	*authStack = authStackImp(list)
 	nextAuthority = 0
 	return list
 }
@@ -638,6 +641,51 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 		return nil, err
 	}
 	return nil, nil
+}
+
+func modifyLoadIdentities() {
+	chainIDList := strings.Split(chainIDs, "#")
+	list := make([]interfaces.IHash, 0)
+	for i := 0; i < len(chainIDList); i = i + 2 {
+		next, err := primitives.HexToHash(chainIDList[i+1])
+		if err != nil {
+			continue
+		}
+		list = append([]interfaces.IHash{next}, list...)
+	}
+
+	if len(list) == 0 {
+		fmt.Println("Error when loading up identities for fnodes")
+	}
+	for i := 1; i < len(fnodes); i++ {
+		if i-1 >= len(list) {
+			break
+		} else {
+			if fnodes[i] == nil {
+				continue
+			}
+			index := i - 1
+			if list[index] == nil {
+				continue
+			}
+			fnodes[i].State.IdentityChainID = list[index]
+
+			buf := new(bytes.Buffer)
+			buf.WriteString(list[index].String())
+			pub, priv, err := ed.GenerateKey(buf)
+			if err != nil {
+				continue
+			}
+			_ = pub
+
+			privkey := primitives.NewPrivateKeyFromHexBytes(priv[:])
+			if err != nil {
+				continue
+			}
+			fnodes[i].State.LocalServerPrivKey = privkey.PrivateKeyString()
+			fnodes[i].State.SimSetNewKeys(*privkey)
+		}
+	}
 }
 
 func shad(data []byte) []byte {
