@@ -29,29 +29,6 @@ import (
 // For testing, this will generate hard coded authorities to assign to nodes
 //
 
-type authStackImp []hardCodedAuthority
-
-func (s *authStackImp) Push(v hardCodedAuthority) {
-	*s = append(*s, v)
-}
-
-func (s *authStackImp) Pop() hardCodedAuthority {
-	// FIXME: What do we do if the stack is empty, though?
-
-	l := len(*s)
-	res := (*s)[l-1]
-	*s = authStackImp((*s)[:l-1])
-	return res
-}
-
-func (s *authStackImp) List() []hardCodedAuthority {
-	return (*s)[:]
-}
-
-func (s *authStackImp) Length() int {
-	return len([]hardCodedAuthority(*s))
-}
-
 type hardCodedAuthority struct {
 	ChainCommits []string
 	ChainReveals []string
@@ -71,7 +48,7 @@ var (
 	STACK_HEIGHT = 100
 
 	nextAuthority  int = -1
-	authStack      *authStackImp
+	authStack      []hardCodedAuthority
 	authKeyLibrary []hardCodedAuthority
 
 	chainCom []string
@@ -155,7 +132,7 @@ func fundWallet(st *state.State, amt uint64) error {
 
 func setUpAuthorites(st *state.State, buildMain bool) []hardCodedAuthority {
 	// 0201559923a3d401000183ddb4b300646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc42883dceb94003b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2901718b5edd2914acc2e4677f336c1a32736e5e9bde13663e6413894f57ec272e28da9e933ab39800c03e61b8740e2d7ec95d0019421a995d00bc4d1e52a1a3e1d68bf8d0d05e41396ba0fc867cc3d5febf5bf6baf187ef3291a874b876027c4e03
-	authStack = new(authStackImp)
+	authStack = make([]hardCodedAuthority, 0)
 	authKeyLibrary = make([]hardCodedAuthority, 0)
 	list := buildMessages()
 	if buildMain {
@@ -212,10 +189,11 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 	ec, _ := factom.MakeECAddress(sec[:32])
 	//for index, ele := range list {
 	for count := 0; count < total; count++ {
-		if authStack.Length() == 0 {
+		if len(authStack) == 0 {
 			return madeAuths, skipped, errors.New("No hardcoded authorities remain")
 		}
-		ele := authStack.Pop()
+		ele := authStack[0]
+		authStack = authStack[1:]
 		existsEB := st.LeaderPL.GetNewEBlocks(ele.ChainID)
 		if existsEB != nil {
 			skipped++
@@ -583,14 +561,13 @@ func buildMessages() []hardCodedAuthority {
 		l.Ready = true
 		list[i] = l
 	}
-	/*for _, ele := range list {
+	for _, ele := range list {
 		if ele.Ready == true {
 			ele.Taken = false
-			authStack.Push(ele)
+			authStack = append(authStack, ele)
 		}
-	}*/
+	}
 
-	*authStack = authStackImp(list)
 	nextAuthority = 0
 	return list
 }
@@ -651,7 +628,8 @@ func modifyLoadIdentities() {
 		if err != nil {
 			continue
 		}
-		list = append([]interfaces.IHash{next}, list...)
+		list = append(list, next)
+		//list = append([]interfaces.IHash{next}, list...)
 	}
 
 	if len(list) == 0 {
