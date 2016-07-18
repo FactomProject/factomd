@@ -70,9 +70,11 @@ type ConnectionParcel struct {
 
 // ConnectionMetrics is used to encapsulate various metrics about the connection.
 type ConnectionMetrics struct {
-	momentConnected time.Time // when the connection started.
-	bytesSent       uint32    // Keeping track of the data sent/recieved for console
-	bytesReceived   uint32    // Keeping track of the data sent/recieved for console
+	momentConnected  time.Time // when the connection started.
+	bytesSent        uint32    // Keeping track of the data sent/recieved for console
+	bytesReceived    uint32    // Keeping track of the data sent/recieved for console
+	messagesSent     uint32    // Keeping track of the data sent/recieved for console
+	messagesReceived uint32    // Keeping track of the data sent/recieved for console
 }
 
 // ConnectionCommand is used to instruct the Connection to carry out some functionality.
@@ -372,6 +374,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	switch {
 	case nil == err:
 		c.metrics.bytesSent += parcel.Header.Length
+		c.metrics.messagesSent += 1
 	default:
 		c.handleNetErrors(err)
 	}
@@ -392,6 +395,7 @@ func (c *Connection) processReceives() {
 		case nil == err:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.metrics.bytesReceived += message.Header.Length
+			c.metrics.messagesReceived += 1
 			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
@@ -548,13 +552,11 @@ func (c *Connection) updatePeer() {
 }
 
 func (c *Connection) updateStats() {
-	var NetworkMetricInterval time.Duration = time.Second * 1
-	if time.Since(c.timeLastMetrics) < NetworkMetricInterval {
-		return // not enough time has passed.
+	if time.Second < time.Since(c.timeLastMetrics) {
+		c.timeLastMetrics = time.Now()
+		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.bytesSent, c.metrics.bytesReceived)
+		c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics}
 	}
-	verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.bytesSent, c.metrics.bytesReceived)
-	c.timeLastMetrics = time.Now()
-	c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics}
 }
 
 func (c *Connection) ConnectionState() string {

@@ -8,14 +8,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"time"
-	"unicode"
 
 	"math"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
@@ -48,7 +47,7 @@ func NetStart(s *state.State) {
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
-	networkPortPtr := flag.String("p2pPort", "8108", "Port to listen for peers on.")
+	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
@@ -72,8 +71,8 @@ func NetStart(s *state.State) {
 	cloneDB := *cloneDBPtr
 	folder := *folderPtr
 	portOverride := *portOverridePtr
-	networkPort := *networkPortPtr
 	peers := *peersPtr
+	networkName := *networkNamePtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
 	netdebug := *netdebugPtr
@@ -88,7 +87,6 @@ func NetStart(s *state.State) {
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 	s.LoadConfig(FactomConfigFilename, folder)
-
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 
@@ -145,7 +143,10 @@ func NetStart(s *state.State) {
 	}
 	if follower {
 		s.NodeMode = "FULL"
-		s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+		leadID := primitives.Sha([]byte(s.Prefix + "FNode0"))
+		if s.IdentityChainID.IsSameAs(leadID) {
+			s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
+		}
 	}
 	if leader {
 		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
@@ -178,7 +179,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", cloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "folder", folder))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "networkPort", networkPort))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "network", networkName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
@@ -205,25 +206,49 @@ func NetStart(s *state.State) {
 	for i := 0; i < cnt; i++ {
 		makeServer(s) // We clone s to make all of our servers
 	}
+	// Modify Identities of new nodes
+	if len(fnodes) > 1 && len(s.Prefix) == 0 {
+		modifyLoadIdentities() // We clone s to make all of our servers
+	}
 
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
-	switch s.Network {
+	var peersFile, seedURL, networkPort, specialPeers string
+	networkOverride := s.Network
+	if 0 < len(networkName) { // Command line overrides the config file.
+		networkOverride = networkName
+	}
+	switch networkOverride {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
-	case "LOCAL", "local":
-		networkID = p2p.LocalNet
+		seedURL = s.MainSeedURL
+		networkPort = s.MainNetworkPort
+		peersFile = s.MainPeersFile
+		specialPeers = s.MainSpecialPeers
 	case "TEST", "test":
 		networkID = p2p.TestNet
+		seedURL = s.TestSeedURL
+		networkPort = s.TestNetworkPort
+		peersFile = s.TestPeersFile
+		specialPeers = s.TestSpecialPeers
+	case "LOCAL", "local":
+		networkID = p2p.LocalNet
+		seedURL = s.LocalSeedURL
+		networkPort = s.LocalNetworkPort
+		peersFile = s.LocalPeersFile
+		specialPeers = s.LocalSpecialPeers
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 	}
+	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 	ci := p2p.ControllerInit{
-		Port:      networkPort,
-		PeersFile: s.PeersFile,
-		Network:   networkID,
-		Exclusive: exclusive,
-		SeedURL:   s.SeedURL,
+		Port:                     networkPort,
+		PeersFile:                peersFile,
+		Network:                  networkID,
+		Exclusive:                exclusive,
+		SeedURL:                  seedURL,
+		SpecialPeers:             specialPeers,
+		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
 	p2pController := new(p2p.Controller).Init(ci)
 	network = *p2pController
@@ -243,18 +268,7 @@ func NetStart(s *state.State) {
 	}
 	p2pProxy.startProxy()
 	// Command line peers lets us manually set special peers
-	// Parse the peers into an array.
-	parseFunc := func(c rune) bool {
-		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
-	}
-	peerAddresses := strings.FieldsFunc(peers, parseFunc)
-	for _, peerAddress := range peerAddresses {
-		fmt.Println("Dialing Peer: ", peerAddress)
-		ipPort := strings.Split(peerAddress, ":")
-		peer := new(p2p.Peer).Init(ipPort[0], ipPort[1], 0, p2p.SpecialPeer, 0)
-		peer.Source["Command Line"] = time.Now()
-		network.DialPeer(*peer, true) // these are persistent connections
-	}
+	network.DialSpecialPeersString(peers)
 
 	switch net {
 	case "square":
@@ -348,6 +362,28 @@ func NetStart(s *state.State) {
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
 
+	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
+	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
+	drain := func() {
+		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
+		for {
+			select {
+			case _ = <-connectionMetricsChannel:
+				time.Sleep(500 * time.Millisecond)
+			default:
+				time.Sleep(200 * time.Millisecond)
+			}
+		}
+	}
+	go drain()
+
+	states := make([]*state.State, 0)
+	for _, f := range fnodes {
+		states = append(states, f.State)
+	}
+	_ = states
+	_ = controlPanel.INDEX_HTML
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
 	// Listen for commands:
 	SimControl(listenTo)
 
@@ -398,7 +434,7 @@ func setupBlankAuthority(s *state.State) {
 	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 	//fmt.Printf("DEBUG: State Public: %x\n", s.GetServerPublicKey())
 	//fmt.Printf("DEBUG: State Private: %x\n", *(s.GetServerPrivateKey().Key))
-	pub := s.GetServerPublicKey() // primitives.PubKeyFromString("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+	pub := primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 	data, _ := pub.MarshalBinary()
 	id.SigningKey = primitives.NewHash(data)
 	id.MatryoshkaHash = primitives.NewZeroHash()
@@ -415,7 +451,7 @@ func setupBlankAuthority(s *state.State) {
 
 	var auth state.Authority
 	auth.Status = 1
-	auth.SigningKey = s.GetServerPublicKey() //primitives.PubKeyFromString("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+	auth.SigningKey = primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 	auth.MatryoshkaHash = primitives.NewZeroHash()
 	auth.AuthorityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")

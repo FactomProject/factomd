@@ -35,6 +35,10 @@ var _ Signable = (*ServerFault)(nil)
 
 func (m *ServerFault) Process(uint32, interfaces.IState) bool { return true }
 
+func (m *ServerFault) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *ServerFault) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }

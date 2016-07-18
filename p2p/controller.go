@@ -16,6 +16,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // Controller manages the peer to peer network.
@@ -28,25 +29,32 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort           string                       // port we listen on for new connections
-	connections          map[string]Connection        // map of the connections indexed by peer hash
-	connectionsByAddress map[string]Connection        // map of the connections indexed by peer address
-	connectionMetrics    map[string]ConnectionMetrics // map of the metrics indexed by peer hash
+	listenPort                  string                            // port we listen on for new connections
+	connections                 map[string]Connection             // map of the connections indexed by peer hash
+	connectionsByAddress        map[string]Connection             // map of the connections indexed by peer address
+	connectionMetrics           map[string]ConnectionMetrics      // map of the metrics indexed by peer hash
+	connectionMetricsChannel    chan map[string]ConnectionMetrics // Channel on which we put the connection metrics map, periodically.
+	lastConnectionMetricsUpdate time.Time                         // update once a second.
 
-	discovery                  Discovery // Our discovery structure
+	discovery Discovery // Our discovery structure
+
 	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
 	lastPeerManagement         time.Time // Last time we ran peer management.
+	lastDiscoveryRequest       time.Time
 	NodeID                     uint64
 	lastStatusReport           time.Time
 	lastPeerRequest            time.Time // Last time we asked peers about the peers they know about.
+	specialPeersString         string    // configuration set special peers
 }
 
 type ControllerInit struct {
-	Port      string    // Port to listen on
-	PeersFile string    // Path to file to find / save peers
-	Network   NetworkID // Network - eg MainNet, TestNet etc.
-	Exclusive bool      // flag to indicate we should only connect to trusted peers
-	SeedURL   string    // URL to a source of peer info
+	Port                     string                            // Port to listen on
+	PeersFile                string                            // Path to file to find / save peers
+	Network                  NetworkID                         // Network - eg MainNet, TestNet etc.
+	Exclusive                bool                              // flag to indicate we should only connect to trusted peers
+	SeedURL                  string                            // URL to a source of peer info
+	SpecialPeers             string                            // Peers to always connect to at startup, and stay persistent
+	ConnectionMetricsChannel chan map[string]ConnectionMetrics // Channel on which we put the connection metrics map, periodically.
 }
 
 // CommandDialPeer is used to instruct the Controller to dial a peer address
@@ -107,10 +115,14 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.discovery.seedURL = ci.SeedURL
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
-	c.lastPeerManagement = time.Now()
+	// Set this to the past so we will do peer management almost right away after starting up.
+	c.lastPeerManagement = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	c.lastPeerRequest = time.Now()
 	CurrentNetwork = ci.Network
 	OnlySpecialPeers = ci.Exclusive
+	c.specialPeersString = ci.SpecialPeers
+	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
+	c.lastConnectionMetricsUpdate = time.Now()
 	return c
 }
 
@@ -120,10 +132,28 @@ func (c *Controller) StartNetwork() {
 	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
+	// Dial the peers in from configuration
+	c.DialSpecialPeersString(c.specialPeersString)
 	// Dial out to peers
 	c.fillOutgoingSlots()
 	// Start the runloop
 	go c.runloop()
+}
+
+// DialSpecialPeersString lets us pass in a string of special peers to dial
+func (c *Controller) DialSpecialPeersString(peersString string) {
+	significant("ctrlr", "DialSpecialPeersString() Dialing Special Peers %s", peersString)
+	parseFunc := func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
+	}
+	peerAddresses := strings.FieldsFunc(peersString, parseFunc)
+	for _, peerAddress := range peerAddresses {
+		fmt.Println("Dialing Peer: ", peerAddress)
+		ipPort := strings.Split(peerAddress, ":")
+		peer := new(Peer).Init(ipPort[0], ipPort[1], 0, SpecialPeer, 0)
+		peer.Source["Local-Configuration"] = time.Now()
+		c.DialPeer(*peer, true) // these are persistent connections
+	}
 }
 
 func (c *Controller) StartLogging(level uint8) {
@@ -263,6 +293,10 @@ func (c *Controller) runloop() {
 		if CurrentLoggingLevel > 0 {
 			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
 			c.networkStatusReport()
+		}
+		if time.Second < time.Since(c.lastConnectionMetricsUpdate) {
+			c.lastConnectionMetricsUpdate = time.Now()
+			c.connectionMetricsChannel <- c.connectionMetrics
 		}
 	}
 	silence("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
@@ -416,6 +450,11 @@ func (c *Controller) managePeers() {
 	if PeerSaveInterval < managementDuration {
 		c.lastPeerManagement = time.Now()
 		debug("ctrlr", "managePeers() time since last peer management: %s", managementDuration.String())
+		// If it's been awhile, update peers from the DNS seed.
+		discoveryDuration := time.Since(c.lastDiscoveryRequest)
+		if PeerDiscoveryInterval < discoveryDuration {
+			c.discovery.DiscoverPeersFromSeed()
+		}
 		// If we are low on outgoing onnections, attempt to connect to some more.
 		// If the connection is not online, we don't count it as connected.
 		outgoing := 0
@@ -474,11 +513,7 @@ func (c *Controller) fillOutgoingSlots() {
 		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
 	}
 	peers := c.discovery.GetOutgoingPeers()
-	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.GetOutgoingPeers()
-		peers = c.discovery.GetOutgoingPeers()
-	}
-	// dial into the peers
+
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) {
 			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())

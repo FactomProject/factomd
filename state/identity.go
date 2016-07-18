@@ -90,7 +90,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	} else if mr == nil {
 		removeIdentity(index, st)
 		//log.Println("Identity Error: No main Root Identity Chain chain created")
-		return nil
+		return errors.New("Identity Error: Identity Chain not found")
 	}
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
 		eblk, err := st.DB.FetchEBlock(mr)
@@ -121,7 +121,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 			hs := eHash.String()
 			if hs[0:10] != "0000000000" { //ignore minute markers
 				ent, err := st.DB.FetchEntry(eHash)
-				if err != nil {
+				if err != nil || ent == nil {
 					continue
 				}
 				if len(ent.ExternalIDs()) > 3 {
@@ -149,7 +149,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	if st.Identities[index].ManagementChainID == nil {
 		removeIdentity(index, st)
 		//log.Println("Identity Error: No management chain found")
-		return nil
+		return errors.New("Identity Error: No management chain found")
 	}
 	mr, err = st.DB.FetchHeadIndexByChainID(st.Identities[index].ManagementChainID)
 	if err != nil {
@@ -170,10 +170,10 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	for i := len(eblkStackSub) - 1; i >= 0; i-- {
 		LoadIdentityByEntryBlock(eblkStackSub[i], st, false)
 	}
-	checkIdentityForFull(index, st)
-	if st.Identities[index].Status == constants.IDENTITY_PENDING {
+	err = checkIdentityForFull(index, st)
+	if err != nil { //st.Identities[index].Status == constants.IDENTITY_PENDING ||{
 		removeIdentity(index, st)
-		return errors.New("Error: Identity not full")
+		return errors.New("Error: Identity not full - " + err.Error())
 	}
 
 	return nil
@@ -195,40 +195,45 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 		for _, eHash := range entryHashes {
 			hs := eHash.String()
 			if hs[0:10] != "0000000000" { //ignore minute markers
-				ent, _ := st.DB.FetchEntry(eHash)
-				if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-					// this is an Identity that should have been registered already with a 0 status.
-					//  this registers it with the management chain.  Now it can be assigned as federated or audit.
-					//  set it to status 6 - Pending Full
-					registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
-				} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
-					// this is the Signing Key for this Identity
-					if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-						// Hold
-						holdEntry = append(holdEntry, ent)
-					}
+				ent, err := st.DB.FetchEntry(eHash)
+				if err != nil || ent == nil {
+					continue
+				}
+				if len(ent.ExternalIDs()) > 1 {
+					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
+						// this is an Identity that should have been registered already with a 0 status.
+						//  this registers it with the management chain.  Now it can be assigned as federated or audit.
+						//  set it to status 6 - Pending Full
+						registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
+					} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
+							// Hold
+							holdEntry = append(holdEntry, ent)
+						}
 
-				} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-					// this is the Signing Key for this Identity
-					if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
-						// Hold
-						holdEntry = append(holdEntry, ent)
-					}
+					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
+							// Hold
+							holdEntry = append(holdEntry, ent)
+						}
 
-				} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-					// this is the Signing Key for this Identity
-					if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-						// hold
-						holdEntry = append(holdEntry, ent)
-					}
-				} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-					// this is a new identity
-					addIdentity(ent.ExternalIDs(), cid, st, height)
-				} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-					// this is a new identity
-					if len(ent.ExternalIDs()) == 4 {
-						// update management should have 4 items
-						updateManagementKey(ent.ExternalIDs(), cid, st, height)
+					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
+						// this is the Signing Key for this Identity
+						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
+							// hold
+							holdEntry = append(holdEntry, ent)
+						}
+					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
+						// this is a new identity
+						addIdentity(ent.ExternalIDs(), cid, st, height)
+					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
+						// this is a new identity
+						if len(ent.ExternalIDs()) == 4 {
+							// update management should have 4 items
+							updateManagementKey(ent.ExternalIDs(), cid, st, height)
+						}
 					}
 				}
 			}
@@ -386,39 +391,42 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height ui
 	return nil
 }
 
-func checkIdentityForFull(identityIndex int, st *State) {
+func checkIdentityForFull(identityIndex int, st *State) error {
 	st.Identities[identityIndex].Status = constants.IDENTITY_PENDING
 	id := st.Identities[identityIndex]
 	// if all needed information is ready for the Identity , set it to IDENTITY_FULL
 	dif := id.IdentityCreated - id.IdentityRegistered
-	if dif < 0 {
-		dif = -dif
+	//log.Printfln("DEBUG: IDC:%d, IDR:%d, dif:%d\n", id.IdentityCreated, id.IdentityRegistered, dif)
+	if id.IdentityRegistered > id.IdentityCreated {
+		dif = id.IdentityRegistered - id.IdentityCreated
 	}
 	if dif > TIME_WINDOW {
-		return
+		return errors.New("Time window of identity create and register invalid")
 	}
 
+	//log.Printfln("DEBUG: IDC:%d, IDR:%d, dif:%d\n", id.IdentityCreated, id.ManagementRegistered, dif)
 	dif = id.ManagementCreated - id.ManagementRegistered
-	if dif < 0 {
-		dif = -dif
+	if id.ManagementRegistered > id.ManagementCreated {
+		dif = id.IdentityRegistered - id.IdentityCreated
 	}
 	if dif > TIME_WINDOW {
-		return
+		return errors.New("Time window of management create and register invalid")
 	}
 
 	if id.IdentityChainID == nil {
-		return
+		return errors.New("Identity Error: No identity chain found")
 	}
 	if id.ManagementChainID == nil {
-		return
+		return errors.New("Identity Error: No management chain found")
 	}
 	if id.SigningKey == nil {
-		return
+		return errors.New("Identity Error: No block signing key found")
 	}
 	if id.Key1 == nil || id.Key2 == nil || id.Key3 == nil || id.Key4 == nil {
-		return
+		return errors.New("Identity Error: Missing an identity key")
 	}
 	st.Identities[identityIndex].Status = constants.IDENTITY_FULL
+	return nil
 }
 
 func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) error {

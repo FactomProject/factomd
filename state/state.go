@@ -34,27 +34,41 @@ type State struct {
 
 	Cfg interfaces.IFactomConfig
 
-	Prefix                  string
-	FactomNodeName          string
-	FactomdVersion          int
-	LogPath                 string
-	LdbPath                 string
-	BoltDBPath              string
-	LogLevel                string
-	ConsoleLogLevel         string
-	NodeMode                string
-	DBType                  string
-	CloneDBType             string
-	ExportData              bool
-	ExportDataSubpath       string
-	Network                 string
-	PeersFile               string
-	SeedURL                 string
+	Prefix            string
+	FactomNodeName    string
+	FactomdVersion    int
+	LogPath           string
+	LdbPath           string
+	BoltDBPath        string
+	LogLevel          string
+	ConsoleLogLevel   string
+	NodeMode          string
+	DBType            string
+	CloneDBType       string
+	ExportData        bool
+	ExportDataSubpath string
+
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
+	ControlPanelPort        int
 	Replay                  *Replay
 	DropRate                int
+
+	// Network Configuration
+	Network           string
+	MainNetworkPort   string
+	MainPeersFile     string
+	MainSeedURL       string
+	MainSpecialPeers  string
+	TestNetworkPort   string
+	TestPeersFile     string
+	TestSeedURL       string
+	TestSpecialPeers  string
+	LocalNetworkPort  string
+	LocalPeersFile    string
+	LocalSeedURL      string
+	LocalSpecialPeers string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []Identity       // Identities of all servers in management chain
@@ -227,8 +241,19 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
-	clone.PeersFile = s.PeersFile
-	clone.SeedURL = s.SeedURL
+	clone.MainNetworkPort = s.MainNetworkPort
+	clone.MainPeersFile = s.MainPeersFile
+	clone.MainSeedURL = s.MainSeedURL
+	clone.MainSpecialPeers = s.MainSpecialPeers
+	clone.TestNetworkPort = s.TestNetworkPort
+	clone.TestPeersFile = s.TestPeersFile
+	clone.TestSeedURL = s.TestSeedURL
+	clone.TestSpecialPeers = s.TestSpecialPeers
+	clone.LocalNetworkPort = s.LocalNetworkPort
+	clone.LocalPeersFile = s.LocalPeersFile
+	clone.LocalSeedURL = s.LocalSeedURL
+	clone.LocalSpecialPeers = s.LocalSpecialPeers
+
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -282,7 +307,6 @@ func (s *State) SetNetStateOff(net bool) {
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
-
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
@@ -301,17 +325,31 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
-		s.PeersFile = cfg.App.PeersFile
-		s.SeedURL = cfg.App.SeedURL
+		s.MainNetworkPort = cfg.App.MainNetworkPort
+		s.MainPeersFile = cfg.App.MainPeersFile
+		s.MainSeedURL = cfg.App.MainSeedURL
+		s.MainSpecialPeers = cfg.App.MainSpecialPeers
+		s.TestNetworkPort = cfg.App.TestNetworkPort
+		s.TestPeersFile = cfg.App.TestPeersFile
+		s.TestSeedURL = cfg.App.TestSeedURL
+		s.TestSpecialPeers = cfg.App.TestSpecialPeers
+		s.LocalNetworkPort = cfg.App.LocalNetworkPort
+		s.LocalPeersFile = cfg.App.LocalPeersFile
+		s.LocalSeedURL = cfg.App.LocalSeedURL
+		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
+		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
-
-		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
+		if err != nil {
+			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		} else {
+			s.IdentityChainID = identity
+		}
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"
@@ -323,16 +361,26 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
-		s.PeersFile = "peers.json"
-		// BUGBUG JAYJAY Switch to shipping version
-		// s.SeedURL = "http://factomstatus.com/seed/seed.txt"
-		s.SeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/seed.txt"
+		s.MainNetworkPort = "8108"
+		s.MainPeersFile = "MainPeers.json"
+		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+		s.MainSpecialPeers = ""
+		s.TestNetworkPort = "8109"
+		s.TestPeersFile = "TestPeers.json"
+		s.TestSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+		s.TestSpecialPeers = ""
+		s.LocalNetworkPort = "8110"
+		s.LocalPeersFile = "LocalPeers.json"
+		s.LocalSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+		s.LocalSpecialPeers = ""
+
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
 		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
+		s.ControlPanelPort = 8090
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -1055,10 +1103,10 @@ func (s *State) SetString() {
 	}
 	vmt0 := s.ProcessLists.Get(s.LLeaderHeight)
 	var vmt *VM
-	lmin := -1
+	lmin := "-"
 	if vmt0 != nil && vmi >= 0 {
 		vmt = vmt0.VMs[vmi]
-		lmin = vmt.LeaderMinute
+		lmin = fmt.Sprintf("%2d", vmt.LeaderMinute)
 	}
 
 	vmin := s.CurrentMinute
@@ -1115,34 +1163,33 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%8s[%6x]%4s %4s ",
+	str := fmt.Sprintf("%8s[%12x]%4s %3s ",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:4],
+		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
 		stype)
 
-	str = str + fmt.Sprintf("DB: %d[%6x] PL:%d/%d ",
+	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+
+	str = str + fmt.Sprintf("DB: %5d[%6x] PL:%-9s ",
 		dHeight,
 		keyMR[:3],
-		s.ProcessLists.DBHeightBase,
-		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+		pls)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v MismatchCnt %v DBStateCnt %5d MissingCnt %5d ",
+	dbstate := fmt.Sprintf("%d/%d", s.DBStateCnt, s.MismatchCnt)
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(+/-) %-10s MissCnt %5d ",
 		lmin,
 		s.CurrentMinute,
-		s.MismatchCnt,
-		s.DBStateCnt,
+		dbstate,
 		s.MissingCnt)
 
-	str = str + fmt.Sprintf("Resend %5d Expire %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
+	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-14s tps t/i %s",
 		s.ResendCnt,
 		s.ExpireCnt,
-		s.Saving,
-		s.FactoidTrans,
-		s.NewEntryChains,
-		s.NewEntries,
-		tps,
-		s.tps)
+		trans,
+		stps)
 
 	s.serverPrt = str
 }

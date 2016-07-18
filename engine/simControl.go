@@ -57,9 +57,9 @@ func SimControl(listenTo int) {
 			switch {
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
-					fundWallet(fnodes[listenTo].State, 2e6)
-					setUpAuthorites(fnodes[listenTo].State)
-					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", authStack.Length()))
+					fundWallet(fnodes[listenTo].State, 2e7)
+					setUpAuthorites(fnodes[listenTo].State, true)
+					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}
 				if len(b) == 1 {
 					os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
@@ -73,12 +73,12 @@ func SimControl(listenTo int) {
 							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						fundWallet(fnodes[listenTo].State, uint64(count*5e6))
+						fundWallet(fnodes[listenTo].State, uint64(count*5e7))
 						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
 						}
-						os.Stderr.WriteString(fmt.Sprintf("=== %d Identities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), authStack.Length(), skipped))
+						os.Stderr.WriteString(fmt.Sprintf("=== %d Identities added to blockchain, %d remain in stack, %d skipped (Added by someone else) ===\n", len(auths), len(authStack), skipped))
 						for _, ele := range auths {
 							fmt.Println(ele.ChainID.String())
 						}
@@ -105,11 +105,6 @@ func SimControl(listenTo int) {
 					go printProcessList(&watchPL, watchPL, &listenTo)
 				} else {
 					os.Stderr.WriteString("--Print Process Lists Off--\n")
-				}
-			case 'v' == b[0]:
-				audits := fnodes[listenTo].State.LeaderPL.AuditServers
-				for _, aud := range audits {
-					os.Stderr.WriteString(aud.String() + "\n")
 				}
 			case 'r' == b[0]:
 				rotate++
@@ -344,8 +339,13 @@ func SimControl(listenTo int) {
 				fallthrough
 			case 'l' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'l' { // (Don't do anything if just passing along the audit server)
-					found, _ := fnodes[listenTo].State.LeaderPL.GetFedServerIndexHash(fnodes[listenTo].State.IdentityChainID)
-					exists := found
+					feds := fnodes[listenTo].State.LeaderPL.FedServers
+					exists := false
+					for _, fed := range feds {
+						if fed.GetChainID().IsSameAs(fnodes[listenTo].State.IdentityChainID) {
+							exists = true
+						}
+					}
 					if len(b) > 1 && b[1] == 't' && fnodes[listenTo].State.IdentityChainID.String()[:6] != "888888" && !exists {
 						index := 0
 						for index < len(authKeyLibrary) {
@@ -509,7 +509,7 @@ func SimControl(listenTo int) {
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
 					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
-					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", auth.ChainID))
+					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.IdentityChainID.String()))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
 					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))
@@ -733,6 +733,24 @@ func printSummary(summary *int, value int, listenTo *int) {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.Commits))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Commits", list)
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
+
+		list = ""
+		for _, f := range fnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEntries))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "Pending Entries", list)
 
 		list = ""
 		for _, f := range fnodes {
