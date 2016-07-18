@@ -119,10 +119,13 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	item := r.FormValue("item") // Item wanted
 	switch item {
 	case "myHeight":
-		data := fmt.Sprintf("%d", st.GetHighestKnownBlock())
+		data := fmt.Sprintf("%d", st.GetHighestRecordedBlock())
 		w.Write([]byte(data)) // Return current node height
 	case "leaderHeight":
-		data := fmt.Sprintf("%d", st.GetLeaderHeight())
+		data := fmt.Sprintf("%d", st.GetLeaderHeight()-1)
+		if st.GetLeaderHeight() == 0 {
+			data = "0"
+		}
 		w.Write([]byte(data)) // Return leader height
 	case "completeHeight": // Second Pass Sync info
 		data := fmt.Sprintf("%d", st.GetEBDBHeightComplete())
