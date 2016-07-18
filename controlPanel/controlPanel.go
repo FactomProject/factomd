@@ -191,7 +191,13 @@ func getRecentTransactions() []byte {
 
 	vms := st.LeaderPL.VMs
 	for _, vm := range vms {
+		if vm == nil {
+			continue
+		}
 		for _, msg := range vm.List {
+			if msg == nil {
+				continue
+			}
 			switch msg.Type() {
 			case constants.COMMIT_CHAIN_MSG:
 			case constants.COMMIT_ENTRY_MSG:
