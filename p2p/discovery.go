@@ -53,11 +53,11 @@ func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 	UpdateKnownPeers.Lock()
 	d.knownPeers = map[string]Peer{}
 	UpdateKnownPeers.Unlock()
+	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	d.peersFilePath = peersFile
 	d.seedURL = seed
 	d.LoadPeers()
 	d.DiscoverPeersFromSeed()
-	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return d
 }
 
