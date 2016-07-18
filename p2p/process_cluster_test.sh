@@ -24,4 +24,5 @@ if [ $? -eq 0 ]; then
     # kill -2 $node0 $node1 $node2 $node3
     kill -2 $node1 # Kill this first to see how node0 handles it.
     sleep 25
-    kill -2 $node0 $node2 $node3fi
+    kill -2 $node0 $node2 $node3
+fi
