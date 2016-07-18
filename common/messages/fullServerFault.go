@@ -309,15 +309,16 @@ func (a *FullServerFault) IsSameAs(b *FullServerFault) bool {
 }
 
 //*******************************************************************************
-// Support Functions
+// Build Function
 //*******************************************************************************
 
-func NewFullServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *FullServerFault {
+func NewFullServerFault(faultMessage *ServerFault, sigList SigList) *FullServerFault {
 	sf := new(FullServerFault)
-	sf.Timestamp = timeStamp
-	sf.VMIndex = byte(vmIndex)
-	sf.DBHeight = dbheight
-	sf.Height = height
-	sf.ServerID = serverID
+	sf.Timestamp = faultMessage.Timestamp
+	sf.VMIndex = faultMessage.VMIndex
+	sf.DBHeight = faultMessage.DBHeight
+	sf.Height = faultMessage.Height
+	sf.ServerID = faultMessage.ServerID
+	sf.SignatureList = sigList
 	return sf
 }
