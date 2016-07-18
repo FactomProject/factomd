@@ -36,6 +36,8 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		msg = new(AuditServerFault)
 	case constants.FED_SERVER_FAULT_MSG:
 		msg = new(ServerFault)
+	case constants.FULL_SERVER_FAULT_MSG:
+		msg = new(FullServerFault)
 	case constants.COMMIT_CHAIN_MSG:
 		msg = new(CommitChainMsg)
 	case constants.COMMIT_ENTRY_MSG:
@@ -99,6 +101,8 @@ func MessageName(Type byte) string {
 		return "Audit Server Fault"
 	case constants.FED_SERVER_FAULT_MSG:
 		return "Fed Server Fault"
+	case constants.FULL_SERVER_FAULT_MSG:
+		return "Full Server Fault"
 	case constants.COMMIT_CHAIN_MSG:
 		return "Commit Chain"
 	case constants.COMMIT_ENTRY_MSG:

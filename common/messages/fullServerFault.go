@@ -24,7 +24,7 @@ type FullServerFault struct {
 	DBHeight uint32
 	Height   uint32
 
-	SignatureList []interfaces.IFullSignature
+	SignatureList SigList
 
 	Signature interfaces.IFullSignature
 
@@ -32,10 +32,19 @@ type FullServerFault struct {
 	hash interfaces.IHash
 }
 
+type SigList struct {
+	Length uint32
+	List   []interfaces.IFullSignature
+}
+
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
 
 func (m *FullServerFault) Process(uint32, interfaces.IState) bool { return true }
+
+func (m *FullServerFault) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
 
 func (m *FullServerFault) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -85,7 +94,49 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 
+	if d, err := m.SignatureList.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
 	return buf.DeepCopyBytes(), nil
+}
+
+func (sl *SigList) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, uint32(sl.Length))
+
+	for _, individualSig := range sl.List {
+		if d, err := individualSig.MarshalBinary(); err != nil {
+			return nil, err
+		} else {
+			buf.Write(d)
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
+		}
+	}()
+	newData = data
+	sl.Length, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := 0; i < int(sl.Length); i++ {
+		tempSig := new(primitives.Signature)
+		newData, err = tempSig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		sl.List = append(sl.List, tempSig)
+	}
+	return newData, nil
 }
 
 func (m *FullServerFault) MarshalBinary() (data []byte, err error) {
@@ -135,6 +186,11 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	m.VMIndex, newData = newData[0], newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	newData, err = m.SignatureList.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -256,7 +312,7 @@ func (a *FullServerFault) IsSameAs(b *FullServerFault) bool {
 // Support Functions
 //*******************************************************************************
 
-func NewFullServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
+func NewFullServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *FullServerFault {
 	sf := new(FullServerFault)
 	sf.Timestamp = timeStamp
 	sf.VMIndex = byte(vmIndex)
