@@ -66,7 +66,7 @@ func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) updatePeer(peer Peer) {
-	significant("discovery", "Updating peer: %v", peer)
+	note("discovery", "Updating peer: %v", peer)
 	UpdateKnownPeers.Lock()
 	d.knownPeers[peer.Address] = peer
 	UpdateKnownPeers.Unlock()

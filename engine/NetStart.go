@@ -265,7 +265,6 @@ func NetStart(s *state.State) {
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
-	fmt.Printf(">>>>>>>>>>>>>>>> p2pNetwork is: %+v\n\n\n", p2pNetwork)
 	if 0 < netdebug {
 		go PeriodicStatusReport(fnodes)
 		go p2pProxy.ProxyStatusReport(fnodes)
@@ -276,7 +275,6 @@ func NetStart(s *state.State) {
 	p2pProxy.startProxy()
 	// Command line peers lets us manually set special peers
 	p2pNetwork.DialSpecialPeersString(peers)
-	fmt.Printf(">>>>>>>>>>>>>>>> p2pNetwork is: %+v\n\n\n", p2pNetwork)
 
 	switch net {
 	case "square":
@@ -366,11 +364,9 @@ func NetStart(s *state.State) {
 	} else {
 		startServers(true)
 	}
-	fmt.Printf(">>>>>>>>>>>>>>>> before wsapi.Start is: %+v\n\n\n", p2pNetwork)
 
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
-	fmt.Printf(">>>>>>>>>>>>>>>> before connectionMetricsChannel is: %+v\n\n\n", p2pNetwork)
 
 	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
 	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
@@ -387,7 +383,6 @@ func NetStart(s *state.State) {
 		}
 	}
 	go drain()
-	fmt.Printf(">>>>>>>>>>>>>>>> before ServeControlPanel p2pNetwork is: %+v\n\n\n", p2pNetwork)
 
 	states := make([]*state.State, 0)
 	for _, f := range fnodes {
@@ -397,7 +392,6 @@ func NetStart(s *state.State) {
 	_ = controlPanel.INDEX_HTML
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
 	// Listen for commands:
-	fmt.Printf(">>>>>>>>>>>>>>>> before SimControlp2pNetwork is: %+v\n\n\n", p2pNetwork)
 	SimControl(listenTo)
 }
 

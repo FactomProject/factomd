@@ -271,22 +271,22 @@ func (c *Controller) runloop() {
 	}
 	defer reportExit()
 
-	startDelay := 24
-	i := 1
-	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
-	for i <= startDelay {
-		time.Sleep(time.Second * 1)
-		note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay-i)
-		i = i + 1
-	}
-	// time.Sleep(time.Second * time.Duration(startDelay)) // Wait a few seconds to let the system come up.
-	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
+	// startDelay := 24
+	// i := 1
+	// note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
+	// for i <= startDelay {
+	// 	time.Sleep(time.Second * 1)
+	// 	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay-i)
+	// 	i = i + 1
+	// }
+	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
+	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() BEGINNING OF LOOP : c.keepRunning = %v", c.keepRunning)
 		time.Sleep(time.Millisecond * 51) // This can be a tight loop, don't want to starve the application
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Woke up : c.keepRunning = %v", c.keepRunning)
-		if CurrentLoggingLevel > 0 {
+		if CurrentLoggingLevel > 2 {
 			fmt.Printf("@")
 		}
 		note("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
