@@ -102,7 +102,7 @@ type CommandChangeLogging struct {
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
 	significant("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
-	silence("#################", "META: Last touched: SUNDAY JULY 17th, 3:22PM")
+	silence("#################", "META: Last touched: MONDAY JULY 18th, 1:45PM")
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
@@ -111,9 +111,9 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	NetworkListenPort = ci.Port
 	c.connections = make(map[string]Connection)
 	c.connectionMetrics = make(map[string]ConnectionMetrics)
-	discovery := new(Discovery).Init(ci.PeersFile)
+	c.connectionMetricsChannel = ci.ConnectionMetricsChannel
+	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
 	c.discovery = *discovery
-	c.discovery.seedURL = ci.SeedURL
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	// Set this to the past so we will do peer management almost right away after starting up.
@@ -124,6 +124,8 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.specialPeersString = ci.SpecialPeers
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
+	significant("ctrlr", "\n\n\n\n\nController.Init(%s) Controller is: %+v\n\n", ci.Port, c)
+
 	return c
 }
 

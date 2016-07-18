@@ -9,7 +9,7 @@ if [ $? -eq 0 ]; then
     echo "Running single node"
     factomd -count=2 -folder="test1-" -network="TEST" -networkPort=8118 -peers="127.0.0.1:8121" -netdebug=4 -db=Map & node0=$!
     echo
-    sleep 120
+    sleep 480
     echo
     echo
     echo "Killing processes now..."

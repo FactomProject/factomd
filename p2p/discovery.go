@@ -49,11 +49,12 @@ var UpdateKnownPeers sync.Mutex
 // Controller and its routines are called from the Controllers runloop()
 // This ensures that all shared memory is accessed from that goroutine.
 
-func (d *Discovery) Init(peersFile string) *Discovery {
+func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 	UpdateKnownPeers.Lock()
 	d.knownPeers = map[string]Peer{}
 	UpdateKnownPeers.Unlock()
 	d.peersFilePath = peersFile
+	d.seedURL = seed
 	d.LoadPeers()
 	d.DiscoverPeersFromSeed()
 	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
