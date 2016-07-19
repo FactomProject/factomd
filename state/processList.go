@@ -353,7 +353,7 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	fmt.Println("Justin ask times:", now, thetime, "(", vmIndex, height, p.State.FactomNodeName, ")")
 
 	if p.State.Leader && now-thetime >= waitSeconds+2 {
-		fmt.Println("ABOUT TO CREATE FAULT")
+		fmt.Println("ABOUT TO CREATE FAULT", now, thetime, "(", vmIndex, height, p.State.FactomNodeName, ")")
 		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 		if sf != nil {
@@ -362,7 +362,7 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	}
 
 	if now-thetime >= waitSeconds {
-		fmt.Println("Justin resetting thing")
+		fmt.Println("Justin resetting thing", now, thetime, "(", vmIndex, height, p.State.FactomNodeName, ")")
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
@@ -380,9 +380,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		vm := p.VMs[i]
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
+			//fmt.Println("ASK 1", i)
 			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
 		}
-
+		//fmt.Println("ASK 2", i)
 		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List))
 
 	VMListLoop:
@@ -406,6 +407,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
+					//fmt.Println("ASK 3", i)
+
 					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
 					break VMListLoop
 				}
@@ -427,12 +430,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
+					//fmt.Println("ASK 4", i)
+
 					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
 					break VMListLoop
 				}
 			}
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
+				fmt.Println("SUCCESSFUL PROC", i)
+
 				vm.heartBeat = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
