@@ -7,12 +7,13 @@ package messages_test
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"testing"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"testing"
 )
 
 func TestMarshalUnmarshalCommitEntry(t *testing.T) {
@@ -122,7 +123,7 @@ func newCommitEntry() *CommitEntryMsg {
 	}
 
 	cem.CommitEntry = ce
-	cem.Timestamp = primitives.NewTimestampNow()
+	//cem.Timestamp = primitives.NewTimestampNow()
 
 	return cem
 }

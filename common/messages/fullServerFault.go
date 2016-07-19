@@ -66,7 +66,7 @@ func (m *FullServerFault) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *FullServerFault) Type() byte {
-	return constants.FED_SERVER_FAULT_MSG
+	return constants.FULL_SERVER_FAULT_MSG
 }
 
 func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
