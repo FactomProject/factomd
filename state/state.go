@@ -77,11 +77,11 @@ type State struct {
 
 	// Just to print (so debugging doesn't drive functionaility)
 	Status     bool
-	starttime  time.Time
-	transCnt   int
-	lasttime   time.Time
-	tps        float64
-	serverPrt  string
+	Starttime  time.Time
+	TransCnt   int
+	Lasttime   time.Time
+	Tps        float64
+	ServerPrt  string
 	DBStateCnt int
 	MissingCnt int
 	ResendCnt  int
@@ -100,10 +100,10 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey         primitives.PrivateKey
-	serverPubKey          primitives.PublicKey
-	serverPendingPrivKeys []primitives.PrivateKey
-	serverPendingPubKeys  []primitives.PublicKey
+	ServerPrivKey         primitives.PrivateKey
+	ServerPubKey          primitives.PublicKey
+	ServerPendingPrivKeys []primitives.PrivateKey
+	ServerPendingPubKeys  []primitives.PublicKey
 
 	// Server State
 	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
@@ -514,7 +514,7 @@ func (s *State) Init() {
 	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
 
-	s.starttime = time.Now()
+	s.Starttime = time.Now()
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
@@ -883,11 +883,11 @@ func (s *State) SetDirectoryBlockInSeconds(t int) {
 }
 
 func (s *State) GetServerPrivateKey() primitives.PrivateKey {
-	return s.serverPrivKey
+	return s.ServerPrivKey
 }
 
 func (s *State) GetServerPublicKey() primitives.PublicKey {
-	return s.serverPubKey
+	return s.ServerPubKey
 }
 
 func (s *State) GetAnchor() interfaces.IAnchor {
@@ -900,11 +900,11 @@ func (s *State) GetFactomdVersion() int {
 
 func (s *State) initServerKeys() {
 	var err error
-	s.serverPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)
+	s.ServerPrivKey, err = primitives.NewPrivateKeyFromHex(s.LocalServerPrivKey)
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = *(s.serverPrivKey.Pub)
+	s.ServerPubKey = *(s.ServerPrivKey.Pub)
 	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
@@ -943,7 +943,7 @@ func (s *State) GetTimeOffset() interfaces.Timestamp {
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {
-	return s.serverPrivKey.Sign(b)
+	return s.ServerPrivKey.Sign(b)
 }
 
 func (s *State) GetFactoidState() interfaces.IFactoidState {
@@ -1080,14 +1080,14 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	str := "\n===============================================================\n" + s.serverPrt
+	str := "\n===============================================================\n" + s.ServerPrt
 	str = fmt.Sprintf("\n%s\n  Leader Height: %d\n", str, s.LLeaderHeight)
 	str = str + "===============================================================\n"
 	return str
 }
 
 func (s *State) ShortString() string {
-	return s.serverPrt
+	return s.ServerPrt
 }
 
 func (s *State) SetString() {
@@ -1152,15 +1152,15 @@ func (s *State) SetString() {
 		dHeight = d.GetHeader().GetDBHeight()
 	}
 
-	runtime := time.Since(s.starttime)
-	shorttime := time.Since(s.lasttime)
+	runtime := time.Since(s.Starttime)
+	shorttime := time.Since(s.Lasttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
 	if shorttime > time.Second*3 {
-		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
-		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
-		s.lasttime = time.Now()
-		s.transCnt = total // transactions accounted for
+		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.TransCnt
+		s.Tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.Tps) / 3
+		s.Lasttime = time.Now()
+		s.TransCnt = total // transactions accounted for
 	}
 
 	str := fmt.Sprintf("%8s[%12x]%4s %3s ",
@@ -1184,14 +1184,14 @@ func (s *State) SetString() {
 		s.MissingCnt)
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
-	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
+	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.Tps)
 	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-14s tps t/i %s",
 		s.ResendCnt,
 		s.ExpireCnt,
 		trans,
 		stps)
 
-	s.serverPrt = str
+	s.ServerPrt = str
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
@@ -1274,6 +1274,6 @@ func (s *State) ProcessInvalidMsgQueue() {
 }
 
 func (s *State) SetPendingSigningKey(p primitives.PrivateKey) {
-	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
-	s.serverPendingPubKeys = append(s.serverPendingPubKeys, *(p.Pub))
+	s.ServerPendingPrivKeys = append(s.ServerPendingPrivKeys, p)
+	s.ServerPendingPubKeys = append(s.ServerPendingPubKeys, *(p.Pub))
 }

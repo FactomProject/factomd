@@ -56,6 +56,107 @@ func SimControl(listenTo int) {
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
+			case '!' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					fmt.Println("Select a node first")
+					break
+				}
+				f := fnodes[listenTo]
+				s := f.State
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Prefix", s.Prefix))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FactomNodeName", s.FactomNodeName))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FactomdVersion", s.FactomdVersion))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LogPath", s.LogPath))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LdbPath", s.LdbPath))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "BoltDBPath", s.BoltDBPath))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LogLevel", s.LogLevel))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "ConsoleLogLevel", s.ConsoleLogLevel))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "NodeMode", s.NodeMode))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DBType", s.DBType))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "CloneDBType", s.CloneDBType))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "ExportData", s.ExportData))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "ExportDataSubpath", s.ExportDataSubpath))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LocalServerPrivKey", s.LocalServerPrivKey))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DirectoryBlockInSeconds", s.DirectoryBlockInSeconds))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "PortNumber", s.PortNumber))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "ControlPanelPort", s.ControlPanelPort))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DropRate", s.DropRate))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "MainNetworkPort", s.MainNetworkPort))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "MainPeersFile", s.MainPeersFile))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "MainSeedURL", s.MainSeedURL))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "MainSpecialPeers", s.MainSpecialPeers))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "TestNetworkPort", s.TestNetworkPort))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "TestPeersFile", s.TestPeersFile))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "TestSeedURL", s.TestSeedURL))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "TestSpecialPeers", s.TestSpecialPeers))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LocalNetworkPort", s.LocalNetworkPort))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LocalPeersFile", s.LocalPeersFile))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LocalSeedURL", s.LocalSeedURL))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LocalSpecialPeers", s.LocalSpecialPeers))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "IdentityChainID", s.IdentityChainID.Bytes()[:8]))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "AuthorityServerCount", s.AuthorityServerCount))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Status", s.Status))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "transCnt", s.TransCnt))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tps", s.Tps))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "serverPrt", s.ServerPrt))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DBStateCnt", s.DBStateCnt))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "MissingCnt", s.MissingCnt))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "ResendCnt", s.ResendCnt))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "ExpireCnt", s.ExpireCnt))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "JournalFile", s.JournalFile))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "StartDelay", s.StartDelay))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "RunLeader", s.RunLeader))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LLeaderHeight", s.LLeaderHeight))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Leader", s.Leader))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LeaderVMIndex", s.LeaderVMIndex))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "OneLeader", s.OneLeader))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "OutputAllowed", s.OutputAllowed))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "CurrentMinute", s.CurrentMinute))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "EOMsyncing", s.EOMsyncing))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "EOM", s.EOM))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "EOMLimit", s.EOMLimit))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "EOMProcessed", s.EOMProcessed))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "EOMDone", s.EOMDone))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "EOMMinute", s.EOMMinute))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DBSig", s.DBSig))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DBSigLimit", s.DBSigLimit))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DBSigProcessed", s.DBSigProcessed))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DBSigDone", s.DBSigDone))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "KeepMismatch", s.KeepMismatch))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "MismatchCnt", s.MismatchCnt))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Saving", s.Saving))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Syncing", s.Syncing))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "NetStateOff", s.NetStateOff))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "DebugConsensus", s.DebugConsensus))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FactoidTrans", s.FactoidTrans))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "NewEntryChains", s.NewEntryChains))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "NewEntries", s.NewEntries))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "NetworkNumber", s.NetworkNumber))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "NumTransactions", s.NumTransactions))
+
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Port", s.Port))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "IsReplaying", s.IsReplaying))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "EBDBHeightComplete", s.EBDBHeightComplete))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LastPrint", s.LastPrint))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "LastPrintCnt", s.LastPrintCnt))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FactoshisPerEC", s.FactoshisPerEC))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FERChainId", s.FERChainId))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "ExchangeRateAuthorityAddress", s.ExchangeRateAuthorityAddress))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FERChangeHeight", s.FERChangeHeight))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FERChangePrice", s.FERChangePrice))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FERPriority", s.FERPriority))
+				os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "FERPrioritySetHeight", s.FERPrioritySetHeight))
+
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
 					err := fundWallet(fnodes[listenTo].State, 2e7)

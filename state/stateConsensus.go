@@ -32,9 +32,39 @@ func (s *State) Process() (progress bool) {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > 10*1000 {
 			s.RunLeader = true
+			dbstate := s.DBStates.Get(int(s.LLeaderHeight))
+			if dbstate != nil && dbstate.Saved {
+				s.DBStates.ProcessBlocks(dbstate)
+
+				s.CurrentMinute = 0
+				s.LLeaderHeight++
+				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
+
+				s.DBSigProcessed = 0
+
+				if s.Leader {
+					dbs := new(messages.DirectoryBlockSignature)
+					dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+					dbs.ServerIdentityChainID = s.GetIdentityChainID()
+					dbs.DBHeight = s.LLeaderHeight
+					dbs.Timestamp = s.GetTimestamp()
+					dbs.SetVMHash(nil)
+					dbs.SetVMIndex(s.LeaderVMIndex)
+					dbs.SetLocal(true)
+					dbs.Sign(s)
+					err := dbs.Sign(s)
+					if err != nil {
+						panic(err)
+					}
+					dbs.LeaderExecute(s)
+				}
+				s.Saving = true
+			}
+		} else {
+			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		}
-		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
 
 	// Executing a message means looking if it is valid, checking if we are a leader.
@@ -763,8 +793,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
 
 			if msg != nil {
-				s.RunLeader = false
-				s.StartDelay = s.GetTimestamp().GetTimeMilli()
+				fmt.Println("ddddd DBState missmatch")
 				s.NetworkOutMsgQueue() <- msg
 			}
 		}

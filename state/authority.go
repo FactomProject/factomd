@@ -255,21 +255,21 @@ func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *Sta
 		log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
 	} else {
 		//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
-		if st.IdentityChainID.IsSameAs(ChainID) && len(st.serverPendingPrivKeys) > 0 {
-			for i, pubKey := range st.serverPendingPubKeys {
+		if st.IdentityChainID.IsSameAs(ChainID) && len(st.ServerPendingPrivKeys) > 0 {
+			for i, pubKey := range st.ServerPendingPubKeys {
 				pubData, err := pubKey.MarshalBinary()
 				if err != nil {
 					break
 				}
 				if bytes.Compare(pubData, key.Bytes()) == 0 {
-					st.serverPrivKey = st.serverPendingPrivKeys[i]
-					st.serverPubKey = st.serverPendingPubKeys[i]
-					if len(st.serverPendingPrivKeys) > i+1 {
-						st.serverPendingPrivKeys = append(st.serverPendingPrivKeys[:i], st.serverPendingPrivKeys[i+1:]...)
-						st.serverPendingPubKeys = append(st.serverPendingPubKeys[:i], st.serverPendingPubKeys[i+1:]...)
+					st.ServerPrivKey = st.ServerPendingPrivKeys[i]
+					st.ServerPubKey = st.ServerPendingPubKeys[i]
+					if len(st.ServerPendingPrivKeys) > i+1 {
+						st.ServerPendingPrivKeys = append(st.ServerPendingPrivKeys[:i], st.ServerPendingPrivKeys[i+1:]...)
+						st.ServerPendingPubKeys = append(st.ServerPendingPubKeys[:i], st.ServerPendingPubKeys[i+1:]...)
 					} else {
-						st.serverPendingPrivKeys = st.serverPendingPrivKeys[:i]
-						st.serverPendingPubKeys = st.serverPendingPubKeys[:i]
+						st.ServerPendingPrivKeys = st.ServerPendingPrivKeys[:i]
+						st.ServerPendingPubKeys = st.ServerPendingPubKeys[:i]
 					}
 					break
 				}
