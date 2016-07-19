@@ -108,7 +108,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		}
 
 		// Search for Factoid Transaction
-		/if trans, err := st.DB.FetchFactoidTransaction(hash); err == nil && trans != nil {
+		if trans, err := st.DB.FetchFactoidTransaction(hash); err == nil && trans != nil {
 			resp := newSearchResponse("facttransaction", trans)
 			if len(resp) > 1 {
 				return true, resp

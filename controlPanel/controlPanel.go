@@ -81,6 +81,12 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		// recover from panic if anything goes wrong
+		if r := recover(); r != nil {
+			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
+		}
+	}()
 	if statePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -108,7 +114,12 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-
+	defer func() {
+		// recover from panic if anything goes wrong
+		if r := recover(); r != nil {
+			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
+		}
+	}()
 	if statePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -126,6 +137,12 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		// recover from panic if anything goes wrong
+		if r := recover(); r != nil {
+			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
+		}
+	}()
 	if statePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -212,7 +229,7 @@ func getRecentTransactions(time.Time) {
 	defer func() {
 		// recover from panic if anything goes wrong
 		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted.\n", r)
+			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
 		}
 	}()
 	if statePointer.GetIdentityChainID() == nil {
