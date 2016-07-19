@@ -15,27 +15,30 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
+var UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
+
 var TEMPLATE_PATH string
 var templates *template.Template
 
 var INDEX_HTML []byte
 var mux *http.ServeMux
-var st *state.State
 var index int = 0
+
 var fnodes []*state.State
+
+var statePointer *state.State
 
 func ServeControlPanel(port int, states []*state.State) {
 	defer func() {
 		// recover from panic if files path is incorrect
-		if recover() != nil {
-			fmt.Println("Control Panel has encountered a panic and will not be served")
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic and will not be served\n", r)
 		}
 	}()
 
-	st = states[index]
+	statePointer = states[index]
 	fnodes = states
 	portStr := ":" + strconv.Itoa(port)
-
 	//factomdDir := ""
 	TEMPLATE_PATH = "./controlPanel/Web/templates/"
 	templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html")) //Cache general templates
@@ -78,6 +81,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
+	if statePointer.GetIdentityChainID() == nil {
+		return
+	}
 	if r.Method != "POST" {
 		http.NotFound(w, r)
 		return
@@ -85,7 +91,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), st)
+		found, respose := searchDB(r.FormValue("search"), *statePointer)
 		if found {
 			w.Write([]byte(respose))
 			return
@@ -102,6 +108,10 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
+
+	if statePointer.GetIdentityChainID() == nil {
+		return
+	}
 	searchResult := new(SearchedStruct)
 	if r.Method == "POST" {
 		data := r.FormValue("content")
@@ -116,6 +126,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
+	if statePointer.GetIdentityChainID() == nil {
+		return
+	}
 	if r.Method != "GET" {
 		http.NotFound(w, r)
 		return
@@ -123,16 +136,16 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	item := r.FormValue("item") // Item wanted
 	switch item {
 	case "myHeight":
-		data := fmt.Sprintf("%d", st.GetHighestRecordedBlock())
+		data := fmt.Sprintf("%d", statePointer.GetHighestRecordedBlock())
 		w.Write([]byte(data)) // Return current node height
 	case "leaderHeight":
-		data := fmt.Sprintf("%d", st.GetLeaderHeight()-1)
-		if st.GetLeaderHeight() == 0 {
+		data := fmt.Sprintf("%d", statePointer.GetLeaderHeight()-1)
+		if statePointer.GetLeaderHeight() == 0 {
 			data = "0"
 		}
 		w.Write([]byte(data)) // Return leader height
 	case "completeHeight": // Second Pass Sync info
-		data := fmt.Sprintf("%d", st.GetEBDBHeightComplete())
+		data := fmt.Sprintf("%d", statePointer.GetEBDBHeightComplete())
 		w.Write([]byte(data)) // Return EBDB complete height
 	case "dataDump":
 		data := getDataDumps()
@@ -142,16 +155,22 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		if index >= len(fnodes) {
 			index = 0
 		}
-		st = fnodes[index]
+		statePointer = fnodes[index]
 		w.Write([]byte(fmt.Sprintf("%d", index)))
 	case "peers":
 		data := getPeers()
 		w.Write(data)
 	case "recentTransactions":
 		//data := getRecentTransactions()
-		data, err := json.Marshal(RecentTransactions)
-		if err != nil {
+		data := []byte(`{"list":"none"}`)
+		var err error
+		if RecentTransactions == nil {
 			data = []byte(`{"list":"none"}`)
+		} else {
+			data, err = json.Marshal(RecentTransactions)
+			if err != nil {
+				data = []byte(`{"list":"none"}`)
+			}
 		}
 		w.Write(data)
 	}
@@ -183,20 +202,29 @@ type LastDirectoryBlockTransactions struct {
 
 var RecentTransactions *LastDirectoryBlockTransactions
 
-func doEvery(d time.Duration, f func(time.Time) []byte) {
+func doEvery(d time.Duration, f func(time.Time)) {
 	for x := range time.Tick(d) {
 		f(x)
 	}
 }
 
-func getRecentTransactions(time.Time) []byte {
-	last := st.GetDirectoryBlock()
+func getRecentTransactions(time.Time) {
+	defer func() {
+		// recover from panic if anything goes wrong
+		if r := recover(); r != nil {
+			fmt.Println("ERROR: Control Panel has encountered a panic and was halted.\n", r)
+		}
+	}()
+	if statePointer.GetIdentityChainID() == nil {
+		return
+	}
+	last := statePointer.GetDirectoryBlock()
 	if last == nil {
-		return []byte(`{"list":"none"}`)
+		return
 	}
 
 	if RecentTransactions == nil {
-		return []byte(`{"list":"none"}`)
+		return
 	}
 
 	RecentTransactions.DirectoryBlock = struct {
@@ -209,7 +237,7 @@ func getRecentTransactions(time.Time) []byte {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
-	vms := st.LeaderPL.VMs
+	vms := statePointer.LeaderPL.VMs
 	for _, vm := range vms {
 		if vm == nil {
 			continue
@@ -232,11 +260,11 @@ func getRecentTransactions(time.Time) []byte {
 					continue
 				}
 				e := new(EntryHolder)
-				ack := getEntryAck(rev.Entry.GetHash().String())
+				/*ack := getEntryAck(rev.Entry.GetHash().String())
 				if ack == nil {
 					continue
-				}
-				e.Hash = ack.EntryHash
+				}*/
+				e.Hash = rev.Entry.GetHash().String()
 				e.ChainID = "Processing"
 				has := false
 				for _, ent := range RecentTransactions.Entries {
@@ -292,7 +320,7 @@ func getRecentTransactions(time.Time) []byte {
 	for _, entry := range entries {
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			fblock, err := st.DB.FetchFBlock(mr)
+			fblock, err := statePointer.DB.FetchFBlock(mr)
 			if err != nil || fblock == nil {
 				continue
 			}
@@ -333,7 +361,7 @@ func getRecentTransactions(time.Time) []byte {
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
-			ecblock, err := st.DB.FetchECBlock(mr)
+			ecblock, err := statePointer.DB.FetchECBlock(mr)
 			if err != nil || ecblock == nil {
 				continue
 			}
@@ -366,9 +394,9 @@ func getRecentTransactions(time.Time) []byte {
 	if len(RecentTransactions.FactoidTransactions) > 100 {
 		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[:101]
 	}
-	ret, err := json.Marshal(RecentTransactions)
-	if err != nil {
-		return []byte(`{"list":"none"}`)
-	}
-	return ret
+	//_, err := json.Marshal(RecentTransactions)
+	//if err != nil {
+	//	return
+	//}
+	//return ret
 }

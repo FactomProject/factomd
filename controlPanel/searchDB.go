@@ -28,7 +28,7 @@ func newSearchResponse(ftype string, found foundItemInterface) string {
 	return searchJson
 }
 
-func searchDB(searchitem string, st *state.State) (bool, string) {
+func searchDB(searchitem string, st state.State) (bool, string) {
 	if len(searchitem) < 10 {
 		return false, ""
 	}
@@ -108,7 +108,7 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 		}
 
 		// Search for Factoid Transaction
-		if trans, err := st.DB.FetchFactoidTransaction(hash); err == nil && trans != nil {
+		/if trans, err := st.DB.FetchFactoidTransaction(hash); err == nil && trans != nil {
 			resp := newSearchResponse("facttransaction", trans)
 			if len(resp) > 1 {
 				return true, resp
@@ -124,9 +124,9 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 		}
 
 		// Search for Entry Transaction
-		ackReq := new(wsapi.AckRequest)
+		/*ackReq := new(wsapi.AckRequest)
 		ackReq.TxID = hash.String()
-		if entryAck, err := wsapi.HandleV2EntryACK(st, ackReq); err == nil && entryAck != nil && len(entryAck.(*wsapi.EntryStatus).EntryHash) == 64 {
+		if entryAck, err := wsapi.HandleV2EntryACK(&st, ackReq); err == nil && entryAck != nil && len(entryAck.(*wsapi.EntryStatus).EntryHash) == 64 {
 			resp := newSearchResponse("entryack", nil)
 			if len(resp) > 1 {
 				return true, resp
@@ -136,12 +136,12 @@ func searchDB(searchitem string, st *state.State) (bool, string) {
 		// Search for Factoid Transaction
 		ackReq = new(wsapi.AckRequest)
 		ackReq.TxID = hash.String()
-		if factoidAck, err := wsapi.HandleV2FactoidACK(st, ackReq); err == nil && factoidAck != nil && factoidAck.(*wsapi.FactoidTxStatus).BlockDate > 0 {
+		if factoidAck, err := wsapi.HandleV2FactoidACK(&st, ackReq); err == nil && factoidAck != nil && factoidAck.(*wsapi.FactoidTxStatus).BlockDate > 0 {
 			resp := newSearchResponse("factoidack", nil)
 			if len(resp) > 1 {
 				return true, resp
 			}
-		}
+		}*/
 
 	}
 

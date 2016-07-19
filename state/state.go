@@ -515,11 +515,11 @@ func (s *State) Init() {
 	//StubIdentityCache(s)
 	//needed for multiple nodes with FER.  remove for singe node launch
 	if s.FERChainId == "" {
-	s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
 	}
-	if s.ExchangeRateAuthorityAddress =="" {
-		s.ExchangeRateAuthorityAddress ="EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
-	} 
+	if s.ExchangeRateAuthorityAddress == "" {
+		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+	}
 	// end of FER removal
 	s.starttime = time.Now()
 }

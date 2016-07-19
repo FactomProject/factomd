@@ -79,7 +79,7 @@ function updateTransactions() {
           </tr>").insertBefore("#panFactoids > #traxList > tbody >tr:first")*/
           $("#panFactoids > #traxList > tbody").append("\
           <tr>\
-              <td><a id='factom-search-link' type='facttransaction'>" + trans.TxID + "</a></td>\
+              <td><a id='factom-search-link' type='factoidack'>" + trans.TxID + "</a></td>\
               <td>" + trans.TotalInput + "</td>\
               <td>" + trans.TotalInputs + "</td>\
               <td>" + trans.TotalOutputs + "</td>\
@@ -96,13 +96,21 @@ function updateTransactions() {
               <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
               <td>" + entry.ContentLength + "</td>\
           </tr>").insertBefore("#panEntries > #traxList > tbody > tr:first")*/
-          
-          $("#panEntries > #traxList > tbody").append("\
-          <tr>\
-              <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
-              <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-              <td>" + entry.ECCost + "</td>\
-          </tr>")
+          if (entry.ChainID == "Processing") {
+            $("#panEntries > #traxList > tbody").append("\
+            <tr>\
+                <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
+                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td>" + entry.ECCost + "</td>\
+            </tr>")
+          } else {
+            $("#panEntries > #traxList > tbody").append("\
+            <tr>\
+                <td><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
+                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td>" + entry.ECCost + "</td>\
+            </tr>")
+          }
         })
       }
       $("section #factom-search-link").click(function() {

@@ -172,6 +172,12 @@ section .metric table .button { margin: 0; }
     left: 0; 
  }
 
+.not-found-error {
+    position: fixed;
+    right: 50%;
+    top: 50%;
+}
+
 /*#traxList { display: block; }
 #traxList tbody { 
     display:inherit; 
