@@ -282,15 +282,49 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
+	fmt.Println("EXECUTING FAULT")
 	sf, _ := m.(*messages.ServerFault)
-	pl := s.ProcessLists.Get(sf.DBHeight)
-	if pl != nil {
-		pl.FaultList[sf.ServerID.Fixed()] = append(pl.FaultList[sf.ServerID.Fixed()], sf.GetSignature().GetKey())
-		cnt := len(pl.FaultList[sf.ServerID.Fixed()])
-		if s.Leader && cnt > len(pl.FedServers)/2 {
-			fmt.Println(s.FactomNodeName, "FAULTING", sf.ServerID.String())
+
+	var issuerID [32]byte
+	rawIssuerID := sf.GetSignature().GetKey()
+	for i := 0; i < 32; i++ {
+		if i < len(rawIssuerID) {
+			issuerID[i] = rawIssuerID[i]
 		}
 	}
+
+	coreHash := sf.GetCoreHash().Fixed()
+
+	if s.FaultMap[coreHash] == nil {
+		s.FaultMap[coreHash] = make(map[[32]byte]interfaces.ISignature)
+	}
+
+	s.FaultMap[coreHash][issuerID] = sf.GetSignature()
+
+	//faultedServerID := sf.ServerID.Fixed()
+
+	cnt := len(s.FaultMap[coreHash])
+	pl := s.ProcessLists.Get(sf.DBHeight)
+	var fedServerCnt int
+	if pl != nil {
+		fedServerCnt = len(pl.FedServers)
+	} else {
+		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
+	}
+	if s.Leader && cnt > (fedServerCnt/2) {
+		fmt.Println(s.FactomNodeName, "WOULD BE FAULTING", sf.ServerID.String())
+		if s.LeaderVMIndex == int(sf.VMIndex)+1 {
+			fmt.Println(s.FactomNodeName, "ACTUALLY AM FAULTING:", sf.ServerID.String())
+		}
+	}
+	/*
+		if pl != nil {
+			pl.FaultList[sf.ServerID.Fixed()] = append(pl.FaultList[sf.ServerID.Fixed()], sf.GetSignature().GetKey())
+			cnt := len(pl.FaultList[sf.ServerID.Fixed()])
+			if s.Leader && cnt > len(pl.FedServers)/2 {
+				fmt.Println(s.FactomNodeName, "FAULTING", sf.ServerID.String())
+			}
+		}*/
 }
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {

@@ -249,6 +249,7 @@ func (m *ServerFault) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *ServerFault) FollowerExecute(state interfaces.IState) {
+	fmt.Println("ABOUT TO EXECUTE FAULT")
 	state.FollowerExecuteSFault(m)
 }
 

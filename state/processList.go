@@ -346,23 +346,28 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
 	now := time.Now().Unix()
-
 	if thetime == 0 {
 		thetime = now
 	}
-	if now-thetime >= waitSeconds {
-		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
-		if missingMsgRequest != nil {
-			p.State.NetworkOutMsgQueue() <- missingMsgRequest
-		}
-		thetime = now
-	}
+
+	fmt.Println("Justin ask times:", now, thetime, "(", vmIndex, height, p.State.FactomNodeName, ")")
+
 	if p.State.Leader && now-thetime >= waitSeconds+2 {
+		fmt.Println("ABOUT TO CREATE FAULT")
 		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 		if sf != nil {
 			p.State.NetworkOutMsgQueue() <- sf
 		}
+	}
+
+	if now-thetime >= waitSeconds {
+		fmt.Println("Justin resetting thing")
+		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
+		if missingMsgRequest != nil {
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+		}
+		thetime = now
 	}
 
 	return thetime
