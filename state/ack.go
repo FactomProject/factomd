@@ -18,8 +18,8 @@ func (s *State) IsStateFullySynced() bool {
 
 //returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
-	m, found := s.ProcessLists.LastList().OldMsgs[hash.Fixed()]
-	if found {
+	m := s.ProcessLists.LastList().GetOldMsgs(hash)
+	if m != nil {
 		return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
 	}
 

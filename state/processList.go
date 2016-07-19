@@ -1,9 +1,14 @@
+// Copyright 2016 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
 	"bytes"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -36,9 +41,12 @@ type ProcessList struct {
 		                    Directory Block Signatures than what we have
 	                        (discard DBlock if > 1/2 have sig differences) */
 	// Maps
-	// ====
-	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
-	OldAcks map[[32]byte]interfaces.IMsg // messages processed in this list
+
+	// messages processed in this list
+	OldMsgs     map[[32]byte]interfaces.IMsg
+	oldmsgslock *sync.Mutex
+	OldAcks     map[[32]byte]interfaces.IMsg
+	oldackslock *sync.Mutex
 
 	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
 	NewEntries map[[32]byte]interfaces.IEntry      // Entries added within 10 minutes (follower and leader)
@@ -305,6 +313,24 @@ func (p ProcessList) HasMessage() bool {
 	return false
 }
 
+func (p *ProcessList) AddOldMsgs(m interfaces.IMsg) {
+	p.oldmsgslock.Lock()
+	defer p.oldmsgslock.Unlock()
+	p.OldMsgs[m.GetHash().Fixed()] = m
+}
+
+func (p *ProcessList) DeleteOldMsgs(key interfaces.IHash) {
+	p.oldmsgslock.Lock()
+	defer p.oldmsgslock.Unlock()
+	delete(p.OldMsgs, key.Fixed())
+}
+
+func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
+	p.oldmsgslock.Lock()
+	defer p.oldmsgslock.Unlock()
+	return p.OldMsgs[key.Fixed()]
+}
+
 func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
 	return p.NewEBlocks[key.Fixed()]
 }
@@ -515,7 +541,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
-	p.OldMsgs[m.GetHash().Fixed()] = m
+	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
 }
@@ -598,7 +624,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.MakeMap()
 
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
+	pl.oldmsgslock = new(sync.Mutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
+	pl.oldackslock = new(sync.Mutex)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
