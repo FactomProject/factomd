@@ -525,7 +525,7 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 
 func (c *Controller) fillOutgoingSlots() {
 	c.updateConnectionAddressMap()
-	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
+	// significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for _, v := range c.connectionsByAddress {
 		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
@@ -539,7 +539,7 @@ func (c *Controller) fillOutgoingSlots() {
 		}
 	}
 	c.discovery.PrintPeers()
-	significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
+	// significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 }
 
 func (c *Controller) shutdown() {
@@ -569,6 +569,10 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
 		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
+		silence("ctrlr", "             Peers: ")
+		for _, v := range c.connectionsByAddress {
+			silence("controller", "%s", v.peer.PeerIdent())
+		}
 		silence("ctrlr", "###################################")
 	}
 }
