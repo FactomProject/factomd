@@ -75,6 +75,11 @@ type ConnectionMetrics struct {
 	bytesReceived    uint32    // Keeping track of the data sent/recieved for console
 	messagesSent     uint32    // Keeping track of the data sent/recieved for console
 	messagesReceived uint32    // Keeping track of the data sent/recieved for console
+	peerAddress      string    // Peer IP Address
+	peerQuality      int32     // Quality of the connection.
+	// Red: Below -50
+	// Yellow: -50 - 100
+	// Green: > 100
 }
 
 // ConnectionCommand is used to instruct the Connection to carry out some functionality.
@@ -554,6 +559,8 @@ func (c *Connection) updatePeer() {
 func (c *Connection) updateStats() {
 	if time.Second < time.Since(c.timeLastMetrics) {
 		c.timeLastMetrics = time.Now()
+		c.metrics.peerAddress = c.peer.Address
+		c.metrics.peerQuality = c.peer.QualityScore
 		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.bytesSent, c.metrics.bytesReceived)
 		c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics}
 	}

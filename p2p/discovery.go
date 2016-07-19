@@ -130,7 +130,7 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Unlock()
 	encoder.Encode(qualityPeers)
 	writer.Flush()
-	significant("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
+	note("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
 // LearnPeers recieves a set of peers from other hosts
