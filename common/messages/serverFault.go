@@ -19,6 +19,8 @@ type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
+	// The following 4 fields represent the "Core" of the message
+	// This should match the Core of FullServerFault messages
 	ServerID interfaces.IHash
 	VMIndex  byte
 	DBHeight uint32
@@ -54,12 +56,42 @@ func (m *ServerFault) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
+func (m *ServerFault) GetCoreHash() interfaces.IHash {
+	data, err := m.MarshalCore()
+	if err != nil {
+		return nil
+	}
+	return primitives.Sha(data)
+}
+
 func (m *ServerFault) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
 func (m *ServerFault) Type() byte {
 	return constants.FED_SERVER_FAULT_MSG
+}
+
+func (m *ServerFault) MarshalCore() (data []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
+		}
+	}()
+
+	var buf primitives.Buffer
+
+	if d, err := m.ServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	buf.WriteByte(m.VMIndex)
+	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
+	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *ServerFault) MarshalForSignature() (data []byte, err error) {

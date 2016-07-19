@@ -75,3 +75,17 @@ func makeSigList(t *testing.T) SigList {
 	sl.List = twoSigs
 	return *sl
 }
+
+func TestThatFullAndFaultCoreHashesMatch(t *testing.T) {
+	ts := primitives.NewTimestampNow()
+	vmIndex := int(*ts) % 10
+	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), vmIndex, 10, 100)
+
+	sl := makeSigList(t)
+
+	fsf := NewFullServerFault(sf, sl)
+
+	if !sf.GetCoreHash().IsSameAs(fsf.GetCoreHash()) {
+		t.Error("CoreHashes do not match between FullServerFault and ServerFault")
+	}
+}
