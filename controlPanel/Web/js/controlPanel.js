@@ -100,7 +100,7 @@ function updateTransactions() {
           <tr>\
               <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
               <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-              <td>" + entry.ContentLength + "</td>\
+              <td>" + entry.ECCost + "</td>\
           </tr>")
         })
       }

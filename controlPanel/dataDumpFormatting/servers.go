@@ -31,10 +31,10 @@ func Identities(st *state.State) string {
 
 func Authorities(st *state.State) string {
 	prt := ""
-	prt = prt + fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(st.Authorities))
+	prt = prt + fmt.Sprintf("=== Authority List ===   Total: %d Displaying: All\n", len(st.Authorities))
 	for c, i := range st.Authorities {
 		num := fmt.Sprintf("%d", c)
-		prt = prt + "--------------------------------------" + num + "---------------------------------------\n"
+		prt = prt + "-------------------------------------" + num + "---------------------------------------\n"
 		var stat string
 		switch i.Status {
 		case 0:

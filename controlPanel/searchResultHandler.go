@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
 	"github.com/FactomProject/factomd/common/factoid"
@@ -568,6 +569,7 @@ type EntryHolder struct {
 	Hash          string
 	ContentLength int
 	ContentHash   string
+	ECCost        string
 }
 
 func getEntry(hash string) *EntryHolder {
@@ -604,10 +606,20 @@ func getEntry(hash string) *EntryHolder {
 	}
 	holder.Version = 0
 	holder.Height = fmt.Sprintf("%d", entry.GetDatabaseHeight())
-	holder.ContentLength = len(holder.Content)
+	holder.ContentLength = len(entry.GetContent())
 	data := sha256.Sum256(entry.GetContent())
 	content := string(entry.GetContent())
 	holder.Content = htemp.HTMLEscaper(content)
+	if bytes, err := entry.MarshalBinary(); err != nil {
+		holder.ECCost = "Error"
+	} else {
+		if eccost, err := util.EntryCost(bytes); err != nil {
+			holder.ECCost = "Error"
+		} else {
+			holder.ECCost = fmt.Sprintf("%d", eccost)
+		}
+	}
+
 	//holder.Content = string(entry.GetContent())
 	holder.ContentHash = primitives.NewHash(data[:]).String()
 	return holder
