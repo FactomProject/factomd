@@ -276,7 +276,7 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
-	// Check signature
+	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
 		fmt.Println("Err is not nil on FullServerFault sig check (marshalling): ", err)
