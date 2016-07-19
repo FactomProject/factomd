@@ -125,7 +125,7 @@ func (m *DBStateMsg) FollowerExecute(state interfaces.IState) {
 
 // Acknowledgements do not go into the process list.
 func (e *DBStateMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	panic("Ack object should never have its Process() method called")
+	panic("DBStatemsg should never have its Process() method called")
 }
 
 func (e *DBStateMsg) JSONByte() ([]byte, error) {
