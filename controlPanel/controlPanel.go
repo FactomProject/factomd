@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
@@ -46,6 +47,8 @@ func ServeControlPanel(port int, states []*state.State) {
 	mux.Handle("/", http.FileServer(http.Dir("./controlPanel/Web")))
 
 	INDEX_HTML, _ = ioutil.ReadFile("./controlPanel/Web/index.html")
+
+	go doEvery(5*time.Second, getRecentTransactions)
 
 	http.HandleFunc("/", static(indexHandler))
 	http.HandleFunc("/search", searchHandler)
@@ -144,7 +147,11 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		data := getPeers()
 		w.Write(data)
 	case "recentTransactions":
-		data := getRecentTransactions()
+		//data := getRecentTransactions()
+		data, err := json.Marshal(RecentTransactions)
+		if err != nil {
+			data = []byte(`{"list":"none"}`)
+		}
 		w.Write(data)
 	}
 }
@@ -175,7 +182,13 @@ type LastDirectoryBlockTransactions struct {
 
 var RecentTransactions *LastDirectoryBlockTransactions
 
-func getRecentTransactions() []byte {
+func doEvery(d time.Duration, f func(time.Time) []byte) {
+	for x := range time.Tick(d) {
+		f(x)
+	}
+}
+
+func getRecentTransactions(time.Time) []byte {
 	last := st.GetDirectoryBlock()
 	if last == nil {
 		return []byte(`{"list":"none"}`)
