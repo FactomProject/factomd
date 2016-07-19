@@ -171,3 +171,13 @@ section .metric table .button { margin: 0; }
     top: 0; 
     left: 0; 
  }
+
+/*#traxList { display: block; }
+#traxList tbody { 
+    display:inherit; 
+    max-height: 500px;
+    width: 100%;
+    overflow:scroll;
+    overflow-x:hidden;
+}
+#traxList thead { display:inherit; width:100%; }*/

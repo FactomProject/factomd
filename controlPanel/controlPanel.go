@@ -40,6 +40,7 @@ func ServeControlPanel(port int, states []*state.State) {
 	templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html")) //Cache general templates
 
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
+	RecentTransactions = new(LastDirectoryBlockTransactions)
 	// Mux for static files
 	mux = http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir("./controlPanel/Web")))
@@ -172,17 +173,19 @@ type LastDirectoryBlockTransactions struct {
 	Entries []EntryHolder
 }
 
+var RecentTransactions *LastDirectoryBlockTransactions
+
 func getRecentTransactions() []byte {
 	last := st.GetDirectoryBlock()
 	if last == nil {
 		return []byte(`{"list":"none"}`)
 	}
-	holder := new(LastDirectoryBlockTransactions)
-	if holder == nil {
+
+	if RecentTransactions == nil {
 		return []byte(`{"list":"none"}`)
 	}
 
-	holder.DirectoryBlock = struct {
+	RecentTransactions.DirectoryBlock = struct {
 		KeyMR     string
 		BodyKeyMR string
 		FullHash  string
@@ -221,7 +224,16 @@ func getRecentTransactions() []byte {
 				}
 				e.Hash = ack.EntryHash
 				e.ChainID = "Processing"
-				holder.Entries = append(holder.Entries, *e)
+				has := false
+				for _, ent := range RecentTransactions.Entries {
+					if ent.Hash == e.Hash {
+						has = true
+						break
+					}
+				}
+				if !has {
+					RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+				}
 			case constants.FACTOID_TRANSACTION_MSG:
 				data, err := msg.MarshalBinary()
 				if err != nil {
@@ -241,13 +253,22 @@ func getRecentTransactions() []byte {
 				totalOutputs := len(trans.GetECOutputs())
 				totalOutputs = totalOutputs + len(trans.GetOutputs())
 				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
-				holder.FactoidTransactions = append(holder.FactoidTransactions, struct {
-					TxID         string
-					TotalInput   string
-					Status       string
-					TotalInputs  int
-					TotalOutputs int
-				}{trans.GetHash().String(), inputStr, "Processing", totalInputs, totalOutputs})
+				has := false
+				for _, fact := range RecentTransactions.FactoidTransactions {
+					if fact.TxID == trans.GetHash().String() {
+						has = true
+						break
+					}
+				}
+				if !has {
+					RecentTransactions.FactoidTransactions = append([]struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+				}
 			}
 		}
 	}
@@ -271,13 +292,30 @@ func getRecentTransactions() []byte {
 				totalOutputs := len(trans.GetECOutputs())
 				totalOutputs = totalOutputs + len(trans.GetOutputs())
 				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
-				holder.FactoidTransactions = append(holder.FactoidTransactions, struct {
-					TxID         string
-					TotalInput   string
-					Status       string
-					TotalInputs  int
-					TotalOutputs int
-				}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+				has := false
+				for i, fact := range RecentTransactions.FactoidTransactions {
+					if fact.TxID == trans.GetHash().String() {
+						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
+						RecentTransactions.FactoidTransactions[i] = struct {
+							TxID         string
+							TotalInput   string
+							Status       string
+							TotalInputs  int
+							TotalOutputs int
+						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}
+						has = true
+						break
+					}
+				}
+				if !has {
+					RecentTransactions.FactoidTransactions = append([]struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+				}
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
@@ -290,14 +328,31 @@ func getRecentTransactions() []byte {
 				if entry.GetEntryHash() != nil {
 					e := getEntry(entry.GetEntryHash().String())
 					if e != nil {
-						holder.Entries = append(holder.Entries, *e)
+						has := false
+						for i, ent := range RecentTransactions.Entries {
+							if ent.Hash == e.Hash {
+								RecentTransactions.Entries[i] = *e
+								has = true
+								break
+								//RecentTransactions.Entries = append(RecentTransactions.Entries[:i], RecentTransactions.Entries[i+1:]...)
+							}
+						}
+						if !has {
+							RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+						}
 					}
 				}
 			}
 		}
 	}
 
-	ret, err := json.Marshal(holder)
+	if len(RecentTransactions.Entries) > 100 {
+		RecentTransactions.Entries = RecentTransactions.Entries[:101]
+	}
+	if len(RecentTransactions.FactoidTransactions) > 100 {
+		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[:101]
+	}
+	ret, err := json.Marshal(RecentTransactions)
 	if err != nil {
 		return []byte(`{"list":"none"}`)
 	}

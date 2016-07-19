@@ -160,3 +160,12 @@ function updateProgressBar(id, current, max) {
   percent = (current/max) * 100
   $(id).width(percent+ "%")
 }
+
+/*
+$(".tabs-panel > #traxlist").change(function(trax){
+    theadChildren = trax.find("thead > tr").first().children()
+    tbodyChildren = trax.find("tbody > tr").first().children()
+    for (i = 0; i < theadChildren.length; i++) { 
+      theadChildren[i].width(tbodyChildren[i].width())
+    }  
+})*/
