@@ -24,7 +24,10 @@ func TestMarshalUnmarshalAnchorRecord(t *testing.T) {
 
 func TestValidateAnchorRecord(t *testing.T) {
 	pub := new(primitives.PublicKey)
-	pub.UnmarshalText([]byte("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"))
+	err := pub.UnmarshalText([]byte("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"))
+	if err != nil {
+		t.Error(err)
+	}
 	signedRecord := `{"AnchorRecordVer":1,"DBHeight":46226,"KeyMR":"831287d96f9955ff438836b26219b8c937e01e668295e8334a5d140cdaacd2fd","RecordHeight":46226,"Bitcoin":{"Address":"1K2SXgApmo9uZoyahvsbSanpVWbzZWVVMF","TXID":"9a47f131677e135645cebe74085cd980044eda2abbb05ac09ee79ba8640f368d","BlockHeight":421417,"BlockHash":"000000000000000003781bf1b36dbaa1a71f94e23b4b9dc13024379aaf244d89","Offset":599}}e5d40b8673fbeba9e4e5a4322a514ec28989acef55b6fcdf49eae400b6d302852c2cf6659dc1f3298ffae60f6605666efbcef3ac4947333515084e1269ec0807`
 
 	ar, valid, err := UnmarshalAndvalidateAnchorRecord([]byte(signedRecord), pub)
