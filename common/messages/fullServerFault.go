@@ -291,7 +291,17 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	if !sfSigned {
 		return -1
 	}
-	return 1 // err == nil and sfSigned == true
+	validSigCount := 0
+	for _, fedSig := range m.SignatureList.List {
+		check, err := state.VerifyFederatedSignature(bytes, fedSig.GetSignature())
+		if err == nil && check {
+			validSigCount++
+		}
+		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
+			return 1
+		}
+	}
+	return -1 // didn't see enough valid sigs
 }
 
 func (m *FullServerFault) ComputeVMIndex(state interfaces.IState) {
@@ -344,13 +354,24 @@ func (a *FullServerFault) IsSameAs(b *FullServerFault) bool {
 // Build Function
 //*******************************************************************************
 
-func NewFullServerFault(faultMessage *ServerFault, sigList SigList) *FullServerFault {
+func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSignature) *FullServerFault {
 	sf := new(FullServerFault)
 	sf.Timestamp = faultMessage.Timestamp
 	sf.VMIndex = faultMessage.VMIndex
 	sf.DBHeight = faultMessage.DBHeight
 	sf.Height = faultMessage.Height
 	sf.ServerID = faultMessage.ServerID
-	sf.SignatureList = sigList
+
+	numSigs := len(sigList)
+	var allSigs []interfaces.IFullSignature
+	for _, sig := range sigList {
+		allSigs = append(allSigs, sig)
+	}
+
+	sl := new(SigList)
+	sl.Length = uint32(numSigs)
+	sl.List = allSigs
+
+	sf.SignatureList = *sl
 	return sf
 }

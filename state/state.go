@@ -154,7 +154,7 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
-	FaultMap        map[[32]byte]map[[32]byte]interfaces.ISignature
+	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
@@ -432,7 +432,7 @@ func (s *State) Init() {
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
-	s.FaultMap = make(map[[32]byte]map[[32]byte]interfaces.ISignature)
+	s.FaultMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}

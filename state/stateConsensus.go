@@ -296,7 +296,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	coreHash := sf.GetCoreHash().Fixed()
 
 	if s.FaultMap[coreHash] == nil {
-		s.FaultMap[coreHash] = make(map[[32]byte]interfaces.ISignature)
+		s.FaultMap[coreHash] = make(map[[32]byte]interfaces.IFullSignature)
 	}
 
 	s.FaultMap[coreHash][issuerID] = sf.GetSignature()
@@ -313,8 +313,17 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	}
 	if s.Leader && cnt > (fedServerCnt/2) {
 		fmt.Println(s.FactomNodeName, "WOULD BE FAULTING", sf.ServerID.String())
-		if s.LeaderVMIndex == int(sf.VMIndex)+1 {
+		if s.LeaderVMIndex == int(sf.VMIndex)+1 || s.LeaderVMIndex == 0 && int(sf.VMIndex) == fedServerCnt {
 			fmt.Println(s.FactomNodeName, "ACTUALLY AM FAULTING:", sf.ServerID.String())
+			var listOfSigs []interfaces.IFullSignature
+
+			for _, sig := range s.FaultMap[coreHash] {
+				listOfSigs = append(listOfSigs, sig)
+			}
+			fullFault := messages.NewFullServerFault(sf, listOfSigs)
+			if fullFault != nil {
+				s.NetworkOutMsgQueue() <- fullFault
+			}
 		}
 	}
 	/*
@@ -328,10 +337,11 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
-	// JUSTIN TODO: this is a stub right now, but eventually this will be where we demote a fed server
-	// and promote an audit server and fiddle with the admin block to reflect this
+	// JUSTIN TODO: this is a stub right now
 	fsf, _ := m.(*messages.FullServerFault)
 	fmt.Println("Follower execute FullServerFault:", fsf)
+	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
+	s.AddFedServer(fsf.DBHeight, s.GetAuditServers(fsf.DBHeight)[0].GetChainID())
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
