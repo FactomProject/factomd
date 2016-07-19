@@ -142,6 +142,7 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		if index >= len(fnodes) {
 			index = 0
 		}
+		st = fnodes[index]
 		w.Write([]byte(fmt.Sprintf("%d", index)))
 	case "peers":
 		data := getPeers()
