@@ -20,6 +20,7 @@ type DataDump struct {
 	DataDump4 struct { // Process List
 		Authorities string
 		Identities  string
+		MyNode      string
 	}
 }
 
@@ -27,10 +28,14 @@ func getDataDumps() []byte {
 	holder := new(DataDump)
 	holder.DataDump1.ShortDump = dd.ShortSummary(fnodes)
 	holder.DataDump1.RawDump = dd.RawSummary(fnodes)
+
 	holder.DataDump2.RawDump = dd.RawProcessList(st)
+
 	holder.DataDump3.RawDump = dd.RawPrintMap(st)
+
 	holder.DataDump4.Authorities = dd.Authorities(st)
 	holder.DataDump4.Identities = dd.Identities(st)
+	holder.DataDump4.MyNode = dd.MyNodeInfo(st)
 
 	ret, err := json.Marshal(holder)
 	if err != nil {

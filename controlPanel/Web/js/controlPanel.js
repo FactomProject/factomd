@@ -54,6 +54,7 @@ function updataDataDumps() {
 
     $("#dump4 #dumpAuth").text(obj.DataDump4.Authorities)
     $("#dump4 #dumpIdent").text(obj.DataDump4.Identities)
+    $("#dump4 #dumpMyNode").text(obj.DataDump4.MyNode)
   })
 }
 

@@ -1,6 +1,7 @@
 package dataDumpFormatting
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/factomd/state"
@@ -8,10 +9,10 @@ import (
 
 func Identities(st *state.State) string {
 	prt := ""
-	prt = prt + fmt.Sprintf("=== Identity List ===  Total: %d Displaying: All\n", len(st.Identities))
+	prt = prt + fmt.Sprintf("=== Identity List ===   Total: %d Displaying: All\n", len(st.Identities))
 	for c, i := range st.Identities {
 		num := fmt.Sprintf("%d", c)
-		prt = prt + "------------------------------------" + num + "----------------------------------------\n"
+		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
 		stat := returnStatString(i.Status)
 		prt = prt + fmt.Sprint("Server Status: ", stat, "\n")
 		prt = prt + fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n")
@@ -34,7 +35,7 @@ func Authorities(st *state.State) string {
 	prt = prt + fmt.Sprintf("=== Authority List ===   Total: %d Displaying: All\n", len(st.Authorities))
 	for c, i := range st.Authorities {
 		num := fmt.Sprintf("%d", c)
-		prt = prt + "-------------------------------------" + num + "---------------------------------------\n"
+		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
 		var stat string
 		switch i.Status {
 		case 0:
@@ -62,6 +63,25 @@ func Authorities(st *state.State) string {
 		for _, a := range i.AnchorKeys {
 			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
 		}
+	}
+	return prt
+}
+
+func MyNodeInfo(st *state.State) string {
+	prt := ""
+	prt = prt + fmt.Sprintf("My Node: %s\n", st.GetFactomNodeName())
+	if st.IdentityChainID == nil {
+		prt = prt + fmt.Sprint("Identity ChainID: \n")
+	} else {
+		prt = prt + fmt.Sprint("Identity ChainID: ", st.IdentityChainID.String(), "\n")
+
+	}
+	pub := st.GetServerPublicKey()
+	if data, err := pub.MarshalBinary(); err != nil {
+		prt = prt + fmt.Sprintf("Signing Key: \n")
+	} else {
+		prt = prt + fmt.Sprintf("Signing Key: %s\n", hex.EncodeToString(data))
+
 	}
 	return prt
 }
