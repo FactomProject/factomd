@@ -130,8 +130,8 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		if err == nil {
 			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
 			// all transactions here.
-			fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetHash(), trans.GetTimestamp())
-			fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetHash(), trans.GetTimestamp())
+			fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+			fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
 		}
 		return err
 	}
@@ -168,11 +168,14 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitChain)
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
-
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 
 	case entryCreditBlock.ECIDBalanceIncrease:
 		t := trans.(*entryCreditBlock.IncreaseBalance)
@@ -240,8 +243,19 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	}
 	fs.UpdateTransaction(true, t)
 
+	// Monitor for changes in Identity
 	dblk, _ := fs.State.DB.FetchDirectoryBlockHead()
-	LoadIdentityByDirectoryBlock(dblk, fs.State, true)
+	if dblk != nil {
+		for _, dEntry := range dblk.GetDBEntries() {
+			if isIdentityChain(dEntry.GetChainID(), fs.State.Identities) != -1 {
+				eblk, err := fs.State.DB.FetchEBlock(dEntry.GetKeyMR())
+				if err != nil {
+					continue
+				}
+				LoadIdentityByEntryBlock(eblk, fs.State, true)
+			}
+		}
+	}
 	fs.DBHeight++
 }
 

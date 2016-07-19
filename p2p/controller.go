@@ -16,6 +16,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // Controller manages the peer to peer network.
@@ -28,25 +29,32 @@ type Controller struct {
 	ToNetwork   chan Parcel // Parcels from the application for us to route
 	FromNetwork chan Parcel // Parcels from the network for the application
 
-	listenPort           string                       // port we listen on for new connections
-	connections          map[string]Connection        // map of the connections indexed by peer hash
-	connectionsByAddress map[string]Connection        // map of the connections indexed by peer address
-	connectionMetrics    map[string]ConnectionMetrics // map of the metrics indexed by peer hash
+	listenPort                  string                            // port we listen on for new connections
+	connections                 map[string]Connection             // map of the connections indexed by peer hash
+	connectionsByAddress        map[string]Connection             // map of the connections indexed by peer address
+	connectionMetrics           map[string]ConnectionMetrics      // map of the metrics indexed by peer hash
+	connectionMetricsChannel    chan map[string]ConnectionMetrics // Channel on which we put the connection metrics map, periodically.
+	lastConnectionMetricsUpdate time.Time                         // update once a second.
 
-	discovery                  Discovery // Our discovery structure
+	discovery Discovery // Our discovery structure
+
 	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
 	lastPeerManagement         time.Time // Last time we ran peer management.
+	lastDiscoveryRequest       time.Time
 	NodeID                     uint64
 	lastStatusReport           time.Time
 	lastPeerRequest            time.Time // Last time we asked peers about the peers they know about.
+	specialPeersString         string    // configuration set special peers
 }
 
 type ControllerInit struct {
-	Port      string    // Port to listen on
-	PeersFile string    // Path to file to find / save peers
-	Network   NetworkID // Network - eg MainNet, TestNet etc.
-	Exclusive bool      // flag to indicate we should only connect to trusted peers
-	SeedURL   string    // URL to a source of peer info
+	Port                     string                            // Port to listen on
+	PeersFile                string                            // Path to file to find / save peers
+	Network                  NetworkID                         // Network - eg MainNet, TestNet etc.
+	Exclusive                bool                              // flag to indicate we should only connect to trusted peers
+	SeedURL                  string                            // URL to a source of peer info
+	SpecialPeers             string                            // Peers to always connect to at startup, and stay persistent
+	ConnectionMetricsChannel chan map[string]ConnectionMetrics // Channel on which we put the connection metrics map, periodically.
 }
 
 // CommandDialPeer is used to instruct the Controller to dial a peer address
@@ -92,25 +100,31 @@ type CommandChangeLogging struct {
 //////////////////////////////////////////////////////////////////////
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
-	significant("ctrlr", "Controller.Init(%s) %#x", ci.Port, ci.Network)
-	silence("#################", "META: Last touched: WEDNESDAY JULY 6 7:45PM")
+	significant("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
+	significant("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
+	silence("#################", "META: Last touched: MONDAY JULY 18th, 1:45PM")
+	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
+	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, 1000) // Commands from App
 	c.FromNetwork = make(chan Parcel, 10000)        // Channel to the app for network data
 	c.ToNetwork = make(chan Parcel, 10000)          // Parcels from the app for the network
-	c.listenPort = ci.Port
-	NetworkListenPort = ci.Port
 	c.connections = make(map[string]Connection)
 	c.connectionMetrics = make(map[string]ConnectionMetrics)
-	discovery := new(Discovery).Init(ci.PeersFile)
-	c.discovery = *discovery
-	c.discovery.seedURL = ci.SeedURL
-	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
-	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
-	c.lastPeerManagement = time.Now()
+	c.connectionMetricsChannel = ci.ConnectionMetricsChannel
+	c.listenPort = ci.Port
+	NetworkListenPort = ci.Port
+	c.lastPeerManagement = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	c.lastPeerRequest = time.Now()
 	CurrentNetwork = ci.Network
 	OnlySpecialPeers = ci.Exclusive
+	c.specialPeersString = ci.SpecialPeers
+	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
+	c.lastConnectionMetricsUpdate = time.Now()
+	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
+	c.discovery = *discovery
+	// Set this to the past so we will do peer management almost right away after starting up.
+	significant("ctrlr", "\n\n\n\n\nController.Init(%s) Controller is: %+v\n\n", ci.Port, c)
 	return c
 }
 
@@ -120,10 +134,28 @@ func (c *Controller) StartNetwork() {
 	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
+	// Dial the peers in from configuration
+	c.DialSpecialPeersString(c.specialPeersString)
 	// Dial out to peers
 	c.fillOutgoingSlots()
 	// Start the runloop
 	go c.runloop()
+}
+
+// DialSpecialPeersString lets us pass in a string of special peers to dial
+func (c *Controller) DialSpecialPeersString(peersString string) {
+	significant("ctrlr", "DialSpecialPeersString() Dialing Special Peers %s", peersString)
+	parseFunc := func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
+	}
+	peerAddresses := strings.FieldsFunc(peersString, parseFunc)
+	for _, peerAddress := range peerAddresses {
+		fmt.Println("Dialing Peer: ", peerAddress)
+		ipPort := strings.Split(peerAddress, ":")
+		peer := new(Peer).Init(ipPort[0], ipPort[1], 0, SpecialPeer, 0)
+		peer.Source["Local-Configuration"] = time.Now()
+		c.DialPeer(*peer, true) // these are persistent connections
+	}
 }
 
 func (c *Controller) StartLogging(level uint8) {
@@ -141,7 +173,7 @@ func (c *Controller) ChangeLogLevel(level uint8) {
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
-	debug("ctrlr", "DialPeer message for %s", peer.Address)
+	debug("ctrlr", "DialPeer message for %s", peer.PeerIdent())
 	c.commandChannel <- CommandDialPeer{peer: peer, persistent: persistent}
 }
 
@@ -151,7 +183,7 @@ func (c *Controller) AddPeer(conn net.Conn) {
 }
 
 func (c *Controller) NetworkStop() {
-	debug("ctrlr", "NetworkStop ")
+	debug("ctrlr", "NetworkStop %+v", c)
 	c.commandChannel <- CommandShutdown{}
 }
 
@@ -239,31 +271,49 @@ func (c *Controller) runloop() {
 	}
 	defer reportExit()
 
-	note("ctrlr", "Controller.runloop() starting up")
-	// time.Sleep(time.Second * 5) // Wait a few seconds to let the system come up.
+	// startDelay := 24
+	// i := 1
+	// note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay)
+	// for i <= startDelay {
+	// 	time.Sleep(time.Second * 1)
+	// 	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", startDelay-i)
+	// 	i = i + 1
+	// }
+	note("ctrlr", "Controller.runloop() @@@@@@@@@@ starting up in %d seconds", 2)
+	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
-		time.Sleep(time.Millisecond * 5) // This can be a tight loop, don't want to starve the application
-		if CurrentLoggingLevel > 1 {
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() BEGINNING OF LOOP : c.keepRunning = %v", c.keepRunning)
+		time.Sleep(time.Millisecond * 51) // This can be a tight loop, don't want to starve the application
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Woke up : c.keepRunning = %v", c.keepRunning)
+		if CurrentLoggingLevel > 2 {
 			fmt.Printf("@")
 		}
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() About to process commands. Commands in channel: %d", len(c.commandChannel))
 		for 0 < len(c.commandChannel) {
 			command := <-c.commandChannel
-			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() handleCommand()")
 			c.handleCommand(command)
 		}
 		// route messages to and from application
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling router")
 		c.route() // Route messages
 		// Manage peers
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Calling managePeers")
 		c.managePeers()
-		verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() Checking Logging level")
 		if CurrentLoggingLevel > 0 {
-			verbose("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() networkStatusReport()")
 			c.networkStatusReport()
 		}
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() lastConnectionMetricsUpdate()")
+		if time.Second < time.Since(c.lastConnectionMetricsUpdate) {
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() Sending Metrics()")
+			c.lastConnectionMetricsUpdate = time.Now()
+			c.connectionMetricsChannel <- c.connectionMetrics
+			note("ctrlr", "@@@@@@@@@@ Controller.runloop() Metrics Sent")
+		}
+		note("ctrlr", "@@@@@@@@@@ Controller.runloop() END OF LOOP : c.keepRunning = %v", c.keepRunning)
 	}
 	silence("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
 	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
@@ -416,6 +466,13 @@ func (c *Controller) managePeers() {
 	if PeerSaveInterval < managementDuration {
 		c.lastPeerManagement = time.Now()
 		debug("ctrlr", "managePeers() time since last peer management: %s", managementDuration.String())
+		// If it's been awhile, update peers from the DNS seed.
+		discoveryDuration := time.Since(c.lastDiscoveryRequest)
+		if PeerDiscoveryInterval < discoveryDuration {
+			note("ctrlr", "calling c.discovery.DiscoverPeersFromSeed()")
+			c.discovery.DiscoverPeersFromSeed()
+			note("ctrlr", "back from c.discovery.DiscoverPeersFromSeed()")
+		}
 		// If we are low on outgoing onnections, attempt to connect to some more.
 		// If the connection is not online, we don't count it as connected.
 		outgoing := 0
@@ -474,11 +531,7 @@ func (c *Controller) fillOutgoingSlots() {
 		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
 	}
 	peers := c.discovery.GetOutgoingPeers()
-	if len(peers) < NumberPeersToConnect*2 {
-		c.discovery.GetOutgoingPeers()
-		peers = c.discovery.GetOutgoingPeers()
-	}
-	// dial into the peers
+
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) {
 			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())

@@ -29,8 +29,8 @@ var _ = (*hash.Hash32)(nil)
 func (s *State) Process() (progress bool) {
 
 	if !s.RunLeader {
-		now := s.GetTimestamp() // Timestamps are in milliseconds, so wait 20
-		if now.GetTimeMilli()-s.StartDelay.GetTimeMilli() > 5*1000 {
+		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+		if now-s.StartDelay > 10*1000 {
 			s.RunLeader = true
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -39,7 +39,7 @@ func (s *State) Process() (progress bool) {
 
 	// Executing a message means looking if it is valid, checking if we are a leader.
 	executeMsg := func(msg interfaces.IMsg) (ret bool) {
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			return
 		}
@@ -53,7 +53,8 @@ func (s *State) Process() (progress bool) {
 
 		switch msg.Validate(s) {
 		case 1:
-			if s.Leader &&
+			if s.RunLeader &&
+				s.Leader &&
 				!s.Saving &&
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
@@ -77,7 +78,7 @@ func (s *State) Process() (progress bool) {
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 5 && len(s.XReview) > 0; i++ {
+	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
@@ -116,15 +117,24 @@ func (s *State) ReviewHolding() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetMsgHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			delete(s.Holding, k)
+			continue
+		}
+
+		if v.Expire(s) {
+			s.ExpireCnt++
+			delete(s.Holding, k)
+			continue
 		}
 
 		if v.Resend(s) {
-			s.ResendCnt++
-			v.ComputeVMIndex(s)
-			s.networkOutMsgQueue <- v
+			if v.Validate(s) == 1 {
+				s.ResendCnt++
+				v.ComputeVMIndex(s)
+				s.networkOutMsgQueue <- v
+			}
 		}
 
 		if s.Leader && v.GetVMIndex() == s.LeaderVMIndex {
@@ -132,17 +142,6 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 		}
 
-		if v.Expire(s) {
-			s.ExpireCnt++
-			delete(s.Holding, k)
-		}
-	}
-
-	for k := range s.Acks {
-		v := s.Acks[k].(*messages.Ack)
-		if v.DBHeight < s.LLeaderHeight {
-			delete(s.Acks, k)
-		}
 	}
 
 }
@@ -166,6 +165,7 @@ func (s *State) AddDBState(isNew bool,
 		s.CurrentMinute = 0
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
+		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
@@ -306,7 +306,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
-	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
@@ -379,15 +379,56 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
+	if as.ServerType == 0 {
+		audits := s.LeaderPL.AuditServers
+		for _, audit := range audits {
+			if audit.GetChainID().IsSameAs(as.ServerChainID) {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
+				return true
+			}
+		}
+	} else if as.ServerType == 1 {
+		feds := s.LeaderPL.FedServers
+		for _, fed := range feds {
+			if fed.GetChainID().IsSameAs(as.ServerChainID) {
+				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Audit server message did not add to admin block, server is a federated server and cannot be both.")
+				return true
+			}
+		}
+	}
+
 	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader {
 		return true
 	}
 
-	if as.ServerType == 0 {
-		s.LeaderPL.AdminBlock.AddFedServer(as.ServerChainID)
-	} else if as.ServerType == 1 {
-		s.LeaderPL.AdminBlock.AddAuditServer(as.ServerChainID)
+	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
+		return true
 	}
+	return true
+}
+
+func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.IMsg) bool {
+	rs, ok := removeServerMsg.(*messages.RemoveServerMsg)
+	if !ok {
+		return true
+	}
+
+	if !s.VerifyIsAuthority(rs.ServerChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
+		return true
+	}
+
+	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
+		return true
+	}
+
+	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
+		return true
+	}
+	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
 
 	return true
 }
@@ -398,21 +439,21 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 		return true
 	}
 
-	// TODO: Signiture && Checking
+	if !s.VerifyIsAuthority(ask.IdentityChainID) {
+		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
+		return true
+	}
 
 	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte
 		copy(btcKey[:], ask.Key.Bytes()[:20])
-		fmt.Println("Add BTC to admin block")
 		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, &btcKey)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
 		pub := ask.Key.Fixed()
-		fmt.Println("Add Block Key to admin block : " + s.IdentityChainID.String())
 		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, &pub)
 	case constants.TYPE_ADD_MATRYOSHKA:
-		fmt.Println("Add MHash to admin block")
 		s.LeaderPL.AdminBlock.AddMatryoshkaHash(ask.IdentityChainID, ask.Key)
 	}
 	return true
@@ -618,6 +659,35 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 	}
 
+	for k := range s.Commits {
+		vs := s.Commits[k]
+		if len(vs) == 0 {
+			delete(s.Commits, k)
+			continue
+		}
+		v, ok := vs[0].(interfaces.IMsg)
+		if ok {
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if !ok {
+				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
+					s.FactomNodeName,
+					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
+					v.String())
+
+				copy(vs, vs[1:])
+				vs[len(vs)-1] = nil
+				s.Commits[k] = vs[:len(vs)-1]
+			}
+		}
+	}
+
+	for k := range s.Acks {
+		v := s.Acks[k].(*messages.Ack)
+		if v.DBHeight < s.LLeaderHeight {
+			delete(s.Acks, k)
+		}
+	}
+
 	return false
 }
 
@@ -657,12 +727,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
+		pl.ResetDiffSigTally()
 	}
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
+		}
+		if !dbs.DirectoryBlockKeyMR.IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR()) {
+			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockKeyMR.String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR().String()[:10])
+			pl.IncrementDiffSigTally()
 		}
 		dbs.Processed = true
 		s.DBSigProcessed++
@@ -676,10 +751,22 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
+		if s.KeepMismatch || pl.CheckDiffSigTally() {
+			if !dbstate.Saved {
+				dbstate.ReadyToSave = true
+				s.DBStates.SaveDBStateToDB(dbstate)
+			}
+		} else {
+			s.MismatchCnt++
+			s.DBStates.DBStates = s.DBStates.DBStates[:len(s.DBStates.DBStates)-1]
 
-		if !dbstate.Saved {
-			dbstate.ReadyToSave = true
-			s.DBStates.SaveDBStateToDB(dbstate)
+			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
+
+			if msg != nil {
+				s.RunLeader = false
+				s.StartDelay = s.GetTimestamp().GetTimeMilli()
+				s.NetworkOutMsgQueue() <- msg
+			}
 		}
 		s.ReviewHolding()
 		s.Saving = false
@@ -717,17 +804,20 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
 	cs := s.Commits[hash.Fixed()]
-	if cs == nil || len(cs) == 0 {
+	if cs == nil {
 		return nil
 	}
-	r := cs[0]
-	if len(cs) == 1 {
+
+	if len(cs) == 0 {
 		delete(s.Commits, hash.Fixed())
-	} else {
-		copy(cs[:], cs[1:])
-		cs[len(cs)-1] = nil
-		s.Commits[hash.Fixed()] = cs
+		return nil
 	}
+
+	r := cs[0]
+
+	copy(cs[:], cs[1:])
+	cs[len(cs)-1] = nil
+	s.Commits[hash.Fixed()] = cs[:len(cs)-1]
 
 	return r
 }

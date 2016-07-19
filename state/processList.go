@@ -98,6 +98,25 @@ func (p *ProcessList) VMIndexFor(hash []byte) int {
 	return r
 }
 
+func (p *ProcessList) SortFedServers() {
+	for i := 0; i < len(p.FedServers)-1; i++ {
+		done := true
+		for j := 0; j < len(p.FedServers)-1-i; j++ {
+			fs1 := p.FedServers[j].GetChainID().Bytes()
+			fs2 := p.FedServers[j+1].GetChainID().Bytes()
+			if bytes.Compare(fs1, fs2) < 0 {
+				tmp := p.FedServers[j]
+				p.FedServers[j] = p.FedServers[j+1]
+				p.FedServers[j+1] = tmp
+				done = false
+			}
+		}
+		if done {
+			return
+		}
+	}
+}
+
 // Returns the Federated Server responsible for this hash in this minute
 func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer {
 	vs := p.VMIndexFor(hash)
@@ -133,15 +152,23 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 
 	scid := identityChainID.Bytes()
 
+	outoforder1 := false
+	insert := 0
 	for i, fs := range p.FedServers {
 		// Find and remove
 		comp := bytes.Compare(scid, fs.GetChainID().Bytes())
 		if comp == 0 {
+			if outoforder1 {
+				return true, -1
+			}
 			return true, i
 		}
 		if comp < 0 {
-			return false, i
+			insert = i
 		}
+	}
+	if outoforder1 {
+		return false, insert
 	}
 	return false, len(p.FedServers)
 }
@@ -205,6 +232,7 @@ func (p *ProcessList) PrintMap() string {
 // Add the given serverChain to this processlist as a Federated Server, and return
 // the server index number of the added server
 func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
+	p.SortFedServers()
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		return i
@@ -236,9 +264,11 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if !found {
+		p.RemoveAuditServerHash(identityChainID)
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
+	p.MakeMap()
 }
 
 // Remove the given serverChain from this processlist's Audit Servers
@@ -304,12 +334,15 @@ func (p *ProcessList) IncrementDiffSigTally() {
 	p.diffSigTally++
 }
 
-func (p *ProcessList) CheckDiffSigTally() {
+func (p *ProcessList) CheckDiffSigTally() bool {
 	// If the majority of VMs' signatures do not match our
 	// saved block, we discard that block from our database.
 	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
 		p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+		return false
 	}
+
+	return true
 }
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
@@ -420,7 +453,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	now := p.State.GetTimestamp()
 
-	_, isNew2 := p.State.Replay.Valid(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
+	_, isNew2 := p.State.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
 	if !isNew2 {
 		toss("seen before, or too old")
 		return
@@ -461,7 +494,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
-	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
+	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
 
 	delete(p.State.Acks, ack.GetHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
@@ -508,7 +541,7 @@ func (p *ProcessList) String() string {
 				}
 
 				if msg != nil {
-					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:3])
+					leader := fmt.Sprintf("[%x] ", vm.ListAck[j].LeaderChainID.Bytes()[:4])
 					buf.WriteString("   " + leader + msg.String() + "\n")
 				} else {
 					buf.WriteString("   <nil>\n")
@@ -525,8 +558,8 @@ func (p *ProcessList) String() string {
 			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
+		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	}
-	buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
 	return buf.String()
 }
 
@@ -548,6 +581,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
+		pl.SortFedServers()
 	} else {
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}

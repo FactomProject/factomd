@@ -34,27 +34,41 @@ type State struct {
 
 	Cfg interfaces.IFactomConfig
 
-	Prefix                  string
-	FactomNodeName          string
-	FactomdVersion          int
-	LogPath                 string
-	LdbPath                 string
-	BoltDBPath              string
-	LogLevel                string
-	ConsoleLogLevel         string
-	NodeMode                string
-	DBType                  string
-	CloneDBType             string
-	ExportData              bool
-	ExportDataSubpath       string
-	Network                 string
-	PeersFile               string
-	SeedURL                 string
+	Prefix            string
+	FactomNodeName    string
+	FactomdVersion    int
+	LogPath           string
+	LdbPath           string
+	BoltDBPath        string
+	LogLevel          string
+	ConsoleLogLevel   string
+	NodeMode          string
+	DBType            string
+	CloneDBType       string
+	ExportData        bool
+	ExportDataSubpath string
+
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
+	ControlPanelPort        int
 	Replay                  *Replay
 	DropRate                int
+
+	// Network Configuration
+	Network           string
+	MainNetworkPort   string
+	MainPeersFile     string
+	MainSeedURL       string
+	MainSpecialPeers  string
+	TestNetworkPort   string
+	TestPeersFile     string
+	TestSeedURL       string
+	TestSpecialPeers  string
+	LocalNetworkPort  string
+	LocalPeersFile    string
+	LocalSeedURL      string
+	LocalSpecialPeers string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []Identity       // Identities of all servers in management chain
@@ -86,11 +100,13 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
+	serverPrivKey         primitives.PrivateKey
+	serverPubKey          primitives.PublicKey
+	serverPendingPrivKeys []primitives.PrivateKey
+	serverPendingPubKeys  []primitives.PublicKey
 
 	// Server State
-	StartDelay    interfaces.Timestamp
+	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
 	RunLeader     bool
 	LLeaderHeight uint32
 	Leader        bool
@@ -112,6 +128,9 @@ type State struct {
 	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
+	KeepMismatch   bool // By default, this is false, which means DBstates are discarded
+	//when a majority of leaders disagree with the hash we have via DBSigs
+	MismatchCnt int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
@@ -222,8 +241,19 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
-	clone.PeersFile = s.PeersFile
-	clone.SeedURL = s.SeedURL
+	clone.MainNetworkPort = s.MainNetworkPort
+	clone.MainPeersFile = s.MainPeersFile
+	clone.MainSeedURL = s.MainSeedURL
+	clone.MainSpecialPeers = s.MainSpecialPeers
+	clone.TestNetworkPort = s.TestNetworkPort
+	clone.TestPeersFile = s.TestPeersFile
+	clone.TestSeedURL = s.TestSeedURL
+	clone.TestSpecialPeers = s.TestSpecialPeers
+	clone.LocalNetworkPort = s.LocalNetworkPort
+	clone.LocalPeersFile = s.LocalPeersFile
+	clone.LocalSeedURL = s.LocalSeedURL
+	clone.LocalSpecialPeers = s.LocalSpecialPeers
+
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
@@ -277,7 +307,6 @@ func (s *State) SetNetStateOff(net bool) {
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
-
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
@@ -296,17 +325,31 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
-		s.PeersFile = cfg.App.PeersFile
-		s.SeedURL = cfg.App.SeedURL
+		s.MainNetworkPort = cfg.App.MainNetworkPort
+		s.MainPeersFile = cfg.App.MainPeersFile
+		s.MainSeedURL = cfg.App.MainSeedURL
+		s.MainSpecialPeers = cfg.App.MainSpecialPeers
+		s.TestNetworkPort = cfg.App.TestNetworkPort
+		s.TestPeersFile = cfg.App.TestPeersFile
+		s.TestSeedURL = cfg.App.TestSeedURL
+		s.TestSpecialPeers = cfg.App.TestSpecialPeers
+		s.LocalNetworkPort = cfg.App.LocalNetworkPort
+		s.LocalPeersFile = cfg.App.LocalPeersFile
+		s.LocalSeedURL = cfg.App.LocalSeedURL
+		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
+		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
-
-		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
+		if err != nil {
+			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		} else {
+			s.IdentityChainID = identity
+		}
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"
@@ -318,16 +361,26 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
-		s.PeersFile = "peers.json"
-		// BUGBUG JAYJAY Switch to shipping version
-		// s.SeedURL = "http://factomstatus.com/seed/seed.txt"
-		s.SeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/seed.txt"
+		s.MainNetworkPort = "8108"
+		s.MainPeersFile = "MainPeers.json"
+		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+		s.MainSpecialPeers = ""
+		s.TestNetworkPort = "8109"
+		s.TestPeersFile = "TestPeers.json"
+		s.TestSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+		s.TestSpecialPeers = ""
+		s.LocalNetworkPort = "8110"
+		s.LocalPeersFile = "LocalPeers.json"
+		s.LocalSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+		s.LocalSpecialPeers = ""
+
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
 		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
+		s.ControlPanelPort = 8090
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -338,7 +391,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 
 func (s *State) Init() {
 
-	s.StartDelay = s.GetTimestamp() // We cant start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
@@ -458,7 +511,7 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
-	LoadIdentityCache(s)
+	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
 
 	s.starttime = time.Now()
@@ -735,7 +788,7 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight == 0 {
 		dbheight++
 	}
-	if plbase <= dbheight {
+	if plbase <= dbheight && s.RunLeader {
 		progress = s.ProcessLists.UpdateState(dbheight)
 	}
 
@@ -746,9 +799,6 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.SetString()
 
-	if s.DebugConsensus {
-		fmt.Printf("dddd %20s %10s --- %10s %10v\n", "Update State:>>>>", s.FactomNodeName, "progress:", progress)
-	}
 	return
 }
 
@@ -781,6 +831,10 @@ func (s *State) catchupEBlocks() {
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
+}
+
+func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
+	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
@@ -850,7 +904,8 @@ func (s *State) initServerKeys() {
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
+	s.serverPubKey = *(s.serverPrivKey.Pub)
+	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 func (s *State) LogInfo(args ...interface{}) {
@@ -1042,17 +1097,16 @@ func (s *State) SetString() {
 	}
 	s.Status = false
 
-	// fmt.Println("dddd  SetString::::::", s.FactomNodeName, "LeaderMinute", s.LeaderMinute)
 	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
 		vmi = s.LeaderVMIndex
 	}
 	vmt0 := s.ProcessLists.Get(s.LLeaderHeight)
 	var vmt *VM
-	lmin := -1
+	lmin := "-"
 	if vmt0 != nil && vmi >= 0 {
 		vmt = vmt0.VMs[vmi]
-		lmin = vmt.LeaderMinute
+		lmin = fmt.Sprintf("%2d", vmt.LeaderMinute)
 	}
 
 	vmin := s.CurrentMinute
@@ -1109,34 +1163,33 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%8s[%6x]%4s %4s ",
+	str := fmt.Sprintf("%8s[%12x]%4s %3s ",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:3],
+		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
 		stype)
 
-	str = str + fmt.Sprintf("DB: %d[%6x] PL:%d/%d ",
+	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+
+	str = str + fmt.Sprintf("DB: %5d[%6x] PL:%-9s ",
 		dHeight,
 		keyMR[:3],
-		s.ProcessLists.DBHeightBase,
-		int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+		pls)
 
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBHT %v DBStateCnt %5d MissingCnt %5d ",
+	dbstate := fmt.Sprintf("%d/%d", s.DBStateCnt, s.MismatchCnt)
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(+/-) %-10s MissCnt %5d ",
 		lmin,
 		s.CurrentMinute,
-		s.LLeaderHeight,
-		s.DBStateCnt,
+		dbstate,
 		s.MissingCnt)
 
-	str = str + fmt.Sprintf("Resend %5d Expire %5d Saving %5v %3d-Fct %3d-EC %3d-E  %7.2f total tps %7.2f tps",
+	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
+	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-14s tps t/i %s",
 		s.ResendCnt,
 		s.ExpireCnt,
-		s.Saving,
-		s.FactoidTrans,
-		s.NewEntryChains,
-		s.NewEntries,
-		tps,
-		s.tps)
+		trans,
+		stps)
 
 	s.serverPrt = str
 }
@@ -1218,4 +1271,9 @@ func (s *State) ProcessInvalidMsgQueue() {
 			s.InvalidMessages[msg.GetHash().Fixed()] = msg
 		}
 	}
+}
+
+func (s *State) SetPendingSigningKey(p primitives.PrivateKey) {
+	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
+	s.serverPendingPubKeys = append(s.serverPendingPubKeys, *(p.Pub))
 }

@@ -18,6 +18,15 @@ var _ interfaces.Printable = (*AddReplaceMatryoshkaHash)(nil)
 var _ interfaces.BinaryMarshallable = (*AddReplaceMatryoshkaHash)(nil)
 var _ interfaces.IABEntry = (*AddReplaceMatryoshkaHash)(nil)
 
+func (e *AddReplaceMatryoshkaHash) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8s\n",
+		"AddReplaceMatryoshkaHash",
+		"IdentityChainID", e.IdentityChainID.Bytes()[:4],
+		"MHash", e.MHash.String()[:8]))
+	return (string)(out.DeepCopyBytes())
+}
+
 func (m *AddReplaceMatryoshkaHash) Type() byte {
 	return constants.TYPE_ADD_MATRYOSHKA
 }
@@ -84,11 +93,6 @@ func (e *AddReplaceMatryoshkaHash) JSONString() (string, error) {
 
 func (e *AddReplaceMatryoshkaHash) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *AddReplaceMatryoshkaHash) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *AddReplaceMatryoshkaHash) IsInterpretable() bool {
