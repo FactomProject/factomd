@@ -9,6 +9,15 @@ function updateHTML() {
   updataDataDumps()
 }
 
+$("#dump-container #fullscreen-option").click( function(){
+  txtArea = jQuery(this).siblings(".is-active")
+  txtArea.toggleClass("fullscreen")
+  jQuery(this).toggleClass("absolute-fullscreen-option")
+  jQuery(this).toggleClass("fixed-fullscreen-option")
+})
+
+
+// Top tabs on index
 $("#indexnav-main > a").click(function() {
   if (jQuery(this).hasClass("is-active")) {
 
@@ -36,15 +45,15 @@ function updatePeers() {
 function updataDataDumps() {
   resp = queryState("dataDump",function(resp){
     obj = JSON.parse(resp)
-    $("#dump1 > #dumpShort").text(obj.DataDump1.ShortDump)
-    $("#dump1 > #dumpRaw").text(obj.DataDump1.RawDump)
+    $("#dump1 #dumpShort").text(obj.DataDump1.ShortDump)
+    $("#dump1 #dumpRaw").text(obj.DataDump1.RawDump)
 
-    $("#dump2 > #dumpRaw").text(obj.DataDump2.RawDump)
+    $("#dump2 #dumpRaw").text(obj.DataDump2.RawDump)
 
-    $("#dump3 > #dumpRaw").text(obj.DataDump3.RawDump)
+    $("#dump3 #dumpRaw").text(obj.DataDump3.RawDump)
 
-    $("#dump4 > #dumpAuth").text(obj.DataDump4.Authorities)
-    $("#dump4 > #dumpIdent").text(obj.DataDump4.Identities)
+    $("#dump4 #dumpAuth").text(obj.DataDump4.Authorities)
+    $("#dump4 #dumpIdent").text(obj.DataDump4.Identities)
   })
 }
 
