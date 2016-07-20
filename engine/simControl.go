@@ -5,6 +5,7 @@
 package engine
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strconv"
@@ -57,7 +58,11 @@ func SimControl(listenTo int) {
 			switch {
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
-					fundWallet(fnodes[listenTo].State, 2e7)
+					err := fundWallet(fnodes[listenTo].State, 2e7)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+						break
+					}
 					setUpAuthorites(fnodes[listenTo].State, true)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}
@@ -73,7 +78,11 @@ func SimControl(listenTo int) {
 							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						fundWallet(fnodes[listenTo].State, uint64(count*5e7))
+						err := fundWallet(fnodes[listenTo].State, uint64(count*5e7))
+						if err != nil {
+							os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+							break
+						}
 						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
@@ -513,6 +522,9 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
 					os.Stderr.WriteString(fmt.Sprintf("Signing Key (hex): %s\n", fnodes[listenTo].State.SimGetSigKey()))
+					p := fnodes[listenTo].State.GetServerPrivateKey()
+					str := hex.EncodeToString((p.Key)[:32])
+					os.Stderr.WriteString(fmt.Sprintf("Private Key (hex): %s\n", str))
 
 					break
 				} else if len(b) == 2 && b[1] == 'c' {
@@ -520,7 +532,11 @@ func SimControl(listenTo int) {
 					if auth == nil {
 						break
 					}
-					fundWallet(fnodes[listenTo].State, 1e7)
+					err := fundWallet(fnodes[listenTo].State, 1e8)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
+						break
+					}
 					newKey, err := changeSigningKey(fnodes[listenTo].State.IdentityChainID, fnodes[listenTo].State)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
@@ -748,7 +764,7 @@ func printSummary(summary *int, value int, listenTo *int) {
 
 		list = ""
 		for _, f := range fnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEntries))
+			list = list + fmt.Sprintf(" %3d", f.State.LeaderPL.LenNewEntries())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending Entries", list)
 

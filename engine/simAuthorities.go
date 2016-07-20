@@ -598,8 +598,6 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	}
 
 	portStr := fmt.Sprintf("%d", port)
-	wsapi.ServersMutex.Lock()
-	wsapi.ServersMutex.Unlock()
 	resp, err := http.Post(
 		"http://localhost:"+portStr+"/v2",
 		"application/json",

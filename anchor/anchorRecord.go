@@ -97,6 +97,38 @@ func UnmarshalAnchorRecord(data []byte) (*AnchorRecord, error) {
 	return ar, nil
 }
 
+func UnmarshalAndvalidateAnchorRecord(data []byte, publicKey interfaces.Verifier) (*AnchorRecord, bool, error) {
+	if len(data) == 0 {
+		return nil, false, fmt.Errorf("Invalid data passed")
+	}
+	str := string(data)
+	end := strings.LastIndex(str, "}}")
+	if end < 0 {
+		return nil, false, fmt.Errorf("Found no closing bracket in `%v`", str)
+	}
+	anchorStr := str[:end+2]
+	signatureStr := str[end+2:]
+
+	sig := new(primitives.ByteSliceSig)
+	sig.UnmarshalText([]byte(signatureStr))
+	fixed, err := sig.GetFixed()
+	if err != nil {
+		return nil, false, err
+	}
+
+	valid := publicKey.Verify([]byte(anchorStr), &fixed)
+	if valid == false {
+		return nil, false, nil
+	}
+
+	ar := new(AnchorRecord)
+	err = ar.Unmarshal(data)
+	if err != nil {
+		return nil, false, err
+	}
+	return ar, true, nil
+}
+
 func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorRecord {
 	ar := new(AnchorRecord)
 	ar.AnchorRecordVer = 1

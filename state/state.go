@@ -52,6 +52,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	ControlPanelPort        int
+	ControlPanelPath        string
 	Replay                  *Replay
 	DropRate                int
 
@@ -260,6 +261,9 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
+	clone.ControlPanelPort = s.ControlPanelPort
+	clone.ControlPanelPath = s.ControlPanelPath
+
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
 	clone.Authorities = s.Authorities
@@ -345,6 +349,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
+		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
@@ -380,10 +385,11 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
-		s.ExchangeRateAuthorityAddress = "" // default to nothing so that there is no default FER manipulation
+		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
+		s.ControlPanelPath = "Web/"
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -518,7 +524,14 @@ func (s *State) Init() {
 	s.AuthorityServerCount = 0
 	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
-
+	//needed for multiple nodes with FER.  remove for singe node launch
+	if s.FERChainId == "" {
+		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+	}
+	if s.ExchangeRateAuthorityAddress == "" {
+		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+	}
+	// end of FER removal
 	s.starttime = time.Now()
 }
 
@@ -712,9 +725,11 @@ func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
-	hashResponse := make([]interfaces.IHash, len(pl.NewEntries))
-	for _, entryHash := range pl.NewEntries {
-		hashResponse[hashCount] = entryHash.GetHash()
+	hashResponse := make([]interfaces.IHash, pl.LenNewEntries())
+	keys := pl.GetKeysNewEntries()
+	for _, k := range keys {
+		entry := pl.GetNewEntry(k)
+		hashResponse[hashCount] = entry.GetHash()
 		hashCount++
 	}
 	return hashResponse

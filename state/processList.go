@@ -1,9 +1,14 @@
+// Copyright 2016 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
 	"bytes"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -35,14 +40,24 @@ type ProcessList struct {
 	diffSigTally int /*     Tally of how many VMs have provided different
 		                    Directory Block Signatures than what we have
 	                        (discard DBlock if > 1/2 have sig differences) */
-	// Maps
-	// ====
-	OldMsgs map[[32]byte]interfaces.IMsg // messages processed in this list
-	OldAcks map[[32]byte]interfaces.IMsg // messages processed in this list
 
-	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
-	NewEntries map[[32]byte]interfaces.IEntry      // Entries added within 10 minutes (follower and leader)
-	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
+	// messages processed in this list
+	OldMsgs     map[[32]byte]interfaces.IMsg
+	oldmsgslock *sync.Mutex
+
+	OldAcks     map[[32]byte]interfaces.IMsg
+	oldackslock *sync.Mutex
+
+	// Entry Blocks added within 10 minutes (follower and leader)
+	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
+	neweblockslock *sync.Mutex
+
+	NewEntriesMutex sync.Mutex
+	NewEntries      map[[32]byte]interfaces.IEntry
+
+	// Used by the leader, validate
+	Commits     map[[32]byte]interfaces.IMsg
+	commitslock *sync.Mutex
 
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
@@ -66,6 +81,32 @@ type VM struct {
 	missingTime    int64             // How long we have been waiting for a missing message
 	missingEOM     int64             // Ask for EOM
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
+}
+
+func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+
+	keys = make([][32]byte, len(p.NewEntries))
+
+	i := 0
+	for k := range p.NewEntries {
+		keys[i] = k
+		i++
+	}
+	return
+}
+
+func (p *ProcessList) GetNewEntry(key [32]byte) interfaces.IEntry {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	return p.NewEntries[key]
+}
+
+func (p *ProcessList) LenNewEntries() int {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	return len(p.NewEntries)
 }
 
 func (p *ProcessList) Complete() bool {
@@ -303,16 +344,52 @@ func (p ProcessList) HasMessage() bool {
 	return false
 }
 
-func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
-	return p.NewEBlocks[key.Fixed()]
+func (p *ProcessList) AddOldMsgs(m interfaces.IMsg) {
+	p.oldmsgslock.Lock()
+	defer p.oldmsgslock.Unlock()
+	p.OldMsgs[m.GetHash().Fixed()] = m
 }
 
-func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
+func (p *ProcessList) DeleteOldMsgs(key interfaces.IHash) {
+	p.oldmsgslock.Lock()
+	defer p.oldmsgslock.Unlock()
+	delete(p.OldMsgs, key.Fixed())
+}
+
+func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
+	p.oldmsgslock.Lock()
+	defer p.oldmsgslock.Unlock()
+	return p.OldMsgs[key.Fixed()]
+}
+
+func (p *ProcessList) AddNewEBlocks(key interfaces.IHash, value interfaces.IEntryBlock) {
+	p.neweblockslock.Lock()
+	defer p.neweblockslock.Unlock()
 	p.NewEBlocks[key.Fixed()] = value
 }
 
-func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value interfaces.IEntry) {
+func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
+	p.neweblockslock.Lock()
+	defer p.neweblockslock.Unlock()
+	return p.NewEBlocks[key.Fixed()]
+}
+
+func (p *ProcessList) DeleteEBlocks(key interfaces.IHash) {
+	p.neweblockslock.Lock()
+	defer p.neweblockslock.Unlock()
+	delete(p.NewEBlocks, key.Fixed())
+}
+
+func (p *ProcessList) AddNewEntry(key interfaces.IHash, value interfaces.IEntry) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
 	p.NewEntries[key.Fixed()] = value
+}
+
+func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	delete(p.NewEntries, key.Fixed())
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
@@ -530,7 +607,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
-	p.OldMsgs[m.GetHash().Fixed()] = m
+	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
 }
@@ -613,11 +690,15 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.MakeMap()
 
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
+	pl.oldmsgslock = new(sync.Mutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
+	pl.oldackslock = new(sync.Mutex)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
+	pl.commitslock = new(sync.Mutex)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 

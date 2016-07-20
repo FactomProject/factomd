@@ -9,6 +9,15 @@ function updateHTML() {
   updataDataDumps()
 }
 
+$("#dump-container #fullscreen-option").click( function(){
+  txtArea = jQuery(this).siblings(".is-active")
+  txtArea.toggleClass("fullscreen")
+  jQuery(this).toggleClass("absolute-fullscreen-option")
+  jQuery(this).toggleClass("fixed-fullscreen-option")
+})
+
+
+// Top tabs on index
 $("#indexnav-main > a").click(function() {
   if (jQuery(this).hasClass("is-active")) {
 
@@ -36,15 +45,16 @@ function updatePeers() {
 function updataDataDumps() {
   resp = queryState("dataDump",function(resp){
     obj = JSON.parse(resp)
-    $("#dump1 > #dumpShort").text(obj.DataDump1.ShortDump)
-    $("#dump1 > #dumpRaw").text(obj.DataDump1.RawDump)
+    $("#dump1 #dumpShort").text(obj.DataDump1.ShortDump)
+    $("#dump1 #dumpRaw").text(obj.DataDump1.RawDump)
 
-    $("#dump2 > #dumpRaw").text(obj.DataDump2.RawDump)
+    $("#dump2 #dumpRaw").text(obj.DataDump2.RawDump)
 
-    $("#dump3 > #dumpRaw").text(obj.DataDump3.RawDump)
+    $("#dump3 #dumpRaw").text(obj.DataDump3.RawDump)
 
-    $("#dump4 > #dumpAuth").text(obj.DataDump4.Authorities)
-    $("#dump4 > #dumpIdent").text(obj.DataDump4.Identities)
+    $("#dump4 #dumpAuth").text(obj.DataDump4.Authorities)
+    $("#dump4 #dumpIdent").text(obj.DataDump4.Identities)
+    $("#dump4 #dumpMyNode").text(obj.DataDump4.MyNode)
   })
 }
 
@@ -69,7 +79,7 @@ function updateTransactions() {
           </tr>").insertBefore("#panFactoids > #traxList > tbody >tr:first")*/
           $("#panFactoids > #traxList > tbody").append("\
           <tr>\
-              <td><a id='factom-search-link' type='facttransaction'>" + trans.TxID + "</a></td>\
+              <td><a id='factom-search-link' type='factoidack'>" + trans.TxID + "</a></td>\
               <td>" + trans.TotalInput + "</td>\
               <td>" + trans.TotalInputs + "</td>\
               <td>" + trans.TotalOutputs + "</td>\
@@ -86,13 +96,21 @@ function updateTransactions() {
               <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
               <td>" + entry.ContentLength + "</td>\
           </tr>").insertBefore("#panEntries > #traxList > tbody > tr:first")*/
-          
-          $("#panEntries > #traxList > tbody").append("\
-          <tr>\
-              <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
-              <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-              <td>" + entry.ContentLength + "</td>\
-          </tr>")
+          if (entry.ChainID == "Processing") {
+            $("#panEntries > #traxList > tbody").append("\
+            <tr>\
+                <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
+                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td>" + entry.ECCost + "</td>\
+            </tr>")
+          } else {
+            $("#panEntries > #traxList > tbody").append("\
+            <tr>\
+                <td><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
+                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td>" + entry.ECCost + "</td>\
+            </tr>")
+          }
         })
       }
       $("section #factom-search-link").click(function() {
@@ -140,10 +158,10 @@ function getHeight() {
     resp = queryState("completeHeight",function(resp){
     //$("#nodeHeight").val(resp)
     completeHeight = parseInt(resp)
-    updateProgressBar("#syncSecond > .progress-meter", currentHeight, completeHeight)
-    percent = (completeHeight/completeHeight) * 100
+    updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
+    percent = (completeHeight/leaderHeight) * 100
     percent = Math.floor(percent)
-    $('#syncSecond > .progress-meter > .progress-meter-text').text(currentHeight + " of " + leaderHeight)
+    $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
   })
 }
 
@@ -151,3 +169,12 @@ function updateProgressBar(id, current, max) {
   percent = (current/max) * 100
   $(id).width(percent+ "%")
 }
+
+/*
+$(".tabs-panel > #traxlist").change(function(trax){
+    theadChildren = trax.find("thead > tr").first().children()
+    tbodyChildren = trax.find("tbody > tr").first().children()
+    for (i = 0; i < theadChildren.length; i++) { 
+      theadChildren[i].width(tbodyChildren[i].width())
+    }  
+})*/

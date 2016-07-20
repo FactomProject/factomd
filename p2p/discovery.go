@@ -49,14 +49,15 @@ var UpdateKnownPeers sync.Mutex
 // Controller and its routines are called from the Controllers runloop()
 // This ensures that all shared memory is accessed from that goroutine.
 
-func (d *Discovery) Init(peersFile string) *Discovery {
+func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 	UpdateKnownPeers.Lock()
 	d.knownPeers = map[string]Peer{}
 	UpdateKnownPeers.Unlock()
+	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	d.peersFilePath = peersFile
+	d.seedURL = seed
 	d.LoadPeers()
 	d.DiscoverPeersFromSeed()
-	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return d
 }
 
@@ -65,7 +66,7 @@ func (d *Discovery) Init(peersFile string) *Discovery {
 
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) updatePeer(peer Peer) {
-	significant("discovery", "Updating peer: %v", peer)
+	note("discovery", "Updating peer: %v", peer)
 	UpdateKnownPeers.Lock()
 	d.knownPeers[peer.Address] = peer
 	UpdateKnownPeers.Unlock()
@@ -129,7 +130,7 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Unlock()
 	encoder.Encode(qualityPeers)
 	writer.Flush()
-	significant("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
+	note("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
 // LearnPeers recieves a set of peers from other hosts
@@ -279,7 +280,7 @@ func (d *Discovery) getPeerSelection() []byte {
 func (d *Discovery) DiscoverPeersFromSeed() {
 	resp, err := http.Get(d.seedURL)
 	if nil != err {
-		logerror("discovery", "DiscoverPeers getting peers from %s produced error %+v", d.seedURL, err)
+		logerror("discovery", "DiscoverPeersFromSeed getting peers from %s produced error %+v", d.seedURL, err)
 		return
 	}
 	defer resp.Body.Close()

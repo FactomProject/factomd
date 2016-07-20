@@ -282,6 +282,14 @@ func (bs *ByteSliceSig) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }
 
+func (bs *ByteSliceSig) UnmarshalText(text []byte) error {
+	b, err := hex.DecodeString(string(text))
+	if err != nil {
+		return err
+	}
+	return bs.UnmarshalBinary(b)
+}
+
 type ByteSlice20 [20]byte
 
 var _ interfaces.Printable = (*ByteSlice20)(nil)

@@ -42,7 +42,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 	this.Println("    FER current: ", this.GetFactoshisPerEC())
 
 	// Check to see if a price change targets the next block
-	if this.FERChangeHeight == (this.GetDBHeightComplete() + 1) {
+	if this.FERChangeHeight == (this.GetDBHeightComplete()) {
 		this.FactoshisPerEC = this.FERChangePrice
 		this.FERChangePrice = 100000000
 		this.FERChangeHeight = 0
@@ -58,7 +58,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 	}
 
 	// Check last entry block method
-	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete() {
+	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-1 {
 		entryHashes := entryBlock.GetEntryHashes()
 
 		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
@@ -98,7 +98,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 			ferEntry := new(specialEntries.FEREntry)
 			err = ferEntry.UnmarshalBinary(entryContent)
 			if err != nil {
-				this.Println("A FEREntry messgae didn't unmarshall correctly: ", err)
+				this.Println("A FEREntry messgae didn't unmarshal correctly: ", err)
 				continue
 			}
 

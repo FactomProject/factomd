@@ -597,6 +597,8 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
+	LoadIdentityByEntry(msg.Entry, s, true)
+
 	s.IncEntries()
 	return true
 }
@@ -847,12 +849,12 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
 	pl := s.ProcessLists.Get(dbheight)
-	pl.PutNewEBlocks(dbheight, hash, eb)
+	pl.AddNewEBlocks(hash, eb)
 }
 
 func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {
 	pl := s.ProcessLists.Get(dbheight)
-	pl.PutNewEntries(dbheight, hash, e)
+	pl.AddNewEntry(hash, e)
 }
 
 // Returns the oldest, not processed, Commit received

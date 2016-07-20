@@ -29,8 +29,18 @@
                 		<tr>
   							<td>Content:</td>
                             <td>
-                                <span id="entry-content-summary">Content Summary: <a><small>Show All</small></a><br />{{truncate $ele.Content.Content}}</span>
-                                <span id="entry-content-body" style="display:none;">All Content: <a><small>Show Summary</small></a><br />{{$ele.Content.Content}}</span>
+                                <span id="entry-content-summary">Content Summary: <a><small>Show All</small></a>
+                                <br /> - Bytes: {{$ele.Content.ContentLength}}
+                                <br /> - Content Hash: {{$ele.Content.ContentHash}}
+                                <br /> - EC Cost : {{$ele.Content.ECCost}}
+                                </span>   
+                                <span id="entry-content-body" style="display:none;">All Content:&emsp;&emsp;&emsp;&emsp; <a><small>Hide All</small></a>
+                                <br /> - Bytes: {{$ele.Content.ContentLength}}
+                                <br /> - Content Hash: {{$ele.Content.ContentHash}}
+                                <br /> - EC Cost : {{$ele.Content.ECCost}}
+                                <hr>
+                                {{$ele.Content.Content}}
+                                </span>
                             </td>
                 		</tr>
                 	</tbody>

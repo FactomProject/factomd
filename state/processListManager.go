@@ -1,9 +1,14 @@
+// Copyright 2016 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"log"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Print

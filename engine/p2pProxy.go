@@ -89,7 +89,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 			if nil == err {
 				msg.SetNetworkOrigin(data.peerHash)
 			}
-			if 0 < f.debugMode {
+			if 1 < f.debugMode {
 				f.logMessage(msg, true) // NODE_TALK_FIX
 				fmt.Printf(".")
 			}
@@ -235,6 +235,7 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 		for _, f := range fnodes {
 			fmt.Printf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
 		}
+
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
 			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
@@ -244,6 +245,7 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 			fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
 			fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
 			fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))
+			fmt.Printf("      HoldingQueue          %d\n", len(fnodes[listenTo].State.Holding))
 		}
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
