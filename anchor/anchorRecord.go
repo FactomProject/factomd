@@ -24,13 +24,24 @@ type AnchorRecord struct {
 	KeyMR           string
 	RecordHeight    uint32
 
-	Bitcoin struct {
-		Address     string //"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
-		TXID        string //"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5", BTC Hash - in reverse byte order
-		BlockHeight int32  //345678,
-		BlockHash   string //"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4", BTC Hash - in reverse byte order
-		Offset      int32  //87
-	}
+	Bitcoin  *BitcoinStruct  `json:",omitempty"`
+	Ethereum *EthereumStruct `json:",omitempty"`
+}
+
+type BitcoinStruct struct {
+	Address     string //"1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1",
+	TXID        string //"9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5", BTC Hash - in reverse byte order
+	BlockHeight int32  //345678,
+	BlockHash   string //"00000000000000000cc14eacfc7057300aea87bed6fee904fd8e1c1f3dc008d4", BTC Hash - in reverse byte order
+	Offset      int32  //87
+}
+
+type EthereumStruct struct {
+	Address     string //0x30aa981f6d2fce81083e584c8ee2f822b548752f
+	TxID        string //0x50ea0effc383542811a58704a6d6842ed6d76439a2d942d941896ad097c06a78
+	BlockHeight int64  //293003
+	BlockHash   string //0x3b504616495fc9cf7be9b5b776692a9abbfb95491fa62abf62dcdf4d53ff5979
+	Offset      int64  //0
 }
 
 var _ interfaces.Printable = (*AnchorRecord)(nil)
@@ -131,7 +142,7 @@ func UnmarshalAndvalidateAnchorRecord(data []byte, publicKey interfaces.Verifier
 
 func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorRecord {
 	ar := new(AnchorRecord)
-	ar.AnchorRecordVer = 1
+	ar.AnchorRecordVer = 2
 	ar.DBHeight = dBlock.GetHeader().GetDBHeight()
 	ar.KeyMR = dBlock.DatabasePrimaryIndex().String()
 	ar.RecordHeight = ar.DBHeight

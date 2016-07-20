@@ -547,10 +547,11 @@ func (a *Anchor) doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.Bl
 func (a *Anchor) saveToAnchorChain(dirBlockInfo *dbInfo.DirBlockInfo) {
 	anchorLog.Debug("in saveToAnchorChain")
 	anchorRec := new(AnchorRecord)
-	anchorRec.AnchorRecordVer = 1
+	anchorRec.AnchorRecordVer = 2
 	anchorRec.DBHeight = dirBlockInfo.GetDBHeight()
 	anchorRec.KeyMR = dirBlockInfo.GetDBMerkleRoot().String()
 	anchorRec.RecordHeight = a.state.GetHighestRecordedBlock() // need the next block height
+	anchorRec.Bitcoin = new(BitcoinStruct)
 	anchorRec.Bitcoin.Address = a.defaultAddress.String()
 	anchorRec.Bitcoin.TXID = dirBlockInfo.GetBTCTxHash().(*primitives.Hash).BTCString()
 	anchorRec.Bitcoin.BlockHeight = dirBlockInfo.BTCBlockHeight
