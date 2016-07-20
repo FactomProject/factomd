@@ -40,17 +40,24 @@ type ProcessList struct {
 	diffSigTally int /*     Tally of how many VMs have provided different
 		                    Directory Block Signatures than what we have
 	                        (discard DBlock if > 1/2 have sig differences) */
-	// Maps
 
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock *sync.Mutex
+
 	OldAcks     map[[32]byte]interfaces.IMsg
 	oldackslock *sync.Mutex
 
-	NewEBlocks map[[32]byte]interfaces.IEntryBlock // Entry Blocks added within 10 minutes (follower and leader)
-	NewEntries map[[32]byte]interfaces.IEntry      // Entries added within 10 minutes (follower and leader)
-	Commits    map[[32]byte]interfaces.IMsg        // Used by the leader, validate
+	// Entry Blocks added within 10 minutes (follower and leader)
+	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
+	neweblockslock *sync.Mutex
+
+	NewEntries     map[[32]byte]interfaces.IEntry
+	newentrieslock *sync.Mutex
+
+	// Used by the leader, validate
+	Commits     map[[32]byte]interfaces.IMsg
+	commitslock *sync.Mutex
 
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
@@ -331,16 +338,40 @@ func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
 	return p.OldMsgs[key.Fixed()]
 }
 
-func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
-	return p.NewEBlocks[key.Fixed()]
-}
-
-func (p *ProcessList) PutNewEBlocks(dbheight uint32, key interfaces.IHash, value interfaces.IEntryBlock) {
+func (p *ProcessList) AddNewEBlocks(key interfaces.IHash, value interfaces.IEntryBlock) {
+	p.neweblockslock.Lock()
+	defer p.neweblockslock.Unlock()
 	p.NewEBlocks[key.Fixed()] = value
 }
 
-func (p *ProcessList) PutNewEntries(dbheight uint32, key interfaces.IHash, value interfaces.IEntry) {
+func (p *ProcessList) GetNewEBlocks(key interfaces.IHash) interfaces.IEntryBlock {
+	p.neweblockslock.Lock()
+	defer p.neweblockslock.Unlock()
+	return p.NewEBlocks[key.Fixed()]
+}
+
+func (p *ProcessList) DeleteEBlocks(key interfaces.IHash) {
+	p.neweblockslock.Lock()
+	defer p.neweblockslock.Unlock()
+	delete(p.NewEBlocks, key.Fixed())
+}
+
+func (p *ProcessList) AddNewEntries(key interfaces.IHash, value interfaces.IEntry) {
+	p.newentrieslock.Lock()
+	defer p.newentrieslock.Unlock()
 	p.NewEntries[key.Fixed()] = value
+}
+
+func (p *ProcessList) GetNewEntries(key interfaces.IHash) interfaces.IEntry {
+	p.newentrieslock.Lock()
+	defer p.newentrieslock.Unlock()
+	return p.NewEntries[key.Fixed()]
+}
+
+func (p *ProcessList) DeleteNewEntries(key interfaces.IHash) {
+	p.newentrieslock.Lock()
+	defer p.newentrieslock.Unlock()
+	delete(p.NewEntries, key.Fixed())
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
@@ -629,8 +660,11 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.oldackslock = new(sync.Mutex)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
+	pl.newentrieslock = new(sync.Mutex)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
+	pl.commitslock = new(sync.Mutex)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 

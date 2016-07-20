@@ -18,28 +18,31 @@ func (s *State) IsStateFullySynced() bool {
 
 //returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
-	m := s.ProcessLists.LastList().GetOldMsgs(hash)
-	if m != nil {
+	pl := s.ProcessLists.LastList()
+	m := pl.GetOldMsgs(hash)
+	if m != nil || pl.DirectoryBlock == nil {
 		return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
 	}
 
-	for _, tx := range s.ProcessLists.LastList().NewEntries {
+	ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
+
+	for _, tx := range pl.NewEntries {
 		if hash.IsSameAs(tx.GetHash()) {
-			return constants.AckStatusACK, hash, nil, s.ProcessLists.LastList().DirectoryBlock.GetHeader().GetTimestamp(), nil
+			return constants.AckStatusACK, hash, nil, ts, nil
 		}
 	}
-	ecBlock := s.ProcessLists.LastList().EntryCreditBlock
+	ecBlock := pl.EntryCreditBlock
 	if ecBlock != nil {
 		tx := ecBlock.GetEntryByHash(hash)
 		if tx != nil {
-			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), s.ProcessLists.LastList().DirectoryBlock.GetHeader().GetTimestamp(), nil
+			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
 		}
 	}
 	fBlock := s.FactoidState.GetCurrentBlock()
 	if fBlock != nil {
 		tx := fBlock.GetTransactionByHash(hash)
 		if tx != nil {
-			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), s.ProcessLists.LastList().DirectoryBlock.GetHeader().GetTimestamp(), nil
+			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
 		}
 	}
 
