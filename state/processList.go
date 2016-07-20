@@ -89,7 +89,7 @@ func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
 	p.NewEntriesMutex.Lock()
 	defer p.NewEntriesMutex.Unlock()
 
-	keys = make([][32]byte, len(p.NewEntries))
+	keys = make([][32]byte, p.LenNewEntries())
 
 	i := 0
 	for k := range p.NewEntries {
@@ -435,7 +435,17 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 		}
 		thetime = now
 	}
-	if p.State.Leader && now-thetime >= waitSeconds+2 {
+
+	return thetime
+}
+
+func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
+	now := time.Now().Unix()
+
+	if thetime == 0 {
+		thetime = now
+	}
+	if p.State.Leader && now-thetime >= waitSeconds {
 		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 		if sf != nil {
@@ -446,11 +456,20 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	return thetime
 }
 
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
+
+		if !p.State.Syncing {
+			vm.missingEOM = 0
+		}else{
+			if !vm.Synced {
+				vm.missingEOM = fault(p, i, 20, vm, vm.missingEOM, len(vm.List))
+			}
+		}
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
