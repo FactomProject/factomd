@@ -19,7 +19,7 @@ import (
 
 var UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-var TEMPLATE_PATH string
+var FILES_PATH string
 var templates *template.Template
 
 var INDEX_HTML []byte
@@ -49,11 +49,11 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	}()
 
 	// Load Files
-	TEMPLATE_PATH = states[0].ControlPanelPath + "/templates/"
-	if !directoryExists(TEMPLATE_PATH) {
-		TEMPLATE_PATH = "./controlPanel/Web/templates/"
+	FILES_PATH = states[0].ControlPanelPath
+	if !directoryExists(FILES_PATH) {
+		FILES_PATH = "./controlPanel/Web/"
 	}
-	templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html"))
+	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
 
 	// Updated Globals
 	RecentTransactions = new(LastDirectoryBlockTransactions)
@@ -66,8 +66,8 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 
 	// Mux for static files
 	mux = http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("./controlPanel/Web")))
-	INDEX_HTML, _ = ioutil.ReadFile("./controlPanel/Web/index.html")
+	mux.Handle("/", http.FileServer(http.Dir(FILES_PATH)))
+	INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
 
 	go doEvery(5*time.Second, getRecentTransactions)
 	go manageConnections(connections)
@@ -91,7 +91,7 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	templates.ParseGlob(TEMPLATE_PATH + "/index/*.html")
+	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
 	err := templates.ExecuteTemplate(w, "indexPage", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

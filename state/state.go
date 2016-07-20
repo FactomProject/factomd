@@ -386,7 +386,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
-		s.ControlPanelPath = "Web"
+		s.ControlPanelPath = "Web/"
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))

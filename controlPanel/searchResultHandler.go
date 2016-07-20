@@ -74,8 +74,8 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	}
 	templates.Funcs(funcMap)
 
-	templates.ParseFiles(TEMPLATE_PATH + "searchresults/type/" + content.Type + ".html")
-	templates.ParseGlob(TEMPLATE_PATH + "searchresults/*.html")
+	templates.ParseFiles(FILES_PATH + "templates/searchresults/type/" + content.Type + ".html")
+	templates.ParseGlob(FILES_PATH + "templates/searchresults/*.html")
 
 	var err error
 	switch content.Type {
