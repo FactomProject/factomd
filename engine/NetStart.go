@@ -151,8 +151,10 @@ func NetStart(s *state.State) {
 		}
 	}
 	if leader {
-		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
-		s.NodeMode = "SERVER"
+		if len(s.Prefix) == 0 {
+			s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
+			s.NodeMode = "SERVER"
+		}
 	}
 
 	s.KeepMismatch = keepMismatch
@@ -370,7 +372,7 @@ func NetStart(s *state.State) {
 
 	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
 	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
-	drain := func() {
+	/*drain := func() {
 		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 		for {
 			select {
@@ -382,7 +384,7 @@ func NetStart(s *state.State) {
 			}
 		}
 	}
-	go drain()
+	go drain()*/
 
 	states := make([]*state.State, 0)
 	for _, f := range fnodes {
@@ -390,7 +392,7 @@ func NetStart(s *state.State) {
 	}
 	_ = states
 	_ = controlPanel.INDEX_HTML
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel)
 	// Listen for commands:
 	SimControl(listenTo)
 }

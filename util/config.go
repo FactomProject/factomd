@@ -18,6 +18,7 @@ type FactomdConfig struct {
 	App struct {
 		PortNumber                   int
 		ControlPanelPort             int
+		ControlPanelFilesPath        string
 		HomeDir                      string
 		DBType                       string
 		LdbPath                      string
@@ -110,6 +111,7 @@ const defaultConfig = `
 [app]
 PortNumber                            = 8088
 ControlPanelPort                      = 8090
+ControlPanelFilesPath                 = "Web/"
 HomeDir                               = ""
 ; --------------- DBType: LDB | Bolt | Map
 DBType                                = "Map"
@@ -189,7 +191,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\nFactomd Config"))
 	out.WriteString(fmt.Sprintf("\n  App"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
-	out.WriteString(fmt.Sprintf("\n    ControlPanelPort        %v", s.App.PortNumber))
+	out.WriteString(fmt.Sprintf("\n    ControlPanelPort        %v", s.App.ControlPanelPort))
+	out.WriteString(fmt.Sprintf("\n    ControlPanelFilesPath   %v", s.App.ControlPanelFilesPath))
 	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
 	out.WriteString(fmt.Sprintf("\n    DBType                  %v", s.App.DBType))
 	out.WriteString(fmt.Sprintf("\n    LdbPath                 %v", s.App.LdbPath))
@@ -308,6 +311,7 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 	cfg.App.MainPeersFile = cfg.App.HomeDir + cfg.App.MainPeersFile
 	cfg.App.TestPeersFile = cfg.App.HomeDir + cfg.App.TestPeersFile
 	cfg.App.LocalPeersFile = cfg.App.HomeDir + cfg.App.LocalPeersFile
+	cfg.App.ControlPanelFilesPath = cfg.App.HomeDir + cfg.App.ControlPanelFilesPath
 
 	return cfg
 }

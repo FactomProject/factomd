@@ -29,13 +29,13 @@ func getDataDumps() []byte {
 	holder.DataDump1.ShortDump = dd.ShortSummary(fnodes)
 	holder.DataDump1.RawDump = dd.RawSummary(fnodes)
 
-	holder.DataDump2.RawDump = dd.RawProcessList(st)
+	holder.DataDump2.RawDump = dd.RawProcessList(*statePointer)
 
-	holder.DataDump3.RawDump = dd.RawPrintMap(st)
+	holder.DataDump3.RawDump = dd.RawPrintMap(*statePointer)
 
-	holder.DataDump4.Authorities = dd.Authorities(st)
-	holder.DataDump4.Identities = dd.Identities(st)
-	holder.DataDump4.MyNode = dd.MyNodeInfo(st)
+	holder.DataDump4.Authorities = dd.Authorities(*statePointer)
+	holder.DataDump4.Identities = dd.Identities(*statePointer)
+	holder.DataDump4.MyNode = dd.MyNodeInfo(*statePointer)
 
 	ret, err := json.Marshal(holder)
 	if err != nil {
