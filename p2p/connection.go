@@ -572,7 +572,7 @@ func (c *Connection) ConnectionState() string {
 
 func (c *Connection) connectionStatusReport() {
 	reportDuration := time.Since(c.timeLastStatus)
-	if reportDuration > NetworkStatusInterval {
+	if reportDuration > ConnectionStatusInterval {
 		c.timeLastStatus = time.Now()
 		significant("connection", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n===============================================================================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel))
 	}
