@@ -77,7 +77,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
 
 	go doEvery(5*time.Second, getRecentTransactions)
-	go manageConnections(connections)
+	//go manageConnections(connections)
 
 	http.HandleFunc("/", static(indexHandler))
 	http.HandleFunc("/search", searchHandler)
