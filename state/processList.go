@@ -355,7 +355,7 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 			//id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
 			//id := p.FedServers[p.ServerMap[height][vmi]].GetChainID()
 			//id := p.FedServers[vmIndex].GetChainID()
-			//p.
+
 			id := p.FedServers[p.ServerMap[height][vmIndex]].GetChainID()
 			fmt.Println("FAULT TIME:", p.State.FactomNodeName, "FAULTING", id, "AT VMI", vmIndex, "(", vm.missingTime, ")")
 			fmt.Printf("FT: %+v\n", p.FedServers)
