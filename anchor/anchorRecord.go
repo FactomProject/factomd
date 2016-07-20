@@ -22,7 +22,7 @@ type AnchorRecord struct {
 	AnchorRecordVer int
 	DBHeight        uint32
 	KeyMR           string
-	RecordHeight    uint32
+	RecordHeight    uint32 //the block height we intended to put the anchorrecod into
 
 	Bitcoin  *BitcoinStruct  `json:",omitempty"`
 	Ethereum *EthereumStruct `json:",omitempty"`
@@ -142,7 +142,7 @@ func UnmarshalAndvalidateAnchorRecord(data []byte, publicKey interfaces.Verifier
 
 func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorRecord {
 	ar := new(AnchorRecord)
-	ar.AnchorRecordVer = 2
+	ar.AnchorRecordVer = 1
 	ar.DBHeight = dBlock.GetHeader().GetDBHeight()
 	ar.KeyMR = dBlock.DatabasePrimaryIndex().String()
 	ar.RecordHeight = ar.DBHeight

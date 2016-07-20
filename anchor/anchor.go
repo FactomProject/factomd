@@ -547,7 +547,7 @@ func (a *Anchor) doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.Bl
 func (a *Anchor) saveToAnchorChain(dirBlockInfo *dbInfo.DirBlockInfo) {
 	anchorLog.Debug("in saveToAnchorChain")
 	anchorRec := new(AnchorRecord)
-	anchorRec.AnchorRecordVer = 2
+	anchorRec.AnchorRecordVer = 1
 	anchorRec.DBHeight = dirBlockInfo.GetDBHeight()
 	anchorRec.KeyMR = dirBlockInfo.GetDBMerkleRoot().String()
 	anchorRec.RecordHeight = a.state.GetHighestRecordedBlock() // need the next block height
