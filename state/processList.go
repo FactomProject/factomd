@@ -682,7 +682,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
-	pl.newentrieslock = new(sync.Mutex)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
 
