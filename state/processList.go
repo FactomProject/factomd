@@ -44,20 +44,20 @@ type ProcessList struct {
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock *sync.Mutex
-	
+
 	OldAcks     map[[32]byte]interfaces.IMsg
 	oldackslock *sync.Mutex
 
 	// Entry Blocks added within 10 minutes (follower and leader)
 	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
 	neweblockslock *sync.Mutex
-	
+
 	NewEntries     map[[32]byte]interfaces.IEntry
 	newentrieslock *sync.Mutex
-	
+
 	// Used by the leader, validate
-	Commits        map[[32]byte]interfaces.IMsg
-	commitslock    *sync.Mutex
+	Commits     map[[32]byte]interfaces.IMsg
+	commitslock *sync.Mutex
 
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
