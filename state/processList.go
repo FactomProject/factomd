@@ -349,20 +349,27 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 		thetime = now
 	}
 
-	if p.State.Leader && now-thetime >= waitSeconds+2 {
-		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
-		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-		if sf != nil {
-			p.State.NetworkOutMsgQueue() <- sf
-		}
-	}
-
 	if now-thetime >= waitSeconds {
+		if p.State.Leader && vm.missingEOM > 0 && now-vm.missingEOM >= waitSeconds+2 {
+			fmt.Println("FAULT TIME")
+			id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
+			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
+			if sf != nil {
+				sf.Sign(&p.State.serverPrivKey)
+				p.State.NetworkOutMsgQueue() <- sf
+				p.State.InMsgQueue() <- sf
+			}
+			vm.missingEOM = 0
+		}
+
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 		}
 		thetime = now
+		if vm.missingEOM == 0 {
+			vm.missingEOM = now
+		}
 	}
 
 	return thetime
@@ -427,9 +434,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
-				fmt.Println("SUCCESSFUL PROC", i)
-
 				vm.heartBeat = 0
+				vm.missingEOM = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {

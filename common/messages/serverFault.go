@@ -221,6 +221,9 @@ func (m *ServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *ServerFault) Validate(state interfaces.IState) int {
+	if m.Signature == nil {
+		return -1
+	}
 	// Check signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {

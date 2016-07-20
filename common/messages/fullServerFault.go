@@ -276,6 +276,7 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
+	fmt.Println("VALIDATING FSF")
 	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
@@ -289,18 +290,29 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 	if !sfSigned {
+		fmt.Println("FSF not sfSigned")
 		return -1
 	}
+	/*coreBytes := m.GetCoreHash().Fixed()
+	var cb []byte
+	cb = coreBytes[:]*/
 	validSigCount := 0
 	for _, fedSig := range m.SignatureList.List {
+		fmt.Println("FSF check:", fedSig)
 		check, err := state.VerifyFederatedSignature(bytes, fedSig.GetSignature())
+		if err != nil {
+			fmt.Println("FSF sigCheck err:", err)
+		}
 		if err == nil && check {
 			validSigCount++
 		}
+		fmt.Println("FSF valid sig count:", validSigCount, "(", len(state.GetFedServers(m.DBHeight))/2, ")")
 		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
+			fmt.Println("FSF enough!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 			return 1
 		}
 	}
+	fmt.Println("FSF not enough")
 	return -1 // didn't see enough valid sigs
 }
 
