@@ -44,14 +44,24 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic and will not be served\n", r)
+			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
+
+	portStr := ":" + strconv.Itoa(port)
+	statePointer = states[index]
+	fnodes = states
 
 	// Load Files
 	FILES_PATH = states[0].ControlPanelPath
 	if !directoryExists(FILES_PATH) {
 		FILES_PATH = "./controlPanel/Web/"
+		if !directoryExists(FILES_PATH) {
+			fmt.Println("Control Panel static files cannot be found. The Control Panel will not be served")
+			http.HandleFunc("/", noStaticFilesFoundHandler)
+			http.ListenAndServe(portStr, nil)
+			return
+		}
 	}
 	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
 
@@ -59,9 +69,6 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = new(ConnectionsMap)
 
-	statePointer = states[index]
-	fnodes = states
-	portStr := ":" + strconv.Itoa(port)
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 
 	// Mux for static files
@@ -78,6 +85,12 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	http.HandleFunc("/factomd", factomdHandler)
 
 	http.ListenAndServe(portStr, nil)
+}
+
+func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "The control panel was not able to be correctly loaded because the Web files were not found. "+
+		"\nFactomd is looking in %s folder for the files, placing the \n"+
+		"Web files in that directory should resolve this error.", fnodes[0].ControlPanelPath)
 }
 
 func static(h http.HandlerFunc) http.HandlerFunc {
