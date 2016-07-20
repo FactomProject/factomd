@@ -798,7 +798,7 @@ func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfa
 
 func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {
 	pl := s.ProcessLists.Get(dbheight)
-	pl.AddNewEntries(hash, e)
+	pl.AddNewEntry(hash, e)
 }
 
 // Returns the oldest, not processed, Commit received
