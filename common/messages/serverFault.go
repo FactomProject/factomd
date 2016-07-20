@@ -57,7 +57,7 @@ func (m *ServerFault) GetMsgHash() interfaces.IHash {
 }
 
 func (m *ServerFault) GetCoreHash() interfaces.IHash {
-	data, err := m.MarshalCore()
+	data, err := m.MarshalForSignature()
 	if err != nil {
 		return nil
 	}
@@ -72,7 +72,7 @@ func (m *ServerFault) Type() byte {
 	return constants.FED_SERVER_FAULT_MSG
 }
 
-func (m *ServerFault) MarshalCore() (data []byte, err error) {
+func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
@@ -94,7 +94,7 @@ func (m *ServerFault) MarshalCore() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
+func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error marshalling Invalid Server Fault: %v", r)
@@ -123,7 +123,7 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *ServerFault) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
+	resp, err := m.PreMarshalBinary()
 	if err != nil {
 		return nil, err
 	}

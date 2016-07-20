@@ -258,9 +258,10 @@ func (m *FullServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *FullServerFault) String() string {
-	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- hash[:3]=%x\n SigList: %+v",
+	return fmt.Sprintf("%6s-VM%3d (%x) PL:%5d DBHt:%5d -- hash[:3]=%x\n SigList: %+v",
 		"FullSFault",
 		m.VMIndex,
+		m.ServerID.Bytes()[:10],
 		m.Height,
 		m.DBHeight,
 		m.GetHash().Bytes()[:3],
@@ -276,43 +277,33 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
-	fmt.Println("VALIDATING FSF")
 	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
-		fmt.Println("Err is not nil on FullServerFault sig check (marshalling): ", err)
 		return -1
 	}
 	sig := m.Signature.GetSignature()
 	sfSigned, err := state.VerifyFederatedSignature(bytes, sig)
 	if err != nil {
-		fmt.Println("Err is not nil on FullServerFault sig check (verifying): ", err)
 		return -1
 	}
 	if !sfSigned {
-		fmt.Println("FSF not sfSigned")
 		return -1
 	}
-	/*coreBytes := m.GetCoreHash().Fixed()
-	var cb []byte
-	cb = coreBytes[:]*/
+	cb, err := m.MarshalCore()
+	if err != nil {
+		return -1
+	}
 	validSigCount := 0
 	for _, fedSig := range m.SignatureList.List {
-		fmt.Println("FSF check:", fedSig)
-		check, err := state.VerifyFederatedSignature(bytes, fedSig.GetSignature())
-		if err != nil {
-			fmt.Println("FSF sigCheck err:", err)
-		}
+		check, err := state.VerifyFederatedSignature(cb, fedSig.GetSignature())
 		if err == nil && check {
 			validSigCount++
 		}
-		fmt.Println("FSF valid sig count:", validSigCount, "(", len(state.GetFedServers(m.DBHeight))/2, ")")
 		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
-			fmt.Println("FSF enough!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 			return 1
 		}
 	}
-	fmt.Println("FSF not enough")
 	return -1 // didn't see enough valid sigs
 }
 

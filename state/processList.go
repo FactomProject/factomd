@@ -345,14 +345,20 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
 	now := time.Now().Unix()
+	//fmt.Println("ASK", p.State.FactomNodeName, vmIndex, now, thetime, waitSeconds)
 	if thetime == 0 {
 		thetime = now
 	}
 
 	if now-thetime >= waitSeconds {
 		if p.State.Leader && vm.missingEOM > 0 && now-vm.missingEOM >= waitSeconds+2 {
-			fmt.Println("FAULT TIME")
-			id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
+			//id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
+			//id := p.FedServers[p.ServerMap[height][vmi]].GetChainID()
+			//id := p.FedServers[vmIndex].GetChainID()
+			//p.
+			id := p.FedServers[p.ServerMap[height][vmIndex]].GetChainID()
+			fmt.Println("FAULT TIME:", p.State.FactomNodeName, "FAULTING", id, "AT VMI", vmIndex, "(", vm.missingTime, ")")
+			fmt.Printf("FT: %+v\n", p.FedServers)
 			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 			if sf != nil {
 				sf.Sign(&p.State.serverPrivKey)
@@ -360,16 +366,19 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 				p.State.InMsgQueue() <- sf
 			}
 			vm.missingEOM = 0
+
+		} else {
+			missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
+			if missingMsgRequest != nil {
+				p.State.NetworkOutMsgQueue() <- missingMsgRequest
+			}
+			thetime = now
+			if vm.missingEOM == 0 {
+				fmt.Println("ASK RESET:", p.State.FactomNodeName, "AT VMI", vmIndex, "(", vm.missingTime, ")")
+				vm.missingEOM = now
+			}
 		}
 
-		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
-		if missingMsgRequest != nil {
-			p.State.NetworkOutMsgQueue() <- missingMsgRequest
-		}
-		thetime = now
-		if vm.missingEOM == 0 {
-			vm.missingEOM = now
-		}
 	}
 
 	return thetime
