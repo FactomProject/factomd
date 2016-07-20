@@ -184,96 +184,68 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update boo
 		log.Println("DEBUG: Identity Error, EBlock nil, disregard")
 		return
 	}
-	height := eblk.GetDatabaseHeight()
 	cid := eblk.GetChainID()
 	if cid == nil {
 		return
 	}
 	if index := isIdentityChain(cid, st.Identities); index != -1 {
-		holdEntry := make([]interfaces.IEBEntry, 0)
 		entryHashes := eblk.GetEntryHashes()
 		for _, eHash := range entryHashes {
-			hs := eHash.String()
-			if hs[0:10] != "0000000000" { //ignore minute markers
-				ent, err := st.DB.FetchEntry(eHash)
-				if err != nil || ent == nil {
-					continue
-				}
-				if len(ent.ExternalIDs()) > 1 {
-					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-						// this is an Identity that should have been registered already with a 0 status.
-						//  this registers it with the management chain.  Now it can be assigned as federated or audit.
-						//  set it to status 6 - Pending Full
-						registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
-					} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
-						// this is the Signing Key for this Identity
-						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							// Hold
-							holdEntry = append(holdEntry, ent)
-						}
-
-					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-						// this is the Signing Key for this Identity
-						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
-							// Hold
-							holdEntry = append(holdEntry, ent)
-						}
-
-					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-						// this is the Signing Key for this Identity
-						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							// hold
-							holdEntry = append(holdEntry, ent)
-						}
-					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-						// this is a new identity
-						addIdentity(ent.ExternalIDs(), cid, st, height)
-					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-						// this is a new identity
-						if len(ent.ExternalIDs()) == 4 {
-							// update management should have 4 items
-							updateManagementKey(ent.ExternalIDs(), cid, st, height)
-						}
-					}
-				}
+			entry, err := st.DB.FetchEntry(eHash)
+			if err != nil {
+				continue
 			}
+			LoadIdentityByEntry(entry, st, update)
 		}
-		// Process entries that are being held
-		if len(holdEntry) > 0 {
+	}
+}
 
-			// Find any entries that change the same key for an identity. Only last should go into admin block
-			repeatBlockSigning := make(map[string]bool)
-			repeatMHash := make(map[string]bool)
-			//for _, entry := range holdEntry {
-			for i := len(holdEntry) - 1; i >= 0; i-- {
-				entry := holdEntry[i]
-				if string(entry.ExternalIDs()[1]) == "New Block Signing Key" {
-					if len(entry.ExternalIDs()) == 7 {
-						index := primitives.NewHash(entry.ExternalIDs()[2])
-						if repeatBlockSigning[index.String()] == true {
-						} else {
-							repeatBlockSigning[index.String()] = true
-							registerBlockSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, update)
-						}
-					}
-				} else if string(entry.ExternalIDs()[1]) == "New Bitcoin Key" {
-					if len(entry.ExternalIDs()) == 9 {
-						registerAnchorSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, "BTC", update)
-					}
-				} else if string(entry.ExternalIDs()[1]) == "New Matryoshka Hash" {
-					if len(entry.ExternalIDs()) == 7 {
-						if repeatMHash[string(entry.ExternalIDs()[2])] == true {
+func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, update bool) {
+	holdEntry := make([]interfaces.IEBEntry, 0)
+	if ent == nil {
+		return
+	}
+	hs := ent.GetChainID().String()
+	cid := ent.GetChainID()
+	if isIdentityChain(cid, st.Identities) == -1 {
+		return
+	}
+	if hs[0:10] != "0000000000" { //ignore minute markers
+		if len(ent.ExternalIDs()) > 1 {
+			if string(ent.ExternalIDs()[1]) == "Register Server Management" {
+				// this is an Identity that should have been registered already with a 0 status.
+				//  this registers it with the management chain.  Now it can be assigned as federated or audit.
+				//  set it to status 6 - Pending Full
+				registerIdentityAsServer(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
+			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
+				// this is the Signing Key for this Identity
+				if len(ent.ExternalIDs()) == 7 {
+					registerBlockSigningKey(ent.ExternalIDs(), ent.GetChainID(), st, update)
+				}
 
-						} else {
-							repeatMHash[string(entry.ExternalIDs()[2])] = true
-							updateMatryoshkaHash(entry.ExternalIDs(), entry.GetChainID(), st, update)
-						}
-					}
+			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
+				// this ent the Signing Key for this Identity
+				if len(ent.ExternalIDs()) == 9 {
+					registerAnchorSigningKey(ent.ExternalIDs(), ent.GetChainID(), st, "BTC", update)
+				}
+
+			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
+				// this is the Signing Key for this Identity
+				if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
+					// hold
+					holdEntry = append(holdEntry, ent)
+				}
+			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
+				// this is a new identity
+				addIdentity(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
+			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
+				// this is a new identity
+				if len(ent.ExternalIDs()) == 7 {
+					updateMatryoshkaHash(ent.ExternalIDs(), ent.GetChainID(), st, update)
 				}
 			}
 		}
 	}
-
 }
 
 func removeIdentity(i int, st *State) {
@@ -316,6 +288,14 @@ func createFactomIdentity(st *State, chainID interfaces.IHash) int {
 	oneID.IdentityCreated = 0
 	oneID.ManagementRegistered = 0
 	oneID.ManagementCreated = 0
+
+	oneID.ManagementChainID = primitives.NewZeroHash()
+	oneID.Key1 = primitives.NewZeroHash()
+	oneID.Key2 = primitives.NewZeroHash()
+	oneID.Key3 = primitives.NewZeroHash()
+	oneID.Key4 = primitives.NewZeroHash()
+	oneID.MatryoshkaHash = primitives.NewZeroHash()
+	oneID.SigningKey = primitives.NewZeroHash()
 
 	idnew[len(st.Identities)] = oneID
 
