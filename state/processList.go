@@ -89,7 +89,7 @@ func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
 	p.NewEntriesMutex.Lock()
 	defer p.NewEntriesMutex.Unlock()
 
-	keys = make([][32]byte, p.LenNewEntries())
+	keys = make([][32]byte, len(p.NewEntries))
 
 	i := 0
 	for k := range p.NewEntries {
