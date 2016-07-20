@@ -12,23 +12,23 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
 
 var UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-var TEMPLATE_PATH string
-var templates *template.Template
+var TEMPLATE_PATH string = "./controlPanel/Web/templates/"
+var templates *template.Template = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html"))
 
 var INDEX_HTML []byte
 var mux *http.ServeMux
 var index int = 0
 
 var fnodes []*state.State
-
 var statePointer *state.State
 
-func ServeControlPanel(port int, states []*state.State) {
+func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
@@ -36,22 +36,22 @@ func ServeControlPanel(port int, states []*state.State) {
 		}
 	}()
 
+	// Updated Globals
+	RecentTransactions = new(LastDirectoryBlockTransactions)
+	AllConnections = new(ConnectionsMap)
+
 	statePointer = states[index]
 	fnodes = states
 	portStr := ":" + strconv.Itoa(port)
-	//factomdDir := ""
-	TEMPLATE_PATH = "./controlPanel/Web/templates/"
-	templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html")) //Cache general templates
-
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
-	RecentTransactions = new(LastDirectoryBlockTransactions)
+
 	// Mux for static files
 	mux = http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir("./controlPanel/Web")))
-
 	INDEX_HTML, _ = ioutil.ReadFile("./controlPanel/Web/index.html")
 
 	go doEvery(5*time.Second, getRecentTransactions)
+	go manageConnections(connections)
 
 	http.HandleFunc("/", static(indexHandler))
 	http.HandleFunc("/search", searchHandler)
@@ -164,6 +164,7 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	case "completeHeight": // Second Pass Sync info
 		data := fmt.Sprintf("%d", statePointer.GetEBDBHeightComplete())
 		w.Write([]byte(data)) // Return EBDB complete height
+	case "connections":
 	case "dataDump":
 		data := getDataDumps()
 		w.Write(data)

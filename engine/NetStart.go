@@ -370,7 +370,7 @@ func NetStart(s *state.State) {
 
 	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
 	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
-	drain := func() {
+	/*drain := func() {
 		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
 		for {
 			select {
@@ -382,7 +382,7 @@ func NetStart(s *state.State) {
 			}
 		}
 	}
-	go drain()
+	go drain()*/
 
 	states := make([]*state.State, 0)
 	for _, f := range fnodes {
@@ -390,7 +390,7 @@ func NetStart(s *state.State) {
 	}
 	_ = states
 	_ = controlPanel.INDEX_HTML
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel)
 	// Listen for commands:
 	SimControl(listenTo)
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/FactomProject/btcutil/base58"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/wsapi"
+	//"github.com/FactomProject/factomd/wsapi"
 )
 
 type foundItemInterface interface {
