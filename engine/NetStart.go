@@ -151,8 +151,10 @@ func NetStart(s *state.State) {
 		}
 	}
 	if leader {
-		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
-		s.NodeMode = "SERVER"
+		if len(s.Prefix) == 0 {
+			s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
+			s.NodeMode = "SERVER"
+		}
 	}
 
 	s.KeepMismatch = keepMismatch
