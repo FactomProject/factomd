@@ -26,7 +26,9 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 
 	ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
 
-	for _, tx := range pl.NewEntries {
+	keys := pl.GetKeysNewEntries()
+	for _, k := range keys {
+		tx := pl.GetNewEntry(k)
 		if hash.IsSameAs(tx.GetHash()) {
 			return constants.AckStatusACK, hash, nil, ts, nil
 		}
@@ -176,7 +178,11 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 		return nil, nil
 	}
 
-	for _, tx := range s.ProcessLists.LastList().NewEntries {
+	pl := s.ProcessLists.LastList()
+	keys := pl.GetKeysNewEntries()
+
+	for _, key := range keys {
+		tx := pl.GetNewEntry(key)
 		if hash.IsSameAs(tx.GetHash()) {
 			return tx, nil
 		}

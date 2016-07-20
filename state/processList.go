@@ -52,8 +52,8 @@ type ProcessList struct {
 	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
 	neweblockslock *sync.Mutex
 
-	NewEntries     map[[32]byte]interfaces.IEntry
-	newentrieslock *sync.Mutex
+	NewEntriesMutex sync.Mutex
+	NewEntries      map[[32]byte]interfaces.IEntry
 
 	// Used by the leader, validate
 	Commits     map[[32]byte]interfaces.IMsg
@@ -83,6 +83,32 @@ type VM struct {
 	missingTime    int64             // How long we have been waiting for a missing message
 	missingEOM     int64             // Ask for EOM
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
+}
+
+func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+
+	keys = make([][32]byte, p.LenNewEntries())
+
+	i := 0
+	for k := range p.NewEntries {
+		keys[i] = k
+		i++
+	}
+	return
+}
+
+func (p *ProcessList) GetNewEntry(key [32]byte) interfaces.IEntry {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	return p.NewEntries[key]
+}
+
+func (p *ProcessList) LenNewEntries() int {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	return len(p.NewEntries)
 }
 
 func (p *ProcessList) Complete() bool {
@@ -356,21 +382,15 @@ func (p *ProcessList) DeleteEBlocks(key interfaces.IHash) {
 	delete(p.NewEBlocks, key.Fixed())
 }
 
-func (p *ProcessList) AddNewEntries(key interfaces.IHash, value interfaces.IEntry) {
-	p.newentrieslock.Lock()
-	defer p.newentrieslock.Unlock()
+func (p *ProcessList) AddNewEntry(key interfaces.IHash, value interfaces.IEntry) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
 	p.NewEntries[key.Fixed()] = value
 }
 
-func (p *ProcessList) GetNewEntries(key interfaces.IHash) interfaces.IEntry {
-	p.newentrieslock.Lock()
-	defer p.newentrieslock.Unlock()
-	return p.NewEntries[key.Fixed()]
-}
-
-func (p *ProcessList) DeleteNewEntries(key interfaces.IHash) {
-	p.newentrieslock.Lock()
-	defer p.newentrieslock.Unlock()
+func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
 	delete(p.NewEntries, key.Fixed())
 }
 

@@ -714,9 +714,11 @@ func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
-	hashResponse := make([]interfaces.IHash, len(pl.NewEntries))
-	for _, entryHash := range pl.NewEntries {
-		hashResponse[hashCount] = entryHash.GetHash()
+	hashResponse := make([]interfaces.IHash, pl.LenNewEntries())
+	keys := pl.GetKeysNewEntries()
+	for _, k := range keys {
+		entry := pl.GetNewEntry(k)
+		hashResponse[hashCount] = entry.GetHash()
 		hashCount++
 	}
 	return hashResponse
