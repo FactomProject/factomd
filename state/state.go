@@ -52,6 +52,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	ControlPanelPort        int
+	ControlPanelPath        string
 	Replay                  *Replay
 	DropRate                int
 
@@ -257,6 +258,9 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
+	clone.ControlPanelPort = s.ControlPanelPort
+	clone.ControlPanelPath = s.ControlPanelPath
+
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
 	clone.Authorities = s.Authorities
@@ -342,6 +346,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
+		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
@@ -381,6 +386,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
+		s.ControlPanelPath = "Web"
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"text/template"
@@ -18,8 +19,8 @@ import (
 
 var UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-var TEMPLATE_PATH string = "./controlPanel/Web/templates/"
-var templates *template.Template = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html"))
+var TEMPLATE_PATH string
+var templates *template.Template
 
 var INDEX_HTML []byte
 var mux *http.ServeMux
@@ -28,6 +29,17 @@ var index int = 0
 var fnodes []*state.State
 var statePointer *state.State
 
+func directoryExists(path string) bool {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
 func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics) {
 	defer func() {
 		// recover from panic if files path is incorrect
@@ -35,6 +47,13 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 			fmt.Println("Control Panel has encountered a panic and will not be served\n", r)
 		}
 	}()
+
+	// Load Files
+	TEMPLATE_PATH = states[0].ControlPanelPath + "/templates/"
+	if !directoryExists(TEMPLATE_PATH) {
+		TEMPLATE_PATH = "./controlPanel/Web/templates/"
+	}
+	templates = template.Must(template.ParseGlob(TEMPLATE_PATH + "general/*.html"))
 
 	// Updated Globals
 	RecentTransactions = new(LastDirectoryBlockTransactions)
