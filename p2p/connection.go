@@ -70,13 +70,13 @@ type ConnectionParcel struct {
 
 // ConnectionMetrics is used to encapsulate various metrics about the connection.
 type ConnectionMetrics struct {
-	momentConnected  time.Time // when the connection started.
-	bytesSent        uint32    // Keeping track of the data sent/recieved for console
-	bytesReceived    uint32    // Keeping track of the data sent/recieved for console
-	messagesSent     uint32    // Keeping track of the data sent/recieved for console
-	messagesReceived uint32    // Keeping track of the data sent/recieved for console
-	peerAddress      string    // Peer IP Address
-	peerQuality      int32     // Quality of the connection.
+	MomentConnected  time.Time // when the connection started.
+	BytesSent        uint32    // Keeping track of the data sent/recieved for console
+	BytesReceived    uint32    // Keeping track of the data sent/recieved for console
+	MessagesSent     uint32    // Keeping track of the data sent/recieved for console
+	MessagesReceived uint32    // Keeping track of the data sent/recieved for console
+	PeerAddress      string    // Peer IP Address
+	PeerQuality      int32     // Quality of the connection.
 	// Red: Below -50
 	// Yellow: -50 - 100
 	// Green: > 100
@@ -155,7 +155,7 @@ func (c *Connection) commonInit(peer Peer) {
 	c.setNotes("commonInit()")
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
-	c.metrics = ConnectionMetrics{momentConnected: time.Now()}
+	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 }
@@ -298,7 +298,7 @@ func (c *Connection) goOnline() {
 	c.timeLastAttempt = now
 	c.timeLastUpdate = now
 	c.peer.LastContact = now
-	c.metrics = ConnectionMetrics{momentConnected: now} // Reset metrics
+	c.metrics = ConnectionMetrics{MomentConnected: now} // Reset metrics
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
@@ -378,8 +378,8 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
-		c.metrics.bytesSent += parcel.Header.Length
-		c.metrics.messagesSent += 1
+		c.metrics.BytesSent += parcel.Header.Length
+		c.metrics.MessagesSent += 1
 	default:
 		c.handleNetErrors(err)
 	}
@@ -399,8 +399,8 @@ func (c *Connection) processReceives() {
 		switch {
 		case nil == err:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
-			c.metrics.bytesReceived += message.Header.Length
-			c.metrics.messagesReceived += 1
+			c.metrics.BytesReceived += message.Header.Length
+			c.metrics.MessagesReceived += 1
 			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
@@ -559,9 +559,9 @@ func (c *Connection) updatePeer() {
 func (c *Connection) updateStats() {
 	if time.Second < time.Since(c.timeLastMetrics) {
 		c.timeLastMetrics = time.Now()
-		c.metrics.peerAddress = c.peer.Address
-		c.metrics.peerQuality = c.peer.QualityScore
-		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.bytesSent, c.metrics.bytesReceived)
+		c.metrics.PeerAddress = c.peer.Address
+		c.metrics.PeerQuality = c.peer.QualityScore
+		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
 		c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics}
 	}
 }

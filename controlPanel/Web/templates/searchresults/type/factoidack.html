@@ -8,15 +8,13 @@
                     <table>
                     	<tbody>
                     		<tr>
-                    			<td>Transactionn ID:</td>
-                    			<td><a id="factom-search-link" type="facttransaction">{{.TxID}}</a></td>
-                    		</tr>
-                              <tr>
-                                   <td>Transaction Status:</td>
-                                   <td>
-                                        {{.Status}}
-                                   </td>
-                              </tr>
+                				<td>Transaction ID:</td>
+                                <td><a id="factom-search-link" type="facttransaction">{{.Result.Txid}}</a></td>
+                            </tr>
+                            <tr>
+                				<td>Status</td>
+                                <td>{{.Result.Status}}</td>
+                            </tr>
                     	</tbody>
                     </table>
 			</div>
@@ -24,6 +22,6 @@
 	</section>
 	<!-- End Body -->
 	{{template "scripts"}}
-     {{template "tools"}}
+    {{template "tools"}}
 	{{template "footer"}}
 {{end}}

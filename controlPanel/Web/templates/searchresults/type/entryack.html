@@ -9,29 +9,18 @@
                     	<tbody>
                     		<tr>
                     			<td>EntryHash:</td>
-                    			<td><a id="factom-search-link" type="entry">{{.EntryHash}}</a></td>
+                    			<td><a id="factom-search-link" type="entry">{{.Result.EntryHash}}</a></td>
                     		</tr>
-                              {{ if .ConflictingRevealEntryHashes}}
-                    		<tr>
-                    			<td>Conflicting Entry Reveals:</td>
-                    			<td>
-                                        {{ range $entry := .ConflictingRevealEntryHashes }}
-                                            <a id="factom-search-link" type="entry">{{$entry}}</a><br />
-                                        {{end}}
-                                   </td>
-                    		</tr>
-                              {{end}}
-                              </tr>
                               <tr>
                                    <td>Commit Status:</td>
                                    <td>
-                                        {{.CommitData.Status}}
+                                        {{.Result.CommitData.Status}}
                                    </td>
                               </tr>
                               <tr>
                                    <td>Entry Status:</td>
                                    <td>
-                                        {{.EntryData.Status}}
+                                        {{.Result.EntryData.Status}}
                                    </td>
                               </tr>
                     	</tbody>

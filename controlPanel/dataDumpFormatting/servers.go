@@ -7,7 +7,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-func Identities(st *state.State) string {
+func Identities(st state.State) string {
 	prt := ""
 	prt = prt + fmt.Sprintf("=== Identity List ===   Total: %d Displaying: All\n", len(st.Identities))
 	for c, i := range st.Identities {
@@ -30,7 +30,7 @@ func Identities(st *state.State) string {
 	return prt
 }
 
-func Authorities(st *state.State) string {
+func Authorities(st state.State) string {
 	prt := ""
 	prt = prt + fmt.Sprintf("=== Authority List ===   Total: %d Displaying: All\n", len(st.Authorities))
 	for c, i := range st.Authorities {
@@ -67,7 +67,7 @@ func Authorities(st *state.State) string {
 	return prt
 }
 
-func MyNodeInfo(st *state.State) string {
+func MyNodeInfo(st state.State) string {
 	prt := ""
 	prt = prt + fmt.Sprintf("My Node: %s\n", st.GetFactomNodeName())
 	if st.IdentityChainID == nil {
