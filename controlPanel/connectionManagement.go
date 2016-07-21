@@ -94,7 +94,7 @@ func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
 func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
 	cm.Lock()
 	defer cm.Unlock()
-	var newMap map[string]p2p.ConnectionMetrics
+	newMap := map[string]p2p.ConnectionMetrics{}
 	for k, v := range cm.connected {
 		newMap[k] = v
 	}
@@ -104,7 +104,7 @@ func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
 func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics {
 	cm.Lock()
 	defer cm.Unlock()
-	newMap := make(map[string]p2p.ConnectionMetrics)
+	newMap := map[string]p2p.ConnectionMetrics{}
 	for k, v := range cm.disconnected {
 		newMap[k] = v
 	}
