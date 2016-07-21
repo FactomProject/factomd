@@ -250,7 +250,7 @@ func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {
 			AllConnections.UpdateConnections(newConnections)
 			AllConnections.TallyTotals()
 		default:
-			time.Sleep(2 * time.Second)
+			time.Sleep(400 * time.Millisecond)
 		}
 	}
 }
