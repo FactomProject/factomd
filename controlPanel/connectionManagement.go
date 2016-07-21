@@ -1,6 +1,7 @@
 package controlPanel
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"sort"
 	"sync"
@@ -11,11 +12,62 @@ import (
 
 var AllConnections *ConnectionsMap
 
+type AllConnectionsTotals struct {
+	PeerQualityAvg     int32
+	BytesSentTotal     uint32
+	BytesReceivedTotal uint32
+	MessagesSent       uint32
+	MessagesReceived   uint32
+}
+
+func NewAllConnectionTotals() *AllConnectionsTotals {
+	a := new(AllConnectionsTotals)
+	a.PeerQualityAvg = 0
+	a.BytesSentTotal = 0
+	a.BytesReceivedTotal = 0
+	a.MessagesReceived = 0
+	a.MessagesSent = 0
+
+	return a
+}
+
 type ConnectionsMap struct {
 	connected    map[string]p2p.ConnectionMetrics
 	disconnected map[string]p2p.ConnectionMetrics
 
+	totals AllConnectionsTotals
 	sync.RWMutex
+}
+
+func (cm *ConnectionsMap) TallyTotals() {
+	cons := cm.GetConnectedCopy()
+	dis := cm.GetDisconnectedCopy()
+	totals := NewAllConnectionTotals()
+	var count int32 = 0
+	var totalQuality int32 = 0
+	for key := range cons {
+		peer := cons[key]
+		totals.BytesSentTotal += peer.BytesSent
+		totals.BytesReceivedTotal += peer.BytesReceived
+		totals.MessagesSent += peer.MessagesSent
+		totals.MessagesReceived += peer.MessagesReceived
+		count++
+		totalQuality += peer.PeerQuality
+	}
+	if count == 0 {
+		totals.PeerQualityAvg = 0
+	} else {
+		totals.PeerQualityAvg = totalQuality / count
+	}
+	for key := range dis {
+		peer := dis[key]
+		totals.BytesSentTotal += peer.BytesSent
+		totals.BytesReceivedTotal += peer.BytesReceived
+		totals.MessagesSent += peer.MessagesSent
+		totals.MessagesReceived += peer.MessagesReceived
+	}
+
+	cm.totals = *totals
 }
 
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
@@ -163,7 +215,8 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 		}
 		item.Connected = true
-		item.Hash = key
+		hash := sha256.Sum256([]byte(key))
+		item.Hash = fmt.Sprintf("%x", hash)
 		list = append(list, *item)
 	}
 	for key := range cm.GetDisconnectedCopy() {
@@ -174,7 +227,8 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 		}
 		item.Connected = false
-		item.Hash = key
+		hash := sha256.Sum256([]byte(key))
+		item.Hash = fmt.Sprintf("%x", hash)
 		list = append(list, *item)
 	}
 	var sortedList ConnectionInfoArray
@@ -189,7 +243,7 @@ func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {
 		select {
 		case newConnections := <-connections:
 			AllConnections.UpdateConnections(newConnections)
-			fmt.Println("New", newConnections)
+			AllConnections.TallyTotals()
 		default:
 			time.Sleep(2 * time.Second)
 		}

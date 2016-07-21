@@ -196,12 +196,11 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("%d", index)))
 	case "peers":
 		data := getPeers()
-		fmt.Println(AllConnections)
-		fmt.Println(AllConnections.SortedConnections())
-		fmt.Println(data)
+		w.Write(data)
+	case "peerTotals":
+		data := getPeetTotals()
 		w.Write(data)
 	case "recentTransactions":
-		//data := getRecentTransactions()
 		data := []byte(`{"list":"none"}`)
 		var err error
 		if RecentTransactions == nil {
@@ -218,6 +217,14 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 
 func getPeers() []byte {
 	data, err := json.Marshal(AllConnections.SortedConnections())
+	if err != nil {
+		return []byte(`error`)
+	}
+	return data
+}
+
+func getPeetTotals() []byte {
+	data, err := json.Marshal(AllConnections.totals)
 	if err != nil {
 		return []byte(`error`)
 	}
