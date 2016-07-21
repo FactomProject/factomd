@@ -76,21 +76,21 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 	for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
 		if ok {
-			cm.connected[hashPeerAddress(val.PeerAddress)] = val // Update Exisiting
+			cm.connected[key] = val // Update Exisiting
 		} else {
-			cm.Disconnect(hashPeerAddress(val.PeerAddress), &val) // No longer connected
+			cm.Disconnect(key, &val) // No longer connected
 		}
 	}
 	for key := range cm.disconnected { // Update Disconnected
 		val, ok := connections[key]
 		if ok {
-			cm.Connect(hashPeerAddress(val.PeerAddress), &val) // Reconnected
+			cm.Connect(key, &val) // Reconnected
 		}
 	}
 	for key := range connections { // New Connections
 		val, ok := cm.connected[key]
 		if !ok {
-			cm.connected[hashPeerAddress(val.PeerAddress)] = val
+			cm.connected[key] = val
 		}
 	}
 }
@@ -240,7 +240,7 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Hash = fmt.Sprintf("%x", hash)
 		}
 		item.Connected = false
-		list = append(list, *item)
+		//list = append(list, *item)
 	}
 	var sortedList ConnectionInfoArray
 	sortedList = list
