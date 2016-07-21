@@ -351,6 +351,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			}
 		}
 		s.AddFedServer(fsf.DBHeight, auditServerList[0].GetChainID())
+		s.RemoveAuditServer(fsf.DBHeight, auditServerList[0].GetChainID())
 	}
 	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
