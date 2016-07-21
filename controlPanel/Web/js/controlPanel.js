@@ -200,7 +200,7 @@ function updatePeers() {
         if ($("#" + peer.Hash).find("#connected").val() != peer.Connected) {
           $("#" + peer.Hash).find("#connected").val(peer.Connected) // Value
           if(peer.Connected == false) { // Need to move to end
-            $("#" + peer.Hash).append("#peerList > tbody")
+            $("#" + peer.Hash).delete("#peerList > tbody")
           }
           if (peer.Connected == true) {
             $("#" + peer.Hash).find("#connected").text("Connected")
