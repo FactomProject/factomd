@@ -456,7 +456,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	return thetime
 }
 
-
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
@@ -465,7 +464,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if !p.State.Syncing {
 			vm.missingEOM = 0
-		}else{
+		} else {
 			if !vm.Synced {
 				vm.missingEOM = fault(p, i, 20, vm, vm.missingEOM, len(vm.List))
 			}
