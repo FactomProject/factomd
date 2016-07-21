@@ -73,7 +73,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			//log.Println(f.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
 			err = AddIdentityFromChainID(f.IdentityChainID, st)
 			if err != nil {
-				log.Printfln(err.Error())
+				//log.Printfln(err.Error())
 				return err
 			} else {
 				AuthorityIndex = addAuthority(st, f.IdentityChainID)
@@ -96,7 +96,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			//log.Println(a.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
 			err = AddIdentityFromChainID(a.IdentityChainID, st)
 			if err != nil {
-				log.Printfln(err.Error())
+				return err
 			} else {
 				AuthorityIndex = addAuthority(st, a.IdentityChainID)
 			}
