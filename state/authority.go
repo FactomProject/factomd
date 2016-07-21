@@ -46,11 +46,15 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		if err != nil {
 			return err
 		}
-
+		IdentityIndex := isIdentityChain(m.IdentityChainID, st.Identities)
+		if IdentityIndex == -1 {
+			createFactomIdentity(st, m.IdentityChainID)
+		}
 		AuthorityIndex = isAuthorityChain(m.IdentityChainID, st.Authorities)
 		if AuthorityIndex == -1 {
-			log.Println("Invalid Authority Chain ID. Add MatryoshkaHash " + m.IdentityChainID.String())
-			break
+			AuthorityIndex = addAuthority(st, m.IdentityChainID)
+			//log.Println("Invalid Authority Chain ID. Add MatryoshkaHash " + m.IdentityChainID.String())
+			//break
 		}
 		st.Authorities[AuthorityIndex].MatryoshkaHash = m.MHash
 	case constants.TYPE_ADD_SERVER_COUNT:
@@ -67,6 +71,10 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		if err != nil {
 			return err
 		}
+		IdentityIndex := isIdentityChain(f.IdentityChainID, st.Identities)
+		if IdentityIndex == -1 {
+			createFactomIdentity(st, f.IdentityChainID)
+		}
 
 		AuthorityIndex = isAuthorityChain(f.IdentityChainID, st.Authorities)
 		if AuthorityIndex == -1 {
@@ -75,9 +83,9 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			if err != nil {
 				//log.Printfln(err.Error())
 				return err
-			} else {
-				AuthorityIndex = addAuthority(st, f.IdentityChainID)
-			}
+			} //else {
+			AuthorityIndex = addAuthority(st, f.IdentityChainID)
+			//}
 		} else {
 			//log.Println(f.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
 		}
@@ -91,15 +99,20 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			return err
 		}
 
+		IdentityIndex := isIdentityChain(a.IdentityChainID, st.Identities)
+		if IdentityIndex == -1 {
+			createFactomIdentity(st, a.IdentityChainID)
+		}
+
 		AuthorityIndex = isAuthorityChain(a.IdentityChainID, st.Authorities)
 		if AuthorityIndex == -1 {
 			//log.Println(a.IdentityChainID.String() + " being added to Federated Server List AdminBlock Height:" + string(height))
 			err = AddIdentityFromChainID(a.IdentityChainID, st)
 			if err != nil {
 				return err
-			} else {
-				AuthorityIndex = addAuthority(st, a.IdentityChainID)
-			}
+			} //else {
+			AuthorityIndex = addAuthority(st, a.IdentityChainID)
+			//	}
 		} else {
 			//log.Println(a.IdentityChainID.String() + " being promoted to Federated Server AdminBlock Height:" + string(height))
 		}
@@ -149,18 +162,23 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			return err
 		}
 
+		IdentityIndex := isIdentityChain(b.IdentityChainID, st.Identities)
+		if IdentityIndex == -1 {
+			createFactomIdentity(st, b.IdentityChainID)
+		}
+
 		AuthorityIndex = isAuthorityChain(b.IdentityChainID, st.Authorities)
 		if AuthorityIndex == -1 {
+			AuthorityIndex = addAuthority(st, b.IdentityChainID)
 			//Add Identity as Federated Server
-			log.Println(b.IdentityChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
-		} else {
-			//log.Println(b.IdentityChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
-			pubKey, err := b.ECDSAPublicKey.MarshalBinary()
-			if err != nil {
-				return err
-			}
-			registerAuthAnchor(AuthorityIndex, pubKey, b.KeyType, b.KeyPriority, st, "BTC")
+			//log.Println(b.IdentityChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
 		}
+		//log.Println(b.IdentityChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
+		pubKey, err := b.ECDSAPublicKey.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		registerAuthAnchor(AuthorityIndex, pubKey, b.KeyType, b.KeyPriority, st, "BTC")
 	}
 	return nil
 }
@@ -193,7 +211,6 @@ func isAuthorityChain(cid interfaces.IHash, ids []Authority) int {
 }
 
 func addAuthority(st *State, chainID interfaces.IHash) int {
-
 	var authnew []Authority
 	authnew = make([]Authority, len(st.Authorities)+1)
 
@@ -250,33 +267,38 @@ func registerAuthAnchor(AuthorityIndex int, signingKey []byte, keyType byte, key
 
 func addServerSigningKey(ChainID interfaces.IHash, key interfaces.IHash, st *State) {
 	var AuthorityIndex int
+	IdentityIndex := isIdentityChain(ChainID, st.Identities)
+	if IdentityIndex == -1 {
+		createFactomIdentity(st, ChainID)
+	}
+
 	AuthorityIndex = isAuthorityChain(ChainID, st.Authorities)
 	if AuthorityIndex == -1 {
-		log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
-	} else {
-		//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
-		if st.IdentityChainID.IsSameAs(ChainID) && len(st.serverPendingPrivKeys) > 0 {
-			for i, pubKey := range st.serverPendingPubKeys {
-				pubData, err := pubKey.MarshalBinary()
-				if err != nil {
-					break
+		AuthorityIndex = addAuthority(st, ChainID)
+		//log.Println(ChainID.String() + " Cannot Update Signing Key.  Not in Authorities List.")
+	}
+	//log.Println(ChainID.String() + " Updating Signing Key. AdminBlock Height:" + string(height))
+	if st.IdentityChainID.IsSameAs(ChainID) && len(st.serverPendingPrivKeys) > 0 {
+		for i, pubKey := range st.serverPendingPubKeys {
+			pubData, err := pubKey.MarshalBinary()
+			if err != nil {
+				break
+			}
+			if bytes.Compare(pubData, key.Bytes()) == 0 {
+				st.serverPrivKey = st.serverPendingPrivKeys[i]
+				st.serverPubKey = st.serverPendingPubKeys[i]
+				if len(st.serverPendingPrivKeys) > i+1 {
+					st.serverPendingPrivKeys = append(st.serverPendingPrivKeys[:i], st.serverPendingPrivKeys[i+1:]...)
+					st.serverPendingPubKeys = append(st.serverPendingPubKeys[:i], st.serverPendingPubKeys[i+1:]...)
+				} else {
+					st.serverPendingPrivKeys = st.serverPendingPrivKeys[:i]
+					st.serverPendingPubKeys = st.serverPendingPubKeys[:i]
 				}
-				if bytes.Compare(pubData, key.Bytes()) == 0 {
-					st.serverPrivKey = st.serverPendingPrivKeys[i]
-					st.serverPubKey = st.serverPendingPubKeys[i]
-					if len(st.serverPendingPrivKeys) > i+1 {
-						st.serverPendingPrivKeys = append(st.serverPendingPrivKeys[:i], st.serverPendingPrivKeys[i+1:]...)
-						st.serverPendingPubKeys = append(st.serverPendingPubKeys[:i], st.serverPendingPubKeys[i+1:]...)
-					} else {
-						st.serverPendingPrivKeys = st.serverPendingPrivKeys[:i]
-						st.serverPendingPubKeys = st.serverPendingPubKeys[:i]
-					}
-					break
-				}
+				break
 			}
 		}
-		st.Authorities[AuthorityIndex].SigningKey = primitives.PubKeyFromString(key.String())
 	}
+	st.Authorities[AuthorityIndex].SigningKey = primitives.PubKeyFromString(key.String())
 }
 
 func (st *State) VerifyFederatedSignature(Message []byte, signature *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
