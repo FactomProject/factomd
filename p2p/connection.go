@@ -157,7 +157,8 @@ func (c *Connection) commonInit(peer Peer) {
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
-	c.timeLastAttempt = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	c.timeLastAttempt = time.Now()
+	c.timeLastStatus = time.Now()
 }
 
 func (c *Connection) Start() {
@@ -189,25 +190,25 @@ func (c *Connection) runLoop() {
 				c.pingPeer()    // sends a ping periodically if things have been quiet
 				c.updateStats() // Update controller with metrics
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-					significant(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+					note(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
 			}
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				significant(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
+				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
 		case ConnectionOffline:
 			switch {
 			case c.isOutGoing:
-				significant(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
+				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			default: // the connection dialed us, so we shutdown
 				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
-			significant(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
+			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
 			c.ReceiveChannel <- ConnectionCommand{command: ConnectionIsClosed}
 			return // ending runloop() goroutine
@@ -574,6 +575,6 @@ func (c *Connection) connectionStatusReport() {
 	reportDuration := time.Since(c.timeLastStatus)
 	if reportDuration > ConnectionStatusInterval {
 		c.timeLastStatus = time.Now()
-		significant("connection", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n===============================================================================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel))
+		significant("connection-report", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n\tConnStatusInterval:\t%s\n\treportDuration:\t\t%s\n\tTime Online:\t\t%s \n==============================================================================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel), ConnectionStatusInterval.String(), reportDuration.String(), time.Since(c.timeLastAttempt))
 	}
 }
