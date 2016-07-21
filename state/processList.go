@@ -447,7 +447,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	if p.State.Leader {
 		if now-thetime >= waitSeconds {
 			id := p.FedServers[p.ServerMap[p.State.CurrentMinute][vmIndex]].GetChainID()
-			fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
+			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
 			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 			if sf != nil {
 				sf.Sign(&p.State.serverPrivKey)
