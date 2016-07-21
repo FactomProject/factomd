@@ -18,6 +18,8 @@ var (
 	TWELVE_HOURS_S uint64 = 12 * 60 * 60
 	// Time window for identity to require registration: 24hours = 144 blocks
 	TIME_WINDOW uint32 = 144
+	// First Identity
+	FIRST_IDENTITY string = "38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9"
 	// Where all Identities register
 	MAIN_FACTOM_IDENTITY_LIST = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
@@ -66,6 +68,10 @@ func (e *Identity) String() string {
 }
 
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
+	if cid.String() == FIRST_IDENTITY {
+		return nil
+	}
+
 	index := createFactomIdentity(st, cid)
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
@@ -178,6 +184,7 @@ func (st *State) RemoveIdentity(chainID interfaces.IHash) {
 }
 
 func (st *State) removeIdentity(i int) {
+	log.Println("Debug: -------------------------------- I got called")
 	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
 }
 

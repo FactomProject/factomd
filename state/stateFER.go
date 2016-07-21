@@ -42,7 +42,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 	this.Println("    FER current: ", this.GetFactoshisPerEC())
 
 	// Check to see if a price change targets the next block
-	if this.FERChangeHeight == (this.GetDBHeightComplete())+1 {
+	if this.FERChangeHeight == (this.GetDBHeightComplete()) + 1 {
 		this.FactoshisPerEC = this.FERChangePrice
 		this.FERChangePrice = 100000000
 		this.FERChangeHeight = 0

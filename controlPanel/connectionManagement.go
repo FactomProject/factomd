@@ -1,6 +1,8 @@
 package controlPanel
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -10,11 +12,62 @@ import (
 
 var AllConnections *ConnectionsMap
 
+type AllConnectionsTotals struct {
+	PeerQualityAvg     int32
+	BytesSentTotal     uint32
+	BytesReceivedTotal uint32
+	MessagesSent       uint32
+	MessagesReceived   uint32
+}
+
+func NewAllConnectionTotals() *AllConnectionsTotals {
+	a := new(AllConnectionsTotals)
+	a.PeerQualityAvg = 0
+	a.BytesSentTotal = 0
+	a.BytesReceivedTotal = 0
+	a.MessagesReceived = 0
+	a.MessagesSent = 0
+
+	return a
+}
+
 type ConnectionsMap struct {
 	connected    map[string]p2p.ConnectionMetrics
 	disconnected map[string]p2p.ConnectionMetrics
 
+	totals AllConnectionsTotals
 	sync.RWMutex
+}
+
+func (cm *ConnectionsMap) TallyTotals() {
+	cons := cm.GetConnectedCopy()
+	dis := cm.GetDisconnectedCopy()
+	totals := NewAllConnectionTotals()
+	var count int32 = 0
+	var totalQuality int32 = 0
+	for key := range cons {
+		peer := cons[key]
+		totals.BytesSentTotal += peer.BytesSent
+		totals.BytesReceivedTotal += peer.BytesReceived
+		totals.MessagesSent += peer.MessagesSent
+		totals.MessagesReceived += peer.MessagesReceived
+		count++
+		totalQuality += peer.PeerQuality
+	}
+	if count == 0 {
+		totals.PeerQualityAvg = 0
+	} else {
+		totals.PeerQualityAvg = totalQuality / count
+	}
+	for key := range dis {
+		peer := dis[key]
+		totals.BytesSentTotal += peer.BytesSent
+		totals.BytesReceivedTotal += peer.BytesReceived
+		totals.MessagesSent += peer.MessagesSent
+		totals.MessagesReceived += peer.MessagesReceived
+	}
+
+	cm.totals = *totals
 }
 
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
@@ -75,6 +128,42 @@ func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
 	return true
 }
 
+func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
+	cm.Lock()
+	defer cm.Unlock()
+	var ok bool
+	var ret p2p.ConnectionMetrics
+	ret, ok = cm.connected[key]
+	if !ok {
+		ret, ok = cm.disconnected[key]
+		if !ok {
+			return nil
+		}
+
+	}
+	return &ret
+}
+
+func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
+	cm.Lock()
+	defer cm.Unlock()
+	newMap := map[string]p2p.ConnectionMetrics{}
+	for k, v := range cm.connected {
+		newMap[k] = v
+	}
+	return newMap
+}
+
+func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics {
+	cm.Lock()
+	defer cm.Unlock()
+	newMap := map[string]p2p.ConnectionMetrics{}
+	for k, v := range cm.disconnected {
+		newMap[k] = v
+	}
+	return newMap
+}
+
 func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) bool {
 	cm.Lock()
 	defer cm.Unlock()
@@ -110,25 +199,41 @@ func (slice ConnectionInfoArray) Swap(i, j int) {
 }
 
 type ConnectionInfo struct {
-	Connected  bool
-	Connection p2p.ConnectionMetrics
+	Connected               bool
+	Hash                    string
+	Connection              p2p.ConnectionMetrics
+	ConnectionTimeFormatted string
 }
 
 // Used to send to front ent
-func (cm *ConnectionsMap) SortConnections() ConnectionInfoArray {
-	cm.Lock()
-	defer cm.Unlock()
+func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 	list := make([]ConnectionInfo, 0)
-	for key := range cm.connected {
+	for key := range cm.GetConnectedCopy() {
 		item := new(ConnectionInfo)
-		item.Connection = cm.connected[key]
+		if newCon := cm.GetConnection(key); newCon == nil {
+			continue
+		} else {
+			item.Connection = *newCon
+			hour, minute, second := newCon.MomentConnected.Clock()
+			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+		}
 		item.Connected = true
+		hash := sha256.Sum256([]byte(key))
+		item.Hash = fmt.Sprintf("%x", hash)
 		list = append(list, *item)
 	}
-	for key := range cm.disconnected {
+	for key := range cm.GetDisconnectedCopy() {
 		item := new(ConnectionInfo)
-		item.Connection = cm.disconnected[key]
+		if newCon := cm.GetConnection(key); newCon == nil {
+			continue
+		} else {
+			item.Connection = *newCon
+			hour, minute, second := newCon.MomentConnected.Clock()
+			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+		}
 		item.Connected = false
+		hash := sha256.Sum256([]byte(key))
+		item.Hash = fmt.Sprintf("%x", hash)
 		list = append(list, *item)
 	}
 	var sortedList ConnectionInfoArray
@@ -143,10 +248,9 @@ func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {
 		select {
 		case newConnections := <-connections:
 			AllConnections.UpdateConnections(newConnections)
-			// fmt.Printf("Channel Metrics: %+v", metrics)
-			time.Sleep(500 * time.Millisecond)
+			AllConnections.TallyTotals()
 		default:
-			time.Sleep(5 * time.Second)
+			time.Sleep(400 * time.Millisecond)
 		}
 	}
 }
