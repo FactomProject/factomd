@@ -134,7 +134,7 @@ header + .row { margin-bottom: 32px; }
 #panDirectoryBlock thead th:first-child, #panDirectoryBlock tbody td:first-child { width: 350px; }
 #panDirectoryBlock thead th:nth-child(2), #panDirectoryBlock tbody td:nth-child(2) { width: 803px; }
 #dataDump textarea {
-	min-height: 336px;
+	min-height: 500px;
 	background: #000;
 	overflow-y: scroll;
 	font-family: monospace;
@@ -177,3 +177,51 @@ section .metric .progress .progress-meter .progress-meter-text {
 section .metric table .button { margin: 0; }
 
 .tabs-control-panel {padding-left:1rem; padding-bottom: 1rem; }
+.dump-tab{    
+    color: #aaa;
+    float: left;
+    display: block;
+    line-height: 1;
+    font-size: .75rem;
+    border-radius: 0;
+    margin: 0;
+}
+#dump-container {
+    position:relative
+}
+#fullscreen-option{
+    z-index: 3;
+    background-color:white;
+    height:2rem;
+    right:15px;
+    top: 0px;
+    cursor: pointer;
+    background-color:inherit
+} 
+.absolute-fullscreen-option { position: absolute; }
+.fixed-fullscreen-option { position: fixed; }
+
+#dump-container > .fullscreen{
+    z-index: 2; 
+    width: 100%; 
+    height: 100%; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+ }
+  
+.not-found-error {
+    position: fixed;
+    right: 50%;
+    top: 50%;
+}
+
+/*#traxList { display: block; }
+#traxList tbody { 
+    display:inherit; 
+    max-height: 500px;
+    width: 100%;
+    overflow:scroll;
+    overflow-x:hidden;
+}
+#traxList thead { display:inherit; width:100%; }*/
