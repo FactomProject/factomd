@@ -99,8 +99,6 @@ func fundWallet(st *state.State, amt uint64) error {
 	trans.AddAuthorization(rcd)
 	trans.SetTimestamp(primitives.NewTimestampNow())
 
-	// Fee isn't working
-
 	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
 	if err != nil {
 		return err
