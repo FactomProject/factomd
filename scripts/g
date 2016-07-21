@@ -1,6 +1,0 @@
-if go fmt ./...; then
-	if go install; then
-		reset
-		$@
-	fi
-fi
