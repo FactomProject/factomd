@@ -95,6 +95,12 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 	}
 }
 
+func hashPeerAddress(addr string) string {
+	hash := sha256.Sum256([]byte(addr))
+	hashStr := fmt.Sprintf("%x", hash)
+	return hashStr
+}
+
 func (cm *ConnectionsMap) AddConnection(key string, val p2p.ConnectionMetrics) {
 	cm.Lock()
 	defer cm.Unlock()
@@ -172,12 +178,13 @@ func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) boo
 		return false
 	}
 	delete(cm.connected, key)
-	if val == nil {
+	_ = con
+	/*if val == nil {
 		cm.disconnected[key] = con
 	} else {
 		cm.disconnected[key] = *val
 
-	}
+	}*/
 	return true
 }
 
@@ -216,10 +223,10 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 			hour, minute, second := newCon.MomentConnected.Clock()
 			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			hash := sha256.Sum256([]byte(newCon.PeerAddress))
+			item.Hash = fmt.Sprintf("%x", hash)
 		}
 		item.Connected = true
-		hash := sha256.Sum256([]byte(key))
-		item.Hash = fmt.Sprintf("%x", hash)
 		list = append(list, *item)
 	}
 	for key := range cm.GetDisconnectedCopy() {
@@ -230,11 +237,11 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 			hour, minute, second := newCon.MomentConnected.Clock()
 			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			hash := sha256.Sum256([]byte(newCon.PeerAddress))
+			item.Hash = fmt.Sprintf("%x", hash)
 		}
 		item.Connected = false
-		hash := sha256.Sum256([]byte(key))
-		item.Hash = fmt.Sprintf("%x", hash)
-		list = append(list, *item)
+		//list = append(list, *item)
 	}
 	var sortedList ConnectionInfoArray
 	sortedList = list
