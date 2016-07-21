@@ -208,6 +208,7 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		statePointer = fnodes[index]
 		w.Write([]byte(fmt.Sprintf("%d", index)))
 	case "peers":
+		fmt.Println("DEBUG: Peers", AllConnections)
 		data := getPeers()
 		w.Write(data)
 	case "recentTransactions":
@@ -227,7 +228,11 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPeers() []byte {
-	return []byte("")
+	data, err := json.Marshal(AllConnections.SortedConnections())
+	if err != nil {
+		return []byte(`error`)
+	}
+	return data
 }
 
 type LastDirectoryBlockTransactions struct {

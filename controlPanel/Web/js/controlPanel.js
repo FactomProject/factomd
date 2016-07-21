@@ -7,6 +7,7 @@ function updateHTML() {
   getHeight() // Update items related to height
   updateTransactions()
   updataDataDumps()
+  updatePeers()
 }
 
 $("#dump-container #fullscreen-option").click( function(){
@@ -37,10 +38,6 @@ $("#indexnav-more > a").click(function() {
     $("#dataDump").removeClass("hide")
   }
 })
-
-function updatePeers() {
-  
-}
 
 function updataDataDumps() {
   resp = queryState("dataDump",function(resp){
@@ -168,6 +165,16 @@ function getHeight() {
 function updateProgressBar(id, current, max) {
   percent = (current/max) * 100
   $(id).width(percent+ "%")
+}
+
+function updatePeers() {
+  resp = queryState("peers", function(resp){
+    obj = JSON.parse(resp)
+    console.log(obj)
+    for (peer in obj) {
+      console.log(peer)
+    }
+  })
 }
 
 /*

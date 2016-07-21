@@ -75,6 +75,42 @@ func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
 	return true
 }
 
+func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
+	cm.Lock()
+	defer cm.Unlock()
+	var ok bool
+	var ret p2p.ConnectionMetrics
+	ret, ok = cm.connected[key]
+	if !ok {
+		ret, ok = cm.disconnected[key]
+		if !ok {
+			return nil
+		}
+
+	}
+	return &ret
+}
+
+func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
+	cm.Lock()
+	defer cm.Unlock()
+	var newMap map[string]p2p.ConnectionMetrics
+	for k, v := range cm.connected {
+		newMap[k] = v
+	}
+	return newMap
+}
+
+func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics {
+	cm.Lock()
+	defer cm.Unlock()
+	newMap := make(map[string]p2p.ConnectionMetrics)
+	for k, v := range cm.disconnected {
+		newMap[k] = v
+	}
+	return newMap
+}
+
 func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) bool {
 	cm.Lock()
 	defer cm.Unlock()
@@ -111,24 +147,33 @@ func (slice ConnectionInfoArray) Swap(i, j int) {
 
 type ConnectionInfo struct {
 	Connected  bool
+	Hash       string
 	Connection p2p.ConnectionMetrics
 }
 
 // Used to send to front ent
-func (cm *ConnectionsMap) SortConnections() ConnectionInfoArray {
-	cm.Lock()
-	defer cm.Unlock()
+func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 	list := make([]ConnectionInfo, 0)
-	for key := range cm.connected {
+	for key := range cm.GetConnectedCopy() {
 		item := new(ConnectionInfo)
-		item.Connection = cm.connected[key]
+		if newCon := cm.GetConnection(key); newCon == nil {
+			continue
+		} else {
+			item.Connection = *newCon
+		}
 		item.Connected = true
+		item.Hash = key
 		list = append(list, *item)
 	}
-	for key := range cm.disconnected {
+	for key := range cm.GetDisconnectedCopy() {
 		item := new(ConnectionInfo)
-		item.Connection = cm.disconnected[key]
+		if newCon := cm.GetConnection(key); newCon == nil {
+			continue
+		} else {
+			item.Connection = *newCon
+		}
 		item.Connected = false
+		item.Hash = key
 		list = append(list, *item)
 	}
 	var sortedList ConnectionInfoArray
@@ -143,8 +188,7 @@ func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {
 		select {
 		case newConnections := <-connections:
 			AllConnections.UpdateConnections(newConnections)
-			// fmt.Printf("Channel Metrics: %+v", metrics)
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
 		default:
 			time.Sleep(5 * time.Second)
 		}
