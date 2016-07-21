@@ -216,10 +216,10 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 			hour, minute, second := newCon.MomentConnected.Clock()
 			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			hash := sha256.Sum256([]byte(newCon.PeerAddress))
+			item.Hash = fmt.Sprintf("%x", hash)
 		}
 		item.Connected = true
-		hash := sha256.Sum256([]byte(key))
-		item.Hash = fmt.Sprintf("%x", hash)
 		list = append(list, *item)
 	}
 	for key := range cm.GetDisconnectedCopy() {
@@ -230,10 +230,10 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 			hour, minute, second := newCon.MomentConnected.Clock()
 			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			hash := sha256.Sum256([]byte(newCon.PeerAddress))
+			item.Hash = fmt.Sprintf("%x", hash)
 		}
 		item.Connected = false
-		hash := sha256.Sum256([]byte(key))
-		item.Hash = fmt.Sprintf("%x", hash)
 		list = append(list, *item)
 	}
 	var sortedList ConnectionInfoArray

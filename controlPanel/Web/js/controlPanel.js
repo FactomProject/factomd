@@ -191,7 +191,7 @@ function updatePeers() {
     obj = JSON.parse(resp)
     for (index in obj) {
       peer = obj[index]
-      if($("#" + peer.PeerAddress).length > 0) {
+      if($("#" + peer.Hash).length > 0) {
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
           $("#" + peer.Hash).find("#ip").text(con.PeerAddress)
@@ -227,7 +227,7 @@ function updatePeers() {
         }
       } else {
         $("#peerList > tbody").prepend("\
-        <tr id='" + peer.PeerAddress + "'>\
+        <tr id='" + peer.Hash + "'>\
             <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>59.19.1.130</span> Loading...</td>\
             <td id='connected'></td>\
             <td id='peerquality'></td>\
