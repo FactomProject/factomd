@@ -14,28 +14,29 @@ const (
 	ACK_MSG                                   // 1
 	FED_SERVER_FAULT_MSG                      // 2
 	AUDIT_SERVER_FAULT_MSG                    // 3
-	COMMIT_CHAIN_MSG                          // 4
-	COMMIT_ENTRY_MSG                          // 5
-	DIRECTORY_BLOCK_SIGNATURE_MSG             // 6
-	EOM_TIMEOUT_MSG                           // 7
-	FACTOID_TRANSACTION_MSG                   // 8
-	HEARTBEAT_MSG                             // 9
-	INVALID_ACK_MSG                           // 10
-	INVALID_DIRECTORY_BLOCK_MSG               // 11
+	FULL_SERVER_FAULT_MSG                     // 4
+	COMMIT_CHAIN_MSG                          // 5
+	COMMIT_ENTRY_MSG                          // 6
+	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
+	EOM_TIMEOUT_MSG                           // 8
+	FACTOID_TRANSACTION_MSG                   // 9
+	HEARTBEAT_MSG                             // 10
+	INVALID_ACK_MSG                           // 11
+	INVALID_DIRECTORY_BLOCK_MSG               // 12
 
-	REVEAL_ENTRY_MSG      // 12
-	REQUEST_BLOCK_MSG     // 13
-	SIGNATURE_TIMEOUT_MSG // 14
-	MISSING_MSG           // 15
-	MISSING_DATA          // 16
-	DATA_RESPONSE         // 17
-	MISSING_MSG_RESPONSE  //18
+	REVEAL_ENTRY_MSG      // 13
+	REQUEST_BLOCK_MSG     // 14
+	SIGNATURE_TIMEOUT_MSG // 15
+	MISSING_MSG           // 16
+	MISSING_DATA          // 17
+	DATA_RESPONSE         // 18
+	MISSING_MSG_RESPONSE  //19
 
-	DBSTATE_MSG          // 19
-	DBSTATE_MISSING_MSG  // 20
-	ADDSERVER_MSG        // 21
-	CHANGESERVER_KEY_MSG // 22
-	REMOVESERVER_MSG     // 23
+	DBSTATE_MSG          // 20
+	DBSTATE_MISSING_MSG  // 21
+	ADDSERVER_MSG        // 22
+	CHANGESERVER_KEY_MSG // 23
+	REMOVESERVER_MSG     // 24
 )
 
 const (

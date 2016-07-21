@@ -54,7 +54,7 @@ func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
 }
 
 func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
-	return true
+	panic("MissingMsg should not have its Process() method called")
 }
 
 func (m *MissingMsg) GetRepeatHash() interfaces.IHash {

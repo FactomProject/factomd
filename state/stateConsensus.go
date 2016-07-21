@@ -283,14 +283,75 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
-	pl := s.ProcessLists.Get(sf.DBHeight)
-	if pl != nil {
-		pl.FaultCnt[sf.ServerID.Fixed()]++
-		cnt := pl.FaultCnt[sf.ServerID.Fixed()]
-		if s.Leader && cnt > len(pl.FedServers)/2 {
 
+	var issuerID [32]byte
+	rawIssuerID := sf.GetSignature().GetKey()
+	for i := 0; i < 32; i++ {
+		if i < len(rawIssuerID) {
+			issuerID[i] = rawIssuerID[i]
 		}
 	}
+
+	coreHash := sf.GetCoreHash().Fixed()
+
+	if s.FaultMap[coreHash] == nil {
+		s.FaultMap[coreHash] = make(map[[32]byte]interfaces.IFullSignature)
+	}
+
+	s.FaultMap[coreHash][issuerID] = sf.GetSignature()
+
+	//faultedServerID := sf.ServerID.Fixed()
+
+	cnt := len(s.FaultMap[coreHash])
+	pl := s.ProcessLists.Get(sf.DBHeight)
+	var fedServerCnt int
+	if pl != nil {
+		fedServerCnt = len(pl.FedServers)
+	} else {
+		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
+	}
+	//fmt.Println("Faultcnt on", s.FactomNodeName, "(", s.LeaderVMIndex, "):", cnt)
+	if s.Leader && cnt > (fedServerCnt/2) {
+		if s.LeaderVMIndex == int(sf.VMIndex)+1 || s.LeaderVMIndex == 0 && int(sf.VMIndex) == fedServerCnt {
+			var listOfSigs []interfaces.IFullSignature
+			//fmt.Println(s.FactomNodeName, "ISSUING FAULT ON", sf.ServerID.String()[:10])
+
+			for _, sig := range s.FaultMap[coreHash] {
+				listOfSigs = append(listOfSigs, sig)
+			}
+			fullFault := messages.NewFullServerFault(sf, listOfSigs)
+			if fullFault != nil {
+				fullFault.Sign(&s.serverPrivKey)
+				s.NetworkOutMsgQueue() <- fullFault
+				s.InMsgQueue() <- sf
+			}
+		}
+	}
+	/*
+		if pl != nil {
+			pl.FaultList[sf.ServerID.Fixed()] = append(pl.FaultList[sf.ServerID.Fixed()], sf.GetSignature().GetKey())
+			cnt := len(pl.FaultList[sf.ServerID.Fixed()])
+			if s.Leader && cnt > len(pl.FedServers)/2 {
+				fmt.Println(s.FactomNodeName, "FAULTING", sf.ServerID.String())
+			}
+		}*/
+}
+
+func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
+	fsf, _ := m.(*messages.FullServerFault)
+	//fmt.Println("Follower execute FullServerFault:", fsf, "...", s.FactomNodeName)
+	auditServerList := s.GetAuditServers(fsf.DBHeight)
+	if len(auditServerList) > 0 {
+		relevantPL := s.ProcessLists.Get(fsf.DBHeight)
+		for listIdx, fedServ := range relevantPL.FedServers {
+			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
+				relevantPL.FedServers[listIdx] = auditServerList[0]
+			}
+		}
+		s.AddFedServer(fsf.DBHeight, auditServerList[0].GetChainID())
+	}
+	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -543,7 +604,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-	LoadIdentityByEntry(msg.Entry, s, true)
+	LoadIdentityByEntry(msg.Entry, s, dbheight)
 
 	s.IncEntries()
 	return true

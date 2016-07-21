@@ -69,8 +69,6 @@ type ProcessList struct {
 	Matryoshka   []interfaces.IHash      // Reverse Hash
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
-	FaultCnt     map[[32]byte]int        // Count of faults against the Federated Servers
-
 }
 
 type VM struct {
@@ -424,10 +422,11 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
 	now := time.Now().Unix()
-
+	//fmt.Println("ASK", p.State.FactomNodeName, vmIndex, now, thetime, waitSeconds)
 	if thetime == 0 {
 		thetime = now
 	}
+
 	if now-thetime >= waitSeconds {
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
@@ -435,11 +434,27 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 		}
 		thetime = now
 	}
-	if p.State.Leader && now-thetime >= waitSeconds+2 {
-		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
-		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-		if sf != nil {
-			p.State.NetworkOutMsgQueue() <- sf
+
+	return thetime
+}
+
+func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
+	now := time.Now().Unix()
+
+	if thetime == 0 {
+		thetime = now
+	}
+	if p.State.Leader {
+		if now-thetime >= waitSeconds {
+			id := p.FedServers[p.ServerMap[p.State.CurrentMinute][vmIndex]].GetChainID()
+			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
+			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
+			if sf != nil {
+				sf.Sign(&p.State.serverPrivKey)
+				p.State.NetworkOutMsgQueue() <- sf
+				p.State.InMsgQueue() <- sf
+			}
+			thetime = now
 		}
 	}
 
@@ -452,10 +467,17 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
+		if !p.State.Syncing {
+			vm.missingEOM = 0
+		} else {
+			if !vm.Synced {
+				vm.missingEOM = fault(p, i, 11, vm, vm.missingEOM, len(vm.List))
+			}
+		}
+
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
 		}
-
 		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List))
 
 	VMListLoop:
@@ -507,6 +529,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
+				vm.missingEOM = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
@@ -627,12 +650,12 @@ func (p *ProcessList) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n", len(p.FedServers)))
 		for _, fed := range p.FedServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
+			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:10]))
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
 		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
 		for _, aud := range p.AuditServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
+			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:10]))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
 		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))

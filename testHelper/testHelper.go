@@ -13,8 +13,9 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	//"github.com/FactomProject/factomd/engine"
 	//"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/state"
 	"time"
+
+	"github.com/FactomProject/factomd/state"
 	//"fmt"
 )
 
@@ -266,14 +267,14 @@ func CreateTestAdminHeader(prev *adminBlock.AdminBlock) *adminBlock.ABlockHeader
 	header := new(adminBlock.ABlockHeader)
 
 	if prev == nil {
-		header.PrevFullHash = primitives.NewZeroHash()
+		header.PrevBackRefHash = primitives.NewZeroHash()
 		header.DBHeight = 0
 	} else {
 		keyMR, err := prev.GetKeyMR()
 		if err != nil {
 			panic(err)
 		}
-		header.PrevFullHash = keyMR
+		header.PrevBackRefHash = keyMR
 		header.DBHeight = prev.Header.GetDBHeight() + 1
 	}
 

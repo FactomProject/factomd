@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 /**************************************
  * ISign
  *
@@ -35,7 +33,7 @@ type ISignature interface {
 type IFullSignature interface {
 	ISignature
 	SetPub(publicKey []byte)
-	// Get the private key
+	// Get the public key
 	GetKey() []byte
 	// Validate data against this signature
 	Verify(data []byte) bool

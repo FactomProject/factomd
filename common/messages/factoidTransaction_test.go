@@ -13,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
@@ -56,7 +55,7 @@ func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
 
 func newFactoidTransaction() *FactoidTransaction {
 	msg := new(FactoidTransaction)
-	msg.Timestamp = primitives.NewTimestampNow()
+	//msg.Timestamp = primitives.NewTimestampNow()
 
 	t := new(factoid.Transaction)
 
