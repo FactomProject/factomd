@@ -46,9 +46,9 @@ var _ interfaces.IPeer = (*P2PProxy)(nil)
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
-	f.BroadcastOut = make(chan factomMessage, 10000)
-	f.BroadcastIn = make(chan factomMessage, 10000)
-	f.logging = make(chan interface{}, 10000)
+	f.BroadcastOut = make(chan factomMessage, p2p.StandardChannelSize)
+	f.BroadcastIn = make(chan factomMessage, p2p.StandardChannelSize)
+	f.logging = make(chan interface{}, p2p.StandardChannelSize)
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -210,15 +210,17 @@ func (f *P2PProxy) ManageInChannel() {
 func (f *P2PProxy) ProxyStatusReport(fnodes []*FactomNode) {
 	time.Sleep(time.Second * 3) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 9)
+		time.Sleep(time.Second * 6)
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
 			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
 		}
-		note("     ToNetwork Queue:   %d", len(f.ToNetwork))
-		note("   FromNetwork Queue:   %d", len(f.FromNetwork))
-		note("  BroadcastOut Queue:   %d", len(f.BroadcastOut))
-		note("   BroadcastIn Queue:   %d", len(f.BroadcastIn))
+		now := time.Now().Format("01/02/2006 15:04:05")
+
+		note("%s     ToNetwork Queue:   %d", now, len(f.ToNetwork))
+		note("%s   FromNetwork Queue:   %d", now, len(f.FromNetwork))
+		note("%s  BroadcastOut Queue:   %d", now, len(f.BroadcastOut))
+		note("%s   BroadcastIn Queue:   %d", now, len(f.BroadcastIn))
 	}
 }
 

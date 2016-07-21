@@ -117,7 +117,6 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		if err != nil {
 			return err
 		}
-
 		AuthorityIndex = st.isAuthorityChain(f.IdentityChainID)
 		if AuthorityIndex == -1 {
 			log.Println(f.IdentityChainID.String() + " Cannot be removed.  Not in Authorities List.")
