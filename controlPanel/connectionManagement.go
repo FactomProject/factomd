@@ -76,23 +76,29 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 	for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
 		if ok {
-			cm.connected[key] = val // Update Exisiting
+			cm.connected[hashPeerAddress(val.PeerAddress)] = val // Update Exisiting
 		} else {
-			cm.Disconnect(key, &val) // No longer connected
+			cm.Disconnect(hashPeerAddress(val.PeerAddress), &val) // No longer connected
 		}
 	}
 	for key := range cm.disconnected { // Update Disconnected
 		val, ok := connections[key]
 		if ok {
-			cm.Connect(key, &val) // Reconnected
+			cm.Connect(hashPeerAddress(val.PeerAddress), &val) // Reconnected
 		}
 	}
 	for key := range connections { // New Connections
-		val, ok := cm.connected[key]
+		val, ok := cm.connected[hashPeerAddress(val.PeerAddress)]
 		if !ok {
-			cm.connected[key] = val
+			cm.connected[hashPeerAddress(val.PeerAddress)] = val
 		}
 	}
+}
+
+func hashPeerAddress(addr string) string {
+	hash := sha256.Sum256([]byte(addr))
+	hashStr := fmt.Sprintf("%x", hash)
+	return hashStr
 }
 
 func (cm *ConnectionsMap) AddConnection(key string, val p2p.ConnectionMetrics) {
