@@ -85,8 +85,6 @@ func (c *DirectoryBlock) Sort() {
 				h := c.DBEntries[j]
 				c.DBEntries[j] = c.DBEntries[j+1]
 				c.DBEntries[j+1] = h
-			}
-			if comp != 0 {
 				done = false
 			}
 		}

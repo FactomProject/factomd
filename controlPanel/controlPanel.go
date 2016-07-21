@@ -68,6 +68,8 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	// Updated Globals
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = new(ConnectionsMap)
+	AllConnections.connected = map[string]p2p.ConnectionMetrics{}
+	AllConnections.disconnected = map[string]p2p.ConnectionMetrics{}
 
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 
@@ -77,7 +79,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
 
 	go doEvery(5*time.Second, getRecentTransactions)
-	//go manageConnections(connections)
+	go manageConnections(connections)
 
 	http.HandleFunc("/", static(indexHandler))
 	http.HandleFunc("/search", searchHandler)
@@ -113,12 +115,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
+	defer recoverFromPanic()
 	if statePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -146,12 +143,7 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
+	defer recoverFromPanic()
 	if statePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -169,12 +161,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
+	defer recoverFromPanic()
 	if statePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -210,8 +197,10 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	case "peers":
 		data := getPeers()
 		w.Write(data)
+	case "peerTotals":
+		data := getPeetTotals()
+		w.Write(data)
 	case "recentTransactions":
-		//data := getRecentTransactions()
 		data := []byte(`{"list":"none"}`)
 		var err error
 		if RecentTransactions == nil {
@@ -227,7 +216,19 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPeers() []byte {
-	return []byte("")
+	data, err := json.Marshal(AllConnections.SortedConnections())
+	if err != nil {
+		return []byte(`error`)
+	}
+	return data
+}
+
+func getPeetTotals() []byte {
+	data, err := json.Marshal(AllConnections.totals)
+	if err != nil {
+		return []byte(`error`)
+	}
+	return data
 }
 
 type LastDirectoryBlockTransactions struct {
@@ -259,12 +260,7 @@ func doEvery(d time.Duration, f func(time.Time)) {
 }
 
 func getRecentTransactions(time.Time) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
+	defer recoverFromPanic()
 	if statePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -449,4 +445,10 @@ func getRecentTransactions(time.Time) {
 	//	return
 	//}
 	//return ret
+}
+
+func recoverFromPanic() {
+	if r := recover(); r != nil {
+		fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
+	}
 }

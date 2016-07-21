@@ -50,14 +50,14 @@ type DBStateList struct {
 const SecondsBetweenTests = 20 // Default
 
 func (list *DBStateList) String() string {
-	str := "\nDBStates\n"
-	str = fmt.Sprintf("%s  Base      = %d\n", str, list.Base)
+	str := "\n========DBStates Start=======\nddddd DBStates\n"
+	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
 	ts := "-nil-"
 	if list.LastTime != nil {
 		ts = list.LastTime.String()
 	}
-	str = fmt.Sprintf("%s  timestamp = %s\n", str, ts)
-	str = fmt.Sprintf("%s  Complete  = %d\n", str, list.Complete)
+	str = fmt.Sprintf("dddd %s  timestamp = %s\n", str, ts)
+	str = fmt.Sprintf("dddd %s  Complete  = %d\n", str, list.Complete)
 	rec := "M"
 	last := ""
 	for i, ds := range list.DBStates {
@@ -88,12 +88,12 @@ func (list *DBStateList) String() string {
 		if last != "" {
 			str = last
 		}
-		str = fmt.Sprintf("%s  %1s-DState ?-(DState nil) x-(Not in DB) s-(In DB) L-(Locked) R-(Ready to Save) S-(Saved)\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
+		str = fmt.Sprintf("dddd %s  %1s-DState ?-(DState nil) x-(Not in DB) s-(In DB) L-(Locked) R-(Ready to Save) S-(Saved)\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
 		if rec == "?" && last == "" {
 			last = str
 		}
 	}
-
+	str = str + "dddd\n============DBStates End==========\n"
 	return str
 }
 
