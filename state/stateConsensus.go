@@ -312,7 +312,9 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	}
 	fmt.Println("Faultcnt on", s.FactomNodeName, "(", s.LeaderVMIndex, "):", cnt)
 	if s.Leader && cnt > (fedServerCnt/2) {
-		if s.LeaderVMIndex == int(sf.VMIndex)+1 || s.LeaderVMIndex == 0 && int(sf.VMIndex) == fedServerCnt {
+		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
+
+		if s.LeaderVMIndex == responsibleFaulterIdx {
 			var listOfSigs []interfaces.IFullSignature
 			fmt.Println(s.FactomNodeName, "ISSUING FAULT ON", sf.ServerID.String()[:10])
 
@@ -340,25 +342,20 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fsf, _ := m.(*messages.FullServerFault)
-	fmt.Println("Follower execute FullServerFault:", fsf, "...", s.FactomNodeName)
 	relevantPL := s.ProcessLists.Get(fsf.DBHeight)
 	auditServerList := s.GetAuditServers(fsf.DBHeight)
 	if len(auditServerList) > 0 {
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
-				fmt.Println(s.FactomNodeName, "REPLACING ", fsf.ServerID, "AT INDEX", listIdx)
 				relevantPL.FedServers[listIdx] = auditServerList[0]
 			}
 		}
 		s.AddFedServer(fsf.DBHeight, auditServerList[0].GetChainID())
-		//relevantPL.RemoveAuditServerHash(auditServerList[0].GetChainID())
 	}
-	fmt.Println(s.FactomNodeName, "Fed Server List1:", relevantPL.String())
 	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	relevantPL.SortFedServers()
 	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
-	fmt.Println(s.FactomNodeName, "Fed Server List2:", relevantPL.String())
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
