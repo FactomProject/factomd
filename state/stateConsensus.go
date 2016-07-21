@@ -604,7 +604,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-	LoadIdentityByEntry(msg.Entry, s, true)
+	LoadIdentityByEntry(msg.Entry, s, dbheight)
 
 	s.IncEntries()
 	return true
