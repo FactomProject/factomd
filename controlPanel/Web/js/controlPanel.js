@@ -194,7 +194,7 @@ function updatePeers() {
       if($("#" + peer.Hash).length > 0) {
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
-          $("#" + peer.Hash).find("#ip").text(con.PeerAddress)
+          $("#" + peer.Hash).find("#ip > span").text(con.PeerAddress)
           $("#" + peer.Hash).find("#ip").val(con.PeerAddress) // Value
         }
         if ($("#" + peer.Hash).find("#connected").val() != peer.Connected) {
@@ -228,7 +228,7 @@ function updatePeers() {
       } else {
         $("#peerList > tbody").prepend("\
         <tr id='" + peer.Hash + "'>\
-            <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>59.19.1.130</span> Loading...</td>\
+            <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''></span> Loading...</td>\
             <td id='connected'></td>\
             <td id='peerquality'></td>\
             <td id='momentconnected'></td>\
