@@ -66,10 +66,11 @@ func (e *Identity) String() string {
 }
 
 func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
-	if isIdentityChain(cid, st.Identities) != -1 {
-		return nil
+	var index int
+	if index = isIdentityChain(cid, st.Identities); index == -1 {
+		index = createFactomIdentity(st, cid)
 	}
-	index := createFactomIdentity(st, cid)
+	//index := createFactomIdentity(st, cid)
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
 	mr, err := st.DB.FetchHeadIndexByChainID(managementChain)
