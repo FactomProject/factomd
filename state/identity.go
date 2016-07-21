@@ -67,7 +67,7 @@ func (e *Identity) String() string {
 
 func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	var index int
-	if index = isIdentityChain(cid, st.Identities); index != -1 {
+	if index = isIdentityChain(cid, st.Identities); index == -1 {
 		index = createFactomIdentity(st, cid)
 	}
 	//index := createFactomIdentity(st, cid)

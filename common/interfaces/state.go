@@ -137,13 +137,14 @@ type IState interface {
 	// MISC
 	// ====
 
-	FollowerExecuteMsg(m IMsg)     // Messages that go into the process list
-	FollowerExecuteEOM(m IMsg)     // Messages that go into the process list
-	FollowerExecuteAck(m IMsg)     // Ack Msg calls this function.
-	FollowerExecuteDBState(IMsg)   // Add the given DBState to this server
-	FollowerExecuteAddData(m IMsg) // Add the entry or eblock to this Server
-	FollowerExecuteSFault(m IMsg)  // Handle Server Fault Messages
-	FollowerExecuteMMR(m IMsg)     // Handle Missing Message Responses
+	FollowerExecuteMsg(m IMsg)       // Messages that go into the process list
+	FollowerExecuteEOM(m IMsg)       // Messages that go into the process list
+	FollowerExecuteAck(m IMsg)       // Ack Msg calls this function.
+	FollowerExecuteDBState(IMsg)     // Add the given DBState to this server
+	FollowerExecuteAddData(m IMsg)   // Add the entry or eblock to this Server
+	FollowerExecuteSFault(m IMsg)    // Handle Server Fault Messages
+	FollowerExecuteFullFault(m IMsg) // Handle Server Full-Fault Messages
+	FollowerExecuteMMR(m IMsg)       // Handle Missing Message Responses
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessRemoveServer(dbheight uint32, removeServerMsg IMsg) bool
