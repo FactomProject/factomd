@@ -199,9 +199,10 @@ func (slice ConnectionInfoArray) Swap(i, j int) {
 }
 
 type ConnectionInfo struct {
-	Connected  bool
-	Hash       string
-	Connection p2p.ConnectionMetrics
+	Connected               bool
+	Hash                    string
+	Connection              p2p.ConnectionMetrics
+	ConnectionTimeFormatted string
 }
 
 // Used to send to front ent
@@ -213,6 +214,8 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
+			hour, minute, second := newCon.MomentConnected.Clock()
+			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
 		}
 		item.Connected = true
 		hash := sha256.Sum256([]byte(key))
@@ -225,6 +228,8 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
+			hour, minute, second := newCon.MomentConnected.Clock()
+			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
 		}
 		item.Connected = false
 		hash := sha256.Sum256([]byte(key))

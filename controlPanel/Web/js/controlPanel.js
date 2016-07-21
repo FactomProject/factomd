@@ -214,7 +214,7 @@ function updatePeers() {
         }
         if ($("#" + peer.Hash).find("#momentconnected").val() != con.MomentConnected) {
           $("#" + peer.Hash).find("#momentconnected").val(con.MomentConnected) // Value
-          $("#" + peer.Hash).find("#momentconnected").text(con.MomentConnected.substring(0,10))
+          $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
         }
 
         if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
@@ -228,7 +228,7 @@ function updatePeers() {
       } else {
         $("#peerList > tbody").prepend("\
         <tr id='" + peer.Hash + "'>\
-            <td id='ip'> Loading...</td>\
+            <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>59.19.1.130</span> Loading...</td>\
             <td id='connected'></td>\
             <td id='peerquality'></td>\
             <td id='momentconnected'></td>\
