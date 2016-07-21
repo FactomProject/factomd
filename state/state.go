@@ -861,6 +861,10 @@ func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
+func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
+	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
+}
+
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).FedServers
 }
