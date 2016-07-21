@@ -732,10 +732,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if ok {
 			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if !ok {
-					s.FactomNodeName,
-					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
-					v.String())
-
 				copy(vs, vs[1:])
 				vs[len(vs)-1] = nil
 				s.Commits[k] = vs[:len(vs)-1]
