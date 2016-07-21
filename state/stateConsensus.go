@@ -43,7 +43,7 @@ func (s *State) Process() (progress bool) {
 		if !ok {
 			return
 		}
-
+		s.SetString()
 		msg.ComputeVMIndex(s)
 
 		var vm *VM
@@ -604,7 +604,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-	LoadIdentityByEntry(msg.Entry, s, true)
+	LoadIdentityByEntry(msg.Entry, s, dbheight)
 
 	s.IncEntries()
 	return true
@@ -732,11 +732,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if ok {
 			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if !ok {
-				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
-					s.FactomNodeName,
-					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
-					v.String())
-
 				copy(vs, vs[1:])
 				vs[len(vs)-1] = nil
 				s.Commits[k] = vs[:len(vs)-1]
