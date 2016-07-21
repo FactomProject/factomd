@@ -96,7 +96,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		AuthorityIndex = st.AddAuthorityFromChainID(f.IdentityChainID)
 		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_FEDERATED_SERVER
 		// check Identity status
-		UpdateIdentityStatus(f.IdentityChainID, constants.IDENTITY_PENDING_FEDERATED_SERVER, constants.IDENTITY_FEDERATED_SERVER, st)
+		UpdateIdentityStatus(f.IdentityChainID, constants.IDENTITY_FEDERATED_SERVER, st)
 	case constants.TYPE_ADD_AUDIT_SERVER:
 		a := new(adminBlock.AddAuditServer)
 		err := a.UnmarshalBinary(data)
@@ -110,7 +110,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		AuthorityIndex = st.AddAuthorityFromChainID(a.IdentityChainID)
 		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_AUDIT_SERVER
 		// check Identity status
-		UpdateIdentityStatus(a.IdentityChainID, constants.IDENTITY_PENDING_AUDIT_SERVER, constants.IDENTITY_AUDIT_SERVER, st)
+		UpdateIdentityStatus(a.IdentityChainID, constants.IDENTITY_AUDIT_SERVER, st)
 	case constants.TYPE_REMOVE_FED_SERVER:
 		f := new(adminBlock.RemoveFederatedServer)
 		err := f.UnmarshalBinary(data)

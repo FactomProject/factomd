@@ -121,7 +121,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 				}
 				if len(ent.ExternalIDs()) > 3 {
 					// This is the Register Factom Identity Message
-
 					if len(ent.ExternalIDs()[2]) == 32 {
 						idChain := primitives.NewHash(ent.ExternalIDs()[2][:32])
 						if string(ent.ExternalIDs()[1]) == "Register Factom Identity" && cid.IsSameAs(idChain) {
@@ -132,7 +131,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 				}
 			}
 		}
-		//	eblkStack = append(eblkStack[:], eblk)
 		mr = eblk.GetHeader().GetPrevKeyMR()
 	}
 
@@ -233,34 +231,25 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32) {
 	if hs[0:10] != "0000000000" { //ignore minute markers
 		if len(ent.ExternalIDs()) > 1 {
 			if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-				// this is an Identity that should have been registered already with a 0 status.
-				//  this registers it with the management chain.  Now it can be assigned as federated or audit.
-				//  set it to status 6 - Pending Full
 				registerIdentityAsServer(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
 			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
-				// this is the Signing Key for this Identity
 				if len(ent.ExternalIDs()) == 7 {
 					registerBlockSigningKey(ent.ExternalIDs(), ent.GetChainID(), st)
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-				// this ent the Signing Key for this Identity
 				if len(ent.ExternalIDs()) == 9 {
 					registerAnchorSigningKey(ent.ExternalIDs(), ent.GetChainID(), st, "BTC")
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-				// this is the Signing Key for this Identity
 				if len(ent.ExternalIDs()) == 7 {
 					updateMatryoshkaHash(ent.ExternalIDs(), ent.GetChainID(), st)
 				}
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-				// this is a new identity
 				addIdentity(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-				// this is a new identity
 				if len(ent.ExternalIDs()) == 4 {
-					// update management should have 4 items
 					updateManagementKey(ent.ExternalIDs(), cid, st, height)
 				}
 			}
@@ -825,7 +814,7 @@ func CheckTimestamp(time []byte) bool {
 	}
 }
 
-// Verifies an identity exists and if it is a federated or audit server
+// Verifies if is authority
 func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 	if st.isAuthorityChain(cid) != -1 {
 		return true
@@ -833,7 +822,7 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 	return false
 }
 
-func UpdateIdentityStatus(ChainID interfaces.IHash, StatusFrom int, StatusTo int, st *State) {
+func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo int, st *State) {
 	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
 		log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
