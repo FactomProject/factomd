@@ -25,8 +25,9 @@ var (
 	NumberPeersToConnect                 = 12
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
-	NetworkStatusInterval                = time.Second * 10
-	ConnectionStatusInterval             = time.Second * 60
+	StandardChannelSize                  = 10000
+	NetworkStatusInterval                = time.Second * 5
+	ConnectionStatusInterval             = time.Second * 22
 	PingInterval                         = time.Second * 15
 	TimeBetweenRedials                   = time.Second * 20
 	PeerSaveInterval                     = time.Second * 30
@@ -108,6 +109,17 @@ var LoggingLevels = map[uint8]string{
 	Verbose:     "Verbose",     // Log everything
 }
 
+func dot(dot string) {
+	if 0 < CurrentLoggingLevel {
+		switch dot {
+		case "":
+			fmt.Printf(".")
+		default:
+			fmt.Printf(dot)
+		}
+	}
+}
+
 func silence(component string, format string, v ...interface{}) {
 	log(Silence, component, format, v...)
 }
@@ -137,7 +149,7 @@ func log(level uint8, component string, format string, v ...interface{}) {
 	// host, _ := os.Hostname()
 	// fmt.Fprintf(os.Stdout, "%s, %s, %d, %s, (%s), %d/%d, %s \n", now.String(), host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
 
-	now := time.Now().Format("01/02/2006 15:04:05.000")
+	now := time.Now().Format("01/02/2006 15:04:05")
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
 		fmt.Fprintf(os.Stdout, "%s, %s, %d/%d, %s \n", now, component, level, CurrentLoggingLevel, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)

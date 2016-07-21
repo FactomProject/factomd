@@ -248,7 +248,7 @@ func NetStart(s *state.State) {
 	if 0 < networkPortOverride {
 		networkPort = fmt.Sprintf("%d", networkPortOverride)
 	}
-	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
+	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     networkPort,
 		PeersFile:                peersFile,
@@ -372,19 +372,19 @@ func NetStart(s *state.State) {
 
 	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
 	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
-	/*drain := func() {
-		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
-		for {
-			select {
-			case _ = <-connectionMetricsChannel:
-				// fmt.Printf("Channel Metrics: %+v", metrics)
-				time.Sleep(500 * time.Millisecond)
-			default:
-				time.Sleep(2 * time.Second)
-			}
-		}
-	}
-	go drain()*/
+	// drain := func() {
+	// 	//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
+	// 	for {
+	// 		select {
+	// 		case _ = <-connectionMetricsChannel:
+	// 			// fmt.Printf("Channel Metrics: %+v", metrics)
+	// 			time.Sleep(500 * time.Millisecond)
+	// 		default:
+	// 			time.Sleep(2 * time.Second)
+	// 		}
+	// 	}
+	// }
+	// go drain()
 
 	states := make([]*state.State, 0)
 	for _, f := range fnodes {
