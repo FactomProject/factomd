@@ -87,7 +87,7 @@ func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
 	p.NewEntriesMutex.Lock()
 	defer p.NewEntriesMutex.Unlock()
 
-	keys = make([][32]byte, len(p.NewEntries))
+	keys = make([][32]byte, p.LenNewEntries())
 
 	i := 0
 	for k := range p.NewEntries {
@@ -428,34 +428,34 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	}
 
 	if now-thetime >= waitSeconds {
-		if p.State.Leader && vm.missingEOM > 0 && now-vm.missingEOM >= waitSeconds+2 {
-			//id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
-			//id := p.FedServers[p.ServerMap[height][vmi]].GetChainID()
-			//id := p.FedServers[vmIndex].GetChainID()
+		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
+		if missingMsgRequest != nil {
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+		}
+		thetime = now
+	}
 
-			id := p.FedServers[p.ServerMap[height][vmIndex]].GetChainID()
-			fmt.Println("FAULT TIME:", p.State.FactomNodeName, "FAULTING", id, "AT VMI", vmIndex, "(", vm.missingTime, ")")
-			fmt.Printf("FT: %+v\n", p.FedServers)
+	return thetime
+}
+
+func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
+	now := time.Now().Unix()
+
+	if thetime == 0 {
+		thetime = now
+	}
+	if p.State.Leader {
+		if now-thetime >= waitSeconds {
+			id := p.FedServers[p.ServerMap[p.State.CurrentMinute][vmIndex]].GetChainID()
+			fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
 			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 			if sf != nil {
 				sf.Sign(&p.State.serverPrivKey)
 				p.State.NetworkOutMsgQueue() <- sf
 				p.State.InMsgQueue() <- sf
 			}
-			vm.missingEOM = 0
-
-		} else {
-			missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
-			if missingMsgRequest != nil {
-				p.State.NetworkOutMsgQueue() <- missingMsgRequest
-			}
 			thetime = now
-			if vm.missingEOM == 0 {
-				fmt.Println("ASK RESET:", p.State.FactomNodeName, "AT VMI", vmIndex, "(", vm.missingTime, ")")
-				vm.missingEOM = now
-			}
 		}
-
 	}
 
 	return thetime
@@ -466,6 +466,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
+
+		if !p.State.Syncing {
+			vm.missingEOM = 0
+		} else {
+			if !vm.Synced {
+				vm.missingEOM = fault(p, i, 11, vm, vm.missingEOM, len(vm.List))
+			}
+		}
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
@@ -642,12 +650,12 @@ func (p *ProcessList) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n", len(p.FedServers)))
 		for _, fed := range p.FedServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
+			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:10]))
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
 		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
 		for _, aud := range p.AuditServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
+			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:10]))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
 		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
