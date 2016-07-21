@@ -178,12 +178,12 @@ func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) boo
 		return false
 	}
 	delete(cm.connected, key)
-	if val == nil {
+	/*if val == nil {
 		cm.disconnected[key] = con
 	} else {
 		cm.disconnected[key] = *val
 
-	}
+	}*/
 	return true
 }
 
