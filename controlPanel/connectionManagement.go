@@ -1,6 +1,7 @@
 package controlPanel
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -188,9 +189,9 @@ func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {
 		select {
 		case newConnections := <-connections:
 			AllConnections.UpdateConnections(newConnections)
-			time.Sleep(1000 * time.Millisecond)
+			fmt.Println("New", newConnections)
 		default:
-			time.Sleep(5 * time.Second)
+			time.Sleep(2 * time.Second)
 		}
 	}
 }

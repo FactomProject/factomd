@@ -170,13 +170,32 @@ function updateProgressBar(id, current, max) {
 function updatePeers() {
   resp = queryState("peers", function(resp){
     obj = JSON.parse(resp)
-    console.log(obj)
-    for (peer in obj) {
-      console.log(peer)
+    for (index in obj) {
+      peer = obj[index]
+      if()
+      if($("#"+peer.Hash).length) {
+      } else {
+        $("#peerList > tbody").append("\
+        <tr id='" + peer.Hash + "'>\
+            <td>" + peer.Connection.PeerAddress + "</a></td>\
+            <td>" +   + "</a></td>\
+            <td>" +  + "</td>\
+        </tr>")
+      }
     }
   })
 }
-
+/*
+      <tr>
+          <th>IP</th>
+          <th>Connected</th>
+          <th>Quality</th>
+          <th>Height</th>
+          <th>Up</th>
+          <th>Down</th>
+          <th>Actions</th>
+      </tr>
+*/
 /*
 $(".tabs-panel > #traxlist").change(function(trax){
     theadChildren = trax.find("thead > tr").first().children()
