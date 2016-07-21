@@ -88,7 +88,7 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 		}
 	}
 	for key := range connections { // New Connections
-		val, ok := cm.connected[hashPeerAddress(val.PeerAddress)]
+		val, ok := cm.connected[key]
 		if !ok {
 			cm.connected[hashPeerAddress(val.PeerAddress)] = val
 		}
