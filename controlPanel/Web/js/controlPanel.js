@@ -191,6 +191,7 @@ function updatePeers() {
     obj = JSON.parse(resp)
     for (index in obj) {
       peer = obj[index]
+      console.log(obj)
       if($("#" + peer.Hash).length > 0) {
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
@@ -299,7 +300,7 @@ function formatBytes(bytes, messages) {
   b = Number(bytes / 1000).toFixed(1)
   if (b < 100) {
     b = b + " KB"
-  } if ((bytes / 1000000) < 100) {
+  } else if ((bytes / 1000000) < 100) {
     b = Number(bytes / 1000000).toFixed(1)
     b = b + " MB"
   } else {

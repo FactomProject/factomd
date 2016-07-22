@@ -78,6 +78,7 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 		if ok {
 			cm.connected[key] = val // Update Exisiting
 		} else {
+			delete(cm.connected, key)
 			cm.Disconnect(key, &val) // No longer connected
 		}
 	}
@@ -173,18 +174,7 @@ func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics
 func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) bool {
 	cm.Lock()
 	defer cm.Unlock()
-	con, ok := cm.connected[key]
-	if !ok {
-		return false
-	}
-	delete(cm.connected, key)
-	_ = con
-	if val == nil {
-		cm.disconnected[key] = con
-	} else {
-		cm.disconnected[key] = *val
-
-	}
+	cm.disconnected[key] = *val
 	return true
 }
 

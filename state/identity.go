@@ -182,7 +182,6 @@ func (st *State) RemoveIdentity(chainID interfaces.IHash) {
 }
 
 func (st *State) removeIdentity(i int) {
-	log.Println("Debug: -------------------------------- I got called")
 	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
 }
 
