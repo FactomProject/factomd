@@ -323,7 +323,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			}
 			fullFault := messages.NewFullServerFault(sf, listOfSigs)
 			if fullFault != nil {
-				fullFault.Sign(&s.serverPrivKey)
+				fullFault.Sign(s.serverPrivKey)
 				s.NetworkOutMsgQueue() <- fullFault
 				fullFault.FollowerExecute(s)
 				delete(s.FaultMap, sf.GetCoreHash().Fixed())
