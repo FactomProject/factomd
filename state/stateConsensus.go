@@ -444,11 +444,12 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
-	/*if as.ServerType == 0 { // Fed
+	if as.ServerType == 0 { // Fed
 		audits := s.LeaderPL.AuditServers
 		for _, audit := range audits {
 			if audit.GetChainID().IsSameAs(as.ServerChainID) { // Promote
-				//fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
+				s.LeaderPL.RemoveAuditServerHash(as.ServerChainID)
+					//fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
 				//return true
 			}
 		}
@@ -456,11 +457,12 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		feds := s.LeaderPL.FedServers
 		for _, fed := range feds {
 			if fed.GetChainID().IsSameAs(as.ServerChainID) {
+				s.LeaderPL.RemoveFedServerHash(as.ServerChainID)
 				//fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Audit server message did not add to admin block, server is a federated server and cannot be both.")
 				//return true
 			}
 		}
-	}*/
+	}
 
 	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader && as.ServerType == 0 {
 		return true
