@@ -185,6 +185,7 @@ func CreateTestAnchorEnry(dBlock *directoryBlock.DirectoryBlock) *entryBlock.Ent
 	height := dBlock.GetHeader().GetDBHeight()
 
 	ar := anchor.CreateAnchorRecordFromDBlock(dBlock)
+	ar.Bitcoin = new(anchor.BitcoinStruct)
 	ar.Bitcoin.Address = "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
 	ar.Bitcoin.TXID = fmt.Sprintf("%x", IntToByteSlice(int(height)))
 	ar.Bitcoin.BlockHeight = int32(height)

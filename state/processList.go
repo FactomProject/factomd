@@ -143,7 +143,7 @@ func (p *ProcessList) SortFedServers() {
 		for j := 0; j < len(p.FedServers)-1-i; j++ {
 			fs1 := p.FedServers[j].GetChainID().Bytes()
 			fs2 := p.FedServers[j+1].GetChainID().Bytes()
-			if bytes.Compare(fs1, fs2) < 0 {
+			if bytes.Compare(fs1, fs2) > 0 {
 				tmp := p.FedServers[j]
 				p.FedServers[j] = p.FedServers[j+1]
 				p.FedServers[j+1] = tmp
@@ -446,11 +446,11 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	}
 	if p.State.Leader {
 		if now-thetime >= waitSeconds {
-			id := p.FedServers[p.ServerMap[p.State.CurrentMinute][vmIndex]].GetChainID()
+			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
 			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
 			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 			if sf != nil {
-				sf.Sign(&p.State.serverPrivKey)
+				sf.Sign(p.State.serverPrivKey)
 				p.State.NetworkOutMsgQueue() <- sf
 				p.State.InMsgQueue() <- sf
 			}
@@ -471,7 +471,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.missingEOM = 0
 		} else {
 			if !vm.Synced {
-				vm.missingEOM = fault(p, i, 11, vm, vm.missingEOM, len(vm.List))
+				vm.missingEOM = fault(p, i, 20, vm, vm.missingEOM, len(vm.List))
 			}
 		}
 

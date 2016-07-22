@@ -11,6 +11,28 @@ import (
 /****************************To addresses**************************************/
 /******************************************************************************/
 
+func PublicKeyStringToECAddressString(public string) (string, error) {
+	pubHex, err := hex.DecodeString(public)
+	if err != nil {
+		return "", err
+	}
+	add, err := PublicKeyToFactoidAddress(pubHex)
+	if err != nil {
+		return "", err
+	}
+
+	return primitives.ConvertECAddressToUserStr(add), nil
+}
+
+func PublicKeyToECAddress(public []byte) (interfaces.IAddress, error) {
+	rcd := NewRCD_1(public)
+	add, err := rcd.GetAddress()
+	if err != nil {
+		return nil, err
+	}
+	return add, nil
+}
+
 func PublicKeyStringToFactoidAddressString(public string) (string, error) {
 	pubHex, err := hex.DecodeString(public)
 	if err != nil {

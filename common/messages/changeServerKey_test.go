@@ -113,7 +113,7 @@ func newSignedChangeServerKey() *ChangeServerKeyMsg {
 	if err != nil {
 		panic(err)
 	}
-	err = addserv.Sign(&key)
+	err = addserv.Sign(key)
 	if err != nil {
 		panic(err)
 	}

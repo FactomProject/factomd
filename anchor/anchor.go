@@ -47,8 +47,8 @@ type Anchor struct {
 	fee                 btcutil.Amount // tx fee for written into btc
 	confirmationsNeeded int
 
-	serverPrivKey primitives.PrivateKey //Server Private key for milestone 1
-	serverECKey   primitives.PrivateKey //Server Entry Credit private key
+	serverPrivKey *primitives.PrivateKey //Server Private key for milestone 1
+	serverECKey   *primitives.PrivateKey //Server Entry Credit private key
 	anchorChainID interfaces.IHash
 	state         interfaces.IState
 }
@@ -551,6 +551,7 @@ func (a *Anchor) saveToAnchorChain(dirBlockInfo *dbInfo.DirBlockInfo) {
 	anchorRec.DBHeight = dirBlockInfo.GetDBHeight()
 	anchorRec.KeyMR = dirBlockInfo.GetDBMerkleRoot().String()
 	anchorRec.RecordHeight = a.state.GetHighestRecordedBlock() // need the next block height
+	anchorRec.Bitcoin = new(BitcoinStruct)
 	anchorRec.Bitcoin.Address = a.defaultAddress.String()
 	anchorRec.Bitcoin.TXID = dirBlockInfo.GetBTCTxHash().(*primitives.Hash).BTCString()
 	anchorRec.Bitcoin.BlockHeight = dirBlockInfo.BTCBlockHeight
