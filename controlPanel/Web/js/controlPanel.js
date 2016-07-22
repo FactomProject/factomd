@@ -194,7 +194,7 @@ function updatePeers() {
       if($("#" + peer.Hash).length > 0) {
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
-          $("#" + peer.Hash).find("#ip > span").text(con.PeerAddress)
+          $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
           $("#" + peer.Hash).find("#ip").val(con.PeerAddress) // Value
         }
         if ($("#" + peer.Hash).find("#connected").val() != peer.Connected) {
@@ -204,13 +204,14 @@ function updatePeers() {
           }
           if (peer.Connected == true) {
             $("#" + peer.Hash).find("#connected").text("Connected")
+            $("#" + peer.Hash).foundation()
           } else {
             $("#" + peer.Hash).find("#connected").text("Disconnected")
           }
         }
         if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
           $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
-          $("#" + peer.Hash).find("#peerquality").text(con.PeerQuality)
+          $("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality) + "/10")
         }
         if ($("#" + peer.Hash).find("#momentconnected").val() != con.MomentConnected) {
           $("#" + peer.Hash).find("#momentconnected").val(con.MomentConnected) // Value
@@ -226,9 +227,10 @@ function updatePeers() {
           $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
         }
       } else {
+        // <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>Loading...</span></td>\
         $("#peerList > tbody").prepend("\
         <tr id='" + peer.Hash + "'>\
-            <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''></span> Loading...</td>\
+            <td id='ip'><span data-tooltip class='has-tip top' title='ISP(???), Origin(???)'>Loading...</span></td>\
             <td id='connected'></td>\
             <td id='peerquality'></td>\
             <td id='momentconnected'></td>\
@@ -242,9 +244,73 @@ function updatePeers() {
   })
 }
 
+// 0-4  | -QR1 ...  -QR2
+QUALITY_RANK_1 = -300
+RANK_1_SCALE_MIN = 0
+// 4-6  | -QR2 ... QR3
+QUALITY_RANK_2 = -50
+RANK_2_SCALE_MIN = 4
+// 6-9 | QR3 ... QR4
+QUALITY_RANK_3 = 100
+RANK_3_SCALE_MIN = 6
+// 9-10 | QR4 ... QR5
+QUALITY_RANK_4 = 1500
+RANK_4_SCALE_MIN = 9
+// 10   | QR5+
+QUALITY_RANK_5 = 5000
+RANK_5_SCALE_MIN = 10
+
+
+
+function formatQuality(quality) {
+  if (quality > QUALITY_RANK_5) { // QR4+
+    return RANK_5_SCALE_MIN
+  } else if (quality <= QUALITY_RANK_5 && quality >= QUALITY_RANK_4) { // QR3 ... QR4
+    rankSpan = QUALITY_RANK_5 - QUALITY_RANK_4
+    place = quality - QUALITY_RANK_4
+    percent = place / rankSpan
+    scaleSpan = RANK_5_SCALE_MIN - RANK_4_SCALE_MIN
+    return Number(RANK_4_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  } else if (quality <= QUALITY_RANK_4 && quality >= QUALITY_RANK_3) { // QR3 ... QR4
+    rankSpan = QUALITY_RANK_4 - QUALITY_RANK_3
+    place = quality - QUALITY_RANK_3
+    percent = place / rankSpan
+    scaleSpan = RANK_4_SCALE_MIN - RANK_3_SCALE_MIN
+    return Number(RANK_3_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  } else if (quality <= QUALITY_RANK_3 && quality >= QUALITY_RANK_2) { // QR2 ... QR3
+    rankSpan = QUALITY_RANK_3 - QUALITY_RANK_2
+    place = quality - QUALITY_RANK_2
+    percent = place / rankSpan
+    scaleSpan = RANK_3_SCALE_MIN - RANK_2_SCALE_MIN
+    return Number(RANK_2_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  } else if (quality <= QUALITY_RANK_2 && quality >= QUALITY_RANK_1) { // QR1 ... QR2
+    rankSpan = QUALITY_RANK_2 - QUALITY_RANK_1
+    place = quality - QUALITY_RANK_1
+    percent = place / rankSpan
+    scaleSpan = RANK_2_SCALE_MIN - RANK_1_SCALE_MIN
+    return Number(RANK_1_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  }  else { // QR0 -
+    return 0
+  }
+
+}
+
 function formatBytes(bytes, messages) {
-  b = Number(bytes / 1000).toFixed(1) + " kB"
+  b = Number(bytes / 1000).toFixed(1)
+  if (b < 100) {
+    b = b + " KB"
+  } if ((bytes / 1000000) < 100) {
+    b = Number(bytes / 1000000).toFixed(1)
+    b = b + " MB"
+  } else {
+      b = Number(bytes / 1000000000).toFixed(1)
+    b = b + " GB"
+  }
   m = messages
+  if (m > 1000) {
+    m = Number(messages / 1000).toFixed(1)
+    m = m + " K"
+  }
   return m + "(" + b + ")"
 }
 /*

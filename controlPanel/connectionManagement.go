@@ -179,13 +179,24 @@ func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) boo
 	}
 	delete(cm.connected, key)
 	_ = con
-	/*if val == nil {
+	if val == nil {
 		cm.disconnected[key] = con
 	} else {
 		cm.disconnected[key] = *val
 
-	}*/
+	}
 	return true
+}
+
+func (cm *ConnectionsMap) CleanDisconnected() int {
+	cm.Lock()
+	defer cm.Unlock()
+	count := 0
+	for key := range cm.disconnected {
+		delete(cm.disconnected, key)
+		count++
+	}
+	return count
 }
 
 type ConnectionInfoArray []ConnectionInfo
@@ -223,8 +234,7 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 			hour, minute, second := newCon.MomentConnected.Clock()
 			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
-			hash := sha256.Sum256([]byte(newCon.PeerAddress))
-			item.Hash = fmt.Sprintf("%x", hash)
+			item.Hash = hashPeerAddress(key)
 		}
 		item.Connected = true
 		list = append(list, *item)
@@ -237,16 +247,16 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			item.Connection = *newCon
 			hour, minute, second := newCon.MomentConnected.Clock()
 			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
-			hash := sha256.Sum256([]byte(newCon.PeerAddress))
-			item.Hash = fmt.Sprintf("%x", hash)
+			item.Hash = hashPeerAddress(key)
 		}
 		item.Connected = false
-		//list = append(list, *item)
+		list = append(list, *item)
+
 	}
 	var sortedList ConnectionInfoArray
 	sortedList = list
 	sort.Sort(sortedList)
-
+	cm.CleanDisconnected()
 	return sortedList
 }
 
