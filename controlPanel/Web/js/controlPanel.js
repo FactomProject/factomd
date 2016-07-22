@@ -2,8 +2,25 @@ var currentHeight = 0
 var leaderHeight = 0
 
 setInterval(updateHTML,1000);
+var serverOnline = false
+
 
 function updateHTML() {
+  $.ajax('/', {
+    success: function(){
+      serverOnline = true
+    },
+    error: function(){
+      serverOnline = false
+    }
+  });
+
+  if (!serverOnline) {
+    $("#server-status").text("Factomd Not Running")
+    return
+  } else {
+    $("#server-status").text("Factomd Running")
+  }
   getHeight() // Update items related to height
   updateTransactions()
   updataDataDumps()
@@ -65,6 +82,9 @@ function updateTransactions() {
       $("#DBBlockHeight").text(obj.DirectoryBlock.DBHeight)
 
       $("#panFactoids > #traxList > tbody").html("")
+      if (obj.FactoidTransactions == null) {
+        return
+      }
       obj.FactoidTransactions.forEach(function(trans) {
         if(trans.TotalInput > 0.0001) {
           /*$("\
@@ -195,7 +215,9 @@ function updatePeers() {
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
+          $("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
           $("#" + peer.Hash).find("#ip").val(con.PeerAddress) // Value
+          $("#" + peer.Hash).foundation()
         }
         if ($("#" + peer.Hash).find("#connected").val() != peer.Connected) {
           $("#" + peer.Hash).find("#connected").val(peer.Connected) // Value
@@ -204,7 +226,6 @@ function updatePeers() {
           }
           if (peer.Connected == true) {
             $("#" + peer.Hash).find("#connected").text("Connected")
-            $("#" + peer.Hash).foundation()
           } else {
             $("#" + peer.Hash).find("#connected").text("Disconnected")
           }
@@ -238,9 +259,17 @@ function updatePeers() {
             <td id='received' value='-10'></td>\
             <td></td>\
         </tr>")
+
       }
     }
     updatePeerTotals()
+  })
+}
+
+function getIPCountry(address){
+  $.getJSON('http://ipinfo.io/' + address + '', function(data){
+    console.log(data.country)
+    return "ISP(" + data.org + ") Origin(" + data.country + ")"
   })
 }
 
@@ -254,13 +283,11 @@ RANK_2_SCALE_MIN = 4
 QUALITY_RANK_3 = 100
 RANK_3_SCALE_MIN = 6
 // 9-10 | QR4 ... QR5
-QUALITY_RANK_4 = 1500
+QUALITY_RANK_4 = 500
 RANK_4_SCALE_MIN = 9
 // 10   | QR5+
-QUALITY_RANK_5 = 5000
+QUALITY_RANK_5 = 2000
 RANK_5_SCALE_MIN = 10
-
-
 
 function formatQuality(quality) {
   if (quality > QUALITY_RANK_5) { // QR4+
@@ -313,22 +340,3 @@ function formatBytes(bytes, messages) {
   }
   return m + "(" + b + ")"
 }
-/*
-      <tr>
-          <th>IP</th>
-          <th>Connected</th>
-          <th>Quality</th>
-          <th>Height</th>
-          <th>Up</th>
-          <th>Down</th>
-          <th>Actions</th>
-      </tr>
-*/
-/*
-$(".tabs-panel > #traxlist").change(function(trax){
-    theadChildren = trax.find("thead > tr").first().children()
-    tbodyChildren = trax.find("tbody > tr").first().children()
-    for (i = 0; i < theadChildren.length; i++) { 
-      theadChildren[i].width(tbodyChildren[i].width())
-    }  
-})*/
