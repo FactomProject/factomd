@@ -7,9 +7,9 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func (s *State) SimSetNewKeys(p primitives.PrivateKey) {
+func (s *State) SimSetNewKeys(p *primitives.PrivateKey) {
 	s.serverPrivKey = p
-	s.serverPubKey = *(p.Pub)
+	s.serverPubKey = p.Pub
 }
 
 func (s *State) SimGetSigKey() string {

@@ -444,14 +444,14 @@ func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.Priva
 				return nil, err
 			}
 			p, _ := primitives.NewPrivateKeyFromHex(newKey)
-			return &p, nil
+			return p, nil
 		}
 	}
 	return nil, errors.New("No identity found, it must be one of the pregenerated ones.")
 }
 
 // Returns the private block signing key of the authority
-func authKeyLookup(auth interfaces.IHash) (string, primitives.PrivateKey, *hardCodedAuthority) {
+func authKeyLookup(auth interfaces.IHash) (string, *primitives.PrivateKey, *hardCodedAuthority) {
 	key := ""
 	var resA hardCodedAuthority
 	for _, a := range authKeyLibrary {
@@ -657,7 +657,7 @@ func modifyLoadIdentities() {
 				continue
 			}
 			fnodes[i].State.LocalServerPrivKey = privkey.PrivateKeyString()
-			fnodes[i].State.SimSetNewKeys(*privkey)
+			fnodes[i].State.SimSetNewKeys(privkey)
 		}
 	}
 }

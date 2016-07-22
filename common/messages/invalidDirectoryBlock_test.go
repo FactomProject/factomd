@@ -103,7 +103,7 @@ func newSignedInvalidDirectoryBlock() *InvalidDirectoryBlock {
 	if err != nil {
 		panic(err)
 	}
-	err = ack.Sign(&key)
+	err = ack.Sign(key)
 	if err != nil {
 		panic(err)
 	}

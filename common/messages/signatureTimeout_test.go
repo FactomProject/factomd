@@ -105,7 +105,7 @@ func newSignedSignatureTimeout() *SignatureTimeout {
 	if err != nil {
 		panic(err)
 	}
-	err = msg.Sign(&key)
+	err = msg.Sign(key)
 	if err != nil {
 		panic(err)
 	}

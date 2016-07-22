@@ -103,7 +103,7 @@ func newSignedEOMTimeout() *EOMTimeout {
 	if err != nil {
 		panic(err)
 	}
-	err = msg.Sign(&key)
+	err = msg.Sign(key)
 	if err != nil {
 		panic(err)
 	}

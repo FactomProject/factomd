@@ -43,7 +43,7 @@ func (s *State) Process() (progress bool) {
 		if !ok {
 			return
 		}
-
+		s.SetString()
 		msg.ComputeVMIndex(s)
 
 		var vm *VM
@@ -310,20 +310,23 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	} else {
 		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
 	}
-	//fmt.Println("Faultcnt on", s.FactomNodeName, "(", s.LeaderVMIndex, "):", cnt)
+	fmt.Println("Faultcnt on", s.FactomNodeName, "(", s.LeaderVMIndex, "):", cnt)
 	if s.Leader && cnt > (fedServerCnt/2) {
-		if s.LeaderVMIndex == int(sf.VMIndex)+1 || s.LeaderVMIndex == 0 && int(sf.VMIndex) == fedServerCnt {
+		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
+
+		if s.LeaderVMIndex == responsibleFaulterIdx {
 			var listOfSigs []interfaces.IFullSignature
-			//fmt.Println(s.FactomNodeName, "ISSUING FAULT ON", sf.ServerID.String()[:10])
+			fmt.Println(s.FactomNodeName, "ISSUING FAULT ON", sf.ServerID.String()[:10])
 
 			for _, sig := range s.FaultMap[coreHash] {
 				listOfSigs = append(listOfSigs, sig)
 			}
 			fullFault := messages.NewFullServerFault(sf, listOfSigs)
 			if fullFault != nil {
-				fullFault.Sign(&s.serverPrivKey)
+				fullFault.Sign(s.serverPrivKey)
 				s.NetworkOutMsgQueue() <- fullFault
-				s.InMsgQueue() <- sf
+				fullFault.FollowerExecute(s)
+				delete(s.FaultMap, sf.GetCoreHash().Fixed())
 			}
 		}
 	}
@@ -339,19 +342,20 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fsf, _ := m.(*messages.FullServerFault)
-	//fmt.Println("Follower execute FullServerFault:", fsf, "...", s.FactomNodeName)
+	relevantPL := s.ProcessLists.Get(fsf.DBHeight)
 	auditServerList := s.GetAuditServers(fsf.DBHeight)
 	if len(auditServerList) > 0 {
-		relevantPL := s.ProcessLists.Get(fsf.DBHeight)
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
 				relevantPL.FedServers[listIdx] = auditServerList[0]
 			}
 		}
 		s.AddFedServer(fsf.DBHeight, auditServerList[0].GetChainID())
+		s.RemoveAuditServer(fsf.DBHeight, auditServerList[0].GetChainID())
 	}
 	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -680,6 +684,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
 
+		if !s.Leader {
+			s.CurrentMinute = int(e.Minute)
+		}
+
 		s.CurrentMinute++
 
 		switch {
@@ -732,11 +740,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if ok {
 			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if !ok {
-				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
-					s.FactomNodeName,
-					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
-					v.String())
-
 				copy(vs, vs[1:])
 				vs[len(vs)-1] = nil
 				s.Commits[k] = vs[:len(vs)-1]
