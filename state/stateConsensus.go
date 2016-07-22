@@ -458,7 +458,6 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		for _, audit := range audits {
 			if audit.GetChainID().IsSameAs(as.ServerChainID) { // Promote
 				s.LeaderPL.RemoveAuditServerHash(as.ServerChainID)
-					//fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
 				//return true
 			}
 		}

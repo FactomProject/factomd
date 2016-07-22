@@ -175,6 +175,14 @@ func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
 	return
 }
 
+// Add an Admin Block entry to the start of the block entries
+func (b *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
+	b.ABEntries = append(b.ABEntries, nil)
+	copy(b.ABEntries[1:],b.ABEntries[:len(b.ABEntries)-1])
+	b.ABEntries[0] = e
+	return
+}
+
 // Write out the AdminBlock to binary.
 func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 	// Marshal all the entries into their own thing (need the size)
