@@ -310,14 +310,11 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	} else {
 		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
 	}
-	fmt.Println("Faultcnt on", s.FactomNodeName, "(", s.LeaderVMIndex, "):", cnt)
 	if s.Leader && cnt > (fedServerCnt/2) {
 		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
 		if s.LeaderVMIndex == responsibleFaulterIdx {
 			var listOfSigs []interfaces.IFullSignature
-			fmt.Println(s.FactomNodeName, "ISSUING FAULT ON", sf.ServerID.String()[:10])
-
 			for _, sig := range s.FaultMap[coreHash] {
 				listOfSigs = append(listOfSigs, sig)
 			}
@@ -458,7 +455,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		for _, audit := range audits {
 			if audit.GetChainID().IsSameAs(as.ServerChainID) { // Promote
 				s.LeaderPL.RemoveAuditServerHash(as.ServerChainID)
-					//fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
+				//fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
 				//return true
 			}
 		}
