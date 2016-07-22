@@ -86,7 +86,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	//ackSigned, err := m.VerifySignature()
 	if err != nil {
 		fmt.Println("(For Testing, allowing msg to validate)Err is not nil on Ack sig check: ", err)
-		return 1
+		//return 1
 		return -1
 	}
 	if !ackSigned {
