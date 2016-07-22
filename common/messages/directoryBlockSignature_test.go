@@ -106,7 +106,7 @@ func newSignedDirectoryBlockSignature() *DirectoryBlockSignature {
 	if err != nil {
 		panic(err)
 	}
-	err = dbs.Sign(&key)
+	err = dbs.Sign(key)
 	if err != nil {
 		panic(err)
 	}
