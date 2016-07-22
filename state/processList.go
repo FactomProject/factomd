@@ -467,8 +467,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
-	fmt.Println("dddc", p.State.FactomNodeName, "Processing at height", p.DBHeight)
-
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
