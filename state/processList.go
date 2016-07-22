@@ -234,10 +234,6 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
-	if n == 0 {
-		log.Println("dddd This should not happen. 0 Federated Servers exist when MakeMap() was called.")
-		return
-	}
 	indx := int(p.DBHeight*131) % n
 
 	for i := 0; i < 10; i++ {

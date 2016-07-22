@@ -122,7 +122,6 @@ function updateTransactions() {
               //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
             } else {
               $(".factom-search-error").slideDown(300)
-              console.log(x.response)
             }
           }
         }
@@ -191,7 +190,6 @@ function updatePeers() {
     obj = JSON.parse(resp)
     for (index in obj) {
       peer = obj[index]
-      console.log(obj)
       if($("#" + peer.Hash).length > 0) {
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
