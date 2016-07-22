@@ -682,18 +682,13 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	// If already in authority list, only the change in status needs to be recorded
 	index := st.isIdentityChain(chainID)
-	if auth := st.isAuthorityChain(chainID); auth != -1 && index != -1 {
+	if auth := st.isAuthorityChain(chainID); auth != -1 {
 		if servertype == 0 {
 			st.LeaderPL.AdminBlock.AddFedServer(chainID)
 		} else if servertype == 1 {
 			st.LeaderPL.AdminBlock.AddAuditServer(chainID)
 		}
-		if servertype == 0 {
-			st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
-		} else if servertype == 1 {
-			st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
-		}
-		return true
+		//		return true
 	}
 
 	if index == -1 {
@@ -705,7 +700,6 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		index = st.isIdentityChain(chainID)
 	}
 	if index != -1 {
-
 		id := st.Identities[index]
 
 		if id.SigningKey == nil {
@@ -746,8 +740,10 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	// Add to admin block
 	if servertype == 0 {
 		st.LeaderPL.AdminBlock.AddFedServer(chainID)
+		st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
 	} else if servertype == 1 {
 		st.LeaderPL.AdminBlock.AddAuditServer(chainID)
+		st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
 	}
 	st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &blockSigningKey)
 	st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, matryoshkaHash)
