@@ -99,8 +99,6 @@ func fundWallet(st *state.State, amt uint64) error {
 	trans.AddAuthorization(rcd)
 	trans.SetTimestamp(primitives.NewTimestampNow())
 
-	// Fee isn't working
-
 	fee, err := trans.CalculateFee(st.GetFactoshisPerEC())
 	if err != nil {
 		return err
@@ -598,8 +596,6 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 	}
 
 	portStr := fmt.Sprintf("%d", port)
-	wsapi.ServersMutex.Lock()
-	wsapi.ServersMutex.Unlock()
 	resp, err := http.Post(
 		"http://localhost:"+portStr+"/v2",
 		"application/json",

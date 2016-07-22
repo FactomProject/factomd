@@ -7,6 +7,7 @@ function updateHTML() {
   getHeight() // Update items related to height
   updateTransactions()
   updataDataDumps()
+  updatePeers()
 }
 
 $("#dump-container #fullscreen-option").click( function(){
@@ -37,10 +38,6 @@ $("#indexnav-more > a").click(function() {
     $("#dataDump").removeClass("hide")
   }
 })
-
-function updatePeers() {
-  
-}
 
 function updataDataDumps() {
   resp = queryState("dataDump",function(resp){
@@ -79,7 +76,7 @@ function updateTransactions() {
           </tr>").insertBefore("#panFactoids > #traxList > tbody >tr:first")*/
           $("#panFactoids > #traxList > tbody").append("\
           <tr>\
-              <td><a id='factom-search-link' type='facttransaction'>" + trans.TxID + "</a></td>\
+              <td><a id='factom-search-link' type='factoidack'>" + trans.TxID + "</a></td>\
               <td>" + trans.TotalInput + "</td>\
               <td>" + trans.TotalInputs + "</td>\
               <td>" + trans.TotalOutputs + "</td>\
@@ -96,13 +93,21 @@ function updateTransactions() {
               <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
               <td>" + entry.ContentLength + "</td>\
           </tr>").insertBefore("#panEntries > #traxList > tbody > tr:first")*/
-          
-          $("#panEntries > #traxList > tbody").append("\
-          <tr>\
-              <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
-              <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-              <td>" + entry.ECCost + "</td>\
-          </tr>")
+          if (entry.ChainID == "Processing") {
+            $("#panEntries > #traxList > tbody").append("\
+            <tr>\
+                <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
+                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td>" + entry.ECCost + "</td>\
+            </tr>")
+          } else {
+            $("#panEntries > #traxList > tbody").append("\
+            <tr>\
+                <td><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
+                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td>" + entry.ECCost + "</td>\
+            </tr>")
+          }
         })
       }
       $("section #factom-search-link").click(function() {
@@ -162,6 +167,97 @@ function updateProgressBar(id, current, max) {
   $(id).width(percent+ "%")
 }
 
+function updatePeerTotals() {
+  resp = queryState("peerTotals", function(resp){
+    if(resp.length == 0) {
+      return
+    }
+    obj = JSON.parse(resp)
+    if (typeof obj == "undefined") {
+      $("#peerList > tfoot > tr > #peerquality").text("0")
+    } else {
+      $("#peerList > tfoot > tr > #peerquality").text(obj.PeerQualityAvg)
+      $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
+      $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
+    }
+  })
+}
+
+function updatePeers() {
+  resp = queryState("peers", function(resp){
+    if(resp.length == 0) {
+      return
+    }
+    obj = JSON.parse(resp)
+    for (index in obj) {
+      peer = obj[index]
+      if($("#" + peer.Hash).length > 0) {
+        con = peer.Connection
+        if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
+          $("#" + peer.Hash).find("#ip").text(con.PeerAddress)
+          $("#" + peer.Hash).find("#ip").val(con.PeerAddress) // Value
+        }
+        if ($("#" + peer.Hash).find("#connected").val() != peer.Connected) {
+          $("#" + peer.Hash).find("#connected").val(peer.Connected) // Value
+          if(peer.Connected == false) { // Need to move to end
+            $("#" + peer.Hash).delete("#peerList > tbody")
+          }
+          if (peer.Connected == true) {
+            $("#" + peer.Hash).find("#connected").text("Connected")
+          } else {
+            $("#" + peer.Hash).find("#connected").text("Disconnected")
+          }
+        }
+        if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
+          $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
+          $("#" + peer.Hash).find("#peerquality").text(con.PeerQuality)
+        }
+        if ($("#" + peer.Hash).find("#momentconnected").val() != con.MomentConnected) {
+          $("#" + peer.Hash).find("#momentconnected").val(con.MomentConnected) // Value
+          $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
+        }
+
+        if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
+          $("#" + peer.Hash).find("#sent").val(con.BytesSent) // Value
+          $("#" + peer.Hash).find("#sent").text(formatBytes(con.BytesSent, con.MessagesSent))
+        }
+        if ($("#" + peer.Hash).find("#received").val().length == 0 || $("#" + peer.Hash).find("#received").val() != con.BytesReceived) {
+          $("#" + peer.Hash).find("#received").val(con.BytesReceived) // Value
+          $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
+        }
+      } else {
+        $("#peerList > tbody").prepend("\
+        <tr id='" + peer.Hash + "'>\
+            <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>59.19.1.130</span> Loading...</td>\
+            <td id='connected'></td>\
+            <td id='peerquality'></td>\
+            <td id='momentconnected'></td>\
+            <td id='sent' value='-10'></td>\
+            <td id='received' value='-10'></td>\
+            <td></td>\
+        </tr>")
+      }
+    }
+    updatePeerTotals()
+  })
+}
+
+function formatBytes(bytes, messages) {
+  b = Number(bytes / 1000).toFixed(1) + " kB"
+  m = messages
+  return m + "(" + b + ")"
+}
+/*
+      <tr>
+          <th>IP</th>
+          <th>Connected</th>
+          <th>Quality</th>
+          <th>Height</th>
+          <th>Up</th>
+          <th>Down</th>
+          <th>Actions</th>
+      </tr>
+*/
 /*
 $(".tabs-panel > #traxlist").change(function(trax){
     theadChildren = trax.find("thead > tr").first().children()

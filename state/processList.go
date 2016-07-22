@@ -44,20 +44,20 @@ type ProcessList struct {
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock *sync.Mutex
-	
+
 	OldAcks     map[[32]byte]interfaces.IMsg
 	oldackslock *sync.Mutex
 
 	// Entry Blocks added within 10 minutes (follower and leader)
 	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
 	neweblockslock *sync.Mutex
-	
-	NewEntries     map[[32]byte]interfaces.IEntry
-	newentrieslock *sync.Mutex
-	
+
+	NewEntriesMutex sync.Mutex
+	NewEntries      map[[32]byte]interfaces.IEntry
+
 	// Used by the leader, validate
-	Commits        map[[32]byte]interfaces.IMsg
-	commitslock    *sync.Mutex
+	Commits     map[[32]byte]interfaces.IMsg
+	commitslock *sync.Mutex
 
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
@@ -69,8 +69,6 @@ type ProcessList struct {
 	Matryoshka   []interfaces.IHash      // Reverse Hash
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
-	FaultCnt     map[[32]byte]int        // Count of faults against the Federated Servers
-
 }
 
 type VM struct {
@@ -83,6 +81,32 @@ type VM struct {
 	missingTime    int64             // How long we have been waiting for a missing message
 	missingEOM     int64             // Ask for EOM
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
+}
+
+func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+
+	keys = make([][32]byte, p.LenNewEntries())
+
+	i := 0
+	for k := range p.NewEntries {
+		keys[i] = k
+		i++
+	}
+	return
+}
+
+func (p *ProcessList) GetNewEntry(key [32]byte) interfaces.IEntry {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	return p.NewEntries[key]
+}
+
+func (p *ProcessList) LenNewEntries() int {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	return len(p.NewEntries)
 }
 
 func (p *ProcessList) Complete() bool {
@@ -119,7 +143,7 @@ func (p *ProcessList) SortFedServers() {
 		for j := 0; j < len(p.FedServers)-1-i; j++ {
 			fs1 := p.FedServers[j].GetChainID().Bytes()
 			fs2 := p.FedServers[j+1].GetChainID().Bytes()
-			if bytes.Compare(fs1, fs2) < 0 {
+			if bytes.Compare(fs1, fs2) > 0 {
 				tmp := p.FedServers[j]
 				p.FedServers[j] = p.FedServers[j+1]
 				p.FedServers[j+1] = tmp
@@ -356,21 +380,15 @@ func (p *ProcessList) DeleteEBlocks(key interfaces.IHash) {
 	delete(p.NewEBlocks, key.Fixed())
 }
 
-func (p *ProcessList) AddNewEntries(key interfaces.IHash, value interfaces.IEntry) {
-	p.newentrieslock.Lock()
-	defer p.newentrieslock.Unlock()
+func (p *ProcessList) AddNewEntry(key interfaces.IHash, value interfaces.IEntry) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
 	p.NewEntries[key.Fixed()] = value
 }
 
-func (p *ProcessList) GetNewEntries(key interfaces.IHash) interfaces.IEntry {
-	p.newentrieslock.Lock()
-	defer p.newentrieslock.Unlock()
-	return p.NewEntries[key.Fixed()]
-}
-
-func (p *ProcessList) DeleteNewEntries(key interfaces.IHash) {
-	p.newentrieslock.Lock()
-	defer p.newentrieslock.Unlock()
+func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
 	delete(p.NewEntries, key.Fixed())
 }
 
@@ -404,10 +422,11 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
 	now := time.Now().Unix()
-
+	//fmt.Println("ASK", p.State.FactomNodeName, vmIndex, now, thetime, waitSeconds)
 	if thetime == 0 {
 		thetime = now
 	}
+
 	if now-thetime >= waitSeconds {
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
@@ -415,11 +434,27 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 		}
 		thetime = now
 	}
-	if p.State.Leader && now-thetime >= waitSeconds+2 {
-		id := p.FedServers[p.ServerMap[0][vmIndex]].GetChainID()
-		sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-		if sf != nil {
-			p.State.NetworkOutMsgQueue() <- sf
+
+	return thetime
+}
+
+func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
+	now := time.Now().Unix()
+
+	if thetime == 0 {
+		thetime = now
+	}
+	if p.State.Leader {
+		if now-thetime >= waitSeconds {
+			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
+			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
+			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
+			if sf != nil {
+				sf.Sign(&p.State.serverPrivKey)
+				p.State.NetworkOutMsgQueue() <- sf
+				p.State.InMsgQueue() <- sf
+			}
+			thetime = now
 		}
 	}
 
@@ -432,10 +467,17 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
+		if !p.State.Syncing {
+			vm.missingEOM = 0
+		} else {
+			if !vm.Synced {
+				vm.missingEOM = fault(p, i, 20, vm, vm.missingEOM, len(vm.List))
+			}
+		}
+
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
 		}
-
 		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List))
 
 	VMListLoop:
@@ -487,6 +529,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
+				vm.missingEOM = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
@@ -607,12 +650,12 @@ func (p *ProcessList) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n", len(p.FedServers)))
 		for _, fed := range p.FedServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:3]))
+			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:10]))
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
 		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
 		for _, aud := range p.AuditServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:3]))
+			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:10]))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
 		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
@@ -662,7 +705,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
-	pl.newentrieslock = new(sync.Mutex)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
 

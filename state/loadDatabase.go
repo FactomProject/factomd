@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -55,7 +54,7 @@ func LoadDatabase(s *State) {
 		s.Print("\r", "\\|/-"[i%4:i%4+1])
 	}
 
-	if blkCnt == 0 && s.NetworkNumber == constants.NETWORK_LOCAL {
+	if blkCnt == 0 {
 		s.Println("\n***********************************")
 		s.Println("******* New Database **************")
 		s.Println("***********************************\n")

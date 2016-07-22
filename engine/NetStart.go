@@ -151,8 +151,10 @@ func NetStart(s *state.State) {
 		}
 	}
 	if leader {
-		s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
-		s.NodeMode = "SERVER"
+		if len(s.Prefix) == 0 {
+			s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
+			s.NodeMode = "SERVER"
+		}
 	}
 
 	s.KeepMismatch = keepMismatch
@@ -246,7 +248,7 @@ func NetStart(s *state.State) {
 	if 0 < networkPortOverride {
 		networkPort = fmt.Sprintf("%d", networkPortOverride)
 	}
-	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
+	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     networkPort,
 		PeersFile:                peersFile,
@@ -370,19 +372,19 @@ func NetStart(s *state.State) {
 
 	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
 	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
-	drain := func() {
-		//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
-		for {
-			select {
-			case _ = <-connectionMetricsChannel:
-				// fmt.Printf("Channel Metrics: %+v", metrics)
-				time.Sleep(500 * time.Millisecond)
-			default:
-				time.Sleep(2 * time.Second)
-			}
-		}
-	}
-	go drain()
+	// drain := func() {
+	// 	//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
+	// 	for {
+	// 		select {
+	// 		case _ = <-connectionMetricsChannel:
+	// 			// fmt.Printf("Channel Metrics: %+v", metrics)
+	// 			time.Sleep(500 * time.Millisecond)
+	// 		default:
+	// 			time.Sleep(2 * time.Second)
+	// 		}
+	// 	}
+	// }
+	// go drain()
 
 	states := make([]*state.State, 0)
 	for _, f := range fnodes {
@@ -390,7 +392,7 @@ func NetStart(s *state.State) {
 	}
 	_ = states
 	_ = controlPanel.INDEX_HTML
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel)
 	// Listen for commands:
 	SimControl(listenTo)
 }
@@ -438,8 +440,6 @@ func setupBlankAuthority(s *state.State) {
 	var id state.Identity
 	id.IdentityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
 	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
-	//fmt.Printf("DEBUG: State Public: %x\n", s.GetServerPublicKey())
-	//fmt.Printf("DEBUG: State Private: %x\n", *(s.GetServerPrivateKey().Key))
 	pub := primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 	data, _ := pub.MarshalBinary()
 	id.SigningKey = primitives.NewHash(data)

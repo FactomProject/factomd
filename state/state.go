@@ -52,6 +52,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	ControlPanelPort        int
+	ControlPanelPath        string
 	Replay                  *Replay
 	DropRate                int
 
@@ -154,6 +155,8 @@ type State struct {
 
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
+	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
+	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -253,9 +256,13 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LocalPeersFile = s.LocalPeersFile
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
+	clone.FaultMap = s.FaultMap
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
+
+	clone.ControlPanelPort = s.ControlPanelPort
+	clone.ControlPanelPath = s.ControlPanelPath
 
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
@@ -342,6 +349,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
+		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
@@ -381,6 +389,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
+		s.ControlPanelPath = "Web/"
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -428,6 +437,8 @@ func (s *State) Init() {
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
+
+	s.FaultMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -714,9 +725,11 @@ func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
-	hashResponse := make([]interfaces.IHash, len(pl.NewEntries))
-	for _, entryHash := range pl.NewEntries {
-		hashResponse[hashCount] = entryHash.GetHash()
+	hashResponse := make([]interfaces.IHash, pl.LenNewEntries())
+	keys := pl.GetKeysNewEntries()
+	for _, k := range keys {
+		entry := pl.GetNewEntry(k)
+		hashResponse[hashCount] = entry.GetHash()
 		hashCount++
 	}
 	return hashResponse
@@ -846,6 +859,10 @@ func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
+}
+
+func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
+	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {

@@ -18,6 +18,8 @@ var (
 	TWELVE_HOURS_S uint64 = 12 * 60 * 60
 	// Time window for identity to require registration: 24hours = 144 blocks
 	TIME_WINDOW uint32 = 144
+	// First Identity
+	FIRST_IDENTITY string = "38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9"
 	// Where all Identities register
 	MAIN_FACTOM_IDENTITY_LIST = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
@@ -65,10 +67,11 @@ func (e *Identity) String() string {
 	return str
 }
 
-func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
-	if isIdentityChain(cid, st.Identities) != -1 {
+func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
+	if cid.String() == FIRST_IDENTITY {
 		return nil
 	}
+
 	index := createFactomIdentity(st, cid)
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
@@ -77,8 +80,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 		return err
 	}
 	if mr == nil {
-		//log.Println("Identity Error: No main Main Factom Identity Chain chain created")
-		removeIdentity(index, st)
+		st.removeIdentity(index)
 		return errors.New("Identity Error: No main Main Factom Identity Chain chain created")
 	}
 
@@ -88,8 +90,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	if err != nil {
 		return err
 	} else if mr == nil {
-		removeIdentity(index, st)
-		//log.Println("Identity Error: No main Root Identity Chain chain created")
+		st.removeIdentity(index)
 		return errors.New("Identity Error: Identity Chain not found")
 	}
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
@@ -102,7 +103,7 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 	}
 	// FILO
 	for i := len(eblkStackRoot) - 1; i >= 0; i-- {
-		LoadIdentityByEntryBlock(eblkStackRoot[i], st, false)
+		LoadIdentityByEntryBlock(eblkStackRoot[i], st)
 	}
 
 	mr, err = st.DB.FetchHeadIndexByChainID(managementChain)
@@ -147,16 +148,14 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 
 	eblkStackSub := make([]interfaces.IEntryBlock, 0)
 	if st.Identities[index].ManagementChainID == nil {
-		removeIdentity(index, st)
-		//log.Println("Identity Error: No management chain found")
+		st.removeIdentity(index)
 		return errors.New("Identity Error: No management chain found")
 	}
 	mr, err = st.DB.FetchHeadIndexByChainID(st.Identities[index].ManagementChainID)
 	if err != nil {
 		return err
 	} else if mr == nil {
-		//log.Println("Identity Error: No main Management Identity Chain chain created")
-		removeIdentity(index, st)
+		st.removeIdentity(index)
 		return nil
 	}
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
@@ -168,129 +167,37 @@ func AddIdentityFromChainID(cid interfaces.IHash, st *State) error {
 		mr = eblk.GetHeader().GetPrevKeyMR()
 	}
 	for i := len(eblkStackSub) - 1; i >= 0; i-- {
-		LoadIdentityByEntryBlock(eblkStackSub[i], st, false)
+		LoadIdentityByEntryBlock(eblkStackSub[i], st)
 	}
 	err = checkIdentityForFull(index, st)
-	if err != nil { //st.Identities[index].Status == constants.IDENTITY_PENDING ||{
-		removeIdentity(index, st)
+	if err != nil {
+		st.removeIdentity(index)
 		return errors.New("Error: Identity not full - " + err.Error())
 	}
 
 	return nil
 }
 
-func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State, update bool) {
-	if eblk == nil {
-		log.Println("DEBUG: Identity Error, EBlock nil, disregard")
-		return
-	}
-	height := eblk.GetDatabaseHeight()
-	cid := eblk.GetChainID()
-	if cid == nil {
-		return
-	}
-	if index := isIdentityChain(cid, st.Identities); index != -1 {
-		holdEntry := make([]interfaces.IEBEntry, 0)
-		entryHashes := eblk.GetEntryHashes()
-		for _, eHash := range entryHashes {
-			hs := eHash.String()
-			if hs[0:10] != "0000000000" { //ignore minute markers
-				ent, err := st.DB.FetchEntry(eHash)
-				if err != nil || ent == nil {
-					continue
-				}
-				if len(ent.ExternalIDs()) > 1 {
-					if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-						// this is an Identity that should have been registered already with a 0 status.
-						//  this registers it with the management chain.  Now it can be assigned as federated or audit.
-						//  set it to status 6 - Pending Full
-						registerIdentityAsServer(ent.ExternalIDs(), cid, st, height)
-					} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
-						// this is the Signing Key for this Identity
-						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							// Hold
-							holdEntry = append(holdEntry, ent)
-						}
-
-					} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-						// this is the Signing Key for this Identity
-						if len(ent.ExternalIDs()) == 9 { // update management should have 4 items
-							// Hold
-							holdEntry = append(holdEntry, ent)
-						}
-
-					} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-						// this is the Signing Key for this Identity
-						if len(ent.ExternalIDs()) == 7 { // update management should have 4 items
-							// hold
-							holdEntry = append(holdEntry, ent)
-						}
-					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-						// this is a new identity
-						addIdentity(ent.ExternalIDs(), cid, st, height)
-					} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-						// this is a new identity
-						if len(ent.ExternalIDs()) == 4 {
-							// update management should have 4 items
-							updateManagementKey(ent.ExternalIDs(), cid, st, height)
-						}
-					}
-				}
-			}
-		}
-		// Process entries that are being held
-		if len(holdEntry) > 0 {
-
-			// Find any entries that change the same key for an identity. Only last should go into admin block
-			repeatBlockSigning := make(map[string]bool)
-			repeatMHash := make(map[string]bool)
-			//for _, entry := range holdEntry {
-			for i := len(holdEntry) - 1; i >= 0; i-- {
-				entry := holdEntry[i]
-				if string(entry.ExternalIDs()[1]) == "New Block Signing Key" {
-					if len(entry.ExternalIDs()) == 7 {
-						index := primitives.NewHash(entry.ExternalIDs()[2])
-						if repeatBlockSigning[index.String()] == true {
-						} else {
-							repeatBlockSigning[index.String()] = true
-							registerBlockSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, update)
-						}
-					}
-				} else if string(entry.ExternalIDs()[1]) == "New Bitcoin Key" {
-					if len(entry.ExternalIDs()) == 9 {
-						registerAnchorSigningKey(entry.ExternalIDs(), entry.GetChainID(), st, "BTC", update)
-					}
-				} else if string(entry.ExternalIDs()[1]) == "New Matryoshka Hash" {
-					if len(entry.ExternalIDs()) == 7 {
-						if repeatMHash[string(entry.ExternalIDs()[2])] == true {
-
-						} else {
-							repeatMHash[string(entry.ExternalIDs()[2])] = true
-							updateMatryoshkaHash(entry.ExternalIDs(), entry.GetChainID(), st, update)
-						}
-					}
-				}
-			}
-		}
-	}
-
+func (st *State) RemoveIdentity(chainID interfaces.IHash) {
+	index := st.isIdentityChain(chainID)
+	st.removeIdentity(index)
 }
 
-func removeIdentity(i int, st *State) {
+func (st *State) removeIdentity(i int) {
+	log.Println("Debug: -------------------------------- I got called")
 	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
 }
 
-func isIdentityChain(cid interfaces.IHash, ids []Identity) int {
+func (st *State) isIdentityChain(cid interfaces.IHash) int {
 	//is this an identity chain
-	for i, identityChain := range ids {
+	for i, identityChain := range st.Identities {
 		if identityChain.IdentityChainID.IsSameAs(cid) {
 			return i
 		}
 	}
 
 	// or is it an identity management subchain
-	for i, identityChain := range ids {
-		// might not have been filled in yet
+	for i, identityChain := range st.Identities {
 		if identityChain.ManagementChainID != nil {
 			if identityChain.ManagementChainID.IsSameAs(cid) {
 				return i
@@ -300,7 +207,78 @@ func isIdentityChain(cid interfaces.IHash, ids []Identity) int {
 	return -1
 }
 
+func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
+	if eblk == nil {
+		log.Println("DEBUG: Identity Error, EBlock nil, disregard")
+		return
+	}
+	cid := eblk.GetChainID()
+	if cid == nil {
+		return
+	}
+	if index := st.isIdentityChain(cid); index != -1 {
+		entryHashes := eblk.GetEntryHashes()
+		for _, eHash := range entryHashes {
+			entry, err := st.DB.FetchEntry(eHash)
+			if err != nil {
+				continue
+			}
+			LoadIdentityByEntry(entry, st, eblk.GetDatabaseHeight())
+		}
+	}
+}
+
+func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32) {
+	if ent == nil {
+		return
+	}
+	hs := ent.GetChainID().String()
+	cid := ent.GetChainID()
+	if st.isIdentityChain(cid) == -1 {
+		return
+	}
+	if hs[0:10] != "0000000000" { //ignore minute markers
+		if len(ent.ExternalIDs()) > 1 {
+			if string(ent.ExternalIDs()[1]) == "Register Server Management" {
+				// this is an Identity that should have been registered already with a 0 status.
+				//  this registers it with the management chain.  Now it can be assigned as federated or audit.
+				//  set it to status 6 - Pending Full
+				registerIdentityAsServer(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
+			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
+				// this is the Signing Key for this Identity
+				if len(ent.ExternalIDs()) == 7 {
+					registerBlockSigningKey(ent.ExternalIDs(), ent.GetChainID(), st)
+				}
+
+			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
+				// this ent the Signing Key for this Identity
+				if len(ent.ExternalIDs()) == 9 {
+					registerAnchorSigningKey(ent.ExternalIDs(), ent.GetChainID(), st, "BTC")
+				}
+
+			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
+				// this is the Signing Key for this Identity
+				if len(ent.ExternalIDs()) == 7 {
+					updateMatryoshkaHash(ent.ExternalIDs(), ent.GetChainID(), st)
+				}
+			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
+				// this is a new identity
+				addIdentity(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
+			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
+				// this is a new identity
+				if len(ent.ExternalIDs()) == 4 {
+					// update management should have 4 items
+					updateManagementKey(ent.ExternalIDs(), cid, st, height)
+				}
+			}
+		}
+	}
+}
+
 func createFactomIdentity(st *State, chainID interfaces.IHash) int {
+	if index := st.isIdentityChain(chainID); index != -1 {
+		return index
+	}
 	var idnew []Identity
 	idnew = make([]Identity, len(st.Identities)+1)
 
@@ -316,6 +294,14 @@ func createFactomIdentity(st *State, chainID interfaces.IHash) int {
 	oneID.IdentityCreated = 0
 	oneID.ManagementRegistered = 0
 	oneID.ManagementCreated = 0
+
+	oneID.ManagementChainID = primitives.NewZeroHash()
+	oneID.Key1 = primitives.NewZeroHash()
+	oneID.Key2 = primitives.NewZeroHash()
+	oneID.Key3 = primitives.NewZeroHash()
+	oneID.Key4 = primitives.NewZeroHash()
+	oneID.MatryoshkaHash = primitives.NewZeroHash()
+	oneID.SigningKey = primitives.NewZeroHash()
 
 	idnew[len(st.Identities)] = oneID
 
@@ -335,7 +321,7 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 
 	// find the Identity index from the chain id in the external id.  add this chainID as the management id
 	idChain := primitives.NewHash(extIDs[2])
-	IdentityIndex := isIdentityChain(idChain, st.Identities)
+	IdentityIndex := st.isIdentityChain(idChain)
 	if IdentityIndex == -1 {
 		IdentityIndex = createFactomIdentity(st, idChain)
 	}
@@ -373,7 +359,7 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height ui
 		return errors.New("Identity Error Create Identity Chain: Invalid external ID length")
 	}
 
-	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	IdentityIndex := st.isIdentityChain(chainID)
 
 	if IdentityIndex == -1 {
 		IdentityIndex = createFactomIdentity(st, chainID)
@@ -434,11 +420,10 @@ func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, h
 		!CheckLength(17, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
 		extIDs[3] == nil { // Nonce
-		log.Println("Identity Error Create Management: Invalid external ID length")
 		return errors.New("Identity Error Create Management: Invalid external ID length")
 	}
 	idChain := primitives.NewHash(extIDs[2])
-	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
 		IdentityIndex = createFactomIdentity(st, idChain)
 	}
@@ -453,17 +438,15 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		!CheckLength(32, extIDs[2]) || // Sub ID Chain
 		!CheckLength(33, extIDs[3]) || // Preimage
 		!CheckLength(64, extIDs[4]) { // Signiture
-		//log.Println("Identity Error Register Identity: Invalid external ID length")
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
 	}
-	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
 		IdentityIndex = createFactomIdentity(st, chainID)
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
 	if err != nil {
-		//log.Printfln("Identity Error:", err)
 		return err
 	} else {
 		// Verify Signature
@@ -472,7 +455,6 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 			st.Identities[IdentityIndex].ManagementRegistered = height
 			st.Identities[IdentityIndex].ManagementChainID = primitives.NewHash(extIDs[2][:32])
 		} else {
-			//log.Println("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 
@@ -480,7 +462,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	return nil
 }
 
-func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State, update bool) error {
+func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State) error {
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(21, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
@@ -488,27 +470,23 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 		!CheckLength(8, extIDs[4]) || // Timestamp
 		!CheckLength(33, extIDs[5]) || // Preimage
 		!CheckLength(64, extIDs[6]) { // Signiture
-		//log.Println("Identity Error Block Signing Key: Invalid external ID length")
 		return errors.New("Identity Error Block Signing Key: Invalid external ID length")
 	}
 
 	chainID := new(primitives.Hash)
 	chainID.SetBytes(extIDs[2][:32])
 
-	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		//log.Println("Identity Error: This cannot happen. New block signing key to nonexistent identity")
 		return errors.New("Identity Error: This cannot happen. New block signing key to nonexistent identity")
 	}
 
 	if !st.Identities[IdentityIndex].ManagementChainID.IsSameAs(subChainID) {
-		//log.Println("Identity Error: Entry was not placed in the correct management chain")
 		return errors.New("Identity Error: Entry was not placed in the correct management chain")
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 4)
 	if err != nil {
-		//log.Printfln("Identity Error:", err)
 		return err
 	} else {
 		//verify Signature
@@ -516,22 +494,20 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 		if CheckSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
 			// Check block key length
 			if len(extIDs[3]) != 32 {
-				//log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
 				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 			// Check timestamp of message
 			if !CheckTimestamp(extIDs[4]) {
-				//log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 			}
 
 			st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
-			if update && (status == constants.IDENTITY_FEDERATED_SERVER ||
+			if status == constants.IDENTITY_FEDERATED_SERVER ||
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
-				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
+				status == constants.IDENTITY_PENDING_AUDIT_SERVER {
 				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 					key := primitives.NewHash(extIDs[3])
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
@@ -541,17 +517,15 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 					}
 					st.InMsgQueue() <- msg
 				}
-				//st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &key)
 			}
 		} else {
-			//log.Println("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 			errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 	}
 	return nil
 }
 
-func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *State, update bool) error {
+func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *State) error {
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(19, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
@@ -559,20 +533,17 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 		!CheckLength(8, extIDs[4]) || // Timestamp
 		!CheckLength(33, extIDs[5]) || // Preimage
 		!CheckLength(64, extIDs[6]) { // Signiture
-		//log.Println("Identity Error MHash: Invalid external ID length")
 		return errors.New("Identity Error MHash: Invalid external ID length")
 	}
 	chainID := new(primitives.Hash)
 	chainID.SetBytes(extIDs[2][:32])
 
-	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		//log.Println("Identity Error: This cannot happen. New Matryoshka Hash to nonexistent identity")
 		return errors.New("Identity Error: This cannot happen. New Matryoshka Hash to nonexistent identity")
 	}
 
 	if !st.Identities[IdentityIndex].ManagementChainID.IsSameAs(subChainID) {
-		//log.Println("Identity Error: Entry was not placed in the correct management chain")
 		return errors.New("Identity Error: Entry was not placed in the correct management chain")
 	}
 
@@ -586,22 +557,20 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 		if CheckSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
 			// Check MHash length
 			if len(extIDs[3]) != 32 {
-				//log.Println("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid length")
 				return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 			// Check Timestamp of message
 			if !CheckTimestamp(extIDs[4]) {
-				//log.Println("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] timestamp is too old")
 			}
 			mhash := primitives.NewHash(extIDs[3])
 			st.Identities[IdentityIndex].MatryoshkaHash = mhash
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
-			if update && (status == constants.IDENTITY_FEDERATED_SERVER ||
+			if status == constants.IDENTITY_FEDERATED_SERVER ||
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
-				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
+				status == constants.IDENTITY_PENDING_AUDIT_SERVER {
 				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 					msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_MATRYOSHKA, 0, 0, mhash)
 					err := msg.(*messages.ChangeServerKeyMsg).Sign(st.serverPrivKey)
@@ -609,12 +578,9 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 						return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 					}
 					st.InMsgQueue() <- msg
-
 				}
-				//st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, mhash)
 			}
 		} else {
-			//log.Println("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 			return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 
@@ -622,7 +588,7 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 	return nil
 }
 
-func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State, BlockChain string, update bool) error {
+func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State, BlockChain string) error {
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckLength(15, extIDs[1]) || // Ascii
 		!CheckLength(32, extIDs[2]) || // ID Chain
@@ -639,14 +605,12 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 	chainID := new(primitives.Hash)
 	chainID.SetBytes(extIDs[2][:32])
 
-	IdentityIndex := isIdentityChain(chainID, st.Identities)
+	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		//log.Println("Identity Error: This cannot happen. New Bitcoin Key to nonexistent identity")
 		return errors.New("Identity Error: This cannot happen. New Bitcoin Key to nonexistent identity")
 	}
 
 	if !st.Identities[IdentityIndex].ManagementChainID.IsSameAs(subChainID) {
-		//log.Println("Identity Error: Entry was not placed in the correct management chain")
 		return errors.New("Identity Error: Entry was not placed in the correct management chain")
 	}
 
@@ -676,7 +640,6 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 	newAsk[len(ask)] = oneAsk
 	sigmsg, err := AppendExtIDs(extIDs, 0, 6)
 	if err != nil {
-		//log.Printfln("Identity Error:", err)
 		return err
 	} else {
 		// Verify Signature
@@ -684,12 +647,10 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 		if CheckSig(idKey, extIDs[7][1:33], sigmsg, extIDs[8]) {
 			var key [20]byte
 			if len(extIDs[5]) != 20 {
-				//log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid length")
 				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 			// Check Timestamp of message
 			if !CheckTimestamp(extIDs[6]) {
-				//log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 			}
 			if contains {
@@ -699,10 +660,10 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 			}
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
-			if update && (status == constants.IDENTITY_FEDERATED_SERVER ||
+			if status == constants.IDENTITY_FEDERATED_SERVER ||
 				status == constants.IDENTITY_AUDIT_SERVER ||
 				status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
-				status == constants.IDENTITY_PENDING_AUDIT_SERVER) {
+				status == constants.IDENTITY_PENDING_AUDIT_SERVER {
 				if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 					copy(key[:20], extIDs[5][:20])
 					extIDs[5] = append(extIDs[5], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
@@ -714,47 +675,12 @@ func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *
 					}
 					st.InMsgQueue() <- msg
 				}
-				//st.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(chainID, extIDs[3][0], extIDs[4][0], &key)
 			}
 		} else {
-			//log.Println("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 			return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 	}
 	return nil
-}
-
-//  stub for fake identity entries
-func StubIdentityCache(st *State) {
-	var id []Identity
-
-	id = make([]Identity, 24)
-	id[0] = MakeID("FED1", 1)
-	id[1] = MakeID("FED2", 1)
-	id[2] = MakeID("FED3", 1)
-	id[3] = MakeID("FED4", 1)
-	id[4] = MakeID("FED5", 1)
-	id[5] = MakeID("FED6", 1)
-	id[6] = MakeID("FED7", 1)
-	id[7] = MakeID("FED8", 1)
-	id[8] = MakeID("AUD1", 2)
-	id[9] = MakeID("AUD2", 2)
-	id[10] = MakeID("AUD3", 2)
-	id[11] = MakeID("AUD4", 2)
-	id[12] = MakeID("AUD5", 2)
-	id[13] = MakeID("AUD6", 2)
-	id[14] = MakeID("AUD7", 2)
-	id[15] = MakeID("AUD8", 2)
-	id[16] = MakeID("FUL1", 3)
-	id[17] = MakeID("FUL2", 3)
-	id[18] = MakeID("FUL3", 3)
-	id[19] = MakeID("FUL4", 3)
-	id[20] = MakeID("FUL5", 3)
-	id[21] = MakeID("FUL6", 3)
-	id[22] = MakeID("FUL7", 3)
-	id[23] = MakeID("FUL8", 3)
-
-	st.Identities = id
 }
 
 // Called by AddServer Message
@@ -766,8 +692,8 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	var btcKeyType byte
 
 	// If already in authority list, only the change in status needs to be recorded
-	index := isIdentityChain(chainID, st.Identities)
-	if auth := isAuthorityChain(chainID, st.Authorities); auth != -1 && index != -1 {
+	index := st.isIdentityChain(chainID)
+	if auth := st.isAuthorityChain(chainID); auth != -1 && index != -1 {
 		if servertype == 0 {
 			st.LeaderPL.AdminBlock.AddFedServer(chainID)
 		} else if servertype == 1 {
@@ -782,12 +708,12 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	}
 
 	if index == -1 {
-		err := AddIdentityFromChainID(chainID, st)
+		err := st.AddIdentityFromChainID(chainID)
 		if err != nil {
 			log.Println(err.Error())
 			return false
 		}
-		index = isIdentityChain(chainID, st.Identities)
+		index = st.isIdentityChain(chainID)
 	}
 	if index != -1 {
 
@@ -840,39 +766,6 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	return true
 }
 
-func MakeID(seed string, ServerType int) Identity {
-	var id Identity
-	nonce := primitives.Sha([]byte("Nonce")).Bytes()
-
-	id.Key1 = primitives.Sha([]byte(seed))
-	id.Key2 = primitives.Sha(id.Key1.Bytes())
-	id.Key3 = primitives.Sha(id.Key2.Bytes())
-	id.Key4 = primitives.Sha(id.Key3.Bytes())
-
-	// make chainid  not bothering to loop looking for 888888 at start
-	Chain := primitives.Sha(id.Key1.Bytes()).Bytes()
-	temp := primitives.Sha(id.Key2.Bytes()).Bytes()
-	Chain = append(Chain, temp[:]...)
-	temp = primitives.Sha(id.Key3.Bytes()).Bytes()
-	Chain = append(Chain, temp[:]...)
-	temp = primitives.Sha(id.Key4.Bytes()).Bytes()
-	Chain = append(Chain, temp[:]...)
-	Chain = append(Chain, nonce[:]...)
-
-	id.IdentityChainID = primitives.Sha(Chain)
-	id.ManagementChainID = primitives.Sha(Chain)
-	id.SigningKey = primitives.Sha(id.Key4.Bytes())
-	id.Status = ServerType
-
-	var ak AnchorSigningKey
-	ak.BlockChain = "BTC"
-	ak.KeyType = 0
-	ak.SigningKey = id.SigningKey.Bytes()[0:20]
-	id.AnchorKeys = make([]AnchorSigningKey, 1)
-	id.AnchorKeys[0] = ak
-	return id
-}
-
 // Sig is signed message, msg is raw message
 func CheckSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 	var pubFix [32]byte
@@ -885,11 +778,6 @@ func CheckSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 	pre = append(pre, []byte{0x01}...)
 	pre = append(pre, pubFix[:]...)
 	id := primitives.Shad(pre)
-
-	/*if idKey == nil {
-		log.Println("Identity Issue: No identity currently exist to check public key against identity key. Not full validation")
-		return ed.VerifyCanonical(&pubFix, msg, &sigFix)
-	}*/
 
 	if id.IsSameAs(idKey) {
 		return ed.VerifyCanonical(&pubFix, msg, &sigFix)
@@ -946,39 +834,17 @@ func CheckTimestamp(time []byte) bool {
 
 // Verifies an identity exists and if it is a federated or audit server
 func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
-	IdentityIndex := isIdentityChain(cid, st.Identities)
-	if IdentityIndex != -1 {
-		status := st.Identities[IdentityIndex].Status
-		if status == constants.IDENTITY_FEDERATED_SERVER ||
-			status == constants.IDENTITY_AUDIT_SERVER ||
-			status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
-			status == constants.IDENTITY_PENDING_AUDIT_SERVER {
-			if isAuthorityChain(cid, st.Authorities) != -1 {
-				return true
-			}
-		}
+	if st.isAuthorityChain(cid) != -1 {
+		return true
 	}
 	return false
 }
 
 func UpdateIdentityStatus(ChainID interfaces.IHash, StatusFrom int, StatusTo int, st *State) {
-	// if StatusFrom < 0 then it will change from any status to the StatusTo status.
-	//  if StatusFrom is > -1 then it will only change the status if it is = to the statusFrom
-
-	IdentityIndex := isIdentityChain(ChainID, st.Identities)
+	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
 		log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
 		return
 	}
 	st.Identities[IdentityIndex].Status = StatusTo
-	/*
-		if StatusFrom < 0 {
-			st.Identities[IdentityIndex].Status = StatusTo
-		} else {
-			if st.Identities[IdentityIndex].Status == StatusFrom {
-				st.Identities[IdentityIndex].Status = StatusTo
-			} else {
-				log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Status not equal to expected Current Status.")
-			}
-		}*/
 }

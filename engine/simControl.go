@@ -764,7 +764,7 @@ func printSummary(summary *int, value int, listenTo *int) {
 
 		list = ""
 		for _, f := range fnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEntries))
+			list = list + fmt.Sprintf(" %3d", f.State.LeaderPL.LenNewEntries())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending Entries", list)
 

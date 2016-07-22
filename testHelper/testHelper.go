@@ -13,8 +13,9 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	//"github.com/FactomProject/factomd/engine"
 	//"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/state"
 	"time"
+
+	"github.com/FactomProject/factomd/state"
 	//"fmt"
 )
 

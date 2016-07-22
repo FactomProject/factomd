@@ -90,12 +90,49 @@ table tfoot td {
     font-weight: normal;
     text-transform: uppercase;
 }
-table tr td:first-child, table tr th:first-child { padding-left: 1.5rem; }
+table tr td:first-child, table tr th:first-child { padding-left: 1.5rem; width: 100%; }
 
 
 
 /* custom styles */
 
+.factom-search-error {
+	margin: 0 !important;
+	width: 570px !important;
+}
+
+header + .row { margin-bottom: 32px; }
+
+#local table, #local table thead, #local table tbody, #local table tfoot { width: 770px; }
+#local table thead, #local table tbody, #local table tfoot { display: block; }
+#local thead th:first-child, #local tbody td:first-child, #local tfoot td:first-child { width: 140px; }
+#local thead th:nth-child(2), #local tbody td:nth-child(2), #local tfoot td:nth-child(2) { width: 112px; }
+#local thead th:nth-child(3), #local tbody td:nth-child(3), #local tfoot td:nth-child(3) { width: 82px; }
+#local thead th:nth-child(4), #local tbody td:nth-child(4), #local tfoot td:nth-child(4) { width: 87px; }
+#local thead th:nth-child(5), #local tbody td:nth-child(5), #local tfoot td:nth-child(5) { width: 118px; }
+#local thead th:nth-child(6), #local tbody td:nth-child(6), #local tfoot td:nth-child(6) { width: 115px; }
+#local thead th:nth-child(7), #local tbody td:nth-child(7), #local tfoot td:nth-child(7) { width: 99px; }
+#local table tbody { 
+	display: block;
+	max-height: 268px;
+	overflow-y: scroll;
+}
+#transactions table, #transactions table thead, #transactions table tbody, #transactions table tfoot { width: 1170px; }
+#transactions table thead, #transactions table tbody, #transactions table tfoot { display: block; }
+#transactions table tbody { 
+	display: block;
+	max-height: 500px;
+	overflow-y: scroll;
+}
+#panFactoids thead th:first-child, #panFactoids tbody td:first-child { width: 700px; }
+#panFactoids thead th:nth-child(2), #panFactoids tbody td:nth-child(2) { width: 200px; }
+#panFactoids thead th:nth-child(3), #panFactoids tbody td:nth-child(3) { width: 126px; }
+#panFactoids thead th:nth-child(4), #panFactoids tbody td:nth-child(4) { width: 126px; }
+#panEntries thead th:first-child, #panEntries tbody td:first-child { width: 527px; }
+#panEntries thead th:nth-child(2), #panEntries tbody td:nth-child(2) { width: 527px; }
+#panEntries thead th:nth-child(3), #panEntries tbody td:nth-child(3) { width: 99px; }
+#panDirectoryBlock thead th:first-child, #panDirectoryBlock tbody td:first-child { width: 350px; }
+#panDirectoryBlock thead th:nth-child(2), #panDirectoryBlock tbody td:nth-child(2) { width: 803px; }
 #dataDump textarea {
 	min-height: 500px;
 	background: #000;
@@ -105,7 +142,6 @@ table tr td:first-child, table tr th:first-child { padding-left: 1.5rem; }
 #explorer table { table-layout: fixed; }
 #explorer table td { overflow: auto; }
 #explorer table td:first-child { width: 15%; }
-#panDirectoryBlock table td:first-child { width: 15%; }
 header {
     padding: 22px 0 56px;
 }
@@ -114,6 +150,7 @@ header .search { padding-top: 12px; }
 section {
     margin-bottom: 80px;
 }
+header > .row, body > section > .row { min-width: 1200px; }
 section h1 {
     margin: 0 0 32px;
 }
@@ -138,6 +175,7 @@ section .metric .progress .progress-meter .progress-meter-text {
     font-size: 16px;
 }
 section .metric table .button { margin: 0; }
+
 .tabs-control-panel {padding-left:1rem; padding-bottom: 1rem; }
 .dump-tab{    
     color: #aaa;
@@ -171,6 +209,12 @@ section .metric table .button { margin: 0; }
     top: 0; 
     left: 0; 
  }
+  
+.not-found-error {
+    position: fixed;
+    right: 50%;
+    top: 50%;
+}
 
 /*#traxList { display: block; }
 #traxList tbody { 
