@@ -325,7 +325,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			if fullFault != nil {
 				fullFault.Sign(&s.serverPrivKey)
 				s.NetworkOutMsgQueue() <- fullFault
-				s.InMsgQueue() <- sf
+				fullFault.FollowerExecute(s)
 				delete(s.FaultMap, sf.GetCoreHash().Fixed())
 			}
 		}
@@ -355,7 +355,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	}
 	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-	relevantPL.SortFedServers()
 	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
 }
 
@@ -684,6 +683,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		ecbody := ecblk.GetBody()
 		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
+
+		if !s.Leader {
+			s.CurrentMinute = int(e.Minute)
+		}
 
 		s.CurrentMinute++
 

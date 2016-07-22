@@ -143,7 +143,7 @@ func (p *ProcessList) SortFedServers() {
 		for j := 0; j < len(p.FedServers)-1-i; j++ {
 			fs1 := p.FedServers[j].GetChainID().Bytes()
 			fs2 := p.FedServers[j+1].GetChainID().Bytes()
-			if bytes.Compare(fs1, fs2) < 0 {
+			if bytes.Compare(fs1, fs2) > 0 {
 				tmp := p.FedServers[j]
 				p.FedServers[j] = p.FedServers[j+1]
 				p.FedServers[j+1] = tmp
@@ -471,7 +471,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.missingEOM = 0
 		} else {
 			if !vm.Synced {
-				vm.missingEOM = fault(p, i, 11, vm, vm.missingEOM, len(vm.List))
+				vm.missingEOM = fault(p, i, 20, vm, vm.missingEOM, len(vm.List))
 			}
 		}
 

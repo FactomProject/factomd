@@ -21,6 +21,7 @@ type ServerFault struct {
 
 	// The following 4 fields represent the "Core" of the message
 	// This should match the Core of FullServerFault messages
+	FedIndex int
 	ServerID interfaces.IHash
 	VMIndex  byte
 	DBHeight uint32
