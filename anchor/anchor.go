@@ -47,8 +47,8 @@ type Anchor struct {
 	fee                 btcutil.Amount // tx fee for written into btc
 	confirmationsNeeded int
 
-	serverPrivKey primitives.PrivateKey //Server Private key for milestone 1
-	serverECKey   primitives.PrivateKey //Server Entry Credit private key
+	serverPrivKey *primitives.PrivateKey //Server Private key for milestone 1
+	serverECKey   *primitives.PrivateKey //Server Entry Credit private key
 	anchorChainID interfaces.IHash
 	state         interfaces.IState
 }

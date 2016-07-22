@@ -100,10 +100,10 @@ type State struct {
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey         primitives.PrivateKey
-	serverPubKey          primitives.PublicKey
-	serverPendingPrivKeys []primitives.PrivateKey
-	serverPendingPubKeys  []primitives.PublicKey
+	serverPrivKey         *primitives.PrivateKey
+	serverPubKey          *primitives.PublicKey
+	serverPendingPrivKeys []*primitives.PrivateKey
+	serverPendingPubKeys  []*primitives.PublicKey
 
 	// Server State
 	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
@@ -515,11 +515,11 @@ func (s *State) Init() {
 	//StubIdentityCache(s)
 	//needed for multiple nodes with FER.  remove for singe node launch
 	if s.FERChainId == "" {
-	s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
 	}
-	if s.ExchangeRateAuthorityAddress =="" {
-		s.ExchangeRateAuthorityAddress ="EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
-	} 
+	if s.ExchangeRateAuthorityAddress == "" {
+		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+	}
 	// end of FER removal
 	s.starttime = time.Now()
 }
@@ -889,11 +889,11 @@ func (s *State) SetDirectoryBlockInSeconds(t int) {
 	s.DirectoryBlockInSeconds = t
 }
 
-func (s *State) GetServerPrivateKey() primitives.PrivateKey {
+func (s *State) GetServerPrivateKey() *primitives.PrivateKey {
 	return s.serverPrivKey
 }
 
-func (s *State) GetServerPublicKey() primitives.PublicKey {
+func (s *State) GetServerPublicKey() *primitives.PublicKey {
 	return s.serverPubKey
 }
 
@@ -911,7 +911,7 @@ func (s *State) initServerKeys() {
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = *(s.serverPrivKey.Pub)
+	s.serverPubKey = s.serverPrivKey.Pub
 	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
@@ -1280,7 +1280,7 @@ func (s *State) ProcessInvalidMsgQueue() {
 	}
 }
 
-func (s *State) SetPendingSigningKey(p primitives.PrivateKey) {
+func (s *State) SetPendingSigningKey(p *primitives.PrivateKey) {
 	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
-	s.serverPendingPubKeys = append(s.serverPendingPubKeys, *(p.Pub))
+	s.serverPendingPubKeys = append(s.serverPendingPubKeys, p.Pub)
 }

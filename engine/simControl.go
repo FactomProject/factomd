@@ -543,7 +543,7 @@ func SimControl(listenTo int) {
 						break
 					}
 					fnodes[listenTo].State.LocalServerPrivKey = newKey.PrivateKeyString()
-					fnodes[listenTo].State.SetPendingSigningKey(*newKey)
+					fnodes[listenTo].State.SetPendingSigningKey(newKey)
 					os.Stderr.WriteString(fmt.Sprintf("New public key for [%s]: %s\n", fnodes[listenTo].State.IdentityChainID.String()[:8], newKey.Pub.String()))
 					break
 				}
