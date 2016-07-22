@@ -462,7 +462,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		}
 	}*/
 
-	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader {
+	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader && as.ServerType == 0 {
 		return true
 	}
 
