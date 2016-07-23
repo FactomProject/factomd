@@ -115,7 +115,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 			return err
 		}
 		entries := eblk.GetEntryHashes()
-		height := eblk.GetDatabaseHeight()
 		for _, eHash := range entries {
 			hs := eHash.String()
 			if hs[0:10] != "0000000000" { //ignore minute markers
@@ -128,7 +127,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 					if len(ent.ExternalIDs()[2]) == 32 {
 						idChain := primitives.NewHash(ent.ExternalIDs()[2][:32])
 						if string(ent.ExternalIDs()[1]) == "Register Factom Identity" && cid.IsSameAs(idChain) {
-							registerFactomIdentity(ent.ExternalIDs(), cid, st, height)
+							registerFactomIdentity(ent, cid, st)
 							break // Found the registration
 						}
 					}
@@ -221,15 +220,16 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
 			if err != nil {
 				continue
 			}
-			LoadIdentityByEntry(entry, st, eblk.GetDatabaseHeight(), true)
+			LoadIdentityByEntry(entry, st, true)
 		}
 	}
 }
 
-func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, initial bool) {
+func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, initial bool) {
 	if ent == nil {
 		return
 	}
+	log.Printfln("%d\n", ent.GetDatabaseHeight())
 	hs := ent.GetChainID().String()
 	cid := ent.GetChainID()
 	if st.isIdentityChain(cid) == -1 {
@@ -241,26 +241,26 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 	if hs[0:10] != "0000000000" { //ignore minute markers
 		if len(ent.ExternalIDs()) > 1 {
 			if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-				registerIdentityAsServer(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
+				registerIdentityAsServer(ent, st)
 			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
 				if len(ent.ExternalIDs()) == 7 {
-					registerBlockSigningKey(ent.ExternalIDs(), ent.GetChainID(), st)
+					registerBlockSigningKey(ent, st)
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 				if len(ent.ExternalIDs()) == 9 {
-					registerAnchorSigningKey(ent.ExternalIDs(), ent.GetChainID(), st, "BTC")
+					registerAnchorSigningKey(ent, st, "BTC")
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 				if len(ent.ExternalIDs()) == 7 {
-					updateMatryoshkaHash(ent.ExternalIDs(), ent.GetChainID(), st)
+					updateMatryoshkaHash(ent, st)
 				}
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-				addIdentity(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
+				addIdentity(ent, st)
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
 				if len(ent.ExternalIDs()) == 4 {
-					updateManagementKey(ent.ExternalIDs(), cid, st, height)
+					updateManagementKey(ent, st)
 				}
 			}
 		}
@@ -302,10 +302,13 @@ func createFactomIdentity(st *State, chainID interfaces.IHash) int {
 	return len(st.Identities) - 1
 }
 
-func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) error {
+func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash, st *State) error {
+	extIDs := entry.ExternalIDs()
+	if len(extIDs) == 0 {
+		return errors.New("Identity Error Register Identity: Invalid external ID length")
+	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckExternalIDsLength(extIDs, []int{1, 24, 32, 33, 64}) { // Signiture
-		log.Println("Identity Error Register Identity: Invalid external ID length")
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
 	}
 
@@ -324,21 +327,22 @@ func registerFactomIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
 		if CheckSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
-			st.Identities[IdentityIndex].ManagementRegistered = height
+			st.Identities[IdentityIndex].ManagementRegistered = entry.GetDatabaseHeight()
 		} else {
 			log.Println("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 
 	}
-	st.Identities[IdentityIndex].IdentityRegistered = height
+	st.Identities[IdentityIndex].IdentityRegistered = entry.GetDatabaseHeight()
 
 	return nil
 	//}
 }
 
-func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) error {
+func addIdentity(entry interfaces.IEBEntry, st *State) error {
 	// This check is here to prevent possible index out of bounds with extIDs[:3]
+	extIDs := entry.ExternalIDs()
 	if len(extIDs) != 7 {
 		return errors.New("Identity Error Create Management: Invalid external ID length")
 	}
@@ -347,6 +351,8 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height ui
 		log.Println("Identity Error Create Identity Chain: Invalid external ID length")
 		return errors.New("Identity Error Create Identity Chain: Invalid external ID length")
 	}
+
+	chainID := entry.GetChainID()
 
 	IdentityIndex := st.isIdentityChain(chainID)
 
@@ -361,7 +367,7 @@ func addIdentity(extIDs [][]byte, chainID interfaces.IHash, st *State, height ui
 	st.Identities[IdentityIndex].Key3 = h
 	h = primitives.NewHash(extIDs[5])
 	st.Identities[IdentityIndex].Key4 = h
-	st.Identities[IdentityIndex].IdentityCreated = height
+	st.Identities[IdentityIndex].IdentityCreated = entry.GetDatabaseHeight()
 
 	return nil
 }
@@ -404,8 +410,9 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 	return nil
 }
 
-func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) error {
+func updateManagementKey(entry interfaces.IEBEntry, st *State) error {
 	// This check is here to prevent possible index out of bounds with extIDs[:3]
+	extIDs := entry.ExternalIDs()
 	if len(extIDs) != 4 {
 		return errors.New("Identity Error Create Management: Invalid external ID length")
 	}
@@ -413,21 +420,28 @@ func updateManagementKey(extIDs [][]byte, chainID interfaces.IHash, st *State, h
 		!CheckExternalIDsLength(extIDs[:3], []int{1, 17, 32}) { // Nonce
 		return errors.New("Identity Error Create Management: Invalid external ID length")
 	}
+	chainID := entry.GetChainID()
+
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
 		IdentityIndex = createFactomIdentity(st, idChain)
 	}
 
-	st.Identities[IdentityIndex].ManagementCreated = height
+	st.Identities[IdentityIndex].ManagementCreated = entry.GetDatabaseHeight()
 	return nil
 }
 
-func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *State, height uint32) error {
+func registerIdentityAsServer(entry interfaces.IEBEntry, st *State) error {
+	extIDs := entry.ExternalIDs()
+	if len(extIDs) == 0 {
+		return errors.New("Identity Error Register Identity: Invalid external ID length")
+	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckExternalIDsLength(extIDs, []int{1, 26, 32, 33, 64}) { // Signiture
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
 	}
+	chainID := entry.GetChainID()
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
 		IdentityIndex = createFactomIdentity(st, chainID)
@@ -440,7 +454,7 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
 		if CheckSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
-			st.Identities[IdentityIndex].ManagementRegistered = height
+			st.Identities[IdentityIndex].ManagementRegistered = entry.GetDatabaseHeight()
 			st.Identities[IdentityIndex].ManagementChainID = primitives.NewHash(extIDs[2][:32])
 		} else {
 			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -450,12 +464,17 @@ func registerIdentityAsServer(extIDs [][]byte, chainID interfaces.IHash, st *Sta
 	return nil
 }
 
-func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State) error {
+func registerBlockSigningKey(entry interfaces.IEBEntry, st *State) error {
+	extIDs := entry.ExternalIDs()
+	if len(extIDs) == 0 {
+		return errors.New("Identity Error Block Signing Key: Invalid external ID length")
+	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckExternalIDsLength(extIDs, []int{1, 21, 32, 32, 8, 33, 64}) {
 		return errors.New("Identity Error Block Signing Key: Invalid external ID length")
 	}
 
+	subChainID := entry.GetChainID()
 	chainID := new(primitives.Hash)
 	chainID.SetBytes(extIDs[2][:32])
 
@@ -508,13 +527,18 @@ func registerBlockSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *S
 	return nil
 }
 
-func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *State) error {
+func updateMatryoshkaHash(entry interfaces.IEBEntry, st *State) error {
+	extIDs := entry.ExternalIDs()
+	if len(extIDs) == 0 {
+		return errors.New("Identity Error MHash: Invalid external ID length")
+	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckExternalIDsLength(extIDs, []int{1, 19, 32, 32, 8, 33, 64}) { // Signiture
 		return errors.New("Identity Error MHash: Invalid external ID length")
 	}
 	chainID := new(primitives.Hash)
 	chainID.SetBytes(extIDs[2][:32])
+	subChainID := entry.GetChainID()
 
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
@@ -566,12 +590,14 @@ func updateMatryoshkaHash(extIDs [][]byte, subChainID interfaces.IHash, st *Stat
 	return nil
 }
 
-func registerAnchorSigningKey(extIDs [][]byte, subChainID interfaces.IHash, st *State, BlockChain string) error {
+func registerAnchorSigningKey(entry interfaces.IEBEntry, st *State, BlockChain string) error {
+	extIDs := entry.ExternalIDs()
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 ||
 		!CheckExternalIDsLength(extIDs, []int{1, 15, 32, 1, 1, 20, 8, 33, 64}) {
 		return errors.New("Identity Error Anchor Key: Invalid external ID length")
 	}
 
+	subChainID := entry.GetChainID()
 	chainID := new(primitives.Hash)
 	chainID.SetBytes(extIDs[2][:32])
 
