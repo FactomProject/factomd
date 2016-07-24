@@ -1,0 +1,53 @@
+{{define "ablock"}}
+	{{template "header"}}
+	<!-- Body -->
+	 <section id="explorer">
+        <div class="row">
+            <div class="columns"> 
+                <h1>Admin Block</h1>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>Lookup Hash:</td>
+                            <td>{{.LookupHash}}</td>
+                        </tr>
+                        <tr>
+                            <td>Back Reference Hash:</td>
+                            <td>{{.BackReferenceHash}}</td>
+                        </tr>
+                        <tr>
+                            <td>Height:</td>
+                            <td>{{.Header.DBHeight}}</td>
+                        </tr>
+                        <tr>
+                            <td>Previous Admin Block:</td>
+                            <td>
+                                <a id="factom-search-link" type="ablock">{{.Header.PrevBackRefHash}}</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3>Entries Contained in Admin Block <small>{{.Header.MessageCount}} Entries</small></h3> 
+                {{range $i, $ele := .ABDisplay}}
+        		 <table id="search-table">
+                	<tbody>
+                		<tr>
+                			<td>Entry Type:</td>
+                			<td>{{$ele.Type}}</td>
+                		</tr>
+                		
+                		<tr>
+  							<td>Content:</td>
+                            <td>{{$ele.OtherInfo}}</td>
+                		</tr>
+                	</tbody>
+                </table>
+        		{{end}}
+           </div>
+		</div>
+	</section>
+	<!-- End Body -->
+	{{template "scripts"}}
+    {{template "tools"}}
+	{{template "footer"}}
+{{end}}
