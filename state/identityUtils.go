@@ -1,14 +1,59 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
+
+type AnchorSigningKey struct {
+	BlockChain string
+	KeyLevel   byte
+	KeyType    byte
+	SigningKey []byte //if bytes, it is hex
+}
+
+type Identity struct {
+	IdentityChainID      interfaces.IHash
+	IdentityRegistered   uint32
+	IdentityCreated      uint32
+	ManagementChainID    interfaces.IHash
+	ManagementRegistered uint32
+	ManagementCreated    uint32
+	MatryoshkaHash       interfaces.IHash
+	Key1                 interfaces.IHash
+	Key2                 interfaces.IHash
+	Key3                 interfaces.IHash
+	Key4                 interfaces.IHash
+	SigningKey           interfaces.IHash
+	Status               int
+	AnchorKeys           []AnchorSigningKey
+}
+
+var _ interfaces.Printable = (*Identity)(nil)
+
+func (e *Identity) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *Identity) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *Identity) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *Identity) String() string {
+	str, _ := e.JSONString()
+	return str
+}
 
 // Sig is signed message, msg is raw message
 func CheckSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
@@ -88,4 +133,14 @@ func CheckTimestamp(time []byte) bool {
 	} else {
 		return false
 	}
+}
+
+func statusIsFedOrAudit(status int) bool {
+	if status == constants.IDENTITY_FEDERATED_SERVER ||
+		status == constants.IDENTITY_AUDIT_SERVER ||
+		status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+		status == constants.IDENTITY_PENDING_AUDIT_SERVER {
+		return true
+	}
+	return false
 }
