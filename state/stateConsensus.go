@@ -487,6 +487,14 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 }
 
 func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg interfaces.IMsg) bool {
+	// Only Admin needs to process
+	if !s.IsLeader() {
+		return true
+	}
+	if s.GetLeaderVM() != s.ComputeVMIndex(constants.ADMIN_CHAINID) {
+		return true
+	}
+	//fmt.Println("DEBUG: Process ChanegServerKey", s.GetIdentityChainID().String())
 	ask, ok := changeServerKeyMsg.(*messages.ChangeServerKeyMsg)
 	if !ok {
 		return true
@@ -596,7 +604,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-	LoadIdentityByEntry(msg.Entry, s, dbheight, true)
+	LoadIdentityByEntry(msg.Entry, s, dbheight, false)
 
 	s.IncEntries()
 	return true
