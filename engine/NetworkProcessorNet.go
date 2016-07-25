@@ -163,7 +163,7 @@ func InvalidOutputs(fnode *FactomNode) {
 		invalidMsg := <-fnode.State.NetworkInvalidMsgQueue()
 		//fmt.Println(invalidMsg)
 		if len(invalidMsg.GetNetworkOrigin()) > 0 {
-			// p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2) JAYJAY BUGBUG commented out while network is private
+			p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
 		}
 	}
 }
