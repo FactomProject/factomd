@@ -469,7 +469,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, st *State)
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
 				//log.Printfln("DEBUG: Block ChangeServer Message Sent %s", st.GetIdentityChainID().String())
-				st.NetworkOutMsgQueue() <- msg
+				st.InMsgQueue() <- msg
 				//}
 			}
 		} else {
@@ -529,7 +529,7 @@ func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, st *State) er
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
 				//log.Printfln("DEBUG: MHash ChangeServer Message Sent")
-				st.NetworkOutMsgQueue() <- msg
+				st.InMsgQueue() <- msg
 				//}
 			}
 		} else {
@@ -617,7 +617,7 @@ func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, st *State
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
 				//log.Printfln("DEBUG: BTC ChangeServer Message Sent %s", st.GetIdentityChainID().String())
-				st.NetworkOutMsgQueue() <- msg
+				st.InMsgQueue() <- msg
 				//}
 			}
 		} else {

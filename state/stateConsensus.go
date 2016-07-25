@@ -345,6 +345,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
 				relevantPL.FedServers[listIdx] = auditServerList[0]
+				//relevantPL.AddAuditServer(fedServ.GetChainID())
 			}
 		}
 
@@ -487,13 +488,10 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 }
 
 func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg interfaces.IMsg) bool {
-	// Only Admin needs to process
-	if !s.IsLeader() {
+	//fmt.Println("DEBUG:", s.ComputeVMIndex(constants.ADMIN_CHAINID), s.GetLeaderVM(), s.GetIdentityChainID().String())
+	/*if s.GetLeaderVM() != s.ComputeVMIndex(constants.ADMIN_CHAINID) {
 		return true
-	}
-	if s.GetLeaderVM() != s.ComputeVMIndex(constants.ADMIN_CHAINID) {
-		return true
-	}
+	}*/
 	//fmt.Println("DEBUG: Process ChanegServerKey", s.GetIdentityChainID().String())
 	ask, ok := changeServerKeyMsg.(*messages.ChangeServerKeyMsg)
 	if !ok {
@@ -505,7 +503,6 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 		return true
 	}
 
-	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte

@@ -120,11 +120,11 @@ func fundWallet(st *state.State, amt uint64) error {
 	data, _ := trans.MarshalBinary()
 	t.Transaction = hex.EncodeToString(data)
 	j := primitives.NewJSON2Request("factoid-submit", 0, t)
-	//_, err = v2Request(j, st.GetPort())
-	_, err = wsapi.HandleV2Request(st, j)
-	/*if err != nil {
+	_, err = v2Request(j, st.GetPort())
+	//_, err = wsapi.HandleV2Request(st, j)
+	if err != nil {
 		return err
-	}*/
+	}
 	_ = err
 
 	return nil
@@ -241,18 +241,18 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 			jCommit := primitives.NewJSON2Request("commit-chain", i, paramsCom)
 			jRev := primitives.NewJSON2Request("reveal-chain", i, paramsRev)
 
-			//_, err = v2Request(jCommit, st.GetPort())
-			_, err = wsapi.HandleV2Request(st, jCommit)
+			_, err = v2Request(jCommit, st.GetPort())
+			//_, err = wsapi.HandleV2Request(st, jCommit)
 
-			/*if err != nil {
+			if err != nil {
 				log.Println("Error in making identities: " + err.Error())
-			}*/
-			//_, err = v2Request(jRev, st.GetPort())
-			_, err = wsapi.HandleV2Request(st, jRev)
-			/*if err != nil {
+			}
+			_, err = v2Request(jRev, st.GetPort())
+			//_, err = wsapi.HandleV2Request(st, jRev)
+			if err != nil {
 				log.Println("Error in making identities: " + err.Error())
-			}*/
-			_ = err
+			}
+			//_ = err
 
 			/*m := new(wsapi.EntryRequest)
 			m.Entry = mes
@@ -288,17 +288,17 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 			jCommit := primitives.NewJSON2Request("commit-entry", i, paramsCom)
 			jRev := primitives.NewJSON2Request("reveal-entry", i, paramsRev)
 
-			//_, err = v2Request(jCommit, st.GetPort())
-			_, err = wsapi.HandleV2Request(st, jCommit)
-			//if err != nil {
-			//	log.Println("Error in making identities: " + err.Error())
-			//}
-			//_, err = v2Request(jRev, st.GetPort())
-			_, err = wsapi.HandleV2Request(st, jRev)
-			//if err != nil {
-			//	log.Println("Error in making identities: " + err.Error())
-			//}
-			_ = err
+			_, err = v2Request(jCommit, st.GetPort())
+			//_, err = wsapi.HandleV2Request(st, jCommit)
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+			_, err = v2Request(jRev, st.GetPort())
+			//_, err = wsapi.HandleV2Request(st, jRev)
+			if err != nil {
+				log.Println("Error in making identities: " + err.Error())
+			}
+			//_ = err
 
 			/*m := new(wsapi.EntryRequest)
 			m.Entry = mes
@@ -314,40 +314,40 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 		m := new(wsapi.EntryRequest)
 		m.Entry = com
 		j := primitives.NewJSON2Request("commit-entry", 0, m)
-		//_, _ = v2Request(j, st.GetPort())
-		_, _ = wsapi.HandleV2Request(st, j)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
 
 		m = new(wsapi.EntryRequest)
 		m.Entry = rev
 		j = primitives.NewJSON2Request("reveal-entry", 0, m)
-		//_, _ = v2Request(j, st.GetPort())
-		_, _ = wsapi.HandleV2Request(st, j)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
 
 		com, rev, _ = makeMHash(ele, ec)
 		m = new(wsapi.EntryRequest)
 		m.Entry = com
 		j = primitives.NewJSON2Request("commit-entry", 0, m)
-		//_, _ = v2Request(j, st.GetPort())
-		_, _ = wsapi.HandleV2Request(st, j)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
 
 		m = new(wsapi.EntryRequest)
 		m.Entry = rev
 		j = primitives.NewJSON2Request("reveal-entry", 0, m)
-		//		_, _ = v2Request(j, st.GetPort())
-		_, _ = wsapi.HandleV2Request(st, j)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
 
 		com, rev, _ = makeBTCKey(ele, ec)
 		m = new(wsapi.EntryRequest)
 		m.Entry = com
 		j = primitives.NewJSON2Request("commit-entry", 0, m)
-		//_, _ = v2Request(j, st.GetPort())
-		_, _ = wsapi.HandleV2Request(st, j)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
 
 		m = new(wsapi.EntryRequest)
 		m.Entry = rev
 		j = primitives.NewJSON2Request("reveal-entry", 0, m)
-		//_, _ = v2Request(j, st.GetPort())
-		_, _ = wsapi.HandleV2Request(st, j)
+		_, _ = v2Request(j, st.GetPort())
+		//_, _ = wsapi.HandleV2Request(st, j)
 
 		madeAuths = append(madeAuths, ele)
 		authKeyLibrary = append(authKeyLibrary, ele)
@@ -448,12 +448,14 @@ func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.Priva
 			m.Entry = com
 			j := primitives.NewJSON2Request("commit-entry", 0, m)
 			_, err := v2Request(j, st.GetPort())
+			//wsapi.HandleV2Request(st, j)
 			if err != nil {
 				return nil, err
 			}
 			m = new(wsapi.EntryRequest)
 			m.Entry = rev
 			j = primitives.NewJSON2Request("reveal-entry", 0, m)
+			//wsapi.HandleV2Request(st, j)
 			_, err = v2Request(j, st.GetPort())
 			if err != nil {
 				return nil, err

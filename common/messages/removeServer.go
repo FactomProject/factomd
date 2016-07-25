@@ -64,12 +64,14 @@ func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
-	return 1
 	// Check to see if identity exists and is audit or fed server
 	if !state.VerifyIsAuthority(m.ServerChainID) {
 		fmt.Printf("RemoveServerMsg Error: [%s] is not a server, cannot be removed\n", m.ServerChainID.String()[:8])
 		return -1
 	}
+
+	return 1
+
 	// Check signatures
 	bytes, err := m.MarshalForSignature()
 	if err != nil {

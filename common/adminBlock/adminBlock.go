@@ -53,6 +53,8 @@ func (c *AdminBlock) UpdateState(state interfaces.IState) {
 	for _, entry := range c.ABEntries {
 		entry.UpdateState(state)
 	}
+	// Clear any keys that are now too old to be valid
+	state.UpdateAuthSigningKeys(c.Header.GetDBHeight())
 }
 
 func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
@@ -81,7 +83,7 @@ func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHa
 	if err != nil {
 		return err
 	}
-	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p)
+	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p, c.Header.GetDBHeight()+1)
 	c.ABEntries = append(c.ABEntries, entry)
 	return nil
 }
