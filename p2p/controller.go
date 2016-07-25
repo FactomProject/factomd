@@ -87,6 +87,11 @@ type CommandBan struct {
 	peerHash string
 }
 
+// CommandDisconnect is used to instruct the Controller to disconnect from a peer
+type CommandDisconnect struct {
+	peerHash string
+}
+
 // CommandChangeLogging is used to instruct the Controller to takve various actions.
 type CommandChangeLogging struct {
 	level uint8
@@ -197,6 +202,11 @@ func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
 func (c *Controller) Ban(peerHash string) {
 	debug("ctrlr", "Ban %s ", peerHash)
 	c.commandChannel <- CommandBan{peerHash: peerHash}
+}
+
+func (c *Controller) Disconnect(peerHash string) {
+	debug("ctrlr", "Ban %s ", peerHash)
+	c.commandChannel <- CommandDisconnect{peerHash: peerHash}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -451,6 +461,14 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandBan)
 		peerHash := parameters.peerHash
 		c.applicationPeerUpdate(BannedQualityScore, peerHash)
+	case CommandDisconnect:
+		verbose("ctrlr", "handleCommand() Processing command: CommandDisconnect")
+		parameters := command.(CommandDisconnect)
+		peerHash := parameters.peerHash
+		connection, present := c.connections[peerHash]
+		if present {
+			connection.SendChannel <- ConnectionCommand{command: ConnectionShutdownNow}
+		}
 	default:
 		logfatal("ctrlr", "Unkown p2p.Controller command recieved: %+v", commandType)
 	}
