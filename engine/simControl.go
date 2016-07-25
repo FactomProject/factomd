@@ -58,6 +58,8 @@ func SimControl(listenTo int) {
 			switch {
 			case 'g' == b[0]:
 				if nextAuthority == -1 {
+					wsapiNode = listenTo
+					wsapi.SetState(fnodes[wsapiNode].State)
 					err := fundWallet(fnodes[listenTo].State, 2e7)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -78,6 +80,8 @@ func SimControl(listenTo int) {
 							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
+						wsapiNode = listenTo
+						wsapi.SetState(fnodes[wsapiNode].State)
 						err := fundWallet(fnodes[listenTo].State, uint64(count*5e7))
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
