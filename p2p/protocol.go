@@ -151,11 +151,11 @@ func log(level uint8, component string, format string, v ...interface{}) {
 
 	now := time.Now().Format("01/02/2006 15:04:05")
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		fmt.Fprintf(os.Stdout, "%s, %s, %d/%d, %s \n", now, component, level, CurrentLoggingLevel, message)
+		fmt.Fprintf(os.Stdout, "%s, %s, %s \n", now, component, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
-		fmt.Fprintf(os.Stderr, "%s, %s, %d/%d, %s \n", now, component, level, CurrentLoggingLevel, message)
+		fmt.Fprintf(os.Stderr, "%s, %s, %s \n", now, component, message)
 		// BUGBUG - take out this exit before shipping JAYJAY TODO, or check that all fatals are fatal.
 		os.Exit(1)
 	}

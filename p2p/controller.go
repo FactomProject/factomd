@@ -109,7 +109,7 @@ type CommandChangeLogging struct {
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	significant("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
 	significant("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
-	silence("#################", "META: Last touched: FRIDAY July 22 1:45PM")
+	silence("#################", "META: Last touched: MONDAY July 25 1:45PM")
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
@@ -576,6 +576,7 @@ func (c *Controller) networkStatusReport() {
 	note("ctrlr", "networkStatusReport() NetworkStatusInterval: %s durationSinceLastReport: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), durationSinceLastReport.String(), c.lastStatusReport.String())
 	if durationSinceLastReport > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
+		silence("ctrlr", "\n\n\n\n")
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")
@@ -585,16 +586,22 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
 		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
-		silence("ctrlr", "\tPeers: ")
+		silence("ctrlr", " ")
+		silence("ctrlr", "\tPeer\t\t\t\tMinutes\tStatus\tNotes")
+		silence("ctrlr", "---------------------------------------------------------------------------------------------")
 		for _, v := range c.connectionsByAddress {
-			silence("ctrlr", "\t%s", v.peer.PeerIdent())
+			metrics, present := c.connectionMetrics[v.peer.Hash]
+			if !present {
+				metrics = ConnectionMetrics{MomentConnected: time.Now(), ConnectionState: "No Metrics", ConnectionNotes: "No Metrics"}
+			}
+			silence("ctrlr", "%s\t%.2f\t%s\t%s", v.peer.PeerFixedIdent(), time.Since(metrics.MomentConnected).Minutes(), metrics.ConnectionState, metrics.ConnectionNotes)
 		}
 		silence("ctrlr", "\tChannels:")
-		silence("ctrlr", "           commandChannel: %d", len(c.commandChannel))
+		silence("ctrlr", "          commandChannel: %d", len(c.commandChannel))
 		silence("ctrlr", "               ToNetwork: %d", len(c.ToNetwork))
 		silence("ctrlr", "             FromNetwork: %d", len(c.FromNetwork))
 		silence("ctrlr", "connectionMetricsChannel: %d", len(c.connectionMetricsChannel))
 		silence("ctrlr", "===================================")
-		silence("ctrlr", "###################################")
+		silence("ctrlr", "###################################\n\n\n")
 	}
 }
