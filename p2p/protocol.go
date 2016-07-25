@@ -22,12 +22,12 @@ var (
 	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
 	OnlySpecialPeers                     = false
-	NumberPeersToConnect                 = 12
+	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
 	StandardChannelSize                  = 10000
 	NetworkStatusInterval                = time.Second * 5
-	ConnectionStatusInterval             = time.Second * 22
+	ConnectionStatusInterval             = time.Second * 65
 	PingInterval                         = time.Second * 15
 	TimeBetweenRedials                   = time.Second * 20
 	PeerSaveInterval                     = time.Second * 30

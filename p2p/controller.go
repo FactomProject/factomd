@@ -557,7 +557,6 @@ func (c *Controller) fillOutgoingSlots() {
 		}
 	}
 	c.discovery.PrintPeers()
-	// significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 }
 
 func (c *Controller) shutdown() {
@@ -586,7 +585,7 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
 		silence("ctrlr", " ")
-		silence("ctrlr", "\tPeer\t\t\t\tMinutes\tStatus\tNotes")
+		silence("ctrlr", "\tPeer\t\t\t\tMinutes\tStatus\t\tNotes")
 		silence("ctrlr", "---------------------------------------------------------------------------------------------")
 		for _, v := range c.connectionsByAddress {
 			metrics, present := c.connectionMetrics[v.peer.Hash]
