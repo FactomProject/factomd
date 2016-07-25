@@ -251,20 +251,21 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
 			// Delete cf from current
-			removeEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(removeEntry)
+			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight)
+			d.AdminBlock.AddFirstABEntry(addEntry)
 		}
 	}
 
 	for _, pf := range previousFeds {
 		if !containsServer(currentFeds, pf) {
 			// Add pf to current
-			addEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(addEntry)
+			//addEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
+			demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight)
+			d.AdminBlock.AddFirstABEntry(demoteEntry)
 		}
 	}
 
-	previousAuds := previousPL.AuditServers
+	/*previousAuds := previousPL.AuditServers
 	currentAuds := currentPL.AuditServers
 
 	// Audit Servers
@@ -282,7 +283,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			addEntry := adminBlock.NewRemoveFederatedServer(pa.GetChainID(), currentDBHeight)
 			d.AdminBlock.AddFirstABEntry(addEntry)
 		}
-	}
+	}*/
 
 	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
