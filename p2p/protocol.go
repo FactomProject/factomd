@@ -15,19 +15,19 @@ import (
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                  = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                       = TestNet
 	NetworkListenPort                    = "8108"
 	NodeID                        uint64 = 0           // Random number used for loopback protection
 	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
 	OnlySpecialPeers                     = false
-	NumberPeersToConnect                 = 12
+	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
 	StandardChannelSize                  = 10000
 	NetworkStatusInterval                = time.Second * 5
-	ConnectionStatusInterval             = time.Second * 22
+	ConnectionStatusInterval             = time.Second * 65
 	PingInterval                         = time.Second * 15
 	TimeBetweenRedials                   = time.Second * 20
 	PeerSaveInterval                     = time.Second * 30
