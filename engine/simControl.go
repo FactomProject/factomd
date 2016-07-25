@@ -536,6 +536,8 @@ func SimControl(listenTo int) {
 					if auth == nil {
 						break
 					}
+					wsapiNode = listenTo
+					wsapi.SetState(fnodes[wsapiNode].State)
 					err := fundWallet(fnodes[listenTo].State, 1e8)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
