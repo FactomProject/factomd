@@ -123,7 +123,12 @@ func (d *Discovery) SavePeers() {
 	var qualityPeers = map[string]Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
-		if time.Since(peer.LastContact) < (time.Hour*168) && MinumumQualityScore < peer.QualityScore {
+		switch {
+		case time.Since(peer.LastContact) > time.Hour*168:
+			break
+		case MinumumQualityScore > peer.QualityScore:
+			break
+		default:
 			qualityPeers[peer.AddressPort()] = peer
 		}
 	}
