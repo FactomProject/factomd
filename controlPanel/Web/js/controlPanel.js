@@ -142,7 +142,6 @@ function updateTransactions() {
               //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
             } else {
               $(".factom-search-error").slideDown(300)
-              console.log(x.response)
             }
           }
         }
@@ -326,7 +325,7 @@ function formatBytes(bytes, messages) {
   b = Number(bytes / 1000).toFixed(1)
   if (b < 100) {
     b = b + " KB"
-  } if ((bytes / 1000000) < 100) {
+  } else if ((bytes / 1000000) < 100) {
     b = Number(bytes / 1000000).toFixed(1)
     b = b + " MB"
   } else {

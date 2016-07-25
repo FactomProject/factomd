@@ -127,7 +127,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 				}
 				if len(ent.ExternalIDs()) > 3 {
 					// This is the Register Factom Identity Message
-
 					if len(ent.ExternalIDs()[2]) == 32 {
 						idChain := primitives.NewHash(ent.ExternalIDs()[2][:32])
 						if string(ent.ExternalIDs()[1]) == "Register Factom Identity" && cid.IsSameAs(idChain) {
@@ -138,7 +137,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 				}
 			}
 		}
-		//	eblkStack = append(eblkStack[:], eblk)
 		mr = eblk.GetHeader().GetPrevKeyMR()
 	}
 
@@ -184,7 +182,6 @@ func (st *State) RemoveIdentity(chainID interfaces.IHash) {
 }
 
 func (st *State) removeIdentity(i int) {
-	log.Println("Debug: -------------------------------- I got called")
 	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
 }
 
@@ -235,39 +232,34 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32) {
 	hs := ent.GetChainID().String()
 	cid := ent.GetChainID()
 	if st.isIdentityChain(cid) == -1 {
+		if st.isAuthorityChain(cid) != -1 {
+			st.AddIdentityFromChainID(cid)
+			log.Printfln("dddd Identity WARNING: Identity does not exist but authority does. If you see this warning, please tell Steven and how you produced it.\n    It might recover on its own")
+		}
 		return
 	}
 	if hs[0:10] != "0000000000" { //ignore minute markers
 		if len(ent.ExternalIDs()) > 1 {
 			if string(ent.ExternalIDs()[1]) == "Register Server Management" {
-				// this is an Identity that should have been registered already with a 0 status.
-				//  this registers it with the management chain.  Now it can be assigned as federated or audit.
-				//  set it to status 6 - Pending Full
 				registerIdentityAsServer(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
 			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
-				// this is the Signing Key for this Identity
 				if len(ent.ExternalIDs()) == 7 {
 					registerBlockSigningKey(ent.ExternalIDs(), ent.GetChainID(), st)
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
-				// this ent the Signing Key for this Identity
 				if len(ent.ExternalIDs()) == 9 {
 					registerAnchorSigningKey(ent.ExternalIDs(), ent.GetChainID(), st, "BTC")
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
-				// this is the Signing Key for this Identity
 				if len(ent.ExternalIDs()) == 7 {
 					updateMatryoshkaHash(ent.ExternalIDs(), ent.GetChainID(), st)
 				}
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
-				// this is a new identity
 				addIdentity(ent.ExternalIDs(), cid, st, ent.GetDatabaseHeight())
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
-				// this is a new identity
 				if len(ent.ExternalIDs()) == 4 {
-					// update management should have 4 items
 					updateManagementKey(ent.ExternalIDs(), cid, st, height)
 				}
 			}
@@ -693,18 +685,13 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	// If already in authority list, only the change in status needs to be recorded
 	index := st.isIdentityChain(chainID)
-	if auth := st.isAuthorityChain(chainID); auth != -1 && index != -1 {
+	if auth := st.isAuthorityChain(chainID); auth != -1 {
 		if servertype == 0 {
 			st.LeaderPL.AdminBlock.AddFedServer(chainID)
 		} else if servertype == 1 {
 			st.LeaderPL.AdminBlock.AddAuditServer(chainID)
 		}
-		if servertype == 0 {
-			st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
-		} else if servertype == 1 {
-			st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
-		}
-		return true
+		//		return true
 	}
 
 	if index == -1 {
@@ -716,7 +703,6 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		index = st.isIdentityChain(chainID)
 	}
 	if index != -1 {
-
 		id := st.Identities[index]
 
 		if id.SigningKey == nil {
@@ -757,8 +743,10 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	// Add to admin block
 	if servertype == 0 {
 		st.LeaderPL.AdminBlock.AddFedServer(chainID)
+		st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
 	} else if servertype == 1 {
 		st.LeaderPL.AdminBlock.AddAuditServer(chainID)
+		st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
 	}
 	st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, &blockSigningKey)
 	st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, matryoshkaHash)
@@ -832,7 +820,7 @@ func CheckTimestamp(time []byte) bool {
 	}
 }
 
-// Verifies an identity exists and if it is a federated or audit server
+// Verifies if is authority
 func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 	if st.isAuthorityChain(cid) != -1 {
 		return true
@@ -840,7 +828,7 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 	return false
 }
 
-func UpdateIdentityStatus(ChainID interfaces.IHash, StatusFrom int, StatusTo int, st *State) {
+func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo int, st *State) {
 	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
 		log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
