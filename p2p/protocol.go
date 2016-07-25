@@ -15,7 +15,7 @@ import (
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                  = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                       = TestNet
 	NetworkListenPort                    = "8108"
 	NodeID                        uint64 = 0           // Random number used for loopback protection
