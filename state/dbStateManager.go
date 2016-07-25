@@ -251,7 +251,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
 			// Delete cf from current
-			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight)
+			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
 			d.AdminBlock.AddFirstABEntry(addEntry)
 		}
 	}
@@ -260,7 +260,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		if !containsServer(currentFeds, pf) {
 			// Add pf to current
 			//addEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
-			demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight)
+			demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 			d.AdminBlock.AddFirstABEntry(demoteEntry)
 		}
 	}
