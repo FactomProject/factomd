@@ -272,7 +272,9 @@ func (d *Discovery) getPeerSelection() []byte {
 	firstPassPeers := []Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
-		firstPassPeers = append(firstPassPeers, peer)
+		if peer.QualityScore > MinumumSharingQualityScore { // Only share peers that have earned positive reputation
+			firstPassPeers = append(firstPassPeers, peer)
+		}
 	}
 	UpdateKnownPeers.Unlock()
 	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
