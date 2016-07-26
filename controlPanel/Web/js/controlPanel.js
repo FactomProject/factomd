@@ -83,6 +83,7 @@ function updateTransactions() {
       $("#DBBodyKeyMR").text(obj.DirectoryBlock.BodyKeyMR)
       $("#DBFullHash").text(obj.DirectoryBlock.FullHash)
       $("#DBBlockHeight").text(obj.DirectoryBlock.DBHeight)
+      $("#recent-directory-block").text(obj.DirectoryBlock.DBHeight)
 
       if(obj.FactoidTransactions != null){
         // Total
@@ -116,7 +117,7 @@ function updateTransactions() {
             if($("#"+entry.Hash + " #chainID a").text() != entry.ChainID) {
               $("#"+entry.Hash + " #chainID a").text(entry.ChainID)
             }
-            if ($("#"+entry.Hash + " #chainID a").text() != "Processing...") {
+            if ($("#"+entry.Hash + " #chainID a").text() != "Processing") {
               $("#"+entry.Hash + " #entry-entryhash a").attr("type", "entry")
             }
             if($("#"+entry.Hash + " #eccost").text() != entry.ECCost) {
@@ -204,6 +205,8 @@ function updatePeerTotals() {
   })
 }
 
+var peerHashes = [""]
+
 function updatePeers() {
   resp = queryState("peers","", function(resp){
     if(resp.length == 0) {
@@ -212,11 +215,13 @@ function updatePeers() {
     obj = JSON.parse(resp)
     for (index in obj) {
       peer = obj[index]
+      peerHashes = [""]
       if($("#" + peer.Hash).length > 0) {
+        peerHashes.push(peer.PeerHash)
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
-          $("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
+          //$("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
           $("#" + peer.Hash).find("#disconnect").val(peer.PeerHash)
 
@@ -230,13 +235,12 @@ function updatePeers() {
         }
         if ($("#" + peer.Hash).find("#connected").val() != con.ConnectionState) {
           $("#" + peer.Hash).find("#connected").val(con.ConnectionState) // Value
-          $("#" + peer.Hash).find("#connected span").text(con.ConnectionState)
-          console.log(con.ConnectionNotes)
-          $("#" + peer.Hash).find("#connected span").attr("title", con.ConnectionNotes)
+          $("#" + peer.Hash).find("#connected").text(con.ConnectionState)
+          $("#" + peer.Hash).find("#ip span").attr("title", con.ConnectionNotes)
 
 
           if(peer.Connected == false) { // Need to move to end
-            $("#" + peer.Hash).delete("#peerList > tbody")
+            $("#peerList > tbody").find(("#" + peer.Hash)).remove()
           }
           /*if (peer.Connected == true) {
             $("#" + peer.Hash).find("#connected").text("Connected")
@@ -265,7 +269,7 @@ function updatePeers() {
         // <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>Loading...</span></td>\
         $("#peerList > tbody").prepend("\
         <tr id='" + peer.Hash + "'>\
-            <td id='ip'><span data-tooltip class='has-tip top' title='ISP(???), Origin(???)'>Loading...</span></td>\
+            <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
             <td id='connected'></td>\
             <td id='peerquality'></td>\
             <td id='momentconnected'></td>\
@@ -276,6 +280,20 @@ function updatePeers() {
 
       }
     }
+
+    //Cleanup - ToDO FIX
+   /* $("#peerList > tbody > tr").each(function(me){
+      val = jQuery(this).find("#ip span").val()
+      console.log(val.length)
+      if(val.length > 0) {
+        if(peerHashes.indexOf(jQuery(this).find("#ip").val()) != -1){
+          console.log("contained")
+        } else {
+          jQuery(this).remove()
+          console.log("not contained")
+        }
+      }
+    })*/
     updatePeerTotals()
   })
 }
