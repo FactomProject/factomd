@@ -14,7 +14,7 @@ func TestAddFederatedServerSigningKeyMarshalUnmarshal(t *testing.T) {
 	pub := priv.Pub
 	var keyPriority byte = 3
 
-	afsk := NewAddFederatedServerSigningKey(identity, keyPriority, *pub)
+	afsk := NewAddFederatedServerSigningKey(identity, keyPriority, *pub, 0)
 	if afsk.Type() != constants.TYPE_ADD_FED_SERVER_KEY {
 		t.Errorf("Invalid type")
 	}
