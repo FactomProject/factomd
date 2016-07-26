@@ -197,7 +197,7 @@ function updatePeerTotals() {
     if (typeof obj == "undefined") {
       $("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
-      $("#peerList > tfoot > tr > #peerquality").text(obj.PeerQualityAvg)
+      $("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
       $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
       $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
     }
@@ -230,7 +230,10 @@ function updatePeers() {
         }
         if ($("#" + peer.Hash).find("#connected").val() != con.ConnectionState) {
           $("#" + peer.Hash).find("#connected").val(con.ConnectionState) // Value
-          $("#" + peer.Hash).find("#connected").text(con.ConnectionState)
+          $("#" + peer.Hash).find("#connected span").text(con.ConnectionState)
+          console.log(con.ConnectionNotes)
+          $("#" + peer.Hash).find("#connected span").attr("title", con.ConnectionNotes)
+
 
           if(peer.Connected == false) { // Need to move to end
             $("#" + peer.Hash).delete("#peerList > tbody")

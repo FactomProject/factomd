@@ -73,7 +73,8 @@ func (cm *ConnectionsMap) TallyTotals() {
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
 	cm.Lock()
 	defer cm.Unlock()
-	for key := range cm.connected { // Update Connected
+	cm.connected = connections
+	/*for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
 		if ok {
 			cm.connected[key] = val
@@ -93,7 +94,7 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 		if !ok {
 			cm.connected[key] = val
 		}
-	}
+	}*/
 }
 
 func hashPeerAddress(addr string) string {
