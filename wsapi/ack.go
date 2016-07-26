@@ -295,22 +295,23 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 }
 
 func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID string) {
+	//fmt.Printf("DecodeTransactionToHashes - %v\n", fullTransaction)
 	b, err := hex.DecodeString(fullTransaction)
 	if err != nil {
 		return
 	}
 
 	cc := new(entryCreditBlock.CommitChain)
-	err = cc.UnmarshalBinary(b)
-	if err != nil {
+	rest, err := cc.UnmarshalBinaryData(b)
+	if err != nil || len(rest) > 0 {
 		//fmt.Printf("err - %v\n", err)
 		ec := new(entryCreditBlock.CommitEntry)
-		err = ec.UnmarshalBinary(b)
-		if err != nil {
+		rest, err = ec.UnmarshalBinaryData(b)
+		if err != nil || len(rest) > 0 {
 			//fmt.Printf("err - %v\n", err)
 			e := new(entryBlock.Entry)
-			err = e.UnmarshalBinary(b)
-			if err != nil {
+			rest, err = e.UnmarshalBinaryData(b)
+			if err != nil || len(rest) > 0 {
 				//fmt.Printf("err - %v\n", err)
 				return
 			} else {
@@ -327,6 +328,9 @@ func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID str
 		eTxID = cc.GetEntryHash().String()
 		ecTxID = cc.GetHash().String()
 	}
+
+	//fmt.Printf("eTxID - %v\n", eTxID)
+	//fmt.Printf("ecTxID - %v\n", ecTxID)
 	return
 }
 
