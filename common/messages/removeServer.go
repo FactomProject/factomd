@@ -66,7 +66,7 @@ func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
 	// Check to see if identity exists and is audit or fed server
 	if !state.VerifyIsAuthority(m.ServerChainID) {
-		fmt.Printf("RemoveServerMsg Error: [%s] is not a server, cannot be removed\n", m.ServerChainID.String()[:8])
+		//fmt.Printf("RemoveServerMsg Error: [%s] is not a server, cannot be removed\n", m.ServerChainID.String()[:8])
 		return -1
 	}
 
@@ -75,11 +75,11 @@ func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
 	// Check signatures
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
-		fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
+		//fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
 		return -1
 	}
 	if m.Signature == nil {
-		fmt.Println("RemoveServerMsg Error: No signiture on RemoveServerMsg")
+		//fmt.Println("RemoveServerMsg Error: No signiture on RemoveServerMsg")
 		return -1
 	}
 	sig := m.Signature.GetSignature()
@@ -87,7 +87,7 @@ func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
 
 	//ackSigned, err := m.VerifySignature()
 	if err != nil {
-		fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
+		//fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
 		return -1
 	}
 	if !authSigned {

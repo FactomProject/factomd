@@ -345,7 +345,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
 				relevantPL.FedServers[listIdx] = auditServerList[0]
-				relevantPL.AddAuditServer(fedServ.GetChainID())
+				//relevantPL.AddAuditServer(fedServ.GetChainID())
 			}
 		}
 
