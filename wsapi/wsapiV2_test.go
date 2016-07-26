@@ -2,7 +2,6 @@ package wsapi_test
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
@@ -10,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
@@ -168,25 +168,17 @@ func TestHandleV2CommitEntry(t *testing.T) {
 }
 
 func CheckEntryTransactionID(entryMsg string) string {
-	//entryMsg := msg
-
 	entryBytes, _ := hex.DecodeString(entryMsg)
-	// 144 Hex : 72 Bytes
-	entryTxID := sha256.Sum256(entryBytes[:72])
-
-	entryTxIDHex := hex.EncodeToString(entryTxID[:])
-
-	return entryTxIDHex
+	e := entryCreditBlock.NewCommitEntry()
+	e.UnmarshalBinary(entryBytes)
+	return e.GetSigHash().String()
 }
 
 func CheckChainTransactionID(chainMsg string) string {
-	chainBytes, _ := hex.DecodeString(chainMsg)
-	// 272 Hex : 136 Bytes
-	chainTxID := sha256.Sum256(chainBytes[:136])
-
-	chainTxIDHex := hex.EncodeToString(chainTxID[:])
-
-	return chainTxIDHex
+	entryBytes, _ := hex.DecodeString(chainMsg)
+	e := entryCreditBlock.NewCommitChain()
+	e.UnmarshalBinary(entryBytes)
+	return e.GetSigHash().String()
 }
 
 func TestHandleV2CommitChain(t *testing.T) {
