@@ -2,14 +2,12 @@ package wsapi_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
@@ -159,26 +157,11 @@ func TestHandleV2CommitEntry(t *testing.T) {
 		t.Error(err)
 	}
 
-	txID := CheckEntryTransactionID(msg.Entry)
-	e := strings.Compare(respObj.TxID, txID)
-	if e != 0 {
+	txID := "8b751bc182766e6187d39b1eca538d9ece0b8ff662e408cd4e45f89359f8c7e7"
+	if respObj.TxID != txID {
 		t.Errorf("Error: TxID returned during Commit Entry is incorrect - %v vs %v", respObj.TxID, txID)
 	}
 
-}
-
-func CheckEntryTransactionID(entryMsg string) string {
-	entryBytes, _ := hex.DecodeString(entryMsg)
-	e := entryCreditBlock.NewCommitEntry()
-	e.UnmarshalBinary(entryBytes)
-	return e.GetSigHash().String()
-}
-
-func CheckChainTransactionID(chainMsg string) string {
-	entryBytes, _ := hex.DecodeString(chainMsg)
-	e := entryCreditBlock.NewCommitChain()
-	e.UnmarshalBinary(entryBytes)
-	return e.GetSigHash().String()
 }
 
 func TestHandleV2CommitChain(t *testing.T) {
@@ -196,9 +179,8 @@ func TestHandleV2CommitChain(t *testing.T) {
 		t.Error(err)
 	}
 
-	txID := CheckChainTransactionID(msg.Message)
-	e := strings.Compare(respObj.TxID, txID)
-	if e != 0 {
+	txID := "76e123d133a841fe3e08c5e3f3d392f8431f2d7668890c03f003f541efa8fc61"
+	if respObj.TxID != txID {
 		t.Errorf("Error: TxID returned during Commit Chain is incorrect - %v vs %v", respObj.TxID, txID)
 	}
 }
