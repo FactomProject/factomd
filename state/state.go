@@ -586,7 +586,6 @@ func (s *State) UnlockDB() {
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
-
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -623,7 +622,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
-
 }
 
 func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {

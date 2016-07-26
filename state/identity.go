@@ -640,10 +640,12 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	if auth := st.isAuthorityChain(chainID); auth != -1 {
 		if servertype == 0 {
 			st.LeaderPL.AdminBlock.AddFedServer(chainID)
+			st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
 		} else if servertype == 1 {
 			st.LeaderPL.AdminBlock.AddAuditServer(chainID)
+			st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
 		}
-		//		return true
+		return true
 	}
 
 	if index == -1 {

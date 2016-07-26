@@ -19,11 +19,9 @@ import (
 var _ = fmt.Print
 
 func LoadDatabase(s *State) {
-
 	var blkCnt uint32
 
 	head, err := s.DB.FetchDirectoryBlockHead()
-
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
@@ -40,12 +38,12 @@ func LoadDatabase(s *State) {
 		} else {
 			if msg != nil {
 				msg.SetLocal(true)
-				if len(s.APIQueue()) > 100 {
-					for len(s.APIQueue()) > 30 {
+				if len(s.InMsgQueue()) > 100 {
+					for len(s.InMsgQueue()) > 30 {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
-				s.APIQueue() <- msg
+				s.InMsgQueue() <- msg
 			} else {
 				break
 			}
@@ -74,5 +72,4 @@ func LoadDatabase(s *State) {
 		s.InMsgQueue() <- msg
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
-
 }
