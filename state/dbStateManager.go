@@ -247,8 +247,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
 
-	var _ adminBlock.AdminBlock
-	// Federated Servers
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
 			// Promote to federated
@@ -259,10 +257,10 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	for _, pf := range previousFeds {
 		if !containsServer(currentFeds, pf) {
-			// Remove as a server
+			// Option 1: Remove as a server
 			removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
 			d.AdminBlock.AddFirstABEntry(removeEntry)
-			// Demote to Audit if it is there
+			// Option 2L Demote to Audit if it is there
 			/*if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
@@ -270,26 +268,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			_ = currentAuds
 		}
 	}
-
-	/*previousAuds := previousPL.AuditServers
-	currentAuds := currentPL.AuditServers
-
-	// Audit Servers
-	for _, ca := range currentAuds {
-		if !containsServer(previousAuds, ca) {
-			// Delete cf from current
-			addEntry := adminBlock.NewAddAuditServer(ca.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(addEntry)
-		}
-	}
-
-	for _, pa := range previousAuds {
-		if !containsServer(currentAuds, pa) {
-			// Add pf to current
-			removeEntry := adminBlock.NewRemoveFederatedServer(pa.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(removeEntry)
-		}
-	}*/
 
 	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
