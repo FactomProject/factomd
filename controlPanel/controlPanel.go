@@ -212,6 +212,9 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		w.Write(data)
+	case "disconnect":
+		data := []byte(r.FormValue("value"))
+		w.Write(data)
 	}
 }
 

@@ -208,9 +208,10 @@ func (slice ConnectionInfoArray) Swap(i, j int) {
 
 type ConnectionInfo struct {
 	Connected               bool
-	Hash                    string
+	Hash                    string // Hash of PeerHash (Peerhash contains illegal characters for html ID)
 	Connection              p2p.ConnectionMetrics
 	ConnectionTimeFormatted string
+	PeerHash                string
 }
 
 // Used to send to front ent
@@ -222,9 +223,9 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
-			hour, minute, second := newCon.MomentConnected.Clock()
-			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			item.ConnectionTimeFormatted = formatDuration(newCon.MomentConnected)
 			item.Hash = hashPeerAddress(key)
+			item.PeerHash = key
 		}
 		item.Connected = true
 		list = append(list, *item)
@@ -235,9 +236,9 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
-			hour, minute, second := newCon.MomentConnected.Clock()
-			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			item.ConnectionTimeFormatted = formatDuration(newCon.MomentConnected)
 			item.Hash = hashPeerAddress(key)
+			item.PeerHash = key
 		}
 		item.Connected = false
 		list = append(list, *item)
@@ -248,6 +249,20 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 	sort.Sort(sortedList)
 	cm.CleanDisconnected()
 	return sortedList
+}
+
+func formatDuration(initial time.Time) string {
+	dif := time.Since(initial)
+	fmt.Println(dif.Hours(), dif.Minutes(), dif.Seconds())
+	if dif.Hours() > 24 {
+		return fmt.Sprintf("%d%s", int(dif.Hours()/24), " days")
+	} else if dif.Hours() > 0 {
+		return fmt.Sprintf("%d%s", int(dif.Hours()), " hrs")
+	} else if dif.Minutes() > 0 {
+		return fmt.Sprintf("%d%s", int(dif.Minutes()), " mins")
+	} else {
+		return fmt.Sprintf("%d%s", int(dif.Seconds()), " secs")
+	}
 }
 
 func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {

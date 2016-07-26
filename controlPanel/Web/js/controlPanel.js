@@ -57,7 +57,7 @@ $("#indexnav-more > a").click(function() {
 })
 
 function updataDataDumps() {
-  resp = queryState("dataDump",function(resp){
+  resp = queryState("dataDump", "",function(resp){
     obj = JSON.parse(resp)
     $("#dump1 #dumpShort").text(obj.DataDump1.ShortDump)
     $("#dump1 #dumpRaw").text(obj.DataDump1.RawDump)
@@ -73,7 +73,7 @@ function updataDataDumps() {
 }
 
 function updateTransactions() {
-  resp = queryState("recentTransactions",function(resp){
+  resp = queryState("recentTransactions","",function(resp){
     obj = JSON.parse(resp)
     //if($("#DBBlockHeight").text() != obj.DirectoryBlock.DBHeight) {
       $("#DBKeyMR > a").text(obj.DirectoryBlock.KeyMR)
@@ -157,12 +157,12 @@ function updateTransactions() {
 }
 
 function getHeight() {
-  resp = queryState("myHeight",function(resp){
+  resp = queryState("myHeight","",function(resp){
     currentHeight = parseInt(resp)
     $("#nodeHeight").val(resp)
   })
 
-  resp = queryState("leaderHeight",function(resp){
+  resp = queryState("leaderHeight","",function(resp){
     //$("#nodeHeight").val(resp)
     leaderHeight = parseInt(resp)
     updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
@@ -171,7 +171,7 @@ function getHeight() {
     $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
   })
 
-    resp = queryState("completeHeight",function(resp){
+    resp = queryState("completeHeight","",function(resp){
     //$("#nodeHeight").val(resp)
     completeHeight = parseInt(resp)
     updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
@@ -187,7 +187,7 @@ function updateProgressBar(id, current, max) {
 }
 
 function updatePeerTotals() {
-  resp = queryState("peerTotals", function(resp){
+  resp = queryState("peerTotals","", function(resp){
     if(resp.length == 0) {
       return
     }
@@ -203,7 +203,7 @@ function updatePeerTotals() {
 }
 
 function updatePeers() {
-  resp = queryState("peers", function(resp){
+  resp = queryState("peers","", function(resp){
     if(resp.length == 0) {
       return
     }
@@ -212,10 +212,19 @@ function updatePeers() {
       peer = obj[index]
       if($("#" + peer.Hash).length > 0) {
         con = peer.Connection
-        if ($("#" + peer.Hash).find("#ip").val() != con.PeerAddress) {
+        if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
           $("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
-          $("#" + peer.Hash).find("#ip").val(con.PeerAddress) // Value
+          $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
+          $("#" + peer.Hash).find("#disconnect").val(peer.PeerHash)
+
+          // Reload Functions
+          $("#" + peer.Hash).find("#disconnect").click(function(){
+            console.log(jQuery(this).val())
+            queryState("disconnect",jQuery(this).val(), function(resp){
+              console.log(resp)
+            })
+          })
           $("#" + peer.Hash).foundation()
         }
         if ($("#" + peer.Hash).find("#connected").val() != peer.Connected) {
@@ -233,10 +242,6 @@ function updatePeers() {
           $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
           $("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality) + "/10")
         }
-        if ($("#" + peer.Hash).find("#momentconnected").val() != con.MomentConnected) {
-          $("#" + peer.Hash).find("#momentconnected").val(con.MomentConnected) // Value
-          $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
-        }
 
         if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
           $("#" + peer.Hash).find("#sent").val(con.BytesSent) // Value
@@ -245,6 +250,10 @@ function updatePeers() {
         if ($("#" + peer.Hash).find("#received").val().length == 0 || $("#" + peer.Hash).find("#received").val() != con.BytesReceived) {
           $("#" + peer.Hash).find("#received").val(con.BytesReceived) // Value
           $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
+        }
+        if ($("#" + peer.Hash).find("#momentconnected").val() != peer.ConnectionTimeFormatted) {
+          $("#" + peer.Hash).find("#momentconnected").val(peer.ConnectionTimeFormatted) // Value
+          $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
         }
       } else {
         // <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>Loading...</span></td>\
@@ -256,7 +265,7 @@ function updatePeers() {
             <td id='momentconnected'></td>\
             <td id='sent' value='-10'></td>\
             <td id='received' value='-10'></td>\
-            <td></td>\
+            <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
         </tr>")
 
       }
