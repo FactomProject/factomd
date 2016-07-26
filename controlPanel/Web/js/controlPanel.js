@@ -69,6 +69,9 @@ function updataDataDumps() {
     $("#dump4 #dumpAuth").text(obj.DataDump4.Authorities)
     $("#dump4 #dumpIdent").text(obj.DataDump4.Identities)
     $("#dump4 #dumpMyNode").text(obj.DataDump4.MyNode)
+
+    $("#dump5 #dumpConRaw").text(obj.DataDump5.RawDump)
+    $("#dump5 #dumpSort").text(obj.DataDump5.SortedDump)
   })
 }
 
@@ -227,16 +230,18 @@ function updatePeers() {
           })
           $("#" + peer.Hash).foundation()
         }
-        if ($("#" + peer.Hash).find("#connected").val() != peer.Connected) {
-          $("#" + peer.Hash).find("#connected").val(peer.Connected) // Value
+        if ($("#" + peer.Hash).find("#connected").val() != con.ConnectionState) {
+          $("#" + peer.Hash).find("#connected").val(con.ConnectionState) // Value
+          $("#" + peer.Hash).find("#connected").text(con.ConnectionState)
+
           if(peer.Connected == false) { // Need to move to end
             $("#" + peer.Hash).delete("#peerList > tbody")
           }
-          if (peer.Connected == true) {
+          /*if (peer.Connected == true) {
             $("#" + peer.Hash).find("#connected").text("Connected")
           } else {
             $("#" + peer.Hash).find("#connected").text("Disconnected")
-          }
+          }*/
         }
         if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
           $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value

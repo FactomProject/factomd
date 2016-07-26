@@ -76,16 +76,16 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 	for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
 		if ok {
-			cm.connected[key] = val // Update Exisiting
+			cm.connected[key] = val
 		} else {
 			delete(cm.connected, key)
-			cm.Disconnect(key, &val) // No longer connected
+			cm.disconnected[key] = val
 		}
 	}
 	for key := range cm.disconnected { // Update Disconnected
 		val, ok := connections[key]
 		if ok {
-			cm.Connect(key, &val) // Reconnected
+			cm.connected[key] = val
 		}
 	}
 	for key := range connections { // New Connections
@@ -185,6 +185,7 @@ func (cm *ConnectionsMap) CleanDisconnected() int {
 	for key := range cm.disconnected {
 		delete(cm.disconnected, key)
 		count++
+		_ = key
 	}
 	return count
 }

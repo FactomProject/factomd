@@ -2,6 +2,7 @@ package controlPanel
 
 import (
 	"encoding/json"
+	"fmt"
 
 	dd "github.com/FactomProject/factomd/controlPanel/dataDumpFormatting"
 )
@@ -11,16 +12,20 @@ type DataDump struct {
 		ShortDump string
 		RawDump   string
 	}
-	DataDump2 struct { // Process List
+	DataDump2 struct {
 		RawDump string
 	}
-	DataDump3 struct { // Process List
+	DataDump3 struct {
 		RawDump string
 	}
-	DataDump4 struct { // Process List
+	DataDump4 struct {
 		Authorities string
 		Identities  string
 		MyNode      string
+	}
+	DataDump5 struct {
+		RawDump    string
+		SortedDump string
 	}
 }
 
@@ -37,9 +42,34 @@ func getDataDumps() []byte {
 	holder.DataDump4.Identities = dd.Identities(*statePointer)
 	holder.DataDump4.MyNode = dd.MyNodeInfo(*statePointer)
 
+	holder.DataDump5.RawDump = AllConnectionsString()
+	holder.DataDump5.SortedDump = SortedConnectionString()
+
 	ret, err := json.Marshal(holder)
 	if err != nil {
 		return []byte(`{"list":"none"}`)
 	}
 	return ret
+}
+
+func SortedConnectionString() string {
+	arr := AllConnections.SortedConnections()
+	str := ""
+	for _, con := range arr {
+		str += fmt.Sprintf("Connected: %v, Hash:%s, State: %s\n", con.Connected, con.Hash[:8], con.Connection.ConnectionState)
+	}
+	return str
+}
+
+func AllConnectionsString() string {
+	str := ""
+	con := AllConnections.GetConnectedCopy()
+	dis := AllConnections.GetDisconnectedCopy()
+	for key := range con {
+		str += fmt.Sprintf("   Connected - IP:%s, ST:%s\n", con[key].PeerAddress, con[key].ConnectionState)
+	}
+	for key := range dis {
+		str += fmt.Sprintf("Disconnected - IP:%s, ST:%s\n", dis[key].PeerAddress, dis[key].ConnectionState)
+	}
+	return str
 }
