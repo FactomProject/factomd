@@ -213,3 +213,71 @@ func TestHandleV2GetReceipt(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestHandleV2GetTranasction(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	blocks := testHelper.CreateFullTestBlockSet()
+
+	for _, block := range blocks {
+		for _, tx := range block.FBlock.GetTransactions() {
+			hashkey := new(HashRequest)
+			hashkey.Hash = tx.GetFullHash().String()
+
+			resp, jErr := HandleV2GetTranasction(state, hashkey)
+			if jErr != nil {
+				t.Errorf("%v", jErr)
+				return
+			}
+			r := resp.(*TransactionResponse)
+			if r.ECTranasction != nil {
+				t.Errorf("ECTranasction != nil")
+			}
+			if r.Entry != nil {
+				t.Errorf("Entry != nil")
+			}
+			if r.FactoidTransaction.GetFullHash().String() != hashkey.Hash {
+				t.Errorf("Got wrong hash for FactoidTransaction")
+			}
+		}
+		for _, h := range block.ECBlock.GetEntryHashes() {
+			hashkey := new(HashRequest)
+			hashkey.Hash = h.String()
+
+			resp, jErr := HandleV2GetTranasction(state, hashkey)
+			if jErr != nil {
+				t.Errorf("%v", jErr)
+				return
+			}
+			r := resp.(*TransactionResponse)
+			if r.FactoidTransaction != nil {
+				t.Errorf("FactoidTransaction != nil")
+			}
+			if r.Entry != nil {
+				t.Errorf("Entry != nil")
+			}
+			if r.ECTranasction.Hash().String() != hashkey.Hash {
+				t.Errorf("Got wrong hash for ECTranasction")
+			}
+		}
+		for _, tx := range block.Entries {
+			hashkey := new(HashRequest)
+			hashkey.Hash = tx.GetHash().String()
+
+			resp, jErr := HandleV2GetTranasction(state, hashkey)
+			if jErr != nil {
+				t.Errorf("%v", jErr)
+				return
+			}
+			r := resp.(*TransactionResponse)
+			if r.ECTranasction != nil {
+				t.Errorf("ECTranasction != nil")
+			}
+			if r.FactoidTransaction != nil {
+				t.Errorf("FactoidTransaction != nil")
+			}
+			if r.Entry.GetHash().String() != hashkey.Hash {
+				t.Errorf("Got wrong hash for Entry")
+			}
+		}
+	}
+}
