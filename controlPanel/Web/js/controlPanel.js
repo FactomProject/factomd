@@ -2,6 +2,7 @@ var currentHeight = 0
 var leaderHeight = 0
 
 setInterval(updateHTML,1000);
+setInterval(updateTransactions,1000);
 var serverOnline = false
 
 
@@ -22,7 +23,6 @@ function updateHTML() {
     $("#server-status").text("Factomd Running")
   }
   getHeight() // Update items related to height
-  updateTransactions()
   updataDataDumps()
   updatePeers()
 }
@@ -84,51 +84,49 @@ function updateTransactions() {
       $("#DBFullHash").text(obj.DirectoryBlock.FullHash)
       $("#DBBlockHeight").text(obj.DirectoryBlock.DBHeight)
 
-      $("#panFactoids > #traxList > tbody").html("")
-      if (obj.FactoidTransactions == null) {
-        return
-      }
-      obj.FactoidTransactions.forEach(function(trans) {
-        if(trans.TotalInput > 0.0001) {
-          /*$("\
-          <tr>\
-              <td><a id='factom-search-link' type='facttransaction'>" + trans.TxID + "</a></td>\
-              <td>" + trans.TotalInput + "</td>\
-              <td>" + trans.TotalInputs + "</td>\
-              <td>" + trans.TotalOutputs + "</td>\
-          </tr>").insertBefore("#panFactoids > #traxList > tbody >tr:first")*/
-          $("#panFactoids > #traxList > tbody").append("\
-          <tr>\
-              <td><a id='factom-search-link' type='factoidack'>" + trans.TxID + "</a></td>\
-              <td>" + trans.TotalInput + "</td>\
-              <td>" + trans.TotalInputs + "</td>\
-              <td>" + trans.TotalOutputs + "</td>\
-          </tr>")
-        }
-      })
+      if(obj.FactoidTransactions != null){
+        // Total
+        $("#recent-factoid-total").text("(" + $("#panFactoids > #traxList > tbody > tr").length + ")")
 
-      $("#panEntries > #traxList > tbody").html("")
+        obj.FactoidTransactions.forEach(function(trans) {
+          console.log("sd")
+          if(trans.TotalInput > 0.0001) {
+            if($("#panFactoids > #traxList > tbody #" + trans.TxID).length > 0) {
+
+            } else {
+              $("#panFactoids > #traxList > tbody").prepend("\
+              <tr id='" + trans.TxID + "'>\
+                  <td><a id='factom-search-link' type='factoidack'>" + trans.TxID + "</a></td>\
+                  <td>" + trans.TotalInput + "</td>\
+                  <td>" + trans.TotalInputs + "</td>\
+                  <td>" + trans.TotalOutputs + "</td>\
+              </tr>")
+            }
+          }
+        })
+      }
       if(obj.Entries != null){
         obj.Entries.forEach(function(entry) {
-          /*$("\
-          <tr>\
-              <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
-              <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-              <td>" + entry.ContentLength + "</td>\
-          </tr>").insertBefore("#panEntries > #traxList > tbody > tr:first")*/
-          if (entry.ChainID == "Processing") {
-            $("#panEntries > #traxList > tbody").append("\
-            <tr>\
-                <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
-                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-                <td>" + entry.ECCost + "</td>\
-            </tr>")
+          // Total
+          $("#recent-entry-total").text("(" + $("#panEntries > #traxList > tbody > tr").length + ")")
+
+          if ($("#panEntries > #traxList > tbody > tr").length > 100) {
+            $("#panEntries > #traxList > tbody >tr").last().remove();
+          }
+          if ($("#panEntries #" + entry.Hash).length > 0) {
+            if($("#"+entry.Hash + " #chainID a").text() != entry.ChainID) {
+              $("#"+entry.Hash + " #chainID a").text(entry.ChainID)
+              $("#"+entry.Hash + " #entry-entryhash a").type("entry")
+            }
+            if($("#"+entry.Hash + " #eccost").text() != entry.ECCost) {
+              $("#"+entry.Hash + " #eccost").text(entry.ECCost)
+            }
           } else {
-            $("#panEntries > #traxList > tbody").append("\
-            <tr>\
-                <td><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
-                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-                <td>" + entry.ECCost + "</td>\
+            $("#panEntries > #traxList > tbody").prepend("\
+            <tr id='" + entry.Hash + "'>\
+                <td id='entry-entryhash'><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
+                <td id='chainID'><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td id='eccost'>" + entry.ECCost + "</td>\
             </tr>")
           }
         })
@@ -280,10 +278,10 @@ function updatePeers() {
 }
 
 function getIPCountry(address){
-  $.getJSON('http://ipinfo.io/' + address + '', function(data){
+ /* $.getJSON('http://ipinfo.io/' + address + '', function(data){
     console.log(data.country)
     return "ISP(" + data.org + ") Origin(" + data.country + ")"
-  })
+  })*/
 }
 
 // 0-4  | -QR1 ...  -QR2

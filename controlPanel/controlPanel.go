@@ -264,7 +264,7 @@ func doEvery(d time.Duration, f func(time.Time)) {
 
 func getRecentTransactions(time.Time) {
 	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+	if statePointer == nil {
 		return
 	}
 	last := statePointer.GetDirectoryBlock()
@@ -323,7 +323,8 @@ func getRecentTransactions(time.Time) {
 					}
 				}
 				if !has {
-					RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+					RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+					//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 				}
 			case constants.FACTOID_TRANSACTION_MSG:
 				data, err := msg.MarshalBinary()
@@ -352,13 +353,21 @@ func getRecentTransactions(time.Time) {
 					}
 				}
 				if !has {
-					RecentTransactions.FactoidTransactions = append([]struct {
+					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+					/*RecentTransactions.FactoidTransactions = append([]struct {
 						TxID         string
 						TotalInput   string
 						Status       string
 						TotalInputs  int
 						TotalOutputs int
 					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+					*/
 				}
 			}
 		}
@@ -386,7 +395,6 @@ func getRecentTransactions(time.Time) {
 				has := false
 				for i, fact := range RecentTransactions.FactoidTransactions {
 					if fact.TxID == trans.GetHash().String() {
-						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
 						RecentTransactions.FactoidTransactions[i] = struct {
 							TxID         string
 							TotalInput   string
@@ -394,18 +402,33 @@ func getRecentTransactions(time.Time) {
 							TotalInputs  int
 							TotalOutputs int
 						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}
+						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
+						/*RecentTransactions.FactoidTransactions[i] = struct {
+							TxID         string
+							TotalInput   string
+							Status       string
+							TotalInputs  int
+							TotalOutputs int
+						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}*/
 						has = true
 						break
 					}
 				}
 				if !has {
-					RecentTransactions.FactoidTransactions = append([]struct {
+					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 						TxID         string
 						TotalInput   string
 						Status       string
 						TotalInputs  int
 						TotalOutputs int
-					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+					/*RecentTransactions.FactoidTransactions = append([]struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)*/
 				}
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
@@ -429,7 +452,8 @@ func getRecentTransactions(time.Time) {
 							}
 						}
 						if !has {
-							RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+							RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+							//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 						}
 					}
 				}
@@ -438,10 +462,10 @@ func getRecentTransactions(time.Time) {
 	}
 
 	if len(RecentTransactions.Entries) > 100 {
-		RecentTransactions.Entries = RecentTransactions.Entries[:101]
+		RecentTransactions.Entries = RecentTransactions.Entries[:100]
 	}
 	if len(RecentTransactions.FactoidTransactions) > 100 {
-		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[:101]
+		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[:100]
 	}
 	//_, err := json.Marshal(RecentTransactions)
 	//if err != nil {

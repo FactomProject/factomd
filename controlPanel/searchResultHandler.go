@@ -211,16 +211,14 @@ func getFactTransaction(hash string) interfaces.ITransaction {
 	}
 	status := getFactoidAck(hash)
 	if status == nil {
-		status = new(FactoidAck)
-		status.Result.Status = "Unknown"
 		return struct {
 			interfaces.ITransaction
-			FactoidAck
+			wsapi.FactoidTxStatus
 		}{trans, *status}
 	}
 	return struct {
 		interfaces.ITransaction
-		FactoidAck
+		wsapi.FactoidTxStatus
 	}{trans, *status}
 }
 
@@ -235,61 +233,24 @@ type FactoidAck struct {
 	} `json:"result"`
 }
 
-func getFactoidAck(hash string) *FactoidAck {
+func getFactoidAck(hash string) *wsapi.FactoidTxStatus {
 	ackReq := new(wsapi.AckRequest)
 	ackReq.TxID = hash
-	jReq := primitives.NewJSON2Request("factoid-ack", 0, ackReq)
-	resp, err := v2Request(jReq, statePointer.GetPort())
-	if err != nil {
+	answers, err := wsapi.HandleV2FactoidACK(statePointer, ackReq)
+	if answers == nil || err != nil {
 		return nil
 	}
-
-	data, err := resp.JSONByte()
-	if err != nil {
-		return nil
-	}
-	temp := new(FactoidAck)
-	err = json.Unmarshal(data, &temp)
-	if err != nil {
-		return nil
-	}
-	fmt.Println(resp.String())
-	return temp
+	return answers.(*wsapi.FactoidTxStatus)
 }
 
-func getEntryAck(hash string) interface{} {
+func getEntryAck(hash string) *wsapi.EntryStatus {
 	ackReq := new(wsapi.AckRequest)
 	ackReq.TxID = hash
-
-	jReq := primitives.NewJSON2Request("entry-ack", 0, ackReq)
-	resp, err := v2Request(jReq, statePointer.GetPort())
-	if err != nil {
+	answers, err := wsapi.HandleV2EntryACK(statePointer, ackReq)
+	if answers == nil || err != nil {
 		return nil
 	}
-
-	data, err := resp.JSONByte()
-	if err != nil {
-		return nil
-	}
-	var temp struct {
-		ID      int    `json:"id"`
-		Jsonrpc string `json:"jsonrpc"`
-		Result  struct {
-			CommitData struct {
-				Status string `json:"status"`
-			} `json:"commitdata"`
-			Committxid string `json:"committxid"`
-			EntryData  struct {
-				Status string `json:"status"`
-			} `json:"entrydata"`
-			EntryHash string `json:"entryhash"`
-		} `json:"result"`
-	}
-	err = json.Unmarshal(data, &temp)
-	if err != nil {
-		return nil
-	}
-	return temp
+	return (answers.(*wsapi.EntryStatus))
 }
 
 func getECblock(hash string) interfaces.IEntryCreditBlock {
