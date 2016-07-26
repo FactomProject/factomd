@@ -6,6 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
+	//"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -188,7 +189,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	if answer.CommitTxID == "" {
 		answer.CommitData.Status = AckStatusUnknown
 	} else {
-		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
+		h, err := primitives.NewShaHashFromStr(answer.CommitTxID)
 		if err != nil {
 			return nil, NewInvalidParamsError()
 		}
