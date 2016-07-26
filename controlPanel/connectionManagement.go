@@ -223,7 +223,7 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
-			item.ConnectionTimeFormatted = formatDuration(newCon.MomentConnected)
+			item.ConnectionTimeFormatted = FormatDuration(newCon.MomentConnected)
 			item.Hash = hashPeerAddress(key)
 			item.PeerHash = key
 		}
@@ -236,7 +236,7 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
-			item.ConnectionTimeFormatted = formatDuration(newCon.MomentConnected)
+			item.ConnectionTimeFormatted = FormatDuration(newCon.MomentConnected)
 			item.Hash = hashPeerAddress(key)
 			item.PeerHash = key
 		}
@@ -251,14 +251,22 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 	return sortedList
 }
 
-func formatDuration(initial time.Time) string {
+func FormatDuration(initial time.Time) string {
 	dif := time.Since(initial)
-	fmt.Println(dif.Hours(), dif.Minutes(), dif.Seconds())
 	if dif.Hours() > 24 {
+		if int(dif.Hours()/24) == 1 {
+			return fmt.Sprintf("%d%s", int(dif.Hours()/24), " day")
+		}
 		return fmt.Sprintf("%d%s", int(dif.Hours()/24), " days")
-	} else if dif.Hours() > 0 {
+	} else if int(dif.Hours()) > 0 {
+		if int(dif.Hours()) == 1 {
+			return fmt.Sprintf("%d%s", int(dif.Hours()), " hr")
+		}
 		return fmt.Sprintf("%d%s", int(dif.Hours()), " hrs")
-	} else if dif.Minutes() > 0 {
+	} else if int(dif.Minutes()) > 0 {
+		if int(dif.Minutes()) == 1 {
+			return fmt.Sprintf("%d%s", int(dif.Minutes()), " min")
+		}
 		return fmt.Sprintf("%d%s", int(dif.Minutes()), " mins")
 	} else {
 		return fmt.Sprintf("%d%s", int(dif.Seconds()), " secs")
