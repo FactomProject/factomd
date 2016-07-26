@@ -462,10 +462,12 @@ func getRecentTransactions(time.Time) {
 	}
 
 	if len(RecentTransactions.Entries) > 100 {
-		RecentTransactions.Entries = RecentTransactions.Entries[:100]
+		overflow := len(RecentTransactions.Entries) - 100
+		RecentTransactions.Entries = RecentTransactions.Entries[overflow:]
 	}
 	if len(RecentTransactions.FactoidTransactions) > 100 {
-		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[:100]
+		overflow := len(RecentTransactions.FactoidTransactions) - 100
+		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
 	}
 	//_, err := json.Marshal(RecentTransactions)
 	//if err != nil {

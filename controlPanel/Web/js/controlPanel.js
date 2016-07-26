@@ -89,7 +89,6 @@ function updateTransactions() {
         $("#recent-factoid-total").text("(" + $("#panFactoids > #traxList > tbody > tr").length + ")")
 
         obj.FactoidTransactions.forEach(function(trans) {
-          console.log("sd")
           if(trans.TotalInput > 0.0001) {
             if($("#panFactoids > #traxList > tbody #" + trans.TxID).length > 0) {
 
@@ -116,7 +115,9 @@ function updateTransactions() {
           if ($("#panEntries #" + entry.Hash).length > 0) {
             if($("#"+entry.Hash + " #chainID a").text() != entry.ChainID) {
               $("#"+entry.Hash + " #chainID a").text(entry.ChainID)
-              $("#"+entry.Hash + " #entry-entryhash a").type("entry")
+            }
+            if ($("#"+entry.Hash + " #chainID a").text() != "Processing...") {
+              $("#"+entry.Hash + " #entry-entryhash a").attr("type", "entry")
             }
             if($("#"+entry.Hash + " #eccost").text() != entry.ECCost) {
               $("#"+entry.Hash + " #eccost").text(entry.ECCost)
@@ -221,7 +222,6 @@ function updatePeers() {
 
           // Reload Functions
           $("#" + peer.Hash).find("#disconnect").click(function(){
-            console.log(jQuery(this).val())
             queryState("disconnect",jQuery(this).val(), function(resp){
               console.log(resp)
             })
