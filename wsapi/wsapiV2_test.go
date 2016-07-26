@@ -2,8 +2,6 @@ package wsapi_test
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -159,34 +157,11 @@ func TestHandleV2CommitEntry(t *testing.T) {
 		t.Error(err)
 	}
 
-	txID := CheckEntryTransactionID(msg.Entry)
-	e := strings.Compare(respObj.TxID, txID)
-	if e != 0 {
+	txID := "8b751bc182766e6187d39b1eca538d9ece0b8ff662e408cd4e45f89359f8c7e7"
+	if respObj.TxID != txID {
 		t.Errorf("Error: TxID returned during Commit Entry is incorrect - %v vs %v", respObj.TxID, txID)
 	}
 
-}
-
-func CheckEntryTransactionID(entryMsg string) string {
-	//entryMsg := msg
-
-	entryBytes, _ := hex.DecodeString(entryMsg)
-	// 144 Hex : 72 Bytes
-	entryTxID := sha256.Sum256(entryBytes[:72])
-
-	entryTxIDHex := hex.EncodeToString(entryTxID[:])
-
-	return entryTxIDHex
-}
-
-func CheckChainTransactionID(chainMsg string) string {
-	chainBytes, _ := hex.DecodeString(chainMsg)
-	// 272 Hex : 136 Bytes
-	chainTxID := sha256.Sum256(chainBytes[:136])
-
-	chainTxIDHex := hex.EncodeToString(chainTxID[:])
-
-	return chainTxIDHex
 }
 
 func TestHandleV2CommitChain(t *testing.T) {
@@ -204,9 +179,8 @@ func TestHandleV2CommitChain(t *testing.T) {
 		t.Error(err)
 	}
 
-	txID := CheckChainTransactionID(msg.Message)
-	e := strings.Compare(respObj.TxID, txID)
-	if e != 0 {
+	txID := "76e123d133a841fe3e08c5e3f3d392f8431f2d7668890c03f003f541efa8fc61"
+	if respObj.TxID != txID {
 		t.Errorf("Error: TxID returned during Commit Chain is incorrect - %v vs %v", respObj.TxID, txID)
 	}
 }
