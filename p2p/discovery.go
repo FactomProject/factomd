@@ -123,7 +123,12 @@ func (d *Discovery) SavePeers() {
 	var qualityPeers = map[string]Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
-		if time.Since(peer.LastContact) < (time.Hour*168) && MinumumQualityScore < peer.QualityScore {
+		switch {
+		case time.Since(peer.LastContact) > time.Hour*168:
+			break
+		case MinumumQualityScore > peer.QualityScore:
+			break
+		default:
 			qualityPeers[peer.AddressPort()] = peer
 		}
 	}
@@ -181,6 +186,18 @@ func (d *Discovery) filterPeersFromOtherNetworks(peers []Peer) (filtered []Peer)
 	return
 }
 
+func (d *Discovery) filterForUniqueIPAdresses(peers []Peer) (filtered []Peer) {
+	unique := map[string]Peer{}
+	for _, peer := range peers {
+		_, present := unique[peer.Address]
+		if !present {
+			filtered = append(filtered, peer)
+			unique[peer.Address] = peer
+		}
+	}
+	return
+}
+
 // GetOutgoingPeers gets a set of peers to connect to on startup
 // For now, this gives a set of 12 of the total known peers.
 // We want peers from diverse networks.  So,method is this:
@@ -204,7 +221,8 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 		}
 	}
 	UpdateKnownPeers.Unlock()
-	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
+	secondPass := d.filterPeersFromOtherNetworks(firstPassPeers)
+	peerPool := d.filterForUniqueIPAdresses(secondPass)
 	sort.Sort(PeerDistanceSort(peerPool))
 	// Get four times as many as who knows how many will be online
 	desiredQuantity := NumberPeersToConnect * 4
