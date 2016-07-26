@@ -245,6 +245,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Fix deltas of servers
 	previousFeds := previousPL.FedServers
 	currentFeds := currentPL.FedServers
+	currentAuds := currentPL.AuditServers
 
 	var _ adminBlock.AdminBlock
 	// Federated Servers
@@ -258,9 +259,11 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	for _, pf := range previousFeds {
 		if !containsServer(currentFeds, pf) {
-			// Demote to Audit
-			demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
-			d.AdminBlock.AddFirstABEntry(demoteEntry)
+			// Demote to Audit if it is there
+			if containsServer(currentAuds, pf) {
+				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
+				d.AdminBlock.AddFirstABEntry(demoteEntry)
+			}
 		}
 	}
 

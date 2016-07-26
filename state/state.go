@@ -1146,6 +1146,15 @@ func (s *State) SetString() {
 	W := ""
 	if found {
 		L = "L"
+	} else {
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if list != nil {
+			if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+				if foundAudit {
+					L = "A"
+				}
+			}
+		}
 	}
 	if s.NetStateOff {
 		X = "X"
