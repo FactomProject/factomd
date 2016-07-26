@@ -80,6 +80,8 @@ type ConnectionMetrics struct {
 	// Red: Below -50
 	// Yellow: -50 - 100
 	// Green: > 100
+	ConnectionState string // Basic state of the connection
+	ConnectionNotes string // Connectivity notes for the connection
 }
 
 // ConnectionCommand is used to instruct the Connection to carry out some functionality.
@@ -156,6 +158,7 @@ func (c *Connection) commonInit(peer Peer) {
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
+	silence("connection", "MomentConnected: %s", c.metrics.MomentConnected.String())
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
 	c.timeLastStatus = time.Now()
@@ -171,6 +174,7 @@ func (c *Connection) runLoop() {
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
+		c.updateStats()                   // Update controller with metrics
 		c.connectionStatusReport()
 		switch c.state {
 		case ConnectionInitialized:
@@ -187,8 +191,7 @@ func (c *Connection) runLoop() {
 			c.processSends()
 			c.processReceives() // We may get messages that change state (Eg: loopback error)
 			if ConnectionOnline == c.state {
-				c.pingPeer()    // sends a ping periodically if things have been quiet
-				c.updateStats() // Update controller with metrics
+				c.pingPeer() // sends a ping periodically if things have been quiet
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
 					note(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
@@ -299,7 +302,8 @@ func (c *Connection) goOnline() {
 	c.timeLastAttempt = now
 	c.timeLastUpdate = now
 	c.peer.LastContact = now
-	c.metrics = ConnectionMetrics{MomentConnected: now} // Reset metrics
+	// Probably shouldn't reset metrics when we go online. (Eg: say after a temp network problem)
+	// c.metrics = ConnectionMetrics{MomentConnected: now} // Reset metrics
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
@@ -562,6 +566,8 @@ func (c *Connection) updateStats() {
 		c.timeLastMetrics = time.Now()
 		c.metrics.PeerAddress = c.peer.Address
 		c.metrics.PeerQuality = c.peer.QualityScore
+		c.metrics.ConnectionState = connectionStateStrings[c.state]
+		c.metrics.ConnectionNotes = c.notes
 		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
 		c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics}
 	}
