@@ -31,16 +31,16 @@ type DataDump struct {
 
 func getDataDumps() []byte {
 	holder := new(DataDump)
-	holder.DataDump1.ShortDump = dd.ShortSummary(fnodes)
-	holder.DataDump1.RawDump = dd.RawSummary(fnodes)
+	holder.DataDump1.ShortDump = dd.ShortSummary(Fnodes)
+	holder.DataDump1.RawDump = dd.RawSummary(Fnodes)
 
-	holder.DataDump2.RawDump = dd.RawProcessList(*statePointer)
+	holder.DataDump2.RawDump = dd.RawProcessList(*StatePointer)
 
-	holder.DataDump3.RawDump = dd.RawPrintMap(*statePointer)
+	holder.DataDump3.RawDump = dd.RawPrintMap(*StatePointer)
 
-	holder.DataDump4.Authorities = dd.Authorities(*statePointer)
-	holder.DataDump4.Identities = dd.Identities(*statePointer)
-	holder.DataDump4.MyNode = dd.MyNodeInfo(*statePointer)
+	holder.DataDump4.Authorities = dd.Authorities(*StatePointer)
+	holder.DataDump4.Identities = dd.Identities(*StatePointer)
+	holder.DataDump4.MyNode = dd.MyNodeInfo(*StatePointer)
 
 	holder.DataDump5.RawDump = AllConnectionsString()
 	holder.DataDump5.SortedDump = SortedConnectionString()

@@ -26,8 +26,9 @@ var INDEX_HTML []byte
 var mux *http.ServeMux
 var index int = 0
 
-var fnodes []*state.State
-var statePointer *state.State
+var Fnodes []*state.State
+var StatePointer *state.State
+var Controller *p2p.Controller
 
 func directoryExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
@@ -40,7 +41,7 @@ func directoryExists(path string) bool {
 	return true
 }
 
-func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics) {
+func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics, controller *p2p.Controller) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
@@ -49,8 +50,9 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	}()
 
 	portStr := ":" + strconv.Itoa(port)
-	statePointer = states[index]
-	fnodes = states
+	StatePointer = states[index]
+	Fnodes = states
+	Controller = controller
 
 	// Load Files
 	FILES_PATH = states[0].ControlPanelPath
@@ -92,7 +94,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The control panel was not able to be correctly loaded because the Web files were not found. "+
 		"\nFactomd is looking in %s folder for the files, placing the \n"+
-		"Web files in that directory should resolve this error.", fnodes[0].ControlPanelPath)
+		"Web files in that directory should resolve this error.", Fnodes[0].ControlPanelPath)
 }
 
 func static(h http.HandlerFunc) http.HandlerFunc {
@@ -116,7 +118,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	if r.Method != "POST" {
@@ -126,7 +128,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), *statePointer)
+		found, respose := searchDB(r.FormValue("search"), *StatePointer)
 		if found {
 			w.Write([]byte(respose))
 			return
@@ -144,7 +146,7 @@ type SearchedStruct struct {
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	searchResult := new(SearchedStruct)
@@ -162,7 +164,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	if r.Method != "GET" {
@@ -172,16 +174,16 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	item := r.FormValue("item") // Item wanted
 	switch item {
 	case "myHeight":
-		data := fmt.Sprintf("%d", statePointer.GetHighestRecordedBlock())
+		data := fmt.Sprintf("%d", StatePointer.GetHighestRecordedBlock())
 		w.Write([]byte(data)) // Return current node height
 	case "leaderHeight":
-		data := fmt.Sprintf("%d", statePointer.GetLeaderHeight()-1)
-		if statePointer.GetLeaderHeight() == 0 {
+		data := fmt.Sprintf("%d", StatePointer.GetLeaderHeight()-1)
+		if StatePointer.GetLeaderHeight() == 0 {
 			data = "0"
 		}
 		w.Write([]byte(data)) // Return leader height
 	case "completeHeight": // Second Pass Sync info
-		data := fmt.Sprintf("%d", statePointer.GetEBDBHeightComplete())
+		data := fmt.Sprintf("%d", StatePointer.GetEBDBHeightComplete())
 		w.Write([]byte(data)) // Return EBDB complete height
 	case "connections":
 	case "dataDump":
@@ -189,10 +191,10 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 	case "nextNode":
 		index++
-		if index >= len(fnodes) {
+		if index >= len(Fnodes) {
 			index = 0
 		}
-		statePointer = fnodes[index]
+		StatePointer = Fnodes[index]
 		w.Write([]byte(fmt.Sprintf("%d", index)))
 	case "peers":
 		data := getPeers()
@@ -214,7 +216,15 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 	case "disconnect":
 		data := []byte(r.FormValue("value"))
+		disconnectPeer(r.FormValue("value"))
 		w.Write(data)
+	}
+}
+
+func disconnectPeer(hash string) {
+	if Controller != nil {
+		fmt.Println("ControlPanel: Sent a disconnect signal.")
+		Controller.Ban(hash)
 	}
 }
 
@@ -264,10 +274,10 @@ func doEvery(d time.Duration, f func(time.Time)) {
 
 func getRecentTransactions(time.Time) {
 	defer recoverFromPanic()
-	if statePointer == nil {
+	if StatePointer == nil {
 		return
 	}
-	last := statePointer.GetDirectoryBlock()
+	last := StatePointer.GetDirectoryBlock()
 	if last == nil {
 		return
 	}
@@ -286,7 +296,7 @@ func getRecentTransactions(time.Time) {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
-	vms := statePointer.LeaderPL.VMs
+	vms := StatePointer.LeaderPL.VMs
 	for _, vm := range vms {
 		if vm == nil {
 			continue
@@ -378,7 +388,7 @@ func getRecentTransactions(time.Time) {
 	for _, entry := range entries {
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			fblock, err := statePointer.DB.FetchFBlock(mr)
+			fblock, err := StatePointer.DB.FetchFBlock(mr)
 			if err != nil || fblock == nil {
 				continue
 			}
@@ -433,7 +443,7 @@ func getRecentTransactions(time.Time) {
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
-			ecblock, err := statePointer.DB.FetchECBlock(mr)
+			ecblock, err := StatePointer.DB.FetchECBlock(mr)
 			if err != nil || ecblock == nil {
 				continue
 			}
