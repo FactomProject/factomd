@@ -7,6 +7,7 @@ package p2p
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -58,6 +59,11 @@ func (p *Peer) AddressPort() string {
 
 func (p *Peer) PeerIdent() string {
 	return p.Hash[0:12] + "-" + p.Address + ":" + p.Port
+}
+
+func (p *Peer) PeerFixedIdent() string {
+	address := fmt.Sprintf("%16s", p.Address)
+	return p.Hash[0:12] + "-" + address + ":" + p.Port
 }
 
 // BUGBUG Hadn't considered IPV6 addresses.

@@ -49,7 +49,6 @@ func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_
 		}
 	}
 
-	return true, fmt.Errorf("Signature Key Invalid or not Federated Server Key") // For Testing
 	return false, fmt.Errorf("Signature Key Invalid or not Federated Server Key")
 }
 

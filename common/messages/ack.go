@@ -77,7 +77,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	// Check signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
-		fmt.Println("Err is not nil on Ack sig check: ", err)
+		//fmt.Println("Err is not nil on Ack sig check: ", err)
 		return -1
 	}
 	sig := m.Signature.GetSignature()
@@ -85,8 +85,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 
 	//ackSigned, err := m.VerifySignature()
 	if err != nil {
-		fmt.Println("(For Testing, allowing msg to validate)Err is not nil on Ack sig check: ", err)
-		return 1
+		//fmt.Println("Err is not nil on Ack sig check: ", err)
 		return -1
 	}
 	if !ackSigned {

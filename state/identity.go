@@ -232,6 +232,10 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32) {
 	hs := ent.GetChainID().String()
 	cid := ent.GetChainID()
 	if st.isIdentityChain(cid) == -1 {
+		if st.isAuthorityChain(cid) != -1 {
+			st.AddIdentityFromChainID(cid)
+			log.Printfln("dddd Identity WARNING: Identity does not exist but authority does. If you see this warning, please tell Steven and how you produced it.\n    It might recover on its own")
+		}
 		return
 	}
 	if hs[0:10] != "0000000000" { //ignore minute markers
