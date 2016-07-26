@@ -79,6 +79,29 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 	if strings.Contains(testHelper.GetBody(context), expectedHead) == false {
 		t.Errorf("Context does not contain proper DBlock Head - %v vs %v", testHelper.GetBody(context), expectedHead)
 	}
+
+	/*
+		j := testHelper.GetRespText(context)
+		head := new(DirectoryBlockHeadResponse)
+		err := primitives.DecodeJSONString(j, head)
+		if err != nil {
+			panic(err)
+		}
+
+		hash := head.KeyMR
+
+		testHelper.ClearContextResponseWriter(context)
+		HandleDirectoryBlock(context, hash)
+
+		j = testHelper.GetRespText(context)
+		block := new(DBlock)
+		err = primitives.DecodeJSONString(j, block)
+		if err != nil {
+			panic(err)
+		}
+
+		t.Errorf("%v", j)
+	*/
 }
 
 func TestHandleGetRaw(t *testing.T) {
