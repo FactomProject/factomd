@@ -1,11 +1,8 @@
 {{define "indexPage"}}
 	{{template "header"}}
 	<!-- Body -->
-	<script>
-		alert({{.}})
-	</script>
 	{{template "indexnav"}}
-	{{template "localTop"}}
+	{{template "localTop" .}}
 	{{template "transactionsummary"}}
 	{{template "datadump"}}
 	<!-- End Body -->

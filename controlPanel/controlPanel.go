@@ -111,7 +111,9 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
-	fmt.Println("Execute index", GitBuild, r.URL)
+	if len(GitBuild) == 0 {
+		GitBuild = "Unknown (Must install with script)"
+	}
 	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
