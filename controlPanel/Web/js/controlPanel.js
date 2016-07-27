@@ -199,7 +199,7 @@ function updatePeerTotals() {
     if (typeof obj == "undefined") {
       $("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
-      $("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
+      $("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg) +"/10")
       $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
       $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
     }
