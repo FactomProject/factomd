@@ -75,7 +75,9 @@ func (cm *ConnectionsMap) TallyTotals() {
 		totals.MessagesReceived += peer.MessagesReceived
 	}
 
+	cm.Lock.Lock()
 	cm.Totals = *totals
+	cm.Lock.Unlock()
 }
 
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
@@ -130,11 +132,15 @@ func (cm *ConnectionsMap) RemoveConnection(key string) {
 func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
-	_, ok := cm.disconnected[key]
+	disVal, ok := cm.disconnected[key]
 	if ok {
 		delete(cm.disconnected, key)
 	}
-	cm.connected[key] = *val
+	if val == nil && ok {
+		cm.connected[key] = disVal
+	} else if val != nil {
+		cm.connected[key] = *val
+	}
 	return true
 }
 
@@ -177,7 +183,15 @@ func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics
 func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) bool {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
-	cm.disconnected[key] = *val
+	conVal, ok := cm.connected[key]
+	if ok {
+		delete(cm.connected, key)
+	}
+	if val == nil && ok {
+		cm.disconnected[key] = conVal
+	} else if val != nil {
+		cm.disconnected[key] = *val
+	}
 	return true
 }
 

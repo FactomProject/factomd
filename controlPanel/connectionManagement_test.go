@@ -2,6 +2,7 @@ package controlPanel_test
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -96,6 +97,65 @@ func TestTallyTotals(t *testing.T) {
 	if cm.Totals.PeerQualityAvg != 0 {
 		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
 	}
+}
+
+// Absurd map accessing
+func TestConcurrency(t *testing.T) {
+	cm := NewConnectionsMap()
+	var i uint32
+	for i = 0; i < 100; i++ {
+		// Random Connections
+		go func() {
+			randPeers := make([]p2p.ConnectionMetrics, 0)
+			for ii := 0; ii < 10; ii++ {
+				randPeer := NewRandomP2PConnection()
+				cm.Connect(randPeer.PeerAddress, randPeer)
+				cm.TallyTotals()
+
+				randPeer2 := NewRandomP2PConnection()
+				cm.AddConnection(randPeer2.PeerAddress, *randPeer2)
+
+				randPeers = append(randPeers, *randPeer)
+				randPeers = append(randPeers, *randPeer2)
+			}
+			for _, peer := range randPeers {
+				cm.TallyTotals()
+				cm.Disconnect(peer.PeerAddress, cm.GetConnection(peer.PeerAddress))
+			}
+			cm.CleanDisconnected()
+		}()
+
+		go func() {
+			randPeers := make([]p2p.ConnectionMetrics, 0)
+			for ii := 0; ii < 10; ii++ {
+				randPeer1 := NewSeededP2PConnection(i)
+				cm.Connect(randPeer1.PeerAddress, randPeer1)
+				cm.TallyTotals()
+
+				randPeer2 := NewSeededP2PConnection(i)
+				cm.AddConnection(randPeer2.PeerAddress, *randPeer2)
+
+				randPeers = append(randPeers, *randPeer1)
+				randPeers = append(randPeers, *randPeer2)
+			}
+			for _, peer := range randPeers {
+				cm.TallyTotals()
+				cm.Disconnect(peer.PeerAddress, cm.GetConnection(peer.PeerAddress))
+			}
+			cm.CleanDisconnected()
+		}()
+		// Sharing connections
+	}
+}
+
+func NewRandomP2PConnection() *p2p.ConnectionMetrics {
+	con := NewP2PConnection(rand.Uint32(), rand.Uint32(), rand.Uint32(), rand.Uint32(), string(rand.Uint32()), rand.Uint32())
+	return con
+}
+
+func NewSeededP2PConnection(seed uint32) *p2p.ConnectionMetrics {
+	con := NewP2PConnection(seed, seed, seed, seed, string(seed), seed)
+	return con
 }
 
 func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, pq uint32) *p2p.ConnectionMetrics {
