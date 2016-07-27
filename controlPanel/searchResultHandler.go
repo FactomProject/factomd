@@ -72,10 +72,11 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 			return fmt.Sprintf("%f", f)
 		},
 	}
+	TemplateMutex.Lock()
 	templates.Funcs(funcMap)
-
 	templates.ParseFiles(FILES_PATH + "templates/searchresults/type/" + content.Type + ".html")
 	templates.ParseGlob(FILES_PATH + "templates/searchresults/*.html")
+	TemplateMutex.Unlock()
 
 	var err error
 	switch content.Type {
