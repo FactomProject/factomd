@@ -29,6 +29,7 @@ var index int = 0
 var Fnodes []*state.State
 var StatePointer *state.State
 var Controller *p2p.Controller
+var GitBuild string
 
 func directoryExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
@@ -41,7 +42,7 @@ func directoryExists(path string) bool {
 	return true
 }
 
-func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics, controller *p2p.Controller) {
+func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
@@ -49,6 +50,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 		}
 	}()
 
+	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
 	StatePointer = states[index]
 	Fnodes = states
@@ -109,7 +111,8 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
-	err := templates.ExecuteTemplate(w, "indexPage", nil)
+	fmt.Println("Execute index", GitBuild, r.URL)
+	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

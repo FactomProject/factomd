@@ -392,7 +392,7 @@ func NetStart(s *state.State) {
 	}
 	_ = states
 	_ = controlPanel.INDEX_HTML
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel, p2pNetwork)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
 	SimControl(listenTo)
 }

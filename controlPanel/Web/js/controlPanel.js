@@ -3,6 +3,7 @@ var leaderHeight = 0
 
 setInterval(updateHTML,1000);
 setInterval(updateTransactions,1000);
+setInterval(updatePeers,1000);
 var serverOnline = false
 
 
@@ -24,7 +25,7 @@ function updateHTML() {
   }
   getHeight() // Update items related to height
   updataDataDumps()
-  updatePeers()
+  //updatePeers()
 }
 
 $("#dump-container #fullscreen-option").click( function(){
@@ -222,6 +223,7 @@ function updatePeers() {
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
           //$("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
+          //$("#" + peer.Hash).find("#ip span").attr("title", con.ConnectionNotes)
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
           $("#" + peer.Hash).find("#disconnect").val(peer.PeerHash)
 
@@ -233,11 +235,15 @@ function updatePeers() {
           })
           $("#" + peer.Hash).foundation()
         }
+        if ($("#" + peer.Hash).find("#ip span").attr("title") != con.ConnectionNotes) {
+          element = $("#" + peer.Hash).find("#ip span") 
+          wich = $("has-tip").index(element); 
+          $(".tooltip").eq(wich).html(con.ConnectionNotes); 
+
+        }
         if ($("#" + peer.Hash).find("#connected").val() != con.ConnectionState) {
           $("#" + peer.Hash).find("#connected").val(con.ConnectionState) // Value
           $("#" + peer.Hash).find("#connected").text(con.ConnectionState)
-          $("#" + peer.Hash).find("#ip span").attr("title", con.ConnectionNotes)
-
 
           if(peer.Connected == false) { // Need to move to end
             $("#peerList > tbody").find(("#" + peer.Hash)).remove()
