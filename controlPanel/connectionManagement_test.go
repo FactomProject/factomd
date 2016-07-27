@@ -58,6 +58,44 @@ func TestTallyTotals(t *testing.T) {
 		cm.Disconnect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), i))
 	}
 	cm.TallyTotals()
+	if cm.Totals.BytesSentTotal != 190 {
+		t.Errorf("Byte Sent does not match")
+	}
+	if cm.Totals.BytesReceivedTotal != 190 {
+		t.Errorf("Byte Received does not match")
+	}
+	if cm.Totals.MessagesSent != 190 {
+		t.Errorf("Msg Sent does not match")
+	}
+	if cm.Totals.MessagesReceived != 190 {
+		t.Errorf("Msg Received does not match")
+	}
+	if cm.Totals.PeerQualityAvg != 4 {
+		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
+	}
+
+	for key := range cm.GetConnectedCopy() {
+		cm.RemoveConnection(key)
+	}
+	for key := range cm.GetDisconnectedCopy() {
+		cm.RemoveConnection(key)
+	}
+	cm.TallyTotals()
+	if cm.Totals.BytesSentTotal != 0 {
+		t.Errorf("Byte Sent does not match")
+	}
+	if cm.Totals.BytesReceivedTotal != 0 {
+		t.Errorf("Byte Received does not match")
+	}
+	if cm.Totals.MessagesSent != 0 {
+		t.Errorf("Msg Sent does not match")
+	}
+	if cm.Totals.MessagesReceived != 0 {
+		t.Errorf("Msg Received does not match")
+	}
+	if cm.Totals.PeerQualityAvg != 0 {
+		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
+	}
 }
 
 func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, pq uint32) *p2p.ConnectionMetrics {

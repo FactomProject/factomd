@@ -130,17 +130,11 @@ func (cm *ConnectionsMap) RemoveConnection(key string) {
 func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
-	dis, ok := cm.disconnected[key]
-	if !ok {
-		return false
+	_, ok := cm.disconnected[key]
+	if ok {
+		delete(cm.disconnected, key)
 	}
-	delete(cm.disconnected, key)
-	if val == nil {
-		cm.connected[key] = dis
-	} else {
-		cm.connected[key] = *val
-
-	}
+	cm.connected[key] = *val
 	return true
 }
 
