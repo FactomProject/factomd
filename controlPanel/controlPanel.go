@@ -71,9 +71,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 
 	// Updated Globals
 	RecentTransactions = new(LastDirectoryBlockTransactions)
-	AllConnections = new(ConnectionsMap)
-	AllConnections.connected = map[string]p2p.ConnectionMetrics{}
-	AllConnections.disconnected = map[string]p2p.ConnectionMetrics{}
+	AllConnections = NewConnectionsMap()
 
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 

@@ -2,10 +2,12 @@ package controlPanel_test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
 	. "github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/p2p"
 )
 
 var _ = fmt.Sprintf("")
@@ -45,4 +47,26 @@ func TestFormatDuration(t *testing.T) {
 	if FormatDuration(initial) != "30 secs" {
 		t.Errorf("Time display incorrect : secs")
 	}
+}
+
+func TestTallyTotals(t *testing) {
+	cm := NewConnectionsMap()
+	for i := 0; i < 10; i++ {
+		cm.Connect(strconv.Itoa(i), NewP2PConnection(i, i, i, i, strconv.Itoa(i), i))
+	}
+	cm.Disconnect(key, val)
+
+}
+
+func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, pq uint32) p2p.ConnectionMetrics {
+	pc := new(p2p.ConnectionMetrics)
+	pc.MomentConnected = time.Now()
+	pc.BytesSent = bs
+	pc.BytesReceived = br
+	pc.MessagesSent = ms
+	pc.MessagesReceived = mr
+	pc.PeerAddress = addr
+	pc.PeerQuality = pq
+
+	return *pc
 }

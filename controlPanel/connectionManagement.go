@@ -39,6 +39,14 @@ type ConnectionsMap struct {
 	sync.RWMutex
 }
 
+func NewConnectionsMap() *ConnectionsMap {
+	newCM := new(ConnectionsMap)
+	newCM.connected = map[string]p2p.ConnectionMetrics{}
+	newCM.disconnected = map[string]p2p.ConnectionMetrics{}
+	newCM.totals = NewAllConnectionTotals()
+	return newCM
+}
+
 func (cm *ConnectionsMap) TallyTotals() {
 	cons := cm.GetConnectedCopy()
 	dis := cm.GetDisconnectedCopy()
