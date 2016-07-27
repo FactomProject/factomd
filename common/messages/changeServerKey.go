@@ -84,8 +84,6 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
-	return 1
-
 	// Check signatures
 	bytes, err := m.MarshalForSignature()
 	if err != nil {

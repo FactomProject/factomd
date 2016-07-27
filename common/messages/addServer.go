@@ -268,3 +268,12 @@ func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {
 	return msg
 
 }
+
+func NewAddServerByHashMsg(state interfaces.IState, serverType int, newServerHash interfaces.IHash) interfaces.IMsg {
+	msg := new(AddServerMsg)
+	msg.ServerChainID = newServerHash
+	msg.ServerType = serverType
+	msg.Timestamp = state.GetTimestamp()
+
+	return msg
+}

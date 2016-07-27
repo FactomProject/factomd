@@ -32,9 +32,9 @@ type FactomNode struct {
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
+var p2pNetwork *p2p.Controller
 
 func NetStart(s *state.State) {
-	var p2pNetwork *p2p.Controller
 
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
@@ -392,7 +392,7 @@ func NetStart(s *state.State) {
 	}
 	_ = states
 	_ = controlPanel.INDEX_HTML
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
 	SimControl(listenTo)
 }

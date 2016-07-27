@@ -87,6 +87,11 @@ type CommandBan struct {
 	peerHash string
 }
 
+// CommandDisconnect is used to instruct the Controller to disconnect from a peer
+type CommandDisconnect struct {
+	peerHash string
+}
+
 // CommandChangeLogging is used to instruct the Controller to takve various actions.
 type CommandChangeLogging struct {
 	level uint8
@@ -102,9 +107,9 @@ type CommandChangeLogging struct {
 //////////////////////////////////////////////////////////////////////
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
-	significant("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
-	significant("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
-	silence("#################", "META: Last touched: TUESDAY JULY 19th, 8:45PM")
+	note("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
+	note("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
+	silence("#################", "META: Last touched: MONDAY July 25 6:45PM")
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
@@ -126,7 +131,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
 	c.discovery = *discovery
 	// Set this to the past so we will do peer management almost right away after starting up.
-	significant("ctrlr", "\n\n\n\n\nController.Init(%s) Controller is: %+v\n\n", ci.Port, c)
+	note("ctrlr", "\n\n\n\n\nController.Init(%s) Controller is: %+v\n\n", ci.Port, c)
 	return c
 }
 
@@ -146,7 +151,7 @@ func (c *Controller) StartNetwork() {
 
 // DialSpecialPeersString lets us pass in a string of special peers to dial
 func (c *Controller) DialSpecialPeersString(peersString string) {
-	significant("ctrlr", "DialSpecialPeersString() Dialing Special Peers %s", peersString)
+	note("ctrlr", "DialSpecialPeersString() Dialing Special Peers %s", peersString)
 	parseFunc := func(c rune) bool {
 		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 	}
@@ -197,6 +202,11 @@ func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
 func (c *Controller) Ban(peerHash string) {
 	debug("ctrlr", "Ban %s ", peerHash)
 	c.commandChannel <- CommandBan{peerHash: peerHash}
+}
+
+func (c *Controller) Disconnect(peerHash string) {
+	debug("ctrlr", "Ban %s ", peerHash)
+	c.commandChannel <- CommandDisconnect{peerHash: peerHash}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -451,6 +461,14 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandBan)
 		peerHash := parameters.peerHash
 		c.applicationPeerUpdate(BannedQualityScore, peerHash)
+	case CommandDisconnect:
+		verbose("ctrlr", "handleCommand() Processing command: CommandDisconnect")
+		parameters := command.(CommandDisconnect)
+		peerHash := parameters.peerHash
+		connection, present := c.connections[peerHash]
+		if present {
+			connection.SendChannel <- ConnectionCommand{command: ConnectionShutdownNow}
+		}
 	default:
 		logfatal("ctrlr", "Unkown p2p.Controller command recieved: %+v", commandType)
 	}
@@ -526,7 +544,6 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 
 func (c *Controller) fillOutgoingSlots() {
 	c.updateConnectionAddressMap()
-	// significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 	significant("controller", "Connected peers:")
 	for _, v := range c.connectionsByAddress {
 		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
@@ -540,7 +557,6 @@ func (c *Controller) fillOutgoingSlots() {
 		}
 	}
 	c.discovery.PrintPeers()
-	// significant("controller", "\n##############\n##############\n##############\n##############\n##############\n")
 }
 
 func (c *Controller) shutdown() {
@@ -558,6 +574,7 @@ func (c *Controller) networkStatusReport() {
 	note("ctrlr", "networkStatusReport() NetworkStatusInterval: %s durationSinceLastReport: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), durationSinceLastReport.String(), c.lastStatusReport.String())
 	if durationSinceLastReport > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
+		silence("ctrlr", "\n\n\n\n")
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")
@@ -567,16 +584,22 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
 		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
-		silence("ctrlr", "\tPeers: ")
+		silence("ctrlr", " ")
+		silence("ctrlr", "\tPeer\t\t\t\tMinutes\tStatus\t\tNotes")
+		silence("ctrlr", "---------------------------------------------------------------------------------------------")
 		for _, v := range c.connectionsByAddress {
-			silence("ctrlr", "\t%s", v.peer.PeerIdent())
+			metrics, present := c.connectionMetrics[v.peer.Hash]
+			if !present {
+				metrics = ConnectionMetrics{MomentConnected: time.Now(), ConnectionState: "No Metrics", ConnectionNotes: "No Metrics"}
+			}
+			silence("ctrlr", "%s\t%.2f\t%s\t%s", v.peer.PeerFixedIdent(), time.Since(metrics.MomentConnected).Minutes(), metrics.ConnectionState, metrics.ConnectionNotes)
 		}
 		silence("ctrlr", "\tChannels:")
-		silence("ctrlr", "           commandChannel: %d", len(c.commandChannel))
+		silence("ctrlr", "          commandChannel: %d", len(c.commandChannel))
 		silence("ctrlr", "               ToNetwork: %d", len(c.ToNetwork))
 		silence("ctrlr", "             FromNetwork: %d", len(c.FromNetwork))
 		silence("ctrlr", "connectionMetricsChannel: %d", len(c.connectionMetricsChannel))
 		silence("ctrlr", "===================================")
-		silence("ctrlr", "###################################")
+		silence("ctrlr", "###################################\n\n\n")
 	}
 }

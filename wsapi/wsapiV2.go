@@ -656,12 +656,16 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 
 	fTx, err := dbase.FetchFactoidTransaction(h)
 	if err != nil {
-		return nil, NewInternalError()
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
 	}
 
 	ecTx, err := dbase.FetchECTransaction(h)
 	if err != nil {
-		return nil, NewInternalError()
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
 	}
 
 	e, err := dbase.FetchEntry(h)
