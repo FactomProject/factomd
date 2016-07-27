@@ -111,7 +111,7 @@ var LoggingLevels = map[uint8]string{
 }
 
 func dot(dot string) {
-	if 0 < CurrentLoggingLevel {
+	if 1 < CurrentLoggingLevel {
 		switch dot {
 		case "":
 			fmt.Printf(".")
