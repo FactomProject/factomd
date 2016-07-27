@@ -36,7 +36,7 @@ type ConnectionsMap struct {
 	disconnected map[string]p2p.ConnectionMetrics
 
 	Totals AllConnectionsTotals
-	sem    sync.RWMutex
+	Lock   sync.RWMutex
 }
 
 func NewConnectionsMap() *ConnectionsMap {
@@ -79,8 +79,8 @@ func (cm *ConnectionsMap) TallyTotals() {
 }
 
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	cm.connected = connections
 	/*for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
@@ -112,8 +112,8 @@ func hashPeerAddress(addr string) string {
 }
 
 func (cm *ConnectionsMap) AddConnection(key string, val p2p.ConnectionMetrics) {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	if _, ok := cm.disconnected[key]; ok {
 		delete(cm.disconnected, key)
 	}
@@ -121,15 +121,15 @@ func (cm *ConnectionsMap) AddConnection(key string, val p2p.ConnectionMetrics) {
 }
 
 func (cm *ConnectionsMap) RemoveConnection(key string) {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	delete(cm.disconnected, key)
 	delete(cm.connected, key)
 }
 
 func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	dis, ok := cm.disconnected[key]
 	if !ok {
 		return false
@@ -145,8 +145,8 @@ func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
 }
 
 func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	var ok bool
 	var ret p2p.ConnectionMetrics
 	ret, ok = cm.connected[key]
@@ -161,8 +161,8 @@ func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
 }
 
 func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	newMap := map[string]p2p.ConnectionMetrics{}
 	for k, v := range cm.connected {
 		newMap[k] = v
@@ -171,8 +171,8 @@ func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
 }
 
 func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	newMap := map[string]p2p.ConnectionMetrics{}
 	for k, v := range cm.disconnected {
 		newMap[k] = v
@@ -181,15 +181,15 @@ func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics
 }
 
 func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) bool {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	cm.disconnected[key] = *val
 	return true
 }
 
 func (cm *ConnectionsMap) CleanDisconnected() int {
-	cm.sem.Lock()
-	defer cm.sem.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	count := 0
 	for key := range cm.disconnected {
 		delete(cm.disconnected, key)
