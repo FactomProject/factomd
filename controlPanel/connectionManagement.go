@@ -36,7 +36,7 @@ type ConnectionsMap struct {
 	disconnected map[string]p2p.ConnectionMetrics
 
 	Totals AllConnectionsTotals
-	Lock   sync.RWMutex
+	Lock   sync.Mutex
 }
 
 func NewConnectionsMap() *ConnectionsMap {
