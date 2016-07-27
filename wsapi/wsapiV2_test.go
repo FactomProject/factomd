@@ -238,6 +238,16 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			if r.FactoidTransaction.GetFullHash().String() != hashkey.Hash {
 				t.Errorf("Got wrong hash for FactoidTransaction")
 			}
+
+			if r.IncludedInTransactionBlock != block.FBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInTransactionBlock")
+			}
+			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInDirectoryBlock")
+			}
+			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
+				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
+			}
 		}
 		for _, h := range block.ECBlock.GetEntryHashes() {
 			hashkey := new(HashRequest)
@@ -258,10 +268,20 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			if r.ECTranasction.Hash().String() != hashkey.Hash {
 				t.Errorf("Got wrong hash for ECTranasction")
 			}
+
+			if r.IncludedInTransactionBlock != block.ECBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInTransactionBlock")
+			}
+			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInDirectoryBlock")
+			}
+			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
+				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
+			}
 		}
-		for _, tx := range block.Entries {
+		for _, tx := range block.EBlock.GetEntryHashes() {
 			hashkey := new(HashRequest)
-			hashkey.Hash = tx.GetHash().String()
+			hashkey.Hash = tx.String()
 
 			resp, jErr := HandleV2GetTranasction(state, hashkey)
 			if jErr != nil {
@@ -277,6 +297,46 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			}
 			if r.Entry.GetHash().String() != hashkey.Hash {
 				t.Errorf("Got wrong hash for Entry")
+			}
+
+			if r.IncludedInTransactionBlock != block.EBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInTransactionBlock")
+			}
+			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInDirectoryBlock")
+			}
+			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
+				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
+			}
+		}
+		for _, tx := range block.AnchorEBlock.GetEntryHashes() {
+			hashkey := new(HashRequest)
+			hashkey.Hash = tx.String()
+
+			resp, jErr := HandleV2GetTranasction(state, hashkey)
+			if jErr != nil {
+				t.Errorf("%v", jErr)
+				return
+			}
+			r := resp.(*TransactionResponse)
+			if r.ECTranasction != nil {
+				t.Errorf("ECTranasction != nil")
+			}
+			if r.FactoidTransaction != nil {
+				t.Errorf("FactoidTransaction != nil")
+			}
+			if r.Entry.GetHash().String() != hashkey.Hash {
+				t.Errorf("Got wrong hash for Entry")
+			}
+
+			if r.IncludedInTransactionBlock != block.AnchorEBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInTransactionBlock")
+			}
+			if r.IncludedInDirectoryBlock != block.DBlock.DatabasePrimaryIndex().String() {
+				t.Errorf("Invalid IncludedInDirectoryBlock")
+			}
+			if r.IncludedInDirectoryBlockHeight != int64(block.DBlock.GetDatabaseHeight()) {
+				t.Errorf("Invalid IncludedInDirectoryBlockHeight")
 			}
 		}
 	}

@@ -173,6 +173,13 @@ type TransactionResponse struct {
 	ECTranasction      interfaces.IECBlockEntry `json:"ectransaction,omitempty"`
 	FactoidTransaction interfaces.ITransaction  `json:"factoidtransaction,omitempty"`
 	Entry              interfaces.IEBEntry      `json:"entry,omitempty"`
+
+	//F/EC/E block the transaction is included in
+	IncludedInTransactionBlock string `json:"includedintransactionblock"`
+	//DirectoryBlock the tranasction is included in
+	IncludedInDirectoryBlock string `json:"includedindirectoryblock"`
+	//The DBlock height
+	IncludedInDirectoryBlockHeight int64 `json:"includedindirectoryblockheight"`
 }
 
 //Requests
