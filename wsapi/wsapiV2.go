@@ -116,6 +116,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "send-raw-message":
 		resp, jsonError = HandleV2SendRawMessage(state, params)
 		break
+	case "get-transaction":
+		resp, jsonError = HandleV2GetTranasction(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -635,4 +638,45 @@ func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interf
 	resp.Message = "Successfully sent the message"
 
 	return resp, nil
+}
+
+func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	hashkey := new(HashRequest)
+	err := MapToObject(params, hashkey)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	h, err := primitives.HexToHash(hashkey.Hash)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	fTx, err := dbase.FetchFactoidTransaction(h)
+	if err != nil {
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
+	}
+
+	ecTx, err := dbase.FetchECTransaction(h)
+	if err != nil {
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
+	}
+
+	e, err := dbase.FetchEntry(h)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	answer := new(TransactionResponse)
+	answer.ECTranasction = ecTx
+	answer.FactoidTransaction = fTx
+	answer.Entry = e
+
+	return answer, nil
 }

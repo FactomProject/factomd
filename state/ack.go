@@ -37,7 +37,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 	if ecBlock != nil {
 		tx := ecBlock.GetEntryByHash(hash)
 		if tx != nil {
-			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
+			return constants.AckStatusACK, tx.Hash(), tx.GetTimestamp(), ts, nil
 		}
 	}
 	fBlock := s.FactoidState.GetCurrentBlock()
@@ -97,7 +97,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		if tx == nil {
 			return 0, hash, nil, nil, fmt.Errorf("Transaction not found in a block we were expecting")
 		}
-		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
+		return constants.AckStatusDBlockConfirmed, tx.GetHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
 	}
 
 	//entries have no timestamp of their own, so return nil

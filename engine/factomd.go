@@ -23,10 +23,9 @@ var _ = fmt.Print
 //var winServiceMain func() (bool, error)
 
 // Build sets the factomd build id using git's SHA
-// by compiling factomd with: -ldflags "-X main.Build=<build sha1>"
-// e.g. get  the short version of the sha1 of your latest commit by running
-// $ git rev-parse --short HEAD
-// $ go install -ldflags "-X main.Build=6c10244"
+// $ go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`"
+// It also seems to need to have the previous binary deleted if recompiling to have this message show up if no code has changed.
+// Since we are tracking code changes, then there is no need to delete the binary to use the latest message
 var Build string
 
 func Factomd() {

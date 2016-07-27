@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -50,14 +51,14 @@ type DBStateList struct {
 const SecondsBetweenTests = 20 // Default
 
 func (list *DBStateList) String() string {
-	str := "\nDBStates\n"
-	str = fmt.Sprintf("%s  Base      = %d\n", str, list.Base)
+	str := "\n========DBStates Start=======\nddddd DBStates\n"
+	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
 	ts := "-nil-"
 	if list.LastTime != nil {
 		ts = list.LastTime.String()
 	}
-	str = fmt.Sprintf("%s  timestamp = %s\n", str, ts)
-	str = fmt.Sprintf("%s  Complete  = %d\n", str, list.Complete)
+	str = fmt.Sprintf("dddd %s  timestamp = %s\n", str, ts)
+	str = fmt.Sprintf("dddd %s  Complete  = %d\n", str, list.Complete)
 	rec := "M"
 	last := ""
 	for i, ds := range list.DBStates {
@@ -88,12 +89,12 @@ func (list *DBStateList) String() string {
 		if last != "" {
 			str = last
 		}
-		str = fmt.Sprintf("%s  %1s-DState ?-(DState nil) x-(Not in DB) s-(In DB) L-(Locked) R-(Ready to Save) S-(Saved)\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
+		str = fmt.Sprintf("dddd %s  %1s-DState ?-(DState nil) x-(Not in DB) s-(In DB) L-(Locked) R-(Ready to Save) S-(Saved)\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
 		if rec == "?" && last == "" {
 			last = str
 		}
 	}
-
+	str = str + "dddd\n============DBStates End==========\n"
 	return str
 }
 
@@ -202,12 +203,25 @@ func (list *DBStateList) Catchup() {
 
 }
 
-func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
+// a contains b, returns true
+func containsServer(haystack []interfaces.IFctServer, needle interfaces.IFctServer) bool {
+	for _, hay := range haystack {
+		if needle.GetChainID().IsSameAs(hay.GetChainID()) {
+			return true
+		}
+	}
+	return false
+}
 
+// p is previous, d is current
+func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// If this block is new, then make sure all hashes are fully computed.
 	if !d.isNew || p == nil {
 		return
 	}
+
+	currentDBHeight := d.DirectoryBlock.GetHeader().GetDBHeight()
+	previousDBHeight := p.DirectoryBlock.GetHeader().GetDBHeight()
 
 	d.DirectoryBlock.MarshalBinary()
 
@@ -222,7 +236,60 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
-	d.EntryCreditBlock.GetHeader().SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+	d.EntryCreditBlock.GetHeader().SetDBHeight(currentDBHeight)
+
+	// Admin Block Fixup
+	previousPL := list.State.ProcessLists.Get(previousDBHeight)
+	currentPL := list.State.ProcessLists.Get(currentDBHeight)
+
+	// Fix deltas of servers
+	previousFeds := previousPL.FedServers
+	currentFeds := currentPL.FedServers
+	currentAuds := currentPL.AuditServers
+
+	var _ adminBlock.AdminBlock
+	// Federated Servers
+	for _, cf := range currentFeds {
+		if !containsServer(previousFeds, cf) {
+			// Promote to federated
+			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
+			d.AdminBlock.AddFirstABEntry(addEntry)
+		}
+	}
+
+	for _, pf := range previousFeds {
+		if !containsServer(currentFeds, pf) {
+			// Remove as a server
+			removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
+			d.AdminBlock.AddFirstABEntry(removeEntry)
+			// Demote to Audit if it is there
+			/*if containsServer(currentAuds, pf) {
+				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
+				d.AdminBlock.AddFirstABEntry(demoteEntry)
+			}*/
+			_ = currentAuds
+		}
+	}
+
+	/*previousAuds := previousPL.AuditServers
+	currentAuds := currentPL.AuditServers
+
+	// Audit Servers
+	for _, ca := range currentAuds {
+		if !containsServer(previousAuds, ca) {
+			// Delete cf from current
+			addEntry := adminBlock.NewAddAuditServer(ca.GetChainID(), currentDBHeight)
+			d.AdminBlock.AddFirstABEntry(addEntry)
+		}
+	}
+
+	for _, pa := range previousAuds {
+		if !containsServer(currentAuds, pa) {
+			// Add pf to current
+			removeEntry := adminBlock.NewRemoveFederatedServer(pa.GetChainID(), currentDBHeight)
+			d.AdminBlock.AddFirstABEntry(removeEntry)
+		}
+	}*/
 
 	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
@@ -230,10 +297,10 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	}
 	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
-	p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
-	d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
+	p.FactoidBlock.SetDBHeight(previousDBHeight)
+	d.FactoidBlock.SetDBHeight(currentDBHeight)
 	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
-	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerMR())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerKeyMR())
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
@@ -243,7 +310,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.DirectoryBlock.SetECBlockHash(d.EntryCreditBlock)
 	d.DirectoryBlock.SetFBlockHash(d.FactoidBlock)
 
-	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+	pl := list.State.ProcessLists.Get(currentDBHeight)
 
 	//for _, eb := range pl.NewEBlocks {
 	//	eb.BuildHeader()

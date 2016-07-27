@@ -5,6 +5,7 @@
 package wsapi
 
 import (
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 )
@@ -166,6 +167,12 @@ func (e *CHead) JSONString() (string, error) {
 type FactoidBalance struct {
 	Response string `json:"response"`
 	Success  bool   `json:"success"`
+}
+
+type TransactionResponse struct {
+	ECTranasction      interfaces.IECBlockEntry `json:"ectransaction,omitempty"`
+	FactoidTransaction interfaces.ITransaction  `json:"factoidtransaction,omitempty"`
+	Entry              interfaces.IEBEntry      `json:"entry,omitempty"`
 }
 
 //Requests

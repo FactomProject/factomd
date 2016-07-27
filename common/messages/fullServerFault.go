@@ -278,6 +278,7 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
 	// Check main signature
+	fmt.Println("FSF", state.GetFactomNodeName())
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
 		return -1
@@ -301,9 +302,11 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 			validSigCount++
 		}
 		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
+			fmt.Println("FSF good", state.GetFactomNodeName())
 			return 1
 		}
 	}
+	fmt.Println("FSF nogood", state.GetFactomNodeName())
 
 	return -1 // didn't see enough valid sigs
 }

@@ -26,8 +26,10 @@ var INDEX_HTML []byte
 var mux *http.ServeMux
 var index int = 0
 
-var fnodes []*state.State
-var statePointer *state.State
+var Fnodes []*state.State
+var StatePointer *state.State
+var Controller *p2p.Controller
+var GitBuild string
 
 func directoryExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
@@ -40,7 +42,7 @@ func directoryExists(path string) bool {
 	return true
 }
 
-func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics) {
+func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
@@ -48,9 +50,11 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 		}
 	}()
 
+	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
-	statePointer = states[index]
-	fnodes = states
+	StatePointer = states[index]
+	Fnodes = states
+	Controller = controller
 
 	// Load Files
 	FILES_PATH = states[0].ControlPanelPath
@@ -68,6 +72,8 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	// Updated Globals
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = new(ConnectionsMap)
+	AllConnections.connected = map[string]p2p.ConnectionMetrics{}
+	AllConnections.disconnected = map[string]p2p.ConnectionMetrics{}
 
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 
@@ -77,7 +83,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
 
 	go doEvery(5*time.Second, getRecentTransactions)
-	//go manageConnections(connections)
+	go manageConnections(connections)
 
 	http.HandleFunc("/", static(indexHandler))
 	http.HandleFunc("/search", searchHandler)
@@ -90,7 +96,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The control panel was not able to be correctly loaded because the Web files were not found. "+
 		"\nFactomd is looking in %s folder for the files, placing the \n"+
-		"Web files in that directory should resolve this error.", fnodes[0].ControlPanelPath)
+		"Web files in that directory should resolve this error.", Fnodes[0].ControlPanelPath)
 }
 
 func static(h http.HandlerFunc) http.HandlerFunc {
@@ -105,7 +111,10 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
-	err := templates.ExecuteTemplate(w, "indexPage", nil)
+	if len(GitBuild) == 0 {
+		GitBuild = "Unknown (Must install with script)"
+	}
+	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -113,13 +122,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
-	if statePointer.GetIdentityChainID() == nil {
+	defer recoverFromPanic()
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	if r.Method != "POST" {
@@ -129,7 +133,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), *statePointer)
+		found, respose := searchDB(r.FormValue("search"), *StatePointer)
 		if found {
 			w.Write([]byte(respose))
 			return
@@ -146,13 +150,8 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
-	if statePointer.GetIdentityChainID() == nil {
+	defer recoverFromPanic()
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	searchResult := new(SearchedStruct)
@@ -169,13 +168,8 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
-	if statePointer.GetIdentityChainID() == nil {
+	defer recoverFromPanic()
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	if r.Method != "GET" {
@@ -185,16 +179,16 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	item := r.FormValue("item") // Item wanted
 	switch item {
 	case "myHeight":
-		data := fmt.Sprintf("%d", statePointer.GetHighestRecordedBlock())
+		data := fmt.Sprintf("%d", StatePointer.GetHighestRecordedBlock())
 		w.Write([]byte(data)) // Return current node height
 	case "leaderHeight":
-		data := fmt.Sprintf("%d", statePointer.GetLeaderHeight()-1)
-		if statePointer.GetLeaderHeight() == 0 {
+		data := fmt.Sprintf("%d", StatePointer.GetLeaderHeight()-1)
+		if StatePointer.GetLeaderHeight() == 0 {
 			data = "0"
 		}
 		w.Write([]byte(data)) // Return leader height
 	case "completeHeight": // Second Pass Sync info
-		data := fmt.Sprintf("%d", statePointer.GetEBDBHeightComplete())
+		data := fmt.Sprintf("%d", StatePointer.GetEBDBHeightComplete())
 		w.Write([]byte(data)) // Return EBDB complete height
 	case "connections":
 	case "dataDump":
@@ -202,16 +196,18 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 	case "nextNode":
 		index++
-		if index >= len(fnodes) {
+		if index >= len(Fnodes) {
 			index = 0
 		}
-		statePointer = fnodes[index]
+		StatePointer = Fnodes[index]
 		w.Write([]byte(fmt.Sprintf("%d", index)))
 	case "peers":
 		data := getPeers()
 		w.Write(data)
+	case "peerTotals":
+		data := getPeetTotals()
+		w.Write(data)
 	case "recentTransactions":
-		//data := getRecentTransactions()
 		data := []byte(`{"list":"none"}`)
 		var err error
 		if RecentTransactions == nil {
@@ -223,11 +219,34 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		w.Write(data)
+	case "disconnect":
+		data := []byte(r.FormValue("value"))
+		disconnectPeer(r.FormValue("value"))
+		w.Write(data)
+	}
+}
+
+func disconnectPeer(hash string) {
+	if Controller != nil {
+		fmt.Println("ControlPanel: Sent a disconnect signal.")
+		Controller.Ban(hash)
 	}
 }
 
 func getPeers() []byte {
-	return []byte("")
+	data, err := json.Marshal(AllConnections.SortedConnections())
+	if err != nil {
+		return []byte(`error`)
+	}
+	return data
+}
+
+func getPeetTotals() []byte {
+	data, err := json.Marshal(AllConnections.totals)
+	if err != nil {
+		return []byte(`error`)
+	}
+	return data
 }
 
 type LastDirectoryBlockTransactions struct {
@@ -259,16 +278,11 @@ func doEvery(d time.Duration, f func(time.Time)) {
 }
 
 func getRecentTransactions(time.Time) {
-	defer func() {
-		// recover from panic if anything goes wrong
-		if r := recover(); r != nil {
-			fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-		}
-	}()
-	if statePointer.GetIdentityChainID() == nil {
+	defer recoverFromPanic()
+	if StatePointer == nil {
 		return
 	}
-	last := statePointer.GetDirectoryBlock()
+	last := StatePointer.GetDirectoryBlock()
 	if last == nil {
 		return
 	}
@@ -287,7 +301,7 @@ func getRecentTransactions(time.Time) {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
-	vms := statePointer.LeaderPL.VMs
+	vms := StatePointer.LeaderPL.VMs
 	for _, vm := range vms {
 		if vm == nil {
 			continue
@@ -324,7 +338,8 @@ func getRecentTransactions(time.Time) {
 					}
 				}
 				if !has {
-					RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+					RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+					//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 				}
 			case constants.FACTOID_TRANSACTION_MSG:
 				data, err := msg.MarshalBinary()
@@ -353,13 +368,21 @@ func getRecentTransactions(time.Time) {
 					}
 				}
 				if !has {
-					RecentTransactions.FactoidTransactions = append([]struct {
+					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+					/*RecentTransactions.FactoidTransactions = append([]struct {
 						TxID         string
 						TotalInput   string
 						Status       string
 						TotalInputs  int
 						TotalOutputs int
 					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+					*/
 				}
 			}
 		}
@@ -370,7 +393,7 @@ func getRecentTransactions(time.Time) {
 	for _, entry := range entries {
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			fblock, err := statePointer.DB.FetchFBlock(mr)
+			fblock, err := StatePointer.DB.FetchFBlock(mr)
 			if err != nil || fblock == nil {
 				continue
 			}
@@ -387,7 +410,6 @@ func getRecentTransactions(time.Time) {
 				has := false
 				for i, fact := range RecentTransactions.FactoidTransactions {
 					if fact.TxID == trans.GetHash().String() {
-						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
 						RecentTransactions.FactoidTransactions[i] = struct {
 							TxID         string
 							TotalInput   string
@@ -395,23 +417,38 @@ func getRecentTransactions(time.Time) {
 							TotalInputs  int
 							TotalOutputs int
 						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}
+						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
+						/*RecentTransactions.FactoidTransactions[i] = struct {
+							TxID         string
+							TotalInput   string
+							Status       string
+							TotalInputs  int
+							TotalOutputs int
+						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}*/
 						has = true
 						break
 					}
 				}
 				if !has {
-					RecentTransactions.FactoidTransactions = append([]struct {
+					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 						TxID         string
 						TotalInput   string
 						Status       string
 						TotalInputs  int
 						TotalOutputs int
-					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+					/*RecentTransactions.FactoidTransactions = append([]struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)*/
 				}
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
-			ecblock, err := statePointer.DB.FetchECBlock(mr)
+			ecblock, err := StatePointer.DB.FetchECBlock(mr)
 			if err != nil || ecblock == nil {
 				continue
 			}
@@ -430,7 +467,8 @@ func getRecentTransactions(time.Time) {
 							}
 						}
 						if !has {
-							RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+							RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+							//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 						}
 					}
 				}
@@ -439,14 +477,22 @@ func getRecentTransactions(time.Time) {
 	}
 
 	if len(RecentTransactions.Entries) > 100 {
-		RecentTransactions.Entries = RecentTransactions.Entries[:101]
+		overflow := len(RecentTransactions.Entries) - 100
+		RecentTransactions.Entries = RecentTransactions.Entries[overflow:]
 	}
 	if len(RecentTransactions.FactoidTransactions) > 100 {
-		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[:101]
+		overflow := len(RecentTransactions.FactoidTransactions) - 100
+		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
 	}
 	//_, err := json.Marshal(RecentTransactions)
 	//if err != nil {
 	//	return
 	//}
 	//return ret
+}
+
+func recoverFromPanic() {
+	if r := recover(); r != nil {
+		fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
+	}
 }

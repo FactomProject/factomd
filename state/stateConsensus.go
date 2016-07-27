@@ -43,7 +43,7 @@ func (s *State) Process() (progress bool) {
 		if !ok {
 			return
 		}
-
+		s.SetString()
 		msg.ComputeVMIndex(s)
 
 		var vm *VM
@@ -310,20 +310,20 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	} else {
 		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
 	}
-	//fmt.Println("Faultcnt on", s.FactomNodeName, "(", s.LeaderVMIndex, "):", cnt)
 	if s.Leader && cnt > (fedServerCnt/2) {
-		if s.LeaderVMIndex == int(sf.VMIndex)+1 || s.LeaderVMIndex == 0 && int(sf.VMIndex) == fedServerCnt {
-			var listOfSigs []interfaces.IFullSignature
-			//fmt.Println(s.FactomNodeName, "ISSUING FAULT ON", sf.ServerID.String()[:10])
+		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
+		if s.LeaderVMIndex == responsibleFaulterIdx {
+			var listOfSigs []interfaces.IFullSignature
 			for _, sig := range s.FaultMap[coreHash] {
 				listOfSigs = append(listOfSigs, sig)
 			}
 			fullFault := messages.NewFullServerFault(sf, listOfSigs)
 			if fullFault != nil {
-				fullFault.Sign(&s.serverPrivKey)
+				fullFault.Sign(s.serverPrivKey)
 				s.NetworkOutMsgQueue() <- fullFault
-				s.InMsgQueue() <- sf
+				fullFault.FollowerExecute(s)
+				delete(s.FaultMap, sf.GetCoreHash().Fixed())
 			}
 		}
 	}
@@ -339,19 +339,30 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fsf, _ := m.(*messages.FullServerFault)
-	//fmt.Println("Follower execute FullServerFault:", fsf, "...", s.FactomNodeName)
+	relevantPL := s.ProcessLists.Get(fsf.DBHeight)
 	auditServerList := s.GetAuditServers(fsf.DBHeight)
 	if len(auditServerList) > 0 {
-		relevantPL := s.ProcessLists.Get(fsf.DBHeight)
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
 				relevantPL.FedServers[listIdx] = auditServerList[0]
+				//relevantPL.AddAuditServer(fedServ.GetChainID())
 			}
 		}
-		s.AddFedServer(fsf.DBHeight, auditServerList[0].GetChainID())
+
+		//addMsg := messages.NewAddServerByHashMsg(s, 0, auditServerList[0].GetChainID())
+		//s.InMsgQueue() <- addMsg
+		//s.NetworkOutMsgQueue() <- addMsg
+
+		s.RemoveAuditServer(fsf.DBHeight, auditServerList[0].GetChainID())
 	}
-	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
+	//	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
+
+	//removeMsg := messages.NewRemoveServerMsg(s, fsf.ServerID, 0)
+	//s.InMsgQueue() <- removeMsg
+	//s.NetworkOutMsgQueue() <- removeMsg
+
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -440,25 +451,7 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
-	if as.ServerType == 0 {
-		audits := s.LeaderPL.AuditServers
-		for _, audit := range audits {
-			if audit.GetChainID().IsSameAs(as.ServerChainID) {
-				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Federated server message did not add to admin block, server is an audit server and cannot be both.")
-				return true
-			}
-		}
-	} else if as.ServerType == 1 {
-		feds := s.LeaderPL.FedServers
-		for _, fed := range feds {
-			if fed.GetChainID().IsSameAs(as.ServerChainID) {
-				fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Add Audit server message did not add to admin block, server is a federated server and cannot be both.")
-				return true
-			}
-		}
-	}
-
-	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader {
+	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader && as.ServerType == 0 {
 		return true
 	}
 
@@ -495,6 +488,11 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 }
 
 func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg interfaces.IMsg) bool {
+	//fmt.Println("DEBUG:", s.ComputeVMIndex(constants.ADMIN_CHAINID), s.GetLeaderVM(), s.GetIdentityChainID().String())
+	/*if s.GetLeaderVM() != s.ComputeVMIndex(constants.ADMIN_CHAINID) {
+		return true
+	}*/
+	//fmt.Println("DEBUG: Process ChanegServerKey", s.GetIdentityChainID().String())
 	ask, ok := changeServerKeyMsg.(*messages.ChangeServerKeyMsg)
 	if !ok {
 		return true
@@ -505,7 +503,6 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 		return true
 	}
 
-	//fmt.Printf("DEBUG: Processed: %x", ask.AdminBlockChange)
 	switch ask.AdminBlockChange {
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte
@@ -604,7 +601,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
-	LoadIdentityByEntry(msg.Entry, s, dbheight)
+	LoadIdentityByEntry(msg.Entry, s, dbheight, false)
 
 	s.IncEntries()
 	return true
@@ -680,6 +677,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		mn := entryCreditBlock.NewMinuteNumber(e.Minute + 1)
 		ecbody.AddEntry(mn)
 
+		if !s.Leader {
+			s.CurrentMinute = int(e.Minute)
+		}
+
 		s.CurrentMinute++
 
 		switch {
@@ -732,11 +733,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if ok {
 			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if !ok {
-				fmt.Printf("dddd Tossing %10s Seconds %10d %s \n",
-					s.FactomNodeName,
-					v.GetTimestamp().GetTimeSeconds()-s.GetTimestamp().GetTimeSeconds(),
-					v.String())
-
 				copy(vs, vs[1:])
 				vs[len(vs)-1] = nil
 				s.Commits[k] = vs[:len(vs)-1]

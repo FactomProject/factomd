@@ -39,11 +39,24 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		newlist = append(newlist, lists.Lists[1:]...)
 		lists.Lists = newlist
 	}
-
+	dbstate := lists.State.DBStates.Get(int(dbheight))
 	pl := lists.Get(dbheight)
-	for pl.Complete() {
+	for pl.Complete() || (dbstate != nil && dbstate.Saved) {
 		dbheight++
 		pl = lists.Get(dbheight)
+		dbstate = lists.State.DBStates.Get(int(dbheight))
+	}
+	if dbheight > lists.State.LLeaderHeight {
+		s := lists.State
+		s.LLeaderHeight = dbheight
+		s.CurrentMinute = 0
+		s.EOMProcessed = 0
+		s.DBSigProcessed = 0
+		s.Syncing = false
+		s.EOM = false
+		s.DBSig = false
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
 	return pl.Process(lists.State)
 

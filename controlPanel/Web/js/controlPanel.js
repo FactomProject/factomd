@@ -2,11 +2,30 @@ var currentHeight = 0
 var leaderHeight = 0
 
 setInterval(updateHTML,1000);
+setInterval(updateTransactions,1000);
+setInterval(updatePeers,1000);
+var serverOnline = false
+
 
 function updateHTML() {
+  $.ajax('/', {
+    success: function(){
+      serverOnline = true
+    },
+    error: function(){
+      serverOnline = false
+    }
+  });
+
+  if (!serverOnline) {
+    $("#server-status").text("Factomd Not Running")
+    return
+  } else {
+    $("#server-status").text("Factomd Running")
+  }
   getHeight() // Update items related to height
-  updateTransactions()
   updataDataDumps()
+  //updatePeers()
 }
 
 $("#dump-container #fullscreen-option").click( function(){
@@ -38,12 +57,8 @@ $("#indexnav-more > a").click(function() {
   }
 })
 
-function updatePeers() {
-  
-}
-
 function updataDataDumps() {
-  resp = queryState("dataDump",function(resp){
+  resp = queryState("dataDump", "",function(resp){
     obj = JSON.parse(resp)
     $("#dump1 #dumpShort").text(obj.DataDump1.ShortDump)
     $("#dump1 #dumpRaw").text(obj.DataDump1.RawDump)
@@ -55,60 +70,66 @@ function updataDataDumps() {
     $("#dump4 #dumpAuth").text(obj.DataDump4.Authorities)
     $("#dump4 #dumpIdent").text(obj.DataDump4.Identities)
     $("#dump4 #dumpMyNode").text(obj.DataDump4.MyNode)
+
+    $("#dump5 #dumpConRaw").text(obj.DataDump5.RawDump)
+    $("#dump5 #dumpSort").text(obj.DataDump5.SortedDump)
   })
 }
 
 function updateTransactions() {
-  resp = queryState("recentTransactions",function(resp){
+  resp = queryState("recentTransactions","",function(resp){
     obj = JSON.parse(resp)
     //if($("#DBBlockHeight").text() != obj.DirectoryBlock.DBHeight) {
       $("#DBKeyMR > a").text(obj.DirectoryBlock.KeyMR)
       $("#DBBodyKeyMR").text(obj.DirectoryBlock.BodyKeyMR)
       $("#DBFullHash").text(obj.DirectoryBlock.FullHash)
       $("#DBBlockHeight").text(obj.DirectoryBlock.DBHeight)
+      $("#recent-directory-block").text(obj.DirectoryBlock.DBHeight)
 
-      $("#panFactoids > #traxList > tbody").html("")
-      obj.FactoidTransactions.forEach(function(trans) {
-        if(trans.TotalInput > 0.0001) {
-          /*$("\
-          <tr>\
-              <td><a id='factom-search-link' type='facttransaction'>" + trans.TxID + "</a></td>\
-              <td>" + trans.TotalInput + "</td>\
-              <td>" + trans.TotalInputs + "</td>\
-              <td>" + trans.TotalOutputs + "</td>\
-          </tr>").insertBefore("#panFactoids > #traxList > tbody >tr:first")*/
-          $("#panFactoids > #traxList > tbody").append("\
-          <tr>\
-              <td><a id='factom-search-link' type='factoidack'>" + trans.TxID + "</a></td>\
-              <td>" + trans.TotalInput + "</td>\
-              <td>" + trans.TotalInputs + "</td>\
-              <td>" + trans.TotalOutputs + "</td>\
-          </tr>")
-        }
-      })
+      if(obj.FactoidTransactions != null){
+        // Total
+        $("#recent-factoid-total").text("(" + $("#panFactoids > #traxList > tbody > tr").length + ")")
 
-      $("#panEntries > #traxList > tbody").html("")
+        obj.FactoidTransactions.forEach(function(trans) {
+          if(trans.TotalInput > 0.0001) {
+            if($("#panFactoids > #traxList > tbody #" + trans.TxID).length > 0) {
+
+            } else {
+              $("#panFactoids > #traxList > tbody").prepend("\
+              <tr id='" + trans.TxID + "'>\
+                  <td><a id='factom-search-link' type='factoidack'>" + trans.TxID + "</a></td>\
+                  <td>" + trans.TotalInput + "</td>\
+                  <td>" + trans.TotalInputs + "</td>\
+                  <td>" + trans.TotalOutputs + "</td>\
+              </tr>")
+            }
+          }
+        })
+      }
       if(obj.Entries != null){
         obj.Entries.forEach(function(entry) {
-          /*$("\
-          <tr>\
-              <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
-              <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-              <td>" + entry.ContentLength + "</td>\
-          </tr>").insertBefore("#panEntries > #traxList > tbody > tr:first")*/
-          if (entry.ChainID == "Processing") {
-            $("#panEntries > #traxList > tbody").append("\
-            <tr>\
-                <td><a id='factom-search-link' type='entry'>" + entry.Hash + "</a></td>\
-                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-                <td>" + entry.ECCost + "</td>\
-            </tr>")
+          // Total
+          $("#recent-entry-total").text("(" + $("#panEntries > #traxList > tbody > tr").length + ")")
+
+          if ($("#panEntries > #traxList > tbody > tr").length > 100) {
+            $("#panEntries > #traxList > tbody >tr").last().remove();
+          }
+          if ($("#panEntries #" + entry.Hash).length > 0) {
+            if($("#"+entry.Hash + " #chainID a").text() != entry.ChainID) {
+              $("#"+entry.Hash + " #chainID a").text(entry.ChainID)
+            }
+            if ($("#"+entry.Hash + " #chainID a").text() != "Processing") {
+              $("#"+entry.Hash + " #entry-entryhash a").attr("type", "entry")
+            }
+            if($("#"+entry.Hash + " #eccost").text() != entry.ECCost) {
+              $("#"+entry.Hash + " #eccost").text(entry.ECCost)
+            }
           } else {
-            $("#panEntries > #traxList > tbody").append("\
-            <tr>\
-                <td><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
-                <td><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
-                <td>" + entry.ECCost + "</td>\
+            $("#panEntries > #traxList > tbody").prepend("\
+            <tr id='" + entry.Hash + "'>\
+                <td id='entry-entryhash'><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
+                <td id='chainID'><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td id='eccost'>" + entry.ECCost + "</td>\
             </tr>")
           }
         })
@@ -125,7 +146,6 @@ function updateTransactions() {
               //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
             } else {
               $(".factom-search-error").slideDown(300)
-              console.log(x.response)
             }
           }
         }
@@ -141,12 +161,12 @@ function updateTransactions() {
 }
 
 function getHeight() {
-  resp = queryState("myHeight",function(resp){
+  resp = queryState("myHeight","",function(resp){
     currentHeight = parseInt(resp)
     $("#nodeHeight").val(resp)
   })
 
-  resp = queryState("leaderHeight",function(resp){
+  resp = queryState("leaderHeight","",function(resp){
     //$("#nodeHeight").val(resp)
     leaderHeight = parseInt(resp)
     updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
@@ -155,7 +175,7 @@ function getHeight() {
     $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
   })
 
-    resp = queryState("completeHeight",function(resp){
+    resp = queryState("completeHeight","",function(resp){
     //$("#nodeHeight").val(resp)
     completeHeight = parseInt(resp)
     updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
@@ -170,11 +190,191 @@ function updateProgressBar(id, current, max) {
   $(id).width(percent+ "%")
 }
 
-/*
-$(".tabs-panel > #traxlist").change(function(trax){
-    theadChildren = trax.find("thead > tr").first().children()
-    tbodyChildren = trax.find("tbody > tr").first().children()
-    for (i = 0; i < theadChildren.length; i++) { 
-      theadChildren[i].width(tbodyChildren[i].width())
-    }  
-})*/
+function updatePeerTotals() {
+  resp = queryState("peerTotals","", function(resp){
+    if(resp.length == 0) {
+      return
+    }
+    obj = JSON.parse(resp)
+    if (typeof obj == "undefined") {
+      $("#peerList > tfoot > tr > #peerquality").text("0")
+    } else {
+      $("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
+      $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
+      $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
+    }
+  })
+}
+
+var peerHashes = [""]
+
+function updatePeers() {
+  resp = queryState("peers","", function(resp){
+    if(resp.length == 0) {
+      return
+    }
+    obj = JSON.parse(resp)
+    for (index in obj) {
+      peer = obj[index]
+      peerHashes = [""]
+      if($("#" + peer.Hash).length > 0) {
+        peerHashes.push(peer.PeerHash)
+        con = peer.Connection
+        if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
+          $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
+          //$("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
+          //$("#" + peer.Hash).find("#ip span").attr("title", con.ConnectionNotes)
+          $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
+          $("#" + peer.Hash).find("#disconnect").val(peer.PeerHash)
+
+          // Reload Functions
+          $("#" + peer.Hash).find("#disconnect").click(function(){
+            queryState("disconnect",jQuery(this).val(), function(resp){
+              console.log(resp)
+            })
+          })
+          $("#" + peer.Hash).foundation()
+        }
+        if ($("#" + peer.Hash).find("#ip span").attr("title") != con.ConnectionNotes) {
+          element = $("#" + peer.Hash).find("#ip span") 
+          wich = $("has-tip").index(element); 
+          $(".tooltip").eq(wich).html(con.ConnectionNotes); 
+
+        }
+        if ($("#" + peer.Hash).find("#connected").val() != con.ConnectionState) {
+          $("#" + peer.Hash).find("#connected").val(con.ConnectionState) // Value
+          $("#" + peer.Hash).find("#connected").text(con.ConnectionState)
+
+          if(peer.Connected == false) { // Need to move to end
+            $("#peerList > tbody").find(("#" + peer.Hash)).remove()
+          }
+          /*if (peer.Connected == true) {
+            $("#" + peer.Hash).find("#connected").text("Connected")
+          } else {
+            $("#" + peer.Hash).find("#connected").text("Disconnected")
+          }*/
+        }
+        if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
+          $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
+          $("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality) + "/10")
+        }
+
+        if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
+          $("#" + peer.Hash).find("#sent").val(con.BytesSent) // Value
+          $("#" + peer.Hash).find("#sent").text(formatBytes(con.BytesSent, con.MessagesSent))
+        }
+        if ($("#" + peer.Hash).find("#received").val().length == 0 || $("#" + peer.Hash).find("#received").val() != con.BytesReceived) {
+          $("#" + peer.Hash).find("#received").val(con.BytesReceived) // Value
+          $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
+        }
+        if ($("#" + peer.Hash).find("#momentconnected").val() != peer.ConnectionTimeFormatted) {
+          $("#" + peer.Hash).find("#momentconnected").val(peer.ConnectionTimeFormatted) // Value
+          $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
+        }
+      } else {
+        // <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>Loading...</span></td>\
+        $("#peerList > tbody").prepend("\
+        <tr id='" + peer.Hash + "'>\
+            <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+            <td id='connected'></td>\
+            <td id='peerquality'></td>\
+            <td id='momentconnected'></td>\
+            <td id='sent' value='-10'></td>\
+            <td id='received' value='-10'></td>\
+            <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+        </tr>")
+
+      }
+    }
+
+    //Cleanup - ToDO FIX
+   /* $("#peerList > tbody > tr").each(function(me){
+      val = jQuery(this).find("#ip span").val()
+      console.log(val.length)
+      if(val.length > 0) {
+        if(peerHashes.indexOf(jQuery(this).find("#ip").val()) != -1){
+          console.log("contained")
+        } else {
+          jQuery(this).remove()
+          console.log("not contained")
+        }
+      }
+    })*/
+    updatePeerTotals()
+  })
+}
+
+function getIPCountry(address){
+ /* $.getJSON('http://ipinfo.io/' + address + '', function(data){
+    console.log(data.country)
+    return "ISP(" + data.org + ") Origin(" + data.country + ")"
+  })*/
+}
+
+// 0-4  | -QR1 ...  -QR2
+QUALITY_RANK_1 = -300
+RANK_1_SCALE_MIN = 0
+// 4-6  | -QR2 ... QR3
+QUALITY_RANK_2 = -50
+RANK_2_SCALE_MIN = 4
+// 6-9 | QR3 ... QR4
+QUALITY_RANK_3 = 100
+RANK_3_SCALE_MIN = 6
+// 9-10 | QR4 ... QR5
+QUALITY_RANK_4 = 500
+RANK_4_SCALE_MIN = 9
+// 10   | QR5+
+QUALITY_RANK_5 = 2000
+RANK_5_SCALE_MIN = 10
+
+function formatQuality(quality) {
+  if (quality > QUALITY_RANK_5) { // QR4+
+    return RANK_5_SCALE_MIN
+  } else if (quality <= QUALITY_RANK_5 && quality >= QUALITY_RANK_4) { // QR3 ... QR4
+    rankSpan = QUALITY_RANK_5 - QUALITY_RANK_4
+    place = quality - QUALITY_RANK_4
+    percent = place / rankSpan
+    scaleSpan = RANK_5_SCALE_MIN - RANK_4_SCALE_MIN
+    return Number(RANK_4_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  } else if (quality <= QUALITY_RANK_4 && quality >= QUALITY_RANK_3) { // QR3 ... QR4
+    rankSpan = QUALITY_RANK_4 - QUALITY_RANK_3
+    place = quality - QUALITY_RANK_3
+    percent = place / rankSpan
+    scaleSpan = RANK_4_SCALE_MIN - RANK_3_SCALE_MIN
+    return Number(RANK_3_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  } else if (quality <= QUALITY_RANK_3 && quality >= QUALITY_RANK_2) { // QR2 ... QR3
+    rankSpan = QUALITY_RANK_3 - QUALITY_RANK_2
+    place = quality - QUALITY_RANK_2
+    percent = place / rankSpan
+    scaleSpan = RANK_3_SCALE_MIN - RANK_2_SCALE_MIN
+    return Number(RANK_2_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  } else if (quality <= QUALITY_RANK_2 && quality >= QUALITY_RANK_1) { // QR1 ... QR2
+    rankSpan = QUALITY_RANK_2 - QUALITY_RANK_1
+    place = quality - QUALITY_RANK_1
+    percent = place / rankSpan
+    scaleSpan = RANK_2_SCALE_MIN - RANK_1_SCALE_MIN
+    return Number(RANK_1_SCALE_MIN + percent * scaleSpan).toFixed(1)
+  }  else { // QR0 -
+    return 0
+  }
+
+}
+
+function formatBytes(bytes, messages) {
+  b = Number(bytes / 1000).toFixed(1)
+  if (b < 100) {
+    b = b + " KB"
+  } else if ((bytes / 1000000) < 100) {
+    b = Number(bytes / 1000000).toFixed(1)
+    b = b + " MB"
+  } else {
+      b = Number(bytes / 1000000000).toFixed(1)
+    b = b + " GB"
+  }
+  m = messages
+  if (m > 1000) {
+    m = Number(messages / 1000).toFixed(1)
+    m = m + " K"
+  }
+  return m + "(" + b + ")"
+}

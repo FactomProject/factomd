@@ -15,18 +15,20 @@ import (
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                  = Verbose // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                       = TestNet
 	NetworkListenPort                    = "8108"
 	NodeID                        uint64 = 0           // Random number used for loopback protection
 	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
+	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we ignore them.
 	OnlySpecialPeers                     = false
-	NumberPeersToConnect                 = 12
+	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
-	NetworkStatusInterval                = time.Second * 10
-	ConnectionStatusInterval             = time.Second * 60
+	StandardChannelSize                  = 10000
+	NetworkStatusInterval                = time.Second * 5
+	ConnectionStatusInterval             = time.Second * 65
 	PingInterval                         = time.Second * 15
 	TimeBetweenRedials                   = time.Second * 20
 	PeerSaveInterval                     = time.Second * 30
@@ -108,6 +110,17 @@ var LoggingLevels = map[uint8]string{
 	Verbose:     "Verbose",     // Log everything
 }
 
+func dot(dot string) {
+	if 9 < CurrentLoggingLevel {
+		switch dot {
+		case "":
+			fmt.Printf(".")
+		default:
+			fmt.Printf(dot)
+		}
+	}
+}
+
 func silence(component string, format string, v ...interface{}) {
 	log(Silence, component, format, v...)
 }
@@ -137,13 +150,13 @@ func log(level uint8, component string, format string, v ...interface{}) {
 	// host, _ := os.Hostname()
 	// fmt.Fprintf(os.Stdout, "%s, %s, %d, %s, (%s), %d/%d, %s \n", now.String(), host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
 
-	now := time.Now().Format("01/02/2006 15:04:05.000")
+	now := time.Now().Format("01/02/2006 15:04:05")
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		fmt.Fprintf(os.Stdout, "%s, %s, %d/%d, %s \n", now, component, level, CurrentLoggingLevel, message)
+		fmt.Fprintf(os.Stdout, "%s, %s, %s \n", now, component, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
-		fmt.Fprintf(os.Stderr, "%s, %s, %d/%d, %s \n", now, component, level, CurrentLoggingLevel, message)
+		fmt.Fprintf(os.Stderr, "%s, %s, %s \n", now, component, message)
 		// BUGBUG - take out this exit before shipping JAYJAY TODO, or check that all fatals are fatal.
 		os.Exit(1)
 	}
