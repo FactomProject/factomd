@@ -334,19 +334,19 @@ func (c *Controller) runloop() {
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
 // route also passes incomming messages on to the application.
 func (c *Controller) route() {
-	// verbose("ctrlr", "Controller.route() called. Number peers: %d", len(c.connections))
+	note("ctrlr", "ctrlr.route() called. Number peers: %d", len(c.connections))
 	// Recieve messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
 		// Empty the recieve channel, stuff the application channel.
-		// verbose(peerHash, "Controller.route() size of recieve channel: %d", len(connection.ReceiveChannel))
+		note(peerHash, "ctrlr.route() size of recieve channel: %d", len(connection.ReceiveChannel))
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
 			case ConnectionCommand:
-				verbose(peerHash, "Controller.route() ConnectionCommand")
+				note(peerHash, "ctrlr.route() ConnectionCommand")
 				c.handleConnectionCommand(message.(ConnectionCommand), connection)
 			case ConnectionParcel:
-				verbose(peerHash, "Controller.route() ConnectionParcel")
+				note(peerHash, "ctrlr.route() ConnectionParcel")
 				c.handleParcelReceive(message, peerHash, connection)
 			default:
 				logfatal("ctrlr", "route() unknown message?: %+v ", message)
@@ -359,15 +359,15 @@ func (c *Controller) route() {
 	for 0 < len(c.ToNetwork) { // effectively "While there are messages"
 		parcel := <-c.ToNetwork
 		TotalMessagesSent++
-		verbose("ctrlr", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
+		note("ctrlr", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
 		if "" != parcel.Header.TargetPeer { // directed send
-			debug("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
+			note("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
 			connection, present := c.connections[parcel.Header.TargetPeer]
 			if present { // We're still connected to the target
 				connection.SendChannel <- ConnectionParcel{parcel: parcel}
 			}
 		} else { // broadcast
-			debug("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
+			note("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
 			for _, connection := range c.connections {
 				verbose("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
 				connection.SendChannel <- ConnectionParcel{parcel: parcel}
