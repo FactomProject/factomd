@@ -9,3 +9,7 @@
 5) Everything will be saved to a database with a -Import at the end
 
 To run m2 with the new database, rename the -Import database to the appropriate database name.
+
+----
+
+If you need to import only a few blocks for testing, shorten the list in GetDBlockList in porter.go and don't fetch the current DBlock head.

@@ -632,7 +632,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
 				}
-			case 'e' == b[0]:
+			case 'q' == b[0]:
 				eHashes := fnodes[listenTo].State.GetPendingEntryHashes()
 				os.Stderr.WriteString("Pending Entry Hash\n")
 				os.Stderr.WriteString("------------------\n")

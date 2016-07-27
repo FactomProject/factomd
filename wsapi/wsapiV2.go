@@ -673,10 +673,30 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 		return nil, NewInternalError()
 	}
 
+	blockHash, err := dbase.FetchIncludedIn(h)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
 	answer := new(TransactionResponse)
 	answer.ECTranasction = ecTx
 	answer.FactoidTransaction = fTx
 	answer.Entry = e
+
+	answer.IncludedInTransactionBlock = blockHash.String()
+
+	blockHash, err = dbase.FetchIncludedIn(blockHash)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	answer.IncludedInDirectoryBlock = blockHash.String()
+
+	dBlock, err := dbase.FetchDBlock(blockHash)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	answer.IncludedInDirectoryBlockHeight = int64(dBlock.GetDatabaseHeight())
 
 	return answer, nil
 }
