@@ -105,8 +105,8 @@ header + .row { margin-bottom: 32px; }
 
 #local table, #local table thead, #local table tbody, #local table tfoot { width: 770px; }
 #local table thead, #local table tbody, #local table tfoot { display: block; }
-#local thead th:first-child, #local tbody td:first-child, #local tfoot td:first-child { width: 140px; }
-#local thead th:nth-child(2), #local tbody td:nth-child(2), #local tfoot td:nth-child(2) { width: 112px; }
+#local thead th:first-child, #local tbody td:first-child, #local tfoot td:first-child { width: 134px; }
+#local thead th:nth-child(2), #local tbody td:nth-child(2), #local tfoot td:nth-child(2) { width: 118px; }
 #local thead th:nth-child(3), #local tbody td:nth-child(3), #local tfoot td:nth-child(3) { width: 82px; }
 #local thead th:nth-child(4), #local tbody td:nth-child(4), #local tfoot td:nth-child(4) { width: 87px; }
 #local thead th:nth-child(5), #local tbody td:nth-child(5), #local tfoot td:nth-child(5) { width: 118px; }

@@ -52,7 +52,7 @@ type ProcessList struct {
 	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
 	neweblockslock *sync.Mutex
 
-	NewEntriesMutex sync.Mutex
+	NewEntriesMutex sync.RWMutex
 	NewEntries      map[[32]byte]interfaces.IEntry
 
 	// Used by the leader, validate
@@ -84,11 +84,10 @@ type VM struct {
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
-	p.NewEntriesMutex.Lock()
-	defer p.NewEntriesMutex.Unlock()
-
 	keys = make([][32]byte, p.LenNewEntries())
 
+	p.NewEntriesMutex.RLock()
+	defer p.NewEntriesMutex.RUnlock()
 	i := 0
 	for k := range p.NewEntries {
 		keys[i] = k
@@ -98,14 +97,14 @@ func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
 }
 
 func (p *ProcessList) GetNewEntry(key [32]byte) interfaces.IEntry {
-	p.NewEntriesMutex.Lock()
-	defer p.NewEntriesMutex.Unlock()
+	p.NewEntriesMutex.RLock()
+	defer p.NewEntriesMutex.RUnlock()
 	return p.NewEntries[key]
 }
 
 func (p *ProcessList) LenNewEntries() int {
-	p.NewEntriesMutex.Lock()
-	defer p.NewEntriesMutex.Unlock()
+	p.NewEntriesMutex.RLock()
+	defer p.NewEntriesMutex.RUnlock()
 	return len(p.NewEntries)
 }
 

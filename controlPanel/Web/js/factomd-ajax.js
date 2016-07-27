@@ -1,4 +1,4 @@
-function queryState(item, func) {
+function queryState(item, value, func) {
   var req = new XMLHttpRequest()
 
   req.onreadystatechange = function() {
@@ -7,7 +7,8 @@ function queryState(item, func) {
       func(req.response)
     }
   }
-  req.open("GET", "/factomd?item=" + item, true)
+  req.open("GET", "/factomd?item=" + item + "&value=" + value, true)
+  req.open("GET", "/factomd?item=" + item + "&value=" + value, true)
   req.send()
 }
 
@@ -77,7 +78,7 @@ function redirect(url, method, content) {
 
 
 function nextNode() {
-  resp = queryState("nextNode",function(resp){
+  resp = queryState("nextNode","",function(resp){
     $("#current-node-number").text(resp)
   })
 }

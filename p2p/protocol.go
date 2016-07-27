@@ -21,6 +21,7 @@ var (
 	NodeID                        uint64 = 0           // Random number used for loopback protection
 	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
+	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we ignore them.
 	OnlySpecialPeers                     = false
 	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150

@@ -73,19 +73,20 @@ func (cm *ConnectionsMap) TallyTotals() {
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
 	cm.Lock()
 	defer cm.Unlock()
-	for key := range cm.connected { // Update Connected
+	cm.connected = connections
+	/*for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
 		if ok {
-			cm.connected[key] = val // Update Exisiting
+			cm.connected[key] = val
 		} else {
 			delete(cm.connected, key)
-			cm.Disconnect(key, &val) // No longer connected
+			cm.disconnected[key] = val
 		}
 	}
 	for key := range cm.disconnected { // Update Disconnected
 		val, ok := connections[key]
 		if ok {
-			cm.Connect(key, &val) // Reconnected
+			cm.connected[key] = val
 		}
 	}
 	for key := range connections { // New Connections
@@ -93,7 +94,7 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 		if !ok {
 			cm.connected[key] = val
 		}
-	}
+	}*/
 }
 
 func hashPeerAddress(addr string) string {
@@ -185,6 +186,7 @@ func (cm *ConnectionsMap) CleanDisconnected() int {
 	for key := range cm.disconnected {
 		delete(cm.disconnected, key)
 		count++
+		_ = key
 	}
 	return count
 }
@@ -208,9 +210,10 @@ func (slice ConnectionInfoArray) Swap(i, j int) {
 
 type ConnectionInfo struct {
 	Connected               bool
-	Hash                    string
+	Hash                    string // Hash of PeerHash (Peerhash contains illegal characters for html ID)
 	Connection              p2p.ConnectionMetrics
 	ConnectionTimeFormatted string
+	PeerHash                string
 }
 
 // Used to send to front ent
@@ -222,9 +225,9 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
-			hour, minute, second := newCon.MomentConnected.Clock()
-			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			item.ConnectionTimeFormatted = FormatDuration(newCon.MomentConnected)
 			item.Hash = hashPeerAddress(key)
+			item.PeerHash = key
 		}
 		item.Connected = true
 		list = append(list, *item)
@@ -235,9 +238,9 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 			continue
 		} else {
 			item.Connection = *newCon
-			hour, minute, second := newCon.MomentConnected.Clock()
-			item.ConnectionTimeFormatted = fmt.Sprintf("%d:%d:%d", hour, minute, second)
+			item.ConnectionTimeFormatted = FormatDuration(newCon.MomentConnected)
 			item.Hash = hashPeerAddress(key)
+			item.PeerHash = key
 		}
 		item.Connected = false
 		list = append(list, *item)
@@ -248,6 +251,28 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 	sort.Sort(sortedList)
 	cm.CleanDisconnected()
 	return sortedList
+}
+
+func FormatDuration(initial time.Time) string {
+	dif := time.Since(initial)
+	if dif.Hours() > 24 {
+		if int(dif.Hours()/24) == 1 {
+			return fmt.Sprintf("%d%s", int(dif.Hours()/24), " day")
+		}
+		return fmt.Sprintf("%d%s", int(dif.Hours()/24), " days")
+	} else if int(dif.Hours()) > 0 {
+		if int(dif.Hours()) == 1 {
+			return fmt.Sprintf("%d%s", int(dif.Hours()), " hr")
+		}
+		return fmt.Sprintf("%d%s", int(dif.Hours()), " hrs")
+	} else if int(dif.Minutes()) > 0 {
+		if int(dif.Minutes()) == 1 {
+			return fmt.Sprintf("%d%s", int(dif.Minutes()), " min")
+		}
+		return fmt.Sprintf("%d%s", int(dif.Minutes()), " mins")
+	} else {
+		return fmt.Sprintf("%d%s", int(dif.Seconds()), " secs")
+	}
 }
 
 func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {

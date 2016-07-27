@@ -24,7 +24,7 @@ import (
 var _ = htemp.HTMLEscaper("sdf")
 
 func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
-	if statePointer.GetIdentityChainID() == nil {
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	funcMap := template.FuncMap{
@@ -152,7 +152,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		}
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
-		bal := fmt.Sprintf("%d", statePointer.FactoidState.GetECBalance(fixed))
+		bal := fmt.Sprintf("%d", StatePointer.FactoidState.GetECBalance(fixed))
 		templates.ExecuteTemplate(w, content.Type,
 			struct {
 				Balance string
@@ -165,7 +165,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		}
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
-		bal := fmt.Sprintf("%.3f", float64(statePointer.FactoidState.GetFactoidBalance(fixed))/1e8)
+		bal := fmt.Sprintf("%.3f", float64(StatePointer.FactoidState.GetFactoidBalance(fixed))/1e8)
 		templates.ExecuteTemplate(w, content.Type,
 			struct {
 				Balance string
@@ -187,7 +187,7 @@ func getEcTransaction(hash string) interfaces.IECBlockEntry {
 	if err != nil {
 		return nil
 	}
-	trans, err := statePointer.DB.FetchECTransaction(mr)
+	trans, err := StatePointer.DB.FetchECTransaction(mr)
 	if trans == nil || err != nil {
 		return nil
 	}
@@ -202,7 +202,7 @@ func getFactTransaction(hash string) interfaces.ITransaction {
 	if err != nil {
 		return nil
 	}
-	trans, err := statePointer.DB.FetchFactoidTransaction(mr)
+	trans, err := StatePointer.DB.FetchFactoidTransaction(mr)
 	if trans == nil || err != nil {
 		return nil
 	}
@@ -211,16 +211,14 @@ func getFactTransaction(hash string) interfaces.ITransaction {
 	}
 	status := getFactoidAck(hash)
 	if status == nil {
-		status = new(FactoidAck)
-		status.Result.Status = "Unknown"
 		return struct {
 			interfaces.ITransaction
-			FactoidAck
+			wsapi.FactoidTxStatus
 		}{trans, *status}
 	}
 	return struct {
 		interfaces.ITransaction
-		FactoidAck
+		wsapi.FactoidTxStatus
 	}{trans, *status}
 }
 
@@ -235,61 +233,24 @@ type FactoidAck struct {
 	} `json:"result"`
 }
 
-func getFactoidAck(hash string) *FactoidAck {
+func getFactoidAck(hash string) *wsapi.FactoidTxStatus {
 	ackReq := new(wsapi.AckRequest)
 	ackReq.TxID = hash
-	jReq := primitives.NewJSON2Request("factoid-ack", 0, ackReq)
-	resp, err := v2Request(jReq, statePointer.GetPort())
-	if err != nil {
+	answers, err := wsapi.HandleV2FactoidACK(StatePointer, ackReq)
+	if answers == nil || err != nil {
 		return nil
 	}
-
-	data, err := resp.JSONByte()
-	if err != nil {
-		return nil
-	}
-	temp := new(FactoidAck)
-	err = json.Unmarshal(data, &temp)
-	if err != nil {
-		return nil
-	}
-	fmt.Println(resp.String())
-	return temp
+	return answers.(*wsapi.FactoidTxStatus)
 }
 
-func getEntryAck(hash string) interface{} {
+func getEntryAck(hash string) *wsapi.EntryStatus {
 	ackReq := new(wsapi.AckRequest)
 	ackReq.TxID = hash
-
-	jReq := primitives.NewJSON2Request("entry-ack", 0, ackReq)
-	resp, err := v2Request(jReq, statePointer.GetPort())
-	if err != nil {
+	answers, err := wsapi.HandleV2EntryACK(StatePointer, ackReq)
+	if answers == nil || err != nil {
 		return nil
 	}
-
-	data, err := resp.JSONByte()
-	if err != nil {
-		return nil
-	}
-	var temp struct {
-		ID      int    `json:"id"`
-		Jsonrpc string `json:"jsonrpc"`
-		Result  struct {
-			CommitData struct {
-				Status string `json:"status"`
-			} `json:"commitdata"`
-			Committxid string `json:"committxid"`
-			EntryData  struct {
-				Status string `json:"status"`
-			} `json:"entrydata"`
-			EntryHash string `json:"entryhash"`
-		} `json:"result"`
-	}
-	err = json.Unmarshal(data, &temp)
-	if err != nil {
-		return nil
-	}
-	return temp
+	return (answers.(*wsapi.EntryStatus))
 }
 
 func getECblock(hash string) interfaces.IEntryCreditBlock {
@@ -297,7 +258,7 @@ func getECblock(hash string) interfaces.IEntryCreditBlock {
 	if err != nil {
 		return nil
 	}
-	ecblk, err := statePointer.DB.FetchECBlock(mr)
+	ecblk, err := StatePointer.DB.FetchECBlock(mr)
 	if ecblk == nil || err != nil {
 		return nil
 	}
@@ -313,7 +274,7 @@ func getFblock(hash string) *factoid.FBlock {
 	if err != nil {
 		return nil
 	}
-	fblk, err := statePointer.DB.FetchFBlock(mr)
+	fblk, err := StatePointer.DB.FetchFBlock(mr)
 	if fblk == nil || err != nil {
 		return nil
 	}
@@ -360,7 +321,7 @@ func getAblock(hash string) *AblockHolder {
 		return nil
 	}
 	holder := new(AblockHolder)
-	ablk, err := statePointer.DB.FetchABlock(mr)
+	ablk, err := StatePointer.DB.FetchABlock(mr)
 	if ablk == nil || err != nil {
 		return nil
 	}
@@ -495,7 +456,7 @@ func getEblock(hash string) *EblockHolder {
 		return nil
 	}
 	holder := new(EblockHolder)
-	eblk, err := statePointer.DB.FetchEBlock(mr)
+	eblk, err := StatePointer.DB.FetchEBlock(mr)
 	if eblk == nil || err != nil {
 		return nil
 	}
@@ -575,7 +536,7 @@ func getDblock(hash string) *DblockHolder {
 		return nil
 	}
 	holder := new(DblockHolder)
-	dblk, err := statePointer.DB.FetchDBlock(mr)
+	dblk, err := StatePointer.DB.FetchDBlock(mr)
 	if dblk == nil || err != nil {
 		return nil
 	}
@@ -637,7 +598,7 @@ func getEntry(hash string) *EntryHolder {
 	if err != nil {
 		return nil
 	}
-	entry, err := statePointer.DB.FetchEntry(entryHash)
+	entry, err := StatePointer.DB.FetchEntry(entryHash)
 	if err != nil {
 		return nil
 	}
@@ -694,7 +655,7 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 	s := new(SearchedStruct)
 	s.Type = "chainhead"
 	s.Input = chainID.String()
-	mr, err := statePointer.DB.FetchHeadIndexByChainID(chainID)
+	mr, err := StatePointer.DB.FetchHeadIndexByChainID(chainID)
 	if err != nil || mr == nil {
 		return nil
 	}
@@ -704,7 +665,7 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 		return nil
 	}
 
-	entries, err := statePointer.DB.FetchAllEntriesByChainID(chainID)
+	entries, err := StatePointer.DB.FetchAllEntriesByChainID(chainID)
 	if err != nil {
 		return nil
 	}

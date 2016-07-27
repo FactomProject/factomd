@@ -100,6 +100,19 @@ compile() {
     return $cerr
 }
 
+compileFactomdGitHash() {
+    cerr=0
+    current=`pwd`
+    cd $1
+    echo "Compiling: " $1
+    go clean
+    #rm $GOPATH/bin/$1
+    go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`" || cerr=1
+    cd $current
+    return $cerr
+}
+
+
 checkout factomd      $branch $default
 checkout factom       $branch $default
 checkout web          $branch $default
@@ -128,9 +141,9 @@ echo "
 *     Compiling fctwallet, the cli, and factomd
 ********************************************************
 "
-compile factomd              || exit 1
-compile factom-cli           || exit 1
-compile factom-walletd       || exit 1
+compileFactomdGitHash factomd || exit 1
+compile factom-cli            || exit 1
+compile factom-walletd        || exit 1
 
 echo ""
 echo "
