@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -17,19 +18,24 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-var UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
+var (
+	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-var FILES_PATH string
-var templates *template.Template
+	FILES_PATH string
+	templates  *template.Template
 
-var INDEX_HTML []byte
-var mux *http.ServeMux
-var index int = 0
+	INDEX_HTML []byte
+	mux        *http.ServeMux
+	index      int = 0
 
-var Fnodes []*state.State
-var StatePointer *state.State
-var Controller *p2p.Controller
-var GitBuild string
+	Fnodes       []*state.State
+	StatePointer *state.State
+	Controller   *p2p.Controller
+	GitBuild     string
+
+	// Sync Mutex
+	TemplateMutex sync.Mutex
+)
 
 func directoryExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
@@ -67,7 +73,9 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 			return
 		}
 	}
+	TemplateMutex.Lock()
 	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
+	TemplateMutex.Unlock()
 
 	// Updated Globals
 	RecentTransactions = new(LastDirectoryBlockTransactions)
@@ -110,7 +118,9 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	TemplateMutex.Lock()
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
+	TemplateMutex.Unlock()
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}
