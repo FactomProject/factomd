@@ -250,7 +250,7 @@ func getPeers() []byte {
 }
 
 func getPeetTotals() []byte {
-	data, err := json.Marshal(AllConnections.totals)
+	data, err := json.Marshal(AllConnections.Totals)
 	if err != nil {
 		return []byte(`error`)
 	}

@@ -2,7 +2,6 @@ package controlPanel_test
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
@@ -49,16 +48,19 @@ func TestFormatDuration(t *testing.T) {
 	}
 }
 
-func TestTallyTotals(t *testing) {
+func TestTallyTotals(t *testing.T) {
 	cm := NewConnectionsMap()
-	for i := 0; i < 10; i++ {
-		cm.Connect(strconv.Itoa(i), NewP2PConnection(i, i, i, i, strconv.Itoa(i), i))
+	var i uint32
+	for i = 0; i < 10; i++ {
+		cm.Connect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), i))
 	}
-	cm.Disconnect(key, val)
-
+	for i = 10; i < 20; i++ {
+		cm.Disconnect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), i))
+	}
+	cm.TallyTotals()
 }
 
-func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, pq uint32) p2p.ConnectionMetrics {
+func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, pq uint32) *p2p.ConnectionMetrics {
 	pc := new(p2p.ConnectionMetrics)
 	pc.MomentConnected = time.Now()
 	pc.BytesSent = bs
@@ -66,7 +68,7 @@ func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, p
 	pc.MessagesSent = ms
 	pc.MessagesReceived = mr
 	pc.PeerAddress = addr
-	pc.PeerQuality = pq
+	pc.PeerQuality = int32(pq)
 
-	return *pc
+	return pc
 }

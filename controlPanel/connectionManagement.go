@@ -35,7 +35,7 @@ type ConnectionsMap struct {
 	connected    map[string]p2p.ConnectionMetrics
 	disconnected map[string]p2p.ConnectionMetrics
 
-	totals AllConnectionsTotals
+	Totals AllConnectionsTotals
 	sem    sync.RWMutex
 }
 
@@ -43,7 +43,7 @@ func NewConnectionsMap() *ConnectionsMap {
 	newCM := new(ConnectionsMap)
 	newCM.connected = map[string]p2p.ConnectionMetrics{}
 	newCM.disconnected = map[string]p2p.ConnectionMetrics{}
-	newCM.totals = NewAllConnectionTotals()
+	newCM.Totals = *(NewAllConnectionTotals())
 	return newCM
 }
 
@@ -75,7 +75,7 @@ func (cm *ConnectionsMap) TallyTotals() {
 		totals.MessagesReceived += peer.MessagesReceived
 	}
 
-	cm.totals = *totals
+	cm.Totals = *totals
 }
 
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
