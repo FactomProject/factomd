@@ -36,7 +36,7 @@ type ConnectionsMap struct {
 	disconnected map[string]p2p.ConnectionMetrics
 
 	totals AllConnectionsTotals
-	sync.RWMutex
+	sync.Mutex
 }
 
 func (cm *ConnectionsMap) TallyTotals() {
