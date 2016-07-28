@@ -59,6 +59,7 @@ func TestTallyTotals(t *testing.T) {
 		cm.Disconnect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), i))
 	}
 	cm.TallyTotals()
+	cm.Lock.Lock()
 	if cm.Totals.BytesSentTotal != 190 {
 		t.Errorf("Byte Sent does not match")
 	}
@@ -74,6 +75,7 @@ func TestTallyTotals(t *testing.T) {
 	if cm.Totals.PeerQualityAvg != 4 {
 		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
 	}
+	cm.Lock.Unlock()
 
 	for key := range cm.GetConnectedCopy() {
 		cm.RemoveConnection(key)
@@ -82,6 +84,7 @@ func TestTallyTotals(t *testing.T) {
 		cm.RemoveConnection(key)
 	}
 	cm.TallyTotals()
+	cm.Lock.Lock()
 	if cm.Totals.BytesSentTotal != 0 {
 		t.Errorf("Byte Sent does not match")
 	}
@@ -97,6 +100,7 @@ func TestTallyTotals(t *testing.T) {
 	if cm.Totals.PeerQualityAvg != 0 {
 		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
 	}
+	cm.Lock.Unlock()
 }
 
 // Absurd map accessing

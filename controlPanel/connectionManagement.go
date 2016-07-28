@@ -41,6 +41,8 @@ type ConnectionsMap struct {
 
 func NewConnectionsMap() *ConnectionsMap {
 	newCM := new(ConnectionsMap)
+	newCM.Lock.Lock()
+	defer newCM.Lock.Unlock()
 	newCM.connected = map[string]p2p.ConnectionMetrics{}
 	newCM.disconnected = map[string]p2p.ConnectionMetrics{}
 	newCM.Totals = *(NewAllConnectionTotals())
