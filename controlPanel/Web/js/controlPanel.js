@@ -1,11 +1,10 @@
 var currentHeight = 0
 var leaderHeight = 0
 
-setInterval(updateHTML,1000);
-setInterval(updateTransactions,1000);
-setInterval(updateAllPeers,1000);
+setInterval(updateHTML,5000);
 var serverOnline = false
-
+// Used to update some things less frequently
+var skipInterval = false
 
 function updateHTML() {
   $.ajax('/', {
@@ -23,10 +22,33 @@ function updateHTML() {
   } else {
     $("#server-status").text("Factomd Running")
   }
-  getHeight() // Update items related to height
-  updataDataDumps()
-  //updatePeers()
+
+  if ($("#indexnav-main").hasClass("is-active")) {
+    // Main Tab
+    updateHeight() 
+    updateAllPeers()
+    // Does every another cycle
+    if(!skipInterval){
+      updateTransactions()
+      skipInterval = true
+    } else {
+      skipInterval = false
+    }
+  } else if($("#indexnav-more").hasClass("is-active")) {
+    // Detailed Tab
+    updataDataDumps()
+  }
+
 }
+
+// Update when we switch tabs
+$(".tabs-control-panel li a").click(function(){
+  setTimeout(
+  function() 
+  {
+    updateHTML()
+  }, 300)
+})
 
 $("#dump-container #fullscreen-option").click( function(){
   txtArea = jQuery(this).siblings(".is-active")
@@ -160,7 +182,7 @@ function updateTransactions() {
 }
 
 // 3 Queriers in Batch
-function getHeight() {
+function updateHeight() {
   resp = batchQueryState("myHeight,leaderHeight,completeHeight",function(resp){
     obj = JSON.parse(resp)
     respOne = obj[0].Height
