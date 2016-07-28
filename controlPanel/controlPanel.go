@@ -95,6 +95,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	http.HandleFunc("/search", searchHandler)
 	http.HandleFunc("/post", postHandler)
 	http.HandleFunc("/factomd", factomdHandler)
+	http.HandleFunc("/factomdBatch", factomdBatchHandler)
 
 	http.ListenAndServe(portStr, nil)
 }
@@ -175,46 +176,82 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	//w.Write([]byte(searchResult.Type))
 }
 
+func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
+	defer recoverFromPanic()
+	if StatePointer.GetIdentityChainID() == nil {
+		return
+	}
+	if r.Method != "GET" {
+		return
+	}
+	batch := r.FormValue("batch")
+	batchData := make([]byte, 0)
+	batchData = append(batchData, []byte(`[`)...)
+
+	items := strings.Split(batch, ",")
+	for _, item := range items {
+		data := factomdQuery(item, "")
+		batchData = append(batchData, data...)
+		batchData = append(batchData, []byte(`,`)...)
+	}
+	batchData = batchData[:len(batchData)-1]
+	batchData = append(batchData, []byte(`]`)...)
+	w.Write(batchData)
+}
+
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	defer recoverFromPanic()
 	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	if r.Method != "GET" {
-		http.NotFound(w, r)
+		//http.NotFound(w, r)
 		return
 	}
-	item := r.FormValue("item") // Item wanted
+	item := r.FormValue("item")   // Item wanted
+	value := r.FormValue("value") // Optional argument
+	data := factomdQuery(item, value)
+	w.Write([]byte(data))
+}
+
+func factomdQuery(item string, value string) []byte {
 	switch item {
 	case "myHeight":
-		data := fmt.Sprintf("%d", StatePointer.GetHighestRecordedBlock())
-		w.Write([]byte(data)) // Return current node height
+		//data := fmt.Sprintf("%d", StatePointer.GetHighestRecordedBlock())
+		//return []byte(data) // Return current node height
+		return HeightToJsonStruct(StatePointer.GetHighestKnownBlock())
 	case "leaderHeight":
-		data := fmt.Sprintf("%d", StatePointer.GetLeaderHeight()-1)
+		return HeightToJsonStruct(StatePointer.GetLeaderHeight() - 1)
+		/*data := fmt.Sprintf("%d", StatePointer.GetLeaderHeight()-1)
 		if StatePointer.GetLeaderHeight() == 0 {
 			data = "0"
 		}
-		w.Write([]byte(data)) // Return leader height
+		jsonData, err := json.Marshal(struct{ height string }{data})
+		if err != nil {
+
+		}
+		return []byte(data) // Return leader height*/
 	case "completeHeight": // Second Pass Sync info
-		data := fmt.Sprintf("%d", StatePointer.GetEBDBHeightComplete())
-		w.Write([]byte(data)) // Return EBDB complete height
+		return HeightToJsonStruct(StatePointer.GetEBDBHeightComplete())
+		//data := fmt.Sprintf("%d", StatePointer.GetEBDBHeightComplete())
+		//return []byte(data) // Return EBDB complete height
 	case "connections":
 	case "dataDump":
 		data := getDataDumps()
-		w.Write(data)
+		return data
 	case "nextNode":
 		index++
 		if index >= len(Fnodes) {
 			index = 0
 		}
 		StatePointer = Fnodes[index]
-		w.Write([]byte(fmt.Sprintf("%d", index)))
+		return []byte(fmt.Sprintf("%d", index))
 	case "peers":
 		data := getPeers()
-		w.Write(data)
+		return data
 	case "peerTotals":
 		data := getPeetTotals()
-		w.Write(data)
+		return data
 	case "recentTransactions":
 		data := []byte(`{"list":"none"}`)
 		var err error
@@ -226,12 +263,13 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 				data = []byte(`{"list":"none"}`)
 			}
 		}
-		w.Write(data)
+		return data
 	case "disconnect":
-		data := []byte(r.FormValue("value"))
-		disconnectPeer(r.FormValue("value"))
-		w.Write(data)
+		data := []byte(value)
+		disconnectPeer(value)
+		return data
 	}
+	return []byte("")
 }
 
 func disconnectPeer(hash string) {
@@ -497,10 +535,4 @@ func getRecentTransactions(time.Time) {
 	//	return
 	//}
 	//return ret
-}
-
-func recoverFromPanic() {
-	if r := recover(); r != nil {
-		fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-	}
 }

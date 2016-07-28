@@ -161,12 +161,30 @@ function updateTransactions() {
 }
 
 function getHeight() {
-  resp = queryState("myHeight","",function(resp){
-    currentHeight = parseInt(resp)
-    $("#nodeHeight").val(resp)
+  resp = batchQueryState("myHeight,leaderHeight,completeHeight",function(resp){
+    obj = JSON.parse(resp)
+    respOne = obj[0].Height
+    respTwo = obj[1].Height
+    respThree = obj[2].Height
+
+    currentHeight = parseInt(respOne)
+    $("#nodeHeight").val(respOne)
+
+    leaderHeight = parseInt(respTwo)
+    updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
+    percent = (currentHeight/leaderHeight) * 100
+    percent = Math.floor(percent)
+    $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
+
+    //$("#nodeHeight").val(resp)
+    completeHeight = parseInt(respThree)
+    updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
+    percent = (completeHeight/leaderHeight) * 100
+    percent = Math.floor(percent)
+    $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
   })
 
-  resp = queryState("leaderHeight","",function(resp){
+  /*resp = queryState("leaderHeight","",function(resp){
     //$("#nodeHeight").val(resp)
     leaderHeight = parseInt(resp)
     updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
@@ -182,7 +200,7 @@ function getHeight() {
     percent = (completeHeight/leaderHeight) * 100
     percent = Math.floor(percent)
     $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
-  })
+  })*/
 }
 
 function updateProgressBar(id, current, max) {
