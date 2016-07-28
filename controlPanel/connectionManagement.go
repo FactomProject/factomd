@@ -250,12 +250,19 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 	return sortedList
 }
 
-func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {
+// map[string]p2p.ConnectionMetrics
+func manageConnections(connections chan interface{}) {
 	for {
 		select {
-		case newConnections := <-connections:
-			AllConnections.UpdateConnections(newConnections)
-			AllConnections.TallyTotals()
+		case connectionsMessage := <-connections:
+			switch connectionsMessage.(type) {
+			case map[string]p2p.ConnectionMetrics:
+				newConnections := connectionsMessage.(map[string]p2p.ConnectionMetrics)
+				AllConnections.UpdateConnections(newConnections)
+				AllConnections.TallyTotals()
+			default: // drop that garbage
+				fmt.Printf("Got garbage data on metrics channel: %+v", connectionsMessage)
+			}
 		default:
 			time.Sleep(400 * time.Millisecond)
 		}
