@@ -17,9 +17,10 @@ var _ = fmt.Print
 type FactomdConfig struct {
 	App struct {
 		PortNumber                   int
+		HomeDir                      string
 		ControlPanelPort             int
 		ControlPanelFilesPath        string
-		HomeDir                      string
+		ControlPanelSetting          string
 		DBType                       string
 		LdbPath                      string
 		BoltDBPath                   string
@@ -110,9 +111,11 @@ const defaultConfig = `
 ; ------------------------------------------------------------------------------
 [app]
 PortNumber                            = 8088
+HomeDir                               = ""
+; --------------- ControlPanel disabled | readonly | readwrite
+ControlPanelSetting                   = readonly
 ControlPanelPort                      = 8090
 ControlPanelFilesPath                 = "Web/"
-HomeDir                               = ""
 ; --------------- DBType: LDB | Bolt | Map
 DBType                                = "LDB"
 LdbPath                               = "database/ldb"
@@ -190,9 +193,10 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\nFactomd Config"))
 	out.WriteString(fmt.Sprintf("\n  App"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
+	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
 	out.WriteString(fmt.Sprintf("\n    ControlPanelPort        %v", s.App.ControlPanelPort))
 	out.WriteString(fmt.Sprintf("\n    ControlPanelFilesPath   %v", s.App.ControlPanelFilesPath))
-	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
+	out.WriteString(fmt.Sprintf("\n    ControlPanelSetting     %v", s.App.ControlPanelSetting))
 	out.WriteString(fmt.Sprintf("\n    DBType                  %v", s.App.DBType))
 	out.WriteString(fmt.Sprintf("\n    LdbPath                 %v", s.App.LdbPath))
 	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.App.BoltDBPath))

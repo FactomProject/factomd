@@ -156,7 +156,6 @@ function updateTransactions() {
         x.open("POST", "/post")
         x.send(formDataLink)
       })
- //   }
   })
 }
 
@@ -313,6 +312,9 @@ QUALITY_RANK_5 = 2000
 RANK_5_SCALE_MIN = 10
 
 function formatQuality(quality) {
+  if (quality == undefined) {
+    return 0
+  }
   if (quality > QUALITY_RANK_5) { // QR4+
     return RANK_5_SCALE_MIN
   } else if (quality <= QUALITY_RANK_5 && quality >= QUALITY_RANK_4) { // QR3 ... QR4
@@ -346,6 +348,9 @@ function formatQuality(quality) {
 }
 
 function formatBytes(bytes, messages) {
+  if (bytes == undefined || messages == undefined) {
+    return "0 (0 Kb)"
+  }
   b = Number(bytes / 1000).toFixed(1)
   if (b < 100) {
     b = b + " KB"

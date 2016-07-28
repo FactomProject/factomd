@@ -55,6 +55,11 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
+	// Control Panel Disabled
+	fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
+	if states[0].ControlPanelSetting == 0 {
+		return
+	}
 
 	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
@@ -217,24 +222,11 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 func factomdQuery(item string, value string) []byte {
 	switch item {
 	case "myHeight":
-		//data := fmt.Sprintf("%d", StatePointer.GetHighestRecordedBlock())
-		//return []byte(data) // Return current node height
 		return HeightToJsonStruct(StatePointer.GetHighestKnownBlock())
 	case "leaderHeight":
 		return HeightToJsonStruct(StatePointer.GetLeaderHeight() - 1)
-		/*data := fmt.Sprintf("%d", StatePointer.GetLeaderHeight()-1)
-		if StatePointer.GetLeaderHeight() == 0 {
-			data = "0"
-		}
-		jsonData, err := json.Marshal(struct{ height string }{data})
-		if err != nil {
-
-		}
-		return []byte(data) // Return leader height*/
 	case "completeHeight": // Second Pass Sync info
 		return HeightToJsonStruct(StatePointer.GetEBDBHeightComplete())
-		//data := fmt.Sprintf("%d", StatePointer.GetEBDBHeightComplete())
-		//return []byte(data) // Return EBDB complete height
 	case "connections":
 	case "dataDump":
 		data := getDataDumps()
@@ -265,9 +257,13 @@ func factomdQuery(item string, value string) []byte {
 		}
 		return data
 	case "disconnect":
-		data := []byte(value)
-		disconnectPeer(value)
-		return data
+		if StatePointer.ControlPanelSetting == 2 {
+			data := []byte(value)
+			disconnectPeer(value)
+			return data
+		} else {
+			return []byte(`{"Access":"denied"}`)
+		}
 	}
 	return []byte("")
 }
