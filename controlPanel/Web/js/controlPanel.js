@@ -329,7 +329,7 @@ function formatQuality(quality) {
     return 10
   } else if(quality < 390) {
     limit = 8
-    exponent = -.5((quality*.02)-5)
+    exponent = (-.5) * ((quality * .02) - 5)
     q = 8/Math.pow((1+Math.E),exponent)
     return q
   } else {
