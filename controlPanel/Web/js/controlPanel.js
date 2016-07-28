@@ -321,7 +321,7 @@ function TestFormatQuality(){
 }
 
 // Using two logistic functions
-function formatQualityNew(quality) {
+function formatQuality(quality) {
   quality = quality + 300
   if(quality < 0) {
     return 0
