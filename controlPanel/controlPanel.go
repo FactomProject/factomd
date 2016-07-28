@@ -181,6 +181,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	//w.Write([]byte(searchResult.Type))
 }
 
+// Batches Json in []byte form to an array of json []byte objects
 func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 	defer recoverFromPanic()
 	if StatePointer.GetIdentityChainID() == nil {
@@ -257,12 +258,15 @@ func factomdQuery(item string, value string) []byte {
 		}
 		return data
 	case "disconnect":
+		hash := ""
+		if len(value) > 0 {
+			hash = hashPeerAddress(value)
+		}
 		if StatePointer.ControlPanelSetting == 2 {
-			data := []byte(value)
 			disconnectPeer(value)
-			return data
+			return []byte(`{"Access":"granted", "Id":"` + hash + `"}`)
 		} else {
-			return []byte(`{"Access":"denied"}`)
+			return []byte(`{"Access":"denied", "Id":"` + hash + `"}`)
 		}
 	}
 	return []byte("")

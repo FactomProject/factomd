@@ -5,6 +5,10 @@ setInterval(updateHTML,5000);
 var serverOnline = false
 // Used to update some things less frequently
 var skipInterval = false
+$(window).load(function() {
+      updateHTML()
+});
+
 
 function updateHTML() {
   $.ajax('/', {
@@ -243,15 +247,18 @@ function updateAllPeers() {
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
-          //$("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
-          //$("#" + peer.Hash).find("#ip span").attr("title", con.ConnectionNotes)
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
           $("#" + peer.Hash).find("#disconnect").val(peer.PeerHash)
 
-          // Reload Functions
           $("#" + peer.Hash).find("#disconnect").click(function(){
-            queryState("disconnect",jQuery(this).val(), function(resp){
-              console.log(resp)
+            queryState("disconnect", jQuery(this).val(), function(resp){
+              obj = JSON.parse(resp)
+              if(obj.Access == "denied") {
+                $("#" + obj.Id).find("#disconnect").addClass("disabled")
+                $("#" + obj.Id).find("#disconnect").text("Denied")
+              }
+              $("#" + obj.Id).find("#disconnect").addClass("disabled")
+              $("#" + obj.Id).find("#disconnect").text("Attempting")
             })
           })
           $("#" + peer.Hash).foundation()
@@ -317,10 +324,6 @@ function getIPCountry(address){
   })*/
 }
 
-console.log(formatQuality(-100))
-console.log(formatQuality(150))
-console.log(formatQuality(390))
-console.log(formatQuality(4000))
 // Using two logistic functions
 function formatQuality(quality) {
   quality = quality + 300
