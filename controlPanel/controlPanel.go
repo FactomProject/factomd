@@ -12,8 +12,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
+	//"github.com/FactomProject/factomd/common/constants"
+	//"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
@@ -56,8 +56,8 @@ func ServeControlPanel(port int, states []*state.State, connections chan interfa
 		}
 	}()
 	// Control Panel Disabled
-	fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
 	if states[0].ControlPanelSetting == 0 {
+		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
 		return
 	}
 
@@ -136,7 +136,13 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
-	defer recoverFromPanic()
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
 	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -164,7 +170,13 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	defer recoverFromPanic()
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
 	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -183,7 +195,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 // Batches Json in []byte form to an array of json []byte objects
 func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
-	defer recoverFromPanic()
+	//defer recoverFromPanic()
 	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -206,7 +218,13 @@ func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
-	defer recoverFromPanic()
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
 	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
@@ -326,7 +344,13 @@ func doEvery(d time.Duration, f func(time.Time)) {
 }
 
 func getRecentTransactions(time.Time) {
-	defer recoverFromPanic()
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
 	if StatePointer == nil {
 		return
 	}
@@ -349,7 +373,7 @@ func getRecentTransactions(time.Time) {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
-	vms := StatePointer.LeaderPL.VMs
+	/*vms := StatePointer.LeaderPL.VMs
 	for _, vm := range vms {
 		if vm == nil {
 			continue
@@ -372,10 +396,6 @@ func getRecentTransactions(time.Time) {
 					continue
 				}
 				e := new(EntryHolder)
-				/*ack := getEntryAck(rev.Entry.GetHash().String())
-				if ack == nil {
-					continue
-				}*/
 				e.Hash = rev.Entry.GetHash().String()
 				e.ChainID = "Processing"
 				has := false
@@ -423,18 +443,10 @@ func getRecentTransactions(time.Time) {
 						TotalInputs  int
 						TotalOutputs int
 					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
-					/*RecentTransactions.FactoidTransactions = append([]struct {
-						TxID         string
-						TotalInput   string
-						Status       string
-						TotalInputs  int
-						TotalOutputs int
-					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
-					*/
 				}
 			}
 		}
-	}
+	}*/
 
 	entries := last.GetDBEntries()
 	//entries = append(entries, pl.DirectoryBlock.GetDBEntries()[:]...)
