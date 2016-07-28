@@ -56,8 +56,8 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 		}
 	}()
 	// Control Panel Disabled
-	fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
 	if states[0].ControlPanelSetting == 0 {
+		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
 		return
 	}
 
