@@ -3,7 +3,7 @@ var leaderHeight = 0
 
 setInterval(updateHTML,1000);
 setInterval(updateTransactions,1000);
-setInterval(updatePeers,1000);
+setInterval(updateAllPeers,1000);
 var serverOnline = false
 
 
@@ -160,6 +160,7 @@ function updateTransactions() {
   })
 }
 
+// 3 Queriers in Batch
 function getHeight() {
   resp = batchQueryState("myHeight,leaderHeight,completeHeight",function(resp){
     obj = JSON.parse(resp)
@@ -183,24 +184,6 @@ function getHeight() {
     percent = Math.floor(percent)
     $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
   })
-
-  /*resp = queryState("leaderHeight","",function(resp){
-    //$("#nodeHeight").val(resp)
-    leaderHeight = parseInt(resp)
-    updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
-    percent = (currentHeight/leaderHeight) * 100
-    percent = Math.floor(percent)
-    $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
-  })
-
-    resp = queryState("completeHeight","",function(resp){
-    //$("#nodeHeight").val(resp)
-    completeHeight = parseInt(resp)
-    updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
-    percent = (completeHeight/leaderHeight) * 100
-    percent = Math.floor(percent)
-    $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
-  })*/
 }
 
 function updateProgressBar(id, current, max) {
@@ -208,12 +191,18 @@ function updateProgressBar(id, current, max) {
   $(id).width(percent+ "%")
 }
 
-function updatePeerTotals() {
-  resp = queryState("peerTotals","", function(resp){
-    if(resp.length == 0) {
+var peerHashes = [""]
+
+// 2 Queries in Batch
+function updateAllPeers() {
+  batchQueryState("peerTotals,peers", function(respRaw){
+    obj = JSON.parse(respRaw)
+    respOne = obj[0]
+    resp = obj[1]
+    // Totals
+    if(respOne.length == 0) {
       return
     }
-    obj = JSON.parse(resp)
     if (typeof obj == "undefined") {
       $("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
@@ -221,19 +210,12 @@ function updatePeerTotals() {
       $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
       $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
     }
-  })
-}
-
-var peerHashes = [""]
-
-function updatePeers() {
-  resp = queryState("peers","", function(resp){
+    // Table Body
     if(resp.length == 0) {
       return
     }
-    obj = JSON.parse(resp)
-    for (index in obj) {
-      peer = obj[index]
+    for (index in resp) {
+      peer = resp[index]
       peerHashes = [""]
       if($("#" + peer.Hash).length > 0) {
         peerHashes.push(peer.PeerHash)
@@ -304,22 +286,7 @@ function updatePeers() {
 
       }
     }
-
-    //Cleanup - ToDO FIX
-   /* $("#peerList > tbody > tr").each(function(me){
-      val = jQuery(this).find("#ip span").val()
-      console.log(val.length)
-      if(val.length > 0) {
-        if(peerHashes.indexOf(jQuery(this).find("#ip").val()) != -1){
-          console.log("contained")
-        } else {
-          jQuery(this).remove()
-          console.log("not contained")
-        }
-      }
-    })*/
-    updatePeerTotals()
-  })
+  }) 
 }
 
 function getIPCountry(address){
