@@ -317,56 +317,27 @@ function getIPCountry(address){
   })*/
 }
 
-// 0-4  | -QR1 ...  -QR2
-QUALITY_RANK_1 = -300
-RANK_1_SCALE_MIN = 0
-// 4-6  | -QR2 ... QR3
-QUALITY_RANK_2 = -50
-RANK_2_SCALE_MIN = 4
-// 6-9 | QR3 ... QR4
-QUALITY_RANK_3 = 100
-RANK_3_SCALE_MIN = 6
-// 9-10 | QR4 ... QR5
-QUALITY_RANK_4 = 500
-RANK_4_SCALE_MIN = 9
-// 10   | QR5+
-QUALITY_RANK_5 = 2000
-RANK_5_SCALE_MIN = 10
+function TestFormatQuality(){
+}
 
-function formatQuality(quality) {
-  if (quality == undefined) {
+// Using two logistic functions
+function formatQualityNew(quality) {
+  quality = quality + 300
+  if(quality < 0) {
     return 0
+  } else if(quality > 5000) {
+    return 10
+  } else if(quality < 390) {
+    limit = 8
+    exponent = -.5((quality*.02)-5)
+    q = 8/Math.pow((1+Math.E),exponent)
+    return q
+  } else {
+    limit = 4
+    exponent = (-.3) * ((quality - 60) * 0.008 - 5)
+    q = (3/Math.pow((1+Math.E),exponent)) + 6
+    return q
   }
-  if (quality > QUALITY_RANK_5) { // QR4+
-    return RANK_5_SCALE_MIN
-  } else if (quality <= QUALITY_RANK_5 && quality >= QUALITY_RANK_4) { // QR3 ... QR4
-    rankSpan = QUALITY_RANK_5 - QUALITY_RANK_4
-    place = quality - QUALITY_RANK_4
-    percent = place / rankSpan
-    scaleSpan = RANK_5_SCALE_MIN - RANK_4_SCALE_MIN
-    return Number(RANK_4_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  } else if (quality <= QUALITY_RANK_4 && quality >= QUALITY_RANK_3) { // QR3 ... QR4
-    rankSpan = QUALITY_RANK_4 - QUALITY_RANK_3
-    place = quality - QUALITY_RANK_3
-    percent = place / rankSpan
-    scaleSpan = RANK_4_SCALE_MIN - RANK_3_SCALE_MIN
-    return Number(RANK_3_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  } else if (quality <= QUALITY_RANK_3 && quality >= QUALITY_RANK_2) { // QR2 ... QR3
-    rankSpan = QUALITY_RANK_3 - QUALITY_RANK_2
-    place = quality - QUALITY_RANK_2
-    percent = place / rankSpan
-    scaleSpan = RANK_3_SCALE_MIN - RANK_2_SCALE_MIN
-    return Number(RANK_2_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  } else if (quality <= QUALITY_RANK_2 && quality >= QUALITY_RANK_1) { // QR1 ... QR2
-    rankSpan = QUALITY_RANK_2 - QUALITY_RANK_1
-    place = quality - QUALITY_RANK_1
-    percent = place / rankSpan
-    scaleSpan = RANK_2_SCALE_MIN - RANK_1_SCALE_MIN
-    return Number(RANK_1_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  }  else { // QR0 -
-    return 0
-  }
-
 }
 
 function formatBytes(bytes, messages) {

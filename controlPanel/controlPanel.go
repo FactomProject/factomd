@@ -222,7 +222,7 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 func factomdQuery(item string, value string) []byte {
 	switch item {
 	case "myHeight":
-		return HeightToJsonStruct(StatePointer.GetHighestKnownBlock())
+		return HeightToJsonStruct(StatePointer.GetHighestRecordedBlock())
 	case "leaderHeight":
 		return HeightToJsonStruct(StatePointer.GetLeaderHeight() - 1)
 	case "completeHeight": // Second Pass Sync info
