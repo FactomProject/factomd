@@ -317,26 +317,27 @@ function getIPCountry(address){
   })*/
 }
 
-function TestFormatQuality(){
-}
-
+console.log(formatQuality(-100))
+console.log(formatQuality(150))
+console.log(formatQuality(390))
+console.log(formatQuality(4000))
 // Using two logistic functions
 function formatQuality(quality) {
   quality = quality + 300
   if(quality < 0) {
     return 0
-  } else if(quality > 5000) {
+  } else if(quality > 3000) {
     return 10
   } else if(quality < 390) {
     limit = 8
     exponent = (-.5) * ((quality * .02) - 5)
-    q = 8/Math.pow((1+Math.E),exponent)
-    return q
+    q = limit / (1+ Math.pow(Math.E,exponent))
+    return Number(q).toFixed(1)
   } else {
     limit = 4
     exponent = (-.3) * ((quality - 60) * 0.008 - 5)
-    q = (3/Math.pow((1+Math.E),exponent)) + 6
-    return q
+    q = limit / (1 + (Math.pow(Math.E,exponent))) + 6
+    return Number(q).toFixed(1)
   }
 }
 
