@@ -288,7 +288,9 @@ func getPeers() []byte {
 }
 
 func getPeetTotals() []byte {
+	AllConnections.Lock.Lock()
 	data, err := json.Marshal(AllConnections.Totals)
+	AllConnections.Lock.Unlock()
 	if err != nil {
 		return []byte(`error`)
 	}
