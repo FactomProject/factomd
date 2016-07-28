@@ -48,7 +48,7 @@ func directoryExists(path string) bool {
 	return true
 }
 
-func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics, controller *p2p.Controller, gitBuild string) {
+func ServeControlPanel(port int, states []*state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
