@@ -230,10 +230,10 @@ function updateAllPeers() {
     if(respOne.length == 0) {
       return
     }
-    if (typeof obj == "undefined") {
-      $("#peerList > tfoot > tr > #peerquality").text("0")
+    if (typeof respOne == "undefined") {
+      //$("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
-      $("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg) +"/10")
+      //$("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
       $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
       $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
     }
@@ -289,7 +289,11 @@ function updateAllPeers() {
         }
         if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
           $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
-          $("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality) + "/10")
+          if(!($("#" + peer.Hash).hasClass(formatQuality(con.PeerQuality)))){
+            $("#" + peer.Hash).removeClass()
+            $("#" + peer.Hash).addClass(formatQuality(con.PeerQuality))
+          }
+          //$("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality))
         }
 
         if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
@@ -326,7 +330,6 @@ function updateAllPeers() {
          jQuery(this).remove()
         }
       } else {
-        console.log(jQuery(this).find("#ip span").text())
         if(jQuery(this).find("#ip span").text() == "Loading...."){
           jQuery(this).remove()
         } else {
@@ -357,7 +360,14 @@ function getIPCountry(address){
 
 // Using two logistic functions
 function formatQuality(quality) {
-  quality = quality + 300
+  if(quality >= 100) {
+    return "rank-green"
+  } else if(quality >= -50) {
+    return "rank-gold"
+  } else {
+    return "rank-red"
+  }
+  /*quality = quality + 300
   if(quality < 0) {
     return 0
   } else if(quality > 3000) {
@@ -372,7 +382,7 @@ function formatQuality(quality) {
     exponent = (-.3) * ((quality - 60) * 0.008 - 5)
     q = limit / (1 + (Math.pow(Math.E,exponent))) + 6
     return Number(q).toFixed(1)
-  }
+  }*/
 }
 
 function formatBytes(bytes, messages) {
