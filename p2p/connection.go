@@ -230,6 +230,11 @@ func (c *Connection) setNotes(newNote string) {
 // All exits from dialLoop change the state of the connection allowing the outside run_loop to proceed.
 func (c *Connection) dialLoop() {
 	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
+	if c.peer.QualityScore < MinumumQualityScore {
+		c.setNotes("Connection.dialLoop() Quality Score too low, not dialing out again.")
+		c.goShutdown()
+		return
+	}
 	for {
 		elapsed := time.Since(c.timeLastAttempt)
 		debug(c.peer.PeerIdent(), "Connection.dialLoop() elapsed: %s Attempts: %d", elapsed.String(), c.attempts)
@@ -483,6 +488,7 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
 		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
+		c.peer.QualityScore = MinumumQualityScore - 50
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
 		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
