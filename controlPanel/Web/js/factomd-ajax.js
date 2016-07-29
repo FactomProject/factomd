@@ -1,4 +1,4 @@
-function queryState(item, func) {
+function queryState(item, value, func) {
   var req = new XMLHttpRequest()
 
   req.onreadystatechange = function() {
@@ -7,7 +7,20 @@ function queryState(item, func) {
       func(req.response)
     }
   }
-  req.open("GET", "/factomd?item=" + item, true)
+  req.open("GET", "/factomd?item=" + item + "&value=" + value, true)
+  req.send()
+}
+
+function batchQueryState(item, func) {
+  var req = new XMLHttpRequest()
+
+  req.onreadystatechange = function() {
+    if(req.readyState == 4) {
+      //console.log(item + " - " + req.response)
+      func(req.response)
+    }
+  }
+  req.open("GET", "/factomdBatch?batch=" + item, true)
   req.send()
 }
 
@@ -77,7 +90,7 @@ function redirect(url, method, content) {
 
 
 function nextNode() {
-  resp = queryState("nextNode",function(resp){
+  resp = queryState("nextNode","",function(resp){
     $("#current-node-number").text(resp)
   })
 }

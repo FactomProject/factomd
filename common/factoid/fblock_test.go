@@ -66,8 +66,8 @@ func TestMerkleTrees(t *testing.T) {
 	if f.GetKeyMR().String() != "aa100f203f159e4369081bb366f6816b302387ec19a4f8b9c98495d97fbe3527" {
 		t.Errorf("Invalid GetKeyMR")
 	}
-	if f.GetFullHash().String() != "5810ed83155dfb7b6039323b8a5572cd03166a37d1c3e86d4538c99907a81757" {
-		t.Errorf("Invalid GetFullHash")
+	if f.GetLedgerKeyMR().String() != "5810ed83155dfb7b6039323b8a5572cd03166a37d1c3e86d4538c99907a81757" {
+		t.Errorf("Invalid GetLedgerKeyMR")
 	}
 	if f.GetLedgerMR().String() != "c9935c01b47250da7be21f9838a45a797b5c1c2c8b12a347bcc7188c4ae9e0e8" {
 		t.Errorf("Invalid GetLedgerMR")

@@ -272,7 +272,9 @@ func (d *Discovery) getPeerSelection() []byte {
 	firstPassPeers := []Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
-		firstPassPeers = append(firstPassPeers, peer)
+		if peer.QualityScore > MinumumSharingQualityScore { // Only share peers that have earned positive reputation
+			firstPassPeers = append(firstPassPeers, peer)
+		}
 	}
 	UpdateKnownPeers.Unlock()
 	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
@@ -313,7 +315,7 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 		peer := *peerp
 		d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
 	}
-	silence("discovery", "DiscoverPeers got peers: %+v", lines)
+	note("discovery", "DiscoverPeers got peers: %+v", lines)
 }
 
 // PrintPeers Print details about the known peers

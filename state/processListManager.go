@@ -49,6 +49,12 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	if dbheight > lists.State.LLeaderHeight {
 		s := lists.State
 		s.LLeaderHeight = dbheight
+		s.CurrentMinute = 0
+		s.EOMProcessed = 0
+		s.DBSigProcessed = 0
+		s.Syncing = false
+		s.EOM = false
+		s.DBSig = false
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}

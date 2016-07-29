@@ -53,6 +53,7 @@ type State struct {
 	PortNumber              int
 	ControlPanelPort        int
 	ControlPanelPath        string
+	ControlPanelSetting     int
 	Replay                  *Replay
 	DropRate                int
 
@@ -263,6 +264,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.ControlPanelPort = s.ControlPanelPort
 	clone.ControlPanelPath = s.ControlPanelPath
+	clone.ControlPanelSetting = s.ControlPanelSetting
 
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
@@ -350,6 +352,16 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		switch cfg.App.ControlPanelSetting {
+		case "disabled":
+			s.ControlPanelSetting = 0
+		case "readonly":
+			s.ControlPanelSetting = 1
+		case "readwrite":
+			s.ControlPanelSetting = 2
+		default:
+			s.ControlPanelSetting = 1
+		}
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
@@ -390,6 +402,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
 		s.ControlPanelPath = "Web/"
+		s.ControlPanelSetting = 1
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -586,7 +599,6 @@ func (s *State) UnlockDB() {
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
-
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -623,7 +635,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
-
 }
 
 func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
@@ -1148,6 +1159,15 @@ func (s *State) SetString() {
 	W := ""
 	if found {
 		L = "L"
+	} else {
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if list != nil {
+			if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+				if foundAudit {
+					L = "A"
+				}
+			}
+		}
 	}
 	if s.NetStateOff {
 		X = "X"

@@ -23,6 +23,7 @@ type IAdminBlock interface {
 	BackReferenceHash() (IHash, error)
 	LookupHash() (IHash, error)
 	AddABEntry(e IABEntry) (err error)
+	AddFirstABEntry(e IABEntry) (err error)
 	GetDBSignature() IABEntry
 	AddFedServer(IHash)
 	RemoveFederatedServer(IHash)

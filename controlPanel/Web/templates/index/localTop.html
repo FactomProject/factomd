@@ -2,8 +2,8 @@
         <section id="local">
             <div class="row">
                 <div class="columns">
-                    <span id="testing_area"></span>
-                    <h1>Your Node <small>v2.1 <a href="#" id="factom-search-link">(Upgrade Available)</a></small></h1>
+                    <small><span id="server-status"></span></small>
+                    <h1 style="width:100%;">Your Node <small>v2.1 <a href="#" id="factom-search-link">(Upgrade Available)</a></small><small style="float:right;">Git Build: {{.}}</small></h1> 
                     <small onclick="nextNode()"><a>Next Node</a></small>, <small>Current:<span id="current-node-number">0</span></small>
                 </div>
             </div>
@@ -47,7 +47,7 @@
                                     <th>IP</th>
                                     <th>Status</th>
                                     <th>Quality</th>
-                                    <th>Connect Time</th>
+                                    <th>Duration</th>
                                     <th>Up</th>
                                     <th>Down</th>
                                     <th>Actions</th>
@@ -122,7 +122,7 @@
                                 <tr>
                                     <td>TOTAL/AVG</td>
                                     <td></td>
-                                    <td id="peerquality">0</td>
+                                    <td id="peerquality">0/10</td>
                                     <td></td>
                                     <td id="up">0 (0 MB)</td>
                                     <td id="down">0 (0 MB)</td>
