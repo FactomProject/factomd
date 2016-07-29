@@ -57,71 +57,86 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		if err != nil {
 			return false, ""
 		}
+
+		// Must unlock manually when returining. Function continues to wsapi, who needs the dbase
+		dbase := st.GetAndLockDB()
+
 		// Search for Entry
-		if entry, err := st.DB.FetchEntry(hash); err == nil && entry != nil {
+		if entry, err := dbase.FetchEntry(hash); err == nil && entry != nil {
 			resp := newSearchResponse("entry", entry)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 		// Search for Chain
-		if mr, err := st.DB.FetchHeadIndexByChainID(hash); err == nil && mr != nil {
+		if mr, err := dbase.FetchHeadIndexByChainID(hash); err == nil && mr != nil {
 			resp := newSearchResponse("chainhead", mr)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 		// Search for EBlock
-		if eBlock, err := st.DB.FetchEBlockByPrimary(hash); err == nil && eBlock != nil {
+		if eBlock, err := dbase.FetchEBlockByPrimary(hash); err == nil && eBlock != nil {
 			resp := newSearchResponse("eblock", eBlock)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 		// Search for DBlock
-		if dBlock, err := st.DB.FetchDBlockByPrimary(hash); err == nil && dBlock != nil {
+		if dBlock, err := dbase.FetchDBlockByPrimary(hash); err == nil && dBlock != nil {
 			resp := newSearchResponse("dblock", dBlock)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 		// Search for ABlock
-		if aBlock, err := st.DB.FetchABlock(hash); err == nil && aBlock != nil {
+		if aBlock, err := dbase.FetchABlock(hash); err == nil && aBlock != nil {
 			resp := newSearchResponse("ablock", aBlock)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 		// Search for Factoid Block
-		if fBlock, err := st.DB.FetchFBlock(hash); err == nil && fBlock != nil {
+		if fBlock, err := dbase.FetchFBlock(hash); err == nil && fBlock != nil {
 			resp := newSearchResponse("fblock", fBlock)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 		// Search for Entry Credit Block
-		if ecBlock, err := st.DB.FetchECBlock(hash); err == nil && ecBlock != nil {
+		if ecBlock, err := dbase.FetchECBlock(hash); err == nil && ecBlock != nil {
 			resp := newSearchResponse("ecblock", ecBlock)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 
 		// Search for Factoid Transaction
-		if trans, err := st.DB.FetchFactoidTransaction(hash); err == nil && trans != nil {
+		if trans, err := dbase.FetchFactoidTransaction(hash); err == nil && trans != nil {
 			resp := newSearchResponse("facttransaction", trans)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
 
 		// Search for Entry Credit Transaction
-		if trans, err := st.DB.FetchECTransaction(hash); err == nil && trans != nil {
+		if trans, err := dbase.FetchECTransaction(hash); err == nil && trans != nil {
 			resp := newSearchResponse("ectransaction", trans)
 			if len(resp) > 1 {
+				st.UnlockDB()
 				return true, resp
 			}
 		}
+
+		st.UnlockDB()
 
 		// Search for Entry Transaction
 		ackReq := new(wsapi.AckRequest)

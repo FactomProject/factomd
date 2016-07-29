@@ -28,13 +28,16 @@ var (
 	mux        *http.ServeMux
 	index      int = 0
 
-	Fnodes       []*state.State
+	DisplayState state.DisplayState
 	StatePointer *state.State
 	Controller   *p2p.Controller
 	GitBuild     string
 
+	DisplayStateChannel chan state.DisplayState
+
 	// Sync Mutex
-	TemplateMutex sync.Mutex
+	TemplateMutex     sync.Mutex
+	DisplayStateMutex sync.RWMutex
 )
 
 func directoryExists(path string) bool {
@@ -48,28 +51,53 @@ func directoryExists(path string) bool {
 	return true
 }
 
-func ServeControlPanel(states []*state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
+func DisplayStateDrain(channel chan state.DisplayState) {
+	for {
+		select {
+		case ds := <-channel:
+			DisplayStateMutex.Lock()
+			DisplayState = ds
+			DisplayStateMutex.Unlock()
+		default:
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
+func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
-	// Control Panel Disabled
-	if states[0].ControlPanelSetting == 0 {
+
+	// Wait for initial State
+	select {
+	case DisplayState = <-displayStateChannel:
+		fmt.Println("Found state, control panel now active")
+
+	}
+	StatePointer = statePointer
+
+	DisplayStateMutex.RLock()
+	controlPanelSetting := DisplayState.ControlPanelSetting
+	port := DisplayState.ControlPanelPort
+	FILES_PATH = DisplayState.ControlPanelPath
+	DisplayStateMutex.RUnlock()
+
+	if controlPanelSetting == 0 {
 		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
 		return
 	}
-	port := states[0].ControlPanelPort
+
+	go DisplayStateDrain(displayStateChannel)
 
 	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
-	StatePointer = states[index]
-	Fnodes = states
 	Controller = controller
 
 	// Load Files
-	FILES_PATH = states[0].ControlPanelPath
 	if !directoryExists(FILES_PATH) {
 		FILES_PATH = "./controlPanel/Web/"
 		if !directoryExists(FILES_PATH) {
@@ -107,9 +135,12 @@ func ServeControlPanel(states []*state.State, connections chan interface{}, cont
 }
 
 func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
+	DisplayStateMutex.RLock()
+	Path := DisplayState.ControlPanelPath
+	DisplayStateMutex.RUnlock()
 	fmt.Fprintf(w, "The control panel was not able to be correctly loaded because the Web files were not found. "+
 		"\nFactomd is looking in %s folder for the files, placing the \n"+
-		"Web files in that directory should resolve this error.", Fnodes[0].ControlPanelPath)
+		"Web files in that directory should resolve this error.", Path)
 }
 
 func static(h http.HandlerFunc) http.HandlerFunc {
@@ -144,9 +175,6 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
-	if StatePointer.GetIdentityChainID() == nil {
-		return
-	}
 	if r.Method != "POST" {
 		http.NotFound(w, r)
 		return
@@ -178,9 +206,6 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
-	if StatePointer.GetIdentityChainID() == nil {
-		return
-	}
 	searchResult := new(SearchedStruct)
 	if r.Method == "POST" {
 		data := r.FormValue("content")
@@ -197,9 +222,6 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 // Batches Json in []byte form to an array of json []byte objects
 func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 	//defer recoverFromPanic()
-	if StatePointer.GetIdentityChainID() == nil {
-		return
-	}
 	if r.Method != "GET" {
 		return
 	}
@@ -226,9 +248,6 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
-	if StatePointer.GetIdentityChainID() == nil {
-		return
-	}
 	if r.Method != "GET" {
 		//http.NotFound(w, r)
 		return
@@ -242,22 +261,34 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 func factomdQuery(item string, value string) []byte {
 	switch item {
 	case "myHeight":
-		return HeightToJsonStruct(StatePointer.GetHighestRecordedBlock())
+		DisplayStateMutex.RLock()
+		h := DisplayState.CurrentNodeHeight
+		DisplayStateMutex.RUnlock()
+		return HeightToJsonStruct(h)
 	case "leaderHeight":
-		return HeightToJsonStruct(StatePointer.GetLeaderHeight() - 1)
+		DisplayStateMutex.RLock()
+		h := DisplayState.CurrentLeaderHeight - 1
+		DisplayStateMutex.RUnlock()
+		return HeightToJsonStruct(h)
 	case "completeHeight": // Second Pass Sync info
-		return HeightToJsonStruct(StatePointer.GetEBDBHeightComplete())
+		DisplayStateMutex.RLock()
+		h := DisplayState.CurrentEBDBHeight
+		DisplayStateMutex.RUnlock()
+		return HeightToJsonStruct(h)
 	case "connections":
 	case "dataDump":
 		data := getDataDumps()
 		return data
 	case "nextNode":
-		index++
+		index := 0
+		/*index++
 		if index >= len(Fnodes) {
 			index = 0
 		}
-		StatePointer = Fnodes[index]
+		DisplayState = Fnodes[index]*/
 		return []byte(fmt.Sprintf("%d", index))
+	case "channelLength":
+		return []byte(fmt.Sprintf(`{"length":%d}`, len(DisplayStateChannel)))
 	case "peers":
 		data := getPeers()
 		return data
@@ -281,7 +312,10 @@ func factomdQuery(item string, value string) []byte {
 		if len(value) > 0 {
 			hash = hashPeerAddress(value)
 		}
-		if StatePointer.ControlPanelSetting == 2 {
+		DisplayStateMutex.RLock()
+		CPS := DisplayState.ControlPanelSetting
+		DisplayStateMutex.RUnlock()
+		if CPS == 2 {
 			disconnectPeer(value)
 			return []byte(`{"Access":"granted", "Id":"` + hash + `"}`)
 		} else {
@@ -355,7 +389,7 @@ func getRecentTransactions(time.Time) {
 	if StatePointer == nil {
 		return
 	}
-	last := StatePointer.GetDirectoryBlock()
+	last := DisplayState.LastDirectoryBlock
 	if last == nil {
 		return
 	}
@@ -374,7 +408,7 @@ func getRecentTransactions(time.Time) {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
-	/*vms := StatePointer.LeaderPL.VMs
+	/*vms := DisplayState.LeaderPL.VMs
 	for _, vm := range vms {
 		if vm == nil {
 			continue
@@ -509,7 +543,10 @@ func getRecentTransactions(time.Time) {
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
-			ecblock, err := StatePointer.DB.FetchECBlock(mr)
+
+			dbase := StatePointer.GetAndLockDB()
+			ecblock, err := dbase.FetchECBlock(mr)
+			StatePointer.UnlockDB()
 			if err != nil || ecblock == nil {
 				continue
 			}

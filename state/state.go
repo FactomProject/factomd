@@ -51,11 +51,13 @@ type State struct {
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
-	ControlPanelPort        int
-	ControlPanelPath        string
-	ControlPanelSetting     int
 	Replay                  *Replay
 	DropRate                int
+
+	ControlPanelPort    int
+	ControlPanelPath    string
+	ControlPanelSetting int
+	ControlPanelChannel chan DisplayState
 
 	// Network Configuration
 	Network           string
@@ -422,6 +424,7 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
+	s.ControlPanelChannel = make(chan DisplayState, 20)
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.TimeOffset = new(primitives.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
@@ -1126,7 +1129,7 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
-
+	s.CopyStateToControlPanel()
 	if !s.Status {
 		return
 	}

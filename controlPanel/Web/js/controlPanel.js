@@ -187,11 +187,12 @@ function updateTransactions() {
 
 // 3 Queriers in Batch
 function updateHeight() {
-  resp = batchQueryState("myHeight,leaderHeight,completeHeight",function(resp){
+  resp = batchQueryState("myHeight,leaderHeight,completeHeight,channelLength",function(resp){
     obj = JSON.parse(resp)
     respOne = obj[0].Height
     respTwo = obj[1].Height
     respThree = obj[2].Height
+    respFour = obj[3].length
 
     currentHeight = parseInt(respOne)
     $("#nodeHeight").val(respOne)
@@ -208,6 +209,8 @@ function updateHeight() {
     percent = (completeHeight/leaderHeight) * 100
     percent = Math.floor(percent)
     $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
+
+    console.log(respFour)
   })
 }
 
