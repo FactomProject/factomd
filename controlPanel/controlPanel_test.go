@@ -21,15 +21,15 @@ func TestControlPanel(t *testing.T) {
 	fnodes := make([]*state.State, 1)
 	fnodes[0] = emptyState
 	gitBuild := "Test Is Running"
-	fmt.Println("Serving")
 	go ServeControlPanel(fnodes, connections, nil, gitBuild)
 	if LongTest {
-		fmt.Println("Populating")
-		for i = 0; i < 5; i++ {
-			PopulateConnectionChan(i, connections)
-		}
-		for i = 2; i > 5; i-- {
-			PopulateConnectionChan(i, connections)
+		for count := 0; count < 10; count++ {
+			for i = 0; i < 2; i++ {
+				PopulateConnectionChan(i, connections)
+			}
+			for i = 2; i > 0; i-- {
+				PopulateConnectionChan(i, connections)
+			}
 		}
 	}
 }
@@ -40,7 +40,7 @@ func PopulateConnectionChan(total uint32, connections chan interface{}) {
 	temp := make(map[string]p2p.ConnectionMetrics)
 	for i = 0; i < total; i++ {
 		peer := NewSeededP2PConnection(i)
-		temp[peer.PeerAddress] = *peer
+		temp["{"+peer.PeerAddress+"}"] = *peer
 	}
 	fmt.Println(len(temp))
 	connections <- temp

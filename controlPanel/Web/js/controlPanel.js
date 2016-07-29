@@ -224,6 +224,8 @@ function updateAllPeers() {
     obj = JSON.parse(respRaw)
     respOne = obj[0]
     resp = obj[1]
+    $("#totalPeerCount").text(resp.length)
+
     // Totals
     if(respOne.length == 0) {
       return
@@ -237,18 +239,21 @@ function updateAllPeers() {
     }
     // Table Body
     if(resp.length == 0) {
+        $("#peerList tbody tr").each(function(){
+          jQuery(this).remove()
+        })
       return
     }
+    peerHashes = [""]
     for (index in resp) {
       peer = resp[index]
-      peerHashes = [""]
+      peerHashes.push(peer.PeerHash)
       if($("#" + peer.Hash).length > 0) {
-        peerHashes.push(peer.PeerHash)
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
-          $("#" + peer.Hash).find("#disconnect").val(peer.PeerHash)
+          $("#" + peer.Hash).find("#disconnect").attr("value", peer.PeerHash)
 
           $("#" + peer.Hash).find("#disconnect").click(function(){
             queryState("disconnect", jQuery(this).val(), function(resp){
@@ -314,8 +319,34 @@ function updateAllPeers() {
 
       }
     }
+    // Cleanup Routine
+    $("#peerList tbody tr").each(function(){
+      if(!jQuery(this).find("#ip span").text().includes("Loading")){
+        if(!contains(peerHashes, jQuery(this).find("#ip").val())) {
+         jQuery(this).remove()
+        }
+      } else {
+        console.log(jQuery(this).find("#ip span").text())
+        if(jQuery(this).find("#ip span").text() == "Loading...."){
+          jQuery(this).remove()
+        } else {
+          jQuery(this).find("#ip span").text("Loading....")
+        }
+      }
+    })
   }) 
 }
+
+function contains(haystack, needle) {
+    var i = haystack.length;
+    while (i--) {
+       if (haystack[i] === needle) {
+           return true;
+       }
+    }
+    return false;
+}
+
 
 function getIPCountry(address){
  /* $.getJSON('http://ipinfo.io/' + address + '', function(data){
