@@ -20,6 +20,10 @@ h1 small {
     text-transform: none;
 }
 
+.rank-red { color: #d42828; }
+.rank-gold { color: #ffae00; }
+.rank-green { color: #2ba52b; }
+
 .button, button, input[type=submit] {
     background-color: #28495f;
     color: #6c9cbd;
