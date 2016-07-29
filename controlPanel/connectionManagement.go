@@ -86,6 +86,7 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
 	cm.connected = connections
+
 	/*for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
 		if ok {
@@ -305,6 +306,7 @@ func manageConnections(connections chan interface{}) {
 				newConnections := connectionsMessage.(map[string]p2p.ConnectionMetrics)
 				AllConnections.UpdateConnections(newConnections)
 				AllConnections.TallyTotals()
+
 			default: // drop that garbage
 				fmt.Printf("Got garbage data on metrics channel: %+v", connectionsMessage)
 			}

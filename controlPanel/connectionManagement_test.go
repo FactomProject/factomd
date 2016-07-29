@@ -203,7 +203,7 @@ func NewRandomP2PConnection() *p2p.ConnectionMetrics {
 }
 
 func NewSeededP2PConnection(seed uint32) *p2p.ConnectionMetrics {
-	con := NewP2PConnection(seed, seed, seed, seed, string(seed), seed)
+	con := NewP2PConnection(seed, seed, seed, seed, fmt.Sprintf("%d", seed), seed)
 	return con
 }
 
@@ -214,7 +214,7 @@ func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, p
 	pc.BytesReceived = br
 	pc.MessagesSent = ms
 	pc.MessagesReceived = mr
-	pc.PeerAddress = addr
+	pc.PeerAddress = "10.1.1" + addr
 	pc.PeerQuality = int32(pq)
 
 	return pc

@@ -48,7 +48,7 @@ func directoryExists(path string) bool {
 	return true
 }
 
-func ServeControlPanel(port int, states []*state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
+func ServeControlPanel(states []*state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
@@ -60,6 +60,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan interfa
 		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
 		return
 	}
+	port := states[0].ControlPanelPort
 
 	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
