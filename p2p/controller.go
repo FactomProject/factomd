@@ -109,7 +109,7 @@ type CommandChangeLogging struct {
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	note("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
 	note("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
-	silence("#################", "META: Last touched: THURSDAY July 28 6:45AM")
+	silence("#################", "META: Last touched: SATURDAY July 31 4:45AM")
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
@@ -623,14 +623,14 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
 		silence("ctrlr", " ")
-		silence("ctrlr", "\tPeer\t\t\t\tMinutes\tStatus\t\tNotes")
+		silence("ctrlr", "\tPeer\t\t\t\tDuration\tStatus\t\tNotes")
 		silence("ctrlr", "-------------------------------------------------------------------------------")
 		for _, v := range c.connectionsByAddress {
 			metrics, present := c.connectionMetrics[v.peer.Hash]
 			if !present {
 				metrics = ConnectionMetrics{MomentConnected: time.Now(), ConnectionState: "No Metrics", ConnectionNotes: "No Metrics"}
 			}
-			silence("ctrlr", "%s\t%.2f\t%s\t%s", v.peer.PeerFixedIdent(), time.Since(metrics.MomentConnected).Minutes(), metrics.ConnectionState, metrics.ConnectionNotes)
+			silence("ctrlr", "%s\t%s\t%s\t%s", v.peer.PeerFixedIdent(), time.Since(metrics.MomentConnected), metrics.ConnectionState, metrics.ConnectionNotes)
 		}
 		silence("ctrlr", "\tChannels:")
 		silence("ctrlr", "          commandChannel: %d", len(c.commandChannel))
