@@ -5,10 +5,6 @@ setInterval(updateHTML,5000);
 var serverOnline = false
 // Used to update some things less frequently
 var skipInterval = false
-$(window).load(function() {
-      updateHTML()
-});
-
 
 function updateHTML() {
   $.ajax('/', {
