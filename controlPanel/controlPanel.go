@@ -287,17 +287,17 @@ func factomdQuery(item string, value string) []byte {
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentNodeHeight
 		DisplayStateMutex.RUnlock()
-		return []byte(fmt.Sprintf(`{"Height":%d}`, h)) //HeightToJsonStruct(h)
+		return HeightToJsonStruct(h)
 	case "leaderHeight":
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentLeaderHeight - 1
 		DisplayStateMutex.RUnlock()
-		return []byte(fmt.Sprintf(`{"Height":%d}`, h)) //HeightToJsonStruct(h)
+		return HeightToJsonStruct(h)
 	case "completeHeight": // Second Pass Sync info
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentEBDBHeight
 		DisplayStateMutex.RUnlock()
-		return []byte(fmt.Sprintf(`{"Height":%d}`, h)) //HeightToJsonStruct(h)
+		return HeightToJsonStruct(h)
 	case "connections":
 	case "dataDump":
 		data := getDataDumps()

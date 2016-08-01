@@ -6,6 +6,15 @@ var serverOnline = false
 // Used to update some things less frequently
 var skipInterval = false
 
+$(window).load(
+    function() {
+      updateHTML()
+      setTimeout(function () {
+            updateHTML()
+      }, 1000);
+    }
+);
+
 function updateHTML() {
   $.ajax('/', {
     success: function(){
@@ -195,8 +204,13 @@ function updateHeight() {
 
     leaderHeight = parseInt(respTwo)
     updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
-    percent = (currentHeight/leaderHeight) * 100
-    percent = Math.floor(percent)
+    percent = 0
+    if(leaderHeight == 0) {
+      percent = 100
+    } else {
+      percent = (currentHeight/leaderHeight) * 100
+      percent = Math.floor(percent)
+    }
     $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
 
     //$("#nodeHeight").val(resp)
@@ -211,8 +225,13 @@ function updateHeight() {
 }
 
 function updateProgressBar(id, current, max) {
-  percent = (current/max) * 100
-  $(id).width(percent+ "%")
+  if(max == 0) {
+    percent = (current/max) * 100
+    $(id).width("100%")
+  } else {
+    percent = (current/max) * 100
+    $(id).width(percent+ "%")
+  }
 }
 
 var peerHashes = [""]

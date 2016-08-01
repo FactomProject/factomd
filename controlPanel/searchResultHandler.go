@@ -506,6 +506,10 @@ func getEblock(hash string) *EblockHolder {
 		if len(entry.String()) < 32 {
 			continue
 		} else if entry.String()[:10] == "0000000000" {
+			ent := new(EntryHolder)
+			ent.Hash = "Minute Marker"
+			ent.ChainID = entry.String()[63:]
+			holder.Entries = append(holder.Entries, *ent)
 			continue
 		}
 		ent := getEntry(entry.String())
@@ -619,6 +623,8 @@ type EntryHolder struct {
 	ContentLength int
 	ContentHash   string
 	ECCost        string
+
+	Time string
 }
 
 func getEntry(hash string) *EntryHolder {

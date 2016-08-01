@@ -12,7 +12,7 @@ import (
 )
 
 // Enable for long test
-var LongTest bool = true
+var LongTest bool = false
 
 func TestControlPanel(t *testing.T) {
 	var i uint32
