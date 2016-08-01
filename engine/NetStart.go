@@ -221,6 +221,7 @@ func NetStart(s *state.State) {
 	networkOverride := s.Network
 	if 0 < len(networkName) { // Command line overrides the config file.
 		networkOverride = networkName
+		s.Network = networkName
 	}
 	fmt.Printf("\n\nNetwork Override: %s\n", networkOverride)
 	switch networkOverride {

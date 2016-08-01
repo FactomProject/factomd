@@ -1061,6 +1061,20 @@ func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
 }
 
+func (s *State) GetNetworkID() uint32 {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return constants.MAIN_NETWORK_ID
+	case constants.NETWORK_TEST:
+		return constants.TEST_NETWORK_ID
+	case constants.NETWORK_LOCAL:
+		return constants.LOCAL_NETWORK_ID
+	case constants.NETWORK_CUSTOM:
+		return constants.CUSTOM_NETWORK_ID
+	}
+	return uint32(0)
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }
