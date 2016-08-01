@@ -24,11 +24,11 @@ type P2PProxy struct {
 	ToName   string
 	FromName string
 	// Channels that define the connection:
-	BroadcastOut chan factomMessage // ToNetwork from factomd
-	BroadcastIn  chan factomMessage // FromNetwork for Factomd
+	BroadcastOut chan interface{} // factomMessage ToNetwork from factomd
+	BroadcastIn  chan interface{} // factomMessage FromNetwork for Factomd
 
-	ToNetwork   chan p2p.Parcel // From p2pProxy to the p2p Controller
-	FromNetwork chan p2p.Parcel // Parcels from the network for the application
+	ToNetwork   chan interface{} // p2p.Parcel From p2pProxy to the p2p Controller
+	FromNetwork chan interface{} // p2p.Parcel Parcels from the network for the application
 
 	logFile   os.File
 	logWriter bufio.Writer
@@ -46,8 +46,8 @@ var _ interfaces.IPeer = (*P2PProxy)(nil)
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
-	f.BroadcastOut = make(chan factomMessage, p2p.StandardChannelSize)
-	f.BroadcastIn = make(chan factomMessage, p2p.StandardChannelSize)
+	f.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
+	f.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
 	f.logging = make(chan interface{}, p2p.StandardChannelSize)
 	return f
 }
@@ -74,9 +74,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if !msg.IsPeer2Peer() {
 		message.peerHash = ""
 	}
-	if len(f.BroadcastOut) < 10000 {
-		f.BroadcastOut <- message
-	}
+	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	return nil
 }
 
@@ -85,15 +83,21 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	select {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
-			msg, err := messages.UnmarshalMessage(data.message)
-			if nil == err {
-				msg.SetNetworkOrigin(data.peerHash)
+			switch data.(type) {
+			case factomMessage:
+				fmessage := data.(factomMessage)
+				msg, err := messages.UnmarshalMessage(fmessage.message)
+				if nil == err {
+					msg.SetNetworkOrigin(fmessage.peerHash)
+				}
+				if 1 < f.debugMode {
+					f.logMessage(msg, true) // NODE_TALK_FIX
+					fmt.Printf(".")
+				}
+				return msg, err
+			default:
+				fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 			}
-			if 1 < f.debugMode {
-				f.logMessage(msg, true) // NODE_TALK_FIX
-				fmt.Printf(".")
-			}
-			return msg, err
 		}
 	default:
 	}
@@ -136,7 +140,7 @@ func (p *P2PProxy) startProxy() {
 // NODE_TALK_FIX
 func (p *P2PProxy) stopProxy() {
 	if 0 < p.debugMode {
-		p.logging <- "stop"
+		p2p.BlockFreeChannelSend(p.logging, "stop")
 	}
 }
 
@@ -152,16 +156,16 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 		time := time.Now().Unix()
 		ml := messageLog{hash: hash, received: received, time: time}
-		p.logging <- ml
+		p2p.BlockFreeChannelSend(p.logging, ml)
 	}
 }
 
 func (p *P2PProxy) ManageLogging() {
-	note("setting up message logging")
+	fmt.Printf("setting up message logging")
 	file, err := os.OpenFile("message_log.csv", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
 	p.logFile = *file
 	if nil != err {
-		note("Unable to open logging file. %v", err)
+		fmt.Printf("Unable to open logging file. %v", err)
 		panic("unable to open logging file")
 	}
 	writer := bufio.NewWriter(&p.logFile)
@@ -176,10 +180,11 @@ func (p *P2PProxy) ManageLogging() {
 			line := fmt.Sprintf("%s, %t, %d, %s, %d\n", message.hash, message.received, message.time, message.target, elapsedMinutes)
 			_, err := p.logWriter.Write([]byte(line))
 			if nil != err {
-				note("Error writing to logging file. %v", err)
+				fmt.Printf("Error writing to logging file. %v", err)
 				panic("Error writing to logging file")
 			}
 		default:
+			fmt.Printf("Garbage on p.logging. %+v", item)
 			break
 		}
 	}
@@ -190,44 +195,39 @@ func (p *P2PProxy) ManageLogging() {
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {
-		// Wrap it in a parcel and send it out channel ToNetwork.
-		parcel := p2p.NewParcel(p2p.CurrentNetwork, data.message)
-		parcel.Header.Type = p2p.TypeMessage
-		parcel.Header.TargetPeer = data.peerHash
-		f.ToNetwork <- *parcel
+		switch data.(type) {
+		case factomMessage:
+			fmessage := data.(factomMessage)
+			// Wrap it in a parcel and send it out channel ToNetwork.
+			parcel := p2p.NewParcel(p2p.CurrentNetwork, fmessage.message)
+			parcel.Header.Type = p2p.TypeMessage
+			parcel.Header.TargetPeer = fmessage.peerHash
+			p2p.BlockFreeChannelSend(f.ToNetwork, *parcel)
+		default:
+			fmt.Printf("Garbage on f.BrodcastOut. %+v", data)
+		}
 	}
 }
 
 // manageInChannel takes messages from the network and stuffs it in the f.BroadcastIn channel
 func (f *P2PProxy) ManageInChannel() {
 	for data := range f.FromNetwork {
-		message := factomMessage{message: data.Payload, peerHash: data.Header.TargetPeer}
-		f.BroadcastIn <- message
-	}
-}
-
-// ProxyStatusReport: Report the status of the peer channels
-func (f *P2PProxy) ProxyStatusReport(fnodes []*FactomNode) {
-	time.Sleep(time.Second * 3) // wait for things to spin up
-	for {
-		time.Sleep(time.Second * 6)
-		listenTo := 0
-		if listenTo >= 0 && listenTo < len(fnodes) {
-			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
+		switch data.(type) {
+		case p2p.Parcel:
+			parcel := data.(p2p.Parcel)
+			message := factomMessage{message: parcel.Payload, peerHash: parcel.Header.TargetPeer}
+			p2p.BlockFreeChannelSend(f.BroadcastIn, message)
+		default:
+			fmt.Printf("Garbage on f.FromNetwork. %+v", data)
 		}
-		now := time.Now().Format("01/02/2006 15:04:05")
-
-		note("%s     ToNetwork Queue:   %d", now, len(f.ToNetwork))
-		note("%s   FromNetwork Queue:   %d", now, len(f.FromNetwork))
-		note("%s  BroadcastOut Queue:   %d", now, len(f.BroadcastOut))
-		note("%s   BroadcastIn Queue:   %d", now, len(f.BroadcastIn))
 	}
 }
 
-func PeriodicStatusReport(fnodes []*FactomNode) {
-	time.Sleep(time.Second * 2) // wait for things to spin up
+func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
+	time.Sleep(p2p.NetworkStatusInterval) // wait for things to spin up
 	for {
-		time.Sleep(time.Second * 5)
+		time.Sleep(p2p.NetworkStatusInterval)
+		fmt.Println("\n\n\n")
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
@@ -235,25 +235,25 @@ func PeriodicStatusReport(fnodes []*FactomNode) {
 		}
 		time.Sleep(100 * time.Millisecond)
 		for _, f := range fnodes {
-			fmt.Printf("%8s %s \n", f.State.FactomNodeName, f.State.ShortString())
+			fmt.Printf("%s \n\n", f.State.ShortString())
 		}
-
+		now := time.Now().Format("01/02/2006 15:04:05")
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
-			fmt.Printf("   %s\n", fnodes[listenTo].State.GetFactomNodeName())
+			fmt.Printf("%s:\n", now)
 			fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
 			fmt.Printf("      AckQueue               %d\n", len(fnodes[listenTo].State.AckQueue()))
 			fmt.Printf("      MsgQueue               %d\n", len(fnodes[listenTo].State.MsgQueue()))
 			fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
 			fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
 			fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))
-			fmt.Printf("      HoldingQueue          %d\n", len(fnodes[listenTo].State.Holding))
+			fmt.Printf("      HoldingQueue           %d\n", len(fnodes[listenTo].State.Holding))
 		}
+		fmt.Printf("      ToNetwork Queue:       %d\n", len(f.ToNetwork))
+		fmt.Printf("      FromNetwork Queue:     %d\n", len(f.FromNetwork))
+		fmt.Printf("      BroadcastOut Queue:    %d\n", len(f.BroadcastOut))
+		fmt.Printf("      BroadcastIn Queue:     %d\n", len(f.BroadcastIn))
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 	}
-}
-
-func note(format string, v ...interface{}) {
-	fmt.Fprintln(os.Stdout, fmt.Sprintf("%d:", os.Getpid()), fmt.Sprintf(format, v...))
 }

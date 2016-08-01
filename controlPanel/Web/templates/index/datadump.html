@@ -8,7 +8,7 @@
 				<li class="tabs-title"><a href="#dump2">Process List</a></li>
 				<li class="tabs-title"><a href="#dump3">PrintMap</a></li>
 				<li class="tabs-title"><a href="#dump4">Servers</a></li>
-				<li class="tabs-title"><a href="#dump5">Bucket 5</a></li>
+				<li class="tabs-title"><a href="#dump5">Connections</a></li>
 				<li class="tabs-title"><a href="#dump6">Bucket 6</a></li>
 			</ul>
 			<div class="tabs-content" data-tabs-content="example-tabs">
@@ -55,7 +55,15 @@
 					</div>
 				</div>
 				<div class="tabs-panel" id="dump5">
-	            	<textarea></textarea>
+					<ul class="tabs dump-tabs" data-tabs id="example-tabs">
+						<li class="dump-tab tabs-title is-active"><a href="#dumpConRaw" aria-selected="true">Raw</a></li>
+						<li class="dump-tab tabs-title"><a href="#dumpSort">Sorted</a></li>
+					</ul>
+					<div id="dump-container">
+						<img id="fullscreen-option" class="absolute-fullscreen-option" src="img/fullscreen.svg"></img>
+	            		<textarea disabled spellcheck="false" class="tabs-panel is-active" id="dumpConRaw"></textarea>
+						<textarea disabled spellcheck="false" class="tabs-panel" id="dumpSort"></textarea>
+					</div>
 				</div>
 				<div class="tabs-panel" id="dump6">
 	            	<textarea></textarea>

@@ -88,7 +88,7 @@ func (c *FBlock) DatabasePrimaryIndex() interfaces.IHash {
 }
 
 func (c *FBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	return c.GetFullHash()
+	return c.GetLedgerKeyMR()
 }
 
 func (c *FBlock) GetDatabaseHeight() uint32 {
@@ -121,10 +121,6 @@ func (b *FBlock) GetTransactions() []interfaces.ITransaction {
 
 func (b FBlock) GetNewInstance() interfaces.IFBlock {
 	return new(FBlock)
-}
-
-func (b *FBlock) GetHash() interfaces.IHash {
-	return b.GetFullHash()
 }
 
 func (b *FBlock) GetEndOfPeriod() [10]int {
@@ -382,7 +378,6 @@ func (b *FBlock) GetChainID() interfaces.IHash {
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetKeyMR() interfaces.IHash {
-
 	bodyMR := b.GetBodyMR()
 
 	data, err := b.MarshalHeader()
@@ -396,8 +391,11 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 	return kmr
 }
 
-// Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetFullHash() interfaces.IHash {
+func (b *FBlock) GetHash() interfaces.IHash {
+	return b.GetLedgerKeyMR()
+}
+
+func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
 	ledgerMR := b.GetLedgerMR()
 
 	data, err := b.MarshalHeader()
@@ -707,7 +705,7 @@ func (e FBlock) MarshalJSON() ([]byte, error) {
 		ExpandedFBlock: ExpandedFBlock(e),
 		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",
 		KeyMR:          e.GetKeyMR().String(),
-		LedgerKeyMR:    e.GetFullHash().String(),
+		LedgerKeyMR:    e.GetLedgerKeyMR().String(),
 	})
 }
 
@@ -720,7 +718,7 @@ func NewFBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	scb.BodyMR = new(primitives.Hash)
 	if prev != nil {
 		scb.PrevKeyMR = prev.GetKeyMR()
-		scb.PrevLedgerKeyMR = prev.GetLedgerMR()
+		scb.PrevLedgerKeyMR = prev.GetLedgerKeyMR()
 		scb.ExchRate = prev.GetExchRate()
 		scb.DBHeight = prev.GetDBHeight() + 1
 	} else {
@@ -751,7 +749,7 @@ func CheckBlockPairIntegrity(block interfaces.IFBlock, prev interfaces.IFBlock) 
 		if block.GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
 			return fmt.Errorf("Invalid PrevKeyMR")
 		}
-		if block.GetPrevLedgerKeyMR().IsSameAs(prev.GetLedgerMR()) == false {
+		if block.GetPrevLedgerKeyMR().IsSameAs(prev.GetLedgerKeyMR()) == false {
 			return fmt.Errorf("Invalid PrevLedgerKeyMR")
 		}
 		if block.GetDBHeight() != (prev.GetDBHeight() + 1) {

@@ -8,26 +8,34 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
+	//"github.com/FactomProject/factomd/common/constants"
+	//"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
 
-var UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
+var (
+	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-var FILES_PATH string
-var templates *template.Template
+	FILES_PATH string
+	templates  *template.Template
 
-var INDEX_HTML []byte
-var mux *http.ServeMux
-var index int = 0
+	INDEX_HTML []byte
+	mux        *http.ServeMux
+	index      int = 0
 
-var fnodes []*state.State
-var statePointer *state.State
+	Fnodes       []*state.State
+	StatePointer *state.State
+	Controller   *p2p.Controller
+	GitBuild     string
+
+	// Sync Mutex
+	TemplateMutex sync.Mutex
+)
 
 func directoryExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
@@ -40,17 +48,25 @@ func directoryExists(path string) bool {
 	return true
 }
 
-func ServeControlPanel(port int, states []*state.State, connections chan map[string]p2p.ConnectionMetrics) {
+func ServeControlPanel(states []*state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
+	// Control Panel Disabled
+	if states[0].ControlPanelSetting == 0 {
+		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
+		return
+	}
+	port := states[0].ControlPanelPort
 
+	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
-	statePointer = states[index]
-	fnodes = states
+	StatePointer = states[index]
+	Fnodes = states
+	Controller = controller
 
 	// Load Files
 	FILES_PATH = states[0].ControlPanelPath
@@ -63,13 +79,13 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 			return
 		}
 	}
+	TemplateMutex.Lock()
 	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
+	TemplateMutex.Unlock()
 
 	// Updated Globals
 	RecentTransactions = new(LastDirectoryBlockTransactions)
-	AllConnections = new(ConnectionsMap)
-	AllConnections.connected = map[string]p2p.ConnectionMetrics{}
-	AllConnections.disconnected = map[string]p2p.ConnectionMetrics{}
+	AllConnections = NewConnectionsMap()
 
 	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
 
@@ -85,6 +101,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 	http.HandleFunc("/search", searchHandler)
 	http.HandleFunc("/post", postHandler)
 	http.HandleFunc("/factomd", factomdHandler)
+	http.HandleFunc("/factomdBatch", factomdBatchHandler)
 
 	http.ListenAndServe(portStr, nil)
 }
@@ -92,7 +109,7 @@ func ServeControlPanel(port int, states []*state.State, connections chan map[str
 func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The control panel was not able to be correctly loaded because the Web files were not found. "+
 		"\nFactomd is looking in %s folder for the files, placing the \n"+
-		"Web files in that directory should resolve this error.", fnodes[0].ControlPanelPath)
+		"Web files in that directory should resolve this error.", Fnodes[0].ControlPanelPath)
 }
 
 func static(h http.HandlerFunc) http.HandlerFunc {
@@ -106,8 +123,13 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	TemplateMutex.Lock()
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
-	err := templates.ExecuteTemplate(w, "indexPage", nil)
+	TemplateMutex.Unlock()
+	if len(GitBuild) == 0 {
+		GitBuild = "Unknown (Must install with script)"
+	}
+	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -115,8 +137,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
-	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	if r.Method != "POST" {
@@ -126,7 +154,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), *statePointer)
+		found, respose := searchDB(r.FormValue("search"), *StatePointer)
 		if found {
 			w.Write([]byte(respose))
 			return
@@ -143,8 +171,14 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	searchResult := new(SearchedStruct)
@@ -160,46 +194,76 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	//w.Write([]byte(searchResult.Type))
 }
 
-func factomdHandler(w http.ResponseWriter, r *http.Request) {
-	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+// Batches Json in []byte form to an array of json []byte objects
+func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
+	//defer recoverFromPanic()
+	if StatePointer.GetIdentityChainID() == nil {
 		return
 	}
 	if r.Method != "GET" {
-		http.NotFound(w, r)
 		return
 	}
-	item := r.FormValue("item") // Item wanted
+	batch := r.FormValue("batch")
+	batchData := make([]byte, 0)
+	batchData = append(batchData, []byte(`[`)...)
+
+	items := strings.Split(batch, ",")
+	for _, item := range items {
+		data := factomdQuery(item, "")
+		batchData = append(batchData, data...)
+		batchData = append(batchData, []byte(`,`)...)
+	}
+	batchData = batchData[:len(batchData)-1]
+	batchData = append(batchData, []byte(`]`)...)
+	w.Write(batchData)
+}
+
+func factomdHandler(w http.ResponseWriter, r *http.Request) {
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
+	if StatePointer.GetIdentityChainID() == nil {
+		return
+	}
+	if r.Method != "GET" {
+		//http.NotFound(w, r)
+		return
+	}
+	item := r.FormValue("item")   // Item wanted
+	value := r.FormValue("value") // Optional argument
+	data := factomdQuery(item, value)
+	w.Write([]byte(data))
+}
+
+func factomdQuery(item string, value string) []byte {
 	switch item {
 	case "myHeight":
-		data := fmt.Sprintf("%d", statePointer.GetHighestRecordedBlock())
-		w.Write([]byte(data)) // Return current node height
+		return HeightToJsonStruct(StatePointer.GetHighestRecordedBlock())
 	case "leaderHeight":
-		data := fmt.Sprintf("%d", statePointer.GetLeaderHeight()-1)
-		if statePointer.GetLeaderHeight() == 0 {
-			data = "0"
-		}
-		w.Write([]byte(data)) // Return leader height
+		return HeightToJsonStruct(StatePointer.GetLeaderHeight() - 1)
 	case "completeHeight": // Second Pass Sync info
-		data := fmt.Sprintf("%d", statePointer.GetEBDBHeightComplete())
-		w.Write([]byte(data)) // Return EBDB complete height
+		return HeightToJsonStruct(StatePointer.GetEBDBHeightComplete())
 	case "connections":
 	case "dataDump":
 		data := getDataDumps()
-		w.Write(data)
+		return data
 	case "nextNode":
 		index++
-		if index >= len(fnodes) {
+		if index >= len(Fnodes) {
 			index = 0
 		}
-		statePointer = fnodes[index]
-		w.Write([]byte(fmt.Sprintf("%d", index)))
+		StatePointer = Fnodes[index]
+		return []byte(fmt.Sprintf("%d", index))
 	case "peers":
 		data := getPeers()
-		w.Write(data)
+		return data
 	case "peerTotals":
 		data := getPeetTotals()
-		w.Write(data)
+		return data
 	case "recentTransactions":
 		data := []byte(`{"list":"none"}`)
 		var err error
@@ -211,7 +275,26 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 				data = []byte(`{"list":"none"}`)
 			}
 		}
-		w.Write(data)
+		return data
+	case "disconnect":
+		hash := ""
+		if len(value) > 0 {
+			hash = hashPeerAddress(value)
+		}
+		if StatePointer.ControlPanelSetting == 2 {
+			disconnectPeer(value)
+			return []byte(`{"Access":"granted", "Id":"` + hash + `"}`)
+		} else {
+			return []byte(`{"Access":"denied", "Id":"` + hash + `"}`)
+		}
+	}
+	return []byte("")
+}
+
+func disconnectPeer(hash string) {
+	if Controller != nil {
+		fmt.Println("ControlPanel: Sent a disconnect signal.")
+		Controller.Ban(hash)
 	}
 }
 
@@ -224,7 +307,9 @@ func getPeers() []byte {
 }
 
 func getPeetTotals() []byte {
-	data, err := json.Marshal(AllConnections.totals)
+	AllConnections.Lock.Lock()
+	data, err := json.Marshal(AllConnections.Totals)
+	AllConnections.Lock.Unlock()
 	if err != nil {
 		return []byte(`error`)
 	}
@@ -260,11 +345,17 @@ func doEvery(d time.Duration, f func(time.Time)) {
 }
 
 func getRecentTransactions(time.Time) {
-	defer recoverFromPanic()
-	if statePointer.GetIdentityChainID() == nil {
+	//defer recoverFromPanic()
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
+	if StatePointer == nil {
 		return
 	}
-	last := statePointer.GetDirectoryBlock()
+	last := StatePointer.GetDirectoryBlock()
 	if last == nil {
 		return
 	}
@@ -283,7 +374,7 @@ func getRecentTransactions(time.Time) {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
-	vms := statePointer.LeaderPL.VMs
+	/*vms := StatePointer.LeaderPL.VMs
 	for _, vm := range vms {
 		if vm == nil {
 			continue
@@ -306,10 +397,6 @@ func getRecentTransactions(time.Time) {
 					continue
 				}
 				e := new(EntryHolder)
-				/*ack := getEntryAck(rev.Entry.GetHash().String())
-				if ack == nil {
-					continue
-				}*/
 				e.Hash = rev.Entry.GetHash().String()
 				e.ChainID = "Processing"
 				has := false
@@ -320,7 +407,8 @@ func getRecentTransactions(time.Time) {
 					}
 				}
 				if !has {
-					RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+					RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+					//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 				}
 			case constants.FACTOID_TRANSACTION_MSG:
 				data, err := msg.MarshalBinary()
@@ -349,24 +437,24 @@ func getRecentTransactions(time.Time) {
 					}
 				}
 				if !has {
-					RecentTransactions.FactoidTransactions = append([]struct {
+					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 						TxID         string
 						TotalInput   string
 						Status       string
 						TotalInputs  int
 						TotalOutputs int
-					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
 				}
 			}
 		}
-	}
+	}*/
 
 	entries := last.GetDBEntries()
 	//entries = append(entries, pl.DirectoryBlock.GetDBEntries()[:]...)
 	for _, entry := range entries {
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			fblock, err := statePointer.DB.FetchFBlock(mr)
+			fblock, err := StatePointer.DB.FetchFBlock(mr)
 			if err != nil || fblock == nil {
 				continue
 			}
@@ -383,7 +471,6 @@ func getRecentTransactions(time.Time) {
 				has := false
 				for i, fact := range RecentTransactions.FactoidTransactions {
 					if fact.TxID == trans.GetHash().String() {
-						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
 						RecentTransactions.FactoidTransactions[i] = struct {
 							TxID         string
 							TotalInput   string
@@ -391,23 +478,38 @@ func getRecentTransactions(time.Time) {
 							TotalInputs  int
 							TotalOutputs int
 						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}
+						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
+						/*RecentTransactions.FactoidTransactions[i] = struct {
+							TxID         string
+							TotalInput   string
+							Status       string
+							TotalInputs  int
+							TotalOutputs int
+						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}*/
 						has = true
 						break
 					}
 				}
 				if !has {
-					RecentTransactions.FactoidTransactions = append([]struct {
+					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 						TxID         string
 						TotalInput   string
 						Status       string
 						TotalInputs  int
 						TotalOutputs int
-					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+					/*RecentTransactions.FactoidTransactions = append([]struct {
+						TxID         string
+						TotalInput   string
+						Status       string
+						TotalInputs  int
+						TotalOutputs int
+					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)*/
 				}
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
-			ecblock, err := statePointer.DB.FetchECBlock(mr)
+			ecblock, err := StatePointer.DB.FetchECBlock(mr)
 			if err != nil || ecblock == nil {
 				continue
 			}
@@ -426,7 +528,8 @@ func getRecentTransactions(time.Time) {
 							}
 						}
 						if !has {
-							RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+							RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+							//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 						}
 					}
 				}
@@ -435,20 +538,16 @@ func getRecentTransactions(time.Time) {
 	}
 
 	if len(RecentTransactions.Entries) > 100 {
-		RecentTransactions.Entries = RecentTransactions.Entries[:101]
+		overflow := len(RecentTransactions.Entries) - 100
+		RecentTransactions.Entries = RecentTransactions.Entries[overflow:]
 	}
 	if len(RecentTransactions.FactoidTransactions) > 100 {
-		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[:101]
+		overflow := len(RecentTransactions.FactoidTransactions) - 100
+		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
 	}
 	//_, err := json.Marshal(RecentTransactions)
 	//if err != nil {
 	//	return
 	//}
 	//return ret
-}
-
-func recoverFromPanic() {
-	if r := recover(); r != nil {
-		fmt.Println("ERROR: Control Panel has encountered a panic and was halted. Reloading...\n", r)
-	}
 }

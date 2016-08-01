@@ -225,7 +225,6 @@ func (m *ServerFault) Validate(state interfaces.IState) int {
 	if m.Signature == nil {
 		return -1
 	}
-	return 1
 	// Check signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {

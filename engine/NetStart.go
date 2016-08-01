@@ -32,9 +32,9 @@ type FactomNode struct {
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
+var p2pNetwork *p2p.Controller
 
 func NetStart(s *state.State) {
-	var p2pNetwork *p2p.Controller
 
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
@@ -248,7 +248,7 @@ func NetStart(s *state.State) {
 	if 0 < networkPortOverride {
 		networkPort = fmt.Sprintf("%d", networkPortOverride)
 	}
-	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, p2p.StandardChannelSize)
+	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     networkPort,
 		PeersFile:                peersFile,
@@ -258,7 +258,6 @@ func NetStart(s *state.State) {
 		SpecialPeers:             specialPeers,
 		ConnectionMetricsChannel: connectionMetricsChannel,
 	}
-	fmt.Printf("\np2p.ControllerInit: %+v\n", ci)
 	p2pNetwork = new(p2p.Controller).Init(ci)
 	p2pNetwork.StartNetwork()
 	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
@@ -268,8 +267,7 @@ func NetStart(s *state.State) {
 	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 	p2pProxy.SetDebugMode(netdebug)
 	if 0 < netdebug {
-		go PeriodicStatusReport(fnodes)
-		go p2pProxy.ProxyStatusReport(fnodes)
+		go p2pProxy.PeriodicStatusReport(fnodes)
 		p2pNetwork.StartLogging(uint8(netdebug))
 	} else {
 		p2pNetwork.StartLogging(uint8(0))
@@ -370,29 +368,13 @@ func NetStart(s *state.State) {
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
 
-	// Hey Steven! There's a channel which gets p2p connection metrics once a second.
-	// For now, I'm just draining this channel, but you should maybe pass it to WSAPI or something.
-	// drain := func() {
-	// 	//	connectionMetricsChannel := make(chan map[string]p2p.ConnectionMetrics, 10000)
-	// 	for {
-	// 		select {
-	// 		case _ = <-connectionMetricsChannel:
-	// 			// fmt.Printf("Channel Metrics: %+v", metrics)
-	// 			time.Sleep(500 * time.Millisecond)
-	// 		default:
-	// 			time.Sleep(2 * time.Second)
-	// 		}
-	// 	}
-	// }
-	// go drain()
-
 	states := make([]*state.State, 0)
 	for _, f := range fnodes {
 		states = append(states, f.State)
 	}
 	_ = states
 	_ = controlPanel.INDEX_HTML
-	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelPort, states, connectionMetricsChannel)
+	go controlPanel.ServeControlPanel(states, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
 	SimControl(listenTo)
 }

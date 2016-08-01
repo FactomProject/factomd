@@ -74,10 +74,34 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 	context := testHelper.CreateWebContext()
 
 	HandleDirectoryBlockHead(context)
+	expectedHead := "508e19f65a7fc7e9cfa5a73281b5e08115ed25a1af5723350e5c21fc92c39b40"
 
-	if strings.Contains(testHelper.GetBody(context), "508e19f65a7fc7e9cfa5a73281b5e08115ed25a1af5723350e5c21fc92c39b40") == false {
-		t.Errorf("Context does not contain proper DBlock Head - %v", testHelper.GetBody(context))
+	if strings.Contains(testHelper.GetBody(context), expectedHead) == false {
+		t.Errorf("Context does not contain proper DBlock Head - %v vs %v", testHelper.GetBody(context), expectedHead)
 	}
+
+	/*
+		j := testHelper.GetRespText(context)
+		head := new(DirectoryBlockHeadResponse)
+		err := primitives.DecodeJSONString(j, head)
+		if err != nil {
+			panic(err)
+		}
+
+		hash := head.KeyMR
+
+		testHelper.ClearContextResponseWriter(context)
+		HandleDirectoryBlock(context, hash)
+
+		j = testHelper.GetRespText(context)
+		block := new(DBlock)
+		err = primitives.DecodeJSONString(j, block)
+		if err != nil {
+			panic(err)
+		}
+
+		t.Errorf("%v", j)
+	*/
 }
 
 func TestHandleGetRaw(t *testing.T) {
@@ -172,6 +196,11 @@ func TestHandleDirectoryBlock(t *testing.T) {
 	hash := "508e19f65a7fc7e9cfa5a73281b5e08115ed25a1af5723350e5c21fc92c39b40"
 
 	HandleDirectoryBlock(context, hash)
+
+	if testHelper.GetBody(context) == "" {
+		t.Errorf("HandleDirectoryBlock returned empty block")
+		t.FailNow()
+	}
 
 	if strings.Contains(testHelper.GetBody(context), "000000000000000000000000000000000000000000000000000000000000000a") == false {
 		t.Errorf("%v", testHelper.GetBody(context))

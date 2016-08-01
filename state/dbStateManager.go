@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -245,42 +246,33 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// Fix deltas of servers
 	previousFeds := previousPL.FedServers
 	currentFeds := currentPL.FedServers
+	currentAuds := currentPL.AuditServers
 
-	var _ adminBlock.AdminBlock
-	// Federated Servers
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
-			// Delete cf from current
-			removeEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(removeEntry)
+			// Promote to federated
+			index := list.State.isIdentityChain(cf.GetChainID())
+			if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+				list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) {
+				addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
+				d.AdminBlock.AddFirstABEntry(addEntry)
+			}
 		}
 	}
 
 	for _, pf := range previousFeds {
 		if !containsServer(currentFeds, pf) {
-			// Add pf to current
-			addEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(addEntry)
-		}
-	}
-
-	previousAuds := previousPL.AuditServers
-	currentAuds := currentPL.AuditServers
-
-	// Audit Servers
-	for _, ca := range currentAuds {
-		if !containsServer(previousAuds, ca) {
-			// Delete cf from current
-			removeEntry := adminBlock.NewAddAuditServer(ca.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(removeEntry)
-		}
-	}
-
-	for _, pa := range previousAuds {
-		if !containsServer(currentAuds, pa) {
-			// Add pf to current
-			addEntry := adminBlock.NewRemoveFederatedServer(pa.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(addEntry)
+			// Option 1: Remove as a server
+			if list.State.isAuthorityChain(pf.GetChainID()) != -1 {
+				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
+				d.AdminBlock.AddFirstABEntry(removeEntry)
+			}
+			// Option 2L Demote to Audit if it is there
+			/*if containsServer(currentAuds, pf) {
+				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
+				d.AdminBlock.AddFirstABEntry(demoteEntry)
+			}*/
+			_ = currentAuds
 		}
 	}
 
@@ -293,7 +285,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	p.FactoidBlock.SetDBHeight(previousDBHeight)
 	d.FactoidBlock.SetDBHeight(currentDBHeight)
 	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
-	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerMR())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerKeyMR())
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())

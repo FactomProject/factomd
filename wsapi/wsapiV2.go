@@ -656,15 +656,24 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 
 	fTx, err := dbase.FetchFactoidTransaction(h)
 	if err != nil {
-		return nil, NewInternalError()
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
 	}
 
 	ecTx, err := dbase.FetchECTransaction(h)
 	if err != nil {
-		return nil, NewInternalError()
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
 	}
 
 	e, err := dbase.FetchEntry(h)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	blockHash, err := dbase.FetchIncludedIn(h)
 	if err != nil {
 		return nil, NewInternalError()
 	}
@@ -673,6 +682,21 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	answer.ECTranasction = ecTx
 	answer.FactoidTransaction = fTx
 	answer.Entry = e
+
+	answer.IncludedInTransactionBlock = blockHash.String()
+
+	blockHash, err = dbase.FetchIncludedIn(blockHash)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	answer.IncludedInDirectoryBlock = blockHash.String()
+
+	dBlock, err := dbase.FetchDBlock(blockHash)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	answer.IncludedInDirectoryBlockHeight = int64(dBlock.GetDatabaseHeight())
 
 	return answer, nil
 }

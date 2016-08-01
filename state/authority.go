@@ -19,10 +19,15 @@ type Authority struct {
 	SigningKey        primitives.PublicKey
 	Status            int
 	AnchorKeys        []AnchorSigningKey
-	// add key history?
+
+	KeyHistory []struct {
+		ActiveDBHeight uint32
+		SigningKey     primitives.PublicKey
+	}
 }
 
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
+	return true, nil // Testing
 	var pub [32]byte
 	tmp, err := auth.SigningKey.MarshalBinary()
 	if err != nil {
@@ -30,6 +35,16 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	} else {
 		copy(pub[:], tmp)
 		if !ed.Verify(&pub, msg, sig) {
+			for _, histKey := range auth.KeyHistory {
+				histTemp, err := histKey.SigningKey.MarshalBinary()
+				if err != nil {
+					continue
+				}
+				copy(pub[:], histTemp)
+				if ed.Verify(&pub, msg, sig) {
+					return true, nil
+				}
+			}
 		} else {
 			return true, nil
 		}
@@ -50,6 +65,21 @@ func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_
 	}
 
 	return false, fmt.Errorf("Signature Key Invalid or not Federated Server Key")
+}
+
+func (st *State) UpdateAuthSigningKeys(height uint32) {
+	for index, auth := range st.Authorities {
+		for _, key := range auth.KeyHistory {
+			if key.ActiveDBHeight <= height {
+				if len(st.Authorities[index].KeyHistory) == 1 {
+					st.Authorities[index].KeyHistory = nil
+				} else {
+					st.Authorities[index].KeyHistory = st.Authorities[index].KeyHistory[1:]
+
+				}
+			}
+		}
+	}
 }
 
 func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
@@ -141,7 +171,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		if err != nil {
 			return err
 		}
-		addServerSigningKey(f.IdentityChainID, key, st)
+		addServerSigningKey(f.IdentityChainID, key, f.DBHeight, st)
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		b := new(adminBlock.AddFederatedServerBitcoinAnchorKey)
 		err := b.UnmarshalBinary(data)
@@ -238,7 +268,7 @@ func registerAuthAnchor(chainID interfaces.IHash, signingKey []byte, keyType byt
 	st.Authorities[AuthorityIndex].AnchorKeys = newASK
 }
 
-func addServerSigningKey(chainID interfaces.IHash, key interfaces.IHash, st *State) {
+func addServerSigningKey(chainID interfaces.IHash, key interfaces.IHash, height uint32, st *State) {
 	AuthorityIndex := st.AddAuthorityFromChainID(chainID)
 	if st.IdentityChainID.IsSameAs(chainID) && len(st.serverPendingPrivKeys) > 0 {
 		for i, pubKey := range st.serverPendingPubKeys {
@@ -260,5 +290,11 @@ func addServerSigningKey(chainID interfaces.IHash, key interfaces.IHash, st *Sta
 			}
 		}
 	}
+	// Add Key History
+	st.Authorities[AuthorityIndex].KeyHistory = append(st.Authorities[AuthorityIndex].KeyHistory, struct {
+		ActiveDBHeight uint32
+		SigningKey     primitives.PublicKey
+	}{height, st.Authorities[AuthorityIndex].SigningKey})
+	// Replace Active Key
 	st.Authorities[AuthorityIndex].SigningKey = primitives.PubKeyFromString(key.String())
 }
