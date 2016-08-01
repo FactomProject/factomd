@@ -27,14 +27,15 @@ type Authority struct {
 }
 
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
-	return true, nil // Testing
+	//return true, nil // Testing
 	var pub [32]byte
 	tmp, err := auth.SigningKey.MarshalBinary()
 	if err != nil {
 		return false, err
 	} else {
 		copy(pub[:], tmp)
-		if !ed.Verify(&pub, msg, sig) {
+		valid := ed.Verify(&pub, msg, sig)
+		if !valid {
 			for _, histKey := range auth.KeyHistory {
 				histTemp, err := histKey.SigningKey.MarshalBinary()
 				if err != nil {
@@ -53,8 +54,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 }
 
 func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
-	Authlist := st.Authorities
-	for _, auth := range Authlist {
+	for _, auth := range st.Authorities {
 		valid, err := auth.VerifySignature(msg, sig)
 		if err != nil {
 			continue
@@ -63,7 +63,16 @@ func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_
 			return true, nil
 		}
 	}
-
+	// TODO: Remove
+	for _, id := range st.Identities {
+		valid, err := id.VerifySignature(msg, sig)
+		if err != nil {
+			continue
+		}
+		if valid {
+			return true, nil
+		}
+	}
 	return false, fmt.Errorf("Signature Key Invalid or not Federated Server Key")
 }
 
