@@ -421,6 +421,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 		note("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
+		delete(c.connectionMetrics, connection.peer.Hash)
 	case ConnectionUpdatingPeer:
 		dot("&&r\n")
 		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
@@ -578,17 +579,20 @@ func (c *Controller) updateMetrics() {
 		c.lastConnectionMetricsUpdate = time.Now()
 		// Apparently golang doesn't make a deep copy when sending structs over channels. Bad golang.
 		newMetrics := make(map[string]ConnectionMetrics)
-		for key, value := range c.connectionMetrics {
-			newMetrics[key] = ConnectionMetrics{
-				MomentConnected:  value.MomentConnected,
-				BytesSent:        value.BytesSent,
-				BytesReceived:    value.BytesReceived,
-				MessagesSent:     value.MessagesSent,
-				MessagesReceived: value.MessagesReceived,
-				PeerAddress:      value.PeerAddress,
-				PeerQuality:      value.PeerQuality,
-				ConnectionState:  value.ConnectionState,
-				ConnectionNotes:  value.ConnectionNotes,
+		for key, value := range c.connections {
+			metrics, present := c.connectionMetrics[value.peer.Hash]
+			if present {
+				newMetrics[key] = ConnectionMetrics{
+					MomentConnected:  metrics.MomentConnected,
+					BytesSent:        metrics.BytesSent,
+					BytesReceived:    metrics.BytesReceived,
+					MessagesSent:     metrics.MessagesSent,
+					MessagesReceived: metrics.MessagesReceived,
+					PeerAddress:      metrics.PeerAddress,
+					PeerQuality:      metrics.PeerQuality,
+					ConnectionState:  metrics.ConnectionState,
+					ConnectionNotes:  metrics.ConnectionNotes,
+				}
 			}
 		}
 		dot("@@9\n")
