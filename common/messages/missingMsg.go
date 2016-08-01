@@ -198,6 +198,7 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
 		msgResponse := NewMissingMsgResponse(state, msg, ackMsg)
 		msgResponse.SetOrigin(m.GetOrigin())
+		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
 		state.NetworkOutMsgQueue() <- msgResponse
 	}
 
