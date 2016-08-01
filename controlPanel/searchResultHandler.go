@@ -701,12 +701,31 @@ func getAllChainEntries(chainIDString string) []SearchedStruct {
 		return nil
 	}
 
+	entries := make([]interfaces.IEBEntry, 0)
+
 	dbase = StatePointer.GetAndLockDB()
-	entries, err := dbase.FetchAllEntriesByChainID(chainID)
+	eblks, err := dbase.FetchAllEBlocksByChain(chainID)
+	if err != nil {
+		StatePointer.UnlockDB()
+		return nil
+	}
+
+	for _, eblk := range eblks {
+		hashes := eblk.GetEntryHashes()
+		for _, hash := range hashes {
+			entry, err := dbase.FetchEntry(hash)
+			if err != nil || entry == nil {
+				continue
+			}
+			entries = append(entries, entry)
+		}
+	}
+	//entries, err := dbase.FetchAllEntriesByChainID(chainID)
 	StatePointer.UnlockDB()
 	if err != nil {
 		return nil
 	}
+
 	for _, entry := range entries {
 		s := new(SearchedStruct)
 		s.Type = "entry"
