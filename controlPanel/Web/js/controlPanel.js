@@ -244,6 +244,9 @@ function updateAllPeers() {
       return
     }
     peerHashes = [""]
+
+    // To avoid hundreds of new html elements updated in a quick span, it will be limited.
+    newPeers = 0
     for (index in resp) {
       peer = resp[index]
       peerHashes.push(peer.PeerHash)
@@ -308,17 +311,19 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
         }
       } else {
-        // <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>Loading...</span></td>\
-        $("#peerList > tbody").prepend("\
-        <tr id='" + peer.Hash + "'>\
-            <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
-            <td id='connected'></td>\
-            <td id='peerquality'></td>\
-            <td id='momentconnected'></td>\
-            <td id='sent' value='-10'></td>\
-            <td id='received' value='-10'></td>\
-            <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
-        </tr>")
+        newPeers = newPeers + 1
+        if (newPeers < 20) { // If over 20 new peers, only load 20. Will get remaining next pass.
+          $("#peerList > tbody").prepend("\
+          <tr id='" + peer.Hash + "'>\
+              <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+              <td id='connected'></td>\
+              <td id='peerquality'></td>\
+              <td id='momentconnected'></td>\
+              <td id='sent' value='-10'></td>\
+              <td id='received' value='-10'></td>\
+              <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+          </tr>")
+        }
 
       }
     }

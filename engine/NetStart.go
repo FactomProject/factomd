@@ -368,12 +368,6 @@ func NetStart(s *state.State) {
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
 
-	states := make([]*state.State, 0)
-	for _, f := range fnodes {
-		states = append(states, f.State)
-	}
-	_ = states
-	_ = controlPanel.INDEX_HTML
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
 	SimControl(listenTo)

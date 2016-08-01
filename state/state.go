@@ -54,10 +54,11 @@ type State struct {
 	Replay                  *Replay
 	DropRate                int
 
-	ControlPanelPort    int
-	ControlPanelPath    string
-	ControlPanelSetting int
-	ControlPanelChannel chan DisplayState
+	ControlPanelPort        int
+	ControlPanelPath        string
+	ControlPanelSetting     int
+	ControlPanelChannel     chan DisplayState
+	ControlPanelDataRequest bool // If true, update Display state
 
 	// Network Configuration
 	Network           string
@@ -538,6 +539,7 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
+
 	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
 	//needed for multiple nodes with FER.  remove for singe node launch
@@ -832,7 +834,9 @@ func (s *State) UpdateState() (progress bool) {
 	s.catchupEBlocks()
 
 	s.SetString()
-
+	if s.ControlPanelDataRequest {
+		s.CopyStateToControlPanel()
+	}
 	return
 }
 
@@ -1129,7 +1133,6 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
-	s.CopyStateToControlPanel()
 	if !s.Status {
 		return
 	}

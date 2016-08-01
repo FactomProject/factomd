@@ -7,12 +7,14 @@ package state
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var ControlPanelAllowedSize int = 10
+var ControlPanelAllowedSize int = 2
 
 // This struct will contain all information wanted by the control panel from the state.
 type DisplayState struct {
@@ -33,6 +35,23 @@ type DisplayState struct {
 	Identities      []Identity  // Identities of all servers in management chain
 	Authorities     []Authority // Identities of all servers in management chain
 	PublicKey       *primitives.PublicKey
+
+	// Process List
+	PLFactoid []FactoidTransaction
+	PLEntry   []EntryTransaction
+}
+
+type FactoidTransaction struct {
+	TxID         string
+	TotalInput   string
+	Status       string
+	TotalInputs  int
+	TotalOutputs int
+}
+
+type EntryTransaction struct {
+	ChainID   string
+	EntryHash string
 }
 
 func NewDisplayState() *DisplayState {
@@ -41,14 +60,17 @@ func NewDisplayState() *DisplayState {
 	d.Authorities = make([]Authority, 0)
 	d.PublicKey = new(primitives.PublicKey)
 	d.LastDirectoryBlock = nil
+	d.PLEntry = make([]EntryTransaction, 0)
+	d.PLFactoid = make([]FactoidTransaction, 0)
 
 	return d
 }
 
 func (s *State) CopyStateToControlPanel() error {
-	if s.ControlPanelSetting == 2 {
+	if s.ControlPanelSetting == 2 || !s.ControlPanelDataRequest {
 		return nil
 	}
+	s.ControlPanelDataRequest = false
 	if len(s.ControlPanelChannel) < ControlPanelAllowedSize {
 		ds, err := DeepStateDisplayCopy(s)
 		if err != nil {
@@ -101,6 +123,57 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 		ds.PublicKey = pubkey
 	}
 
+	vms := s.LeaderPL.VMs
+	for _, v := range vms {
+		list := v.List
+		for _, msg := range list {
+			switch msg.Type() {
+			case constants.REVEAL_ENTRY_MSG:
+				data, err := msg.MarshalBinary()
+				if err != nil {
+					continue
+				}
+				rev := new(messages.RevealEntryMsg)
+				err = rev.UnmarshalBinary(data)
+				if rev.Entry == nil || err != nil {
+					continue
+				}
+
+				var entry EntryTransaction
+				entry.ChainID = "Processing..."
+				entry.EntryHash = rev.Entry.GetHash().String()
+
+				ds.PLEntry = append(ds.PLEntry, entry)
+			case constants.FACTOID_TRANSACTION_MSG:
+				data, err := msg.MarshalBinary()
+				if err != nil {
+					continue
+				}
+				transMsg := new(messages.FactoidTransaction)
+				err = transMsg.UnmarshalBinary(data)
+				if transMsg.Transaction == nil || err != nil {
+					continue
+				}
+				trans := transMsg.Transaction
+				input, err := trans.TotalInputs()
+				if err != nil {
+					continue
+				}
+				totalInputs := len(trans.GetInputs())
+				totalOutputs := len(trans.GetECOutputs())
+				totalOutputs = totalOutputs + len(trans.GetOutputs())
+				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
+
+				ds.PLFactoid = append(ds.PLFactoid, struct {
+					TxID         string
+					TotalInput   string
+					Status       string
+					TotalInputs  int
+					TotalOutputs int
+				}{trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
+			}
+		}
+	}
 	return ds, nil
 }
 

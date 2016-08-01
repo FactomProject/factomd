@@ -33,6 +33,9 @@ var (
 	Controller   *p2p.Controller
 	GitBuild     string
 
+	LastRequest     time.Time
+	TimeRequestHold float64 = 3 // Amount of time in seconds before can request data again
+
 	DisplayStateChannel chan state.DisplayState
 
 	// Sync Mutex
@@ -59,26 +62,19 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 			DisplayState = ds
 			DisplayStateMutex.Unlock()
 		default:
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(300 * time.Millisecond)
 		}
 	}
 }
 
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
-	defer func() {
-		// recover from panic if files path is incorrect
-		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
-		}
-	}()
-
+	StatePointer = statePointer
+	StatePointer.ControlPanelDataRequest = true
 	// Wait for initial State
 	select {
 	case DisplayState = <-displayStateChannel:
 		fmt.Println("Found state, control panel now active")
-
 	}
-	StatePointer = statePointer
 
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
@@ -219,9 +215,13 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	//w.Write([]byte(searchResult.Type))
 }
 
+var batchQueried = false
+
 // Batches Json in []byte form to an array of json []byte objects
 func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 	//defer recoverFromPanic()
+	requestData()
+	batchQueried = true
 	if r.Method != "GET" {
 		return
 	}
@@ -235,6 +235,9 @@ func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 		batchData = append(batchData, data...)
 		batchData = append(batchData, []byte(`,`)...)
 	}
+
+	batchQueried = false
+
 	batchData = batchData[:len(batchData)-1]
 	batchData = append(batchData, []byte(`]`)...)
 	w.Write(batchData)
@@ -258,23 +261,43 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(data))
 }
 
+// Flag to tell if data is already being requested
+var requestMutex bool = false
+
+func requestData() {
+	if requestMutex {
+		return
+	}
+	requestMutex = true
+	if (time.Since(LastRequest)).Seconds() < TimeRequestHold {
+		requestMutex = false
+		return
+	}
+	LastRequest = time.Now()
+	StatePointer.ControlPanelDataRequest = true
+	requestMutex = false
+}
+
 func factomdQuery(item string, value string) []byte {
+	if !batchQueried {
+		requestData()
+	}
 	switch item {
 	case "myHeight":
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentNodeHeight
 		DisplayStateMutex.RUnlock()
-		return HeightToJsonStruct(h)
+		return []byte(fmt.Sprintf(`{"Height":%d}`, h)) //HeightToJsonStruct(h)
 	case "leaderHeight":
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentLeaderHeight - 1
 		DisplayStateMutex.RUnlock()
-		return HeightToJsonStruct(h)
+		return []byte(fmt.Sprintf(`{"Height":%d}`, h)) //HeightToJsonStruct(h)
 	case "completeHeight": // Second Pass Sync info
 		DisplayStateMutex.RLock()
 		h := DisplayState.CurrentEBDBHeight
 		DisplayStateMutex.RUnlock()
-		return HeightToJsonStruct(h)
+		return []byte(fmt.Sprintf(`{"Height":%d}`, h)) //HeightToJsonStruct(h)
 	case "connections":
 	case "dataDump":
 		data := getDataDumps()
@@ -296,6 +319,8 @@ func factomdQuery(item string, value string) []byte {
 		data := getPeetTotals()
 		return data
 	case "recentTransactions":
+		RecentTransactionsMutex.Lock()
+		defer RecentTransactionsMutex.Unlock()
 		data := []byte(`{"list":"none"}`)
 		var err error
 		if RecentTransactions == nil {
@@ -372,16 +397,25 @@ type LastDirectoryBlockTransactions struct {
 
 var RecentTransactions *LastDirectoryBlockTransactions
 
-func doEvery(d time.Duration, f func(time.Time)) {
-	for x := range time.Tick(d) {
-		f(x)
+// Flag to tell if RecentTransactions is already being built
+var DoingRecentTransactions bool
+var RecentTransactionsMutex sync.Mutex
+
+func toggleDCT() {
+	if DoingRecentTransactions {
+		DoingRecentTransactions = false
+	} else {
+		DoingRecentTransactions = true
 	}
 }
 
 func getRecentTransactions(time.Time) {
-	//defer recoverFromPanic()
+	if DoingRecentTransactions {
+		return
+	}
+	toggleDCT()
+	defer toggleDCT()
 	defer func() {
-		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
@@ -389,10 +423,15 @@ func getRecentTransactions(time.Time) {
 	if StatePointer == nil {
 		return
 	}
+	DisplayStateMutex.RLock()
 	last := DisplayState.LastDirectoryBlock
+	DisplayStateMutex.RUnlock()
 	if last == nil {
 		return
 	}
+
+	RecentTransactionsMutex.Lock()
+	defer RecentTransactionsMutex.Unlock()
 
 	if RecentTransactions == nil {
 		return
@@ -408,83 +447,42 @@ func getRecentTransactions(time.Time) {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
-	/*vms := DisplayState.LeaderPL.VMs
-	for _, vm := range vms {
-		if vm == nil {
-			continue
-		}
-		for _, msg := range vm.List {
-			if msg == nil {
-				continue
-			}
-			switch msg.Type() {
-			case constants.COMMIT_CHAIN_MSG:
-			case constants.COMMIT_ENTRY_MSG:
-			case constants.REVEAL_ENTRY_MSG:
-				data, err := msg.MarshalBinary()
-				if err != nil {
-					continue
-				}
-				rev := new(messages.RevealEntryMsg)
-				err = rev.UnmarshalBinary(data)
-				if rev.Entry == nil || err != nil {
-					continue
-				}
-				e := new(EntryHolder)
-				e.Hash = rev.Entry.GetHash().String()
-				e.ChainID = "Processing"
-				has := false
-				for _, ent := range RecentTransactions.Entries {
-					if ent.Hash == e.Hash {
-						has = true
-						break
-					}
-				}
-				if !has {
-					RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
-					//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
-				}
-			case constants.FACTOID_TRANSACTION_MSG:
-				data, err := msg.MarshalBinary()
-				if err != nil {
-					continue
-				}
-				transMsg := new(messages.FactoidTransaction)
-				err = transMsg.UnmarshalBinary(data)
-				if transMsg.Transaction == nil || err != nil {
-					continue
-				}
-				trans := transMsg.Transaction
-				input, err := trans.TotalInputs()
-				if err != nil {
-					continue
-				}
-				totalInputs := len(trans.GetInputs())
-				totalOutputs := len(trans.GetECOutputs())
-				totalOutputs = totalOutputs + len(trans.GetOutputs())
-				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
-				has := false
-				for _, fact := range RecentTransactions.FactoidTransactions {
-					if fact.TxID == trans.GetHash().String() {
-						has = true
-						break
-					}
-				}
-				if !has {
-					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
-						TxID         string
-						TotalInput   string
-						Status       string
-						TotalInputs  int
-						TotalOutputs int
-					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
-				}
+	for _, entry := range DisplayState.PLEntry {
+		e := new(EntryHolder)
+		e.Hash = entry.EntryHash
+		e.ChainID = "Processing"
+		has := false
+		for _, ent := range RecentTransactions.Entries {
+			if ent.Hash == e.Hash {
+				has = true
+				break
 			}
 		}
-	}*/
+		if !has {
+			RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+		}
+	}
+
+	for _, fTrans := range DisplayState.PLFactoid {
+		has := false
+		for _, trans := range RecentTransactions.FactoidTransactions {
+			if fTrans.TxID == trans.TxID {
+				has = true
+				break
+			}
+		}
+		if !has {
+			RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
+				TxID         string
+				TotalInput   string
+				Status       string
+				TotalInputs  int
+				TotalOutputs int
+			}{fTrans.TxID, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
+		}
+	}
 
 	entries := last.GetDBEntries()
-	//entries = append(entries, pl.DirectoryBlock.GetDBEntries()[:]...)
 	for _, entry := range entries {
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
@@ -512,14 +510,6 @@ func getRecentTransactions(time.Time) {
 							TotalInputs  int
 							TotalOutputs int
 						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}
-						//RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions[:i], RecentTransactions.FactoidTransactions[i+1:]...)
-						/*RecentTransactions.FactoidTransactions[i] = struct {
-							TxID         string
-							TotalInput   string
-							Status       string
-							TotalInputs  int
-							TotalOutputs int
-						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}*/
 						has = true
 						break
 					}
@@ -532,13 +522,6 @@ func getRecentTransactions(time.Time) {
 						TotalInputs  int
 						TotalOutputs int
 					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
-					/*RecentTransactions.FactoidTransactions = append([]struct {
-						TxID         string
-						TotalInput   string
-						Status       string
-						TotalInputs  int
-						TotalOutputs int
-					}{{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)*/
 				}
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
@@ -561,12 +544,10 @@ func getRecentTransactions(time.Time) {
 								RecentTransactions.Entries[i] = *e
 								has = true
 								break
-								//RecentTransactions.Entries = append(RecentTransactions.Entries[:i], RecentTransactions.Entries[i+1:]...)
 							}
 						}
 						if !has {
 							RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
-							//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 						}
 					}
 				}
@@ -582,9 +563,10 @@ func getRecentTransactions(time.Time) {
 		overflow := len(RecentTransactions.FactoidTransactions) - 100
 		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
 	}
-	//_, err := json.Marshal(RecentTransactions)
-	//if err != nil {
-	//	return
-	//}
-	//return ret
+}
+
+func doEvery(d time.Duration, f func(time.Time)) {
+	for x := range time.Tick(d) {
+		f(x)
+	}
 }
