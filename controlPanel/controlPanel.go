@@ -486,10 +486,13 @@ func getRecentTransactions(time.Time) {
 	for _, entry := range entries {
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			fblock, err := StatePointer.DB.FetchFBlock(mr)
+			dbase := StatePointer.GetAndLockDB()
+			fblock, err := dbase.FetchFBlock(mr)
 			if err != nil || fblock == nil {
+				StatePointer.UnlockDB()
 				continue
 			}
+			StatePointer.UnlockDB()
 			transactions := fblock.GetTransactions()
 			for _, trans := range transactions {
 				input, err := trans.TotalInputs()
