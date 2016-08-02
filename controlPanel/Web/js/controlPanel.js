@@ -252,8 +252,8 @@ function updateAllPeers() {
       //$("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
       //$("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
-      $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
-      $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
+      $("#peerList > tfoot > tr > #up").text(formatBytes(respOne.BytesSentTotal, respOne.MessagesSent))
+      $("#peerList > tfoot > tr > #down").text(formatBytes(respOne.BytesReceivedTotal, respOne.MessagesReceived))
     }
     // Table Body
     if(resp.length == 0) {
@@ -277,14 +277,16 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#disconnect").attr("value", peer.PeerHash)
 
           $("#" + peer.Hash).find("#disconnect").click(function(){
-            queryState("disconnect", jQuery(this).val(), function(resp){
+            queryState("disconnect", jQuery(this).attr("value"), function(resp){
               obj = JSON.parse(resp)
+              console.log(obj)
               if(obj.Access == "denied") {
                 $("#" + obj.Id).find("#disconnect").addClass("disabled")
                 $("#" + obj.Id).find("#disconnect").text("Denied")
+              } else {
+                  $("#" + obj.Id).find("#disconnect").addClass("disabled")
+                  $("#" + obj.Id).find("#disconnect").text("Attempting")
               }
-              $("#" + obj.Id).find("#disconnect").addClass("disabled")
-              $("#" + obj.Id).find("#disconnect").text("Attempting")
             })
           })
           $("#" + peer.Hash).foundation()
