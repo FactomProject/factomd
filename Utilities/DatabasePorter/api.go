@@ -90,11 +90,11 @@ func GetEntry(hash string) (interfaces.IEBEntry, error) {
 		fmt.Printf("got error %s\n", err)
 		fmt.Printf("called getraw with %s\n", hash)
 		fmt.Printf("got result %s\n", raw)
-		
+
 		return nil, err
 	}
 	entry, err := entryBlock.UnmarshalEntry(raw)
-	for err != nil {  //just keep trying until it doesn't give an error
+	for err != nil { //just keep trying until it doesn't give an error
 		fmt.Printf("got error %s\n", err)
 		fmt.Printf("called entryBlock.UnmarshalEntry with %s\n", raw)
 		fmt.Printf("got result %s\n", entry)

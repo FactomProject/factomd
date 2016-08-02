@@ -412,7 +412,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
-	if d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
+	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
 		list.State.DB.SaveDirectoryBlockHead(head)
 	}
 
