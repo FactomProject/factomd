@@ -60,7 +60,7 @@ func NetStart(s *state.State) {
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
-	startDelayPtr := flag.Int("startdelay", 10*1000, "Delay to start processing messages, in seconds")
+	startDelayPtr := flag.Int("startdelay", 10, "Delay to start processing messages, in seconds")
 
 	flag.Parse()
 
