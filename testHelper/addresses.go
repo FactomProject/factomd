@@ -84,6 +84,11 @@ func NewECAddress(n uint64) interfaces.IAddress {
 	return add
 }
 
+func NewECAddressString(n uint64) string {
+	add := NewECAddress(n)
+	return add.String()
+}
+
 func PrivateKeyToEDPub(priv []byte) []byte {
 	priv2 := new([ed25519.PrivateKeySize]byte)
 	copy(priv2[:], priv)

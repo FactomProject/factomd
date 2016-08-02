@@ -375,15 +375,17 @@ func TestHandleChainHead(t *testing.T) {
 	}
 }
 
-//func TestHandleEntryCreditBalance(t *testing.T) {
-//	context := testHelper.CreateWebContext()
-//
-//	HandleEntryCreditBalance(context)
-//
-//	if strings.Contains(testHelper.GetBody(context), "") == false {
-//		t.Errorf("%v", testHelper.GetBody(context))
-//	}
-//}
+func TestHandleEntryCreditBalance(t *testing.T) {
+	context := testHelper.CreateWebContext()
+	eckey := testHelper.NewECAddressString(0)
+
+	HandleEntryCreditBalance(context, eckey)
+
+	expectedAmount := "2000"
+	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
+		t.Errorf("%v", testHelper.GetBody(context))
+	}
+}
 
 func TestHandleFactoidBalance(t *testing.T) {
 	context := testHelper.CreateWebContext()
