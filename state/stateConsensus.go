@@ -601,6 +601,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
+	// Monitor key changes for fed/audit servers
 	LoadIdentityByEntry(msg.Entry, s, dbheight, false)
 
 	s.IncEntries()
@@ -705,7 +706,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			if s.Leader {
 				dbs := new(messages.DirectoryBlockSignature)
-				dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = s.LLeaderHeight
 				dbs.Timestamp = s.GetTimestamp()
@@ -794,8 +796,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		if !dbs.DirectoryBlockKeyMR.IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR()) {
-			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockKeyMR.String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR().String()[:10])
+		// Todo: Look at logic again, used to be checking KeyMR of DBlock
+		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR()) {
+			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
 		dbs.Processed = true

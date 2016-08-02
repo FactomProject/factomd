@@ -8,7 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -16,12 +18,17 @@ import (
 //A placeholder structure for messages
 type DirectoryBlockSignature struct {
 	MessageBase
-	Timestamp             interfaces.Timestamp
-	DBHeight              uint32
-	DirectoryBlockKeyMR   interfaces.IHash
+	Timestamp interfaces.Timestamp
+	DBHeight  uint32
+	//DirectoryBlockKeyMR   interfaces.IHash
+	DirectoryBlockHeader  interfaces.IDirectoryBlockHeader
 	ServerIdentityChainID interfaces.IHash
 
 	Signature interfaces.IFullSignature
+
+	// Signature that goes into the admin block
+	// Signature of directory block header
+	DBSignature interfaces.IFullSignature
 
 	//Not marshalled
 	Processed bool
@@ -43,11 +50,11 @@ func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 		return false
 	}
 
-	if a.DirectoryBlockKeyMR == nil && b.DirectoryBlockKeyMR != nil {
+	if a.DirectoryBlockHeader == nil && b.DirectoryBlockHeader != nil {
 		return false
 	}
-	if a.DirectoryBlockKeyMR != nil {
-		if a.DirectoryBlockKeyMR.IsSameAs(b.DirectoryBlockKeyMR) == false {
+	if a.DirectoryBlockHeader != nil {
+		if a.DirectoryBlockHeader.GetPrevFullHash().IsSameAs(b.DirectoryBlockHeader.GetPrevFullHash()) == false {
 			return false
 		}
 	}
@@ -158,11 +165,26 @@ func (m *DirectoryBlockSignature) FollowerExecute(state interfaces.IState) {
 }
 
 func (m *DirectoryBlockSignature) Sign(key interfaces.Signer) error {
+	// Signature that goes into admin block
+	err := m.SignHeader(key)
+	if err != nil {
+		return err
+	}
+
 	signature, err := SignSignable(m, key)
 	if err != nil {
 		return err
 	}
 	m.Signature = signature
+	return nil
+}
+
+func (m *DirectoryBlockSignature) SignHeader(key interfaces.Signer) error {
+	header, err := m.DirectoryBlockHeader.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	m.DBSignature = key.Sign(header)
 	return nil
 }
 
@@ -175,11 +197,7 @@ func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block Signing Message: %v", r)
-		}
-	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -196,19 +214,28 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 
+	header := directoryBlock.NewDBlockHeader()
+	newData, err = header.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.DirectoryBlockHeader = header
+
 	hash := new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	m.DirectoryBlockKeyMR = hash
+	m.ServerIdentityChainID = hash
 
-	hash = new(primitives.Hash)
-	newData, err = hash.UnmarshalBinaryData(newData)
+	//if len(newData) > 0 {
+	sig := new(primitives.Signature)
+	newData, err = sig.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	m.ServerIdentityChainID = hash
+	m.DBSignature = sig
+	//}
 
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
@@ -228,8 +255,8 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
-	if m.DirectoryBlockKeyMR == nil {
-		m.DirectoryBlockKeyMR = new(primitives.Hash)
+	if m.DirectoryBlockHeader == nil {
+		m.DirectoryBlockHeader = directoryBlock.NewDBlockHeader()
 	}
 
 	var buf primitives.Buffer
@@ -245,17 +272,29 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
 
-	hash, err := m.DirectoryBlockKeyMR.MarshalBinary()
+	header, err := m.DirectoryBlockHeader.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(header)
+
+	hash, err := m.ServerIdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	buf.Write(hash)
 
-	hash, err = m.ServerIdentityChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
+	if m.DBSignature != nil {
+		dbSig, err := m.DBSignature.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(dbSig)
+	} else {
+		blankSig := make([]byte, constants.SIGNATURE_LENGTH)
+		buf.Write(blankSig)
+		buf.Write(blankSig[:32])
 	}
-	buf.Write(hash)
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -279,12 +318,12 @@ func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *DirectoryBlockSignature) String() string {
-	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x dbkeyMR[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d:          DBHt:%5d -- Signer[:3]=%x PrevDBKeyMR[:3]=%x hash[:3]=%x",
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
 		m.ServerIdentityChainID.Bytes()[:3],
-		m.DirectoryBlockKeyMR.Bytes()[:3],
+		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
 }

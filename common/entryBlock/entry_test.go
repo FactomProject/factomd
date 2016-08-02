@@ -118,6 +118,16 @@ func TestEntryMisc(t *testing.T) {
 	}
 }
 
+func TestKSize(t *testing.T) {
+	e := NewEntry()
+	for i := 0; i < 256; i++ {
+		e.Content = append(e.Content, []byte{0x11, 0x22, 0x33, 0x44}...)
+	}
+	if e.KSize() != 1 {
+		t.Fail()
+	}
+}
+
 func newEntry() *Entry {
 	e := NewEntry()
 	entryStr := "00df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e60400130011466163746f6d416e63686f72436861696e546869732069732074686520466163746f6d20616e63686f7220636861696e2c207768696368207265636f7264732074686520616e63686f727320466163746f6d2070757473206f6e20426974636f696e20616e64206f74686572206e6574776f726b732e0a"
