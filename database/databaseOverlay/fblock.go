@@ -21,7 +21,7 @@ func (db *Overlay) ProcessFBlockMultiBatch(block interfaces.DatabaseBlockWithEnt
 	if err != nil {
 		return err
 	}
-	return db.SaveIncludedInMultiFromBlockMultiBatch(block, false)
+	return db.SaveIncludedInMultiFromBlockMultiBatch(block, true)
 }
 
 func (db *Overlay) FetchFBlockByHash(hash interfaces.IHash) (interfaces.IFBlock, error) {
