@@ -473,10 +473,10 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 		return true
 	}
 
-	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
+	/*if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
 		return true
-	}
+	}*/
 
 	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
@@ -488,11 +488,6 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 }
 
 func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg interfaces.IMsg) bool {
-	//fmt.Println("DEBUG:", s.ComputeVMIndex(constants.ADMIN_CHAINID), s.GetLeaderVM(), s.GetIdentityChainID().String())
-	/*if s.GetLeaderVM() != s.ComputeVMIndex(constants.ADMIN_CHAINID) {
-		return true
-	}*/
-	//fmt.Println("DEBUG: Process ChanegServerKey", s.GetIdentityChainID().String())
 	ask, ok := changeServerKeyMsg.(*messages.ChangeServerKeyMsg)
 	if !ok {
 		return true
@@ -772,8 +767,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.DBSigProcessed <= 0 {
 			s.DBSig = false
 			s.Syncing = false
-
 		}
+		//s.LeaderPL.AdminBlock
 		return true
 	}
 
@@ -796,7 +791,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		// Todo: Look at logic again, used to be checking KeyMR of DBlock
 		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR()) {
 			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
@@ -835,6 +829,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.DBSigDone = true
 	}
 	return false
+	/*
+		err := s.LeaderPL.AdminBlock.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
+		if err != nil {
+			fmt.Printf("Error in adding DB sig to admin block, %s\n", err.Error())
+		}
+	*/
 }
 
 func (s *State) ConsiderSaved(dbheight uint32) {

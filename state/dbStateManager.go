@@ -267,7 +267,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
 				d.AdminBlock.AddFirstABEntry(removeEntry)
 			}
-			// Option 2L Demote to Audit if it is there
+			// Option 2: Demote to Audit if it is there
 			/*if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)

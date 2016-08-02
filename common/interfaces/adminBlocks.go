@@ -24,6 +24,7 @@ type IAdminBlock interface {
 	LookupHash() (IHash, error)
 	AddABEntry(e IABEntry) (err error)
 	AddFirstABEntry(e IABEntry) (err error)
+	AddDBSig(serverIdentity IHash, sig IFullSignature) error
 	GetDBSignature() IABEntry
 	AddFedServer(IHash)
 	RemoveFederatedServer(IHash)

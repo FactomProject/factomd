@@ -57,6 +57,15 @@ func (c *AdminBlock) UpdateState(state interfaces.IState) {
 	state.UpdateAuthSigningKeys(c.Header.GetDBHeight())
 }
 
+func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IFullSignature) error {
+	entry, err := NewDBSignatureEntry(serverIdentity, sig)
+	if err != nil {
+		return err
+	}
+	c.ABEntries = append(c.ABEntries, entry)
+	return nil
+}
+
 func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
 	entry := NewAddFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
 	c.ABEntries = append(c.ABEntries, entry)
@@ -180,7 +189,7 @@ func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
 // Add an Admin Block entry to the start of the block entries
 func (b *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
 	b.ABEntries = append(b.ABEntries, nil)
-	copy(b.ABEntries[1:],b.ABEntries[:len(b.ABEntries)-1])
+	copy(b.ABEntries[1:], b.ABEntries[:len(b.ABEntries)-1])
 	b.ABEntries[0] = e
 	return
 }
