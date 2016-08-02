@@ -53,3 +53,13 @@ func TestCombined(t *testing.T) {
 		t.Error("Wrong address returned")
 	}
 }
+
+func TestECAddress(t *testing.T) {
+	add, err := PublicKeyStringToECAddressString("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
+	if err != nil {
+		t.Error(err)
+	}
+	if add != "EC2pn759osDzgF4BH5GsXw4NkgTMTrY6jQ7nhhvqkMoBmzjB4Soq" {
+		t.Errorf("Wrong address returned - %v", add)
+	}
+}
