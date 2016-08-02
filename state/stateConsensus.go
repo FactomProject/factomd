@@ -795,6 +795,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
+		// Adds DB Sig to be added to Admin block
+		// TODO: Check sigs and make sure is correct
+		s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
+
 		dbs.Processed = true
 		s.DBSigProcessed++
 		vm.Synced = true
@@ -811,6 +815,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if !dbstate.Saved {
 				dbstate.ReadyToSave = true
 				s.DBStates.SaveDBStateToDB(dbstate)
+				//s.LeaderPL.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
 			}
 		} else {
 			s.MismatchCnt++

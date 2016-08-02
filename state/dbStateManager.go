@@ -243,11 +243,22 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	previousPL := list.State.ProcessLists.Get(previousDBHeight)
 	currentPL := list.State.ProcessLists.Get(currentDBHeight)
 
-	// Fix deltas of servers
+	// Servers
 	previousFeds := previousPL.FedServers
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
 
+	// DB Sigs
+	majority := (len(currentFeds) / 2) + 1
+	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
+		if i < majority {
+			d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
+		} else {
+			break
+		}
+	}
+
+	// Correcting Server Lists (Caused by Server Faults)
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
 			// Promote to federated
