@@ -96,7 +96,7 @@ func GetEntry(hash string) (interfaces.IEBEntry, error) {
 		return nil, err
 	}
 	entry, err := entryBlock.UnmarshalEntry(raw)
-	if err != nil {
+	for err != nil {  //just keep trying until it doesn't give an error
 		fmt.Printf("got error %s\n", err)
 		fmt.Printf("called entryBlock.UnmarshalEntry with %s\n", raw)
 		fmt.Printf("got result %s\n", entry)
@@ -107,9 +107,6 @@ func GetEntry(hash string) (interfaces.IEBEntry, error) {
 			return nil, err
 		}
 		entry, err = entryBlock.UnmarshalEntry(raw)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return entry, nil
 }
@@ -144,28 +141,20 @@ type Data struct {
 }
 
 func GetRaw(keymr string) ([]byte, error) {
-	resp, err := http.Get(
-		fmt.Sprintf("http://%s/v1/get-raw-data/%s", server, keymr))
-	if err != nil {
+	resp, err := http.Get(fmt.Sprintf("http://%s/v1/get-raw-data/%s", server, keymr))
+	for err != nil {
 		//if the http code gave an error, give a little time and try again before panicking.
 		fmt.Printf("got error %s, waiting 20 seconds\n", err)
 		time.Sleep(20000 * time.Millisecond)
-		resp, err = http.Get(
-			fmt.Sprintf("http://%s/v1/get-raw-data/%s", server, keymr))
-		if err != nil {
-			return nil, err
-		}
+		resp, err = http.Get(fmt.Sprintf("http://%s/v1/get-raw-data/%s", server, keymr))
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	for err != nil {
 		//if the io reader code gave an error, give a little time and try again before panicking.
 		fmt.Printf("got error %s, waiting 20 seconds\n", err)
 		time.Sleep(20000 * time.Millisecond)
 		body, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}		
 	}
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf(string(body))
