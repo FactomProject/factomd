@@ -377,11 +377,20 @@ func TestHandleChainHead(t *testing.T) {
 
 func TestHandleEntryCreditBalance(t *testing.T) {
 	context := testHelper.CreateWebContext()
-	eckey := testHelper.NewECAddressString(0)
+	eckey := testHelper.NewECAddressPublicKeyString(0)
 
 	HandleEntryCreditBalance(context, eckey)
 
 	expectedAmount := "2000"
+	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
+		t.Errorf("%v", testHelper.GetBody(context))
+	}
+	testHelper.ClearContextResponseWriter(context)
+
+	eckey = testHelper.NewECAddressString(0)
+
+	HandleEntryCreditBalance(context, eckey)
+
 	if strings.Contains(testHelper.GetBody(context), expectedAmount) == false {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
