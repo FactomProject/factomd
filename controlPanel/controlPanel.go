@@ -68,6 +68,12 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 }
 
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true
 	// Wait for initial State
@@ -150,6 +156,12 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		// recover from panic if files path is incorrect
+		if r := recover(); r != nil {
+			fmt.Println("Control Panel has encountered a panic.\n", r)
+		}
+	}()
 	TemplateMutex.Lock()
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
 	TemplateMutex.Unlock()
