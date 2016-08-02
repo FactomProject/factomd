@@ -59,6 +59,7 @@ func TestTallyTotals(t *testing.T) {
 		cm.Disconnect(fmt.Sprintf("%d", i), NewP2PConnection(i, i, i, i, fmt.Sprintf("%d", i), i))
 	}
 	cm.TallyTotals()
+	cm.Lock.Lock()
 	if cm.Totals.BytesSentTotal != 190 {
 		t.Errorf("Byte Sent does not match")
 	}
@@ -74,6 +75,7 @@ func TestTallyTotals(t *testing.T) {
 	if cm.Totals.PeerQualityAvg != 4 {
 		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
 	}
+	cm.Lock.Unlock()
 
 	for key := range cm.GetConnectedCopy() {
 		cm.RemoveConnection(key)
@@ -82,6 +84,7 @@ func TestTallyTotals(t *testing.T) {
 		cm.RemoveConnection(key)
 	}
 	cm.TallyTotals()
+	cm.Lock.Lock()
 	if cm.Totals.BytesSentTotal != 0 {
 		t.Errorf("Byte Sent does not match")
 	}
@@ -97,11 +100,18 @@ func TestTallyTotals(t *testing.T) {
 	if cm.Totals.PeerQualityAvg != 0 {
 		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
 	}
+	cm.Lock.Unlock()
 }
 
 // Absurd map accessing
 func TestConcurrency(t *testing.T) {
 	cm := NewConnectionsMap()
+	connectionMap := make(map[string]p2p.ConnectionMetrics)
+	var count uint32
+	for count = 0; count < 100; count++ {
+		peer := NewSeededP2PConnection(count)
+		connectionMap[peer.PeerAddress] = *peer
+	}
 	var i uint32
 	for i = 0; i < 100; i++ {
 		// Random Connections
@@ -110,7 +120,6 @@ func TestConcurrency(t *testing.T) {
 			for ii := 0; ii < 10; ii++ {
 				randPeer := NewRandomP2PConnection()
 				cm.Connect(randPeer.PeerAddress, randPeer)
-				cm.TallyTotals()
 
 				randPeer2 := NewRandomP2PConnection()
 				cm.AddConnection(randPeer2.PeerAddress, *randPeer2)
@@ -118,31 +127,71 @@ func TestConcurrency(t *testing.T) {
 				randPeers = append(randPeers, *randPeer)
 				randPeers = append(randPeers, *randPeer2)
 			}
-			for _, peer := range randPeers {
-				cm.TallyTotals()
-				cm.Disconnect(peer.PeerAddress, cm.GetConnection(peer.PeerAddress))
+			for c, peer := range randPeers {
+				switch c % 2 {
+				case 0:
+					cm.Disconnect(peer.PeerAddress, cm.GetConnection(peer.PeerAddress))
+				case 1:
+					cm.RemoveConnection(peer.PeerAddress)
+				}
+
 			}
 			cm.CleanDisconnected()
 		}()
 
 		go func() {
 			randPeers := make([]p2p.ConnectionMetrics, 0)
-			for ii := 0; ii < 10; ii++ {
-				randPeer1 := NewSeededP2PConnection(i)
+			var ii uint32
+			for ii = 0; ii < 10; ii++ {
+				randPeer1 := NewSeededP2PConnection(ii)
 				cm.Connect(randPeer1.PeerAddress, randPeer1)
-				cm.TallyTotals()
 
-				randPeer2 := NewSeededP2PConnection(i)
+				randPeer2 := NewSeededP2PConnection(ii)
 				cm.AddConnection(randPeer2.PeerAddress, *randPeer2)
 
 				randPeers = append(randPeers, *randPeer1)
 				randPeers = append(randPeers, *randPeer2)
 			}
 			for _, peer := range randPeers {
-				cm.TallyTotals()
 				cm.Disconnect(peer.PeerAddress, cm.GetConnection(peer.PeerAddress))
 			}
 			cm.CleanDisconnected()
+		}()
+
+		go func() {
+			for ii := 0; ii < 50; ii++ {
+				cm.TallyTotals()
+				cm.SortedConnections()
+				cm.GetDisconnectedCopy()
+				cm.GetConnectedCopy()
+			}
+		}()
+		go func() {
+			var ii uint32
+			for ii = 30; ii < 60; ii++ {
+				p := NewRandomP2PConnection()
+				ps := NewSeededP2PConnection(ii)
+				cm.AddConnection(p.PeerAddress, *p)
+				cm.AddConnection(ps.PeerAddress, *p)
+
+			}
+		}()
+		go func() {
+			var ii uint32
+			for ii = 30; ii < 60; ii++ {
+				p := NewRandomP2PConnection()
+				ps := NewSeededP2PConnection(ii)
+				cm.RemoveConnection(p.PeerAddress)
+				cm.RemoveConnection(ps.PeerAddress)
+
+			}
+		}()
+
+		go func() {
+			var ii uint32
+			for ii = 100; ii < 120; ii++ {
+				cm.UpdateConnections(connectionMap)
+			}
 		}()
 		// Sharing connections
 	}

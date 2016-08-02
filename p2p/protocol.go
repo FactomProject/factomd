@@ -13,6 +13,24 @@ import (
 	"time"
 )
 
+// This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
+
+// 				nonBlockingChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+
+func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
+	highWaterMark := int(float64(StandardChannelSize) * 0.90)
+	switch {
+	case highWaterMark < len(channel):
+		silence("protocol", "nonBlockingChanSend() - Channel is over %90 full! \n channel: \n %+v \n message: \n %+v \n", channel, message)
+		fallthrough
+	default:
+		select { // hits default if sending message would block.
+		case channel <- message:
+		default:
+		}
+	}
+}
+
 // Global variables for the p2p protocol
 var (
 	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
@@ -27,8 +45,8 @@ var (
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
 	StandardChannelSize                  = 10000
-	NetworkStatusInterval                = time.Second * 5
-	ConnectionStatusInterval             = time.Second * 65
+	NetworkStatusInterval                = time.Second * 9
+	ConnectionStatusInterval             = time.Second * 122
 	PingInterval                         = time.Second * 15
 	TimeBetweenRedials                   = time.Second * 20
 	PeerSaveInterval                     = time.Second * 30
