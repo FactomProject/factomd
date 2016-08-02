@@ -16,7 +16,8 @@ func PublicKeyStringToECAddressString(public string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	add, err := PublicKeyToFactoidAddress(pubHex)
+
+	add, err := PublicKeyToECAddress(pubHex)
 	if err != nil {
 		return "", err
 	}
@@ -25,12 +26,7 @@ func PublicKeyStringToECAddressString(public string) (string, error) {
 }
 
 func PublicKeyToECAddress(public []byte) (interfaces.IAddress, error) {
-	rcd := NewRCD_1(public)
-	add, err := rcd.GetAddress()
-	if err != nil {
-		return nil, err
-	}
-	return add, nil
+	return NewAddress(public), nil
 }
 
 func PublicKeyStringToFactoidAddressString(public string) (string, error) {
