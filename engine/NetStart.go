@@ -58,6 +58,7 @@ func NetStart(s *state.State) {
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
+	startDelayPtr := flag.Int("startdelay", 10*1000, "Delay to start processing messages, in seconds")
 
 	flag.Parse()
 
@@ -83,6 +84,7 @@ func NetStart(s *state.State) {
 	rotate := *rotatePtr
 	timeOffset := *timeOffsetPtr
 	keepMismatch := *keepMismatchPtr
+	startDelay := int64(*startDelayPtr)
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -91,6 +93,7 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename, folder)
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
+	s.StartDelayLimit = startDelay * 1000
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
@@ -192,6 +195,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)

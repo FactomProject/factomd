@@ -180,7 +180,7 @@ func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
 // Add an Admin Block entry to the start of the block entries
 func (b *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
 	b.ABEntries = append(b.ABEntries, nil)
-	copy(b.ABEntries[1:],b.ABEntries[:len(b.ABEntries)-1])
+	copy(b.ABEntries[1:], b.ABEntries[:len(b.ABEntries)-1])
 	b.ABEntries[0] = e
 	return
 }

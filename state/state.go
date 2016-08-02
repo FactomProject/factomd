@@ -108,15 +108,16 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// Server State
-	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
-	RunLeader     bool
-	LLeaderHeight uint32
-	Leader        bool
-	LeaderVMIndex int
-	LeaderPL      *ProcessList
-	OneLeader     bool
-	OutputAllowed bool
-	CurrentMinute int
+	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
+	StartDelayLimit int64
+	RunLeader       bool
+	LLeaderHeight   uint32
+	Leader          bool
+	LeaderVMIndex   int
+	LeaderPL        *ProcessList
+	OneLeader       bool
+	OutputAllowed   bool
+	CurrentMinute   int
 
 	EOMsyncing bool
 
