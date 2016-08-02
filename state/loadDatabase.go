@@ -28,22 +28,20 @@ func LoadDatabase(s *State) {
 	}
 
 	t := time.Now()
-	s.Println("Loading ", blkCnt, " Directory Blocks")
 
 	//msg, err := s.LoadDBState(blkCnt)
 
-	os.Stderr.WriteString(fmt.Sprintf("\nDatabase holds %d blocks\n", blkCnt))
 	for i := 0; true; i++ {
 		if i > 0 && i%1000 == 0 {
 			since := time.Since(t)
-			s := float64(since.Nanoseconds()) / 1000000000
-			bps := float64(i) / s
-			os.Stderr.WriteString(fmt.Sprintf("Loading Block %7d Blocks per second %8.2f\n", i, bps))
+			ss := float64(since.Nanoseconds()) / 1000000000
+			bps := float64(i) / ss
+			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d Blocks per second %8.2f\n", s.FactomNodeName, i, bps))
 		}
 		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
 			s.Println(err.Error())
-			os.Stderr.WriteString(fmt.Sprintf("Error reading database at block %d: %s\n", i, err.Error()))
+			os.Stderr.WriteString(fmt.Sprintf("%20s Error reading database at block %d: %s\n", s.FactomNodeName, i, err.Error()))
 			break
 		} else {
 			if msg != nil {
@@ -55,7 +53,7 @@ func LoadDatabase(s *State) {
 				}
 				s.InMsgQueue() <- msg
 			} else {
-				os.Stderr.WriteString(fmt.Sprintf("Last Block in database: %d\n", i))
+				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break
 			}
 		}
