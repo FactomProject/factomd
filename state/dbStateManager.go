@@ -290,6 +290,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 	d.DirectoryBlock.GetHeader().SetTimestamp(list.State.GetLeaderTimestamp())
+	d.DirectoryBlock.GetHeader().SetNetworkID(list.State.GetNetworkID())
 
 	d.DirectoryBlock.SetABlockHash(d.AdminBlock)
 	d.DirectoryBlock.SetECBlockHash(d.EntryCreditBlock)
@@ -366,6 +367,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		return
 	}
 
+	head, _ := list.State.DB.FetchDirectoryBlockHead()
+
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
@@ -408,6 +411,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 		panic(err.Error())
 	}
+
+	if d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
+		list.State.DB.SaveDirectoryBlockHead(head)
+	}
+
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true

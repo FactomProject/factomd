@@ -15,6 +15,7 @@ debug
 .idea/
 peers.json
 *.csv
+*.gz
 
 # Folders
 _obj

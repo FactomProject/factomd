@@ -111,15 +111,16 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// Server State
-	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
-	RunLeader     bool
-	LLeaderHeight uint32
-	Leader        bool
-	LeaderVMIndex int
-	LeaderPL      *ProcessList
-	OneLeader     bool
-	OutputAllowed bool
-	CurrentMinute int
+	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
+	StartDelayLimit int64
+	RunLeader       bool
+	LLeaderHeight   uint32
+	Leader          bool
+	LeaderVMIndex   int
+	LeaderPL        *ProcessList
+	OneLeader       bool
+	OutputAllowed   bool
+	CurrentMinute   int
 
 	EOMsyncing bool
 
@@ -1066,6 +1067,20 @@ func (s *State) ReadCfg(filename string, folder string) interfaces.IFactomConfig
 
 func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
+}
+
+func (s *State) GetNetworkID() uint32 {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return constants.MAIN_NETWORK_ID
+	case constants.NETWORK_TEST:
+		return constants.TEST_NETWORK_ID
+	case constants.NETWORK_LOCAL:
+		return constants.LOCAL_NETWORK_ID
+	case constants.NETWORK_CUSTOM:
+		return constants.CUSTOM_NETWORK_ID
+	}
+	return uint32(0)
 }
 
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {

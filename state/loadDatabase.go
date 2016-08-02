@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"os"
 )
 
 var _ = fmt.Print
@@ -30,21 +31,27 @@ func LoadDatabase(s *State) {
 
 	//msg, err := s.LoadDBState(blkCnt)
 
+	os.Stderr.WriteString(fmt.Sprintf("\nDatabase holds %d blocks\n", blkCnt))
 	for i := 0; true; i++ {
+		if i > 0 && i%1000 == 0 {
+			os.Stderr.WriteString(fmt.Sprintf("Loading Block %d\n", i))
+		}
 		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
 			s.Println(err.Error())
+			os.Stderr.WriteString(fmt.Sprintf("Error reading database at block %d: %s\n", i, err.Error()))
 			break
 		} else {
 			if msg != nil {
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 100 {
-					for len(s.InMsgQueue()) > 30 {
+				if len(s.InMsgQueue()) > 500 {
+					for len(s.InMsgQueue()) > 200 {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
 				s.InMsgQueue() <- msg
 			} else {
+				os.Stderr.WriteString(fmt.Sprintf("Last Block in database: %d\n", i))
 				break
 			}
 		}

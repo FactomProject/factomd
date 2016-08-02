@@ -117,6 +117,7 @@ checkout factomd      $branch $default
 checkout factom       $branch $default
 checkout web          $branch $default
 checkout go-spew      $branch $default
+checkout go-bip39     $branch $default
 checkout bolt         $branch $default
 checkout Testing      $branch $default
 checkout btcutil      $branch $default
