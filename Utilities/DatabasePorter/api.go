@@ -18,9 +18,7 @@ import (
 
 //var server string = "localhost:8088" //Localhost
 //var server string = "52.17.183.121:8088" //TestNet
-//var server string = "52.18.72.212:8088" //MainNet
-//var server string = "192.168.1.29:8088" //MainNet
-var server string = "192.168.2.144:8088" //MainNet
+var server string = "52.18.72.212:8088" //MainNet
 
 type DBlockHead struct {
 	KeyMR string
