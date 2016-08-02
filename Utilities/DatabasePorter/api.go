@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -17,7 +18,9 @@ import (
 
 //var server string = "localhost:8088" //Localhost
 //var server string = "52.17.183.121:8088" //TestNet
-var server string = "52.18.72.212:8088" //MainNet
+//var server string = "52.18.72.212:8088" //MainNet
+//var server string = "192.168.1.29:8088" //MainNet
+var server string = "192.168.2.144:8088" //MainNet
 
 type DBlockHead struct {
 	KeyMR string
@@ -86,11 +89,27 @@ func GetEBlock(keymr string) (interfaces.IEntryBlock, error) {
 func GetEntry(hash string) (interfaces.IEBEntry, error) {
 	raw, err := GetRaw(hash)
 	if err != nil {
+		fmt.Printf("got error %s\n", err)
+		fmt.Printf("called getraw with %s\n", hash)
+		fmt.Printf("got result %s\n", raw)
+		
 		return nil, err
 	}
 	entry, err := entryBlock.UnmarshalEntry(raw)
 	if err != nil {
-		return nil, err
+		fmt.Printf("got error %s\n", err)
+		fmt.Printf("called entryBlock.UnmarshalEntry with %s\n", raw)
+		fmt.Printf("got result %s\n", entry)
+		//if we get an error like EOF, get the thing again after a short wait
+		time.Sleep(20000 * time.Millisecond)
+		raw, err = GetRaw(hash)
+		if err != nil {
+			return nil, err
+		}
+		entry, err = entryBlock.UnmarshalEntry(raw)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return entry, nil
 }
@@ -128,12 +147,25 @@ func GetRaw(keymr string) ([]byte, error) {
 	resp, err := http.Get(
 		fmt.Sprintf("http://%s/v1/get-raw-data/%s", server, keymr))
 	if err != nil {
-		return nil, err
+		//if the http code gave an error, give a little time and try again before panicking.
+		fmt.Printf("got error %s, waiting 20 seconds\n", err)
+		time.Sleep(20000 * time.Millisecond)
+		resp, err = http.Get(
+			fmt.Sprintf("http://%s/v1/get-raw-data/%s", server, keymr))
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		//if the io reader code gave an error, give a little time and try again before panicking.
+		fmt.Printf("got error %s, waiting 20 seconds\n", err)
+		time.Sleep(20000 * time.Millisecond)
+		body, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}		
 	}
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf(string(body))
