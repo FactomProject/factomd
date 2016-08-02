@@ -1,11 +1,10 @@
 var currentHeight = 0
 var leaderHeight = 0
 
-setInterval(updateHTML,1000);
-setInterval(updateTransactions,1000);
-setInterval(updatePeers,1000);
+setInterval(updateHTML,5000);
 var serverOnline = false
-
+// Used to update some things less frequently
+var skipInterval = false
 
 function updateHTML() {
   $.ajax('/', {
@@ -23,10 +22,33 @@ function updateHTML() {
   } else {
     $("#server-status").text("Factomd Running")
   }
-  getHeight() // Update items related to height
-  updataDataDumps()
-  //updatePeers()
+
+  if ($("#indexnav-main").hasClass("is-active")) {
+    // Main Tab
+    updateHeight() 
+    updateAllPeers()
+    // Does every another cycle
+    if(!skipInterval){
+      updateTransactions()
+      skipInterval = true
+    } else {
+      skipInterval = false
+    }
+  } else if($("#indexnav-more").hasClass("is-active")) {
+    // Detailed Tab
+    updataDataDumps()
+  }
+
 }
+
+// Update when we switch tabs
+$(".tabs-control-panel li a").click(function(){
+  setTimeout(
+  function() 
+  {
+    updateHTML()
+  }, 300)
+})
 
 $("#dump-container #fullscreen-option").click( function(){
   txtArea = jQuery(this).siblings(".is-active")
@@ -156,28 +178,28 @@ function updateTransactions() {
         x.open("POST", "/post")
         x.send(formDataLink)
       })
- //   }
   })
 }
 
-function getHeight() {
-  resp = queryState("myHeight","",function(resp){
-    currentHeight = parseInt(resp)
-    $("#nodeHeight").val(resp)
-  })
+// 3 Queriers in Batch
+function updateHeight() {
+  resp = batchQueryState("myHeight,leaderHeight,completeHeight",function(resp){
+    obj = JSON.parse(resp)
+    respOne = obj[0].Height
+    respTwo = obj[1].Height
+    respThree = obj[2].Height
 
-  resp = queryState("leaderHeight","",function(resp){
-    //$("#nodeHeight").val(resp)
-    leaderHeight = parseInt(resp)
+    currentHeight = parseInt(respOne)
+    $("#nodeHeight").val(respOne)
+
+    leaderHeight = parseInt(respTwo)
     updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
     percent = (currentHeight/leaderHeight) * 100
     percent = Math.floor(percent)
     $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
-  })
 
-    resp = queryState("completeHeight","",function(resp){
     //$("#nodeHeight").val(resp)
-    completeHeight = parseInt(resp)
+    completeHeight = parseInt(respThree)
     updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
     percent = (completeHeight/leaderHeight) * 100
     percent = Math.floor(percent)
@@ -190,47 +212,54 @@ function updateProgressBar(id, current, max) {
   $(id).width(percent+ "%")
 }
 
-function updatePeerTotals() {
-  resp = queryState("peerTotals","", function(resp){
-    if(resp.length == 0) {
+var peerHashes = [""]
+
+// 2 Queries in Batch
+function updateAllPeers() {
+  batchQueryState("peerTotals,peers", function(respRaw){
+    obj = JSON.parse(respRaw)
+    respOne = obj[0]
+    resp = obj[1]
+    $("#totalPeerCount").text(resp.length)
+
+    // Totals
+    if(respOne.length == 0) {
       return
     }
-    obj = JSON.parse(resp)
-    if (typeof obj == "undefined") {
-      $("#peerList > tfoot > tr > #peerquality").text("0")
+    if (typeof respOne == "undefined") {
+      //$("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
-      $("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
+      //$("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
       $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
       $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
     }
-  })
-}
-
-var peerHashes = [""]
-
-function updatePeers() {
-  resp = queryState("peers","", function(resp){
+    // Table Body
     if(resp.length == 0) {
+        $("#peerList tbody tr").each(function(){
+          jQuery(this).remove()
+        })
       return
     }
-    obj = JSON.parse(resp)
-    for (index in obj) {
-      peer = obj[index]
-      peerHashes = [""]
+    peerHashes = [""]
+    for (index in resp) {
+      peer = resp[index]
+      peerHashes.push(peer.PeerHash)
       if($("#" + peer.Hash).length > 0) {
-        peerHashes.push(peer.PeerHash)
         con = peer.Connection
         if ($("#" + peer.Hash).find("#ip").val() != peer.PeerHash) {
           $("#" + peer.Hash).find("#ip span").text(con.PeerAddress)
-          //$("#" + peer.Hash).find("#ip span").attr("title", getIPCountry(con.PeerAddress))
-          //$("#" + peer.Hash).find("#ip span").attr("title", con.ConnectionNotes)
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
-          $("#" + peer.Hash).find("#disconnect").val(peer.PeerHash)
+          $("#" + peer.Hash).find("#disconnect").attr("value", peer.PeerHash)
 
-          // Reload Functions
           $("#" + peer.Hash).find("#disconnect").click(function(){
-            queryState("disconnect",jQuery(this).val(), function(resp){
-              console.log(resp)
+            queryState("disconnect", jQuery(this).val(), function(resp){
+              obj = JSON.parse(resp)
+              if(obj.Access == "denied") {
+                $("#" + obj.Id).find("#disconnect").addClass("disabled")
+                $("#" + obj.Id).find("#disconnect").text("Denied")
+              }
+              $("#" + obj.Id).find("#disconnect").addClass("disabled")
+              $("#" + obj.Id).find("#disconnect").text("Attempting")
             })
           })
           $("#" + peer.Hash).foundation()
@@ -256,7 +285,11 @@ function updatePeers() {
         }
         if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
           $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
-          $("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality) + "/10")
+          if(!($("#" + peer.Hash).hasClass(formatQuality(con.PeerQuality)))){
+            $("#" + peer.Hash).removeClass()
+            $("#" + peer.Hash).addClass(formatQuality(con.PeerQuality))
+          }
+          //$("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality))
         }
 
         if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
@@ -286,23 +319,33 @@ function updatePeers() {
 
       }
     }
-
-    //Cleanup - ToDO FIX
-   /* $("#peerList > tbody > tr").each(function(me){
-      val = jQuery(this).find("#ip span").val()
-      console.log(val.length)
-      if(val.length > 0) {
-        if(peerHashes.indexOf(jQuery(this).find("#ip").val()) != -1){
-          console.log("contained")
-        } else {
+    // Cleanup Routine
+    $("#peerList tbody tr").each(function(){
+      if(!jQuery(this).find("#ip span").text().includes("Loading")){
+        if(!contains(peerHashes, jQuery(this).find("#ip").val())) {
+         jQuery(this).remove()
+        }
+      } else {
+        if(jQuery(this).find("#ip span").text() == "Loading...."){
           jQuery(this).remove()
-          console.log("not contained")
+        } else {
+          jQuery(this).find("#ip span").text("Loading....")
         }
       }
-    })*/
-    updatePeerTotals()
-  })
+    })
+  }) 
 }
+
+function contains(haystack, needle) {
+    var i = haystack.length;
+    while (i--) {
+       if (haystack[i] === needle) {
+           return true;
+       }
+    }
+    return false;
+}
+
 
 function getIPCountry(address){
  /* $.getJSON('http://ipinfo.io/' + address + '', function(data){
@@ -311,56 +354,37 @@ function getIPCountry(address){
   })*/
 }
 
-// 0-4  | -QR1 ...  -QR2
-QUALITY_RANK_1 = -300
-RANK_1_SCALE_MIN = 0
-// 4-6  | -QR2 ... QR3
-QUALITY_RANK_2 = -50
-RANK_2_SCALE_MIN = 4
-// 6-9 | QR3 ... QR4
-QUALITY_RANK_3 = 100
-RANK_3_SCALE_MIN = 6
-// 9-10 | QR4 ... QR5
-QUALITY_RANK_4 = 500
-RANK_4_SCALE_MIN = 9
-// 10   | QR5+
-QUALITY_RANK_5 = 2000
-RANK_5_SCALE_MIN = 10
-
+// Using two logistic functions
 function formatQuality(quality) {
-  if (quality > QUALITY_RANK_5) { // QR4+
-    return RANK_5_SCALE_MIN
-  } else if (quality <= QUALITY_RANK_5 && quality >= QUALITY_RANK_4) { // QR3 ... QR4
-    rankSpan = QUALITY_RANK_5 - QUALITY_RANK_4
-    place = quality - QUALITY_RANK_4
-    percent = place / rankSpan
-    scaleSpan = RANK_5_SCALE_MIN - RANK_4_SCALE_MIN
-    return Number(RANK_4_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  } else if (quality <= QUALITY_RANK_4 && quality >= QUALITY_RANK_3) { // QR3 ... QR4
-    rankSpan = QUALITY_RANK_4 - QUALITY_RANK_3
-    place = quality - QUALITY_RANK_3
-    percent = place / rankSpan
-    scaleSpan = RANK_4_SCALE_MIN - RANK_3_SCALE_MIN
-    return Number(RANK_3_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  } else if (quality <= QUALITY_RANK_3 && quality >= QUALITY_RANK_2) { // QR2 ... QR3
-    rankSpan = QUALITY_RANK_3 - QUALITY_RANK_2
-    place = quality - QUALITY_RANK_2
-    percent = place / rankSpan
-    scaleSpan = RANK_3_SCALE_MIN - RANK_2_SCALE_MIN
-    return Number(RANK_2_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  } else if (quality <= QUALITY_RANK_2 && quality >= QUALITY_RANK_1) { // QR1 ... QR2
-    rankSpan = QUALITY_RANK_2 - QUALITY_RANK_1
-    place = quality - QUALITY_RANK_1
-    percent = place / rankSpan
-    scaleSpan = RANK_2_SCALE_MIN - RANK_1_SCALE_MIN
-    return Number(RANK_1_SCALE_MIN + percent * scaleSpan).toFixed(1)
-  }  else { // QR0 -
-    return 0
+  if(quality >= 100) {
+    return "rank-green"
+  } else if(quality >= -50) {
+    return "rank-gold"
+  } else {
+    return "rank-red"
   }
-
+  /*quality = quality + 300
+  if(quality < 0) {
+    return 0
+  } else if(quality > 3000) {
+    return 10
+  } else if(quality < 390) {
+    limit = 8
+    exponent = (-.5) * ((quality * .02) - 5)
+    q = limit / (1+ Math.pow(Math.E,exponent))
+    return Number(q).toFixed(1)
+  } else {
+    limit = 4
+    exponent = (-.3) * ((quality - 60) * 0.008 - 5)
+    q = limit / (1 + (Math.pow(Math.E,exponent))) + 6
+    return Number(q).toFixed(1)
+  }*/
 }
 
 function formatBytes(bytes, messages) {
+  if (bytes == undefined || messages == undefined) {
+    return "0 (0 Kb)"
+  }
   b = Number(bytes / 1000).toFixed(1)
   if (b < 100) {
     b = b + " KB"

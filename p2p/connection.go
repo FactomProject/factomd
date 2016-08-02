@@ -158,7 +158,6 @@ func (c *Connection) commonInit(peer Peer) {
 	c.SendChannel = make(chan interface{}, 10000)
 	c.ReceiveChannel = make(chan interface{}, 10000)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
-	silence("connection", "MomentConnected: %s", c.metrics.MomentConnected.String())
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
 	c.timeLastStatus = time.Now()
@@ -213,7 +212,7 @@ func (c *Connection) runLoop() {
 		case ConnectionShuttingDown:
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
-			c.ReceiveChannel <- ConnectionCommand{command: ConnectionIsClosed}
+			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionIsClosed})
 			return // ending runloop() goroutine
 		default:
 			logfatal(c.peer.PeerIdent(), "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
@@ -231,6 +230,11 @@ func (c *Connection) setNotes(newNote string) {
 // All exits from dialLoop change the state of the connection allowing the outside run_loop to proceed.
 func (c *Connection) dialLoop() {
 	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
+	if c.peer.QualityScore < MinumumQualityScore {
+		c.setNotes("Connection.dialLoop() Quality Score too low, not dialing out again.")
+		c.goShutdown()
+		return
+	}
 	for {
 		elapsed := time.Since(c.timeLastAttempt)
 		debug(c.peer.PeerIdent(), "Connection.dialLoop() elapsed: %s Attempts: %d", elapsed.String(), c.attempts)
@@ -307,7 +311,7 @@ func (c *Connection) goOnline() {
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
-	c.SendChannel <- ConnectionParcel{parcel: *parcel}
+	BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *parcel})
 }
 
 func (c *Connection) goOffline() {
@@ -484,6 +488,7 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
 		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
+		c.peer.QualityScore = MinumumQualityScore - 50
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
 		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
@@ -512,24 +517,23 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		pong.Header.Type = TypePong
 		debug(c.peer.PeerIdent(), "handleParcelTypes() GOT PING, Sending Pong: %s", pong.String())
 		parcel.Print()
-		c.SendChannel <- ConnectionParcel{parcel: *pong}
+		BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *pong})
 	case TypePong: // all we need is the timestamp which is set already
 		debug(c.peer.PeerIdent(), "handleParcelTypes() GOT Pong.")
 		return
 	case TypePeerRequest:
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerRequest")
-		c.ReceiveChannel <- ConnectionParcel{parcel: parcel} // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
 	case TypePeerResponse:
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerResponse")
-		c.ReceiveChannel <- ConnectionParcel{parcel: parcel} // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
 	case TypeMessage:
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessage. Message is a: %s", parcel.MessageType())
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
-		c.ReceiveChannel <- ConnectionParcel{parcel: parcel}
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
 	default:
-
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}
@@ -550,7 +554,7 @@ func (c *Connection) pingPeer() {
 			parcel.Header.Type = TypePing
 			c.timeLastPing = time.Now()
 			c.attempts++
-			c.SendChannel <- ConnectionParcel{parcel: *parcel}
+			BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *parcel})
 		}
 	}
 }
@@ -558,7 +562,7 @@ func (c *Connection) pingPeer() {
 func (c *Connection) updatePeer() {
 	verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdatingPeer - Connection State: %s", c.ConnectionState())
 	c.timeLastUpdate = time.Now()
-	c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdatingPeer, peer: c.peer}
+	BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionUpdatingPeer, peer: c.peer})
 }
 
 func (c *Connection) updateStats() {
@@ -569,7 +573,7 @@ func (c *Connection) updateStats() {
 		c.metrics.ConnectionState = connectionStateStrings[c.state]
 		c.metrics.ConnectionNotes = c.notes
 		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
-		c.ReceiveChannel <- ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics}
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics})
 	}
 }
 
@@ -581,6 +585,6 @@ func (c *Connection) connectionStatusReport() {
 	reportDuration := time.Since(c.timeLastStatus)
 	if reportDuration > ConnectionStatusInterval {
 		c.timeLastStatus = time.Now()
-		significant("connection-report", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n\tConnStatusInterval:\t%s\n\treportDuration:\t\t%s\n\tTime Online:\t\t%s \n==============================================================================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel), ConnectionStatusInterval.String(), reportDuration.String(), time.Since(c.timeLastAttempt))
+		significant("connection-report", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n\tConnStatusInterval:\t%s\n\treportDuration:\t\t%s\n\tTime Online:\t\t%s \nMsgs/Bytes: %d / %d \n==============================================================================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel), ConnectionStatusInterval.String(), reportDuration.String(), time.Since(c.timeLastAttempt), c.metrics.MessagesReceived+c.metrics.MessagesSent, c.metrics.BytesSent+c.metrics.BytesReceived)
 	}
 }

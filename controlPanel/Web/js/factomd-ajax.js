@@ -8,7 +8,19 @@ function queryState(item, value, func) {
     }
   }
   req.open("GET", "/factomd?item=" + item + "&value=" + value, true)
-  req.open("GET", "/factomd?item=" + item + "&value=" + value, true)
+  req.send()
+}
+
+function batchQueryState(item, func) {
+  var req = new XMLHttpRequest()
+
+  req.onreadystatechange = function() {
+    if(req.readyState == 4) {
+      //console.log(item + " - " + req.response)
+      func(req.response)
+    }
+  }
+  req.open("GET", "/factomdBatch?batch=" + item, true)
   req.send()
 }
 

@@ -13,6 +13,25 @@ import (
 	"time"
 )
 
+// This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
+
+// 				nonBlockingChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+
+func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
+	highWaterMark := int(float64(StandardChannelSize) * 0.90)
+	switch {
+	case highWaterMark < len(channel):
+		silence("protocol", "nonBlockingChanSend() - Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n", len(channel), highWaterMark)
+		panic("Full channel.")
+		fallthrough
+	default:
+		select { // hits default if sending message would block.
+		case channel <- message:
+		default:
+		}
+	}
+}
+
 // Global variables for the p2p protocol
 var (
 	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
@@ -21,14 +40,14 @@ var (
 	NodeID                        uint64 = 0           // Random number used for loopback protection
 	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
-	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we ignore them.
+	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                     = false
 	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
 	StandardChannelSize                  = 10000
-	NetworkStatusInterval                = time.Second * 5
-	ConnectionStatusInterval             = time.Second * 65
+	NetworkStatusInterval                = time.Second * 9
+	ConnectionStatusInterval             = time.Second * 122
 	PingInterval                         = time.Second * 15
 	TimeBetweenRedials                   = time.Second * 20
 	PeerSaveInterval                     = time.Second * 30
@@ -111,7 +130,7 @@ var LoggingLevels = map[uint8]string{
 }
 
 func dot(dot string) {
-	if 9 < CurrentLoggingLevel {
+	if 1 < CurrentLoggingLevel {
 		switch dot {
 		case "":
 			fmt.Printf(".")

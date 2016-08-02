@@ -35,7 +35,7 @@ func (c *Entry) KSize() int {
 	if err != nil {
 		return 100
 	}
-	return (len(data) - 33 + 1023) / 1024
+	return (len(data) - 35 + 1023) / 1024
 }
 
 func (c *Entry) New() interfaces.BinaryMarshallableAndCopyable {

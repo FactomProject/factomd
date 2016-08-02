@@ -17,9 +17,10 @@ var _ = fmt.Print
 type FactomdConfig struct {
 	App struct {
 		PortNumber                   int
+		HomeDir                      string
 		ControlPanelPort             int
 		ControlPanelFilesPath        string
-		HomeDir                      string
+		ControlPanelSetting          string
 		DBType                       string
 		LdbPath                      string
 		BoltDBPath                   string
@@ -110,16 +111,18 @@ const defaultConfig = `
 ; ------------------------------------------------------------------------------
 [app]
 PortNumber                            = 8088
+HomeDir                               = ""
+; --------------- ControlPanel disabled | readonly | readwrite
+ControlPanelSetting                   = readonly
 ControlPanelPort                      = 8090
 ControlPanelFilesPath                 = "Web/"
-HomeDir                               = ""
 ; --------------- DBType: LDB | Bolt | Map
-DBType                                = "Map"
+DBType                                = "LDB"
 LdbPath                               = "database/ldb"
 BoltDBPath                            = "database/bolt"
 DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
-ExportData                            = true
+ExportData                            = false
 ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
@@ -137,11 +140,10 @@ LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factompr
 LocalSpecialPeers     = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode                              = FULL
-IdentityChainID                       = 
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
 ExchangeRate                          = 00100000
-ExchangeRateChainId		      = eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389
+ExchangeRateChainId                   = eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389
 ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
 
 [anchor]
@@ -171,7 +173,7 @@ PortNumber                            = 8088
 ; ------------------------------------------------------------------------------
 [log]
 logLevel                              = error
-LogPath                               = "database/"
+LogPath                               = "database/Log"
 ConsoleLogLevel                       = standard
 
 ; ------------------------------------------------------------------------------
@@ -191,9 +193,10 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\nFactomd Config"))
 	out.WriteString(fmt.Sprintf("\n  App"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
+	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
 	out.WriteString(fmt.Sprintf("\n    ControlPanelPort        %v", s.App.ControlPanelPort))
 	out.WriteString(fmt.Sprintf("\n    ControlPanelFilesPath   %v", s.App.ControlPanelFilesPath))
-	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
+	out.WriteString(fmt.Sprintf("\n    ControlPanelSetting     %v", s.App.ControlPanelSetting))
 	out.WriteString(fmt.Sprintf("\n    DBType                  %v", s.App.DBType))
 	out.WriteString(fmt.Sprintf("\n    LdbPath                 %v", s.App.LdbPath))
 	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.App.BoltDBPath))

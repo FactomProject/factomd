@@ -185,6 +185,7 @@ func (m *MissingData) FollowerExecute(state interfaces.IState) {
 		msg := NewDataResponse(state, dataObject, dataType, m.RequestHash)
 
 		msg.SetOrigin(m.GetOrigin())
+		msg.SetNetworkOrigin(m.GetNetworkOrigin())
 		state.NetworkOutMsgQueue() <- msg
 	}
 	return

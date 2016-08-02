@@ -20,6 +20,10 @@ h1 small {
     text-transform: none;
 }
 
+.rank-red { color: #d42828; }
+.rank-gold { color: #ffae00; }
+.rank-green { color: #2ba52b; }
+
 .button, button, input[type=submit] {
     background-color: #28495f;
     color: #6c9cbd;
@@ -216,12 +220,4 @@ section .metric table .button { margin: 0; }
     top: 50%;
 }
 
-/*#traxList { display: block; }
-#traxList tbody { 
-    display:inherit; 
-    max-height: 500px;
-    width: 100%;
-    overflow:scroll;
-    overflow-x:hidden;
-}
-#traxList thead { display:inherit; width:100%; }*/
+#disconnect { width: :inherit; }

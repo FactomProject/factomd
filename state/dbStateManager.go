@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -247,22 +248,26 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
 
-	var _ adminBlock.AdminBlock
-	// Federated Servers
 	for _, cf := range currentFeds {
 		if !containsServer(previousFeds, cf) {
 			// Promote to federated
-			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
-			d.AdminBlock.AddFirstABEntry(addEntry)
+			index := list.State.isIdentityChain(cf.GetChainID())
+			if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+				list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) {
+				addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
+				d.AdminBlock.AddFirstABEntry(addEntry)
+			}
 		}
 	}
 
 	for _, pf := range previousFeds {
 		if !containsServer(currentFeds, pf) {
-			// Remove as a server
-			removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(removeEntry)
-			// Demote to Audit if it is there
+			// Option 1: Remove as a server
+			if list.State.isAuthorityChain(pf.GetChainID()) != -1 {
+				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
+				d.AdminBlock.AddFirstABEntry(removeEntry)
+			}
+			// Option 2L Demote to Audit if it is there
 			/*if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
@@ -270,26 +275,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			_ = currentAuds
 		}
 	}
-
-	/*previousAuds := previousPL.AuditServers
-	currentAuds := currentPL.AuditServers
-
-	// Audit Servers
-	for _, ca := range currentAuds {
-		if !containsServer(previousAuds, ca) {
-			// Delete cf from current
-			addEntry := adminBlock.NewAddAuditServer(ca.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(addEntry)
-		}
-	}
-
-	for _, pa := range previousAuds {
-		if !containsServer(currentAuds, pa) {
-			// Add pf to current
-			removeEntry := adminBlock.NewRemoveFederatedServer(pa.GetChainID(), currentDBHeight)
-			d.AdminBlock.AddFirstABEntry(removeEntry)
-		}
-	}*/
 
 	hash, err = p.AdminBlock.BackReferenceHash()
 	if err != nil {
@@ -305,6 +290,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 	d.DirectoryBlock.GetHeader().SetTimestamp(list.State.GetLeaderTimestamp())
+	d.DirectoryBlock.GetHeader().SetNetworkID(list.State.GetNetworkID())
 
 	d.DirectoryBlock.SetABlockHash(d.AdminBlock)
 	d.DirectoryBlock.SetECBlockHash(d.EntryCreditBlock)
@@ -381,6 +367,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		return
 	}
 
+	head, _ := list.State.DB.FetchDirectoryBlockHead()
+
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
@@ -423,6 +411,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 		panic(err.Error())
 	}
+
+	if d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
+		list.State.DB.SaveDirectoryBlockHead(head)
+	}
+
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true

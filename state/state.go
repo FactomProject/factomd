@@ -53,6 +53,7 @@ type State struct {
 	PortNumber              int
 	ControlPanelPort        int
 	ControlPanelPath        string
+	ControlPanelSetting     int
 	Replay                  *Replay
 	DropRate                int
 
@@ -107,15 +108,16 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// Server State
-	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
-	RunLeader     bool
-	LLeaderHeight uint32
-	Leader        bool
-	LeaderVMIndex int
-	LeaderPL      *ProcessList
-	OneLeader     bool
-	OutputAllowed bool
-	CurrentMinute int
+	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
+	StartDelayLimit int64
+	RunLeader       bool
+	LLeaderHeight   uint32
+	Leader          bool
+	LeaderVMIndex   int
+	LeaderPL        *ProcessList
+	OneLeader       bool
+	OutputAllowed   bool
+	CurrentMinute   int
 
 	EOMsyncing bool
 
@@ -263,6 +265,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.ControlPanelPort = s.ControlPanelPort
 	clone.ControlPanelPath = s.ControlPanelPath
+	clone.ControlPanelSetting = s.ControlPanelSetting
 
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
 	clone.Identities = s.Identities
@@ -350,6 +353,16 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		switch cfg.App.ControlPanelSetting {
+		case "disabled":
+			s.ControlPanelSetting = 0
+		case "readonly":
+			s.ControlPanelSetting = 1
+		case "readwrite":
+			s.ControlPanelSetting = 2
+		default:
+			s.ControlPanelSetting = 1
+		}
 		s.FERChainId = cfg.App.ExchangeRateChainId
 		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
@@ -390,6 +403,7 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
 		s.ControlPanelPath = "Web/"
+		s.ControlPanelSetting = 1
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -1046,6 +1060,20 @@ func (s *State) ReadCfg(filename string, folder string) interfaces.IFactomConfig
 
 func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
+}
+
+func (s *State) GetNetworkID() uint32 {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return constants.MAIN_NETWORK_ID
+	case constants.NETWORK_TEST:
+		return constants.TEST_NETWORK_ID
+	case constants.NETWORK_LOCAL:
+		return constants.LOCAL_NETWORK_ID
+	case constants.NETWORK_CUSTOM:
+		return constants.CUSTOM_NETWORK_ID
+	}
+	return uint32(0)
 }
 
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {

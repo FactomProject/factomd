@@ -35,8 +35,18 @@ type ConnectionsMap struct {
 	connected    map[string]p2p.ConnectionMetrics
 	disconnected map[string]p2p.ConnectionMetrics
 
-	totals AllConnectionsTotals
-	sync.Mutex
+	Totals AllConnectionsTotals
+	Lock   sync.Mutex
+}
+
+func NewConnectionsMap() *ConnectionsMap {
+	newCM := new(ConnectionsMap)
+	newCM.Lock.Lock()
+	defer newCM.Lock.Unlock()
+	newCM.connected = map[string]p2p.ConnectionMetrics{}
+	newCM.disconnected = map[string]p2p.ConnectionMetrics{}
+	newCM.Totals = *(NewAllConnectionTotals())
+	return newCM
 }
 
 func (cm *ConnectionsMap) TallyTotals() {
@@ -67,13 +77,16 @@ func (cm *ConnectionsMap) TallyTotals() {
 		totals.MessagesReceived += peer.MessagesReceived
 	}
 
-	cm.totals = *totals
+	cm.Lock.Lock()
+	cm.Totals = *totals
+	cm.Lock.Unlock()
 }
 
 func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.ConnectionMetrics) {
-	cm.Lock()
-	defer cm.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	cm.connected = connections
+
 	/*for key := range cm.connected { // Update Connected
 		val, ok := connections[key]
 		if ok {
@@ -104,8 +117,8 @@ func hashPeerAddress(addr string) string {
 }
 
 func (cm *ConnectionsMap) AddConnection(key string, val p2p.ConnectionMetrics) {
-	cm.Lock()
-	defer cm.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	if _, ok := cm.disconnected[key]; ok {
 		delete(cm.disconnected, key)
 	}
@@ -113,32 +126,30 @@ func (cm *ConnectionsMap) AddConnection(key string, val p2p.ConnectionMetrics) {
 }
 
 func (cm *ConnectionsMap) RemoveConnection(key string) {
-	cm.Lock()
-	defer cm.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	delete(cm.disconnected, key)
 	delete(cm.connected, key)
 }
 
 func (cm *ConnectionsMap) Connect(key string, val *p2p.ConnectionMetrics) bool {
-	cm.Lock()
-	defer cm.Unlock()
-	dis, ok := cm.disconnected[key]
-	if !ok {
-		return false
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
+	disVal, ok := cm.disconnected[key]
+	if ok {
+		delete(cm.disconnected, key)
 	}
-	delete(cm.disconnected, key)
-	if val == nil {
-		cm.connected[key] = dis
-	} else {
+	if val == nil && ok {
+		cm.connected[key] = disVal
+	} else if val != nil {
 		cm.connected[key] = *val
-
 	}
 	return true
 }
 
 func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
-	cm.Lock()
-	defer cm.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	var ok bool
 	var ret p2p.ConnectionMetrics
 	ret, ok = cm.connected[key]
@@ -153,8 +164,8 @@ func (cm *ConnectionsMap) GetConnection(key string) *p2p.ConnectionMetrics {
 }
 
 func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
-	cm.Lock()
-	defer cm.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	newMap := map[string]p2p.ConnectionMetrics{}
 	for k, v := range cm.connected {
 		newMap[k] = v
@@ -163,8 +174,8 @@ func (cm *ConnectionsMap) GetConnectedCopy() map[string]p2p.ConnectionMetrics {
 }
 
 func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics {
-	cm.Lock()
-	defer cm.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	newMap := map[string]p2p.ConnectionMetrics{}
 	for k, v := range cm.disconnected {
 		newMap[k] = v
@@ -173,15 +184,23 @@ func (cm *ConnectionsMap) GetDisconnectedCopy() map[string]p2p.ConnectionMetrics
 }
 
 func (cm *ConnectionsMap) Disconnect(key string, val *p2p.ConnectionMetrics) bool {
-	cm.Lock()
-	defer cm.Unlock()
-	cm.disconnected[key] = *val
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
+	conVal, ok := cm.connected[key]
+	if ok {
+		delete(cm.connected, key)
+	}
+	if val == nil && ok {
+		cm.disconnected[key] = conVal
+	} else if val != nil {
+		cm.disconnected[key] = *val
+	}
 	return true
 }
 
 func (cm *ConnectionsMap) CleanDisconnected() int {
-	cm.Lock()
-	defer cm.Unlock()
+	cm.Lock.Lock()
+	defer cm.Lock.Unlock()
 	count := 0
 	for key := range cm.disconnected {
 		delete(cm.disconnected, key)
@@ -219,7 +238,8 @@ type ConnectionInfo struct {
 // Used to send to front ent
 func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 	list := make([]ConnectionInfo, 0)
-	for key := range cm.GetConnectedCopy() {
+	cmCopy := cm.GetConnectedCopy()
+	for key := range cmCopy {
 		item := new(ConnectionInfo)
 		if newCon := cm.GetConnection(key); newCon == nil {
 			continue
@@ -232,7 +252,8 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 		item.Connected = true
 		list = append(list, *item)
 	}
-	for key := range cm.GetDisconnectedCopy() {
+	disCopy := cm.GetDisconnectedCopy()
+	for key := range disCopy {
 		item := new(ConnectionInfo)
 		if newCon := cm.GetConnection(key); newCon == nil {
 			continue
@@ -275,12 +296,20 @@ func FormatDuration(initial time.Time) string {
 	}
 }
 
-func manageConnections(connections chan map[string]p2p.ConnectionMetrics) {
+// map[string]p2p.ConnectionMetrics
+func manageConnections(connections chan interface{}) {
 	for {
 		select {
-		case newConnections := <-connections:
-			AllConnections.UpdateConnections(newConnections)
-			AllConnections.TallyTotals()
+		case connectionsMessage := <-connections:
+			switch connectionsMessage.(type) {
+			case map[string]p2p.ConnectionMetrics:
+				newConnections := connectionsMessage.(map[string]p2p.ConnectionMetrics)
+				AllConnections.UpdateConnections(newConnections)
+				AllConnections.TallyTotals()
+
+			default: // drop that garbage
+				fmt.Printf("Got garbage data on metrics channel: %+v", connectionsMessage)
+			}
 		default:
 			time.Sleep(400 * time.Millisecond)
 		}

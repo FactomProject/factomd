@@ -315,7 +315,7 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 		peer := *peerp
 		d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
 	}
-	silence("discovery", "DiscoverPeers got peers: %+v", lines)
+	note("discovery", "DiscoverPeers got peers: %+v", lines)
 }
 
 // PrintPeers Print details about the known peers
