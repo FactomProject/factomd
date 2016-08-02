@@ -12,6 +12,7 @@ import (
 
 	"math"
 
+	"bufio"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -39,6 +40,7 @@ func NetStart(s *state.State) {
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
+	fnetPtr := flag.String("fnet", "", "Read the given file to build the network connections")
 	dropPtr := flag.Int("drop", 0, "Number of messages to drop out of every thousand")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
@@ -65,6 +67,7 @@ func NetStart(s *state.State) {
 	listenTo := *listenToPtr
 	cnt := *cntPtr
 	net := *netPtr
+	fnet := *fnetPtr
 	droprate := *dropPtr
 	journal := *journalPtr
 	follower := *followerPtr
@@ -174,12 +177,18 @@ func NetStart(s *state.State) {
 		s.CloneDBType = db
 	}
 
+	pnet := net
+	if len(fnet) > 0 {
+		pnet = fnet
+		net = "file"
+	}
+
 	go StartProfiler()
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net type", net))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net spec", pnet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", journal))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", db))
@@ -282,6 +291,19 @@ func NetStart(s *state.State) {
 	p2pNetwork.DialSpecialPeersString(peers)
 
 	switch net {
+	case "file":
+		file, err := os.Open(fnet)
+		if err != nil {
+			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
+		} else if file == nil {
+			panic(fmt.Sprintf("File network.txt failed to open, and we got a file of <nil>"))
+		}
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			var a, b int
+			fmt.Sscanf(scanner.Text(), "%d %d", &a, &b)
+			AddSimPeer(fnodes, a, b)
+		}
 	case "square":
 		side := int(math.Sqrt(float64(cnt)))
 

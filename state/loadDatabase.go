@@ -27,6 +27,7 @@ func LoadDatabase(s *State) {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
 
+	t := time.Now()
 	s.Println("Loading ", blkCnt, " Directory Blocks")
 
 	//msg, err := s.LoadDBState(blkCnt)
@@ -34,7 +35,10 @@ func LoadDatabase(s *State) {
 	os.Stderr.WriteString(fmt.Sprintf("\nDatabase holds %d blocks\n", blkCnt))
 	for i := 0; true; i++ {
 		if i > 0 && i%1000 == 0 {
-			os.Stderr.WriteString(fmt.Sprintf("Loading Block %d\n", i))
+			since := time.Since(t)
+			s := float64(since.Nanoseconds()) / 1000000000
+			bps := float64(i) / s
+			os.Stderr.WriteString(fmt.Sprintf("Loading Block %7d Blocks per second %8.2f\n", i, bps))
 		}
 		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
