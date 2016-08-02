@@ -7,10 +7,10 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-func Identities(st state.State) string {
+func Identities(copyDS state.DisplayState) string {
 	prt := ""
-	prt = prt + fmt.Sprintf("=== Identity List ===   Total: %d Displaying: All\n", len(st.Identities))
-	for c, i := range st.Identities {
+	prt = prt + fmt.Sprintf("=== Identity List ===   Total: %d Displaying: All\n", len(copyDS.Identities))
+	for c, i := range copyDS.Identities {
 		num := fmt.Sprintf("%d", c)
 		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
 		stat := returnStatString(i.Status)
@@ -30,10 +30,10 @@ func Identities(st state.State) string {
 	return prt
 }
 
-func Authorities(st state.State) string {
+func Authorities(copyDS state.DisplayState) string {
 	prt := ""
-	prt = prt + fmt.Sprintf("=== Authority List ===   Total: %d Displaying: All\n", len(st.Authorities))
-	for c, i := range st.Authorities {
+	prt = prt + fmt.Sprintf("=== Authority List ===   Total: %d Displaying: All\n", len(copyDS.Authorities))
+	for c, i := range copyDS.Authorities {
 		num := fmt.Sprintf("%d", c)
 		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
 		var stat string
@@ -67,16 +67,16 @@ func Authorities(st state.State) string {
 	return prt
 }
 
-func MyNodeInfo(st state.State) string {
+func MyNodeInfo(copyDS state.DisplayState) string {
 	prt := ""
-	prt = prt + fmt.Sprintf("My Node: %s\n", st.GetFactomNodeName())
-	if st.IdentityChainID == nil {
+	prt = prt + fmt.Sprintf("My Node: %s\n", copyDS.NodeName)
+	if copyDS.IdentityChainID == nil {
 		prt = prt + fmt.Sprint("Identity ChainID: \n")
 	} else {
-		prt = prt + fmt.Sprint("Identity ChainID: ", st.IdentityChainID.String(), "\n")
+		prt = prt + fmt.Sprint("Identity ChainID: ", copyDS.IdentityChainID, "\n")
 
 	}
-	pub := st.GetServerPublicKey()
+	pub := copyDS.PublicKey
 	if data, err := pub.MarshalBinary(); err != nil {
 		prt = prt + fmt.Sprintf("Signing Key: \n")
 	} else {
