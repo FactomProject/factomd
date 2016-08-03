@@ -512,10 +512,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
+			// means that we are missing an EOM
 			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
-		} else {
-			vm.missingTime = 0
 		}
+
+		// If we haven't heard anything from a VM, ask for a message at the last-known height
 		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List))
 
 	VMListLoop:
