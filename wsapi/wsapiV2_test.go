@@ -161,7 +161,55 @@ func TestHandleV2CommitEntry(t *testing.T) {
 	if respObj.TxID != txID {
 		t.Errorf("Error: TxID returned during Commit Entry is incorrect - %v vs %v", respObj.TxID, txID)
 	}
+}
 
+func TestV2HandleEntryCreditBalance(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	eckey := testHelper.NewECAddressPublicKeyString(0)
+	req := new(AddressRequest)
+	req.Address = eckey
+
+	resp, err := HandleV2EntryCreditBalance(state, req)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	var expectedAmount int64 = 2000
+
+	if resp.(*EntryCreditBalanceResponse).Balance != expectedAmount {
+		t.Errorf("Invalid balance returned - %v vs %v", resp.(*EntryCreditBalanceResponse).Balance, expectedAmount)
+	}
+
+	eckey = testHelper.NewECAddressString(0)
+	req = new(AddressRequest)
+	req.Address = eckey
+
+	resp, err = HandleV2EntryCreditBalance(state, req)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	if resp.(*EntryCreditBalanceResponse).Balance != expectedAmount {
+		t.Errorf("Invalid balance returned - %v vs %v", resp.(*EntryCreditBalanceResponse).Balance, expectedAmount)
+	}
+}
+
+func TestV2HandleFactoidBalance(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	eckey := testHelper.NewFactoidRCDAddressString(0)
+	req := new(AddressRequest)
+	req.Address = eckey
+
+	resp, err := HandleV2FactoidBalance(state, req)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	var expectedAmount int64 = 999889000
+
+	if resp.(*FactoidBalanceResponse).Balance != expectedAmount {
+		t.Errorf("Invalid balance returned - %v vs %v", resp.(*FactoidBalanceResponse).Balance, expectedAmount)
+	}
 }
 
 func TestHandleV2CommitChain(t *testing.T) {

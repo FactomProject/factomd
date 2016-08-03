@@ -400,7 +400,7 @@ func TestHandleFactoidBalance(t *testing.T) {
 	context := testHelper.CreateWebContext()
 	eckey := testHelper.NewFactoidRCDAddressString(0)
 
-	t.Logf("%v\n", eckey)
+	//t.Logf("%v\n", eckey)
 
 	HandleFactoidBalance(context, eckey)
 

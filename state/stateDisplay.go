@@ -188,7 +188,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	prt = prt + messageLists(fnodes)
 	prt = prt + "===SummaryEnd===\n"
 
-	ds.Summary = prt
+	ds.RawSummary = prt
 
 	pl := s.ProcessLists.Get(s.GetHighestRecordedBlock())
 	ds.PrintMap = pl.PrintMap()
