@@ -113,6 +113,19 @@ type PublicKey [ed25519.PublicKeySize]byte
 
 var _ interfaces.Verifier = (*PublicKey)(nil)
 
+func (c *PublicKey) Copy() (*PublicKey, error) {
+	h := new(PublicKey)
+	bytes, err := c.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	err = h.UnmarshalBinary(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
 func (a *PublicKey) IsSameAs(b *PublicKey) bool {
 	if b == nil {
 		return false

@@ -12,6 +12,7 @@ import (
 
 	"math"
 
+	"bufio"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -39,6 +40,7 @@ func NetStart(s *state.State) {
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
+	fnetPtr := flag.String("fnet", "", "Read the given file to build the network connections")
 	dropPtr := flag.Int("drop", 0, "Number of messages to drop out of every thousand")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
@@ -58,12 +60,14 @@ func NetStart(s *state.State) {
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
+	startDelayPtr := flag.Int("startdelay", 10, "Delay to start processing messages, in seconds")
 
 	flag.Parse()
 
 	listenTo := *listenToPtr
 	cnt := *cntPtr
 	net := *netPtr
+	fnet := *fnetPtr
 	droprate := *dropPtr
 	journal := *journalPtr
 	follower := *followerPtr
@@ -83,6 +87,7 @@ func NetStart(s *state.State) {
 	rotate := *rotatePtr
 	timeOffset := *timeOffsetPtr
 	keepMismatch := *keepMismatchPtr
+	startDelay := int64(*startDelayPtr)
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -91,6 +96,7 @@ func NetStart(s *state.State) {
 	s.LoadConfig(FactomConfigFilename, folder)
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
+	s.StartDelayLimit = startDelay * 1000
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
@@ -171,12 +177,18 @@ func NetStart(s *state.State) {
 		s.CloneDBType = db
 	}
 
+	pnet := net
+	if len(fnet) > 0 {
+		pnet = fnet
+		net = "file"
+	}
+
 	go StartProfiler()
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", cnt))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net type", net))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "net spec", pnet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Msgs droped", droprate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", journal))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", db))
@@ -192,6 +204,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -221,6 +234,7 @@ func NetStart(s *state.State) {
 	networkOverride := s.Network
 	if 0 < len(networkName) { // Command line overrides the config file.
 		networkOverride = networkName
+		s.Network = networkName
 	}
 	fmt.Printf("\n\nNetwork Override: %s\n", networkOverride)
 	switch networkOverride {
@@ -277,6 +291,19 @@ func NetStart(s *state.State) {
 	p2pNetwork.DialSpecialPeersString(peers)
 
 	switch net {
+	case "file":
+		file, err := os.Open(fnet)
+		if err != nil {
+			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
+		} else if file == nil {
+			panic(fmt.Sprintf("File network.txt failed to open, and we got a file of <nil>"))
+		}
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			var a, b int
+			fmt.Sscanf(scanner.Text(), "%d %d", &a, &b)
+			AddSimPeer(fnodes, a, b)
+		}
 	case "square":
 		side := int(math.Sqrt(float64(cnt)))
 
@@ -368,13 +395,7 @@ func NetStart(s *state.State) {
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
 
-	states := make([]*state.State, 0)
-	for _, f := range fnodes {
-		states = append(states, f.State)
-	}
-	_ = states
-	_ = controlPanel.INDEX_HTML
-	go controlPanel.ServeControlPanel(states, connectionMetricsChannel, p2pNetwork, Build)
+	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
 	SimControl(listenTo)
 }

@@ -51,11 +51,14 @@ type State struct {
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
+	Replay                  *Replay
+	DropRate                int
+
 	ControlPanelPort        int
 	ControlPanelPath        string
 	ControlPanelSetting     int
-	Replay                  *Replay
-	DropRate                int
+	ControlPanelChannel     chan DisplayState
+	ControlPanelDataRequest bool // If true, update Display state
 
 	// Network Configuration
 	Network           string
@@ -108,15 +111,16 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// Server State
-	StartDelay    int64 // Time in Milliseconds since the last DBState was applied
-	RunLeader     bool
-	LLeaderHeight uint32
-	Leader        bool
-	LeaderVMIndex int
-	LeaderPL      *ProcessList
-	OneLeader     bool
-	OutputAllowed bool
-	CurrentMinute int
+	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
+	StartDelayLimit int64
+	RunLeader       bool
+	LLeaderHeight   uint32
+	Leader          bool
+	LeaderVMIndex   int
+	LeaderPL        *ProcessList
+	OneLeader       bool
+	OutputAllowed   bool
+	CurrentMinute   int
 
 	EOMsyncing bool
 
@@ -422,6 +426,7 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
+	s.ControlPanelChannel = make(chan DisplayState, 20)
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
 	s.TimeOffset = new(primitives.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
@@ -535,6 +540,7 @@ func (s *State) Init() {
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
+
 	//LoadIdentityCache(s)
 	//StubIdentityCache(s)
 	//needed for multiple nodes with FER.  remove for singe node launch
@@ -829,7 +835,9 @@ func (s *State) UpdateState() (progress bool) {
 	s.catchupEBlocks()
 
 	s.SetString()
-
+	if s.ControlPanelDataRequest {
+		s.CopyStateToControlPanel()
+	}
 	return
 }
 
@@ -1065,6 +1073,20 @@ func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
 }
 
+func (s *State) GetNetworkID() uint32 {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return constants.MAIN_NETWORK_ID
+	case constants.NETWORK_TEST:
+		return constants.TEST_NETWORK_ID
+	case constants.NETWORK_LOCAL:
+		return constants.LOCAL_NETWORK_ID
+	case constants.NETWORK_CUSTOM:
+		return constants.CUSTOM_NETWORK_ID
+	}
+	return uint32(0)
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }
@@ -1130,7 +1152,6 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
-
 	if !s.Status {
 		return
 	}

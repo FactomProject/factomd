@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"os"
 )
 
 var _ = fmt.Print
@@ -26,25 +27,33 @@ func LoadDatabase(s *State) {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
 
-	s.Println("Loading ", blkCnt, " Directory Blocks")
+	t := time.Now()
 
 	//msg, err := s.LoadDBState(blkCnt)
 
 	for i := 0; true; i++ {
+		if i > 0 && i%1000 == 0 {
+			since := time.Since(t)
+			ss := float64(since.Nanoseconds()) / 1000000000
+			bps := float64(i) / ss
+			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d Blocks per second %8.2f\n", s.FactomNodeName, i, bps))
+		}
 		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
 			s.Println(err.Error())
+			os.Stderr.WriteString(fmt.Sprintf("%20s Error reading database at block %d: %s\n", s.FactomNodeName, i, err.Error()))
 			break
 		} else {
 			if msg != nil {
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 100 {
-					for len(s.InMsgQueue()) > 30 {
+				if len(s.InMsgQueue()) > 500 {
+					for len(s.InMsgQueue()) > 200 {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
 				s.InMsgQueue() <- msg
 			} else {
+				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break
 			}
 		}

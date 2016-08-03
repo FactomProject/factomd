@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IDirectoryBlock interface {
 	Printable
 	DatabaseBlockWithEntries
@@ -48,6 +46,8 @@ type IDirectoryBlockHeader interface {
 	SetDBHeight(uint32)
 	GetBlockCount() uint32
 	SetBlockCount(uint32)
+	GetNetworkID() uint32
+	SetNetworkID(uint32)
 	GetTimestamp() Timestamp
 	SetTimestamp(Timestamp)
 }

@@ -1,12 +1,12 @@
 package dataDumpFormatting
 
 import (
-	"fmt"
+//"fmt"
 
-	"github.com/FactomProject/factomd/state"
+//"github.com/FactomProject/factomd/state"
 )
 
-func RawSummary(fnodes []*state.State) string {
+/*func RawSummary(fnodes []*state.State) string {
 	out := ""
 	prt := "===SummaryStart===\n"
 	for _, f := range fnodes {
@@ -142,4 +142,4 @@ func messageLists(fnodes []*state.State) string {
 	prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
 
 	return prt
-}
+}*/

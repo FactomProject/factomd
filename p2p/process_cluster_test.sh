@@ -3,7 +3,7 @@ echo "run this from factomproject/factomd eg:"
 echo "$ ./p2p/process_cluster_test.sh"
 echo
 echo "Compiling..."
-go install 
+go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`"
 if [ $? -eq 0 ]; then
     pkill factomd
     echo "Running..."

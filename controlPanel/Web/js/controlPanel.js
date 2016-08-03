@@ -6,6 +6,15 @@ var serverOnline = false
 // Used to update some things less frequently
 var skipInterval = false
 
+$(window).load(
+    function() {
+      updateHTML()
+      setTimeout(function () {
+            updateHTML()
+      }, 1000);
+    }
+);
+
 function updateHTML() {
   $.ajax('/', {
     success: function(){
@@ -183,19 +192,25 @@ function updateTransactions() {
 
 // 3 Queriers in Batch
 function updateHeight() {
-  resp = batchQueryState("myHeight,leaderHeight,completeHeight",function(resp){
+  resp = batchQueryState("myHeight,leaderHeight,completeHeight,channelLength",function(resp){
     obj = JSON.parse(resp)
     respOne = obj[0].Height
     respTwo = obj[1].Height
     respThree = obj[2].Height
+    respFour = obj[3].length
 
     currentHeight = parseInt(respOne)
     $("#nodeHeight").val(respOne)
 
     leaderHeight = parseInt(respTwo)
     updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
-    percent = (currentHeight/leaderHeight) * 100
-    percent = Math.floor(percent)
+    percent = 0
+    if(leaderHeight == 0) {
+      percent = 100
+    } else {
+      percent = (currentHeight/leaderHeight) * 100
+      percent = Math.floor(percent)
+    }
     $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
 
     //$("#nodeHeight").val(resp)
@@ -204,12 +219,20 @@ function updateHeight() {
     percent = (completeHeight/leaderHeight) * 100
     percent = Math.floor(percent)
     $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
+
+    // DisplayState Channel length
+    // console.log(respFour)
   })
 }
 
 function updateProgressBar(id, current, max) {
-  percent = (current/max) * 100
-  $(id).width(percent+ "%")
+  if(max == 0) {
+    percent = (current/max) * 100
+    $(id).width("100%")
+  } else {
+    percent = (current/max) * 100
+    $(id).width(percent+ "%")
+  }
 }
 
 var peerHashes = [""]
@@ -230,8 +253,8 @@ function updateAllPeers() {
       //$("#peerList > tfoot > tr > #peerquality").text("0")
     } else {
       //$("#peerList > tfoot > tr > #peerquality").text(formatQuality(obj.PeerQualityAvg))
-      $("#peerList > tfoot > tr > #up").text(formatBytes(obj.BytesSentTotal, obj.MessagesSent))
-      $("#peerList > tfoot > tr > #down").text(formatBytes(obj.BytesReceivedTotal, obj.MessagesReceived))
+      $("#peerList > tfoot > tr > #up").text(formatBytes(respOne.BytesSentTotal, respOne.MessagesSent))
+      $("#peerList > tfoot > tr > #down").text(formatBytes(respOne.BytesReceivedTotal, respOne.MessagesReceived))
     }
     // Table Body
     if(resp.length == 0) {
@@ -241,6 +264,9 @@ function updateAllPeers() {
       return
     }
     peerHashes = [""]
+
+    // To avoid hundreds of new html elements updated in a quick span, it will be limited.
+    newPeers = 0
     for (index in resp) {
       peer = resp[index]
       peerHashes.push(peer.PeerHash)
@@ -252,14 +278,16 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#disconnect").attr("value", peer.PeerHash)
 
           $("#" + peer.Hash).find("#disconnect").click(function(){
-            queryState("disconnect", jQuery(this).val(), function(resp){
+            queryState("disconnect", jQuery(this).attr("value"), function(resp){
               obj = JSON.parse(resp)
+              console.log(obj)
               if(obj.Access == "denied") {
                 $("#" + obj.Id).find("#disconnect").addClass("disabled")
                 $("#" + obj.Id).find("#disconnect").text("Denied")
+              } else {
+                  $("#" + obj.Id).find("#disconnect").addClass("disabled")
+                  $("#" + obj.Id).find("#disconnect").text("Attempting")
               }
-              $("#" + obj.Id).find("#disconnect").addClass("disabled")
-              $("#" + obj.Id).find("#disconnect").text("Attempting")
             })
           })
           $("#" + peer.Hash).foundation()
@@ -305,17 +333,19 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
         }
       } else {
-        // <td id='ip'><span data-tooltip class='has-tip top' title='ISP(geo130.comcast.net), Origin(USA)''>Loading...</span></td>\
-        $("#peerList > tbody").prepend("\
-        <tr id='" + peer.Hash + "'>\
-            <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
-            <td id='connected'></td>\
-            <td id='peerquality'></td>\
-            <td id='momentconnected'></td>\
-            <td id='sent' value='-10'></td>\
-            <td id='received' value='-10'></td>\
-            <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
-        </tr>")
+        newPeers = newPeers + 1
+        if (newPeers < 20) { // If over 20 new peers, only load 20. Will get remaining next pass.
+          $("#peerList > tbody").prepend("\
+          <tr id='" + peer.Hash + "'>\
+              <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+              <td id='connected'></td>\
+              <td id='peerquality'></td>\
+              <td id='momentconnected'></td>\
+              <td id='sent' value='-10'></td>\
+              <td id='received' value='-10'></td>\
+              <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+          </tr>")
+        }
 
       }
     }

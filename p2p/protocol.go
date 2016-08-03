@@ -21,7 +21,8 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 	highWaterMark := int(float64(StandardChannelSize) * 0.90)
 	switch {
 	case highWaterMark < len(channel):
-		silence("protocol", "nonBlockingChanSend() - Channel is over %90 full! \n channel: \n %+v \n message: \n %+v \n", channel, message)
+		silence("protocol", "nonBlockingChanSend() - Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n", len(channel), highWaterMark)
+		panic("Full channel.")
 		fallthrough
 	default:
 		select { // hits default if sending message would block.

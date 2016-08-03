@@ -31,16 +31,20 @@ type DataDump struct {
 
 func getDataDumps() []byte {
 	holder := new(DataDump)
-	holder.DataDump1.ShortDump = dd.ShortSummary(Fnodes)
-	holder.DataDump1.RawDump = dd.RawSummary(Fnodes)
+	DisplayStateMutex.RLock()
+	DsCopy := DisplayState.Clone()
+	DisplayStateMutex.RUnlock()
 
-	holder.DataDump2.RawDump = dd.RawProcessList(*StatePointer)
+	holder.DataDump1.ShortDump = "Currently disabled"
+	holder.DataDump1.RawDump = DsCopy.RawSummary
 
-	holder.DataDump3.RawDump = dd.RawPrintMap(*StatePointer)
+	holder.DataDump2.RawDump = DsCopy.ProcessList
 
-	holder.DataDump4.Authorities = dd.Authorities(*StatePointer)
-	holder.DataDump4.Identities = dd.Identities(*StatePointer)
-	holder.DataDump4.MyNode = dd.MyNodeInfo(*StatePointer)
+	holder.DataDump3.RawDump = DsCopy.PrintMap
+
+	holder.DataDump4.Authorities = dd.Authorities(*DsCopy)
+	holder.DataDump4.Identities = dd.Identities(*DsCopy)
+	holder.DataDump4.MyNode = dd.MyNodeInfo(*DsCopy)
 
 	holder.DataDump5.RawDump = AllConnectionsString()
 	holder.DataDump5.SortedDump = SortedConnectionString()

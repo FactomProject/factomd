@@ -4,28 +4,19 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-func RawProcessList(st state.State) string {
-	if st.IdentityChainID == nil {
+func RawProcessList(copyDS state.DisplayState) string {
+	/*if st.IdentityChainID == nil {
 		return ""
 	}
-	b := st.GetHighestRecordedBlock()
+	b := st.CurrentNodeHeight
 	pl := st.ProcessLists.Get(b)
 	if pl == nil {
 		return ""
 	}
-	return pl.String()
+	return pl.String()*/
+	return "Currently undergoing concurrency fixes."
 }
 
-func RawPrintMap(st state.State) string {
-	if st.DBStates == nil || st.IdentityChainID == nil {
-		return ""
-	}
-	nprt := ""
-	b := st.GetHighestRecordedBlock()
-	pl := st.ProcessLists.Get(b)
-	if pl != nil {
-		nprt = nprt + pl.PrintMap()
-	}
-
-	return nprt
+func RawPrintMap(copyDS state.DisplayState) string {
+	return copyDS.PrintMap
 }

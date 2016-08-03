@@ -84,6 +84,20 @@ func NewECAddress(n uint64) interfaces.IAddress {
 	return add
 }
 
+func NewECAddressPublicKeyString(n uint64) string {
+	add := NewECAddress(n)
+	return add.String()
+}
+
+func NewECAddressString(n uint64) string {
+	pub := NewECAddressPublicKeyString(n)
+	ecAddress, err := factoid.PublicKeyStringToECAddressString(pub)
+	if err != nil {
+		panic(err)
+	}
+	return ecAddress
+}
+
 func PrivateKeyToEDPub(priv []byte) []byte {
 	priv2 := new([ed25519.PrivateKeySize]byte)
 	copy(priv2[:], priv)
