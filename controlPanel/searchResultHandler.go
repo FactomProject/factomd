@@ -508,7 +508,12 @@ func getEblock(hash string) *EblockHolder {
 		} else if entry.String()[:10] == "0000000000" {
 			ent := new(EntryHolder)
 			ent.Hash = "Minute Marker"
-			ent.ChainID = entry.String()[63:]
+			num := entry.String()[63:]
+			if num == "a" {
+				num = "10"
+			}
+			ent.ChainID = num
+
 			holder.Entries = append(holder.Entries, *ent)
 			continue
 		}

@@ -18,16 +18,5 @@ func RawProcessList(copyDS state.DisplayState) string {
 }
 
 func RawPrintMap(copyDS state.DisplayState) string {
-	/*if st.DBStates == nil || st.IdentityChainID == nil {
-		return ""
-	}
-	nprt := ""
-	b := st.GetHighestRecordedBlock()
-	pl := st.ProcessLists.Get(b)
-	if pl != nil {
-		nprt = nprt + pl.PrintMap()
-	}
-
-	return nprt*/
-	return "Currently undergoing concurrency fixes."
+	return copyDS.PrintMap
 }

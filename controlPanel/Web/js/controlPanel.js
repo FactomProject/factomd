@@ -220,7 +220,8 @@ function updateHeight() {
     percent = Math.floor(percent)
     $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
 
-    console.log(respFour)
+    // DisplayState Channel length
+    // console.log(respFour)
   })
 }
 

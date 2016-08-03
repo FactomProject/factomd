@@ -35,12 +35,12 @@ func getDataDumps() []byte {
 	DsCopy := DisplayState.Clone()
 	DisplayStateMutex.RUnlock()
 
-	//holder.DataDump1.ShortDump = dd.ShortSummary(Fnodes)
-	//holder.DataDump1.RawDump= dd.RawSummary(Fnodes)
+	holder.DataDump1.ShortDump = "Currently disabled"
+	holder.DataDump1.RawDump = DsCopy.RawSummary
 
-	holder.DataDump2.RawDump = dd.RawProcessList(*DsCopy)
+	holder.DataDump2.RawDump = DsCopy.ProcessList
 
-	holder.DataDump3.RawDump = dd.RawPrintMap(*DsCopy)
+	holder.DataDump3.RawDump = DsCopy.PrintMap
 
 	holder.DataDump4.Authorities = dd.Authorities(*DsCopy)
 	holder.DataDump4.Identities = dd.Identities(*DsCopy)
