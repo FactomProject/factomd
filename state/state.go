@@ -868,6 +868,10 @@ func (s *State) catchupEBlocks() {
 	}
 }
 
+func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfaces.IFullSignature) {
+	s.ProcessLists.Get(dbheight).AddDBSig(chainID, sig)
+}
+
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }

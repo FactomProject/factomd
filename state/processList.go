@@ -69,6 +69,15 @@ type ProcessList struct {
 	Matryoshka   []interfaces.IHash      // Reverse Hash
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
+
+	// DB Sigs
+	DBSignatures []DBSig
+}
+
+// Data needed to add to admin block
+type DBSig struct {
+	ChainID   interfaces.IHash
+	Signature interfaces.IFullSignature
 }
 
 type VM struct {
@@ -146,6 +155,25 @@ func (p *ProcessList) SortFedServers() {
 				tmp := p.FedServers[j]
 				p.FedServers[j] = p.FedServers[j+1]
 				p.FedServers[j+1] = tmp
+				done = false
+			}
+		}
+		if done {
+			return
+		}
+	}
+}
+
+func (p *ProcessList) SortDBSigs() {
+	for i := 0; i < len(p.DBSignatures)-1; i++ {
+		done := true
+		for j := 0; j < len(p.DBSignatures)-1-i; j++ {
+			fs1 := p.DBSignatures[j].ChainID.Bytes()
+			fs2 := p.DBSignatures[j+1].ChainID.Bytes()
+			if bytes.Compare(fs1, fs2) > 0 {
+				tmp := p.DBSignatures[j]
+				p.DBSignatures[j] = p.DBSignatures[j+1]
+				p.DBSignatures[j+1] = tmp
 				done = false
 			}
 		}
@@ -635,6 +663,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 }
 
+func (p *ProcessList) AddDBSig(serverID interfaces.IHash, sig interfaces.IFullSignature) {
+	dbsig := new(DBSig)
+	dbsig.ChainID = serverID
+	dbsig.Signature = sig
+	p.DBSignatures = append(p.DBSignatures, *dbsig)
+	p.SortDBSigs()
+}
+
 func (p *ProcessList) String() string {
 	var buf primitives.Buffer
 	if p == nil {
@@ -722,6 +758,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
+
+	pl.DBSignatures = make([]DBSig, 0)
 
 	// If a federated server, this is the server index, which is our index in the FedServers list
 

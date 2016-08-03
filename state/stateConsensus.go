@@ -488,11 +488,6 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 }
 
 func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg interfaces.IMsg) bool {
-	//fmt.Println("DEBUG:", s.ComputeVMIndex(constants.ADMIN_CHAINID), s.GetLeaderVM(), s.GetIdentityChainID().String())
-	/*if s.GetLeaderVM() != s.ComputeVMIndex(constants.ADMIN_CHAINID) {
-		return true
-	}*/
-	//fmt.Println("DEBUG: Process ChanegServerKey", s.GetIdentityChainID().String())
 	ask, ok := changeServerKeyMsg.(*messages.ChangeServerKeyMsg)
 	if !ok {
 		return true
@@ -601,6 +596,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
 
+	// Monitor key changes for fed/audit servers
 	LoadIdentityByEntry(msg.Entry, s, dbheight, false)
 
 	s.IncEntries()
@@ -705,7 +701,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			if s.Leader {
 				dbs := new(messages.DirectoryBlockSignature)
-				dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = s.LLeaderHeight
 				dbs.Timestamp = s.GetTimestamp()
@@ -770,8 +767,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.DBSigProcessed <= 0 {
 			s.DBSig = false
 			s.Syncing = false
-
 		}
+		//s.LeaderPL.AdminBlock
 		return true
 	}
 
@@ -794,10 +791,30 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		if !dbs.DirectoryBlockKeyMR.IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR()) {
-			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockKeyMR.String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetKeyMR().String()[:10])
+		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR()) {
+			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
+
+		// Adds DB Sig to be added to Admin block if passes sig checks
+		allChecks := false
+		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
+		if err != nil {
+			fmt.Println("Debug: DBSig Signature Error, Marshal binary errored")
+		} else {
+			if !dbs.DBSignature.Verify(data) {
+				fmt.Println("Debug: DBSig Signature Error, Verify errored")
+			} else {
+				if valid, err := s.VerifyFederatedSignature(data, dbs.DBSignature.GetSignature()); err == nil && valid {
+					allChecks = true
+				}
+			}
+		}
+
+		if allChecks {
+			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
+		}
+
 		dbs.Processed = true
 		s.DBSigProcessed++
 		vm.Synced = true
@@ -814,6 +831,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if !dbstate.Saved {
 				dbstate.ReadyToSave = true
 				s.DBStates.SaveDBStateToDB(dbstate)
+				//s.LeaderPL.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
 			}
 		} else {
 			s.MismatchCnt++
@@ -832,6 +850,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.DBSigDone = true
 	}
 	return false
+	/*
+		err := s.LeaderPL.AdminBlock.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
+		if err != nil {
+			fmt.Printf("Error in adding DB sig to admin block, %s\n", err.Error())
+		}
+	*/
 }
 
 func (s *State) ConsiderSaved(dbheight uint32) {

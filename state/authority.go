@@ -27,14 +27,15 @@ type Authority struct {
 }
 
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
-	return true, nil // Testing
+	//return true, nil // Testing
 	var pub [32]byte
 	tmp, err := auth.SigningKey.MarshalBinary()
 	if err != nil {
 		return false, err
 	} else {
 		copy(pub[:], tmp)
-		if !ed.Verify(&pub, msg, sig) {
+		valid := ed.Verify(&pub, msg, sig)
+		if !valid {
 			for _, histKey := range auth.KeyHistory {
 				histTemp, err := histKey.SigningKey.MarshalBinary()
 				if err != nil {
@@ -52,9 +53,12 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	return false, nil
 }
 
+// Also checks Identity list which contains pending Fed/Aud servers. TODO: Remove those
 func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
-	Authlist := st.Authorities
-	for _, auth := range Authlist {
+	for _, auth := range st.Authorities {
+		if !(auth.Status == constants.IDENTITY_FEDERATED_SERVER || auth.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
+			continue
+		}
 		valid, err := auth.VerifySignature(msg, sig)
 		if err != nil {
 			continue
@@ -64,6 +68,20 @@ func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_
 		}
 	}
 
+	// TODO: Remove, is in place so signatures valid when addserver message goes out.
+	// Current issue when new fed server takes his spot.
+	for _, id := range st.Identities {
+		if !(id.Status == constants.IDENTITY_FEDERATED_SERVER || id.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
+			continue
+		}
+		valid, err := id.VerifySignature(msg, sig)
+		if err != nil {
+			continue
+		}
+		if valid {
+			return true, nil
+		}
+	}
 	return false, fmt.Errorf("Signature Key Invalid or not Federated Server Key")
 }
 

@@ -38,6 +38,24 @@ type Identity struct {
 
 var _ interfaces.Printable = (*Identity)(nil)
 
+func (id *Identity) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
+	//return true, nil // Testing
+	var pub [32]byte
+	tmp, err := id.SigningKey.MarshalBinary()
+	if err != nil {
+		return false, err
+	} else {
+		copy(pub[:], tmp)
+		valid := ed.Verify(&pub, msg, sig)
+		if !valid {
+
+		} else {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (e *Identity) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
