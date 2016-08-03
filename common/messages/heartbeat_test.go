@@ -92,7 +92,7 @@ func TestSignAndVerifyHeartbeat(t *testing.T) {
 
 func newHeartbeat() *Heartbeat {
 	eom := new(Heartbeat)
-	eom.Timestamp.SetTimeNow()
+	eom.Timestamp = primitives.NewTimestampNow()
 	h, err := primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
 	if err != nil {
 		panic(err)
@@ -114,7 +114,7 @@ func newSignedHeartbeat() *Heartbeat {
 	if err != nil {
 		panic(err)
 	}
-	err = ack.Sign(&key)
+	err = ack.Sign(key)
 	if err != nil {
 		panic(err)
 	}

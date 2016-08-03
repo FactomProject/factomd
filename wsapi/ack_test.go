@@ -2,7 +2,7 @@ package wsapi_test
 
 import (
 	"encoding/hex"
-	"fmt"
+	//"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -42,12 +42,12 @@ func TestDecodeTransactionToHashes(t *testing.T) {
 			if tx.ECID() != entryCreditBlock.ECIDChainCommit && tx.ECID() != entryCreditBlock.ECIDEntryCommit {
 				continue
 			}
-			if tx.ECID() == entryCreditBlock.ECIDChainCommit {
+			/*if tx.ECID() == entryCreditBlock.ECIDChainCommit {
 				fmt.Println("CC!")
 			}
 			if tx.ECID() == entryCreditBlock.ECIDEntryCommit {
 				fmt.Println("EC!")
-			}
+			}*/
 			txID := tx.GetHash().String()
 			entryHash := tx.GetEntryHash().String()
 
@@ -82,7 +82,7 @@ func TestHandleV2FactoidACK(t *testing.T) {
 	for _, block := range blocks {
 		for _, tx := range block.FBlock.GetTransactions() {
 			req := AckRequest{}
-			txID := tx.GetHash().String()
+			txID := tx.GetSigHash().String()
 			req.TxID = txID
 
 			r, jError := HandleV2FactoidACK(state, req)

@@ -6,7 +6,11 @@ package wsapi
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"reflect"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -16,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/web"
-	"io/ioutil"
 )
 
 const API_VERSION string = "2.0"
@@ -34,7 +37,9 @@ func HandleV2(ctx *web.Context) {
 		return
 	}
 
+	ServersMutex.Lock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
+	ServersMutex.Unlock()
 
 	jsonResp, jsonError := HandleV2Request(state, j)
 
@@ -78,11 +83,11 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "entry-credit-balance":
 		resp, jsonError = HandleV2EntryCreditBalance(state, params)
 		break
+	case "entry-credit-rate":
+		resp, jsonError = HandleV2EntryCreditRate(state, params)
+		break
 	case "factoid-balance":
 		resp, jsonError = HandleV2FactoidBalance(state, params)
-		break
-	case "factoid-fee":
-		resp, jsonError = HandleV2FactoidFee(state, params)
 		break
 	case "factoid-submit":
 		resp, jsonError = HandleV2FactoidSubmit(state, params)
@@ -107,6 +112,12 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	case "entry-ack":
 		resp, jsonError = HandleV2EntryACK(state, params)
+		break
+	case "send-raw-message":
+		resp, jsonError = HandleV2SendRawMessage(state, params)
+		break
+	case "get-transaction":
+		resp, jsonError = HandleV2GetTranasction(state, params)
 		break
 	default:
 		jsonError = NewMethodNotFoundError()
@@ -136,9 +147,18 @@ func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives
 	ctx.Write([]byte(resp.String()))
 }
 
+func MapToObject(source interface{}, dst interface{}) error {
+	b, err := json.Marshal(source)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, dst)
+}
+
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	commitChainMsg, ok := params.(MessageRequest)
-	if !ok {
+	commitChainMsg := new(MessageRequest)
+	err := MapToObject(params, commitChainMsg)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -154,11 +174,11 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
-	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
+	resp.TxID = commit.GetSigHash().String()
 
 	return resp, nil
 }
@@ -168,8 +188,9 @@ func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	commitEntryMsg, ok := params.(EntryRequest)
-	if !ok {
+	commitEntryMsg := new(EntryRequest)
+	err := MapToObject(params, commitEntryMsg)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -185,18 +206,19 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
-	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
+	resp.TxID = commit.GetSigHash().String()
 
 	return resp, nil
 }
 
 func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	e, ok := params.(EntryRequest)
-	if ok == false {
+	e := new(EntryRequest)
+	err := MapToObject(params, e)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -213,10 +235,11 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
+	resp.EntryHash = entry.GetHash().String()
 
 	return resp, nil
 }
@@ -230,8 +253,10 @@ func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (in
 
 func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	var block interfaces.BinaryMarshallable
-	hashkey, ok := params.(HashRequest)
-	if ok == false {
+	hashkey := new(HashRequest)
+	err := MapToObject(params, hashkey)
+	if err != nil {
+		panic(reflect.TypeOf(params))
 		return nil, NewInvalidParamsError()
 	}
 
@@ -246,29 +271,19 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	var b []byte
 
 	// try to find the block data in db and return the first one found
-	if block, _ = dbase.FetchFBlockByKeyMR(h); block != nil {
+	if block, _ = dbase.FetchFBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchDBlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchDBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchABlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchABlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchEBlockByKeyMR(h); block != nil {
+	} else if block, _ = dbase.FetchEBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchECBlockByHeaderHash(h); block != nil {
+	} else if block, _ = dbase.FetchECBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-
-	} else if block, _ = dbase.FetchEntryByHash(h); block != nil {
+	} else if block, _ = dbase.FetchFBlock(h); block != nil {
 		b, _ = block.MarshalBinary()
-
-	} else if block, _ = dbase.FetchFBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchDBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchABlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchEBlockByHash(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchECBlockByHash(h); block != nil {
+	} else if block, _ = dbase.FetchEntry(h); block != nil {
 		b, _ = block.MarshalBinary()
 	} else {
 		return nil, NewEntryNotFoundError()
@@ -280,8 +295,9 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 }
 
 func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	hashkey, ok := params.(HashRequest)
-	if ok == false {
+	hashkey := new(HashRequest)
+	err := MapToObject(params, hashkey)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -299,12 +315,14 @@ func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, 
 	}
 	resp := new(ReceiptResponse)
 	resp.Receipt = receipt
+
 	return resp, nil
 }
 
 func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	keymr, ok := params.(KeyMRRequest)
-	if !ok {
+	keymr := new(KeyMRRequest)
+	err := MapToObject(params, keymr)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -316,12 +334,12 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
-	block, err := dbase.FetchDBlockByKeyMR(h)
+	block, err := dbase.FetchDBlock(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 	if block == nil {
-		block, err = dbase.FetchDBlockByHash(h)
+		block, err = dbase.FetchDBlock(h)
 		if err != nil {
 			return nil, NewInvalidHashError()
 		}
@@ -333,7 +351,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 	d := new(DirectoryBlockResponse)
 	d.Header.PrevBlockKeyMR = block.GetHeader().GetPrevKeyMR().String()
 	d.Header.SequenceNumber = int64(block.GetHeader().GetDBHeight())
-	d.Header.Timestamp = int64(block.GetHeader().GetTimestamp() * 60)
+	d.Header.Timestamp = block.GetHeader().GetTimestamp().GetTimeSeconds()
 	for _, v := range block.GetDBEntries() {
 		l := new(EBlockAddr)
 		l.ChainID = v.GetChainID().String()
@@ -345,8 +363,9 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	keymr, ok := params.(KeyMRRequest)
-	if !ok {
+	keymr := new(KeyMRRequest)
+	err := MapToObject(params, keymr)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 	e := new(EntryBlockResponse)
@@ -359,12 +378,12 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
-	block, err := dbase.FetchEBlockByKeyMR(h)
+	block, err := dbase.FetchEBlock(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 	if block == nil {
-		block, err = dbase.FetchEBlockByHash(h)
+		block, err = dbase.FetchEBlock(h)
 		if err != nil {
 			return nil, NewInvalidHashError()
 		}
@@ -379,7 +398,7 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	e.Header.DBHeight = int64(block.GetHeader().GetDBHeight())
 
 	if dblock, err := dbase.FetchDBlockByHeight(block.GetHeader().GetDBHeight()); err == nil {
-		e.Header.Timestamp = int64(dblock.GetHeader().GetTimestamp() * 60)
+		e.Header.Timestamp = dblock.GetHeader().GetTimestamp().GetTimeSeconds()
 	}
 
 	// create a map of possible minute markers that may be found in the
@@ -413,8 +432,9 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	hashkey, ok := params.(HashRequest)
-	if !ok {
+	hashkey := new(HashRequest)
+	err := MapToObject(params, hashkey)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 	e := new(EntryResponse)
@@ -427,7 +447,7 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
-	entry, err := dbase.FetchEntryByHash(h)
+	entry, err := dbase.FetchEntry(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
@@ -445,8 +465,9 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	chainid, ok := params.(ChainIDRequest)
-	if !ok {
+	chainid := new(ChainIDRequest)
+	err := MapToObject(params, chainid)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 	h, err := primitives.HexToHash(chainid.ChainID)
@@ -470,13 +491,13 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ecadr, ok := params.(AddressRequest)
-	if !ok {
+	ecadr := new(AddressRequest)
+	err := MapToObject(params, ecadr)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
 	var adr []byte
-	var err error
 
 	if primitives.ValidateECUserStr(ecadr.Address) {
 		adr = primitives.ConvertUserStrToAddress(ecadr.Address)
@@ -503,21 +524,21 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 	return resp, nil
 }
 
-func HandleV2FactoidFee(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	resp := new(FactoidFeeResponse)
-	resp.Fee = int64(state.GetFactoshisPerEC())
+func HandleV2EntryCreditRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	resp := new(EntryCreditRateResponse)
+	resp.Rate = int64(state.GetPredictiveFER())
 
 	return resp, nil
 }
 
 func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	t, ok := params.(TransactionRequest)
-	if !ok {
+	t := new(TransactionRequest)
+	err := MapToObject(params, t)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
 	msg := new(messages.FactoidTransaction)
-	msg.Timestamp = state.GetTimestamp()
 
 	p, err := hex.DecodeString(t.Transaction)
 	if err != nil {
@@ -534,22 +555,23 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 		return nil, NewInvalidTransactionError()
 	}
 
-	state.InMsgQueue() <- msg
+	state.APIQueue() <- msg
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"
+	resp.TxID = msg.Transaction.GetSigHash().String()
 
 	return resp, nil
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fadr, ok := params.(AddressRequest)
-	if !ok {
+	fadr := new(AddressRequest)
+	err := MapToObject(params, fadr)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
 	var adr []byte
-	var err error
 
 	if primitives.ValidateFUserStr(fadr.Address) {
 		adr = primitives.ConvertUserStrToAddress(fadr.Address)
@@ -592,4 +614,89 @@ func HandleV2Properties(state interfaces.IState, params interface{}) (interface{
 	p.FactomdVersion = vtos(state.GetFactomdVersion())
 	p.ApiVersion = API_VERSION
 	return p, nil
+}
+
+func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	r := new(SendRawMessageRequest)
+	err := MapToObject(params, r)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	data, err := hex.DecodeString(r.Message)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	_, msg, err := messages.UnmarshalMessageData(data)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	state.APIQueue() <- msg
+
+	resp := new(SendRawMessageResponse)
+	resp.Message = "Successfully sent the message"
+
+	return resp, nil
+}
+
+func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	hashkey := new(HashRequest)
+	err := MapToObject(params, hashkey)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	h, err := primitives.HexToHash(hashkey.Hash)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	fTx, err := dbase.FetchFactoidTransaction(h)
+	if err != nil {
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
+	}
+
+	ecTx, err := dbase.FetchECTransaction(h)
+	if err != nil {
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
+	}
+
+	e, err := dbase.FetchEntry(h)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	blockHash, err := dbase.FetchIncludedIn(h)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	answer := new(TransactionResponse)
+	answer.ECTranasction = ecTx
+	answer.FactoidTransaction = fTx
+	answer.Entry = e
+
+	answer.IncludedInTransactionBlock = blockHash.String()
+
+	blockHash, err = dbase.FetchIncludedIn(blockHash)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	answer.IncludedInDirectoryBlock = blockHash.String()
+
+	dBlock, err := dbase.FetchDBlock(blockHash)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	answer.IncludedInDirectoryBlockHeight = int64(dBlock.GetDatabaseHeight())
+
+	return answer, nil
 }

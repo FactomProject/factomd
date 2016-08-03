@@ -28,6 +28,7 @@ type EOM struct {
 	FactoidVM bool
 
 	//Not marshalled
+	Processed  bool
 	hash       interfaces.IHash
 	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
 }
@@ -40,7 +41,7 @@ func (a *EOM) IsSameAs(b *EOM) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.Minute != b.Minute {
@@ -75,6 +76,10 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessEOM(dbheight, e)
 }
 
+func (m *EOM) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *EOM) GetHash() interfaces.IHash {
 	data, err := m.MarshalForSignature()
 	if err != nil {
@@ -96,6 +101,9 @@ func (m *EOM) GetMsgHash() interfaces.IHash {
 }
 
 func (m *EOM) GetTimestamp() interfaces.Timestamp {
+	if m.Timestamp == nil {
+		m.Timestamp = new(primitives.Timestamp)
+	}
 	return m.Timestamp
 }
 
@@ -139,24 +147,16 @@ func (m *EOM) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *EOM) Leader(state interfaces.IState) bool {
-	return m.IsLocal()
+func (m *EOM) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Execute the leader functions of the given message
-func (m *EOM) LeaderExecute(state interfaces.IState) error {
-	m.SetLocal(false)
-	return state.LeaderExecuteEOM(m)
+func (m *EOM) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecuteEOM(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *EOM) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *EOM) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *EOM) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteEOM(m)
 }
 
 func (e *EOM) JSONByte() ([]byte, error) {
@@ -200,6 +200,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -296,7 +297,7 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[:3]=%x hash[:3]=%x %s",
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[%x] hash[%x] %s",
 		"EOM",
 		m.VMIndex,
 		m.Minute,

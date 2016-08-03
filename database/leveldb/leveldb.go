@@ -5,6 +5,7 @@
 package leveldb
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -25,6 +26,36 @@ type LevelDB struct {
 }
 
 var _ interfaces.IDatabase = (*LevelDB)(nil)
+
+func (db *LevelDB) ListAllBuckets() ([][]byte, error) {
+	//TODO: fix Level to solve this issue
+	return nil, fmt.Errorf("Unable to fetch buckets due to LevelDB design")
+	/*
+		db.dbLock.RLock()
+		defer db.dbLock.RUnlock()
+
+		answer := [][]byte{}
+
+		iter := db.lDB.NewIterator(&util.Range{Start: nil, Limit: nil}, db.ro)
+
+		for iter.Next() {
+			k := iter.Key()
+			//Assuming bucket is only 1 byte long!
+			answer = append(answer, k[:1])
+		}
+		iter.Release()
+		err := iter.Error()
+		if err != nil {
+			return nil, err
+		}
+
+		return answer, nil*/
+}
+
+// Can't trim a real database
+func (db *LevelDB) Trim() {
+
+}
 
 func (db *LevelDB) Delete(bucket []byte, key []byte) error {
 	db.dbLock.Lock()
@@ -161,7 +192,7 @@ func (db *LevelDB) ListAllKeys(bucket []byte) (keys [][]byte, err error) {
 	return answer, nil
 }
 
-func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
+func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, [][]byte, error) {
 	db.dbLock.RLock()
 	defer db.dbLock.RUnlock()
 
@@ -172,6 +203,7 @@ func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAnd
 	iter := db.lDB.NewIterator(&util.Range{Start: fromKey, Limit: toKey}, db.ro)
 
 	answer := []interfaces.BinaryMarshallableAndCopyable{}
+	keys := [][]byte{}
 
 	for iter.Next() {
 		v := iter.Value()
@@ -180,17 +212,18 @@ func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAnd
 		tmp := sample.New()
 		err := tmp.UnmarshalBinary(vCopy)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		keys = append(keys, iter.Key()[len(bucket):])
 		answer = append(answer, tmp)
 	}
 	iter.Release()
 	err := iter.Error()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return answer, nil
+	return answer, keys, nil
 }
 
 func NewLevelDB(filename string, create bool) (interfaces.IDatabase, error) {

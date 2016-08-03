@@ -1,0 +1,31 @@
+{{define "EC"}}
+	{{template "header"}}
+	<!-- Body -->
+	<section id="explorer">
+		<div class="row">
+			<div class="columns">
+				<h1>Address Data</h1>
+                    <table>
+                    	<tbody>
+                              <tr>
+                                   <td>Address:</td>
+                                   <td>{{.Address}}</td>
+                              </tr>
+                    		<tr>
+                    			<td>Amount Available:</td>
+                    			<td>{{.Balance}} Entry Credits</td>
+                    		</tr>
+                    		<tr>
+                    			<td>Type:</td>
+                    			<td>Entry Credit</td>
+                    		</tr>
+                    	</tbody>
+                    </table>
+			</div>
+		</div>
+	</section>
+	<!-- End Body -->
+     {{template "scripts"}}
+     {{template "tools"}}
+     {{template "footer"}}
+{{end}}

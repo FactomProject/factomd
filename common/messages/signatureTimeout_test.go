@@ -93,7 +93,7 @@ func TestSignAndVerifySignatureTimeout(t *testing.T) {
 
 func newSignatureTimeout() *SignatureTimeout {
 	msg := new(SignatureTimeout)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }
@@ -105,7 +105,7 @@ func newSignedSignatureTimeout() *SignatureTimeout {
 	if err != nil {
 		panic(err)
 	}
-	err = msg.Sign(&key)
+	err = msg.Sign(key)
 	if err != nil {
 		panic(err)
 	}

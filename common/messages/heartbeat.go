@@ -32,7 +32,7 @@ func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -68,6 +68,10 @@ func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 
 func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
 	return true
+}
+
+func (m *Heartbeat) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *Heartbeat) GetHash() interfaces.IHash {
@@ -120,6 +124,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -231,32 +236,15 @@ func (m *Heartbeat) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *Heartbeat) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
+func (m *Heartbeat) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
-func (m *Heartbeat) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *Heartbeat) LeaderExecute(state interfaces.IState) {
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *Heartbeat) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *Heartbeat) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *Heartbeat) FollowerExecute(interfaces.IState) {
 }
 
 func (e *Heartbeat) JSONByte() ([]byte, error) {

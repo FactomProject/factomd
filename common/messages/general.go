@@ -14,14 +14,19 @@ import (
 )
 
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
+	_, msg, err := UnmarshalMessageData(data)
+	return msg, err
+}
+
+func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err error) {
 	if data == nil {
-		return nil, fmt.Errorf("No data provided")
+		return nil, nil, fmt.Errorf("No data provided")
 	}
 	if len(data) == 0 {
-		return nil, fmt.Errorf("No data provided")
+		return nil, nil, fmt.Errorf("No data provided")
 	}
 	messageType := data[0]
-	var msg interfaces.IMsg
+
 	switch messageType {
 	case constants.EOM_MSG:
 		msg = new(EOM)
@@ -29,6 +34,10 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(Ack)
 	case constants.AUDIT_SERVER_FAULT_MSG:
 		msg = new(AuditServerFault)
+	case constants.FED_SERVER_FAULT_MSG:
+		msg = new(ServerFault)
+	case constants.FULL_SERVER_FAULT_MSG:
+		msg = new(FullServerFault)
 	case constants.COMMIT_CHAIN_MSG:
 		msg = new(CommitChainMsg)
 	case constants.COMMIT_ENTRY_MSG:
@@ -45,6 +54,8 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(InvalidDirectoryBlock)
 	case constants.MISSING_MSG:
 		msg = new(MissingMsg)
+	case constants.MISSING_MSG_RESPONSE:
+		msg = new(MissingMsgResponse)
 	case constants.MISSING_DATA:
 		msg = new(MissingData)
 	case constants.DATA_RESPONSE:
@@ -61,18 +72,22 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 		msg = new(DBStateMsg)
 	case constants.ADDSERVER_MSG:
 		msg = new(AddServerMsg)
+	case constants.CHANGESERVER_KEY_MSG:
+		msg = new(ChangeServerKeyMsg)
+	case constants.REMOVESERVER_MSG:
+		msg = new(RemoveServerMsg)
 	default:
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
-		return nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
+		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
-	err := msg.UnmarshalBinary(data[:])
+	newdata, err = msg.UnmarshalBinaryData(data[:])
 	if err != nil {
 		fmt.Sprintf("Transaction Failed to Unmarshal %x", data[0])
-		return nil, err
+		return data, nil, err
 	}
 
-	return msg, nil
+	return newdata, msg, nil
 
 }
 
@@ -84,6 +99,10 @@ func MessageName(Type byte) string {
 		return "Ack"
 	case constants.AUDIT_SERVER_FAULT_MSG:
 		return "Audit Server Fault"
+	case constants.FED_SERVER_FAULT_MSG:
+		return "Fed Server Fault"
+	case constants.FULL_SERVER_FAULT_MSG:
+		return "Full Server Fault"
 	case constants.COMMIT_CHAIN_MSG:
 		return "Commit Chain"
 	case constants.COMMIT_ENTRY_MSG:
@@ -102,6 +121,8 @@ func MessageName(Type byte) string {
 		return "Invalid Directory Block"
 	case constants.MISSING_MSG:
 		return "Missing Msg"
+	case constants.MISSING_MSG_RESPONSE:
+		return "Missing Msg Response"
 	case constants.MISSING_DATA:
 		return "Missing Data"
 	case constants.DATA_RESPONSE:

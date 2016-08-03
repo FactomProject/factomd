@@ -7,10 +7,13 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
-	"time"
 )
 
 var _ = hex.EncodeToString
@@ -30,10 +33,13 @@ type DBState struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+	Locked           bool
+	ReadyToSave      bool
 	Saved            bool
 }
 
 type DBStateList struct {
+	SrcNetwork          bool // True if I got this block from the network.
 	LastTime            interfaces.Timestamp
 	SecondsBetweenTests int
 	Lastreq             int
@@ -43,37 +49,53 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 3 // Default
+const SecondsBetweenTests = 20 // Default
 
 func (list *DBStateList) String() string {
-	str := "\nDBStates\n"
-	str = fmt.Sprintf("%s  Base      = %d\n", str, list.Base)
-	str = fmt.Sprintf("%s  timestamp = %s\n", str, list.LastTime.String())
-	str = fmt.Sprintf("%s  Complete  = %d\n", str, list.Complete)
+	str := "\n========DBStates Start=======\nddddd DBStates\n"
+	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
+	ts := "-nil-"
+	if list.LastTime != nil {
+		ts = list.LastTime.String()
+	}
+	str = fmt.Sprintf("dddd %s  timestamp = %s\n", str, ts)
+	str = fmt.Sprintf("dddd %s  Complete  = %d\n", str, list.Complete)
 	rec := "M"
 	last := ""
 	for i, ds := range list.DBStates {
-		rec = "M"
-		if ds != nil && ds.DirectoryBlock != nil {
-			list.State.DBMutex.Lock()
-			dblk, _ := list.State.DB.FetchDBlockByHash(ds.DirectoryBlock.GetKeyMR())
-			list.State.DBMutex.Unlock()
-			if dblk != nil {
-				rec = "R"
-			}
-			if ds.Saved {
-				rec = "S"
+		rec = "?"
+		if ds != nil {
+			rec = "nil"
+			if ds.DirectoryBlock != nil {
+				rec = "x"
+
+				dblk, _ := list.State.DB.FetchDBlock(ds.DirectoryBlock.GetKeyMR())
+				if dblk != nil {
+					rec = "s"
+				}
+
+				if ds.Locked {
+					rec = rec + "L"
+				}
+
+				if ds.ReadyToSave {
+					rec = rec + "R"
+				}
+
+				if ds.Saved {
+					rec = rec + "S"
+				}
 			}
 		}
 		if last != "" {
 			str = last
 		}
-		str = fmt.Sprintf("%s  %1s-DState\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
-		if rec == "M" && last == "" {
+		str = fmt.Sprintf("dddd %s  %1s-DState ?-(DState nil) x-(Not in DB) s-(In DB) L-(Locked) R-(Ready to Save) S-(Saved)\n   DState Height: %d\n%s", str, rec, list.Base+uint32(i), ds.String())
+		if rec == "?" && last == "" {
 			last = str
 		}
 	}
-
+	str = str + "dddd\n============DBStates End==========\n"
 	return str
 }
 
@@ -85,7 +107,7 @@ func (ds *DBState) String() string {
 		str = "  Directory Block = <nil>\n"
 	} else {
 
-		str = fmt.Sprintf("%s      DBlk Height   = %v\n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
+		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      FBlock        = %x \n", str, ds.FactoidBlock.GetHash().Bytes()[:5])
@@ -95,13 +117,16 @@ func (ds *DBState) String() string {
 }
 
 func (list *DBStateList) GetHighestRecordedBlock() uint32 {
-	ht := uint32(0)
+	ht := list.Base
 	for i, dbstate := range list.DBStates {
-		if dbstate != nil && dbstate.Saved {
+		if dbstate != nil && dbstate.Locked {
 			ht = list.Base + uint32(i)
+		} else {
+			if dbstate == nil {
+				return ht
+			}
 		}
 	}
-
 	return ht
 }
 
@@ -113,10 +138,6 @@ func (list *DBStateList) Catchup() {
 	dbsHeight := list.GetHighestRecordedBlock()
 
 	// We only check if we need updates once every so often.
-	if int(now)/1000-int(list.LastTime)/1000 < SecondsBetweenTests {
-		return
-	}
-	list.LastTime = now
 
 	begin := -1
 	end := -1
@@ -138,15 +159,24 @@ func (list *DBStateList) Catchup() {
 		plHeight := list.State.GetHighestKnownBlock()
 		// Don't worry about the block initialization case.
 		if plHeight < 1 {
+			list.LastTime = nil
 			return
 		}
 
-		if plHeight > dbsHeight && plHeight-dbsHeight > 1 {
-			list.State.ProcessLists.Reset(dbsHeight)
+		if plHeight >= dbsHeight && plHeight-dbsHeight > 1 {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
+			list.LastTime = nil
 			return
+		}
+
+		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
+			begin++
+			if uint32(begin) >= plHeight || begin > end {
+				list.LastTime = nil
+				return
+			}
 		}
 	}
 
@@ -157,14 +187,250 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
+	if list.LastTime != nil && now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < SecondsBetweenTests {
+		return
+	}
+
+	list.LastTime = now
+
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
+		list.State.RunLeader = false
+		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		list.State.NetworkOutMsgQueue() <- msg
-		list.State.stallQueue = make(chan interfaces.IMsg, 10000)
-		list.State.NewMinute()
+		list.LastTime = now
 	}
 
+}
+
+// a contains b, returns true
+func containsServer(haystack []interfaces.IFctServer, needle interfaces.IFctServer) bool {
+	for _, hay := range haystack {
+		if needle.GetChainID().IsSameAs(hay.GetChainID()) {
+			return true
+		}
+	}
+	return false
+}
+
+// p is previous, d is current
+func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
+	// If this block is new, then make sure all hashes are fully computed.
+	if !d.isNew || p == nil {
+		return
+	}
+
+	currentDBHeight := d.DirectoryBlock.GetHeader().GetDBHeight()
+	previousDBHeight := p.DirectoryBlock.GetHeader().GetDBHeight()
+
+	d.DirectoryBlock.MarshalBinary()
+
+	hash, err := p.EntryCreditBlock.HeaderHash()
+	if err != nil {
+		panic(err.Error())
+	}
+	d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
+
+	hash, err = p.EntryCreditBlock.GetFullHash()
+	if err != nil {
+		panic(err.Error())
+	}
+	d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
+	d.EntryCreditBlock.GetHeader().SetDBHeight(currentDBHeight)
+
+	// Admin Block Fixup
+	previousPL := list.State.ProcessLists.Get(previousDBHeight)
+	currentPL := list.State.ProcessLists.Get(currentDBHeight)
+
+	// Servers
+	previousFeds := previousPL.FedServers
+	currentFeds := currentPL.FedServers
+	currentAuds := currentPL.AuditServers
+
+	// DB Sigs
+	majority := (len(currentFeds) / 2) + 1
+	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
+		if i < majority {
+			d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
+		} else {
+			break
+		}
+	}
+
+	// Correcting Server Lists (Caused by Server Faults)
+	for _, cf := range currentFeds {
+		if !containsServer(previousFeds, cf) {
+			// Promote to federated
+			index := list.State.isIdentityChain(cf.GetChainID())
+			if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
+				list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) {
+				addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
+				d.AdminBlock.AddFirstABEntry(addEntry)
+			}
+		}
+	}
+
+	for _, pf := range previousFeds {
+		if !containsServer(currentFeds, pf) {
+			// Option 1: Remove as a server
+			if list.State.isAuthorityChain(pf.GetChainID()) != -1 {
+				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
+				d.AdminBlock.AddFirstABEntry(removeEntry)
+			}
+			// Option 2: Demote to Audit if it is there
+			/*if containsServer(currentAuds, pf) {
+				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
+				d.AdminBlock.AddFirstABEntry(demoteEntry)
+			}*/
+			_ = currentAuds
+		}
+	}
+
+	hash, err = p.AdminBlock.BackReferenceHash()
+	if err != nil {
+		panic(err.Error())
+	}
+	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
+
+	p.FactoidBlock.SetDBHeight(previousDBHeight)
+	d.FactoidBlock.SetDBHeight(currentDBHeight)
+	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
+	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerKeyMR())
+
+	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
+	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
+	d.DirectoryBlock.GetHeader().SetTimestamp(list.State.GetLeaderTimestamp())
+	d.DirectoryBlock.GetHeader().SetNetworkID(list.State.GetNetworkID())
+
+	d.DirectoryBlock.SetABlockHash(d.AdminBlock)
+	d.DirectoryBlock.SetECBlockHash(d.EntryCreditBlock)
+	d.DirectoryBlock.SetFBlockHash(d.FactoidBlock)
+
+	pl := list.State.ProcessLists.Get(currentDBHeight)
+
+	//for _, eb := range pl.NewEBlocks {
+	//	eb.BuildHeader()
+	//	eb.BodyKeyMR()
+	//	eb.KeyMR()
+	//}
+
+	for _, eb := range pl.NewEBlocks {
+		key, err := eb.KeyMR()
+		if err != nil {
+			panic(err.Error())
+		}
+		d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
+	}
+
+	d.DirectoryBlock.BuildBodyMR()
+	d.DirectoryBlock.MarshalBinary()
+
+	progress = true
+	d.isNew = false
+	return
+}
+
+func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
+	if d.Locked || d.isNew {
+		return
+	}
+
+	list.LastTime = nil // If I saved or processed stuff, I'm good for a while
+
+	// Any updates required to the state as established by the AdminBlock are applied here.
+	d.AdminBlock.UpdateState(list.State)
+
+	// Process the Factoid End of Block
+	fs := list.State.GetFactoidState()
+	fs.AddTransactionBlock(d.FactoidBlock)
+	fs.AddECBlock(d.EntryCreditBlock)
+	fs.ProcessEndOfBlock(list.State)
+
+	// Promote the currently scheduled next FER
+	list.State.ProcessRecentFERChainEntries()
+
+	// Step my counter of Complete blocks
+	i := d.DirectoryBlock.GetHeader().GetDBHeight() - list.Base
+	if uint32(i) > list.Complete {
+		list.Complete = uint32(i)
+	}
+	progress = true
+	d.Locked = true // Only after all is done will I admit this state has been saved.
+
+	return
+}
+
+func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
+
+	if !d.Locked || !d.ReadyToSave {
+		return
+	}
+
+	if d.Saved {
+		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
+		if dblk == nil {
+			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
+				list.State.FactomNodeName,
+				d.DirectoryBlock.GetHeader().GetDBHeight(),
+				d.DirectoryBlock.GetKeyMR().Bytes()))
+		}
+		return
+	}
+
+	head, _ := list.State.DB.FetchDirectoryBlockHead()
+
+	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
+	// way, not all nodes in a simulation Trim() at the same time.
+	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
+	if v%4 == 0 {
+		list.State.DB.Trim()
+	}
+
+	list.State.DB.StartMultiBatch()
+
+	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
+		panic(err.Error())
+	}
+
+	if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
+		panic(err.Error())
+	}
+
+	if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
+		panic(err.Error())
+	}
+	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+	if pl != nil {
+		for _, eb := range pl.NewEBlocks {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
+				panic(err.Error())
+			}
+
+			for _, e := range eb.GetBody().GetEBEntries() {
+				if err := list.State.DB.InsertEntry(pl.GetNewEntry(e.Fixed())); err != nil {
+					panic(err.Error())
+				}
+			}
+		}
+	}
+
+	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+		panic(err.Error())
+	}
+
+	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
+		panic(err.Error())
+	}
+
+	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
+		list.State.DB.SaveDirectoryBlockHead(head)
+	}
+
+	progress = true
+	d.ReadyToSave = false
+	d.Saved = true
+	return
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
@@ -172,6 +438,8 @@ func (list *DBStateList) UpdateState() (progress bool) {
 	list.Catchup()
 
 	for i, d := range list.DBStates {
+
+		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
 
 		// Must process blocks in sequence.  Missing a block says we must stop.
 		if d == nil {
@@ -182,143 +450,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			continue
 		}
 
-		// Make sure the directory block is properly synced up with the prior block, if there
-		// is one.
-
-		list.State.DBMutex.Lock()
-		dblk, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
-		list.State.DBMutex.Unlock()
-		if dblk == nil {
-			if i > 0 {
-				p := list.DBStates[i-1]
-				if !p.Saved {
-					continue
-				}
-			}
-			list.State.DBMutex.Lock()
-			list.State.DB.StartMultiBatch()
-			list.State.DBMutex.Unlock()
-
-			//fmt.Println("Saving DBHeight ", d.DirectoryBlock.GetHeader().GetDBHeight(), " on ", list.State.GetFactomNodeName())
-
-			// If we have previous blocks, update blocks that this follower potentially constructed.  We can optimize and skip
-			// this step if we got the block from a peer.  TODO we must however check the sigantures on the
-			// block before we write it to disk.
-			if i > 0 {
-				p := list.DBStates[i-1]
-
-				hash, err := p.AdminBlock.FullHash()
-				if err != nil {
-					return
-				}
-
-				hash, err = p.EntryCreditBlock.HeaderHash()
-				if err != nil {
-					return
-				}
-				d.EntryCreditBlock.GetHeader().SetPrevHeaderHash(hash)
-
-				hash, err = p.EntryCreditBlock.Hash()
-				if err != nil {
-					return
-				}
-				d.EntryCreditBlock.GetHeader().SetPrevFullHash(hash)
-
-				d.AdminBlock.GetHeader().SetPrevFullHash(hash)
-
-				p.FactoidBlock.SetDBHeight(p.DirectoryBlock.GetHeader().GetDBHeight())
-				d.FactoidBlock.SetDBHeight(d.DirectoryBlock.GetHeader().GetDBHeight())
-				d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR().Bytes())
-				d.FactoidBlock.SetPrevFullHash(p.FactoidBlock.GetPrevFullHash().Bytes())
-
-				d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetHeader().GetFullHash())
-				d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
-				d.DirectoryBlock.GetHeader().SetTimestamp(0)
-				d.DirectoryBlock.GetDBEntries()[0].SetKeyMR(d.AdminBlock.GetHash())
-				d.DirectoryBlock.GetDBEntries()[1].SetKeyMR(d.EntryCreditBlock.GetHash())
-				d.DirectoryBlock.GetDBEntries()[2].SetKeyMR(d.FactoidBlock.GetHash())
-				pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-				for _, eb := range pl.NewEBlocks {
-					key, err := eb.KeyMR()
-					if err != nil {
-						panic(err.Error())
-					}
-					d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
-				}
-				d.DirectoryBlock.GetKeyMR()
-				_, err = d.DirectoryBlock.BuildBodyMR()
-				if err != nil {
-					panic(err.Error())
-				}
-
-			}
-			list.State.DBMutex.Lock()
-			if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
-				list.State.DBMutex.Unlock()
-				panic(err.Error())
-			}
-
-			if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
-				list.State.DBMutex.Unlock()
-				panic(err.Error())
-			}
-
-			if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
-				list.State.DBMutex.Unlock()
-				panic(err.Error())
-			}
-
-			if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
-				list.State.DBMutex.Unlock()
-				panic(err.Error())
-			}
-
-			pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-			for _, eb := range pl.NewEBlocks {
-				if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
-					list.State.DBMutex.Unlock()
-					panic(err.Error())
-				}
-				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.DB.InsertEntry(pl.NewEntries[e.Fixed()]); err != nil {
-						list.State.DBMutex.Unlock()
-						panic(err.Error())
-					}
-				}
-			}
-
-			if err := list.State.DB.ExecuteMultiBatch(); err != nil {
-				list.State.DBMutex.Unlock()
-				panic(err.Error())
-			}
-			list.State.DBMutex.Unlock()
-
+		if i > 0 {
+			progress = list.FixupLinks(list.DBStates[i-1], d)
 		}
+		progress = list.ProcessBlocks(d) || progress
 
-		list.State.DBMutex.Lock()
-		dblk2, _ := list.State.DB.FetchDBlockByKeyMR(d.DirectoryBlock.GetKeyMR())
-		list.State.DBMutex.Unlock()
-		if dblk2 == nil {
-			fmt.Printf("Failed to save the Directory Block %d %x\n",
-				d.DirectoryBlock.GetHeader().GetDBHeight(),
-				d.DirectoryBlock.GetKeyMR().Bytes()[:3])
-		}
-		list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
-		d.Saved = true                            // Only after all is done will I admit this state has been saved.
+		progress = list.SaveDBStateToDB(d) || progress
 
-		// Any updates required to the state as established by the AdminBlock are applied here.
-		d.AdminBlock.UpdateState(list.State)
+		// Make sure we move forward the Adminblock state in the process lists
+		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
 
-		// Process the Factoid End of Block
-		fs := list.State.GetFactoidState()
-		fs.AddTransactionBlock(d.FactoidBlock)
-		fs.AddECBlock(d.EntryCreditBlock)
-		fs.ProcessEndOfBlock(list.State)
-		// Step my counter of Complete blocks
-		if uint32(i) > list.Complete {
-			list.Complete = uint32(i)
-		}
-		progress = true
 	}
 	return
 }
@@ -344,21 +485,19 @@ func (list *DBStateList) Highest() uint32 {
 
 func (list *DBStateList) Put(dbState *DBState) {
 
-	// Hold off on any requests if I'm actually processing...
-	list.LastTime = list.State.GetTimestamp()
-
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
 	// Count completed states, starting from the beginning (since base starts at
 	// zero.
 	cnt := 0
+searchLoop:
 	for i, v := range list.DBStates {
-		if v == nil || v.DirectoryBlock == nil || !v.Saved {
+		if v == nil || v.DirectoryBlock == nil || !v.Locked {
 			if v != nil && v.DirectoryBlock == nil {
 				list.DBStates[i] = nil
 			}
-			break
+			break searchLoop
 		}
 		cnt++
 	}
@@ -376,9 +515,6 @@ func (list *DBStateList) Put(dbState *DBState) {
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		if list.State.GetOut() {
-			list.State.Println("Ignoring!  Block vs Base: ", dbheight, "/", list.Base)
-		}
 		return
 	}
 
@@ -389,24 +525,13 @@ func (list *DBStateList) Put(dbState *DBState) {
 	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
 	}
-
-	hash, err := dbState.AdminBlock.GetKeyMR()
-	if err != nil {
-		panic(err)
-	}
-	dbState.DirectoryBlock.GetDBEntries()[0].SetKeyMR(hash)
-	hash, err = dbState.EntryCreditBlock.Hash()
-	if err != nil {
-		panic(err)
-	}
-	dbState.DirectoryBlock.GetDBEntries()[1].SetKeyMR(hash)
-	hash = dbState.FactoidBlock.GetHash()
-	dbState.DirectoryBlock.GetDBEntries()[2].SetKeyMR(hash)
-
 }
 
-func (list *DBStateList) Get(height uint32) *DBState {
-	i := int(height) - int(list.Base)
+func (list *DBStateList) Get(height int) *DBState {
+	if height < 0 {
+		return nil
+	}
+	i := height - int(list.Base)
 	if i < 0 || i >= len(list.DBStates) {
 		return nil
 	}
@@ -421,10 +546,10 @@ func (list *DBStateList) NewDBState(isNew bool,
 
 	dbState := new(DBState)
 
-	dbState.DBHash = directoryBlock.GetHash()
-	dbState.ABHash = adminBlock.GetHash()
-	dbState.FBHash = factoidBlock.GetHash()
-	dbState.ECHash = entryCreditBlock.GetHash()
+	dbState.DBHash = directoryBlock.DatabasePrimaryIndex()
+	dbState.ABHash = adminBlock.DatabasePrimaryIndex()
+	dbState.FBHash = factoidBlock.DatabasePrimaryIndex()
+	dbState.ECHash = entryCreditBlock.DatabasePrimaryIndex()
 
 	dbState.isNew = isNew
 	dbState.DirectoryBlock = directoryBlock
@@ -433,5 +558,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.EntryCreditBlock = entryCreditBlock
 
 	list.Put(dbState)
+
 	return dbState
 }

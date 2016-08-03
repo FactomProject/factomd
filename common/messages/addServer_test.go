@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -98,9 +97,7 @@ func TestMarshalUnmarshalSignedAddServer(t *testing.T) {
 
 func newAddServer() *AddServerMsg {
 	addserv := new(AddServerMsg)
-	ts := new(interfaces.Timestamp)
-	ts.SetTimeNow()
-	addserv.Timestamp = *ts
+	addserv.Timestamp = primitives.NewTimestampNow()
 	addserv.ServerChainID = primitives.Sha([]byte("FNode0"))
 	addserv.ServerType = 0
 	return addserv
@@ -113,7 +110,7 @@ func newSignedAddServer() *AddServerMsg {
 	if err != nil {
 		panic(err)
 	}
-	err = addserv.Sign(&key)
+	err = addserv.Sign(key)
 	if err != nil {
 		panic(err)
 	}

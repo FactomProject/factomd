@@ -9,11 +9,28 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/rand"
+	"net/http"
 	"os"
 	"sort"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
+
+// config file keys:
+// MainNetworkPort
+// MainPeersFile
+// MainSeedURL
+// MainSpecialPeers
+// TestNetworkPort
+// TestPeersFile
+// TestSeedURL
+// TestSpecialPeers
+// LocalNetworkPort
+// LocalPeersFile
+// LocalSeedURL
+// LocalSpecialPeers
 
 type Discovery struct {
 	knownPeers map[string]Peer // peers we know about indexed by hash
@@ -21,7 +38,10 @@ type Discovery struct {
 	peersFilePath string     // the path to the peers.
 	lastPeerSave  time.Time  // Last time we saved known peers.
 	rng           *rand.Rand // RNG = random number generator
+	seedURL       string     // URL to the source of a list of peers
 }
+
+var UpdateKnownPeers sync.Mutex
 
 // Discovery provides the code for sharing and managing peers,
 // namely keeping track of all the peers we know about (not just the ones
@@ -29,12 +49,63 @@ type Discovery struct {
 // Controller and its routines are called from the Controllers runloop()
 // This ensures that all shared memory is accessed from that goroutine.
 
-func (d *Discovery) Init(peersFile string) *Discovery {
-	d.peersFilePath = peersFile
+func (d *Discovery) Init(peersFile string, seed string) *Discovery {
+	UpdateKnownPeers.Lock()
 	d.knownPeers = map[string]Peer{}
-	d.LoadPeers()
+	UpdateKnownPeers.Unlock()
 	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
+	d.peersFilePath = peersFile
+	d.seedURL = seed
+	d.LoadPeers()
+	d.DiscoverPeersFromSeed()
 	return d
+}
+
+// Only controller should be able to read this, but we still got
+// a concurrent read/write error, so isolating changes to knownPeers
+
+// UpdatePeer updates the values in our known peers. Creates peer if its not in there.
+func (d *Discovery) updatePeer(peer Peer) {
+	note("discovery", "Updating peer: %v", peer)
+	UpdateKnownPeers.Lock()
+	d.knownPeers[peer.Address] = peer
+	UpdateKnownPeers.Unlock()
+}
+
+// getPeer returns a known peer, if present
+func (d *Discovery) getPeer(address string) Peer {
+	UpdateKnownPeers.Lock()
+	thePeer := d.knownPeers[address]
+	UpdateKnownPeers.Unlock()
+	return thePeer
+}
+
+// UpdatePeer updates the values in our known peers. Creates peer if its not in there.
+func (d *Discovery) isPeerPresent(peer Peer) bool {
+	UpdateKnownPeers.Lock()
+	_, present := d.knownPeers[peer.Address]
+	UpdateKnownPeers.Unlock()
+	return present
+}
+
+// LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
+func (d *Discovery) LoadPeers() {
+	file, err := os.Open(d.peersFilePath)
+	if nil != err {
+		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
+		return
+	}
+	dec := json.NewDecoder(bufio.NewReader(file))
+	UpdateKnownPeers.Lock()
+	dec.Decode(&d.knownPeers)
+	// since this is run at startup, reset quality scores.
+	for _, peer := range d.knownPeers {
+		peer.QualityScore = 0
+		d.knownPeers[peer.Address] = peer
+	}
+	UpdateKnownPeers.Unlock()
+	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
+	file.Close()
 }
 
 // SavePeers just saves our known peers out to disk. Called periodically.
@@ -49,106 +120,173 @@ func (d *Discovery) SavePeers() {
 	defer file.Close()
 	writer := bufio.NewWriter(file)
 	encoder := json.NewEncoder(writer)
-	encoder.Encode(d.knownPeers)
+	var qualityPeers = map[string]Peer{}
+	UpdateKnownPeers.Lock()
+	for _, peer := range d.knownPeers {
+		switch {
+		case time.Since(peer.LastContact) > time.Hour*168:
+			break
+		case MinumumQualityScore > peer.QualityScore:
+			break
+		default:
+			qualityPeers[peer.AddressPort()] = peer
+		}
+	}
+	UpdateKnownPeers.Unlock()
+	encoder.Encode(qualityPeers)
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.josn", len(d.knownPeers))
-
+	note("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
-// LoadPeers loads the known peers from disk OVERWRITING PREVIOUS VALUES
-func (d *Discovery) LoadPeers() {
-	file, err := os.Open(d.peersFilePath)
+// LearnPeers recieves a set of peers from other hosts
+// The unique peers are added to our peer list.
+// The peers are in a json encoded string as a byte slice
+func (d *Discovery) LearnPeers(parcel Parcel) {
+	dec := json.NewDecoder(bytes.NewReader(parcel.Payload))
+	var peerArray []Peer
+	err := dec.Decode(&peerArray)
 	if nil != err {
-		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
+		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
 		return
 	}
-	dec := json.NewDecoder(bufio.NewReader(file))
-	dec.Decode(&d.knownPeers)
-	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
-	file.Close()
+	filteredArray := d.filterPeersFromOtherNetworks(peerArray)
+	for _, value := range filteredArray {
+		value.QualityScore = 0
+		switch d.isPeerPresent(value) {
+		case true:
+			alreadyKnownPeer := d.getPeer(value.Address)
+			d.updatePeer(d.updatePeerSource(alreadyKnownPeer, parcel.Header.PeerAddress))
+		default:
+			value.Source = map[string]time.Time{parcel.Header.PeerAddress: time.Now()}
+			d.updatePeer(value)
+			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
+		}
+	}
+	d.SavePeers()
+}
+
+// updatePeerSource checks to see if source is in peer's sources, and if not puts it in there with a value equal to time.Now()
+func (d *Discovery) updatePeerSource(peer Peer, source string) Peer {
+	if nil == peer.Source {
+		peer.Source = map[string]time.Time{}
+	}
+	_, sp := peer.Source[source]
+	if !sp {
+		peer.Source[source] = time.Now()
+	}
+	return peer
+}
+
+func (d *Discovery) filterPeersFromOtherNetworks(peers []Peer) (filtered []Peer) {
+	for _, peer := range peers {
+		if CurrentNetwork == peer.Network {
+			filtered = append(filtered, peer)
+		}
+	}
+	return
+}
+
+func (d *Discovery) filterForUniqueIPAdresses(peers []Peer) (filtered []Peer) {
+	unique := map[string]Peer{}
+	for _, peer := range peers {
+		_, present := unique[peer.Address]
+		if !present {
+			filtered = append(filtered, peer)
+			unique[peer.Address] = peer
+		}
+	}
+	return
+}
+
+// GetOutgoingPeers gets a set of peers to connect to on startup
+// For now, this gives a set of 12 of the total known peers.
+// We want peers from diverse networks.  So,method is this:
+//	-- generate list of candidates (if exclusive, only special peers)
+//	-- sort candidates by distance
+//  -- if num canddiates is less than desired set, return all candidates
+//  -- Otherwise,repeatedly take candidates at the 0%, %25, %50, %75, %100 points in the list
+//  -- remove each candidate from the list.
+//  -- continue until there are no candidates left, or we have our set.
+func (d *Discovery) GetOutgoingPeers() []Peer {
+	firstPassPeers := []Peer{}
+	selectedPeers := map[string]Peer{}
+	UpdateKnownPeers.Lock()
+	for _, peer := range d.knownPeers {
+		switch {
+		case OnlySpecialPeers && SpecialPeer == peer.Type:
+			firstPassPeers = append(firstPassPeers, peer)
+		case !OnlySpecialPeers:
+			firstPassPeers = append(firstPassPeers, peer)
+		default:
+		}
+	}
+	UpdateKnownPeers.Unlock()
+	secondPass := d.filterPeersFromOtherNetworks(firstPassPeers)
+	peerPool := d.filterForUniqueIPAdresses(secondPass)
+	sort.Sort(PeerDistanceSort(peerPool))
+	// Get four times as many as who knows how many will be online
+	desiredQuantity := NumberPeersToConnect * 4
+	// If the peer pool isn't at least twice the size of what we need, then location diversity is meaningless.
+	if len(peerPool) < desiredQuantity*2 {
+		return peerPool
+	}
+	// Algo is to divide peers up into buckets, sorted by distance.
+	// Number of buckets is the number of peers we want to get.
+	// Then given the size of each bucket, pick a random peer in the bucket.
+	bucketSize := 1 + int(len(peerPool)-1/desiredQuantity)
+	for index := 0; index < int(desiredQuantity); index++ {
+		bucketIndex := int(index / desiredQuantity * len(peerPool))
+		newPeerIndex := bucketIndex + rand.Intn(bucketSize)
+		if newPeerIndex > len(peerPool)-1 {
+			newPeerIndex = len(peerPool) - 1
+		}
+		newPeer := peerPool[newPeerIndex]
+		selectedPeers[newPeer.Address] = newPeer
+	}
+
+	// Now derive a slice of peers to return
+	finalSet := []Peer{}
+	for _, v := range selectedPeers {
+		finalSet = append(finalSet, v)
+	}
+	significant("discovery", "discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
+	return finalSet
 }
 
 // SharePeers gets a set of peers to send to other hosts
-// For now, this gives a random set of 24 of the total known peers.
+// For now, this gives a random set of  the total known peers.
 // The peers are in a json encoded string as byte slice
 func (d *Discovery) SharePeers() []byte {
 	return d.getPeerSelection()
 }
 
-// Returns a set of peers from the ones we know about.
-// Right now returns the set of all peers we know about.
-// sharePeers is called from the Controllers runloop goroutine
-// The peers are in a json encoded string
-func (d *Discovery) ServePeers() string {
-	return string(d.getPeerSelection())
-}
+// For now we use 4 * NumberPeersToConnect to share, which if connection
+// rate is %25 will result in NumberPeersToConnect connections.
 
-// BUGBUG - we need to filter on special peers, and rewrite share peers and serve peers for this
-// Also need to update the controller stuff for them.
-// Exclusive flag is:  OnlySpecialPeers
-
-// Think the way to do this is to have known peers be peers in the general peer to peer network.
-// Exclusive peers are not shared, and stored in a seperate file.
-
-// Returns a set of peers from the ones we know about.
-// Right now returns the set of all peers we know about.
-// Should maybe return the top 24 peers, based on distance from a randomly chosen peer (maximizing distance)
-// Returns the peers as a JSON string (maybe this should be []Peers, but right now only SharePeers
-// and ServePeers call this.)
+// getPeerSelection gets a selection of peers for SHARING.  So we want to share quality peers with the
+// network.  Therefore, we sort by quality, and filter out special peers
 func (d *Discovery) getPeerSelection() []byte {
-	// BUGBUG TODO
-	// BUGBUG doesn't take into account peer type or exclusive flag
-	// BUGBUG couldn't we implemetn a distance sort, the n take the first and last of the sorted peers as furthest away?
-
 	// var peer, currentBest Peer
 	// var currentBestDistance float64
 	selectedPeers := []Peer{}
-	peerPool := []Peer{}
+	firstPassPeers := []Peer{}
+	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
-		// if SpecialPeer != peer.Type {
-		peerPool = append(peerPool, peer)
-		// }
+		if peer.QualityScore > MinumumSharingQualityScore { // Only share peers that have earned positive reputation
+			firstPassPeers = append(firstPassPeers, peer)
+		}
 	}
-	// Temporarily return all peers:
-	selectedPeers = peerPool
-
-	// This needs to be refactored:
-	// numPeers := len(peerPool)
-	// numToSelect := 24
-	// if numToSelect > numPeers {
-	// 	// then we return all of the peers
-	// 	selectedPeers = peerPool
-	// } else {
-	// 	selectedPeers = peerPool
-	// BUGBUG Rewrite this to sort by location, then take first, middle, last repeatedly. More deterministic
-	// 	// Pick a random peer
-	// 	if numToSelect >= 1 && numPeers > 0 {
-	// 		peer = peers[d.rng.Intn(numPeers-1)]
-	// 	} else {
-	// 		return []byte{}
-	// 	}
-	// 	currentBest = peer
-	// 	currentBestDistance = 0.0
-	// 	selectedPeers := []Peer{peer}
-	// 	verbose("discovery", "getPeerSelection() numToSelect %d, numPeers: %d", numToSelect, numPeers)
-
-	// 	for numToSelect > len(selectedPeers) {
-	// 		verbose("discovery", "getPeerSelection() numToSelect %d, selected: %d", numToSelect, len(selectedPeers))
-	// 		// Iterate thru the peers and find the peer that is furthest away by location
-	// 		for _, target := range peers {
-	// 			distance := math.Abs(float64(target.Location) - float64(peer.Location))
-	// 			if distance > currentBestDistance { // better peer found
-	// 				currentBest = target
-	// 				currentBestDistance = distance
-	// 			}
-	// 		}
-	// 		if currentBest != peer {
-	// 			selectedPeers = append(selectedPeers, currentBest)
-	// 			currentBestDistance = 0.0
-	// 			currentBest = peer
-	// 		}
-	// 	}
-	// }
+	UpdateKnownPeers.Unlock()
+	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
+	sort.Sort(PeerQualitySort(peerPool))
+	for _, peer := range peerPool {
+		if SpecialPeer != peer.Type { // we don't share special peers
+			selectedPeers = append(selectedPeers, peer)
+		}
+		if 4*NumberPeersToConnect <= len(selectedPeers) {
+			break
+		}
+	}
 
 	json, err := json.Marshal(selectedPeers)
 	if nil != err {
@@ -158,104 +296,35 @@ func (d *Discovery) getPeerSelection() []byte {
 	return json
 }
 
-// LearnPeers recieves a set of peers from other hosts
-// The unique peers are added to our peer list.
-// The peers are in a json encoded string as a byte slice
-func (d *Discovery) LearnPeers(payload []byte) {
-	dec := json.NewDecoder(bytes.NewReader(payload))
-	var peerArray []Peer
-	err := dec.Decode(&peerArray)
+// DiscoverPeers gets a set of peers from a DNS Seed
+func (d *Discovery) DiscoverPeersFromSeed() {
+	resp, err := http.Get(d.seedURL)
 	if nil != err {
-		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(payload)))
+		logerror("discovery", "DiscoverPeersFromSeed getting peers from %s produced error %+v", d.seedURL, err)
 		return
 	}
-	for _, value := range peerArray {
-		_, present := d.knownPeers[value.Hash]
-		if !present {
-			value.QualityScore = 0
-			d.knownPeers[value.Hash] = value
-			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
-		}
+	defer resp.Body.Close()
+	var lines []string
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
 	}
-}
-
-// BUGBUG Have PeerQualitySort and PeerDistanceSort implemented.
-// TODO:
-// 	-- Get peers by quality on startup (pass in number you want)
-// 	-- Get peers by distance (When adding additional?)
-
-// GetStartupPeers gets a set of peers to connect to on startup
-// For now, this gives a set of 12 of the total known peers.
-func (d *Discovery) GetStartupPeers() []Peer {
-	peers := []Peer{}
-	// reverse := []Peer{}
-	selectedPeers := []Peer{}
-	for _, peer := range d.knownPeers {
-		peers = append(peers, peer)
-		// reverse = append(peers, peer)
+	for _, line := range lines {
+		ipAndPort := strings.Split(line, ":")
+		peerp := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
+		peer := *peerp
+		d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
 	}
-	// Generate a sort of the known peers by quality score
-	sort.Sort(PeerDistanceSort(peers))
-	// sort.Sort(sort.Reverse(PeerDistanceSort(peers)))
-	// Do we only connect to special peers?
-	// need a flag for special peers and logic
-	// Otherwise take the N best peers from known peers.
-	// BUGBUG this doesn't find diverse distances.
-	for _, peer := range peers {
-		if len(selectedPeers) < NumberPeersToConnect {
-			if OnlySpecialPeers {
-				if SpecialPeer == peer.Type {
-					selectedPeers = append(selectedPeers, peer)
-				}
-			} else {
-				selectedPeers = append(selectedPeers, peer)
-			}
-		}
-	}
-	return selectedPeers
-}
-
-// GetFullPeer looks for a peer in the known peers, and if so, returns it  (based on
-// the hash of the passed in peer.)  If the peer is unknown , we create it and
-// add it to the known peers.
-// func (d *Discovery) GetFullPeer(prototype Peer) Peer {
-// 	return d.GetPeerByAddress(prototype.Address)
-// }
-
-func (d *Discovery) GetPeerByAddress(address string) Peer {
-	hash := PeerHashFromAddress(address)
-	peer, present := d.knownPeers[hash]
-	// If it exists, return it, otherwise create and add to knownPeers
-	if !present {
-		temp := new(Peer).Init(address, 0, RegularPeer)
-		peer = *temp
-		d.knownPeers[hash] = peer
-	}
-	return peer
-}
-
-// UpdatePeer updates the values in our known peers. Creates peer if its not in there.
-func (d *Discovery) UpdatePeer(peer Peer) {
-	d.knownPeers[peer.Hash] = peer
+	note("discovery", "DiscoverPeers got peers: %+v", lines)
 }
 
 // PrintPeers Print details about the known peers
 func (d *Discovery) PrintPeers() {
-	note("discovery", "\n\n\n\nPeer Report:")
+	note("discovery", "Peer Report:")
+	UpdateKnownPeers.Lock()
 	for key, value := range d.knownPeers {
-		note("discovery", "%s \t Address: %s \t Quality: %d", key, value.Address, value.QualityScore)
+		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d Source: %+v", key, value.Address, value.Port, value.QualityScore, value.Source)
 	}
-	note("discovery", "\n\n\n\n")
+	UpdateKnownPeers.Unlock()
+	note("discovery", "End Peer Report\n\n\n\n")
 }
-
-// Mbe a DDOS resistence mechanism that looks at rate of bad messsages over time.
-// Right now, we just get enough demerits and we give up on the peer... forever.
-// func (c *Connection) gotBadMessage() {
-// 	debug(c.peer.Hash, "Connection.gotBadMessage()")
-// 	// TODO Track bad messages to ban bad peers at network level
-// 	// Array of in Connection of bad messages
-// 	// Add this one to the array with timestamp
-// 	// Filter all messages with timestamps over an hour (put value in protocol.go maybe an hour is too logn)
-// 	// If count of bad messages in last hour exceeds threshold from protocol.go then we drop connection
-// 	// Add this IP address to our banned peers (for an hour or day, also define in protocol.go)
-// }

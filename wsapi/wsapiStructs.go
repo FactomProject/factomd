@@ -5,6 +5,7 @@
 package wsapi
 
 import (
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
 )
@@ -28,8 +29,8 @@ type CommitEntryResponse struct {
 }
 
 type RevealEntryResponse struct {
-	Message string `json:"message"`
-	TxID    string `json:"txid"`
+	Message   string `json:"message"`
+	EntryHash string `json:"entryhash"`
 }
 
 type DirectoryBlockResponse struct {
@@ -88,13 +89,17 @@ type FactoidBalanceResponse struct {
 	Balance int64 `json:"balance"`
 }
 
-type FactoidFeeResponse struct {
-	Fee int64 `json:"fee"`
+type EntryCreditRateResponse struct {
+	Rate int64 `json:"rate"`
 }
 
 type PropertiesResponse struct {
 	FactomdVersion string `json:"factomdversion"`
 	ApiVersion     string `json:"apiversion"`
+}
+
+type SendRawMessageResponse struct {
+	Message string `json:"message"`
 }
 
 /*********************************************************************/
@@ -164,6 +169,19 @@ type FactoidBalance struct {
 	Success  bool   `json:"success"`
 }
 
+type TransactionResponse struct {
+	ECTranasction      interfaces.IECBlockEntry `json:"ectransaction,omitempty"`
+	FactoidTransaction interfaces.ITransaction  `json:"factoidtransaction,omitempty"`
+	Entry              interfaces.IEBEntry      `json:"entry,omitempty"`
+
+	//F/EC/E block the transaction is included in
+	IncludedInTransactionBlock string `json:"includedintransactionblock"`
+	//DirectoryBlock the tranasction is included in
+	IncludedInDirectoryBlock string `json:"includedindirectoryblock"`
+	//The DBlock height
+	IncludedInDirectoryBlockHeight int64 `json:"includedindirectoryblockheight"`
+}
+
 //Requests
 
 type AddressRequest struct {
@@ -196,4 +214,8 @@ type MessageRequest struct {
 
 type TransactionRequest struct {
 	Transaction string `json:"transaction"`
+}
+
+type SendRawMessageRequest struct {
+	Message string `json:"message"`
 }

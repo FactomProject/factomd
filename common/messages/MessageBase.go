@@ -10,15 +10,66 @@ import (
 )
 
 type MessageBase struct {
-	Origin    int  // Set and examined on a server, not marshaled with the message
-	Peer2Peer bool // The nature of this message type, not marshaled with the message
-	LocalOnly bool // This message is only a local message, is not broadcasted and may skip verification
+	FullMsgHash interfaces.IHash
+
+	Origin        int    // Set and examined on a server, not marshaled with the message
+	NetworkOrigin string // Hash of the network peer/connection where the message is from
+	Peer2Peer     bool   // The nature of this message type, not marshaled with the message
+	LocalOnly     bool   // This message is only a local message, is not broadcasted and may skip verification
 
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cash of the hash of a message
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
+	resend        int64 // Time to resend (milliseconds)
+	expire        int64 // Time to expire (milliseconds)
+
+	Stalled bool // This message is currently stalled
+}
+
+// Try and Resend.  Return true if we should keep the message, false if we should give up.
+func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
+	now := s.GetTimestamp().GetTimeMilli()
+	if m.resend == 0 {
+		m.resend = now
+		return false
+	}
+	if now-m.resend > 2000 && len(s.NetworkOutMsgQueue()) < 100 { // Resend every second
+		m.resend = now + 1000
+		return true
+	}
+	return false
+}
+
+// Try and Resend.  Return true if we should keep the message, false if we should give up.
+func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
+	now := s.GetTimestamp().GetTimeMilli()
+	if m.expire == 0 {
+		m.expire = now
+	}
+	if now-m.expire > 180*1000 { // Keep messages for some length before giving up.
+		rtn = true
+	}
+	return
+}
+
+func (m *MessageBase) IsStalled() bool {
+	return m.Stalled
+}
+func (m *MessageBase) SetStall(b bool) {
+	m.Stalled = b
+}
+
+func (m *MessageBase) GetFullMsgHash() interfaces.IHash {
+	if m.FullMsgHash == nil {
+		m.FullMsgHash = primitives.NewZeroHash()
+	}
+	return m.FullMsgHash
+}
+
+func (m *MessageBase) SetFullMsgHash(hash interfaces.IHash) {
+	m.GetFullMsgHash().SetBytes(hash.Bytes())
 }
 
 func (m *MessageBase) GetOrigin() int {
@@ -27,6 +78,14 @@ func (m *MessageBase) GetOrigin() int {
 
 func (m *MessageBase) SetOrigin(o int) {
 	m.Origin = o
+}
+
+func (m *MessageBase) GetNetworkOrigin() string {
+	return m.NetworkOrigin
+}
+
+func (m *MessageBase) SetNetworkOrigin(o string) {
+	m.NetworkOrigin = o
 }
 
 // Returns true if this is a response to a peer to peer

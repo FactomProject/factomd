@@ -40,6 +40,7 @@ type IState interface {
 	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
+	RemoveFedServer(uint32, IHash)
 	AddAuditServer(uint32, IHash) int
 	GetAuditServers(uint32) []IFctServer
 
@@ -75,11 +76,10 @@ type IState interface {
 	JournalMessage(IMsg)
 
 	// Consensus
-	APIQueue() chan IMsg       // Input Queue from the API
-	InMsgQueue() chan IMsg     // Read by Validate
-	LeaderMsgQueue() chan IMsg // Leader Queue
-	Stall() chan IMsg          // Leader Queue
-	StallMsg(IMsg)             // Stall a message that we need to execute later
+	APIQueue() chan IMsg   // Input Queue from the API
+	InMsgQueue() chan IMsg // Read by Validate
+	AckQueue() chan IMsg   // Leader Queue
+	MsgQueue() chan IMsg   // Follower Queue
 
 	// Lists and Maps
 	// =====
@@ -90,10 +90,9 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
-	GetCommits(hash IHash) IMsg
-	GetReveals(hash IHash) IMsg
-	PutCommits(hash IHash, msg IMsg)
-	PutReveals(hash IHash, msg IMsg)
+	NextCommit(hash IHash) IMsg
+	PutCommit(hash IHash, msg IMsg)
+
 	IncEntryChains()
 	IncEntries()
 	// Server Configuration
@@ -107,12 +106,12 @@ type IState interface {
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
 	// and what lists they are responsible for.
-	LeaderFor(msg IMsg, hash []byte) bool // Tests if this server is the leader for this key
-	GetLeaderVM() int                     // Get the Leader VM (only good within a minute)
+	ComputeVMIndex(hash []byte) int // Returns the VMIndex determined by some hash (usually) for the current processlist
+	IsLeader() bool                 // Returns true if this is the leader in the current minute
+	GetLeaderVM() int               // Get the Leader VM (only good within a minute)
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
-	GetEOM() int
 
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
@@ -138,26 +137,33 @@ type IState interface {
 	// MISC
 	// ====
 
-	FollowerExecuteMsg(m IMsg) (bool, error) // Messages that go into the process list
-	FollowerExecuteAck(m IMsg) (bool, error) // Ack Msg calls this function.
-	FollowerExecuteDBState(IMsg) error       // Add the given DBState to this server
-	FollowerExecuteAddData(m IMsg) error     // Add the entry or eblock to this Server
+	FollowerExecuteMsg(m IMsg)       // Messages that go into the process list
+	FollowerExecuteEOM(m IMsg)       // Messages that go into the process list
+	FollowerExecuteAck(m IMsg)       // Ack Msg calls this function.
+	FollowerExecuteDBState(IMsg)     // Add the given DBState to this server
+	FollowerExecuteAddData(m IMsg)   // Add the entry or eblock to this Server
+	FollowerExecuteSFault(m IMsg)    // Handle Server Fault Messages
+	FollowerExecuteFullFault(m IMsg) // Handle Server Full-Fault Messages
+	FollowerExecuteMMR(m IMsg)       // Handle Missing Message Responses
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
+	ProcessRemoveServer(dbheight uint32, removeServerMsg IMsg) bool
+	ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg IMsg) bool
 	ProcessCommitChain(dbheight uint32, commitChain IMsg) bool
 	ProcessCommitEntry(dbheight uint32, commitChain IMsg) bool
 	ProcessDBSig(dbheight uint32, commitChain IMsg) bool
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 	ProcessRevealEntry(dbheight uint32, m IMsg) bool
 	// For messages that go into the Process List
-	LeaderExecute(m IMsg) error
-	LeaderExecuteEOM(m IMsg) error
-	LeaderExecuteRE(m IMsg) error
+	LeaderExecute(m IMsg)
+	LeaderExecuteEOM(m IMsg)
+	LeaderExecuteRevealEntry(m IMsg)
 
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)
 
 	GetTimestamp() Timestamp
+	GetTimeOffset() Timestamp
 
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
@@ -172,9 +178,21 @@ type IState interface {
 	SetIsDoneReplaying()
 
 	//For ACK
-	GetACKStatus(hash IHash) (int, error)
+	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 	FetchEntryByHash(IHash) (IEBEntry, error)
+
+	// FER section
+	ProcessRecentFERChainEntries()
+	ExchangeRateAuthorityIsValid(IEBEntry) bool
+	FerEntryIsValid(passedFEREntry IFEREntry) bool
+	GetPredictiveFER() uint64
+
+	// Identity Section
+	VerifyIsAuthority(cid IHash) bool // True if is authority
+	UpdateAuthorityFromABEntry(entry IABEntry) error
+	VerifyFederatedSignature(Message []byte, signature *[64]byte) (bool, error)
+	UpdateAuthSigningKeys(height uint32)
 }

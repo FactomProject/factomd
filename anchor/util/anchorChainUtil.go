@@ -142,7 +142,7 @@ func anchorChainToDirBlockInfo(aRecord *anchor.AnchorRecord) (*common.DirBlockIn
 		fmt.Printf("err in FetchDBlockByHeight: %d\n", aRecord.DBHeight)
 		dirBlockInfo.DBHash = new(common.Hash)
 	} else {
-		dirBlockInfo.Timestamp = int64(dblock.Header.Timestamp * 60)
+		dirBlockInfo.SetTimestamp(dblock.Header.GetTimestamp())
 		dirBlockInfo.DBHash = dblock.DBHash
 	}
 	//fmt.Printf("dirBlockInfo: %s\n", spew.Sdump(dirBlockInfo))

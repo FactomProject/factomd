@@ -32,7 +32,7 @@ func (a *MissingData) IsSameAs(b *MissingData) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -50,6 +50,10 @@ func (a *MissingData) IsSameAs(b *MissingData) bool {
 
 func (m *MissingData) Process(uint32, interfaces.IState) bool {
 	return true
+}
+
+func (m *MissingData) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *MissingData) GetHash() interfaces.IHash {
@@ -102,6 +106,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -153,23 +158,14 @@ func (m *MissingData) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *MissingData) Leader(state interfaces.IState) bool {
-	return false
+func (m *MissingData) ComputeVMIndex(state interfaces.IState) {
 }
 
-// Execute the leader functions of the given message
-func (m *MissingData) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *MissingData) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *MissingData) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *MissingData) FollowerExecute(state interfaces.IState) error {
+func (m *MissingData) FollowerExecute(state interfaces.IState) {
 	var dataObject interfaces.BinaryMarshallable
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)
@@ -183,18 +179,16 @@ func (m *MissingData) FollowerExecute(state interfaces.IState) error {
 			dataObject = rawObject.(interfaces.IEntryBlock)
 			//dataHash, _ = dataObject.(interfaces.IEntryBlock).Hash()
 		default:
-			return fmt.Errorf("Datatype unsupported")
+			return
 		}
 
 		msg := NewDataResponse(state, dataObject, dataType, m.RequestHash)
 
 		msg.SetOrigin(m.GetOrigin())
+		msg.SetNetworkOrigin(m.GetNetworkOrigin())
 		state.NetworkOutMsgQueue() <- msg
-	} else {
-		return err
 	}
-
-	return nil
+	return
 }
 
 func (e *MissingData) JSONByte() ([]byte, error) {

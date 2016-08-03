@@ -114,6 +114,6 @@ func (u ByDirBlockInfoTimestamp) Less(i, j int) bool {
 	if u[i].GetTimestamp() == u[j].GetTimestamp() {
 		return u[i].GetDBHeight() < u[j].GetDBHeight()
 	}
-	return u[i].GetTimestamp() < u[j].GetTimestamp()
+	return u[i].GetTimestamp().GetTimeMilli() < u[j].GetTimestamp().GetTimeMilli()
 }
 func (u ByDirBlockInfoTimestamp) Swap(i, j int) { u[i], u[j] = u[j], u[i] }

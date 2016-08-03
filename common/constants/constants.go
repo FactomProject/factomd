@@ -12,30 +12,39 @@ import (
 const (
 	EOM_MSG                       byte = iota // 0
 	ACK_MSG                                   // 1
-	AUDIT_SERVER_FAULT_MSG                    // 2
-	COMMIT_CHAIN_MSG                          // 3
-	COMMIT_ENTRY_MSG                          // 4
-	DIRECTORY_BLOCK_SIGNATURE_MSG             // 5
-	EOM_TIMEOUT_MSG                           // 6
-	FACTOID_TRANSACTION_MSG                   // 7
-	HEARTBEAT_MSG                             // 8
-	INVALID_ACK_MSG                           // 9
-	INVALID_DIRECTORY_BLOCK_MSG               // 10
-	MISSING_ACK_MSG                           // 11
-	// 12
+	FED_SERVER_FAULT_MSG                      // 2
+	AUDIT_SERVER_FAULT_MSG                    // 3
+	FULL_SERVER_FAULT_MSG                     // 4
+	COMMIT_CHAIN_MSG                          // 5
+	COMMIT_ENTRY_MSG                          // 6
+	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
+	EOM_TIMEOUT_MSG                           // 8
+	FACTOID_TRANSACTION_MSG                   // 9
+	HEARTBEAT_MSG                             // 10
+	INVALID_ACK_MSG                           // 11
+	INVALID_DIRECTORY_BLOCK_MSG               // 12
+
 	REVEAL_ENTRY_MSG      // 13
 	REQUEST_BLOCK_MSG     // 14
 	SIGNATURE_TIMEOUT_MSG // 15
 	MISSING_MSG           // 16
 	MISSING_DATA          // 17
 	DATA_RESPONSE         // 18
+	MISSING_MSG_RESPONSE  //19
 
-	DBSTATE_MSG         // 19
-	DBSTATE_MISSING_MSG // 20
-	ADDSERVER_MSG       // 21
+	DBSTATE_MSG          // 20
+	DBSTATE_MISSING_MSG  // 21
+	ADDSERVER_MSG        // 22
+	CHANGESERVER_KEY_MSG // 23
+	REMOVESERVER_MSG     // 24
 )
 
 const (
+	// Replay
+	INTERNAL_REPLAY = 1
+	NETWORK_REPLAY  = 2
+	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
+
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
@@ -78,12 +87,13 @@ const (
 
 	//NETWORK constants
 	//==================
-	VERSION_0       = byte(0)
-	FACTOMD_VERSION = 4000000
-	//0xFA92E5A1
-	//0xFA92E5A2
-	//0xFA92E5A3
-	MaxBlocksPerMsg = 500
+	VERSION_0                = byte(0)
+	FACTOMD_VERSION          = 4000000
+	MAIN_NETWORK_ID   uint32 = 0xFA92E5A1
+	TEST_NETWORK_ID   uint32 = 0xFA92E5A2
+	LOCAL_NETWORK_ID  uint32 = 0xFA92E5A3
+	CUSTOM_NETWORK_ID uint32 = 0xFA92E5A4
+	MaxBlocksPerMsg          = 500
 
 	// NETWORKS:
 )
@@ -148,7 +158,22 @@ const (
 	TYPE_ADD_MATRYOSHKA                  // 3
 	TYPE_ADD_SERVER_COUNT                // 4
 	TYPE_ADD_FED_SERVER                  // 5
-	TYPE_REMOVE_FED_SERVER               // 6
-	TYPE_ADD_FED_SERVER_KEY              // 7
-	TYPE_ADD_BTC_ANCHOR_KEY              // 8
+	TYPE_ADD_AUDIT_SERVER                // 6
+	TYPE_REMOVE_FED_SERVER               // 7
+	TYPE_ADD_FED_SERVER_KEY              // 8
+	TYPE_ADD_BTC_ANCHOR_KEY              // 9
+)
+
+//---------------------------------------------------------------------
+// Identity Status Types
+//---------------------------------------------------------------------
+const (
+	IDENTITY_UNASSIGNED               int = iota // 0
+	IDENTITY_FEDERATED_SERVER                    // 1
+	IDENTITY_AUDIT_SERVER                        // 2
+	IDENTITY_FULL                                // 3
+	IDENTITY_PENDING_FEDERATED_SERVER            // 4
+	IDENTITY_PENDING_AUDIT_SERVER                // 5
+	IDENTITY_PENDING_FULL                        // 6
+	IDENTITY_PENDING                             // 7
 )

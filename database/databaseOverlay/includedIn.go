@@ -11,7 +11,7 @@ func (db *Overlay) SaveIncludedIn(entry, block interfaces.IHash) error {
 	}
 	batch := []interfaces.Record{}
 
-	batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
+	batch = append(batch, interfaces.Record{INCLUDED_IN, entry.Bytes(), block})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
@@ -23,6 +23,7 @@ func (db *Overlay) SaveIncludedIn(entry, block interfaces.IHash) error {
 
 func (db *Overlay) SaveIncludedInMultiFromBlockMultiBatch(block interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	entries := block.GetEntryHashes()
+	entries = append(entries, block.GetEntrySigHashes()...)
 	hash := block.DatabasePrimaryIndex()
 
 	return db.SaveIncludedInMultiMultiBatch(entries, hash, checkForDuplicateEntries)
@@ -30,6 +31,7 @@ func (db *Overlay) SaveIncludedInMultiFromBlockMultiBatch(block interfaces.Datab
 
 func (db *Overlay) SaveIncludedInMultiFromBlock(block interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	entries := block.GetEntryHashes()
+	entries = append(entries, block.GetEntrySigHashes()...)
 	hash := block.DatabasePrimaryIndex()
 
 	return db.SaveIncludedInMulti(entries, hash, checkForDuplicateEntries)
@@ -42,8 +44,11 @@ func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, blo
 	batch := []interfaces.Record{}
 
 	for _, entry := range entries {
+		if entry.IsMinuteMarker() == true {
+			continue
+		}
 		if checkForDuplicateEntries == true {
-			loaded, err := db.Get([]byte{INCLUDED_IN}, entry.Bytes(), primitives.NewZeroHash())
+			loaded, err := db.Get(INCLUDED_IN, entry.Bytes(), primitives.NewZeroHash())
 			if err != nil {
 				return err
 			}
@@ -51,7 +56,7 @@ func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, blo
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
+		batch = append(batch, interfaces.Record{INCLUDED_IN, entry.Bytes(), block})
 	}
 
 	db.PutInMultiBatch(batch)
@@ -67,7 +72,7 @@ func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfa
 
 	for _, entry := range entries {
 		if checkForDuplicateEntries == true {
-			loaded, err := db.Get([]byte{INCLUDED_IN}, entry.Bytes(), primitives.NewZeroHash())
+			loaded, err := db.Get(INCLUDED_IN, entry.Bytes(), primitives.NewZeroHash())
 			if err != nil {
 				return err
 			}
@@ -75,7 +80,7 @@ func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfa
 				continue
 			}
 		}
-		batch = append(batch, interfaces.Record{[]byte{INCLUDED_IN}, entry.Bytes(), block})
+		batch = append(batch, interfaces.Record{INCLUDED_IN, entry.Bytes(), block})
 	}
 
 	err := db.DB.PutInBatch(batch)
@@ -87,7 +92,7 @@ func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfa
 }
 
 func (db *Overlay) FetchIncludedIn(hash interfaces.IHash) (interfaces.IHash, error) {
-	block, err := db.DB.Get([]byte{INCLUDED_IN}, hash.Bytes(), new(primitives.Hash))
+	block, err := db.DB.Get(INCLUDED_IN, hash.Bytes(), new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}

@@ -13,8 +13,9 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	//"github.com/FactomProject/factomd/engine"
 	//"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/state"
 	"time"
+
+	"github.com/FactomProject/factomd/state"
 	//"fmt"
 )
 
@@ -42,7 +43,7 @@ func CreateAndPopulateTestState() *state.State {
 	state.LoadDatabase(s)
 	s.UpdateState()
 	go s.ValidatorLoop()
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(30 * time.Millisecond)
 
 	return s
 }
@@ -54,10 +55,10 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	for i := 0; i < BlockCount; i++ {
 		prev = CreateTestBlockSet(prev)
 
-		timestamp := interfaces.NewTimeStampNow()
+		timestamp := primitives.NewTimestampNow()
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
 
-		answer[i] = messages.NewDBStateMsg(*timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
+		answer[i] = messages.NewDBStateMsg(timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
 	}
 	return answer
 }
@@ -191,10 +192,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.ABlock.GetKeyMR()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.ABlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//FBlock
@@ -205,7 +203,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR = answer.FBlock.GetKeyMR()
+	de.KeyMR = answer.FBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//EBlock
@@ -216,10 +214,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.EBlock.KeyMR()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.EBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//Anchor EBlock
@@ -232,10 +227,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.AnchorEBlock.KeyMR()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.AnchorEBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries, de)
 
 	//ECBlock
@@ -248,10 +240,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	if err != nil {
 		panic(err)
 	}
-	de.KeyMR, err = answer.ECBlock.Hash()
-	if err != nil {
-		panic(err)
-	}
+	de.KeyMR = answer.ECBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries[:1], append([]interfaces.IDBEntry{de}, dbEntries[1:]...)...)
 
 	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)
@@ -278,14 +267,14 @@ func CreateTestAdminHeader(prev *adminBlock.AdminBlock) *adminBlock.ABlockHeader
 	header := new(adminBlock.ABlockHeader)
 
 	if prev == nil {
-		header.PrevFullHash = primitives.NewZeroHash()
+		header.PrevBackRefHash = primitives.NewZeroHash()
 		header.DBHeight = 0
 	} else {
 		keyMR, err := prev.GetKeyMR()
 		if err != nil {
 			panic(err)
 		}
-		header.PrevFullHash = keyMR
+		header.PrevBackRefHash = keyMR
 		header.DBHeight = prev.Header.GetDBHeight() + 1
 	}
 
@@ -326,7 +315,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 		header.SetDBHeight(0)
 		header.SetPrevFullHash(primitives.NewZeroHash())
 		header.SetPrevKeyMR(primitives.NewZeroHash())
-		header.SetTimestamp(1234)
+		header.SetTimestamp(primitives.NewTimestampFromMinutes(1234))
 	} else {
 		header.SetDBHeight(prevBlock.Header.GetDBHeight() + 1)
 		header.SetPrevFullHash(prevBlock.GetHash())
@@ -335,7 +324,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 			panic(err)
 		}
 		header.SetPrevKeyMR(keyMR)
-		header.SetTimestamp(prevBlock.Header.GetTimestamp() + 1)
+		header.SetTimestamp(primitives.NewTimestampFromMinutes(prevBlock.Header.GetTimestamp().GetTimeMinutesUInt32() + 1))
 	}
 
 	header.SetVersion(1)

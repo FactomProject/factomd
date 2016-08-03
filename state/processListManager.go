@@ -1,9 +1,14 @@
+// Copyright 2016 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"log"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Print
@@ -14,16 +19,10 @@ type ProcessLists struct {
 	DBHeightBase uint32         // Height of the first Process List in this structure.
 	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
 
-	Acks *map[[32]byte]interfaces.IMsg // acknowlegments by hash
-	Msgs *map[[32]byte]interfaces.IMsg // messages by hash
-
 }
 
 func (lists *ProcessLists) LastList() *ProcessList {
 	return lists.Lists[len(lists.Lists)-1]
-}
-
-func (lists *ProcessLists) Reset(dbheight uint32) {
 }
 
 // UpdateState is executed from a Follower's perspective.  So the block we are building
@@ -31,21 +30,36 @@ func (lists *ProcessLists) Reset(dbheight uint32) {
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
-	pl := lists.Get(dbheight)
-
 	// Look and see if we need to toss some previous blocks under construction.
-	diff := dbheight - lists.DBHeightBase
-	if diff > 1 && len(lists.Lists) > 1 {
+	diff := int(dbheight) - int(lists.DBHeightBase)
+	if diff > 2 && len(lists.Lists) > 1 {
 		progress = true
-		lists.DBHeightBase += (diff - 1)
+		lists.DBHeightBase++
 		var newlist []*ProcessList
-		newlist = append(newlist, lists.Lists[(diff-1):]...)
+		newlist = append(newlist, lists.Lists[1:]...)
 		lists.Lists = newlist
 	}
-	// Create DState blocks for all completed Process Lists
-	p2 := pl.Process(lists.State)
-	progress = p2 || progress
-	return
+	dbstate := lists.State.DBStates.Get(int(dbheight))
+	pl := lists.Get(dbheight)
+	for pl.Complete() || (dbstate != nil && dbstate.Saved) {
+		dbheight++
+		pl = lists.Get(dbheight)
+		dbstate = lists.State.DBStates.Get(int(dbheight))
+	}
+	if dbheight > lists.State.LLeaderHeight {
+		s := lists.State
+		s.LLeaderHeight = dbheight
+		s.CurrentMinute = 0
+		s.EOMProcessed = 0
+		s.DBSigProcessed = 0
+		s.Syncing = false
+		s.EOM = false
+		s.DBSig = false
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	}
+	return pl.Process(lists.State)
+
 }
 
 func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
@@ -59,7 +73,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 		lists.Lists = append(lists.Lists, nil)
 	}
 	pl := lists.Lists[i]
-	prev := (*ProcessList)(nil)
+
+	var prev *ProcessList
+
 	if dbheight > 0 {
 		prev = lists.Get(dbheight - 1)
 	}
@@ -72,9 +88,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 
 func (lists *ProcessLists) String() string {
 	str := "Process Lists"
-	str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-	for i, pl := range lists.Lists {
-		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, uint32(i)+lists.DBHeightBase, pl.String())
+	for _, pl := range lists.Lists {
+		str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
+		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
 	}
 	return str
 }
@@ -94,9 +110,6 @@ func NewProcessLists(state interfaces.IState) *ProcessLists {
 	pls.State = s
 	pls.DBHeightBase = 0
 	pls.Lists = make([]*ProcessList, 0)
-
-	pls.Acks = new(map[[32]byte]interfaces.IMsg)
-	pls.Msgs = new(map[[32]byte]interfaces.IMsg)
 
 	return pls
 }

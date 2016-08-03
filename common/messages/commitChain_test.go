@@ -7,12 +7,13 @@ package messages_test
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"testing"
+
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"testing"
 )
 
 func TestMarshalUnmarshalCommitChain(t *testing.T) {
@@ -116,7 +117,7 @@ func newCommitChain() *CommitChainMsg {
 	}
 
 	msg.CommitChain = cc
-	msg.Timestamp.SetTimeNow()
+	//msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }
@@ -128,7 +129,7 @@ func newSignedCommitChain() *CommitChainMsg {
 	if err != nil {
 		panic(err)
 	}
-	err = msg.Sign(&key)
+	err = msg.Sign(key)
 	if err != nil {
 		panic(err)
 	}

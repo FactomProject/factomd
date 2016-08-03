@@ -1,24 +1,25 @@
 #!/bin/bash
 
 	echo "Transactions: "
-sleep 1
-for i in `seq 1 100`;
+
+for i in `seq 1 1`;
 do
-	factom-cli deletetransaction t
-	factom-cli newtransaction t
-	factom-cli addinput t factoid-wallet-address-name01 .000003
-	factom-cli addoutput t b .000001
-	factom-cli addoutput t b2 .000001
-	factom-cli addecoutput t e1 .000001
-	factom-cli addfee t factoid-wallet-address-name01
-	factom-cli sign t
-	factom-cli transactions
-	factom-cli submit t
+    export loadrun
+	factom-cli2 newtransaction t
+	factom-cli2 addinput t b .000036
+	factom-cli2 addoutput t b1 .000001
+	factom-cli2 addoutput t b2 .000001
+	factom-cli2 addoutput t b3 .000001
+	factom-cli2 addoutput t b4 .000001
+	factom-cli2 addoutput t b5 .000001
+	factom-cli2 addoutput t b6 .000001
+	factom-cli2 addecoutput t e1 .000030
+	factom-cli2 addfee t b
+	factom-cli2 sign t
+	factom-cli2 transactions
+	factom-cli2 submit t
+	scripts/factomEC.sh &
+	sleep 10
 
-	number1=$RANDOM
-	number2=$RANDOM
-	echo "Make Chain Named " $number
-	echo "one two three four, this is a test of making an entry.  More to test, Test, Test, test" $RANDOM $RANDOM $RANDOM | factom-cli mkchain -e $number1 -e $number2 e1 &
 done
-
 

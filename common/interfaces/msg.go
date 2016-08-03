@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 /**************************
  * IRCD  Interface for Redeem Condition Datastructures (RCD)
  *
@@ -29,14 +27,26 @@ type IMsg interface {
 	GetOrigin() int
 	SetOrigin(int)
 
+	GetNetworkOrigin() string
+	SetNetworkOrigin(string)
+
 	// Returns the timestamp for a message
 	GetTimestamp() Timestamp
 
-	// Hash for this message as used by Consensus (i.e. what we match)
+	// This is the hash used to check for repeated messages.  Almost always this
+	// is the MsgHash, however for Chain Commits, Entry Commits, and Factoid Transactions,
+	// this is the GetHash().
+	GetRepeatHash() IHash
+
+	// Hash for this message as used by Consensus (i.e. what we match). Does not include
+	// signatures to avoid Signature Maliation attacks.
 	GetHash() IHash
 
-	// Hash of this message.  Each message must be unique
+	// Hash of this message.  Each message must be unique includes signatures
 	GetMsgHash() IHash
+
+	// Returns the full message hash of a message (includes signatures)
+	GetFullMsgHash() IHash
 
 	// If this message should only reply to a peer, this is true.  If to
 	// be broadcast, this should be false.  If the Origin is 0, then the
@@ -44,8 +54,6 @@ type IMsg interface {
 	// must go back to that peer (this message is a reply).
 	IsPeer2Peer() bool
 	SetPeer2Peer(bool)
-	// Return the []byte value of the message, if defined
-	Bytes() []byte
 
 	// Validate the message, given the state.  Three possible results:
 	//  < 0 -- Message is invalid.  Discard
@@ -53,22 +61,18 @@ type IMsg interface {
 	//  1   -- Message is valid
 	Validate(IState) int
 
-	// Returns true if this is a message for this server to execute as
-	// a leader.
-	Leader(IState) bool
+	//Set the VMIndex for a message
+	ComputeVMIndex(IState)
 
-	// Execute the leader functions of the given message
-	LeaderExecute(IState) error
+	// Call here if the server is a leader
+	LeaderExecute(IState)
 
 	// Debugging thing to track the leader responsible for a message ack.
 	GetLeaderChainID() IHash
 	SetLeaderChainID(IHash)
 
-	// Returns true if this is a message for this server to execute as a follower
-	Follower(IState) bool
-
-	// Exeucte the follower functions of the given message
-	FollowerExecute(IState) error
+	// Call here if the server is a follower
+	FollowerExecute(IState)
 
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
@@ -83,4 +87,10 @@ type IMsg interface {
 	SetVMHash([]byte)
 	GetMinute() byte
 	SetMinute(byte)
+
+	// Stall handling
+	IsStalled() bool
+	SetStall(bool)
+	Resend(IState) bool
+	Expire(IState) bool
 }

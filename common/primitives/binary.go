@@ -282,6 +282,14 @@ func (bs *ByteSliceSig) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }
 
+func (bs *ByteSliceSig) UnmarshalText(text []byte) error {
+	b, err := hex.DecodeString(string(text))
+	if err != nil {
+		return err
+	}
+	return bs.UnmarshalBinary(b)
+}
+
 type ByteSlice20 [20]byte
 
 var _ interfaces.Printable = (*ByteSlice20)(nil)
@@ -331,5 +339,71 @@ func (bs *ByteSlice20) String() string {
 }
 
 func (bs *ByteSlice20) MarshalText() ([]byte, error) {
+	return []byte(bs.String()), nil
+}
+
+type ByteSlice struct {
+	Bytes []byte
+}
+
+var _ interfaces.Printable = (*ByteSlice)(nil)
+var _ interfaces.BinaryMarshallable = (*ByteSlice)(nil)
+var _ interfaces.BinaryMarshallableAndCopyable = (*ByteSlice)(nil)
+
+func StringToByteSlice(s string) *ByteSlice {
+	bin, err := DecodeBinary(s)
+	if err != nil {
+		return nil
+	}
+	bs := new(ByteSlice)
+	err = bs.UnmarshalBinary(bin)
+	if err != nil {
+		return nil
+	}
+	return bs
+}
+
+func (bs *ByteSlice) New() interfaces.BinaryMarshallableAndCopyable {
+	return new(ByteSlice)
+}
+
+func (bs *ByteSlice) MarshalBinary() ([]byte, error) {
+	return bs.Bytes[:], nil
+}
+
+func (bs *ByteSlice) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
+	bs.Bytes = make([]byte, len(data))
+	copy(bs.Bytes[:], data)
+	return nil, nil
+}
+
+func (bs *ByteSlice) UnmarshalBinary(data []byte) (err error) {
+	bs.Bytes = make([]byte, len(data))
+	copy(bs.Bytes[:], data)
+	return
+}
+
+func (e *ByteSlice) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *ByteSlice) JSONString() (string, error) {
+	return EncodeJSONString(e)
+}
+
+func (e *ByteSlice) JSONBuffer(b *bytes.Buffer) error {
+	return EncodeJSONToBuffer(e, b)
+}
+
+func (bs *ByteSlice) String() string {
+	return fmt.Sprintf("%x", bs.Bytes[:])
+}
+
+func (bs *ByteSlice) MarshalText() ([]byte, error) {
 	return []byte(bs.String()), nil
 }

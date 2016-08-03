@@ -6,7 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
-	"fmt"
+	//"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -17,8 +17,9 @@ import (
 )
 
 func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ackReq, ok := params.(AckRequest)
-	if !ok {
+	ackReq := new(AckRequest)
+	err := MapToObject(params, ackReq)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -38,7 +39,7 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		if err != nil {
 			return nil, NewUnableToDecodeTransactionError()
 		}
-		txid = tx.GetHash().String()
+		txid = tx.GetSigHash().String()
 	}
 
 	txhash, err := primitives.NewShaHashFromStr(txid)
@@ -46,13 +47,26 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		return nil, NewInvalidParamsError()
 	}
 
-	status, err := state.GetACKStatus(txhash)
+	status, h, txTime, blockTime, err := state.GetACKStatus(txhash)
 	if err != nil {
 		return nil, NewInternalError()
 	}
 
 	answer := new(FactoidTxStatus)
-	answer.TxID = txid
+	answer.TxID = h.String()
+
+	if txTime != nil {
+		answer.TransactionDate = txTime.GetTimeMilli()
+		if txTime.GetTimeMilli() > 0 {
+			answer.TransactionDateString = txTime.String()
+		}
+	}
+	if blockTime != nil {
+		answer.BlockDate = blockTime.GetTimeMilli()
+		if blockTime.GetTimeMilli() > 0 {
+			answer.BlockDateString = blockTime.String()
+		}
+	}
 
 	switch status {
 	case constants.AckStatusInvalid:
@@ -82,8 +96,9 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	ackReq, ok := params.(AckRequest)
-	if !ok {
+	ackReq := new(AckRequest)
+	err := MapToObject(params, ackReq)
+	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
@@ -174,14 +189,29 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	if answer.CommitTxID == "" {
 		answer.CommitData.Status = AckStatusUnknown
 	} else {
-		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
+		h, err := primitives.NewShaHashFromStr(answer.CommitTxID)
 		if err != nil {
 			return nil, NewInvalidParamsError()
 		}
 
-		status, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
+		}
+
+		answer.CommitTxID = txid.String()
+
+		if txTime != nil {
+			answer.CommitData.TransactionDate = txTime.GetTimeMilli()
+			if txTime.GetTimeMilli() > 0 {
+				answer.CommitData.TransactionDateString = txTime.String()
+			}
+		}
+		if blockTime != nil {
+			answer.CommitData.BlockDate = blockTime.GetTimeMilli()
+			if blockTime.GetTimeMilli() > 0 {
+				answer.CommitData.BlockDateString = blockTime.String()
+			}
 		}
 
 		switch status {
@@ -217,9 +247,24 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
+		}
+
+		answer.EntryHash = txid.String()
+
+		if txTime != nil {
+			answer.EntryData.TransactionDate = txTime.GetTimeMilli()
+			if txTime.GetTimeMilli() > 0 {
+				answer.EntryData.TransactionDateString = txTime.String()
+			}
+		}
+		if blockTime != nil {
+			answer.EntryData.BlockDate = blockTime.GetTimeMilli()
+			if blockTime.GetTimeMilli() > 0 {
+				answer.EntryData.BlockDateString = blockTime.String()
+			}
 		}
 
 		switch status {
@@ -251,38 +296,42 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 }
 
 func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID string) {
+	//fmt.Printf("DecodeTransactionToHashes - %v\n", fullTransaction)
 	b, err := hex.DecodeString(fullTransaction)
 	if err != nil {
 		return
 	}
 
 	cc := new(entryCreditBlock.CommitChain)
-	err = cc.UnmarshalBinary(b)
-	if err != nil {
-		fmt.Printf("err - %v\n", err)
+	rest, err := cc.UnmarshalBinaryData(b)
+	if err != nil || len(rest) > 0 {
+		//fmt.Printf("err - %v\n", err)
 		ec := new(entryCreditBlock.CommitEntry)
-		err = ec.UnmarshalBinary(b)
-		if err != nil {
-			fmt.Printf("err - %v\n", err)
+		rest, err = ec.UnmarshalBinaryData(b)
+		if err != nil || len(rest) > 0 {
+			//fmt.Printf("err - %v\n", err)
 			e := new(entryBlock.Entry)
-			err = e.UnmarshalBinary(b)
-			if err != nil {
-				fmt.Printf("err - %v\n", err)
+			rest, err = e.UnmarshalBinaryData(b)
+			if err != nil || len(rest) > 0 {
+				//fmt.Printf("err - %v\n", err)
 				return
 			} else {
-				fmt.Println("e")
+				//fmt.Println("e")
 				eTxID = e.GetHash().String()
 			}
 		} else {
-			fmt.Println("ec")
+			//fmt.Println("ec")
 			eTxID = ec.GetEntryHash().String()
 			ecTxID = ec.GetHash().String()
 		}
 	} else {
-		fmt.Println("cc")
+		//fmt.Println("cc")
 		eTxID = cc.GetEntryHash().String()
 		ecTxID = cc.GetHash().String()
 	}
+
+	//fmt.Printf("eTxID - %v\n", eTxID)
+	//fmt.Printf("ecTxID - %v\n", ecTxID)
 	return
 }
 
@@ -313,9 +362,13 @@ type ReserveInfo struct {
 }
 
 type GeneralTransactionData struct {
-	TransactionDate int64      `json:"transactiondate"` //Unix time
-	Malleated       *Malleated `json:"malleated,omitempty"`
-	Status          string     `json:"status"`
+	TransactionDate       int64  `json:"transactiondate,omitempty"`       //Unix time
+	TransactionDateString string `json:"transactiondatestring,omitempty"` //ISO8601 time
+	BlockDate             int64  `json:"blockdate,omitempty"`             //Unix time
+	BlockDateString       string `json:"blockdatestring,omitempty"`       //ISO8601 time
+
+	Malleated *Malleated `json:"malleated,omitempty"`
+	Status    string     `json:"status"`
 }
 
 type Malleated struct {

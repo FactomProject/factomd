@@ -17,7 +17,6 @@ import (
 //A placeholder structure for messages
 type CommitChainMsg struct {
 	MessageBase
-	Timestamp   interfaces.Timestamp
 	CommitChain *entryCreditBlock.CommitChain
 
 	Signature interfaces.IFullSignature
@@ -27,14 +26,10 @@ type CommitChainMsg struct {
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
-var _ interfaces.ICounted = (*CommitChainMsg)(nil)
 var _ Signable = (*CommitChainMsg)(nil)
 
 func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 	if b == nil {
-		return false
-	}
-	if a.Timestamp != b.Timestamp {
 		return false
 	}
 
@@ -75,23 +70,27 @@ func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) bool 
 	return state.ProcessCommitChain(dbheight, m)
 }
 
+func (m *CommitChainMsg) GetRepeatHash() interfaces.IHash {
+	return m.CommitChain.GetSigHash()
+}
+
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
 func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+
+	data, err := m.MarshalBinary()
+	if err != nil {
+		return nil
 	}
+	m.MsgHash = primitives.Sha(data)
+
 	return m.MsgHash
 }
 
 func (m *CommitChainMsg) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.CommitChain.GetTimestamp()
 }
 
 func (m *CommitChainMsg) Type() byte {
@@ -116,31 +115,23 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	}
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
-		return -1
+		return 0
 	}
 
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *CommitChainMsg) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.EC_CHAINID)
+func (m *CommitChainMsg) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *CommitChainMsg) Follower(state interfaces.IState) bool {
-	return true
-}
-
-func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 func (e *CommitChainMsg) JSONByte() ([]byte, error) {
@@ -184,13 +175,6 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	newData = newData[1:]
 
-	t := new(interfaces.Timestamp)
-	newData, err = t.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-	m.Timestamp = *t
-
 	cc := entryCreditBlock.NewCommitChain()
 	newData, err = cc.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -218,13 +202,6 @@ func (m *CommitChainMsg) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err = t.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
 
 	data, err = m.CommitChain.MarshalBinary()
 	if err != nil {
@@ -256,10 +233,10 @@ func (m *CommitChainMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	str := fmt.Sprintf("%6s-VM%3d: Leader[:3]=%x MsgHash[:3]=%x",
+	str := fmt.Sprintf("%6s-VM%3d: entryhash[%x] hash[%x]",
 		"CChain",
 		m.VMIndex,
-		m.LeaderChainID.Bytes()[:3],
+		m.CommitChain.EntryHash.Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 	return str
 }

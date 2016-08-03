@@ -8,10 +8,11 @@ import (
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	. "github.com/FactomProject/factomd/testHelper"
 	//"github.com/FactomProject/factomd/common/interfaces"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	"testing"
 )
 
 func TestSaveLoadABlockHead(t *testing.T) {
@@ -98,13 +99,13 @@ func TestSaveLoadABlockChain(t *testing.T) {
 	zero := primitives.NewZeroHash()
 	fetchedCount := 1
 	for {
-		keyMR := current.GetHeader().GetPrevFullHash()
+		keyMR := current.GetHeader().GetPrevBackRefHash()
 		if keyMR.IsSameAs(zero) {
 			break
 		}
 		//t.Logf("KeyMR - %v", keyMR.String())
 
-		current, err = dbo.FetchABlockByKeyMR(keyMR)
+		current, err = dbo.FetchABlockBySecondary(keyMR)
 		if err != nil {
 			t.Error(err)
 		}
@@ -112,12 +113,12 @@ func TestSaveLoadABlockChain(t *testing.T) {
 			t.Fatal("Block not found")
 		}
 		fetchedCount++
-		hash, err := current.PartialHash()
+		hash, err := current.LookupHash()
 		if err != nil {
 			t.Error(err)
 		}
 
-		byHash, err := dbo.FetchABlockByHash(hash)
+		byHash, err := dbo.FetchABlockByPrimary(hash)
 
 		same, err := primitives.AreBinaryMarshallablesEqual(current, byHash)
 		if err != nil {
@@ -159,14 +160,14 @@ func TestLoadUnknownABlocks(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		data, err := dbo.FetchABlockByHash(hash)
+		data, err := dbo.FetchABlockByPrimary(hash)
 		if err != nil {
 			t.Error(err)
 		}
 		if data != nil {
 			t.Error("Fetched entry while we expected nil - %v", data)
 		}
-		data, err = dbo.FetchABlockByKeyMR(hash)
+		data, err = dbo.FetchABlockBySecondary(hash)
 		if err != nil {
 			t.Error(err)
 		}

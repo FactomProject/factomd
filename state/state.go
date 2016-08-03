@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
+	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -22,8 +25,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"math/rand"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -33,83 +34,142 @@ type State struct {
 
 	Cfg interfaces.IFactomConfig
 
-	Prefix                  string
-	FactomNodeName          string
-	FactomdVersion          int
-	LogPath                 string
-	LdbPath                 string
-	BoltDBPath              string
-	LogLevel                string
-	ConsoleLogLevel         string
-	NodeMode                string
-	DBType                  string
-	CloneDBType             string
-	ExportData              bool
-	ExportDataSubpath       string
-	Network                 string
+	Prefix            string
+	FactomNodeName    string
+	FactomdVersion    int
+	LogPath           string
+	LdbPath           string
+	BoltDBPath        string
+	LogLevel          string
+	ConsoleLogLevel   string
+	NodeMode          string
+	DBType            string
+	CloneDBType       string
+	ExportData        bool
+	ExportDataSubpath string
+
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
-	InternalReplay          *Replay
-	GreenFlg                bool
-	GreenCnt                int
 	DropRate                int
 
-	IdentityChainID interfaces.IHash // If this node has an identity, this is it
+	ControlPanelPort        int
+	ControlPanelPath        string
+	ControlPanelSetting     int
+	ControlPanelChannel     chan DisplayState
+	ControlPanelDataRequest bool // If true, update Display state
+
+	// Network Configuration
+	Network           string
+	MainNetworkPort   string
+	MainPeersFile     string
+	MainSeedURL       string
+	MainSpecialPeers  string
+	TestNetworkPort   string
+	TestPeersFile     string
+	TestSeedURL       string
+	TestSpecialPeers  string
+	LocalNetworkPort  string
+	LocalPeersFile    string
+	LocalSeedURL      string
+	LocalSpecialPeers string
+
+	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
+	Identities           []Identity       // Identities of all servers in management chain
+	Authorities          []Authority      // Identities of all servers in management chain
+	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	serverPrt string
+	Status     bool
+	starttime  time.Time
+	transCnt   int
+	lasttime   time.Time
+	tps        float64
+	serverPrt  string
+	DBStateCnt int
+	MissingCnt int
+	ResendCnt  int
+	ExpireCnt  int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
+	TimeOffset             interfaces.Timestamp
+	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             chan interfaces.IMsg
 	apiQueue               chan interfaces.IMsg
-	leaderMsgQueue         chan interfaces.IMsg
-	followerMsgQueue       chan interfaces.IMsg
-	stallQueue             chan interfaces.IMsg
-	undo                   interfaces.IMsg
+	ackQueue               chan interfaces.IMsg
+	msgQueue               chan interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
 
-	serverPrivKey primitives.PrivateKey
-	serverPubKey  primitives.PublicKey
+	serverPrivKey         *primitives.PrivateKey
+	serverPubKey          *primitives.PublicKey
+	serverPendingPrivKeys []*primitives.PrivateKey
+	serverPendingPubKeys  []*primitives.PublicKey
 
 	// Server State
-	LLeaderHeight  uint32
-	Leader         bool
-	LeaderVMIndex  int
-	LeaderPL       *ProcessList
-	OutputAllowed  bool
-	LeaderMinute   int  // The minute that just was processed by the follower, (1-10), set with EOM
-	EOM            int  // Set to true when all Process Lists have finished a minute
-	NetStateOff    bool // Disable if true, Enable if false
-	DebugConsensus bool // If true, dump consensus trace
-	FactoidTrans   int
-	NewEntryChains int
-	NewEntries     int
+	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
+	StartDelayLimit int64
+	RunLeader       bool
+	LLeaderHeight   uint32
+	Leader          bool
+	LeaderVMIndex   int
+	LeaderPL        *ProcessList
+	OneLeader       bool
+	OutputAllowed   bool
+	CurrentMinute   int
+
+	EOMsyncing bool
+
+	EOM          bool // Set to true when the first EOM is encountered
+	EOMLimit     int
+	EOMProcessed int
+	EOMDone      bool
+	EOMMinute    int
+
+	DBSig          bool
+	DBSigLimit     int
+	DBSigProcessed int // Number of DBSignatures received and processed.
+	DBSigDone      bool
+	KeepMismatch   bool // By default, this is false, which means DBstates are discarded
+	//when a majority of leaders disagree with the hash we have via DBSigs
+	MismatchCnt int // Keep track of how many blockhash mismatches we've had to correct
+
+	Saving  bool // True if we are in the process of saving to the database
+	Syncing bool // Looking for messages from leaders to sync
+
+	NetStateOff     bool // Disable if true, Enable if false
+	DebugConsensus  bool // If true, dump consensus trace
+	FactoidTrans    int
+	NewEntryChains  int
+	NewEntries      int
+	LeaderTimestamp interfaces.Timestamp
 	// Maps
 	// ====
 	// For Follower
-	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	Review  []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	Commits map[[32]byte]interfaces.IMsg // Commit Messages
-	Reveals map[[32]byte]interfaces.IMsg // Reveal Messages
+	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
+	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+	Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+	Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+
+	InvalidMessages      map[[32]byte]interfaces.IMsg
+	InvalidMessagesMutex sync.RWMutex
 
 	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
 	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
+	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
+	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB      *databaseOverlay.Overlay
-	DBMutex sync.Mutex
-	Logger  *logger.FLogger
-	Anchor  interfaces.IAnchor
+	DB     *databaseOverlay.Overlay
+	Logger *logger.FLogger
+	Anchor interfaces.IAnchor
 
 	// Directory Block State
 	DBStates *DBStateList // Holds all DBStates not yet processed.
@@ -142,7 +202,6 @@ type State struct {
 	ECBalancesT           map[[32]byte]int64
 	ECBalancesTMutex      sync.Mutex
 
-	FactoshisPerEC uint64
 	// Web Services
 	Port int
 
@@ -158,6 +217,16 @@ type State struct {
 
 	LastPrint    string
 	LastPrintCnt int
+
+	// FER section
+	FactoshisPerEC               uint64
+	FERChainId                   string
+	ExchangeRateAuthorityAddress string
+
+	FERChangeHeight      uint32
+	FERChangePrice       uint64
+	FERPriority          uint32
+	FERPrioritySetHeight uint32
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -168,10 +237,10 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
-	clone.LogPath = s.LogPath + "Sim" + number
-	clone.LdbPath = s.LdbPath + "Sim" + number
-	clone.JournalFile = s.LogPath + "journal" + number + ".log"
-	clone.BoltDBPath = s.BoltDBPath + "Sim" + number
+	clone.LogPath = s.LogPath + "/Sim" + number
+	clone.LdbPath = s.LdbPath + "/Sim" + number
+	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
+	clone.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
 	clone.NodeMode = "FULL"
@@ -180,15 +249,38 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportData = s.ExportData
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
+	clone.MainNetworkPort = s.MainNetworkPort
+	clone.MainPeersFile = s.MainPeersFile
+	clone.MainSeedURL = s.MainSeedURL
+	clone.MainSpecialPeers = s.MainSpecialPeers
+	clone.TestNetworkPort = s.TestNetworkPort
+	clone.TestPeersFile = s.TestPeersFile
+	clone.TestSeedURL = s.TestSeedURL
+	clone.TestSpecialPeers = s.TestSpecialPeers
+	clone.LocalNetworkPort = s.LocalNetworkPort
+	clone.LocalPeersFile = s.LocalPeersFile
+	clone.LocalSeedURL = s.LocalSeedURL
+	clone.LocalSpecialPeers = s.LocalSpecialPeers
+	clone.FaultMap = s.FaultMap
+
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
 
+	clone.ControlPanelPort = s.ControlPanelPort
+	clone.ControlPanelPath = s.ControlPanelPath
+	clone.ControlPanelSetting = s.ControlPanelSetting
+
 	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
+	clone.Identities = s.Identities
+	clone.Authorities = s.Authorities
+	clone.AuthorityServerCount = s.AuthorityServerCount
 
 	//generate and use a new deterministic PrivateKey for this clone
 	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
 	clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
 	clone.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+
+	clone.SetLeaderTimestamp(s.GetLeaderTimestamp())
 
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
@@ -196,6 +288,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.FactoshisPerEC = s.FactoshisPerEC
 
 	clone.Port = s.Port
+
+	clone.OneLeader = s.OneLeader
 
 	return clone
 }
@@ -226,7 +320,6 @@ func (s *State) SetNetStateOff(net bool) {
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string, folder string) {
-
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
@@ -245,13 +338,42 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
+		s.MainNetworkPort = cfg.App.MainNetworkPort
+		s.MainPeersFile = cfg.App.MainPeersFile
+		s.MainSeedURL = cfg.App.MainSeedURL
+		s.MainSpecialPeers = cfg.App.MainSpecialPeers
+		s.TestNetworkPort = cfg.App.TestNetworkPort
+		s.TestPeersFile = cfg.App.TestPeersFile
+		s.TestSeedURL = cfg.App.TestSeedURL
+		s.TestSpecialPeers = cfg.App.TestSpecialPeers
+		s.LocalNetworkPort = cfg.App.LocalNetworkPort
+		s.LocalPeersFile = cfg.App.LocalPeersFile
+		s.LocalSeedURL = cfg.App.LocalSeedURL
+		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
-
-		// TODO:  Actually load the IdentityChainID from the config file
-		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		s.ControlPanelPort = cfg.App.ControlPanelPort
+		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		switch cfg.App.ControlPanelSetting {
+		case "disabled":
+			s.ControlPanelSetting = 0
+		case "readonly":
+			s.ControlPanelSetting = 1
+		case "readwrite":
+			s.ControlPanelSetting = 2
+		default:
+			s.ControlPanelSetting = 1
+		}
+		s.FERChainId = cfg.App.ExchangeRateChainId
+		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
+		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
+		if err != nil {
+			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
+		} else {
+			s.IdentityChainID = identity
+		}
 	} else {
 		s.LogPath = "database/"
 		s.LdbPath = "database/ldb"
@@ -263,19 +385,40 @@ func (s *State) LoadConfig(filename string, folder string) {
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
+		s.MainNetworkPort = "8108"
+		s.MainPeersFile = "MainPeers.json"
+		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+		s.MainSpecialPeers = ""
+		s.TestNetworkPort = "8109"
+		s.TestPeersFile = "TestPeers.json"
+		s.TestSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+		s.TestSpecialPeers = ""
+		s.LocalNetworkPort = "8110"
+		s.LocalPeersFile = "LocalPeers.json"
+		s.LocalSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+		s.LocalSpecialPeers = ""
+
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
+		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
+		s.ControlPanelPort = 8090
+		s.ControlPanelPath = "Web/"
+		s.ControlPanelSetting = 1
 
 		// TODO:  Actually load the IdentityChainID from the config file
 		s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
 
 	}
-	s.JournalFile = s.LogPath + "journal0" + ".log"
+	s.JournalFile = s.LogPath + "/journal0" + ".log"
 }
 
 func (s *State) Init() {
+
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
+	s.RunLeader = false
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
@@ -283,18 +426,23 @@ func (s *State) Init() {
 
 	log.SetLevel(s.ConsoleLogLevel)
 
+	s.ControlPanelChannel = make(chan DisplayState, 20)
 	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
 	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
+	s.TimeOffset = new(primitives.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)     //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)             //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 10000)               //incoming message queue from the API
-	s.leaderMsgQueue = make(chan interfaces.IMsg, 10000)         //queue of Leadership messages
-	s.followerMsgQueue = make(chan interfaces.IMsg, 10000)       //queue of Follower messages
-	s.stallQueue = make(chan interfaces.IMsg, 10000)             //queue of Leader messages while stalled
-	s.ShutdownChan = make(chan int, 1)                           //Channel to gracefully shut down.
+	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 10000)           //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 
-	os.Mkdir(s.LogPath, 0777)
+	er := os.MkdirAll(s.LogPath, 0777)
+	if er != nil {
+		fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
+	}
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
 		fmt.Println("Could not create the file: " + s.JournalFile)
@@ -302,13 +450,13 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
-	s.InternalReplay = new(Replay)
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte]interfaces.IMsg)
-	s.Reveals = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = make(map[[32]byte][]interfaces.IMsg)
+
+	s.FaultMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -326,6 +474,7 @@ func (s *State) Init() {
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
+	s.DBStates.LastTime = new(primitives.Timestamp)
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
@@ -365,9 +514,7 @@ func (s *State) Init() {
 	}
 
 	if s.ExportData {
-		s.DBMutex.Lock()
 		s.DB.SetExportData(s.ExportDataSubpath)
-		s.DBMutex.Unlock()
 	}
 
 	//Network
@@ -385,12 +532,26 @@ func (s *State) Init() {
 	}
 
 	s.Println("\nRunning on the ", s.Network, "Network")
+	s.Println("\nExchange rate chain id set to ", s.FERChainId)
+	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
+	s.AuthorityServerCount = 0
 
+	//LoadIdentityCache(s)
+	//StubIdentityCache(s)
+	//needed for multiple nodes with FER.  remove for singe node launch
+	if s.FERChainId == "" {
+		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+	}
+	if s.ExchangeRateAuthorityAddress == "" {
+		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+	}
+	// end of FER removal
+	s.starttime = time.Now()
 }
 
 func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
@@ -413,10 +574,8 @@ func (s *State) SetEBDBHeightComplete(newHeight uint32) {
 }
 
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 
-	entry, err := s.DB.FetchEntryByHash(entryHash)
+	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
 		return nil
 	}
@@ -424,7 +583,7 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 		dblock := s.GetDirectoryBlockByHeight(entry.GetDatabaseHeight())
 		for idx, ebHash := range dblock.GetEntryHashes() {
 			if idx > 2 {
-				thisBlock, err := s.DB.FetchEBlockByKeyMR(ebHash)
+				thisBlock, err := s.DB.FetchEBlock(ebHash)
 				if err == nil {
 					for _, attemptEntryHash := range thisBlock.GetEntryHashes() {
 						if attemptEntryHash.IsSameAs(entryHash) {
@@ -439,18 +598,13 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 }
 
 func (s *State) GetAndLockDB() interfaces.DBOverlay {
-	s.DBMutex.Lock()
 	return s.DB
 }
 
 func (s *State) UnlockDB() {
-	s.DBMutex.Unlock()
 }
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
-
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -458,21 +612,22 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if dblk == nil {
 		return nil, nil
 	}
-	ablk, err := s.DB.FetchABlockByKeyMR(dblk.GetDBEntries()[0].GetKeyMR())
+
+	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if ablk == nil {
 		return nil, fmt.Errorf("ABlock not found")
 	}
-	ecblk, err := s.DB.FetchECBlockByHash(dblk.GetDBEntries()[1].GetKeyMR())
+	ecblk, err := s.DB.FetchECBlock(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if ecblk == nil {
 		return nil, fmt.Errorf("ECBlock not found")
 	}
-	fblk, err := s.DB.FetchFBlockByKeyMR(dblk.GetDBEntries()[2].GetKeyMR())
+	fblk, err := s.DB.FetchFBlock(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +641,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
-
 }
 
 func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
@@ -498,17 +652,17 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 	var err error
 
 	// Check for Entry
-	result, err = s.DB.FetchEntryByHash(requestedHash)
+	result, err = s.DB.FetchEntry(requestedHash)
 	if result != nil && err == nil {
 		return result, 0, nil
 	}
 
 	// Check for Entry Block
-	result, err = s.DB.FetchEBlockByKeyMR(requestedHash)
+	result, err = s.DB.FetchEBlock(requestedHash)
 	if result != nil && err == nil {
 		return result, 1, nil
 	}
-	result, _ = s.DB.FetchEBlockByHash(requestedHash)
+	result, _ = s.DB.FetchEBlock(requestedHash)
 	if result != nil && err == nil {
 		return result, 1, nil
 	}
@@ -517,58 +671,32 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 }
 
 func (s *State) LoadSpecificMsg(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, error) {
-	if dbheight < s.ProcessLists.DBHeightBase {
-		return nil, fmt.Errorf("Missing message is too deeply buried in blocks")
-	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
-		return nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
-	}
 
-	procList := s.ProcessLists.Get(dbheight)
-	if procList == nil {
-		return nil, fmt.Errorf("Nil Process List")
-	}
-	if len(procList.VMs[vm].List) < int(plistheight)+1 {
-		return nil, fmt.Errorf("Process List too small (lacks requested msg)")
-	}
-
-	msg := procList.VMs[vm].List[plistheight]
-
-	if msg == nil {
-		return nil, fmt.Errorf("State process list does not include requested message")
-	}
-
-	return msg, nil
+	msg, _, err := s.LoadSpecificMsgAndAck(dbheight, vm, plistheight)
+	return msg, err
 }
 
-func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
-	if dbheight < s.ProcessLists.DBHeightBase {
-		return nil, nil, fmt.Errorf("Missing message is too deeply buried in blocks")
-	} else if dbheight > (s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists))) {
-		return nil, nil, fmt.Errorf("Answering node has not reached DBHeight of missing message")
-	}
+func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight uint32) (interfaces.IMsg, interfaces.IMsg, error) {
 
-	procList := s.ProcessLists.Get(dbheight)
-	if procList == nil {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
 		return nil, nil, fmt.Errorf("Nil Process List")
-	} else if len(procList.VMs) < 1 {
-		return nil, nil, fmt.Errorf("No servers?")
 	}
-	if len(procList.VMs[vm].List) < int(plistheight)+1 {
+	if vmIndex < 0 || vmIndex >= len(pl.VMs) {
+		return nil, nil, fmt.Errorf("VM index out of range")
+	}
+	vm := pl.VMs[vmIndex]
+
+	if plistheight < 0 || int(plistheight) >= len(vm.List) {
 		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
 	}
 
-	msg := procList.VMs[vm].List[plistheight]
+	msg := vm.List[plistheight]
+	ackMsg := vm.ListAck[plistheight]
 
-	if msg == nil {
-		return nil, nil, fmt.Errorf("State process list does not include requested message")
+	if msg == nil || ackMsg == nil {
+		return nil, nil, fmt.Errorf("State process list does not include requested message/ack")
 	}
-
-	ackMsg, ok := s.ProcessLists.Get(dbheight).OldAcks[msg.GetHash().Fixed()]
-
-	if !ok || ackMsg == nil {
-		return nil, nil, fmt.Errorf("State process list does not include ack for message")
-	}
-
 	return msg, ackMsg, nil
 }
 
@@ -577,9 +705,7 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint3
 // It returns True if the EBlock is complete (all entries already exist in database)
 func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	hasAllEntries := true
-	s.DBMutex.Lock()
-	eblock, err := s.DB.FetchEBlockByKeyMR(ebKeyMR)
-	s.DBMutex.Unlock()
+	eblock, err := s.DB.FetchEBlock(ebKeyMR)
 	if err != nil {
 		return false
 	}
@@ -605,6 +731,25 @@ func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
 	}
 
 	return hasAllEntries
+}
+
+func (s *State) GetPendingEntryHashes() []interfaces.IHash {
+	pLists := s.ProcessLists
+	if pLists == nil {
+		return nil
+	}
+	ht := pLists.State.GetHighestRecordedBlock()
+	pl := pLists.Get(ht + 1)
+	var hashCount int32
+	hashCount = 0
+	hashResponse := make([]interfaces.IHash, pl.LenNewEntries())
+	keys := pl.GetKeysNewEntries()
+	for _, k := range keys {
+		entry := pl.GetNewEntry(k)
+		hashResponse[hashCount] = entry.GetHash()
+		hashCount++
+	}
+	return hashResponse
 }
 
 func (s *State) IncFactoidTrans() {
@@ -639,7 +784,7 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	if len(s.JournalFile) == 0 {
+	if len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
@@ -656,19 +801,17 @@ func (s *State) GetLeaderVM() int {
 }
 
 func (s *State) GetDBState(height uint32) *DBState {
-	return s.DBStates.Get(height)
+	return s.DBStates.Get(int(height))
 }
 
 // Return the Directory block if it is in memory, or hit the database if it must
 // be loaded.
 func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBlock {
-	dbstate := s.DBStates.Get(height)
+	dbstate := s.DBStates.Get(int(height))
 	if dbstate != nil {
 		return dbstate.DirectoryBlock
 	}
-	s.DBMutex.Lock()
 	dblk, err := s.DB.FetchDBlockByHeight(height)
-	s.DBMutex.Unlock()
 	if err != nil {
 		return nil
 	}
@@ -676,10 +819,14 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
+
 	dbheight := s.GetHighestRecordedBlock()
 	plbase := s.ProcessLists.DBHeightBase
-	if plbase <= dbheight+1 {
-		progress = s.ProcessLists.UpdateState(dbheight + 1)
+	if dbheight == 0 {
+		dbheight++
+	}
+	if plbase <= dbheight && s.RunLeader {
+		progress = s.ProcessLists.UpdateState(dbheight)
 	}
 
 	p2 := s.DBStates.UpdateState()
@@ -687,6 +834,10 @@ func (s *State) UpdateState() (progress bool) {
 
 	s.catchupEBlocks()
 
+	s.SetString()
+	if s.ControlPanelDataRequest {
+		s.CopyStateToControlPanel()
+	}
 	return
 }
 
@@ -694,37 +845,47 @@ func (s *State) catchupEBlocks() {
 	isComplete := true
 	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
 		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
-		for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
-			if idx > 2 {
-				if s.DatabaseContains(ebKeyMR) {
-					if !s.GetAllEntries(ebKeyMR) {
+		if dblockGathering != nil {
+			for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
+				if idx > 2 {
+					if s.DatabaseContains(ebKeyMR) {
+						if !s.GetAllEntries(ebKeyMR) {
+							isComplete = false
+						}
+					} else {
 						isComplete = false
-					}
-				} else {
-					isComplete = false
-					if !s.HasDataRequest(ebKeyMR) {
-						eBlockRequest := messages.NewMissingData(s, ebKeyMR)
-						s.NetworkOutMsgQueue() <- eBlockRequest
+						if !s.HasDataRequest(ebKeyMR) {
+							eBlockRequest := messages.NewMissingData(s, ebKeyMR)
+							s.NetworkOutMsgQueue() <- eBlockRequest
+						}
 					}
 				}
 			}
-		}
-		if isComplete {
-			s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+			if isComplete {
+				s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+			}
 		}
 	}
 }
 
-func (s *State) GetEOM() int {
-	return s.EOM
+func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfaces.IFullSignature) {
+	s.ProcessLists.Get(dbheight).AddDBSig(chainID, sig)
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
+func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
+	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
+}
+
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
+}
+
+func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
+	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
@@ -733,6 +894,10 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 
 func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).AuditServers
+}
+
+func (s *State) IsLeader() bool {
+	return s.Leader
 }
 
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, index int) {
@@ -764,11 +929,11 @@ func (s *State) SetDirectoryBlockInSeconds(t int) {
 	s.DirectoryBlockInSeconds = t
 }
 
-func (s *State) GetServerPrivateKey() primitives.PrivateKey {
+func (s *State) GetServerPrivateKey() *primitives.PrivateKey {
 	return s.serverPrivKey
 }
 
-func (s *State) GetServerPublicKey() primitives.PublicKey {
+func (s *State) GetServerPublicKey() *primitives.PublicKey {
 	return s.serverPubKey
 }
 
@@ -786,7 +951,8 @@ func (s *State) initServerKeys() {
 	if err != nil {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
-	s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
+	s.serverPubKey = s.serverPrivKey.Pub
+	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 func (s *State) LogInfo(args ...interface{}) {
@@ -807,14 +973,20 @@ func (s *State) SetIsReplaying() {
 
 func (s *State) SetIsDoneReplaying() {
 	s.IsReplaying = false
-	s.ReplayTimestamp = 0
+	s.ReplayTimestamp = nil
 }
 
+// Returns a millisecond timestamp
 func (s *State) GetTimestamp() interfaces.Timestamp {
 	if s.IsReplaying == true {
+		fmt.Println("^^^^^^^^ IsReplying is true")
 		return s.ReplayTimestamp
 	}
-	return *interfaces.NewTimeStampNow()
+	return primitives.NewTimestampNow()
+}
+
+func (s *State) GetTimeOffset() interfaces.Timestamp {
+	return s.TimeOffset
 }
 
 func (s *State) Sign(b []byte) interfaces.IFullSignature {
@@ -862,22 +1034,23 @@ func (s *State) APIQueue() chan interfaces.IMsg {
 	return s.apiQueue
 }
 
-func (s *State) LeaderMsgQueue() chan interfaces.IMsg {
-	return s.leaderMsgQueue
+func (s *State) AckQueue() chan interfaces.IMsg {
+	return s.ackQueue
 }
 
-func (s *State) StallMsg(m interfaces.IMsg) {
-	if !m.IsLocal() {
-		s.stallQueue <- m
+func (s *State) MsgQueue() chan interfaces.IMsg {
+	return s.msgQueue
+}
+
+func (s *State) GetLeaderTimestamp() interfaces.Timestamp {
+	if s.LeaderTimestamp == nil {
+		s.LeaderTimestamp = new(primitives.Timestamp)
 	}
+	return s.LeaderTimestamp
 }
 
-func (s *State) Stall() chan interfaces.IMsg {
-	return s.stallQueue
-}
-
-func (s *State) FollowerMsgQueue() chan interfaces.IMsg {
-	return s.followerMsgQueue
+func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
+	s.LeaderTimestamp = ts
 }
 
 //var _ IState = (*State)(nil)
@@ -900,13 +1073,25 @@ func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
 }
 
+func (s *State) GetNetworkID() uint32 {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return constants.MAIN_NETWORK_ID
+	case constants.NETWORK_TEST:
+		return constants.TEST_NETWORK_ID
+	case constants.NETWORK_LOCAL:
+		return constants.LOCAL_NETWORK_ID
+	case constants.NETWORK_CUSTOM:
+		return constants.CUSTOM_NETWORK_ID
+	}
+	return uint32(0)
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }
 
 func (s *State) InitLevelDB() error {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 
 	if s.DB != nil {
 		return nil
@@ -930,8 +1115,6 @@ func (s *State) InitLevelDB() error {
 }
 
 func (s *State) InitBoltDB() error {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 	if s.DB != nil {
 		return nil
 	}
@@ -946,8 +1129,6 @@ func (s *State) InitBoltDB() error {
 }
 
 func (s *State) InitMapDB() error {
-	s.DBMutex.Lock()
-	defer s.DBMutex.Unlock()
 
 	if s.DB != nil {
 		return nil
@@ -971,74 +1152,115 @@ func (s *State) ShortString() string {
 }
 
 func (s *State) SetString() {
-
-	if rand.Int()%100 > 50 {
+	if !s.Status {
 		return
 	}
+	s.Status = false
 
-	buildingBlock := s.GetHighestRecordedBlock()
+	vmi := -1
+	if s.Leader && s.LeaderVMIndex >= 0 {
+		vmi = s.LeaderVMIndex
+	}
+	vmt0 := s.ProcessLists.Get(s.LLeaderHeight)
+	var vmt *VM
+	lmin := "-"
+	if vmt0 != nil && vmi >= 0 {
+		vmt = vmt0.VMs[vmi]
+		lmin = fmt.Sprintf("%2d", vmt.LeaderMinute)
+	}
 
-	lastheight := uint32(0)
+	vmin := s.CurrentMinute
+	if s.CurrentMinute > 9 {
+		vmin = 0
+	}
 
-	found, _ := s.GetVirtualServers(buildingBlock+1, 0, s.GetIdentityChainID())
-
+	found, vm := s.GetVirtualServers(s.LLeaderHeight, vmin, s.GetIdentityChainID())
+	vmIndex := ""
+	if found {
+		vmIndex = fmt.Sprintf("vm%2d", vm)
+	}
 	L := ""
 	X := ""
+	W := ""
 	if found {
 		L = "L"
+	} else {
+		list := s.ProcessLists.Get(s.LLeaderHeight)
+		if list != nil {
+			if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
+				if foundAudit {
+					L = "A"
+				}
+			}
+		}
 	}
 	if s.NetStateOff {
 		X = "X"
 	}
-
-	stype := fmt.Sprintf("%1s%1s", L, X)
-
-	if buildingBlock == 0 {
-		s.serverPrt = fmt.Sprintf("%9s%9s Recorded: %d Building: %d Highest: %d ",
-			stype,
-			s.FactomNodeName,
-			s.GetHighestRecordedBlock(),
-			0,
-			s.GetHighestKnownBlock())
-	} else {
-
-		keyMR := []byte("aaaaa")
-		//abHash := []byte("aaaaa")
-		//fbHash := []byte("aaaaa")
-		//ecHash := []byte("aaaaa")
-
-		switch {
-		case s.DBStates == nil:
-
-		case s.DBStates.Last() == nil:
-
-		case s.DBStates.Last().DirectoryBlock == nil:
-
-		default:
-			keyMR = s.DBStates.Last().DirectoryBlock.GetKeyMR().Bytes()
-			//abHash = s.DBStates.Last().AdminBlock.GetHash().Bytes()
-			//fbHash = s.DBStates.Last().FactoidBlock.GetHash().Bytes()
-			//ecHash = s.DBStates.Last().EntryCreditBlock.GetHash().Bytes()
-			lastheight = s.DBStates.Last().DirectoryBlock.GetHeader().GetDBHeight()
-		}
-
-		s.serverPrt = fmt.Sprintf("%4s%8s ID %x Save:%4d Next:%4d High:%4d DBMR <%x> L Min: %2v L DBHT%5v Min C/F %02v/%02v EOM %2v %3d-Fct %3d-EC %3d-E",
-			stype,
-			s.FactomNodeName,
-			s.IdentityChainID.Bytes()[:3],
-			s.GetHighestRecordedBlock(),
-			lastheight,
-			s.GetHighestKnownBlock(),
-			keyMR[:3],
-			s.LeaderMinute,
-			s.LLeaderHeight,
-			s.ProcessLists.Get(s.LLeaderHeight).MinuteComplete(),
-			s.ProcessLists.Get(s.LLeaderHeight).MinuteFinished(),
-			s.EOM,
-			s.FactoidTrans,
-			s.NewEntryChains,
-			s.NewEntries)
+	if !s.RunLeader && found {
+		W = "W"
 	}
+
+	stype := fmt.Sprintf("%1s%1s%1s", L, X, W)
+
+	keyMR := primitives.NewZeroHash().Bytes()
+	var d interfaces.IDirectoryBlock
+	var dHeight uint32
+	switch {
+	case s.DBStates == nil:
+
+	case s.LLeaderHeight == 0:
+
+	case s.DBStates.Last() == nil:
+
+	case s.DBStates.Last().DirectoryBlock == nil:
+
+	default:
+		d = s.DBStates.Last().DirectoryBlock
+		keyMR = d.GetKeyMR().Bytes()
+		dHeight = d.GetHeader().GetDBHeight()
+	}
+
+	runtime := time.Since(s.starttime)
+	shorttime := time.Since(s.lasttime)
+	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
+	tps := float64(total) / float64(runtime.Seconds())
+	if shorttime > time.Second*3 {
+		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
+		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
+		s.lasttime = time.Now()
+		s.transCnt = total // transactions accounted for
+	}
+
+	str := fmt.Sprintf("%8s[%12x]%4s %3s ",
+		s.FactomNodeName,
+		s.IdentityChainID.Bytes()[:6],
+		vmIndex,
+		stype)
+
+	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+
+	str = str + fmt.Sprintf("DB: %5d[%6x] PL:%-9s ",
+		dHeight,
+		keyMR[:3],
+		pls)
+
+	dbstate := fmt.Sprintf("%d/%d", s.DBStateCnt, s.MismatchCnt)
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(+/-) %-10s MissCnt %5d ",
+		lmin,
+		s.CurrentMinute,
+		dbstate,
+		s.MissingCnt)
+
+	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
+	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-14s tps t/i %s",
+		s.ResendCnt,
+		s.ExpireCnt,
+		trans,
+		stps)
+
+	s.serverPrt = str
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
@@ -1088,4 +1310,39 @@ func (s *State) GetOut() bool {
 
 func (s *State) SetOut(o bool) {
 	s.OutputAllowed = o
+}
+
+func (s *State) GetInvalidMsg(hash interfaces.IHash) interfaces.IMsg {
+	if hash == nil {
+		return nil
+	}
+
+	s.InvalidMessagesMutex.RLock()
+	defer s.InvalidMessagesMutex.RUnlock()
+
+	return s.InvalidMessages[hash.Fixed()]
+}
+
+func (s *State) ProcessInvalidMsgQueue() {
+	s.InvalidMessagesMutex.Lock()
+	defer s.InvalidMessagesMutex.Unlock()
+	if len(s.InvalidMessages)+len(s.networkInvalidMsgQueue) > 2048 {
+		//Clearing old invalid messages
+		s.InvalidMessages = map[[32]byte]interfaces.IMsg{}
+	}
+
+	for {
+		if len(s.networkInvalidMsgQueue) == 0 {
+			return
+		}
+		select {
+		case msg := <-s.networkInvalidMsgQueue:
+			s.InvalidMessages[msg.GetHash().Fixed()] = msg
+		}
+	}
+}
+
+func (s *State) SetPendingSigningKey(p *primitives.PrivateKey) {
+	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
+	s.serverPendingPubKeys = append(s.serverPendingPubKeys, p.Pub)
 }

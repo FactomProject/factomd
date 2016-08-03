@@ -24,7 +24,7 @@ type DBOverlay interface {
 	InsertEntry(entry IEBEntry) (err error)
 
 	// FetchEntry gets an entry by hash from the database.
-	FetchEntryByHash(IHash) (IEBEntry, error)
+	FetchEntry(IHash) (IEBEntry, error)
 
 	FetchAllEntriesByChainID(chainID IHash) ([]IEBEntry, error)
 
@@ -38,11 +38,13 @@ type DBOverlay interface {
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
+	FetchEBlock(IHash) (IEntryBlock, error)
+
 	// FetchEBlockByHash gets an entry by hash from the database.
-	FetchEBlockByHash(IHash) (IEntryBlock, error)
+	FetchEBlockByPrimary(IHash) (IEntryBlock, error)
 
 	// FetchEBlockByKeyMR gets an entry by hash from the database.
-	FetchEBlockByKeyMR(hash IHash) (IEntryBlock, error)
+	FetchEBlockBySecondary(hash IHash) (IEntryBlock, error)
 
 	// FetchEBKeyMRByHash gets an entry by hash from the database.
 	FetchEBKeyMRByHash(hash IHash) (IHash, error)
@@ -72,20 +74,24 @@ type DBOverlay interface {
 	// part of the database.Db interface implementation.
 	FetchDBlockHeightByKeyMR(IHash) (int64, error)
 
+	FetchDBlock(IHash) (IDirectoryBlock, error)
+
 	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByKeyMR(IHash) (IDirectoryBlock, error)
+	FetchDBlockByPrimary(IHash) (IDirectoryBlock, error)
+
+	// FetchDBlock gets an entry by hash from the database.
+	FetchDBlockBySecondary(IHash) (IDirectoryBlock, error)
 
 	// FetchDBlockByHeight gets an directory block by height from the database.
 	FetchDBlockByHeight(uint32) (IDirectoryBlock, error)
+
+	FetchDBlockHead() (IDirectoryBlock, error)
 
 	// FetchDBKeyMRByHeight gets a dBlock KeyMR from the database.
 	FetchDBKeyMRByHeight(dBlockHeight uint32) (dBlockKeyMR IHash, err error)
 
 	// FetchDBKeyMRByHash gets a DBlock KeyMR by hash.
 	FetchDBKeyMRByHash(hash IHash) (dBlockHash IHash, err error)
-
-	// FetchDBlock gets an entry by hash from the database.
-	FetchDBlockByHash(dBlockHash IHash) (dBlock IDirectoryBlock, err error)
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() ([]IDirectoryBlock, error)
@@ -100,11 +106,13 @@ type DBOverlay interface {
 	ProcessECBlockBatch(IEntryCreditBlock, bool) (err error)
 	ProcessECBlockMultiBatch(IEntryCreditBlock, bool) (err error)
 
+	FetchECBlock(IHash) (IEntryCreditBlock, error)
+
 	// FetchECBlockByHash gets an Entry Credit block by hash from the database.
-	FetchECBlockByHash(IHash) (IEntryCreditBlock, error)
+	FetchECBlockByPrimary(IHash) (IEntryCreditBlock, error)
 
 	// FetchECBlockByKeyMR gets an Entry Credit block by hash from the database.
-	FetchECBlockByHeaderHash(hash IHash) (IEntryCreditBlock, error)
+	FetchECBlockBySecondary(hash IHash) (IEntryCreditBlock, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
@@ -119,11 +127,13 @@ type DBOverlay interface {
 	ProcessABlockBatch(block DatabaseBatchable) error
 	ProcessABlockMultiBatch(block DatabaseBatchable) error
 
+	FetchABlock(IHash) (IAdminBlock, error)
+
 	// FetchABlockByHash gets an admin block by hash from the database.
-	FetchABlockByHash(hash IHash) (IAdminBlock, error)
+	FetchABlockByPrimary(hash IHash) (IAdminBlock, error)
 
 	// FetchABlockByKeyMR gets an admin block by keyMR from the database.
-	FetchABlockByKeyMR(hash IHash) (IAdminBlock, error)
+	FetchABlockBySecondary(hash IHash) (IAdminBlock, error)
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
@@ -138,10 +148,12 @@ type DBOverlay interface {
 	ProcessFBlockBatch(DatabaseBlockWithEntries) error
 	ProcessFBlockMultiBatch(DatabaseBlockWithEntries) error
 
-	// FetchFBlockByHash gets an admin block by hash from the database.
-	FetchFBlockByHash(IHash) (IFBlock, error)
+	FetchFBlock(IHash) (IFBlock, error)
 
-	FetchFBlockByKeyMR(IHash) (IFBlock, error)
+	// FetchFBlockByHash gets an admin block by hash from the database.
+	FetchFBlockByPrimary(IHash) (IFBlock, error)
+
+	FetchFBlockBySecondary(IHash) (IFBlock, error)
 
 	// FetchAllFBlocks gets all of the admin blocks
 	FetchAllFBlocks() ([]IFBlock, error)
@@ -182,8 +194,8 @@ type DBOverlay interface {
 
 	FetchPaidFor(hash IHash) (IHash, error)
 
-	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
-	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
+	FetchFactoidTransaction(hash IHash) (ITransaction, error)
+	FetchECTransaction(hash IHash) (IECBlockEntry, error)
 }
 
 type ISCDatabaseOverlay interface {

@@ -38,6 +38,21 @@ var _ interfaces.ShortInterpretable = (*CommitChain)(nil)
 var _ interfaces.IECBlockEntry = (*CommitChain)(nil)
 var _ interfaces.ISignable = (*CommitChain)(nil)
 
+func (e *CommitChain) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitChain"))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "MilliTime", e.MilliTime))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ChainIDHash", e.ChainIDHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Weld", e.Weld.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Credits", e.Credits))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Sig", e.Sig[:3]))
+
+	return (string)(out.DeepCopyBytes())
+}
+
 func NewCommitChain() *CommitChain {
 	c := new(CommitChain)
 	c.Version = 0
@@ -96,12 +111,12 @@ func (c *CommitChain) CommitMsg() []byte {
 	return p[:len(p)-64-32]
 }
 
-// Return the timestamp in milliseconds.
-func (c *CommitChain) GetMilliTime() int64 {
+// Return the timestamp
+func (c *CommitChain) GetTimestamp() interfaces.Timestamp {
 	a := make([]byte, 2, 8)
 	a = append(a, c.MilliTime[:]...)
-	milli := int64(binary.BigEndian.Uint64(a))
-	return milli
+	milli := uint64(binary.BigEndian.Uint64(a))
+	return primitives.NewTimestampFromMilliseconds(milli)
 }
 
 func (c *CommitChain) IsValid() bool {
@@ -152,7 +167,8 @@ func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (c *CommitChain) MarshalBinary() ([]byte, error) {
+// Transaction hash of chain commit. (version through pub key hashed)
+func (c *CommitChain) MarshalBinaryTransaction() ([]byte, error) {
 	buf := new(primitives.Buffer)
 
 	b, err := c.MarshalBinarySig()
@@ -164,6 +180,23 @@ func (c *CommitChain) MarshalBinary() ([]byte, error) {
 
 	// 32 byte Public Key
 	buf.Write(c.ECPubKey[:])
+
+	return buf.DeepCopyBytes(), nil
+
+}
+
+func (c *CommitChain) MarshalBinary() ([]byte, error) {
+	buf := new(primitives.Buffer)
+
+	b, err := c.MarshalBinaryTransaction()
+	if err != nil {
+		return nil, err
+	}
+
+	buf.Write(b)
+
+	// 32 byte Public Key
+	//buf.Write(c.ECPubKey[:])
 
 	// 64 byte Signature
 	buf.Write(c.Sig[:])
@@ -334,9 +367,4 @@ func (e *CommitChain) JSONString() (string, error) {
 
 func (e *CommitChain) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *CommitChain) String() string {
-	str, _ := e.JSONString()
-	return str
 }

@@ -1,0 +1,137 @@
+{{define "localTop"}}
+        <section id="local">
+            <div class="row">
+                <div class="columns">
+                    <small><span id="server-status"></span></small>
+                    <h1 style="width:100%;">Your Node <small>v2.1 <a href="#" id="factom-search-link">(Upgrade Available)</a></small><small style="float:right;">Git Build: {{.}}</small></h1> 
+                    <small onclick="nextNode()"><a>Next Node</a></small>, <small>Current:<span id="current-node-number">0</span></small>
+                </div>
+            </div>
+            <div class="row">
+                <div class="large-3 medium-4 small-12 columns">
+                    <div class="metric">
+                        <label for="nodeHeight">Block Height:</label>
+                        <input type="text" id="nodeHeight" name="nodeHeight" disabled="true" value="0">
+                    </div>
+                    <div class="metric">
+                        <label for="syncFirst">Node Sync Status (1st pass):</label>
+                        <div id="syncFirst" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="100 percent" aria-valuemax="100">
+                            <span class="progress-meter" style="width: 100%">
+                                <p id="testing" class="progress-meter-text">100% Synced (0 of 0)</p>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <label for="syncSecond">Node Sync Status (2nd pass):</label>
+                        <div id="syncSecond" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="84 percent" aria-valuemax="100">
+                            <span class="progress-meter" style="width: 84%">
+                                <p class="progress-meter-text">0 of 0</p>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <label for="ipQual">Peer IP Quality:</label>
+                        <div id="ipQual" class="progress" role="progressbar" tabindex="0" aria-valuenow="20" aria-valuemin="0" aria-valuetext="68 percent" aria-valuemax="100">
+                            <span class="progress-meter medium" style="width: 68%">
+                                <p class="progress-meter-text">6.8 of 10</p>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="large-8 medium-7 small-12 columns">
+                    <div class="metric">
+                        <label for="peerList"><span id="totalPeerCount"></span> Peers:</label>
+                        <table id="peerList">
+                            <thead>
+                                <tr>
+                                    <th>IP</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                    <th>Duration</th>
+                                    <th>Sent</th>
+                                    <th>Recieved</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- <tr>
+                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr>
+                                <tr>
+                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
+                                    <td>Out</td>
+                                    <td>5.6</td>
+                                    <td>28,123</td>
+                                    <td>12.3 (210 MB)</td>
+                                    <td>41.4 (141 MB)</td>
+                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
+                                </tr> -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>TOTAL/AVG</td>
+                                    <td></td>
+                                    <td id="peerquality"></td>
+                                    <td></td>
+                                    <td id="up">0 (0 MB)</td>
+                                    <td id="down">0 (0 MB)</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+{{end}}

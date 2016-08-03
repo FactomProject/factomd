@@ -7,18 +7,26 @@ package p2p
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Data structures and functions related to peers (eg other nodes in the network)
 
 type Peer struct {
-	QualityScore int32  // 0 is neutral quality, negative is a bad peer.
-	Address      string // Must be in form of x.x.x.x:p
-	Hash         string
-	Location     uint32 // IP address as an int.
+	QualityScore int32     // 0 is neutral quality, negative is a bad peer.
+	Address      string    // Must be in form of x.x.x.x
+	Port         string    // Must be in form of xxxx
+	NodeID       uint64    // a nonce to distinguish multiple nodes behind one IP address
+	Hash         string    // This is more of a connection ID than hash right now.
+	Location     uint32    // IP address as an int.
+	Network      NetworkID // The network this peer reference lives on.
 	Type         uint8
+	Connections  int                  // Number of successful connections.
+	LastContact  time.Time            // Keep track of how long ago we talked to the peer.
+	Source       map[string]time.Time // source where we heard from the peer.
 }
 
 const ( // iota is reset to 0
@@ -26,13 +34,36 @@ const ( // iota is reset to 0
 	SpecialPeer
 )
 
-func (p *Peer) Init(address string, quality int, peerType uint8) *Peer {
+func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
 	p.Address = address
-	p.QualityScore = 0 // start at zero, zero is neutral, negative is a bad peer, positive is a good peer.
-	p.Hash = PeerHashFromAddress(address)
+	p.Port = port
+	p.QualityScore = quality
+	p.generatePeerHash()
 	p.Type = peerType
 	p.Location = p.locationFromAddress()
+	p.Source = map[string]time.Time{}
+	p.Network = CurrentNetwork
 	return p
+}
+
+func (p *Peer) generatePeerHash() {
+	buff := make([]byte, 256)
+	RandomGenerator.Read(buff)
+	raw := sha256.Sum256(buff)
+	p.Hash = base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
+}
+
+func (p *Peer) AddressPort() string {
+	return p.Address + ":" + p.Port
+}
+
+func (p *Peer) PeerIdent() string {
+	return p.Hash[0:12] + "-" + p.Address + ":" + p.Port
+}
+
+func (p *Peer) PeerFixedIdent() string {
+	address := fmt.Sprintf("%16s", p.Address)
+	return p.Hash[0:12] + "-" + address + ":" + p.Port
 }
 
 // BUGBUG Hadn't considered IPV6 addresses.
@@ -62,15 +93,8 @@ func (p *Peer) locationFromAddress() uint32 {
 	location += uint32(b1) << 16
 	location += uint32(b2) << 8
 	location += uint32(b3)
-	debug("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
+	verbose("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
 	return location
-}
-
-func PeerHashFromAddress(address string) string {
-	raw := sha256.Sum256([]byte(address))
-	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
-	debug("peer", "Peer address %s produces hash: %s", address, hash)
-	return hash
 }
 
 // merit increases a peers reputation

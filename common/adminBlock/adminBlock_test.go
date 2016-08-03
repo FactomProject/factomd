@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
@@ -21,23 +22,23 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	fullHash, err := block.FullHash()
+	backRefHash, err := block.BackReferenceHash()
 	if err != nil {
 		t.Error(err)
 	}
 
-	partialHash, err := block.PartialHash()
+	lookupHash, err := block.LookupHash()
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Logf("Current hashes - %s, %s", fullHash.String(), partialHash.String())
+	t.Logf("Current hashes - %s, %s", backRefHash.String(), lookupHash.String())
 
-	if fullHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
-		t.Error("Invalid fullHash")
+	if backRefHash.String() != "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf" {
+		t.Error("Invalid backRefHash")
 	}
-	if partialHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
-		t.Error("Invalid partialHash")
+	if lookupHash.String() != "4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e" {
+		t.Error("Invalid lookupHash")
 	}
 	/*
 		block2, err := CreateAdminBlock(s, block, 5)
@@ -45,18 +46,18 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 			t.Error(err)
 		}
 
-		fullHash2, err := block2.FullHash()
+		backRefHash2, err := block2.BackReferenceHash()
 		if err != nil {
 			t.Error(err)
 		}
 
-		partialHash2, err := block2.PartialHash()
+		lookupHash2, err := block2.LookupHash()
 		if err != nil {
 			t.Error(err)
 		}
 
-		t.Logf("Second hashes - %s, %s", fullHash2.String(), partialHash2.String())
-		t.Logf("Previous hash - %s", block2.Header.PrevFullHash.String())
+		t.Logf("Second hashes - %s, %s", backRefHash2.String(), lookupHash2.String())
+		t.Logf("Previous hash - %s", block2.Header.PrevBackRefHash.String())
 
 		marshalled, err := block2.MarshalBinary()
 		if err != nil {
@@ -64,10 +65,49 @@ func TestAdminBlockPreviousHash(t *testing.T) {
 		}
 		t.Logf("Marshalled - %X", marshalled)
 
-		if block2.Header.PrevFullHash.String() != fullHash.String() {
-			t.Error("PrevFullHash does not match ABHash")
+		if block2.Header.PrevBackRefHash.String() != backRefHash.String() {
+			t.Error("PrevBackRefHash does not match ABHash")
 		}
 	*/
+}
+
+func TestAdminBlockHash(t *testing.T) {
+	block := new(AdminBlock)
+	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000A8D665EE36947529E660101ADF2D2A7D7CA0B045F7932E76F86409AE0CA9123B000000005000000000000000000")
+	_, err := block.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	backRefHash, err := block.BackReferenceHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	lookupHash, err := block.LookupHash()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Current hashes - %s, %s", backRefHash.String(), lookupHash.String())
+
+	if backRefHash.String() != "9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d" {
+		t.Error("Invalid backRefHash")
+	}
+	if lookupHash.String() != "f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5" {
+		t.Error("Invalid lookupHash")
+	}
+
+	j, err := block.JSONString()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if strings.Contains(j, `"BackReferenceHash":"9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d"`) == false {
+		t.Errorf("JSON printout does not contain the backreference hash - %v", j)
+	}
+	if strings.Contains(j, `"LookupHash":"f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5"`) == false {
+		t.Errorf("JSON printout does not contain the lookup hash - %v", j)
+	}
 }
 
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
@@ -139,8 +179,8 @@ func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
 		t.Error("AdminChainIDs are not identical")
 	}
 
-	if bytes.Compare(header.GetPrevFullHash().Bytes(), header2.GetPrevFullHash().Bytes()) != 0 {
-		t.Error("PrevFullHashes are not identical")
+	if bytes.Compare(header.GetPrevBackRefHash().Bytes(), header2.GetPrevBackRefHash().Bytes()) != 0 {
+		t.Error("PrevBackRefHashes are not identical")
 	}
 
 	if header.GetDBHeight() != header2.GetDBHeight() {
@@ -175,14 +215,14 @@ func TestUnmarshalABlock(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	h, err := a.PartialHash()
+	h, err := a.LookupHash()
 	if err != nil {
 		t.Error(err)
 	}
 	if h.String() != "b30ab81a8afdbe0be1627ef151bf7e263ce3d39d60b61464d81daa8320c28a4f" {
 		t.Error("Invalid Hash")
 	}
-	h, err = a.FullHash()
+	h, err = a.BackReferenceHash()
 	if err != nil {
 		t.Error(err)
 	}
@@ -293,6 +333,21 @@ func TestInvalidAdminBlockUnmarshal(t *testing.T) {
 	}
 }
 
+func TestExpandedABlockHeader(t *testing.T) {
+	block := createTestAdminBlock()
+	j, err := block.JSONString()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !strings.Contains(j, `"AdminChainID":"000000000000000000000000000000000000000000000000000000000000000a"`) {
+		t.Error("Header does not contain AdminChainID")
+	}
+	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000a"`) {
+		t.Error("Header does not contain ChainID")
+	}
+}
+
 func createTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
 	block.SetHeader(createTestAdminHeader())
@@ -327,7 +382,7 @@ func createTestAdminHeader() *ABlockHeader {
 
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	hash, _ := primitives.NewShaHash(p)
-	header.PrevFullHash = hash
+	header.PrevBackRefHash = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 5
@@ -343,7 +398,7 @@ func createSmallTestAdminHeader() *ABlockHeader {
 
 	p, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	hash, _ := primitives.NewShaHash(p)
-	header.PrevFullHash = hash
+	header.PrevBackRefHash = hash
 	header.DBHeight = 123
 
 	header.HeaderExpansionSize = 0

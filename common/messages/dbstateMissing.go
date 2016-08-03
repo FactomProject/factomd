@@ -9,6 +9,7 @@ import (
 	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -32,7 +33,7 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.DBHeightStart != b.DBHeightStart {
@@ -43,6 +44,10 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 	}
 
 	return true
+}
+
+func (m *DBStateMissing) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *DBStateMissing) GetHash() interfaces.IHash {
@@ -87,25 +92,18 @@ func (m *DBStateMissing) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *DBStateMissing) Leader(state interfaces.IState) bool {
-	return false
+func (m *DBStateMissing) ComputeVMIndex(state interfaces.IState) {
+
 }
 
 // Execute the leader functions of the given message
-func (m *DBStateMissing) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Should never execute a DBState in the Leader")
+func (m *DBStateMissing) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *DBStateMissing) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
+func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if len(state.NetworkOutMsgQueue()) > 1000 {
-		return nil
+		return
 	}
 
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
@@ -119,11 +117,12 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) error {
 		msg, err := state.LoadDBState(dbs)
 		if msg != nil && err == nil { // If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
+			msg.SetNetworkOrigin(m.GetNetworkOrigin())
 			state.NetworkOutMsgQueue() <- msg
 		}
 	}
 
-	return nil
+	return
 }
 
 // Acknowledgements do not go into the process list.
@@ -157,6 +156,7 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 
 	m.Peer2Peer = true // This is always a Peer2peer message
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

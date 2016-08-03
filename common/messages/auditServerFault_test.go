@@ -92,7 +92,7 @@ func TestSignAndVerifyAuditServerFault(t *testing.T) {
 
 func newAuditServerFault() *AuditServerFault {
 	msg := new(AuditServerFault)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }
@@ -104,7 +104,7 @@ func newSignedAuditServerFault() *AuditServerFault {
 	if err != nil {
 		panic(err)
 	}
-	err = msg.Sign(&key)
+	err = msg.Sign(key)
 	if err != nil {
 		panic(err)
 	}

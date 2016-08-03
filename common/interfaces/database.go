@@ -12,9 +12,11 @@ type IDatabase interface {
 	Get(bucket, key []byte, destination BinaryMarshallable) (BinaryMarshallable, error)
 	Delete(bucket, key []byte) error
 	ListAllKeys(bucket []byte) ([][]byte, error)
-	GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, error)
+	GetAll(bucket []byte, sample BinaryMarshallableAndCopyable) ([]BinaryMarshallableAndCopyable, [][]byte, error)
 	Clear(bucket []byte) error
 	PutInBatch(records []Record) error
+	ListAllBuckets() ([][]byte, error)
+	Trim()
 }
 
 type Record struct {
@@ -37,4 +39,5 @@ type DatabaseBlockWithEntries interface {
 	DatabaseBatchable
 
 	GetEntryHashes() []IHash
+	GetEntrySigHashes() []IHash
 }

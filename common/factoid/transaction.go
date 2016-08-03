@@ -57,11 +57,23 @@ func (t *Transaction) clearCaches() {
 	t.MarshalSig = nil
 }
 
-func (Transaction) GetVersion() uint64 {
+func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
-func (t Transaction) GetHash() interfaces.IHash {
+func (t *Transaction) GetTxID() interfaces.IHash {
+	return t.GetSigHash()
+}
+
+func (t *Transaction) GetHash() interfaces.IHash {
+	m, err := t.MarshalBinary()
+	if err != nil {
+		return nil
+	}
+	return primitives.Sha(m)
+}
+
+func (t Transaction) GetFullHash() interfaces.IHash {
 	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
@@ -86,11 +98,12 @@ func (t Transaction) String() string {
 }
 
 // MilliTimestamp is in milliseconds
-func (t *Transaction) GetMilliTimestamp() uint64 {
-	return t.MilliTimestamp
+func (t *Transaction) GetTimestamp() interfaces.Timestamp {
+	return primitives.NewTimestampFromMilliseconds(t.MilliTimestamp)
 }
-func (t *Transaction) SetMilliTimestamp(ts uint64) {
-	t.MilliTimestamp = ts
+
+func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
+	t.MilliTimestamp = ts.GetTimeMilliUInt64()
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {

@@ -36,27 +36,31 @@ func (pk *PrivateKey) AllocateNew() {
 }
 
 // Create a new private key from a hex string
-func NewPrivateKeyFromHex(s string) (pk PrivateKey, err error) {
+func NewPrivateKeyFromHex(s string) (*PrivateKey, error) {
 	privKeybytes, err := hex.DecodeString(s)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if privKeybytes == nil {
-		return pk, errors.New("Invalid private key input string!")
+		return nil, errors.New("Invalid private key input string!")
 	}
+	pk := new(PrivateKey)
 	if len(privKeybytes) == ed25519.PrivateKeySize-ed25519.PublicKeySize {
 		_, privKeybytes, err = GenerateKeyFromPrivateKey(privKeybytes)
 		if err != nil {
-			return
+			return nil, err
 		}
 	}
 	if len(privKeybytes) != ed25519.PrivateKeySize {
-		return pk, errors.New("Invalid private key input string!")
+		return nil, errors.New("Invalid private key input string!")
 	}
 	pk.AllocateNew()
 	copy(pk.Key[:], privKeybytes)
 	err = pk.Pub.UnmarshalBinary(privKeybytes[len(privKeybytes)-ed25519.PublicKeySize:])
-	return
+	if err != nil {
+		return nil, err
+	}
+	return pk, nil
 }
 
 func NewPrivateKeyFromHexBytes(privKeybytes []byte) *PrivateKey {
@@ -98,6 +102,9 @@ func (pk *PrivateKey) GenerateKey() error {
 func (pk *PrivateKey) PrivateKeyString() string {
 	return hex.EncodeToString(pk.Key[:32])
 }
+func (pk *PrivateKey) PublicKeyString() string {
+	return pk.Pub.String()
+}
 
 /******************PublicKey*******************************/
 
@@ -105,6 +112,19 @@ func (pk *PrivateKey) PrivateKeyString() string {
 type PublicKey [ed25519.PublicKeySize]byte
 
 var _ interfaces.Verifier = (*PublicKey)(nil)
+
+func (c *PublicKey) Copy() (*PublicKey, error) {
+	h := new(PublicKey)
+	bytes, err := c.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	err = h.UnmarshalBinary(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return h, nil
+}
 
 func (a *PublicKey) IsSameAs(b *PublicKey) bool {
 	if b == nil {

@@ -29,7 +29,7 @@ func (a *RequestBlock) IsSameAs(b *RequestBlock) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -39,6 +39,10 @@ func (a *RequestBlock) IsSameAs(b *RequestBlock) bool {
 }
 
 func (m *RequestBlock) Process(uint32, interfaces.IState) bool { return true }
+
+func (m *RequestBlock) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
 
 func (m *RequestBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -90,6 +94,7 @@ func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -157,24 +162,13 @@ func (m *RequestBlock) Validate(state interfaces.IState) int {
 	return 0
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *RequestBlock) Leader(state interfaces.IState) bool {
-	return false
+func (m *RequestBlock) ComputeVMIndex(state interfaces.IState) {
 }
 
-// Execute the leader functions of the given message
-func (m *RequestBlock) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *RequestBlock) LeaderExecute(state interfaces.IState) {
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *RequestBlock) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *RequestBlock) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *RequestBlock) FollowerExecute(interfaces.IState) {
 }
 
 func (e *RequestBlock) JSONByte() ([]byte, error) {

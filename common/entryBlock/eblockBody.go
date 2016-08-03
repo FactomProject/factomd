@@ -6,6 +6,7 @@ package entryBlock
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -46,8 +47,11 @@ func (e *EBlockBody) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *EBlockBody) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out primitives.Buffer
+	for _, eh := range e.EBEntries {
+		out.WriteString(fmt.Sprintf("    %20s: %x\n", "Entry Hash", eh.Bytes()[:3]))
+	}
+	return (string)(out.DeepCopyBytes())
 }
 
 func (e *EBlockBody) GetEBEntries() []interfaces.IHash {

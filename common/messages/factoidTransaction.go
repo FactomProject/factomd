@@ -16,7 +16,6 @@ import (
 //A placeholder structure for messages
 type FactoidTransaction struct {
 	MessageBase
-	Timestamp   interfaces.Timestamp
 	Transaction interfaces.ITransaction
 
 	//No signature!
@@ -32,9 +31,6 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
-		return false
-	}
 
 	ok, err := primitives.AreBinaryMarshallablesEqual(a.Transaction, b.Transaction)
 	if err != nil || ok == false {
@@ -44,7 +40,13 @@ func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 	return true
 }
 
+func (m *FactoidTransaction) GetRepeatHash() interfaces.IHash {
+	return m.Transaction.GetSigHash()
+}
+
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
+
+	m.SetFullMsgHash(m.Transaction.GetFullHash())
 
 	data, err := m.Transaction.MarshalBinarySig()
 	if err != nil {
@@ -67,7 +69,7 @@ func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FactoidTransaction) GetTimestamp() interfaces.Timestamp {
-	return m.Timestamp
+	return m.Transaction.GetTimestamp()
 }
 
 func (m *FactoidTransaction) GetTransaction() interfaces.ITransaction {
@@ -87,32 +89,28 @@ func (m *FactoidTransaction) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
-	err := state.GetFactoidState().Validate(1, m.Transaction)
+	err := m.Transaction.Validate(1)
 	if err != nil {
 		return -1
+	}
+	err = state.GetFactoidState().Validate(1, m.Transaction)
+	if err != nil {
+		return 0
 	}
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *FactoidTransaction) Leader(state interfaces.IState) bool {
-	return state.LeaderFor(m, constants.FACTOID_CHAINID)
+func (m *FactoidTransaction) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(constants.FACTOID_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+func (m *FactoidTransaction) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *FactoidTransaction) Follower(state interfaces.IState) bool {
-	return true
-}
-
-func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *FactoidTransaction) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) bool {
@@ -172,11 +170,6 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	}
 	newData = newData[1:]
 
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)
 	return newData, err
@@ -190,12 +183,6 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
-
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
 
 	if d, err := m.Transaction.MarshalBinary(); err != nil {
 		return nil, err

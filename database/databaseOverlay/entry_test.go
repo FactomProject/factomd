@@ -28,7 +28,7 @@ func TestSaveLoadEntries(t *testing.T) {
 
 	max := 10
 	for i := 0; i < max; i++ {
-		entry := CreateTestEnry(uint32(i))
+		entry := CreateTestEntry(uint32(i))
 		err = dbo.InsertEntry(entry)
 		if err != nil {
 			t.Error(err)
@@ -37,7 +37,7 @@ func TestSaveLoadEntries(t *testing.T) {
 	}
 
 	for _, entry := range entries {
-		loaded, err := dbo.FetchEntryByHash(entry.GetHash())
+		loaded, err := dbo.FetchEntry(entry.GetHash())
 		if err != nil {
 			t.Error(err)
 		}
@@ -105,7 +105,7 @@ func TestLoadUnknownEntries(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		data, err := dbo.FetchEntryByHash(hash)
+		data, err := dbo.FetchEntry(hash)
 		if err != nil {
 			t.Error(err)
 		}

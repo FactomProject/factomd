@@ -9,12 +9,13 @@ package state
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"runtime/debug"
 )
 
 var _ = debug.PrintStack
@@ -31,6 +32,9 @@ type FactoidState struct {
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
 
 func (fs *FactoidState) EndOfPeriod(period int) {
+	if period > 9 || period < 0 {
+		panic(fmt.Sprintf("Minute is out of range: %d", period))
+	}
 	fs.GetCurrentBlock().EndOfPeriod(period)
 }
 
@@ -44,8 +48,10 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
-		fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
-		t := factoid.GetCoinbase(0)
+		fs.CurrentBlock = factoid.NewFBlock(nil)
+		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
+		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
+		t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {
 			panic(err.Error())
@@ -70,7 +76,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 		}
 	}
 	fs.CurrentBlock = blk
-	//	fs.State.SetFactoshisPerEC(blk.GetExchRate())
+	//fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
 	return nil
 }
@@ -92,12 +98,12 @@ func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 // No node has any responsiblity to forward on transactions that do not fall within
 // the timeframe around a block defined by TRANSACTION_PRIOR_LIMIT and TRANSACTION_POST_LIMIT
 func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) error {
-	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp()
+	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp().GetTimeMilli()
 	if tsblk < 0 {
 		return fmt.Errorf("Block has no coinbase transaction at this time")
 	}
 
-	tstrans := int64(trans.GetMilliTimestamp())
+	tstrans := trans.GetTimestamp().GetTimeMilli()
 
 	if tsblk-tstrans > constants.TRANSACTION_PRIOR_LIMIT {
 		return fmt.Errorf("Transaction is too old to be included in the current block")
@@ -121,6 +127,12 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		return err
 	}
 	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
+		if err == nil {
+			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
+			// all transactions here.
+			fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+			fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+		}
 		return err
 	}
 
@@ -156,11 +168,14 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 		t := trans.(*entryCreditBlock.CommitChain)
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
-
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 
 	case entryCreditBlock.ECIDBalanceIncrease:
 		t := trans.(*entryCreditBlock.IncreaseBalance)
@@ -204,14 +219,9 @@ func (fs *FactoidState) ClearRealTime() error {
 // End of Block means packing the current block away, and setting
 // up the next
 func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
-	var hash, hash2 interfaces.IHash
-
 	if fs.GetCurrentBlock() == nil {
 		panic("Invalid state on initialization")
 	}
-
-	hash = fs.CurrentBlock.GetHash()
-	hash2 = fs.CurrentBlock.GetFullHash()
 
 	// 	outstr := fs.CurrentBlock.String()
 	// 	if len(outstr) < 10000 {
@@ -221,21 +231,17 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	//		}
 	// 	}
 
-	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
+	fBlock := factoid.NewFBlock(fs.CurrentBlock)
+	fBlock.SetExchRate(fs.State.GetFactoshisPerEC())
 
-	// TODO:  Need to get the leader time to put in the Coinbase ... Can't compute
-	// this on the fly and expect everyone to come up with the same timestamp.
-	t := factoid.GetCoinbase(0)
+	fs.CurrentBlock = fBlock
+
+	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())
 	}
 	fs.UpdateTransaction(true, t)
-
-	if hash != nil {
-		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
-		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
-	}
 
 	fs.DBHeight++
 }

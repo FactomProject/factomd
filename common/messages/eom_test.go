@@ -92,7 +92,7 @@ func TestSignAndVerifyEOM(t *testing.T) {
 
 func newEOM() *EOM {
 	eom := new(EOM)
-	eom.Timestamp.SetTime(0xFF22100122FF)
+	eom.Timestamp = primitives.NewTimestampFromMilliseconds(0xFF22100122FF)
 	eom.Minute = 3
 	h, err := primitives.NewShaHashFromStr("deadbeef00000000000000000000000000000000000000000000000000000000")
 	if err != nil {
@@ -111,7 +111,7 @@ func newSignedEOM() *EOM {
 	if err != nil {
 		panic(err)
 	}
-	err = ack.Sign(&key)
+	err = ack.Sign(key)
 	if err != nil {
 		panic(err)
 	}

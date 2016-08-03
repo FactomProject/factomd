@@ -5,10 +5,11 @@
 package state_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
-	"testing"
 )
 
 var _ = log.Print
@@ -22,10 +23,26 @@ func TestDirBlockHead(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	height := state.GetHighestRecordedBlock()
 	if height != 9 {
-		t.Errorf("Invalid DBLock Height - got %v, expected 10", height)
+		t.Errorf("Invalid DBLock Height - got %v, expected 10", height+1)
 	}
 	d := state.GetDirectoryBlockByHeight(height)
-	if d.GetKeyMR().String() != "93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34" {
-		t.Errorf("Invalid DBLock KeyMR - got %v, expected 93b9d8bc11869819aed5e11ff15c865435a58d7b57c9f27fe4638dfc23f13b34", d.GetKeyMR().String())
+	if d.GetKeyMR().String() != "836ba9715fc4e83ae1e8755c40374e7e2265e4f312788710af2ff5478c2b495e" {
+		t.Errorf("Invalid DBLock KeyMR - got %v, expected 836ba9715fc4e83ae1e8755c40374e7e2265e4f312788710af2ff5478c2b495e", d.GetKeyMR().String())
+	}
+}
+
+func TestGetDirectoryBlockByHeight(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	blocks := testHelper.CreateFullTestBlockSet()
+	for i, block := range blocks {
+		dBlock := state.GetDirectoryBlockByHeight(uint32(i))
+		if dBlock.GetKeyMR().IsSameAs(block.DBlock.GetKeyMR()) == false {
+			t.Errorf("DBlocks are not the same at height %v", i+1)
+			continue
+		}
+		if dBlock.GetFullHash().IsSameAs(block.DBlock.GetFullHash()) == false {
+			t.Errorf("DBlocks are not the same at height %v", i+1)
+			continue
+		}
 	}
 }
