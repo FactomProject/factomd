@@ -132,6 +132,9 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	for _, v := range vms {
 		list := v.List
 		for _, msg := range list {
+			if msg == nil {
+				continue
+			}
 			switch msg.Type() {
 			case constants.REVEAL_ENTRY_MSG:
 				data, err := msg.MarshalBinary()
