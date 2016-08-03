@@ -795,9 +795,25 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
-		// Adds DB Sig to be added to Admin block
-		// TODO: Check sigs and make sure is correct
-		s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
+
+		// Adds DB Sig to be added to Admin block if passes sig checks
+		allChecks := false
+		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
+		if err != nil {
+			fmt.Println("Debug: DBSig Signature Error, Marshal binary errored")
+		} else {
+			if !dbs.DBSignature.Verify(data) {
+				fmt.Println("Debug: DBSig Signature Error, Verify errored")
+			} else {
+				if valid, err := s.VerifyFederatedSignature(data, dbs.DBSignature.GetSignature()); err == nil && valid {
+					allChecks = true
+				}
+			}
+		}
+
+		if allChecks {
+			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
+		}
 
 		dbs.Processed = true
 		s.DBSigProcessed++
