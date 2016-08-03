@@ -56,9 +56,9 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 // Also checks Identity list which contains pending Fed/Aud servers. TODO: Remove those
 func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	for _, auth := range st.Authorities {
-		if !(auth.Status == constants.IDENTITY_FEDERATED_SERVER || auth.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
-			continue
-		}
+		//if !(auth.Status == constants.IDENTITY_FEDERATED_SERVER || auth.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
+		//	continue
+		//}
 		valid, err := auth.VerifySignature(msg, sig)
 		if err != nil {
 			continue
