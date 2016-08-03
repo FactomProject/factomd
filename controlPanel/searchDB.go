@@ -2,6 +2,7 @@ package controlPanel
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/FactomProject/btcutil/base58"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -24,12 +25,27 @@ func newSearchResponse(ftype string, found foundItemInterface) string {
 			jsonStr = `"none"`
 		}
 	}
-	searchJson := `{"Type":"` + ftype + `","item":` + jsonStr + "}"
+	searchJson := `{"Type":"` + ftype + `","item":` + jsonStr + `}`
 	return searchJson
 }
 
 func searchDB(searchitem string, st state.State) (bool, string) {
-	if len(searchitem) < 10 {
+	if len(searchitem) < 32 {
+		heightInt, err := strconv.Atoi(searchitem)
+		if err != nil {
+			return false, ""
+		}
+		height := uint32(heightInt)
+		if height < DisplayState.CurrentNodeHeight {
+			dbase := StatePointer.GetAndLockDB()
+			dBlock, err := dbase.FetchDBlockByHeight(height)
+			StatePointer.UnlockDB()
+			if err != nil {
+				return false, ""
+			}
+			resp := `{"Type":"dblockHeight","item":"` + dBlock.GetKeyMR().String() + `"}`
+			return true, resp
+		}
 		return false, ""
 	}
 	switch searchitem[:2] {

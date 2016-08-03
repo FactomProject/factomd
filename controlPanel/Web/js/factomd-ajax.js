@@ -33,7 +33,9 @@ $("#factom-search-submit").click(function() {
   x.onreadystatechange = function() {
     if(x.readyState == 4) {
       obj = JSON.parse(x.response)
-      if (obj.Type != "None") {
+      if (obj.Type == "dblockHeight") {
+        window.location = "search?input=" + obj.item + "&type=dblock"
+      } else if (obj.Type != "None") {
         redirect("search?input=" + $("#factom-search").val() + "&type=" + obj.Type, "post", x.response) // Something found
       } else {
         $(".factom-search-error").slideDown(300)

@@ -82,67 +82,89 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		if entry == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, entry)
+		TemplateMutex.Unlock()
 	case "chainhead":
 		arr := getAllChainEntries(content.Input)
 		if arr == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, arr)
+		TemplateMutex.Unlock()
 	case "eblock":
 		eblk := getEblock(content.Input)
 		if eblk == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, eblk)
+		TemplateMutex.Unlock()
 	case "dblock":
 		dblk := getDblock(content.Input)
 		if dblk == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, dblk)
+		TemplateMutex.Unlock()
 	case "ablock":
 		ablk := getAblock(content.Input)
 		if ablk == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, ablk)
+		TemplateMutex.Unlock()
 	case "fblock":
 		fblk := getFblock(content.Input)
 		if fblk == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, fblk)
+		TemplateMutex.Unlock()
 	case "ecblock":
 		ecblock := getECblock(content.Input)
 		if ecblock == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, ecblock)
+		TemplateMutex.Unlock()
 	case "entryack":
 		entryAck := getEntryAck(content.Input)
 		if entryAck == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, entryAck)
+		TemplateMutex.Unlock()
 	case "factoidack":
 		factoidAck := getFactoidAck(content.Input)
 		if factoidAck == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, factoidAck)
+		TemplateMutex.Unlock()
 	case "facttransaction":
 		transaction := getFactTransaction(content.Input)
 		if transaction == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, transaction)
+		TemplateMutex.Unlock()
 	case "ectransaction":
 		transaction := getEcTransaction(content.Input)
 		if transaction == nil {
 			break
 		}
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, transaction)
+		TemplateMutex.Unlock()
 	case "EC":
 		hash := base58.Decode(content.Input)
 		if len(hash) < 34 {
@@ -151,11 +173,13 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
 		bal := fmt.Sprintf("%d", StatePointer.FactoidState.GetECBalance(fixed))
+		TemplateMutex.Lock()
 		templates.ExecuteTemplate(w, content.Type,
 			struct {
 				Balance string
 				Address string
 			}{bal, content.Input})
+		TemplateMutex.Unlock()
 	case "FA":
 		hash := base58.Decode(content.Input)
 		if len(hash) < 34 {
@@ -164,20 +188,26 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
 		bal := fmt.Sprintf("%.3f", float64(StatePointer.FactoidState.GetFactoidBalance(fixed))/1e8)
+		TemplateMutex.Lock()
 		templates.ExecuteTemplate(w, content.Type,
 			struct {
 				Balance string
 				Address string
 			}{bal, content.Input})
+		TemplateMutex.Unlock()
 	default:
+		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, "not-found", nil)
+		TemplateMutex.Unlock()
 	}
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	TemplateMutex.Lock()
 	templates.ExecuteTemplate(w, "not-found", nil)
+	TemplateMutex.Unlock()
 }
 
 func getEcTransaction(hash string) interfaces.IECBlockEntry {

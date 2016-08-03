@@ -168,7 +168,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}
+	TemplateMutex.Lock()
 	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
+	TemplateMutex.Unlock()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
