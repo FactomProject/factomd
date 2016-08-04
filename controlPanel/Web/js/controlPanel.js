@@ -219,7 +219,7 @@ function updateHeight() {
     $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
 
     // DisplayState Channel length
-    // console.log(respFour)
+    // console.log("Chan Length:", respFour)
   })
 }
 

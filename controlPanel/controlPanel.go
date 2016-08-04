@@ -17,7 +17,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 )
 
-// Initiates control panel varaibles and controls the http requests
+// Initiates control panel variables and controls the http requests
 
 var (
 	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
@@ -31,7 +31,7 @@ var (
 
 	DisplayState state.DisplayState
 	StatePointer *state.State
-	Controller   *p2p.Controller
+	Controller   *p2p.Controller // Used for Disconnect
 	GitBuild     string
 
 	LastRequest     time.Time
@@ -81,7 +81,6 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	// Wait for initial State
 	select {
 	case DisplayState = <-displayStateChannel:
-		fmt.Println("Found state, control panel now active")
 	}
 
 	DisplayStateMutex.RLock()
@@ -405,17 +404,14 @@ var RecentTransactions *LastDirectoryBlockTransactions
 
 // Flag to tell if RecentTransactions is already being built
 var DoingRecentTransactions bool
-var DCT sync.Mutex
 var RecentTransactionsMutex sync.Mutex
 
 func toggleDCT() {
-	DCT.Lock()
 	if DoingRecentTransactions {
 		DoingRecentTransactions = false
 	} else {
 		DoingRecentTransactions = true
 	}
-	DCT.Unlock()
 }
 
 func getRecentTransactions(time.Time) {
@@ -425,12 +421,9 @@ func getRecentTransactions(time.Time) {
 		}
 	}()
 
-	DCT.Lock()
 	if DoingRecentTransactions {
-		DCT.Unlock()
 		return
 	}
-	DCT.Unlock()
 	toggleDCT()
 	defer toggleDCT()
 
@@ -440,15 +433,18 @@ func getRecentTransactions(time.Time) {
 
 	DisplayStateMutex.RLock()
 	if DisplayState.LastDirectoryBlock == nil {
+		DisplayStateMutex.RUnlock()
 		return
 	}
 	data, err := DisplayState.LastDirectoryBlock.MarshalBinary()
 	if err != nil {
+		DisplayStateMutex.RUnlock()
 		return
 	}
 	last, err := directoryBlock.UnmarshalDBlock(data)
 	err = last.UnmarshalBinary(data)
 	if err != nil {
+		DisplayStateMutex.RUnlock()
 		return
 	}
 	//last := DisplayState.LastDirectoryBlock

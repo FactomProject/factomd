@@ -38,6 +38,19 @@ type Identity struct {
 
 var _ interfaces.Printable = (*Identity)(nil)
 
+func (id *Identity) FixMissingKeys(s *State) {
+	if !(id.Status == constants.IDENTITY_AUDIT_SERVER ||
+		id.Status == constants.IDENTITY_FEDERATED_SERVER ||
+		id.Status == constants.IDENTITY_PENDING_AUDIT_SERVER ||
+		id.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
+		return
+	}
+	// Need to fix missing keys
+	err := s.AddIdentityFromChainID(id.IdentityChainID)
+	if err != nil {
+	}
+}
+
 func (id *Identity) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	//return true, nil // Testing
 	var pub [32]byte
@@ -161,4 +174,39 @@ func statusIsFedOrAudit(status int) bool {
 		return true
 	}
 	return false
+}
+
+func (id *Identity) IsFull() bool {
+	if id.IdentityChainID.String() == FIRST_IDENTITY {
+		return true
+	}
+	zero := primitives.NewZeroHash()
+	if id.IdentityChainID.IsSameAs(zero) {
+		return false
+	}
+	if id.ManagementChainID.IsSameAs(zero) {
+		return false
+	}
+	if id.MatryoshkaHash.IsSameAs(zero) {
+		return false
+	}
+	if id.Key1.IsSameAs(zero) {
+		return false
+	}
+	if id.Key2.IsSameAs(zero) {
+		return false
+	}
+	if id.Key3.IsSameAs(zero) {
+		return false
+	}
+	if id.Key4.IsSameAs(zero) {
+		return false
+	}
+	if id.SigningKey.IsSameAs(zero) {
+		return false
+	}
+	if len(id.AnchorKeys) == 0 {
+		return false
+	}
+	return true
 }

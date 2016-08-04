@@ -27,21 +27,26 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 		return nil
 	}
 
-	index := createBlankFactomIdentity(st, cid)
+	index := st.isIdentityChain(cid)
+	if index == -1 {
+		index = createBlankFactomIdentity(st, cid)
+	}
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
-	mr, err := st.DB.FetchHeadIndexByChainID(managementChain)
+	dbase := st.GetAndLockDB()
+	ents, err := dbase.FetchAllEntriesByChainID(managementChain)
+	st.UnlockDB()
 	if err != nil {
 		return err
 	}
-	if mr == nil {
+	if len(ents) == 0 {
 		st.removeIdentity(index)
 		return errors.New("Identity Error: No main Main Factom Identity Chain chain created")
 	}
 
 	// Check Identity chain
 	eblkStackRoot := make([]interfaces.IEntryBlock, 0)
-	mr, err = st.DB.FetchHeadIndexByChainID(cid)
+	mr, err := st.DB.FetchHeadIndexByChainID(cid)
 	if err != nil {
 		return err
 	} else if mr == nil {
@@ -191,6 +196,7 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 	cid := ent.GetChainID()
 	if st.isIdentityChain(cid) == -1 {
 		if st.isAuthorityChain(cid) != -1 {
+			st.AddIdentityFromChainID(cid)
 			log.Printfln("dddd Identity WARNING: Identity does not exist but authority does. If you see this warning, please tell Steven and how you produced it.\n    It might recover on its own")
 		}
 		return
@@ -239,7 +245,7 @@ func createBlankFactomIdentity(st *State, chainID interfaces.IHash) int {
 	}
 	oneID.IdentityChainID = chainID
 
-	oneID.Status = constants.IDENTITY_PENDING
+	oneID.Status = constants.IDENTITY_UNASSIGNED
 	oneID.IdentityRegistered = 0
 	oneID.IdentityCreated = 0
 	oneID.ManagementRegistered = 0
@@ -328,6 +334,9 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 }
 
 func checkIdentityForFull(identityIndex int, st *State) error {
+	if st.Identities[identityIndex].Status != constants.IDENTITY_UNASSIGNED {
+		return nil
+	}
 	st.Identities[identityIndex].Status = constants.IDENTITY_PENDING
 	id := st.Identities[identityIndex]
 	// if all needed information is ready for the Identity , set it to IDENTITY_FULL
@@ -454,7 +463,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, st *State)
 				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 			// Check timestamp of message
-			if !CheckTimestamp(extIDs[4]) {
+			if !initial && !CheckTimestamp(extIDs[4]) {
 				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 			}
 
@@ -514,7 +523,7 @@ func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, st *State) er
 				return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 			// Check Timestamp of message
-			if !CheckTimestamp(extIDs[4]) {
+			if !initial && !CheckTimestamp(extIDs[4]) {
 				return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] timestamp is too old")
 			}
 			mhash := primitives.NewHash(extIDs[3])
@@ -596,7 +605,7 @@ func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, st *State
 				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
 			// Check Timestamp of message
-			if !CheckTimestamp(extIDs[6]) {
+			if !initial && !CheckTimestamp(extIDs[6]) {
 				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 			}
 			if contains {

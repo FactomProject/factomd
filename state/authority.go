@@ -98,6 +98,7 @@ func (st *State) UpdateAuthSigningKeys(height uint32) {
 			}
 		}
 	}
+	st.RepairAuthorities()
 }
 
 func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
@@ -138,7 +139,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		}
 		err = st.AddIdentityFromChainID(f.IdentityChainID)
 		if err != nil {
-			return err
+			//fmt.Println("Error when Making Identity,", err)
 		}
 		AuthorityIndex = st.AddAuthorityFromChainID(f.IdentityChainID)
 		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_FEDERATED_SERVER
@@ -152,7 +153,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 		}
 		err = st.AddIdentityFromChainID(a.IdentityChainID)
 		if err != nil {
-			return err
+			//fmt.Println("Error when Making Identity,", err)
 		}
 		AuthorityIndex = st.AddAuthorityFromChainID(a.IdentityChainID)
 		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_AUDIT_SERVER
@@ -223,6 +224,10 @@ func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = F
 }
 
 func (st *State) AddAuthorityFromChainID(chainID interfaces.IHash) int {
+	IdentityIndex := st.isIdentityChain(chainID)
+	if IdentityIndex == -1 {
+		st.AddIdentityFromChainID(chainID)
+	}
 	AuthorityIndex := st.isAuthorityChain(chainID)
 	if AuthorityIndex == -1 {
 		AuthorityIndex = st.createAuthority(chainID)
@@ -264,6 +269,31 @@ func (st *State) createAuthority(chainID interfaces.IHash) int {
 
 	st.Authorities = append(st.Authorities, *newAuth)
 	return len(st.Authorities) - 1
+}
+
+// If the Identity failed to create, it will be fixed here
+func (s *State) RepairAuthorities() {
+	for i, auth := range s.Authorities {
+		index := s.isIdentityChain(auth.AuthorityChainID)
+		if index == -1 {
+			err := s.AddIdentityFromChainID(auth.AuthorityChainID)
+			if err != nil {
+				//fmt.Println(err)
+			}
+		}
+		if s.Authorities[i].ManagementChainID == nil {
+			idIndex := s.isIdentityChain(s.Authorities[i].AuthorityChainID)
+			if idIndex != -1 {
+				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
+			}
+		}
+	}
+
+	for _, id := range s.Identities {
+		if !id.IsFull() {
+			id.FixMissingKeys(s)
+		}
+	}
 }
 
 func registerAuthAnchor(chainID interfaces.IHash, signingKey []byte, keyType byte, keyLevel byte, st *State, BlockChain string) {
