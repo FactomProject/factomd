@@ -164,11 +164,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 	TemplateMutex.Lock()
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
-	TemplateMutex.Unlock()
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}
-	TemplateMutex.Lock()
 	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
 	TemplateMutex.Unlock()
 	if err != nil {
