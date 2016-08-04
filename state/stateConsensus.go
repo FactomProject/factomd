@@ -715,6 +715,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 					panic(err)
 				}
 				dbs.LeaderExecute(s)
+			} else {
+				for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
+					if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
+						hb := new(messages.Heartbeat)
+						hb.Timestamp = primitives.NewTimestampNow()
+						hb.DBlockHash = dbstate.DBHash
+						hb.IdentityChainID = s.IdentityChainID
+						s.NetworkOutMsgQueue() <- hb
+					}
+				}
 			}
 			s.Saving = true
 		}
