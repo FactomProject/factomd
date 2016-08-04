@@ -165,18 +165,16 @@ function updateTransactions() {
           }
         })
       }
-      $("section #factom-search-link").click(function() {
+      $("section #factom-search-link").on('click',function(e) {
         type = jQuery(this).attr("type")
         hash = jQuery(this).text()
         var x = new XMLHttpRequest()
         x.onreadystatechange = function() {
           if(x.readyState == 4) {
-            obj = JSON.parse(x.response)
-            if (obj.Type != "None") {
+            if(e.which == 1){
               window.location = "search?input=" + hash + "&type=" + type
-              //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
-            } else {
-              $(".factom-search-error").slideDown(300)
+            } else if(e.which == 2) {
+              window.open("/search?input=" + hash + "&type=" + type);
             }
           }
         }
