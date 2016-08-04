@@ -48,6 +48,7 @@ type DisplayState struct {
 
 type FactoidTransaction struct {
 	TxID         string
+	Hash         string
 	TotalInput   string
 	Status       string
 	TotalInputs  int
@@ -174,11 +175,12 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 				ds.PLFactoid = append(ds.PLFactoid, struct {
 					TxID         string
+					Hash         string
 					TotalInput   string
 					Status       string
 					TotalInputs  int
 					TotalOutputs int
-				}{trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
+				}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Process List", totalInputs, totalOutputs})
 			}
 		}
 	}

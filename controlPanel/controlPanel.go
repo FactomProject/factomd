@@ -401,6 +401,7 @@ type LastDirectoryBlockTransactions struct {
 	}
 	FactoidTransactions []struct {
 		TxID         string
+		Hash         string
 		TotalInput   string
 		Status       string
 		TotalInputs  int
@@ -488,11 +489,12 @@ func getRecentTransactions(time.Time) {
 		if !has {
 			RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 				TxID         string
+				Hash         string
 				TotalInput   string
 				Status       string
 				TotalInputs  int
 				TotalOutputs int
-			}{fTrans.TxID, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
+			}{fTrans.TxID, fTrans.Hash, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
 		}
 	}
 
@@ -522,11 +524,12 @@ func getRecentTransactions(time.Time) {
 					if fact.TxID == trans.GetHash().String() {
 						RecentTransactions.FactoidTransactions[i] = struct {
 							TxID         string
+							Hash         string
 							TotalInput   string
 							Status       string
 							TotalInputs  int
 							TotalOutputs int
-						}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}
+						}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}
 						has = true
 						break
 					}
@@ -534,11 +537,12 @@ func getRecentTransactions(time.Time) {
 				if !has {
 					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 						TxID         string
+						Hash         string
 						TotalInput   string
 						Status       string
 						TotalInputs  int
 						TotalOutputs int
-					}{trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
+					}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
 				}
 			}
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {

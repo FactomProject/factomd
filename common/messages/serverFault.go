@@ -247,13 +247,13 @@ func (m *ServerFault) Validate(state interfaces.IState) int {
 	// Check signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
-		fmt.Println("Err is not nil on ServerFault sig check (marshalling): ", err)
+		//fmt.Println("Err is not nil on ServerFault sig check (marshalling): ", err)
 		return -1
 	}
 	sig := m.Signature.GetSignature()
 	sfSigned, err := state.VerifyFederatedSignature(bytes, sig)
 	if err != nil {
-		fmt.Println("Err is not nil on ServerFault sig check (verifying): ", err)
+		//fmt.Println("Err is not nil on ServerFault sig check (verifying): ", err)
 		return -1
 	}
 	if !sfSigned {
