@@ -293,7 +293,10 @@ func factomdQuery(item string, value string) []byte {
 		return HeightToJsonStruct(h)
 	case "leaderHeight":
 		DisplayStateMutex.RLock()
-		h := DisplayState.CurrentLeaderHeight - 1
+		h := DisplayState.CurrentLeaderHeight
+		if h > 0 {
+			h = h - 1
+		}
 		DisplayStateMutex.RUnlock()
 		return HeightToJsonStruct(h)
 	case "completeHeight": // Second Pass Sync info
@@ -314,6 +317,19 @@ func factomdQuery(item string, value string) []byte {
 		}
 		DisplayState = Fnodes[index]*/
 		return []byte(fmt.Sprintf("%d", index))
+	case "servercount": // TODO
+		DisplayStateMutex.RLock()
+		feds := 0
+		auds := 0
+		for _, a := range DisplayState.Authorities {
+			if a.Status == 1 {
+				feds++
+			} else if a.Status == 2 {
+				auds++
+			}
+		}
+		DisplayStateMutex.RUnlock()
+		return []byte(fmt.Sprintf(`{"fed":%d,"aud":%d}`, feds, auds))
 	case "channelLength":
 		return []byte(fmt.Sprintf(`{"length":%d}`, len(DisplayStateChannel)))
 	case "peers":

@@ -110,12 +110,12 @@ header + .row { margin-bottom: 32px; }
 #local table, #local table thead, #local table tbody, #local table tfoot { width: 770px; }
 #local table thead, #local table tbody, #local table tfoot { display: block; }
 #local thead th:first-child, #local tbody td:first-child, #local tfoot td:first-child { width: 134px; }
-#local thead th:nth-child(2), #local tbody td:nth-child(2), #local tfoot td:nth-child(2) { width: 118px; }
-#local thead th:nth-child(3), #local tbody td:nth-child(3), #local tfoot td:nth-child(3) { width: 82px; }
-#local thead th:nth-child(4), #local tbody td:nth-child(4), #local tfoot td:nth-child(4) { width: 87px; }
-#local thead th:nth-child(5), #local tbody td:nth-child(5), #local tfoot td:nth-child(5) { width: 118px; }
-#local thead th:nth-child(6), #local tbody td:nth-child(6), #local tfoot td:nth-child(6) { width: 115px; }
-#local thead th:nth-child(7), #local tbody td:nth-child(7), #local tfoot td:nth-child(7) { width: 99px; }
+#local thead th:nth-child(2), #local tbody td:nth-child(2), #local tfoot td:nth-child(2) { width: 80px; }
+#local thead th:nth-child(3), #local tbody td:nth-child(3), #local tfoot td:nth-child(3) { width: 1px; }
+#local thead th:nth-child(4), #local tbody td:nth-child(4), #local tfoot td:nth-child(4) { width: 91px; }
+#local thead th:nth-child(5), #local tbody td:nth-child(5), #local tfoot td:nth-child(5) { width: 155px; }
+#local thead th:nth-child(6), #local tbody td:nth-child(6), #local tfoot td:nth-child(6) { width: 155px; }
+#local thead th:nth-child(7), #local tbody td:nth-child(7), #local tfoot td:nth-child(7) { width: 154px; }
 #local table tbody { 
 	display: block;
 	max-height: 268px;
@@ -128,10 +128,10 @@ header + .row { margin-bottom: 32px; }
 	max-height: 500px;
 	overflow-y: scroll;
 }
-#panFactoids thead th:first-child, #panFactoids tbody td:first-child { width: 700px; }
-#panFactoids thead th:nth-child(2), #panFactoids tbody td:nth-child(2) { width: 200px; }
-#panFactoids thead th:nth-child(3), #panFactoids tbody td:nth-child(3) { width: 126px; }
-#panFactoids thead th:nth-child(4), #panFactoids tbody td:nth-child(4) { width: 126px; }
+#panFactoids thead th:first-child, #panFactoids tbody td:first-child { width: 650px; }
+#panFactoids thead th:nth-child(2), #panFactoids tbody td:nth-child(2) { width: 175px; }
+#panFactoids thead th:nth-child(3), #panFactoids tbody td:nth-child(3) { width: 160px; }
+#panFactoids thead th:nth-child(4), #panFactoids tbody td:nth-child(4) { width: 175px; }
 #panEntries thead th:first-child, #panEntries tbody td:first-child { width: 527px; }
 #panEntries thead th:nth-child(2), #panEntries tbody td:nth-child(2) { width: 527px; }
 #panEntries thead th:nth-child(3), #panEntries tbody td:nth-child(3) { width: 99px; }
@@ -220,4 +220,4 @@ section .metric table .button { margin: 0; }
     top: 50%;
 }
 
-#disconnect { width: :inherit; }
+#disconnect { width:90px; }
