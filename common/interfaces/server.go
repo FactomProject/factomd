@@ -14,11 +14,14 @@ type IServer interface {
 	GetChainID() IHash
 	String() string
 	GetName() string
+	IsOnline() bool
+	SetOnline(bool)
 }
 
 type Server struct {
 	ChainID IHash
 	Name    string
+	Online  bool
 }
 
 var _ IServer = (*Server)(nil)
@@ -33,4 +36,12 @@ func (s *Server) GetChainID() IHash {
 
 func (s *Server) String() string {
 	return fmt.Sprintf("%s %s", "Server:", s.GetChainID().String())
+}
+
+func (s *Server) IsOnline() bool {
+	return s.Online
+}
+
+func (s *Server) SetOnline(o bool) {
+	s.Online = o
 }

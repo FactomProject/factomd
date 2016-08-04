@@ -43,6 +43,7 @@ type IState interface {
 	RemoveFedServer(uint32, IHash)
 	AddAuditServer(uint32, IHash) int
 	GetAuditServers(uint32) []IFctServer
+	GetOnlineAuditServers(uint32) []IFctServer
 
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.

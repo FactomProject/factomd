@@ -896,6 +896,17 @@ func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return s.ProcessLists.Get(dbheight).AuditServers
 }
 
+func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
+	allAuditServers := s.ProcessLists.Get(dbheight).AuditServers
+	var onlineAuditServers []interfaces.IFctServer
+	for _, server := range allAuditServers {
+		if server.IsOnline() {
+			onlineAuditServers = append(onlineAuditServers, server)
+		}
+	}
+	return onlineAuditServers
+}
+
 func (s *State) IsLeader() bool {
 	return s.Leader
 }

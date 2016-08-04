@@ -733,6 +733,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
+		for _, auditServer := range pl.AuditServers {
+			auditServer.SetOnline(false)
+		}
 		pl.SortFedServers()
 	} else {
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server

@@ -340,7 +340,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fsf, _ := m.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fsf.DBHeight)
-	auditServerList := s.GetAuditServers(fsf.DBHeight)
+	auditServerList := s.GetOnlineAuditServers(fsf.DBHeight)
 	if len(auditServerList) > 0 {
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
