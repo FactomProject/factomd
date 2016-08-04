@@ -168,6 +168,9 @@ function updateTransactions() {
       $("section #factom-search-link").on('click',function(e) {
         type = jQuery(this).attr("type")
         hash = jQuery(this).text()
+        if (hash == "Processing") {
+          return
+        }
         var x = new XMLHttpRequest()
         x.onreadystatechange = function() {
           if(x.readyState == 4) {
