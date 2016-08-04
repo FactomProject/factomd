@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -231,7 +232,7 @@ func (m *Heartbeat) SerialHash() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Heartbeat) Validate(state interfaces.IState) int {
-	return 0
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -242,9 +243,15 @@ func (m *Heartbeat) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *Heartbeat) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-func (m *Heartbeat) FollowerExecute(interfaces.IState) {
+func (m *Heartbeat) FollowerExecute(state interfaces.IState) {
+	for _, auditServer := range state.GetAuditServers(uint32(m.DBHeight())) {
+		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
+			auditServer.SetOnline(true)
+		}
+	}
 }
 
 func (e *Heartbeat) JSONByte() ([]byte, error) {
