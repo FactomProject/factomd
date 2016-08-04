@@ -207,17 +207,17 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 				registerIdentityAsServer(ent, height, st)
 			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
 				if len(ent.ExternalIDs()) == 7 {
-					registerBlockSigningKey(ent, initial, st)
+					registerBlockSigningKey(ent, initial, height, st)
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 				if len(ent.ExternalIDs()) == 9 {
-					registerAnchorSigningKey(ent, initial, st, "BTC")
+					registerAnchorSigningKey(ent, initial, height, st, "BTC")
 				}
 
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 				if len(ent.ExternalIDs()) == 7 {
-					updateMatryoshkaHash(ent, initial, st)
+					updateMatryoshkaHash(ent, initial, height, st)
 				}
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 				addIdentity(ent, height, st)
@@ -428,7 +428,7 @@ func registerIdentityAsServer(entry interfaces.IEBEntry, height uint32, st *Stat
 	return nil
 }
 
-func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, st *State) error {
+func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uint32, st *State) error {
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) == 0 {
 		return errors.New("Identity Error Block Signing Key: Invalid external ID length")
@@ -462,9 +462,18 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, st *State)
 			if len(extIDs[3]) != 32 {
 				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
-			// Check timestamp of message
-			if !initial && !CheckTimestamp(extIDs[4]) {
-				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+
+			dbase := st.GetAndLockDB()
+			dblk, err := dbase.FetchDBlockByHeight(height)
+			st.UnlockDB()
+			if err != nil {
+				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				}
+			} else {
+				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				}
 			}
 
 			st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
@@ -488,7 +497,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, st *State)
 	return nil
 }
 
-func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, st *State) error {
+func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32, st *State) error {
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) == 0 {
 		return errors.New("Identity Error MHash: Invalid external ID length")
@@ -522,10 +531,20 @@ func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, st *State) er
 			if len(extIDs[3]) != 32 {
 				return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
-			// Check Timestamp of message
-			if !initial && !CheckTimestamp(extIDs[4]) {
-				return errors.New("New Matryoshka Hash for identity [" + chainID.String()[:10] + "] timestamp is too old")
+
+			dbase := st.GetAndLockDB()
+			dblk, err := dbase.FetchDBlockByHeight(height)
+			st.UnlockDB()
+			if err != nil {
+				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				}
+			} else {
+				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				}
 			}
+
 			mhash := primitives.NewHash(extIDs[3])
 			st.Identities[IdentityIndex].MatryoshkaHash = mhash
 			// Add to admin block
@@ -549,7 +568,7 @@ func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, st *State) er
 	return nil
 }
 
-func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, st *State, BlockChain string) error {
+func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height uint32, st *State, BlockChain string) error {
 	extIDs := entry.ExternalIDs()
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 ||
 		!CheckExternalIDsLength(extIDs, []int{1, 15, 32, 1, 1, 20, 8, 33, 64}) {
@@ -604,10 +623,20 @@ func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, st *State
 			if len(extIDs[5]) != 20 {
 				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid length")
 			}
-			// Check Timestamp of message
-			if !initial && !CheckTimestamp(extIDs[6]) {
-				return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+
+			dbase := st.GetAndLockDB()
+			dblk, err := dbase.FetchDBlockByHeight(height)
+			st.UnlockDB()
+			if err != nil {
+				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				}
+			} else {
+				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				}
 			}
+
 			if contains {
 				st.Identities[IdentityIndex].AnchorKeys = ask
 			} else {
@@ -728,7 +757,7 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo int, st *State) {
 	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
-		log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
+		//log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
 		return
 	}
 	st.Identities[IdentityIndex].Status = StatusTo

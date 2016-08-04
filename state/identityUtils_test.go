@@ -60,7 +60,7 @@ func TestAppendExtIDs(t *testing.T) {
 
 	resp, err = AppendExtIDs(ids, 1, 5)
 	if err == nil {
-		t.Error("Err is nit when it should not be")
+		t.Error("Err is not when it should not be")
 	}
 	if resp != nil {
 		t.Error("Resp is not nil when it should be")
@@ -73,7 +73,7 @@ func TestCheckTimestamp(t *testing.T) {
 	binary.Write(&out, binary.BigEndian, uint64(now.Unix()))
 	hex := out.Bytes()
 
-	if CheckTimestamp(hex) == false {
+	if CheckTimestamp(hex, now.Unix()) == false {
 		t.Error("Timestamp check failed")
 	}
 
@@ -82,14 +82,14 @@ func TestCheckTimestamp(t *testing.T) {
 	binary.Write(&out, binary.BigEndian, uint64(now.Unix())-delta)
 	hex = out.Bytes()
 
-	if CheckTimestamp(hex) == false {
+	if CheckTimestamp(hex, now.Unix()) == false {
 		t.Error("Timestamp check failed")
 	}
 	out.Reset()
 	binary.Write(&out, binary.BigEndian, uint64(now.Unix())+delta)
 	hex = out.Bytes()
 
-	if CheckTimestamp(hex) == false {
+	if CheckTimestamp(hex, now.Unix()) == false {
 		t.Error("Timestamp check failed")
 	}
 
@@ -98,14 +98,22 @@ func TestCheckTimestamp(t *testing.T) {
 	binary.Write(&out, binary.BigEndian, uint64(now.Unix())-delta)
 	hex = out.Bytes()
 
-	if CheckTimestamp(hex) == true {
+	if CheckTimestamp(hex, now.Unix()) == true {
 		t.Error("Timestamp check failed")
 	}
 	out.Reset()
 	binary.Write(&out, binary.BigEndian, uint64(now.Unix())+delta)
 	hex = out.Bytes()
 
-	if CheckTimestamp(hex) == true {
+	if CheckTimestamp(hex, now.Unix()) == true {
+		t.Error("Timestamp check failed")
+	}
+
+	delta = (12 * 60 * 60) + 10
+	out.Reset()
+	binary.Write(&out, binary.BigEndian, uint64(now.Unix())-delta)
+	hex = out.Bytes()
+	if CheckTimestamp(hex, now.Unix()) == true {
 		t.Error("Timestamp check failed")
 	}
 }

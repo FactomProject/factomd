@@ -273,22 +273,21 @@ func (st *State) createAuthority(chainID interfaces.IHash) int {
 
 // If the Identity failed to create, it will be fixed here
 func (s *State) RepairAuthorities() {
+	// Fix any missing management chains
 	for i, auth := range s.Authorities {
-		index := s.isIdentityChain(auth.AuthorityChainID)
-		if index == -1 {
-			err := s.AddIdentityFromChainID(auth.AuthorityChainID)
-			if err != nil {
-				//fmt.Println(err)
-			}
-		}
 		if s.Authorities[i].ManagementChainID == nil {
 			idIndex := s.isIdentityChain(s.Authorities[i].AuthorityChainID)
+			if idIndex == -1 {
+				s.AddIdentityFromChainID(auth.AuthorityChainID)
+				idIndex = s.isIdentityChain(s.Authorities[i].AuthorityChainID)
+			}
 			if idIndex != -1 {
 				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
 			}
 		}
 	}
 
+	// Fix any missing keys
 	for _, id := range s.Identities {
 		if !id.IsFull() {
 			id.FixMissingKeys(s)
