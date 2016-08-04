@@ -140,27 +140,27 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 			incBal := entryCreditBlock.NewIncreaseBalance()
 			v := eo.GetAddress().Fixed()
 			incBal.ECPubKey = (*primitives.ByteSlice32)(&v)
-			incBal.NumEC = eo.GetAmount()/fs.GetCurrentBlock().GetExchRate()
+			incBal.NumEC = eo.GetAmount() / fs.GetCurrentBlock().GetExchRate()
 			incBal.TXID = trans.GetSigHash()
 			incBal.Index = uint64(index)
 			entries := pl.EntryCreditBlock.GetEntries()
-			i := len(entries)-1
+			i := len(entries) - 1
 			// Find the start of this minute
 			for i >= 0 {
-				if _,ok := entries[i].(*entryCreditBlock.MinuteNumber); ok {
+				if _, ok := entries[i].(*entryCreditBlock.MinuteNumber); ok {
 					break
 				}
 				i--
 			}
 			// Find the end of the last IncreaseBalance in this minute
 			for i < len(entries) {
-				if _,ok := entries[i].(*entryCreditBlock.IncreaseBalance); ok {
+				if _, ok := entries[i].(*entryCreditBlock.IncreaseBalance); ok {
 					break
 				}
 				i++
 			}
 			entries = append(entries, nil)
-			copy (entries[i+1:], entries[i:])
+			copy(entries[i+1:], entries[i:])
 			entries[i] = incBal
 			pl.EntryCreditBlock.GetBody().SetEntries(entries)
 		}

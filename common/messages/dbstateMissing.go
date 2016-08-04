@@ -110,8 +110,8 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
-	if end-start > 10 {
-		end = start + 10
+	if end-start > 200 {
+		end = start + 200
 	}
 	for dbs := start; dbs <= end; dbs++ {
 		msg, err := state.LoadDBState(dbs)

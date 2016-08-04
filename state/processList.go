@@ -88,7 +88,8 @@ type VM struct {
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	Synced         bool              // Is this VM synced yet?
 	missingTime    int64             // How long we have been waiting for a missing message
-	missingEOM     int64             // Ask for EOM
+	missingEOM     int64             // Ask for EOM because it is late
+	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 }
 
@@ -504,16 +505,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		vm := p.VMs[i]
 
 		if !p.State.Syncing {
-			vm.missingEOM = 0
+			vm.faultingEOM = 0
 		} else {
 			if !vm.Synced {
-				vm.missingEOM = fault(p, i, 20, vm, vm.missingEOM, len(vm.List))
+				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List))
 			}
 		}
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingTime = ask(p, i, 1, vm, vm.missingTime, vm.Height)
+			vm.missingEOM = ask(p, i, 1, vm, vm.missingTime, vm.Height)
+		} else {
+			vm.missingEOM = 0
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
