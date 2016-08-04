@@ -485,13 +485,17 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		if now-thetime >= waitSeconds {
 			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
 			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
-			sf := messages.NewServerFault(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-			if sf != nil {
-				sf.Sign(p.State.serverPrivKey)
-				p.State.NetworkOutMsgQueue() <- sf
-				p.State.InMsgQueue() <- sf
+			auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
+			if len(auditServerList) > 0 {
+				replacementServer := auditServerList[0]
+				sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
+				if sf != nil {
+					sf.Sign(p.State.serverPrivKey)
+					p.State.NetworkOutMsgQueue() <- sf
+					p.State.InMsgQueue() <- sf
+				}
+				thetime = now
 			}
-			thetime = now
 		}
 	}
 

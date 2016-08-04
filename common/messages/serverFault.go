@@ -19,13 +19,13 @@ type ServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	// The following 4 fields represent the "Core" of the message
+	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of FullServerFault messages
-	FedIndex int
-	ServerID interfaces.IHash
-	VMIndex  byte
-	DBHeight uint32
-	Height   uint32
+	ServerID      interfaces.IHash
+	AuditServerID interfaces.IHash
+	VMIndex       byte
+	DBHeight      uint32
+	Height        uint32
 
 	Signature interfaces.IFullSignature
 
@@ -87,6 +87,11 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	} else {
 		buf.Write(d)
 	}
+	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
@@ -111,6 +116,11 @@ func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
 		buf.Write(d)
 	}
 	if d, err := m.ServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
 		buf.Write(d)
@@ -166,6 +176,13 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	if err != nil {
 		return nil, err
 	}
+	if m.AuditServerID == nil {
+		m.AuditServerID = primitives.NewZeroHash()
+	}
+	newData, err = m.AuditServerID.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
 
 	m.VMIndex, newData = newData[0], newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -205,9 +222,11 @@ func (m *ServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *ServerFault) String() string {
-	return fmt.Sprintf("%6s-VM%3d: PL:%5d DBHt:%5d -- hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d: (%x) AuditID: %x PL:%5d DBHt:%5d -- hash[:3]=%x",
 		"SFault",
 		m.VMIndex,
+		m.ServerID.GetHash().String()[:8],
+		m.AuditServerID.GetHash().String()[:8],
 		m.Height,
 		m.DBHeight,
 		m.GetHash().Bytes()[:3])
@@ -293,12 +312,13 @@ func (a *ServerFault) IsSameAs(b *ServerFault) bool {
 // Support Functions
 //*******************************************************************************
 
-func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
+func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, auditServerID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
 	sf := new(ServerFault)
 	sf.Timestamp = timeStamp
 	sf.VMIndex = byte(vmIndex)
 	sf.DBHeight = dbheight
 	sf.Height = height
 	sf.ServerID = serverID
+	sf.AuditServerID = auditServerID
 	return sf
 }

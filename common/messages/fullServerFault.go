@@ -21,10 +21,11 @@ type FullServerFault struct {
 
 	// The following 4 fields represent the "Core" of the message
 	// This should match the Core of ServerFault messages
-	ServerID interfaces.IHash
-	VMIndex  byte
-	DBHeight uint32
-	Height   uint32
+	ServerID      interfaces.IHash
+	AuditServerID interfaces.IHash
+	VMIndex       byte
+	DBHeight      uint32
+	Height        uint32
 
 	SignatureList SigList
 
@@ -93,6 +94,11 @@ func (m *FullServerFault) MarshalCore() (data []byte, err error) {
 	} else {
 		buf.Write(d)
 	}
+	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
@@ -117,6 +123,11 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 		buf.Write(d)
 	}
 	if d, err := m.ServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
 		buf.Write(d)
@@ -215,6 +226,14 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 		return nil, err
 	}
 
+	if m.AuditServerID == nil {
+		m.AuditServerID = primitives.NewZeroHash()
+	}
+	newData, err = m.AuditServerID.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
 	m.VMIndex, newData = newData[0], newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -258,10 +277,11 @@ func (m *FullServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *FullServerFault) String() string {
-	return fmt.Sprintf("%6s-VM%3d (%x) PL:%5d DBHt:%5d -- hash[:3]=%x\n SigList: %+v",
+	return fmt.Sprintf("%6s-VM%3d (%x) AuditID: %x PL:%5d DBHt:%5d -- hash[:3]=%x\n SigList: %+v",
 		"FullSFault",
 		m.VMIndex,
 		m.ServerID.Bytes()[:10],
+		m.AuditServerID.Bytes()[:10],
 		m.Height,
 		m.DBHeight,
 		m.GetHash().Bytes()[:3],
@@ -278,7 +298,6 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
 	// Check main signature
-	fmt.Println("FSF", state.GetFactomNodeName())
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
 		return -1
@@ -302,11 +321,9 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 			validSigCount++
 		}
 		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
-			fmt.Println("FSF good", state.GetFactomNodeName())
 			return 1
 		}
 	}
-	fmt.Println("FSF nogood", state.GetFactomNodeName())
 
 	return -1 // didn't see enough valid sigs
 }
@@ -352,6 +369,12 @@ func (a *FullServerFault) IsSameAs(b *FullServerFault) bool {
 			return false
 		}
 	}
+	if !a.ServerID.IsSameAs(b.ServerID) {
+		return false
+	}
+	if !a.AuditServerID.IsSameAs(b.AuditServerID) {
+		return false
+	}
 	//TODO: expand
 
 	return true
@@ -368,6 +391,7 @@ func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSig
 	sf.DBHeight = faultMessage.DBHeight
 	sf.Height = faultMessage.Height
 	sf.ServerID = faultMessage.ServerID
+	sf.AuditServerID = faultMessage.AuditServerID
 
 	numSigs := len(sigList)
 	var allSigs []interfaces.IFullSignature
