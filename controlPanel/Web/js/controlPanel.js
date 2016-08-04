@@ -1,7 +1,7 @@
 var currentHeight = 0
 var leaderHeight = 0
 
-setInterval(updateHTML,5000);
+setInterval(updateHTML,3000);
 var serverOnline = false
 // Used to update some things less frequently
 var skipInterval = false

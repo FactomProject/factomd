@@ -32,8 +32,8 @@ type DisplayState struct {
 
 	// Identity Info
 	IdentityChainID interfaces.IHash
-	Identities      []Identity  // Identities of all servers in management chain
-	Authorities     []Authority // Identities of all servers in management chain
+	Identities      []Identity
+	Authorities     []Authority
 	PublicKey       *primitives.PublicKey
 
 	// Process List
@@ -72,6 +72,7 @@ func NewDisplayState() *DisplayState {
 	return d
 }
 
+// Sends the copy of State over channel to control panel
 func (s *State) CopyStateToControlPanel() error {
 	if s.ControlPanelSetting == 2 || !s.ControlPanelDataRequest {
 		return nil
@@ -202,7 +203,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	return ds, nil
 }
 
-// Used for display dump
+// Used for display dump. Allows a clone of the display state to be made
 func (d *DisplayState) Clone() *DisplayState {
 	ds := NewDisplayState()
 
