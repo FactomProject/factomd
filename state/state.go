@@ -333,11 +333,11 @@ func (s *State) IncDBStateAnswerCnt() {
 }
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
-func (s *State) LoadConfig(filename string) {
+func (s *State) LoadConfig(filename string, folder string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
-		s.ReadCfg(filename)
+		s.ReadCfg(filename, folder)
 
 		// Get our factomd configuration information.
 		cfg := s.GetCfg().(*util.FactomdConfig)
@@ -1089,8 +1089,8 @@ func (s *State) GetCfg() interfaces.IFactomConfig {
 // ReadCfg forces a read of the factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
 // future calls to Cfg().(s.Cfg.(*util.FactomdConfig)).String()
-func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
-	s.Cfg = util.ReadConfig(filename)
+func (s *State) ReadCfg(filename string, folder string) interfaces.IFactomConfig {
+	s.Cfg = util.ReadConfig(filename, folder)
 	return s.Cfg
 }
 

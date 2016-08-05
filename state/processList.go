@@ -466,7 +466,7 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 		thetime = now
 	}
 
-	if now-thetime >= waitSeconds+2 {
+	if now-thetime >= waitSeconds {
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
@@ -520,7 +520,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingEOM = ask(p, i, 1, vm, vm.missingTime, vm.Height)
+			vm.missingEOM = ask(p, i, 4, vm, vm.missingEOM, vm.Height)
 		} else {
 			vm.missingEOM = 0
 		}
@@ -580,7 +580,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
-				vm.missingEOM = 0
+				vm.missingTime = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
