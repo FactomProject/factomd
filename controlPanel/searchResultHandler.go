@@ -408,7 +408,7 @@ func getAblock(hash string) *AblockHolder {
 				continue
 			}
 			disp.Type = "DB Signiture"
-			disp.OtherInfo = " "
+			disp.OtherInfo = "Server: " + r.IdentityAdminChainID.String()
 		case constants.TYPE_REVEAL_MATRYOSHKA:
 			r := new(adminBlock.RevealMatryoshkaHash)
 			err := r.UnmarshalBinary(data)
