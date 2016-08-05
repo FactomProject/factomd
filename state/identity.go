@@ -199,12 +199,14 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 	cid := ent.GetChainID()
 	if st.isIdentityChain(cid) == -1 {
 		if st.isAuthorityChain(cid) != -1 {
-			st.AddIdentityFromChainID(cid)
-			log.Printfln("dddd Identity WARNING: Identity does not exist but authority does. If you see this warning, please tell Steven and how you produced it.\n    It might recover on its own")
+			// The authority exists, but the Identity does not. This could be an issue if a
+			// server changes their key as we would not notice the change
+
+			//log.Printfln("dddd Identity WARNING: Identity does not exist but authority does. If you see this warning, please tell Steven and how you produced it.\n    It might recover on its own")
 		}
 		return
 	}
-	if hs[0:10] != "0000000000" { //ignore minute markers
+	if hs[0:60] != "000000000000000000000000000000000000000000000000000000000000" { //ignore minute markers
 		if len(ent.ExternalIDs()) > 1 {
 			if string(ent.ExternalIDs()[1]) == "Register Server Management" {
 				registerIdentityAsServer(ent, height, st)
