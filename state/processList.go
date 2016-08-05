@@ -458,14 +458,15 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
+func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
 	now := time.Now().Unix()
 	//fmt.Println("ASK", p.State.FactomNodeName, vmIndex, now, thetime, waitSeconds)
 	if thetime == 0 {
 		thetime = now
 	}
 
-	if now-thetime >= waitSeconds+2 {
+	if now-thetime >= waitSeconds {
+		//fmt.Println("JUSTIN", p.State.FactomNodeName, "ASK tag:", tag, "wait:", waitSeconds, "now:", now, "thetim:", thetime, "h:", height)
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
@@ -518,18 +519,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingEOM = ask(p, i, 1, vm, vm.missingTime, vm.Height)
+			vm.missingEOM = ask(p, i, 3, vm, vm.missingEOM, vm.Height, 1)
 		} else {
 			vm.missingEOM = 0
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
-		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List))
+		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List), 2)
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
+				vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j, 3)
 				break VMListLoop
 			}
 
@@ -547,7 +548,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
-					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
+					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j, 4)
 					break VMListLoop
 				}
 
@@ -568,14 +569,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
-					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j)
+					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j, 5)
 					break VMListLoop
 				}
 			}
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
-				vm.missingEOM = 0
+				vm.missingTime = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {

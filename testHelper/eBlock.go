@@ -146,8 +146,8 @@ func CreateFirstTestEntry() *entryBlock.Entry {
 	answer := new(entryBlock.Entry)
 
 	answer.Version = 1
-	answer.ExtIDs = [][]byte{[]byte("Test1"), []byte("Test2")}
-	answer.Content = []byte("Test content, please ignore")
+	answer.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{Bytes: []byte("Test1")}, primitives.ByteSlice{Bytes: []byte("Test2")}}
+	answer.Content = primitives.ByteSlice{Bytes: []byte("Test content, please ignore")}
 	answer.ChainID = entryBlock.NewChainID(answer)
 
 	return answer
@@ -157,8 +157,8 @@ func CreateFirstAnchorEntry() *entryBlock.Entry {
 	answer := new(entryBlock.Entry)
 
 	answer.Version = 0
-	answer.ExtIDs = [][]byte{[]byte("FactomAnchorChain")}
-	answer.Content = []byte("This is the Factom anchor chain, which records the anchors Factom puts on Bitcoin and other networks.\n")
+	answer.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{Bytes: []byte("FactomAnchorChain")}}
+	answer.Content = primitives.ByteSlice{Bytes: []byte("This is the Factom anchor chain, which records the anchors Factom puts on Bitcoin and other networks.\n")}
 	answer.ChainID = entryBlock.NewChainID(answer)
 
 	return answer
@@ -169,8 +169,8 @@ func CreateTestEntry(n uint32) *entryBlock.Entry {
 
 	answer.ChainID = GetChainID()
 	answer.Version = 1
-	answer.ExtIDs = [][]byte{[]byte(fmt.Sprintf("ExtID %v", n))}
-	answer.Content = []byte(fmt.Sprintf("Content %v", n))
+	answer.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{Bytes: []byte(fmt.Sprintf("ExtID %v", n))}}
+	answer.Content = primitives.ByteSlice{Bytes: []byte(fmt.Sprintf("Content %v", n))}
 
 	return answer
 }
@@ -197,7 +197,7 @@ func CreateTestAnchorEnry(dBlock *directoryBlock.DirectoryBlock) *entryBlock.Ent
 		panic(err)
 	}
 
-	answer.Content = hex
+	answer.Content = primitives.ByteSlice{Bytes: hex}
 
 	return answer
 }

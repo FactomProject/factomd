@@ -50,14 +50,14 @@ func newRevealEntry() *RevealEntryMsg {
 
 	entry := new(entryBlock.Entry)
 
-	entry.ExtIDs = make([][]byte, 0, 5)
-	entry.ExtIDs = append(entry.ExtIDs, []byte("1asdfadfasdf"))
-	entry.ExtIDs = append(entry.ExtIDs, []byte(""))
-	entry.ExtIDs = append(entry.ExtIDs, []byte("3"))
+	entry.ExtIDs = make([]primitives.ByteSlice, 0, 5)
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("1asdfadfasdf")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("3")})
 	entry.ChainID = new(primitives.Hash)
 	entry.ChainID.SetBytes(constants.EC_CHAINID)
 
-	entry.Content = []byte("1asdf asfas dfsg\"08908098(*)*^*&%&%&$^#%##%$$@$@#$!$#!$#@!~@!#@!%#@^$#^&$*%())_+_*^*&^&\"\"?>?<<>/./,")
+	entry.Content = primitives.ByteSlice{Bytes: []byte("1asdf asfas dfsg\"08908098(*)*^*&%&%&$^#%##%$$@$@#$!$#!$#@!~@!#@!%#@^$#^&$*%())_+_*^*&^&\"\"?>?<<>/./,")}
 
 	re.Entry = entry
 
