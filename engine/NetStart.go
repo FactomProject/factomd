@@ -87,6 +87,13 @@ func NetStart(s *state.State) {
 	keepMismatch := *keepMismatchPtr
 	startDelay := int64(*startDelayPtr)
 
+	networkOverride := s.Network
+	if 0 < len(networkName) { // Command line overrides the config file.
+		networkOverride = networkName
+		s.Network = networkName
+	}
+	fmt.Printf("\n\nNetwork Override: %s\n", networkOverride)
+
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
@@ -227,31 +234,22 @@ func NetStart(s *state.State) {
 
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
-	var peersFile, seedURL, networkPort, specialPeers string
-	networkOverride := s.Network
-	if 0 < len(networkName) { // Command line overrides the config file.
-		networkOverride = networkName
-		s.Network = networkName
-	}
-	fmt.Printf("\n\nNetwork Override: %s\n", networkOverride)
+	var seedURL, networkPort, specialPeers string
 	switch networkOverride {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 		seedURL = s.MainSeedURL
 		networkPort = s.MainNetworkPort
-		peersFile = s.MainPeersFile
 		specialPeers = s.MainSpecialPeers
 	case "TEST", "test":
 		networkID = p2p.TestNet
 		seedURL = s.TestSeedURL
 		networkPort = s.TestNetworkPort
-		peersFile = s.TestPeersFile
 		specialPeers = s.TestSpecialPeers
 	case "LOCAL", "local":
 		networkID = p2p.LocalNet
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
-		peersFile = s.LocalPeersFile
 		specialPeers = s.LocalSpecialPeers
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
@@ -262,7 +260,7 @@ func NetStart(s *state.State) {
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     networkPort,
-		PeersFile:                peersFile,
+		PeersFile:                s.PeersFile,
 		Network:                  networkID,
 		Exclusive:                exclusive,
 		SeedURL:                  seedURL,

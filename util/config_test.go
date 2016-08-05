@@ -71,15 +71,13 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	; --------------- Network: MAIN | TEST | LOCAL
 	Network                               = LOCAL
 	MainNetworkPort      = 8108
-	MainPeersFile        = "MainPeers.json"
+	PeersFile        = "peers.json"
 	MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
 	MainSpecialPeers     = ""
 	TestNetworkPort      = 8109
-	TestPeersFile        = "TestPeers.json"
 	TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
 	TestSpecialPeers     = ""
 	LocalNetworkPort     = 8110
-	LocalPeersFile       = "LocalPeers.json"
 	LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 	LocalSpecialPeers     = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------

@@ -109,7 +109,6 @@ type CommandChangeLogging struct {
 func (c *Controller) Init(ci ControllerInit) *Controller {
 	note("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
 	note("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
-	silence("#################", "META: Last touched: SATURDAY July 31 4:45AM")
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
