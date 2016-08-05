@@ -5,16 +5,17 @@
 package messages_test
 
 import (
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"testing"
 )
 
 func TestMarshalUnmarshalServerFault(t *testing.T) {
 	ts := primitives.NewTimestampNow()
 	vmIndex := int(*ts) % 10
-	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), vmIndex, 10, 100)
+	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100)
 	hex, err := sf.MarshalBinary()
 	if err != nil {
 		t.Error(err)

@@ -16,7 +16,7 @@ import (
 func TestMarshalUnmarshalFullServerFault(t *testing.T) {
 	ts := primitives.NewTimestampNow()
 	vmIndex := int(*ts) % 10
-	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), vmIndex, 10, 100)
+	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100)
 
 	sl := coupleOfSigs(t)
 
@@ -99,7 +99,7 @@ func makeSigList(t *testing.T) SigList {
 func TestThatFullAndFaultCoreHashesMatch(t *testing.T) {
 	ts := primitives.NewTimestampNow()
 	vmIndex := int(*ts) % 10
-	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), vmIndex, 10, 100)
+	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100)
 
 	sl := coupleOfSigs(t)
 

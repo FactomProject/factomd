@@ -247,8 +247,10 @@ func (m *Heartbeat) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *Heartbeat) FollowerExecute(state interfaces.IState) {
-	for _, auditServer := range state.GetAuditServers(uint32(m.DBHeight())) {
+	fmt.Println("JUSTIN HEARTBEAT EX")
+	for _, auditServer := range state.GetAuditServers(state.GetLeaderHeight()) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
+			fmt.Println("JUSTIN HEARTBEAT SET ONLINE:", auditServer.GetChainID().String()[:10], "(", state.GetFactomNodeName(), ")")
 			auditServer.SetOnline(true)
 		}
 	}
