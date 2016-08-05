@@ -304,6 +304,7 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
 	}
 
+	networkName := strings.ToLower(cfg.App.Network) + "-"
 	// TODO: improve the paths after milestone 1
 	cfg.App.LdbPath = cfg.App.HomeDir + folder + cfg.App.LdbPath
 	cfg.App.BoltDBPath = cfg.App.HomeDir + folder + cfg.App.BoltDBPath
