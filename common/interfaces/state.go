@@ -15,7 +15,7 @@ type IState interface {
 	GetFactomNodeName() string
 	Clone(number string) IState
 	GetCfg() IFactomConfig
-	LoadConfig(filename string)
+	LoadConfig(filename string, folder string) // TODO JAYJAY remove folder here (hack to support multiple factomd processes on one .factom)
 	Init()
 	String() string
 	GetIdentityChainID() IHash
@@ -135,6 +135,8 @@ type IState interface {
 	GetFactoshisPerEC() uint64
 	SetFactoshisPerEC(factoshisPerEC uint64)
 	IncFactoidTrans()
+	IncMissingMsgReply()
+	IncDBStateAnswerCnt()
 	// MISC
 	// ====
 

@@ -200,6 +200,7 @@ func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
 		state.NetworkOutMsgQueue() <- msgResponse
+		state.IncMissingMsgReply()
 	}
 
 	return

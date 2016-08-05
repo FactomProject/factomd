@@ -470,6 +470,7 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+			p.State.MissingAskCnt++
 		}
 		thetime = now
 	}
@@ -525,8 +526,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
-		vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List), 2)
-
+		if vm.Height == len(vm.List) {
+			vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List), 2)
+		} else {
+			vm.heartBeat = 0
+		}
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {

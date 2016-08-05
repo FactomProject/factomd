@@ -63,13 +63,15 @@ type State struct {
 	// Network Configuration
 	Network           string
 	MainNetworkPort   string
-	PeersFile         string
+	MainPeersFile     string
 	MainSeedURL       string
 	MainSpecialPeers  string
 	TestNetworkPort   string
+	TestPeersFile     string
 	TestSeedURL       string
 	TestSpecialPeers  string
 	LocalNetworkPort  string
+	LocalPeersFile    string
 	LocalSeedURL      string
 	LocalSpecialPeers string
 
@@ -79,16 +81,20 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status     bool
-	starttime  time.Time
-	transCnt   int
-	lasttime   time.Time
-	tps        float64
-	serverPrt  string
-	DBStateCnt int
-	MissingCnt int
-	ResendCnt  int
-	ExpireCnt  int
+	Status          bool
+	starttime       time.Time
+	transCnt        int
+	lasttime        time.Time
+	tps             float64
+	serverPrt       string
+	DBStateAskCnt   int
+	DBStateAnsCnt   int
+	DBStateReplyCnt int
+	MissingAskCnt   int
+	MissingAnsCnt   int
+	MissingReplyCnt int
+	ResendCnt       int
+	ExpireCnt       int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -132,9 +138,12 @@ type State struct {
 	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
-	KeepMismatch   bool // By default, this is false, which means DBstates are discarded
+
+	// By default, this is false, which means DBstates are discarded
 	//when a majority of leaders disagree with the hash we have via DBSigs
-	MismatchCnt int // Keep track of how many blockhash mismatches we've had to correct
+	KeepMismatch bool
+
+	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
@@ -248,13 +257,15 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
 	clone.MainNetworkPort = s.MainNetworkPort
-	clone.PeersFile = s.PeersFile
+	clone.MainPeersFile = s.MainPeersFile
 	clone.MainSeedURL = s.MainSeedURL
 	clone.MainSpecialPeers = s.MainSpecialPeers
 	clone.TestNetworkPort = s.TestNetworkPort
+	clone.TestPeersFile = s.TestPeersFile
 	clone.TestSeedURL = s.TestSeedURL
 	clone.TestSpecialPeers = s.TestSpecialPeers
 	clone.LocalNetworkPort = s.LocalNetworkPort
+	clone.LocalPeersFile = s.LocalPeersFile
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
 	clone.FaultMap = s.FaultMap
@@ -314,11 +325,20 @@ func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
 }
 
-func (s *State) LoadConfig(filename string) {
+func (s *State) IncMissingMsgReply() {
+	s.MissingReplyCnt++
+}
+
+func (s *State) IncDBStateAnswerCnt() {
+	s.DBStateAnsCnt++
+}
+
+// TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
+func (s *State) LoadConfig(filename string, folder string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
-		s.ReadCfg(filename)
+		s.ReadCfg(filename, folder)
 
 		// Get our factomd configuration information.
 		cfg := s.GetCfg().(*util.FactomdConfig)
@@ -334,13 +354,15 @@ func (s *State) LoadConfig(filename string) {
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
 		s.MainNetworkPort = cfg.App.MainNetworkPort
-		s.PeersFile = cfg.App.PeersFile
+		s.MainPeersFile = cfg.App.MainPeersFile
 		s.MainSeedURL = cfg.App.MainSeedURL
 		s.MainSpecialPeers = cfg.App.MainSpecialPeers
 		s.TestNetworkPort = cfg.App.TestNetworkPort
+		s.TestPeersFile = cfg.App.TestPeersFile
 		s.TestSeedURL = cfg.App.TestSeedURL
 		s.TestSpecialPeers = cfg.App.TestSpecialPeers
 		s.LocalNetworkPort = cfg.App.LocalNetworkPort
+		s.LocalPeersFile = cfg.App.LocalPeersFile
 		s.LocalSeedURL = cfg.App.LocalSeedURL
 		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
@@ -379,13 +401,15 @@ func (s *State) LoadConfig(filename string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.MainNetworkPort = "8108"
-		s.PeersFile = "peers.json"
+		s.MainPeersFile = "MainPeers.json"
 		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
 		s.MainSpecialPeers = ""
 		s.TestNetworkPort = "8109"
+		s.TestPeersFile = "TestPeers.json"
 		s.TestSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
 		s.TestSpecialPeers = ""
 		s.LocalNetworkPort = "8110"
+		s.LocalPeersFile = "LocalPeers.json"
 		s.LocalSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 		s.LocalSpecialPeers = ""
 
@@ -1066,8 +1090,8 @@ func (s *State) GetCfg() interfaces.IFactomConfig {
 // ReadCfg forces a read of the factom config file.  However, it does not change the
 // state of any cfg object held by other processes... Only what will be returned by
 // future calls to Cfg().(s.Cfg.(*util.FactomdConfig)).String()
-func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
-	s.Cfg = util.ReadConfig(filename, s.Network)
+func (s *State) ReadCfg(filename string, folder string) interfaces.IFactomConfig {
+	s.Cfg = util.ReadConfig(filename, folder)
 	return s.Cfg
 }
 
@@ -1247,12 +1271,13 @@ func (s *State) SetString() {
 		keyMR[:3],
 		pls)
 
-	dbstate := fmt.Sprintf("%d/%d", s.DBStateCnt, s.MismatchCnt)
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(+/-) %-10s MissCnt %5d ",
+	dbstate := fmt.Sprintf("%d/%d/%d", s.DBStateReplyCnt, s.DBStateAskCnt, s.DBSigFails)
+	missing := fmt.Sprintf("%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt)
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %20s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,
-		s.MissingCnt)
+		missing)
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)

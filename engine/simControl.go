@@ -374,7 +374,7 @@ func SimControl(listenTo int) {
 							index++
 						}
 						if index >= len(authKeyLibrary) {
-							os.Stderr.WriteString(fmt.Sprintf("Did not make a leader, ran out of identities. Type 'g1' for one more identity.\n"))
+							os.Stderr.WriteString(fmt.Sprint("Did not make a leader, ran out of identities. Type 'g1' for one more identity.\n"))
 							break
 						}
 					}

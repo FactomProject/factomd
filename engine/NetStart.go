@@ -47,8 +47,9 @@ func NetStart(s *state.State) {
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
+	folderPtr := flag.String("folder", "", "Directory in .factom to store nodes. (eg: multiple nodes on one filesystem support)")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
-	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
+	networkNamePtr := flag.String("", "", "Network to join: MAIN, TEST or LOCAL")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
@@ -73,6 +74,7 @@ func NetStart(s *state.State) {
 	leader := *leaderPtr
 	db := *dbPtr
 	cloneDB := *cloneDBPtr
+	folder := *folderPtr
 	portOverride := *portOverridePtr
 	peers := *peersPtr
 	networkName := *networkNamePtr
@@ -98,7 +100,7 @@ func NetStart(s *state.State) {
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-	s.LoadConfig(FactomConfigFilename)
+	s.LoadConfig(FactomConfigFilename, folder)
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 	s.StartDelayLimit = startDelay * 1000
@@ -198,6 +200,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", journal))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", db))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", cloneDB))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "folder", folder))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "network", networkName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", peers))
@@ -209,6 +212,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -235,7 +239,7 @@ func NetStart(s *state.State) {
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
-	switch networkOverride {
+	switch s.Network {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 		seedURL = s.MainSeedURL
@@ -260,7 +264,7 @@ func NetStart(s *state.State) {
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     networkPort,
-		PeersFile:                s.PeersFile,
+		PeersFile:                s.MainPeersFile,
 		Network:                  networkID,
 		Exclusive:                exclusive,
 		SeedURL:                  seedURL,
