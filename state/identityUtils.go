@@ -41,7 +41,7 @@ func (id *Identity) FixMissingKeys(s *State) {
 	if !statusIsFedOrAudit(id.Status) {
 		return
 	}
-	// Need to fix missing keys
+	// Rebuilds identity
 	err := s.AddIdentityFromChainID(id.IdentityChainID)
 	if err != nil {
 	}

@@ -11,7 +11,7 @@
                 <div class="large-3 medium-4 small-12 columns">
                     <div class="metric">
                         <label for="nodeHeight">Block Height:</label>
-                        <input type="text" id="nodeHeight" name="nodeHeight" disabled="true" value="0">
+                        <input type="text" id="nodeHeight" name="nodeHeight" disabled="true" value="-">
                     </div>
                     <div class="metric">
                         <label for="syncFirst">Node Sync Status (1st pass):</label>
@@ -30,8 +30,16 @@
                         </div>
                     </div>
                     <div class="metric">
-                        <label for="servercount">Number of Federated / Audit Servers</label>
-                        <input type="text" id="servercount" name="servercount" disabled="true" value="0/0">
+                        <div class="row">
+                            <div class="small-6 columns">
+                                <label for="serverfedcount">Federated</label>
+                                <input type="text" id="serverfedcount" name="serverfedcount" disabled="true" value="-">
+                            </div>
+                            <div class="small-6 columns">
+                                <label for="serveraudcount">Audit</label>
+                                <input type="text" id="serveraudcount" name="" disabled="true" value="-">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="large-8 medium-7 small-12 columns">
@@ -51,69 +59,6 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- <tr>
-                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
-                                    <td>Out</td>
-                                    <td>5.6</td>
-                                    <td>28,123</td>
-                                    <td>12.3 (210 MB)</td>
-                                    <td>41.4 (141 MB)</td>
-                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
-                                </tr>
-                                <tr>
-                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
-                                    <td>Out</td>
-                                    <td>5.6</td>
-                                    <td>28,123</td>
-                                    <td>12.3 (210 MB)</td>
-                                    <td>41.4 (141 MB)</td>
-                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
-                                </tr>
-                                <tr>
-                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
-                                    <td>Out</td>
-                                    <td>5.6</td>
-                                    <td>28,123</td>
-                                    <td>12.3 (210 MB)</td>
-                                    <td>41.4 (141 MB)</td>
-                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
-                                </tr>
-                                <tr>
-                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
-                                    <td>Out</td>
-                                    <td>5.6</td>
-                                    <td>28,123</td>
-                                    <td>12.3 (210 MB)</td>
-                                    <td>41.4 (141 MB)</td>
-                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
-                                </tr>
-                                <tr>
-                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
-                                    <td>Out</td>
-                                    <td>5.6</td>
-                                    <td>28,123</td>
-                                    <td>12.3 (210 MB)</td>
-                                    <td>41.4 (141 MB)</td>
-                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
-                                </tr>
-                                <tr>
-                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
-                                    <td>Out</td>
-                                    <td>5.6</td>
-                                    <td>28,123</td>
-                                    <td>12.3 (210 MB)</td>
-                                    <td>41.4 (141 MB)</td>
-                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
-                                </tr>
-                                <tr>
-                                    <td><span data-tooltip class="has-tip top" title="ISP(geo130.comcast.net), Origin(USA)">59.19.1.130</span></td>
-                                    <td>Out</td>
-                                    <td>5.6</td>
-                                    <td>28,123</td>
-                                    <td>12.3 (210 MB)</td>
-                                    <td>41.4 (141 MB)</td>
-                                    <td><a href="#" class="button tiny alert">Disconnect</a></td>
-                                </tr> -->
                             </tbody>
                             <tfoot>
                                 <tr>
