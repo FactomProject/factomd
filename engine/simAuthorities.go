@@ -600,7 +600,7 @@ func getFactomPackageEntryFromString(message string) (*factom.Entry, error) {
 		// build factom pkg entry.
 		fEntry.ChainID = entry.ChainID.String()
 		fEntry.ExtIDs = entry.ExternalIDs()
-		fEntry.Content = entry.Content
+		fEntry.Content = entry.Content.Bytes
 
 		return fEntry, nil
 	}
