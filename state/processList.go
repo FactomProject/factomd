@@ -465,8 +465,8 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 		thetime = now
 	}
 
-	if now-thetime >= waitSeconds+2 {
-		fmt.Println("JUSTIN", p.State.FactomNodeName, "ASK tag:", tag, "wait:", waitSeconds, "now:", now, "thetim:", thetime, "h:", height)
+	if now-thetime >= waitSeconds {
+		//fmt.Println("JUSTIN", p.State.FactomNodeName, "ASK tag:", tag, "wait:", waitSeconds, "now:", now, "thetim:", thetime, "h:", height)
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
@@ -519,7 +519,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingEOM = ask(p, i, 1, vm, vm.missingEOM, vm.Height, 1)
+			vm.missingEOM = ask(p, i, 3, vm, vm.missingEOM, vm.Height, 1)
 		} else {
 			vm.missingEOM = 0
 		}
@@ -576,7 +576,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
-				vm.missingEOM = 0
+				vm.missingTime = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
