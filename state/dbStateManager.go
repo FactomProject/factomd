@@ -274,15 +274,15 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	for _, pf := range previousFeds {
 		if !containsServer(currentFeds, pf) {
 			// Option 1: Remove as a server
-			if list.State.isAuthorityChain(pf.GetChainID()) != -1 {
-				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight)
+			/*if list.State.isAuthorityChain(pf.GetChainID()) != -1 {
+				removeEntry := adminBlock.NewRemoveFederatedServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(removeEntry)
-			}
+			}*/
 			// Option 2: Demote to Audit if it is there
-			/*if containsServer(currentAuds, pf) {
+			if containsServer(currentAuds, pf) {
 				demoteEntry := adminBlock.NewAddAuditServer(pf.GetChainID(), currentDBHeight+1)
 				d.AdminBlock.AddFirstABEntry(demoteEntry)
-			}*/
+			}
 			_ = currentAuds
 		}
 	}

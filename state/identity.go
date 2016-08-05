@@ -146,7 +146,7 @@ func (st *State) removeIdentity(i int) {
 }
 
 func (st *State) isIdentityChain(cid interfaces.IHash) int {
-	//is this an identity chain
+	// is this an identity chain
 	for i, identityChain := range st.Identities {
 		if identityChain.IdentityChainID.IsSameAs(cid) {
 			return i
@@ -303,8 +303,8 @@ func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 }
 
 func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
-	// This check is here to prevent possible index out of bounds with extIDs[:3]
 	extIDs := entry.ExternalIDs()
+	// This check is here to prevent possible index out of bounds with extIDs[:6]
 	if len(extIDs) != 7 {
 		return errors.New("Identity Error Create Management: Invalid external ID length")
 	}
@@ -337,11 +337,10 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 	if st.Identities[identityIndex].Status != constants.IDENTITY_UNASSIGNED {
 		return nil
 	}
+
 	st.Identities[identityIndex].Status = constants.IDENTITY_PENDING
 	id := st.Identities[identityIndex]
-	// if all needed information is ready for the Identity , set it to IDENTITY_FULL
 	dif := id.IdentityCreated - id.IdentityRegistered
-	//log.Printfln("DEBUG: IDC:%d, IDR:%d, dif:%d\n", id.IdentityCreated, id.IdentityRegistered, dif)
 	if id.IdentityRegistered > id.IdentityCreated {
 		dif = id.IdentityRegistered - id.IdentityCreated
 	}
@@ -349,7 +348,6 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 		return errors.New("Time window of identity create and register invalid")
 	}
 
-	//log.Printfln("DEBUG: IDC:%d, IDR:%d, dif:%d\n", id.IdentityCreated, id.ManagementRegistered, dif)
 	dif = id.ManagementCreated - id.ManagementRegistered
 	if id.ManagementRegistered > id.ManagementCreated {
 		dif = id.ManagementRegistered - id.ManagementCreated
@@ -375,8 +373,8 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 }
 
 func updateManagementKey(entry interfaces.IEBEntry, height uint32, st *State) error {
-	// This check is here to prevent possible index out of bounds with extIDs[:3]
 	extIDs := entry.ExternalIDs()
+	// This check is here to prevent possible index out of bounds with extIDs[:3]
 	if len(extIDs) != 4 {
 		return errors.New("Identity Error Create Management: Invalid external ID length")
 	}
@@ -486,9 +484,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 				if err != nil {
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
-				//log.Printfln("DEBUG: Block ChangeServer Message Sent %s", st.GetIdentityChainID().String())
 				st.InMsgQueue() <- msg
-				//}
 			}
 		} else {
 			errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -645,7 +641,6 @@ func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 			// Add to admin block
 			status := st.Identities[IdentityIndex].Status
 			if !initial && statusIsFedOrAudit(status) && st.GetLeaderVM() == st.ComputeVMIndex(entry.GetChainID().Bytes()) {
-				//if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 				copy(key[:20], extIDs[5][:20])
 				extIDs[5] = append(extIDs[5], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
 				key := primitives.NewHash(extIDs[5])
@@ -654,9 +649,7 @@ func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 				if err != nil {
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
-				//log.Printfln("DEBUG: BTC ChangeServer Message Sent %s", st.GetIdentityChainID().String())
 				st.InMsgQueue() <- msg
-				//}
 			}
 		} else {
 			return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -678,10 +671,14 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	if auth := st.isAuthorityChain(chainID); auth != -1 {
 		if servertype == 0 {
 			st.LeaderPL.AdminBlock.AddFedServer(chainID)
-			st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+			if index != -1 {
+				st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+			}
 		} else if servertype == 1 {
 			st.LeaderPL.AdminBlock.AddAuditServer(chainID)
-			st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+			if index != -1 {
+				st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+			}
 		}
 		return true
 	}
@@ -767,7 +764,6 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo int, st *State) {
 	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
-		//log.Println("Cannot Update Status for ChainID " + ChainID.String() + ". Chain not found in Identities")
 		return
 	}
 	st.Identities[IdentityIndex].Status = StatusTo

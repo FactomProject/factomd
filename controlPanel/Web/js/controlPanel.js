@@ -203,7 +203,8 @@ function updateHeight() {
     auds = obj[3].aud
     respFive = obj[4].length
 
-    $("#servercount").val(feds + "/" + auds)
+    $("#serverfedcount").val(feds)
+    $("#serveraudcount").val(auds)
 
     currentHeight = parseInt(respOne)
     $("#nodeHeight").val(respOne)
