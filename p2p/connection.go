@@ -179,11 +179,11 @@ func (c *Connection) runLoop() {
 		case ConnectionInitialized:
 			// BUGBUG Note this means that we will redial ourselves if we are set as a persistent connection with ourselves as peer.
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				c.setNotes(fmt.Sprintf("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore))
+				c.setNotes("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			} else {
-				c.setNotes(fmt.Sprintf("Connection.runLoop() ConnectionInitialized, going dialLoop(). %+v", c.peer.PeerIdent()))
+				c.setNotes("Connection.runLoop() ConnectionInitialized, going dialLoop(). %+v", c.peer.PeerIdent())
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
@@ -221,9 +221,9 @@ func (c *Connection) runLoop() {
 	significant(c.peer.PeerIdent(), "runLoop() Connection runloop() exiting %+v", c)
 }
 
-func (c *Connection) setNotes(newNote string) {
-	c.notes = newNote
-	note(c.peer.PeerIdent(), c.notes)
+func (c *Connection) setNotes(format string, v ...interface{}) {
+	c.notes = fmt.Sprintf(format, v...)
+	significant(c.peer.PeerIdent(), c.notes)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
@@ -251,11 +251,11 @@ func (c *Connection) dialLoop() {
 					c.setNotes("Connection.dialLoop() Persistent connection - Sleeping until next redial.")
 					time.Sleep(TimeBetweenRedials)
 				case !c.isOutGoing: // incomming connection we redial once, then give up.
-					c.setNotes("Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down.")
+					c.setNotes("Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down.Last note was: %s", c.notes)
 					c.goShutdown()
 					return
 				case ConnectionInitialized == c.state:
-					c.setNotes("Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down.")
+					c.setNotes("Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down. Last note was: %s", c.notes)
 					c.goShutdown() // We're dialing possibly many peers who are no longer there.
 					return
 				case ConnectionOffline == c.state: // We were online with the peer at one point.

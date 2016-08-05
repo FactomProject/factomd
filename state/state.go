@@ -63,15 +63,13 @@ type State struct {
 	// Network Configuration
 	Network           string
 	MainNetworkPort   string
-	MainPeersFile     string
+	PeersFile         string
 	MainSeedURL       string
 	MainSpecialPeers  string
 	TestNetworkPort   string
-	TestPeersFile     string
 	TestSeedURL       string
 	TestSpecialPeers  string
 	LocalNetworkPort  string
-	LocalPeersFile    string
 	LocalSeedURL      string
 	LocalSpecialPeers string
 
@@ -250,15 +248,13 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
 	clone.Network = s.Network
 	clone.MainNetworkPort = s.MainNetworkPort
-	clone.MainPeersFile = s.MainPeersFile
+	clone.PeersFile = s.PeersFile
 	clone.MainSeedURL = s.MainSeedURL
 	clone.MainSpecialPeers = s.MainSpecialPeers
 	clone.TestNetworkPort = s.TestNetworkPort
-	clone.TestPeersFile = s.TestPeersFile
 	clone.TestSeedURL = s.TestSeedURL
 	clone.TestSpecialPeers = s.TestSpecialPeers
 	clone.LocalNetworkPort = s.LocalNetworkPort
-	clone.LocalPeersFile = s.LocalPeersFile
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
 	clone.FaultMap = s.FaultMap
@@ -318,7 +314,6 @@ func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
 }
 
-// TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
@@ -339,15 +334,13 @@ func (s *State) LoadConfig(filename string) {
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
 		s.Network = cfg.App.Network
 		s.MainNetworkPort = cfg.App.MainNetworkPort
-		s.MainPeersFile = cfg.App.MainPeersFile
+		s.PeersFile = cfg.App.PeersFile
 		s.MainSeedURL = cfg.App.MainSeedURL
 		s.MainSpecialPeers = cfg.App.MainSpecialPeers
 		s.TestNetworkPort = cfg.App.TestNetworkPort
-		s.TestPeersFile = cfg.App.TestPeersFile
 		s.TestSeedURL = cfg.App.TestSeedURL
 		s.TestSpecialPeers = cfg.App.TestSpecialPeers
 		s.LocalNetworkPort = cfg.App.LocalNetworkPort
-		s.LocalPeersFile = cfg.App.LocalPeersFile
 		s.LocalSeedURL = cfg.App.LocalSeedURL
 		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
@@ -386,15 +379,13 @@ func (s *State) LoadConfig(filename string) {
 		s.ExportDataSubpath = "data/export"
 		s.Network = "LOCAL"
 		s.MainNetworkPort = "8108"
-		s.MainPeersFile = "MainPeers.json"
+		s.PeersFile = "peers.json"
 		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
 		s.MainSpecialPeers = ""
 		s.TestNetworkPort = "8109"
-		s.TestPeersFile = "TestPeers.json"
 		s.TestSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
 		s.TestSpecialPeers = ""
 		s.LocalNetworkPort = "8110"
-		s.LocalPeersFile = "LocalPeers.json"
 		s.LocalSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 		s.LocalSpecialPeers = ""
 
@@ -1076,7 +1067,7 @@ func (s *State) GetCfg() interfaces.IFactomConfig {
 // state of any cfg object held by other processes... Only what will be returned by
 // future calls to Cfg().(s.Cfg.(*util.FactomdConfig)).String()
 func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
-	s.Cfg = util.ReadConfig(filename)
+	s.Cfg = util.ReadConfig(filename, s.Network)
 	return s.Cfg
 }
 
