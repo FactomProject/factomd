@@ -84,7 +84,7 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredHeight int) *state.State {
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlayForFER(testEntries, desiredHeight)
-	s.LoadConfig("", "")
+	s.LoadConfig("")
 	s.Init()
 	/*err := s.RecalculateBalances()
 	if err != nil {

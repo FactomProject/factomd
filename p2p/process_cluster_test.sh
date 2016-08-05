@@ -7,7 +7,7 @@ go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-p
 if [ $? -eq 0 ]; then
     pkill factomd
     echo "Running..."
-    factomd -count=1 -folder="test1-" -network="TEST" -networkPort=8118 -peers="127.0.0.1:8121" -netdebug=1 -db=Map & node0=$!
+    factomd -count=1 -network="TEST" -networkPort=8118 -peers="127.0.0.1:8121" -netdebug=1 -db=Map & node0=$!
     sleep 6
     factomd -count=1 -prefix="test2-" -network="TEST" -port=9121 -networkPort=8119 -peers="127.0.0.1:8118" -netdebug=1 -db=Map & node1=$!
     # sleep 6

@@ -276,7 +276,7 @@ func GetConfigFilename(dir string) string {
 	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
 }
 
-func ReadConfig(filename string, folder string) *FactomdConfig {
+func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
@@ -305,12 +305,12 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 	}
 
 	// TODO: improve the paths after milestone 1
-	cfg.App.LdbPath = cfg.App.HomeDir + folder + cfg.App.LdbPath
-	cfg.App.BoltDBPath = cfg.App.HomeDir + folder + cfg.App.BoltDBPath
-	cfg.App.DataStorePath = cfg.App.HomeDir + folder + cfg.App.DataStorePath
-	cfg.Log.LogPath = cfg.App.HomeDir + folder + cfg.Log.LogPath
-	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + folder + cfg.Wallet.BoltDBPath
-	cfg.App.ExportDataSubpath = cfg.App.HomeDir + folder + cfg.App.ExportDataSubpath
+	cfg.App.LdbPath = cfg.App.HomeDir + cfg.App.LdbPath
+	cfg.App.BoltDBPath = cfg.App.HomeDir + cfg.App.BoltDBPath
+	cfg.App.DataStorePath = cfg.App.HomeDir + cfg.App.DataStorePath
+	cfg.Log.LogPath = cfg.App.HomeDir + cfg.Log.LogPath
+	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + cfg.Wallet.BoltDBPath
+	cfg.App.ExportDataSubpath = cfg.App.HomeDir + cfg.App.ExportDataSubpath
 	cfg.App.MainPeersFile = cfg.App.HomeDir + cfg.App.MainPeersFile
 	cfg.App.TestPeersFile = cfg.App.HomeDir + cfg.App.TestPeersFile
 	cfg.App.LocalPeersFile = cfg.App.HomeDir + cfg.App.LocalPeersFile
