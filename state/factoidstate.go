@@ -127,13 +127,44 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		return err
 	}
 	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
-		if err == nil {
-			// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
-			// all transactions here.
-			fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
-			fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+		if err != nil {
+			return err
 		}
-		return err
+		// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
+		// all transactions here.
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+
+		for index, eo := range trans.GetECOutputs() {
+			pl := fs.State.ProcessLists.Get(fs.DBHeight)
+			incBal := entryCreditBlock.NewIncreaseBalance()
+			v := eo.GetAddress().Fixed()
+			incBal.ECPubKey = (*primitives.ByteSlice32)(&v)
+			incBal.NumEC = eo.GetAmount() / fs.GetCurrentBlock().GetExchRate()
+			incBal.TXID = trans.GetSigHash()
+			incBal.Index = uint64(index)
+			entries := pl.EntryCreditBlock.GetEntries()
+			i := len(entries) - 1
+			// Find the start of this minute
+			for i >= 0 {
+				if _, ok := entries[i].(*entryCreditBlock.MinuteNumber); ok {
+					break
+				}
+				i--
+			}
+			// Find the end of the last IncreaseBalance in this minute
+			for i < len(entries) {
+				if _, ok := entries[i].(*entryCreditBlock.IncreaseBalance); ok {
+					break
+				}
+				i++
+			}
+			entries = append(entries, nil)
+			copy(entries[i+1:], entries[i:])
+			entries[i] = incBal
+			pl.EntryCreditBlock.GetBody().SetEntries(entries)
+		}
+
 	}
 
 	return nil

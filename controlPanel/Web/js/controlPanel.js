@@ -1,7 +1,7 @@
 var currentHeight = 0
 var leaderHeight = 0
 
-setInterval(updateHTML,5000);
+setInterval(updateHTML,3000);
 var serverOnline = false
 // Used to update some things less frequently
 var skipInterval = false
@@ -118,9 +118,6 @@ function updateTransactions() {
       $("#recent-directory-block").text(obj.DirectoryBlock.DBHeight)
 
       if(obj.FactoidTransactions != null){
-        // Total
-        $("#recent-factoid-total").text("(" + $("#panFactoids > #traxList > tbody > tr").length + ")")
-
         obj.FactoidTransactions.forEach(function(trans) {
           if(trans.TotalInput > 0.0001) {
             if($("#panFactoids > #traxList > tbody #" + trans.TxID).length > 0) {
@@ -165,9 +162,16 @@ function updateTransactions() {
           }
         })
       }
+
+      // Total
+      $("#recent-factoid-total").text("(" + $("#panFactoids > #traxList > tbody > tr").length + ")")
+
       $("section #factom-search-link").on('click',function(e) {
         type = jQuery(this).attr("type")
         hash = jQuery(this).text()
+        if (hash == "Processing") {
+          return
+        }
         var x = new XMLHttpRequest()
         x.onreadystatechange = function() {
           if(x.readyState == 4) {
@@ -190,12 +194,16 @@ function updateTransactions() {
 
 // 3 Queriers in Batch
 function updateHeight() {
-  resp = batchQueryState("myHeight,leaderHeight,completeHeight,channelLength",function(resp){
+  resp = batchQueryState("myHeight,leaderHeight,completeHeight,servercount,channelLength",function(resp){
     obj = JSON.parse(resp)
     respOne = obj[0].Height
     respTwo = obj[1].Height
     respThree = obj[2].Height
-    respFour = obj[3].length
+    feds = obj[3].fed
+    auds = obj[3].aud
+    respFive = obj[4].length
+
+    $("#servercount").val(feds + "/" + auds)
 
     currentHeight = parseInt(respOne)
     $("#nodeHeight").val(respOne)
@@ -219,7 +227,7 @@ function updateHeight() {
     $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
 
     // DisplayState Channel length
-    // console.log(respFour)
+    // console.log("Chan Length:", respFive)
   })
 }
 

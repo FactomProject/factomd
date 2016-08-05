@@ -12,11 +12,12 @@ import (
 	"text/template"
 	"time"
 
-	//"github.com/FactomProject/factomd/common/constants"
-	//"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
+
+// Initiates control panel variables and controls the http requests
 
 var (
 	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
@@ -30,7 +31,7 @@ var (
 
 	DisplayState state.DisplayState
 	StatePointer *state.State
-	Controller   *p2p.Controller
+	Controller   *p2p.Controller // Used for Disconnect
 	GitBuild     string
 
 	LastRequest     time.Time
@@ -67,6 +68,7 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 	}
 }
 
+// Main function. This intiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		// recover from panic if files path is incorrect
@@ -75,11 +77,10 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 		}
 	}()
 	StatePointer = statePointer
-	StatePointer.ControlPanelDataRequest = true
+	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
 	select {
 	case DisplayState = <-displayStateChannel:
-		fmt.Println("Found state, control panel now active")
 	}
 
 	DisplayStateMutex.RLock()
@@ -88,7 +89,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	FILES_PATH = DisplayState.ControlPanelPath
 	DisplayStateMutex.RUnlock()
 
-	if controlPanelSetting == 0 {
+	if controlPanelSetting == 0 { // 0 = Disabled
 		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is reccomened for any public server, if you wish to renable it, check your config file.")
 		return
 	}
@@ -99,9 +100,9 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
 
-	// Load Files
-	if !directoryExists(FILES_PATH) {
-		FILES_PATH = "./controlPanel/Web/"
+	// Load Static Files
+	if !directoryExists(FILES_PATH) { // Check .factom/m2/Web
+		FILES_PATH = "./controlPanel/Web/" // Check active directory
 		if !directoryExists(FILES_PATH) {
 			fmt.Println("Control Panel static files cannot be found.")
 			http.HandleFunc("/", noStaticFilesFoundHandler)
@@ -113,7 +114,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
 	TemplateMutex.Unlock()
 
-	// Updated Globals
+	// Updated Globals. A seperate GoRoutine updates these, we just initialize
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
@@ -145,6 +146,7 @@ func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
 		"Web files in that directory should resolve this error.", Path)
 }
 
+// For all static files. (CSS, JS, IMG, etc...)
 func static(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if strings.ContainsRune(r.URL.Path, '.') {
@@ -157,18 +159,15 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
-		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
 	TemplateMutex.Lock()
 	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
-	TemplateMutex.Unlock()
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}
-	TemplateMutex.Lock()
 	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
 	TemplateMutex.Unlock()
 	if err != nil {
@@ -178,9 +177,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
-	//defer recoverFromPanic()
 	defer func() {
-		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
@@ -209,9 +206,7 @@ type SearchedStruct struct {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	//defer recoverFromPanic()
 	defer func() {
-		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
@@ -225,15 +220,12 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	searchResult.Input = r.FormValue("input")
 	handleSearchResult(searchResult, w)
-	//search, _ := ioutil.ReadFile("./ControlPanel/Web/searchresult.html")
-	//w.Write([]byte(searchResult.Type))
 }
 
 var batchQueried = false
 
 // Batches Json in []byte form to an array of json []byte objects
 func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
-	//defer recoverFromPanic()
 	requestData()
 	batchQueried = true
 	if r.Method != "GET" {
@@ -258,15 +250,12 @@ func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
-	//defer recoverFromPanic()
 	defer func() {
-		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
 	if r.Method != "GET" {
-		//http.NotFound(w, r)
 		return
 	}
 	item := r.FormValue("item")   // Item wanted
@@ -304,7 +293,10 @@ func factomdQuery(item string, value string) []byte {
 		return HeightToJsonStruct(h)
 	case "leaderHeight":
 		DisplayStateMutex.RLock()
-		h := DisplayState.CurrentLeaderHeight - 1
+		h := DisplayState.CurrentLeaderHeight
+		if h > 0 {
+			h = h - 1
+		}
 		DisplayStateMutex.RUnlock()
 		return HeightToJsonStruct(h)
 	case "completeHeight": // Second Pass Sync info
@@ -317,6 +309,7 @@ func factomdQuery(item string, value string) []byte {
 		data := getDataDumps()
 		return data
 	case "nextNode":
+		// Disabled
 		index := 0
 		/*index++
 		if index >= len(Fnodes) {
@@ -324,6 +317,19 @@ func factomdQuery(item string, value string) []byte {
 		}
 		DisplayState = Fnodes[index]*/
 		return []byte(fmt.Sprintf("%d", index))
+	case "servercount": // TODO
+		DisplayStateMutex.RLock()
+		feds := 0
+		auds := 0
+		for _, a := range DisplayState.Authorities {
+			if a.Status == 1 {
+				feds++
+			} else if a.Status == 2 {
+				auds++
+			}
+		}
+		DisplayStateMutex.RUnlock()
+		return []byte(fmt.Sprintf(`{"fed":%d,"aud":%d}`, feds, auds))
 	case "channelLength":
 		return []byte(fmt.Sprintf(`{"length":%d}`, len(DisplayStateChannel)))
 	case "peers":
@@ -425,22 +431,41 @@ func toggleDCT() {
 }
 
 func getRecentTransactions(time.Time) {
-	if DoingRecentTransactions {
-		return
-	}
-	toggleDCT()
-	defer toggleDCT()
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
 	}()
+
+	if DoingRecentTransactions {
+		return
+	}
+	toggleDCT()
+	defer toggleDCT()
+
 	if StatePointer == nil {
 		return
 	}
+
 	DisplayStateMutex.RLock()
-	last := DisplayState.LastDirectoryBlock
+	if DisplayState.LastDirectoryBlock == nil {
+		DisplayStateMutex.RUnlock()
+		return
+	}
+	data, err := DisplayState.LastDirectoryBlock.MarshalBinary()
+	if err != nil {
+		DisplayStateMutex.RUnlock()
+		return
+	}
+	last, err := directoryBlock.UnmarshalDBlock(data)
+	err = last.UnmarshalBinary(data)
+	if err != nil {
+		DisplayStateMutex.RUnlock()
+		return
+	}
+	//last := DisplayState.LastDirectoryBlock
 	DisplayStateMutex.RUnlock()
+
 	if last == nil {
 		return
 	}
@@ -462,6 +487,8 @@ func getRecentTransactions(time.Time) {
 		PrevKeyMR    string
 	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 
+	// Process list items
+	DisplayStateMutex.RLock()
 	for _, entry := range DisplayState.PLEntry {
 		e := new(EntryHolder)
 		e.Hash = entry.EntryHash
@@ -497,6 +524,7 @@ func getRecentTransactions(time.Time) {
 			}{fTrans.TxID, fTrans.Hash, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
 		}
 	}
+	DisplayStateMutex.RUnlock()
 
 	entries := last.GetDBEntries()
 	for _, entry := range entries {

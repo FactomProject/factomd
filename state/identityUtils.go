@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
 type AnchorSigningKey struct {
@@ -37,6 +36,16 @@ type Identity struct {
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
+
+func (id *Identity) FixMissingKeys(s *State) {
+	if !statusIsFedOrAudit(id.Status) {
+		return
+	}
+	// Need to fix missing keys
+	err := s.AddIdentityFromChainID(id.IdentityChainID)
+	if err != nil {
+	}
+}
 
 func (id *Identity) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	//return true, nil // Testing
@@ -100,7 +109,6 @@ func CheckExternalIDsLength(extIDs [][]byte, lengths []int) bool {
 	}
 	for i := range extIDs {
 		if !CheckLength(lengths[i], extIDs[i]) {
-			log.Printfln("DEBUGL: Hit 2")
 			return false
 		}
 	}
@@ -127,7 +135,8 @@ func AppendExtIDs(extIDs [][]byte, start int, end int) ([]byte, error) {
 }
 
 // Makes sure the timestamp is within the designated window to be valid : 12 hours
-func CheckTimestamp(time []byte) bool {
+// TimeEntered is in seconds
+func CheckTimestamp(time []byte, timeEntered int64) bool {
 	if len(time) < 8 {
 		zero := []byte{00}
 		add := make([]byte, 0)
@@ -136,15 +145,15 @@ func CheckTimestamp(time []byte) bool {
 		}
 		time = append(add, time...)
 	}
-	//TODO: get time from State for replaying?
-	now := primitives.GetTime()
 
+	// In Seconds
 	ts := binary.BigEndian.Uint64(time)
 	var res uint64
-	if now > ts {
-		res = now - ts
+	timeEnteredUint := uint64(timeEntered)
+	if timeEnteredUint > ts {
+		res = timeEnteredUint - ts
 	} else {
-		res = ts - now
+		res = ts - timeEnteredUint
 	}
 	if res <= TWELVE_HOURS_S {
 		return true
@@ -161,4 +170,39 @@ func statusIsFedOrAudit(status int) bool {
 		return true
 	}
 	return false
+}
+
+func (id *Identity) IsFull() bool {
+	if id.IdentityChainID.String() == FIRST_IDENTITY {
+		return true
+	}
+	zero := primitives.NewZeroHash()
+	if id.IdentityChainID.IsSameAs(zero) {
+		return false
+	}
+	if id.ManagementChainID.IsSameAs(zero) {
+		return false
+	}
+	if id.MatryoshkaHash.IsSameAs(zero) {
+		return false
+	}
+	if id.Key1.IsSameAs(zero) {
+		return false
+	}
+	if id.Key2.IsSameAs(zero) {
+		return false
+	}
+	if id.Key3.IsSameAs(zero) {
+		return false
+	}
+	if id.Key4.IsSameAs(zero) {
+		return false
+	}
+	if id.SigningKey.IsSameAs(zero) {
+		return false
+	}
+	if len(id.AnchorKeys) == 0 {
+		return false
+	}
+	return true
 }
