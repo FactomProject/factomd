@@ -299,7 +299,7 @@ func ReadConfig(filename string, network string) *FactomdConfig {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
 	}
 
-	networkName := strings.ToLower(network) + "-"
+	networkName := strings.ToLower(cfg.App.Network) + "-"
 
 	// TODO: improve the paths after milestone 1
 	cfg.App.LdbPath = cfg.App.HomeDir + networkName + cfg.App.LdbPath

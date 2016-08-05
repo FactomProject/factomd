@@ -48,7 +48,6 @@ func NetStart(s *state.State) {
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
-	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
@@ -75,7 +74,6 @@ func NetStart(s *state.State) {
 	cloneDB := *cloneDBPtr
 	portOverride := *portOverridePtr
 	peers := *peersPtr
-	networkName := *networkNamePtr
 	networkPortOverride := *networkPortOverridePtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
@@ -86,13 +84,6 @@ func NetStart(s *state.State) {
 	timeOffset := *timeOffsetPtr
 	keepMismatch := *keepMismatchPtr
 	startDelay := int64(*startDelayPtr)
-
-	networkOverride := s.Network
-	if 0 < len(networkName) { // Command line overrides the config file.
-		networkOverride = networkName
-		s.Network = networkName
-	}
-	fmt.Printf("\n\nNetwork Override: %s\n", networkOverride)
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -199,7 +190,6 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", db))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", cloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "network", networkName))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
@@ -235,7 +225,7 @@ func NetStart(s *state.State) {
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
-	switch networkOverride {
+	switch s.Network {
 	case "MAIN", "main":
 		networkID = p2p.MainNet
 		seedURL = s.MainSeedURL
@@ -247,6 +237,11 @@ func NetStart(s *state.State) {
 		networkPort = s.TestNetworkPort
 		specialPeers = s.TestSpecialPeers
 	case "LOCAL", "local":
+		networkID = p2p.LocalNet
+		seedURL = s.LocalSeedURL
+		networkPort = s.LocalNetworkPort
+		specialPeers = s.LocalSpecialPeers
+	case "CUSTOM", "custom":
 		networkID = p2p.LocalNet
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
