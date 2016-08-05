@@ -319,8 +319,8 @@ func CreateTestFEREntry(n uint32) *entryBlock.Entry {
 
 	answer.ChainID = GetChainID()
 	answer.Version = 1
-	answer.ExtIDs = [][]byte{[]byte(fmt.Sprintf("ExtID %v", n))}
-	answer.Content = []byte(fmt.Sprintf("Content %v", n))
+	answer.ExtIDs = []primitives.ByteSlice{primitives.ByteSlice{Bytes: []byte(fmt.Sprintf("ExtID %v", n))}}
+	answer.Content = primitives.ByteSlice{Bytes: []byte(fmt.Sprintf("Content %v", n))}
 
 	return answer
 }

@@ -33,17 +33,17 @@ func TestFirstEntry(t *testing.T) {
 
 	entry := new(Entry)
 
-	entry.ExtIDs = make([][]byte, 0, 5)
-	entry.ExtIDs = append(entry.ExtIDs, []byte("1asdfadfasdf"))
-	entry.ExtIDs = append(entry.ExtIDs, []byte(""))
-	entry.ExtIDs = append(entry.ExtIDs, []byte("3"))
+	entry.ExtIDs = make([]primitives.ByteSlice, 0, 5)
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("1asdfadfasdf")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("3")})
 	entry.ChainID = new(primitives.Hash)
 	err := entry.ChainID.SetBytes(constants.EC_CHAINID)
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	}
 
-	entry.Content = []byte("1asdf asfas dfsg\"08908098(*)*^*&%&%&$^#%##%$$@$@#$!$#!$#@!~@!#@!%#@^$#^&$*%())_+_*^*&^&\"\"?>?<<>/./,")
+	entry.Content = primitives.ByteSlice{Bytes: []byte("1asdf asfas dfsg\"08908098(*)*^*&%&%&$^#%##%$$@$@#$!$#!$#@!~@!#@!%#@^$#^&$*%())_+_*^*&^&\"\"?>?<<>/./,")}
 
 	bytes1, err := entry.MarshalBinary()
 	t.Logf("bytes1:%v\n", bytes1)
@@ -68,17 +68,17 @@ func TestEntry(t *testing.T) {
 
 	entry := new(Entry)
 
-	entry.ExtIDs = make([][]byte, 0, 5)
-	entry.ExtIDs = append(entry.ExtIDs, []byte("1asdfadfasdf"))
-	entry.ExtIDs = append(entry.ExtIDs, []byte("2asdfas asfasfasfafas "))
-	entry.ExtIDs = append(entry.ExtIDs, []byte("3sd fasfas fsaf asf asfasfsafsfa"))
+	entry.ExtIDs = make([]primitives.ByteSlice, 0, 5)
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("1asdfadfasdf")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("2asdfas asfasfasfafas ")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("3sd fasfas fsaf asf asfasfsafsfa")})
 	entry.ChainID = new(primitives.Hash)
 	err := entry.ChainID.SetBytes(constants.EC_CHAINID)
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	}
 
-	entry.Content = []byte("1asdf asfas fasfadfasdfasfdfff12345")
+	entry.Content = primitives.ByteSlice{Bytes: []byte("1asdf asfas fasfadfasdfasfdfff12345")}
 
 	bytes1, err := entry.MarshalBinary()
 	t.Logf("bytes1:%v\n", bytes1)
@@ -120,9 +120,11 @@ func TestEntryMisc(t *testing.T) {
 
 func TestKSize(t *testing.T) {
 	e := NewEntry()
+	content := []byte{}
 	for i := 0; i < 256; i++ {
-		e.Content = append(e.Content, []byte{0x11, 0x22, 0x33, 0x44}...)
+		content = append(content, []byte{0x11, 0x22, 0x33, 0x44}...)
 	}
+	e.Content = primitives.ByteSlice{Bytes: content}
 	if e.KSize() != 1 {
 		t.Fail()
 	}
