@@ -711,7 +711,11 @@ func (p *ProcessList) String() string {
 		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
 		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
 		for _, aud := range p.AuditServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", aud.GetChainID().Bytes()[:10]))
+			audOnline := " offline"
+			if aud.IsOnline() {
+				audOnline = " online"
+			}
+			buf.WriteString(fmt.Sprintf("    %x%v\n", aud.GetChainID().Bytes()[:10], audOnline))
 		}
 		buf.WriteString(fmt.Sprintf("===AuditServersEnd=== %d\n", len(p.AuditServers)))
 		buf.WriteString(fmt.Sprintf("===ProcessListEnd=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
@@ -738,6 +742,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
 		for _, auditServer := range pl.AuditServers {
+			fmt.Println("JUSTIN NPL SETOFF:", state.GetFactomNodeName(), auditServer.GetChainID().String()[:10])
 			auditServer.SetOnline(false)
 		}
 		pl.SortFedServers()
