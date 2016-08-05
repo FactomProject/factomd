@@ -115,10 +115,12 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	}
 	for dbs := start; dbs <= end; dbs++ {
 		msg, err := state.LoadDBState(dbs)
-		if msg != nil && err == nil { // If I don't have this block, ignore.
+		if msg != nil && err == nil {
+			// If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
 			msg.SetNetworkOrigin(m.GetNetworkOrigin())
 			state.NetworkOutMsgQueue() <- msg
+			state.IncDBStateAnswerCnt()
 		}
 	}
 

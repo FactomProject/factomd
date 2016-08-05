@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"sync"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -25,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"sync"
 )
 
 var _ = fmt.Print
@@ -81,16 +80,20 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status     bool
-	starttime  time.Time
-	transCnt   int
-	lasttime   time.Time
-	tps        float64
-	serverPrt  string
-	DBStateCnt int
-	MissingCnt int
-	ResendCnt  int
-	ExpireCnt  int
+	Status          bool
+	starttime       time.Time
+	transCnt        int
+	lasttime        time.Time
+	tps             float64
+	serverPrt       string
+	DBStateAskCnt   int
+	DBStateAnsCnt   int
+	DBStateReplyCnt int
+	MissingAskCnt   int
+	MissingAnsCnt   int
+	MissingReplyCnt int
+	ResendCnt       int
+	ExpireCnt       int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -134,9 +137,12 @@ type State struct {
 	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
-	KeepMismatch   bool // By default, this is false, which means DBstates are discarded
+
+	// By default, this is false, which means DBstates are discarded
 	//when a majority of leaders disagree with the hash we have via DBSigs
-	MismatchCnt int // Keep track of how many blockhash mismatches we've had to correct
+	KeepMismatch bool
+
+	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
@@ -316,6 +322,14 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 
 func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
+}
+
+func (s *State) IncMissingMsgReply() {
+	s.MissingReplyCnt++
+}
+
+func (s *State) IncDBStateAnswerCnt() {
+	s.DBStateAnsCnt++
 }
 
 // TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
@@ -1256,12 +1270,13 @@ func (s *State) SetString() {
 		keyMR[:3],
 		pls)
 
-	dbstate := fmt.Sprintf("%d/%d", s.DBStateCnt, s.MismatchCnt)
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(+/-) %-10s MissCnt %5d ",
+	dbstate := fmt.Sprintf("%d/%d/%d", s.DBStateReplyCnt, s.DBStateAskCnt, s.DBSigFails)
+	missing := fmt.Sprintf("%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt)
+	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %20s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,
-		s.MissingCnt)
+		missing)
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)

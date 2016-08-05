@@ -135,6 +135,8 @@ type IState interface {
 	GetFactoshisPerEC() uint64
 	SetFactoshisPerEC(factoshisPerEC uint64)
 	IncFactoidTrans()
+	IncMissingMsgReply()
+	IncDBStateAnswerCnt()
 	// MISC
 	// ====
 

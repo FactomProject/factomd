@@ -251,7 +251,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.EntryCreditBlock)
 	dbstate.ReadyToSave = true
 
-	s.DBStateCnt++
+	s.DBStateReplyCnt++
 }
 
 func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
@@ -379,7 +379,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(ackResp.DBHeight)
 	pl.AddToProcessList(ackResp, mmr.MsgResponse)
-	s.MissingCnt++
+	s.MissingAnsCnt++
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -850,7 +850,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				//s.LeaderPL.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
 			}
 		} else {
-			s.MismatchCnt++
+			s.DBSigFails++
 			s.DBStates.DBStates = s.DBStates.DBStates[:len(s.DBStates.DBStates)-1]
 
 			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
