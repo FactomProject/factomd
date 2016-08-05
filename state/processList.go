@@ -519,7 +519,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingEOM = ask(p, i, 1, vm, vm.missingTime, vm.Height, 1)
+			vm.missingEOM = ask(p, i, 1, vm, vm.missingEOM, vm.Height, 1)
 		} else {
 			vm.missingEOM = 0
 		}
