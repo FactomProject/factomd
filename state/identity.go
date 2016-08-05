@@ -76,6 +76,9 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 		if err != nil {
 			return err
 		}
+		if eblk == nil {
+			break
+		}
 		entries := eblk.GetEntryHashes()
 		height := eblk.GetDatabaseHeight()
 		for _, eHash := range entries {

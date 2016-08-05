@@ -144,14 +144,7 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 			incBal.TXID = trans.GetSigHash()
 			incBal.Index = uint64(index)
 			entries := pl.EntryCreditBlock.GetEntries()
-			i := len(entries) - 1
-			// Find the start of this minute
-			for i >= 0 {
-				if _, ok := entries[i].(*entryCreditBlock.MinuteNumber); ok {
-					break
-				}
-				i--
-			}
+			i := 0
 			// Find the end of the last IncreaseBalance in this minute
 			for i < len(entries) {
 				if _, ok := entries[i].(*entryCreditBlock.IncreaseBalance); ok {
