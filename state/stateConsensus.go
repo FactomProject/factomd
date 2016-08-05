@@ -662,7 +662,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	vm.missingTime = ask(pl, msg.GetVMIndex(), 1, vm, vm.missingTime, vm.Height)
+	vm.missingTime = ask(pl, msg.GetVMIndex(), 1, vm, vm.missingTime, vm.Height, 6)
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
