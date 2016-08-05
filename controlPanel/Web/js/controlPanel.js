@@ -196,9 +196,9 @@ function updateTransactions() {
 function updateHeight() {
   resp = batchQueryState("myHeight,leaderHeight,completeHeight,servercount,channelLength",function(resp){
     obj = JSON.parse(resp)
-    respOne = obj[0].Height
-    respTwo = obj[1].Height
-    respThree = obj[2].Height
+    myHeight = obj[0].Height
+    lHeight = obj[1].Height
+    compHeight = obj[2].Height
     feds = obj[3].fed
     auds = obj[3].aud
     respFive = obj[4].length
@@ -206,10 +206,10 @@ function updateHeight() {
     $("#serverfedcount").val(feds)
     $("#serveraudcount").val(auds)
 
-    currentHeight = parseInt(respOne)
-    $("#nodeHeight").val(respOne)
+    currentHeight = parseInt(myHeight)
+    $("#nodeHeight").val(myHeight)
 
-    leaderHeight = parseInt(respTwo)
+    leaderHeight = parseInt(lHeight)
     updateProgressBar("#syncFirst > .progress-meter", currentHeight, leaderHeight)
     percent = 0
     if(leaderHeight == 0) {
@@ -221,11 +221,11 @@ function updateHeight() {
     $('#syncFirst > .progress-meter > .progress-meter-text').text(percent + "% Synced (" + currentHeight + " of " + leaderHeight + ")")
 
     //$("#nodeHeight").val(resp)
-    completeHeight = parseInt(respThree)
-    updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
-    percent = (completeHeight/leaderHeight) * 100
+    completeHeight = parseInt(compHeight)
+    updateProgressBar("#syncSecond > .progress-meter", completeHeight, myHeight)
+    percent = (completeHeight/myHeight) * 100
     percent = Math.floor(percent)
-    $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
+    $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + myHeight)
 
     // DisplayState Channel length
     // console.log("Chan Length:", respFive)

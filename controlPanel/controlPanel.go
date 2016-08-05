@@ -298,6 +298,9 @@ func factomdQuery(item string, value string) []byte {
 		if h > 0 {
 			h = h - 1
 		}
+		if DisplayState.ProcessListHeight > (h + 1) {
+			h = DisplayState.ProcessListHeight
+		}
 		DisplayStateMutex.RUnlock()
 		return HeightToJsonStruct(h)
 	case "completeHeight": // Second Pass Sync info
