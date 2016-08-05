@@ -296,12 +296,13 @@ func NetStart(s *state.State) {
 		if err != nil {
 			panic(fmt.Sprintf("File network.txt failed to open: %s", err.Error()))
 		} else if file == nil {
-			panic(fmt.Sprintf("File network.txt failed to open, and we got a file of <nil>"))
+			panic(fmt.Sprint("File network.txt failed to open, and we got a file of <nil>"))
 		}
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			var a, b int
-			fmt.Sscanf(scanner.Text(), "%d %d", &a, &b)
+			var s string
+			fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
 			AddSimPeer(fnodes, a, b)
 		}
 	case "square":

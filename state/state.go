@@ -441,7 +441,7 @@ func (s *State) Init() {
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
-		fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
+		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
 	_, err := os.Create(s.JournalFile) //Create the Journal File
 	if err != nil {
