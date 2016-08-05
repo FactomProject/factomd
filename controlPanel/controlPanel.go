@@ -63,7 +63,8 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 			DisplayState = ds
 			DisplayStateMutex.Unlock()
 		default:
-			time.Sleep(300 * time.Millisecond)
+			requestData()
+			time.Sleep(1000 * time.Millisecond)
 		}
 	}
 }

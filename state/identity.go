@@ -466,13 +466,13 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 			dbase := st.GetAndLockDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
 			st.UnlockDB()
-			if err != nil {
-				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
-					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+			if err == nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
+				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 				}
 			} else {
-				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
-					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 				}
 			}
 
@@ -535,13 +535,13 @@ func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 			dbase := st.GetAndLockDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
 			st.UnlockDB()
-			if err != nil {
-				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
-					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+			if err == nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
+				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Matryoshka Hash for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 				}
 			} else {
-				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
-					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
+				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
+					return errors.New("New Matryoshka Hash for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 				}
 			}
 
@@ -627,12 +627,12 @@ func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 			dbase := st.GetAndLockDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
 			st.UnlockDB()
-			if err != nil {
-				if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
+			if err == nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
+				if !CheckTimestamp(extIDs[6], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				}
 			} else {
-				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
+				if !CheckTimestamp(extIDs[6], st.GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] timestamp is too old")
 				}
 			}
@@ -696,9 +696,13 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	}
 	if index != -1 {
 		id := st.Identities[index]
+		zero := primitives.NewZeroHash()
 
-		if id.SigningKey == nil {
+		if id.SigningKey == nil || id.SigningKey.IsSameAs(zero) {
 			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Block Signing Key associated to it")
+			if !statusIsFedOrAudit(id.Status) {
+				st.removeIdentity(index)
+			}
 			return false
 		} else {
 			copy(blockSigningKey[:32], id.SigningKey.Bytes()[:32])
@@ -706,6 +710,9 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 		if id.AnchorKeys == nil {
 			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an BTC Anchor Key associated to it")
+			if !statusIsFedOrAudit(id.Status) {
+				st.removeIdentity(index)
+			}
 			return false
 		} else {
 			for _, aKey := range id.AnchorKeys {
@@ -715,8 +722,11 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 			}
 		}
 
-		if id.MatryoshkaHash == nil {
+		if id.MatryoshkaHash == nil || id.MatryoshkaHash.IsSameAs(zero) {
 			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Matryoshka Hash associated to it")
+			if !statusIsFedOrAudit(id.Status) {
+				st.removeIdentity(index)
+			}
 			return false
 		}
 		matryoshkaHash = id.MatryoshkaHash
