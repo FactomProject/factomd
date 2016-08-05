@@ -338,24 +338,18 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
-	fmt.Println("JUSTIN FOLLEXFF0", s.FactomNodeName)
 	fsf, _ := m.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fsf.DBHeight)
 	auditServerList := s.GetOnlineAuditServers(fsf.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
 	for _, as := range auditServerList {
-		fmt.Println("JUSTIN", s.FactomNodeName, "KK:", as.GetChainID().String()[:10])
 		if as.GetChainID().IsSameAs(fsf.AuditServerID) {
-			fmt.Println("JUSTIN FOLLEXFFFEEEEE", s.FactomNodeName)
-
 			theAuditReplacement = as
 		}
 	}
 	if theAuditReplacement != nil {
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
-				fmt.Println("JUSTIN FOLLEXFFF:", theAuditReplacement.GetChainID().String()[:10], s.FactomNodeName)
-
 				relevantPL.FedServers[listIdx] = theAuditReplacement
 				//relevantPL.AddAuditServer(fedServ.GetChainID())
 			}
@@ -730,7 +724,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			} else {
 				for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
 					if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
-						fmt.Println("JUSTIN AUDIT ISSUE HB:", auditServer.GetChainID().String()[:10])
 						hb := new(messages.Heartbeat)
 						hb.Timestamp = primitives.NewTimestampNow()
 						hb.DBlockHash = dbstate.DBHash

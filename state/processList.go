@@ -742,8 +742,10 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)
 		for _, auditServer := range pl.AuditServers {
-			fmt.Println("JUSTIN NPL SETOFF:", state.GetFactomNodeName(), auditServer.GetChainID().String()[:10])
 			auditServer.SetOnline(false)
+			if state.GetIdentityChainID().IsSameAs(auditServer.GetChainID()) {
+				auditServer.SetOnline(true)
+			}
 		}
 		pl.SortFedServers()
 	} else {
