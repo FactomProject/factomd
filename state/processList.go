@@ -744,6 +744,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		for _, auditServer := range pl.AuditServers {
 			auditServer.SetOnline(false)
 			if state.GetIdentityChainID().IsSameAs(auditServer.GetChainID()) {
+				// Always consider yourself "online"
 				auditServer.SetOnline(true)
 			}
 		}
