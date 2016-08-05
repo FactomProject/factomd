@@ -15,7 +15,7 @@ type IState interface {
 	GetFactomNodeName() string
 	Clone(number string) IState
 	GetCfg() IFactomConfig
-	LoadConfig(filename string, folder string) // TODO JAYJAY remove folder here (hack to support multiple factomd processes on one .factom)
+	LoadConfig(filename string)
 	Init()
 	String() string
 	GetIdentityChainID() IHash
