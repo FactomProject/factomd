@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"strings"
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -39,7 +40,7 @@ type FactomdConfig struct {
 		// Network Configuration
 		Network           string
 		MainNetworkPort   string
-		MainPeersFile     string
+		PeersFile     string
 		MainSeedURL       string
 		MainSpecialPeers  string
 		TestNetworkPort   string
@@ -127,7 +128,7 @@ ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
 MainNetworkPort      = 8108
-MainPeersFile        = "MainPeers.json"
+PeersFile        = "MainPeers.json"
 MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
 MainSpecialPeers     = ""
 TestNetworkPort      = 8109
@@ -206,7 +207,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
 	out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
 	out.WriteString(fmt.Sprintf("\n    MainNetworkPort         %v", s.App.MainNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    MainPeersFile           %v", s.App.MainPeersFile))
+	out.WriteString(fmt.Sprintf("\n    PeersFile           %v", s.App.PeersFile))
 	out.WriteString(fmt.Sprintf("\n    MainSeedURL             %v", s.App.MainSeedURL))
 	out.WriteString(fmt.Sprintf("\n    MainSpecialPeers        %v", s.App.MainSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    TestNetworkPort         %v", s.App.TestNetworkPort))
@@ -306,13 +307,13 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 
 	networkName := strings.ToLower(cfg.App.Network) + "-"
 	// TODO: improve the paths after milestone 1
-	cfg.App.LdbPath = cfg.App.HomeDir + folder + cfg.App.LdbPath
-	cfg.App.BoltDBPath = cfg.App.HomeDir + folder + cfg.App.BoltDBPath
-	cfg.App.DataStorePath = cfg.App.HomeDir + folder + cfg.App.DataStorePath
-	cfg.Log.LogPath = cfg.App.HomeDir + folder + cfg.Log.LogPath
-	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + folder + cfg.Wallet.BoltDBPath
-	cfg.App.ExportDataSubpath = cfg.App.HomeDir + folder + cfg.App.ExportDataSubpath
-	cfg.App.MainPeersFile = cfg.App.HomeDir + cfg.App.MainPeersFile
+	cfg.App.LdbPath = cfg.App.HomeDir + networkName + cfg.App.LdbPath
+	cfg.App.BoltDBPath = cfg.App.HomeDir + networkName + cfg.App.BoltDBPath
+	cfg.App.DataStorePath = cfg.App.HomeDir + networkName + cfg.App.DataStorePath
+	cfg.Log.LogPath = cfg.App.HomeDir + networkName + cfg.Log.LogPath
+	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + networkName + cfg.Wallet.BoltDBPath
+	cfg.App.ExportDataSubpath = cfg.App.HomeDir + networkName + cfg.App.ExportDataSubpath
+	cfg.App.PeersFile = cfg.App.HomeDir + cfg.App.PeersFile
 	cfg.App.TestPeersFile = cfg.App.HomeDir + cfg.App.TestPeersFile
 	cfg.App.LocalPeersFile = cfg.App.HomeDir + cfg.App.LocalPeersFile
 	cfg.App.ControlPanelFilesPath = cfg.App.HomeDir + cfg.App.ControlPanelFilesPath

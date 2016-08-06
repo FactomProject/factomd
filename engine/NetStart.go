@@ -259,7 +259,7 @@ func NetStart(s *state.State) {
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     networkPort,
-		PeersFile:                s.MainPeersFile,
+		PeersFile:                s.PeersFile,
 		Network:                  networkID,
 		Exclusive:                exclusive,
 		SeedURL:                  seedURL,
