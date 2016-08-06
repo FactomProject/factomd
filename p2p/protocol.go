@@ -74,15 +74,10 @@ const (
 	// Used in generating message CRC values
 )
 
-// NOTE JAYJAY -- define node service levels (if we need them?)
-// to allow us to filter what messages go to what nodes (eg: full nodes, etc.)
-// But this feels a bit too much like the netowrking is getting itno the applications business.
-
 // NetworkIdentifier represents the P2P network we are participating in (eg: test, nmain, etc.)
 type NetworkID uint32
 
 // Network indicators.
-// TODO JAYJAY - this should go to a higher level, like the application levle?
 const (
 	// MainNet represents the production network
 	MainNet NetworkID = 0xfeedbeef
@@ -175,8 +170,7 @@ func log(level uint8, component string, format string, v ...interface{}) {
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
+		fmt.Println("===== SIGNIFICNAT ERROR ====== \n Something is very wrong, and should be looked into!")
 		fmt.Fprintf(os.Stderr, "%s, %s, %s \n", now, component, message)
-		// BUGBUG - take out this exit before shipping JAYJAY TODO, or check that all fatals are fatal.
-		os.Exit(1)
 	}
 }

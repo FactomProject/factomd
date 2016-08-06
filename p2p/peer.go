@@ -66,8 +66,8 @@ func (p *Peer) PeerFixedIdent() string {
 	return p.Hash[0:12] + "-" + address + ":" + p.Port
 }
 
-// BUGBUG Hadn't considered IPV6 addresses.
-// BUGBUG Need to audit all the net code to check IPv6 addresses
+// TODO Hadn't considered IPV6 address support.
+// TODO Need to audit all the net code to check IPv6 addresses
 // Here's an IPv6 conversion:
 // Ref: http://stackoverflow.com/questions/23297141/golang-net-ip-to-ipv6-from-mysql-as-decimal39-0-conversion
 // func ipv6ToInt(IPv6Addr net.IP) *big.Int {
@@ -76,7 +76,7 @@ func (p *Peer) PeerFixedIdent() string {
 //     return IPv6Int
 // }
 // Problem is we're working wiht string addresses, may never have made a connection.
-// BUGBUG - we might have a DNS address, not iP address and need to resolve it!
+// TODO - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
 func (p *Peer) locationFromAddress() uint32 {
 	// Split out the port

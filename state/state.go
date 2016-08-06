@@ -329,7 +329,6 @@ func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
 }
 
-// TODO JAYJAY BUGBUG- passing in folder here is a hack for multiple factomd processes on a single machine (sharing a single .factom)
 func (s *State) LoadConfig(filename string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {

@@ -606,7 +606,6 @@ func (c *Controller) shutdown() {
 	for _, connection := range c.connections {
 		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{command: ConnectionShutdownNow})
 	}
-	//BUGBUG Make sure connetions are actually shut down.
 	c.keepRunning = false
 }
 
