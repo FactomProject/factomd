@@ -40,15 +40,13 @@ type FactomdConfig struct {
 		// Network Configuration
 		Network           string
 		MainNetworkPort   string
-		PeersFile     string
+		PeersFile         string
 		MainSeedURL       string
 		MainSpecialPeers  string
 		TestNetworkPort   string
-		TestPeersFile     string
 		TestSeedURL       string
 		TestSpecialPeers  string
 		LocalNetworkPort  string
-		LocalPeersFile    string
 		LocalSeedURL      string
 		LocalSpecialPeers string
 	}
@@ -128,15 +126,13 @@ ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
 MainNetworkPort      = 8108
-PeersFile        = "MainPeers.json"
+PeersFile        = "peers.json"
 MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
 MainSpecialPeers     = ""
 TestNetworkPort      = 8109
-TestPeersFile        = "TestPeers.json"
 TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
 TestSpecialPeers     = ""
 LocalNetworkPort     = 8110
-LocalPeersFile       = "LocalPeers.json"
 LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 LocalSpecialPeers     = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
@@ -211,11 +207,9 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    MainSeedURL             %v", s.App.MainSeedURL))
 	out.WriteString(fmt.Sprintf("\n    MainSpecialPeers        %v", s.App.MainSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    TestNetworkPort         %v", s.App.TestNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    TestPeersFile           %v", s.App.TestPeersFile))
 	out.WriteString(fmt.Sprintf("\n    TestSeedURL             %v", s.App.TestSeedURL))
 	out.WriteString(fmt.Sprintf("\n    TestSpecialPeers        %v", s.App.TestSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    LocalNetworkPort        %v", s.App.LocalNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    LocalPeersFile          %v", s.App.LocalPeersFile))
 	out.WriteString(fmt.Sprintf("\n    LocalSeedURL            %v", s.App.LocalSeedURL))
 	out.WriteString(fmt.Sprintf("\n    LocalSpecialPeers       %v", s.App.LocalSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
@@ -313,9 +307,7 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 	cfg.Log.LogPath = cfg.App.HomeDir + networkName + cfg.Log.LogPath
 	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + networkName + cfg.Wallet.BoltDBPath
 	cfg.App.ExportDataSubpath = cfg.App.HomeDir + networkName + cfg.App.ExportDataSubpath
-	cfg.App.PeersFile = cfg.App.HomeDir + cfg.App.PeersFile
-	cfg.App.TestPeersFile = cfg.App.HomeDir + cfg.App.TestPeersFile
-	cfg.App.LocalPeersFile = cfg.App.HomeDir + cfg.App.LocalPeersFile
+	cfg.App.PeersFile = cfg.App.HomeDir + networkName + cfg.App.PeersFile
 	cfg.App.ControlPanelFilesPath = cfg.App.HomeDir + cfg.App.ControlPanelFilesPath
 
 	return cfg
