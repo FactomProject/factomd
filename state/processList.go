@@ -459,20 +459,20 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 }
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
-	now := time.Now().Unix()
+	now := time.Now().UnixNano() / 100000000 // Tenth of seconds
 	//fmt.Println("ASK", p.State.FactomNodeName, vmIndex, now, thetime, waitSeconds)
 	if thetime == 0 {
-		thetime = now
+		thetime = now / 10
 	}
 
-	if now-thetime >= waitSeconds {
+	if now-(thetime*10) >= waitSeconds*10+5 {
 		//fmt.Println("JUSTIN", p.State.FactomNodeName, "ASK tag:", tag, "wait:", waitSeconds, "now:", now, "thetim:", thetime, "h:", height)
 		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
 		if missingMsgRequest != nil {
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 			p.State.MissingAskCnt++
 		}
-		thetime = now
+		thetime = now / 10
 	}
 
 	return thetime
@@ -534,7 +534,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j, 3)
+				vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 3)
 				break VMListLoop
 			}
 
@@ -552,7 +552,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
-					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j, 4)
+					vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 4)
 					break VMListLoop
 				}
 
@@ -573,7 +573,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
-					vm.missingTime = ask(p, i, 1, vm, vm.missingTime, j, 5)
+					vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 5)
 					break VMListLoop
 				}
 			}
