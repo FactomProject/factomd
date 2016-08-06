@@ -271,7 +271,7 @@ func GetConfigFilename(dir string) string {
 	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
 }
 
-func ReadConfig(filename string, folder string) *FactomdConfig {
+func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
