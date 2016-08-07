@@ -33,7 +33,7 @@ type Connection struct {
 	timeLastMetrics time.Time         // last time we updated metrics
 	state           uint8             // Current state of the connection. Private. Only communication
 	isOutGoing      bool              // We keep track of outgoing dial() vs incomming accept() connections
-	isPersistent    bool              // Persistent connections we always redail. BUGBUG - should this be handled by peer type logic?
+	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
 }
@@ -177,7 +177,6 @@ func (c *Connection) runLoop() {
 		c.connectionStatusReport()
 		switch c.state {
 		case ConnectionInitialized:
-			// BUGBUG Note this means that we will redial ourselves if we are set as a persistent connection with ourselves as peer.
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				c.setNotes("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
@@ -488,7 +487,7 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
 		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
-		c.peer.QualityScore = MinumumQualityScore - 50
+		c.peer.QualityScore = MinumumQualityScore - 50 // Ban ourselves for a week
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
 		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
@@ -510,7 +509,7 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 func (c *Connection) handleParcelTypes(parcel Parcel) {
 	switch parcel.Header.Type {
 	case TypeAlert:
-		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Alert: TODO Alert signature checking not supported yet! BUGBUG")
+		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Alert: Alert feature not implemented.")
 	case TypePing:
 		// Send Pong
 		pong := NewParcel(CurrentNetwork, []byte("Pong"))

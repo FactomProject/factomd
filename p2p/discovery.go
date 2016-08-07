@@ -18,20 +18,6 @@ import (
 	"time"
 )
 
-// config file keys:
-// MainNetworkPort
-// MainPeersFile
-// MainSeedURL
-// MainSpecialPeers
-// TestNetworkPort
-// TestPeersFile
-// TestSeedURL
-// TestSpecialPeers
-// LocalNetworkPort
-// LocalPeersFile
-// LocalSeedURL
-// LocalSpecialPeers
-
 type Discovery struct {
 	knownPeers map[string]Peer // peers we know about indexed by hash
 
