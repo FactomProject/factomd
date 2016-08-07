@@ -19,7 +19,6 @@ do
 	factom-cli2 transactions
 	factom-cli2 submit t
 	scripts/factomEC.sh &
-	sleep 10
-
+	sleep 4
 done
 

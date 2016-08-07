@@ -339,6 +339,19 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	list.LastTime = nil // If I saved or processed stuff, I'm good for a while
 
+	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
+	pl := list.State.ProcessLists.Get(ht)
+	pln := list.State.ProcessLists.Get(ht + 1)
+	if len(pl.FedServers) > 0 {
+		pln.FedServers = pln.FedServers[:0]
+		for _, f := range pl.FedServers {
+			pln.FedServers = append(pln.FedServers, f)
+		}
+		pln.AuditServers = pln.AuditServers[:0]
+		for _, a := range pl.AuditServers {
+			pln.AuditServers = append(pln.AuditServers, a)
+		}
+	}
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
 
