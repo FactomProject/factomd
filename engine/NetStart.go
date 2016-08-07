@@ -302,7 +302,9 @@ func NetStart(s *state.State) {
 			var a, b int
 			var s string
 			fmt.Sscanf(scanner.Text(), "%d %s %d", &a, &s, &b)
-			AddSimPeer(fnodes, a, b)
+			if s == "--" {
+				AddSimPeer(fnodes, a, b)
+			}
 		}
 	case "square":
 		side := int(math.Sqrt(float64(cnt)))

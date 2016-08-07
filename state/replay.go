@@ -40,7 +40,7 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
 	if hours(timeSeconds-systemTimeSeconds) > HourRange || hours(systemTimeSeconds-timeSeconds) > HourRange {
-		fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
+		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
 		return -1, false
 	}
 
