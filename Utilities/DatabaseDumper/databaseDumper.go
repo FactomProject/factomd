@@ -49,10 +49,14 @@ func main() {
 		}
 	}
 
-	ExportDatabaseJSON(dbase, true)
+	err = ExportDatabaseJSON(dbase, true)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func ExportDatabaseJSON(db interfaces.IDatabase, convertNames bool) error {
+	fmt.Printf("Exporting the database\n")
 	if db == nil {
 		return nil
 	}
