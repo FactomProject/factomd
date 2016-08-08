@@ -12,7 +12,10 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
@@ -389,6 +392,7 @@ func getPeers() []byte {
 	return data
 }
 
+// Returns the total and average statistics for the peer table
 func getPeetTotals() []byte {
 	AllConnections.Lock.Lock()
 	data, err := json.Marshal(AllConnections.Totals)
@@ -418,6 +422,26 @@ type LastDirectoryBlockTransactions struct {
 		TotalOutputs int
 	}
 	Entries []EntryHolder
+
+	LastHeightChecked uint32
+}
+
+func (d *LastDirectoryBlockTransactions) ContainsEntry(hash interfaces.IHash) bool {
+	for _, entry := range d.Entries {
+		if entry.Hash == hash.String() {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *LastDirectoryBlockTransactions) ContainsTrans(txid interfaces.IHash) bool {
+	for _, trans := range d.FactoidTransactions {
+		if trans.TxID == txid.String() {
+			return true
+		}
+	}
+	return false
 }
 
 var RecentTransactions *LastDirectoryBlockTransactions
@@ -434,6 +458,7 @@ func toggleDCT() {
 	}
 }
 
+// Gets all the recent transctions. Will only keep the most recent 100.
 func getRecentTransactions(time.Time) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -510,6 +535,9 @@ func getRecentTransactions(time.Time) {
 	}
 
 	for _, fTrans := range DisplayState.PLFactoid {
+		if fTrans.TotalInputs == 0 {
+			continue
+		}
 		has := false
 		for _, trans := range RecentTransactions.FactoidTransactions {
 			if fTrans.TxID == trans.TxID {
@@ -536,15 +564,14 @@ func getRecentTransactions(time.Time) {
 			mr := entry.GetKeyMR()
 			dbase := StatePointer.GetAndLockDB()
 			fblock, err := dbase.FetchFBlock(mr)
+			StatePointer.UnlockDB()
 			if err != nil || fblock == nil {
-				StatePointer.UnlockDB()
 				continue
 			}
-			StatePointer.UnlockDB()
 			transactions := fblock.GetTransactions()
 			for _, trans := range transactions {
 				input, err := trans.TotalInputs()
-				if err != nil {
+				if err != nil || input == 0 {
 					continue
 				}
 				totalInputs := len(trans.GetInputs())
@@ -608,16 +635,115 @@ func getRecentTransactions(time.Time) {
 		}
 	}
 
+	if last.GetHeader().GetDBHeight() > RecentTransactions.LastHeightChecked {
+		entriesNeeded := 100 - len(RecentTransactions.Entries)
+		factoidsNeeded := 100 - len(RecentTransactions.FactoidTransactions)
+		// If we do not have 100 of each transaction, we will look into the past to get 100
+		if (entriesNeeded + factoidsNeeded) > 0 {
+			getPastEntries(last, entriesNeeded, factoidsNeeded)
+		}
+	}
+
 	if len(RecentTransactions.Entries) > 100 {
 		overflow := len(RecentTransactions.Entries) - 100
-		RecentTransactions.Entries = RecentTransactions.Entries[overflow:]
+		if overflow-1 > 0 {
+			RecentTransactions.Entries = RecentTransactions.Entries[overflow-1:]
+		}
 	}
 	if len(RecentTransactions.FactoidTransactions) > 100 {
 		overflow := len(RecentTransactions.FactoidTransactions) - 100
-		RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
+		if overflow-1 > 0 {
+			RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow-1:]
+		}
+	}
+
+	// Update our checkpoint so we don't look at past blocks more than once
+	RecentTransactions.LastHeightChecked = last.GetHeader().GetDBHeight()
+}
+
+// Control Panel shows the last 100 entry and factoid transactions. This will look into the past if we do not
+// currently have 100 of each transaction type. A checkpoint is set each time we check a new height, so we will
+// not check a directory block in the past twice.
+func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
+	height := last.GetHeader().GetDBHeight()
+
+	next := last.GetHeader().GetPrevKeyMR()
+	zero := primitives.NewZeroHash()
+	for height > RecentTransactions.LastHeightChecked && (eNeeded > 0 || fNeeded > 0) {
+		if next.IsSameAs(zero) {
+			break
+		}
+		dbase := StatePointer.GetAndLockDB()
+		dblk, err := dbase.FetchDBlock(next)
+		height = dblk.GetHeader().GetDBHeight()
+		StatePointer.UnlockDB()
+		if err != nil || dblk == nil {
+			break
+		}
+		ents := dblk.GetDBEntries()
+		if len(ents) > 3 && eNeeded > 0 {
+			for _, eblock := range ents[3:] {
+				dbase := StatePointer.GetAndLockDB()
+				eblk, err := dbase.FetchEBlock(eblock.GetKeyMR())
+				StatePointer.UnlockDB()
+				if err != nil || eblk == nil {
+					break
+				}
+				for _, hash := range eblk.GetEntryHashes() {
+					if RecentTransactions.ContainsEntry(hash) {
+						continue
+					}
+					e := getEntry(hash.String())
+					if e != nil && eNeeded > 0 {
+						eNeeded--
+						RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+					}
+				}
+			}
+		}
+		if fNeeded > 0 {
+			fChain := primitives.NewHash(constants.FACTOID_CHAINID)
+			for _, entry := range ents {
+				if entry.GetChainID().IsSameAs(fChain) {
+					dbase := StatePointer.GetAndLockDB()
+					fblk, err := dbase.FetchFBlock(entry.GetKeyMR())
+					if err != nil || fblk == nil {
+						break
+					}
+					transList := fblk.GetTransactions()
+					StatePointer.UnlockDB()
+					for _, trans := range transList {
+						if RecentTransactions.ContainsTrans(trans.GetSigHash()) {
+							continue
+						}
+						if trans != nil {
+							input, err := trans.TotalInputs()
+							if err != nil || input == 0 {
+								continue
+							}
+							totalInputs := len(trans.GetInputs())
+							totalOutputs := len(trans.GetECOutputs())
+							totalOutputs = totalOutputs + len(trans.GetOutputs())
+							inputStr := fmt.Sprintf("%f", float64(input)/1e8)
+							fNeeded--
+							RecentTransactions.FactoidTransactions = append([]struct {
+								TxID         string
+								Hash         string
+								TotalInput   string
+								Status       string
+								TotalInputs  int
+								TotalOutputs int
+							}{{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+						}
+					}
+				}
+			}
+		}
+		next = dblk.GetHeader().GetPrevKeyMR()
 	}
 }
 
+// For go routines. Calls function once each duration.
 func doEvery(d time.Duration, f func(time.Time)) {
 	for x := range time.Tick(d) {
 		f(x)
