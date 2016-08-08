@@ -48,6 +48,7 @@ func NetStart(s *state.State) {
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
+	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
@@ -74,6 +75,7 @@ func NetStart(s *state.State) {
 	cloneDB := *cloneDBPtr
 	portOverride := *portOverridePtr
 	peers := *peersPtr
+	networkName := *networkNamePtr
 	networkPortOverride := *networkPortOverridePtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
@@ -89,7 +91,7 @@ func NetStart(s *state.State) {
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-	s.LoadConfig(FactomConfigFilename)
+	s.LoadConfig(FactomConfigFilename, networkName)
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 	s.StartDelayLimit = startDelay * 1000
