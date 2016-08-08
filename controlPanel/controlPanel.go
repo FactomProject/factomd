@@ -380,7 +380,7 @@ func factomdQuery(item string, value string) []byte {
 func disconnectPeer(hash string) {
 	if Controller != nil {
 		fmt.Println("ControlPanel: Sent a disconnect signal.")
-		Controller.Ban(hash)
+		Controller.Disconnect(hash)
 	}
 }
 
@@ -641,24 +641,23 @@ func getRecentTransactions(time.Time) {
 		// If we do not have 100 of each transaction, we will look into the past to get 100
 		if (entriesNeeded + factoidsNeeded) > 0 {
 			getPastEntries(last, entriesNeeded, factoidsNeeded)
+		} else {
+			RecentTransactions.LastHeightChecked = last.GetHeader().GetDBHeight()
 		}
 	}
 
 	if len(RecentTransactions.Entries) > 100 {
 		overflow := len(RecentTransactions.Entries) - 100
-		if overflow-1 > 0 {
-			RecentTransactions.Entries = RecentTransactions.Entries[overflow-1:]
+		if overflow > 0 {
+			RecentTransactions.Entries = RecentTransactions.Entries[overflow:]
 		}
 	}
 	if len(RecentTransactions.FactoidTransactions) > 100 {
 		overflow := len(RecentTransactions.FactoidTransactions) - 100
-		if overflow-1 > 0 {
-			RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow-1:]
+		if overflow > 0 {
+			RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
 		}
 	}
-
-	// Update our checkpoint so we don't look at past blocks more than once
-	RecentTransactions.LastHeightChecked = last.GetHeader().GetDBHeight()
 }
 
 // Control Panel shows the last 100 entry and factoid transactions. This will look into the past if we do not
@@ -669,6 +668,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 
 	next := last.GetHeader().GetPrevKeyMR()
 	zero := primitives.NewZeroHash()
+
+	newCheckpoint := height
+
 	for height > RecentTransactions.LastHeightChecked && (eNeeded > 0 || fNeeded > 0) {
 		if next.IsSameAs(zero) {
 			break
@@ -707,11 +709,11 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 				if entry.GetChainID().IsSameAs(fChain) {
 					dbase := StatePointer.GetAndLockDB()
 					fblk, err := dbase.FetchFBlock(entry.GetKeyMR())
+					StatePointer.UnlockDB()
 					if err != nil || fblk == nil {
 						break
 					}
 					transList := fblk.GetTransactions()
-					StatePointer.UnlockDB()
 					for _, trans := range transList {
 						if RecentTransactions.ContainsTrans(trans.GetSigHash()) {
 							continue
@@ -741,6 +743,12 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		}
 		next = dblk.GetHeader().GetPrevKeyMR()
 	}
+
+	DisplayStateMutex.Lock()
+	if newCheckpoint < DisplayState.CurrentEBDBHeight && newCheckpoint > RecentTransactions.LastHeightChecked {
+		RecentTransactions.LastHeightChecked = newCheckpoint
+	}
+	DisplayStateMutex.Unlock()
 }
 
 // For go routines. Calls function once each duration.

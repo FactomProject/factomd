@@ -9,28 +9,28 @@
                     <tbody>
                         <tr>
                             <td>Hash:</td>
-                            <td>{{.GetHash}}</td>
+                            <td>{{.ECBlock.GetHash}}</td>
                         </tr>
                         <tr>
                             <td>Body Hash:</td>
-                            <td>{{.GetHeader.GetBodyHash}}</td>
+                            <td>{{.ECBlock.GetHeader.GetBodyHash}}</td>
                         </tr>
                         <tr>
                             <td>Height:</td>
-                            <td>{{.GetHeader.GetDBHeight}}</td>
+                            <td>{{.ECBlock.GetHeader.GetDBHeight}}</td>
                         </tr>
                         <tr>
                             <td>Previous Entry Credit Block:</td>
                             <td>
-                                <a id="factom-search-link" type="ecblock">{{.GetHeader.GetPrevHeaderHash}}</a>
+                                <a id="factom-search-link" type="ecblock">{{.ECBlock.GetHeader.GetPrevHeaderHash}}</a>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                 <h3>Entries Contained in Entry Credit Block</h3> 
+                 <h3>Entries Contained in Entry Credit Block <small>{{.Length}} Entries</small></h3> 
                  <table id="search-table">
                     <tbody>
-                        {{range $i, $ele := .GetEntries}}
+                        {{range $i, $ele := .ECBlock.GetEntries}}
                         {{if $ele.GetEntryHash}}
                         <tr>
                             <td>Entry Hash:</td>

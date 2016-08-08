@@ -222,10 +222,10 @@ function updateHeight() {
 
     //$("#nodeHeight").val(resp)
     completeHeight = parseInt(compHeight)
-    updateProgressBar("#syncSecond > .progress-meter", completeHeight, myHeight)
-    percent = (completeHeight/myHeight) * 100
+    updateProgressBar("#syncSecond > .progress-meter", completeHeight, leaderHeight)
+    percent = (completeHeight/leaderHeight) * 100
     percent = Math.floor(percent)
-    $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + myHeight)
+    $('#syncSecond > .progress-meter > .progress-meter-text').text(completeHeight + " of " + leaderHeight)
 
     // DisplayState Channel length
     // console.log("Chan Length:", respFive)

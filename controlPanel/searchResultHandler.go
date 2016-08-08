@@ -289,7 +289,12 @@ func getEntryAck(hash string) *wsapi.EntryStatus {
 	return (answers.(*wsapi.EntryStatus))
 }
 
-func getECblock(hash string) interfaces.IEntryCreditBlock {
+type ECBlockHolder struct {
+	ECBlock interfaces.IEntryCreditBlock
+	Length  int
+}
+
+func getECblock(hash string) *ECBlockHolder {
 	mr, err := primitives.HexToHash(hash)
 	if err != nil {
 		return nil
@@ -306,10 +311,26 @@ func getECblock(hash string) interfaces.IEntryCreditBlock {
 		return nil
 	}
 
-	return ecblk
+	holder := new(ECBlockHolder)
+	holder.ECBlock = ecblk
+	length := 0
+	zero := primitives.NewZeroHash()
+	for _, e := range ecblk.GetEntryHashes() {
+		if e != nil && !e.IsSameAs(zero) {
+			length++
+		}
+	}
+	holder.Length = length
+
+	return holder
 }
 
-func getFblock(hash string) *factoid.FBlock {
+type FBlockHolder struct {
+	factoid.FBlock
+	Length int
+}
+
+func getFblock(hash string) *FBlockHolder {
 	mr, err := primitives.HexToHash(hash)
 	if err != nil {
 		return nil
@@ -326,12 +347,13 @@ func getFblock(hash string) *factoid.FBlock {
 	if err != nil {
 		return nil
 	}
-	holder := new(factoid.FBlock)
+	holder := new(FBlockHolder)
 	err = holder.UnmarshalBinary(bytes)
 	if err != nil {
 		return nil
 	}
 
+	holder.Length = len(holder.Transactions)
 	return holder
 }
 
