@@ -146,23 +146,32 @@ func (p *ProcessList) VMIndexFor(hash []byte) int {
 	return r
 }
 
-func (p *ProcessList) SortFedServers() {
-	for i := 0; i < len(p.FedServers)-1; i++ {
+func SortServers(servers []interfaces.IFctServer) []interfaces.IFctServer {
+	for i := 0; i < len(servers)-1; i++ {
 		done := true
-		for j := 0; j < len(p.FedServers)-1-i; j++ {
-			fs1 := p.FedServers[j].GetChainID().Bytes()
-			fs2 := p.FedServers[j+1].GetChainID().Bytes()
+		for j := 0; j < len(servers)-1-i; j++ {
+			fs1 := servers[j].GetChainID().Bytes()
+			fs2 := servers[j+1].GetChainID().Bytes()
 			if bytes.Compare(fs1, fs2) > 0 {
-				tmp := p.FedServers[j]
-				p.FedServers[j] = p.FedServers[j+1]
-				p.FedServers[j+1] = tmp
+				tmp := servers[j]
+				servers[j] = servers[j+1]
+				servers[j+1] = tmp
 				done = false
 			}
 		}
 		if done {
-			return
+			return servers
 		}
 	}
+	return servers
+}
+
+func (p *ProcessList) SortFedServers() {
+	p.FedServers = SortServers(p.FedServers)
+}
+
+func (p *ProcessList) SortAuditServers() {
+	p.AuditServers = SortServers(p.AuditServers)
 }
 
 func (p *ProcessList) SortDBSigs() {

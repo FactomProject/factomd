@@ -339,6 +339,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	list.LastTime = nil // If I saved or processed stuff, I'm good for a while
 
+	// Bring the current federated servers and audit servers forward to the
+	// next block.
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
@@ -371,6 +373,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
+
+	pln.SortFedServers()
+	pln.SortAuditServers()
 
 	return
 }
