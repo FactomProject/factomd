@@ -337,7 +337,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
-	list.LastTime = nil // If I saved or processed stuff, I'm good for a while
+	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Bring the current federated servers and audit servers forward to the
 	// next block.
