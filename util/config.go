@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-	"strings"
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -298,18 +297,6 @@ func ReadConfig(filename string) *FactomdConfig {
 	} else {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
 	}
-
-	networkName := strings.ToLower(cfg.App.Network) + "-"
-	// TODO: improve the paths after milestone 1
-	cfg.App.LdbPath = cfg.App.HomeDir + networkName + cfg.App.LdbPath
-	cfg.App.BoltDBPath = cfg.App.HomeDir + networkName + cfg.App.BoltDBPath
-	cfg.App.DataStorePath = cfg.App.HomeDir + networkName + cfg.App.DataStorePath
-	cfg.Log.LogPath = cfg.App.HomeDir + networkName + cfg.Log.LogPath
-	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + networkName + cfg.Wallet.BoltDBPath
-	cfg.App.ExportDataSubpath = cfg.App.HomeDir + networkName + cfg.App.ExportDataSubpath
-	cfg.App.PeersFile = cfg.App.HomeDir + networkName + cfg.App.PeersFile
-	cfg.App.ControlPanelFilesPath = cfg.App.HomeDir + cfg.App.ControlPanelFilesPath
-
 	return cfg
 }
 
