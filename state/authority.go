@@ -283,6 +283,7 @@ func (s *State) RepairAuthorities() {
 			}
 			if idIndex != -1 {
 				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
+				s.Identities[idIndex].Status = s.Authorities[i].Status
 			}
 		}
 	}
