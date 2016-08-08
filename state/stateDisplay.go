@@ -75,7 +75,7 @@ func NewDisplayState() *DisplayState {
 
 // Sends the copy of State over channel to control panel
 func (s *State) CopyStateToControlPanel() error {
-	if s.ControlPanelSetting == 2 || !s.ControlPanelDataRequest {
+	if !s.ControlPanelDataRequest {
 		return nil
 	}
 	s.ControlPanelDataRequest = false
