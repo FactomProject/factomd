@@ -364,7 +364,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.DBType = cfg.App.DBType
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
-		s.Network = cfg.App.Network
 		s.MainNetworkPort = cfg.App.MainNetworkPort
 		s.PeersFile = cfg.App.PeersFile
 		s.MainSeedURL = cfg.App.MainSeedURL
