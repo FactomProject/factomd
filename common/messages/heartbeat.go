@@ -232,6 +232,19 @@ func (m *Heartbeat) SerialHash() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Heartbeat) Validate(state interfaces.IState) int {
+	if m.GetSignature() == nil {
+		// the message has no signature (and so is invalid)
+		return -1
+	}
+
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
+	}
+
 	return 1
 }
 
