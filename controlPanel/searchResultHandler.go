@@ -559,6 +559,7 @@ func getEblock(hash string) *EblockHolder {
 	holder.FullHash = eblk.GetHash().String()
 
 	entries := eblk.GetEntryHashes()
+	count := 0
 	for _, entry := range entries {
 		if len(entry.String()) < 32 {
 			continue
@@ -575,11 +576,13 @@ func getEblock(hash string) *EblockHolder {
 			continue
 		}
 		ent := getEntry(entry.String())
+		count++
 		if ent != nil {
 			ent.Hash = entry.String()
 			holder.Entries = append(holder.Entries, *ent)
 		}
 	}
+	holder.Header.EntryCount = count
 
 	return holder
 }
@@ -591,10 +594,12 @@ type DblockHolder struct {
 		BodyMR       string `json:"BodyMR"`
 		PrevKeyMR    string `json:"PrevKeyMR"`
 		PrevFullHash string `json:"PrevFullHash"`
-		Timestamp    int    `json:"Timestamp"`
+		Timestamp    uint32 `json:"Timestamp"`
 		DBHeight     int    `json:"DBHeight"`
 		BlockCount   int    `json:"BlockCount"`
 		ChainID      string `json:"ChainID"`
+
+		FormatedTimeStamp string
 	} `json:"Header"`
 	DBEntries []struct {
 		ChainID string `json:"ChainID"`
@@ -671,6 +676,8 @@ func getDblock(hash string) *DblockHolder {
 	holder.FullHash = dblk.GetHash().String()
 	holder.KeyMR = dblk.GetKeyMR().String()
 
+	ts := dblk.GetTimestamp()
+	holder.Header.FormatedTimeStamp = ts.String()
 	return holder
 }
 
