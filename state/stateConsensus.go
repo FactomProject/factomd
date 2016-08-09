@@ -371,6 +371,10 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
 }
 
+func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
+
+}
+
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 	ackResp := mmr.AckResponse.(*messages.Ack)
