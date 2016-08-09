@@ -165,30 +165,6 @@ function updateTransactions() {
 
       // Total
       $("#recent-factoid-total").text("(" + $("#panFactoids > #traxList > tbody > tr").length + ")")
-
-      $("section #factom-search-link").on('click',function(e) {
-        type = jQuery(this).attr("type")
-        hash = jQuery(this).text()
-        if (hash == "Processing") {
-          return
-        }
-        var x = new XMLHttpRequest()
-        x.onreadystatechange = function() {
-          if(x.readyState == 4) {
-            if(e.which == 1){
-              window.location = "search?input=" + hash + "&type=" + type
-            } else if(e.which == 2) {
-              window.open("/search?input=" + hash + "&type=" + type);
-            }
-          }
-        }
-        var formDataLink = new FormData();
-        formDataLink.append("method", "search")
-        formDataLink.append("search", hash)
-
-        x.open("POST", "/post")
-        x.send(formDataLink)
-      })
   })
 }
 

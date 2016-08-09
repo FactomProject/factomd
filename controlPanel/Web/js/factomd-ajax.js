@@ -62,7 +62,8 @@ function searchBarSubmit() {
   x.send(formData)
 }
 
-$("section #factom-search-link").on('click',function(e) {
+$("body").on('mouseup',"section #factom-search-link",function(e) {
+  console.log("Git!!!")
   type = jQuery(this).attr("type")
   hash = jQuery(this).text()
   var x = new XMLHttpRequest()
@@ -73,6 +74,7 @@ $("section #factom-search-link").on('click',function(e) {
         if(e.which == 1){
           window.location = "search?input=" + hash + "&type=" + type
         } else if(e.which == 2) {
+          console.log("asd")
           window.open("/search?input=" + hash + "&type=" + type);
         }
         //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
