@@ -130,6 +130,9 @@ function updateTransactions() {
                   <td>" + trans.TotalInputs + "</td>\
                   <td>" + trans.TotalOutputs + "</td>\
               </tr>")
+              if ($("#panFactoids > #traxList > tbody > tr").length > 100) {
+                $("#panFactoids > #traxList > tbody >tr").last().remove();
+              }
             }
           }
         })

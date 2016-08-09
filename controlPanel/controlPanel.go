@@ -698,7 +698,8 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 					e := getEntry(hash.String())
 					if e != nil && eNeeded > 0 {
 						eNeeded--
-						RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+						RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+						//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 					}
 				}
 			}
@@ -728,14 +729,14 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 							totalOutputs = totalOutputs + len(trans.GetOutputs())
 							inputStr := fmt.Sprintf("%f", float64(input)/1e8)
 							fNeeded--
-							RecentTransactions.FactoidTransactions = append([]struct {
+							RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 								TxID         string
 								Hash         string
 								TotalInput   string
 								Status       string
 								TotalInputs  int
 								TotalOutputs int
-							}{{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+							}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
 						}
 					}
 				}
