@@ -265,6 +265,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
 	clone.FaultMap = s.FaultMap
+	clone.StartDelayLimit = s.StartDelayLimit
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber

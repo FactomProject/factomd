@@ -94,6 +94,18 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 
 	// Now make sure the proper amount of credits were paid to record the entry.
 	if okEntry {
+		db := state.GetAndLockDB()
+		dbheight := state.GetLeaderHeight()
+		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
+		eb_db := state.GetNewEBlocks(dbheight-1, m.Entry.GetChainID())
+		if eb_db == nil {
+			eb_db, _ = db.FetchEBlockHead(m.Entry.GetChainID())
+		}
+
+		if eb_db == nil && eb == nil {
+			return 0
+		}
+
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {

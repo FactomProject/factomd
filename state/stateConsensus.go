@@ -166,6 +166,7 @@ func (s *State) AddDBState(isNew bool,
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
+		s.RunLeader = false
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
