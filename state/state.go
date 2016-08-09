@@ -329,7 +329,7 @@ func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
 }
 
-func (s *State) LoadConfig(filename string) {
+func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 	if len(filename) > 0 {
 		s.filename = filename
@@ -337,6 +337,23 @@ func (s *State) LoadConfig(filename string) {
 
 		// Get our factomd configuration information.
 		cfg := s.GetCfg().(*util.FactomdConfig)
+
+		s.Network = cfg.App.Network
+		if 0 < len(networkFlag) { // Command line overrides the config file.
+			s.Network = networkFlag
+		}
+		fmt.Printf("\n\nNetwork : %s\n", s.Network)
+
+		networkName := strings.ToLower(s.Network) + "-"
+		// TODO: improve the paths after milestone 1
+		cfg.App.LdbPath = cfg.App.HomeDir + networkName + cfg.App.LdbPath
+		cfg.App.BoltDBPath = cfg.App.HomeDir + networkName + cfg.App.BoltDBPath
+		cfg.App.DataStorePath = cfg.App.HomeDir + networkName + cfg.App.DataStorePath
+		cfg.Log.LogPath = cfg.App.HomeDir + networkName + cfg.Log.LogPath
+		cfg.Wallet.BoltDBPath = cfg.App.HomeDir + networkName + cfg.Wallet.BoltDBPath
+		cfg.App.ExportDataSubpath = cfg.App.HomeDir + networkName + cfg.App.ExportDataSubpath
+		cfg.App.PeersFile = cfg.App.HomeDir + networkName + cfg.App.PeersFile
+		cfg.App.ControlPanelFilesPath = cfg.App.HomeDir + cfg.App.ControlPanelFilesPath
 
 		s.LogPath = cfg.Log.LogPath + s.Prefix
 		s.LdbPath = cfg.App.LdbPath + s.Prefix
@@ -347,7 +364,6 @@ func (s *State) LoadConfig(filename string) {
 		s.DBType = cfg.App.DBType
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
-		s.Network = cfg.App.Network
 		s.MainNetworkPort = cfg.App.MainNetworkPort
 		s.PeersFile = cfg.App.PeersFile
 		s.MainSeedURL = cfg.App.MainSeedURL

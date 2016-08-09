@@ -728,6 +728,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 						hb.Timestamp = primitives.NewTimestampNow()
 						hb.DBlockHash = dbstate.DBHash
 						hb.IdentityChainID = s.IdentityChainID
+						hb.Sign(s.GetServerPrivateKey())
 						s.NetworkOutMsgQueue() <- hb
 					}
 				}

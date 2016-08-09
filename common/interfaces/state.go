@@ -15,7 +15,7 @@ type IState interface {
 	GetFactomNodeName() string
 	Clone(number string) IState
 	GetCfg() IFactomConfig
-	LoadConfig(filename string)
+	LoadConfig(filename string, networkFlag string)
 	Init()
 	String() string
 	GetIdentityChainID() IHash
