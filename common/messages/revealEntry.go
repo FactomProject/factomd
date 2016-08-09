@@ -93,7 +93,14 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.
+	// The chain must exist
 	if okEntry {
+		m.IsEntry = true
+		ECs := int(m.commitEntry.CommitEntry.Credits)
+		if m.Entry.KSize() > ECs {
+			return m.Validate(state) // Discard commits that are not funded properly.
+		}
+
 		db := state.GetAndLockDB()
 		dbheight := state.GetLeaderHeight()
 		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
@@ -103,13 +110,8 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if eb_db == nil && eb == nil {
+			state.PutCommit(m.Entry.GetHash(), commit)
 			return 0
-		}
-
-		m.IsEntry = true
-		ECs := int(m.commitEntry.CommitEntry.Credits)
-		if m.Entry.KSize() > ECs {
-			return m.Validate(state) // Discard commits that are not funded properly.
 		}
 	} else {
 		m.IsEntry = false
