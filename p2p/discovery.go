@@ -110,6 +110,8 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		switch {
+		case SpecialPeer == peer.Type: // always save special peers, even if we haven't talked in awhile.
+			qualityPeers[peer.AddressPort()] = peer
 		case time.Since(peer.LastContact) > time.Hour*168:
 			break
 		case MinumumQualityScore > peer.QualityScore:
@@ -256,6 +258,7 @@ func (d *Discovery) getPeerSelection() []byte {
 	// var currentBestDistance float64
 	selectedPeers := []Peer{}
 	firstPassPeers := []Peer{}
+	specialPeersByLocation := map[uint32]Peer{}
 	UpdateKnownPeers.Lock()
 	for _, peer := range d.knownPeers {
 		if peer.QualityScore > MinumumSharingQualityScore { // Only share peers that have earned positive reputation
@@ -265,8 +268,22 @@ func (d *Discovery) getPeerSelection() []byte {
 	UpdateKnownPeers.Unlock()
 	peerPool := d.filterPeersFromOtherNetworks(firstPassPeers)
 	sort.Sort(PeerQualitySort(peerPool))
+	// Pull out special peers by location.  Use location because it should more accurately reflect IP address.
+	// we check by location to keep from sharing special peers when they dial into us (in which case we wouldn't realize
+	// they were special by the flag.)
 	for _, peer := range peerPool {
-		if SpecialPeer != peer.Type { // we don't share special peers
+		if peer.Type == SpecialPeer {
+			specialPeersByLocation[peer.Location] = peer
+		}
+	}
+	for _, peer := range peerPool {
+		_, present := specialPeersByLocation[peer.Location]
+		switch {
+		case SpecialPeer == peer.Type:
+			break
+		case present:
+			break
+		default:
 			selectedPeers = append(selectedPeers, peer)
 		}
 		if 4*NumberPeersToConnect <= len(selectedPeers) {
