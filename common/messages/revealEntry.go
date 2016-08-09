@@ -101,6 +101,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 			return m.Validate(state) // Discard commits that are not funded properly.
 		}
 
+		// Make sure we have a chain.  If we don't, then bad things happen.
 		db := state.GetAndLockDB()
 		dbheight := state.GetLeaderHeight()
 		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
@@ -110,6 +111,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if eb_db == nil && eb == nil {
+			// If we don't have a chain, put the commit back.  Don't want to lose it.
 			state.PutCommit(m.Entry.GetHash(), commit)
 			return 0
 		}
@@ -121,6 +123,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	// Don't lose the commit that validates the entry
 	state.PutCommit(m.Entry.GetHash(), commit)
 
 	return 1
