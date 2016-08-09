@@ -29,6 +29,17 @@ $("#factom-search").click(function() {
 })
 
 $("#factom-search-submit").click(function() {
+  searchBarSubmit()
+})
+$(".factom-search-container").keypress(function(e) {
+  var key = e.which || e.keyCode;
+  if (!(key == 13)) {
+    return
+  }
+  searchBarSubmit()
+})
+
+function searchBarSubmit() {
   var x = new XMLHttpRequest()
   x.onreadystatechange = function() {
     if(x.readyState == 4) {
@@ -49,7 +60,7 @@ $("#factom-search-submit").click(function() {
 
   x.open("POST", "/post")
   x.send(formData)
-})
+}
 
 $("section #factom-search-link").on('click',function(e) {
   type = jQuery(this).attr("type")
