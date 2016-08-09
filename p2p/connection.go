@@ -155,8 +155,8 @@ func (c *Connection) commonInit(peer Peer) {
 	c.state = ConnectionInitialized
 	c.peer = peer
 	c.setNotes("commonInit()")
-	c.SendChannel = make(chan interface{}, 10000)
-	c.ReceiveChannel = make(chan interface{}, 10000)
+	c.SendChannel = make(chan interface{}, StandardChannelSize)
+	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
