@@ -90,6 +90,11 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		if arr == nil {
 			break
 		}
+		arr[0].Content = struct {
+			Head   interface{}
+			Length int
+		}{arr[0].Content, len(arr) - 1} // struct{length string,
+		//	head string }{"x","x"}
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, arr)
 		TemplateMutex.Unlock()
