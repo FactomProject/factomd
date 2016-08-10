@@ -75,12 +75,11 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 
 // Main function. This intiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
-	/*defer func() {
-		// recover from panic if files path is incorrect
+	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
-	}()*/
+	}()
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
@@ -91,7 +90,6 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
 	port := DisplayState.ControlPanelPort
-	//FILES_PATH = DisplayState.ControlPanelPath
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
@@ -104,20 +102,9 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
-	// Load Static Files
-	/*if !directoryExists(FILES_PATH) { // Check .factom/m2/Web
-		FILES_PATH = "./controlPanel/Web/" // Check active directory
-		if !directoryExists(FILES_PATH) {
-			fmt.Println("Control Panel static files cannot be found.")
-			http.HandleFunc("/", noStaticFilesFoundHandler)
-			http.ListenAndServe(portStr, nil)
-			return
-		}
-	}*/
-	//FILES_PATH = ""
 	TemplateMutex.Lock()
 	templates = files.CustomParseGlob(nil, "templates/general/*.html")
-	templates = template.Must(templates, nil) //template.ParseGlob(FILES_PATH + "templates/general/*.html"))
+	templates = template.Must(templates, nil)
 	TemplateMutex.Unlock()
 
 	// Updated Globals. A seperate GoRoutine updates these, we just initialize
@@ -128,8 +115,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	// Mux for static files
 	mux = http.NewServeMux()
-	mux.Handle("/", files.Server) //http.FileServer(http.Dir(FILES_PATH)))
-	//INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
+	mux.Handle("/", files.Server)
 
 	go doEvery(5*time.Second, getRecentTransactions)
 	go manageConnections(connections)
@@ -164,11 +150,11 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
-	}()*/
+	}()
 	TemplateMutex.Lock()
 	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
 	files.CustomParseGlob(templates, "templates/index/*.html")
