@@ -70,6 +70,12 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
+	// Negotiation tracker variables
+	WaitingForNegotiator       int
+	WaitingForNegotiationSince time.Time
+	OngoingNegotiations        map[uint32]bool
+	ShouldBeFaulted            map[int]interfaces.IHash
+
 	// DB Sigs
 	DBSignatures []DBSig
 }
@@ -791,6 +797,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
+
+	pl.WaitingForNegotiator = -1
 
 	pl.DBSignatures = make([]DBSig, 0)
 

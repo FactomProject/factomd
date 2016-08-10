@@ -316,6 +316,8 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	}
 	validSigCount := 0
 	for _, fedSig := range m.SignatureList.List {
+		// Right now, this allows audit servers to verify!
+		// TODO: fix this so that ONLY fed servers' signatures are counted
 		check, err := state.VerifyFederatedSignature(cb, fedSig.GetSignature())
 		if err == nil && check {
 			validSigCount++

@@ -53,6 +53,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	return false, nil
 }
 
+// Checks a byte slice to see if it was signed by a Federated OR Audit server in our list of Authorities
 // Also checks Identity list which contains pending Fed/Aud servers. TODO: Remove those
 func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	for _, auth := range st.Authorities {

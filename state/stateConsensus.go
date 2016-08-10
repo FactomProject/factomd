@@ -5,6 +5,7 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 	"hash"
 
@@ -283,12 +284,41 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
+	pl := s.ProcessLists.Get(sf.DBHeight)
 
 	var issuerID [32]byte
 	rawIssuerID := sf.GetSignature().GetKey()
 	for i := 0; i < 32; i++ {
 		if i < len(rawIssuerID) {
 			issuerID[i] = rawIssuerID[i]
+		}
+	}
+
+	// if this fault is an Audit server voting for itself to be promoted
+	// (i.e. it is an "AOK" message)
+	// then we need to mark the Audit server as "ReadyForPromotion" or
+	// alternatively mark it "offline" if it has voted promiscuously
+	for _, a := range s.Authorities {
+		if a.Status == 2 {
+			anchorKey, err := a.SigningKey.MarshalBinary()
+			if err == nil {
+				if bytes.Compare(sf.GetSignature().GetKey(), anchorKey) == 0 {
+					// this means that this message was signed by audit server "a"
+					foundAudit, audIdx := pl.GetAuditServerIndexHash(a.AuthorityChainID)
+					if foundAudit {
+						if pl.AuditServers[audIdx].LeaderToReplace() != nil {
+							if !pl.AuditServers[audIdx].LeaderToReplace().IsSameAs(sf.ServerID) {
+								// illegal vote; audit server has already AOK'd replacing a different leader
+								// "punish" them by setting them offline (i.e. make them ineligible for promotion)
+								pl.AuditServers[audIdx].SetOnline(false)
+							}
+						} else {
+							// AOK: set the Audit Server's "Leader to Replace" field to this ServerID
+							pl.AuditServers[audIdx].SetReplace(sf.ServerID)
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -303,7 +333,6 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	//faultedServerID := sf.ServerID.Fixed()
 
 	cnt := len(s.FaultMap[coreHash])
-	pl := s.ProcessLists.Get(sf.DBHeight)
 	var fedServerCnt int
 	if pl != nil {
 		fedServerCnt = len(pl.FedServers)
@@ -314,16 +343,24 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
 		if s.LeaderVMIndex == responsibleFaulterIdx {
-			var listOfSigs []interfaces.IFullSignature
-			for _, sig := range s.FaultMap[coreHash] {
-				listOfSigs = append(listOfSigs, sig)
-			}
-			fullFault := messages.NewFullServerFault(sf, listOfSigs)
-			if fullFault != nil {
-				fullFault.Sign(s.serverPrivKey)
-				s.NetworkOutMsgQueue() <- fullFault
-				fullFault.FollowerExecute(s)
-				delete(s.FaultMap, sf.GetCoreHash().Fixed())
+			foundAudit, aidx := pl.GetAuditServerIndexHash(sf.AuditServerID)
+			if foundAudit {
+				audServerReplacementID := pl.AuditServers[aidx].LeaderToReplace()
+				if audServerReplacementID != nil && audServerReplacementID.IsSameAs(sf.ServerID) {
+					// if we have made it this far, that means we have successfully received an "AOK" message
+					// from the audit server being promoted... this means we can proceed and issue a FullFault
+					var listOfSigs []interfaces.IFullSignature
+					for _, sig := range s.FaultMap[coreHash] {
+						listOfSigs = append(listOfSigs, sig)
+					}
+					fullFault := messages.NewFullServerFault(sf, listOfSigs)
+					if fullFault != nil {
+						fullFault.Sign(s.serverPrivKey)
+						s.NetworkOutMsgQueue() <- fullFault
+						fullFault.FollowerExecute(s)
+						delete(s.FaultMap, sf.GetCoreHash().Fixed())
+					}
+				}
 			}
 		}
 	}
@@ -372,6 +409,17 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
+	negotiation, _ := m.(*messages.Negotiation)
+	pl := s.ProcessLists.Get(negotiation.Height)
+
+	//TODO: FIX THE FOLLOWING CONDITIONAL
+	//should be "if we are waiting on the Negotiation msg from the server that sent this" i.e.
+	//"if we are expecting this message"
+	if pl.WaitingForNegotiator == negotiation.GetVMIndex() {
+		pl.WaitingForNegotiator = -1
+	}
+	pl.OngoingNegotiations[negotiation.Height] = true
+	//if pl.ShouldBeFaulted[int(negotiation.Height)]
 
 }
 
