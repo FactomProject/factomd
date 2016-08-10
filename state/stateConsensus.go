@@ -315,7 +315,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			marshalledSF, err := sf.MarshalForSignature()
 			if err == nil {
 				sigVer, err := a.VerifySignature(marshalledSF, sf.Signature.GetSignature())
-				if err != nil && sigVer {
+				if err == nil && sigVer {
 					foundAudit, audIdx := pl.GetAuditServerIndexHash(sf.AuditServerID)
 					if foundAudit {
 						if pl.AuditServers[audIdx].LeaderToReplace() != nil {
@@ -353,24 +353,25 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	}
 	if s.Leader && cnt > ((fedServerCnt/2)-1) {
 		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
-
 		if s.LeaderVMIndex == responsibleFaulterIdx {
 			foundAudit, aidx := pl.GetAuditServerIndexHash(sf.AuditServerID)
 			if foundAudit {
 				audServerReplacementID := pl.AuditServers[aidx].LeaderToReplace()
-				if audServerReplacementID != nil && audServerReplacementID.IsSameAs(sf.ServerID) {
-					// if we have made it this far, that means we have successfully received an "AOK" message
-					// from the audit server being promoted... this means we can proceed and issue a FullFault
-					var listOfSigs []interfaces.IFullSignature
-					for _, sig := range s.FaultMap[coreHash] {
-						listOfSigs = append(listOfSigs, sig)
-					}
-					fullFault := messages.NewFullServerFault(sf, listOfSigs)
-					if fullFault != nil {
-						fullFault.Sign(s.serverPrivKey)
-						s.NetworkOutMsgQueue() <- fullFault
-						fullFault.FollowerExecute(s)
-						delete(s.FaultMap, sf.GetCoreHash().Fixed())
+				if audServerReplacementID != nil {
+					if audServerReplacementID.IsSameAs(sf.ServerID) {
+						// if we have made it this far, that means we have successfully received an "AOK" message
+						// from the audit server being promoted... this means we can proceed and issue a FullFault
+						var listOfSigs []interfaces.IFullSignature
+						for _, sig := range s.FaultMap[coreHash] {
+							listOfSigs = append(listOfSigs, sig)
+						}
+						fullFault := messages.NewFullServerFault(sf, listOfSigs)
+						if fullFault != nil {
+							fullFault.Sign(s.serverPrivKey)
+							s.NetworkOutMsgQueue() <- fullFault
+							fullFault.FollowerExecute(s)
+							delete(s.FaultMap, sf.GetCoreHash().Fixed())
+						}
 					}
 				}
 			}
@@ -407,7 +408,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		//addMsg := messages.NewAddServerByHashMsg(s, 0, auditServerList[0].GetChainID())
 		//s.InMsgQueue() <- addMsg
 		//s.NetworkOutMsgQueue() <- addMsg
-
 		s.RemoveAuditServer(fsf.DBHeight, theAuditReplacement.GetChainID())
 	}
 	//	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)

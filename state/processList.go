@@ -516,13 +516,11 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 			} else {
 				negotiationStartTime, exists := p.OngoingNegotiations[uint32(height)]
 				if exists {
-					fmt.Println("JUSTIN ABOUT TO FAULT", p.State.FactomNodeName)
 					auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
 					if len(auditServerList) > 0 {
 						replacementServer := auditServerList[0]
 						sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
 						if sf != nil {
-							fmt.Println("JUSTIN FAULTing", p.State.FactomNodeName)
 							sf.Sign(p.State.serverPrivKey)
 							p.State.NetworkOutMsgQueue() <- sf
 							p.State.InMsgQueue() <- sf
