@@ -155,8 +155,8 @@ func (c *Connection) commonInit(peer Peer) {
 	c.state = ConnectionInitialized
 	c.peer = peer
 	c.setNotes("commonInit()")
-	c.SendChannel = make(chan interface{}, 10000)
-	c.ReceiveChannel = make(chan interface{}, 10000)
+	c.SendChannel = make(chan interface{}, StandardChannelSize)
+	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
@@ -222,7 +222,7 @@ func (c *Connection) runLoop() {
 
 func (c *Connection) setNotes(format string, v ...interface{}) {
 	c.notes = fmt.Sprintf(format, v...)
-	significant(c.peer.PeerIdent(), c.notes)
+	note(c.peer.PeerIdent(), c.notes)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.

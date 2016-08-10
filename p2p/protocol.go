@@ -15,17 +15,18 @@ import (
 
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
 
-// 				nonBlockingChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
-
 func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 	highWaterMark := int(float64(StandardChannelSize) * 0.90)
 	atCapacity := int(float64(StandardChannelSize) * 0.999)
 	switch {
 	case atCapacity < len(channel):
-		silence("protocol", "nonBlockingChanSend() - Channel is OVER 99 percent full! \n \n last message: %+v", message)
+		silence("protocol", "nonBlockingChanSend() - Channel is OVER 99 percent full! \n %d of %d \n last message: %+v", len(channel), StandardChannelSize, message)
 		panic("Full channel.")
 	case highWaterMark < len(channel):
-		silence("protocol", "nonBlockingChanSend() - Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %+v", len(channel), highWaterMark, message)
+		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %+v", len(channel), highWaterMark, message)
+		for highWaterMark <= len(channel) { // Clear out some messages
+			<-channel
+		}
 		fallthrough
 	default:
 		select { // hits default if sending message would block.

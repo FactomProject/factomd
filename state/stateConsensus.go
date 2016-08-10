@@ -78,7 +78,7 @@ func (s *State) Process() (progress bool) {
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
+	for i := 0; i < 10 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
@@ -166,6 +166,7 @@ func (s *State) AddDBState(isNew bool,
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
+		s.RunLeader = false
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
