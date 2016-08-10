@@ -3,7 +3,7 @@ package controlPanel
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
@@ -25,12 +26,12 @@ import (
 var (
 	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-	FILES_PATH string
-	templates  *template.Template
+	//FILES_PATH string
+	templates *template.Template
 
-	INDEX_HTML []byte
-	mux        *http.ServeMux
-	index      int = 0
+	//INDEX_HTML []byte
+	mux   *http.ServeMux
+	index int = 0
 
 	DisplayState state.DisplayState
 	StatePointer *state.State
@@ -74,12 +75,12 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 
 // Main function. This intiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
-	defer func() {
+	/*defer func() {
 		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
-	}()
+	}()*/
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State
@@ -90,7 +91,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
 	port := DisplayState.ControlPanelPort
-	FILES_PATH = DisplayState.ControlPanelPath
+	//FILES_PATH = DisplayState.ControlPanelPath
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
@@ -103,9 +104,8 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
-
 	// Load Static Files
-	if !directoryExists(FILES_PATH) { // Check .factom/m2/Web
+	/*if !directoryExists(FILES_PATH) { // Check .factom/m2/Web
 		FILES_PATH = "./controlPanel/Web/" // Check active directory
 		if !directoryExists(FILES_PATH) {
 			fmt.Println("Control Panel static files cannot be found.")
@@ -113,9 +113,11 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			http.ListenAndServe(portStr, nil)
 			return
 		}
-	}
+	}*/
+	//FILES_PATH = ""
 	TemplateMutex.Lock()
-	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
+	templates = files.CustomParseGlob(nil, "templates/general/*.html")
+	templates = template.Must(templates, nil) //template.ParseGlob(FILES_PATH + "templates/general/*.html"))
 	TemplateMutex.Unlock()
 
 	// Updated Globals. A seperate GoRoutine updates these, we just initialize
@@ -126,8 +128,8 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	// Mux for static files
 	mux = http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(FILES_PATH)))
-	INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
+	mux.Handle("/", files.Server) //http.FileServer(http.Dir(FILES_PATH)))
+	//INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
 
 	go doEvery(5*time.Second, getRecentTransactions)
 	go manageConnections(connections)
@@ -162,13 +164,14 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
-	}()
+	}()*/
 	TemplateMutex.Lock()
-	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
+	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
+	files.CustomParseGlob(templates, "templates/index/*.html")
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}

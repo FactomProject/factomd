@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
@@ -71,8 +72,11 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	}
 	TemplateMutex.Lock()
 	templates.Funcs(funcMap)
-	templates.ParseFiles(FILES_PATH + "templates/searchresults/type/" + content.Type + ".html")
-	templates.ParseGlob(FILES_PATH + "templates/searchresults/*.html")
+	files.CustomParseGlob(templates, "templates/searchresults/*.html")
+	files.CustomParseFile(templates, "templates/searchresults/type/"+content.Type+".html")
+
+	//templates.ParseFiles(FILES_PATH + "templates/searchresults/type/" + content.Type + ".html")
+	//templates.ParseGlob(FILES_PATH + "templates/searchresults/*.html")
 	TemplateMutex.Unlock()
 
 	var err error
@@ -434,7 +438,7 @@ func getAblock(hash string) *AblockHolder {
 			if err != nil {
 				continue
 			}
-			disp.Type = "DB Signiture"
+			disp.Type = "DB Signature"
 			disp.OtherInfo = "Server: " + r.IdentityAdminChainID.String()
 		case constants.TYPE_REVEAL_MATRYOSHKA:
 			r := new(adminBlock.RevealMatryoshkaHash)

@@ -211,6 +211,17 @@ function updateHeight() {
   })
 }
 
+// Sorting
+$("#peer-duration").on('mouseup', function(e){
+  console.log("hs")
+  $("#peerList tbody tr").each(function(){
+    next = jQuery(this).next().find("#momentconnected").val()
+    prev = jQuery(this).prev().find("#momentconnected").val()
+    me = jQuery(this).find("#momentconnected").val()
+
+  })
+})
+
 function updateProgressBar(id, current, max) {
   if(max == 0) {
     percent = (current/max) * 100
@@ -314,6 +325,7 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#received").val(con.BytesReceived) // Value
           $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
         }
+        console.log(con.MomentConnected)
         if ($("#" + peer.Hash).find("#momentconnected").val() != peer.ConnectionTimeFormatted) {
           $("#" + peer.Hash).find("#momentconnected").val(peer.ConnectionTimeFormatted) // Value
           $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
@@ -362,7 +374,6 @@ function contains(haystack, needle) {
     return false;
 }
 
-
 function getIPCountry(address){
  /* $.getJSON('http://ipinfo.io/' + address + '', function(data){
     console.log(data.country)
@@ -379,22 +390,6 @@ function formatQuality(quality) {
   } else {
     return "rank-red"
   }
-  /*quality = quality + 300
-  if(quality < 0) {
-    return 0
-  } else if(quality > 3000) {
-    return 10
-  } else if(quality < 390) {
-    limit = 8
-    exponent = (-.5) * ((quality * .02) - 5)
-    q = limit / (1+ Math.pow(Math.E,exponent))
-    return Number(q).toFixed(1)
-  } else {
-    limit = 4
-    exponent = (-.3) * ((quality - 60) * 0.008 - 5)
-    q = limit / (1 + (Math.pow(Math.E,exponent))) + 6
-    return Number(q).toFixed(1)
-  }*/
 }
 
 function formatBytes(bytes, messages) {
