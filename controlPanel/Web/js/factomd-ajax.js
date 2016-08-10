@@ -63,7 +63,6 @@ function searchBarSubmit() {
 }
 
 $("body").on('mouseup',"section #factom-search-link",function(e) {
-  console.log("Git!!!")
   type = jQuery(this).attr("type")
   hash = jQuery(this).text()
   var x = new XMLHttpRequest()
@@ -74,13 +73,12 @@ $("body").on('mouseup',"section #factom-search-link",function(e) {
         if(e.which == 1){
           window.location = "search?input=" + hash + "&type=" + type
         } else if(e.which == 2) {
-          console.log("asd")
           window.open("/search?input=" + hash + "&type=" + type);
         }
         //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
       } else {
         $(".factom-search-error").slideDown(300)
-        console.log(x.response)
+        //console.log(x.response)
       }
     }
   }

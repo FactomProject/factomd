@@ -132,7 +132,7 @@ function updateTransactions() {
               </tr>")
               if ($("#panFactoids > #traxList > tbody > tr").length > 100) {
                 $("#panFactoids > #traxList > tbody >tr").last().remove();
-              }
+              } 
             }
           }
         })
@@ -141,10 +141,6 @@ function updateTransactions() {
         obj.Entries.forEach(function(entry) {
           // Total
           $("#recent-entry-total").text("(" + $("#panEntries > #traxList > tbody > tr").length + ")")
-
-          if ($("#panEntries > #traxList > tbody > tr").length > 100) {
-            $("#panEntries > #traxList > tbody >tr").last().remove();
-          }
           if ($("#panEntries #" + entry.Hash).length > 0) {
             if($("#"+entry.Hash + " #chainID a").text() != entry.ChainID) {
               $("#"+entry.Hash + " #chainID a").text(entry.ChainID)
@@ -162,6 +158,9 @@ function updateTransactions() {
                 <td id='chainID'><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
                 <td id='eccost'>" + entry.ECCost + "</td>\
             </tr>")
+            if ($("#panEntries > #traxList > tbody > tr").length > 100) {
+              $("#panEntries > #traxList > tbody >tr").last().remove();
+            }
           }
         })
       }
