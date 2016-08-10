@@ -5,7 +5,6 @@
 package state
 
 import (
-	"bytes"
 	"fmt"
 	"hash"
 
@@ -292,10 +291,9 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 			if nsf != nil {
 				nsf.Sign(s.serverPrivKey)
-				s.NetworkOutMsgQueue() <- sf
-				s.InMsgQueue() <- sf
+				s.NetworkOutMsgQueue() <- nsf
+				s.InMsgQueue() <- nsf
 				pl.AmIPledged = true
-
 			}
 		}
 	}
@@ -313,12 +311,12 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	// then we need to mark the Audit server as "ReadyForPromotion" or
 	// alternatively mark it "offline" if it has voted promiscuously
 	for _, a := range s.Authorities {
-		if a.Status == 2 {
-			anchorKey, err := a.SigningKey.MarshalBinary()
+		if a.AuthorityChainID.IsSameAs(sf.AuditServerID) {
+			marshalledSF, err := sf.MarshalForSignature()
 			if err == nil {
-				if bytes.Compare(sf.GetSignature().GetKey(), anchorKey) == 0 {
-					// this means that this message was signed by audit server "a"
-					foundAudit, audIdx := pl.GetAuditServerIndexHash(a.AuthorityChainID)
+				sigVer, err := a.VerifySignature(marshalledSF, sf.Signature.GetSignature())
+				if err != nil && sigVer {
+					foundAudit, audIdx := pl.GetAuditServerIndexHash(sf.AuditServerID)
 					if foundAudit {
 						if pl.AuditServers[audIdx].LeaderToReplace() != nil {
 							if !pl.AuditServers[audIdx].LeaderToReplace().IsSameAs(sf.ServerID) {
@@ -353,7 +351,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	} else {
 		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
 	}
-	if s.Leader && cnt > (fedServerCnt/2) {
+	if s.Leader && cnt > ((fedServerCnt/2)-1) {
 		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
 		if s.LeaderVMIndex == responsibleFaulterIdx {
