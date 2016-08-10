@@ -356,18 +356,10 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			}
 		}
 
-		//addMsg := messages.NewAddServerByHashMsg(s, 0, auditServerList[0].GetChainID())
-		//s.InMsgQueue() <- addMsg
-		//s.NetworkOutMsgQueue() <- addMsg
-
 		s.RemoveAuditServer(fsf.DBHeight, theAuditReplacement.GetChainID())
 	}
-	//	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
 
-	//removeMsg := messages.NewRemoveServerMsg(s, fsf.ServerID, 0)
-	//s.InMsgQueue() <- removeMsg
-	//s.NetworkOutMsgQueue() <- removeMsg
-
+	//s.TrimVMList(fsf.DBHeight, fsf.Height, int(fsf.VMIndex))
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
 }

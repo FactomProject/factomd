@@ -514,6 +514,12 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	return thetime
 }
 
+func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
+	if !(uint32(len(p.VMs[vmIndex].List)) > height) {
+		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]
+	}
+}
+
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 	for i := 0; i < len(p.FedServers); i++ {
