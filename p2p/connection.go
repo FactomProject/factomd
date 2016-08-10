@@ -222,7 +222,7 @@ func (c *Connection) runLoop() {
 
 func (c *Connection) setNotes(format string, v ...interface{}) {
 	c.notes = fmt.Sprintf(format, v...)
-	notes(c.peer.PeerIdent(), c.notes)
+	note(c.peer.PeerIdent(), c.notes)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
