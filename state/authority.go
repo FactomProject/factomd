@@ -34,7 +34,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 		return false, err
 	} else {
 		copy(pub[:], tmp)
-		valid := ed.Verify(&pub, msg, sig)
+		valid := ed.VerifyCanonical(&pub, msg, sig)
 		if !valid {
 			for _, histKey := range auth.KeyHistory {
 				histTemp, err := histKey.SigningKey.MarshalBinary()
@@ -42,7 +42,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 					continue
 				}
 				copy(pub[:], histTemp)
-				if ed.Verify(&pub, msg, sig) {
+				if ed.VerifyCanonical(&pub, msg, sig) {
 					return true, nil
 				}
 			}
