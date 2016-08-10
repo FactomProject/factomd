@@ -286,6 +286,20 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
 	pl := s.ProcessLists.Get(sf.DBHeight)
 
+	if s.IdentityChainID.IsSameAs(sf.AuditServerID) {
+		// I am the audit server being promoted
+		if !pl.AmIPledged {
+			nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+			if nsf != nil {
+				nsf.Sign(s.serverPrivKey)
+				s.NetworkOutMsgQueue() <- sf
+				s.InMsgQueue() <- sf
+				pl.AmIPledged = true
+
+			}
+		}
+	}
+
 	var issuerID [32]byte
 	rawIssuerID := sf.GetSignature().GetKey()
 	for i := 0; i < 32; i++ {
@@ -410,16 +424,36 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 	negotiation, _ := m.(*messages.Negotiation)
-	pl := s.ProcessLists.Get(negotiation.Height)
+	pl := s.ProcessLists.Get(negotiation.DBHeight)
 
-	//TODO: FIX THE FOLLOWING CONDITIONAL
-	//should be "if we are waiting on the Negotiation msg from the server that sent this" i.e.
-	//"if we are expecting this message"
-	if pl.WaitingForNegotiator == negotiation.GetVMIndex() {
+	if pl.WaitingForNegotiator == int(negotiation.Height) {
 		pl.WaitingForNegotiator = -1
 	}
-	pl.OngoingNegotiations[negotiation.Height] = true
-	//if pl.ShouldBeFaulted[int(negotiation.Height)]
+
+	pl.OngoingNegotiations[negotiation.Height] = s.GetTimestamp().GetTime().Unix()
+	if s.Leader {
+		// TODO: if I am the Leader being faulted, I should respond by sending out
+		// a MissingMsgResponse to everyone for the msg I'm being faulted for
+	}
+
+	shouldBeFaulted, ok := pl.ShouldBeFaulted[int(negotiation.Height)]
+	if ok {
+		if shouldBeFaulted != nil {
+			// If we've made it here, that means we were waiting for this negotiation to start
+			// and we already agree that this Leader should be faulted
+			auditServerList := s.GetOnlineAuditServers(negotiation.DBHeight)
+			if len(auditServerList) > 0 {
+				replacementServer := auditServerList[0]
+				sf := messages.NewServerFault(s.GetTimestamp(), shouldBeFaulted, replacementServer.GetChainID(), int(negotiation.VMIndex), negotiation.DBHeight, negotiation.Height)
+				if sf != nil {
+					sf.Sign(s.serverPrivKey)
+					s.NetworkOutMsgQueue() <- sf
+					s.InMsgQueue() <- sf
+				}
+			}
+
+		}
+	}
 
 }
 

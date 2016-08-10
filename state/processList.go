@@ -72,9 +72,10 @@ type ProcessList struct {
 
 	// Negotiation tracker variables
 	WaitingForNegotiator       int
-	WaitingForNegotiationSince time.Time
-	OngoingNegotiations        map[uint32]bool
+	WaitingForNegotiationSince int64
+	OngoingNegotiations        map[uint32]int64 // this maps PL height to negotiation start-time (for timeout purposes)
 	ShouldBeFaulted            map[int]interfaces.IHash
+	AmIPledged                 bool
 
 	// DB Sigs
 	DBSignatures []DBSig
@@ -501,19 +502,42 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	}
 	if p.State.Leader {
 		if now-thetime >= waitSeconds {
+			responsibleFaulterIdx := (vmIndex + 1) % len(p.FedServers)
 			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
-			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
-			auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
-			if len(auditServerList) > 0 {
-				replacementServer := auditServerList[0]
-				sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
-				if sf != nil {
-					sf.Sign(p.State.serverPrivKey)
-					p.State.NetworkOutMsgQueue() <- sf
-					p.State.InMsgQueue() <- sf
+
+			if p.State.LeaderVMIndex == responsibleFaulterIdx {
+				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
+				if negotiationMsg != nil {
+					negotiationMsg.Sign(p.State.serverPrivKey)
+					p.State.NetworkOutMsgQueue() <- negotiationMsg
+					p.State.InMsgQueue() <- negotiationMsg
 				}
 				thetime = now
+			} else {
+				negotiationStartTime, exists := p.OngoingNegotiations[uint32(height)]
+				if exists {
+					//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
+					auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
+					if len(auditServerList) > 0 {
+						replacementServer := auditServerList[0]
+						sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
+						if sf != nil {
+							sf.Sign(p.State.serverPrivKey)
+							p.State.NetworkOutMsgQueue() <- sf
+							p.State.InMsgQueue() <- sf
+						}
+						thetime = now
+					}
+					if now-negotiationStartTime > 40 {
+						// TODO: fault negotiator
+						fmt.Println("Time to fault the negotiator!")
+					}
+				} else {
+					p.WaitingForNegotiator = height
+					p.WaitingForNegotiationSince = now
+				}
 			}
+			p.ShouldBeFaulted[height] = id
 		}
 	}
 
