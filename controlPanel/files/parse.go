@@ -8,8 +8,8 @@ import (
 	"fmt"
 )
 
-// Custom parsing of static files. Will accept a * for all files
-// with extension
+// Custom parsing of static files. Makes it easier to use with templates
+
 func CustomParseGlob(temp *template.Template, file string) *template.Template {
 	var err error
 	readers, err := OpenGlob(file)
