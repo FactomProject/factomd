@@ -249,7 +249,8 @@ func TestHandleV2EntryACK(t *testing.T) {
 				continue
 			}
 			req := AckRequest{}
-			txID := tx.Hash().String()
+
+			txID := tx.GetSigHash().String()
 			entryHash := tx.GetEntryHash().String()
 			req.TxID = txID
 

@@ -56,7 +56,8 @@ func main() {
 			panic(err)
 		}
 	}
-	dbo := state.GetDB()
+	dbo := state.GetAndLockDB()
+	defer state.UnlockDB()
 
 	if chainID != "" {
 		err := be.ExportEChain(chainID, dbo)
