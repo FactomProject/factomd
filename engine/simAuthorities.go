@@ -130,13 +130,49 @@ func fundWallet(st *state.State, amt uint64) error {
 	return nil
 }
 
+// Temporary function to copy from old identity chain to new chain
+func copyOver(st *state.State) {
+	var err error
+	sec, _ := hex.DecodeString(ecSec)
+	ec, _ := factom.MakeECAddress(sec[:32])
+	fundWallet(st, 10)
+	chain, _ := primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+	ents, _ := st.DB.FetchAllEntriesByChainID(chain)
+	for i, e := range ents {
+		eNew := new(factom.Entry)
+		eNew.ExtIDs = e.ExternalIDs()
+		eNew.ChainID = e.GetChainID().String()
+		eNew.Content = e.GetContent()
+
+		paramsRev := new(wsapi.EntryRequest)
+		paramsCom := new(wsapi.EntryRequest)
+		com, rev := getMessageStringEntry(eNew, ec)
+		paramsCom.Entry = com
+		paramsRev.Entry = rev
+		jCommit := primitives.NewJSON2Request("commit-entry", i, paramsCom)
+		jRev := primitives.NewJSON2Request("reveal-entry", i, paramsRev)
+		//fmt.Println("DEBUG:", jCommit.String())
+		//fmt.Println("DEBUG:", jRev.String())
+
+		_, err = v2Request(jCommit, st.GetPort())
+		//_, err = wsapi.HandleV2Request(st, jCommit)
+		if err != nil {
+			log.Println("Error in making identities: " + err.Error())
+		}
+		_, err = v2Request(jRev, st.GetPort())
+		//_, err = wsapi.HandleV2Request(st, jRev)
+		if err != nil {
+			log.Println("Error in making identities: " + err.Error())
+		}
+	}
+}
+
 func setUpAuthorites(st *state.State, buildMain bool) []hardCodedAuthority {
-	// 0201559923a3d401000183ddb4b300646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc42883dceb94003b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da2901718b5edd2914acc2e4677f336c1a32736e5e9bde13663e6413894f57ec272e28da9e933ab39800c03e61b8740e2d7ec95d0019421a995d00bc4d1e52a1a3e1d68bf8d0d05e41396ba0fc867cc3d5febf5bf6baf187ef3291a874b876027c4e03
 	authStack = make([]hardCodedAuthority, 0)
 	authKeyLibrary = make([]hardCodedAuthority, 0)
 	list := buildMessages()
 	if buildMain {
-		blank, _ := primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+		blank, _ := primitives.HexToHash("1d1d1d1d07714fea910f9c6e42e5dc072c86491a3d80418855a2499e85b0039f")
 		exists, err := st.DB.FetchHeadIndexByChainID(blank)
 		if exists != nil && err == nil {
 
@@ -151,7 +187,9 @@ func buildMainChain(port int) {
 	sec, _ := hex.DecodeString(ecSec)
 	ec, _ := factom.MakeECAddress(sec[:32])
 	e := new(factom.Entry)
-	e.ExtIDs = make([][]byte, 0)
+	e.ExtIDs = make([][]byte, 2)
+	e.ExtIDs[0] = []byte("Factom Identity Registration Chain")
+	e.ExtIDs[1] = []byte("10056011560")
 	c := factom.NewChain(e)
 
 	com, rev := getMessageStringChain(c, ec)
@@ -389,6 +427,9 @@ func makeBTCKey(ele hardCodedAuthority, ec *factom.ECAddress) (string, string, *
 }
 
 func getMessageStringEntry(e *factom.Entry, ec *factom.ECAddress) (string, string) {
+	if e.ChainID == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
+		e.ChainID = "1d1d1d1d07714fea910f9c6e42e5dc072c86491a3d80418855a2499e85b0039f"
+	}
 	j, err := factom.ComposeEntryCommit(e, ec)
 	if err != nil {
 		return "", ""
