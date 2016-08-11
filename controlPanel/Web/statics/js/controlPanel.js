@@ -301,7 +301,7 @@ function updateAllPeers() {
       } else {
         newPeers = newPeers + 1
         if (newPeers < 20) { // If over 20 new peers, only load 20. Will get remaining next pass.
-            if(PeerSortToggle == false) {
+            if(PeerAddFromTopToggle == false) {
               $("#peerList > tbody").prepend("\
               <tr id='" + peer.Hash + "'>\
                   <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
@@ -359,55 +359,168 @@ $("body").on('mouseup',"#peerList  #disconnect",function(e) {
   })
 })
 
-// true = shortest first, false = longest first
-PeerSortToggle = true
-
+SortToggle = true
+PeerAddFromTopToggle = true
 // Sorting
+// Sort by Duration
 $("#peer-duration").on('mouseup', function(e){
-  if(PeerSortToggle == true) {
-    //console.log("Sorting with most recent on top")
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-duration-sort-img").removeClass("hide")
     $("#peer-duration-sort-img").attr("src","img/up.png")
   } else {
-    //console.log("Sorting with oldest on top")
+    $("#peer-duration-sort-img").removeClass("hide")
     $("#peer-duration-sort-img").attr("src","img/down.png")
   }
 
   array = $("#peerList tbody tr").get()
   valArray = $("#peerList tbody tr").find("#momentconnected").get()
 
-  newValArray = Array(valArray.length);
-  newArray = Array(valArray.length);
+  array = generalSort(durationIsLessThan, array, valArray)
 
-  for(i = 0; i < newArray.length; i++) {
-    tmpVal = valArray[i]
-    tmp = array[i]
+  $("#peerList tbody").html(array)
 
-    if(PeerSortToggle == true) {
-      for(j = i - 1; j > -1 && !isLessThan(valArray[j].innerText, tmpVal.innerText); j--) {
-        valArray[j+1] = valArray[j]
+  PeerAddFromTopToggle = SortToggle
+})
+
+// Sort by IP
+$("#peer-ip").on('mouseup', function(e){
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-ip-sort-img").removeClass("hide")
+    $("#peer-ip-sort-img").attr("src","img/up.png")
+  } else {
+    $("#peer-ip-sort-img").removeClass("hide")
+    $("#peer-ip-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#ip span").get()
+
+  array = generalSort(ipIsLessThan, array, valArray)
+
+  $("#peerList tbody").html(array)
+})
+
+// Sort by Sent
+$("#peer-sent").on('mouseup', function(e){
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-sent-sort-img").removeClass("hide")
+    $("#peer-sent-sort-img").attr("src","img/up.png")
+  } else {
+    $("#peer-sent-sort-img").removeClass("hide")
+    $("#peer-sent-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#sent").get()
+
+  array = generalSort(msgIsLessThan, array, valArray)
+
+  $("#peerList tbody").html(array)
+})
+
+// Sort by Received
+$("#peer-received").on('mouseup', function(e){
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-received-sort-img").removeClass("hide")
+    $("#peer-received-sort-img").attr("src","img/up.png")
+  } else {
+    $("#peer-received-sort-img").removeClass("hide")
+    $("#peer-received-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#received").get()
+
+  array = generalSort(msgIsLessThan, array, valArray)
+
+  $("#peerList tbody").html(array)
+})
+
+function generalSort(lessThanFunction, array, valueArray) {
+  if(SortToggle == true) {
+    SortToggle = false
+  } else {
+    SortToggle = true
+  }
+  peerLen = valueArray.length
+  for(index = 0; index < peerLen; index++) {
+    tmpVal = valueArray[index]
+    tmp = array[index]
+
+    if(SortToggle == true) {
+      for(j = index - 1; j > -1 && !lessThanFunction(valueArray[j].innerText, tmpVal.innerText); j--) {
+        valueArray[j+1] = valueArray[j]
         array[j+1] = array[j]
       }
     } else {
-      for(j = i - 1; j > -1 && isLessThan(valArray[j].innerText, tmpVal.innerText); j--) {
-        valArray[j+1] = valArray[j]
+      for(j = index - 1; j > -1 && lessThanFunction(valueArray[j].innerText, tmpVal.innerText); j--) {
+        valueArray[j+1] = valueArray[j]
         array[j+1] = array[j]
       }
     }
 
-    valArray[j+1] = tmpVal
+    valueArray[j+1] = tmpVal
     array[j+1] = tmp
   }
+  return array
+}
 
-  $("#peerList tbody").html(array)
-
-  if(PeerSortToggle == true) {
-    PeerSortToggle = false
-  } else {
-    PeerSortToggle = true
+function msgIsLessThan(a, b) {
+  if(typeof a != "string" || typeof b != "string") {
+    return 0
   }
-})
+  if(a.length == 0 || b.length == 0) {
+    return 0
+  }
 
-function isLessThan(a, b) {
+  aSplit = a.split("(")
+  aData = aSplit[1].split(" ")
+  aVal = convertToBytes(aData[0], aData[1])
+
+  bSplit = b.split("(")
+  bData = bSplit[1].split(" ")
+  bVal = convertToBytes(bData[0], bData[1])
+
+  if(aVal < bVal) {
+    return 1
+  }
+  return 0
+
+}
+
+function ipIsLessThan(a, b) {
+  if(typeof a != "string" || typeof b != "string") {
+    return -1
+  }
+  a.split(".")
+  b.split(".")
+
+  aLen = a.length
+  bLen = b.length
+  if(aLen < bLen) {
+    return 1
+  }
+
+  for(i = 0; i < aLen; i++){
+    if(Number(b[i]) == "NaN") {
+      return 1
+    } else if(Number(a[i]) == "NaN"){
+      return 0
+    }
+
+    if(Number(a[i]) < Number(b[i])) {
+      return 1
+    } else if(Number(a[i]) > Number(b[i])){
+      return 0
+    }
+  }
+}
+
+function durationIsLessThan(a, b) {
   aSec = convertToSeconds(a)
   bSec = convertToSeconds(b)
  // console.log(a, aSec,"|",b, bSec)
@@ -441,6 +554,16 @@ function convertToSeconds(time) {
     return seconds[0] * 3600
   } else if(seconds[1].includes("day")) {
     return seconds[0] * 86400
+  }
+}
+
+function convertToBytes(number, string) {
+  if(string.includes("KB")) {
+    return number * 1000
+  } else if(string.includes("MB")) {
+    return number * 1000000
+  } else if(string.includes("GB")) {
+    return number * 1000000
   }
 }
 
