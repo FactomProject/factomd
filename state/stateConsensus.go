@@ -285,20 +285,6 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
 	pl := s.ProcessLists.Get(sf.DBHeight)
 
-	if s.IdentityChainID.IsSameAs(sf.AuditServerID) {
-		// I am the audit server being promoted
-		if !pl.AmIPledged {
-			pl.AmIPledged = true
-			fmt.Println("JUSTIN AUDIT SERVER ", s.IdentityChainID.String()[:10], "PLEDGING TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
-			nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-			if nsf != nil {
-				nsf.Sign(s.serverPrivKey)
-				s.NetworkOutMsgQueue() <- nsf
-				s.InMsgQueue() <- nsf
-			}
-		}
-	}
-
 	var issuerID [32]byte
 	rawIssuerID := sf.GetSignature().GetKey()
 	for i := 0; i < 32; i++ {
@@ -354,36 +340,52 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	} else {
 		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
 	}
-	if s.Leader && cnt > ((fedServerCnt/2)-1) {
-		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
-		if s.LeaderVMIndex == responsibleFaulterIdx {
-			foundAudit, aidx := pl.GetAuditServerIndexHash(sf.AuditServerID)
-			if foundAudit {
-				audServerReplacementID := pl.AuditServers[aidx].LeaderToReplace()
-				if audServerReplacementID != nil {
-					if audServerReplacementID.IsSameAs(sf.ServerID) {
-						// if we have made it this far, that means we have successfully received an "AOK" message
-						// from the audit server being promoted... this means we can proceed and issue a FullFault
-						var listOfSigs []interfaces.IFullSignature
-						for _, sig := range s.FaultMap[coreHash] {
-							listOfSigs = append(listOfSigs, sig)
-						}
-						// Add our own signature to the list before sending out fullFault, to ensure a majority
-						sf.Sign(s.serverPrivKey)
-						listOfSigs = append(listOfSigs, sf.Signature)
+	if cnt > ((fedServerCnt / 2) - 1) {
+		if s.Leader {
+			responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
+			if s.LeaderVMIndex == responsibleFaulterIdx {
+				foundAudit, aidx := pl.GetAuditServerIndexHash(sf.AuditServerID)
+				if foundAudit {
+					audServerReplacementID := pl.AuditServers[aidx].LeaderToReplace()
+					if audServerReplacementID != nil {
+						if audServerReplacementID.IsSameAs(sf.ServerID) {
+							// if we have made it this far, that means we have successfully received an "AOK" message
+							// from the audit server being promoted... this means we can proceed and issue a FullFault
+							var listOfSigs []interfaces.IFullSignature
+							for _, sig := range s.FaultMap[coreHash] {
+								listOfSigs = append(listOfSigs, sig)
+							}
+							// Add our own signature to the list before sending out fullFault, to ensure a majority
+							sf.Sign(s.serverPrivKey)
+							listOfSigs = append(listOfSigs, sf.Signature)
 
-						fullFault := messages.NewFullServerFault(sf, listOfSigs)
-						if fullFault != nil {
-							fmt.Println("JUSTIN YEFF:", s.FactomNodeName, sf.ServerID.String()[:10], sf.AuditServerID.String()[:10])
-							fullFault.Sign(s.serverPrivKey)
-							s.NetworkOutMsgQueue() <- fullFault
-							fullFault.FollowerExecute(s)
-							delete(s.FaultMap, sf.GetCoreHash().Fixed())
+							fullFault := messages.NewFullServerFault(sf, listOfSigs)
+							if fullFault != nil {
+								fmt.Println("JUSTIN YEFF:", s.FactomNodeName, sf.ServerID.String()[:10], sf.AuditServerID.String()[:10])
+								fullFault.Sign(s.serverPrivKey)
+								s.NetworkOutMsgQueue() <- fullFault
+								fullFault.FollowerExecute(s)
+								delete(s.FaultMap, sf.GetCoreHash().Fixed())
+							}
 						}
 					}
 				}
+				fmt.Println("JUSTIN NOFF:", s.FactomNodeName, cnt, "/", fedServerCnt, sf.ServerID.String()[:10], sf.AuditServerID.String()[:10])
 			}
-			fmt.Println("JUSTIN NOFF:", s.FactomNodeName, cnt, "/", fedServerCnt, sf.ServerID.String()[:10], sf.AuditServerID.String()[:10])
+		} else {
+			if s.IdentityChainID.IsSameAs(sf.AuditServerID) {
+				// I am the audit server being promoted
+				if !pl.AmIPledged {
+					pl.AmIPledged = true
+					fmt.Println("JUSTIN AUDIT SERVER ", s.IdentityChainID.String()[:10], "PLEDGING TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
+					nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+					if nsf != nil {
+						nsf.Sign(s.serverPrivKey)
+						s.NetworkOutMsgQueue() <- nsf
+						s.InMsgQueue() <- nsf
+					}
+				}
+			}
 		}
 	}
 	/*
@@ -431,6 +433,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
+	delete(relevantPL.OngoingNegotiations, fsf.Height)
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
