@@ -210,17 +210,6 @@ function updateHeight() {
   })
 }
 
-// Sorting
-$("#peer-duration").on('mouseup', function(e){
-  console.log("hs")
-  $("#peerList tbody tr").each(function(){
-    next = jQuery(this).next().find("#momentconnected").val()
-    prev = jQuery(this).prev().find("#momentconnected").val()
-    me = jQuery(this).find("#momentconnected").val()
-
-  })
-})
-
 function updateProgressBar(id, current, max) {
   if(max == 0) {
     percent = (current/max) * 100
@@ -273,19 +262,6 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
           $("#" + peer.Hash).find("#disconnect").attr("value", peer.PeerHash)
 
-          $("#" + peer.Hash).find("#disconnect").click(function(){
-            queryState("disconnect", jQuery(this).attr("value"), function(resp){
-              obj = JSON.parse(resp)
-              console.log(obj)
-              if(obj.Access == "denied") {
-                $("#" + obj.Id).find("#disconnect").addClass("disabled")
-                $("#" + obj.Id).find("#disconnect").text("Denied")
-              } else {
-                  $("#" + obj.Id).find("#disconnect").addClass("disabled")
-                  $("#" + obj.Id).find("#disconnect").text("Attempting")
-              }
-            })
-          })
           $("#" + peer.Hash).foundation()
         }
         if ($("#" + peer.Hash).find("#ip span").attr("title") != con.ConnectionNotes) {
@@ -301,11 +277,6 @@ function updateAllPeers() {
           if(peer.Connected == false) { // Need to move to end
             $("#peerList > tbody").find(("#" + peer.Hash)).remove()
           }
-          /*if (peer.Connected == true) {
-            $("#" + peer.Hash).find("#connected").text("Connected")
-          } else {
-            $("#" + peer.Hash).find("#connected").text("Disconnected")
-          }*/
         }
         if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
           $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
@@ -313,7 +284,6 @@ function updateAllPeers() {
             $("#" + peer.Hash).removeClass()
             $("#" + peer.Hash).addClass(formatQuality(con.PeerQuality))
           }
-          //$("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality))
         }
 
         if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
@@ -324,7 +294,6 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#received").val(con.BytesReceived) // Value
           $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
         }
-        console.log(con.MomentConnected)
         if ($("#" + peer.Hash).find("#momentconnected").val() != peer.ConnectionTimeFormatted) {
           $("#" + peer.Hash).find("#momentconnected").val(peer.ConnectionTimeFormatted) // Value
           $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
@@ -332,16 +301,29 @@ function updateAllPeers() {
       } else {
         newPeers = newPeers + 1
         if (newPeers < 20) { // If over 20 new peers, only load 20. Will get remaining next pass.
-          $("#peerList > tbody").prepend("\
-          <tr id='" + peer.Hash + "'>\
-              <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
-              <td id='connected'></td>\
-              <td id='peerquality'></td>\
-              <td id='momentconnected'></td>\
-              <td id='sent' value='-10'></td>\
-              <td id='received' value='-10'></td>\
-              <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
-          </tr>")
+            if(PeerSortToggle == false) {
+              $("#peerList > tbody").prepend("\
+              <tr id='" + peer.Hash + "'>\
+                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='connected'></td>\
+                  <td id='peerquality'></td>\
+                  <td id='momentconnected'></td>\
+                  <td id='sent' value='-10'></td>\
+                  <td id='received' value='-10'></td>\
+                  <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+              </tr>")
+            } else {
+              $("#peerList > tbody").append("\
+              <tr id='" + peer.Hash + "'>\
+                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='connected'></td>\
+                  <td id='peerquality'></td>\
+                  <td id='momentconnected'></td>\
+                  <td id='sent' value='-10'></td>\
+                  <td id='received' value='-10'></td>\
+                  <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+              </tr>")
+            }
         }
 
       }
@@ -361,6 +343,105 @@ function updateAllPeers() {
       }
     })
   }) 
+}
+
+// Add listeners to disconnect buttons
+$("body").on('mouseup',"#peerList  #disconnect",function(e) {
+  queryState("disconnect", jQuery(this).attr("value"), function(resp){
+    obj = JSON.parse(resp)
+    if(obj.Access == "denied") {
+      $("#" + obj.Id).find("#disconnect").addClass("disabled")
+      $("#" + obj.Id).find("#disconnect").text("Denied")
+    } else {
+        $("#" + obj.Id).find("#disconnect").addClass("disabled")
+        $("#" + obj.Id).find("#disconnect").text("Attempting")
+    }
+  })
+})
+
+// true = shortest first, false = longest first
+PeerSortToggle = true
+
+// Sorting
+$("#peer-duration").on('mouseup', function(e){
+  if(PeerSortToggle == true) {
+    //console.log("Sorting with most recent on top")
+    $("#peer-duration-sort-img").attr("src","img/up.png")
+  } else {
+    //console.log("Sorting with oldest on top")
+    $("#peer-duration-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#momentconnected").get()
+
+  newValArray = Array(valArray.length);
+  newArray = Array(valArray.length);
+
+  for(i = 0; i < newArray.length; i++) {
+    tmpVal = valArray[i]
+    tmp = array[i]
+
+    if(PeerSortToggle == true) {
+      for(j = i - 1; j > -1 && !isLessThan(valArray[j].innerText, tmpVal.innerText); j--) {
+        valArray[j+1] = valArray[j]
+        array[j+1] = array[j]
+      }
+    } else {
+      for(j = i - 1; j > -1 && isLessThan(valArray[j].innerText, tmpVal.innerText); j--) {
+        valArray[j+1] = valArray[j]
+        array[j+1] = array[j]
+      }
+    }
+
+    valArray[j+1] = tmpVal
+    array[j+1] = tmp
+  }
+
+  $("#peerList tbody").html(array)
+
+  if(PeerSortToggle == true) {
+    PeerSortToggle = false
+  } else {
+    PeerSortToggle = true
+  }
+})
+
+function isLessThan(a, b) {
+  aSec = convertToSeconds(a)
+  bSec = convertToSeconds(b)
+ // console.log(a, aSec,"|",b, bSec)
+  if(aSec == -1 || bSec == -1) {
+    return -1
+  }
+  if(aSec <= bSec) {
+    return 1 // True
+  } else {
+    return 0 // False
+  }
+}
+
+function convertToSeconds(time) {
+  if(typeof time != "string") {
+    return -1
+  }
+  var seconds = time.split(" ");
+  if(seconds.length < 2) {
+    return -1
+  }
+
+  // If there is a 0 min/hr/day, it should still greater
+  // than lower denomination. Adding 1 covers the 0 case
+  seconds[0]++
+  if(seconds[1].includes("sec")) {
+    return seconds[0] * 1
+  } else if(seconds[1].includes("min")) {
+    return seconds[0] * 60
+  } else if(seconds[1].includes("hr")) {
+    return seconds[0] * 3600
+  } else if(seconds[1].includes("day")) {
+    return seconds[0] * 86400
+  }
 }
 
 function contains(haystack, needle) {
