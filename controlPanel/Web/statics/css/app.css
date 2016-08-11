@@ -223,3 +223,6 @@ section .metric table .button { margin: 0; }
 #disconnect { width:90px; }
 
 #peer-duration { cursor: pointer; }
+#peer-ip { cursor: pointer; }
+#peer-sent { cursor: pointer; }
+#peer-received { cursor: pointer; }
