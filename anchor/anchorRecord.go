@@ -81,6 +81,15 @@ func (ar *AnchorRecord) MarshalAndSign(priv interfaces.Signer) ([]byte, error) {
 	return append(data, sig.Bytes()...), nil
 }
 
+func (ar *AnchorRecord) MarshalAndSignV2(priv interfaces.Signer) ([]byte, []byte, error) {
+	data, err := ar.Marshal()
+	if err != nil {
+		return nil, nil, err
+	}
+	sig := priv.Sign(data)
+	return data, sig.Bytes(), nil
+}
+
 func (ar *AnchorRecord) Unmarshal(data []byte) error {
 	if len(data) == 0 {
 		return fmt.Errorf("Invalid data passed")
@@ -108,7 +117,7 @@ func UnmarshalAnchorRecord(data []byte) (*AnchorRecord, error) {
 	return ar, nil
 }
 
-func UnmarshalAndvalidateAnchorRecord(data []byte, publicKey interfaces.Verifier) (*AnchorRecord, bool, error) {
+func UnmarshalAndValidateAnchorRecord(data []byte, publicKey interfaces.Verifier) (*AnchorRecord, bool, error) {
 	if len(data) == 0 {
 		return nil, false, fmt.Errorf("Invalid data passed")
 	}
@@ -128,6 +137,34 @@ func UnmarshalAndvalidateAnchorRecord(data []byte, publicKey interfaces.Verifier
 	}
 
 	valid := publicKey.Verify([]byte(anchorStr), &fixed)
+	if valid == false {
+		return nil, false, nil
+	}
+
+	ar := new(AnchorRecord)
+	err = ar.Unmarshal(data)
+	if err != nil {
+		return nil, false, err
+	}
+	return ar, true, nil
+}
+
+func UnmarshalAndValidateAnchorRecordV2(data []byte, extIDs [][]byte, publicKey interfaces.Verifier) (*AnchorRecord, bool, error) {
+	if len(data) == 0 {
+		return nil, false, fmt.Errorf("Invalid data passed")
+	}
+	if len(extIDs) != 1 {
+		return nil, false, fmt.Errorf("Invalid External IDs passed")
+	}
+
+	sig := new(primitives.ByteSliceSig)
+	sig.UnmarshalBinary(extIDs[0])
+	fixed, err := sig.GetFixed()
+	if err != nil {
+		return nil, false, err
+	}
+
+	valid := publicKey.Verify(data, &fixed)
 	if valid == false {
 		return nil, false, nil
 	}

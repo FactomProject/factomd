@@ -49,16 +49,41 @@ func (s *State) Process() (progress bool) {
 		var vm *VM
 		if s.Leader {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+			if len(vm.List) == 0 {
+				dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
+				if dbstate != nil {
+					dbs := new(messages.DirectoryBlockSignature)
+					dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+					//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+					dbs.ServerIdentityChainID = s.GetIdentityChainID()
+					dbs.DBHeight = s.LLeaderHeight
+					dbs.Timestamp = s.GetTimestamp()
+					dbs.SetVMHash(nil)
+					dbs.SetVMIndex(s.LeaderVMIndex)
+					dbs.SetLocal(true)
+					dbs.Sign(s)
+					err := dbs.Sign(s)
+					if err != nil {
+						panic(err)
+					}
+					dbs.LeaderExecute(s)
+				}
+			}
 		}
 
 		switch msg.Validate(s) {
 		case 1:
+
 			if s.RunLeader &&
 				s.Leader &&
 				!s.Saving &&
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
+				if vm.Height == 0 {
+
+				}
+
 				msg.LeaderExecute(s)
 
 			} else {
@@ -130,10 +155,10 @@ func (s *State) ReviewHolding() {
 		}
 
 		if v.Resend(s) {
-			if v.Validate(s) == 1 {
-				s.ResendCnt++
-				v.ComputeVMIndex(s)
-				s.networkOutMsgQueue <- v
+			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if !ok {
+				delete(s.Holding, k)
+				continue
 			}
 		}
 
@@ -143,7 +168,6 @@ func (s *State) ReviewHolding() {
 		}
 
 	}
-
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -356,10 +380,18 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			}
 		}
 
+		//addMsg := messages.NewAddServerByHashMsg(s, 0, auditServerList[0].GetChainID())
+		//s.InMsgQueue() <- addMsg
+		//s.NetworkOutMsgQueue() <- addMsg
+
 		s.RemoveAuditServer(fsf.DBHeight, theAuditReplacement.GetChainID())
 	}
+	//	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
 
-	//s.TrimVMList(fsf.DBHeight, fsf.Height, int(fsf.VMIndex))
+	//removeMsg := messages.NewRemoveServerMsg(s, fsf.ServerID, 0)
+	//s.InMsgQueue() <- removeMsg
+	//s.NetworkOutMsgQueue() <- removeMsg
+
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
 }
@@ -698,23 +730,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			s.DBSigProcessed = 0
 
-			if s.Leader {
-				dbs := new(messages.DirectoryBlockSignature)
-				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-				dbs.ServerIdentityChainID = s.GetIdentityChainID()
-				dbs.DBHeight = s.LLeaderHeight
-				dbs.Timestamp = s.GetTimestamp()
-				dbs.SetVMHash(nil)
-				dbs.SetVMIndex(s.LeaderVMIndex)
-				dbs.SetLocal(true)
-				dbs.Sign(s)
-				err := dbs.Sign(s)
-				if err != nil {
-					panic(err)
-				}
-				dbs.LeaderExecute(s)
-			} else {
+			if !s.Leader {
 				for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
 					if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
 						hb := new(messages.Heartbeat)
