@@ -419,6 +419,7 @@ $("#peer-sent").on('mouseup', function(e){
   array = generalSort(msgIsLessThan, array, valArray)
 
   $("#peerList tbody").html(array)
+  PeerAddFromTopToggle = SortToggle
 })
 
 // Sort by Received
@@ -438,6 +439,7 @@ $("#peer-received").on('mouseup', function(e){
   array = generalSort(msgIsLessThan, array, valArray)
 
   $("#peerList tbody").html(array)
+  PeerAddFromTopToggle = SortToggle
 })
 
 function generalSort(lessThanFunction, array, valueArray) {
