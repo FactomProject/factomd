@@ -210,17 +210,6 @@ function updateHeight() {
   })
 }
 
-// Sorting
-$("#peer-duration").on('mouseup', function(e){
-  console.log("hs")
-  $("#peerList tbody tr").each(function(){
-    next = jQuery(this).next().find("#momentconnected").val()
-    prev = jQuery(this).prev().find("#momentconnected").val()
-    me = jQuery(this).find("#momentconnected").val()
-
-  })
-})
-
 function updateProgressBar(id, current, max) {
   if(max == 0) {
     percent = (current/max) * 100
@@ -273,19 +262,6 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#ip").val(peer.PeerHash) // Value
           $("#" + peer.Hash).find("#disconnect").attr("value", peer.PeerHash)
 
-          $("#" + peer.Hash).find("#disconnect").click(function(){
-            queryState("disconnect", jQuery(this).attr("value"), function(resp){
-              obj = JSON.parse(resp)
-              console.log(obj)
-              if(obj.Access == "denied") {
-                $("#" + obj.Id).find("#disconnect").addClass("disabled")
-                $("#" + obj.Id).find("#disconnect").text("Denied")
-              } else {
-                  $("#" + obj.Id).find("#disconnect").addClass("disabled")
-                  $("#" + obj.Id).find("#disconnect").text("Attempting")
-              }
-            })
-          })
           $("#" + peer.Hash).foundation()
         }
         if ($("#" + peer.Hash).find("#ip span").attr("title") != con.ConnectionNotes) {
@@ -301,11 +277,6 @@ function updateAllPeers() {
           if(peer.Connected == false) { // Need to move to end
             $("#peerList > tbody").find(("#" + peer.Hash)).remove()
           }
-          /*if (peer.Connected == true) {
-            $("#" + peer.Hash).find("#connected").text("Connected")
-          } else {
-            $("#" + peer.Hash).find("#connected").text("Disconnected")
-          }*/
         }
         if ($("#" + peer.Hash).find("#peerquality").val() != con.PeerQuality) {
           $("#" + peer.Hash).find("#peerquality").val(con.PeerQuality) // Value
@@ -313,7 +284,6 @@ function updateAllPeers() {
             $("#" + peer.Hash).removeClass()
             $("#" + peer.Hash).addClass(formatQuality(con.PeerQuality))
           }
-          //$("#" + peer.Hash).find("#peerquality").text(formatQuality(con.PeerQuality))
         }
 
         if ($("#" + peer.Hash).find("#sent").val().length == 0 || $("#" + peer.Hash).find("#sent").val() != con.BytesSent) {
@@ -324,7 +294,6 @@ function updateAllPeers() {
           $("#" + peer.Hash).find("#received").val(con.BytesReceived) // Value
           $("#" + peer.Hash).find("#received").text(formatBytes(con.BytesReceived, con.MessagesReceived))
         }
-        console.log(con.MomentConnected)
         if ($("#" + peer.Hash).find("#momentconnected").val() != peer.ConnectionTimeFormatted) {
           $("#" + peer.Hash).find("#momentconnected").val(peer.ConnectionTimeFormatted) // Value
           $("#" + peer.Hash).find("#momentconnected").text(peer.ConnectionTimeFormatted)
@@ -332,16 +301,29 @@ function updateAllPeers() {
       } else {
         newPeers = newPeers + 1
         if (newPeers < 20) { // If over 20 new peers, only load 20. Will get remaining next pass.
-          $("#peerList > tbody").prepend("\
-          <tr id='" + peer.Hash + "'>\
-              <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
-              <td id='connected'></td>\
-              <td id='peerquality'></td>\
-              <td id='momentconnected'></td>\
-              <td id='sent' value='-10'></td>\
-              <td id='received' value='-10'></td>\
-              <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
-          </tr>")
+            if(PeerAddFromTopToggle == false) {
+              $("#peerList > tbody").prepend("\
+              <tr id='" + peer.Hash + "'>\
+                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='connected'></td>\
+                  <td id='peerquality'></td>\
+                  <td id='momentconnected'></td>\
+                  <td id='sent' value='-10'></td>\
+                  <td id='received' value='-10'></td>\
+                  <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+              </tr>")
+            } else {
+              $("#peerList > tbody").append("\
+              <tr id='" + peer.Hash + "'>\
+                  <td id='ip'><span data-tooltip class='has-tip top' title=''>Loading...</span></td>\
+                  <td id='connected'></td>\
+                  <td id='peerquality'></td>\
+                  <td id='momentconnected'></td>\
+                  <td id='sent' value='-10'></td>\
+                  <td id='received' value='-10'></td>\
+                  <td><a id='disconnect' class='button tiny alert'>Disconnect</a></td>\
+              </tr>")
+            }
         }
 
       }
@@ -361,6 +343,228 @@ function updateAllPeers() {
       }
     })
   }) 
+}
+
+// Add listeners to disconnect buttons
+$("body").on('mouseup',"#peerList  #disconnect",function(e) {
+  queryState("disconnect", jQuery(this).attr("value"), function(resp){
+    obj = JSON.parse(resp)
+    if(obj.Access == "denied") {
+      $("#" + obj.Id).find("#disconnect").addClass("disabled")
+      $("#" + obj.Id).find("#disconnect").text("Denied")
+    } else {
+        $("#" + obj.Id).find("#disconnect").addClass("disabled")
+        $("#" + obj.Id).find("#disconnect").text("Attempting")
+    }
+  })
+})
+
+SortToggle = true
+PeerAddFromTopToggle = true
+// Sorting
+// Sort by Duration
+$("#peer-duration").on('mouseup', function(e){
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-duration-sort-img").removeClass("hide")
+    $("#peer-duration-sort-img").attr("src","img/up.png")
+  } else {
+    $("#peer-duration-sort-img").removeClass("hide")
+    $("#peer-duration-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#momentconnected").get()
+
+  array = generalSort(durationIsLessThan, array, valArray)
+
+  $("#peerList tbody").html(array)
+
+  PeerAddFromTopToggle = SortToggle
+})
+
+// Sort by IP
+$("#peer-ip").on('mouseup', function(e){
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-ip-sort-img").removeClass("hide")
+    $("#peer-ip-sort-img").attr("src","img/up.png")
+  } else {
+    $("#peer-ip-sort-img").removeClass("hide")
+    $("#peer-ip-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#ip span").get()
+
+  array = generalSort(ipIsLessThan, array, valArray)
+
+  $("#peerList tbody").html(array)
+})
+
+// Sort by Sent
+$("#peer-sent").on('mouseup', function(e){
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-sent-sort-img").removeClass("hide")
+    $("#peer-sent-sort-img").attr("src","img/up.png")
+  } else {
+    $("#peer-sent-sort-img").removeClass("hide")
+    $("#peer-sent-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#sent").get()
+
+  array = generalSort(msgIsLessThan, array, valArray)
+
+  $("#peerList tbody").html(array)
+})
+
+// Sort by Received
+$("#peer-received").on('mouseup', function(e){
+  $(".sorting-img").addClass("hide")
+  if(SortToggle == true) {
+    $("#peer-received-sort-img").removeClass("hide")
+    $("#peer-received-sort-img").attr("src","img/up.png")
+  } else {
+    $("#peer-received-sort-img").removeClass("hide")
+    $("#peer-received-sort-img").attr("src","img/down.png")
+  }
+
+  array = $("#peerList tbody tr").get()
+  valArray = $("#peerList tbody tr").find("#received").get()
+
+  array = generalSort(msgIsLessThan, array, valArray)
+
+  $("#peerList tbody").html(array)
+})
+
+function generalSort(lessThanFunction, array, valueArray) {
+  if(SortToggle == true) {
+    SortToggle = false
+  } else {
+    SortToggle = true
+  }
+  peerLen = valueArray.length
+  for(index = 0; index < peerLen; index++) {
+    tmpVal = valueArray[index]
+    tmp = array[index]
+
+    if(SortToggle == true) {
+      for(j = index - 1; j > -1 && !lessThanFunction(valueArray[j].innerText, tmpVal.innerText); j--) {
+        valueArray[j+1] = valueArray[j]
+        array[j+1] = array[j]
+      }
+    } else {
+      for(j = index - 1; j > -1 && lessThanFunction(valueArray[j].innerText, tmpVal.innerText); j--) {
+        valueArray[j+1] = valueArray[j]
+        array[j+1] = array[j]
+      }
+    }
+
+    valueArray[j+1] = tmpVal
+    array[j+1] = tmp
+  }
+  return array
+}
+
+function msgIsLessThan(a, b) {
+  if(typeof a != "string" || typeof b != "string") {
+    return 0
+  }
+  if(a.length == 0 || b.length == 0) {
+    return 0
+  }
+
+  aSplit = a.split("(")
+  aData = aSplit[1].split(" ")
+  aVal = convertToBytes(aData[0], aData[1])
+
+  bSplit = b.split("(")
+  bData = bSplit[1].split(" ")
+  bVal = convertToBytes(bData[0], bData[1])
+
+  if(aVal < bVal) {
+    return 1
+  }
+  return 0
+
+}
+
+function ipIsLessThan(a, b) {
+  if(typeof a != "string" || typeof b != "string") {
+    return -1
+  }
+  a.split(".")
+  b.split(".")
+
+  aLen = a.length
+  bLen = b.length
+  if(aLen < bLen) {
+    return 1
+  }
+
+  for(i = 0; i < aLen; i++){
+    if(Number(b[i]) == "NaN") {
+      return 1
+    } else if(Number(a[i]) == "NaN"){
+      return 0
+    }
+
+    if(Number(a[i]) < Number(b[i])) {
+      return 1
+    } else if(Number(a[i]) > Number(b[i])){
+      return 0
+    }
+  }
+}
+
+function durationIsLessThan(a, b) {
+  aSec = convertToSeconds(a)
+  bSec = convertToSeconds(b)
+ // console.log(a, aSec,"|",b, bSec)
+  if(aSec == -1 || bSec == -1) {
+    return -1
+  }
+  if(aSec <= bSec) {
+    return 1 // True
+  } else {
+    return 0 // False
+  }
+}
+
+function convertToSeconds(time) {
+  if(typeof time != "string") {
+    return -1
+  }
+  var seconds = time.split(" ");
+  if(seconds.length < 2) {
+    return -1
+  }
+
+  // If there is a 0 min/hr/day, it should still greater
+  // than lower denomination. Adding 1 covers the 0 case
+  seconds[0]++
+  if(seconds[1].includes("sec")) {
+    return seconds[0] * 1
+  } else if(seconds[1].includes("min")) {
+    return seconds[0] * 60
+  } else if(seconds[1].includes("hr")) {
+    return seconds[0] * 3600
+  } else if(seconds[1].includes("day")) {
+    return seconds[0] * 86400
+  }
+}
+
+function convertToBytes(number, string) {
+  if(string.includes("KB")) {
+    return number * 1000
+  } else if(string.includes("MB")) {
+    return number * 1000000
+  } else if(string.includes("GB")) {
+    return number * 1000000
+  }
 }
 
 function contains(haystack, needle) {

@@ -115,7 +115,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	// Mux for static files
 	mux = http.NewServeMux()
-	mux.Handle("/", files.Server)
+	mux.Handle("/", files.StaticServer)
 
 	go doEvery(5*time.Second, getRecentTransactions)
 	go manageConnections(connections)
@@ -186,6 +186,11 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		if found {
 			w.Write([]byte(respose))
 			return
+		} else {
+			if r.FormValue("known") == "factoidack" {
+				w.Write([]byte(`{"Type": "special-action-fack"}`))
+				return
+			}
 		}
 	}
 	w.Write([]byte(`{"Type": "None"}`))
@@ -645,6 +650,16 @@ func getRecentTransactions(time.Time) {
 		overflow := len(RecentTransactions.FactoidTransactions) - 100
 		if overflow > 0 {
 			RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
+		}
+	}
+
+	// Check if we missed any processing
+	for i, e := range RecentTransactions.Entries {
+		if e.ChainID == "Processing" {
+			entry := getEntry(e.Hash)
+			if entry != nil {
+				RecentTransactions.Entries[i] = *entry
+			}
 		}
 	}
 }

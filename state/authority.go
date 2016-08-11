@@ -69,7 +69,7 @@ func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_
 	}
 
 	// TODO: Remove, is in place so signatures valid when addserver message goes out.
-	// Current issue when new fed server takes his spot.
+	// Current issue is when new fed server takes his spot.
 	for _, id := range st.Identities {
 		if !(id.Status == constants.IDENTITY_FEDERATED_SERVER || id.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
 			continue

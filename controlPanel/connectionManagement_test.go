@@ -219,3 +219,63 @@ func NewP2PConnection(bs uint32, br uint32, ms uint32, mr uint32, addr string, p
 
 	return pc
 }
+
+/* For testing peer table sorts. TODO: Remove
+if len(cmCopy) > 1 {
+		// Testing
+
+		for i := 0; i < 10; i++ {
+			s := new(ConnectionInfo)
+			s.Connected = true
+			s.Hash = hashPeerAddress(fmt.Sprintf("%d min", i))
+			s.ConnectionTimeFormatted = fmt.Sprintf("%d min", i)
+			s.PeerHash = hashPeerAddress(fmt.Sprintf("%d min", i))
+			for key := range cmCopy {
+				s.Connection = cmCopy[key]
+				s.Connection.PeerAddress = fmt.Sprintf("%d min", i)
+				break
+			}
+			list = append(list, *s)
+		}
+		for i := 10; i < 15; i++ {
+			s := new(ConnectionInfo)
+			s.Connected = true
+			s.Hash = hashPeerAddress(fmt.Sprintf("%d hr", i))
+			s.ConnectionTimeFormatted = fmt.Sprintf("%d hr", i)
+			s.PeerHash = hashPeerAddress(fmt.Sprintf("%d hr", i))
+			for key := range cmCopy {
+				s.Connection = cmCopy[key]
+				s.Connection.PeerAddress = fmt.Sprintf("%d hr", i)
+				break
+			}
+			list = append(list, *s)
+		}
+		for i := 15; i < 20; i++ {
+			s := new(ConnectionInfo)
+			s.Connected = true
+			s.Hash = hashPeerAddress(fmt.Sprintf("%d sec", i))
+			s.ConnectionTimeFormatted = fmt.Sprintf("%d sec", i)
+			s.PeerHash = hashPeerAddress(fmt.Sprintf("%d sec", i))
+			for key := range cmCopy {
+				s.Connection = cmCopy[key]
+				s.Connection.PeerAddress = fmt.Sprintf("%d sec", i)
+				break
+			}
+			list = append(list, *s)
+		}
+		for i := 20; i < 25; i++ {
+			s := new(ConnectionInfo)
+			s.Connected = true
+			s.Hash = hashPeerAddress(fmt.Sprintf("%d sec", i))
+			s.ConnectionTimeFormatted = fmt.Sprintf("%d sec", i)
+			s.PeerHash = hashPeerAddress(fmt.Sprintf("%d sec", i))
+			for key := range cmCopy {
+				s.Connection = cmCopy[key]
+				s.Connection.PeerAddress = fmt.Sprintf("%d sec", i)
+				break
+			}
+			list = append(list, *s)
+		}
+		//End
+	}
+*/

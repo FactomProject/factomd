@@ -76,6 +76,8 @@ $("body").on('mouseup',"section #factom-search-link",function(e) {
           window.open("/search?input=" + hash + "&type=" + type);
         }
         //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
+      } else if(obj.Type == "special-action-fack"){
+        window.location = "search?input=" + hash + "&type=" + type
       } else {
         $(".factom-search-error").slideDown(300)
         //console.log(x.response)
@@ -85,6 +87,7 @@ $("body").on('mouseup',"section #factom-search-link",function(e) {
   var formDataLink = new FormData();
   formDataLink.append("method", "search")
   formDataLink.append("search", hash)
+  formDataLink.append("known", type)
 
   x.open("POST", "/post")
   x.send(formDataLink)
