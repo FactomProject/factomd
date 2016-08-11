@@ -277,7 +277,7 @@ func (m *FullServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *FullServerFault) String() string {
-	return fmt.Sprintf("%6s-VM%3d (%x) AuditID: %x PL:%5d DBHt:%5d -- hash[:3]=%x\n SigList: %+v",
+	return fmt.Sprintf("%6s-VM%3d (%v) AuditID: %v PL:%5d DBHt:%5d -- hash[:3]=%x\n SigList: %+v",
 		"FullSFault",
 		m.VMIndex,
 		m.ServerID.String()[:10],
@@ -326,7 +326,7 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 			return 1
 		}
 	}
-
+	fmt.Println("JUSTIN NEVS", state.GetFactomNodeName(), validSigCount, m.AuditServerID.String()[:10], m.ServerID.String()[:10])
 	return -1 // didn't see enough valid sigs
 }
 

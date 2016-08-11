@@ -203,7 +203,7 @@ func (m *Negotiation) Sign(key interfaces.Signer) error {
 }
 
 func (m *Negotiation) String() string {
-	return fmt.Sprintf("%6s-VM%3d: (%x) PL:%5d DBHt:%5d -- hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3v: (%v) PL:%5d DBHt:%5d -- hash[:3]=%x",
 		"Negotiation",
 		m.VMIndex,
 		m.ServerID.String()[:8],

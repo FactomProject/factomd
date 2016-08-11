@@ -504,7 +504,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		if now-thetime >= waitSeconds {
 			responsibleFaulterIdx := (vmIndex + 1) % len(p.FedServers)
 			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
-
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
@@ -530,6 +529,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 					if now-negotiationStartTime > 40 {
 						// TODO: fault negotiator
 						fmt.Println("Time to fault the negotiator!")
+						vm.faultingEOM = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
 					}
 				} else {
 					p.WaitingForNegotiator = height
@@ -537,6 +537,13 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 				}
 			}
 			p.ShouldBeFaulted[height] = id
+		}
+		if p.WaitingForNegotiator == height {
+			if now-p.WaitingForNegotiationSince > 30 {
+				// TODO: fault negotiator
+				fmt.Println("Time to fault the supposed-to-negotiator!")
+				vm.faultingEOM = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
+			}
 		}
 	}
 

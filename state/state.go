@@ -912,11 +912,17 @@ func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 }
 
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
-	return s.ProcessLists.Get(dbheight).FedServers
+	if s.ProcessLists.Get(dbheight) != nil {
+		return s.ProcessLists.Get(dbheight).FedServers
+	}
+	return nil
 }
 
 func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
-	return s.ProcessLists.Get(dbheight).AuditServers
+	if s.ProcessLists.Get(dbheight) != nil {
+		return s.ProcessLists.Get(dbheight).AuditServers
+	}
+	return nil
 }
 
 func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
