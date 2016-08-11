@@ -49,7 +49,8 @@ func (s *State) Process() (progress bool) {
 		var vm *VM
 		if s.Leader {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-			if len(vm.List) == 0 {
+			if !vm.signed && len(vm.List) == 0 {
+				vm.signed = true
 				dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
 				if dbstate != nil {
 					dbs := new(messages.DirectoryBlockSignature)
@@ -66,7 +67,7 @@ func (s *State) Process() (progress bool) {
 					if err != nil {
 						panic(err)
 					}
-					dbs.LeaderExecute(s)
+					s.LeaderExecute(dbs)
 				}
 			}
 		}
@@ -80,12 +81,7 @@ func (s *State) Process() (progress bool) {
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
-				if vm.Height == 0 {
-
-				}
-
 				msg.LeaderExecute(s)
-
 			} else {
 				msg.FollowerExecute(s)
 			}

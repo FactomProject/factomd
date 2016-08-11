@@ -91,6 +91,7 @@ type VM struct {
 	missingEOM     int64             // Ask for EOM because it is late
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
+	signed         bool              // We have signed the previous block.
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
