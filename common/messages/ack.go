@@ -81,14 +81,14 @@ func (m *Ack) Validate(state interfaces.IState) int {
 		return -1
 	}
 	sig := m.Signature.GetSignature()
-	ackSigned, err := state.VerifyFederatedSignature(bytes, sig)
+	ackSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 
 	//ackSigned, err := m.VerifySignature()
 	if err != nil {
 		//fmt.Println("Err is not nil on Ack sig check: ", err)
 		return -1
 	}
-	if !ackSigned {
+	if ackSigned < 1 {
 		return -1
 	}
 	return 1

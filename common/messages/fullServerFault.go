@@ -303,11 +303,11 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 	sig := m.Signature.GetSignature()
-	sfSigned, err := state.VerifyFederatedSignature(bytes, sig)
+	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 	if err != nil {
 		return -1
 	}
-	if !sfSigned {
+	if sfSigned < 1 {
 		return -1
 	}
 	cb, err := m.MarshalCore()
@@ -316,8 +316,8 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	}
 	validSigCount := 0
 	for _, fedSig := range m.SignatureList.List {
-		check, err := state.VerifyFederatedSignature(cb, fedSig.GetSignature())
-		if err == nil && check {
+		check, err := state.VerifyAuthoritySignature(cb, fedSig.GetSignature(), m.DBHeight)
+		if err == nil && check == 1 {
 			validSigCount++
 		}
 		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {

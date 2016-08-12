@@ -826,7 +826,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if !dbs.DBSignature.Verify(data) {
 				fmt.Println("Debug: DBSig Signature Error, Verify errored")
 			} else {
-				if valid, err := s.VerifyFederatedSignature(data, dbs.DBSignature.GetSignature()); err == nil && valid {
+				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
 					allChecks = true
 				}
 			}

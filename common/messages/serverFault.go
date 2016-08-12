@@ -251,12 +251,12 @@ func (m *ServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 	sig := m.Signature.GetSignature()
-	sfSigned, err := state.VerifyFederatedSignature(bytes, sig)
+	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 	if err != nil {
 		//fmt.Println("Err is not nil on ServerFault sig check (verifying): ", err)
 		return -1
 	}
-	if !sfSigned {
+	if sfSigned < 1 {
 		return -1
 	}
 	return 1 // err == nil and sfSigned == true
