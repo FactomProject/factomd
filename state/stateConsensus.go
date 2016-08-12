@@ -50,11 +50,9 @@ func (s *State) Process() (progress bool) {
 
 		// RunLeader shouldn't matter, but for some reason it does.  If we are the leader
 		// and this is a new block, then we need to generate a dbsignature for the new vm.
-		if s.Leader && s.RunLeader {
-			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		if s.Leader {
 			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-			if !vm.signed && len(vm.List) == 0 {
+			if s.RunLeader && !s.Syncing && !vm.signed && len(vm.List) == 0 {
 				vm.signed = true
 				dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
 				if dbstate != nil {
