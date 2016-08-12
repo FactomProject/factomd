@@ -388,7 +388,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// Time out commits every now and again.
 	for k := range s.Commits {
 		var keep [] interfaces.IMsg
-		for i, v := range s.Commits[k] {
+		for _, v := range s.Commits[k] {
 			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if ok {
 				keep = append(keep, v)
