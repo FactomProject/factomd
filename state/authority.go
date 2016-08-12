@@ -56,25 +56,11 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 // Also checks Identity list which contains pending Fed/Aud servers. TODO: Remove those
 func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	for _, auth := range st.Authorities {
+		// Currently Audit servers are also valid signatures
 		//if !(auth.Status == constants.IDENTITY_FEDERATED_SERVER || auth.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
 		//	continue
 		//}
 		valid, err := auth.VerifySignature(msg, sig)
-		if err != nil {
-			continue
-		}
-		if valid {
-			return true, nil
-		}
-	}
-
-	// TODO: Remove, is in place so signatures valid when addserver message goes out.
-	// Current issue is when new fed server takes his spot.
-	for _, id := range st.Identities {
-		if !(id.Status == constants.IDENTITY_FEDERATED_SERVER || id.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
-			continue
-		}
-		valid, err := id.VerifySignature(msg, sig)
 		if err != nil {
 			continue
 		}
@@ -93,7 +79,6 @@ func (st *State) UpdateAuthSigningKeys(height uint32) {
 					st.Authorities[index].KeyHistory = nil
 				} else {
 					st.Authorities[index].KeyHistory = st.Authorities[index].KeyHistory[1:]
-
 				}
 			}
 		}
@@ -278,7 +263,10 @@ func (s *State) RepairAuthorities() {
 		if s.Authorities[i].ManagementChainID == nil {
 			idIndex := s.isIdentityChain(s.Authorities[i].AuthorityChainID)
 			if idIndex == -1 {
-				s.AddIdentityFromChainID(auth.AuthorityChainID)
+				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
+				if err != nil {
+					continue
+				}
 				idIndex = s.isIdentityChain(s.Authorities[i].AuthorityChainID)
 			}
 			if idIndex != -1 {

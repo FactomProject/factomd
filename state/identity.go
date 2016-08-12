@@ -24,7 +24,7 @@ var (
 )
 
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
-	if cid.String() == FIRST_IDENTITY {
+	if cid.String() == FIRST_IDENTITY { // Ignore first assumed identity
 		return nil
 	}
 
@@ -62,7 +62,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 		eblkStackRoot = append(eblkStackRoot, eblk)
 		mr = eblk.GetHeader().GetPrevKeyMR()
 	}
-	// FILO
+
 	for i := len(eblkStackRoot) - 1; i >= 0; i-- {
 		LoadIdentityByEntryBlock(eblkStackRoot[i], st)
 	}
@@ -102,10 +102,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 			}
 		}
 		mr = eblk.GetHeader().GetPrevKeyMR()
-	}
-
-	if index == -1 {
-		return errors.New("Identity not created, index is -1")
 	}
 
 	eblkStackSub := make([]interfaces.IEntryBlock, 0)
@@ -202,8 +198,6 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 		if st.isAuthorityChain(cid) != -1 {
 			// The authority exists, but the Identity does not. This could be an issue if a
 			// server changes their key as we would not notice the change
-
-			//log.Printfln("dddd Identity WARNING: Identity does not exist but authority does. If you see this warning, please tell Steven and how you produced it.\n    It might recover on its own")
 		}
 		return
 	}

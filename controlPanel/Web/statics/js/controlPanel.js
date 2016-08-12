@@ -601,14 +601,14 @@ function formatBytes(bytes, messages) {
   if (bytes == undefined || messages == undefined) {
     return "0 (0 Kb)"
   }
-  b = Number(bytes / 1000).toFixed(1)
+  b = Number(bytes / 1e+3).toFixed(1)
   if (b < 100) {
     b = b + " KB"
-  } else if ((bytes / 1000000) < 100) {
-    b = Number(bytes / 1000000).toFixed(1)
+  } else if ((bytes / 1e+6) < 100) {
+    b = Number(bytes / 1e+6).toFixed(1)
     b = b + " MB"
   } else {
-      b = Number(bytes / 1000000000).toFixed(1)
+      b = Number(bytes / 1e+9).toFixed(1)
     b = b + " GB"
   }
   m = messages
