@@ -78,6 +78,7 @@ type ProcessList struct {
 type DBSig struct {
 	ChainID   interfaces.IHash
 	Signature interfaces.IFullSignature
+	VMIndex   int
 }
 
 type VM struct {
@@ -91,6 +92,7 @@ type VM struct {
 	missingEOM     int64             // Ask for EOM because it is late
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
+	signed         bool              // We have signed the previous block.
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -175,6 +177,22 @@ func (p *ProcessList) SortAuditServers() {
 }
 
 func (p *ProcessList) SortDBSigs() {
+	// Sort by VMIndex
+	for i := 0; i < len(p.DBSignatures)-1; i++ {
+		done := true
+		for j := 0; j < len(p.DBSignatures)-1-i; j++ {
+			if p.DBSignatures[j].VMIndex > p.DBSignatures[j+1].VMIndex {
+				tmp := p.DBSignatures[j]
+				p.DBSignatures[j] = p.DBSignatures[j+1]
+				p.DBSignatures[j+1] = tmp
+				done = false
+			}
+		}
+		if done {
+			return
+		}
+	}
+	/* Sort by ChainID
 	for i := 0; i < len(p.DBSignatures)-1; i++ {
 		done := true
 		for j := 0; j < len(p.DBSignatures)-1-i; j++ {
@@ -190,7 +208,7 @@ func (p *ProcessList) SortDBSigs() {
 		if done {
 			return
 		}
-	}
+	}*/
 }
 
 // Returns the Federated Server responsible for this hash in this minute
@@ -691,10 +709,24 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 }
 
+func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
+	for _, dbsig := range p.DBSignatures {
+		if dbsig.ChainID.IsSameAs(serverID) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *ProcessList) AddDBSig(serverID interfaces.IHash, sig interfaces.IFullSignature) {
+	found, _ := p.GetFedServerIndexHash(serverID)
+	if !found || p.ContainsDBSig(serverID) {
+		return // Duplicate, or not a federated server
+	}
 	dbsig := new(DBSig)
 	dbsig.ChainID = serverID
 	dbsig.Signature = sig
+	found, dbsig.VMIndex = p.GetVirtualServers(9, serverID) //vmIndex
 	p.DBSignatures = append(p.DBSignatures, *dbsig)
 	p.SortDBSigs()
 }
@@ -704,8 +736,8 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("===ProcessListStart=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v\n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete()))
+		buf.WriteString(fmt.Sprintf("===ProcessListStart===\n"))
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d \n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete(), p.DBHeight))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
