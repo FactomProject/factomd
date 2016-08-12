@@ -736,8 +736,8 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("===ProcessListStart=== %s %d\n", p.State.GetFactomNodeName(), p.DBHeight))
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v\n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete()))
+		buf.WriteString(fmt.Sprintf("===ProcessListStart===\n"))
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d \n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete(), p.DBHeight))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
