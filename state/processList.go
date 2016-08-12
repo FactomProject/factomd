@@ -505,6 +505,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 			responsibleFaulterIdx := (vmIndex + 1) % len(p.FedServers)
 			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
+				fmt.Println("JUSTIN ", p.State.FactomNodeName, "SENDING NEW NEGO BASED OFF ELAP F:", id.String()[:10])
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
@@ -518,6 +519,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 					auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
 					if len(auditServerList) > 0 {
 						replacementServer := auditServerList[0]
+						fmt.Println("JUSTIN ", p.State.FactomNodeName, "SENDING NEW SFA BASED OFF ELAP F:", id.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
 						sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
 						if sf != nil {
 							sf.Sign(p.State.serverPrivKey)
@@ -525,24 +527,30 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 							p.State.InMsgQueue() <- sf
 						}
 						thetime = now
+					} else {
+						fmt.Println("JUSTIN, apparently you got no audit servers", p.State.FactomNodeName)
 					}
 					if now-negotiationStartTime > 40 {
 						// TODO: fault negotiator
-						fmt.Println("Time to fault the negotiator!")
-						vm.faultingEOM = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
+						fmt.Println("Time to fault the negotiator!", p.State.FactomNodeName)
+						thetime = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
 					}
 				} else {
-					p.WaitingForNegotiator = height
-					p.WaitingForNegotiationSince = now
+					if p.WaitingForNegotiator < height {
+						fmt.Println("JUSTIN, BECAUSE NO NEGO STARTED,", p.State.FactomNodeName, "SETTING p.WaitH:", height, "at", now)
+						p.WaitingForNegotiator = height
+						p.WaitingForNegotiationSince = now
+					}
 				}
 			}
 			p.ShouldBeFaulted[height] = id
 		}
 		if p.WaitingForNegotiator == height {
 			if now-p.WaitingForNegotiationSince > 30 {
+				p.WaitingForNegotiationSince = now
 				// TODO: fault negotiator
-				fmt.Println("Time to fault the supposed-to-negotiator!")
-				vm.faultingEOM = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
+				fmt.Println("Time to fault the supposed-to-negotiator!", p.State.FactomNodeName)
+				thetime = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
 			}
 		}
 	}
