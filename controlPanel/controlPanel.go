@@ -77,7 +77,7 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in ServeControlPanel.\n", r)
 		}
 	}()
 	StatePointer = statePointer
@@ -152,7 +152,7 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in IndexHandler.\n", r)
 		}
 	}()
 	TemplateMutex.Lock()
@@ -172,7 +172,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in PostHandler.\n", r)
 		}
 	}()
 	if r.Method != "POST" {
@@ -206,7 +206,7 @@ type SearchedStruct struct {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in SearchHandler.\n", r)
 		}
 	}()
 	searchResult := new(SearchedStruct)
@@ -250,7 +250,7 @@ func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in FactomdHandler.\n", r)
 		}
 	}()
 	if r.Method != "GET" {
@@ -456,7 +456,7 @@ func toggleDCT() {
 func getRecentTransactions(time.Time) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in GetRecentTransactions.\n", r)
 		}
 	}()
 
