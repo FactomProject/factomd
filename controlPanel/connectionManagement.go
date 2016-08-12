@@ -86,28 +86,6 @@ func (cm *ConnectionsMap) UpdateConnections(connections map[string]p2p.Connectio
 	cm.Lock.Lock()
 	defer cm.Lock.Unlock()
 	cm.connected = connections
-
-	/*for key := range cm.connected { // Update Connected
-		val, ok := connections[key]
-		if ok {
-			cm.connected[key] = val
-		} else {
-			delete(cm.connected, key)
-			cm.disconnected[key] = val
-		}
-	}
-	for key := range cm.disconnected { // Update Disconnected
-		val, ok := connections[key]
-		if ok {
-			cm.connected[key] = val
-		}
-	}
-	for key := range connections { // New Connections
-		val, ok := cm.connected[key]
-		if !ok {
-			cm.connected[key] = val
-		}
-	}*/
 }
 
 func hashPeerAddress(addr string) string {

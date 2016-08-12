@@ -210,7 +210,7 @@ func NetStart(s *state.State) {
 
 	mLog.init(runtimeLog, cnt)
 
-	setupBlankAuthority(s)
+	setupFirstAuthority(s)
 
 	//************************************************
 	// Actually setup the Network
@@ -435,7 +435,7 @@ func startServers(load bool) {
 	}
 }
 
-func setupBlankAuthority(s *state.State) {
+func setupFirstAuthority(s *state.State) {
 	var id state.Identity
 	id.IdentityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
 	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
