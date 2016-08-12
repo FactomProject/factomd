@@ -34,7 +34,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 		return false, err
 	} else {
 		copy(pub[:], tmp)
-		valid := ed.Verify(&pub, msg, sig)
+		valid := ed.VerifyCanonical(&pub, msg, sig)
 		if !valid {
 			for _, histKey := range auth.KeyHistory {
 				histTemp, err := histKey.SigningKey.MarshalBinary()
@@ -42,7 +42,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 					continue
 				}
 				copy(pub[:], histTemp)
-				if ed.Verify(&pub, msg, sig) {
+				if ed.VerifyCanonical(&pub, msg, sig) {
 					return true, nil
 				}
 			}
@@ -70,7 +70,7 @@ func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_
 	}
 
 	// TODO: Remove, is in place so signatures valid when addserver message goes out.
-	// Current issue when new fed server takes his spot.
+	// Current issue is when new fed server takes his spot.
 	for _, id := range st.Identities {
 		if !(id.Status == constants.IDENTITY_FEDERATED_SERVER || id.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
 			continue
@@ -284,6 +284,7 @@ func (s *State) RepairAuthorities() {
 			}
 			if idIndex != -1 {
 				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
+				s.Identities[idIndex].Status = s.Authorities[i].Status
 			}
 		}
 	}

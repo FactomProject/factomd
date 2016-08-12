@@ -27,9 +27,8 @@
                         </tr>
                     </tbody>
                 </table>
-                <h3>Transactions Contained in Factoid Block </h3> 
+                <h3>Transactions Contained in Factoid Block <small>{{.Length}} Entries</small></h3> 
                 {{range $i, $ele := .Transactions}}
-                {{if $ele.GetInputs}}
                  <table id="search-table">
                      <tbody>
                          <tr style="background-color:#202020"><td></td><td></td></tr>
@@ -88,7 +87,6 @@
                         </tr>
                     </tbody>
                 </table>
-                {{end}}
                 {{end}}
            </div>
 		</div>

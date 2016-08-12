@@ -7,8 +7,8 @@
             {{range $i, $ele := .}}
     			{{$k := eq $i 0}}
     			{{if $k}}
-    				<small>Chainhead: <a id="factom-search-link" type="eblock">{{$ele.Content}}</a></small>
-        			 <h1>Chain <small>ID:({{$ele.Input}})</small></h1>
+    				<small>Chainhead: <a id="factom-search-link" type="eblock">{{$ele.Content.Head}}</a></small>
+        			 <h1>Chain <small>ID:({{$ele.Input}})</small><span style="float:right"> {{$ele.Content.Length}} Entries</span></h1>
         		{{else}}
         		 <table id="search-table">
                 	<tbody>

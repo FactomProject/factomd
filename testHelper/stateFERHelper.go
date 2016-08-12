@@ -2,6 +2,8 @@ package testHelper
 
 // A package for functions used multiple times in tests that aren't useful in production code.
 
+//111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03 = echo -n "This chain contains messages which coordinate the FCT to EC conversion rate amongst factomd nodes." | factom-cli addchain -e "FCT EC Conversion Rate Chain" -e "1950454129" EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
+
 import (
 	"encoding/hex"
 	"encoding/json"
@@ -58,7 +60,7 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 
 	// Make a new factom entry and populate it
 	anEntry := new(factom.Entry)
-	anEntry.ChainID = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+	anEntry.ChainID = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	anEntry.ExtIDs = append(anEntry.ExtIDs, signingSignature[:])
 	anEntry.Content = entryJson
 
@@ -84,7 +86,7 @@ func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTarget
 func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredHeight int) *state.State {
 	s := new(state.State)
 	s.DB = CreateAndPopulateTestDatabaseOverlayForFER(testEntries, desiredHeight)
-	s.LoadConfig("")
+	s.LoadConfig("", "")
 	s.Init()
 	/*err := s.RecalculateBalances()
 	if err != nil {
@@ -92,7 +94,7 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
-	s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+	s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	s.UpdateState()
 	go s.ValidatorLoop()
 	time.Sleep(20 * time.Millisecond)
@@ -301,7 +303,7 @@ func CreateTestEntryBlockForFER(p interfaces.IEntryBlock, height uint32) (*entry
 	} else {
 		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
 		e.Header.SetDBHeight(0)
-		chainId := "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		chainId := "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 		hexBytes, _ := hex.DecodeString(chainId)
 		chainIdHash := primitives.NewHash(hexBytes)
 		e.Header.SetChainID(chainIdHash)

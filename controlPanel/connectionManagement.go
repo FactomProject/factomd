@@ -267,6 +267,7 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 		list = append(list, *item)
 
 	}
+
 	var sortedList ConnectionInfoArray
 	sortedList = list
 	sort.Sort(sortedList)

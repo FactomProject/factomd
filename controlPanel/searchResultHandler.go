@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
@@ -71,8 +72,11 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	}
 	TemplateMutex.Lock()
 	templates.Funcs(funcMap)
-	templates.ParseFiles(FILES_PATH + "templates/searchresults/type/" + content.Type + ".html")
-	templates.ParseGlob(FILES_PATH + "templates/searchresults/*.html")
+	files.CustomParseGlob(templates, "templates/searchresults/*.html")
+	files.CustomParseFile(templates, "templates/searchresults/type/"+content.Type+".html")
+
+	//templates.ParseFiles(FILES_PATH + "templates/searchresults/type/" + content.Type + ".html")
+	//templates.ParseGlob(FILES_PATH + "templates/searchresults/*.html")
 	TemplateMutex.Unlock()
 
 	var err error
@@ -90,6 +94,11 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		if arr == nil {
 			break
 		}
+		arr[0].Content = struct {
+			Head   interface{}
+			Length int
+		}{arr[0].Content, len(arr) - 1} // struct{length string,
+		//	head string }{"x","x"}
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, arr)
 		TemplateMutex.Unlock()
@@ -289,7 +298,12 @@ func getEntryAck(hash string) *wsapi.EntryStatus {
 	return (answers.(*wsapi.EntryStatus))
 }
 
-func getECblock(hash string) interfaces.IEntryCreditBlock {
+type ECBlockHolder struct {
+	ECBlock interfaces.IEntryCreditBlock
+	Length  int
+}
+
+func getECblock(hash string) *ECBlockHolder {
 	mr, err := primitives.HexToHash(hash)
 	if err != nil {
 		return nil
@@ -306,10 +320,26 @@ func getECblock(hash string) interfaces.IEntryCreditBlock {
 		return nil
 	}
 
-	return ecblk
+	holder := new(ECBlockHolder)
+	holder.ECBlock = ecblk
+	length := 0
+	zero := primitives.NewZeroHash()
+	for _, e := range ecblk.GetEntryHashes() {
+		if e != nil && !e.IsSameAs(zero) {
+			length++
+		}
+	}
+	holder.Length = length
+
+	return holder
 }
 
-func getFblock(hash string) *factoid.FBlock {
+type FBlockHolder struct {
+	factoid.FBlock
+	Length int
+}
+
+func getFblock(hash string) *FBlockHolder {
 	mr, err := primitives.HexToHash(hash)
 	if err != nil {
 		return nil
@@ -326,12 +356,13 @@ func getFblock(hash string) *factoid.FBlock {
 	if err != nil {
 		return nil
 	}
-	holder := new(factoid.FBlock)
+	holder := new(FBlockHolder)
 	err = holder.UnmarshalBinary(bytes)
 	if err != nil {
 		return nil
 	}
 
+	holder.Length = len(holder.Transactions)
 	return holder
 }
 
@@ -407,7 +438,7 @@ func getAblock(hash string) *AblockHolder {
 			if err != nil {
 				continue
 			}
-			disp.Type = "DB Signiture"
+			disp.Type = "DB Signature"
 			disp.OtherInfo = "Server: " + r.IdentityAdminChainID.String()
 		case constants.TYPE_REVEAL_MATRYOSHKA:
 			r := new(adminBlock.RevealMatryoshkaHash)
@@ -532,6 +563,7 @@ func getEblock(hash string) *EblockHolder {
 	holder.FullHash = eblk.GetHash().String()
 
 	entries := eblk.GetEntryHashes()
+	count := 0
 	for _, entry := range entries {
 		if len(entry.String()) < 32 {
 			continue
@@ -548,11 +580,13 @@ func getEblock(hash string) *EblockHolder {
 			continue
 		}
 		ent := getEntry(entry.String())
+		count++
 		if ent != nil {
 			ent.Hash = entry.String()
 			holder.Entries = append(holder.Entries, *ent)
 		}
 	}
+	holder.Header.EntryCount = count
 
 	return holder
 }
@@ -564,10 +598,12 @@ type DblockHolder struct {
 		BodyMR       string `json:"BodyMR"`
 		PrevKeyMR    string `json:"PrevKeyMR"`
 		PrevFullHash string `json:"PrevFullHash"`
-		Timestamp    int    `json:"Timestamp"`
+		Timestamp    uint32 `json:"Timestamp"`
 		DBHeight     int    `json:"DBHeight"`
 		BlockCount   int    `json:"BlockCount"`
 		ChainID      string `json:"ChainID"`
+
+		FormatedTimeStamp string
 	} `json:"Header"`
 	DBEntries []struct {
 		ChainID string `json:"ChainID"`
@@ -644,6 +680,8 @@ func getDblock(hash string) *DblockHolder {
 	holder.FullHash = dblk.GetHash().String()
 	holder.KeyMR = dblk.GetKeyMR().String()
 
+	ts := dblk.GetTimestamp()
+	holder.Header.FormatedTimeStamp = ts.String()
 	return holder
 }
 

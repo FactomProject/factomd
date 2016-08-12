@@ -74,7 +74,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if !msg.IsPeer2Peer() {
 		message.peerHash = ""
 	} else {
-		fmt.Printf("%s Sending directed message: %+v\n", time.Now().String(), msg)
+		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), msg.GetNetworkOrigin(), msg)
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	return nil

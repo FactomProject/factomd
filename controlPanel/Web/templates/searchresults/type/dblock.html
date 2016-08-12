@@ -20,6 +20,10 @@
                             <td>{{.FullHash}}</td>
                         </tr>
                         <tr>
+                            <td>TimeStamp:</td>
+                            <td>{{.Header.FormatedTimeStamp}}</td>
+                        </tr>
+                        <tr>
                             <td>Block Height:</td>
                             <td>{{.Header.DBHeight}}</td>
                         </tr>
@@ -32,7 +36,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <h3>Blocks Contained in Block</h3> 
+                <h3>Blocks Contained in Block <small>{{.Header.BlockCount}} Blocks</small></h3> 
                 <table id="search-table">
                 	<tbody>
                 		<tr>

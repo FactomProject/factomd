@@ -143,6 +143,7 @@ type State struct {
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
+	Newblk  bool // True if we are starting a new block, and a dbsig is needed.
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
@@ -265,6 +266,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
 	clone.FaultMap = s.FaultMap
+	clone.StartDelayLimit = s.StartDelayLimit
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
@@ -364,7 +366,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.DBType = cfg.App.DBType
 		s.ExportData = cfg.App.ExportData // bool
 		s.ExportDataSubpath = cfg.App.ExportDataSubpath
-		s.Network = cfg.App.Network
 		s.MainNetworkPort = cfg.App.MainNetworkPort
 		s.PeersFile = cfg.App.PeersFile
 		s.MainSeedURL = cfg.App.MainSeedURL
@@ -423,7 +424,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
-		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
@@ -897,6 +898,10 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
+}
+
+func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
+	s.ProcessLists.Get(dbheight).TrimVMList(height, vmIndex)
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {

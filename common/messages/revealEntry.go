@@ -93,11 +93,27 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.
+	// The chain must exist
 	if okEntry {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
 			return m.Validate(state) // Discard commits that are not funded properly.
+		}
+
+		// Make sure we have a chain.  If we don't, then bad things happen.
+		db := state.GetAndLockDB()
+		dbheight := state.GetLeaderHeight()
+		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
+		eb_db := state.GetNewEBlocks(dbheight-1, m.Entry.GetChainID())
+		if eb_db == nil {
+			eb_db, _ = db.FetchEBlockHead(m.Entry.GetChainID())
+		}
+
+		if eb_db == nil && eb == nil {
+			// If we don't have a chain, put the commit back.  Don't want to lose it.
+			state.PutCommit(m.Entry.GetHash(), commit)
+			return 0
 		}
 	} else {
 		m.IsEntry = false
@@ -107,6 +123,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	// Don't lose the commit that validates the entry
 	state.PutCommit(m.Entry.GetHash(), commit)
 
 	return 1

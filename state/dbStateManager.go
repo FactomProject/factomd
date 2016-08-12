@@ -49,7 +49,7 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 20 // Default
+const SecondsBetweenTests = 10 // Default
 
 func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
@@ -190,6 +190,13 @@ func (list *DBStateList) Catchup() {
 	if list.LastTime != nil && now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < SecondsBetweenTests {
 		return
 	}
+
+	if list.LastTime == nil {
+		list.LastTime = now
+		return
+	}
+
+	list.State.RunLeader = false
 
 	list.LastTime = now
 
@@ -376,6 +383,18 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	pln.SortFedServers()
 	pln.SortAuditServers()
+
+	s := list.State
+	// Time out commits every now and again.
+	for k := range s.Commits {
+		for i, v := range s.Commits[k] {
+			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if !ok {
+				s.Commits[k] = append(s.Commits[k][:i], s.Commits[k][i+1:]...)
+				continue
+			}
+		}
+	}
 
 	return
 }

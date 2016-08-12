@@ -3,7 +3,7 @@ package controlPanel
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
@@ -25,12 +26,12 @@ import (
 var (
 	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-	FILES_PATH string
-	templates  *template.Template
+	//FILES_PATH string
+	templates *template.Template
 
-	INDEX_HTML []byte
-	mux        *http.ServeMux
-	index      int = 0
+	//INDEX_HTML []byte
+	mux   *http.ServeMux
+	index int = 0
 
 	DisplayState state.DisplayState
 	StatePointer *state.State
@@ -75,7 +76,6 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 // Main function. This intiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
-		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic.\n", r)
 		}
@@ -90,7 +90,6 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
 	port := DisplayState.ControlPanelPort
-	FILES_PATH = DisplayState.ControlPanelPath
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
@@ -103,19 +102,9 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
-
-	// Load Static Files
-	if !directoryExists(FILES_PATH) { // Check .factom/m2/Web
-		FILES_PATH = "./controlPanel/Web/" // Check active directory
-		if !directoryExists(FILES_PATH) {
-			fmt.Println("Control Panel static files cannot be found.")
-			http.HandleFunc("/", noStaticFilesFoundHandler)
-			http.ListenAndServe(portStr, nil)
-			return
-		}
-	}
 	TemplateMutex.Lock()
-	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
+	templates = files.CustomParseGlob(nil, "templates/general/*.html")
+	templates = template.Must(templates, nil)
 	TemplateMutex.Unlock()
 
 	// Updated Globals. A seperate GoRoutine updates these, we just initialize
@@ -126,8 +115,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	// Mux for static files
 	mux = http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(FILES_PATH)))
-	INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
+	mux.Handle("/", files.StaticServer)
 
 	go doEvery(5*time.Second, getRecentTransactions)
 	go manageConnections(connections)
@@ -168,7 +156,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	TemplateMutex.Lock()
-	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
+	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
+	files.CustomParseGlob(templates, "templates/index/*.html")
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}
@@ -197,6 +186,11 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		if found {
 			w.Write([]byte(respose))
 			return
+		} else {
+			if r.FormValue("known") == "factoidack" {
+				w.Write([]byte(`{"Type": "special-action-fack"}`))
+				return
+			}
 		}
 	}
 	w.Write([]byte(`{"Type": "None"}`))
@@ -380,7 +374,7 @@ func factomdQuery(item string, value string) []byte {
 func disconnectPeer(hash string) {
 	if Controller != nil {
 		fmt.Println("ControlPanel: Sent a disconnect signal.")
-		Controller.Ban(hash)
+		Controller.Disconnect(hash)
 	}
 }
 
@@ -641,24 +635,33 @@ func getRecentTransactions(time.Time) {
 		// If we do not have 100 of each transaction, we will look into the past to get 100
 		if (entriesNeeded + factoidsNeeded) > 0 {
 			getPastEntries(last, entriesNeeded, factoidsNeeded)
+		} else {
+			RecentTransactions.LastHeightChecked = last.GetHeader().GetDBHeight()
 		}
 	}
 
 	if len(RecentTransactions.Entries) > 100 {
 		overflow := len(RecentTransactions.Entries) - 100
-		if overflow-1 > 0 {
-			RecentTransactions.Entries = RecentTransactions.Entries[overflow-1:]
+		if overflow > 0 {
+			RecentTransactions.Entries = RecentTransactions.Entries[overflow:]
 		}
 	}
 	if len(RecentTransactions.FactoidTransactions) > 100 {
 		overflow := len(RecentTransactions.FactoidTransactions) - 100
-		if overflow-1 > 0 {
-			RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow-1:]
+		if overflow > 0 {
+			RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
 		}
 	}
 
-	// Update our checkpoint so we don't look at past blocks more than once
-	RecentTransactions.LastHeightChecked = last.GetHeader().GetDBHeight()
+	// Check if we missed any processing
+	for i, e := range RecentTransactions.Entries {
+		if e.ChainID == "Processing" {
+			entry := getEntry(e.Hash)
+			if entry != nil {
+				RecentTransactions.Entries[i] = *entry
+			}
+		}
+	}
 }
 
 // Control Panel shows the last 100 entry and factoid transactions. This will look into the past if we do not
@@ -669,6 +672,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 
 	next := last.GetHeader().GetPrevKeyMR()
 	zero := primitives.NewZeroHash()
+
+	newCheckpoint := height
+
 	for height > RecentTransactions.LastHeightChecked && (eNeeded > 0 || fNeeded > 0) {
 		if next.IsSameAs(zero) {
 			break
@@ -696,7 +702,8 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 					e := getEntry(hash.String())
 					if e != nil && eNeeded > 0 {
 						eNeeded--
-						RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+						RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+						//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 					}
 				}
 			}
@@ -707,11 +714,11 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 				if entry.GetChainID().IsSameAs(fChain) {
 					dbase := StatePointer.GetAndLockDB()
 					fblk, err := dbase.FetchFBlock(entry.GetKeyMR())
+					StatePointer.UnlockDB()
 					if err != nil || fblk == nil {
 						break
 					}
 					transList := fblk.GetTransactions()
-					StatePointer.UnlockDB()
 					for _, trans := range transList {
 						if RecentTransactions.ContainsTrans(trans.GetSigHash()) {
 							continue
@@ -726,14 +733,14 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 							totalOutputs = totalOutputs + len(trans.GetOutputs())
 							inputStr := fmt.Sprintf("%f", float64(input)/1e8)
 							fNeeded--
-							RecentTransactions.FactoidTransactions = append([]struct {
+							RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 								TxID         string
 								Hash         string
 								TotalInput   string
 								Status       string
 								TotalInputs  int
 								TotalOutputs int
-							}{{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+							}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
 						}
 					}
 				}
@@ -741,6 +748,12 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		}
 		next = dblk.GetHeader().GetPrevKeyMR()
 	}
+
+	DisplayStateMutex.Lock()
+	if newCheckpoint < DisplayState.CurrentEBDBHeight && newCheckpoint > RecentTransactions.LastHeightChecked {
+		RecentTransactions.LastHeightChecked = newCheckpoint
+	}
+	DisplayStateMutex.Unlock()
 }
 
 // For go routines. Calls function once each duration.

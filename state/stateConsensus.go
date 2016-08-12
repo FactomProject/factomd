@@ -37,6 +37,11 @@ func (s *State) Process() (progress bool) {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
 
+	var vm *VM
+	if s.Leader {
+		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+	}
+
 	// Executing a message means looking if it is valid, checking if we are a leader.
 	executeMsg := func(msg interfaces.IMsg) (ret bool) {
 		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -45,11 +50,6 @@ func (s *State) Process() (progress bool) {
 		}
 		s.SetString()
 		msg.ComputeVMIndex(s)
-
-		var vm *VM
-		if s.Leader {
-			vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		}
 
 		switch msg.Validate(s) {
 		case 1:
@@ -60,7 +60,6 @@ func (s *State) Process() (progress bool) {
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
 				msg.LeaderExecute(s)
-
 			} else {
 				msg.FollowerExecute(s)
 			}
@@ -78,7 +77,7 @@ func (s *State) Process() (progress bool) {
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
+	for i := 0; i < 10 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		executeMsg(msg)
 		s.XReview = s.XReview[1:]
@@ -130,10 +129,10 @@ func (s *State) ReviewHolding() {
 		}
 
 		if v.Resend(s) {
-			if v.Validate(s) == 1 {
-				s.ResendCnt++
-				v.ComputeVMIndex(s)
-				s.networkOutMsgQueue <- v
+			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if !ok {
+				delete(s.Holding, k)
+				continue
 			}
 		}
 
@@ -143,7 +142,6 @@ func (s *State) ReviewHolding() {
 		}
 
 	}
-
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.
@@ -166,6 +164,10 @@ func (s *State) AddDBState(isNew bool,
 		s.EOMProcessed = 0
 		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
+		s.RunLeader = false
+		s.Newblk = true
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
@@ -529,14 +531,13 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	} else if !s.Syncing {
 		s.Syncing = true
 		s.EOM = true
-		s.EOMLimit = len(pl.FedServers)
-		s.EOMMinute = int(s.CurrentMinute)
 		s.EOMsyncing = true
 		s.EOMProcessed = 0
-
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
+		s.EOMLimit = len(pl.FedServers)
+		s.EOMMinute = int(s.CurrentMinute)
 	}
 
 	//_, vmindex := pl.GetVirtualServers(s.EOMMinute, s.IdentityChainID)
@@ -759,6 +760,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMMinute = int(e.Minute)
 		s.EOMsyncing = true
 		s.EOMProcessed = 0
+		s.Newblk = false
 
 		for _, vm := range pl.VMs {
 			vm.Synced = false
@@ -817,8 +819,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
 			s.DBSigProcessed = 0
-
 			if s.Leader {
+				dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
 				dbs := new(messages.DirectoryBlockSignature)
 				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
 				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
@@ -833,7 +835,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				if err != nil {
 					panic(err)
 				}
+
 				dbs.LeaderExecute(s)
+
 			} else {
 				for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
 					if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
@@ -1178,7 +1182,3 @@ func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
 
 	return ack
 }
-
-// ****************************************************************
-//                          Support
-// ****************************************************************
