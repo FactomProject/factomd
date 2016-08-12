@@ -196,6 +196,6 @@ type IState interface {
 	// Identity Section
 	VerifyIsAuthority(cid IHash) bool // True if is authority
 	UpdateAuthorityFromABEntry(entry IABEntry) error
-	VerifyFederatedSignature(Message []byte, signature *[64]byte) (bool, error)
+	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
 }
