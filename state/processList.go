@@ -100,6 +100,7 @@ type VM struct {
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 	signed         bool              // We have signed the previous block.
+	isFaulting     bool
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -518,59 +519,22 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	if thetime == 0 {
 		thetime = now
 	}
-	if p.State.Leader {
-		if now-thetime >= waitSeconds {
-			responsibleFaulterIdx := (vmIndex + 1) % len(p.FedServers)
-			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
+	if now-thetime >= waitSeconds {
+		responsibleFaulterIdx := (vmIndex + 1) % len(p.FedServers)
+		if p.State.Leader {
+			faultee := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
-				fmt.Println("JUSTIN ", p.State.FactomNodeName, "SENDING NEW NEGO BASED OFF ELAP F:", id.String()[:10])
-				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
+				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), faultee, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
 					p.State.NetworkOutMsgQueue() <- negotiationMsg
 					p.State.InMsgQueue() <- negotiationMsg
 				}
 				thetime = now
-			} else {
-				negotiationStartTime, exists := p.OngoingNegotiations[uint32(height)]
-				if exists {
-					auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
-					if len(auditServerList) > 0 {
-						replacementServer := auditServerList[0]
-						fmt.Println("JUSTIN ", p.State.FactomNodeName, "SENDING NEW SFA BASED OFF ELAP F:", id.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
-						sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
-						if sf != nil {
-							sf.Sign(p.State.serverPrivKey)
-							p.State.NetworkOutMsgQueue() <- sf
-							p.State.InMsgQueue() <- sf
-						}
-						thetime = now
-					} else {
-						fmt.Println("JUSTIN, apparently you got no audit servers", p.State.FactomNodeName)
-					}
-					if now-negotiationStartTime > 40 {
-						// TODO: fault negotiator
-						fmt.Println("Time to fault the negotiator!", p.State.FactomNodeName)
-						thetime = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
-					}
-				} else {
-					if p.WaitingForNegotiator < height {
-						fmt.Println("JUSTIN, BECAUSE NO NEGO STARTED,", p.State.FactomNodeName, "SETTING p.WaitH:", height, "at", now)
-						p.WaitingForNegotiator = height
-						p.WaitingForNegotiationSince = now
-					}
-				}
-			}
-			p.ShouldBeFaulted[height] = id
-		}
-		if p.WaitingForNegotiator == height {
-			if now-p.WaitingForNegotiationSince > 30 {
-				p.WaitingForNegotiationSince = now
-				// TODO: fault negotiator
-				fmt.Println("Time to fault the supposed-to-negotiator!", p.State.FactomNodeName)
-				thetime = fault(p, vmIndex+1, waitSeconds, vm, thetime, height)
 			}
 		}
+		vm.isFaulting = true
+		p.VMs[responsibleFaulterIdx].faultingEOM = now
 	}
 
 	return thetime
@@ -589,7 +553,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if !p.State.Syncing {
 			vm.faultingEOM = 0
+			//vm.isFaulting = false
 		} else {
+			if vm.isFaulting {
+				ip := (i + 1) % len(p.FedServers)
+				if p.VMs[ip].faultingEOM > 0 {
+					p.VMs[ip].faultingEOM = fault(p, ip, 40, p.VMs[ip], p.VMs[ip].faultingEOM, len(vm.List))
+				}
+			}
 			if !vm.Synced {
 				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List))
 			}

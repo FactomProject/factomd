@@ -291,6 +291,10 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		return
 	}
 
+	if !pl.VMs[sf.VMIndex].isFaulting {
+		return
+	}
+
 	var issuerID [32]byte
 	rawIssuerID := sf.GetSignature().GetKey()
 	for i := 0; i < 32; i++ {
@@ -352,9 +356,9 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			if s.LeaderVMIndex == responsibleFaulterIdx {
 				foundAudit, aidx := pl.GetAuditServerIndexHash(sf.AuditServerID)
 				if foundAudit {
-					audServerReplacementID := pl.AuditServers[aidx].LeaderToReplace()
-					if audServerReplacementID != nil {
-						if audServerReplacementID.IsSameAs(sf.ServerID) {
+					serverToReplace := pl.AuditServers[aidx].LeaderToReplace()
+					if serverToReplace != nil {
+						if serverToReplace.IsSameAs(sf.ServerID) {
 							// if we have made it this far, that means we have successfully received an "AOK" message
 							// from the audit server being promoted... this means we can proceed and issue a FullFault
 							var listOfSigs []interfaces.IFullSignature
@@ -375,10 +379,10 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 							}
 						}
 					} else {
-						fmt.Println("JUSTIN", s.FactomNodeName, "AUDSERVREP NIL")
+						fmt.Println("JUSTIN", s.FactomNodeName, "AUDSERVREP NIL:", sf.AuditServerID.String()[:10])
 					}
 				} else {
-					fmt.Println("JUSTIN", s.FactomNodeName, "NOFOUNDAUD")
+					fmt.Println("JUSTIN", s.FactomNodeName, "NOFOUNDAUD:", sf.AuditServerID.String()[:10])
 				}
 				fmt.Println("JUSTIN NOFF:", s.FactomNodeName, cnt, "/", fedServerCnt, sf.ServerID.String()[:10], sf.AuditServerID.String()[:10])
 			}
@@ -450,20 +454,42 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 	negotiation, _ := m.(*messages.Negotiation)
 	pl := s.ProcessLists.Get(negotiation.DBHeight)
 
-	if pl.WaitingForNegotiator == int(negotiation.Height) {
+	/*if pl.WaitingForNegotiator == int(negotiation.Height) {
 		pl.WaitingForNegotiator = -1
-	}
+	}*/
 
-	_, alreadyOngoing := pl.OngoingNegotiations[negotiation.Height]
+	/*_, alreadyOngoing := pl.OngoingNegotiations[negotiation.Height]
 	if !alreadyOngoing {
 		pl.OngoingNegotiations[negotiation.Height] = s.GetTimestamp().GetTime().Unix()
-	}
+	}*/
 	if s.Leader {
 		// TODO: if I am the Leader being faulted, I should respond by sending out
 		// a MissingMsgResponse to everyone for the msg I'm being faulted for
 
-		shouldBeFaulted, ok := pl.ShouldBeFaulted[int(negotiation.Height)]
-		if ok {
+		//shouldBeFaulted, ok := pl.ShouldBeFaulted[int(negotiation.Height)]
+		vmAtFault := pl.VMs[negotiation.VMIndex]
+		if vmAtFault.isFaulting {
+			auditServerList := s.GetOnlineAuditServers(negotiation.DBHeight)
+			if len(auditServerList) > 0 {
+				replacementServer := auditServerList[0]
+				/*for auditIndex := 0; auditIndex < len(auditServerList); auditIndex++ {
+					if replacementServer.LeaderToReplace() != nil && !replacementServer.LeaderToReplace().IsSameAs(negotiation.ServerID) {
+						replacementServer = auditServerList[auditIndex]
+					} else {
+						break
+					}
+				}*/
+				//fmt.Println("JUSTIN ", s.FactomNodeName, "SENDING NEW SFA BASED OFF NEGO F:", negotiation.ServerID.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
+				//NOMINATE
+				sf := messages.NewServerFault(s.GetTimestamp(), negotiation.ServerID, replacementServer.GetChainID(), int(negotiation.VMIndex), negotiation.DBHeight, negotiation.Height)
+				if sf != nil {
+					sf.Sign(s.serverPrivKey)
+					s.NetworkOutMsgQueue() <- sf
+					s.InMsgQueue() <- sf
+				}
+			}
+		}
+		/*if ok {
 			if shouldBeFaulted != nil {
 				// If we've made it here, that means we were waiting for this negotiation to start
 				// and we already agree that this Leader should be faulted
@@ -471,6 +497,13 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 					auditServerList := s.GetOnlineAuditServers(negotiation.DBHeight)
 					if len(auditServerList) > 0 {
 						replacementServer := auditServerList[0]
+						for auditIndex := 0; auditIndex < len(auditServerList); auditIndex++ {
+							if replacementServer.LeaderToReplace() != nil && !replacementServer.LeaderToReplace().IsSameAs(shouldBeFaulted) {
+								replacementServer = auditServerList[auditIndex]
+							} else {
+								break
+							}
+						}
 						fmt.Println("JUSTIN ", s.FactomNodeName, "SENDING NEW SFA BASED OFF NEGO F:", shouldBeFaulted.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
 						sf := messages.NewServerFault(s.GetTimestamp(), shouldBeFaulted, replacementServer.GetChainID(), int(negotiation.VMIndex), negotiation.DBHeight, negotiation.Height)
 						if sf != nil {
@@ -481,7 +514,7 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 					}
 				}
 			}
-		}
+		}*/
 	}
 
 }
