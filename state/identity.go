@@ -30,7 +30,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 
 	index := st.isIdentityChain(cid)
 	if index == -1 {
-		index = createBlankFactomIdentity(st, cid)
+		index = CreateBlankFactomIdentity(st, cid)
 	}
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
@@ -231,7 +231,7 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 }
 
 // Creates a blank identity
-func createBlankFactomIdentity(st *State, chainID interfaces.IHash) int {
+func CreateBlankFactomIdentity(st *State, chainID interfaces.IHash) int {
 	if index := st.isIdentityChain(chainID); index != -1 {
 		return index
 	}
@@ -279,7 +279,7 @@ func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := st.isIdentityChain(idChain)
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, idChain)
+		IdentityIndex = CreateBlankFactomIdentity(st, idChain)
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
@@ -319,7 +319,7 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 	IdentityIndex := st.isIdentityChain(chainID)
 
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, chainID)
+		IdentityIndex = CreateBlankFactomIdentity(st, chainID)
 	}
 	h := primitives.NewHash(extIDs[2])
 	st.Identities[IdentityIndex].Key1 = h
@@ -387,7 +387,7 @@ func updateManagementKey(entry interfaces.IEBEntry, height uint32, st *State) er
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, idChain)
+		IdentityIndex = CreateBlankFactomIdentity(st, idChain)
 	}
 
 	st.Identities[IdentityIndex].ManagementCreated = height
@@ -406,7 +406,7 @@ func registerIdentityAsServer(entry interfaces.IEBEntry, height uint32, st *Stat
 	chainID := entry.GetChainID()
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, chainID)
+		IdentityIndex = CreateBlankFactomIdentity(st, chainID)
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
@@ -464,7 +464,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 			dbase := st.GetAndLockDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
 			st.UnlockDB()
-			if err == nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
+			if dblk != nil && err == nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 				}
