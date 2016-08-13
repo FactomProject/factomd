@@ -867,6 +867,7 @@ func (s *State) UpdateState() (progress bool) {
 
 func (s *State) catchupEBlocks() {
 	isComplete := true
+	askcnt := 20
 	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
 		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
 		if dblockGathering != nil {
@@ -881,6 +882,10 @@ func (s *State) catchupEBlocks() {
 						if !s.HasDataRequest(ebKeyMR) {
 							eBlockRequest := messages.NewMissingData(s, ebKeyMR)
 							s.NetworkOutMsgQueue() <- eBlockRequest
+							if askcnt < 0 {
+								return
+							}
+							askcnt--
 						}
 					}
 				}

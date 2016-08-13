@@ -636,6 +636,28 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.ReviewHolding()
 			s.Syncing = false
 		}
+
+		// If we are the leader for this vm, and the previous block has not been signed,
+		// submit a dbsignature to the network of the previous block.
+		if s.Leader && !vm.Signed && s.LeaderVMIndex == msg.GetVMIndex() {
+			dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
+			dbs := new(messages.DirectoryBlockSignature)
+			dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+			//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+			dbs.ServerIdentityChainID = s.GetIdentityChainID()
+			dbs.DBHeight = s.LLeaderHeight
+			dbs.Timestamp = s.GetTimestamp()
+			dbs.SetVMHash(nil)
+			dbs.SetVMIndex(s.LeaderVMIndex)
+			dbs.SetLocal(true)
+			dbs.Sign(s)
+			err := dbs.Sign(s)
+			if err != nil {
+				panic(err)
+			}
+			dbs.LeaderExecute(s)
+		}
+
 		return true
 	}
 
@@ -789,6 +811,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSig = false
 			s.Syncing = false
 		}
+		vm.Signed = true
 		//s.LeaderPL.AdminBlock
 		return true
 	}
@@ -797,7 +820,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if !s.DBSig {
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
-		s.ProcessLists.Get(dbheight).VMs[dbs.VMIndex].Synced = false
 		s.DBSig = true
 		s.Syncing = true
 		s.DBSigDone = false
