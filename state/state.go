@@ -569,7 +569,7 @@ func (s *State) Init() {
 	//StubIdentityCache(s)
 	//needed for multiple nodes with FER.  remove for singe node launch
 	if s.FERChainId == "" {
-		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	}
 	if s.ExchangeRateAuthorityAddress == "" {
 		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
