@@ -57,19 +57,23 @@ func SimControl(listenTo int) {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
 			case 'g' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					break
+				}
+				wsapiNode = listenTo
+				wsapi.SetState(fnodes[wsapiNode].State)
+
 				if nextAuthority == -1 {
-					wsapiNode = listenTo
-					wsapi.SetState(fnodes[wsapiNode].State)
-					err := fundWallet(fnodes[listenTo].State, 2e7)
+					err := fundWallet(fnodes[wsapiNode].State, 2e7)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						break
 					}
-					setUpAuthorites(fnodes[listenTo].State, true)
+					setUpAuthorites(fnodes[wsapiNode].State, true)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}
 				if len(b) == 1 {
-					os.Stderr.WriteString(fmt.Sprintf("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
+					os.Stderr.WriteString(fmt.Sprint("Authorities are ready to be made. 'gN' where N is the number to be made.\n"))
 				}
 				if len(b) > 1 {
 					count, err := strconv.Atoi(b[1:])
@@ -77,17 +81,15 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintf("Error in input bN, %s\n", err.Error()))
 					} else {
 						if count > 100 {
-							os.Stderr.WriteString(fmt.Sprintf("You can only pop a max of 100 off the stack at a time."))
+							os.Stderr.WriteString(fmt.Sprint("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						wsapiNode = listenTo
-						wsapi.SetState(fnodes[wsapiNode].State)
-						err := fundWallet(fnodes[listenTo].State, uint64(count*5e7))
+						err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 							break
 						}
-						auths, skipped, err := authorityToBlockchain(count, fnodes[listenTo].State)
+						auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
 						}

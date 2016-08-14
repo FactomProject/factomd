@@ -135,11 +135,12 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 		}
-
-		if s.Leader && v.GetVMIndex() == s.LeaderVMIndex {
-			s.XReview = append(s.XReview, v)
-			delete(s.Holding, k)
+		if v.Validate(s) == 1 {
+			s.networkOutMsgQueue <- v
 		}
+
+		s.XReview = append(s.XReview, v)
+		delete(s.Holding, k)
 
 	}
 }
