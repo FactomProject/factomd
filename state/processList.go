@@ -511,9 +511,13 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	if thetime == 0 {
 		thetime = now
 	}
-	if p.State.Leader && vm.LeaderMinute < 10 {
+	if p.State.Leader {
 		if now-thetime >= waitSeconds {
-			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
+			l := vm.LeaderMinute
+			if l == 10 {
+				l = 9
+			}
+			id := p.FedServers[p.ServerMap[l][vmIndex]].GetChainID()
 			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
 			auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
 			if len(auditServerList) > 0 {
