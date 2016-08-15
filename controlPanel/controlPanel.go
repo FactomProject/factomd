@@ -403,6 +403,7 @@ type LastDirectoryBlockTransactions struct {
 		BodyKeyMR string
 		FullHash  string
 		DBHeight  string
+		Timestamp string
 
 		PrevFullHash string
 		PrevKeyMR    string
@@ -505,11 +506,11 @@ func getRecentTransactions(time.Time) {
 		BodyKeyMR string
 		FullHash  string
 		DBHeight  string
+		Timestamp string
 
 		PrevFullHash string
 		PrevKeyMR    string
-	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
-
+	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetTimestamp().String(), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 	// Process list items
 	DisplayStateMutex.RLock()
 	for _, entry := range DisplayState.PLEntry {

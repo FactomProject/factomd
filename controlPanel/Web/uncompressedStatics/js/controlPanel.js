@@ -114,6 +114,7 @@ function updateTransactions() {
       $("#DBKeyMR > a").text(obj.DirectoryBlock.KeyMR)
       $("#DBBodyKeyMR").text(obj.DirectoryBlock.BodyKeyMR)
       $("#DBFullHash").text(obj.DirectoryBlock.FullHash)
+      $("#DBBlockTimestamp").text(obj.DirectoryBlock.Timestamp)
       $("#DBBlockHeight").text(obj.DirectoryBlock.DBHeight)
       $("#recent-directory-block").text(obj.DirectoryBlock.DBHeight)
 

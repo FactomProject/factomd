@@ -78,6 +78,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	TemplateMutex.Unlock()
 
 	var err error
+	_ = err
 	switch content.Type {
 	case "entry":
 		entry := getEntry(content.Input)
@@ -87,6 +88,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, entry)
 		TemplateMutex.Unlock()
+		return
 	case "chainhead":
 		arr := getAllChainEntries(content.Input)
 		if arr == nil {
@@ -99,6 +101,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, arr)
 		TemplateMutex.Unlock()
+		return
 	case "eblock":
 		eblk := getEblock(content.Input)
 		if eblk == nil {
@@ -107,6 +110,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, eblk)
 		TemplateMutex.Unlock()
+		return
 	case "dblock":
 		dblk := getDblock(content.Input)
 		if dblk == nil {
@@ -115,6 +119,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, dblk)
 		TemplateMutex.Unlock()
+		return
 	case "ablock":
 		ablk := getAblock(content.Input)
 		if ablk == nil {
@@ -123,6 +128,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, ablk)
 		TemplateMutex.Unlock()
+		return
 	case "fblock":
 		fblk := getFblock(content.Input)
 		if fblk == nil {
@@ -131,6 +137,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, fblk)
 		TemplateMutex.Unlock()
+		return
 	case "ecblock":
 		ecblock := getECblock(content.Input)
 		if ecblock == nil {
@@ -139,6 +146,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, ecblock)
 		TemplateMutex.Unlock()
+		return
 	case "entryack":
 		entryAck := getEntryAck(content.Input)
 		if entryAck == nil {
@@ -147,6 +155,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, entryAck)
 		TemplateMutex.Unlock()
+		return
 	case "factoidack":
 		factoidAck := getFactoidAck(content.Input)
 		if factoidAck == nil {
@@ -155,6 +164,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, factoidAck)
 		TemplateMutex.Unlock()
+		return
 	case "facttransaction":
 		transaction := getFactTransaction(content.Input)
 		if transaction == nil {
@@ -163,6 +173,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, transaction)
 		TemplateMutex.Unlock()
+		return
 	case "ectransaction":
 		transaction := getEcTransaction(content.Input)
 		if transaction == nil {
@@ -171,6 +182,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, transaction)
 		TemplateMutex.Unlock()
+		return
 	case "EC":
 		hash := base58.Decode(content.Input)
 		if len(hash) < 34 {
@@ -186,6 +198,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 				Address string
 			}{bal, content.Input})
 		TemplateMutex.Unlock()
+		return
 	case "FA":
 		hash := base58.Decode(content.Input)
 		if len(hash) < 34 {
@@ -201,17 +214,9 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 				Address string
 			}{bal, content.Input})
 		TemplateMutex.Unlock()
-	default:
-		TemplateMutex.Lock()
-		files.CustomParseFile(templates, "templates/searchresults/type/notfound.html")
-		err = templates.ExecuteTemplate(w, "notfound", nil)
-		TemplateMutex.Unlock()
-	}
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	TemplateMutex.Lock()
 	files.CustomParseFile(templates, "templates/searchresults/type/notfound.html")
 	templates.ExecuteTemplate(w, "notfound", content.Input)
