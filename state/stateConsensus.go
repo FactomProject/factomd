@@ -625,7 +625,8 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	vm := s.ProcessLists.Get(dbheight).VMs[vmIndex]
 	if s.Leader && !vm.Signed && s.LeaderVMIndex == vmIndex {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
-		if dbstate == nil {
+		if dbstate == nil && dbheight > 0 {
+			s.SendDBSig(dbheight-1, vmIndex)
 			return
 		}
 		dbs := new(messages.DirectoryBlockSignature)
