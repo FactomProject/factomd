@@ -922,7 +922,11 @@ func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 }
 
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
-	return s.ProcessLists.Get(dbheight).FedServers
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		return pl.FedServers
+	}
+	return nil
 }
 
 func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {

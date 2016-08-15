@@ -68,7 +68,10 @@ func (s *State) Process() (progress bool) {
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		default:
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
-			s.networkInvalidMsgQueue <- msg
+			if !msg.SentInvlaid() {
+				msg.MarkSentInvalid(true)
+				s.networkInvalidMsgQueue <- msg
+			}
 		}
 
 		return
@@ -622,7 +625,8 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	vm := s.ProcessLists.Get(dbheight).VMs[vmIndex]
 	if s.Leader && !vm.Signed && s.LeaderVMIndex == vmIndex {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
-		if dbstate == nil {
+		if dbstate == nil && dbheight > 0 {
+			s.SendDBSig(dbheight-1, vmIndex)
 			return
 		}
 		dbs := new(messages.DirectoryBlockSignature)
