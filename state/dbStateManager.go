@@ -49,8 +49,6 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 10 // Default
-
 func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
 	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
@@ -187,7 +185,7 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
-	if list.LastTime != nil && now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < SecondsBetweenTests {
+	if list.LastTime != nil && now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < list.State.StartDelayLimit+list.State.StartDelayLimit/2 {
 		return
 	}
 

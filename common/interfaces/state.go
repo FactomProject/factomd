@@ -140,6 +140,9 @@ type IState interface {
 	// MISC
 	// ====
 
+	// Height of the block where the sig goes, and the vmIndex missing the sig
+	SendDBSig(dbheight uint32, vmIndex int) // If a Leader, we have to send a DBSig out for the previous block
+
 	FollowerExecuteMsg(m IMsg)       // Messages that go into the process list
 	FollowerExecuteEOM(m IMsg)       // Messages that go into the process list
 	FollowerExecuteAck(m IMsg)       // Ack Msg calls this function.
