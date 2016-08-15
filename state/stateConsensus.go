@@ -453,6 +453,9 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 	negotiation, _ := m.(*messages.Negotiation)
 	pl := s.ProcessLists.Get(negotiation.DBHeight)
+	if pl == nil {
+		return
+	}
 
 	/*if pl.WaitingForNegotiator == int(negotiation.Height) {
 		pl.WaitingForNegotiator = -1
@@ -469,6 +472,7 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 		//shouldBeFaulted, ok := pl.ShouldBeFaulted[int(negotiation.Height)]
 		vmAtFault := pl.VMs[negotiation.VMIndex]
 		if vmAtFault.isFaulting {
+			vmAtFault.isNegotiating = true
 			auditServerList := s.GetOnlineAuditServers(negotiation.DBHeight)
 			if len(auditServerList) > 0 {
 				replacementServer := auditServerList[0]
