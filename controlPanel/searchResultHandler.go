@@ -25,6 +25,7 @@ import (
 var _ = htemp.HTMLEscaper("sdf")
 
 func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
+	// Functions able to be used within the html
 	funcMap := template.FuncMap{
 		"truncate": func(s string) string {
 			bytes := []byte(s)
@@ -202,7 +203,8 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Unlock()
 	default:
 		TemplateMutex.Lock()
-		err = templates.ExecuteTemplate(w, "not-found", nil)
+		files.CustomParseFile(templates, "templates/searchresults/type/notfound.html")
+		err = templates.ExecuteTemplate(w, "notfound", nil)
 		TemplateMutex.Unlock()
 	}
 
@@ -211,7 +213,8 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		return
 	}
 	TemplateMutex.Lock()
-	templates.ExecuteTemplate(w, "not-found", nil)
+	files.CustomParseFile(templates, "templates/searchresults/type/notfound.html")
+	templates.ExecuteTemplate(w, "notfound", content.Input)
 	TemplateMutex.Unlock()
 }
 
