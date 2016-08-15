@@ -68,7 +68,10 @@ func (s *State) Process() (progress bool) {
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		default:
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
-			s.networkInvalidMsgQueue <- msg
+			if !msg.SentInvlaid() {
+				msg.MarkSentInvalid(true)
+				s.networkInvalidMsgQueue <- msg
+			}
 		}
 
 		return

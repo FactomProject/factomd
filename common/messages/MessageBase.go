@@ -25,7 +25,18 @@ type MessageBase struct {
 	resend        int64 // Time to resend (milliseconds)
 	expire        int64 // Time to expire (milliseconds)
 
-	Stalled bool // This message is currently stalled
+	Stalled     bool // This message is currently stalled
+	MarkInvalid bool
+}
+
+// To suppress how many messages are sent to the NetworkInvalid Queue, we mark them, and only
+// send them once.
+func (m *MessageBase) MarkSentInvalid(b bool) {
+	m.MarkInvalid = b
+}
+
+func (m *MessageBase) SentInvlaid() bool {
+	return m.MarkInvalid
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
