@@ -615,17 +615,21 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+	ht := s.GetHighestRecordedBlock()
+	if dbheight <= ht {
+		return
+	}
 	vm := s.ProcessLists.Get(dbheight).VMs[vmIndex]
 	if s.Leader && !vm.Signed && s.LeaderVMIndex == vmIndex {
-		dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
+		dbstate := s.DBStates.Get(int(dbheight - 1))
 		dbs := new(messages.DirectoryBlockSignature)
 		dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
 		//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 		dbs.ServerIdentityChainID = s.GetIdentityChainID()
-		dbs.DBHeight = s.LLeaderHeight
+		dbs.DBHeight = dbheight
 		dbs.Timestamp = s.GetTimestamp()
 		dbs.SetVMHash(nil)
-		dbs.SetVMIndex(s.LeaderVMIndex)
+		dbs.SetVMIndex(vmIndex)
 		dbs.SetLocal(true)
 		dbs.Sign(s)
 		err := dbs.Sign(s)
