@@ -326,7 +326,7 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 			return 1
 		}
 	}
-	fmt.Println("JUSTIN NEVS", state.GetFactomNodeName(), validSigCount, m.AuditServerID.String()[:10], m.ServerID.String()[:10])
+	//fmt.Println("JUSTIN NEVS", state.GetFactomNodeName(), validSigCount, m.AuditServerID.String()[:10], m.ServerID.String()[:10])
 	return -1 // didn't see enough valid sigs
 }
 
