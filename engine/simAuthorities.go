@@ -130,43 +130,6 @@ func fundWallet(st *state.State, amt uint64) error {
 	return nil
 }
 
-// Temporary function to copy from old identity chain to new chain
-func copyOver(st *state.State) {
-	var err error
-	sec, _ := hex.DecodeString(ecSec)
-	ec, _ := factom.MakeECAddress(sec[:32])
-	fundWallet(st, 10)
-	chain, _ := primitives.HexToHash("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-	ents, _ := st.DB.FetchAllEntriesByChainID(chain)
-	for i, e := range ents {
-		eNew := new(factom.Entry)
-		eNew.ExtIDs = e.ExternalIDs()
-		eNew.ChainID = e.GetChainID().String()
-		eNew.Content = e.GetContent()
-
-		paramsRev := new(wsapi.EntryRequest)
-		paramsCom := new(wsapi.EntryRequest)
-		com, rev := getMessageStringEntry(eNew, ec)
-		paramsCom.Entry = com
-		paramsRev.Entry = rev
-		jCommit := primitives.NewJSON2Request("commit-entry", i, paramsCom)
-		jRev := primitives.NewJSON2Request("reveal-entry", i, paramsRev)
-		//fmt.Println("DEBUG:", jCommit.String())
-		//fmt.Println("DEBUG:", jRev.String())
-
-		_, err = v2Request(jCommit, st.GetPort())
-		//_, err = wsapi.HandleV2Request(st, jCommit)
-		if err != nil {
-			log.Println("Error in making identities: " + err.Error())
-		}
-		_, err = v2Request(jRev, st.GetPort())
-		//_, err = wsapi.HandleV2Request(st, jRev)
-		if err != nil {
-			log.Println("Error in making identities: " + err.Error())
-		}
-	}
-}
-
 func setUpAuthorites(st *state.State, buildMain bool) []hardCodedAuthority {
 	authStack = make([]hardCodedAuthority, 0)
 	authKeyLibrary = make([]hardCodedAuthority, 0)

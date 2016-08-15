@@ -67,7 +67,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 				return s
 			}
 			f = f / 1e8
-			return fmt.Sprintf("%f", f)
+			return fmt.Sprintf("%.8f", f)
 		},
 	}
 	TemplateMutex.Lock()
@@ -196,7 +196,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		}
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
-		bal := fmt.Sprintf("%.3f", float64(StatePointer.FactoidState.GetFactoidBalance(fixed))/1e8)
+		bal := fmt.Sprintf("%.8f", float64(StatePointer.FactoidState.GetFactoidBalance(fixed))/1e8)
 		TemplateMutex.Lock()
 		templates.ExecuteTemplate(w, content.Type,
 			struct {

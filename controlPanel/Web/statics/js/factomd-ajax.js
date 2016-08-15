@@ -43,11 +43,13 @@ function searchBarSubmit() {
   var x = new XMLHttpRequest()
   x.onreadystatechange = function() {
     if(x.readyState == 4) {
+      console.log(x.response)
       obj = JSON.parse(x.response)
       if (obj.Type == "dblockHeight") {
         window.location = "search?input=" + obj.item + "&type=dblock"
       } else if (obj.Type != "None") {
-        redirect("search?input=" + $("#factom-search").val() + "&type=" + obj.Type, "post", x.response) // Something found
+        window.location = "search?input=" + $("#factom-search").val() + "&type=" + obj.Type
+       //redirect("search?input=" + $("#factom-search").val() + "&type=" + obj.Type, "post", x.response) // Something found
       } else {
         $(".factom-search-error").slideDown(300)
         console.log(x.response)
@@ -110,23 +112,3 @@ function nextNode() {
     $("#current-node-number").text(resp)
   })
 }
-
-// Example Code to use for forms
-/*
-var form = document.getElementById("test_form")
-form.addEventListener("submit", function(e) {
-  e.preventDefault()
-  var x = new XMLHttpRequest()
-
-  x.onreadystatechange = function() {
-    if(x.readyState == 4) {
-      //console.log(x.response)
-      //alert(x.response)
-      $("#changeme").text(x.response)
-    }
-  }
-
-  x.open("POST", "/post")
-  x.send(new FormData(form))
-})
-*/
