@@ -71,6 +71,7 @@ type ITransaction interface {
 	CalculateFee(factoshisPerEC uint64) (uint64, error)
 
 	// Wallet Support (Not sure why we need some of these)
+	GetBlockHeight() uint32
 	SetBlockHeight(uint32)
 
 	// Helper Function.  This simply adds an Authorization to a
