@@ -92,7 +92,7 @@ type VM struct {
 	missingEOM     int64             // Ask for EOM because it is late
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
-	signed         bool              // We have signed the previous block.
+	Signed         bool              // We have signed the previous block.
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -513,7 +513,11 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	}
 	if p.State.Leader {
 		if now-thetime >= waitSeconds {
-			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
+			l := vm.LeaderMinute
+			if l == 10 {
+				l = 9
+			}
+			id := p.FedServers[p.ServerMap[l][vmIndex]].GetChainID()
 			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
 			auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
 			if len(auditServerList) > 0 {

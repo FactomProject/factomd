@@ -569,7 +569,7 @@ func (s *State) Init() {
 	//StubIdentityCache(s)
 	//needed for multiple nodes with FER.  remove for singe node launch
 	if s.FERChainId == "" {
-		s.FERChainId = "eac57815972c504ec5ae3f9e5c1fe12321a3c8c78def62528fb74cf7af5e7389"
+		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	}
 	if s.ExchangeRateAuthorityAddress == "" {
 		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
@@ -867,6 +867,7 @@ func (s *State) UpdateState() (progress bool) {
 
 func (s *State) catchupEBlocks() {
 	isComplete := true
+	askcnt := 20
 	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
 		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
 		if dblockGathering != nil {
@@ -881,6 +882,10 @@ func (s *State) catchupEBlocks() {
 						if !s.HasDataRequest(ebKeyMR) {
 							eBlockRequest := messages.NewMissingData(s, ebKeyMR)
 							s.NetworkOutMsgQueue() <- eBlockRequest
+							if askcnt < 0 {
+								return
+							}
+							askcnt--
 						}
 					}
 				}
@@ -917,7 +922,11 @@ func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 }
 
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
-	return s.ProcessLists.Get(dbheight).FedServers
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		return pl.FedServers
+	}
+	return nil
 }
 
 func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {

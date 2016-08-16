@@ -70,29 +70,7 @@ func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	return 1
-
-	// Check signatures
-	bytes, err := m.MarshalForSignature()
-	if err != nil {
-		//fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
-		return -1
-	}
-	if m.Signature == nil {
-		//fmt.Println("RemoveServerMsg Error: No signiture on RemoveServerMsg")
-		return -1
-	}
-	sig := m.Signature.GetSignature()
-	authSigned, err := state.VerifyFederatedSignature(bytes, sig)
-
-	//ackSigned, err := m.VerifySignature()
-	if err != nil {
-		//fmt.Println("RemoveServerMsg Error: Err is not nil, err: ", err.Error())
-		return -1
-	}
-	if !authSigned {
-		return -1
-	}
+	// TODO: Check valid signatures
 	return 1
 }
 

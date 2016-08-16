@@ -68,7 +68,10 @@ func (s *State) Process() (progress bool) {
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
 		default:
 			s.Holding[msg.GetMsgHash().Fixed()] = msg
-			s.networkInvalidMsgQueue <- msg
+			if !msg.SentInvlaid() {
+				msg.MarkSentInvalid(true)
+				s.networkInvalidMsgQueue <- msg
+			}
 		}
 
 		return
@@ -135,11 +138,12 @@ func (s *State) ReviewHolding() {
 				continue
 			}
 		}
-
-		if s.Leader && v.GetVMIndex() == s.LeaderVMIndex {
-			s.XReview = append(s.XReview, v)
-			delete(s.Holding, k)
+		if v.Validate(s) == 1 {
+			s.networkOutMsgQueue <- v
 		}
+
+		s.XReview = append(s.XReview, v)
+		delete(s.Holding, k)
 
 	}
 }
@@ -610,6 +614,39 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	return true
 }
 
+// dbheight is the height of the process list, and vmIndex is the vm
+// that is missing the DBSig.  If the DBSig isn't our responsiblity, then
+// this call will do nothing.  Assumes the state for the leader is set properly
+func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+	ht := s.GetHighestRecordedBlock()
+	if dbheight <= ht {
+		return
+	}
+	vm := s.ProcessLists.Get(dbheight).VMs[vmIndex]
+	if s.Leader && !vm.Signed && s.LeaderVMIndex == vmIndex {
+		dbstate := s.DBStates.Get(int(dbheight - 1))
+		if dbstate == nil && dbheight > 0 {
+			s.SendDBSig(dbheight-1, vmIndex)
+			return
+		}
+		dbs := new(messages.DirectoryBlockSignature)
+		dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+		//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+		dbs.ServerIdentityChainID = s.GetIdentityChainID()
+		dbs.DBHeight = dbheight
+		dbs.Timestamp = s.GetTimestamp()
+		dbs.SetVMHash(nil)
+		dbs.SetVMIndex(vmIndex)
+		dbs.SetLocal(true)
+		dbs.Sign(s)
+		err := dbs.Sign(s)
+		if err != nil {
+			panic(err)
+		}
+		dbs.LeaderExecute(s)
+	}
+}
+
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
@@ -636,6 +673,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.ReviewHolding()
 			s.Syncing = false
 		}
+
+		// If we are the leader for this vm, and the previous block has not been signed,
+		// submit a dbsignature to the network of the previous block.  See the discussion
+		// about DBSig below.
+		s.SendDBSig(dbheight, msg.GetVMIndex())
+
 		return true
 	}
 
@@ -706,6 +749,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
 			s.DBSigProcessed = 0
+
+			// Note about dbsigs.... If we processed the previous minute, then we generate the DBSig for the next block.
+			// But if we didn't process the preivious block, like we start from scratch, or we had to reset the entire
+			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
+			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
+			// above).
 			if s.Leader {
 				dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
 				dbs := new(messages.DirectoryBlockSignature)
@@ -789,6 +838,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSig = false
 			s.Syncing = false
 		}
+		vm.Signed = true
 		//s.LeaderPL.AdminBlock
 		return true
 	}
@@ -797,7 +847,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	if !s.DBSig {
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
-		s.ProcessLists.Get(dbheight).VMs[dbs.VMIndex].Synced = false
 		s.DBSig = true
 		s.Syncing = true
 		s.DBSigDone = false
@@ -826,7 +875,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if !dbs.DBSignature.Verify(data) {
 				fmt.Println("Debug: DBSig Signature Error, Verify errored")
 			} else {
-				if valid, err := s.VerifyFederatedSignature(data, dbs.DBSignature.GetSignature()); err == nil && valid {
+				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
 					allChecks = true
 				}
 			}

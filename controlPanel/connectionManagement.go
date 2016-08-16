@@ -195,7 +195,7 @@ func (slice ConnectionInfoArray) Len() int {
 }
 
 func (slice ConnectionInfoArray) Less(i, j int) bool {
-	if slice[i].Connected == true && slice[j].Connected == false {
+	if slice[i].Connection.MomentConnected.Before(slice[j].Connection.MomentConnected) {
 		return true
 	}
 	return false
@@ -248,7 +248,7 @@ func (cm *ConnectionsMap) SortedConnections() ConnectionInfoArray {
 
 	var sortedList ConnectionInfoArray
 	sortedList = list
-	sort.Sort(sortedList)
+	sort.Sort(sort.Reverse(sortedList))
 	cm.CleanDisconnected()
 	return sortedList
 }
