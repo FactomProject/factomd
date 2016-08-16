@@ -71,11 +71,12 @@ type ProcessList struct {
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 	// Negotiation tracker variables
-	WaitingForNegotiator       int
-	WaitingForNegotiationSince int64
-	OngoingNegotiations        map[uint32]int64 // this maps PL height to negotiation start-time (for timeout purposes)
-	ShouldBeFaulted            map[int]interfaces.IHash
-	AmIPledged                 bool
+	AmIPledged       bool
+	AlreadyNominated map[string]map[string]int64
+	// AlreadyNominated is used to track what AuditIDs we have nominated
+	// to replace a particular faulted LeaderID (so that we don't "echo"
+	// infinitely when we are matching others' promotion votes)
+	WaitingForPledge map[string]int64
 
 	// DB Sigs
 	DBSignatures []DBSig
@@ -890,9 +891,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
 
-	pl.ShouldBeFaulted = make(map[int]interfaces.IHash)
-	pl.OngoingNegotiations = make(map[uint32]int64)
-	pl.WaitingForNegotiator = -1
+	pl.AlreadyNominated = make(map[string]map[string]int64)
+	pl.WaitingForPledge = make(map[string]int64)
 
 	pl.DBSignatures = make([]DBSig, 0)
 
