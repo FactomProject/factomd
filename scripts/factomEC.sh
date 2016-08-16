@@ -6,6 +6,8 @@ sleep 1
 chain="$(echo "one two three four, this is a test of making an entry.  More to test, Test, Test, test" $RANDOM $RANDOM $RANDOM | factom-cli2 mkchain -e $RANDOM -e $RANDOM e1 | gawk "{print \$3}")"
 echo xxxxxxxxxxxxxxxxxxxx Made Chain number: $mychain chainid: ${chain}
 sleep 120
+echo yyyyyyyyyyyyyyyyyyyy
+factom-cli2 get chainhead ${chain}
 
 
 for i in `seq 1 5`;
