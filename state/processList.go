@@ -289,13 +289,15 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
-	indx := int(p.DBHeight*131) % n
+	if n > 0 {
+		indx := int(p.DBHeight*131) % n
 
-	for i := 0; i < 10; i++ {
-		indx = (indx + 1) % n
-		for j := 0; j < len(p.FedServers); j++ {
-			p.ServerMap[i][j] = indx
+		for i := 0; i < 10; i++ {
 			indx = (indx + 1) % n
+			for j := 0; j < len(p.FedServers); j++ {
+				p.ServerMap[i][j] = indx
+				indx = (indx + 1) % n
+			}
 		}
 	}
 }
