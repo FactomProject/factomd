@@ -132,14 +132,10 @@ func (s *State) ReviewHolding() {
 		}
 
 		if v.Resend(s) {
-			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-			if !ok {
-				delete(s.Holding, k)
-				continue
+			if v.Validate(s) == 1 {
+				s.ResendCnt++
+				s.networkOutMsgQueue <- v
 			}
-		}
-		if v.Validate(s) == 1 {
-			s.networkOutMsgQueue <- v
 		}
 
 		s.XReview = append(s.XReview, v)
@@ -451,6 +447,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	commit := s.NextCommit(re.Entry.GetHash())
 	if commit == nil {
 		m.FollowerExecute(s)
+		return
 	}
 	s.PutCommit(re.Entry.GetHash(), commit)
 	s.LeaderExecute(m)
