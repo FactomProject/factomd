@@ -57,6 +57,12 @@ func SimControl(listenTo int) {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
 			case 'g' == b[0]:
+				if len(b) > 1 {
+					if b[1] == 'c' {
+						copyOver(fnodes[listenTo].State)
+						break
+					}
+				}
 				if listenTo < 0 || listenTo > len(fnodes) {
 					break
 				}

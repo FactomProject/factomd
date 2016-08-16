@@ -1,4 +1,5 @@
 ## Compiling the Static files into the binary.
+ - go get github.com/FactomProject/staticfiles
  - Run controlPanel/compile.sh from within controlPanel directory
   - 'files/statics/statics.go' and 'files/templates/templates.go' are generated and should not be manually edited.
 
