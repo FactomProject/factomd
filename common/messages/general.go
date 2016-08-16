@@ -76,6 +76,8 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		msg = new(ChangeServerKeyMsg)
 	case constants.REMOVESERVER_MSG:
 		msg = new(RemoveServerMsg)
+	case constants.NEGOTIATION_MSG:
+		msg = new(Negotiation)
 	default:
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
@@ -137,6 +139,8 @@ func MessageName(Type byte) string {
 		return "DBState Missing"
 	case constants.DBSTATE_MSG:
 		return "DBState"
+	case constants.NEGOTIATION_MSG:
+		return "Negotiation"
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}

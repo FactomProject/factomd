@@ -70,6 +70,14 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
+	// Negotiation tracker variables
+	AmIPledged       bool
+	AlreadyNominated map[string]map[string]int64
+	// AlreadyNominated is used to track what AuditIDs we have nominated
+	// to replace a particular faulted LeaderID (so that we don't "echo"
+	// infinitely when we are matching others' promotion votes)
+	WaitingForPledge map[string]int64
+
 	// DB Sigs
 	DBSignatures []DBSig
 }
@@ -93,6 +101,10 @@ type VM struct {
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 	signed         bool              // We have signed the previous block.
+	isFaulting     bool
+	isNegotiating  bool
+	whenFaulted    int64
+	faultWait      int64
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -511,22 +523,64 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	if thetime == 0 {
 		thetime = now
 	}
-	if p.State.Leader {
-		if now-thetime >= waitSeconds {
-			id := p.FedServers[p.ServerMap[vm.LeaderMinute][vmIndex]].GetChainID()
-			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
-			auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
-			if len(auditServerList) > 0 {
-				replacementServer := auditServerList[0]
-				sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
-				if sf != nil {
-					sf.Sign(p.State.serverPrivKey)
-					p.State.NetworkOutMsgQueue() <- sf
-					p.State.InMsgQueue() <- sf
+	if now-thetime >= waitSeconds {
+		if !vm.isFaulting {
+			vm.whenFaulted = now
+		}
+		vm.isFaulting = true
+
+		responsibleFaulterIdx := vmIndex + 1
+		if responsibleFaulterIdx >= len(p.FedServers) {
+			responsibleFaulterIdx = 0
+		}
+		nextVM := p.VMs[responsibleFaulterIdx]
+
+		// If it has been more than 30 seconds since this server faulted
+		// and still no negotiation has been initiated, we have to fault
+		// the negotiator (nextVM)
+		if now-vm.whenFaulted > 30 {
+			if !vm.isNegotiating {
+				if !nextVM.isFaulting {
+					nextVM.isFaulting = true
+					nextVM.whenFaulted = now
+				}
+				nextVM.faultWait = fault(p, responsibleFaulterIdx, 40, nextVM, nextVM.faultWait, height)
+			}
+		}
+
+		leaderMin := vm.LeaderMinute
+
+		for _, vv := range p.VMs {
+			if vv.LeaderMinute > vm.LeaderMinute {
+				leaderMin = vv.LeaderMinute
+			}
+		}
+		if leaderMin >= 10 {
+			leaderMin = 0
+		}
+		if p.State.Leader {
+			//fmt.Println("JVMI:", vmIndex)
+			//fmt.Println("JVMI2:", vm.LeaderMinute)
+			myIndex := p.ServerMap[leaderMin][vmIndex]
+			if myIndex > 0 {
+				myIndex--
+			} else {
+				myIndex = len(p.FedServers) - 1
+			}
+			faultee := p.FedServers[myIndex].GetChainID()
+			if p.State.LeaderVMIndex == responsibleFaulterIdx {
+				//fmt.Println("JUSTIN - ", p.State.FactomNodeName, "IS NEGOTIATING FOR", vmIndex, "WHICH IS", faultee, "ON LEADERMIN", leaderMin)
+				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), faultee, vmIndex, p.DBHeight, uint32(height))
+				if negotiationMsg != nil {
+					negotiationMsg.Sign(p.State.serverPrivKey)
+					p.State.NetworkOutMsgQueue() <- negotiationMsg
+					p.State.InMsgQueue() <- negotiationMsg
 				}
 				thetime = now
 			}
 		}
+
+		//p.VMs[responsibleFaulterIdx].faultingEOM = now
 	}
 
 	return thetime
@@ -545,9 +599,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if !p.State.Syncing {
 			vm.faultingEOM = 0
+			//vm.isFaulting = false
 		} else {
 			if !vm.Synced {
 				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List))
+				/*iPlus := i + 1
+				if iPlus >= len(p.FedServers) {
+					iPlus = 0
+				}
+				nextVM := p.VMs[iPlus]
+				nextVM.shouldNegotiate = fault(p, iPlus, 40, nextVM, nextVM.shouldNegotiate, len(vm.List))*/
 			}
 		}
 
@@ -829,6 +890,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
+
+	pl.AlreadyNominated = make(map[string]map[string]int64)
+	pl.WaitingForPledge = make(map[string]int64)
 
 	pl.DBSignatures = make([]DBSig, 0)
 

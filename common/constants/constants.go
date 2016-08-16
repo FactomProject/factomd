@@ -37,6 +37,7 @@ const (
 	ADDSERVER_MSG        // 22
 	CHANGESERVER_KEY_MSG // 23
 	REMOVESERVER_MSG     // 24
+	NEGOTIATION_MSG      // 25
 )
 
 const (
