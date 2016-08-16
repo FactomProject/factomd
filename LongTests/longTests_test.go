@@ -1,7 +1,6 @@
 package longTests_test
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"sync"
