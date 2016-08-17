@@ -328,7 +328,7 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 				}
 
 				if needToNominate {
-					fmt.Println("JUSTIN ", s.FactomNodeName, "SENDING SFAULT BASED OFF NEGO:", negotiation.ServerID.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
+					//fmt.Println("JUSTIN ", s.FactomNodeName, "SENDING SFAULT BASED OFF NEGO:", negotiation.ServerID.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
 					//NOMINATE
 					sf := messages.NewServerFault(s.GetTimestamp(), negotiation.ServerID, replacementServer.GetChainID(), int(negotiation.VMIndex), negotiation.DBHeight, negotiation.Height)
 					if sf != nil {
@@ -372,20 +372,18 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			if err == nil {
 				sigVer, err := a.VerifySignature(marshalledSF, sf.Signature.GetSignature())
 				if err == nil && sigVer {
-					foundAudit, audIdx := pl.GetAuditServerIndexHash(sf.AuditServerID)
-					if foundAudit {
-						pledgeSlot, pledged := pl.PledgeMap[sf.AuditServerID.String()]
-						if pledged {
+					if foundAudit, audIdx := pl.GetAuditServerIndexHash(sf.AuditServerID); foundAudit {
+						if pledgeSlot, pledged := pl.PledgeMap[sf.AuditServerID.String()]; pledged {
 							//if pl.AuditServers[audIdx].LeaderToReplace() != nil {
 							if pledgeSlot != sf.ServerID.String() {
 								// illegal vote; audit server has already AOK'd replacing a different leader
 								// "punish" them by setting them offline (i.e. make them ineligible for promotion)
-								fmt.Println("JUSTIN NODE", s.FactomNodeName, "SETTING OFFLINE:", pl.AuditServers[audIdx].GetChainID().String()[:10], "(ILLEGAL DOUBLE PLEDGE)")
+								//fmt.Println("JUSTIN NODE", s.FactomNodeName, "SETTING OFFLINE:", pl.AuditServers[audIdx].GetChainID().String()[:10], "(ILLEGAL DOUBLE PLEDGE)")
 								pl.AuditServers[audIdx].SetOnline(false)
 							}
 						} else {
 							// AOK: set the Audit Server's "Leader to Replace" field to this ServerID
-							fmt.Println("JUSTIN NODE", s.FactomNodeName, "KNOWS THAT", sf.AuditServerID.String()[:10], "PLEDGED TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
+							//fmt.Println("JUSTIN NODE", s.FactomNodeName, "KNOWS THAT", sf.AuditServerID.String()[:10], "PLEDGED TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
 							//pl.AuditServers[audIdx].SetReplace(sf.ServerID)
 							pl.PledgeMap[sf.AuditServerID.String()] = sf.ServerID.String()
 						}
@@ -401,8 +399,13 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		s.FaultMap[coreHash] = make(map[[32]byte]interfaces.IFullSignature)
 	}
 
-	s.FaultMap[coreHash][issuerID] = sf.GetSignature()
+	lbytes, err := sf.MarshalForSignature()
 
+	sfSig := sf.Signature.GetSignature()
+	sfSigned, err := s.VerifyAuthoritySignature(lbytes, sfSig, sf.DBHeight)
+	if err == nil && sfSigned == 1 {
+		s.FaultMap[coreHash][issuerID] = sf.GetSignature()
+	}
 	cnt := len(s.FaultMap[coreHash])
 	var fedServerCnt int
 	if pl != nil {
@@ -410,43 +413,38 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	} else {
 		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
 	}
-	if s.Leader && cnt > (fedServerCnt/2) {
+
+	if s.Leader {
 		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
-		if s.LeaderVMIndex == responsibleFaulterIdx {
-			foundAudit, _ := pl.GetAuditServerIndexHash(sf.AuditServerID)
-			if foundAudit {
-				serverToReplace, pledged := pl.PledgeMap[sf.AuditServerID.String()]
-				if pledged {
-					if serverToReplace == sf.ServerID.String() {
-						var listOfSigs []interfaces.IFullSignature
-						for _, sig := range s.FaultMap[coreHash] {
-							listOfSigs = append(listOfSigs, sig)
+		if cnt > (fedServerCnt / 2) {
+			if s.LeaderVMIndex == responsibleFaulterIdx {
+				if foundAudit, _ := pl.GetAuditServerIndexHash(sf.AuditServerID); foundAudit {
+					serverToReplace, pledged := pl.PledgeMap[sf.AuditServerID.String()]
+					if pledged {
+						if serverToReplace == sf.ServerID.String() {
+							var listOfSigs []interfaces.IFullSignature
+							for _, sig := range s.FaultMap[coreHash] {
+								listOfSigs = append(listOfSigs, sig)
+							}
+							fullFault := messages.NewFullServerFault(sf, listOfSigs)
+							if fullFault != nil {
+								fullFault.Sign(s.serverPrivKey)
+								s.NetworkOutMsgQueue() <- fullFault
+								fullFault.FollowerExecute(s)
+								delete(s.FaultMap, sf.GetCoreHash().Fixed())
+							}
 						}
-						fullFault := messages.NewFullServerFault(sf, listOfSigs)
-						if fullFault != nil {
-							fullFault.Sign(s.serverPrivKey)
-							s.NetworkOutMsgQueue() <- fullFault
-							fullFault.FollowerExecute(s)
-							delete(s.FaultMap, sf.GetCoreHash().Fixed())
-						}
-					} else {
-						fmt.Println("JUSTIN", s.FactomNodeName, "WOULD FULLFAULT BUT", sf.AuditServerID.String(), "PLEDGED TO", serverToReplace, "RATHER THAN", sf.ServerID.String())
 					}
-				} else {
-					fmt.Println("JUSTIN", s.FactomNodeName, "WOULD FULLFAULT BUT", sf.AuditServerID.String(), "HASN'T PLEDGED YET; SHOULD PLEDGE FOR", sf.ServerID.String())
 				}
 			}
 		}
-	}
 
-	//Match a nomination if we haven't nominated the same server already
-	if s.Leader {
+		//Match a nomination if we haven't nominated the same server already
 		existingNominations, exists := pl.AlreadyNominated[sf.ServerID.String()]
 		if exists {
 			_, alreadyNom := existingNominations[sf.AuditServerID.String()]
 			if !alreadyNom {
-				fmt.Println("JUSTIN ", s.FactomNodeName, "MATCHING FAULT OF:", sf.ServerID.String()[:10], "NEWNOM:", sf.AuditServerID.String()[:10])
 				pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
 				matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 				if matchNomination != nil {
@@ -456,31 +454,60 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 				}
 			}
 		}
+	} else {
+		if s.IdentityChainID.IsSameAs(sf.AuditServerID) {
+			// I am the audit server being promoted
+			if !pl.AmIPledged {
+				pl.AmIPledged = true
+				//fmt.Println("JUSTIN AUDIT SERVER ", s.IdentityChainID.String()[:10], "PLEDGING TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
+				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+				if nsf != nil {
+					nsf.Sign(s.serverPrivKey)
+					s.NetworkOutMsgQueue() <- nsf
+					s.InMsgQueue() <- nsf
+				}
+			}
+		}
 	}
 }
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fullFault, _ := m.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
-	auditServerList := s.GetOnlineAuditServers(fullFault.DBHeight)
+	//auditServerList := s.GetOnlineAuditServers(fullFault.DBHeight)
+	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
+	//fmt.Println("JUSTIN", s.FactomNodeName, "EXEC FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
 			theAuditReplacement = auditServer
 		}
 	}
 	if theAuditReplacement != nil {
+		//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND AUD FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 				relevantPL.FedServers[listIdx] = theAuditReplacement
 				relevantPL.AddAuditServer(fedServ.GetChainID())
 				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
+				if foundVM, vmindex := relevantPL.GetVirtualServers(s.CurrentMinute, theAuditReplacement.GetChainID()); foundVM {
+					//fmt.Println("JUSTIN", s.FactomNodeName, "FF SETTING ISF FALSE", theAuditReplacement.GetChainID().String()[:10])
+					relevantPL.VMs[vmindex].isFaulting = false
+				}
+				break
 			}
 		}
 	}
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	delete(s.FaultMap, fullFault.GetCoreHash().Fixed())
+	delete(relevantPL.FaultTimes, fullFault.ServerID.String())
+
+	for pledger, pledgeSlot := range relevantPL.PledgeMap {
+		if pledgeSlot == fullFault.ServerID.String() {
+			delete(relevantPL.PledgeMap, pledger)
+		}
+	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
