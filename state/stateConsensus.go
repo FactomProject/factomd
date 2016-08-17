@@ -378,12 +378,12 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 							if pledgeSlot != sf.ServerID.String() {
 								// illegal vote; audit server has already AOK'd replacing a different leader
 								// "punish" them by setting them offline (i.e. make them ineligible for promotion)
-								//fmt.Println("JUSTIN NODE", s.FactomNodeName, "SETTING OFFLINE:", pl.AuditServers[audIdx].GetChainID().String()[:10], "(ILLEGAL DOUBLE PLEDGE)")
+								//fmt.Println("JUSTIN", s.FactomNodeName, "SETTING OFFLINE:", pl.AuditServers[audIdx].GetChainID().String()[:10], "(ILLEGAL DOUBLE PLEDGE)")
 								pl.AuditServers[audIdx].SetOnline(false)
 							}
 						} else {
 							// AOK: set the Audit Server's "Leader to Replace" field to this ServerID
-							//fmt.Println("JUSTIN NODE", s.FactomNodeName, "KNOWS THAT", sf.AuditServerID.String()[:10], "PLEDGED TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
+							//fmt.Println("JUSTIN", s.FactomNodeName, "KNOWS THAT", sf.AuditServerID.String()[:10], "PLEDGED TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
 							//pl.AuditServers[audIdx].SetReplace(sf.ServerID)
 							pl.PledgeMap[sf.AuditServerID.String()] = sf.ServerID.String()
 						}
