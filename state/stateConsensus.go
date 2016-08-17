@@ -280,17 +280,118 @@ func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
 	default:
 		s.networkInvalidMsgQueue <- msg
 	}
+}
 
+func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
+	negotiation, _ := m.(*messages.Negotiation)
+	pl := s.ProcessLists.Get(negotiation.DBHeight)
+	if pl == nil {
+		return
+	}
+
+	if s.Leader {
+		// TODO: if I am the Leader being faulted, I should respond by sending out
+		// a MissingMsgResponse to everyone for the msg I'm being faulted for
+		nowSecond := s.GetTimestamp().GetTimeSeconds()
+		//nowSecond := negotiation.Timestamp.GetTimeSeconds()
+		vmAtFault := pl.VMs[negotiation.VMIndex]
+		if vmAtFault.isFaulting {
+			vmAtFault.isNegotiating = true
+
+			_, negotiationInitiated := pl.NegotiationInit[negotiation.ServerID.String()]
+			if !negotiationInitiated {
+				pl.NegotiationInit[negotiation.ServerID.String()] = nowSecond
+			}
+
+			_, servEntryFound := pl.AlreadyNominated[negotiation.ServerID.String()]
+			if !servEntryFound {
+				pl.AlreadyNominated[negotiation.ServerID.String()] = make(map[string]int64)
+			}
+
+			auditServerList := s.GetOnlineAuditServers(negotiation.DBHeight)
+			if len(auditServerList) > 0 {
+				needToNominate := true
+				replacementServer := auditServerList[0]
+				for _, auditCandidate := range auditServerList {
+					whenNominated, auditNominationFound := pl.AlreadyNominated[negotiation.ServerID.String()][auditCandidate.GetChainID().String()]
+					if auditNominationFound {
+						if nowSecond-whenNominated > 20 {
+							auditCandidate.SetOnline(false)
+						} else {
+							needToNominate = false
+						}
+					} else {
+						replacementServer = auditCandidate
+						pl.AlreadyNominated[negotiation.ServerID.String()][auditCandidate.GetChainID().String()] = nowSecond
+						break
+					}
+				}
+
+				if needToNominate {
+					fmt.Println("JUSTIN ", s.FactomNodeName, "SENDING SFAULT BASED OFF NEGO:", negotiation.ServerID.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
+					//NOMINATE
+					sf := messages.NewServerFault(s.GetTimestamp(), negotiation.ServerID, replacementServer.GetChainID(), int(negotiation.VMIndex), negotiation.DBHeight, negotiation.Height)
+					if sf != nil {
+						sf.Sign(s.serverPrivKey)
+						s.NetworkOutMsgQueue() <- sf
+						s.InMsgQueue() <- sf
+					}
+				}
+			}
+		}
+	}
 }
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
+	pl := s.ProcessLists.Get(sf.DBHeight)
+
+	if pl == nil {
+		return
+	}
+	if !pl.VMs[sf.VMIndex].isFaulting {
+		return
+	}
 
 	var issuerID [32]byte
 	rawIssuerID := sf.GetSignature().GetKey()
 	for i := 0; i < 32; i++ {
 		if i < len(rawIssuerID) {
 			issuerID[i] = rawIssuerID[i]
+		}
+	}
+
+	// if this fault is an Audit server voting for itself to be promoted
+	// (i.e. it is an "AOK" message)
+	// then we need to mark the Audit server as "ReadyForPromotion" or
+	// alternatively mark it "offline" if it has voted promiscuously
+	// during this negotiation
+	for _, a := range s.Authorities {
+		if a.AuthorityChainID.IsSameAs(sf.AuditServerID) {
+			marshalledSF, err := sf.MarshalForSignature()
+			if err == nil {
+				sigVer, err := a.VerifySignature(marshalledSF, sf.Signature.GetSignature())
+				if err == nil && sigVer {
+					foundAudit, audIdx := pl.GetAuditServerIndexHash(sf.AuditServerID)
+					if foundAudit {
+						pledgeSlot, pledged := pl.PledgeMap[sf.AuditServerID.String()]
+						if pledged {
+							//if pl.AuditServers[audIdx].LeaderToReplace() != nil {
+							if pledgeSlot != sf.ServerID.String() {
+								// illegal vote; audit server has already AOK'd replacing a different leader
+								// "punish" them by setting them offline (i.e. make them ineligible for promotion)
+								fmt.Println("JUSTIN NODE", s.FactomNodeName, "SETTING OFFLINE:", pl.AuditServers[audIdx].GetChainID().String()[:10], "(ILLEGAL DOUBLE PLEDGE)")
+								pl.AuditServers[audIdx].SetOnline(false)
+							}
+						} else {
+							// AOK: set the Audit Server's "Leader to Replace" field to this ServerID
+							fmt.Println("JUSTIN NODE", s.FactomNodeName, "KNOWS THAT", sf.AuditServerID.String()[:10], "PLEDGED TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
+							//pl.AuditServers[audIdx].SetReplace(sf.ServerID)
+							pl.PledgeMap[sf.AuditServerID.String()] = sf.ServerID.String()
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -302,10 +403,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 
 	s.FaultMap[coreHash][issuerID] = sf.GetSignature()
 
-	//faultedServerID := sf.ServerID.Fixed()
-
 	cnt := len(s.FaultMap[coreHash])
-	pl := s.ProcessLists.Get(sf.DBHeight)
 	var fedServerCnt int
 	if pl != nil {
 		fedServerCnt = len(pl.FedServers)
@@ -316,69 +414,78 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
 		if s.LeaderVMIndex == responsibleFaulterIdx {
-			var listOfSigs []interfaces.IFullSignature
-			for _, sig := range s.FaultMap[coreHash] {
-				listOfSigs = append(listOfSigs, sig)
-			}
-			fullFault := messages.NewFullServerFault(sf, listOfSigs)
-			if fullFault != nil {
-				fullFault.Sign(s.serverPrivKey)
-				s.NetworkOutMsgQueue() <- fullFault
-				fullFault.FollowerExecute(s)
-				delete(s.FaultMap, sf.GetCoreHash().Fixed())
+			foundAudit, _ := pl.GetAuditServerIndexHash(sf.AuditServerID)
+			if foundAudit {
+				serverToReplace, pledged := pl.PledgeMap[sf.AuditServerID.String()]
+				if pledged {
+					if serverToReplace == sf.ServerID.String() {
+						var listOfSigs []interfaces.IFullSignature
+						for _, sig := range s.FaultMap[coreHash] {
+							listOfSigs = append(listOfSigs, sig)
+						}
+						fullFault := messages.NewFullServerFault(sf, listOfSigs)
+						if fullFault != nil {
+							fullFault.Sign(s.serverPrivKey)
+							s.NetworkOutMsgQueue() <- fullFault
+							fullFault.FollowerExecute(s)
+							delete(s.FaultMap, sf.GetCoreHash().Fixed())
+						}
+					} else {
+						fmt.Println("JUSTIN", s.FactomNodeName, "WOULD FULLFAULT BUT", sf.AuditServerID.String(), "PLEDGED TO", serverToReplace, "RATHER THAN", sf.ServerID.String())
+					}
+				} else {
+					fmt.Println("JUSTIN", s.FactomNodeName, "WOULD FULLFAULT BUT", sf.AuditServerID.String(), "HASN'T PLEDGED YET; SHOULD PLEDGE FOR", sf.ServerID.String())
+				}
 			}
 		}
 	}
-	/*
-		if pl != nil {
-			pl.FaultList[sf.ServerID.Fixed()] = append(pl.FaultList[sf.ServerID.Fixed()], sf.GetSignature().GetKey())
-			cnt := len(pl.FaultList[sf.ServerID.Fixed()])
-			if s.Leader && cnt > len(pl.FedServers)/2 {
-				fmt.Println(s.FactomNodeName, "FAULTING", sf.ServerID.String())
+
+	//Match a nomination if we haven't nominated the same server already
+	if s.Leader {
+		existingNominations, exists := pl.AlreadyNominated[sf.ServerID.String()]
+		if exists {
+			_, alreadyNom := existingNominations[sf.AuditServerID.String()]
+			if !alreadyNom {
+				fmt.Println("JUSTIN ", s.FactomNodeName, "MATCHING FAULT OF:", sf.ServerID.String()[:10], "NEWNOM:", sf.AuditServerID.String()[:10])
+				pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
+				matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+				if matchNomination != nil {
+					matchNomination.Sign(s.serverPrivKey)
+					s.NetworkOutMsgQueue() <- matchNomination
+					s.InMsgQueue() <- matchNomination
+				}
 			}
-		}*/
+		}
+	}
 }
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
-	fsf, _ := m.(*messages.FullServerFault)
-	relevantPL := s.ProcessLists.Get(fsf.DBHeight)
-	auditServerList := s.GetOnlineAuditServers(fsf.DBHeight)
+	fullFault, _ := m.(*messages.FullServerFault)
+	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
+	auditServerList := s.GetOnlineAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
-	for _, as := range auditServerList {
-		if as.GetChainID().IsSameAs(fsf.AuditServerID) {
-			theAuditReplacement = as
+	for _, auditServer := range auditServerList {
+		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
+			theAuditReplacement = auditServer
 		}
 	}
 	if theAuditReplacement != nil {
 		for listIdx, fedServ := range relevantPL.FedServers {
-			if fedServ.GetChainID().IsSameAs(fsf.ServerID) {
+			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 				relevantPL.FedServers[listIdx] = theAuditReplacement
 				relevantPL.AddAuditServer(fedServ.GetChainID())
+				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 			}
 		}
-
-		//addMsg := messages.NewAddServerByHashMsg(s, 0, auditServerList[0].GetChainID())
-		//s.InMsgQueue() <- addMsg
-		//s.NetworkOutMsgQueue() <- addMsg
-
-		s.RemoveAuditServer(fsf.DBHeight, theAuditReplacement.GetChainID())
 	}
-	//	s.RemoveFedServer(fsf.DBHeight, fsf.ServerID)
-
-	//removeMsg := messages.NewRemoveServerMsg(s, fsf.ServerID, 0)
-	//s.InMsgQueue() <- removeMsg
-	//s.NetworkOutMsgQueue() <- removeMsg
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-	delete(s.FaultMap, fsf.GetCoreHash().Fixed())
+	delete(s.FaultMap, fullFault.GetCoreHash().Fixed())
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 	ackResp := mmr.AckResponse.(*messages.Ack)
-	//s.Holding[mmr.MsgResponse.GetHash().Fixed()] = mmr.MsgResponse
-	//s.Acks[ackResp.GetHash().Fixed()] = ackResp
-
 	pl := s.ProcessLists.Get(ackResp.DBHeight)
 	pl.AddToProcessList(ackResp, mmr.MsgResponse)
 	s.MissingAnsCnt++

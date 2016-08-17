@@ -70,6 +70,26 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
+	// Negotiation tracker variables
+	FaultTimes map[string]int64
+	// FaultTimes keeps track of when a particular ServerID initially
+	// deserved a fault, so that we can time out the negotiation process
+	// (and its various phases) properly
+	NegotiationInit map[string]int64
+
+	AlreadyNominated map[string]map[string]int64
+	// AlreadyNominated is used to track what AuditIDs we have nominated
+	// to replace a particular faulted LeaderID (so that we don't "echo"
+	// infinitely when we are matching others' promotion votes and so
+	// we know when to disqualify an audit server who took too long)
+	// The first map's key is the ServerID being faulted, the key
+	// for the second map is the nominated AuditID
+	PledgeMap map[string]string
+	// PledgeMap keeps track of which audit servers have issued pledges
+	// to replace a particular faulted server. WARNING: the key for
+	// this map is the AuditID, the value is the faulted LeaderID
+	// (which is the opposite of AlreadyNominated)
+
 	// DB Sigs
 	DBSignatures []DBSig
 }
@@ -93,6 +113,10 @@ type VM struct {
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 	Signed         bool              // We have signed the previous block.
+	isFaulting     bool
+	isNegotiating  bool
+	whenFaulted    int64
+	faultWait      int64
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -511,22 +535,46 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 	if thetime == 0 {
 		thetime = now
 	}
-	if p.State.Leader {
-		if now-thetime >= waitSeconds {
-			l := vm.LeaderMinute
-			if l == 10 {
-				l = 9
+
+	if now-thetime >= waitSeconds {
+		l := vm.LeaderMinute
+		if l == 10 {
+			l = 9
+		}
+		fedServ := p.FedServers[p.ServerMap[l][vmIndex]]
+		fedServ.SetOnline(false)
+		id := fedServ.GetChainID()
+
+		if !vm.isFaulting {
+			vm.whenFaulted = now
+			p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
+		}
+		vm.isFaulting = true
+
+		responsibleFaulterIdx := vmIndex + 1
+		if responsibleFaulterIdx >= len(p.FedServers) {
+			responsibleFaulterIdx = 0
+		}
+		nextVM := p.VMs[responsibleFaulterIdx]
+
+		if now-vm.whenFaulted > 20 {
+			if !vm.isNegotiating {
+				if !nextVM.isFaulting {
+					nextVM.isFaulting = true
+					nextVM.whenFaulted = now
+				}
+				nextVM.faultWait = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultWait, height)
 			}
-			id := p.FedServers[p.ServerMap[l][vmIndex]].GetChainID()
-			//fmt.Println(p.State.FactomNodeName, "FAULTING", id.String()[:10])
-			auditServerList := p.State.GetOnlineAuditServers(p.DBHeight)
-			if len(auditServerList) > 0 {
-				replacementServer := auditServerList[0]
-				sf := messages.NewServerFault(p.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, p.DBHeight, uint32(height))
-				if sf != nil {
-					sf.Sign(p.State.serverPrivKey)
-					p.State.NetworkOutMsgQueue() <- sf
-					p.State.InMsgQueue() <- sf
+		}
+
+		if p.State.Leader {
+			if p.State.LeaderVMIndex == responsibleFaulterIdx {
+				fmt.Println("JUSTIN - ", p.State.FactomNodeName, "INITIATING NEGOTIATION FOR", vmIndex, "WHICH IS", id.String()[:10])
+				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
+				if negotiationMsg != nil {
+					negotiationMsg.Sign(p.State.serverPrivKey)
+					p.State.NetworkOutMsgQueue() <- negotiationMsg
+					p.State.InMsgQueue() <- negotiationMsg
 				}
 				thetime = now
 			}
@@ -765,7 +813,11 @@ func (p *ProcessList) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n", len(p.FedServers)))
 		for _, fed := range p.FedServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:10]))
+			fedOnline := ""
+			if !fed.IsOnline() {
+				fedOnline = " F"
+			}
+			buf.WriteString(fmt.Sprintf("    %x%s\n", fed.GetChainID().Bytes()[:10], fedOnline))
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
 		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
@@ -807,6 +859,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 				auditServer.SetOnline(true)
 			}
 		}
+		for _, fedServer := range pl.FedServers {
+			fedServer.SetOnline(true)
+		}
 		pl.SortFedServers()
 	} else {
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
@@ -833,6 +888,11 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
+
+	pl.FaultTimes = make(map[string]int64)
+	pl.NegotiationInit = make(map[string]int64)
+	pl.AlreadyNominated = make(map[string]map[string]int64)
+	pl.PledgeMap = make(map[string]string)
 
 	pl.DBSignatures = make([]DBSig, 0)
 
