@@ -215,11 +215,31 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
+	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
-	EBDBHeightComplete uint32
+	EntryBlockDBHeightComplete uint32
+	// DBlock Height at which we have started asking for entry blocks
+	EntryBlockDBHeightProcessing uint32
+	// Entry Blocks we don't have that we are asking our neighbors for
+	MissingEntryBlocks []struct {
+		ebhash   interfaces.IHash
+		dbheight uint32
+	}
 
-	// For dataRequests made by this node, which it's awaiting dataResponses for
-	DataRequests map[[32]byte]interfaces.IHash
+	MissingEntryRepeat interfaces.Timestamp
+	// DBlock Height at which node has a complete set of eblocks+entries
+	EntryDBHeightComplete uint32
+	// Height in the DBlock where we have all the entries
+	EntryHeightComplete int
+	// DBlock Height at which we have started asking for or have all entries
+	EntryDBHeightProcessing uint32
+	// Height in the Directory Block where we have
+	// Entries we don't have that we are asking our neighbors for
+	MissingEntries []struct {
+		ebhash    interfaces.IHash
+		entryhash interfaces.IHash
+		dbheight  uint32
+	}
 
 	LastPrint    string
 	LastPrintCnt int
@@ -502,9 +522,6 @@ func (s *State) Init() {
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
-	s.EBDBHeightComplete = 0
-	s.DataRequests = make(map[[32]byte]interfaces.IHash)
-
 	switch s.NodeMode {
 	case "FULL":
 		s.Leader = false
@@ -578,23 +595,20 @@ func (s *State) Init() {
 	s.starttime = time.Now()
 }
 
-func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
-	s.DataRequests[requestedHash.Fixed()] = missingDataHash
+func (s *State) GetEntryBlockDBHeightComplete() uint32 {
+	return s.EntryBlockDBHeightComplete
 }
 
-func (s *State) HasDataRequest(checkHash interfaces.IHash) bool {
-	if _, ok := s.DataRequests[checkHash.Fixed()]; ok {
-		return true
-	}
-	return false
+func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
+	s.EntryBlockDBHeightComplete = newHeight
 }
 
-func (s *State) GetEBDBHeightComplete() uint32 {
-	return s.EBDBHeightComplete
+func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
+	return s.EntryBlockDBHeightProcessing
 }
 
-func (s *State) SetEBDBHeightComplete(newHeight uint32) {
-	s.EBDBHeightComplete = newHeight
+func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
+	s.EntryBlockDBHeightProcessing = newHeight
 }
 
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
@@ -724,39 +738,6 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 	return msg, ackMsg, nil
 }
 
-// This will issue missingData requests for each entryHash in a particular EBlock
-// that is not already saved to the database or requested already.
-// It returns True if the EBlock is complete (all entries already exist in database)
-func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
-	hasAllEntries := true
-	eblock, err := s.DB.FetchEBlock(ebKeyMR)
-	if err != nil {
-		return false
-	}
-	if eblock == nil {
-		if !s.HasDataRequest(ebKeyMR) {
-			eBlockRequest := messages.NewMissingData(s, ebKeyMR)
-			s.NetworkOutMsgQueue() <- eBlockRequest
-		}
-		return false
-	}
-	for _, entryHash := range eblock.GetEntryHashes() {
-		if !strings.HasPrefix(entryHash.String(), "000000000000000000000000000000000000000000000000000000000000000") {
-			if !s.DatabaseContains(entryHash) {
-				hasAllEntries = false
-			} else {
-				continue
-			}
-			if !s.HasDataRequest(entryHash) {
-				entryRequest := messages.NewMissingData(s, entryHash)
-				s.NetworkOutMsgQueue() <- entryRequest
-			}
-		}
-	}
-
-	return hasAllEntries
-}
-
 func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	pLists := s.ProcessLists
 	if pLists == nil {
@@ -866,35 +847,45 @@ func (s *State) UpdateState() (progress bool) {
 }
 
 func (s *State) catchupEBlocks() {
-	isComplete := true
-	askcnt := 20
-	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
-		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
-		if dblockGathering != nil {
-			for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
-				if idx > 2 {
-					if s.DatabaseContains(ebKeyMR) {
-						if !s.GetAllEntries(ebKeyMR) {
-							isComplete = false
-						}
-					} else {
-						isComplete = false
-						if !s.HasDataRequest(ebKeyMR) {
-							eBlockRequest := messages.NewMissingData(s, ebKeyMR)
-							s.NetworkOutMsgQueue() <- eBlockRequest
-							if askcnt < 0 {
-								return
-							}
-							askcnt--
-						}
-					}
-				}
-			}
-			if isComplete {
-				s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+	now := s.GetTimestamp()
+	if len(s.MissingEntryBlocks) == 0 {
+		s.MissingEntryBlockRepeat = nil
+	} else {
+		if s.MissingEntryBlockRepeat == nil {
+			s.MissingEntryBlockRepeat = now
+		}
+		if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
+			s.MissingEntryBlockRepeat = now
+			for _, eb := range s.MissingEntryBlocks {
+				eBlockRequest := messages.NewMissingData(s, eb.ebhash)
+				s.NetworkOutMsgQueue() <- eBlockRequest
 			}
 		}
 	}
+
+	if len(s.MissingEntryBlocks) > 10 {
+		return
+	}
+
+	for s.EntryBlockDBHeightProcessing < s.GetHighestRecordedBlock() && len(s.MissingEntryBlocks) < 20 {
+		db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
+		for i, ebKeyMR := range db.GetEntryHashes() {
+			if i <= 2 {
+				continue
+			}
+			if !s.DatabaseContains(ebKeyMR) {
+				var v struct {
+					ebhash   interfaces.IHash
+					dbheight uint32
+				}
+				v.dbheight = s.EntryBlockDBHeightProcessing
+				v.ebhash = ebKeyMR
+				s.MissingEntryBlocks = append(s.MissingEntryBlocks, v)
+			}
+		}
+		s.EntryBlockDBHeightProcessing++
+	}
+
 }
 
 func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfaces.IFullSignature) {

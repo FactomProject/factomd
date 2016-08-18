@@ -211,9 +211,5 @@ func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) inter
 	msg.Timestamp = state.GetTimestamp()
 	msg.RequestHash = requestHash
 
-	state.AddDataRequest(requestHash, msg.GetHash())
-
-	//fmt.Printf("%v REQUESTING %x\n", state.GetFactomNodeName(), requestHash.Bytes()[:3])
-
 	return msg
 }

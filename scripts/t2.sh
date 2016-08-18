@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-fct deletetransaction t
-fct newtransaction t
-fct addinput t factoid-wallet-address-name01 .2
-fct addoutput t b1 .2
-fct addfee t factoid-wallet-address-name01
-fct sign t
-fct submit t
+factom-cli2
+factom-cli2 deletetransaction t
+factom-cli2 newtransaction t
+factom-cli2 addinput t b .2
+factom-cli2 addoutput t b1 .2
+factom-cli2 addfee t b
+factom-cli2 sign t
+factom-cli2 submit t
 

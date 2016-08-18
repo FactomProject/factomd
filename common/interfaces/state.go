@@ -25,8 +25,6 @@ type IState interface {
 	SetDirectoryBlockInSeconds(int)
 	GetFactomdVersion() int
 	GetDBHeightComplete() uint32
-	GetEBDBHeightComplete() uint32
-	SetEBDBHeightComplete(uint32)
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true
 	GetOut() bool // Return true if Print or Println write output
@@ -85,7 +83,7 @@ type IState interface {
 	// Lists and Maps
 	// =====
 	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
-	GetFedServerFaults() [][]IMsg // Keep a fault list for every server
+	GetFedServerFaults() [][]IMsg // Keep a fault list for every serverdata
 
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
@@ -143,15 +141,15 @@ type IState interface {
 	// Height of the block where the sig goes, and the vmIndex missing the sig
 	SendDBSig(dbheight uint32, vmIndex int) // If a Leader, we have to send a DBSig out for the previous block
 
-	FollowerExecuteMsg(m IMsg)         // Messages that go into the process list
-	FollowerExecuteEOM(m IMsg)         // Messages that go into the process list
-	FollowerExecuteAck(m IMsg)         // Ack Msg calls this function.
-	FollowerExecuteDBState(IMsg)       // Add the given DBState to this server
-	FollowerExecuteAddData(m IMsg)     // Add the entry or eblock to this Server
-	FollowerExecuteSFault(m IMsg)      // Handle Server Fault Messages
-	FollowerExecuteFullFault(m IMsg)   // Handle Server Full-Fault Messages
-	FollowerExecuteMMR(m IMsg)         // Handle Missing Message Responses
-	FollowerExecuteNegotiation(m IMsg) // Handle negotiation-initiations
+	FollowerExecuteMsg(m IMsg)          // Messages that go into the process list
+	FollowerExecuteEOM(m IMsg)          // Messages that go into the process list
+	FollowerExecuteAck(m IMsg)          // Ack Msg calls this function.
+	FollowerExecuteDBState(IMsg)        // Add the given DBState to this server
+	FollowerExecuteSFault(m IMsg)       // Handle Server Fault Messages
+	FollowerExecuteFullFault(m IMsg)    // Handle Server Full-Fault Messages
+	FollowerExecuteMMR(m IMsg)          // Handle Missing Message Responses
+	FollowerExecuteNegotiation(m IMsg)  // Message to start the negotiation process to replace a faulted server
+	FollowerExecuteDataResponse(m IMsg) // Handle Data Response
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessRemoveServer(dbheight uint32, removeServerMsg IMsg) bool
@@ -176,10 +174,6 @@ type IState interface {
 	Println(a ...interface{}) (n int, err error)
 
 	ValidatorLoop()
-
-	AddDataRequest(requestedHash, missingDataHash IHash)
-	HasDataRequest(checkHash IHash) bool
-	GetAllEntries(ebKeyMR IHash) bool
 
 	SetIsReplaying()
 	SetIsDoneReplaying()

@@ -176,24 +176,6 @@ func (s *State) AddDBState(isNew bool,
 	return dbState
 }
 
-func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
-	hash, err := eblock.KeyMR()
-
-	if err == nil {
-		if s.HasDataRequest(hash) {
-
-			s.DB.ProcessEBlockBatch(eblock, true)
-			delete(s.DataRequests, hash.Fixed())
-
-			if s.GetAllEntries(hash) {
-				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
-					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
-				}
-			}
-		}
-	}
-}
-
 // Messages that will go into the Process List must match an Acknowledgement.
 // The code for this is the same for all such messages, so we put it here.
 //
@@ -254,32 +236,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstate.ReadyToSave = true
 
 	s.DBStateReplyCnt++
-}
-
-func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
-	dataResponseMsg, ok := msg.(*messages.DataResponse)
-	if !ok {
-		return
-	}
-
-	switch dataResponseMsg.DataType {
-	case 0: // DataType = entry
-		entry := dataResponseMsg.DataObject.(interfaces.IEBEntry)
-
-		if entry.GetHash().IsSameAs(dataResponseMsg.DataHash) {
-
-			s.DB.InsertEntry(entry)
-			delete(s.DataRequests, entry.GetHash().Fixed())
-		}
-	case 1: // DataType = eblock
-		eblock := dataResponseMsg.DataObject.(interfaces.IEntryBlock)
-		dataHash, _ := eblock.KeyMR()
-		if dataHash.IsSameAs(dataResponseMsg.DataHash) {
-			s.addEBlock(eblock)
-		}
-	default:
-		s.networkInvalidMsgQueue <- msg
-	}
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
@@ -516,6 +472,82 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	pl := s.ProcessLists.Get(ackResp.DBHeight)
 	pl.AddToProcessList(ackResp, mmr.MsgResponse)
 	s.MissingAnsCnt++
+}
+
+func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
+	msg, ok := m.(*messages.DataResponse)
+	if !ok {
+		return
+	}
+
+	switch msg.DataType {
+	case 1: // Data is an entryBlock
+		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
+		if !ok {
+			return
+		}
+
+		ebKeyMR, _ := eblock.KeyMR()
+		if ebKeyMR == nil {
+			return
+		}
+
+		for i, missing := range s.MissingEntryBlocks {
+			eb := missing.ebhash
+			if !eb.IsSameAs(ebKeyMR) {
+				continue
+			}
+			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
+			s.DB.ProcessEBlockBatch(eblock, true)
+
+			s.DB.ProcessEBlockBatch(eblock, true)
+
+			for i, entryhash := range eblock.GetEntryHashes() {
+				if i <= 2 {
+					continue
+				}
+				e, _ := s.DB.FetchEntry(entryhash)
+				if e == nil {
+
+					var v struct {
+						ebhash    interfaces.IHash
+						entryhash interfaces.IHash
+						dbheight  uint32
+					}
+
+					v.dbheight = eblock.GetHeader().GetDBHeight()
+					v.entryhash = entryhash
+					v.ebhash = eb
+
+					s.MissingEntries = append(s.MissingEntries, v)
+				}
+			}
+
+			mindb := uint32(1000000000)
+			for _, missingleft := range s.MissingEntryBlocks {
+				if missingleft.dbheight <= mindb {
+					mindb = missingleft.dbheight
+				}
+			}
+			s.EntryBlockDBHeightComplete = mindb - 1
+			break
+		}
+
+	case 0: // Data is an entry
+		entry, ok := msg.DataObject.(interfaces.IEBEntry)
+		if !ok {
+			return
+		}
+
+		for i, missing := range s.MissingEntries {
+			e := missing.entryhash
+			if e.IsSameAs(entry.GetHash()) {
+				s.DB.InsertEntry(entry)
+				s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
+				break
+			}
+		}
+	}
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -1222,7 +1254,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
-func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
+func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 
 	vmIndex := msg.GetVMIndex()
 
