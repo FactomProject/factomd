@@ -127,13 +127,16 @@ mainloop:
 						}
 						break
 					case "000000000000000000000000000000000000000000000000000000000000000c":
-						ecblock, err := GetECBlock(e.GetKeyMR().String())
-						if err != nil {
-							panic(err)
-						}
-						err = dbo.ProcessECBlockMultiBatch(ecblock, true)
-						if err != nil {
-							panic(err)
+						keyMRs := GetECBlockList(e.GetKeyMR().String())
+						for _, keyMR := range keyMRs {
+							ecblock, err := GetECBlock(keyMR)
+							if err != nil {
+								panic(err)
+							}
+							err = dbo.ProcessECBlockMultiBatch(ecblock, true)
+							if err != nil {
+								panic(err)
+							}
 						}
 						break
 					default:
@@ -188,6 +191,14 @@ mainloop:
 	if err != nil {
 		panic(err)
 	}
+}
+
+//For handling free-floating blocks
+func GetECBlockList(keyMR string) []string {
+	if keyMR == "925090ae39df3f7eb44277e0520889b1e1b95c89545cfce822c4f9e2a9b3a99d" {
+		return []string{keyMR, "a22779308a2d6b16a4dc3cf1dd90df034c7f98f883fb5ca69ffb2f5cd73b3e83"}
+	}
+	return []string{keyMR}
 }
 
 func GetDBlockList() []string {
