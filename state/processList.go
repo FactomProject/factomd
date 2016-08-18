@@ -568,11 +568,12 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		id := p.FedServers[myIndex].GetChainID()
 
 		if !vm.isFaulting {
-			//fmt.Println("JUSTIN :", p.State.FactomNodeName, "SETTING WHENFAULTED TO", now, "ON", id.String()[:10], "TAG:", tag)
+			//fmt.Println("JUSTIN :", p.State.FactomNodeName, "SETTING WHENFAULTED TO", now, "ON", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
 			vm.whenFaulted = now
 			p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
 		}
 		vm.isFaulting = true
+		//fmt.Println("JUSTIN :", p.State.FactomNodeName, "LOOK", now, "ON", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
 
 		responsibleFaulterIdx := vmIndex + 1
 		if responsibleFaulterIdx >= len(p.FedServers) {
@@ -581,6 +582,8 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		nextVM := p.VMs[responsibleFaulterIdx]
 
 		if now-vm.whenFaulted > 20 {
+			//fmt.Println("JUSTIN :", p.State.FactomNodeName, "IT APPEARS", now, "IS >", vm.whenFaulted, "ON", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
+
 			if !vm.isNegotiating {
 				if !nextVM.isFaulting {
 					nextVM.isFaulting = true
@@ -593,13 +596,15 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 					}
 
 				}
+				//fmt.Println("JUSTIN :", p.State.FactomNodeName, "RECURSE ON", id.String()[:10], "TAG:", tag, "RESPONSIB:", responsibleFaulterIdx, "DBH:", p.DBHeight)
+
 				nextVM.faultWait = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultWait, height, 2)
 			}
 		}
 
 		if p.State.Leader {
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
-				//fmt.Println("JUSTIN - ", p.State.FactomNodeName, "INITIATING NEGOTIATION FOR", vmIndex, "WHICH IS", id.String()[:10], "TAG:", tag)
+				//fmt.Println("JUSTIN - ", p.State.FactomNodeName, "INITIATING NEGOTIATION FOR", vmIndex, "WHICH IS", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
@@ -609,6 +614,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 				thetime = now
 			}
 		}
+		thetime = now
 	}
 
 	return thetime
