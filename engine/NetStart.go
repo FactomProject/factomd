@@ -36,7 +36,6 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 
 func NetStart(s *state.State) {
-	panic("Stop for log problem")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
