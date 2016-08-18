@@ -223,9 +223,9 @@ func (m *RevealEntryMsg) String() string {
 		"REntry",
 		m.VMIndex,
 		m.Minute,
-		m.GetLeaderChainID().Bytes()[:3],
+		m.GetLeaderChainID().Bytes()[:5],
 		m.Entry.GetHash().Bytes()[:3],
-		m.Entry.GetChainID().Bytes()[:3],
+		m.Entry.GetChainID().Bytes()[:5],
 		m.GetHash().Bytes()[:3])
 
 	return str

@@ -222,11 +222,11 @@ func (m *ServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *ServerFault) String() string {
-	return fmt.Sprintf("%6s-VM%3d: (%x) AuditID: %x PL:%5d DBHt:%5d -- hash[:3]=%x",
+	return fmt.Sprintf("%6s-VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d -- hash[:3]=%x",
 		"SFault",
 		m.VMIndex,
-		m.ServerID.String()[:8],
-		m.AuditServerID.String()[:8],
+		m.ServerID.String()[:10],
+		m.AuditServerID.String()[:10],
 		m.Height,
 		m.DBHeight,
 		m.GetHash().Bytes()[:3])
@@ -251,12 +251,12 @@ func (m *ServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 	sig := m.Signature.GetSignature()
-	sfSigned, err := state.VerifyFederatedSignature(bytes, sig)
+	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 	if err != nil {
 		//fmt.Println("Err is not nil on ServerFault sig check (verifying): ", err)
 		return -1
 	}
-	if !sfSigned {
+	if sfSigned < 0 {
 		return -1
 	}
 	return 1 // err == nil and sfSigned == true

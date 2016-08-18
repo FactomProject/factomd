@@ -29,14 +29,27 @@ $("#factom-search").click(function() {
 })
 
 $("#factom-search-submit").click(function() {
+  searchBarSubmit()
+})
+$(".factom-search-container").keypress(function(e) {
+  var key = e.which || e.keyCode;
+  if (!(key == 13)) {
+    return
+  }
+  searchBarSubmit()
+})
+
+function searchBarSubmit() {
   var x = new XMLHttpRequest()
   x.onreadystatechange = function() {
     if(x.readyState == 4) {
+      console.log(x.response)
       obj = JSON.parse(x.response)
       if (obj.Type == "dblockHeight") {
         window.location = "search?input=" + obj.item + "&type=dblock"
       } else if (obj.Type != "None") {
-        redirect("search?input=" + $("#factom-search").val() + "&type=" + obj.Type, "post", x.response) // Something found
+        window.location = "search?input=" + $("#factom-search").val() + "&type=" + obj.Type
+       //redirect("search?input=" + $("#factom-search").val() + "&type=" + obj.Type, "post", x.response) // Something found
       } else {
         $(".factom-search-error").slideDown(300)
         console.log(x.response)
@@ -49,9 +62,9 @@ $("#factom-search-submit").click(function() {
 
   x.open("POST", "/post")
   x.send(formData)
-})
+}
 
-$("section #factom-search-link").on('click',function(e) {
+$("body").on('mouseup',"section #factom-search-link",function(e) {
   type = jQuery(this).attr("type")
   hash = jQuery(this).text()
   var x = new XMLHttpRequest()
@@ -65,15 +78,18 @@ $("section #factom-search-link").on('click',function(e) {
           window.open("/search?input=" + hash + "&type=" + type);
         }
         //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
+      } else if(obj.Type == "special-action-fack"){
+        window.location = "search?input=" + hash + "&type=" + type
       } else {
         $(".factom-search-error").slideDown(300)
-        console.log(x.response)
+        //console.log(x.response)
       }
     }
   }
   var formDataLink = new FormData();
   formDataLink.append("method", "search")
   formDataLink.append("search", hash)
+  formDataLink.append("known", type)
 
   x.open("POST", "/post")
   x.send(formDataLink)
@@ -96,23 +112,3 @@ function nextNode() {
     $("#current-node-number").text(resp)
   })
 }
-
-// Example Code to use for forms
-/*
-var form = document.getElementById("test_form")
-form.addEventListener("submit", function(e) {
-  e.preventDefault()
-  var x = new XMLHttpRequest()
-
-  x.onreadystatechange = function() {
-    if(x.readyState == 4) {
-      //console.log(x.response)
-      //alert(x.response)
-      $("#changeme").text(x.response)
-    }
-  }
-
-  x.open("POST", "/post")
-  x.send(new FormData(form))
-})
-*/

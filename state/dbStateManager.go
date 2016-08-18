@@ -49,8 +49,6 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-const SecondsBetweenTests = 10 // Default
-
 func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
 	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
@@ -187,7 +185,7 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
-	if list.LastTime != nil && now.GetTimeSeconds()-list.LastTime.GetTimeSeconds() < SecondsBetweenTests {
+	if list.LastTime != nil && now.GetTimeMilli()-list.LastTime.GetTimeMilli() < list.State.StartDelayLimit/2 {
 		return
 	}
 
@@ -203,8 +201,8 @@ func (list *DBStateList) Catchup() {
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
 
 	if msg != nil {
-		list.State.RunLeader = false
-		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
+		//		list.State.RunLeader = false
+		//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		list.State.NetworkOutMsgQueue() <- msg
 		list.LastTime = now
 		list.State.DBStateAskCnt++
@@ -383,6 +381,19 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	pln.SortFedServers()
 	pln.SortAuditServers()
+
+	s := list.State
+	// Time out commits every now and again.
+	for k := range s.Commits {
+		var keep []interfaces.IMsg
+		for _, v := range s.Commits[k] {
+			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			if ok {
+				keep = append(keep, v)
+			}
+		}
+		s.Commits[k] = keep
+	}
 
 	return
 }

@@ -19,17 +19,18 @@ var (
 	// First Identity
 	FIRST_IDENTITY string = "38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9"
 	// Where all Identities register
-	MAIN_FACTOM_IDENTITY_LIST = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	// e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+	MAIN_FACTOM_IDENTITY_LIST = "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327"
 )
 
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
-	if cid.String() == FIRST_IDENTITY {
+	if cid.String() == FIRST_IDENTITY { // Ignore first assumed identity
 		return nil
 	}
 
 	index := st.isIdentityChain(cid)
 	if index == -1 {
-		index = createBlankFactomIdentity(st, cid)
+		index = CreateBlankFactomIdentity(st, cid)
 	}
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
@@ -61,7 +62,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 		eblkStackRoot = append(eblkStackRoot, eblk)
 		mr = eblk.GetHeader().GetPrevKeyMR()
 	}
-	// FILO
+
 	for i := len(eblkStackRoot) - 1; i >= 0; i-- {
 		LoadIdentityByEntryBlock(eblkStackRoot[i], st)
 	}
@@ -101,10 +102,6 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 			}
 		}
 		mr = eblk.GetHeader().GetPrevKeyMR()
-	}
-
-	if index == -1 {
-		return errors.New("Identity not created, index is -1")
 	}
 
 	eblkStackSub := make([]interfaces.IEntryBlock, 0)
@@ -201,8 +198,6 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 		if st.isAuthorityChain(cid) != -1 {
 			// The authority exists, but the Identity does not. This could be an issue if a
 			// server changes their key as we would not notice the change
-
-			//log.Printfln("dddd Identity WARNING: Identity does not exist but authority does. If you see this warning, please tell Steven and how you produced it.\n    It might recover on its own")
 		}
 		return
 	}
@@ -236,7 +231,7 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 }
 
 // Creates a blank identity
-func createBlankFactomIdentity(st *State, chainID interfaces.IHash) int {
+func CreateBlankFactomIdentity(st *State, chainID interfaces.IHash) int {
 	if index := st.isIdentityChain(chainID); index != -1 {
 		return index
 	}
@@ -284,7 +279,7 @@ func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := st.isIdentityChain(idChain)
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, idChain)
+		IdentityIndex = CreateBlankFactomIdentity(st, idChain)
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
@@ -324,7 +319,7 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 	IdentityIndex := st.isIdentityChain(chainID)
 
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, chainID)
+		IdentityIndex = CreateBlankFactomIdentity(st, chainID)
 	}
 	h := primitives.NewHash(extIDs[2])
 	st.Identities[IdentityIndex].Key1 = h
@@ -392,7 +387,7 @@ func updateManagementKey(entry interfaces.IEBEntry, height uint32, st *State) er
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, idChain)
+		IdentityIndex = CreateBlankFactomIdentity(st, idChain)
 	}
 
 	st.Identities[IdentityIndex].ManagementCreated = height
@@ -411,7 +406,7 @@ func registerIdentityAsServer(entry interfaces.IEBEntry, height uint32, st *Stat
 	chainID := entry.GetChainID()
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		IdentityIndex = createBlankFactomIdentity(st, chainID)
+		IdentityIndex = CreateBlankFactomIdentity(st, chainID)
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
@@ -469,7 +464,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 			dbase := st.GetAndLockDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
 			st.UnlockDB()
-			if err == nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
+			if dblk != nil && err == nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 				}

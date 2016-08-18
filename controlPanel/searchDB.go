@@ -65,7 +65,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		}
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
-		bal := fmt.Sprintf("%.3f", float64(st.FactoidState.GetFactoidBalance(fixed))/1e8)
+		bal := fmt.Sprintf("%.8f", float64(st.FactoidState.GetFactoidBalance(fixed))/1e8)
 		return true, `{"Type":"FA","item":` + bal + "}"
 	}
 	if len(searchitem) == 64 {

@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
@@ -24,6 +25,7 @@ import (
 var _ = htemp.HTMLEscaper("sdf")
 
 func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
+	// Functions able to be used within the html
 	funcMap := template.FuncMap{
 		"truncate": func(s string) string {
 			bytes := []byte(s)
@@ -66,16 +68,17 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 				return s
 			}
 			f = f / 1e8
-			return fmt.Sprintf("%f", f)
+			return fmt.Sprintf("%.8f", f)
 		},
 	}
 	TemplateMutex.Lock()
 	templates.Funcs(funcMap)
-	templates.ParseFiles(FILES_PATH + "templates/searchresults/type/" + content.Type + ".html")
-	templates.ParseGlob(FILES_PATH + "templates/searchresults/*.html")
+	files.CustomParseGlob(templates, "templates/searchresults/*.html")
+	files.CustomParseFile(templates, "templates/searchresults/type/"+content.Type+".html")
 	TemplateMutex.Unlock()
 
 	var err error
+	_ = err
 	switch content.Type {
 	case "entry":
 		entry := getEntry(content.Input)
@@ -85,6 +88,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, entry)
 		TemplateMutex.Unlock()
+		return
 	case "chainhead":
 		arr := getAllChainEntries(content.Input)
 		if arr == nil {
@@ -93,11 +97,11 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		arr[0].Content = struct {
 			Head   interface{}
 			Length int
-		}{arr[0].Content, len(arr) - 1} // struct{length string,
-		//	head string }{"x","x"}
+		}{arr[0].Content, len(arr) - 1}
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, arr)
 		TemplateMutex.Unlock()
+		return
 	case "eblock":
 		eblk := getEblock(content.Input)
 		if eblk == nil {
@@ -106,6 +110,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, eblk)
 		TemplateMutex.Unlock()
+		return
 	case "dblock":
 		dblk := getDblock(content.Input)
 		if dblk == nil {
@@ -114,6 +119,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, dblk)
 		TemplateMutex.Unlock()
+		return
 	case "ablock":
 		ablk := getAblock(content.Input)
 		if ablk == nil {
@@ -122,6 +128,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, ablk)
 		TemplateMutex.Unlock()
+		return
 	case "fblock":
 		fblk := getFblock(content.Input)
 		if fblk == nil {
@@ -130,6 +137,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, fblk)
 		TemplateMutex.Unlock()
+		return
 	case "ecblock":
 		ecblock := getECblock(content.Input)
 		if ecblock == nil {
@@ -138,6 +146,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, ecblock)
 		TemplateMutex.Unlock()
+		return
 	case "entryack":
 		entryAck := getEntryAck(content.Input)
 		if entryAck == nil {
@@ -146,6 +155,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, entryAck)
 		TemplateMutex.Unlock()
+		return
 	case "factoidack":
 		factoidAck := getFactoidAck(content.Input)
 		if factoidAck == nil {
@@ -154,6 +164,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, factoidAck)
 		TemplateMutex.Unlock()
+		return
 	case "facttransaction":
 		transaction := getFactTransaction(content.Input)
 		if transaction == nil {
@@ -162,6 +173,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, transaction)
 		TemplateMutex.Unlock()
+		return
 	case "ectransaction":
 		transaction := getEcTransaction(content.Input)
 		if transaction == nil {
@@ -170,6 +182,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		TemplateMutex.Lock()
 		err = templates.ExecuteTemplate(w, content.Type, transaction)
 		TemplateMutex.Unlock()
+		return
 	case "EC":
 		hash := base58.Decode(content.Input)
 		if len(hash) < 34 {
@@ -185,6 +198,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 				Address string
 			}{bal, content.Input})
 		TemplateMutex.Unlock()
+		return
 	case "FA":
 		hash := base58.Decode(content.Input)
 		if len(hash) < 34 {
@@ -192,7 +206,7 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 		}
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
-		bal := fmt.Sprintf("%.3f", float64(StatePointer.FactoidState.GetFactoidBalance(fixed))/1e8)
+		bal := fmt.Sprintf("%.8f", float64(StatePointer.FactoidState.GetFactoidBalance(fixed))/1e8)
 		TemplateMutex.Lock()
 		templates.ExecuteTemplate(w, content.Type,
 			struct {
@@ -200,18 +214,12 @@ func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 				Address string
 			}{bal, content.Input})
 		TemplateMutex.Unlock()
-	default:
-		TemplateMutex.Lock()
-		err = templates.ExecuteTemplate(w, "not-found", nil)
-		TemplateMutex.Unlock()
-	}
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	TemplateMutex.Lock()
-	templates.ExecuteTemplate(w, "not-found", nil)
+	files.CustomParseFile(templates, "templates/searchresults/type/notfound.html")
+	templates.ExecuteTemplate(w, "notfound", content.Input)
 	TemplateMutex.Unlock()
 }
 
@@ -434,7 +442,7 @@ func getAblock(hash string) *AblockHolder {
 			if err != nil {
 				continue
 			}
-			disp.Type = "DB Signiture"
+			disp.Type = "DB Signature"
 			disp.OtherInfo = "Server: " + r.IdentityAdminChainID.String()
 		case constants.TYPE_REVEAL_MATRYOSHKA:
 			r := new(adminBlock.RevealMatryoshkaHash)
@@ -559,6 +567,7 @@ func getEblock(hash string) *EblockHolder {
 	holder.FullHash = eblk.GetHash().String()
 
 	entries := eblk.GetEntryHashes()
+	count := 0
 	for _, entry := range entries {
 		if len(entry.String()) < 32 {
 			continue
@@ -575,11 +584,13 @@ func getEblock(hash string) *EblockHolder {
 			continue
 		}
 		ent := getEntry(entry.String())
+		count++
 		if ent != nil {
 			ent.Hash = entry.String()
 			holder.Entries = append(holder.Entries, *ent)
 		}
 	}
+	holder.Header.EntryCount = count
 
 	return holder
 }
@@ -591,10 +602,12 @@ type DblockHolder struct {
 		BodyMR       string `json:"BodyMR"`
 		PrevKeyMR    string `json:"PrevKeyMR"`
 		PrevFullHash string `json:"PrevFullHash"`
-		Timestamp    int    `json:"Timestamp"`
+		Timestamp    uint32 `json:"Timestamp"`
 		DBHeight     int    `json:"DBHeight"`
 		BlockCount   int    `json:"BlockCount"`
 		ChainID      string `json:"ChainID"`
+
+		FormatedTimeStamp string
 	} `json:"Header"`
 	DBEntries []struct {
 		ChainID string `json:"ChainID"`
@@ -671,6 +684,8 @@ func getDblock(hash string) *DblockHolder {
 	holder.FullHash = dblk.GetHash().String()
 	holder.KeyMR = dblk.GetKeyMR().String()
 
+	ts := dblk.GetTimestamp()
+	holder.Header.FormatedTimeStamp = ts.String()
 	return holder
 }
 

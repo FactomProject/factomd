@@ -95,14 +95,14 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 	sig := m.Signature.GetSignature()
-	authSigned, err := state.VerifyFederatedSignature(bytes, sig)
+	authSigned, err := state.VerifyAuthoritySignature(bytes, sig, state.GetLeaderHeight())
 
 	//ackSigned, err := m.VerifySignature()
 	if err != nil {
 		fmt.Println("ChangeServerKey Error: Err is not nil, err: ", err.Error())
 		return -1
 	}
-	if !authSigned {
+	if authSigned < 1 {
 		fmt.Println("ChangeServerKey Error: Message not signed by an authority")
 		return -1
 	}

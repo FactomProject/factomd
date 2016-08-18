@@ -140,14 +140,18 @@ type IState interface {
 	// MISC
 	// ====
 
-	FollowerExecuteMsg(m IMsg)       // Messages that go into the process list
-	FollowerExecuteEOM(m IMsg)       // Messages that go into the process list
-	FollowerExecuteAck(m IMsg)       // Ack Msg calls this function.
-	FollowerExecuteDBState(IMsg)     // Add the given DBState to this server
-	FollowerExecuteAddData(m IMsg)   // Add the entry or eblock to this Server
-	FollowerExecuteSFault(m IMsg)    // Handle Server Fault Messages
-	FollowerExecuteFullFault(m IMsg) // Handle Server Full-Fault Messages
-	FollowerExecuteMMR(m IMsg)       // Handle Missing Message Responses
+	// Height of the block where the sig goes, and the vmIndex missing the sig
+	SendDBSig(dbheight uint32, vmIndex int) // If a Leader, we have to send a DBSig out for the previous block
+
+	FollowerExecuteMsg(m IMsg)         // Messages that go into the process list
+	FollowerExecuteEOM(m IMsg)         // Messages that go into the process list
+	FollowerExecuteAck(m IMsg)         // Ack Msg calls this function.
+	FollowerExecuteDBState(IMsg)       // Add the given DBState to this server
+	FollowerExecuteAddData(m IMsg)     // Add the entry or eblock to this Server
+	FollowerExecuteSFault(m IMsg)      // Handle Server Fault Messages
+	FollowerExecuteFullFault(m IMsg)   // Handle Server Full-Fault Messages
+	FollowerExecuteMMR(m IMsg)         // Handle Missing Message Responses
+	FollowerExecuteNegotiation(m IMsg) // Handle negotiation-initiations
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessRemoveServer(dbheight uint32, removeServerMsg IMsg) bool
@@ -196,6 +200,6 @@ type IState interface {
 	// Identity Section
 	VerifyIsAuthority(cid IHash) bool // True if is authority
 	UpdateAuthorityFromABEntry(entry IABEntry) error
-	VerifyFederatedSignature(Message []byte, signature *[64]byte) (bool, error)
+	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
 }

@@ -89,6 +89,9 @@ type IMsg interface {
 	SetMinute(byte)
 
 	// Stall handling
+	MarkSentInvalid(bool)
+	SentInvlaid() bool
+
 	IsStalled() bool
 	SetStall(bool)
 	Resend(IState) bool

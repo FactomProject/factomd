@@ -3,7 +3,7 @@ package controlPanel
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,6 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 )
@@ -25,12 +26,12 @@ import (
 var (
 	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
-	FILES_PATH string
-	templates  *template.Template
+	//FILES_PATH string
+	templates *template.Template
 
-	INDEX_HTML []byte
-	mux        *http.ServeMux
-	index      int = 0
+	//INDEX_HTML []byte
+	mux   *http.ServeMux
+	index int = 0
 
 	DisplayState state.DisplayState
 	StatePointer *state.State
@@ -75,9 +76,8 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 // Main function. This intiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
-		// recover from panic if files path is incorrect
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in ServeControlPanel.\n", r)
 		}
 	}()
 	StatePointer = statePointer
@@ -90,7 +90,6 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RLock()
 	controlPanelSetting := DisplayState.ControlPanelSetting
 	port := DisplayState.ControlPanelPort
-	FILES_PATH = DisplayState.ControlPanelPath
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
@@ -103,19 +102,9 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	GitBuild = gitBuild
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
-
-	// Load Static Files
-	if !directoryExists(FILES_PATH) { // Check .factom/m2/Web
-		FILES_PATH = "./controlPanel/Web/" // Check active directory
-		if !directoryExists(FILES_PATH) {
-			fmt.Println("Control Panel static files cannot be found.")
-			http.HandleFunc("/", noStaticFilesFoundHandler)
-			http.ListenAndServe(portStr, nil)
-			return
-		}
-	}
 	TemplateMutex.Lock()
-	templates = template.Must(template.ParseGlob(FILES_PATH + "templates/general/*.html"))
+	templates = files.CustomParseGlob(nil, "templates/general/*.html")
+	templates = template.Must(templates, nil)
 	TemplateMutex.Unlock()
 
 	// Updated Globals. A seperate GoRoutine updates these, we just initialize
@@ -126,8 +115,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	// Mux for static files
 	mux = http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(FILES_PATH)))
-	INDEX_HTML, _ = ioutil.ReadFile(FILES_PATH + "templates/index.html")
+	mux.Handle("/", files.StaticServer)
 
 	go doEvery(5*time.Second, getRecentTransactions)
 	go manageConnections(connections)
@@ -164,11 +152,12 @@ func static(h http.HandlerFunc) http.HandlerFunc {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in IndexHandler.\n", r)
 		}
 	}()
 	TemplateMutex.Lock()
-	templates.ParseGlob(FILES_PATH + "templates/index/*.html")
+	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
+	files.CustomParseGlob(templates, "templates/index/*.html")
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}
@@ -183,7 +172,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in PostHandler.\n", r)
 		}
 	}()
 	if r.Method != "POST" {
@@ -197,6 +186,11 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		if found {
 			w.Write([]byte(respose))
 			return
+		} else {
+			if r.FormValue("known") == "factoidack" {
+				w.Write([]byte(`{"Type": "special-action-fack"}`))
+				return
+			}
 		}
 	}
 	w.Write([]byte(`{"Type": "None"}`))
@@ -212,7 +206,7 @@ type SearchedStruct struct {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in SearchHandler.\n", r)
 		}
 	}()
 	searchResult := new(SearchedStruct)
@@ -256,7 +250,7 @@ func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in FactomdHandler.\n", r)
 		}
 	}()
 	if r.Method != "GET" {
@@ -409,6 +403,7 @@ type LastDirectoryBlockTransactions struct {
 		BodyKeyMR string
 		FullHash  string
 		DBHeight  string
+		Timestamp string
 
 		PrevFullHash string
 		PrevKeyMR    string
@@ -462,7 +457,7 @@ func toggleDCT() {
 func getRecentTransactions(time.Time) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic.\n", r)
+			fmt.Println("Control Panel has encountered a panic in GetRecentTransactions.\n", r)
 		}
 	}()
 
@@ -511,11 +506,11 @@ func getRecentTransactions(time.Time) {
 		BodyKeyMR string
 		FullHash  string
 		DBHeight  string
+		Timestamp string
 
 		PrevFullHash string
 		PrevKeyMR    string
-	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
-
+	}{last.GetKeyMR().String(), last.BodyKeyMR().String(), last.GetFullHash().String(), fmt.Sprintf("%d", last.GetDatabaseHeight()), last.GetTimestamp().String(), last.GetHeader().GetPrevFullHash().String(), last.GetHeader().GetPrevKeyMR().String()}
 	// Process list items
 	DisplayStateMutex.RLock()
 	for _, entry := range DisplayState.PLEntry {
@@ -658,6 +653,16 @@ func getRecentTransactions(time.Time) {
 			RecentTransactions.FactoidTransactions = RecentTransactions.FactoidTransactions[overflow:]
 		}
 	}
+
+	// Check if we missed any processing
+	for i, e := range RecentTransactions.Entries {
+		if e.ChainID == "Processing" {
+			entry := getEntry(e.Hash)
+			if entry != nil {
+				RecentTransactions.Entries[i] = *entry
+			}
+		}
+	}
 }
 
 // Control Panel shows the last 100 entry and factoid transactions. This will look into the past if we do not
@@ -698,7 +703,8 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 					e := getEntry(hash.String())
 					if e != nil && eNeeded > 0 {
 						eNeeded--
-						RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
+						RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
+						//RecentTransactions.Entries = append([]EntryHolder{*e}, RecentTransactions.Entries...)
 					}
 				}
 			}
@@ -728,14 +734,14 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 							totalOutputs = totalOutputs + len(trans.GetOutputs())
 							inputStr := fmt.Sprintf("%f", float64(input)/1e8)
 							fNeeded--
-							RecentTransactions.FactoidTransactions = append([]struct {
+							RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 								TxID         string
 								Hash         string
 								TotalInput   string
 								Status       string
 								TotalInputs  int
 								TotalOutputs int
-							}{{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs}}, RecentTransactions.FactoidTransactions...)
+							}{trans.GetSigHash().String(), trans.GetHash().String(), inputStr, "Confirmed", totalInputs, totalOutputs})
 						}
 					}
 				}

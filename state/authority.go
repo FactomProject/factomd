@@ -26,6 +26,16 @@ type Authority struct {
 	}
 }
 
+// 1 if fed, 0 if audit, -1 if neither
+func (auth *Authority) Type() int {
+	if auth.Status == constants.IDENTITY_FEDERATED_SERVER {
+		return 1
+	} else if auth.Status == constants.IDENTITY_AUDIT_SERVER {
+		return 0
+	}
+	return -1
+}
+
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	//return true, nil // Testing
 	var pub [32]byte
@@ -34,7 +44,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 		return false, err
 	} else {
 		copy(pub[:], tmp)
-		valid := ed.Verify(&pub, msg, sig)
+		valid := ed.VerifyCanonical(&pub, msg, sig)
 		if !valid {
 			for _, histKey := range auth.KeyHistory {
 				histTemp, err := histKey.SigningKey.MarshalBinary()
@@ -42,7 +52,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 					continue
 				}
 				copy(pub[:], histTemp)
-				if ed.Verify(&pub, msg, sig) {
+				if ed.VerifyCanonical(&pub, msg, sig) {
 					return true, nil
 				}
 			}
@@ -53,51 +63,71 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	return false, nil
 }
 
-// Also checks Identity list which contains pending Fed/Aud servers. TODO: Remove those
-func (st *State) VerifyFederatedSignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
-	for _, auth := range st.Authorities {
-		//if !(auth.Status == constants.IDENTITY_FEDERATED_SERVER || auth.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
-		//	continue
-		//}
-		valid, err := auth.VerifySignature(msg, sig)
-		if err != nil {
+// Checks the signature of a message. Returns an int based on who signed it:
+// 			1  -> Federated Signature
+//			0  -> Audit Signature
+//			-1 -> Neither Fed or Audit Signature
+func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte, dbheight uint32) (int, error) {
+	feds := st.GetFedServers(dbheight)
+	if feds == nil {
+		return 0, fmt.Errorf("Federated Servers are unknown at directory block hieght %d", dbheight)
+	}
+	auds := st.GetAuditServers(dbheight)
+
+	for _, fed := range feds {
+		auth, _ := st.GetAuthority(fed.GetChainID())
+		if auth == nil {
 			continue
 		}
-		if valid {
-			return true, nil
+		valid, err := auth.VerifySignature(msg, sig)
+		if err == nil && valid {
+			return 1, nil
 		}
 	}
 
-	// TODO: Remove, is in place so signatures valid when addserver message goes out.
-	// Current issue when new fed server takes his spot.
-	for _, id := range st.Identities {
-		if !(id.Status == constants.IDENTITY_FEDERATED_SERVER || id.Status == constants.IDENTITY_PENDING_FEDERATED_SERVER) {
+	for _, aud := range auds {
+		auth, _ := st.GetAuthority(aud.GetChainID())
+		if auth == nil {
 			continue
 		}
-		valid, err := id.VerifySignature(msg, sig)
-		if err != nil {
-			continue
-		}
-		if valid {
-			return true, nil
+		valid, err := auth.VerifySignature(msg, sig)
+		if err == nil && valid {
+			return 0, nil
 		}
 	}
-	return false, fmt.Errorf("Signature Key Invalid or not Federated Server Key")
+	fmt.Println("WARNING: A signature failed to validate.")
+
+	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }
 
+// Gets the authority matching the identity ChainID.
+// Returns the authority and the int of its type:
+//		1  ->  Federated
+//		0  ->  Audit
+// 		-1 ->  Not fed or audit
+//		-2 -> Not found
+func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
+	for _, auth := range st.Authorities {
+		if serverID.IsSameAs(auth.AuthorityChainID) {
+			return &auth, auth.Type()
+		}
+	}
+	return nil, -2
+}
+
+// We keep a 1 block history of their keys, this is so if we change their
 func (st *State) UpdateAuthSigningKeys(height uint32) {
-	for index, auth := range st.Authorities {
+	/*for index, auth := range st.Authorities {
 		for _, key := range auth.KeyHistory {
 			if key.ActiveDBHeight <= height {
 				if len(st.Authorities[index].KeyHistory) == 1 {
 					st.Authorities[index].KeyHistory = nil
 				} else {
 					st.Authorities[index].KeyHistory = st.Authorities[index].KeyHistory[1:]
-
 				}
 			}
 		}
-	}
+	}*/
 	st.RepairAuthorities()
 }
 
@@ -278,7 +308,10 @@ func (s *State) RepairAuthorities() {
 		if s.Authorities[i].ManagementChainID == nil {
 			idIndex := s.isIdentityChain(s.Authorities[i].AuthorityChainID)
 			if idIndex == -1 {
-				s.AddIdentityFromChainID(auth.AuthorityChainID)
+				err := s.AddIdentityFromChainID(auth.AuthorityChainID)
+				if err != nil {
+					continue
+				}
 				idIndex = s.isIdentityChain(s.Authorities[i].AuthorityChainID)
 			}
 			if idIndex != -1 {

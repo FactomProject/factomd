@@ -25,7 +25,18 @@ type MessageBase struct {
 	resend        int64 // Time to resend (milliseconds)
 	expire        int64 // Time to expire (milliseconds)
 
-	Stalled bool // This message is currently stalled
+	Stalled     bool // This message is currently stalled
+	MarkInvalid bool
+}
+
+// To suppress how many messages are sent to the NetworkInvalid Queue, we mark them, and only
+// send them once.
+func (m *MessageBase) MarkSentInvalid(b bool) {
+	m.MarkInvalid = b
+}
+
+func (m *MessageBase) SentInvlaid() bool {
+	return m.MarkInvalid
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
@@ -35,8 +46,8 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 2000 && len(s.NetworkOutMsgQueue()) < 100 { // Resend every second
-		m.resend = now + 1000
+	if now-m.resend > 1000 && len(s.NetworkOutMsgQueue()) < 1000 { // Resend every second
+		m.resend = now + 2000
 		return true
 	}
 	return false
@@ -48,7 +59,7 @@ func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
 	if m.expire == 0 {
 		m.expire = now
 	}
-	if now-m.expire > 180*1000 { // Keep messages for some length before giving up.
+	if now-m.expire > 240*1000 { // Keep messages for some length before giving up.
 		rtn = true
 	}
 	return

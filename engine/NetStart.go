@@ -59,7 +59,7 @@ func NetStart(s *state.State) {
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
-	startDelayPtr := flag.Int("startdelay", 10, "Delay to start processing messages, in seconds")
+	startDelayPtr := flag.Int("startdelay", 20, "Delay to start processing messages, in seconds")
 
 	flag.Parse()
 
@@ -210,7 +210,7 @@ func NetStart(s *state.State) {
 
 	mLog.init(runtimeLog, cnt)
 
-	setupBlankAuthority(s)
+	setupFirstAuthority(s)
 
 	//************************************************
 	// Actually setup the Network
@@ -435,7 +435,7 @@ func startServers(load bool) {
 	}
 }
 
-func setupBlankAuthority(s *state.State) {
+func setupFirstAuthority(s *state.State) {
 	var id state.Identity
 	id.IdentityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
 	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
