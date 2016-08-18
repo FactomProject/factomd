@@ -90,7 +90,7 @@ func InitializeBalance() {
 			wsapi.Stop()
 		}()
 
-		//TopupFAddress()
+		TopupFAddress()
 		TopupECAddress()
 	}
 	once.Do(onceBody)
@@ -155,8 +155,8 @@ func TopupECAddress() {
 	//fmt.Printf("TopupECAddress - %v, %v\n", FAddressStr, ECAddressStr)
 	const ecBalanceThreshold uint64 = 10
 
-	//tx, err := factom.BuyExactEC(FAddressStr, ECAddressStr, uint64(ecBalanceThreshold))
-	tx, err := factom.BuyExactEC(FaucetAddress, ECAddressStr, uint64(ecBalanceThreshold))
+	tx, err := factom.BuyExactEC(FAddressStr, ECAddressStr, uint64(ecBalanceThreshold))
+	//tx, err := factom.BuyExactEC(FaucetAddress, ECAddressStr, uint64(ecBalanceThreshold))
 	if err != nil {
 		panic(err)
 	}
