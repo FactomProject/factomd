@@ -176,5 +176,6 @@ func log(level uint8, component string, format string, v ...interface{}) {
 	if level == Fatal {
 		fmt.Println("===== SIGNIFICNAT ERROR ====== \n Something is very wrong, and should be looked into!")
 		fmt.Fprintf(os.Stderr, "%s, %s, %s \n", now, component, message)
+		panic(message)
 	}
 }
