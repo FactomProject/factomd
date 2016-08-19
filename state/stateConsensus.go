@@ -6,7 +6,7 @@ package state
 
 import (
 	"fmt"
-
+	"os"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -229,6 +229,16 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 	s.DBStates.Put(dbState)
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+	if ht == 1 {
+		s.DBStates.CheckPoint = "64d4352b134280305599363ea388c2a9c3c64dc3ee6e0100893262e372bf064b"
+	}
+	if ht >= 1 {
+		if dbState.DirectoryBlock.GetHeader().GetPrevKeyMR().String() != s.DBStates.CheckPoint {
+			os.Stderr.WriteString(fmt.Sprintf("%20s acquired blocks error\n", s.FactomNodeName))
+			return 
+		}
+	}
+
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
@@ -238,6 +248,7 @@ func (s *State) AddDBState(isNew bool,
 	//	if s.LLeaderHeight < dbh {
 	//		s.LLeaderHeight = dbh + 1
 	//	}
+	s.DBStates.CheckPoint = dbState.DirectoryBlock.GetKeyMR().String()
 }
 
 func (s *State) addEBlock(eblock interfaces.IEntryBlock) {

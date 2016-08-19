@@ -41,6 +41,7 @@ type DBStateList struct {
 	Base                uint32
 	Complete            uint32
 	DBStates            []*DBState
+	CheckPoint          string 
 }
 
 const SecondsBetweenTests = 3 // Default
