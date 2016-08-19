@@ -571,10 +571,8 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		}
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
-		fmt.Println("JUSTIN :", p.State.FactomNodeName, "IN FAULTFUNC", now, "&", thetime, "ON", id.String()[:10], "(", vmIndex, ")")
 
 		if !vm.isFaulting {
-			fmt.Println("JUSTIN :", p.State.FactomNodeName, "SETTING WHENFAULTED TO", now, "ON", id.String()[:10], "(", vmIndex, ")")
 			vm.whenFaulted = now
 			//vm.faultWait = now
 			//p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
@@ -588,7 +586,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 
 		if p.State.Leader {
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
-				fmt.Println("JUSTIN - ", p.State.FactomNodeName, "INITIATING NEGOTIATION FOR", vmIndex, "WHICH IS", id.String()[:10])
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
@@ -602,11 +599,8 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		nextVM := p.VMs[responsibleFaulterIdx]
 
 		if now-vm.whenFaulted > 20 {
-			fmt.Println("JUSTIN :", p.State.FactomNodeName, "BEEN TOO LONG (", now, "&", vm.whenFaulted, ") ON", id.String()[:10], "(", responsibleFaulterIdx, ")")
-
 			_, negotiationInitiated := p.NegotiationInit[id.String()]
 			if !negotiationInitiated {
-				fmt.Println("JUSTIN : ", p.State.FactomNodeName, "NEGOTIATION NOT INIT YET ON", id.String()[:10], "(", vmIndex, ")")
 				if !nextVM.isFaulting {
 					//nextVM.isFaulting = true
 					//nextVM.whenFaulted = now
@@ -617,7 +611,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 						}
 					}
 				}
-				fmt.Println("JUSTIN :", p.State.FactomNodeName, "RECURSE ON", id.String()[:10], "(", vmIndex, ")", "RESPONSIB:", responsibleFaulterIdx)
 				nextVM.faultingEOM = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultingEOM, height, 2)
 			} /* else if now-vm.whenFaulted > 150 {
 				responsibleFaulterIdx++
@@ -747,7 +740,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				progress = true
 
 				if vm.isFaulting {
-					fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
 					vm.isFaulting = false
 					vm.faultingEOM = 0
 					/*l := vm.LeaderMinute

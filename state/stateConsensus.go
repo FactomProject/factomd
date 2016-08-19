@@ -382,12 +382,10 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 							if pledgeSlot != sf.ServerID.String() {
 								// illegal vote; audit server has already AOK'd replacing a different leader
 								// "punish" them by setting them offline (i.e. make them ineligible for promotion)
-								fmt.Println("JUSTIN", s.FactomNodeName, "SETTING OFFLINE:", pl.AuditServers[audIdx].GetChainID().String()[:10], "(ILLEGAL DOUBLE PLEDGE)")
 								pl.AuditServers[audIdx].SetOnline(false)
 							}
 						} else {
 							// AOK: set the Audit Server's "Leader to Replace" field to this ServerID
-							fmt.Println("JUSTIN", s.FactomNodeName, "KNOWS THAT", sf.AuditServerID.String()[:10], "PLEDGED TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
 							//pl.AuditServers[audIdx].SetReplace(sf.ServerID)
 							pl.PledgeMap[sf.AuditServerID.String()] = sf.ServerID.String()
 						}
@@ -452,7 +450,6 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 				pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
 				matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 				if matchNomination != nil {
-					fmt.Println("JUSTIN .", s.FactomNodeName, "MATCHING NOMINATION SFAULT:", sf.ServerID.String()[:10], "AUD:", sf.AuditServerID.String()[:10])
 					matchNomination.Sign(s.serverPrivKey)
 					s.NetworkOutMsgQueue() <- matchNomination
 					s.InMsgQueue() <- matchNomination
@@ -475,7 +472,6 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			// I am the audit server being promoted
 			if !pl.AmIPledged {
 				pl.AmIPledged = true
-				fmt.Println("JUSTIN AUDIT SERVER ", s.IdentityChainID.String()[:10], "PLEDGING TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
 				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 				if nsf != nil {
 					nsf.Sign(s.serverPrivKey)
@@ -493,14 +489,12 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	//auditServerList := s.GetOnlineAuditServers(fullFault.DBHeight)
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
-	fmt.Println("JUSTIN", s.FactomNodeName, "EXEC FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
 			theAuditReplacement = auditServer
 		}
 	}
 	if theAuditReplacement != nil {
-		fmt.Println("JUSTIN", s.FactomNodeName, "FOUND AUD FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 				relevantPL.FedServers[listIdx] = theAuditReplacement
