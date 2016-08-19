@@ -71,12 +71,25 @@ type ProcessList struct {
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 	// Negotiation tracker variables
+	FaultTimes map[string]int64
+	// FaultTimes keeps track of when a particular ServerID initially
+	// deserved a fault, so that we can time out the negotiation process
+	// (and its various phases) properly
+	NegotiationInit map[string]int64
+
 	AmIPledged       bool
 	AlreadyNominated map[string]map[string]int64
 	// AlreadyNominated is used to track what AuditIDs we have nominated
 	// to replace a particular faulted LeaderID (so that we don't "echo"
-	// infinitely when we are matching others' promotion votes)
-	WaitingForPledge map[string]int64
+	// infinitely when we are matching others' promotion votes and so
+	// we know when to disqualify an audit server who took too long)
+	// The first map's key is the ServerID being faulted, the key
+	// for the second map is the nominated AuditID
+	PledgeMap map[string]string
+	// PledgeMap keeps track of which audit servers have issued pledges
+	// to replace a particular faulted server. WARNING: the key for
+	// this map is the AuditID, the value is the faulted LeaderID
+	// (which is the opposite of AlreadyNominated)
 
 	// DB Sigs
 	DBSignatures []DBSig
@@ -100,7 +113,7 @@ type VM struct {
 	missingEOM     int64             // Ask for EOM because it is late
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
-	signed         bool              // We have signed the previous block.
+	Signed         bool              // We have signed the previous block.
 	isFaulting     bool
 	isNegotiating  bool
 	whenFaulted    int64
@@ -517,36 +530,22 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 	return thetime
 }
 
-func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int) int64 {
+func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
 	now := time.Now().Unix()
 
 	if thetime == 0 {
 		thetime = now
 	}
+
 	if now-thetime >= waitSeconds {
-		if !vm.isFaulting {
-			vm.whenFaulted = now
+		/*l := vm.LeaderMinute
+		if l == 10 {
+			l = 9
 		}
-		vm.isFaulting = true
-
-		responsibleFaulterIdx := vmIndex + 1
-		if responsibleFaulterIdx >= len(p.FedServers) {
-			responsibleFaulterIdx = 0
-		}
-		nextVM := p.VMs[responsibleFaulterIdx]
-
-		// If it has been more than 30 seconds since this server faulted
-		// and still no negotiation has been initiated, we have to fault
-		// the negotiator (nextVM)
-		if now-vm.whenFaulted > 30 {
-			if !vm.isNegotiating {
-				if !nextVM.isFaulting {
-					nextVM.isFaulting = true
-					nextVM.whenFaulted = now
-				}
-				nextVM.faultWait = fault(p, responsibleFaulterIdx, 40, nextVM, nextVM.faultWait, height)
-			}
-		}
+		fedServ := p.FedServers[p.ServerMap[l][vmIndex]]
+		fedServ.SetOnline(false)
+		id := fedServ.GetChainID()
+		*/
 
 		leaderMin := vm.LeaderMinute
 
@@ -558,19 +557,55 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		if leaderMin >= 10 {
 			leaderMin = 0
 		}
-		if p.State.Leader {
-			//fmt.Println("JVMI:", vmIndex)
-			//fmt.Println("JVMI2:", vm.LeaderMinute)
-			myIndex := p.ServerMap[leaderMin][vmIndex]
-			if myIndex > 0 {
-				myIndex--
-			} else {
-				myIndex = len(p.FedServers) - 1
+
+		myIndex := p.ServerMap[leaderMin][vmIndex]
+		if myIndex > 0 {
+			myIndex--
+		} else {
+			myIndex = len(p.FedServers) - 1
+		}
+		p.FedServers[myIndex].SetOnline(false)
+		id := p.FedServers[myIndex].GetChainID()
+
+		if !vm.isFaulting {
+			//fmt.Println("JUSTIN :", p.State.FactomNodeName, "SETTING WHENFAULTED TO", now, "ON", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
+			vm.whenFaulted = now
+			p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
+		}
+		vm.isFaulting = true
+		//fmt.Println("JUSTIN :", p.State.FactomNodeName, "LOOK", now, "ON", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
+
+		responsibleFaulterIdx := vmIndex + 1
+		if responsibleFaulterIdx >= len(p.FedServers) {
+			responsibleFaulterIdx = 0
+		}
+		nextVM := p.VMs[responsibleFaulterIdx]
+
+		if now-vm.whenFaulted > 20 {
+			//fmt.Println("JUSTIN :", p.State.FactomNodeName, "IT APPEARS", now, "IS >", vm.whenFaulted, "ON", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
+
+			if !vm.isNegotiating {
+				if !nextVM.isFaulting {
+					nextVM.isFaulting = true
+					nextVM.whenFaulted = now
+					//nextVM.faultWait = now
+					for pledger, pledgeSlot := range p.PledgeMap {
+						if pledgeSlot == id.String() {
+							delete(p.PledgeMap, pledger)
+						}
+					}
+
+				}
+				//fmt.Println("JUSTIN :", p.State.FactomNodeName, "RECURSE ON", id.String()[:10], "TAG:", tag, "RESPONSIB:", responsibleFaulterIdx, "DBH:", p.DBHeight)
+
+				nextVM.faultWait = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultWait, height, 2)
 			}
-			faultee := p.FedServers[myIndex].GetChainID()
+		}
+
+		if p.State.Leader {
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
-				//fmt.Println("JUSTIN - ", p.State.FactomNodeName, "IS NEGOTIATING FOR", vmIndex, "WHICH IS", faultee, "ON LEADERMIN", leaderMin)
-				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), faultee, vmIndex, p.DBHeight, uint32(height))
+				//fmt.Println("JUSTIN - ", p.State.FactomNodeName, "INITIATING NEGOTIATION FOR", vmIndex, "WHICH IS", id.String()[:10], "TAG:", tag, "DBH:", p.DBHeight)
+				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
 					p.State.NetworkOutMsgQueue() <- negotiationMsg
@@ -579,8 +614,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 				thetime = now
 			}
 		}
-
-		//p.VMs[responsibleFaulterIdx].faultingEOM = now
+		thetime = now
 	}
 
 	return thetime
@@ -599,16 +633,21 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if !p.State.Syncing {
 			vm.faultingEOM = 0
-			//vm.isFaulting = false
 		} else {
 			if !vm.Synced {
-				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List))
-				/*iPlus := i + 1
-				if iPlus >= len(p.FedServers) {
-					iPlus = 0
+				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List), 1)
+			} else {
+				if vm.isFaulting {
+					/*fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
+					vm.isFaulting = false
+					l := vm.LeaderMinute
+					if l == 10 {
+						l = 9
+					}
+					fedServ := p.FedServers[p.ServerMap[l][i]]
+					delete(p.FaultTimes, fedServ.GetChainID().String())*/
+					//TODO (MAYBE): clear PledgeMap entry for this
 				}
-				nextVM := p.VMs[iPlus]
-				nextVM.shouldNegotiate = fault(p, iPlus, 40, nextVM, nextVM.shouldNegotiate, len(vm.List))*/
 			}
 		}
 
@@ -822,7 +861,11 @@ func (p *ProcessList) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersStart=== %d\n", len(p.FedServers)))
 		for _, fed := range p.FedServers {
-			buf.WriteString(fmt.Sprintf("    %x\n", fed.GetChainID().Bytes()[:10]))
+			fedOnline := ""
+			if !fed.IsOnline() {
+				fedOnline = " F"
+			}
+			buf.WriteString(fmt.Sprintf("    %x%s\n", fed.GetChainID().Bytes()[:10], fedOnline))
 		}
 		buf.WriteString(fmt.Sprintf("===FederatedServersEnd=== %d\n", len(p.FedServers)))
 		buf.WriteString(fmt.Sprintf("===AuditServersStart=== %d\n", len(p.AuditServers)))
@@ -864,6 +907,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 				auditServer.SetOnline(true)
 			}
 		}
+		for _, fedServer := range pl.FedServers {
+			fedServer.SetOnline(true)
+		}
 		pl.SortFedServers()
 	} else {
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
@@ -891,8 +937,10 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
 
+	pl.FaultTimes = make(map[string]int64)
+	pl.NegotiationInit = make(map[string]int64)
 	pl.AlreadyNominated = make(map[string]map[string]int64)
-	pl.WaitingForPledge = make(map[string]int64)
+	pl.PledgeMap = make(map[string]string)
 
 	pl.DBSignatures = make([]DBSig, 0)
 

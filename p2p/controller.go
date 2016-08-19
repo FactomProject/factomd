@@ -158,9 +158,13 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	for _, peerAddress := range peerAddresses {
 		fmt.Println("Dialing Peer: ", peerAddress)
 		ipPort := strings.Split(peerAddress, ":")
-		peer := new(Peer).Init(ipPort[0], ipPort[1], 0, SpecialPeer, 0)
-		peer.Source["Local-Configuration"] = time.Now()
-		c.DialPeer(*peer, true) // these are persistent connections
+		if len(ipPort) == 2 {
+			peer := new(Peer).Init(ipPort[0], ipPort[1], 0, SpecialPeer, 0)
+			peer.Source["Local-Configuration"] = time.Now()
+			c.DialPeer(*peer, true) // these are persistent connections
+		} else {
+			logfatal("Controller", "Error: %s is not a valid peer, use format: 127.0.0.1:8999", peerAddress)
+		}
 	}
 }
 

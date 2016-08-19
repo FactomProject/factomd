@@ -225,8 +225,8 @@ func (m *ServerFault) String() string {
 	return fmt.Sprintf("%6s-VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d -- hash[:3]=%x",
 		"SFault",
 		m.VMIndex,
-		m.ServerID.String()[:8],
-		m.AuditServerID.String()[:8],
+		m.ServerID.String()[:10],
+		m.AuditServerID.String()[:10],
 		m.Height,
 		m.DBHeight,
 		m.GetHash().Bytes()[:3])

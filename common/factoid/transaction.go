@@ -32,7 +32,7 @@ type Transaction struct {
 	MarshalSig interfaces.IHash // cache to avoid unnecessary marshal/unmarshals
 
 	// Not marshalled
-	BlockHeight int
+	BlockHeight uint32
 }
 
 var _ interfaces.ITransaction = (*Transaction)(nil)
@@ -43,11 +43,11 @@ func (w *Transaction) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Transaction)
 }
 
-func (t *Transaction) SetBlockHeight(height int) {
+func (t *Transaction) SetBlockHeight(height uint32) {
 	t.BlockHeight = height
 }
 
-func (t *Transaction) GetBlockHeight() (height int) {
+func (t *Transaction) GetBlockHeight() (height uint32) {
 	return t.BlockHeight
 }
 

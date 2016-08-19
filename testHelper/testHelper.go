@@ -74,9 +74,7 @@ func CreateTestLogFileString() string {
 	return answer
 }
 
-func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
-	dbo := CreateEmptyTestDatabaseOverlay()
-
+func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 	var prev *BlockSet = nil
 
 	var err error
@@ -131,7 +129,11 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	if err != nil {
 		panic(err)
 	}
+}
 
+func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
+	dbo := CreateEmptyTestDatabaseOverlay()
+	PopulateTestDatabaseOverlay(dbo)
 	return dbo
 }
 

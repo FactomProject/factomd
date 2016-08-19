@@ -321,6 +321,7 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 			validSigCount++
 		}
 		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
+			//fmt.Println("JUSTIN", state.GetFactomNodeName(), "GOT VALIDD FF:", m.ServerID.String()[:10], "AUD:", m.AuditServerID.String()[:10])
 			return 1
 		}
 	}
