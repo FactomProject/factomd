@@ -16,12 +16,15 @@ type IFctServer interface {
 	GetName() string
 	IsOnline() bool
 	SetOnline(bool)
+	LeaderToReplace() IHash
+	SetReplace(IHash)
 }
 
 type FctServer struct {
 	ChainID IHash
 	Name    string
 	Online  bool
+	Replace IHash
 }
 
 var _ IFctServer = (*FctServer)(nil)
@@ -44,4 +47,12 @@ func (s *FctServer) IsOnline() bool {
 
 func (s *FctServer) SetOnline(o bool) {
 	s.Online = o
+}
+
+func (s *FctServer) LeaderToReplace() IHash {
+	return s.Replace
+}
+
+func (s *FctServer) SetReplace(h IHash) {
+	s.Replace = h
 }

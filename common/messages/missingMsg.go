@@ -195,6 +195,10 @@ func (m *MissingMsg) LeaderExecute(state interfaces.IState) {
 func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
 	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
 
+	if msg == nil && m.ProcessListHeight == 0 && state.IsLeader() {
+		state.SendDBSig(m.DBHeight, m.VMIndex)
+	}
+
 	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
 		msgResponse := NewMissingMsgResponse(state, msg, ackMsg)
 		msgResponse.SetOrigin(m.GetOrigin())

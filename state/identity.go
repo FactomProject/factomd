@@ -20,7 +20,7 @@ var (
 	FIRST_IDENTITY string = "38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9"
 	// Where all Identities register
 	// e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-	MAIN_FACTOM_IDENTITY_LIST = "1d1d1d1d07714fea910f9c6e42e5dc072c86491a3d80418855a2499e85b0039f"
+	MAIN_FACTOM_IDENTITY_LIST = "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327"
 )
 
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
