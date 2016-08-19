@@ -80,9 +80,9 @@ func (s *State) Process() (progress bool) {
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 10 && len(s.XReview) > 0; i++ {
+	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
-		executeMsg(msg)
+		progress = executeMsg(msg)
 		s.XReview = s.XReview[1:]
 	}
 
@@ -99,6 +99,7 @@ func (s *State) Process() (progress bool) {
 		}
 	default:
 	}
+
 	return
 }
 
@@ -113,6 +114,14 @@ func (s *State) ReviewHolding() {
 	if len(s.XReview) > 0 {
 		return
 	}
+	now := s.GetTimestamp()
+	if s.resendHolding == nil {
+		s.resendHolding = now
+	}
+	if now.GetTimeSeconds()-s.resendHolding.GetTimeSeconds() < 2 {
+		return
+	}
+
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -612,7 +621,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
 	commit := s.NextCommit(re.Entry.GetHash())
 	if commit == nil {
-		m.FollowerExecute(s)
+		s.Holding[re.GetMsgHash().Fixed()] = m
 		return
 	}
 	s.PutCommit(re.Entry.GetHash(), commit)

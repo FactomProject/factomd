@@ -21,9 +21,6 @@ type MissingData struct {
 	RequestHash interfaces.IHash
 
 	//No signature!
-
-	//Not marshalled
-	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*MissingData)(nil)
@@ -57,14 +54,7 @@ func (m *MissingData) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *MissingData) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			panic(fmt.Sprintf("Error in MissingData.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
-	}
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *MissingData) GetMsgHash() interfaces.IHash {
@@ -147,7 +137,7 @@ func (m *MissingData) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingData) String() string {
-	return fmt.Sprintf("MissingData: %+v", m.RequestHash)
+	return fmt.Sprintf("MissingData: [%x]", m.RequestHash.Bytes()[:5])
 }
 
 // Validate the message, given the state.  Three possible results:

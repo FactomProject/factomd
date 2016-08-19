@@ -314,6 +314,9 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
+	if n == 0 {
+		n = 1
+	}
 	indx := int(p.DBHeight*131) % n
 
 	for i := 0; i < 10; i++ {
@@ -531,11 +534,21 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 }
 
 func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
+	return fault2(0, p, vmIndex, waitSeconds, vm, thetime, height, tag)
+}
+
+func fault2(limit int, p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
+
 	now := time.Now().Unix()
 
 	if thetime == 0 {
 		thetime = now
 	}
+
+	if limit > len(p.FedServers) {
+		return 0
+	}
+	limit++
 
 	if now-thetime >= waitSeconds {
 		/*l := vm.LeaderMinute
@@ -598,7 +611,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 				}
 				//fmt.Println("JUSTIN :", p.State.FactomNodeName, "RECURSE ON", id.String()[:10], "TAG:", tag, "RESPONSIB:", responsibleFaulterIdx, "DBH:", p.DBHeight)
 
-				nextVM.faultWait = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultWait, height, 2)
+				nextVM.faultWait = fault2(limit, p, responsibleFaulterIdx, 20, nextVM, nextVM.faultWait, height, 2)
 			}
 		}
 
