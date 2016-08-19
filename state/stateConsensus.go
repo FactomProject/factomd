@@ -322,13 +322,13 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 						}
 					} else {
 						replacementServer = auditCandidate
+						needToNominate = true
 						pl.AlreadyNominated[negotiation.ServerID.String()][auditCandidate.GetChainID().String()] = nowSecond
 						break
 					}
 				}
 
 				if needToNominate {
-					fmt.Println("JUSTIN ", s.FactomNodeName, "SENDING SFAULT BASED OFF NEGO:", negotiation.ServerID.String()[:10], "AUD:", replacementServer.GetChainID().String()[:10])
 					//NOMINATE
 					sf := messages.NewServerFault(s.GetTimestamp(), negotiation.ServerID, replacementServer.GetChainID(), int(negotiation.VMIndex), negotiation.DBHeight, negotiation.Height)
 					if sf != nil {
@@ -336,6 +336,10 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 						s.NetworkOutMsgQueue() <- sf
 						s.InMsgQueue() <- sf
 					}
+				}
+			} else {
+				for _, aud := range pl.AuditServers {
+					aud.SetOnline(true)
 				}
 			}
 		}

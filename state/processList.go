@@ -676,17 +676,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if !vm.Synced {
 				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List), 1)
 			} else {
-				if vm.isFaulting {
-					/*fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
-					vm.isFaulting = false
-					l := vm.LeaderMinute
-					if l == 10 {
-						l = 9
-					}
-					fedServ := p.FedServers[p.ServerMap[l][i]]
-					delete(p.FaultTimes, fedServ.GetChainID().String())*/
-					//TODO (MAYBE): clear PledgeMap entry for this
-				}
+
 			}
 		}
 
@@ -755,6 +745,19 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.missingTime = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
+
+				if vm.isFaulting {
+					fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
+					vm.isFaulting = false
+					vm.faultingEOM = 0
+					/*l := vm.LeaderMinute
+					if l == 10 {
+						l = 9
+					}
+					fedServ := p.FedServers[p.ServerMap[l][i]]
+					delete(p.FaultTimes, fedServ.GetChainID().String())*/
+					//TODO (MAYBE): clear PledgeMap entry for this
+				}
 			} else {
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
