@@ -186,8 +186,36 @@ mainloop:
 			fmt.Printf("Saved block height %v\n", v.GetDatabaseHeight())
 		}
 	}
+	fmt.Printf("\t\tIterating over ECBlocks\n")
+	prev, err := dbo.FetchECBlockHead()
+	if err != nil {
+		panic(err)
+	}
+	for {
+		if prev.GetHeader().GetPrevHeaderHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
+			break
+		}
+		ecBlock, err := dbo.FetchECBlock(prev.GetHeader().GetPrevHeaderHash())
+		if err != nil {
+			panic(err)
+		}
+		if ecBlock == nil {
+			ecblock, err := GetECBlock(prev.GetHeader().GetPrevHeaderHash().String())
+			if err != nil {
+				panic(err)
+			}
+			err = dbo.ProcessECBlockBatchWithoutHead(ecblock, true)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			//only iterate to the next block if it was properly fetched from the database
+			prev = ecBlock
+		}
+	}
+
 	fmt.Printf("\t\tRebulding DirBlockInfo\n")
-	err := dbo.RebuildDirBlockInfo()
+	err = dbo.RebuildDirBlockInfo()
 	if err != nil {
 		panic(err)
 	}
