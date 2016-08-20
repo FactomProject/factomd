@@ -104,6 +104,7 @@ type DBOverlay interface {
 
 	// ProcessECBlockBatch inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(IEntryCreditBlock, bool) (err error)
+	ProcessECBlockBatchWithoutHead(IEntryCreditBlock, bool) (err error)
 	ProcessECBlockMultiBatch(IEntryCreditBlock, bool) (err error)
 
 	FetchECBlock(IHash) (IEntryCreditBlock, error)

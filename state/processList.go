@@ -772,6 +772,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				progress = true
 
 				if vm.isFaulting {
+					//fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
 					vm.isFaulting = false
 					vm.faultingEOM = 0
 					/*l := vm.LeaderMinute
