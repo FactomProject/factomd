@@ -305,10 +305,6 @@ func (db *Overlay) ProcessBlockMultiBatch(blockBucket, numberBucket, secondaryIn
 }
 
 func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBucket []byte, block interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatchWithOptionalHead(blockBucket, numberBucket, secondaryIndexBucket, block, true)
-}
-
-func (db *Overlay) ProcessBlockBatchWithOptionalHead(blockBucket, numberBucket, secondaryIndexBucket []byte, block interfaces.DatabaseBatchable, head bool) error {
 	if block == nil {
 		return nil
 	}
@@ -326,9 +322,7 @@ func (db *Overlay) ProcessBlockBatchWithOptionalHead(blockBucket, numberBucket, 
 		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
 	}
 
-	if head == true {
-		batch = append(batch, interfaces.Record{CHAIN_HEAD, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
-	}
+	batch = append(batch, interfaces.Record{CHAIN_HEAD, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
 
 	err := db.DB.PutInBatch(batch)
 	if err != nil {
