@@ -22,7 +22,8 @@ type CommitChainMsg struct {
 	Signature interfaces.IFullSignature
 
 	// Not marshaled... Just used by the leader
-	count int
+	count    int
+	validsig bool
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
@@ -110,9 +111,11 @@ func (m *CommitChainMsg) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *CommitChainMsg) Validate(state interfaces.IState) int {
-	if !m.CommitChain.IsValid() {
+	if !m.validsig && !m.CommitChain.IsValid() {
 		return -1
 	}
+	m.validsig = true
+
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	if int(m.CommitChain.Credits) > int(ebal) {
 		return 0

@@ -27,6 +27,15 @@ type MessageBase struct {
 
 	Stalled     bool // This message is currently stalled
 	MarkInvalid bool
+	Sigvalid    bool
+}
+
+func (m *MessageBase) IsValid() bool {
+	return m.Sigvalid
+}
+
+func (m *MessageBase) SetValid() {
+	m.Sigvalid = true
 }
 
 // To suppress how many messages are sent to the NetworkInvalid Queue, we mark them, and only

@@ -243,6 +243,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
+	clone.DropRate = s.DropRate
 	clone.LogPath = s.LogPath + "/Sim" + number
 	clone.LdbPath = s.LdbPath + "/Sim" + number
 	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
@@ -1199,6 +1200,13 @@ func (s *State) ShortString() string {
 	return s.serverPrt
 }
 
+func (s *State) SetString2() {
+	//if !s.Status2 {
+	//	return
+	//}
+
+}
+
 func (s *State) SetString() {
 	if !s.Status {
 		return
@@ -1280,11 +1288,12 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%8s[%12x]%4s %3s ",
+	str := fmt.Sprintf("%8s[%12x]%4s %3s drop=%2d.%01d%% ",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
-		stype)
+		stype,
+		(s.DropRate+5)/10, s.DropRate%10)
 
 	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 

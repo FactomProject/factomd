@@ -547,14 +547,14 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 
 		r = p.Requests[r.hash().Fixed()]
 
-		if now-r.sent >= 10 {
+		if now-r.sent >= 1 {
 			missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, r.dbheight, r.vmheight)
 			if missingMsgRequest != nil {
 				fmt.Println("dddd ASK ", p.State.FactomNodeName, now, r.sent, 100, missingMsgRequest.String())
 				p.State.NetworkOutMsgQueue() <- missingMsgRequest
 				p.State.MissingAskCnt++
 			}
-			r.sent = now + 100
+			r.sent = now + 1
 		}
 		thetime = now / 10
 	}

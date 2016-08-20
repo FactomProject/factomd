@@ -26,7 +26,8 @@ type CommitEntryMsg struct {
 	hash interfaces.IHash
 
 	// Not marshaled... Just used by the leader
-	count int
+	count    int
+	validsig bool
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
@@ -209,9 +210,11 @@ func (m *CommitEntryMsg) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
-	if !m.CommitEntry.IsValid() {
+	if !m.validsig && !m.CommitEntry.IsValid() {
 		return -1
 	}
+	m.validsig = true
+
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitEntry.ECPubKey)
 	if int(m.CommitEntry.Credits) > int(ebal) {
 		return 0

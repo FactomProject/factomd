@@ -577,12 +577,12 @@ func SimControl(listenTo int) {
 					}
 					break
 				} else if len(authKeyLibrary) == 0 {
-					os.Stderr.WriteString(fmt.Sprintf("There are no available identities in this node. Type 'g1' to claim another identity\n"))
+					os.Stderr.WriteString(fmt.Sprint("There are no available identities in this node. Type 'g1' to claim another identity\n"))
 					break
 				} else if len(b) > 1 {
 					index, err = strconv.Atoi(string(b[1:]))
 					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintf("Incorrect input. bN where N is a number\n"))
+						os.Stderr.WriteString(fmt.Sprint("Incorrect input. bN where N is a number\n"))
 						break
 					}
 				}
@@ -606,7 +606,7 @@ func SimControl(listenTo int) {
 					index++
 				}
 				if index >= len(authKeyLibrary) {
-					os.Stderr.WriteString(fmt.Sprintf("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
+					os.Stderr.WriteString(fmt.Sprint("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
 				}
 			case 'u' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))
@@ -647,6 +647,32 @@ func SimControl(listenTo int) {
 				for _, eh := range eHashes {
 					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
 				}
+
+			case 'S' == b[0]:
+				nnn, err := strconv.Atoi(string(b[1:]))
+				if err != nil || nnn < 0 || nnn > 999 {
+					os.Stderr.WriteString("Specifiy a drop amount between 0 and 1000\n")
+					break
+				}
+				for _, fn := range fnodes {
+					fn.State.DropRate = nnn
+					os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d\n", fn.State.FactomNodeName, nnn/10, nnn%10))
+				}
+
+			case 'O' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					os.Stderr.WriteString("No Factom Node selected\n")
+					break
+				}
+				nnn, err := strconv.Atoi(string(b[1:]))
+				if err != nil || nnn < 0 || nnn > 999 {
+					os.Stderr.WriteString("Specifiy a drop amount between 0 and 1000\n")
+					break
+				}
+
+				fnodes[listenTo].State.DropRate = nnn
+				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[listenTo].State.FactomNodeName, nnn/10, nnn%10))
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
@@ -674,6 +700,9 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("tN            Attaches Nth identity in pool to current node. Can also just press 't' to grab the next\n")
 				os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
 				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
+				os.Stderr.WriteString("Snnn          Set Drop Rate to nnn on everyone\n")
+				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
+
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
