@@ -450,6 +450,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 				pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
 				matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 				if matchNomination != nil {
+					//fmt.Println("JUSTIN .", s.FactomNodeName, "MATCHING NOMINATION SFAULT:", sf.ServerID.String()[:10], "AUD:", sf.AuditServerID.String()[:10])
+
 					matchNomination.Sign(s.serverPrivKey)
 					s.NetworkOutMsgQueue() <- matchNomination
 					s.InMsgQueue() <- matchNomination
@@ -472,6 +474,9 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			// I am the audit server being promoted
 			if !pl.AmIPledged {
 				pl.AmIPledged = true
+				//fmt.Println("JUSTIN AUDIT SERVER ", s.IdentityChainID.String()[:10], "PLEDGING TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
+				pl.PledgeMap[s.IdentityChainID.String()] = sf.ServerID.String()
+
 				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 				if nsf != nil {
 					nsf.Sign(s.serverPrivKey)
@@ -489,12 +494,16 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	//auditServerList := s.GetOnlineAuditServers(fullFault.DBHeight)
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
+	//fmt.Println("JUSTIN", s.FactomNodeName, "EXEC FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
+
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
 			theAuditReplacement = auditServer
 		}
 	}
 	if theAuditReplacement != nil {
+		//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND AUD FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
+
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 				relevantPL.FedServers[listIdx] = theAuditReplacement
@@ -515,8 +524,16 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	//delete(relevantPL.FaultTimes, fullFault.ServerID.String())
 
 	for pledger, pledgeSlot := range relevantPL.PledgeMap {
+		if pledger == s.IdentityChainID.String() {
+			//fmt.Println("JUSTIN", s.IdentityChainID.String()[:10], "IS PLEDGED TO ", pledgeSlot, ")")
+			//relevantPL.AmIPledged = false
+		}
 		if pledgeSlot == fullFault.ServerID.String() {
 			delete(relevantPL.PledgeMap, pledger)
+			if pledger == s.IdentityChainID.String() {
+				//fmt.Println("JUSTIN", s.IdentityChainID.String()[:10], "UNPLEDGING (WAS ", pledgeSlot, ")")
+				relevantPL.AmIPledged = false
+			}
 		}
 	}
 }
