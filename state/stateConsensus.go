@@ -104,6 +104,22 @@ func (s *State) Process() (progress bool) {
 }
 
 //***************************************************************
+// Checkpoint DBKeyMR
+//***************************************************************
+func CheckDBKeyMR(s *State, ht uint32, hash string) error {
+	if s.Network != "MAIN" && s.Network != "main" {
+		return nil
+	}
+	if val, ok := constants.CheckPoints[ht]; ok {
+		if val != hash {
+			return fmt.Errorf("%20s CheckPoints at %d DB height failed\n", s.FactomNodeName, ht)
+		}
+	}
+	return nil
+}
+
+
+//***************************************************************
 // Consensus Methods
 //***************************************************************
 
@@ -163,6 +179,14 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+	DBKeyMR := dbState.DirectoryBlock.GetKeyMR().String()
+
+	err := CheckDBKeyMR(s, ht, DBKeyMR)
+	if err != nil {
+		fmt.Printf(err)
+		return nil
+	} 
+	
 	if ht > s.LLeaderHeight {
 		s.Syncing = false
 		s.EOM = false
