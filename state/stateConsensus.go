@@ -6,7 +6,7 @@ package state
 
 import (
 	"fmt"
-	"os"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -206,6 +206,21 @@ func (s *State) ProcessQueues() (progress bool) {
 }
 
 //***************************************************************
+// Checkpoint DBKeyMR
+//***************************************************************
+func CheckDBKeyMR(s *State, ht uint32, hash string) error {
+	if s.Network != "MAIN" && s.Network != "main" {
+		return nil
+	}
+	if val, ok := constants.CheckPoints[ht]; ok {
+		if val != hash {
+			return fmt.Errorf("%20s CheckPoints at %d DB height failed\n", s.FactomNodeName, ht)
+		}
+	}
+	return nil
+}
+
+//***************************************************************
 // Consensus Methods
 //***************************************************************
 
@@ -238,7 +253,15 @@ func (s *State) AddDBState(isNew bool,
 			return 
 		}
 	}
+	
+	DBKeyMR := dbState.DirectoryBlock.GetKeyMR().String()
 
+	err := CheckDBKeyMR(s, ht, DBKeyMR)
+	if err != nil {
+		fmt.Printf(err)
+		return nil
+	} 
+	
 	if ht > s.LLeaderHeight {
 		s.LLeaderHeight = ht
 		s.ProcessLists.Get(ht + 1)
