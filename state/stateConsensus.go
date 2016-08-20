@@ -779,31 +779,35 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	ht := s.GetHighestRecordedBlock()
-	if dbheight <= ht {
+	if dbheight <= ht || s.EOM {
 		return
 	}
-	vm := s.ProcessLists.Get(dbheight).VMs[vmIndex]
-	if s.Leader && !vm.Signed && s.LeaderVMIndex == vmIndex {
+	pl := s.ProcessLists.Get(dbheight)
+	vm := pl.VMs[vmIndex]
+	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
+	if leader && !vm.Signed {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 		if dbstate == nil && dbheight > 0 {
 			s.SendDBSig(dbheight-1, vmIndex)
 			return
 		}
-		dbs := new(messages.DirectoryBlockSignature)
-		dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-		//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-		dbs.ServerIdentityChainID = s.GetIdentityChainID()
-		dbs.DBHeight = dbheight
-		dbs.Timestamp = s.GetTimestamp()
-		dbs.SetVMHash(nil)
-		dbs.SetVMIndex(vmIndex)
-		dbs.SetLocal(true)
-		dbs.Sign(s)
-		err := dbs.Sign(s)
-		if err != nil {
-			panic(err)
+		if lvm == vmIndex {
+			dbs := new(messages.DirectoryBlockSignature)
+			dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+			//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+			dbs.ServerIdentityChainID = s.GetIdentityChainID()
+			dbs.DBHeight = dbheight
+			dbs.Timestamp = s.GetTimestamp()
+			dbs.SetVMHash(nil)
+			dbs.SetVMIndex(vmIndex)
+			dbs.SetLocal(true)
+			dbs.Sign(s)
+			err := dbs.Sign(s)
+			if err != nil {
+				panic(err)
+			}
+			dbs.LeaderExecute(s)
 		}
-		dbs.LeaderExecute(s)
 	}
 }
 
@@ -832,13 +836,14 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.ReviewHolding()
 			s.Syncing = false
+
+			// If we are the leader for this vm, and the previous block has not been signed,
+			// submit a dbsignature to the network of the previous block.  See the discussion
+			// about DBSig below.
+			if s.Leader {
+				s.SendDBSig(dbheight, s.LeaderVMIndex)
+			}
 		}
-
-		// If we are the leader for this vm, and the previous block has not been signed,
-		// submit a dbsignature to the network of the previous block.  See the discussion
-		// about DBSig below.
-		s.SendDBSig(dbheight, msg.GetVMIndex())
-
 		return true
 	}
 

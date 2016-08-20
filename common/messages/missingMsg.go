@@ -195,7 +195,7 @@ func (m *MissingMsg) LeaderExecute(state interfaces.IState) {
 func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
 	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
 
-	if msg == nil && m.ProcessListHeight == 0 && state.IsLeader() {
+	if msg == nil && m.ProcessListHeight == 0 {
 		state.SendDBSig(m.DBHeight, m.VMIndex)
 	}
 
