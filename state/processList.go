@@ -24,6 +24,18 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
+type Request struct {
+	vmIndex  int
+	vmheight uint32
+	dbheight uint32
+	sent     int64
+}
+
+func (r *Request) hash() interfaces.IHash {
+	hash := primitives.NewHash([]byte(fmt.Sprintf("%d %d %d", r.vmIndex, r.vmheight, r.dbheight)))
+	return hash
+}
+
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
 	good     bool   // Means we have the previous blocks, so we can process!
@@ -93,6 +105,8 @@ type ProcessList struct {
 
 	// DB Sigs
 	DBSignatures []DBSig
+
+	Requests map[[32]byte]*Request
 }
 
 // Data needed to add to admin block
@@ -519,10 +533,28 @@ func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, 
 
 	if now-(thetime*10) >= waitSeconds*10+5 {
 		//fmt.Println("JUSTIN", p.State.FactomNodeName, "ASK tag:", tag, "wait:", waitSeconds, "now:", now, "thetim:", thetime, "h:", height)
-		missingMsgRequest := messages.NewMissingMsg(p.State, vmIndex, p.DBHeight, uint32(height))
-		if missingMsgRequest != nil {
-			p.State.NetworkOutMsgQueue() <- missingMsgRequest
-			p.State.MissingAskCnt++
+
+		r := new(Request)
+		r.dbheight = p.DBHeight
+		r.vmIndex = vmIndex
+		r.vmheight = uint32(height)
+
+		if p.Requests[r.hash().Fixed()] == nil {
+			r.sent = now - waitSeconds*10 + 5
+			p.Requests[r.hash().Fixed()] = r
+			fmt.Println("New Request ", r.dbheight, r.vmIndex, r.vmheight)
+		}
+
+		r = p.Requests[r.hash().Fixed()]
+
+		if now-r.sent >= 1 {
+			missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, r.dbheight, r.vmheight)
+			if missingMsgRequest != nil {
+				fmt.Println("dddd ASK ", p.State.FactomNodeName, now, r.sent, 100, missingMsgRequest.String())
+				p.State.NetworkOutMsgQueue() <- missingMsgRequest
+				p.State.MissingAskCnt++
+			}
+			r.sent = now + 1
 		}
 		thetime = now / 10
 	}
@@ -740,6 +772,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				progress = true
 
 				if vm.isFaulting {
+					//fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
 					vm.isFaulting = false
 					vm.faultingEOM = 0
 					/*l := vm.LeaderMinute
@@ -818,6 +851,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
+	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
 	delete(p.State.Acks, ack.GetHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
@@ -931,6 +965,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
+	pl.Requests = make(map[[32]byte]*Request)
+
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
 		pl.AuditServers = append(pl.AuditServers, previous.AuditServers...)

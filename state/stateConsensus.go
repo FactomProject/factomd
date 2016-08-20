@@ -415,6 +415,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 				pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
 				matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 				if matchNomination != nil {
+					//fmt.Println("JUSTIN .", s.FactomNodeName, "MATCHING NOMINATION SFAULT:", sf.ServerID.String()[:10], "AUD:", sf.AuditServerID.String()[:10])
+
 					matchNomination.Sign(s.serverPrivKey)
 					s.NetworkOutMsgQueue() <- matchNomination
 					s.InMsgQueue() <- matchNomination
@@ -437,6 +439,9 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 			// I am the audit server being promoted
 			if !pl.AmIPledged {
 				pl.AmIPledged = true
+				//fmt.Println("JUSTIN AUDIT SERVER ", s.IdentityChainID.String()[:10], "PLEDGING TO REPLACE", sf.ServerID.String()[:10], "AT DBH:", sf.DBHeight)
+				pl.PledgeMap[s.IdentityChainID.String()] = sf.ServerID.String()
+
 				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
 				if nsf != nil {
 					nsf.Sign(s.serverPrivKey)
@@ -454,12 +459,16 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	//auditServerList := s.GetOnlineAuditServers(fullFault.DBHeight)
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
+	//fmt.Println("JUSTIN", s.FactomNodeName, "EXEC FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
+
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
 			theAuditReplacement = auditServer
 		}
 	}
 	if theAuditReplacement != nil {
+		//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND AUD FULL FAULT ON", fullFault.ServerID.String()[:10], "AUD:", fullFault.AuditServerID.String()[:10])
+
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 				relevantPL.FedServers[listIdx] = theAuditReplacement
@@ -480,8 +489,16 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	//delete(relevantPL.FaultTimes, fullFault.ServerID.String())
 
 	for pledger, pledgeSlot := range relevantPL.PledgeMap {
+		if pledger == s.IdentityChainID.String() {
+			//fmt.Println("JUSTIN", s.IdentityChainID.String()[:10], "IS PLEDGED TO ", pledgeSlot, ")")
+			//relevantPL.AmIPledged = false
+		}
 		if pledgeSlot == fullFault.ServerID.String() {
 			delete(relevantPL.PledgeMap, pledger)
+			if pledger == s.IdentityChainID.String() {
+				//fmt.Println("JUSTIN", s.IdentityChainID.String()[:10], "UNPLEDGING (WAS ", pledgeSlot, ")")
+				relevantPL.AmIPledged = false
+			}
 		}
 	}
 }
@@ -574,6 +591,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
+		delete(s.Holding, m.GetRepeatHash().Fixed())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -802,31 +820,35 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	ht := s.GetHighestRecordedBlock()
-	if dbheight <= ht {
+	if dbheight <= ht || s.EOM {
 		return
 	}
-	vm := s.ProcessLists.Get(dbheight).VMs[vmIndex]
-	if s.Leader && !vm.Signed && s.LeaderVMIndex == vmIndex {
+	pl := s.ProcessLists.Get(dbheight)
+	vm := pl.VMs[vmIndex]
+	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
+	if leader && !vm.Signed {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 		if dbstate == nil && dbheight > 0 {
 			s.SendDBSig(dbheight-1, vmIndex)
 			return
 		}
-		dbs := new(messages.DirectoryBlockSignature)
-		dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-		//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-		dbs.ServerIdentityChainID = s.GetIdentityChainID()
-		dbs.DBHeight = dbheight
-		dbs.Timestamp = s.GetTimestamp()
-		dbs.SetVMHash(nil)
-		dbs.SetVMIndex(vmIndex)
-		dbs.SetLocal(true)
-		dbs.Sign(s)
-		err := dbs.Sign(s)
-		if err != nil {
-			panic(err)
+		if lvm == vmIndex {
+			dbs := new(messages.DirectoryBlockSignature)
+			dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+			//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+			dbs.ServerIdentityChainID = s.GetIdentityChainID()
+			dbs.DBHeight = dbheight
+			dbs.Timestamp = s.GetTimestamp()
+			dbs.SetVMHash(nil)
+			dbs.SetVMIndex(vmIndex)
+			dbs.SetLocal(true)
+			dbs.Sign(s)
+			err := dbs.Sign(s)
+			if err != nil {
+				panic(err)
+			}
+			dbs.LeaderExecute(s)
 		}
-		dbs.LeaderExecute(s)
 	}
 }
 
@@ -855,13 +877,14 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.ReviewHolding()
 			s.Syncing = false
+
+			// If we are the leader for this vm, and the previous block has not been signed,
+			// submit a dbsignature to the network of the previous block.  See the discussion
+			// about DBSig below.
+			if s.Leader {
+				s.SendDBSig(dbheight, s.LeaderVMIndex)
+			}
 		}
-
-		// If we are the leader for this vm, and the previous block has not been signed,
-		// submit a dbsignature to the network of the previous block.  See the discussion
-		// about DBSig below.
-		s.SendDBSig(dbheight, msg.GetVMIndex())
-
 		return true
 	}
 
