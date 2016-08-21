@@ -13,6 +13,7 @@ import (
 	"math"
 
 	"bufio"
+	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -222,6 +223,20 @@ func NetStart(s *state.State) {
 	// Modify Identities of new nodes
 	if len(fnodes) > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
+	}
+
+	// Sort the FNodes by ID
+	for i := 0; i < len(fnodes)-1; i++ {
+		for j := 0; j < len(fnodes)-2-i; j++ {
+			if bytes.Compare(fnodes[j].State.IdentityChainID.Bytes(), fnodes[j+1].State.IdentityChainID.Bytes()) > 0 {
+				tmp := fnodes[j]
+				fnodes[j] = fnodes[j+1]
+				fnodes[j+1] = tmp
+			}
+		}
+	}
+	for i := 0; i < len(fnodes); i++ {
+		fnodes[i].State.FactomNodeName = fmt.Sprintf("FNode%d", i)
 	}
 
 	// Start the P2P netowork

@@ -761,7 +761,7 @@ func printSummary(summary *int, value int, listenTo *int) {
 	for *summary == value {
 		prt := "===SummaryStart===\n"
 		for _, f := range fnodes {
-			f.State.Status = true
+			f.State.Status = 1
 		}
 
 		time.Sleep(time.Second)

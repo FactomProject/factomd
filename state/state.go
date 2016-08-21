@@ -79,12 +79,12 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status          bool
+	Status          int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
+	serverPrt       string
 	starttime       time.Time
 	transCnt        int
 	lasttime        time.Time
 	tps             float64
-	serverPrt       string
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
 	DBStateReplyCnt int
@@ -1243,10 +1243,23 @@ func (s *State) SetString2() {
 }
 
 func (s *State) SetString() {
-	if !s.Status {
+	switch s.Status {
+	case 0:
 		return
+	case 1:
+		s.SetStringQueues()
+	case 2:
+		s.SetStringConsensus()
 	}
-	s.Status = false
+
+	s.Status = 0
+}
+
+func (s *State) SetStringConsensus() {
+
+}
+
+func (s *State) SetStringQueues() {
 
 	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {

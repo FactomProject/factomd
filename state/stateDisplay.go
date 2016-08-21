@@ -189,7 +189,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	}
 
 	prt := "===SummaryStart===\n"
-	s.Status = true
+	s.Status = 1
 	prt = prt + fmt.Sprintf("%s \n", s.ShortString())
 	fnodes := make([]*State, 0)
 	fnodes = append(fnodes, s)
