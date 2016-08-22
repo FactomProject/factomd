@@ -56,7 +56,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	}
 	for !mr.IsSameAs(primitives.NewZeroHash()) {
 		eblk, err := st.DB.FetchEBlock(mr)
-		if err != nil {
+		if err != nil || eblk == nil {
 			break
 		}
 		eblkStackRoot = append(eblkStackRoot, eblk)
