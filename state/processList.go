@@ -535,14 +535,14 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 	if p.Requests[r.key()] == nil {
 		r.sent = now
 		p.Requests[r.key()] = r
-		fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
-			p.State.FactomNodeName,
-			p.DBHeight,
-			r.vmIndex,
-			r.vmheight,
-			r.wait,
-			now-r.sent,
-			waitSeconds*1000+1000)
+		//fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
+		//	p.State.FactomNodeName,
+		//	p.DBHeight,
+		//	r.vmIndex,
+		//	r.vmheight,
+		//	r.wait,
+		//	now-r.sent,
+		//	waitSeconds*1000+1000)
 	} else {
 		r = p.Requests[r.key()]
 	}
@@ -550,14 +550,14 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 	if now-r.sent >= waitSeconds*1000+1000 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 		if missingMsgRequest != nil {
-			fmt.Printf("dddd *Request --> %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
-				p.State.FactomNodeName,
-				p.DBHeight,
-				r.vmIndex,
-				r.vmheight,
-				r.wait,
-				now-r.sent,
-				waitSeconds*1000+1000)
+			//fmt.Printf("dddd *Request --> %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
+			//	p.State.FactomNodeName,
+			//	p.DBHeight,
+			//	r.vmIndex,
+			//	r.vmheight,
+			//	r.wait,
+			//	now-r.sent,
+			//	waitSeconds*1000+1000)
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
