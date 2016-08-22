@@ -79,20 +79,25 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status          int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
-	serverPrt       string
-	starttime       time.Time
-	transCnt        int
-	lasttime        time.Time
-	tps             float64
+	Status    int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
+	serverPrt string
+	starttime time.Time
+	transCnt  int
+	lasttime  time.Time
+	tps       float64
+
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
 	DBStateReplyCnt int
-	MissingAskCnt   int
-	MissingAnsCnt   int
-	MissingReplyCnt int
-	ResendCnt       int
-	ExpireCnt       int
+	DBStateFailsCnt int
+
+	MissingAskCnt    int
+	MissingAnsCnt    int
+	MissingReplyCnt  int
+	MissingIgnoreCnt int
+
+	ResendCnt int
+	ExpireCnt int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -1256,7 +1261,9 @@ func (s *State) SetString() {
 }
 
 func (s *State) SetStringConsensus() {
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:3], s.IdentityChainID.Bytes()[3:6])
 
+	s.serverPrt = str
 }
 
 func (s *State) SetStringQueues() {
@@ -1350,8 +1357,8 @@ func (s *State) SetStringQueues() {
 		keyMR[:3],
 		pls)
 
-	dbstate := fmt.Sprintf("%d/%d/%d", s.DBStateReplyCnt, s.DBStateAskCnt, s.DBSigFails)
-	missing := fmt.Sprintf("%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt)
+	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
+	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
 	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %20s ",
 		lmin,
 		s.CurrentMinute,

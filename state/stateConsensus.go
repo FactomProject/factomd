@@ -236,15 +236,19 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
-	s.DBStates.LastTime = s.GetTimestamp()
-	dbstate := s.AddDBState(false, // Not a new block; got it from the network
-		dbstatemsg.DirectoryBlock,
-		dbstatemsg.AdminBlock,
-		dbstatemsg.FactoidBlock,
-		dbstatemsg.EntryCreditBlock)
-	dbstate.ReadyToSave = true
+	if s.GetHighestRecordedBlock() <= dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight() {
+		s.DBStates.LastTime = s.GetTimestamp()
+		dbstate := s.AddDBState(false, // Not a new block; got it from the network
+			dbstatemsg.DirectoryBlock,
+			dbstatemsg.AdminBlock,
+			dbstatemsg.FactoidBlock,
+			dbstatemsg.EntryCreditBlock)
+		dbstate.ReadyToSave = true
 
-	s.DBStateReplyCnt++
+		s.DBStateReplyCnt++
+	} else {
+		s.DBStateFailsCnt++
+	}
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
@@ -587,6 +591,28 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 	}
 }
 
+func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+	m := msg.(*messages.MissingMsg)
+
+	if s.DBSig && m.ProcessListHeight == 0 {
+		s.SendDBSig(m.DBHeight, m.VMIndex)
+	}
+
+	missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
+
+	if missingmsg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
+		msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
+		msgResponse.SetOrigin(m.GetOrigin())
+		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+		s.NetworkOutMsgQueue() <- msgResponse
+		s.IncMissingMsgReply()
+	} else {
+		s.MissingIgnoreCnt++
+	}
+
+	return
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
@@ -848,6 +874,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				panic(err)
 			}
 			dbs.LeaderExecute(s)
+			vm.Signed = true
 		}
 	}
 }

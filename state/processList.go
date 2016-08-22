@@ -525,38 +525,28 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 }
 
 func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
-	now := time.Now().UnixNano() / 100000000 // Tenth of seconds
-	//fmt.Println("ASK", p.State.FactomNodeName, vmIndex, now, thetime, waitSeconds)
-	if thetime == 0 {
-		thetime = now / 10
+	now := p.State.GetTimestamp().GetTimeMilli()
+
+	r := new(Request)
+	r.dbheight = p.DBHeight
+	r.vmIndex = vmIndex
+	r.vmheight = uint32(height)
+
+	if p.Requests[r.hash().Fixed()] == nil {
+		r.sent = now
+		p.Requests[r.hash().Fixed()] = r
+		fmt.Println("New Request ", r.dbheight, r.vmIndex, r.vmheight)
+	} else {
+		r = p.Requests[r.hash().Fixed()]
 	}
 
-	if now-(thetime*10) >= waitSeconds*10+5 {
-		//fmt.Println("JUSTIN", p.State.FactomNodeName, "ASK tag:", tag, "wait:", waitSeconds, "now:", now, "thetim:", thetime, "h:", height)
-
-		r := new(Request)
-		r.dbheight = p.DBHeight
-		r.vmIndex = vmIndex
-		r.vmheight = uint32(height)
-
-		if p.Requests[r.hash().Fixed()] == nil {
-			r.sent = now - waitSeconds*10 + 5
-			p.Requests[r.hash().Fixed()] = r
-			fmt.Println("New Request ", r.dbheight, r.vmIndex, r.vmheight)
+	if now-r.sent >= waitSeconds*1000+1000 {
+		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, r.dbheight, r.vmheight)
+		if missingMsgRequest != nil {
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+			p.State.MissingAskCnt++
 		}
-
-		r = p.Requests[r.hash().Fixed()]
-
-		if now-r.sent >= 1 {
-			missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, r.dbheight, r.vmheight)
-			if missingMsgRequest != nil {
-				fmt.Println("dddd ASK ", p.State.FactomNodeName, now, r.sent, 100, missingMsgRequest.String())
-				p.State.NetworkOutMsgQueue() <- missingMsgRequest
-				p.State.MissingAskCnt++
-			}
-			r.sent = now + 1
-		}
-		thetime = now / 10
+		r.sent = now
 	}
 
 	return thetime
@@ -707,7 +697,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingEOM = ask(p, i, 3, vm, vm.missingEOM, vm.Height, 1)
+			vm.missingEOM = ask(p, i, 5, vm, vm.missingEOM, vm.Height, 1)
 		} else {
 			vm.missingEOM = 0
 		}
@@ -792,6 +782,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
+	if _, ok := m.(*messages.MissingMsg); ok {
+		panic("This shouldn't happen")
+	}
 
 	toss := func(hint string) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, hint)

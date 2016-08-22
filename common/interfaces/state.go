@@ -150,6 +150,7 @@ type IState interface {
 	FollowerExecuteMMR(m IMsg)          // Handle Missing Message Responses
 	FollowerExecuteNegotiation(m IMsg)  // Message to start the negotiation process to replace a faulted server
 	FollowerExecuteDataResponse(m IMsg) // Handle Data Response
+	FollowerExecuteMissingMsg(m IMsg)   // Handle requests for missing messages
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessRemoveServer(dbheight uint32, removeServerMsg IMsg) bool
