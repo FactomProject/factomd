@@ -234,10 +234,9 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 }
 
 // Assumes validation has already been done.
-func (fs *FactoidState) ClearRealTime() error {
+func (fs *FactoidState) ClearRealTime() {
 	fs.State.FactoidBalancesT = map[[32]byte]int64{}
 	fs.State.ECBalancesT = map[[32]byte]int64{}
-	return nil
 }
 
 // End of Block means packing the current block away, and setting

@@ -464,6 +464,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.SaveDirectoryBlockHead(head)
 	}
 
+	// Clear the Temporary cache of balances
+	list.State.GetFactoidState().ClearRealTime()
+
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
