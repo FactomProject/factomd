@@ -1269,6 +1269,7 @@ func (s *State) GetF(adr [32]byte) int64 {
 	}
 }
 
+// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
 		s.FactoidBalancesTMutex.Lock()
@@ -1295,6 +1296,7 @@ func (s *State) GetE(adr [32]byte) int64 {
 	}
 }
 
+// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
 		s.ECBalancesTMutex.Lock()

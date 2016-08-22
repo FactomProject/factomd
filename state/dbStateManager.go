@@ -440,7 +440,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 	if pl != nil {
 		for _, eb := range pl.NewEBlocks {
-			if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
 				panic(err.Error())
 			}
 
@@ -463,6 +463,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
 		list.State.DB.SaveDirectoryBlockHead(head)
 	}
+
+	// Clear the Temporary cache of balances
+	list.State.GetFactoidState().ClearRealTime()
 
 	progress = true
 	d.ReadyToSave = false
