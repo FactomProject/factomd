@@ -604,9 +604,13 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	m := msg.(*messages.MissingMsg)
-
 	if s.DBSig && m.ProcessListHeight == 0 {
-		s.SendDBSig(m.DBHeight, m.VMIndex)
+		// Make sure the request is reasonable, and that we are asking this of the first
+		// entry in the VM... Then we need to issue a DBSig.
+		pl := s.ProcessLists.Get(m.DBHeight)
+		if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
+			s.SendDBSig(m.DBHeight, m.VMIndex)
+		}
 	}
 
 	missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
