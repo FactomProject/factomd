@@ -44,7 +44,7 @@ func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.IEntryCreditBlock, 
 	if err != nil {
 		return err
 	}
-	err = db.SaveIncludedInMultiFromBlockMultiBatch(block, false)
+	err = db.SaveIncludedInMultiFromBlockMultiBatch(block, true)
 	if err != nil {
 		return err
 	}
