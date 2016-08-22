@@ -869,6 +869,8 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
 
+		prt = prt + faultSummary()
+
 		prt = prt + "===SummaryEnd===\n"
 
 		if prt != out {
@@ -878,6 +880,40 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		time.Sleep(time.Second)
 	}
+}
+
+func faultSummary() string {
+	prt := ""
+	headerTitle := "Faults"
+	headerLabel := "vm    "
+	currentlyFaulted := "."
+
+	for i, fnode := range fnodes {
+		b := fnode.State.GetHighestRecordedBlock()
+		pl := fnode.State.ProcessLists.Get(b)
+		if pl != nil {
+			if i == 0 {
+				prt = prt + fmt.Sprintf("%s\n", headerTitle)
+				prt = prt + fmt.Sprintf("%7s", headerLabel)
+				for headerNum, _ := range pl.FedServers {
+					prt = prt + fmt.Sprintf(" %3d", headerNum)
+				}
+				prt = prt + fmt.Sprintf("\n")
+			}
+			if fnode.State.Leader {
+				prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
+				for _, fed := range pl.FedServers {
+					currentlyFaulted = "."
+					if !fed.IsOnline() {
+						currentlyFaulted = "F"
+					}
+					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
+				}
+				prt = prt + fmt.Sprintf("\n")
+			}
+		}
+	}
+	return prt
 }
 
 func printProcessList(watchPL *int, value int, listenTo *int) {
