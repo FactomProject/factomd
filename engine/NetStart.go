@@ -227,7 +227,7 @@ func NetStart(s *state.State) {
 
 	// Sort the FNodes by ID
 	for i := 0; i < len(fnodes)-1; i++ {
-		for j := 0; j < len(fnodes)-2-i; j++ {
+		for j := 0; j < len(fnodes)-1-i; j++ {
 			if bytes.Compare(fnodes[j].State.IdentityChainID.Bytes(), fnodes[j+1].State.IdentityChainID.Bytes()) > 0 {
 				tmp := fnodes[j]
 				fnodes[j] = fnodes[j+1]
