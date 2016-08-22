@@ -509,9 +509,20 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
-	ackResp := mmr.AckResponse.(*messages.Ack)
-	pl := s.ProcessLists.Get(ackResp.DBHeight)
-	pl.AddToProcessList(ackResp, mmr.MsgResponse)
+	ack := mmr.AckResponse.(*messages.Ack)
+	msg := mmr.MsgResponse
+	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
+	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+	if okr {
+		ack.FollowerExecute(s)
+	}
+	if okm {
+		msg.FollowerExecute(s)
+	}
+	if !okr && !okm {
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		pl.AddToProcessList(ack, msg)
+	}
 	s.MissingAnsCnt++
 }
 

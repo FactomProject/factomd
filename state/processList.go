@@ -25,15 +25,15 @@ var _ = fmt.Print
 var _ = log.Print
 
 type Request struct {
-	vmIndex  int
-	vmheight uint32
-	dbheight uint32
-	sent     int64
+	vmIndex  int    // VM Index
+	vmheight uint32 // Height in the Process List where we are missing a message
+	wait     int64  // How long to wait before we actually request
+	sent     int64  // Last time sent (zero means none have been sent)
 }
 
-func (r *Request) hash() interfaces.IHash {
-	hash := primitives.NewHash([]byte(fmt.Sprintf("%d %d %d", r.vmIndex, r.vmheight, r.dbheight)))
-	return hash
+func (r *Request) key() string {
+	str := fmt.Sprintf("%d %d %d", r.vmIndex, r.vmheight, r.wait)
+	return str
 }
 
 type ProcessList struct {
@@ -106,7 +106,7 @@ type ProcessList struct {
 	// DB Sigs
 	DBSignatures []DBSig
 
-	Requests map[[32]byte]*Request
+	Requests map[string]*Request
 }
 
 // Data needed to add to admin block
@@ -524,32 +524,47 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
+func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
 	r := new(Request)
-	r.dbheight = p.DBHeight
+	r.wait = waitSeconds
 	r.vmIndex = vmIndex
 	r.vmheight = uint32(height)
 
-	if p.Requests[r.hash().Fixed()] == nil {
+	if p.Requests[r.key()] == nil {
 		r.sent = now
-		p.Requests[r.hash().Fixed()] = r
-		fmt.Println("New Request ", r.dbheight, r.vmIndex, r.vmheight)
+		p.Requests[r.key()] = r
+		fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
+			p.State.FactomNodeName,
+			p.DBHeight,
+			r.vmIndex,
+			r.vmheight,
+			r.wait,
+			now-r.sent,
+			waitSeconds*1000+1000)
 	} else {
-		r = p.Requests[r.hash().Fixed()]
+		r = p.Requests[r.key()]
 	}
 
 	if now-r.sent >= waitSeconds*1000+1000 {
-		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, r.dbheight, r.vmheight)
+		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 		if missingMsgRequest != nil {
+			fmt.Printf("dddd *Request --> %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
+				p.State.FactomNodeName,
+				p.DBHeight,
+				r.vmIndex,
+				r.vmheight,
+				r.wait,
+				now-r.sent,
+				waitSeconds*1000+1000)
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 			p.State.NetworkOutMsgQueue() <- missingMsgRequest
 			p.State.MissingAskCnt++
 		}
 		r.sent = now
 	}
-
-	return thetime
 }
 
 func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
@@ -697,21 +712,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingEOM = ask(p, i, 5, vm, vm.missingEOM, vm.Height, 1)
-		} else {
-			vm.missingEOM = 0
+			p.Ask(i, vm.Height, 1, 1)
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
 		if vm.Height == len(vm.List) {
-			vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List), 2)
-		} else {
-			vm.heartBeat = 0
+			p.Ask(i, vm.Height, 10, 2)
 		}
+
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 3)
+				p.Ask(i, j, 0, 3)
 				break VMListLoop
 			}
 
@@ -729,7 +741,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
-					vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 4)
+					p.Ask(i, j, 0, 4)
 					break VMListLoop
 				}
 
@@ -750,7 +762,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
-					vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 5)
+					p.Ask(i, j, 0, 5)
 					break VMListLoop
 				}
 			}
@@ -959,7 +971,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
-	pl.Requests = make(map[[32]byte]*Request)
+	pl.Requests = make(map[string]*Request)
 
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
