@@ -88,6 +88,10 @@ type ProcessList struct {
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 	// Negotiation tracker variables
+	NegotiatorFor map[uint32]bool
+	// NegotiatorFor is just used for displaying an "N" next to a node
+	// that is the assigned negotiator for a particular processList
+	// height (the map key)
 	//FaultTimes map[string]int64
 	// FaultTimes keeps track of when a particular ServerID initially
 	// deserved a fault, so that we can time out the negotiation process
@@ -128,15 +132,11 @@ type VM struct {
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	Synced         bool              // Is this VM synced yet?
-	missingTime    int64             // How long we have been waiting for a missing message
-	missingEOM     int64             // Ask for EOM because it is late
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 	Signed         bool              // We have signed the previous block.
 	isFaulting     bool
-	//isNegotiating  bool
-	whenFaulted int64
-	faultWait   int64
+	whenFaulted    int64
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -529,6 +529,19 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
+func (p *ProcessList) SetNegotiator(height uint32) {
+	p.NegotiatorFor[height] = true
+}
+
+func (p *ProcessList) IsNegotiator() bool {
+	numNegotiations := len(p.NegotiatorFor)
+	if numNegotiations < 1 {
+		return false
+	} else {
+		return true
+	}
+}
+
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
@@ -616,7 +629,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 
 		if !vm.isFaulting {
 			vm.whenFaulted = now
-			//vm.faultWait = now
 			//p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
 		}
 		vm.isFaulting = true
@@ -628,6 +640,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 
 		if p.State.Leader {
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
+				p.SetNegotiator(uint32(height))
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
@@ -646,7 +659,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 				if !nextVM.isFaulting {
 					//nextVM.isFaulting = true
 					//nextVM.whenFaulted = now
-					//nextVM.faultWait = now
 					for pledger, pledgeSlot := range p.PledgeMap {
 						if pledgeSlot == id.String() {
 							delete(p.PledgeMap, pledger)
@@ -774,7 +786,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
-				vm.missingTime = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 
@@ -1022,6 +1033,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.commitslock = new(sync.Mutex)
 
 	//pl.FaultTimes = make(map[string]int64)
+	pl.NegotiatorFor = make(map[uint32]bool)
 	pl.NegotiationInit = make(map[string]int64)
 	pl.AlreadyNominated = make(map[string]map[string]int64)
 	pl.PledgeMap = make(map[string]string)

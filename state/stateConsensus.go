@@ -265,8 +265,6 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 		//nowSecond := negotiation.Timestamp.GetTimeSeconds()
 		vmAtFault := pl.VMs[negotiation.VMIndex]
 		if vmAtFault.isFaulting {
-			//vmAtFault.isNegotiating = true
-
 			_, negotiationInitiated := pl.NegotiationInit[negotiation.ServerID.String()]
 			if !negotiationInitiated {
 				pl.NegotiationInit[negotiation.ServerID.String()] = nowSecond
@@ -505,6 +503,10 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			}
 		}
 	}
+
+	if relevantPL.IsNegotiator() {
+		delete(relevantPL.NegotiatorFor, fullFault.Height)
+	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -575,7 +577,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				}
 			}
 
-			mindb := uint32(1000000000)
+			mindb := s.GetDBHeightComplete() + 1
 			for _, missingleft := range s.MissingEntryBlocks {
 				if missingleft.dbheight <= mindb {
 					mindb = missingleft.dbheight
@@ -954,8 +956,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		vm.Synced = true
 		return false
 	}
-
-	//vm.missingTime = ask(pl, msg.GetVMIndex(), 1, vm, vm.missingTime, vm.Height, 6)
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {

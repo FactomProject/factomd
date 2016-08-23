@@ -1285,10 +1285,16 @@ func (s *State) SetStringQueues() {
 	L := ""
 	X := ""
 	W := ""
+	N := ""
+	list := s.ProcessLists.Get(s.LLeaderHeight)
 	if found {
 		L = "L"
+		if list != nil {
+			if list.IsNegotiator() {
+				N = "N"
+			}
+		}
 	} else {
-		list := s.ProcessLists.Get(s.LLeaderHeight)
 		if list != nil {
 			if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
 				if foundAudit {
@@ -1304,7 +1310,7 @@ func (s *State) SetStringQueues() {
 		W = "W"
 	}
 
-	stype := fmt.Sprintf("%1s%1s%1s", L, X, W)
+	stype := fmt.Sprintf("%1s%1s%1s%1s", L, X, W, N)
 
 	keyMR := primitives.NewZeroHash().Bytes()
 	var d interfaces.IDirectoryBlock
@@ -1335,7 +1341,7 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%8s[%12x]%4s %3s drop=%2d.%01d%% ",
+	str := fmt.Sprintf("%7s[%12x]%4s %4s drop=%2d.%01d%% ",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
@@ -1351,7 +1357,7 @@ func (s *State) SetStringQueues() {
 
 	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
 	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %20s ",
+	str = str + fmt.Sprintf("VMMin:%2v CMin%2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %16s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,
@@ -1359,7 +1365,7 @@ func (s *State) SetStringQueues() {
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
-	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-14s tps t/i %s",
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-10s tps t/i %s",
 		s.ResendCnt,
 		s.ExpireCnt,
 		trans,
