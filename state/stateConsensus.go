@@ -607,8 +607,12 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		// Make sure the request is reasonable, and that we are asking this of the first
 		// entry in the VM... Then we need to issue a DBSig.
 		pl := s.ProcessLists.Get(m.DBHeight)
-		if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
-			s.SendDBSig(m.DBHeight, m.VMIndex)
+		if pl != nil {
+			if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
+				s.SendDBSig(m.DBHeight, m.VMIndex)
+			}
+		} else {
+			return
 		}
 	}
 
