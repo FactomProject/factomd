@@ -264,7 +264,8 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 		nowSecond := s.GetTimestamp().GetTimeSeconds()
 		//nowSecond := negotiation.Timestamp.GetTimeSeconds()
 		vmAtFault := pl.VMs[negotiation.VMIndex]
-		if vmAtFault.isFaulting {
+		//if vmAtFault.isFaulting {
+		if vmAtFault.faultHeight >= 0 {
 			_, negotiationInitiated := pl.NegotiationInit[negotiation.ServerID.String()]
 			if !negotiationInitiated {
 				pl.NegotiationInit[negotiation.ServerID.String()] = nowSecond
@@ -320,7 +321,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	if pl == nil {
 		return
 	}
-	if !pl.VMs[sf.VMIndex].isFaulting {
+	//if !pl.VMs[sf.VMIndex].isFaulting {
+	if pl.VMs[sf.VMIndex].faultHeight < 0 {
 		return
 	}
 
@@ -468,7 +470,8 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 				if foundVM, vmindex := relevantPL.GetVirtualServers(s.CurrentMinute, theAuditReplacement.GetChainID()); foundVM {
 					//fmt.Println("JUSTIN", s.FactomNodeName, "FF SETTING ISF FALSE", theAuditReplacement.GetChainID().String()[:10])
-					relevantPL.VMs[vmindex].isFaulting = false
+					//relevantPL.VMs[vmindex].isFaulting = false
+					relevantPL.VMs[vmindex].faultHeight = -1
 					relevantPL.VMs[vmindex].faultingEOM = 0
 				}
 				break
@@ -945,9 +948,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		for i, vm := range pl.VMs {
 			vm.Synced = false
-			if vm.isFaulting {
+			//if vm.isFaulting {
+			if vm.faultHeight >= 0 {
 				fmt.Println("JUSTIN", s.FactomNodeName, "EOM NEVER MIND ON", i)
-				vm.isFaulting = false
+				//vm.isFaulting = false
+				vm.faultHeight = -1
 				vm.faultingEOM = 0
 			}
 		}

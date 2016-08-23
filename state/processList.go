@@ -135,8 +135,9 @@ type VM struct {
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 	Signed         bool              // We have signed the previous block.
-	isFaulting     bool
-	whenFaulted    int64
+	//isFaulting     bool
+	faultHeight int
+	whenFaulted int64
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -616,11 +617,15 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
 
-		if !vm.isFaulting {
+		if vm.faultHeight < 0 {
 			vm.whenFaulted = now
-			//p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
 		}
-		vm.isFaulting = true
+		//if !vm.isFaulting {
+		//	vm.whenFaulted = now
+		//p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
+		//}
+		//vm.isFaulting = true
+		vm.faultHeight = height
 
 		responsibleFaulterIdx := vmIndex + 1
 		if responsibleFaulterIdx >= len(p.FedServers) {
@@ -645,9 +650,10 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		if now-vm.whenFaulted > 20 {
 			_, negotiationInitiated := p.NegotiationInit[id.String()]
 			if !negotiationInitiated {
-				if !nextVM.isFaulting {
-					//nextVM.isFaulting = true
-					//nextVM.whenFaulted = now
+				//if !nextVM.isFaulting {
+				//nextVM.isFaulting = true
+				//nextVM.whenFaulted = now
+				if nextVM.faultHeight < 0 {
 					for pledger, pledgeSlot := range p.PledgeMap {
 						if pledgeSlot == id.String() {
 							delete(p.PledgeMap, pledger)
@@ -706,6 +712,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 10, 2)
 		}
 
+		if vm.Height > vm.faultHeight {
+			vm.faultHeight = -1
+		}
+
+		if len(vm.List) > vm.faultHeight {
+			vm.faultHeight = -1
+		}
+
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
@@ -758,9 +772,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 
-				if vm.isFaulting {
+				if vm.faultHeight >= 0 {
+					//if vm.isFaulting {
 					fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
-					vm.isFaulting = false
+					//vm.isFaulting = false
+					vm.faultHeight = -1
 					vm.faultingEOM = 0
 					/*l := vm.LeaderMinute
 					if l == 10 {
@@ -984,6 +1000,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i] = new(VM)
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true
+		pl.VMs[i].faultHeight = -1
 	}
 
 	pl.DBHeight = dbheight
