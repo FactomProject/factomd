@@ -534,15 +534,19 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		return
 	}
 
+	fmt.Println("JUSTIN FOLLEX DR:", msg.DataType, msg.DataHash.String()[:15])
+
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
 		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
 		if !ok {
+			fmt.Println("JUSTIN EBLOCK NOT OK", msg.DataHash.String()[:15])
 			return
 		}
 
 		ebKeyMR, _ := eblock.KeyMR()
 		if ebKeyMR == nil {
+			fmt.Println("JUSTIN EBKMR NIL", msg.DataHash.String()[:15], ebKeyMR.String()[:15])
 			return
 		}
 
@@ -551,6 +555,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			if !eb.IsSameAs(ebKeyMR) {
 				continue
 			}
+			fmt.Println("JUSTIN, FOUND EB", msg.DataHash.String()[:15])
 			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
 			s.DB.ProcessEBlockBatch(eblock, true)
 
@@ -572,30 +577,36 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 					v.dbheight = eblock.GetHeader().GetDBHeight()
 					v.entryhash = entryhash
 					v.ebhash = eb
+					fmt.Println("JUSTIN, FROM EB APP ", entryhash.String()[:15])
 
 					s.MissingEntries = append(s.MissingEntries, v)
 				}
 			}
 
-			mindb := uint32(1000000000)
+			mindb := s.GetDBHeightComplete() + 1
 			for _, missingleft := range s.MissingEntryBlocks {
 				if missingleft.dbheight <= mindb {
 					mindb = missingleft.dbheight
 				}
 			}
 			s.EntryBlockDBHeightComplete = mindb - 1
+			fmt.Println("JUSTIN, NOW EBDHBC IS", s.EntryBlockDBHeightComplete)
 			break
 		}
 
 	case 0: // Data is an entry
 		entry, ok := msg.DataObject.(interfaces.IEBEntry)
 		if !ok {
+			fmt.Println("JUSTIN NOT OK ENTRY", msg.DataHash.String()[:15])
 			return
 		}
 
 		for i, missing := range s.MissingEntries {
 			e := missing.entryhash
+			fmt.Println("JUSTIN, FOUND ENT", msg.DataHash.String()[:15])
+
 			if e.IsSameAs(entry.GetHash()) {
+				fmt.Println("JUSTIN, FOUND ENT AND MATCH", msg.DataHash.String()[:15])
 				s.DB.InsertEntry(entry)
 				s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
 				break
