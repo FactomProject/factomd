@@ -862,11 +862,11 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryBlockRepeat = now
 
-			//fmt.Printf("JUSTIN dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
-				s.FactomNodeName,
-				len(s.MissingEntryBlocks),
-				s.EntryBlockDBHeightProcessing,
-				s.EntryBlockDBHeightComplete)
+			/*fmt.Printf("JUSTIN dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
+			s.FactomNodeName,
+			len(s.MissingEntryBlocks),
+			s.EntryBlockDBHeightProcessing,
+			s.EntryBlockDBHeightComplete)*/
 
 			for _, eb := range s.MissingEntryBlocks {
 				eBlockRequest := messages.NewMissingData(s, eb.ebhash)
@@ -887,11 +887,11 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryRepeat = now
 
-			//fmt.Printf("JUSTIN dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
-				s.FactomNodeName,
-				len(s.MissingEntries),
-				s.EntryDBHeightProcessing,
-				s.EntryDBHeightComplete)
+			/*fmt.Printf("JUSTIN dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
+			s.FactomNodeName,
+			len(s.MissingEntries),
+			s.EntryDBHeightProcessing,
+			s.EntryDBHeightComplete)*/
 
 			for i, eb := range s.MissingEntries {
 				if i > 20 {

@@ -705,8 +705,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		} else {
 			if !vm.Synced {
 				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List), 1)
-			} else {
-
 			}
 		}
 
@@ -773,7 +771,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				progress = true
 
 				if vm.isFaulting {
-					//fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
+					fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
 					vm.isFaulting = false
 					vm.faultingEOM = 0
 					/*l := vm.LeaderMinute
