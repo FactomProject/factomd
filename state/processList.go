@@ -38,7 +38,12 @@ func (r *Request) key() string {
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
-	good     bool   // Means we have the previous blocks, so we can process!
+
+	// Temporary balances from updating transactions in real time.
+	FactoidBalancesT      map[[32]byte]int64
+	FactoidBalancesTMutex sync.Mutex
+	ECBalancesT           map[[32]byte]int64
+	ECBalancesTMutex      sync.Mutex
 
 	// List of messsages that came in before the previous block was built
 	// We can not completely validate these messages until the previous block
@@ -328,13 +333,15 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
-	indx := int(p.DBHeight*131) % n
+	if n > 0 {
+		indx := int(p.DBHeight*131) % n
 
-	for i := 0; i < 10; i++ {
-		indx = (indx + 1) % n
-		for j := 0; j < len(p.FedServers); j++ {
-			p.ServerMap[i][j] = indx
+		for i := 0; i < 10; i++ {
 			indx = (indx + 1) % n
+			for j := 0; j < len(p.FedServers); j++ {
+				p.ServerMap[i][j] = indx
+				indx = (indx + 1) % n
+			}
 		}
 	}
 }
@@ -964,6 +971,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
 	pl.Requests = make(map[string]*Request)
+
+	pl.FactoidBalancesT = map[[32]byte]int64{}
+	pl.ECBalancesT = map[[32]byte]int64{}
 
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
