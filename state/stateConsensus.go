@@ -577,7 +577,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				}
 			}
 
-			mindb := uint32(1000000000)
+			mindb := s.GetDBHeightComplete() + 1
 			for _, missingleft := range s.MissingEntryBlocks {
 				if missingleft.dbheight <= mindb {
 					mindb = missingleft.dbheight
