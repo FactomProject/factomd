@@ -948,13 +948,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		for i, vm := range pl.VMs {
 			vm.Synced = false
-			//if vm.isFaulting {
-			if vm.faultHeight >= 0 {
-				fmt.Println("JUSTIN", s.FactomNodeName, "EOM NEVER MIND ON", i)
-				//vm.isFaulting = false
-				vm.faultHeight = -1
-				vm.faultingEOM = 0
-			}
 		}
 		return false
 	}
