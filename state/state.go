@@ -208,12 +208,6 @@ type State struct {
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
 
-	// Temporary balances from updating transactions in real time.
-	FactoidBalancesT      map[[32]byte]int64
-	FactoidBalancesTMutex sync.Mutex
-	ECBalancesT           map[[32]byte]int64
-	ECBalancesTMutex      sync.Mutex
-
 	// Web Services
 	Port int
 
@@ -516,8 +510,6 @@ func (s *State) Init() {
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
 	s.ECBalancesP = map[[32]byte]int64{}
-	s.FactoidBalancesT = map[[32]byte]int64{}
-	s.ECBalancesT = map[[32]byte]int64{}
 
 	fs := new(FactoidState)
 	fs.State = s
