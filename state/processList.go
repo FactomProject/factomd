@@ -88,10 +88,10 @@ type ProcessList struct {
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 	// Negotiation tracker variables
-	NegotiatorFor int
-	// NegotiatorFor is just used for displaying an "N" next to a node
+	AmINegotiator bool
+	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
-	// height (it is -1 if we are not a negotiator on this PL)
+	// height
 	//FaultTimes map[string]int64
 	// FaultTimes keeps track of when a particular ServerID initially
 	// deserved a fault, so that we can time out the negotiation process
@@ -531,18 +531,6 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func (p *ProcessList) SetNegotiator(height uint32) {
-	p.NegotiatorFor = int(height)
-}
-
-func (p *ProcessList) IsNegotiator() bool {
-	if p.NegotiatorFor < 0 {
-		return false
-	} else {
-		return true
-	}
-}
-
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
@@ -641,7 +629,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 
 		if p.State.Leader {
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
-				p.SetNegotiator(uint32(height))
+				p.AmINegotiator = true
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
@@ -1014,7 +1002,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.commitslock = new(sync.Mutex)
 
 	//pl.FaultTimes = make(map[string]int64)
-	pl.NegotiatorFor = -1
+	pl.AmINegotiator = false
 	pl.NegotiationInit = make(map[string]int64)
 	pl.AlreadyNominated = make(map[string]map[string]int64)
 	pl.PledgeMap = make(map[string]string)

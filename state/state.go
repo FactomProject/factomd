@@ -1291,7 +1291,7 @@ func (s *State) SetStringQueues() {
 	if found {
 		L = "L"
 		if list != nil {
-			if list.IsNegotiator() {
+			if list.AmINegotiator {
 				N = "N"
 			}
 		}

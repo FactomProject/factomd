@@ -401,6 +401,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 								fullFault.Sign(s.serverPrivKey)
 								s.NetworkOutMsgQueue() <- fullFault
 								fullFault.FollowerExecute(s)
+								pl.AmINegotiator = false
 								delete(s.FaultMap, sf.GetCoreHash().Fixed())
 							}
 						}
@@ -490,12 +491,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				//fmt.Println("JUSTIN", s.IdentityChainID.String()[:10], "UNPLEDGING (WAS ", pledgeSlot, ")")
 				relevantPL.AmIPledged = false
 			}
-		}
-	}
-
-	if relevantPL.IsNegotiator() {
-		if relevantPL.NegotiatorFor == int(fullFault.Height) {
-			relevantPL.NegotiatorFor = -1
 		}
 	}
 }
@@ -944,8 +939,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed = 0
 		s.Newblk = false
 
-		for _, vm := range pl.VMs {
+		for i, vm := range pl.VMs {
 			vm.Synced = false
+			if vm.isFaulting {
+				fmt.Println("JUSTIN", s.FactomNodeName, "EOM NEVER MIND ON", i)
+				vm.isFaulting = false
+				vm.faultingEOM = 0
+			}
 		}
 		return false
 	}
