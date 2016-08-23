@@ -946,7 +946,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed = 0
 		s.Newblk = false
 
-		for i, vm := range pl.VMs {
+		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
 		return false
