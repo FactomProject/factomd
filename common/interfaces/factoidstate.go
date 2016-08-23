@@ -19,7 +19,6 @@ type IFactoidState interface {
 	// Get the current balance for a transaction
 	GetFactoidBalance(address [32]byte) int64
 	GetECBalance(address [32]byte) int64
-	ClearRealTime()
 
 	// Add a transaction   Useful for catching up with the network.
 	AddTransactionBlock(IFBlock) error

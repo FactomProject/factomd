@@ -164,18 +164,16 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 }
 
 func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
-	return fs.State.GetF(address)
+	return fs.State.GetF(true, address)
 }
 
 func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
-	return fs.State.GetE(address)
+	return fs.State.GetE(true, address)
 }
 
 func (fs *FactoidState) ResetBalances() {
 	fs.State.FactoidBalancesP = map[[32]byte]int64{}
 	fs.State.ECBalancesP = map[[32]byte]int64{}
-	fs.State.FactoidBalancesT = map[[32]byte]int64{}
-	fs.State.ECBalancesT = map[[32]byte]int64{}
 	fs.State.NumTransactions = 0
 }
 
@@ -190,20 +188,20 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 	case entryCreditBlock.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 
 	case entryCreditBlock.ECIDBalanceIncrease:
 		t := trans.(*entryCreditBlock.IncreaseBalance)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())+int64(t.NumEC))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())+int64(t.NumEC))
 		fs.State.NumTransactions++
 
 	default:
@@ -217,26 +215,20 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
 	for _, input := range trans.GetInputs() {
 		adr := input.GetAddress().Fixed()
-		oldv := fs.State.GetF(adr)
+		oldv := fs.State.GetF(rt, adr)
 		fs.State.PutF(rt, adr, oldv-int64(input.GetAmount()))
 	}
 	for _, output := range trans.GetOutputs() {
 		adr := output.GetAddress().Fixed()
-		oldv := fs.State.GetF(adr)
+		oldv := fs.State.GetF(rt, adr)
 		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
 	}
 	for _, ecOut := range trans.GetECOutputs() {
 		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)
-		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(ecOut.GetAddress().Fixed())+ecbal)
+		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(rt, ecOut.GetAddress().Fixed())+ecbal)
 	}
 	fs.State.NumTransactions++
 	return nil
-}
-
-// Assumes validation has already been done.
-func (fs *FactoidState) ClearRealTime() {
-	fs.State.FactoidBalancesT = map[[32]byte]int64{}
-	fs.State.ECBalancesT = map[[32]byte]int64{}
 }
 
 // End of Block means packing the current block away, and setting
@@ -279,8 +271,8 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		if err != nil {
 			return err
 		}
-		if int64(bal) > fs.State.GetF(input.GetAddress().Fixed()) {
-			return fmt.Errorf("Not enough funds in input addresses for the transaction")
+		if int64(bal) > fs.State.GetF(true, input.GetAddress().Fixed()) {
+			return fmt.Errorf("%s", "Not enough funds in input addresses for the transaction")
 		}
 		sums[input.GetAddress().Fixed()] = bal
 	}
