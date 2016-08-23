@@ -532,7 +532,7 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 }
 
 func (p *ProcessList) SetNegotiator(height uint32) {
-	p.NegotiatorFor = height
+	p.NegotiatorFor = int(height)
 }
 
 func (p *ProcessList) IsNegotiator() bool {
