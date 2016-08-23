@@ -79,20 +79,25 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status          bool
-	starttime       time.Time
-	transCnt        int
-	lasttime        time.Time
-	tps             float64
-	serverPrt       string
+	Status    int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
+	serverPrt string
+	starttime time.Time
+	transCnt  int
+	lasttime  time.Time
+	tps       float64
+
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
 	DBStateReplyCnt int
-	MissingAskCnt   int
-	MissingAnsCnt   int
-	MissingReplyCnt int
-	ResendCnt       int
-	ExpireCnt       int
+	DBStateFailsCnt int
+
+	MissingAskCnt    int
+	MissingAnsCnt    int
+	MissingReplyCnt  int
+	MissingIgnoreCnt int
+
+	ResendCnt int
+	ExpireCnt int
 
 	tickerQueue            chan int
 	timerMsgQueue          chan interfaces.IMsg
@@ -156,10 +161,11 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
+	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
+	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -215,11 +221,24 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
+	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
-	EBDBHeightComplete uint32
+	EntryBlockDBHeightComplete uint32
+	// DBlock Height at which we have started asking for entry blocks
+	EntryBlockDBHeightProcessing uint32
+	// Entry Blocks we don't have that we are asking our neighbors for
+	MissingEntryBlocks []MissingEntryBlock
 
-	// For dataRequests made by this node, which it's awaiting dataResponses for
-	DataRequests map[[32]byte]interfaces.IHash
+	MissingEntryRepeat interfaces.Timestamp
+	// DBlock Height at which node has a complete set of eblocks+entries
+	EntryDBHeightComplete uint32
+	// Height in the DBlock where we have all the entries
+	EntryHeightComplete int
+	// DBlock Height at which we have started asking for or have all entries
+	EntryDBHeightProcessing uint32
+	// Height in the Directory Block where we have
+	// Entries we don't have that we are asking our neighbors for
+	MissingEntries []MissingEntry
 
 	LastPrint    string
 	LastPrintCnt int
@@ -235,6 +254,17 @@ type State struct {
 	FERPrioritySetHeight uint32
 }
 
+type MissingEntryBlock struct {
+	ebhash   interfaces.IHash
+	dbheight uint32
+}
+
+type MissingEntry struct {
+	ebhash    interfaces.IHash
+	entryhash interfaces.IHash
+	dbheight  uint32
+}
+
 var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Clone(number string) interfaces.IState {
@@ -243,6 +273,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.FactomNodeName = s.Prefix + "FNode" + number
 	clone.FactomdVersion = s.FactomdVersion
+	clone.DropRate = s.DropRate
 	clone.LogPath = s.LogPath + "/Sim" + number
 	clone.LdbPath = s.LdbPath + "/Sim" + number
 	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
@@ -502,9 +533,6 @@ func (s *State) Init() {
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
-	s.EBDBHeightComplete = 0
-	s.DataRequests = make(map[[32]byte]interfaces.IHash)
-
 	switch s.NodeMode {
 	case "FULL":
 		s.Leader = false
@@ -578,23 +606,20 @@ func (s *State) Init() {
 	s.starttime = time.Now()
 }
 
-func (s *State) AddDataRequest(requestedHash, missingDataHash interfaces.IHash) {
-	s.DataRequests[requestedHash.Fixed()] = missingDataHash
+func (s *State) GetEntryBlockDBHeightComplete() uint32 {
+	return s.EntryBlockDBHeightComplete
 }
 
-func (s *State) HasDataRequest(checkHash interfaces.IHash) bool {
-	if _, ok := s.DataRequests[checkHash.Fixed()]; ok {
-		return true
-	}
-	return false
+func (s *State) SetEntryBlockDBHeightComplete(newHeight uint32) {
+	s.EntryBlockDBHeightComplete = newHeight
 }
 
-func (s *State) GetEBDBHeightComplete() uint32 {
-	return s.EBDBHeightComplete
+func (s *State) GetEntryBlockDBHeightProcessing() uint32 {
+	return s.EntryBlockDBHeightProcessing
 }
 
-func (s *State) SetEBDBHeightComplete(newHeight uint32) {
-	s.EBDBHeightComplete = newHeight
+func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
+	s.EntryBlockDBHeightProcessing = newHeight
 }
 
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
@@ -642,21 +667,21 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		return nil, err
 	}
 	if ablk == nil {
-		return nil, fmt.Errorf("ABlock not found")
+		return nil, fmt.Errorf("%s", "ABlock not found")
 	}
 	ecblk, err := s.DB.FetchECBlock(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if ecblk == nil {
-		return nil, fmt.Errorf("ECBlock not found")
+		return nil, fmt.Errorf("%s", "ECBlock not found")
 	}
 	fblk, err := s.DB.FetchFBlock(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
 		return nil, err
 	}
 	if fblk == nil {
-		return nil, fmt.Errorf("FBlock not found")
+		return nil, fmt.Errorf("%s", "FBlock not found")
 	}
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
@@ -669,7 +694,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.BinaryMarshallable, int, error) {
 	if requestedHash == nil {
-		return nil, -1, fmt.Errorf("Requested hash must be non-empty")
+		return nil, -1, fmt.Errorf("%s", "Requested hash must be non-empty")
 	}
 
 	var result interfaces.BinaryMarshallable
@@ -683,10 +708,6 @@ func (s *State) LoadDataByHash(requestedHash interfaces.IHash) (interfaces.Binar
 
 	// Check for Entry Block
 	result, err = s.DB.FetchEBlock(requestedHash)
-	if result != nil && err == nil {
-		return result, 1, nil
-	}
-	result, _ = s.DB.FetchEBlock(requestedHash)
 	if result != nil && err == nil {
 		return result, 1, nil
 	}
@@ -704,57 +725,24 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 
 	pl := s.ProcessLists.Get(dbheight)
 	if pl == nil {
-		return nil, nil, fmt.Errorf("Nil Process List")
+		return nil, nil, fmt.Errorf("%s", "Nil Process List")
 	}
 	if vmIndex < 0 || vmIndex >= len(pl.VMs) {
-		return nil, nil, fmt.Errorf("VM index out of range")
+		return nil, nil, fmt.Errorf("%s", "VM index out of range")
 	}
 	vm := pl.VMs[vmIndex]
 
 	if plistheight < 0 || int(plistheight) >= len(vm.List) {
-		return nil, nil, fmt.Errorf("Process List too small (lacks requested msg)")
+		return nil, nil, fmt.Errorf("%s", "Process List too small (lacks requested msg)")
 	}
 
 	msg := vm.List[plistheight]
 	ackMsg := vm.ListAck[plistheight]
 
 	if msg == nil || ackMsg == nil {
-		return nil, nil, fmt.Errorf("State process list does not include requested message/ack")
+		return nil, nil, fmt.Errorf("%s", "State process list does not include requested message/ack")
 	}
 	return msg, ackMsg, nil
-}
-
-// This will issue missingData requests for each entryHash in a particular EBlock
-// that is not already saved to the database or requested already.
-// It returns True if the EBlock is complete (all entries already exist in database)
-func (s *State) GetAllEntries(ebKeyMR interfaces.IHash) bool {
-	hasAllEntries := true
-	eblock, err := s.DB.FetchEBlock(ebKeyMR)
-	if err != nil {
-		return false
-	}
-	if eblock == nil {
-		if !s.HasDataRequest(ebKeyMR) {
-			eBlockRequest := messages.NewMissingData(s, ebKeyMR)
-			s.NetworkOutMsgQueue() <- eBlockRequest
-		}
-		return false
-	}
-	for _, entryHash := range eblock.GetEntryHashes() {
-		if !strings.HasPrefix(entryHash.String(), "000000000000000000000000000000000000000000000000000000000000000") {
-			if !s.DatabaseContains(entryHash) {
-				hasAllEntries = false
-			} else {
-				continue
-			}
-			if !s.HasDataRequest(entryHash) {
-				entryRequest := messages.NewMissingData(s, entryHash)
-				s.NetworkOutMsgQueue() <- entryRequest
-			}
-		}
-	}
-
-	return hasAllEntries
 }
 
 func (s *State) GetPendingEntryHashes() []interfaces.IHash {
@@ -866,35 +854,88 @@ func (s *State) UpdateState() (progress bool) {
 }
 
 func (s *State) catchupEBlocks() {
-	isComplete := true
-	askcnt := 20
-	if s.GetEBDBHeightComplete() < s.GetDBHeightComplete() {
-		dblockGathering := s.GetDirectoryBlockByHeight(s.GetEBDBHeightComplete())
-		if dblockGathering != nil {
-			for idx, ebKeyMR := range dblockGathering.GetEntryHashes() {
-				if idx > 2 {
-					if s.DatabaseContains(ebKeyMR) {
-						if !s.GetAllEntries(ebKeyMR) {
-							isComplete = false
-						}
-					} else {
-						isComplete = false
-						if !s.HasDataRequest(ebKeyMR) {
-							eBlockRequest := messages.NewMissingData(s, ebKeyMR)
-							s.NetworkOutMsgQueue() <- eBlockRequest
-							if askcnt < 0 {
-								return
-							}
-							askcnt--
-						}
-					}
-				}
-			}
-			if isComplete {
-				s.SetEBDBHeightComplete(s.GetEBDBHeightComplete() + 1)
+	now := s.GetTimestamp()
+
+	// If we have no Entry Blocks in our queue, reset our timer.
+	if len(s.MissingEntryBlocks) == 0 {
+		s.MissingEntryBlockRepeat = nil
+	} else {
+		// If our timer was reset, then set it now.
+		if s.MissingEntryBlockRepeat == nil {
+			s.MissingEntryBlockRepeat = now
+		}
+
+		// If our delay has been reached, then ask for some missing Entry blocks
+		// This is a replay, because sometimes requests are ignored or lost.
+		if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
+			s.MissingEntryBlockRepeat = now
+
+			fmt.Printf("dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
+				s.FactomNodeName,
+				len(s.MissingEntryBlocks),
+				s.EntryBlockDBHeightProcessing,
+				s.EntryBlockDBHeightComplete)
+
+			for _, eb := range s.MissingEntryBlocks {
+				eBlockRequest := messages.NewMissingData(s, eb.ebhash)
+				s.NetworkOutMsgQueue() <- eBlockRequest
 			}
 		}
 	}
+
+	if len(s.MissingEntries) == 0 {
+		s.MissingEntryRepeat = nil
+	} else {
+		if s.MissingEntryRepeat == nil {
+			s.MissingEntryRepeat = now
+		}
+
+		// If our delay has been reached, then ask for some missing Entry blocks
+		// This is a replay, because sometimes requests are ignored or lost.
+		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
+			s.MissingEntryRepeat = now
+
+			fmt.Printf("dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
+				s.FactomNodeName,
+				len(s.MissingEntries),
+				s.EntryDBHeightProcessing,
+				s.EntryDBHeightComplete)
+
+			for i, eb := range s.MissingEntries {
+				if i > 20 {
+					// Only send out 20 requests at a time.
+					break
+				}
+				entryRequest := messages.NewMissingData(s, eb.entryhash)
+				s.NetworkOutMsgQueue() <- entryRequest
+			}
+		}
+	}
+	// If we still have 10 that we are asking for, then let's not add to the list.
+	if len(s.MissingEntryBlocks) < 10 {
+
+		// While we have less than 20 that we are asking for, look for more to ask for.
+		for s.EntryBlockDBHeightProcessing < s.GetHighestRecordedBlock() && len(s.MissingEntryBlocks) < 20 {
+			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
+			for i, ebKeyMR := range db.GetEntryHashes() {
+				// The first three entries (0,1,2) in every directory block are blocks we already have by
+				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
+				// then this assumption might not hold.  But it does for now.
+				if i <= 2 {
+					continue
+				}
+
+				// Ask for blocks we don't have.
+				if !s.DatabaseContains(ebKeyMR) {
+					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
+						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+				}
+			}
+			s.EntryBlockDBHeightProcessing++
+		}
+
+	}
+
 }
 
 func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfaces.IFullSignature) {
@@ -948,7 +989,7 @@ func (s *State) IsLeader() bool {
 	return s.Leader
 }
 
-func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (found bool, index int) {
+func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (bool, int) {
 	pl := s.ProcessLists.Get(dbheight)
 	return pl.GetVirtualServers(minute, identityChainID)
 }
@@ -1199,11 +1240,33 @@ func (s *State) ShortString() string {
 	return s.serverPrt
 }
 
+func (s *State) SetString2() {
+	//if !s.Status2 {
+	//	return
+	//}
+
+}
+
 func (s *State) SetString() {
-	if !s.Status {
+	switch s.Status {
+	case 0:
 		return
+	case 1:
+		s.SetStringQueues()
+	case 2:
+		s.SetStringConsensus()
 	}
-	s.Status = false
+
+	s.Status = 0
+}
+
+func (s *State) SetStringConsensus() {
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:3], s.IdentityChainID.Bytes()[3:6])
+
+	s.serverPrt = str
+}
+
+func (s *State) SetStringQueues() {
 
 	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
@@ -1230,10 +1293,16 @@ func (s *State) SetString() {
 	L := ""
 	X := ""
 	W := ""
+	N := ""
+	list := s.ProcessLists.Get(s.LLeaderHeight)
 	if found {
 		L = "L"
+		if list != nil {
+			if list.IsNegotiator() {
+				N = "N"
+			}
+		}
 	} else {
-		list := s.ProcessLists.Get(s.LLeaderHeight)
 		if list != nil {
 			if foundAudit, _ := list.GetAuditServerIndexHash(s.GetIdentityChainID()); foundAudit {
 				if foundAudit {
@@ -1249,7 +1318,7 @@ func (s *State) SetString() {
 		W = "W"
 	}
 
-	stype := fmt.Sprintf("%1s%1s%1s", L, X, W)
+	stype := fmt.Sprintf("%1s%1s%1s%1s", L, X, W, N)
 
 	keyMR := primitives.NewZeroHash().Bytes()
 	var d interfaces.IDirectoryBlock
@@ -1280,11 +1349,12 @@ func (s *State) SetString() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%8s[%12x]%4s %3s ",
+	str := fmt.Sprintf("%7s[%12x]%4s %4s drop=%2d.%01d%% ",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
-		stype)
+		stype,
+		(s.DropRate+5)/10, s.DropRate%10)
 
 	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
@@ -1293,9 +1363,9 @@ func (s *State) SetString() {
 		keyMR[:3],
 		pls)
 
-	dbstate := fmt.Sprintf("%d/%d/%d", s.DBStateReplyCnt, s.DBStateAskCnt, s.DBSigFails)
-	missing := fmt.Sprintf("%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt)
-	str = str + fmt.Sprintf("VMMin: %2v CMin %2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %20s ",
+	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
+	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
+	str = str + fmt.Sprintf("VMMin:%2v CMin%2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %16s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,
@@ -1303,7 +1373,7 @@ func (s *State) SetString() {
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
-	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-14s tps t/i %s",
+	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-10s tps t/i %s",
 		s.ResendCnt,
 		s.ExpireCnt,
 		trans,

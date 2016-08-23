@@ -74,9 +74,7 @@ func CreateTestLogFileString() string {
 	return answer
 }
 
-func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
-	dbo := CreateEmptyTestDatabaseOverlay()
-
+func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 	var prev *BlockSet = nil
 
 	var err error
@@ -90,12 +88,12 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, false)
+		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, true)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, false)
+		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, true)
 		if err != nil {
 			panic(err)
 		}
@@ -131,7 +129,11 @@ func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
 	if err != nil {
 		panic(err)
 	}
+}
 
+func CreateAndPopulateTestDatabaseOverlay() *databaseOverlay.Overlay {
+	dbo := CreateEmptyTestDatabaseOverlay()
+	PopulateTestDatabaseOverlay(dbo)
 	return dbo
 }
 

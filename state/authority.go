@@ -95,7 +95,7 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 			return 0, nil
 		}
 	}
-	fmt.Println("WARNING: A signature failed to validate.")
+	//fmt.Println("WARNING: A signature failed to validate.")
 
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }

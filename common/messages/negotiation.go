@@ -15,17 +15,15 @@ import (
 )
 
 //A placeholder structure for messages
-type ServerFault struct {
+type Negotiation struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	// The following 5 fields represent the "Core" of the message
-	// This should match the Core of FullServerFault messages
-	ServerID      interfaces.IHash
-	AuditServerID interfaces.IHash
-	VMIndex       byte
-	DBHeight      uint32
-	Height        uint32
+	// The following 4 fields represent the "Core" of the message
+	ServerID interfaces.IHash
+	VMIndex  byte
+	DBHeight uint32
+	Height   uint32
 
 	Signature interfaces.IFullSignature
 
@@ -33,20 +31,20 @@ type ServerFault struct {
 	hash interfaces.IHash
 }
 
-var _ interfaces.IMsg = (*ServerFault)(nil)
-var _ Signable = (*ServerFault)(nil)
+var _ interfaces.IMsg = (*Negotiation)(nil)
+var _ Signable = (*Negotiation)(nil)
 
-func (m *ServerFault) Process(uint32, interfaces.IState) bool { return true }
+func (m *Negotiation) Process(uint32, interfaces.IState) bool { return true }
 
-func (m *ServerFault) GetRepeatHash() interfaces.IHash {
+func (m *Negotiation) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *ServerFault) GetHash() interfaces.IHash {
+func (m *Negotiation) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *ServerFault) GetMsgHash() interfaces.IHash {
+func (m *Negotiation) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -57,7 +55,7 @@ func (m *ServerFault) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *ServerFault) GetCoreHash() interfaces.IHash {
+func (m *Negotiation) GetCoreHash() interfaces.IHash {
 	data, err := m.MarshalForSignature()
 	if err != nil {
 		return nil
@@ -65,29 +63,24 @@ func (m *ServerFault) GetCoreHash() interfaces.IHash {
 	return primitives.Sha(data)
 }
 
-func (m *ServerFault) GetTimestamp() interfaces.Timestamp {
+func (m *Negotiation) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *ServerFault) Type() byte {
-	return constants.FED_SERVER_FAULT_MSG
+func (m *Negotiation) Type() byte {
+	return constants.NEGOTIATION_MSG
 }
 
-func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
+func (m *Negotiation) MarshalForSignature() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
+			err = fmt.Errorf("Error marshalling Negotiation Core: %v", r)
 		}
 	}()
 
 	var buf primitives.Buffer
 
 	if d, err := m.ServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
 		buf.Write(d)
@@ -100,10 +93,10 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
+func (m *Negotiation) PreMarshalBinary() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error marshalling Invalid Server Fault: %v", r)
+			err = fmt.Errorf("Error marshalling Invalid Negotiation: %v", r)
 		}
 	}()
 
@@ -120,11 +113,7 @@ func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
 	} else {
 		buf.Write(d)
 	}
-	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
+	//fmt.Printf("%v REQUESTING %x\n", state.GetFactomNodeName(), requestHash.Bytes()[:3])
 
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
@@ -133,7 +122,7 @@ func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ServerFault) MarshalBinary() (data []byte, err error) {
+func (m *Negotiation) MarshalBinary() (data []byte, err error) {
 	resp, err := m.PreMarshalBinary()
 	if err != nil {
 		return nil, err
@@ -151,10 +140,10 @@ func (m *ServerFault) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
-func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *Negotiation) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Server Fault: %v", r)
+			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Negotiation: %v", r)
 		}
 	}()
 	newData = data
@@ -176,13 +165,6 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	if err != nil {
 		return nil, err
 	}
-	if m.AuditServerID == nil {
-		m.AuditServerID = primitives.NewZeroHash()
-	}
-	newData, err = m.AuditServerID.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
 
 	m.VMIndex, newData = newData[0], newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -199,20 +181,20 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	return newData, nil
 }
 
-func (m *ServerFault) UnmarshalBinary(data []byte) error {
+func (m *Negotiation) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *ServerFault) GetSignature() interfaces.IFullSignature {
+func (m *Negotiation) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
-func (m *ServerFault) VerifySignature() (bool, error) {
+func (m *Negotiation) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
 
-func (m *ServerFault) Sign(key interfaces.Signer) error {
+func (m *Negotiation) Sign(key interfaces.Signer) error {
 	signature, err := SignSignable(m, key)
 	if err != nil {
 		return err
@@ -221,18 +203,17 @@ func (m *ServerFault) Sign(key interfaces.Signer) error {
 	return nil
 }
 
-func (m *ServerFault) String() string {
-	return fmt.Sprintf("%6s-VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d -- hash[:3]=%x",
-		"SFault",
+func (m *Negotiation) String() string {
+	return fmt.Sprintf("%6s-VM%3v: (%v) PL:%5d DBHt:%5d -- hash[:3]=%x",
+		"Negotiation",
 		m.VMIndex,
 		m.ServerID.String()[:10],
-		m.AuditServerID.String()[:10],
 		m.Height,
 		m.DBHeight,
 		m.GetHash().Bytes()[:3])
 }
 
-func (m *ServerFault) GetDBHeight() uint32 {
+func (m *Negotiation) GetDBHeight() uint32 {
 	return m.DBHeight
 }
 
@@ -240,54 +221,54 @@ func (m *ServerFault) GetDBHeight() uint32 {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *ServerFault) Validate(state interfaces.IState) int {
+func (m *Negotiation) Validate(state interfaces.IState) int {
 	if m.Signature == nil {
 		return -1
 	}
 	// Check signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
-		//fmt.Println("Err is not nil on ServerFault sig check (marshalling): ", err)
+		//fmt.Println("Err is not nil on Negotiation sig check (marshalling): ", err)
 		return -1
 	}
 	sig := m.Signature.GetSignature()
-	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
+	negSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 	if err != nil {
-		//fmt.Println("Err is not nil on ServerFault sig check (verifying): ", err)
+		//fmt.Println("Err is not nil on Negotiation sig check (verifying): ", err)
 		return -1
 	}
-	if sfSigned < 0 {
+	if negSigned < 1 {
 		return -1
 	}
-	return 1 // err == nil and sfSigned == true
+	return 1 // err == nil and negSigned == true
 }
 
-func (m *ServerFault) ComputeVMIndex(state interfaces.IState) {
+func (m *Negotiation) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
-func (m *ServerFault) LeaderExecute(state interfaces.IState) {
+func (m *Negotiation) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *ServerFault) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteSFault(m)
+func (m *Negotiation) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteNegotiation(m)
 }
 
-func (e *ServerFault) JSONByte() ([]byte, error) {
+func (e *Negotiation) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *ServerFault) JSONString() (string, error) {
+func (e *Negotiation) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *ServerFault) JSONBuffer(b *bytes.Buffer) error {
+func (e *Negotiation) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (a *ServerFault) IsSameAs(b *ServerFault) bool {
+func (a *Negotiation) IsSameAs(b *Negotiation) bool {
 	if b == nil {
 		return false
 	}
@@ -312,13 +293,12 @@ func (a *ServerFault) IsSameAs(b *ServerFault) bool {
 // Support Functions
 //*******************************************************************************
 
-func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, auditServerID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
-	sf := new(ServerFault)
-	sf.Timestamp = timeStamp
-	sf.VMIndex = byte(vmIndex)
-	sf.DBHeight = dbheight
-	sf.Height = height
-	sf.ServerID = serverID
-	sf.AuditServerID = auditServerID
-	return sf
+func NewNegotiation(timeStamp interfaces.Timestamp, serverID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *Negotiation {
+	nego := new(Negotiation)
+	nego.Timestamp = timeStamp
+	nego.VMIndex = byte(vmIndex)
+	nego.DBHeight = dbheight
+	nego.Height = height
+	nego.ServerID = serverID
+	return nego
 }

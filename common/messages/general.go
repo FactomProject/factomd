@@ -9,6 +9,7 @@ package messages
 import (
 	"fmt"
 
+	"errors"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -76,6 +77,8 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		msg = new(ChangeServerKeyMsg)
 	case constants.REMOVESERVER_MSG:
 		msg = new(RemoveServerMsg)
+	case constants.NEGOTIATION_MSG:
+		msg = new(Negotiation)
 	default:
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
@@ -137,6 +140,8 @@ func MessageName(Type byte) string {
 		return "DBState Missing"
 	case constants.DBSTATE_MSG:
 		return "DBState"
+	case constants.NEGOTIATION_MSG:
+		return "Negotiation"
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}
@@ -146,6 +151,8 @@ type Signable interface {
 	Sign(interfaces.Signer) error
 	MarshalForSignature() ([]byte, error)
 	GetSignature() interfaces.IFullSignature
+	IsValid() bool // Signature already checked
+	SetValid()     // Mark as validated so we don't have to repeat.
 }
 
 func SignSignable(s Signable, key interfaces.Signer) (interfaces.IFullSignature, error) {
@@ -158,13 +165,20 @@ func SignSignable(s Signable, key interfaces.Signer) (interfaces.IFullSignature,
 }
 
 func VerifyMessage(s Signable) (bool, error) {
+	if s.IsValid() {
+		return true, nil
+	}
 	toSign, err := s.MarshalForSignature()
 	if err != nil {
 		return false, err
 	}
 	sig := s.GetSignature()
 	if sig == nil {
-		return false, fmt.Errorf("Message signature is nil")
+		return false, fmt.Errorf("%s", "Message signature is nil")
 	}
-	return sig.Verify(toSign), nil
+	if sig.Verify(toSign) {
+		s.SetValid()
+		return true, nil
+	}
+	return false, errors.New("Signarue is invalid")
 }

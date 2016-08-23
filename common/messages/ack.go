@@ -27,7 +27,8 @@ type Ack struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
+	hash      interfaces.IHash
+	authvalid bool
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
@@ -69,11 +70,18 @@ func (m *Ack) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
+func (m *Ack) VerifySignature() (bool, error) {
+	return VerifyMessage(m)
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
+	if m.authvalid {
+		return 1
+	}
 	// Check signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
@@ -91,6 +99,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	if ackSigned < 1 {
 		return -1
 	}
+	m.authvalid = true
 	return 1
 }
 
@@ -138,10 +147,6 @@ func (m *Ack) Sign(key interfaces.Signer) error {
 
 func (m *Ack) GetSignature() interfaces.IFullSignature {
 	return m.Signature
-}
-
-func (m *Ack) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
 }
 
 func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

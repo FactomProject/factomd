@@ -13,6 +13,7 @@ import (
 	"math"
 
 	"bufio"
+	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -36,7 +37,6 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 
 func NetStart(s *state.State) {
-
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
@@ -223,6 +223,20 @@ func NetStart(s *state.State) {
 	// Modify Identities of new nodes
 	if len(fnodes) > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
+	}
+
+	// Sort the FNodes by ID
+	for i := 0; i < len(fnodes)-1; i++ {
+		for j := 0; j < len(fnodes)-1-i; j++ {
+			if bytes.Compare(fnodes[j].State.IdentityChainID.Bytes(), fnodes[j+1].State.IdentityChainID.Bytes()) > 0 {
+				tmp := fnodes[j]
+				fnodes[j] = fnodes[j+1]
+				fnodes[j+1] = tmp
+			}
+		}
+	}
+	for i := 0; i < len(fnodes); i++ {
+		fnodes[i].State.FactomNodeName = fmt.Sprintf("FNode%d", i)
 	}
 
 	// Start the P2P netowork

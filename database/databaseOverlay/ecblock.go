@@ -23,6 +23,20 @@ func (db *Overlay) ProcessECBlockBatch(block interfaces.IEntryCreditBlock, check
 	return db.SavePaidForMultiFromBlock(block, checkForDuplicateEntries)
 }
 
+func (db *Overlay) ProcessECBlockBatchWithoutHead(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
+	err := db.ProcessBlockBatchWithoutHead(ENTRYCREDITBLOCK,
+		ENTRYCREDITBLOCK_NUMBER,
+		ENTRYCREDITBLOCK_SECONDARYINDEX, block)
+	if err != nil {
+		return err
+	}
+	err = db.SaveIncludedInMultiFromBlock(block, false)
+	if err != nil {
+		return err
+	}
+	return db.SavePaidForMultiFromBlock(block, checkForDuplicateEntries)
+}
+
 func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
 	err := db.ProcessBlockMultiBatch(ENTRYCREDITBLOCK,
 		ENTRYCREDITBLOCK_NUMBER,
@@ -30,7 +44,7 @@ func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.IEntryCreditBlock, 
 	if err != nil {
 		return err
 	}
-	err = db.SaveIncludedInMultiFromBlockMultiBatch(block, false)
+	err = db.SaveIncludedInMultiFromBlockMultiBatch(block, true)
 	if err != nil {
 		return err
 	}

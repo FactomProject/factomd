@@ -115,7 +115,7 @@ func SimControl(listenTo int) {
 				summary++
 				if summary%2 == 1 {
 					os.Stderr.WriteString("--Print Summary On--\n")
-					go printSummary(&summary, summary, &listenTo)
+					go printSummary(&summary, summary, &listenTo, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
@@ -131,7 +131,7 @@ func SimControl(listenTo int) {
 				rotate++
 				if rotate%2 == 1 {
 					os.Stderr.WriteString("--Rotate the WSAPI around the nodes--\n")
-					go rotateWSAPI(&rotate, rotate)
+					go rotateWSAPI(&rotate, rotate, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Stop Rotation of the WSAPI around the nodes.  Now --\n")
 					wsapi.SetState(fnodes[wsapiNode].State)
@@ -529,7 +529,7 @@ func SimControl(listenTo int) {
 					shadSk := shad(fullSk)
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
-					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
+					os.Stderr.WriteString(fmt.Sprint("Identity of Current Node Information\n"))
 					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.IdentityChainID.String()))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
@@ -577,12 +577,12 @@ func SimControl(listenTo int) {
 					}
 					break
 				} else if len(authKeyLibrary) == 0 {
-					os.Stderr.WriteString(fmt.Sprintf("There are no available identities in this node. Type 'g1' to claim another identity\n"))
+					os.Stderr.WriteString(fmt.Sprint("There are no available identities in this node. Type 'g1' to claim another identity\n"))
 					break
 				} else if len(b) > 1 {
 					index, err = strconv.Atoi(string(b[1:]))
 					if err != nil {
-						os.Stderr.WriteString(fmt.Sprintf("Incorrect input. bN where N is a number\n"))
+						os.Stderr.WriteString(fmt.Sprint("Incorrect input. bN where N is a number\n"))
 						break
 					}
 				}
@@ -606,7 +606,7 @@ func SimControl(listenTo int) {
 					index++
 				}
 				if index >= len(authKeyLibrary) {
-					os.Stderr.WriteString(fmt.Sprintf("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
+					os.Stderr.WriteString(fmt.Sprint("There are no more available identities in this node. Type 'g1' to claim another identity\n"))
 				}
 			case 'u' == b[0]:
 				os.Stderr.WriteString(fmt.Sprintf("=== Authority List ===  Total: %d Displaying: All\n", len(fnodes[listenTo].State.Authorities)))
@@ -647,6 +647,32 @@ func SimControl(listenTo int) {
 				for _, eh := range eHashes {
 					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
 				}
+
+			case 'S' == b[0]:
+				nnn, err := strconv.Atoi(string(b[1:]))
+				if err != nil || nnn < 0 || nnn > 999 {
+					os.Stderr.WriteString("Specifiy a drop amount between 0 and 1000\n")
+					break
+				}
+				for _, fn := range fnodes {
+					fn.State.DropRate = nnn
+					os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d\n", fn.State.FactomNodeName, nnn/10, nnn%10))
+				}
+
+			case 'O' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					os.Stderr.WriteString("No Factom Node selected\n")
+					break
+				}
+				nnn, err := strconv.Atoi(string(b[1:]))
+				if err != nil || nnn < 0 || nnn > 999 {
+					os.Stderr.WriteString("Specifiy a drop amount between 0 and 1000\n")
+					break
+				}
+
+				fnodes[listenTo].State.DropRate = nnn
+				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[listenTo].State.FactomNodeName, nnn/10, nnn%10))
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
@@ -674,6 +700,9 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("tN            Attaches Nth identity in pool to current node. Can also just press 't' to grab the next\n")
 				os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
 				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
+				os.Stderr.WriteString("Snnn          Set Drop Rate to nnn on everyone\n")
+				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
+
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
@@ -711,18 +740,16 @@ func returnStatString(i int) string {
 
 // Allows us to scatter transactions across all nodes.
 //
-func rotateWSAPI(rotate *int, value int) {
+func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 	for *rotate == value { // Only if true
-		fnode := fnodes[rand.Int()%len(fnodes)]
-
+		*wsapiNode = rand.Int() % len(fnodes)
+		fnode := fnodes[*wsapiNode]
 		wsapi.SetState(fnode.State)
-		os.Stderr.WriteString("\rAPI now directed to " + fnode.State.GetFactomNodeName() + "   ")
-
 		time.Sleep(3 * time.Second)
 	}
 }
 
-func printSummary(summary *int, value int, listenTo *int) {
+func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	out := ""
 
 	if *listenTo < 0 || *listenTo >= len(fnodes) {
@@ -732,14 +759,22 @@ func printSummary(summary *int, value int, listenTo *int) {
 	for *summary == value {
 		prt := "===SummaryStart===\n"
 		for _, f := range fnodes {
-			f.State.Status = true
+			f.State.Status = 1
 		}
 
 		time.Sleep(time.Second)
 
-		for _, f := range fnodes {
+		for i, f := range fnodes {
+			in := ""
+			api := ""
+			if i == *listenTo {
+				in = "f"
+			}
+			if i == *wsapiNode {
+				api = "w"
+			}
 
-			prt = prt + fmt.Sprintf("%s \n", f.State.ShortString())
+			prt = prt + fmt.Sprintf("%1s%1s %s \n", in, api, f.State.ShortString())
 		}
 
 		fmtstr := "%22s%s\n"
@@ -834,6 +869,8 @@ func printSummary(summary *int, value int, listenTo *int) {
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
 
+		prt = prt + faultSummary()
+
 		prt = prt + "===SummaryEnd===\n"
 
 		if prt != out {
@@ -843,6 +880,40 @@ func printSummary(summary *int, value int, listenTo *int) {
 
 		time.Sleep(time.Second)
 	}
+}
+
+func faultSummary() string {
+	prt := ""
+	headerTitle := "Faults"
+	headerLabel := "vm    "
+	currentlyFaulted := "."
+
+	for i, fnode := range fnodes {
+		b := fnode.State.GetHighestRecordedBlock()
+		pl := fnode.State.ProcessLists.Get(b)
+		if pl != nil {
+			if i == 0 {
+				prt = prt + fmt.Sprintf("%s\n", headerTitle)
+				prt = prt + fmt.Sprintf("%7s", headerLabel)
+				for headerNum, _ := range pl.FedServers {
+					prt = prt + fmt.Sprintf(" %3d", headerNum)
+				}
+				prt = prt + fmt.Sprintf("\n")
+			}
+			if fnode.State.Leader {
+				prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
+				for _, fed := range pl.FedServers {
+					currentlyFaulted = "."
+					if !fed.IsOnline() {
+						currentlyFaulted = "F"
+					}
+					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
+				}
+				prt = prt + fmt.Sprintf("\n")
+			}
+		}
+	}
+	return prt
 }
 
 func printProcessList(watchPL *int, value int, listenTo *int) {
