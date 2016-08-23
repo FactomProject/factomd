@@ -870,7 +870,7 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryBlockRepeat = now
 
-			fmt.Printf("JUSTIN dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
+			//fmt.Printf("JUSTIN dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
 				s.FactomNodeName,
 				len(s.MissingEntryBlocks),
 				s.EntryBlockDBHeightProcessing,
@@ -895,7 +895,7 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryRepeat = now
 
-			fmt.Printf("JUSTIN dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
+			//fmt.Printf("JUSTIN dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
 				s.FactomNodeName,
 				len(s.MissingEntries),
 				s.EntryDBHeightProcessing,
@@ -926,12 +926,12 @@ func (s *State) catchupEBlocks() {
 
 				// Ask for blocks we don't have.
 				if !s.DatabaseContains(ebKeyMR) {
-					fmt.Println("JUSTIN APPENDING TO MISSINGENTRYBLOCKS:", ebKeyMR.String()[:15])
+					//fmt.Println("JUSTIN APPENDING TO MISSINGENTRYBLOCKS:", ebKeyMR.String()[:15])
 					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 				}
 			}
-			fmt.Println("JUSTIN INCREMENTING EBDBHP", s.EntryBlockDBHeightProcessing)
+			//fmt.Println("JUSTIN INCREMENTING EBDBHP", s.EntryBlockDBHeightProcessing)
 			s.EntryBlockDBHeightProcessing++
 		}
 

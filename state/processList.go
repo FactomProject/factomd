@@ -83,10 +83,10 @@ type ProcessList struct {
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 	// Negotiation tracker variables
-	NegotiatorFor map[uint32]bool
+	NegotiatorFor int
 	// NegotiatorFor is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
-	// height (the map key)
+	// height (it is -1 if we are not a negotiator on this PL)
 	//FaultTimes map[string]int64
 	// FaultTimes keeps track of when a particular ServerID initially
 	// deserved a fault, so that we can time out the negotiation process
@@ -525,12 +525,11 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 }
 
 func (p *ProcessList) SetNegotiator(height uint32) {
-	p.NegotiatorFor[height] = true
+	p.NegotiatorFor = height
 }
 
 func (p *ProcessList) IsNegotiator() bool {
-	numNegotiations := len(p.NegotiatorFor)
-	if numNegotiations < 1 {
+	if p.NegotiatorFor < 0 {
 		return false
 	} else {
 		return true
@@ -661,25 +660,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 					}
 				}
 				nextVM.faultingEOM = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultingEOM, height, 2)
-			} /* else if now-vm.whenFaulted > 150 {
-				responsibleFaulterIdx++
-				if responsibleFaulterIdx >= len(p.FedServers) {
-					responsibleFaulterIdx = 0
-				}
-
-				if p.State.Leader {
-					if p.State.LeaderVMIndex == responsibleFaulterIdx {
-						fmt.Println("JUSTIN - ", p.State.FactomNodeName, "INITIATING NEGOTIATION FOR", vmIndex, "WHICH IS", id.String()[:10])
-						negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-						if negotiationMsg != nil {
-							negotiationMsg.Sign(p.State.serverPrivKey)
-							p.State.NetworkOutMsgQueue() <- negotiationMsg
-							p.State.InMsgQueue() <- negotiationMsg
-						}
-						thetime = now
-					}
-				}
-			}*/
+			}
 		}
 
 		thetime = now
@@ -1025,7 +1006,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.commitslock = new(sync.Mutex)
 
 	//pl.FaultTimes = make(map[string]int64)
-	pl.NegotiatorFor = make(map[uint32]bool)
+	pl.NegotiatorFor = -1
 	pl.NegotiationInit = make(map[string]int64)
 	pl.AlreadyNominated = make(map[string]map[string]int64)
 	pl.PledgeMap = make(map[string]string)
