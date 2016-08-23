@@ -455,11 +455,11 @@ func toggleDCT() {
 
 // Gets all the recent transctions. Will only keep the most recent 100.
 func getRecentTransactions(time.Time) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Control Panel has encountered a panic in GetRecentTransactions.\n", r)
 		}
-	}()
+	}()*/
 
 	if DoingRecentTransactions {
 		return
@@ -555,6 +555,9 @@ func getRecentTransactions(time.Time) {
 
 	entries := last.GetDBEntries()
 	for _, entry := range entries {
+		if entry == nil {
+			continue
+		}
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
 			dbase := StatePointer.GetAndLockDB()
