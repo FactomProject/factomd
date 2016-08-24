@@ -685,11 +685,11 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		}
 		dbase := StatePointer.GetAndLockDB()
 		dblk, err := dbase.FetchDBlock(next)
-		height = dblk.GetHeader().GetDBHeight()
 		StatePointer.UnlockDB()
 		if err != nil || dblk == nil {
 			break
 		}
+		height = dblk.GetHeader().GetDBHeight()
 		ents := dblk.GetDBEntries()
 		if len(ents) > 3 && eNeeded > 0 {
 			for _, eblock := range ents[3:] {
