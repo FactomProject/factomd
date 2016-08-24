@@ -264,7 +264,8 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 		nowSecond := s.GetTimestamp().GetTimeSeconds()
 		//nowSecond := negotiation.Timestamp.GetTimeSeconds()
 		vmAtFault := pl.VMs[negotiation.VMIndex]
-		if vmAtFault.isFaulting {
+		//if vmAtFault.isFaulting {
+		if vmAtFault.faultHeight >= 0 {
 			_, negotiationInitiated := pl.NegotiationInit[negotiation.ServerID.String()]
 			if !negotiationInitiated {
 				pl.NegotiationInit[negotiation.ServerID.String()] = nowSecond
@@ -320,7 +321,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	if pl == nil {
 		return
 	}
-	if !pl.VMs[sf.VMIndex].isFaulting {
+	//if !pl.VMs[sf.VMIndex].isFaulting {
+	if pl.VMs[sf.VMIndex].faultHeight < 0 {
 		return
 	}
 
@@ -401,6 +403,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 								fullFault.Sign(s.serverPrivKey)
 								s.NetworkOutMsgQueue() <- fullFault
 								fullFault.FollowerExecute(s)
+								pl.AmINegotiator = false
 								delete(s.FaultMap, sf.GetCoreHash().Fixed())
 							}
 						}
@@ -424,18 +427,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 					s.InMsgQueue() <- matchNomination
 				}
 			}
-		} /* else {
-			pl.AlreadyNominated[sf.ServerID.String()] = make(map[string]int64)
-
-			pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
-			matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-			if matchNomination != nil {
-				fmt.Println("JUSTIN .", s.FactomNodeName, "MATCHING NOMINATION SFAULT:", sf.ServerID.String()[:10], "AUD:", sf.AuditServerID.String()[:10])
-				matchNomination.Sign(s.serverPrivKey)
-				s.NetworkOutMsgQueue() <- matchNomination
-				s.InMsgQueue() <- matchNomination
-			}
-		}*/
+		}
 	} else {
 		if s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 			// I am the audit server being promoted
@@ -478,7 +470,8 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 				if foundVM, vmindex := relevantPL.GetVirtualServers(s.CurrentMinute, theAuditReplacement.GetChainID()); foundVM {
 					//fmt.Println("JUSTIN", s.FactomNodeName, "FF SETTING ISF FALSE", theAuditReplacement.GetChainID().String()[:10])
-					relevantPL.VMs[vmindex].isFaulting = false
+					//relevantPL.VMs[vmindex].isFaulting = false
+					relevantPL.VMs[vmindex].faultHeight = -1
 					relevantPL.VMs[vmindex].faultingEOM = 0
 				}
 				break
@@ -502,10 +495,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				relevantPL.AmIPledged = false
 			}
 		}
-	}
-
-	if relevantPL.IsNegotiator() {
-		delete(relevantPL.NegotiatorFor, fullFault.Height)
 	}
 }
 
@@ -534,15 +523,19 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		return
 	}
 
+	//fmt.Println("JUSTIN FOLLEX DR:", msg.DataType, msg.DataHash.String()[:15])
+
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
 		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
 		if !ok {
+			//fmt.Println("JUSTIN EBLOCK NOT OK", msg.DataHash.String()[:15])
 			return
 		}
 
 		ebKeyMR, _ := eblock.KeyMR()
 		if ebKeyMR == nil {
+			//fmt.Println("JUSTIN EBKMR NIL", msg.DataHash.String()[:15], ebKeyMR.String()[:15])
 			return
 		}
 
@@ -551,6 +544,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			if !eb.IsSameAs(ebKeyMR) {
 				continue
 			}
+			//fmt.Println("JUSTIN, FOUND EB", msg.DataHash.String()[:15])
 			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
 			s.DB.ProcessEBlockBatch(eblock, true)
 
@@ -572,6 +566,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 					v.dbheight = eblock.GetHeader().GetDBHeight()
 					v.entryhash = entryhash
 					v.ebhash = eb
+					//fmt.Println("JUSTIN, FROM EB APP ", entryhash.String()[:15])
 
 					s.MissingEntries = append(s.MissingEntries, v)
 				}
@@ -584,18 +579,23 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				}
 			}
 			s.EntryBlockDBHeightComplete = mindb - 1
+			//fmt.Println("JUSTIN, NOW EBDHBC IS", s.EntryBlockDBHeightComplete)
 			break
 		}
 
 	case 0: // Data is an entry
 		entry, ok := msg.DataObject.(interfaces.IEBEntry)
 		if !ok {
+			//fmt.Println("JUSTIN NOT OK ENTRY", msg.DataHash.String()[:15])
 			return
 		}
 
 		for i, missing := range s.MissingEntries {
 			e := missing.entryhash
+			//fmt.Println("JUSTIN, FOUND ENT", msg.DataHash.String()[:15])
+
 			if e.IsSameAs(entry.GetHash()) {
+				//fmt.Println("JUSTIN, FOUND ENT AND MATCH", msg.DataHash.String()[:15])
 				s.DB.InsertEntry(entry)
 				s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
 				break
@@ -610,8 +610,12 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		// Make sure the request is reasonable, and that we are asking this of the first
 		// entry in the VM... Then we need to issue a DBSig.
 		pl := s.ProcessLists.Get(m.DBHeight)
-		if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
-			s.SendDBSig(m.DBHeight, m.VMIndex)
+		if pl != nil {
+			if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
+				s.SendDBSig(m.DBHeight, m.VMIndex)
+			}
+		} else {
+			return
 		}
 	}
 
