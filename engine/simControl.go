@@ -908,7 +908,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 func faultSummary() string {
 	prt := ""
 	headerTitle := "Faults"
-	headerLabel := "vm    "
+	headerLabel := "Fed   "
 	currentlyFaulted := "."
 
 	for i, fnode := range fnodes {
