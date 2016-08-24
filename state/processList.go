@@ -89,6 +89,9 @@ type ProcessList struct {
 
 	// Negotiation tracker variables
 	AmINegotiator bool
+	// This is the index of the VM we are negotiating for, if we are
+	// in fact a Negotiator
+	NegotiatorVMIndex int
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
@@ -634,6 +637,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 
 		if p.State.Leader {
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
+				p.NegotiatorVMIndex = vmIndex
 				p.AmINegotiator = true
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
@@ -713,6 +717,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		}
 
 		if vm.Height > vm.faultHeight {
+			if p.AmINegotiator && i == p.NegotiatorVMIndex {
+				p.AmINegotiator = false
+			}
 			vm.faultHeight = -1
 			leaderMin := getLeaderMin(p)
 			myIndex := p.ServerMap[leaderMin][i]
