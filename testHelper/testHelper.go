@@ -5,6 +5,7 @@ package testHelper
 import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -311,7 +312,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 
 	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
 	header.SetBlockCount(0)
-	header.SetNetworkID(0xffff)
+	header.SetNetworkID(constants.MAIN_NETWORK_ID)
 
 	if prevBlock == nil {
 		header.SetDBHeight(0)
