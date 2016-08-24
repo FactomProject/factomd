@@ -1342,7 +1342,7 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x]%4s %4s drop=%2d.%01d%% ",
+	str := fmt.Sprintf("%7s[%12x]%4s %4s %2d.%01d%% ",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
@@ -1351,14 +1351,14 @@ func (s *State) SetStringQueues() {
 
 	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf("DB: %5d[%6x] PL:%-9s ",
+	str = str + fmt.Sprintf(" %5d[%6x] %-9s ",
 		dHeight,
 		keyMR[:3],
 		pls)
 
 	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
 	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
-	str = str + fmt.Sprintf("VMMin:%2v CMin%2v DBState(ask/ans/rply/fail) %-10s Msg(ask/ans/rply) %16s ",
+	str = str + fmt.Sprintf(" %3v %4v %15s %18s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,
@@ -1366,7 +1366,7 @@ func (s *State) SetStringQueues() {
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
-	str = str + fmt.Sprintf("Resend %5d Expire %5d Fct/EC/E: %-10s tps t/i %s",
+	str = str + fmt.Sprintf(" %5d %5d %12s %11s",
 		s.ResendCnt,
 		s.ExpireCnt,
 		trans,

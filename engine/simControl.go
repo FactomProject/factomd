@@ -749,6 +749,27 @@ func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 	}
 }
 
+func summaryHeader() string {
+	str := fmt.Sprintf(" %7s %12s %12s %4s %11s %9s %3s %5s %4s %20s %4s %9s %7s %10s %9s\n",
+		"Node",
+		"ID   ",
+		" ",
+		"Drop",
+		"DB ",
+		"PL  ",
+		" ",
+		"VMMin",
+		"CMin",
+		"DBState(ask/ans/rply/fail)",
+		"Msg",
+		"   Resend",
+		"Expire ",
+		"Fct/EC/E",
+		"tps t/i")
+
+	return str
+}
+
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	out := ""
 
@@ -763,6 +784,8 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 
 		time.Sleep(time.Second)
+
+		prt = prt + summaryHeader()
 
 		for i, f := range fnodes {
 			in := ""
