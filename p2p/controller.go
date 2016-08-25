@@ -637,6 +637,7 @@ func (c *Controller) networkStatusReport() {
 				metrics = ConnectionMetrics{MomentConnected: time.Now(), ConnectionState: "No Metrics", ConnectionNotes: "No Metrics"}
 			}
 			silence("ctrlr", "%s\t%s\t%s\t%s", v.peer.PeerFixedIdent(), time.Since(metrics.MomentConnected), metrics.ConnectionState, metrics.ConnectionNotes)
+			silence("ctrlr", "\t\tSent/Recv: %d / %d\t\t Chan Send/Recv: %d / %d", metrics.MessagesSent, metrics.MessagesReceived, len(v.SendChannel), len(v.ReceiveChannel))
 		}
 		silence("ctrlr", "\tChannels:")
 		silence("ctrlr", "          commandChannel: %d", len(c.commandChannel))
