@@ -631,7 +631,7 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", " ")
 		silence("ctrlr", "\tPeer\t\t\t\tDuration\tStatus\t\tNotes")
 		silence("ctrlr", "-------------------------------------------------------------------------------")
-		for _, v := range c.connectionsByAddress {
+		for _, v := range c.connections {
 			metrics, present := c.connectionMetrics[v.peer.Hash]
 			if !present {
 				metrics = ConnectionMetrics{MomentConnected: time.Now(), ConnectionState: "No Metrics", ConnectionNotes: "No Metrics"}
