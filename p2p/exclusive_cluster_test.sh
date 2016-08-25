@@ -13,16 +13,7 @@ if [ $? -eq 0 ]; then
     sleep 6
     factomd -exclusive=true -count=1 -prefix="test3-" -network="TEST" -port=9122 -networkPort=8120 -peers="127.0.0.1:8119" -netdebug=1 -db=Map & node2=$!
     sleep 6
-    factomd -exclusive=true -count=1 -prefix="test4-" -network="TEST" -port=9123 -networkPort=8121  -peers="127.0.0.1:8120" -netdebug=1 -db=Map & node3=$!
+        echo "Launching 4th node, hopefully you have sim control now:"
+    factomd -exclusive=true -count=1 -prefix="test4-" -network="TEST" -port=9123 -networkPort=8121  -peers="127.0.0.1:8120" -netdebug=1 -db=Map 
     echo
-    echo
-    sleep 240
-    echo
-    echo
-    echo "Killing processes now..."
-    echo
-    # kill -2 $node0 $node1 $node2 $node3
-    kill -2 $node1 # Kill this first to see how node0 handles it.
-    sleep 25
-    kill -2 $node0 $node2 $node3
 fi
