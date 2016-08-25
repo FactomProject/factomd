@@ -183,8 +183,7 @@ func (s *State) AddDBState(isNew bool,
 
 	err := CheckDBKeyMR(s, ht, DBKeyMR)
 	if err != nil {
-		fmt.Printf(err)
-		return nil
+		panic(fmt.Errorf("Found block at height %d that didn't match a checkpoint. Got %s, expected %s", ht, DBKeyMR, constants.CheckPoints[ht]))       //TODO make failing when given bad blocks fail more elegantly
 	} 
 	
 	if ht > s.LLeaderHeight {
