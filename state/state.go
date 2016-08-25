@@ -862,11 +862,11 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryBlockRepeat = now
 
-			/*fmt.Printf("JUSTIN dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
-			s.FactomNodeName,
-			len(s.MissingEntryBlocks),
-			s.EntryBlockDBHeightProcessing,
-			s.EntryBlockDBHeightComplete)*/
+			fmt.Printf("dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
+				s.FactomNodeName,
+				len(s.MissingEntryBlocks),
+				s.EntryBlockDBHeightProcessing,
+				s.EntryBlockDBHeightComplete)
 
 			for _, eb := range s.MissingEntryBlocks {
 				eBlockRequest := messages.NewMissingData(s, eb.ebhash)
@@ -887,11 +887,11 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryRepeat = now
 
-			/*fmt.Printf("JUSTIN dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
-			s.FactomNodeName,
-			len(s.MissingEntries),
-			s.EntryDBHeightProcessing,
-			s.EntryDBHeightComplete)*/
+			fmt.Printf("dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
+				s.FactomNodeName,
+				len(s.MissingEntries),
+				s.EntryDBHeightProcessing,
+				s.EntryDBHeightComplete)
 
 			for i, eb := range s.MissingEntries {
 				if i > 20 {
@@ -918,15 +918,38 @@ func (s *State) catchupEBlocks() {
 
 				// Ask for blocks we don't have.
 				if !s.DatabaseContains(ebKeyMR) {
-					//fmt.Println("JUSTIN APPENDING TO MISSINGENTRYBLOCKS:", ebKeyMR.String()[:15])
+					//fmt.Println("JUSTIN", s.FactomNodeName, "APPENDING TO MISSINGENTRYBLOCKS:", ebKeyMR.String()[:15])
 					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
-				}
+				} /* else {
+					eblock, err := s.DB.FetchEBlock(ebKeyMR)
+					if err == nil && eblock != nil {
+						for _, entryhash := range eblock.GetEntryHashes() {
+							if entryhash.IsMinuteMarker() {
+								continue
+							}
+							e, _ := s.DB.FetchEntry(entryhash)
+							if e == nil {
+								var v struct {
+									ebhash    interfaces.IHash
+									entryhash interfaces.IHash
+									dbheight  uint32
+								}
+
+								v.dbheight = eblock.GetHeader().GetDBHeight()
+								v.entryhash = entryhash
+								v.ebhash = ebKeyMR
+								fmt.Println("JUSTIN", s.FactomNodeName, "FROM EB APP2 ", entryhash.String())
+
+								s.MissingEntries = append(s.MissingEntries, v)
+							}
+						}
+					}
+				}*/
 			}
-			//fmt.Println("JUSTIN INCREMENTING EBDBHP", s.EntryBlockDBHeightProcessing)
+			//fmt.Println("JUSTIN", s.FactomNodeName, "INCREMENTING EBDBHP TO", s.EntryBlockDBHeightProcessing+1)
 			s.EntryBlockDBHeightProcessing++
 		}
-
 	}
 
 }
