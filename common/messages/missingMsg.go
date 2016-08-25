@@ -107,7 +107,7 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}()
 	newData = data
 	if newData[0] != m.Type() {
-		return nil, fmt.Errorf("Invalid Message type")
+		return nil, fmt.Errorf("%s", "Invalid Message type")
 	}
 	newData = newData[1:]
 
@@ -122,7 +122,7 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	m.ProcessListHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	if m.DBHeight < 0 || m.ProcessListHeight < 0 {
-		return nil, fmt.Errorf("DBHeight or ProcListHeight is negative")
+		return nil, fmt.Errorf("%s", "DBHeight or ProcListHeight is negative")
 	}
 
 	m.Peer2Peer = true // Always a peer2peer request.
@@ -165,7 +165,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissingMsg DBHeight:%3d vm=%d PL Height:%3d msgHash[%x]", m.DBHeight, m.VMIndex, m.ProcessListHeight, m.GetMsgHash().Bytes()[:3])
+	return fmt.Sprintf("MissingMsg --> DBHeight:%3d vm=%3d PL Height:%3d msgHash[%x]", m.DBHeight, m.VMIndex, m.ProcessListHeight, m.GetMsgHash().Bytes()[:3])
 }
 
 func (m *MissingMsg) ChainID() []byte {
