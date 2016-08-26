@@ -53,6 +53,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	DropRate                int
+	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
 	ControlPanelPort        int
 	ControlPanelPath        string

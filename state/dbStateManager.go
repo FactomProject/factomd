@@ -203,9 +203,9 @@ func (list *DBStateList) Catchup() {
 	if msg != nil {
 		//		list.State.RunLeader = false
 		//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
-		list.State.NetworkOutMsgQueue() <- msg
-		list.State.NetworkOutMsgQueue() <- msg
-		list.State.NetworkOutMsgQueue() <- msg
+		msg.SendOut(list.State, msg)
+		msg.SendOut(list.State, msg)
+		msg.SendOut(list.State, msg)
 		list.LastTime = now
 		list.State.DBStateAskCnt++
 	}

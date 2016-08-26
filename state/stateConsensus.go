@@ -95,7 +95,7 @@ func (s *State) Process() (progress bool) {
 		progress = true
 	case msg := <-s.msgQueue:
 		if executeMsg(msg) {
-			s.networkOutMsgQueue <- msg
+			msg.SendOut(s, msg)
 		}
 	default:
 	}
@@ -158,7 +158,7 @@ func (s *State) ReviewHolding() {
 		if v.Resend(s) {
 			if v.Validate(s) == 1 {
 				s.ResendCnt++
-				s.networkOutMsgQueue <- v
+				v.SendOut(s, v)
 			}
 		}
 
