@@ -900,6 +900,9 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	}
 	pl := s.ProcessLists.Get(dbheight)
 	vm := pl.VMs[vmIndex]
+	if vm.LeaderMinute > 9 {
+		return
+	}
 	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
 	if leader && !vm.Signed {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
