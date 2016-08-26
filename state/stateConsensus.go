@@ -118,7 +118,6 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 	return nil
 }
 
-
 //***************************************************************
 // Consensus Methods
 //***************************************************************
@@ -183,9 +182,9 @@ func (s *State) AddDBState(isNew bool,
 
 	err := CheckDBKeyMR(s, ht, DBKeyMR)
 	if err != nil {
-		panic(fmt.Errorf("Found block at height %d that didn't match a checkpoint. Got %s, expected %s", ht, DBKeyMR, constants.CheckPoints[ht]))       //TODO make failing when given bad blocks fail more elegantly
-	} 
-	
+		panic(fmt.Errorf("Found block at height %d that didn't match a checkpoint. Got %s, expected %s", ht, DBKeyMR, constants.CheckPoints[ht])) //TODO make failing when given bad blocks fail more elegantly
+	}
+
 	if ht > s.LLeaderHeight {
 		s.Syncing = false
 		s.EOM = false
@@ -200,6 +199,7 @@ func (s *State) AddDBState(isNew bool,
 		s.Newblk = true
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		s.ProcessLists.UpdateState(s.LLeaderHeight)
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
