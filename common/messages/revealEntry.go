@@ -89,6 +89,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // Discard any invalid entries in the map.  Should never happen.
+		fmt.Println("dddd Bad EB Commit", state.GetFactomNodeName())
 		return m.Validate(state)
 	}
 
@@ -98,6 +99,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
+			fmt.Println("dddd EB Commit is short", state.GetFactomNodeName())
 			return m.Validate(state) // Discard commits that are not funded properly.
 		}
 
@@ -168,7 +170,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}()
 	newData = data
 	if newData[0] != m.Type() {
-		return nil, fmt.Errorf("Invalid Message type")
+		return nil, fmt.Errorf("%s", "Invalid Message type")
 	}
 	newData = newData[1:]
 

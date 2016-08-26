@@ -33,7 +33,7 @@ func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEn
 		return err
 	}
 
-	return db.SaveIncludedInMultiFromBlockMultiBatch(dblock, false)
+	return db.SaveIncludedInMultiFromBlockMultiBatch(dblock, true)
 }
 
 // FetchHeightRange looks up a range of blocks by the start and ending

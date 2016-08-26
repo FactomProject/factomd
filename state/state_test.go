@@ -26,8 +26,18 @@ func TestDirBlockHead(t *testing.T) {
 		t.Errorf("Invalid DBLock Height - got %v, expected 10", height+1)
 	}
 	d := state.GetDirectoryBlockByHeight(height)
-	if d.GetKeyMR().String() != "836ba9715fc4e83ae1e8755c40374e7e2265e4f312788710af2ff5478c2b495e" {
-		t.Errorf("Invalid DBLock KeyMR - got %v, expected 836ba9715fc4e83ae1e8755c40374e7e2265e4f312788710af2ff5478c2b495e", d.GetKeyMR().String())
+
+	//fmt.Println(d)
+	//fmt.Println("------------")
+	//fmt.Println(d.String())
+	//data, _ := d.MarshalBinary()
+	//fmt.Printf("%x\n", data)
+	//fmt.Printf("nwtwork number %d\n", state.NetworkNumber)
+	//fmt.Printf("network id %x\n", d.GetHeader().GetNetworkID())
+	//fmt.Printf("network id %x\n", d.GetHeader.GetBodyMR)
+
+	if d.GetKeyMR().String() != "12d6c012e3598ca1c10dbf60ac12af9fa8904b8fd98968e86f4c66c14884c225" {
+		t.Errorf("Invalid DBLock KeyMR - got %v, expected 12d6c012e3598ca1c10dbf60ac12af9fa8904b8fd98968e86f4c66c14884c225", d.GetKeyMR().String())
 	}
 }
 

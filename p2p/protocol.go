@@ -70,9 +70,9 @@ var (
 
 const (
 	// ProtocolVersion is the latest version this package supports
-	ProtocolVersion uint16 = 01
+	ProtocolVersion uint16 = 04
 	// ProtocolVersionMinimum is the earliest version this package supports
-	ProtocolVersionMinimum uint16 = 01
+	ProtocolVersionMinimum uint16 = 04
 	// Don't think we need this.
 	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
 	// Used in generating message CRC values
@@ -129,7 +129,7 @@ var LoggingLevels = map[uint8]string{
 }
 
 func dot(dot string) {
-	if 1 < CurrentLoggingLevel {
+	if 5 < CurrentLoggingLevel {
 		switch dot {
 		case "":
 			fmt.Printf(".")
@@ -170,11 +170,12 @@ func log(level uint8, component string, format string, v ...interface{}) {
 
 	now := time.Now().Format("01/02/2006 15:04:05")
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		fmt.Fprintf(os.Stdout, "%s, %s, %s \n", now, component, message)
+		fmt.Printf("%s, %s, %s \n", now, component, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
 		fmt.Println("===== SIGNIFICNAT ERROR ====== \n Something is very wrong, and should be looked into!")
 		fmt.Fprintf(os.Stderr, "%s, %s, %s \n", now, component, message)
+		panic(message)
 	}
 }

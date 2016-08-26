@@ -78,22 +78,26 @@ func (p *Peer) PeerFixedIdent() string {
 // Problem is we're working wiht string addresses, may never have made a connection.
 // TODO - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
-func (p *Peer) locationFromAddress() uint32 {
+func (p *Peer) locationFromAddress() (location uint32) {
+	location = 0
 	// Split out the port
 	ip_port := strings.Split(p.Address, ":")
-	// Split the IPv4 octets
-	octets := strings.Split(ip_port[0], ".")
-	// Turn into uint32
-	var location uint32
-	b0, _ := strconv.Atoi(octets[0])
-	b1, _ := strconv.Atoi(octets[1])
-	b2, _ := strconv.Atoi(octets[2])
-	b3, _ := strconv.Atoi(octets[3])
-	location += uint32(b0) << 24
-	location += uint32(b1) << 16
-	location += uint32(b2) << 8
-	location += uint32(b3)
-	verbose("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
+	if 2 == len(ip_port) {
+		// Split the IPv4 octets
+		octets := strings.Split(ip_port[0], ".")
+		if 4 == len(octets) {
+			// Turn into uint32
+			b0, _ := strconv.Atoi(octets[0])
+			b1, _ := strconv.Atoi(octets[1])
+			b2, _ := strconv.Atoi(octets[2])
+			b3, _ := strconv.Atoi(octets[3])
+			location += uint32(b0) << 24
+			location += uint32(b1) << 16
+			location += uint32(b2) << 8
+			location += uint32(b3)
+			verbose("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
+		}
+	}
 	return location
 }
 

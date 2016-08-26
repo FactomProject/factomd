@@ -314,9 +314,11 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 	}
 	for _, line := range lines {
 		ipAndPort := strings.Split(line, ":")
-		peerp := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
-		peer := *peerp
-		d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+		if 2 == len(ipAndPort) {
+			peerp := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
+			peer := *peerp
+			d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
+		}
 	}
 	note("discovery", "DiscoverPeers got peers: %+v", lines)
 }

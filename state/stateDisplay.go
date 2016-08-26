@@ -103,7 +103,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	// DB Info
 	ds.CurrentNodeHeight = s.GetHighestRecordedBlock()
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
-	ds.CurrentEBDBHeight = s.GetEBDBHeightComplete()
+	ds.CurrentEBDBHeight = s.EntryBlockDBHeightProcessing
 	ds.ProcessListHeight = uint32(int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1)
 	if dir := s.GetDirectoryBlock(); dir != nil {
 		data, err := dir.MarshalBinary()
@@ -189,7 +189,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	}
 
 	prt := "===SummaryStart===\n"
-	s.Status = true
+	s.Status = 1
 	prt = prt + fmt.Sprintf("%s \n", s.ShortString())
 	fnodes := make([]*State, 0)
 	fnodes = append(fnodes, s)

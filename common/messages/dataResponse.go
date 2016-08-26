@@ -147,59 +147,7 @@ func (m *DataResponse) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *DataResponse) FollowerExecute(state interfaces.IState) {
-	if state.HasDataRequest(m.DataHash) {
-		switch m.DataType {
-		case 1: // Data is an entryBlock
-			eblock, ok := m.DataObject.(interfaces.IEntryBlock)
-			if !ok {
-				return
-			}
-			ebKeyMR, err := eblock.KeyMR()
-
-			if err == nil {
-				if ebKeyMR.IsSameAs(m.DataHash) {
-					if !state.DatabaseContains(ebKeyMR) {
-						state.FollowerExecuteAddData(m) // Save EBlock
-						d := state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete())
-						if d != nil && d.GetEntryHashes() != nil {
-							for _, hashMatchAttempt := range state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete()).GetEntryHashes() {
-								if hashMatchAttempt.IsSameAs(ebKeyMR) {
-									if state.GetAllEntries(ebKeyMR) {
-										state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		case 0: // Data is an entry
-			if !state.DatabaseContains(m.DataHash) {
-				entry, ok := m.DataObject.(interfaces.IEBEntry)
-				if !ok {
-					return
-				}
-
-				state.FollowerExecuteAddData(m) // Save entry
-
-				ebKeyMR := state.GetEBlockKeyMRFromEntryHash(entry.GetHash())
-
-				if ebKeyMR != nil {
-					if state.DatabaseContains(ebKeyMR) { // Node already has eBlock in database
-						if state.GetAllEntries(ebKeyMR) {
-							state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
-						}
-					} else {
-						if !state.HasDataRequest(ebKeyMR) {
-							// Need to get eblock itself
-							eBlockRequest := NewMissingData(state, ebKeyMR)
-							state.NetworkOutMsgQueue() <- eBlockRequest
-						}
-					}
-				}
-			}
-		}
-	}
+	state.FollowerExecuteDataResponse(m)
 }
 
 // Acknowledgements do not go into the process list.

@@ -113,6 +113,7 @@ func (m *Negotiation) PreMarshalBinary() (data []byte, err error) {
 	} else {
 		buf.Write(d)
 	}
+	//fmt.Printf("%v REQUESTING %x\n", state.GetFactomNodeName(), requestHash.Bytes()[:3])
 
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))

@@ -5,6 +5,7 @@ package testHelper
 import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -88,12 +89,12 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, false)
+		err = dbo.ProcessEBlockMultiBatch(prev.EBlock, true)
 		if err != nil {
 			panic(err)
 		}
 
-		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, false)
+		err = dbo.ProcessEBlockMultiBatch(prev.AnchorEBlock, true)
 		if err != nil {
 			panic(err)
 		}
@@ -311,7 +312,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 
 	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
 	header.SetBlockCount(0)
-	header.SetNetworkID(0xffff)
+	header.SetNetworkID(constants.MAIN_NETWORK_ID)
 
 	if prevBlock == nil {
 		header.SetDBHeight(0)

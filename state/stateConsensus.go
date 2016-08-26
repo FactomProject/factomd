@@ -80,9 +80,9 @@ func (s *State) Process() (progress bool) {
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 10 && len(s.XReview) > 0; i++ {
+	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
-		executeMsg(msg)
+		progress = executeMsg(msg)
 		s.XReview = s.XReview[1:]
 	}
 
@@ -99,8 +99,25 @@ func (s *State) Process() (progress bool) {
 		}
 	default:
 	}
+
 	return
 }
+
+//***************************************************************
+// Checkpoint DBKeyMR
+//***************************************************************
+func CheckDBKeyMR(s *State, ht uint32, hash string) error {
+	if s.Network != "MAIN" && s.Network != "main" {
+		return nil
+	}
+	if val, ok := constants.CheckPoints[ht]; ok {
+		if val != hash {
+			return fmt.Errorf("%20s CheckPoints at %d DB height failed\n", s.FactomNodeName, ht)
+		}
+	}
+	return nil
+}
+
 
 //***************************************************************
 // Consensus Methods
@@ -113,6 +130,14 @@ func (s *State) ReviewHolding() {
 	if len(s.XReview) > 0 {
 		return
 	}
+	now := s.GetTimestamp()
+	if s.resendHolding == nil {
+		s.resendHolding = now
+	}
+	if now.GetTimeSeconds()-s.resendHolding.GetTimeSeconds() < 2 {
+		return
+	}
+
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -154,6 +179,13 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+	DBKeyMR := dbState.DirectoryBlock.GetKeyMR().String()
+
+	err := CheckDBKeyMR(s, ht, DBKeyMR)
+	if err != nil {
+		panic(fmt.Errorf("Found block at height %d that didn't match a checkpoint. Got %s, expected %s", ht, DBKeyMR, constants.CheckPoints[ht]))       //TODO make failing when given bad blocks fail more elegantly
+	} 
+	
 	if ht > s.LLeaderHeight {
 		s.Syncing = false
 		s.EOM = false
@@ -174,24 +206,6 @@ func (s *State) AddDBState(isNew bool,
 	}
 
 	return dbState
-}
-
-func (s *State) addEBlock(eblock interfaces.IEntryBlock) {
-	hash, err := eblock.KeyMR()
-
-	if err == nil {
-		if s.HasDataRequest(hash) {
-
-			s.DB.ProcessEBlockBatch(eblock, true)
-			delete(s.DataRequests, hash.Fixed())
-
-			if s.GetAllEntries(hash) {
-				if s.GetEBDBHeightComplete() < eblock.GetDatabaseHeight() {
-					s.SetEBDBHeightComplete(eblock.GetDatabaseHeight())
-				}
-			}
-		}
-	}
 }
 
 // Messages that will go into the Process List must match an Acknowledgement.
@@ -245,40 +259,18 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
-	s.DBStates.LastTime = s.GetTimestamp()
-	dbstate := s.AddDBState(false, // Not a new block; got it from the network
-		dbstatemsg.DirectoryBlock,
-		dbstatemsg.AdminBlock,
-		dbstatemsg.FactoidBlock,
-		dbstatemsg.EntryCreditBlock)
-	dbstate.ReadyToSave = true
+	if s.GetHighestRecordedBlock() <= dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight() {
+		s.DBStates.LastTime = s.GetTimestamp()
+		dbstate := s.AddDBState(false, // Not a new block; got it from the network
+			dbstatemsg.DirectoryBlock,
+			dbstatemsg.AdminBlock,
+			dbstatemsg.FactoidBlock,
+			dbstatemsg.EntryCreditBlock)
+		dbstate.ReadyToSave = true
 
-	s.DBStateReplyCnt++
-}
-
-func (s *State) FollowerExecuteAddData(msg interfaces.IMsg) {
-	dataResponseMsg, ok := msg.(*messages.DataResponse)
-	if !ok {
-		return
-	}
-
-	switch dataResponseMsg.DataType {
-	case 0: // DataType = entry
-		entry := dataResponseMsg.DataObject.(interfaces.IEBEntry)
-
-		if entry.GetHash().IsSameAs(dataResponseMsg.DataHash) {
-
-			s.DB.InsertEntry(entry)
-			delete(s.DataRequests, entry.GetHash().Fixed())
-		}
-	case 1: // DataType = eblock
-		eblock := dataResponseMsg.DataObject.(interfaces.IEntryBlock)
-		dataHash, _ := eblock.KeyMR()
-		if dataHash.IsSameAs(dataResponseMsg.DataHash) {
-			s.addEBlock(eblock)
-		}
-	default:
-		s.networkInvalidMsgQueue <- msg
+		s.DBStateReplyCnt++
+	} else {
+		s.DBStateFailsCnt++
 	}
 }
 
@@ -295,9 +287,8 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 		nowSecond := s.GetTimestamp().GetTimeSeconds()
 		//nowSecond := negotiation.Timestamp.GetTimeSeconds()
 		vmAtFault := pl.VMs[negotiation.VMIndex]
-		if vmAtFault.isFaulting {
-			//vmAtFault.isNegotiating = true
-
+		//if vmAtFault.isFaulting {
+		if vmAtFault.faultHeight >= 0 {
 			_, negotiationInitiated := pl.NegotiationInit[negotiation.ServerID.String()]
 			if !negotiationInitiated {
 				pl.NegotiationInit[negotiation.ServerID.String()] = nowSecond
@@ -353,7 +344,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	if pl == nil {
 		return
 	}
-	if !pl.VMs[sf.VMIndex].isFaulting {
+	//if !pl.VMs[sf.VMIndex].isFaulting {
+	if pl.VMs[sf.VMIndex].faultHeight < 0 {
 		return
 	}
 
@@ -434,6 +426,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 								fullFault.Sign(s.serverPrivKey)
 								s.NetworkOutMsgQueue() <- fullFault
 								fullFault.FollowerExecute(s)
+								pl.AmINegotiator = false
 								delete(s.FaultMap, sf.GetCoreHash().Fixed())
 							}
 						}
@@ -457,18 +450,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 					s.InMsgQueue() <- matchNomination
 				}
 			}
-		} /* else {
-			pl.AlreadyNominated[sf.ServerID.String()] = make(map[string]int64)
-
-			pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
-			matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-			if matchNomination != nil {
-				fmt.Println("JUSTIN .", s.FactomNodeName, "MATCHING NOMINATION SFAULT:", sf.ServerID.String()[:10], "AUD:", sf.AuditServerID.String()[:10])
-				matchNomination.Sign(s.serverPrivKey)
-				s.NetworkOutMsgQueue() <- matchNomination
-				s.InMsgQueue() <- matchNomination
-			}
-		}*/
+		}
 	} else {
 		if s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 			// I am the audit server being promoted
@@ -511,7 +493,8 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 				if foundVM, vmindex := relevantPL.GetVirtualServers(s.CurrentMinute, theAuditReplacement.GetChainID()); foundVM {
 					//fmt.Println("JUSTIN", s.FactomNodeName, "FF SETTING ISF FALSE", theAuditReplacement.GetChainID().String()[:10])
-					relevantPL.VMs[vmindex].isFaulting = false
+					//relevantPL.VMs[vmindex].isFaulting = false
+					relevantPL.VMs[vmindex].faultHeight = -1
 					relevantPL.VMs[vmindex].faultingEOM = 0
 				}
 				break
@@ -540,10 +523,143 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
-	ackResp := mmr.AckResponse.(*messages.Ack)
-	pl := s.ProcessLists.Get(ackResp.DBHeight)
-	pl.AddToProcessList(ackResp, mmr.MsgResponse)
+	ack := mmr.AckResponse.(*messages.Ack)
+	msg := mmr.MsgResponse
+	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
+	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+	if okr {
+		ack.FollowerExecute(s)
+	}
+	if okm {
+		msg.FollowerExecute(s)
+	}
+	if !okr && !okm {
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		pl.AddToProcessList(ack, msg)
+	}
 	s.MissingAnsCnt++
+}
+
+func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
+	msg, ok := m.(*messages.DataResponse)
+	if !ok {
+		return
+	}
+
+	//fmt.Println("JUSTIN", s.FactomNodeName, "FOLLEX DR:", msg.DataType, msg.DataHash.String())
+
+	switch msg.DataType {
+	case 1: // Data is an entryBlock
+		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
+		if !ok {
+			//fmt.Println("JUSTIN", s.FactomNodeName, "EBLOCK NOT OK", msg.DataHash.String())
+			return
+		}
+
+		ebKeyMR, _ := eblock.KeyMR()
+		if ebKeyMR == nil {
+			//fmt.Println("JUSTIN", s.FactomNodeName, "EBKMR NIL", msg.DataHash.String(), ebKeyMR.String())
+			return
+		}
+
+		for i, missing := range s.MissingEntryBlocks {
+			eb := missing.ebhash
+			if !eb.IsSameAs(ebKeyMR) {
+				continue
+			}
+			//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND EB", msg.DataHash.String())
+			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
+			s.DB.ProcessEBlockBatch(eblock, true)
+
+			s.DB.ProcessEBlockBatch(eblock, true)
+
+			for _, entryhash := range eblock.GetEntryHashes() {
+				if entryhash.IsMinuteMarker() {
+					continue
+				}
+				e, _ := s.DB.FetchEntry(entryhash)
+				if e == nil {
+					/*if s.EntryBlockDBHeightComplete >= eblock.GetDatabaseHeight() {
+						s.EntryBlockDBHeightComplete = eblock.GetDatabaseHeight() - 1
+						if s.EntryBlockDBHeightComplete < 0 {
+							s.EntryBlockDBHeightComplete = 0
+						}
+					}*/
+					var v struct {
+						ebhash    interfaces.IHash
+						entryhash interfaces.IHash
+						dbheight  uint32
+					}
+
+					v.dbheight = eblock.GetHeader().GetDBHeight()
+					v.entryhash = entryhash
+					v.ebhash = eb
+					//fmt.Println("JUSTIN", s.FactomNodeName, "FROM EB APP ", entryhash.String())
+
+					s.MissingEntries = append(s.MissingEntries, v)
+				}
+			}
+
+			mindb := s.GetDBHeightComplete() + 1
+			for _, missingleft := range s.MissingEntryBlocks {
+				if missingleft.dbheight <= mindb {
+					mindb = missingleft.dbheight
+				}
+			}
+			s.EntryBlockDBHeightComplete = mindb - 1
+			//fmt.Println("JUSTIN", s.FactomNodeName, "NOW EBDHBC IS", s.EntryBlockDBHeightComplete)
+			break
+		}
+
+	case 0: // Data is an entry
+		entry, ok := msg.DataObject.(interfaces.IEBEntry)
+		if !ok {
+			//fmt.Println("JUSTIN", s.FactomNodeName, "NOT OK ENTRY", msg.DataHash.String())
+			return
+		}
+
+		for i, missing := range s.MissingEntries {
+			e := missing.entryhash
+			//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND ENT", msg.DataHash.String())
+
+			if e.IsSameAs(entry.GetHash()) {
+				//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND ENT AND MATCH", msg.DataHash.String())
+				s.DB.InsertEntry(entry)
+				s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
+				break
+			}
+		}
+	}
+}
+
+func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+	m := msg.(*messages.MissingMsg)
+	if s.DBSig && m.ProcessListHeight == 0 {
+		// Make sure the request is reasonable, and that we are asking this of the first
+		// entry in the VM... Then we need to issue a DBSig.
+		pl := s.ProcessLists.Get(m.DBHeight)
+		if pl != nil {
+			if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
+				s.SendDBSig(m.DBHeight, m.VMIndex)
+			}
+		} else {
+			return
+		}
+	}
+
+	missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
+
+	if missingmsg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
+		msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
+		msgResponse.SetOrigin(m.GetOrigin())
+		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+		s.NetworkOutMsgQueue() <- msgResponse
+		s.IncMissingMsgReply()
+	} else {
+		s.MissingIgnoreCnt++
+	}
+
+	return
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
@@ -609,7 +725,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
 	commit := s.NextCommit(re.Entry.GetHash())
 	if commit == nil {
-		m.FollowerExecute(s)
+		s.Holding[re.GetMsgHash().Fixed()] = m
 		return
 	}
 	s.PutCommit(re.Entry.GetHash(), commit)
@@ -807,6 +923,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				panic(err)
 			}
 			dbs.LeaderExecute(s)
+			vm.Signed = true
 		}
 	}
 }
@@ -871,8 +988,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		vm.Synced = true
 		return false
 	}
-
-	//vm.missingTime = ask(pl, msg.GetVMIndex(), 1, vm, vm.missingTime, vm.Height, 6)
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
@@ -1172,25 +1287,32 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	return plh
 }
 
-func (s *State) GetF(adr [32]byte) int64 {
-	s.FactoidBalancesTMutex.Lock()
-	defer s.FactoidBalancesTMutex.Unlock()
-
-	if v, ok := s.FactoidBalancesT[adr]; !ok {
+func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
+	var ok bool
+	if rt {
+		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl.FactoidBalancesTMutex.Lock()
+		defer pl.FactoidBalancesTMutex.Unlock()
+		v, ok = pl.FactoidBalancesT[adr]
+	}
+	if !ok {
 		s.FactoidBalancesPMutex.Lock()
 		defer s.FactoidBalancesPMutex.Unlock()
 		v = s.FactoidBalancesP[adr]
-		return v
-	} else {
-		return v
 	}
+
+	return v
+
 }
 
+// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
-		s.FactoidBalancesTMutex.Lock()
-		defer s.FactoidBalancesTMutex.Unlock()
-		s.FactoidBalancesT[adr] = v
+		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl.FactoidBalancesTMutex.Lock()
+		defer pl.FactoidBalancesTMutex.Unlock()
+
+		pl.FactoidBalancesT[adr] = v
 	} else {
 		s.FactoidBalancesPMutex.Lock()
 		defer s.FactoidBalancesPMutex.Unlock()
@@ -1198,25 +1320,31 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	}
 }
 
-func (s *State) GetE(adr [32]byte) int64 {
-	s.ECBalancesTMutex.Lock()
-	defer s.ECBalancesTMutex.Unlock()
-
-	if v, ok := s.ECBalancesT[adr]; !ok {
+func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
+	var ok bool
+	if rt {
+		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl.ECBalancesTMutex.Lock()
+		defer pl.ECBalancesTMutex.Unlock()
+		v, ok = pl.ECBalancesT[adr]
+	}
+	if !ok {
 		s.ECBalancesPMutex.Lock()
 		defer s.ECBalancesPMutex.Unlock()
 		v = s.ECBalancesP[adr]
-		return v
-	} else {
-		return v
 	}
+	return v
+
 }
 
+// If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
-		s.ECBalancesTMutex.Lock()
-		defer s.ECBalancesTMutex.Unlock()
-		s.ECBalancesT[adr] = v
+		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl.ECBalancesTMutex.Lock()
+		defer pl.ECBalancesTMutex.Unlock()
+
+		pl.ECBalancesT[adr] = v
 	} else {
 		s.ECBalancesPMutex.Lock()
 		defer s.ECBalancesPMutex.Unlock()
@@ -1256,7 +1384,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
-func (s *State) NewAck(msg interfaces.IMsg) (iack interfaces.IMsg) {
+func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 
 	vmIndex := msg.GetVMIndex()
 

@@ -440,7 +440,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
 	if pl != nil {
 		for _, eb := range pl.NewEBlocks {
-			if err := list.State.DB.ProcessEBlockMultiBatch(eb, false); err != nil {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
 				panic(err.Error())
 			}
 
