@@ -258,6 +258,10 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
+	if len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures) < majority {
+		return false
+	}
+
 	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
 		if i < majority {
 			d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
