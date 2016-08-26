@@ -178,3 +178,20 @@ const (
 	IDENTITY_PENDING_FULL                        // 6
 	IDENTITY_PENDING                             // 7
 )
+
+//---------------------------------------------------------------------
+// Checkpoints Directory Block KeyMR
+//---------------------------------------------------------------------
+var CheckPoints = map[uint32]string{
+	2:   "5328d4bbe7ea6efc31cf7bfc45192378454cf4e1908c56a35e6a64456a691751",
+	48:  "471ef865fecf2b1a98b2e1f87434cc65a6672cc9c8fe19ab2471112431f54b36",
+	100: "cde346e7ed87957edfd68c432c984f35596f29c7d23de6f279351cddecd5dc66",
+	150: "d029c37c0679bfc1cdf1096237f320ae6535def5f64aeffc5105554013aa9e23",
+	198: "534a4188b92155c55f9626bbf4b02721468f6237e467f9c550c03eaafc913003",
+	248: "37d3801c4079012c989bef9d35cf608773855197acd63f5a253bcfebf74b87d8",
+	300: "4757d31b255e789435c807cb76f5de6cd6590a39a1e5bcfa576d0290eb52dd34",
+	348: "86d2159871316f4868a81586f44b742d5fbe99e2053237ff6575df67657639af",
+	400: "a3c4336ff44989717664233892edfc018c579d868699d9db29f188dbae3a1f3f",
+	448: "abc0048b027735c87761b3b99d69e12e1b6434ff3f2c090b23a9738d440fa9b2",
+	480: "ed0da6e9879495d15425f693c2fb120192298aeaa92772fd9f963b7eb69b1bb6",
+}

@@ -25,20 +25,25 @@ var _ = fmt.Print
 var _ = log.Print
 
 type Request struct {
-	vmIndex  int
-	vmheight uint32
-	dbheight uint32
-	sent     int64
+	vmIndex  int    // VM Index
+	vmheight uint32 // Height in the Process List where we are missing a message
+	wait     int64  // How long to wait before we actually request
+	sent     int64  // Last time sent (zero means none have been sent)
 }
 
-func (r *Request) hash() interfaces.IHash {
-	hash := primitives.NewHash([]byte(fmt.Sprintf("%d %d %d", r.vmIndex, r.vmheight, r.dbheight)))
-	return hash
+func (r *Request) key() string {
+	str := fmt.Sprintf("%d %d %d", r.vmIndex, r.vmheight, r.wait)
+	return str
 }
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
-	good     bool   // Means we have the previous blocks, so we can process!
+
+	// Temporary balances from updating transactions in real time.
+	FactoidBalancesT      map[[32]byte]int64
+	FactoidBalancesTMutex sync.Mutex
+	ECBalancesT           map[[32]byte]int64
+	ECBalancesTMutex      sync.Mutex
 
 	// List of messsages that came in before the previous block was built
 	// We can not completely validate these messages until the previous block
@@ -83,6 +88,13 @@ type ProcessList struct {
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 	// Negotiation tracker variables
+	AmINegotiator bool
+	// This is the index of the VM we are negotiating for, if we are
+	// in fact a Negotiator
+	NegotiatorVMIndex int
+	// AmINegotiator is just used for displaying an "N" next to a node
+	// that is the assigned negotiator for a particular processList
+	// height
 	//FaultTimes map[string]int64
 	// FaultTimes keeps track of when a particular ServerID initially
 	// deserved a fault, so that we can time out the negotiation process
@@ -106,7 +118,7 @@ type ProcessList struct {
 	// DB Sigs
 	DBSignatures []DBSig
 
-	Requests map[[32]byte]*Request
+	Requests map[string]*Request
 }
 
 // Data needed to add to admin block
@@ -123,15 +135,12 @@ type VM struct {
 	LeaderMinute   int               // Where the leader is in acknowledging messages
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	Synced         bool              // Is this VM synced yet?
-	missingTime    int64             // How long we have been waiting for a missing message
-	missingEOM     int64             // Ask for EOM because it is late
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 	Signed         bool              // We have signed the previous block.
-	isFaulting     bool
-	//isNegotiating  bool
+	//isFaulting     bool
+	faultHeight int
 	whenFaulted int64
-	faultWait   int64
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -328,13 +337,15 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) MakeMap() {
 	n := len(p.FedServers)
-	indx := int(p.DBHeight*131) % n
+	if n > 0 {
+		indx := int(p.DBHeight*131) % n
 
-	for i := 0; i < 10; i++ {
-		indx = (indx + 1) % n
-		for j := 0; j < len(p.FedServers); j++ {
-			p.ServerMap[i][j] = indx
+		for i := 0; i < 10; i++ {
 			indx = (indx + 1) % n
+			for j := 0; j < len(p.FedServers); j++ {
+				p.ServerMap[i][j] = indx
+				indx = (indx + 1) % n
+			}
 		}
 	}
 }
@@ -524,42 +535,47 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func ask(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
-	now := time.Now().UnixNano() / 100000000 // Tenth of seconds
-	//fmt.Println("ASK", p.State.FactomNodeName, vmIndex, now, thetime, waitSeconds)
-	if thetime == 0 {
-		thetime = now / 10
+func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
+	now := p.State.GetTimestamp().GetTimeMilli()
+
+	r := new(Request)
+	r.wait = waitSeconds
+	r.vmIndex = vmIndex
+	r.vmheight = uint32(height)
+
+	if p.Requests[r.key()] == nil {
+		r.sent = now
+		p.Requests[r.key()] = r
+		//fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
+		//	p.State.FactomNodeName,
+		//	p.DBHeight,
+		//	r.vmIndex,
+		//	r.vmheight,
+		//	r.wait,
+		//	now-r.sent,
+		//	waitSeconds*1000+1000)
+	} else {
+		r = p.Requests[r.key()]
 	}
 
-	if now-(thetime*10) >= waitSeconds*10+5 {
-		//fmt.Println("JUSTIN", p.State.FactomNodeName, "ASK tag:", tag, "wait:", waitSeconds, "now:", now, "thetim:", thetime, "h:", height)
-
-		r := new(Request)
-		r.dbheight = p.DBHeight
-		r.vmIndex = vmIndex
-		r.vmheight = uint32(height)
-
-		if p.Requests[r.hash().Fixed()] == nil {
-			r.sent = now - waitSeconds*10 + 5
-			p.Requests[r.hash().Fixed()] = r
-			fmt.Println("New Request ", r.dbheight, r.vmIndex, r.vmheight)
+	if now-r.sent >= waitSeconds*1000+1000 {
+		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
+		if missingMsgRequest != nil {
+			//fmt.Printf("dddd *Request --> %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
+			//	p.State.FactomNodeName,
+			//	p.DBHeight,
+			//	r.vmIndex,
+			//	r.vmheight,
+			//	r.wait,
+			//	now-r.sent,
+			//	waitSeconds*1000+1000)
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+			p.State.NetworkOutMsgQueue() <- missingMsgRequest
+			p.State.MissingAskCnt++
 		}
-
-		r = p.Requests[r.hash().Fixed()]
-
-		if now-r.sent >= 1 {
-			missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, r.dbheight, r.vmheight)
-			if missingMsgRequest != nil {
-				fmt.Println("dddd ASK ", p.State.FactomNodeName, now, r.sent, 100, missingMsgRequest.String())
-				p.State.NetworkOutMsgQueue() <- missingMsgRequest
-				p.State.MissingAskCnt++
-			}
-			r.sent = now + 1
-		}
-		thetime = now / 10
+		r.sent = now
 	}
-
-	return thetime
 }
 
 func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
@@ -604,12 +620,15 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
 
-		if !vm.isFaulting {
+		if vm.faultHeight < 0 {
 			vm.whenFaulted = now
-			//vm.faultWait = now
-			//p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
 		}
-		vm.isFaulting = true
+		//if !vm.isFaulting {
+		//	vm.whenFaulted = now
+		//p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
+		//}
+		//vm.isFaulting = true
+		vm.faultHeight = height
 
 		responsibleFaulterIdx := vmIndex + 1
 		if responsibleFaulterIdx >= len(p.FedServers) {
@@ -618,6 +637,8 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 
 		if p.State.Leader {
 			if p.State.LeaderVMIndex == responsibleFaulterIdx {
+				p.NegotiatorVMIndex = vmIndex
+				p.AmINegotiator = true
 				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
 				if negotiationMsg != nil {
 					negotiationMsg.Sign(p.State.serverPrivKey)
@@ -633,10 +654,10 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		if now-vm.whenFaulted > 20 {
 			_, negotiationInitiated := p.NegotiationInit[id.String()]
 			if !negotiationInitiated {
-				if !nextVM.isFaulting {
-					//nextVM.isFaulting = true
-					//nextVM.whenFaulted = now
-					//nextVM.faultWait = now
+				//if !nextVM.isFaulting {
+				//nextVM.isFaulting = true
+				//nextVM.whenFaulted = now
+				if nextVM.faultHeight < 0 {
 					for pledger, pledgeSlot := range p.PledgeMap {
 						if pledgeSlot == id.String() {
 							delete(p.PledgeMap, pledger)
@@ -644,25 +665,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 					}
 				}
 				nextVM.faultingEOM = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultingEOM, height, 2)
-			} /* else if now-vm.whenFaulted > 150 {
-				responsibleFaulterIdx++
-				if responsibleFaulterIdx >= len(p.FedServers) {
-					responsibleFaulterIdx = 0
-				}
-
-				if p.State.Leader {
-					if p.State.LeaderVMIndex == responsibleFaulterIdx {
-						fmt.Println("JUSTIN - ", p.State.FactomNodeName, "INITIATING NEGOTIATION FOR", vmIndex, "WHICH IS", id.String()[:10])
-						negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-						if negotiationMsg != nil {
-							negotiationMsg.Sign(p.State.serverPrivKey)
-							p.State.NetworkOutMsgQueue() <- negotiationMsg
-							p.State.InMsgQueue() <- negotiationMsg
-						}
-						thetime = now
-					}
-				}
-			}*/
+			}
 		}
 
 		thetime = now
@@ -700,28 +703,33 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		} else {
 			if !vm.Synced {
 				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List), 1)
-			} else {
-
 			}
 		}
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			vm.missingEOM = ask(p, i, 3, vm, vm.missingEOM, vm.Height, 1)
-		} else {
-			vm.missingEOM = 0
+			p.Ask(i, vm.Height, 1, 1)
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
 		if vm.Height == len(vm.List) {
-			vm.heartBeat = ask(p, i, 10, vm, vm.heartBeat, len(vm.List), 2)
-		} else {
-			vm.heartBeat = 0
+			p.Ask(i, vm.Height, 10, 2)
 		}
+
+		if vm.Height > vm.faultHeight {
+			if p.AmINegotiator && i == p.NegotiatorVMIndex {
+				p.AmINegotiator = false
+			}
+			vm.faultHeight = -1
+			leaderMin := getLeaderMin(p)
+			myIndex := p.ServerMap[leaderMin][i]
+			p.FedServers[myIndex].SetOnline(true)
+		}
+
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 3)
+				p.Ask(i, j, 0, 3)
 				break VMListLoop
 			}
 
@@ -739,7 +747,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.List[j] = nil
 					vm.ListAck[j] = nil
 					// Ask for the correct ack if this one is no good.
-					vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 4)
+					p.Ask(i, j, 0, 4)
 					break VMListLoop
 				}
 
@@ -760,29 +768,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 					vm.List[j] = nil
-					vm.missingTime = ask(p, i, 0, vm, vm.missingTime, j, 5)
+					p.Ask(i, j, 0, 5)
 					break VMListLoop
 				}
 			}
 
 			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 				vm.heartBeat = 0
-				vm.missingTime = 0
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
-
-				if vm.isFaulting {
-					//fmt.Println("JUSTIN", state.FactomNodeName, "NEVER MIND ON", i)
-					vm.isFaulting = false
-					vm.faultingEOM = 0
-					/*l := vm.LeaderMinute
-					if l == 10 {
-						l = 9
-					}
-					fedServ := p.FedServers[p.ServerMap[l][i]]
-					delete(p.FaultTimes, fedServ.GetChainID().String())*/
-					//TODO (MAYBE): clear PledgeMap entry for this
-				}
 			} else {
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
@@ -792,6 +786,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
+	if _, ok := m.(*messages.MissingMsg); ok {
+		panic("This shouldn't happen")
+	}
 
 	toss := func(hint string) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, hint)
@@ -965,7 +963,10 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
-	pl.Requests = make(map[[32]byte]*Request)
+	pl.Requests = make(map[string]*Request)
+
+	pl.FactoidBalancesT = map[[32]byte]int64{}
+	pl.ECBalancesT = map[[32]byte]int64{}
 
 	if previous != nil {
 		pl.FedServers = append(pl.FedServers, previous.FedServers...)
@@ -990,6 +991,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i] = new(VM)
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true
+		pl.VMs[i].faultHeight = -1
 	}
 
 	pl.DBHeight = dbheight
@@ -1008,6 +1010,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.commitslock = new(sync.Mutex)
 
 	//pl.FaultTimes = make(map[string]int64)
+	pl.AmINegotiator = false
 	pl.NegotiationInit = make(map[string]int64)
 	pl.AlreadyNominated = make(map[string]map[string]int64)
 	pl.PledgeMap = make(map[string]string)

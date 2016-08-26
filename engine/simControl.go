@@ -115,7 +115,7 @@ func SimControl(listenTo int) {
 				summary++
 				if summary%2 == 1 {
 					os.Stderr.WriteString("--Print Summary On--\n")
-					go printSummary(&summary, summary, &listenTo)
+					go printSummary(&summary, summary, &listenTo, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
@@ -131,7 +131,7 @@ func SimControl(listenTo int) {
 				rotate++
 				if rotate%2 == 1 {
 					os.Stderr.WriteString("--Rotate the WSAPI around the nodes--\n")
-					go rotateWSAPI(&rotate, rotate)
+					go rotateWSAPI(&rotate, rotate, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Stop Rotation of the WSAPI around the nodes.  Now --\n")
 					wsapi.SetState(fnodes[wsapiNode].State)
@@ -529,7 +529,7 @@ func SimControl(listenTo int) {
 					shadSk := shad(fullSk)
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
-					os.Stderr.WriteString(fmt.Sprintf("Identity of Current Node Information\n"))
+					os.Stderr.WriteString(fmt.Sprint("Identity of Current Node Information\n"))
 					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.IdentityChainID.String()))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))
@@ -740,18 +740,37 @@ func returnStatString(i int) string {
 
 // Allows us to scatter transactions across all nodes.
 //
-func rotateWSAPI(rotate *int, value int) {
+func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 	for *rotate == value { // Only if true
-		fnode := fnodes[rand.Int()%len(fnodes)]
-
+		*wsapiNode = rand.Int() % len(fnodes)
+		fnode := fnodes[*wsapiNode]
 		wsapi.SetState(fnode.State)
-		os.Stderr.WriteString("\rAPI now directed to " + fnode.State.GetFactomNodeName() + "   ")
-
 		time.Sleep(3 * time.Second)
 	}
 }
 
-func printSummary(summary *int, value int, listenTo *int) {
+func summaryHeader() string {
+	str := fmt.Sprintf(" %7s %12s %12s %4s %11s %9s %3s %5s %4s %20s %4s %9s %7s %10s %9s\n",
+		"Node",
+		"ID   ",
+		" ",
+		"Drop",
+		"DB ",
+		"PL  ",
+		" ",
+		"VMMin",
+		"CMin",
+		"DBState(ask/ans/rply/fail)",
+		"Msg",
+		"   Resend",
+		"Expire ",
+		"Fct/EC/E",
+		"tps t/i")
+
+	return str
+}
+
+func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	out := ""
 
 	if *listenTo < 0 || *listenTo >= len(fnodes) {
@@ -761,14 +780,24 @@ func printSummary(summary *int, value int, listenTo *int) {
 	for *summary == value {
 		prt := "===SummaryStart===\n"
 		for _, f := range fnodes {
-			f.State.Status = true
+			f.State.Status = 1
 		}
 
 		time.Sleep(time.Second)
 
-		for _, f := range fnodes {
+		prt = prt + summaryHeader()
 
-			prt = prt + fmt.Sprintf("%s \n", f.State.ShortString())
+		for i, f := range fnodes {
+			in := ""
+			api := ""
+			if i == *listenTo {
+				in = "f"
+			}
+			if i == *wsapiNode {
+				api = "w"
+			}
+
+			prt = prt + fmt.Sprintf("%1s%1s %s \n", in, api, f.State.ShortString())
 		}
 
 		fmtstr := "%22s%s\n"
@@ -863,6 +892,8 @@ func printSummary(summary *int, value int, listenTo *int) {
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
 
+		prt = prt + faultSummary()
+
 		prt = prt + "===SummaryEnd===\n"
 
 		if prt != out {
@@ -872,6 +903,40 @@ func printSummary(summary *int, value int, listenTo *int) {
 
 		time.Sleep(time.Second)
 	}
+}
+
+func faultSummary() string {
+	prt := ""
+	headerTitle := "Faults"
+	headerLabel := "Fed   "
+	currentlyFaulted := "."
+
+	for i, fnode := range fnodes {
+		b := fnode.State.GetHighestRecordedBlock()
+		pl := fnode.State.ProcessLists.Get(b)
+		if pl != nil {
+			if i == 0 {
+				prt = prt + fmt.Sprintf("%s\n", headerTitle)
+				prt = prt + fmt.Sprintf("%7s", headerLabel)
+				for headerNum, _ := range pl.FedServers {
+					prt = prt + fmt.Sprintf(" %3d", headerNum)
+				}
+				prt = prt + fmt.Sprintf("\n")
+			}
+			if fnode.State.Leader {
+				prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
+				for _, fed := range pl.FedServers {
+					currentlyFaulted = "."
+					if !fed.IsOnline() {
+						currentlyFaulted = "F"
+					}
+					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
+				}
+				prt = prt + fmt.Sprintf("\n")
+			}
+		}
+	}
+	return prt
 }
 
 func printProcessList(watchPL *int, value int, listenTo *int) {

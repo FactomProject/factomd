@@ -233,7 +233,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
-			f.State.Status = true
+			f.State.Status = 1
 		}
 		time.Sleep(100 * time.Millisecond)
 		for _, f := range fnodes {
