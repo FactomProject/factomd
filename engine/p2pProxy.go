@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/p2p"
@@ -74,7 +75,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if !msg.IsPeer2Peer() {
 		message.peerHash = ""
 	} else {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), msg.GetNetworkOrigin(), msg)
+		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), msg.GetNetworkOrigin(), msg.String())
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	return nil
@@ -151,13 +152,17 @@ type messageLog struct {
 	received bool   // true if logging a recieved message, false if sending
 	time     int64
 	target   string // the id of the targetted node (value may only have local meaning)
+	mtype    byte   /// message type (types defined in constants.go)
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 	if 1 < p.debugMode {
+		// if constants.DBSTATE_MSG == msg.Type() {
+		// fmt.Printf("AppMsgLogging: \n Type: %s \n Network Origin: %s \n Message: %s", msg.Type(), msg.GetNetworkOrigin(), msg.String())
+		// }
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 		time := time.Now().Unix()
-		ml := messageLog{hash: hash, received: received, time: time}
+		ml := messageLog{hash: hash, received: received, time: time, mtype: msg.Type()}
 		p2p.BlockFreeChannelSend(p.logging, ml)
 	}
 }
@@ -179,7 +184,7 @@ func (p *P2PProxy) ManageLogging() {
 		case messageLog:
 			message := item.(messageLog)
 			elapsedMinutes := int(time.Since(start).Minutes())
-			line := fmt.Sprintf("%s, %t, %d, %s, %d\n", message.hash, message.received, message.time, message.target, elapsedMinutes)
+			line := fmt.Sprintf("%d, %s, %t, %d, %s, %d\n", message.mtype, message.hash, message.received, message.time, message.target, elapsedMinutes)
 			_, err := p.logWriter.Write([]byte(line))
 			if nil != err {
 				fmt.Printf("Error writing to logging file. %v", err)
@@ -259,3 +264,44 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Println("-------------------------------------------------------------------------------")
 	}
 }
+
+// const (
+// 	EOM_MSG                       byte = iota // 0
+// 	ACK_MSG                                   // 1
+// 	FED_SERVER_FAULT_MSG                      // 2
+// 	AUDIT_SERVER_FAULT_MSG                    // 3
+// 	FULL_SERVER_FAULT_MSG                     // 4
+// 	COMMIT_CHAIN_MSG                          // 5
+// 	COMMIT_ENTRY_MSG                          // 6
+// 	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
+// 	EOM_TIMEOUT_MSG                           // 8
+// 	FACTOID_TRANSACTION_MSG                   // 9
+// 	HEARTBEAT_MSG                             // 10
+// 	INVALID_ACK_MSG                           // 11
+// 	INVALID_DIRECTORY_BLOCK_MSG               // 12
+
+// 	REVEAL_ENTRY_MSG      // 13
+// 	REQUEST_BLOCK_MSG     // 14
+// 	SIGNATURE_TIMEOUT_MSG // 15
+// 	MISSING_MSG           // 16
+// 	MISSING_DATA          // 17
+// 	DATA_RESPONSE         // 18
+// 	MISSING_MSG_RESPONSE  //19
+
+// 	DBSTATE_MSG          // 20
+// 	DBSTATE_MISSING_MSG  // 21
+// 	ADDSERVER_MSG        // 22
+// 	CHANGESERVER_KEY_MSG // 23
+// 	REMOVESERVER_MSG     // 24
+// 	NEGOTIATION_MSG      // 25
+// )
+
+// var LoggingLevels = map[uint8]string{
+// 	Silence:     "Silence",     // Say nothing. A log output with level "Silence" is ALWAYS printed.
+// 	Significant: "Significant", // Significant things that should be printed, but aren't necessary errors.
+// 	Fatal:       "Fatal",       // Log only fatal errors (fatal errors are always logged even on "Silence")
+// 	Errors:      "Errors",      // Log all errors (many errors may be expected)
+// 	Notes:       "Notes",       // Log notifications, usually significant events
+// 	Debugging:   "Debugging",   // Log diagnostic info, pretty low level
+// 	Verbose:     "Verbose",     // Log everything
+// }
