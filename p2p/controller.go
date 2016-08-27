@@ -364,11 +364,13 @@ func (c *Controller) route() {
 		note("ctrlr", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
 		if "" != parcel.Header.TargetPeer { // directed send
 			dot("&&h\n")
-			note("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
 			connection, present := c.connections[parcel.Header.TargetPeer]
 			if present { // We're still connected to the target
+				significant("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
 				dot("&&i\n")
 				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+			} else {
+				significant("ctrlr", "Controller.route() FAILED! Target not present in connections! Directed send to %+v", parcel.Header.TargetPeer)
 			}
 		} else { // broadcast
 			dot("&&j\n")
