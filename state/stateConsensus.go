@@ -662,6 +662,21 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	return
 }
 
+func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
+	s.Holding[m.GetMsgHash().Fixed()] = m
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	if ack != nil {
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
+
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		pl.AddToProcessList(ack, m)
+		msg := m.(*messages.RevealEntryMsg)
+		s.NextCommit(msg.Entry.GetHash())
+	}
+
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
@@ -728,7 +743,6 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		s.Holding[re.GetMsgHash().Fixed()] = m
 		return
 	}
-	s.PutCommit(re.Entry.GetHash(), commit)
 	s.LeaderExecute(m)
 }
 
@@ -831,8 +845,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
-
-	s.NextCommit(myhash)
 
 	eb := s.GetNewEBlocks(dbheight, chainID)
 	eb_db := s.GetNewEBlocks(dbheight-1, chainID)

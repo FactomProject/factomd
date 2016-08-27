@@ -22,9 +22,8 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
-	Sent          interfaces.Timestamp // Time message was placed in the Network Output Queue.
-	resend        int64                // Time to resend (milliseconds)
-	expire        int64                // Time to expire (milliseconds)
+	resend        int64 // Time to resend (milliseconds)
+	expire        int64 // Time to expire (milliseconds)
 
 	Stalled     bool // This message is currently stalled
 	MarkInvalid bool
@@ -32,7 +31,6 @@ type MessageBase struct {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
-	m.Sent = state.GetTimestamp()
 	state.NetworkOutMsgQueue() <- msg
 }
 

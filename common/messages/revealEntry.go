@@ -143,7 +143,7 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteRevealEntry(m)
 }
 
 func (e *RevealEntryMsg) JSONByte() ([]byte, error) {

@@ -156,6 +156,8 @@ type State struct {
 	NetStateOff     bool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
 	FactoidTrans    int
+	ECCommits       int
+	ECommits        int
 	NewEntryChains  int
 	NewEntries      int
 	LeaderTimestamp interfaces.Timestamp
@@ -355,6 +357,14 @@ func (s *State) IncMissingMsgReply() {
 
 func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
+}
+
+func (s *State) IncECCommits() {
+	s.ECCommits++
+}
+
+func (s *State) IncECommits() {
+	s.ECommits++
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
@@ -1257,13 +1267,6 @@ func (s *State) ShortString() string {
 	return s.serverPrt
 }
 
-func (s *State) SetString2() {
-	//if !s.Status2 {
-	//	return
-	//}
-
-}
-
 func (s *State) SetString() {
 	switch s.Status {
 	case 0:
@@ -1275,6 +1278,28 @@ func (s *State) SetString() {
 	}
 
 	s.Status = 0
+}
+
+func (s *State) SummaryHeader() string {
+	str := fmt.Sprintf(" %7s %12s %12s %4s %11s %9s %3s %5s %4s %20s %4s %9s %7s %8s %15s %9s\n",
+		"Node",
+		"ID   ",
+		" ",
+		"Drop",
+		"DB ",
+		"PL  ",
+		" ",
+		"VMMin",
+		"CMin",
+		"DBState(ask/ans/rply/fail)",
+		"Msg",
+		"   Resend",
+		"Expire ",
+		"Fct/EC/E",
+		"Chains/Entries",
+		"tps t/i")
+
+	return str
 }
 
 func (s *State) SetStringConsensus() {
@@ -1389,11 +1414,13 @@ func (s *State) SetStringQueues() {
 		missing)
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
+	apis := fmt.Sprintf("%d/%d", s.ECCommits, s.ECommits)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
-	str = str + fmt.Sprintf(" %5d %5d %12s %11s",
+	str = str + fmt.Sprintf(" %5d %5d %12s %15s %11s",
 		s.ResendCnt,
 		s.ExpireCnt,
 		trans,
+		apis,
 		stps)
 
 	s.serverPrt = str

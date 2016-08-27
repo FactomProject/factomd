@@ -94,6 +94,9 @@ type IState interface {
 
 	IncEntryChains()
 	IncEntries()
+	IncECCommits()
+	IncECommits()
+
 	// Server Configuration
 	// ====================
 
@@ -141,16 +144,17 @@ type IState interface {
 	// Height of the block where the sig goes, and the vmIndex missing the sig
 	SendDBSig(dbheight uint32, vmIndex int) // If a Leader, we have to send a DBSig out for the previous block
 
-	FollowerExecuteMsg(m IMsg)          // Messages that go into the process list
-	FollowerExecuteEOM(m IMsg)          // Messages that go into the process list
-	FollowerExecuteAck(m IMsg)          // Ack Msg calls this function.
-	FollowerExecuteDBState(IMsg)        // Add the given DBState to this server
-	FollowerExecuteSFault(m IMsg)       // Handle Server Fault Messages
-	FollowerExecuteFullFault(m IMsg)    // Handle Server Full-Fault Messages
-	FollowerExecuteMMR(m IMsg)          // Handle Missing Message Responses
-	FollowerExecuteNegotiation(m IMsg)  // Message to start the negotiation process to replace a faulted server
-	FollowerExecuteDataResponse(m IMsg) // Handle Data Response
-	FollowerExecuteMissingMsg(m IMsg)   // Handle requests for missing messages
+	FollowerExecuteMsg(IMsg)          // Messages that go into the process list
+	FollowerExecuteEOM(IMsg)          // Messages that go into the process list
+	FollowerExecuteAck(IMsg)          // Ack Msg calls this function.
+	FollowerExecuteDBState(IMsg)      // Add the given DBState to this server
+	FollowerExecuteSFault(IMsg)       // Handle Server Fault Messages
+	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
+	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
+	FollowerExecuteNegotiation(IMsg)  // Message to start the negotiation process to replace a faulted server
+	FollowerExecuteDataResponse(IMsg) // Handle Data Response
+	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages
+	FollowerExecuteRevealEntry(IMsg)
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
 	ProcessRemoveServer(dbheight uint32, removeServerMsg IMsg) bool
@@ -161,9 +165,9 @@ type IState interface {
 	ProcessEOM(dbheight uint32, eom IMsg) bool
 	ProcessRevealEntry(dbheight uint32, m IMsg) bool
 	// For messages that go into the Process List
-	LeaderExecute(m IMsg)
-	LeaderExecuteEOM(m IMsg)
-	LeaderExecuteRevealEntry(m IMsg)
+	LeaderExecute(IMsg)
+	LeaderExecuteEOM(IMsg)
+	LeaderExecuteRevealEntry(IMsg)
 
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)

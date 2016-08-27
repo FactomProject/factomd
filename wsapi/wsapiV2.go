@@ -175,6 +175,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
 	state.APIQueue() <- msg
+	state.IncECCommits()
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
@@ -207,6 +208,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
 	state.APIQueue() <- msg
+	state.IncECommits()
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"

@@ -393,12 +393,16 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	for k := range s.Commits {
 		var keep []interfaces.IMsg
 		for _, v := range s.Commits[k] {
-			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if ok {
 				keep = append(keep, v)
 			}
 		}
-		s.Commits[k] = keep
+		if len(keep) > 0 {
+			s.Commits[k] = keep
+		} else {
+			delete(s.Commits, k)
+		}
 	}
 
 	return
