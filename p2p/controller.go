@@ -366,11 +366,14 @@ func (c *Controller) route() {
 			dot("&&h\n")
 			connection, present := c.connections[parcel.Header.TargetPeer]
 			if present { // We're still connected to the target
-				significant("ctrlr", "Controller.route() Directed send to %+v", parcel.Header.TargetPeer)
+				significant("ctrlr", "Controller.route() SUCCESS Directed send to %+v", parcel.Header.TargetPeer)
 				dot("&&i\n")
 				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
 			} else {
 				significant("ctrlr", "Controller.route() FAILED! Target not present in connections! Directed send to %+v", parcel.Header.TargetPeer)
+				for key, _ := range c.connections {
+					significant("ctrlr", "Controller.route() %+v", key)
+				}
 			}
 		} else { // broadcast
 			dot("&&j\n")
