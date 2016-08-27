@@ -162,7 +162,7 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 		// }
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 		time := time.Now().Unix()
-		ml := messageLog{hash: hash, received: received, time: time, mtype: msg.Type()}
+		ml := messageLog{hash: hash, received: received, time: time, mtype: msg.Type(), target: msg.GetNetworkOrigin()}
 		p2p.BlockFreeChannelSend(p.logging, ml)
 	}
 }
