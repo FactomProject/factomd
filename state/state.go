@@ -158,6 +158,7 @@ type State struct {
 	FactoidTrans    int
 	ECCommits       int
 	ECommits        int
+	FCTSubmits      int
 	NewEntryChains  int
 	NewEntries      int
 	LeaderTimestamp interfaces.Timestamp
@@ -359,6 +360,10 @@ func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
 }
 
+func (s *State) IncFCTSubmits() {
+	s.FCTSubmits++
+}
+
 func (s *State) IncECCommits() {
 	s.ECCommits++
 }
@@ -541,11 +546,11 @@ func (s *State) Init() {
 		s.Leader = false
 		s.Println("\n   +---------------------------+")
 		s.Println("   +------ Follower Only ------+")
-		s.Println("   +---------------------------+\n")
+		s.Print("   +---------------------------+\n\n")
 	case "SERVER":
 		s.Println("\n   +-------------------------+")
 		s.Println("   |       Leader Node       |")
-		s.Println("   +-------------------------+\n")
+		s.Print("   +-------------------------+\n\n")
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
@@ -1281,22 +1286,22 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %4s %11s %9s %3s %5s %4s %20s %4s %9s %7s %8s %15s %9s\n",
+	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %4s %10s %-8s %-9s %15s %9s\n",
 		"Node",
 		"ID   ",
 		" ",
 		"Drop",
+		"Delay",
 		"DB ",
 		"PL  ",
 		" ",
-		"VMMin",
-		"CMin",
+		"Min",
 		"DBState(ask/ans/rply/fail)",
 		"Msg",
 		"   Resend",
-		"Expire ",
+		"Expire",
 		"Fct/EC/E",
-		"Chains/Entries",
+		"API:Fct/EC/E",
 		"tps t/i")
 
 	return str
@@ -1391,12 +1396,13 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x]%4s %4s %2d.%01d%% ",
+	str := fmt.Sprintf("%7s[%12x]%4s %4s %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
 		stype,
-		(s.DropRate+5)/10, s.DropRate%10)
+		(s.DropRate+5)/10, s.DropRate%10,
+		s.Delay/1000, s.Delay%1000)
 
 	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
@@ -1407,14 +1413,14 @@ func (s *State) SetStringQueues() {
 
 	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
 	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
-	str = str + fmt.Sprintf(" %3v %4v %15s %18s ",
+	str = str + fmt.Sprintf(" %2s/%2d %15s %18s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,
 		missing)
 
-	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
-	apis := fmt.Sprintf("%d/%d", s.ECCommits, s.ECommits)
+	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries-s.NewEntryChains)
+	apis := fmt.Sprintf("%d/%d/%d", s.FCTSubmits, s.ECCommits, s.ECommits)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
 	str = str + fmt.Sprintf(" %5d %5d %12s %15s %11s",
 		s.ResendCnt,

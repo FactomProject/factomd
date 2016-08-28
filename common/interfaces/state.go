@@ -96,6 +96,7 @@ type IState interface {
 	IncEntries()
 	IncECCommits()
 	IncECommits()
+	IncFCTSubmits()
 
 	// Server Configuration
 	// ====================
