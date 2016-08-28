@@ -1306,9 +1306,11 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.FactoidBalancesTMutex.Lock()
-		defer pl.FactoidBalancesTMutex.Unlock()
-		v, ok = pl.FactoidBalancesT[adr]
+		if nil != pl {
+			pl.FactoidBalancesTMutex.Lock()
+			defer pl.FactoidBalancesTMutex.Unlock()
+			v, ok = pl.FactoidBalancesT[adr]
+		}
 	}
 	if !ok {
 		s.FactoidBalancesPMutex.Lock()
@@ -1324,10 +1326,11 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.FactoidBalancesTMutex.Lock()
-		defer pl.FactoidBalancesTMutex.Unlock()
-
-		pl.FactoidBalancesT[adr] = v
+		if nil != pl {
+			pl.FactoidBalancesTMutex.Lock()
+			defer pl.FactoidBalancesTMutex.Unlock()
+			pl.FactoidBalancesT[adr] = v
+		}
 	} else {
 		s.FactoidBalancesPMutex.Lock()
 		defer s.FactoidBalancesPMutex.Unlock()
@@ -1339,9 +1342,11 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.ECBalancesTMutex.Lock()
-		defer pl.ECBalancesTMutex.Unlock()
-		v, ok = pl.ECBalancesT[adr]
+		if nil != pl {
+			pl.ECBalancesTMutex.Lock()
+			defer pl.ECBalancesTMutex.Unlock()
+			v, ok = pl.ECBalancesT[adr]
+		}
 	}
 	if !ok {
 		s.ECBalancesPMutex.Lock()
@@ -1356,10 +1361,11 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.ECBalancesTMutex.Lock()
-		defer pl.ECBalancesTMutex.Unlock()
-
-		pl.ECBalancesT[adr] = v
+		if nil != pl {
+			pl.ECBalancesTMutex.Lock()
+			defer pl.ECBalancesTMutex.Unlock()
+			pl.ECBalancesT[adr] = v
+		}
 	} else {
 		s.ECBalancesPMutex.Lock()
 		defer s.ECBalancesPMutex.Unlock()
