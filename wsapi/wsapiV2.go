@@ -552,10 +552,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 		return nil, NewUnableToDecodeTransactionError()
 	}
 
-	err = state.GetFactoidState().Validate(1, msg.Transaction)
-	if err != nil {
-		return nil, NewInvalidTransactionError()
-	}
+	state.IncFCTSubmits()
 
 	state.APIQueue() <- msg
 

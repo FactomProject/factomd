@@ -673,6 +673,54 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.DropRate = nnn
 				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[listenTo].State.FactomNodeName, nnn/10, nnn%10))
 
+			case 'F' == b[0]:
+				nn, err := strconv.Atoi(string(b[1:]))
+				nnn := int64(nn)
+				if err != nil || nnn < 0 || nnn > 99999 {
+					os.Stderr.WriteString("Specifiy a delay amount in milliseconds less than 100 seconds\n")
+					break
+				}
+
+				for _, fn := range fnodes {
+					fn.State.Delay = nnn
+					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%01d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
+				}
+
+				for _, f := range fnodes {
+					for _, p := range f.Peers {
+						sim, ok := p.(*SimPeer)
+						if ok {
+							sim.Delay = nnn
+						}
+					}
+				}
+
+			case 'D' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					os.Stderr.WriteString("No Factom Node selected\n")
+					break
+				}
+				nn, err := strconv.Atoi(string(b[1:]))
+				nnn := int64(nn)
+				if err != nil || nnn < 0 || nnn > 99999 {
+					os.Stderr.WriteString("Specifiy a delay amount in milliseconds less than 100 seconds\n")
+					break
+				}
+
+				for _, f := range fnodes {
+					for _, p := range f.Peers {
+						sim, ok := p.(*SimPeer)
+						if ok {
+							if sim.FromName == fnodes[listenTo].State.FactomNodeName {
+								sim.Delay = nnn
+							}
+						}
+					}
+				}
+
+				fnodes[listenTo].State.Delay = nnn
+				os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%01d Seconds\n", fnodes[listenTo].State.FactomNodeName, nnn/1000, nnn%1000))
+
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 				os.Stderr.WriteString("h or ENTER    Shows this help\n")
@@ -702,6 +750,8 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
 				os.Stderr.WriteString("Snnn          Set Drop Rate to nnn on everyone\n")
 				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
+				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds")
+				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
@@ -758,6 +808,11 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 	for *summary == value {
 		prt := "===SummaryStart===\n"
+
+		fctSubmits := 0
+		ecCommits := 0
+		eCommits := 0
+
 		for _, f := range fnodes {
 			f.State.Status = 1
 		}
@@ -778,6 +833,15 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 			prt = prt + fmt.Sprintf("%1s%1s %s \n", in, api, f.State.ShortString())
 		}
+
+		for _, f := range fnodes {
+			fctSubmits += f.State.FCTSubmits
+			ecCommits += f.State.ECCommits
+			eCommits += f.State.ECommits
+		}
+
+		totals := fmt.Sprintf("%d/%d/%d", fctSubmits, ecCommits, eCommits)
+		prt = prt + fmt.Sprintf("%133s %20s\n", "", totals)
 
 		fmtstr := "%22s%s\n"
 
