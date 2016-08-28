@@ -544,7 +544,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 	r.vmheight = uint32(height)
 
 	if p.Requests[r.key()] == nil {
-		r.sent = now
+		r.sent = now + 1000
 		p.Requests[r.key()] = r
 		//fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
 		//	p.State.FactomNodeName,
@@ -558,7 +558,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 		r = p.Requests[r.key()]
 	}
 
-	if now-r.sent >= waitSeconds*1000+1000 {
+	if now-r.sent >= waitSeconds*1000+1500 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 		if missingMsgRequest != nil {
 			//fmt.Printf("dddd *Request --> %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
