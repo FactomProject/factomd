@@ -729,6 +729,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// a simple assignment works.
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
+	eom.MsgHash = nil
 	ack := s.NewAck(m)
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)

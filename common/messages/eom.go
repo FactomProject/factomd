@@ -81,22 +81,17 @@ func (m *EOM) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
-	data, err := m.MarshalForSignature()
-	if err != nil {
-		panic(fmt.Sprintf("Error in EOM.GetHash(): %s", err.Error()))
-	}
-	m.hash = primitives.Sha(data)
-
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
-	data, err := m.MarshalForSignature()
-	if err != nil {
-		return nil
+	if m.MsgHash == nil {
+		data, err := m.MarshalForSignature()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
 	}
-	m.MsgHash = primitives.Sha(data)
-
 	return m.MsgHash
 }
 
