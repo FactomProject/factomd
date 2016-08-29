@@ -1401,7 +1401,7 @@ func (s *State) SetStringQueues() {
 		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
 		stype,
-		(s.DropRate+5)/10, s.DropRate%10,
+		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
 	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)

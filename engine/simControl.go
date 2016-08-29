@@ -750,14 +750,14 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
 				os.Stderr.WriteString("Snnn          Set Drop Rate to nnn on everyone\n")
 				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
-				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds")
-				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds")
+				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
+				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
 				os.Stderr.WriteString("h or <enter>  Show help\n")
 				os.Stderr.WriteString("\n")
-				os.Stderr.WriteString("Most commands are case insensitive.\n")
+				os.Stderr.WriteString("Commands are case sensitive.\n")
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n\n")
 
 			default:
