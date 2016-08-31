@@ -111,7 +111,7 @@ func (p *Peer) merit() {
 // demerit decreases a peers reputation
 func (p *Peer) demerit() {
 	if -2147483000 < p.QualityScore {
-		p.QualityScore--
+		//p.QualityScore--
 	}
 }
 
