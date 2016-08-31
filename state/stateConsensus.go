@@ -299,24 +299,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstate.ReadyToSave = true
 
 	s.DBStateReplyCnt++
-	/*
-		fmt.Println("dddd dbstate ", s.FactomNodeName, dbheight, s.DBStates.Base + s.DBStates.Complete)
-		if dbheight <= s.DBStates.Base + s.DBStates.Complete {
-			return // Just ignore if we already have this dbstate.
-		}
 
-
-		}
-		fmt.Println("dddd dbstate ", s.FactomNodeName, "Writing", dbheight)
-
-		s.DBStates.LastTime = s.GetTimestamp()
-		dbstate := s.AddDBState(false, // Not a new block; got it from the network
-			dbstatemsg.DirectoryBlock,
-			dbstatemsg.AdminBlock,
-			dbstatemsg.FactoidBlock,
-			dbstatemsg.EntryCreditBlock)
-		dbstate.ReadyToSave = true
-	*/
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
@@ -710,11 +693,20 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
 	if ack != nil {
+
+		// Is this ack already processed?  If so, just ignore.
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		list := pl.VMs[ack.VMIndex].List
+		if len(list) > int(ack.Height) && list[ack.Height] != nil {
+			delete(s.Acks, m.GetMsgHash().Fixed())
+			return
+		}
+
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
-		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 		msg := m.(*messages.RevealEntryMsg)
 		s.NextCommit(msg.Entry.GetHash())
@@ -784,11 +776,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
-	commit := s.NextCommit(re.Entry.GetHash())
-	if commit == nil {
-		s.Holding[re.GetMsgHash().Fixed()] = m
-		return
-	}
+	eh := re.Entry.GetHash()
+	s.NextCommit(eh)
 	s.LeaderExecute(m)
 }
 

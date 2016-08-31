@@ -21,6 +21,9 @@ type Entry struct {
 	ChainID interfaces.IHash
 	ExtIDs  []primitives.ByteSlice
 	Content primitives.ByteSlice
+
+	// cache
+	hash interfaces.IHash
 }
 
 var _ interfaces.IEBEntry = (*Entry)(nil)
@@ -109,16 +112,19 @@ func (e *Entry) IsValid() bool {
 }
 
 func (e *Entry) GetHash() interfaces.IHash {
-	h := primitives.NewZeroHash()
-	entry, err := e.MarshalBinary()
-	if err != nil {
-		return h
-	}
+	if e.hash == nil {
+		h := primitives.NewZeroHash()
+		entry, err := e.MarshalBinary()
+		if err != nil {
+			return h
+		}
 
-	h1 := sha512.Sum512(entry)
-	h2 := sha256.Sum256(append(h1[:], entry[:]...))
-	h.SetBytes(h2[:])
-	return h
+		h1 := sha512.Sum512(entry)
+		h2 := sha256.Sum256(append(h1[:], entry[:]...))
+		h.SetBytes(h2[:])
+		e.hash = h
+	}
+	return e.hash
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
