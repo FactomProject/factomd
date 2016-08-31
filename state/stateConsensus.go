@@ -249,6 +249,13 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
+
+	pl := s.ProcessLists.Get(ack.DBHeight)
+	list := pl.VMs[ack.VMIndex].List
+	if len(list) > int(ack.Height) && list[ack.Height] != nil {
+		return
+	}
+
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {

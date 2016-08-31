@@ -112,6 +112,7 @@ type State struct {
 	msgQueue               chan interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
+	Journaling             bool
 
 	serverPrivKey         *primitives.PrivateKey
 	serverPubKey          *primitives.PublicKey
@@ -275,6 +276,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LogPath = s.LogPath + "/Sim" + number
 	clone.LdbPath = s.LdbPath + "/Sim" + number
 	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
+	clone.Journaling = s.Journaling
 	clone.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
@@ -508,10 +510,12 @@ func (s *State) Init() {
 	if er != nil {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
-	_, err := os.Create(s.JournalFile) //Create the Journal File
-	if err != nil {
-		fmt.Println("Could not create the file: " + s.JournalFile)
-		s.JournalFile = ""
+	if s.Journaling {
+		_, err := os.Create(s.JournalFile) //Create the Journal File
+		if err != nil {
+			fmt.Println("Could not create the file: " + s.JournalFile)
+			s.JournalFile = ""
+		}
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -804,7 +808,7 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	if len(s.JournalFile) != 0 {
+	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
