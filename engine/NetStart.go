@@ -60,7 +60,8 @@ func NetStart(s *state.State) {
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 20, "Delay to start processing messages, in seconds")
-
+	rpcUserflag := flag.String("rpcuser", "", "Username for JSON-RPC connections")
+	rpcPasswordflag := flag.String("rpcpassword", "", "Password for JSON-RPC connections")
 	flag.Parse()
 
 	listenTo := *listenToPtr
@@ -86,6 +87,8 @@ func NetStart(s *state.State) {
 	timeOffset := *timeOffsetPtr
 	keepMismatch := *keepMismatchPtr
 	startDelay := int64(*startDelayPtr)
+	rpcUser := *rpcUserflag
+	rpcPassword := *rpcPasswordflag
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -118,6 +121,14 @@ func NetStart(s *state.State) {
 
 	if journal != "" {
 		cnt = 1
+	}
+
+	if rpcUser != "" {
+		s.RpcUser = rpcUser
+	}
+
+	if rpcPassword != "" {
+		s.RpcPass = rpcPassword
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -202,6 +213,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Rpc user", s.RpcUser))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)

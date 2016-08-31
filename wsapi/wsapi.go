@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/web"
 	"sync"
 )
@@ -34,6 +35,10 @@ func Start(state interfaces.IState) {
 	if Servers == nil {
 		Servers = make(map[int]*web.Server)
 	}
+
+	RpcUser = state.GetRpcUser()
+	RpcPass = state.GetRpcPass()
+	Authsha = fastsha256.Sum256(httpBasicAuth(RpcUser, RpcPass))
 
 	if Servers[state.GetPort()] == nil {
 		server = web.NewServer()

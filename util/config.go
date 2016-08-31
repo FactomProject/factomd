@@ -81,6 +81,8 @@ type FactomdConfig struct {
 		PortNumber       int
 		ApplicationName  string
 		RefreshInSeconds int
+		RpcUser          string
+		RpvPass          string 
 	}
 	Wsapi struct {
 		PortNumber      int
@@ -242,6 +244,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Rpc.PortNumber))
 	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Rpc.ApplicationName))
 	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Rpc.RefreshInSeconds))
+	out.WriteString(fmt.Sprintf("\n    RpcUser                 %v", s.Rpc.RpcUser))
+	out.WriteString(fmt.Sprintf("\n    RpcPass                 %v", s.Rpc.RpcPass))
 
 	out.WriteString(fmt.Sprintf("\n  Wsapi"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Wsapi.PortNumber))
