@@ -537,7 +537,7 @@ func (s *State) Init() {
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
-	s.DBStates.LastTime = new(primitives.Timestamp)
+	s.DBStates.LastTime = s.GetTimestamp()
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 

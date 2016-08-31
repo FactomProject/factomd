@@ -259,7 +259,49 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
-	if s.GetHighestRecordedBlock() <= dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight() {
+	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
+
+	if s.GetHighestRecordedBlock() > dbheight {
+		return
+	}
+
+	if dbheight > 1 {
+		pdbstate := s.DBStates.Get(int(dbheight - 1))
+		if pdbstate == nil {
+			// Must be out of order.  so keep around until we can process.
+			fmt.Println("dddd dbstate ", s.FactomNodeName, "Is Nil", dbheight-1)
+			k := fmt.Sprint(dbheight - 1)
+			key := primitives.NewHash([]byte(k))
+			s.Holding[key.Fixed()] = msg
+			return
+		}
+		pkeymr := pdbstate.DirectoryBlock.GetKeyMR()
+		ppkeymr := dbstatemsg.DirectoryBlock.GetHeader().GetPrevKeyMR()
+		if !pkeymr.IsSameAs(ppkeymr) {
+			s.DBStateFailsCnt++
+			s.networkInvalidMsgQueue <- msg
+		}
+	}
+
+	s.DBStates.LastTime = s.GetTimestamp()
+	dbstate := s.AddDBState(false, // Not a new block; got it from the network
+		dbstatemsg.DirectoryBlock,
+		dbstatemsg.AdminBlock,
+		dbstatemsg.FactoidBlock,
+		dbstatemsg.EntryCreditBlock)
+	dbstate.ReadyToSave = true
+
+	s.DBStateReplyCnt++
+	/*
+		fmt.Println("dddd dbstate ", s.FactomNodeName, dbheight, s.DBStates.Base + s.DBStates.Complete)
+		if dbheight <= s.DBStates.Base + s.DBStates.Complete {
+			return // Just ignore if we already have this dbstate.
+		}
+
+
+		}
+		fmt.Println("dddd dbstate ", s.FactomNodeName, "Writing", dbheight)
+
 		s.DBStates.LastTime = s.GetTimestamp()
 		dbstate := s.AddDBState(false, // Not a new block; got it from the network
 			dbstatemsg.DirectoryBlock,
@@ -267,11 +309,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 			dbstatemsg.FactoidBlock,
 			dbstatemsg.EntryCreditBlock)
 		dbstate.ReadyToSave = true
-
-		s.DBStateReplyCnt++
-	} else {
-		s.DBStateFailsCnt++
-	}
+	*/
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
