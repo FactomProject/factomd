@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -32,7 +33,7 @@ func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -68,6 +69,10 @@ func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 
 func (m *Heartbeat) Process(uint32, interfaces.IState) bool {
 	return true
+}
+
+func (m *Heartbeat) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *Heartbeat) GetHash() interfaces.IHash {
@@ -120,6 +125,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -226,37 +232,39 @@ func (m *Heartbeat) SerialHash() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Heartbeat) Validate(state interfaces.IState) int {
-	return 0
+	if m.GetSignature() == nil {
+		// the message has no signature (and so is invalid)
+		return -1
+	}
+
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
+	}
+
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *Heartbeat) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
+func (m *Heartbeat) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
-func (m *Heartbeat) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *Heartbeat) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *Heartbeat) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *Heartbeat) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *Heartbeat) FollowerExecute(state interfaces.IState) {
+	for _, auditServer := range state.GetAuditServers(state.GetLeaderHeight()) {
+		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
+			auditServer.SetOnline(true)
+		}
+	}
 }
 
 func (e *Heartbeat) JSONByte() ([]byte, error) {

@@ -7,7 +7,9 @@ package adminBlock
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -15,8 +17,8 @@ import (
 
 // Admin Block Header
 type ABlockHeader struct {
-	PrevFullHash interfaces.IHash
-	DBHeight     uint32
+	PrevBackRefHash interfaces.IHash
+	DBHeight        uint32
 
 	HeaderExpansionSize uint64
 	HeaderExpansionArea []byte
@@ -26,6 +28,18 @@ type ABlockHeader struct {
 
 var _ interfaces.Printable = (*ABlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
+
+func (e *ABlockHeader) String() string {
+	var out primitives.Buffer
+	out.WriteString("  Admin Block Header\n")
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "PrevBackRefHash", e.PrevBackRefHash.String()))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "HeaderExpansionSize", e.HeaderExpansionSize))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "HeaderExpansionArea", e.HeaderExpansionArea))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.MessageCount))
+	out.WriteString(fmt.Sprintf("    %20s: %x\n", "MessageCount", e.BodySize))
+	return (string)(out.DeepCopyBytes())
+}
 
 func (b *ABlockHeader) GetMessageCount() uint32 {
 	return b.MessageCount
@@ -59,8 +73,8 @@ func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 	return b.HeaderExpansionSize
 }
 
-func (b *ABlockHeader) GetPrevFullHash() interfaces.IHash {
-	return b.PrevFullHash
+func (b *ABlockHeader) GetPrevBackRefHash() interfaces.IHash {
+	return b.PrevBackRefHash
 }
 
 func (b *ABlockHeader) SetDBHeight(dbheight uint32) {
@@ -71,8 +85,8 @@ func (b *ABlockHeader) SetHeaderExpansionArea(area []byte) {
 	b.HeaderExpansionArea = area
 }
 
-func (b *ABlockHeader) SetPrevFullHash(FullHash interfaces.IHash) {
-	b.PrevFullHash = FullHash
+func (b *ABlockHeader) SetPrevBackRefHash(BackRefHash interfaces.IHash) {
+	b.PrevBackRefHash = BackRefHash
 }
 
 // Write out the ABlockHeader to binary.
@@ -85,7 +99,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.PrevBackRefHash.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -114,8 +128,8 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		return
 	}
 
-	b.PrevFullHash = new(primitives.Hash)
-	newData, err = b.PrevFullHash.UnmarshalBinaryData(newData)
+	b.PrevBackRefHash = new(primitives.Hash)
+	newData, err = b.PrevBackRefHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return
 	}
@@ -149,7 +163,16 @@ func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (e *ABlockHeader) String() string {
-	str, _ := e.JSONString()
-	return str
+type ExpandedABlockHeader ABlockHeader
+
+func (e ABlockHeader) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedABlockHeader
+		AdminChainID string
+		ChainID      string
+	}{
+		ExpandedABlockHeader: ExpandedABlockHeader(e),
+		AdminChainID:         "000000000000000000000000000000000000000000000000000000000000000a",
+		ChainID:              "000000000000000000000000000000000000000000000000000000000000000a",
+	})
 }

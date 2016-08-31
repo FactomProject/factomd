@@ -5,6 +5,7 @@ package testHelper
 import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
@@ -13,7 +14,7 @@ func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	ecTx := new(factoid.Transaction)
 	ecTx.AddInput(NewFactoidAddress(0), fBlock.GetExchRate()*100)
 	ecTx.AddECOutput(NewECAddress(0), fBlock.GetExchRate()*100)
-	ecTx.SetMilliTimestamp(1000 * 60 * 10 * uint64(fBlock.GetDBHeight()))
+	ecTx.SetTimestamp(primitives.NewTimestampFromSeconds(60 * 10 * uint32(fBlock.GetDBHeight())))
 
 	fee, err := ecTx.CalculateFee(1000)
 	if err != nil {
@@ -62,10 +63,10 @@ func SignFactoidTransaction(n uint64, tx interfaces.ITransaction) {
 }
 
 func CreateTestFactoidBlockWithCoinbase(prev interfaces.IFBlock, address interfaces.IAddress, amount uint64) interfaces.IFBlock {
-	block := factoid.NewFBlockFromPreviousBlock(1, prev)
+	block := factoid.NewFBlock(prev)
 	tx := new(factoid.Transaction)
 	tx.AddOutput(address, amount)
-	tx.SetMilliTimestamp(1000 * 60 * 10 * uint64(block.GetDBHeight()))
+	tx.SetTimestamp(primitives.NewTimestampFromSeconds(60 * 10 * uint32(block.GetDBHeight())))
 	err := block.AddCoinbase(tx)
 	if err != nil {
 		panic(err)

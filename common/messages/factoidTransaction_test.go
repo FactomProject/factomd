@@ -5,13 +5,14 @@
 package messages_test
 
 import (
+	"math/rand"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
-	"math/rand"
-	"testing"
 )
 
 func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
@@ -54,7 +55,7 @@ func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
 
 func newFactoidTransaction() *FactoidTransaction {
 	msg := new(FactoidTransaction)
-	msg.Timestamp.SetTimeNow()
+	//msg.Timestamp = primitives.NewTimestampNow()
 
 	t := new(factoid.Transaction)
 

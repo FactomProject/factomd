@@ -5,7 +5,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	. "github.com/FactomProject/factomd/testHelper"
 )
 
@@ -15,7 +14,7 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 
 	for _, block := range blocks {
 		for _, tx := range block.FBlock.GetTransactions() {
-			dTx, err := dbo.FetchFactoidTransactionByHash(tx.GetHash())
+			dTx, err := dbo.FetchFactoidTransaction(tx.GetHash())
 			if err != nil {
 				t.Errorf("%v", err)
 			}
@@ -51,7 +50,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 				continue
 			}
 
-			dTx, err := dbo.FetchECTransactionByHash(tx.Hash())
+			dTx, err := dbo.FetchECTransaction(tx.Hash())
 			if err != nil {
 				t.Errorf("%v", err)
 			}

@@ -91,7 +91,7 @@ func TestSignAndVerifyEOMTimeout(t *testing.T) {
 
 func newEOMTimeout() *EOMTimeout {
 	msg := new(EOMTimeout)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }
@@ -103,7 +103,7 @@ func newSignedEOMTimeout() *EOMTimeout {
 	if err != nil {
 		panic(err)
 	}
-	err = msg.Sign(&key)
+	err = msg.Sign(key)
 	if err != nil {
 		panic(err)
 	}

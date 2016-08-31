@@ -29,28 +29,8 @@ type AddServerMsg struct {
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
 var _ Signable = (*AddServerMsg)(nil)
 
-func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
-	if b == nil {
-		return false
-	}
-	if uint64(m.Timestamp) != uint64(b.Timestamp) {
-		return false
-	}
-	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
-		return false
-	}
-	if m.ServerType != b.ServerType {
-		return false
-	}
-	if m.Signature == nil && b.Signature != nil {
-		return false
-	}
-	if m.Signature != nil {
-		if m.Signature.IsSameAs(b.Signature) == false {
-			return false
-		}
-	}
-	return true
+func (m *AddServerMsg) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *AddServerMsg) GetHash() interfaces.IHash {
@@ -85,7 +65,7 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
-	return 1 // Not going to check right now.
+	return 1
 	authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 
 	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
@@ -107,24 +87,17 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *AddServerMsg) Leader(state interfaces.IState) bool {
-	state.LeaderFor(m, constants.ADMIN_CHAINID)
-	return true
+func (m *AddServerMsg) ComputeVMIndex(state interfaces.IState) {
+	m.VMIndex = state.ComputeVMIndex(constants.ADMIN_CHAINID)
 }
 
 // Execute the leader functions of the given message
-func (m *AddServerMsg) LeaderExecute(state interfaces.IState) error {
-	return state.LeaderExecute(m)
+func (m *AddServerMsg) LeaderExecute(state interfaces.IState) {
+	state.LeaderExecute(m)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *AddServerMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *AddServerMsg) FollowerExecute(state interfaces.IState) error {
-	_, err := state.FollowerExecuteMsg(m)
-	return err
+func (m *AddServerMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMsg(m)
 }
 
 // Acknowledgements do not go into the process list.
@@ -174,6 +147,7 @@ func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -256,9 +230,33 @@ func (m *AddServerMsg) String() string {
 	return fmt.Sprintf("AddServer (%s): ChainID: %x Time: %x Msg Hash %x ",
 		stype,
 		m.ServerChainID.Bytes()[:3],
-		m.Timestamp,
+		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
 
+}
+
+func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
+	if b == nil {
+		return false
+	}
+	if m.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+		return false
+	}
+	if !m.ServerChainID.IsSameAs(b.ServerChainID) {
+		return false
+	}
+	if m.ServerType != b.ServerType {
+		return false
+	}
+	if m.Signature == nil && b.Signature != nil {
+		return false
+	}
+	if m.Signature != nil {
+		if m.Signature.IsSameAs(b.Signature) == false {
+			return false
+		}
+	}
+	return true
 }
 
 func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {
@@ -269,4 +267,13 @@ func NewAddServerMsg(state interfaces.IState, serverType int) interfaces.IMsg {
 
 	return msg
 
+}
+
+func NewAddServerByHashMsg(state interfaces.IState, serverType int, newServerHash interfaces.IHash) interfaces.IMsg {
+	msg := new(AddServerMsg)
+	msg.ServerChainID = newServerHash
+	msg.ServerType = serverType
+	msg.Timestamp = state.GetTimestamp()
+
+	return msg
 }

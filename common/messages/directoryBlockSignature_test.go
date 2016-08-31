@@ -6,6 +6,8 @@ package messages_test
 
 import (
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	//"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"testing"
@@ -16,13 +18,13 @@ func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
-		t.Error(err)
+		t.Error("#1 ", err)
 	}
 	t.Logf("Marshalled - %x", hex)
 
 	msg2, err := UnmarshalMessage(hex)
 	if err != nil {
-		t.Error(err)
+		t.Error("#2 ", err)
 	}
 	str := msg2.String()
 	t.Logf("str - %v", str)
@@ -93,10 +95,12 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 func newDirectoryBlockSignature() *DirectoryBlockSignature {
 	dbs := new(DirectoryBlockSignature)
 	dbs.DBHeight = 123456
-	hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
-	dbs.DirectoryBlockKeyMR = hash
-	hash, _ = primitives.NewShaHashFromStr("a077183cd67022e6d1ef6c041522b40cbd3d09db6defdc25dfc7d57f3479b339")
+	//hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
+	//dbs.DirectoryBlockKeyMR = hash
+	hash, _ := primitives.NewShaHashFromStr("a077183cd67022e6d1ef6c041522b40cbd3d09db6defdc25dfc7d57f3479b339")
 	dbs.ServerIdentityChainID = hash
+	tmp := directoryBlock.NewDBlockHeader()
+	dbs.DirectoryBlockHeader = tmp
 	return dbs
 }
 
@@ -106,7 +110,7 @@ func newSignedDirectoryBlockSignature() *DirectoryBlockSignature {
 	if err != nil {
 		panic(err)
 	}
-	err = dbs.Sign(&key)
+	err = dbs.Sign(key)
 	if err != nil {
 		panic(err)
 	}

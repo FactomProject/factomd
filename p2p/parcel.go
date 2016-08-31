@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"strconv"
-	"time"
 )
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
@@ -22,14 +21,15 @@ type Parcel struct {
 const ParcelHeaderSize = 28
 
 type ParcelHeader struct {
-	Network    NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
-	Version    uint16            // 2 bytes - the version of the protocol we are running.
-	Type       ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
-	Length     uint32            // 4 bytes - length of the payload (that follows this header) in bytes
-	TargetPeer string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
-	Crc32      uint32            // 4 bytes - data integrity hash (of the payload itself.)
-	Timestamp  time.Time
-	NodeID     uint64
+	Network     NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
+	Version     uint16            // 2 bytes - the version of the protocol we are running.
+	Type        ParcelCommandType // 2 bytes - network level commands (eg: ping/pong)
+	Length      uint32            // 4 bytes - length of the payload (that follows this header) in bytes
+	TargetPeer  string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
+	Crc32       uint32            // 4 bytes - data integrity hash (of the payload itself.)
+	NodeID      uint64
+	PeerAddress string // address of the peer set by connection to know who sent message (for tracking source of other peers)
+	PeerPort    string // port of the peer , or we are listening on
 }
 
 type ParcelCommandType uint16
@@ -68,11 +68,11 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 }
 
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
-	// p.Cookie = ProtocolCookie //COOKIE - no cookie for now.
 	p.Network = network
 	p.Version = ProtocolVersion
 	p.Type = TypeMessage
-	p.TargetPeer = "" // initially no target
+	p.TargetPeer = ""              // initially no target
+	p.PeerPort = NetworkListenPort // store our listening port
 	return p
 }
 func (p *Parcel) Init(header ParcelHeader) *Parcel {
@@ -93,7 +93,6 @@ func (p *ParcelHeader) Print() {
 	debug("parcel", "\t Length:\t%d", p.Length)
 	debug("parcel", "\t TargetPeer:\t%s", p.TargetPeer)
 	debug("parcel", "\t CRC32:\t%d", p.Crc32)
-	debug("parcel", "\t Timestamp:\t%d", p.Timestamp)
 	debug("parcel", "\t NodeID:\t%d", p.NodeID)
 }
 
@@ -121,7 +120,6 @@ func (p *Parcel) String() string {
 	fmt.Sprintf(output, "%s\t Length:\t%d\n", output, p.Header.Length)
 	fmt.Sprintf(output, "%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
 	fmt.Sprintf(output, "%s\t CRC32:\t%d\n", output, p.Header.Crc32)
-	fmt.Sprintf(output, "%s\t Timestamp:\t%+v\n", output, p.Header.Timestamp)
 	fmt.Sprintf(output, "%s\t NodeID:\t%d\n", output, p.Header.NodeID)
 	fmt.Sprintf(output, "%s\t Payload: %s\n", output, s)
 	return output

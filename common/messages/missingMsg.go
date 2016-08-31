@@ -20,7 +20,6 @@ type MissingMsg struct {
 
 	Timestamp         interfaces.Timestamp
 	DBHeight          uint32
-	VM                int
 	ProcessListHeight uint32
 
 	//No signature!
@@ -35,7 +34,7 @@ func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -43,7 +42,7 @@ func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
 		return false
 	}
 
-	if a.VM != b.VM {
+	if a.VMIndex != b.VMIndex {
 		return false
 	}
 
@@ -55,7 +54,11 @@ func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
 }
 
 func (m *MissingMsg) Process(uint32, interfaces.IState) bool {
-	return true
+	panic("MissingMsg should not have its Process() method called")
+}
+
+func (m *MissingMsg) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *MissingMsg) GetHash() interfaces.IHash {
@@ -108,11 +111,13 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
 
+	m.VMIndex, newData = int(newData[0]), newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.ProcessListHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -142,6 +147,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	buf.WriteByte(uint8(m.VMIndex))
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.ProcessListHeight)
 
@@ -159,7 +165,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissingMsg vm=%d DBHeight:%3d PL Height:%3d", m.VMIndex, m.DBHeight, m.ProcessListHeight)
+	return fmt.Sprintf("MissingMsg DBHeight:%3d vm=%d PL Height:%3d msgHash[%x]", m.DBHeight, m.VMIndex, m.ProcessListHeight, m.GetMsgHash().Bytes()[:3])
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -178,35 +184,16 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *MissingMsg) Leader(state interfaces.IState) bool {
-	return false
+func (m *MissingMsg) ComputeVMIndex(state interfaces.IState) {
+
 }
 
-// Execute the leader functions of the given message
-func (m *MissingMsg) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *MissingMsg) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *MissingMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *MissingMsg) FollowerExecute(state interfaces.IState) error {
-	msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VM, m.ProcessListHeight)
-
-	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
-		msg.SetOrigin(m.GetOrigin())
-		msg.SetPeer2Peer(true)
-		ackMsg.SetOrigin(m.GetOrigin())
-		ackMsg.SetPeer2Peer(true)
-		state.NetworkOutMsgQueue() <- msg
-		state.NetworkOutMsgQueue() <- ackMsg
-	}
-
-	return nil
+func (m *MissingMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteMissingMsg(m)
 }
 
 func (e *MissingMsg) JSONByte() ([]byte, error) {
@@ -221,11 +208,12 @@ func (e *MissingMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func NewMissingMsg(state interfaces.IState, dbHeight uint32, processlistHeight uint32) interfaces.IMsg {
+func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlistHeight uint32) interfaces.IMsg {
 
 	msg := new(MissingMsg)
 
-	msg.Peer2Peer = true // Always a peer2peer request.
+	msg.Peer2Peer = true // Always a peer2peer request // .
+	msg.VMIndex = vm
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeight = dbHeight
 	msg.ProcessListHeight = processlistHeight

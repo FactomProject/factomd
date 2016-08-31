@@ -32,6 +32,8 @@ type IFBlock interface {
 	DatabaseSecondaryIndex() IHash //block.GetHash()
 	New() BinaryMarshallableAndCopyable
 	GetEntryHashes() []IHash
+	GetEntrySigHashes() []IHash
+	GetTransactionByHash(hash IHash) ITransaction
 
 	// Get the ChainID. This is a constant for all Factoids.
 	GetChainID() IHash
@@ -58,11 +60,10 @@ type IFBlock interface {
 	GetBodyMR() IHash
 	// Get the KeyMR of the previous block.
 	GetPrevKeyMR() IHash
-	SetPrevKeyMR([]byte)
-	GetLedgerMR() IHash
-	GetFullHash() IHash
-	GetPrevFullHash() IHash
-	SetPrevFullHash([]byte)
+	SetPrevKeyMR(IHash)
+	GetLedgerKeyMR() IHash
+	GetPrevLedgerKeyMR() IHash
+	SetPrevLedgerKeyMR(IHash)
 	// Accessors for the Directory Block Height
 	SetDBHeight(uint32)
 	GetDBHeight() uint32
@@ -82,7 +83,7 @@ type IFBlock interface {
 	// the timestamps of transactions included in the block. Transactions prior to the
 	// TRANSACTION_PRIOR_LIMIT or after the TRANSACTION_POST_LIMIT are considered invalid
 	// for this block. -1 is returned if no coinbase transaction is found.
-	GetCoinbaseTimestamp() int64
+	GetCoinbaseTimestamp() Timestamp
 
 	GetNewInstance() IFBlock // Get a new instance of this object
 }

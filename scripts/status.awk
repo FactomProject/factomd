@@ -7,8 +7,6 @@
         print out1[i]
     }
     c1=0
-    on1=0
-    on2=0
 }
 
 /===PrintMapEnd===/ {
@@ -25,5 +23,6 @@ c2 { out2[on2++]=$0 }
 /===PrintMapStart===/ {
     on2=0
     c2=1
+    out2[on2++]=$0
 }
 

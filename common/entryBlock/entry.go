@@ -19,8 +19,8 @@ import (
 type Entry struct {
 	Version uint8
 	ChainID interfaces.IHash
-	ExtIDs  [][]byte
-	Content []byte
+	ExtIDs  []primitives.ByteSlice
+	Content primitives.ByteSlice
 }
 
 var _ interfaces.IEBEntry = (*Entry)(nil)
@@ -35,7 +35,7 @@ func (c *Entry) KSize() int {
 	if err != nil {
 		return 100
 	}
-	return (len(data) - 33 + 1023) / 1024
+	return (len(data) - 35 + 1023) / 1024
 }
 
 func (c *Entry) New() interfaces.BinaryMarshallableAndCopyable {
@@ -83,7 +83,7 @@ func NewChainID(e interfaces.IEBEntry) interfaces.IHash {
 }
 
 func (e *Entry) GetContent() []byte {
-	return e.Content
+	return e.Content.Bytes
 }
 
 func (e *Entry) GetChainIDHash() interfaces.IHash {
@@ -91,7 +91,11 @@ func (e *Entry) GetChainIDHash() interfaces.IHash {
 }
 
 func (e *Entry) ExternalIDs() [][]byte {
-	return e.ExtIDs
+	answer := [][]byte{}
+	for _, v := range e.ExtIDs {
+		answer = append(answer, v.Bytes)
+	}
+	return answer
 }
 
 func (e *Entry) IsValid() bool {
@@ -142,7 +146,7 @@ func (e *Entry) MarshalBinary() ([]byte, error) {
 	}
 
 	// Content
-	buf.Write(e.Content)
+	buf.Write(e.Content.Bytes)
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -154,12 +158,12 @@ func (e *Entry) MarshalExtIDsBinary() ([]byte, error) {
 
 	for _, x := range e.ExtIDs {
 		// 2 byte size of the ExtID
-		if err := binary.Write(buf, binary.BigEndian, uint16(len(x))); err != nil {
+		if err := binary.Write(buf, binary.BigEndian, uint16(len(x.Bytes))); err != nil {
 			return nil, err
 		}
 
 		// ExtID bytes
-		buf.Write(x)
+		buf.Write(x.Bytes)
 	}
 
 	return buf.DeepCopyBytes(), nil
@@ -224,7 +228,12 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 				err = fmt.Errorf("Could not read ExtID: Read %d bytes of %d\n", n, c)
 				return nil, err
 			}
-			e.ExtIDs = append(e.ExtIDs, x)
+			ex := primitives.ByteSlice{}
+			err = ex.UnmarshalBinary(x)
+			if err != nil {
+				return nil, err
+			}
+			e.ExtIDs = append(e.ExtIDs, ex)
 			i -= int16(n)
 			if i < 0 {
 				err = fmt.Errorf("Error parsing external IDs")
@@ -234,7 +243,10 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 
 	// Content
-	e.Content = buf.DeepCopyBytes()
+	err = e.Content.UnmarshalBinary(buf.DeepCopyBytes())
+	if err != nil {
+		return nil, err
+	}
 
 	return
 }
@@ -268,7 +280,7 @@ func (e *Entry) String() string {
 func NewEntry() *Entry {
 	e := new(Entry)
 	e.ChainID = primitives.NewZeroHash()
-	e.ExtIDs = make([][]byte, 0)
-	e.Content = make([]byte, 0)
+	e.ExtIDs = make([]primitives.ByteSlice, 0)
+	e.Content = primitives.ByteSlice{}
 	return e
 }

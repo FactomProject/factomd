@@ -16,20 +16,38 @@ var _ = fmt.Print
 
 type FactomdConfig struct {
 	App struct {
-		PortNumber              int
-		HomeDir                 string
-		DBType                  string
-		LdbPath                 string
-		BoltDBPath              string
-		DataStorePath           string
-		DirectoryBlockInSeconds int
-		ExportData              bool
-		ExportDataSubpath       string
-		Network                 string
-		NodeMode                string
-		LocalServerPrivKey      string
-		LocalServerPublicKey    string
-		ExchangeRate            uint64
+		PortNumber                   int
+		HomeDir                      string
+		ControlPanelPort             int
+		ControlPanelFilesPath        string
+		ControlPanelSetting          string
+		DBType                       string
+		LdbPath                      string
+		BoltDBPath                   string
+		DataStorePath                string
+		DirectoryBlockInSeconds      int
+		ExportData                   bool
+		ExportDataSubpath            string
+		NodeMode                     string
+		IdentityChainID              string
+		LocalServerPrivKey           string
+		LocalServerPublicKey         string
+		ExchangeRate                 uint64
+		ExchangeRateChainId          string
+		ExchangeRateAuthorityAddress string
+
+		// Network Configuration
+		Network           string
+		MainNetworkPort   string
+		PeersFile         string
+		MainSeedURL       string
+		MainSpecialPeers  string
+		TestNetworkPort   string
+		TestSeedURL       string
+		TestSpecialPeers  string
+		LocalNetworkPort  string
+		LocalSeedURL      string
+		LocalSpecialPeers string
 	}
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
@@ -92,21 +110,37 @@ const defaultConfig = `
 [app]
 PortNumber                            = 8088
 HomeDir                               = ""
+; --------------- ControlPanel disabled | readonly | readwrite
+ControlPanelSetting                   = readonly
+ControlPanelPort                      = 8090
+ControlPanelFilesPath                 = "Web/"
 ; --------------- DBType: LDB | Bolt | Map
-DBType                                = "Map"
+DBType                                = "LDB"
 LdbPath                               = "database/ldb"
 BoltDBPath                            = "database/bolt"
 DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
-ExportData                            = true
+ExportData                            = false
 ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
+MainNetworkPort      = 8108
+PeersFile        = "peers.json"
+MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+MainSpecialPeers     = ""
+TestNetworkPort      = 8109
+TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+TestSpecialPeers     = ""
+LocalNetworkPort     = 8110
+LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+LocalSpecialPeers     = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode                              = FULL
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
 ExchangeRate                          = 00100000
+ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
+ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
 
 [anchor]
 ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
@@ -135,7 +169,7 @@ PortNumber                            = 8088
 ; ------------------------------------------------------------------------------
 [log]
 logLevel                              = error
-LogPath                               = "database/"
+LogPath                               = "database/Log"
 ConsoleLogLevel                       = standard
 
 ; ------------------------------------------------------------------------------
@@ -156,7 +190,10 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n  App"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.App.PortNumber))
 	out.WriteString(fmt.Sprintf("\n    HomeDir                 %v", s.App.HomeDir))
-	out.WriteString(fmt.Sprintf("\n    DBType                 %v", s.App.DBType))
+	out.WriteString(fmt.Sprintf("\n    ControlPanelPort        %v", s.App.ControlPanelPort))
+	out.WriteString(fmt.Sprintf("\n    ControlPanelFilesPath   %v", s.App.ControlPanelFilesPath))
+	out.WriteString(fmt.Sprintf("\n    ControlPanelSetting     %v", s.App.ControlPanelSetting))
+	out.WriteString(fmt.Sprintf("\n    DBType                  %v", s.App.DBType))
 	out.WriteString(fmt.Sprintf("\n    LdbPath                 %v", s.App.LdbPath))
 	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.App.BoltDBPath))
 	out.WriteString(fmt.Sprintf("\n    DataStorePath           %v", s.App.DataStorePath))
@@ -164,10 +201,23 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExportData              %v", s.App.ExportData))
 	out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
 	out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
+	out.WriteString(fmt.Sprintf("\n    MainNetworkPort         %v", s.App.MainNetworkPort))
+	out.WriteString(fmt.Sprintf("\n    PeersFile           %v", s.App.PeersFile))
+	out.WriteString(fmt.Sprintf("\n    MainSeedURL             %v", s.App.MainSeedURL))
+	out.WriteString(fmt.Sprintf("\n    MainSpecialPeers        %v", s.App.MainSpecialPeers))
+	out.WriteString(fmt.Sprintf("\n    TestNetworkPort         %v", s.App.TestNetworkPort))
+	out.WriteString(fmt.Sprintf("\n    TestSeedURL             %v", s.App.TestSeedURL))
+	out.WriteString(fmt.Sprintf("\n    TestSpecialPeers        %v", s.App.TestSpecialPeers))
+	out.WriteString(fmt.Sprintf("\n    LocalNetworkPort        %v", s.App.LocalNetworkPort))
+	out.WriteString(fmt.Sprintf("\n    LocalSeedURL            %v", s.App.LocalSeedURL))
+	out.WriteString(fmt.Sprintf("\n    LocalSpecialPeers       %v", s.App.LocalSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
+	out.WriteString(fmt.Sprintf("\n    IdentityChainID         %v", s.App.IdentityChainID))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPublicKey    %v", s.App.LocalServerPublicKey))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
+	out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
+	out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityAddress   %v", s.App.ExchangeRateAuthorityAddress))
 
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
 	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
@@ -220,7 +270,7 @@ func GetConfigFilename(dir string) string {
 	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
 }
 
-func ReadConfig(filename string, folder string) *FactomdConfig {
+func ReadConfig(filename string) *FactomdConfig {
 	if filename == "" {
 		filename = ConfigFilename()
 	}
@@ -247,15 +297,6 @@ func ReadConfig(filename string, folder string) *FactomdConfig {
 	} else {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
 	}
-
-	// TODO: improve the paths after milestone 1
-	cfg.App.LdbPath = cfg.App.HomeDir + folder + cfg.App.LdbPath
-	cfg.App.BoltDBPath = cfg.App.HomeDir + folder + cfg.App.BoltDBPath
-	cfg.App.DataStorePath = cfg.App.HomeDir + folder + cfg.App.DataStorePath
-	cfg.Log.LogPath = cfg.App.HomeDir + folder + cfg.Log.LogPath
-	cfg.Wallet.BoltDBPath = cfg.App.HomeDir + folder + cfg.Wallet.BoltDBPath
-	cfg.App.ExportDataSubpath = cfg.App.HomeDir + folder + cfg.App.ExportDataSubpath
-
 	return cfg
 }
 

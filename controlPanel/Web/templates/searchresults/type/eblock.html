@@ -1,0 +1,81 @@
+{{define "eblock"}}
+	{{template "header"}}
+	<!-- Body -->
+	 <section id="explorer">
+        <div class="row">
+            <div class="columns"> 
+                <h1>Entry Block</h1>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>KeyMR:</td>
+                            <td>{{.KeyMR}}</td>
+                        </tr>
+                        <tr>
+                            <td>Full Hash:</td>
+                            <td>{{.FullHash}}</td>
+                        </tr>
+                        <tr>
+                            <td>ChainID:</td>
+                            <td><a id="factom-search-link" type="chainhead">{{.Header.ChainID}}</a></td>
+                        </tr>
+                        <tr>
+                            <td>Block Height:</td>
+                            <td>{{.Header.DBHeight}}</td>
+                        </tr>
+                        <tr>
+                            <td>Previous Entry Block:</td>
+                            <td>
+                                Previous KeyMR     :   <a id="factom-search-link" type="eblock">{{.Header.PrevKeyMR}}</a><br />
+                                Previous Full Hash :   {{.Header.PrevFullHash}}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3>Entries Contained in Block <small>{{.Header.EntryCount}} Entries</small></h3> 
+                {{range $i, $ele := .Entries}}
+                {{if eq $ele.Hash "Minute Marker"}}
+                 <table id="search-table">
+                    <tbody>
+                        <tr>
+                            <td>Minute Marker</td>
+                            <td>{{$ele.ChainID}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                {{else}}
+        		 <table id="search-table">
+                	<tbody>
+                		<tr>
+                			<td>Entry Hash:</td>
+                			<td><a id="factom-search-link" type="entry">{{$ele.Hash}}</a></td>
+                		</tr>
+                		<tr>
+                			<td>External IDs:</td>
+                			<td>
+								<ul>
+							    {{ range $ID := $ele.ExtIDs }}
+							        <li id="entry-external-id">{{$ID}}</li> 
+							    {{ end }}
+							</ul>
+                			</td>
+                		</tr>
+                		<tr>
+  							<td>Content:</td>
+                            <td>
+                                <span id="entry-content-summary">Content Summary: <a><small>Show All</small></a><br />{{truncate $ele.Content}}</span>
+                                <span id="entry-content-body" style="display:none;">All Content: <a><small>Show Summary</small></a><br />{{$ele.Content}}</span>
+                            </td>
+                		</tr>
+                	</tbody>
+                </table>
+                {{end}}
+        		{{end}}
+           </div>
+		</div>
+	</section>
+	<!-- End Body -->
+	{{template "scripts"}}
+    {{template "tools"}}
+	{{template "footer"}}
+{{end}}

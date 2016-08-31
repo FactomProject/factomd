@@ -27,8 +27,14 @@ type ITransaction interface {
 	// RCDs are generally added at the same time.
 	AddRCD(rcd IRCD)
 
+	//GetTxID() IHash
+
 	// Get the hash of the signed portion (not including signatures)
+	// This is the TxID of a factoid transaction
 	GetSigHash() IHash
+
+	// Get the full hash of the transaction (including signatures)
+	GetFullHash() IHash
 
 	// Accessors the inputs, outputs, and Entry Credit outputs (ecoutputs)
 	// to this transaction.
@@ -45,8 +51,8 @@ type ITransaction interface {
 	// Locktime serves as a nonce to make every transaction unique. Transactions
 	// that are more than 24 hours old are not included nor propagated through
 	// the network.
-	GetMilliTimestamp() uint64
-	SetMilliTimestamp(uint64)
+	GetTimestamp() Timestamp
+	SetTimestamp(Timestamp)
 	// Get a signature
 	GetSignatureBlock(i int) ISignatureBlock
 	SetSignatureBlock(i int, signatureblk ISignatureBlock)
@@ -65,7 +71,8 @@ type ITransaction interface {
 	CalculateFee(factoshisPerEC uint64) (uint64, error)
 
 	// Wallet Support (Not sure why we need some of these)
-	SetBlockHeight(int)
+	GetBlockHeight() uint32
+	SetBlockHeight(uint32)
 
 	// Helper Function.  This simply adds an Authorization to a
 	// transaction.  DOES NO VALIDATION.  Not the job of construction.

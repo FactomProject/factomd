@@ -1,0 +1,98 @@
+{{define "fblock"}}
+	{{template "header"}}
+	<!-- Body -->
+	 <section id="explorer">
+        <div class="row">
+            <div class="columns"> 
+                <h1>Factoid Block</h1>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>Body MR:</td>
+                            <td>{{.BodyMR}}</td>
+                        </tr>
+                        <tr>
+                            <td>Height:</td>
+                            <td>{{.DBHeight}}</td>
+                        </tr>
+                        <tr>
+                            <td>Exchange Rate:</td>
+                            <td>{{.ExchRate}}</td>
+                        </tr>
+                        <tr>
+                            <td>Previous Factoid Block:</td>
+                            <td>
+                                <a id="factom-search-link" type="fblock">{{.PrevKeyMR}}</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3>Transactions Contained in Factoid Block <small>{{.Length}} Entries</small></h3> 
+                {{range $i, $ele := .Transactions}}
+                 <table id="search-table">
+                     <tbody>
+                         <tr style="background-color:#202020"><td></td><td></td></tr>
+                         <tr>
+                            <td colspan="2">                          
+                                <table>
+                                    <td style="width:50%;text-align:center;">
+                                    <h4>Inputs</h4>
+                                    {{range $i, $in := $ele.GetInputs}}
+                                        <a id="factom-search-link" type="FA">{{AddressFACorrect $in.GetAddress.String}}</a> <br />
+                                    {{end}}
+                                    </td>
+                                    <td style="text-align:center">
+                                    <h4>Outputs</h4>
+                                    {{range $i, $out := $ele.GetOutputs}}
+                                        <a id="factom-search-link" type="FA">{{AddressFACorrect $out.GetAddress.String}}</a> <br />
+                                    {{end}}
+                                    {{range $i, $out := $ele.GetECOutputs}}
+                                        <a id="factom-search-link" type="EC">{{AddressECCorrect $out.GetAddress.String}}</a><br />
+                                    {{end}}
+                                    </td>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Transaction Hash:
+                            </td>
+                            <td>
+                                <a id="factom-search-link" type="facttransaction">{{.GetHash}}</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Total Input:
+                            </td>
+                            <td>
+                                {{TransactionAmountCorrect .TotalInputs}} Factoids
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Total Factoid Output:
+                            </td>
+                            <td>
+                                {{TransactionAmountCorrect .TotalOutputs}} Factoids
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Total EC Output:
+                            </td>
+                            <td>
+                                {{TransactionAmountCorrect .TotalECs}} Factoids
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                {{end}}
+           </div>
+		</div>
+	</section>
+	<!-- End Body -->
+	{{template "scripts"}}
+    {{template "tools"}}
+	{{template "footer"}}
+{{end}}

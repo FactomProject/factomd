@@ -14,7 +14,7 @@ import (
 func main() {
 	fmt.Println("DatabasePorter")
 
-	cfg := util.ReadConfig("", "")
+	cfg := util.ReadConfig("")
 
 	var dbo interfaces.DBOverlay
 
@@ -44,7 +44,7 @@ mainloop:
 		endKeyMR := "0000000000000000000000000000000000000000000000000000000000000000"
 		startIndex := 0
 		if dbHead != nil {
-			endKeyMR = dbHead.GetKeyMR().String()
+			endKeyMR = dbHead.GetHeader().GetPrevKeyMR().String()
 			fmt.Printf("Local DB Head - %v - %v\n", dbHead.GetDatabaseHeight(), endKeyMR)
 			startIndex = int(dbHead.GetDatabaseHeight())
 		}
@@ -86,7 +86,7 @@ mainloop:
 			fmt.Printf("Fetched dblock %v\n", dBlock.GetDatabaseHeight())
 		}
 
-		dBlockList = dBlockList[startIndex+1:]
+		dBlockList = dBlockList[startIndex:]
 
 		fmt.Printf("\t\tSaving blocks\n")
 
@@ -127,13 +127,16 @@ mainloop:
 						}
 						break
 					case "000000000000000000000000000000000000000000000000000000000000000c":
-						ecblock, err := GetECBlock(e.GetKeyMR().String())
-						if err != nil {
-							panic(err)
-						}
-						err = dbo.ProcessECBlockMultiBatch(ecblock)
-						if err != nil {
-							panic(err)
+						keyMRs := GetECBlockList(e.GetKeyMR().String())
+						for _, keyMR := range keyMRs {
+							ecblock, err := GetECBlock(keyMR)
+							if err != nil {
+								panic(err)
+							}
+							err = dbo.ProcessECBlockMultiBatch(ecblock, true)
+							if err != nil {
+								panic(err)
+							}
 						}
 						break
 					default:
@@ -141,7 +144,7 @@ mainloop:
 						if err != nil {
 							panic(err)
 						}
-						err = dbo.ProcessEBlockMultiBatch(eblock)
+						err = dbo.ProcessEBlockMultiBatch(eblock, true)
 						if err != nil {
 							panic(err)
 						}
@@ -183,11 +186,47 @@ mainloop:
 			fmt.Printf("Saved block height %v\n", v.GetDatabaseHeight())
 		}
 	}
-	fmt.Printf("\t\tRebulding DirBlockInfo\n")
-	err := dbo.RebuildDirBlockInfo()
+	fmt.Printf("\t\tIterating over ECBlocks\n")
+	prev, err := dbo.FetchECBlockHead()
 	if err != nil {
 		panic(err)
 	}
+	for {
+		if prev.GetHeader().GetPrevHeaderHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
+			break
+		}
+		ecBlock, err := dbo.FetchECBlock(prev.GetHeader().GetPrevHeaderHash())
+		if err != nil {
+			panic(err)
+		}
+		if ecBlock == nil {
+			ecblock, err := GetECBlock(prev.GetHeader().GetPrevHeaderHash().String())
+			if err != nil {
+				panic(err)
+			}
+			err = dbo.ProcessECBlockBatchWithoutHead(ecblock, true)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			//only iterate to the next block if it was properly fetched from the database
+			prev = ecBlock
+		}
+	}
+
+	fmt.Printf("\t\tRebulding DirBlockInfo\n")
+	err = dbo.RebuildDirBlockInfo()
+	if err != nil {
+		panic(err)
+	}
+}
+
+//For handling free-floating blocks
+func GetECBlockList(keyMR string) []string {
+	if keyMR == "925090ae39df3f7eb44277e0520889b1e1b95c89545cfce822c4f9e2a9b3a99d" {
+		return []string{keyMR, "a22779308a2d6b16a4dc3cf1dd90df034c7f98f883fb5ca69ffb2f5cd73b3e83"}
+	}
+	return []string{keyMR}
 }
 
 func GetDBlockList() []string {

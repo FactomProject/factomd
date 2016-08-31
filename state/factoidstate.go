@@ -9,12 +9,13 @@ package state
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"runtime/debug"
 )
 
 var _ = debug.PrintStack
@@ -31,6 +32,9 @@ type FactoidState struct {
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
 
 func (fs *FactoidState) EndOfPeriod(period int) {
+	if period > 9 || period < 0 {
+		panic(fmt.Sprintf("Minute is out of range: %d", period))
+	}
 	fs.GetCurrentBlock().EndOfPeriod(period)
 }
 
@@ -44,8 +48,10 @@ func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 	if fs.CurrentBlock == nil {
-		fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight)
-		t := factoid.GetCoinbase(0)
+		fs.CurrentBlock = factoid.NewFBlock(nil)
+		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
+		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
+		t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {
 			panic(err.Error())
@@ -70,7 +76,7 @@ func (fs *FactoidState) AddTransactionBlock(blk interfaces.IFBlock) error {
 		}
 	}
 	fs.CurrentBlock = blk
-	//	fs.State.SetFactoshisPerEC(blk.GetExchRate())
+	//fs.State.SetFactoshisPerEC(blk.GetExchRate())
 
 	return nil
 }
@@ -92,12 +98,12 @@ func (fs *FactoidState) AddECBlock(blk interfaces.IEntryCreditBlock) error {
 // No node has any responsiblity to forward on transactions that do not fall within
 // the timeframe around a block defined by TRANSACTION_PRIOR_LIMIT and TRANSACTION_POST_LIMIT
 func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) error {
-	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp()
+	tsblk := fs.GetCurrentBlock().GetCoinbaseTimestamp().GetTimeMilli()
 	if tsblk < 0 {
 		return fmt.Errorf("Block has no coinbase transaction at this time")
 	}
 
-	tstrans := int64(trans.GetMilliTimestamp())
+	tstrans := trans.GetTimestamp().GetTimeMilli()
 
 	if tsblk-tstrans > constants.TRANSACTION_PRIOR_LIMIT {
 		return fmt.Errorf("Transaction is too old to be included in the current block")
@@ -121,25 +127,53 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 		return err
 	}
 	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+		// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
+		// all transactions here.
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+
+		for index, eo := range trans.GetECOutputs() {
+			pl := fs.State.ProcessLists.Get(fs.DBHeight)
+			incBal := entryCreditBlock.NewIncreaseBalance()
+			v := eo.GetAddress().Fixed()
+			incBal.ECPubKey = (*primitives.ByteSlice32)(&v)
+			incBal.NumEC = eo.GetAmount() / fs.GetCurrentBlock().GetExchRate()
+			incBal.TXID = trans.GetSigHash()
+			incBal.Index = uint64(index)
+			entries := pl.EntryCreditBlock.GetEntries()
+			i := 0
+			// Find the end of the last IncreaseBalance in this minute
+			for i < len(entries) {
+				if _, ok := entries[i].(*entryCreditBlock.IncreaseBalance); ok {
+					break
+				}
+				i++
+			}
+			entries = append(entries, nil)
+			copy(entries[i+1:], entries[i:])
+			entries[i] = incBal
+			pl.EntryCreditBlock.GetBody().SetEntries(entries)
+		}
+
 	}
 
 	return nil
 }
 
 func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
-	return fs.State.GetF(address)
+	return fs.State.GetF(true, address)
 }
 
 func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
-	return fs.State.GetE(address)
+	return fs.State.GetE(true, address)
 }
 
 func (fs *FactoidState) ResetBalances() {
 	fs.State.FactoidBalancesP = map[[32]byte]int64{}
 	fs.State.ECBalancesP = map[[32]byte]int64{}
-	fs.State.FactoidBalancesT = map[[32]byte]int64{}
-	fs.State.ECBalancesT = map[[32]byte]int64{}
 	fs.State.NumTransactions = 0
 }
 
@@ -154,17 +188,20 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 	case entryCreditBlock.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
-
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())-int64(t.Credits))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())-int64(t.Credits))
 		fs.State.NumTransactions++
+		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
+		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 
 	case entryCreditBlock.ECIDBalanceIncrease:
 		t := trans.(*entryCreditBlock.IncreaseBalance)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(t.ECPubKey.Fixed())+int64(t.NumEC))
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())+int64(t.NumEC))
 		fs.State.NumTransactions++
 
 	default:
@@ -178,40 +215,28 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
 	for _, input := range trans.GetInputs() {
 		adr := input.GetAddress().Fixed()
-		oldv := fs.State.GetF(adr)
+		oldv := fs.State.GetF(rt, adr)
 		fs.State.PutF(rt, adr, oldv-int64(input.GetAmount()))
 	}
 	for _, output := range trans.GetOutputs() {
 		adr := output.GetAddress().Fixed()
-		oldv := fs.State.GetF(adr)
+		oldv := fs.State.GetF(rt, adr)
 		fs.State.PutF(rt, adr, oldv+int64(output.GetAmount()))
 	}
 	for _, ecOut := range trans.GetECOutputs() {
 		ecbal := int64(ecOut.GetAmount()) / int64(fs.State.FactoshisPerEC)
-		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(ecOut.GetAddress().Fixed())+ecbal)
+		fs.State.PutE(rt, ecOut.GetAddress().Fixed(), fs.State.GetE(rt, ecOut.GetAddress().Fixed())+ecbal)
 	}
 	fs.State.NumTransactions++
-	return nil
-}
-
-// Assumes validation has already been done.
-func (fs *FactoidState) ClearRealTime() error {
-	fs.State.FactoidBalancesT = map[[32]byte]int64{}
-	fs.State.ECBalancesT = map[[32]byte]int64{}
 	return nil
 }
 
 // End of Block means packing the current block away, and setting
 // up the next
 func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
-	var hash, hash2 interfaces.IHash
-
 	if fs.GetCurrentBlock() == nil {
 		panic("Invalid state on initialization")
 	}
-
-	hash = fs.CurrentBlock.GetHash()
-	hash2 = fs.CurrentBlock.GetFullHash()
 
 	// 	outstr := fs.CurrentBlock.String()
 	// 	if len(outstr) < 10000 {
@@ -221,21 +246,17 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	//		}
 	// 	}
 
-	fs.CurrentBlock = factoid.NewFBlock(fs.State.GetFactoshisPerEC(), fs.DBHeight+1)
+	fBlock := factoid.NewFBlock(fs.CurrentBlock)
+	fBlock.SetExchRate(fs.State.GetFactoshisPerEC())
 
-	// TODO:  Need to get the leader time to put in the Coinbase ... Can't compute
-	// this on the fly and expect everyone to come up with the same timestamp.
-	t := factoid.GetCoinbase(0)
+	fs.CurrentBlock = fBlock
+
+	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())
 	}
 	fs.UpdateTransaction(true, t)
-
-	if hash != nil {
-		fs.CurrentBlock.SetPrevKeyMR(hash.Bytes())
-		fs.CurrentBlock.SetPrevFullHash(hash2.Bytes())
-	}
 
 	fs.DBHeight++
 }
@@ -250,8 +271,8 @@ func (fs *FactoidState) Validate(index int, trans interfaces.ITransaction) error
 		if err != nil {
 			return err
 		}
-		if int64(bal) > fs.State.GetF(input.GetAddress().Fixed()) {
-			return fmt.Errorf("Not enough funds in input addresses for the transaction")
+		if int64(bal) > fs.State.GetF(true, input.GetAddress().Fixed()) {
+			return fmt.Errorf("%s", "Not enough funds in input addresses for the transaction")
 		}
 		sums[input.GetAddress().Fixed()] = bal
 	}

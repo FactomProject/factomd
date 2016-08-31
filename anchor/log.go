@@ -6,16 +6,19 @@ package anchor
 
 import (
 	"os"
+	"strings"
 
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 )
 
 var (
-	logcfg     = util.ReadConfig("", "").Log
-	logPath    = logcfg.LogPath
-	logLevel   = logcfg.LogLevel
-	logfile, _ = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
+	cfg        = util.ReadConfig("")
+	homedir    = cfg.App.HomeDir
+	network    = strings.ToLower(cfg.App.Network) + "-"
+	logPath    = cfg.Log.LogPath
+	logLevel   = cfg.Log.LogLevel
+	logfile, _ = os.OpenFile(homedir+network+logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
 )
 
 // setup subsystem loggers

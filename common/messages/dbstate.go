@@ -40,7 +40,7 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -65,6 +65,10 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	}
 
 	return true
+}
+
+func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
@@ -108,29 +112,20 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *DBStateMsg) Leader(state interfaces.IState) bool {
-	return false
-}
+func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
 
 // Execute the leader functions of the given message
-func (m *DBStateMsg) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Should never execute a DBState in the Leader")
+func (m *DBStateMsg) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *DBStateMsg) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *DBStateMsg) FollowerExecute(state interfaces.IState) error {
-	return state.FollowerExecuteDBState(m)
+func (m *DBStateMsg) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteDBState(m)
 }
 
 // Acknowledgements do not go into the process list.
 func (e *DBStateMsg) Process(dbheight uint32, state interfaces.IState) bool {
-	panic("Ack object should never have its Process() method called")
+	panic("DBStatemsg should never have its Process() method called")
 }
 
 func (e *DBStateMsg) JSONByte() ([]byte, error) {
@@ -159,6 +154,7 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	m.Peer2Peer = true
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

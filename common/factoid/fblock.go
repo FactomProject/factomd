@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -22,11 +23,11 @@ import (
 //
 type FBlock struct {
 	//  ChainID         interfaces.IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
-	BodyMR       interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
-	PrevKeyMR    interfaces.IHash // Key Merkle root of previous block.
-	PrevFullHash interfaces.IHash // Sha3 of the previous Factoid Block
-	ExchRate     uint64           // Factoshis per Entry Credit
-	DBHeight     uint32           // Directory Block height
+	BodyMR          interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
+	PrevKeyMR       interfaces.IHash // Key Merkle root of previous block.
+	PrevLedgerKeyMR interfaces.IHash // Sha3 of the previous Factoid Block
+	ExchRate        uint64           // Factoshis per Entry Credit
+	DBHeight        uint32           // Directory Block height
 	// Header Expansion Size  varint
 	// Transaction count
 	// body size
@@ -52,6 +53,32 @@ func (c *FBlock) GetEntryHashes() []interfaces.IHash {
 	return answer
 }
 
+func (c *FBlock) GetTransactionByHash(hash interfaces.IHash) interfaces.ITransaction {
+	if hash == nil {
+		return nil
+	}
+
+	txs := c.GetTransactions()
+	for _, tx := range txs {
+		if hash.IsSameAs(tx.GetHash()) {
+			return tx
+		}
+		if hash.IsSameAs(tx.GetSigHash()) {
+			return tx
+		}
+	}
+	return nil
+}
+
+func (c *FBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := c.Transactions[:]
+	answer := make([]interfaces.IHash, len(entries))
+	for i, entry := range entries {
+		answer[i] = entry.GetSigHash()
+	}
+	return answer
+}
+
 func (c *FBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(FBlock)
 }
@@ -61,7 +88,7 @@ func (c *FBlock) DatabasePrimaryIndex() interfaces.IHash {
 }
 
 func (c *FBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	return c.GetHash()
+	return c.GetLedgerKeyMR()
 }
 
 func (c *FBlock) GetDatabaseHeight() uint32 {
@@ -69,11 +96,11 @@ func (c *FBlock) GetDatabaseHeight() uint32 {
 }
 
 // Return the timestamp of the coinbase transaction
-func (b *FBlock) GetCoinbaseTimestamp() int64 {
+func (b *FBlock) GetCoinbaseTimestamp() interfaces.Timestamp {
 	if len(b.Transactions) == 0 {
-		return -1
+		return nil
 	}
-	return int64(b.Transactions[0].GetMilliTimestamp())
+	return b.Transactions[0].GetTimestamp()
 }
 
 func (b *FBlock) EndOfPeriod(period int) {
@@ -94,12 +121,6 @@ func (b *FBlock) GetTransactions() []interfaces.ITransaction {
 
 func (b FBlock) GetNewInstance() interfaces.IFBlock {
 	return new(FBlock)
-}
-
-func (b *FBlock) GetHash() interfaces.IHash {
-	kmr := b.GetKeyMR()
-
-	return kmr
 }
 
 func (b *FBlock) GetEndOfPeriod() [10]int {
@@ -167,10 +188,10 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 	}
 	out.Write(data)
 
-	if b.PrevFullHash == nil {
-		b.PrevFullHash = new(primitives.Hash)
+	if b.PrevLedgerKeyMR == nil {
+		b.PrevLedgerKeyMR = new(primitives.Hash)
 	}
-	data, err = b.PrevFullHash.MarshalBinary()
+	data, err = b.PrevLedgerKeyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -240,64 +261,63 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 		panic(fmt.Sprintf("error in: %x %x", data[:35], constants.FACTOID_CHAINID[:]))
 		return nil, fmt.Errorf("Block does not begin with the Factoid ChainID")
 	}
-	data = data[32:]
+	newdata = data[32:]
 
 	b.BodyMR = new(primitives.Hash)
-	data, err = b.BodyMR.UnmarshalBinaryData(data)
+	newdata, err = b.BodyMR.UnmarshalBinaryData(newdata)
 	if err != nil {
 		return nil, err
 	}
 
 	b.PrevKeyMR = new(primitives.Hash)
-	data, err = b.PrevKeyMR.UnmarshalBinaryData(data)
+	newdata, err = b.PrevKeyMR.UnmarshalBinaryData(newdata)
 	if err != nil {
 		return nil, err
 	}
 
-	b.PrevFullHash = new(primitives.Hash)
-	data, err = b.PrevFullHash.UnmarshalBinaryData(data)
+	b.PrevLedgerKeyMR = new(primitives.Hash)
+	newdata, err = b.PrevLedgerKeyMR.UnmarshalBinaryData(newdata)
 	if err != nil {
 		return nil, err
 	}
 
-	b.ExchRate, data = binary.BigEndian.Uint64(data[0:8]), data[8:]
-	b.DBHeight, data = binary.BigEndian.Uint32(data[0:4]), data[4:]
+	b.ExchRate, newdata = binary.BigEndian.Uint64(newdata[0:8]), newdata[8:]
+	b.DBHeight, newdata = binary.BigEndian.Uint32(newdata[0:4]), newdata[4:]
 
-	skip, data := primitives.DecodeVarInt(data) // Skip the Expansion Header, if any, since
-	data = data[skip:]                          // we don't know what to do with it.
+	skip, newdata := primitives.DecodeVarInt(newdata) // Skip the Expansion Header, if any, since
+	newdata = newdata[skip:]                          // we don't know what to do with it.
 
-	cnt, data := binary.BigEndian.Uint32(data[0:4]), data[4:]
+	cnt, newdata := binary.BigEndian.Uint32(newdata[0:4]), newdata[4:]
 
-	data = data[4:] // Just skip the size... We don't really need it.
+	newdata = newdata[4:] // Just skip the size... We don't really need it.
 
 	b.Transactions = make([]interfaces.ITransaction, cnt, cnt)
 	for i, _ := range b.endOfPeriod {
 		b.endOfPeriod[i] = 0
 	}
 	var periodMark = 0
-	for i := uint32(0); i < cnt; i++ {
 
-		for data[0] == constants.MARKER {
+	for i := uint32(0); i < cnt; i++ {
+		for newdata[0] == constants.MARKER {
 			b.endOfPeriod[periodMark] = int(i)
-			data = data[1:]
+			newdata = newdata[1:]
 			periodMark++
 		}
 
 		trans := new(Transaction)
-		data, err = trans.UnmarshalBinaryData(data)
+		newdata, err = trans.UnmarshalBinaryData(newdata)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to unmarshal a transaction in block.\n" + err.Error())
 		}
 		b.Transactions[i] = trans
 	}
 	for periodMark < len(b.endOfPeriod) {
-		data = data[1:]
+		newdata = newdata[1:]
 		b.endOfPeriod[periodMark] = int(cnt)
 		periodMark++
 	}
 
-	return data, nil
-
+	return newdata, nil
 }
 
 func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
@@ -327,7 +347,7 @@ func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
 	if r != nil {
 		return append(r, b1)
 	}
-	r = b1.PrevFullHash.IsEqual(b2.PrevFullHash)
+	r = b1.PrevLedgerKeyMR.IsEqual(b2.PrevLedgerKeyMR)
 	if r != nil {
 		return append(r, b1)
 	}
@@ -358,7 +378,6 @@ func (b *FBlock) GetChainID() interfaces.IHash {
 
 // Calculates the Key Merkle Root for this block and returns it.
 func (b *FBlock) GetKeyMR() interfaces.IHash {
-
 	bodyMR := b.GetBodyMR()
 
 	data, err := b.MarshalHeader()
@@ -366,14 +385,17 @@ func (b *FBlock) GetKeyMR() interfaces.IHash {
 		panic("Failed to create KeyMR: " + err.Error())
 	}
 	headerHash := primitives.Sha(data)
+
 	cat := append(headerHash.Bytes(), bodyMR.Bytes()...)
 	kmr := primitives.Sha(cat)
 	return kmr
 }
 
-// Calculates the Key Merkle Root for this block and returns it.
-func (b *FBlock) GetFullHash() interfaces.IHash {
+func (b *FBlock) GetHash() interfaces.IHash {
+	return b.GetLedgerKeyMR()
+}
 
+func (b *FBlock) GetLedgerKeyMR() interfaces.IHash {
 	ledgerMR := b.GetLedgerMR()
 
 	data, err := b.MarshalHeader()
@@ -389,7 +411,6 @@ func (b *FBlock) GetFullHash() interfaces.IHash {
 
 // Returns the LedgerMR for this block.
 func (b *FBlock) GetLedgerMR() interfaces.IHash {
-
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {
@@ -397,12 +418,7 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 			marker++
 			hashes = append(hashes, primitives.Sha(constants.ZERO))
 		}
-		data, err := trans.MarshalBinarySig()
-		hash := primitives.Sha(data)
-		if err != nil {
-			panic("Failed to get LedgerMR: " + err.Error())
-		}
-		hashes = append(hashes, hash)
+		hashes = append(hashes, trans.GetSigHash())
 	}
 
 	// Add any lagging markers
@@ -440,18 +456,16 @@ func (b *FBlock) GetPrevKeyMR() interfaces.IHash {
 	return b.PrevKeyMR
 }
 
-func (b *FBlock) SetPrevKeyMR(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevKeyMR = h
+func (b *FBlock) SetPrevKeyMR(hash interfaces.IHash) {
+	b.PrevKeyMR = hash
 }
 
-func (b *FBlock) GetPrevFullHash() interfaces.IHash {
-	return b.PrevFullHash
+func (b *FBlock) GetPrevLedgerKeyMR() interfaces.IHash {
+	return b.PrevLedgerKeyMR
 }
 
-func (b *FBlock) SetPrevFullHash(hash []byte) {
-	h := primitives.NewHash(hash)
-	b.PrevFullHash = h
+func (b *FBlock) SetPrevLedgerKeyMR(hash interfaces.IHash) {
+	b.PrevLedgerKeyMR = hash
 }
 
 func (b *FBlock) CalculateHashes() {
@@ -629,11 +643,11 @@ func (b FBlock) CustomMarshalText() (text []byte, err error) {
 	}
 	out.WriteString("\n  PrevKeyMR:     ")
 	out.WriteString(b.PrevKeyMR.String())
-	if b.PrevFullHash == nil {
-		b.PrevFullHash = new(primitives.Hash)
+	if b.PrevLedgerKeyMR == nil {
+		b.PrevLedgerKeyMR = new(primitives.Hash)
 	}
-	out.WriteString("\n  PrevFullHash:  ")
-	out.WriteString(b.PrevFullHash.String())
+	out.WriteString("\n  PrevLedgerKeyMR:  ")
+	out.WriteString(b.PrevLedgerKeyMR.String())
 	out.WriteString("\n  ExchRate:      ")
 	primitives.WriteNumber64(&out, b.ExchRate)
 	out.WriteString(fmt.Sprintf("\n  DBHeight:      %v", b.DBHeight))
@@ -679,26 +693,69 @@ func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
+type ExpandedFBlock FBlock
+
+func (e FBlock) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedFBlock
+		ChainID     string
+		KeyMR       string
+		LedgerKeyMR string
+	}{
+		ExpandedFBlock: ExpandedFBlock(e),
+		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",
+		KeyMR:          e.GetKeyMR().String(),
+		LedgerKeyMR:    e.GetLedgerKeyMR().String(),
+	})
+}
+
 /**************************
  * Helper Functions
  **************************/
 
-func NewFBlock(exchRate uint64, dbHeight uint32) interfaces.IFBlock {
+func NewFBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	scb := new(FBlock)
 	scb.BodyMR = new(primitives.Hash)
-	scb.PrevKeyMR = new(primitives.Hash)
-	scb.PrevFullHash = new(primitives.Hash)
-	scb.ExchRate = exchRate
-	scb.DBHeight = dbHeight
+	if prev != nil {
+		scb.PrevKeyMR = prev.GetKeyMR()
+		scb.PrevLedgerKeyMR = prev.GetLedgerKeyMR()
+		scb.ExchRate = prev.GetExchRate()
+		scb.DBHeight = prev.GetDBHeight() + 1
+	} else {
+		scb.PrevKeyMR = primitives.NewZeroHash()
+		scb.PrevLedgerKeyMR = primitives.NewZeroHash()
+		scb.ExchRate = 1
+		scb.DBHeight = 0
+	}
 	return scb
 }
 
-func NewFBlockFromPreviousBlock(exchangeRate uint64, prev interfaces.IFBlock) interfaces.IFBlock {
-	if prev != nil {
-		newBlock := NewFBlock(exchangeRate, prev.GetDBHeight()+1)
-		newBlock.SetPrevKeyMR(prev.GetKeyMR().Bytes())
-		newBlock.SetPrevFullHash(prev.GetFullHash().Bytes())
-		return newBlock
+func CheckBlockPairIntegrity(block interfaces.IFBlock, prev interfaces.IFBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
 	}
-	return NewFBlock(exchangeRate, 0)
+
+	if prev == nil {
+		if block.GetPrevKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsZero() == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		if block.GetPrevKeyMR().IsSameAs(prev.GetKeyMR()) == false {
+			return fmt.Errorf("Invalid PrevKeyMR")
+		}
+		if block.GetPrevLedgerKeyMR().IsSameAs(prev.GetLedgerKeyMR()) == false {
+			return fmt.Errorf("Invalid PrevLedgerKeyMR")
+		}
+		if block.GetDBHeight() != (prev.GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }

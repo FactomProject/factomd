@@ -13,6 +13,9 @@ debug
 *.log
 .vscode/
 .idea/
+peers.json
+*.csv
+*.gz
 
 # Folders
 _obj
@@ -42,3 +45,4 @@ _testmain.go
 
 *.out
 .idea/
+----*

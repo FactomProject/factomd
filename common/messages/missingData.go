@@ -21,9 +21,6 @@ type MissingData struct {
 	RequestHash interfaces.IHash
 
 	//No signature!
-
-	//Not marshalled
-	hash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*MissingData)(nil)
@@ -32,7 +29,7 @@ func (a *MissingData) IsSameAs(b *MissingData) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -52,15 +49,12 @@ func (m *MissingData) Process(uint32, interfaces.IState) bool {
 	return true
 }
 
+func (m *MissingData) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
+
 func (m *MissingData) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			panic(fmt.Sprintf("Error in MissingData.GetHash(): %s", err.Error()))
-		}
-		m.hash = primitives.Sha(data)
-	}
-	return m.hash
+	return m.GetMsgHash()
 }
 
 func (m *MissingData) GetMsgHash() interfaces.IHash {
@@ -102,6 +96,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -142,7 +137,7 @@ func (m *MissingData) MarshalBinary() ([]byte, error) {
 }
 
 func (m *MissingData) String() string {
-	return fmt.Sprintf("MissingData: %+v", m.RequestHash)
+	return fmt.Sprintf("MissingData: [%x]", m.RequestHash.Bytes()[:5])
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -153,23 +148,14 @@ func (m *MissingData) Validate(state interfaces.IState) int {
 	return 1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *MissingData) Leader(state interfaces.IState) bool {
-	return false
+func (m *MissingData) ComputeVMIndex(state interfaces.IState) {
 }
 
-// Execute the leader functions of the given message
-func (m *MissingData) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *MissingData) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *MissingData) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *MissingData) FollowerExecute(state interfaces.IState) error {
+func (m *MissingData) FollowerExecute(state interfaces.IState) {
 	var dataObject interfaces.BinaryMarshallable
 	//var dataHash interfaces.IHash
 	rawObject, dataType, err := state.LoadDataByHash(m.RequestHash)
@@ -183,18 +169,16 @@ func (m *MissingData) FollowerExecute(state interfaces.IState) error {
 			dataObject = rawObject.(interfaces.IEntryBlock)
 			//dataHash, _ = dataObject.(interfaces.IEntryBlock).Hash()
 		default:
-			return fmt.Errorf("Datatype unsupported")
+			return
 		}
 
 		msg := NewDataResponse(state, dataObject, dataType, m.RequestHash)
 
 		msg.SetOrigin(m.GetOrigin())
+		msg.SetNetworkOrigin(m.GetNetworkOrigin())
 		state.NetworkOutMsgQueue() <- msg
-	} else {
-		return err
 	}
-
-	return nil
+	return
 }
 
 func (e *MissingData) JSONByte() ([]byte, error) {
@@ -216,10 +200,6 @@ func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) inter
 	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()
 	msg.RequestHash = requestHash
-
-	state.AddDataRequest(requestHash, msg.GetHash())
-
-	//fmt.Printf("%v REQUESTING %x\n", state.GetFactomNodeName(), requestHash.Bytes()[:3])
 
 	return msg
 }

@@ -34,7 +34,7 @@ func (a *DataResponse) IsSameAs(b *DataResponse) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 	if a.DataType != b.DataType {
@@ -67,6 +67,10 @@ func (a *DataResponse) IsSameAs(b *DataResponse) bool {
 		}
 	}
 	return true
+}
+
+func (m *DataResponse) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
 }
 
 func (m *DataResponse) GetHash() interfaces.IHash {
@@ -135,83 +139,15 @@ func (m *DataResponse) Validate(state interfaces.IState) int {
 	return -1
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *DataResponse) Leader(state interfaces.IState) bool {
-	return false
-}
+func (m *DataResponse) ComputeVMIndex(state interfaces.IState) {}
 
 // Execute the leader functions of the given message
-func (m *DataResponse) LeaderExecute(state interfaces.IState) error {
-	return fmt.Errorf("Should never execute a DataResponse in the Leader")
+func (m *DataResponse) LeaderExecute(state interfaces.IState) {
+	m.FollowerExecute(state)
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *DataResponse) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *DataResponse) FollowerExecute(state interfaces.IState) error {
-	if state.HasDataRequest(m.DataHash) {
-		switch m.DataType {
-		case 1: // Data is an entryBlock
-			eblock, ok := m.DataObject.(interfaces.IEntryBlock)
-			if !ok {
-				return fmt.Errorf("Wrong DataType -- not IEntryBlock")
-			}
-			ebKeyMR, err := eblock.KeyMR()
-
-			if err == nil {
-				if ebKeyMR.IsSameAs(m.DataHash) {
-					if !state.DatabaseContains(ebKeyMR) {
-						err := state.FollowerExecuteAddData(m) // Save EBlock
-
-						for _, hashMatchAttempt := range state.GetDirectoryBlockByHeight(state.GetEBDBHeightComplete()).GetEntryHashes() {
-							if hashMatchAttempt.IsSameAs(ebKeyMR) {
-								if state.GetAllEntries(ebKeyMR) {
-									state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
-								}
-							}
-						}
-
-						if err != nil { // If there was an error saving the data, return err
-							return err
-						}
-					}
-				}
-			}
-		case 0: // Data is an entry
-			if !state.DatabaseContains(m.DataHash) {
-				entry, ok := m.DataObject.(interfaces.IEBEntry)
-				if !ok {
-					return fmt.Errorf("Wrong DataType -- not IEBEntry")
-				}
-				err := state.FollowerExecuteAddData(m) // Save entry
-
-				ebKeyMR := state.GetEBlockKeyMRFromEntryHash(entry.GetHash())
-
-				if ebKeyMR != nil {
-					if state.DatabaseContains(ebKeyMR) { // Node already has eBlock in database
-						if state.GetAllEntries(ebKeyMR) {
-							state.SetEBDBHeightComplete(state.GetEBDBHeightComplete() + 1)
-						}
-					} else {
-						if !state.HasDataRequest(ebKeyMR) {
-							// Need to get eblock itself
-							eBlockRequest := NewMissingData(state, ebKeyMR)
-							state.NetworkOutMsgQueue() <- eBlockRequest
-						}
-					}
-				}
-
-				if err != nil { // If there was an error saving the data, return err
-					return err
-				}
-
-			}
-		}
-	}
-	return nil
+func (m *DataResponse) FollowerExecute(state interfaces.IState) {
+	state.FollowerExecuteDataResponse(m)
 }
 
 // Acknowledgements do not go into the process list.
@@ -243,6 +179,7 @@ func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

@@ -35,6 +35,7 @@ type IEntryBlock interface {
 	GetBody() IEBlockBody
 
 	GetEntryHashes() []IHash
+	GetEntrySigHashes() []IHash
 	HeaderHash() (IHash, error)
 	GetHash() IHash
 	BodyKeyMR() IHash
@@ -58,6 +59,7 @@ type IEntryBlockHeader interface {
 	SetDBHeight(uint32)
 	GetEntryCount() uint32
 	SetEntryCount(uint32)
+	String() string
 }
 
 type IEBlockBody interface {

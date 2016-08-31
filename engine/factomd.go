@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 )
@@ -22,10 +23,9 @@ var _ = fmt.Print
 //var winServiceMain func() (bool, error)
 
 // Build sets the factomd build id using git's SHA
-// by compiling factomd with: -ldflags "-X main.Build=<build sha1>"
-// e.g. get  the short version of the sha1 of your latest commit by running
-// $ git rev-parse --short HEAD
-// $ go install -ldflags "-X main.Build=6c10244"
+// $ go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`"
+// It also seems to need to have the previous binary deleted if recompiling to have this message show up if no code has changed.
+// Since we are tracking code changes, then there is no need to delete the binary to use the latest message
 var Build string
 
 func Factomd() {
@@ -48,7 +48,7 @@ func Factomd() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	state0 := new(state.State)
-
+	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	fmt.Println("len(Args)", len(os.Args))
 
 	NetStart(state0)
@@ -69,5 +69,8 @@ func isCompilerVersionOK() bool {
 		goodenough = true
 	}
 
+	if strings.Contains(runtime.Version(), "1.7") {
+		goodenough = true
+	}
 	return goodenough
 }

@@ -30,7 +30,7 @@ func (a *InvalidDirectoryBlock) IsSameAs(b *InvalidDirectoryBlock) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -66,6 +66,10 @@ func (m *InvalidDirectoryBlock) VerifySignature() (bool, error) {
 }
 
 func (m *InvalidDirectoryBlock) Process(uint32, interfaces.IState) bool { return true }
+
+func (m *InvalidDirectoryBlock) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
 
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -117,6 +121,7 @@ func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -201,32 +206,15 @@ func (m *InvalidDirectoryBlock) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *InvalidDirectoryBlock) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
+func (m *InvalidDirectoryBlock) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
-func (m *InvalidDirectoryBlock) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *InvalidDirectoryBlock) LeaderExecute(state interfaces.IState) {
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *InvalidDirectoryBlock) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *InvalidDirectoryBlock) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *InvalidDirectoryBlock) FollowerExecute(interfaces.IState) {
 }
 
 func (e *InvalidDirectoryBlock) JSONByte() ([]byte, error) {

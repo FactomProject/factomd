@@ -23,12 +23,21 @@ func (c *DBSignatureEntry) UpdateState(state interfaces.IState) {
 }
 
 // Create a new DB Signature Entry
-func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig primitives.Signature) (e *DBSignatureEntry) {
-	e = new(DBSignatureEntry)
+func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig interfaces.IFullSignature) (*DBSignatureEntry, error) {
+	e := new(DBSignatureEntry)
 	e.IdentityAdminChainID = identityAdminChainID
-	copy(e.PrevDBSig.Pub[:], sig.Pub[:])
-	copy(e.PrevDBSig.Sig[:], sig.Sig[:])
-	return
+	bytes, err := sig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	prevDBSig := new(primitives.Signature)
+	prevDBSig.SetPub(bytes[:32])
+	err = prevDBSig.SetSignature(bytes[32:])
+	if err != nil {
+		return nil, err
+	}
+	e.PrevDBSig = *prevDBSig
+	return e, nil
 }
 
 func (e *DBSignatureEntry) Type() byte {
@@ -100,8 +109,9 @@ func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *DBSignatureEntry) String() string {
-	str, _ := e.JSONString()
-	return str
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8s %12s %8x\n", "DB Signature", "IdentityChainID", e.IdentityAdminChainID.Bytes()[:4], "PubKey", e.PrevDBSig.Pub.String()[:8], "Signature", e.PrevDBSig.Sig.String()[:8]))
+	return (string)(out.DeepCopyBytes())
 }
 
 func (e *DBSignatureEntry) IsInterpretable() bool {

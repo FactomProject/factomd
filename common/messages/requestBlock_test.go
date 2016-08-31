@@ -9,7 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	//"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalRequestBlock(t *testing.T) {
@@ -94,7 +94,7 @@ func TestSignAndVerifyEOM(t *testing.T) {
 
 func newRequestBlock() *RequestBlock {
 	msg := new(RequestBlock)
-	msg.Timestamp.SetTimeNow()
+	msg.Timestamp = primitives.NewTimestampNow()
 
 	return msg
 }
@@ -107,7 +107,7 @@ func newSignedEOM() *EOM {
 	if err != nil {
 		panic(err)
 	}
-	err = msg.Sign(&key)
+	err = msg.Sign(key)
 	if err != nil {
 		panic(err)
 	}

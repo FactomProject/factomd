@@ -112,7 +112,7 @@ func TestMultiValue(t *testing.T) {
 		t.Error(err)
 	}
 	if len(keys) != 10 {
-		t.Error("Invalid length of keys")
+		t.Errorf("Invalid length of keys - %v vs %v", len(keys), 10)
 	}
 	for i := range keys {
 		if string(keys[i]) != fmt.Sprintf("%v", i) {
@@ -120,7 +120,7 @@ func TestMultiValue(t *testing.T) {
 		}
 	}
 
-	all, err := m.GetAll(bucket, new(TestData))
+	all, _, err := m.GetAll(bucket, new(TestData))
 	if err != nil {
 		t.Error(err)
 	}

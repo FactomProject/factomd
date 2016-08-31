@@ -2,7 +2,9 @@ package adminBlock
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -13,21 +15,34 @@ type AddFederatedServerSigningKey struct {
 	IdentityChainID interfaces.IHash
 	KeyPriority     byte
 	PublicKey       primitives.PublicKey
+	DBHeight        uint32
 }
 
 var _ interfaces.IABEntry = (*AddFederatedServerSigningKey)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServerSigningKey)(nil)
 
 func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) {
+	state.UpdateAuthorityFromABEntry(c)
+}
 
+func (e *AddFederatedServerSigningKey) String() string {
+	var out primitives.Buffer
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8s %12s %d\n",
+		"AddFederatedServerSigningKey",
+		"IdentityChainID", e.IdentityChainID.Bytes()[:4],
+		"KeyPriority", e.KeyPriority,
+		"PublicKey", e.PublicKey.String()[:8],
+		"DBHeight", e.DBHeight))
+	return (string)(out.DeepCopyBytes())
 }
 
 // Create a new DB Signature Entry
-func NewAddFederatedServerSigningKey(identityChainID interfaces.IHash, keyPriority byte, publicKey primitives.PublicKey) (e *AddFederatedServerSigningKey) {
+func NewAddFederatedServerSigningKey(identityChainID interfaces.IHash, keyPriority byte, publicKey primitives.PublicKey, height uint32) (e *AddFederatedServerSigningKey) {
 	e = new(AddFederatedServerSigningKey)
 	e.IdentityChainID = identityChainID
 	e.KeyPriority = keyPriority
 	e.PublicKey = publicKey
+	e.DBHeight = height
 	return
 }
 
@@ -53,6 +68,8 @@ func (e *AddFederatedServerSigningKey) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
+
+	binary.Write(&buf, binary.BigEndian, e.DBHeight)
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -83,6 +100,8 @@ func (e *AddFederatedServerSigningKey) UnmarshalBinaryData(data []byte) (newData
 		return
 	}
 
+	e.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
 	return
 }
 
@@ -101,11 +120,6 @@ func (e *AddFederatedServerSigningKey) JSONString() (string, error) {
 
 func (e *AddFederatedServerSigningKey) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
-}
-
-func (e *AddFederatedServerSigningKey) String() string {
-	str, _ := e.JSONString()
-	return str
 }
 
 func (e *AddFederatedServerSigningKey) IsInterpretable() bool {

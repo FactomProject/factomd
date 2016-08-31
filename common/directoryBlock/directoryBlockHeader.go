@@ -7,6 +7,7 @@ package directoryBlock
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -23,12 +24,9 @@ type DBlockHeader struct {
 	PrevKeyMR    interfaces.IHash
 	PrevFullHash interfaces.IHash
 
-	Timestamp  uint32
+	Timestamp  uint32 //in minutes
 	DBHeight   uint32
 	BlockCount uint32
-
-	// Not marshaled
-	FullHash interfaces.IHash
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
@@ -67,14 +65,6 @@ func (h *DBlockHeader) SetPrevKeyMR(prevKeyMR interfaces.IHash) {
 	h.PrevKeyMR = prevKeyMR
 }
 
-func (h *DBlockHeader) GetFullHash() interfaces.IHash {
-	return h.FullHash
-}
-
-func (h *DBlockHeader) SetFullHash(FullHash interfaces.IHash) {
-	h.FullHash = FullHash
-}
-
 func (h *DBlockHeader) GetPrevFullHash() interfaces.IHash {
 	return h.PrevFullHash
 }
@@ -83,12 +73,12 @@ func (h *DBlockHeader) SetPrevFullHash(PrevFullHash interfaces.IHash) {
 	h.PrevFullHash = PrevFullHash
 }
 
-func (h *DBlockHeader) GetTimestamp() uint32 {
-	return h.Timestamp
+func (h *DBlockHeader) GetTimestamp() interfaces.Timestamp {
+	return primitives.NewTimestampFromMinutes(h.Timestamp)
 }
 
-func (h *DBlockHeader) SetTimestamp(timestamp uint32) {
-	h.Timestamp = timestamp
+func (h *DBlockHeader) SetTimestamp(timestamp interfaces.Timestamp) {
+	h.Timestamp = timestamp.GetTimeMinutesUInt32()
 }
 
 func (h *DBlockHeader) GetDBHeight() uint32 {
@@ -129,7 +119,6 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
 	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
-	out.WriteString(fmt.Sprintf(" *FullHash:        %s\n", e.FullHash))
 
 	return (string)(out.DeepCopyBytes())
 }
@@ -216,6 +205,18 @@ func (b *DBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 func (b *DBlockHeader) UnmarshalBinary(data []byte) (err error) {
 	_, err = b.UnmarshalBinaryData(data)
 	return
+}
+
+type ExpandedDBlockHeader DBlockHeader
+
+func (e DBlockHeader) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ExpandedDBlockHeader
+		ChainID string
+	}{
+		ExpandedDBlockHeader: ExpandedDBlockHeader(e),
+		ChainID:              "000000000000000000000000000000000000000000000000000000000000000d",
+	})
 }
 
 /************************************************

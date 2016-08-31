@@ -7,18 +7,26 @@ package p2p
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Data structures and functions related to peers (eg other nodes in the network)
 
 type Peer struct {
-	QualityScore int32  // 0 is neutral quality, negative is a bad peer.
-	Address      string // Must be in form of x.x.x.x:p
-	Hash         string
-	Location     uint32 // IP address as an int.
+	QualityScore int32     // 0 is neutral quality, negative is a bad peer.
+	Address      string    // Must be in form of x.x.x.x
+	Port         string    // Must be in form of xxxx
+	NodeID       uint64    // a nonce to distinguish multiple nodes behind one IP address
+	Hash         string    // This is more of a connection ID than hash right now.
+	Location     uint32    // IP address as an int.
+	Network      NetworkID // The network this peer reference lives on.
 	Type         uint8
+	Connections  int                  // Number of successful connections.
+	LastContact  time.Time            // Keep track of how long ago we talked to the peer.
+	Source       map[string]time.Time // source where we heard from the peer.
 }
 
 const ( // iota is reset to 0
@@ -26,17 +34,40 @@ const ( // iota is reset to 0
 	SpecialPeer
 )
 
-func (p *Peer) Init(address string, quality int, peerType uint8) *Peer {
+func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
 	p.Address = address
-	p.QualityScore = 0 // start at zero, zero is neutral, negative is a bad peer, positive is a good peer.
-	p.Hash = PeerHashFromAddress(address)
+	p.Port = port
+	p.QualityScore = quality
+	p.generatePeerHash()
 	p.Type = peerType
 	p.Location = p.locationFromAddress()
+	p.Source = map[string]time.Time{}
+	p.Network = CurrentNetwork
 	return p
 }
 
-// BUGBUG Hadn't considered IPV6 addresses.
-// BUGBUG Need to audit all the net code to check IPv6 addresses
+func (p *Peer) generatePeerHash() {
+	buff := make([]byte, 256)
+	RandomGenerator.Read(buff)
+	raw := sha256.Sum256(buff)
+	p.Hash = base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
+}
+
+func (p *Peer) AddressPort() string {
+	return p.Address + ":" + p.Port
+}
+
+func (p *Peer) PeerIdent() string {
+	return p.Hash[0:12] + "-" + p.Address + ":" + p.Port
+}
+
+func (p *Peer) PeerFixedIdent() string {
+	address := fmt.Sprintf("%16s", p.Address)
+	return p.Hash[0:12] + "-" + address + ":" + p.Port
+}
+
+// TODO Hadn't considered IPV6 address support.
+// TODO Need to audit all the net code to check IPv6 addresses
 // Here's an IPv6 conversion:
 // Ref: http://stackoverflow.com/questions/23297141/golang-net-ip-to-ipv6-from-mysql-as-decimal39-0-conversion
 // func ipv6ToInt(IPv6Addr net.IP) *big.Int {
@@ -45,32 +76,29 @@ func (p *Peer) Init(address string, quality int, peerType uint8) *Peer {
 //     return IPv6Int
 // }
 // Problem is we're working wiht string addresses, may never have made a connection.
-// BUGBUG - we might have a DNS address, not iP address and need to resolve it!
+// TODO - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
-func (p *Peer) locationFromAddress() uint32 {
+func (p *Peer) locationFromAddress() (location uint32) {
+	location = 0
 	// Split out the port
 	ip_port := strings.Split(p.Address, ":")
-	// Split the IPv4 octets
-	octets := strings.Split(ip_port[0], ".")
-	// Turn into uint32
-	var location uint32
-	b0, _ := strconv.Atoi(octets[0])
-	b1, _ := strconv.Atoi(octets[1])
-	b2, _ := strconv.Atoi(octets[2])
-	b3, _ := strconv.Atoi(octets[3])
-	location += uint32(b0) << 24
-	location += uint32(b1) << 16
-	location += uint32(b2) << 8
-	location += uint32(b3)
-	debug("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
+	if 2 == len(ip_port) {
+		// Split the IPv4 octets
+		octets := strings.Split(ip_port[0], ".")
+		if 4 == len(octets) {
+			// Turn into uint32
+			b0, _ := strconv.Atoi(octets[0])
+			b1, _ := strconv.Atoi(octets[1])
+			b2, _ := strconv.Atoi(octets[2])
+			b3, _ := strconv.Atoi(octets[3])
+			location += uint32(b0) << 24
+			location += uint32(b1) << 16
+			location += uint32(b2) << 8
+			location += uint32(b3)
+			verbose("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
+		}
+	}
 	return location
-}
-
-func PeerHashFromAddress(address string) string {
-	raw := sha256.Sum256([]byte(address))
-	hash := base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
-	debug("peer", "Peer address %s produces hash: %s", address, hash)
-	return hash
 }
 
 // merit increases a peers reputation

@@ -12,30 +12,40 @@ import (
 const (
 	EOM_MSG                       byte = iota // 0
 	ACK_MSG                                   // 1
-	AUDIT_SERVER_FAULT_MSG                    // 2
-	COMMIT_CHAIN_MSG                          // 3
-	COMMIT_ENTRY_MSG                          // 4
-	DIRECTORY_BLOCK_SIGNATURE_MSG             // 5
-	EOM_TIMEOUT_MSG                           // 6
-	FACTOID_TRANSACTION_MSG                   // 7
-	HEARTBEAT_MSG                             // 8
-	INVALID_ACK_MSG                           // 9
-	INVALID_DIRECTORY_BLOCK_MSG               // 10
-	MISSING_ACK_MSG                           // 11
-	// 12
+	FED_SERVER_FAULT_MSG                      // 2
+	AUDIT_SERVER_FAULT_MSG                    // 3
+	FULL_SERVER_FAULT_MSG                     // 4
+	COMMIT_CHAIN_MSG                          // 5
+	COMMIT_ENTRY_MSG                          // 6
+	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
+	EOM_TIMEOUT_MSG                           // 8
+	FACTOID_TRANSACTION_MSG                   // 9
+	HEARTBEAT_MSG                             // 10
+	INVALID_ACK_MSG                           // 11
+	INVALID_DIRECTORY_BLOCK_MSG               // 12
+
 	REVEAL_ENTRY_MSG      // 13
 	REQUEST_BLOCK_MSG     // 14
 	SIGNATURE_TIMEOUT_MSG // 15
 	MISSING_MSG           // 16
 	MISSING_DATA          // 17
 	DATA_RESPONSE         // 18
+	MISSING_MSG_RESPONSE  //19
 
-	DBSTATE_MSG         // 19
-	DBSTATE_MISSING_MSG // 20
-	ADDSERVER_MSG       // 21
+	DBSTATE_MSG          // 20
+	DBSTATE_MISSING_MSG  // 21
+	ADDSERVER_MSG        // 22
+	CHANGESERVER_KEY_MSG // 23
+	REMOVESERVER_MSG     // 24
+	NEGOTIATION_MSG      // 25
 )
 
 const (
+	// Replay
+	INTERNAL_REPLAY = 1
+	NETWORK_REPLAY  = 2
+	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
+
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key
 	SIGNATURE_LENGTH     = 64    // Length of a signature
@@ -78,12 +88,13 @@ const (
 
 	//NETWORK constants
 	//==================
-	VERSION_0       = byte(0)
-	FACTOMD_VERSION = 4000000
-	//0xFA92E5A1
-	//0xFA92E5A2
-	//0xFA92E5A3
-	MaxBlocksPerMsg = 500
+	VERSION_0                = byte(0)
+	FACTOMD_VERSION          = 4000000
+	MAIN_NETWORK_ID   uint32 = 0xFA92E5A1
+	TEST_NETWORK_ID   uint32 = 0xFA92E5A2
+	LOCAL_NETWORK_ID  uint32 = 0xFA92E5A3
+	CUSTOM_NETWORK_ID uint32 = 0xFA92E5A4
+	MaxBlocksPerMsg          = 500
 
 	// NETWORKS:
 )
@@ -148,7 +159,39 @@ const (
 	TYPE_ADD_MATRYOSHKA                  // 3
 	TYPE_ADD_SERVER_COUNT                // 4
 	TYPE_ADD_FED_SERVER                  // 5
-	TYPE_REMOVE_FED_SERVER               // 6
-	TYPE_ADD_FED_SERVER_KEY              // 7
-	TYPE_ADD_BTC_ANCHOR_KEY              // 8
+	TYPE_ADD_AUDIT_SERVER                // 6
+	TYPE_REMOVE_FED_SERVER               // 7
+	TYPE_ADD_FED_SERVER_KEY              // 8
+	TYPE_ADD_BTC_ANCHOR_KEY              // 9
 )
+
+//---------------------------------------------------------------------
+// Identity Status Types
+//---------------------------------------------------------------------
+const (
+	IDENTITY_UNASSIGNED               int = iota // 0
+	IDENTITY_FEDERATED_SERVER                    // 1
+	IDENTITY_AUDIT_SERVER                        // 2
+	IDENTITY_FULL                                // 3
+	IDENTITY_PENDING_FEDERATED_SERVER            // 4
+	IDENTITY_PENDING_AUDIT_SERVER                // 5
+	IDENTITY_PENDING_FULL                        // 6
+	IDENTITY_PENDING                             // 7
+)
+
+//---------------------------------------------------------------------
+// Checkpoints Directory Block KeyMR
+//---------------------------------------------------------------------
+var CheckPoints = map[uint32]string{
+	2:   "5328d4bbe7ea6efc31cf7bfc45192378454cf4e1908c56a35e6a64456a691751",
+	48:  "471ef865fecf2b1a98b2e1f87434cc65a6672cc9c8fe19ab2471112431f54b36",
+	100: "cde346e7ed87957edfd68c432c984f35596f29c7d23de6f279351cddecd5dc66",
+	150: "d029c37c0679bfc1cdf1096237f320ae6535def5f64aeffc5105554013aa9e23",
+	198: "534a4188b92155c55f9626bbf4b02721468f6237e467f9c550c03eaafc913003",
+	248: "37d3801c4079012c989bef9d35cf608773855197acd63f5a253bcfebf74b87d8",
+	300: "4757d31b255e789435c807cb76f5de6cd6590a39a1e5bcfa576d0290eb52dd34",
+	348: "86d2159871316f4868a81586f44b742d5fbe99e2053237ff6575df67657639af",
+	400: "a3c4336ff44989717664233892edfc018c579d868699d9db29f188dbae3a1f3f",
+	448: "abc0048b027735c87761b3b99d69e12e1b6434ff3f2c090b23a9738d440fa9b2",
+	480: "ed0da6e9879495d15425f693c2fb120192298aeaa92772fd9f963b7eb69b1bb6",
+}

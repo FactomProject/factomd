@@ -47,8 +47,8 @@ type Anchor struct {
 	fee                 btcutil.Amount // tx fee for written into btc
 	confirmationsNeeded int
 
-	serverPrivKey primitives.PrivateKey //Server Private key for milestone 1
-	serverECKey   primitives.PrivateKey //Server Entry Credit private key
+	serverPrivKey *primitives.PrivateKey //Server Private key for milestone 1
+	serverECKey   *primitives.PrivateKey //Server Entry Credit private key
 	anchorChainID interfaces.IHash
 	state         interfaces.IState
 }
@@ -97,7 +97,7 @@ func (a *Anchor) doTransaction(hash interfaces.IHash, blockHeight uint32, dirBlo
 
 	if dirBlockInfo != nil {
 		dirBlockInfo.BTCTxHash = toHash(shaHash)
-		dirBlockInfo.Timestamp = time.Now().Unix()
+		dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 		a.db.SaveDirBlockInfo(dirBlockInfo)
 	}
 
@@ -325,7 +325,7 @@ func (a *Anchor) checkMissingDirBlockInfo() {
 				dblock.BuildKeyMerkleRoot()
 			}
 			dirBlockInfo := dbInfo.NewDirBlockInfoFromDirBlock(dblock)
-			dirBlockInfo.Timestamp = time.Now().Unix()
+			dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 			anchorLog.Debug("add missing dirBlockInfo to map: ", spew.Sdump(dirBlockInfo))
 			a.db.SaveDirBlockInfo(dirBlockInfo)
 			a.dirBlockInfoSlice = append(a.dirBlockInfoSlice, dirBlockInfo)
@@ -338,7 +338,7 @@ func (a *Anchor) checkMissingDirBlockInfo() {
 
 func (a *Anchor) readConfig() {
 	anchorLog.Info("readConfig")
-	a.cfg = util.ReadConfig("", "")
+	a.cfg = util.ReadConfig("")
 	a.confirmationsNeeded = a.cfg.Anchor.ConfirmationsNeeded
 	a.fee, _ = btcutil.NewAmount(a.cfg.Btc.BtcTransFee)
 
@@ -534,7 +534,7 @@ func (a *Anchor) doSaveDirBlockInfo(transaction *btcutil.Tx, details *btcjson.Bl
 	dirBlockInfo.BTCBlockHeight = details.Height
 	btcBlockHash, _ := wire.NewShaHashFromStr(details.Hash)
 	dirBlockInfo.BTCBlockHash = toHash(btcBlockHash)
-	dirBlockInfo.Timestamp = time.Now().Unix()
+	dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 	a.db.SaveDirBlockInfo(dirBlockInfo)
 	anchorLog.Infof("In doSaveDirBlockInfo, dirBlockInfo:%s saved to db\n", spew.Sdump(dirBlockInfo))
 
@@ -551,6 +551,7 @@ func (a *Anchor) saveToAnchorChain(dirBlockInfo *dbInfo.DirBlockInfo) {
 	anchorRec.DBHeight = dirBlockInfo.GetDBHeight()
 	anchorRec.KeyMR = dirBlockInfo.GetDBMerkleRoot().String()
 	anchorRec.RecordHeight = a.state.GetHighestRecordedBlock() // need the next block height
+	anchorRec.Bitcoin = new(BitcoinStruct)
 	anchorRec.Bitcoin.Address = a.defaultAddress.String()
 	anchorRec.Bitcoin.TXID = dirBlockInfo.GetBTCTxHash().(*primitives.Hash).BTCString()
 	anchorRec.Bitcoin.BlockHeight = dirBlockInfo.BTCBlockHeight
@@ -593,7 +594,7 @@ func (a *Anchor) checkForAnchor() {
 			a.SendRawTransactionToBTC(dirBlockInfo.GetDBMerkleRoot(), dirBlockInfo.GetDBHeight())
 		} else {
 			// This is the re-anchor case for the missed callback of malleated tx
-			lapse := timeNow - dirBlockInfo.GetTimestamp()
+			lapse := timeNow - dirBlockInfo.GetTimestamp().GetTimeSeconds()
 			if lapse > int64(time0) {
 				anchorLog.Debugf("re-anchor: time lapse=%d, %s\n", lapse, spew.Sdump(dirBlockInfo))
 				a.SendRawTransactionToBTC(dirBlockInfo.GetDBMerkleRoot(), dirBlockInfo.GetDBHeight())
@@ -607,7 +608,7 @@ func (a *Anchor) checkTxConfirmations() {
 	time1 := 60 * 5 * a.confirmationsNeeded
 	sort.Sort(util.ByDirBlockInfoTimestamp(a.dirBlockInfoSlice))
 	for i, dirBlockInfo := range a.dirBlockInfoSlice {
-		lapse := timeNow - dirBlockInfo.GetTimestamp()
+		lapse := timeNow - dirBlockInfo.GetTimestamp().GetTimeSeconds()
 		if lapse > int64(time1) {
 			anchorLog.Debugf("checkTxConfirmations: time lapse=%d", lapse)
 			a.checkConfirmations(dirBlockInfo.(*dbInfo.DirBlockInfo), i)
@@ -642,7 +643,7 @@ func (a *Anchor) checkConfirmations(dirBlockInfo *dbInfo.DirBlockInfo, index int
 			rewrite = true
 		}
 		dirBlockInfo.BTCConfirmed = true // needs confirmationsNeeded (20) to be confirmed.
-		dirBlockInfo.Timestamp = time.Now().Unix()
+		dirBlockInfo.SetTimestamp(primitives.NewTimestampNow())
 		a.db.SaveDirBlockInfo(dirBlockInfo)
 		a.dirBlockInfoSlice = append(a.dirBlockInfoSlice[:index], a.dirBlockInfoSlice[index+1:]...) //delete it
 		anchorLog.Debugf("Fully confirmed %d times. txid=%s, dirblockInfo=%s\n", txResult.Confirmations, txResult.TxID, spew.Sdump(dirBlockInfo))

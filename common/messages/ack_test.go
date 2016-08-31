@@ -88,12 +88,19 @@ func TestSignAndVerifyAck(t *testing.T) {
 
 func newAck() *Ack {
 	ack := new(Ack)
-	ack.Timestamp.SetTimeNow()
+	ack.Timestamp = primitives.NewTimestampNow()
 	hash, err := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
 	if err != nil {
 		panic(err)
 	}
 	ack.MessageHash = hash
+
+	hash, err = primitives.NewShaHashFromStr("bbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
+	if err != nil {
+		panic(err)
+	}
+	ack.MessageHash = hash
+
 	ack.DBHeight = 123
 	ack.Height = 456
 
@@ -119,7 +126,7 @@ func newSignedAck() *Ack {
 	if err != nil {
 		panic(err)
 	}
-	err = ack.Sign(&key)
+	err = ack.Sign(key)
 	if err != nil {
 		panic(err)
 	}

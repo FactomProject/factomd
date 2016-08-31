@@ -1,0 +1,109 @@
+{{define "dblock"}}
+	{{template "header"}}
+	<!-- Body -->
+	 <section id="explorer">
+        <div class="row">
+            <div class="columns"> 
+                <h1>Directory Block</h1>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>KeyMR:</td>
+                            <td>{{.KeyMR}}</td>
+                        </tr>
+                        <tr>
+                            <td>Body KeyMR:</td>
+                            <td>{{.Header.BodyMR}}</td>
+                        </tr>
+                        <tr>
+                            <td>Full Hash:</td>
+                            <td>{{.FullHash}}</td>
+                        </tr>
+                        <tr>
+                            <td>TimeStamp:</td>
+                            <td>{{.Header.FormatedTimeStamp}}</td>
+                        </tr>
+                        <tr>
+                            <td>Block Height:</td>
+                            <td>{{.Header.DBHeight}}</td>
+                        </tr>
+                        <tr>
+                            <td>Previous Directory Block:</td>
+                            <td>
+                                Previous KeyMR :   <a id="factom-search-link" type="dblock">{{.Header.PrevKeyMR}}</a><br />
+                                Previous Full Hash :   {{.Header.PrevFullHash}}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3>Blocks Contained in Block <small>{{.Header.BlockCount}} Blocks</small></h3> 
+                <table id="search-table">
+                	<tbody>
+                		<tr>
+                			<td>Type:</td>
+                			<td>Admin Block</td>
+                		</tr>
+                		<tr>
+                			<td>KeyMr:</td>
+                			<td><a id="factom-search-link" type="ablock">{{.AdminBlock.KeyMr}}</a></td>
+                		</tr>
+                	</tbody>
+                </table>
+                <table id="search-table">
+                    <tbody>
+                        <tr>
+                            <td>Type:</td>
+                            <td>Entry Credit Block</td>
+                        </tr>
+                        <tr>
+                            <td>KeyMr:</td>
+                            <td><a id="factom-search-link" type="ecblock">{{.EntryCreditBlock.KeyMr}}</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table id="search-table">
+                    <tbody>
+                        <tr>
+                            <td>Type:</td>
+                            <td>Factoid Block</td>
+                        </tr>
+                        <tr>
+                            <td>KeyMr:</td>
+                            <td><a id="factom-search-link" type="fblock">{{.FactoidBlock.KeyMr}}</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+                {{range $i, $ele := .EBlocks}}
+        		 <table id="search-table">
+                	<tbody>
+                		<tr>
+                			<td>Type:</td>
+                			<td>Entry Block</td>
+                		</tr>
+                		<tr>
+                			<td>KeyMr:</td>
+                			<td><a id="factom-search-link" type="eblock">{{$ele.KeyMR}}</a></td>
+                		</tr>
+                		 <tr>
+                			<td>Full Hash:</td>
+                			<td>{{$ele.FullHash}}</td>
+                		</tr>
+                		 <tr>
+                			<td>Chain ID:</td>
+                			<td><a id="factom-search-link" type="chainhead">{{$ele.Header.ChainID}}</a></td>
+                		</tr>
+                		<tr>
+                			<td>Total Entries:</td>
+                			<td>{{$ele.Header.EntryCount}}</td>
+                		</tr>
+                	</tbody>
+                </table>
+        		{{end}}
+           </div>
+		</div>
+	</section>
+	<!-- End Body -->
+	{{template "scripts"}}
+    {{template "tools"}}
+	{{template "footer"}}
+{{end}}

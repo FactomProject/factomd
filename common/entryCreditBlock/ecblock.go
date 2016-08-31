@@ -36,8 +36,31 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*ECBlock)(nil)
 
+func (c *ECBlock) String() string {
+	str := c.Header.String()
+	str = str + c.Body.String()
+	return str
+}
+
 func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
 	return c.Body.GetEntries()
+}
+
+func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry {
+	if hash == nil {
+		return nil
+	}
+
+	txs := c.GetEntries()
+	for _, tx := range txs {
+		if hash.IsSameAs(tx.Hash()) {
+			return tx
+		}
+		if hash.IsSameAs(tx.GetSigHash()) {
+			return tx
+		}
+	}
+	return nil
 }
 
 func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
@@ -46,6 +69,20 @@ func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 	for _, entry := range entries {
 		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
 			answer = append(answer, entry.Hash())
+		}
+	}
+	return answer
+}
+
+func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
+	entries := c.Body.GetEntries()
+	answer := make([]interfaces.IHash, 0, len(entries))
+	for _, entry := range entries {
+		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
+			sHash := entry.GetSigHash()
+			if sHash != nil {
+				answer = append(answer, sHash)
+			}
 		}
 	}
 	return answer
@@ -73,12 +110,12 @@ func (c *ECBlock) GetChainID() interfaces.IHash {
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
-	key, _ := c.Hash()
+	key, _ := c.HeaderHash()
 	return key
 }
 
 func (c *ECBlock) DatabaseSecondaryIndex() interfaces.IHash {
-	key, _ := c.HeaderHash()
+	key, _ := c.GetFullHash()
 	return key
 }
 
@@ -87,12 +124,12 @@ func (e *ECBlock) AddEntry(entries ...interfaces.IECBlockEntry) {
 }
 
 func (e *ECBlock) GetHash() interfaces.IHash {
-	h, _ := e.Hash()
+	h, _ := e.GetFullHash()
 	return h
 }
 
-// This is the FullHash.  TODO: rename to GetFullHash()
-func (e *ECBlock) Hash() (interfaces.IHash, error) {
+// This is the FullHash.
+func (e *ECBlock) GetFullHash() (interfaces.IHash, error) {
 	p, err := e.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -276,7 +313,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			}
 			e.Body.SetEntries(append(e.Body.GetEntries(), s))
 		case ECIDMinuteNumber:
-			m := NewMinuteNumber()
+			m := NewMinuteNumber(0)
 			if buf.Len() < MinuteNumberSize {
 				err = io.EOF
 				return nil, err
@@ -402,11 +439,6 @@ func (e *ECBlock) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (e *ECBlock) String() string {
-	str, _ := e.JSONString()
-	return str
-}
-
 /********************************************************
  * Support Functions
  ********************************************************/
@@ -433,7 +465,7 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 		}
 		e.GetHeader().SetPrevHeaderHash(v)
 
-		v, err = prev.Hash()
+		v, err = prev.GetFullHash()
 		if err != nil {
 			return nil, err
 		}
@@ -446,4 +478,42 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 	}
 
 	return e, nil
+}
+
+func CheckBlockPairIntegrity(block interfaces.IEntryCreditBlock, prev interfaces.IEntryCreditBlock) error {
+	if block == nil {
+		return fmt.Errorf("No block specified")
+	}
+
+	if prev == nil {
+		if block.GetHeader().GetPrevHeaderHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevHeaderHash")
+		}
+		if block.GetHeader().GetPrevFullHash().IsZero() == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != 0 {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	} else {
+		h, err := prev.HeaderHash()
+		if err != nil {
+			return err
+		}
+		if block.GetHeader().GetPrevHeaderHash().IsSameAs(h) == false {
+			return fmt.Errorf("Invalid PrevHeaderHash")
+		}
+		h, err = prev.GetFullHash()
+		if err != nil {
+			return err
+		}
+		if block.GetHeader().GetPrevFullHash().IsSameAs(h) == false {
+			return fmt.Errorf("Invalid PrevFullHash")
+		}
+		if block.GetHeader().GetDBHeight() != (prev.GetHeader().GetDBHeight() + 1) {
+			return fmt.Errorf("Invalid DBHeight")
+		}
+	}
+
+	return nil
 }

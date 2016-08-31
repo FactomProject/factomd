@@ -1,9 +1,10 @@
 package util_test
 
 import (
+	"testing"
+
 	. "github.com/FactomProject/factomd/util"
 	"gopkg.in/gcfg.v1"
-	"testing"
 )
 
 func TestLoadDefaultConfig(t *testing.T) {
@@ -69,7 +70,17 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	ExportDataSubpath                     = "export/"
 	; --------------- Network: MAIN | TEST | LOCAL
 	Network                               = LOCAL
-	; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
+	MainNetworkPort      = 8108
+	PeersFile        = "peers.json"
+	MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+	MainSpecialPeers     = ""
+	TestNetworkPort      = 8109
+	TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+	TestSpecialPeers     = ""
+	LocalNetworkPort     = 8110
+	LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+	LocalSpecialPeers     = ""
+; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 	NodeMode                              = FULL
 	LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 	LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a

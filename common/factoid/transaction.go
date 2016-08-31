@@ -32,7 +32,7 @@ type Transaction struct {
 	MarshalSig interfaces.IHash // cache to avoid unnecessary marshal/unmarshals
 
 	// Not marshalled
-	BlockHeight int
+	BlockHeight uint32
 }
 
 var _ interfaces.ITransaction = (*Transaction)(nil)
@@ -43,11 +43,11 @@ func (w *Transaction) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Transaction)
 }
 
-func (t *Transaction) SetBlockHeight(height int) {
+func (t *Transaction) SetBlockHeight(height uint32) {
 	t.BlockHeight = height
 }
 
-func (t *Transaction) GetBlockHeight() (height int) {
+func (t *Transaction) GetBlockHeight() (height uint32) {
 	return t.BlockHeight
 }
 
@@ -57,11 +57,23 @@ func (t *Transaction) clearCaches() {
 	t.MarshalSig = nil
 }
 
-func (Transaction) GetVersion() uint64 {
+func (*Transaction) GetVersion() uint64 {
 	return 2
 }
 
-func (t Transaction) GetHash() interfaces.IHash {
+func (t *Transaction) GetTxID() interfaces.IHash {
+	return t.GetSigHash()
+}
+
+func (t *Transaction) GetHash() interfaces.IHash {
+	m, err := t.MarshalBinary()
+	if err != nil {
+		return nil
+	}
+	return primitives.Sha(m)
+}
+
+func (t Transaction) GetFullHash() interfaces.IHash {
 	m, err := t.MarshalBinary()
 	if err != nil {
 		return nil
@@ -86,11 +98,12 @@ func (t Transaction) String() string {
 }
 
 // MilliTimestamp is in milliseconds
-func (t *Transaction) GetMilliTimestamp() uint64 {
-	return t.MilliTimestamp
+func (t *Transaction) GetTimestamp() interfaces.Timestamp {
+	return primitives.NewTimestampFromMilliseconds(t.MilliTimestamp)
 }
-func (t *Transaction) SetMilliTimestamp(ts uint64) {
-	t.MilliTimestamp = ts
+
+func (t *Transaction) SetTimestamp(ts interfaces.Timestamp) {
+	t.MilliTimestamp = ts.GetTimeMilliUInt64()
 }
 
 func (t *Transaction) SetSignatureBlock(i int, sig interfaces.ISignatureBlock) {
@@ -637,7 +650,7 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	out.WriteString("\n          MilliTimestamp: ")
 	primitives.WriteNumber64(&out, uint64(t.MilliTimestamp))
 	ts := time.Unix(0, int64(t.MilliTimestamp*1000000))
-	out.WriteString(ts.UTC().Format(" Jan 2, 2006 at 3:04am (MST)"))
+	out.WriteString(ts.UTC().Format(" Jan 2, 2006 at 15:04:05 (MST)"))
 	out.WriteString("\n                # Inputs: ")
 	primitives.WriteNumber16(&out, uint16(len(t.Inputs)))
 	out.WriteString("\n               # Outputs: ")

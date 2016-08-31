@@ -30,7 +30,7 @@ func (a *SignatureTimeout) IsSameAs(b *SignatureTimeout) bool {
 	if b == nil {
 		return false
 	}
-	if a.Timestamp != b.Timestamp {
+	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
 
@@ -48,6 +48,10 @@ func (a *SignatureTimeout) IsSameAs(b *SignatureTimeout) bool {
 }
 
 func (m *SignatureTimeout) Process(uint32, interfaces.IState) bool { return true }
+
+func (m *SignatureTimeout) GetRepeatHash() interfaces.IHash {
+	return m.GetMsgHash()
+}
 
 func (m *SignatureTimeout) GetHash() interfaces.IHash {
 	if m.hash == nil {
@@ -99,6 +103,7 @@ func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err
 	}
 	newData = newData[1:]
 
+	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -195,34 +200,13 @@ func (m *SignatureTimeout) Validate(state interfaces.IState) int {
 	return 0
 }
 
-// Returns true if this is a message for this server to execute as
-// a leader.
-func (m *SignatureTimeout) Leader(state interfaces.IState) bool {
-	switch state.GetNetworkNumber() {
-	case 0: // Main Network
-		panic("Not implemented yet")
-	case 1: // Test Network
-		panic("Not implemented yet")
-	case 2: // Local Network
-		panic("Not implemented yet")
-	default:
-		panic("Not implemented yet")
-	}
-
+func (m *SignatureTimeout) ComputeVMIndex(state interfaces.IState) {
 }
 
-// Execute the leader functions of the given message
-func (m *SignatureTimeout) LeaderExecute(state interfaces.IState) error {
-	return nil
+func (m *SignatureTimeout) LeaderExecute(state interfaces.IState) {
 }
 
-// Returns true if this is a message for this server to execute as a follower
-func (m *SignatureTimeout) Follower(interfaces.IState) bool {
-	return true
-}
-
-func (m *SignatureTimeout) FollowerExecute(interfaces.IState) error {
-	return nil
+func (m *SignatureTimeout) FollowerExecute(interfaces.IState) {
 }
 
 func (e *SignatureTimeout) JSONByte() ([]byte, error) {

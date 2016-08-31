@@ -5,14 +5,16 @@
 package factoid_test
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math/rand"
-	"testing"
 )
 
 // Random first "address".  It isn't a real one, but one we are using for now.
@@ -192,5 +194,50 @@ func Test_ValidateAmounts(test *testing.T) {
 	_, err = ValidateAmounts(1, 0x6FFFFFFFFFFFFFFF, 1)
 	if err != nil {
 		test.Failed()
+	}
+}
+
+func TestUnmarshalTransaction(t *testing.T) {
+	str := "02014f8a7fcd1b000000"
+	h, err := hex.DecodeString(str)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	tr := new(Transaction)
+	rest, err := tr.UnmarshalBinaryData(h)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if len(rest) > 0 {
+		t.Errorf("Returned too much data - %x", rest)
+	}
+
+	if tr.GetSigHash().String() != "e321605afa458333cdded91644b0d9a21b4325bb3340b85a943974bf70aa1e99" {
+		t.Errorf("Invalid SigHash - %v vs %v", tr.GetSigHash().String(), "")
+	}
+	if tr.GetFullHash().String() != "e321605afa458333cdded91644b0d9a21b4325bb3340b85a943974bf70aa1e99" {
+		t.Errorf("Invalid FullHash - %v vs %v", tr.GetFullHash().String(), "")
+	}
+
+	str = "02014f8a851657010001e397a1607d4f56c528ab09da5bbf7b37b0b453f43db303730e28e9ebe02657dff431d4f7dfaf840017ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7d01a5be79b6ada79c0af4d6b7f91234ff321f3b647ed01e02ccbbc0fe9dcc63293482f22455b9756ee4b4db411a5d00e31b689c1bd1abe1d1e887cf4c52e67fc51fe4d9594c24643a91009c6ea91701b5b6df240248c2f39453162b61d71b982701"
+
+	h, err = hex.DecodeString(str)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	tr = new(Transaction)
+	rest, err = tr.UnmarshalBinaryData(h)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if len(rest) > 0 {
+		t.Errorf("Returned too much data - %x", rest)
+	}
+
+	if tr.GetSigHash().String() != "f1d9919829fa71ce18caf1bd8659cce8a06c0026d3f3fffc61054ebb25ebeaa0" {
+		t.Errorf("Invalid SigHash - %v vs %v", tr.GetSigHash().String(), "")
+	}
+	if tr.GetFullHash().String() != "c3d09d10693eb867e2bd0a503746df370403c9451ae91a363046f2a68529c2fd" {
+		t.Errorf("Invalid FullHash - %v vs %v", tr.GetFullHash().String(), "")
 	}
 }

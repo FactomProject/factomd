@@ -1,14 +1,14 @@
 #!/bin/bash
 
-while true ;
-do
-	for j in `seq 1 10`;
+	for j in `seq 1 1000000`;
 	do
-		factom-cli balances
+	    echo "Date: $(date)"
+		factom-cli2 balances
 		if [ $? -eq 0 ]; then
+		    export loadrun=$j
     		./scripts/factomTransSubmit.sh
         else
-            sleep 10
+            echo "balances failed"
+            sleep 15
         fi
 	done
-done
