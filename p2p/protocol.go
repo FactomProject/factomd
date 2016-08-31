@@ -17,14 +17,15 @@ import (
 
 func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 	highWaterMark := int(float64(StandardChannelSize) * 0.90)
-	atCapacity := int(float64(StandardChannelSize) * 0.999)
+	atCapacity := int(float64(StandardChannelSize) * 0.99)
+	clen := len(channel)
 	switch {
-	case atCapacity < len(channel):
+	case atCapacity < clen:
 		silence("protocol", "nonBlockingChanSend() - Channel is OVER 99 percent full! \n %d of %d \n last message: %+v", len(channel), StandardChannelSize, message)
 		panic("Full channel.")
-	case highWaterMark < len(channel):
+	case highWaterMark < clen:
 		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, message)
-		for highWaterMark <= len(channel) { // Clear out some messages
+		for highWaterMark <= clen-100 { // Clear out some messages
 			<-channel
 		}
 		fallthrough
