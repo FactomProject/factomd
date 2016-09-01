@@ -13,6 +13,8 @@ import (
 var p2pProxy *engine.P2PProxy
 
 var old map[[32]byte]interfaces.IMsg
+var msgcnt int
+var bounces int
 
 func InitNetwork() {
 
@@ -68,6 +70,9 @@ func listen() {
 				p2pProxy.Send(msg)
 				fmt.Println(msg.String())
 			}
+			bounces++
+		}else{
+			time.Sleep(10*time.Second)
 		}
 	}
 }
@@ -76,12 +81,19 @@ func listen() {
 func main() {
 	InitNetwork()
 
-	bounce := new(Bounce)
-	bounce.Timestamp = primitives.NewTimestampNow()
-	p2pProxy.Send(bounce)
-
 	go listen()
 
-	time.Sleep(100*time.Second)
+	for {
+
+		if bounces == 0 {
+			bounce := new(Bounce)
+			bounce.Timestamp = primitives.NewTimestampNow()
+			p2pProxy.Send(bounce)
+			msgcnt++
+		}
+
+		fmt.Println("Messages",msgcnt,"bounces",bounces)
+		time.Sleep(10*time.Second)
+	}
 
 }
