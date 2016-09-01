@@ -356,6 +356,38 @@ func (b *DirectoryBlock) AddEntry(chainID interfaces.IHash, keyMR interfaces.IHa
 	return b.SetDBEntries(append(b.DBEntries, dbentry))
 }
 
+func (b *DirectoryBlock) CheckNetworkID(network int) error {
+	switch network {
+	case constants.NETWORK_MAIN:
+		if b.GetHeader().GetNetworkID() != constants.MAIN_NETWORK_ID {
+			return fmt.Errorf("CheckNetworkID failed")
+		} else {
+			return nil
+		}
+	case constants.NETWORK_TEST:
+		if b.GetHeader().GetNetworkID() != constants.TEST_NETWORK_ID {
+			return fmt.Errorf("CheckNetworkID failed")
+		} else {
+			return nil
+		}
+	case constants.NETWORK_LOCAL:
+		if b.GetHeader().GetNetworkID() != constants.LOCAL_NETWORK_ID {
+			return fmt.Errorf("CheckNetworkID failed")
+		} else {
+			return nil
+		}
+	case constants.NETWORK_CUSTOM:
+		if b.GetHeader().GetNetworkID() != constants.CUSTOM_NETWORK_ID {
+			return fmt.Errorf("CheckNetworkID failed")
+		} else {
+			return nil
+		}
+	default:
+		return fmt.Errorf("On unknow network")
+
+	}
+}
+
 /*********************************************************************
  * Support
  *********************************************************************/

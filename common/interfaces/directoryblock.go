@@ -28,6 +28,7 @@ type IDirectoryBlock interface {
 	SetABlockHash(aBlock IAdminBlock) error
 	SetECBlockHash(ecBlock IEntryCreditBlock) error
 	SetFBlockHash(fBlock IFBlock) error
+	CheckNetworkID(network int) error
 }
 
 type IDirectoryBlockHeader interface {

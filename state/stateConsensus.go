@@ -186,6 +186,13 @@ func (s *State) AddDBState(isNew bool,
 		panic(fmt.Errorf("Found block at height %d that didn't match a checkpoint. Got %s, expected %s", ht, DBKeyMR, constants.CheckPoints[ht]))       //TODO make failing when given bad blocks fail more elegantly
 	} 
 	
+	if !isNew && ht > 0 {
+		err := dbState.DirectoryBlock.CheckNetworkID(s.NetworkNumber)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	if ht > s.LLeaderHeight {
 		s.Syncing = false
 		s.EOM = false
