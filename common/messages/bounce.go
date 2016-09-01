@@ -150,6 +150,7 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 	var buff [32]byte
 
 	copy(buff[:32], []byte(fmt.Sprintf("%32s", m.Name)))
+	buf.Write(buff[:])
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
