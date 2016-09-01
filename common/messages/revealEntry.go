@@ -32,6 +32,17 @@ type RevealEntryMsg struct {
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
 
+func (m *RevealEntryMsg) IsSameAs(msg interfaces.IMsg) bool {
+	m2, ok := msg.(*RevealEntryMsg)
+	if !ok {
+		return false
+	}
+	if !m.GetMsgHash().IsSameAs(m2.GetMsgHash()) {
+		return false
+	}
+	return true
+}
+
 func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessRevealEntry(dbheight, m)
 }
@@ -77,11 +88,12 @@ func (m *RevealEntryMsg) Type() byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
+// Also return the matching commit, if 1
+func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, int) {
 	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
-		return 0
+		return nil, 0
 	}
 	//
 	// Make sure one of the two proper commits got us here.
@@ -90,7 +102,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // Discard any invalid entries in the map.  Should never happen.
 		fmt.Println("dddd Bad EB Commit", state.GetFactomNodeName())
-		return m.Validate(state)
+		return m.ValidateRTN(state)
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.
@@ -100,7 +112,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
 			fmt.Println("dddd EB Commit is short", state.GetFactomNodeName())
-			return m.Validate(state) // Discard commits that are not funded properly.
+			return m.ValidateRTN(state) // Discard commits that are not funded properly.
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
@@ -115,20 +127,26 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		if eb_db == nil && eb == nil {
 			// If we don't have a chain, put the commit back.  Don't want to lose it.
 			state.PutCommit(m.Entry.GetHash(), commit)
-			return 0
+			return nil, 0
 		}
 	} else {
 		m.IsEntry = false
 		ECs := int(m.commitChain.CommitChain.Credits)
 		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
-			return m.Validate(state)
+			return m.ValidateRTN(state)
 		}
 	}
 
-	// Don't lose the commit that validates the entry
-	state.PutCommit(m.Entry.GetHash(), commit)
+	return commit, 1
+}
 
-	return 1
+func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
+	commit, rtn := m.ValidateRTN(state)
+	if rtn == 1 {
+		// Don't lose the commit that validates the entry
+		state.PutCommit(m.Entry.GetHash(), commit)
+	}
+	return rtn
 }
 
 // Returns true if this is a message for this server to execute as
@@ -143,7 +161,7 @@ func (m *RevealEntryMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *RevealEntryMsg) FollowerExecute(state interfaces.IState) {
-	state.FollowerExecuteMsg(m)
+	state.FollowerExecuteRevealEntry(m)
 }
 
 func (e *RevealEntryMsg) JSONByte() ([]byte, error) {

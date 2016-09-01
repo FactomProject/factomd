@@ -38,7 +38,8 @@ func (c *AdminBlock) String() string {
 	if fh == nil {
 		fh = primitives.NewZeroHash()
 	}
-	out.WriteString(fmt.Sprintf("%20s %v\n", "BackReferenceHash:", fh.String()))
+	out.WriteString(fmt.Sprintf("%20s %x\n", "Primary Hash:", c.DatabasePrimaryIndex().Bytes()))
+	out.WriteString(fmt.Sprintf("%20s %x\n", "512 Sha3:", fh.Bytes()))
 
 	out.WriteString(c.Header.String())
 	out.WriteString("Entries: \n")

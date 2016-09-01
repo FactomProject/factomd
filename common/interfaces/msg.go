@@ -74,6 +74,10 @@ type IMsg interface {
 	// Call here if the server is a follower
 	FollowerExecute(IState)
 
+	// Send this message out over the NetworkOutQueue.  This is done with a method
+	// to allow easier debugging and simulation.
+	SendOut(IState, IMsg)
+
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
 	// Returns true if able to process, false if process is waiting on something.

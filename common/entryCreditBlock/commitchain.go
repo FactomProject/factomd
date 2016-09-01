@@ -30,6 +30,7 @@ type CommitChain struct {
 	Credits     uint8
 	ECPubKey    *primitives.ByteSlice32
 	Sig         *primitives.ByteSlice64
+	SigHash     interfaces.IHash
 }
 
 var _ interfaces.Printable = (*CommitChain)(nil)
@@ -135,8 +136,11 @@ func (c *CommitChain) GetHash() interfaces.IHash {
 }
 
 func (c *CommitChain) GetSigHash() interfaces.IHash {
-	data := c.CommitMsg()
-	return primitives.Sha(data)
+	if c.SigHash == nil {
+		data := c.CommitMsg()
+		c.SigHash = primitives.Sha(data)
+	}
+	return c.SigHash
 }
 
 func (c *CommitChain) MarshalBinarySig() ([]byte, error) {

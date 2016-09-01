@@ -9,6 +9,6 @@
     		./scripts/factomTransSubmit.sh
         else
             echo "balances failed"
-            sleep 15
+            sleep 8
         fi
 	done

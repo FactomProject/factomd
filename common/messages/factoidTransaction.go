@@ -89,13 +89,22 @@ func (m *FactoidTransaction) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FactoidTransaction) Validate(state interfaces.IState) int {
+	// Is the transaction well formed?
 	err := m.Transaction.Validate(1)
 	if err != nil {
-		return -1
+		return -1 // No, object!
 	}
+
+	// Is the transaction properly signed?
+	err = m.Transaction.ValidateSignatures()
+	if err != nil {
+		return -1 // No, object!
+	}
+
+	// Is the transaction valid at this point in time?
 	err = state.GetFactoidState().Validate(1, m.Transaction)
 	if err != nil {
-		return 0
+		return 0 // Well, mumble.  Might be out of order.
 	}
 	return 1
 }

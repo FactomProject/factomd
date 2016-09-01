@@ -43,6 +43,7 @@ func NetStart(s *state.State) {
 	fnetPtr := flag.String("fnet", "", "Read the given file to build the network connections")
 	dropPtr := flag.Int("drop", 0, "Number of messages to drop out of every thousand")
 	journalPtr := flag.String("journal", "", "Rerun a Journal of messages")
+	journalingPtr := flag.Bool("journaling", false, "Write a journal of all messages recieved. Default is off.")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
 	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
@@ -69,6 +70,7 @@ func NetStart(s *state.State) {
 	fnet := *fnetPtr
 	droprate := *dropPtr
 	journal := *journalPtr
+	journaling := *journalingPtr
 	follower := *followerPtr
 	leader := *leaderPtr
 	db := *dbPtr
@@ -95,6 +97,7 @@ func NetStart(s *state.State) {
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 	s.StartDelayLimit = startDelay * 1000
+	s.Journaling = journaling
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)

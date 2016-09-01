@@ -30,6 +30,10 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
+func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
+	state.NetworkOutMsgQueue() <- msg
+}
+
 func (m *MessageBase) IsValid() bool {
 	return m.Sigvalid
 }
@@ -55,7 +59,7 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 4000 && len(s.NetworkOutMsgQueue()) < 1000 { // Resend every second
+	if now-m.resend > 10000 && len(s.NetworkOutMsgQueue()) < 1000 { // Resend every second
 		m.resend = now
 		return true
 	}
@@ -68,7 +72,7 @@ func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
 	if m.expire == 0 {
 		m.expire = now
 	}
-	if now-m.expire > 240*1000 { // Keep messages for some length before giving up.
+	if now-m.expire > 5*60*1000 { // Keep messages for some length before giving up.
 		rtn = true
 	}
 	return

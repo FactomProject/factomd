@@ -9,18 +9,29 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"time"
 )
 
 var _ = fmt.Print
 var _ = bytes.Compare
+
+type SimPacket struct {
+	data []byte
+	sent int64 // Time in milliseconds
+}
 
 type SimPeer struct {
 	// A connection to this node:
 	FromName string
 	ToName   string
 	// Channels that define the connection:
-	BroadcastOut chan []byte
-	BroadcastIn  chan []byte
+	BroadcastOut chan *SimPacket
+	BroadcastIn  chan *SimPacket
+
+	// Delay in Milliseconds
+	Delay int64
+	// Were we hold delayed packets
+	Delayed *SimPacket
 }
 
 var _ interfaces.IPeer = (*SimPeer)(nil)
@@ -50,7 +61,7 @@ func (f *SimPeer) Len() int {
 func (f *SimPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
-	f.BroadcastOut = make(chan []byte, 10000)
+	f.BroadcastOut = make(chan *SimPacket, 10000)
 	return f
 }
 
@@ -68,24 +79,38 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 		return err
 	}
 	if len(f.BroadcastOut) < 9000 {
-		f.BroadcastOut <- data
+		packet := SimPacket{data, time.Now().UnixNano() / 1000000}
+		f.BroadcastOut <- &packet
 	}
 	return nil
 }
 
 // Non-blocking return value from channel.
 func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
-	select {
-	case data, ok := <-f.BroadcastIn:
-		if ok {
-			msg, err := messages.UnmarshalMessage(data)
-			if err != nil {
-				fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], messages.MessageName(data[0]))
-			}
 
-			return msg, err
+	if f.Delayed == nil {
+		select {
+		case packet, ok := <-f.BroadcastIn:
+			if ok {
+				f.Delayed = packet
+			}
+		default:
+			return nil, nil // Nothing to do
 		}
-	default:
+	}
+
+	now := time.Now().UnixNano() / 1000000
+
+	if f.Delayed != nil && now-f.Delayed.sent > f.Delay {
+		data := f.Delayed.data
+		f.Delayed = nil
+		msg, err := messages.UnmarshalMessage(data)
+		if err != nil {
+			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], messages.MessageName(data[0]))
+		}
+		return msg, err
+	} else {
+		// fmt.Println("dddd Delay: ", now-f.Delayed.sent)
 	}
 	return nil, nil
 }

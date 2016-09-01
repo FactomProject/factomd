@@ -203,9 +203,9 @@ func (list *DBStateList) Catchup() {
 	if msg != nil {
 		//		list.State.RunLeader = false
 		//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
-		list.State.NetworkOutMsgQueue() <- msg
-		list.State.NetworkOutMsgQueue() <- msg
-		list.State.NetworkOutMsgQueue() <- msg
+		msg.SendOut(list.State, msg)
+		msg.SendOut(list.State, msg)
+		msg.SendOut(list.State, msg)
 		list.LastTime = now
 		list.State.DBStateAskCnt++
 	}
@@ -258,6 +258,10 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
+	if len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures) < majority {
+		return false
+	}
+
 	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
 		if i < majority {
 			d.AdminBlock.AddDBSig(sig.ChainID, sig.Signature)
@@ -389,12 +393,16 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	for k := range s.Commits {
 		var keep []interfaces.IMsg
 		for _, v := range s.Commits[k] {
-			_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if ok {
 				keep = append(keep, v)
 			}
 		}
-		s.Commits[k] = keep
+		if len(keep) > 0 {
+			s.Commits[k] = keep
+		} else {
+			delete(s.Commits, k)
+		}
 	}
 
 	return

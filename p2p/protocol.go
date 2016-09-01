@@ -17,14 +17,15 @@ import (
 
 func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 	highWaterMark := int(float64(StandardChannelSize) * 0.90)
-	atCapacity := int(float64(StandardChannelSize) * 0.999)
+	atCapacity := int(float64(StandardChannelSize) * 0.99)
+	clen := len(channel)
 	switch {
-	case atCapacity < len(channel):
+	case atCapacity < clen:
 		silence("protocol", "nonBlockingChanSend() - Channel is OVER 99 percent full! \n %d of %d \n last message: %+v", len(channel), StandardChannelSize, message)
 		panic("Full channel.")
-	case highWaterMark < len(channel):
+	case highWaterMark < clen:
 		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, message)
-		for highWaterMark <= len(channel) { // Clear out some messages
+		for highWaterMark <= clen-100 { // Clear out some messages
 			<-channel
 		}
 		fallthrough
@@ -70,9 +71,9 @@ var (
 
 const (
 	// ProtocolVersion is the latest version this package supports
-	ProtocolVersion uint16 = 04
+	ProtocolVersion uint16 = 05
 	// ProtocolVersionMinimum is the earliest version this package supports
-	ProtocolVersionMinimum uint16 = 04
+	ProtocolVersionMinimum uint16 = 05
 	// Don't think we need this.
 	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
 	// Used in generating message CRC values

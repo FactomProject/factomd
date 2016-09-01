@@ -53,6 +53,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	DropRate                int
+	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
 	ControlPanelPort        int
 	ControlPanelPath        string
@@ -111,6 +112,7 @@ type State struct {
 	msgQueue               chan interfaces.IMsg
 	ShutdownChan           chan int // For gracefully halting Factom
 	JournalFile            string
+	Journaling             bool
 
 	serverPrivKey         *primitives.PrivateKey
 	serverPubKey          *primitives.PublicKey
@@ -155,6 +157,9 @@ type State struct {
 	NetStateOff     bool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
 	FactoidTrans    int
+	ECCommits       int
+	ECommits        int
+	FCTSubmits      int
 	NewEntryChains  int
 	NewEntries      int
 	LeaderTimestamp interfaces.Timestamp
@@ -271,6 +276,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LogPath = s.LogPath + "/Sim" + number
 	clone.LdbPath = s.LdbPath + "/Sim" + number
 	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
+	clone.Journaling = s.Journaling
 	clone.BoltDBPath = s.BoltDBPath + "/Sim" + number
 	clone.LogLevel = s.LogLevel
 	clone.ConsoleLogLevel = s.ConsoleLogLevel
@@ -354,6 +360,18 @@ func (s *State) IncMissingMsgReply() {
 
 func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
+}
+
+func (s *State) IncFCTSubmits() {
+	s.FCTSubmits++
+}
+
+func (s *State) IncECCommits() {
+	s.ECCommits++
+}
+
+func (s *State) IncECommits() {
+	s.ECommits++
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
@@ -492,10 +510,12 @@ func (s *State) Init() {
 	if er != nil {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
-	_, err := os.Create(s.JournalFile) //Create the Journal File
-	if err != nil {
-		fmt.Println("Could not create the file: " + s.JournalFile)
-		s.JournalFile = ""
+	if s.Journaling {
+		_, err := os.Create(s.JournalFile) //Create the Journal File
+		if err != nil {
+			fmt.Println("Could not create the file: " + s.JournalFile)
+			s.JournalFile = ""
+		}
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -521,7 +541,7 @@ func (s *State) Init() {
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
-	s.DBStates.LastTime = new(primitives.Timestamp)
+	s.DBStates.LastTime = s.GetTimestamp()
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
@@ -530,11 +550,11 @@ func (s *State) Init() {
 		s.Leader = false
 		s.Println("\n   +---------------------------+")
 		s.Println("   +------ Follower Only ------+")
-		s.Println("   +---------------------------+\n")
+		s.Print("   +---------------------------+\n\n")
 	case "SERVER":
 		s.Println("\n   +-------------------------+")
 		s.Println("   |       Leader Node       |")
-		s.Println("   +-------------------------+\n")
+		s.Print("   +-------------------------+\n\n")
 	default:
 		panic("Bad Node Mode (must be FULL or SERVER)")
 	}
@@ -788,7 +808,7 @@ func (s *State) MessageToLogString(msg interfaces.IMsg) string {
 }
 
 func (s *State) JournalMessage(msg interfaces.IMsg) {
-	if len(s.JournalFile) != 0 {
+	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
@@ -1256,13 +1276,6 @@ func (s *State) ShortString() string {
 	return s.serverPrt
 }
 
-func (s *State) SetString2() {
-	//if !s.Status2 {
-	//	return
-	//}
-
-}
-
 func (s *State) SetString() {
 	switch s.Status {
 	case 0:
@@ -1274,6 +1287,28 @@ func (s *State) SetString() {
 	}
 
 	s.Status = 0
+}
+
+func (s *State) SummaryHeader() string {
+	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %4s %10s %-8s %-9s %15s %9s\n",
+		"Node",
+		"ID   ",
+		" ",
+		"Drop",
+		"Delay",
+		"DB ",
+		"PL  ",
+		" ",
+		"Min",
+		"DBState(ask/ans/rply/fail)",
+		"Msg",
+		"   Resend",
+		"Expire",
+		"Fct/EC/E",
+		"API:Fct/EC/E",
+		"tps t/i")
+
+	return str
 }
 
 func (s *State) SetStringConsensus() {
@@ -1365,12 +1400,13 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x]%4s %4s %2d.%01d%% ",
+	str := fmt.Sprintf("%7s[%12x]%4s %4s %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
 		vmIndex,
 		stype,
-		(s.DropRate+5)/10, s.DropRate%10)
+		s.DropRate/10, s.DropRate%10,
+		s.Delay/1000, s.Delay%1000)
 
 	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
@@ -1381,18 +1417,20 @@ func (s *State) SetStringQueues() {
 
 	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
 	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
-	str = str + fmt.Sprintf(" %3v %4v %15s %18s ",
+	str = str + fmt.Sprintf(" %2s/%2d %15s %18s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,
 		missing)
 
-	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries)
+	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries-s.NewEntryChains)
+	apis := fmt.Sprintf("%d/%d/%d", s.FCTSubmits, s.ECCommits, s.ECommits)
 	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
-	str = str + fmt.Sprintf(" %5d %5d %12s %11s",
+	str = str + fmt.Sprintf(" %5d %5d %12s %15s %11s",
 		s.ResendCnt,
 		s.ExpireCnt,
 		trans,
+		apis,
 		stps)
 
 	s.serverPrt = str

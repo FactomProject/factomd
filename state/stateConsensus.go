@@ -94,8 +94,8 @@ func (s *State) Process() (progress bool) {
 		}
 		progress = true
 	case msg := <-s.msgQueue:
-		if executeMsg(msg) {
-			s.networkOutMsgQueue <- msg
+		if executeMsg(msg) && !msg.IsPeer2Peer() {
+			msg.SendOut(s, msg)
 		}
 	default:
 	}
@@ -158,7 +158,7 @@ func (s *State) ReviewHolding() {
 		if v.Resend(s) {
 			if v.Validate(s) == 1 {
 				s.ResendCnt++
-				s.networkOutMsgQueue <- v
+				v.SendOut(s, v)
 			}
 		}
 
@@ -249,6 +249,13 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
+
+	pl := s.ProcessLists.Get(ack.DBHeight)
+	list := pl.VMs[ack.VMIndex].List
+	if len(list) > int(ack.Height) && list[ack.Height] != nil {
+		return
+	}
+
 	s.Acks[ack.GetHash().Fixed()] = ack
 	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {
@@ -259,19 +266,40 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
-	if s.GetHighestRecordedBlock() <= dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight() {
-		s.DBStates.LastTime = s.GetTimestamp()
-		dbstate := s.AddDBState(false, // Not a new block; got it from the network
-			dbstatemsg.DirectoryBlock,
-			dbstatemsg.AdminBlock,
-			dbstatemsg.FactoidBlock,
-			dbstatemsg.EntryCreditBlock)
-		dbstate.ReadyToSave = true
+	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-		s.DBStateReplyCnt++
-	} else {
-		s.DBStateFailsCnt++
+	if s.GetHighestRecordedBlock() > dbheight {
+		return
 	}
+
+	if dbheight > 1 {
+		pdbstate := s.DBStates.Get(int(dbheight - 1))
+		if pdbstate == nil {
+			// Must be out of order.  so keep around until we can process.
+			fmt.Println("dddd dbstate ", s.FactomNodeName, "Is Nil", dbheight-1)
+			k := fmt.Sprint(dbheight - 1)
+			key := primitives.NewHash([]byte(k))
+			s.Holding[key.Fixed()] = msg
+			return
+		}
+		pkeymr := pdbstate.DirectoryBlock.GetKeyMR()
+		ppkeymr := dbstatemsg.DirectoryBlock.GetHeader().GetPrevKeyMR()
+		if !pkeymr.IsSameAs(ppkeymr) {
+			s.DBStateFailsCnt++
+			s.networkInvalidMsgQueue <- msg
+		}
+	}
+
+	s.DBStates.LastTime = s.GetTimestamp()
+	dbstate := s.AddDBState(false, // Not a new block; got it from the network
+		dbstatemsg.DirectoryBlock,
+		dbstatemsg.AdminBlock,
+		dbstatemsg.FactoidBlock,
+		dbstatemsg.EntryCreditBlock)
+	dbstate.ReadyToSave = true
+
+	s.DBStateReplyCnt++
+
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
@@ -662,6 +690,28 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	return
 }
 
+func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
+	s.Holding[m.GetMsgHash().Fixed()] = m
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
+	if ack != nil {
+
+		m.SetLeaderChainID(ack.GetLeaderChainID())
+		m.SetMinute(ack.Minute)
+
+		pl := s.ProcessLists.Get(ack.DBHeight)
+		pl.AddToProcessList(ack, m)
+
+		// If we added the ack, then it will be cleared from the ack map.
+		if s.Acks[m.GetMsgHash().Fixed()] == nil {
+			msg := m.(*messages.RevealEntryMsg)
+			s.NextCommit(msg.Entry.GetHash())
+		}
+
+	}
+
+}
+
 func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
@@ -714,6 +764,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// a simple assignment works.
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
+	eom.MsgHash = nil
 	ack := s.NewAck(m)
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)
@@ -723,13 +774,30 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
-	commit := s.NextCommit(re.Entry.GetHash())
-	if commit == nil {
-		s.Holding[re.GetMsgHash().Fixed()] = m
+	eh := re.Entry.GetHash()
+
+	commit, rtn := re.ValidateRTN(s)
+
+	switch rtn {
+	case 0:
+		m.FollowerExecute(s)
+	case -1:
 		return
 	}
-	s.PutCommit(re.Entry.GetHash(), commit)
-	s.LeaderExecute(m)
+
+	ack := s.NewAck(m).(*messages.Ack)
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
+	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
+	s.Acks[m.GetMsgHash().Fixed()] = ack
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	// If it was added, then get rid of the matching Commit.
+	if s.Acks[m.GetMsgHash().Fixed()] != nil {
+		m.FollowerExecute(s)
+		s.PutCommit(eh, commit)
+	}
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -832,8 +900,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 	chainID := msg.Entry.GetChainID()
 
-	s.NextCommit(myhash)
-
 	eb := s.GetNewEBlocks(dbheight, chainID)
 	eb_db := s.GetNewEBlocks(dbheight-1, chainID)
 	if eb_db == nil {
@@ -900,6 +966,9 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 	}
 	pl := s.ProcessLists.Get(dbheight)
 	vm := pl.VMs[vmIndex]
+	if vm.LeaderMinute > 9 {
+		return
+	}
 	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
 	if leader && !vm.Signed {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
@@ -1291,9 +1360,11 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.FactoidBalancesTMutex.Lock()
-		defer pl.FactoidBalancesTMutex.Unlock()
-		v, ok = pl.FactoidBalancesT[adr]
+		if pl != nil {
+			pl.FactoidBalancesTMutex.Lock()
+			defer pl.FactoidBalancesTMutex.Unlock()
+			v, ok = pl.FactoidBalancesT[adr]
+		}
 	}
 	if !ok {
 		s.FactoidBalancesPMutex.Lock()
@@ -1309,10 +1380,12 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.FactoidBalancesTMutex.Lock()
-		defer pl.FactoidBalancesTMutex.Unlock()
+		if pl != nil {
+			pl.FactoidBalancesTMutex.Lock()
+			defer pl.FactoidBalancesTMutex.Unlock()
 
-		pl.FactoidBalancesT[adr] = v
+			pl.FactoidBalancesT[adr] = v
+		}
 	} else {
 		s.FactoidBalancesPMutex.Lock()
 		defer s.FactoidBalancesPMutex.Unlock()
@@ -1324,9 +1397,11 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.ECBalancesTMutex.Lock()
-		defer pl.ECBalancesTMutex.Unlock()
-		v, ok = pl.ECBalancesT[adr]
+		if pl != nil {
+			pl.ECBalancesTMutex.Lock()
+			defer pl.ECBalancesTMutex.Unlock()
+			v, ok = pl.ECBalancesT[adr]
+		}
 	}
 	if !ok {
 		s.ECBalancesPMutex.Lock()
@@ -1341,10 +1416,11 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
 		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
-		pl.ECBalancesTMutex.Lock()
-		defer pl.ECBalancesTMutex.Unlock()
-
-		pl.ECBalancesT[adr] = v
+		if pl != nil {
+			pl.ECBalancesTMutex.Lock()
+			defer pl.ECBalancesTMutex.Unlock()
+			pl.ECBalancesT[adr] = v
+		}
 	} else {
 		s.ECBalancesPMutex.Lock()
 		defer s.ECBalancesPMutex.Unlock()
