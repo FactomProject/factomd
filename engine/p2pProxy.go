@@ -44,6 +44,11 @@ type factomMessage struct {
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
 
+func (f *P2PProxy) Weight() int {
+	// should return the number of connections this peer represents.  For now, just say a lot
+	return 10
+}
+
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName

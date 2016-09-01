@@ -36,6 +36,11 @@ type SimPeer struct {
 
 var _ interfaces.IPeer = (*SimPeer)(nil)
 
+func (*SimPeer) Weight() int {
+	// A SimPeer only represents itself
+	return 1
+}
+
 func (f *SimPeer) Equals(ff interfaces.IPeer) bool {
 	f2, ok := ff.(*SimPeer)
 	if !ok {

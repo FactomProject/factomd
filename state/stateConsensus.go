@@ -59,6 +59,9 @@ func (s *State) Process() (progress bool) {
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
+				if len(vm.List) == 0 {
+					s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
+				}
 				msg.LeaderExecute(s)
 			} else {
 				msg.FollowerExecute(s)
@@ -662,18 +665,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	m := msg.(*messages.MissingMsg)
-	if s.DBSig && m.ProcessListHeight == 0 {
-		// Make sure the request is reasonable, and that we are asking this of the first
-		// entry in the VM... Then we need to issue a DBSig.
-		pl := s.ProcessLists.Get(m.DBHeight)
-		if pl != nil {
-			if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
-				s.SendDBSig(m.DBHeight, m.VMIndex)
-			}
-		} else {
-			return
-		}
-	}
 
 	missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
 
@@ -1022,13 +1013,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.ReviewHolding()
 			s.Syncing = false
-
-			// If we are the leader for this vm, and the previous block has not been signed,
-			// submit a dbsignature to the network of the previous block.  See the discussion
-			// about DBSig below.
-			if s.Leader {
-				s.SendDBSig(dbheight, s.LeaderVMIndex)
-			}
 		}
 		return true
 	}

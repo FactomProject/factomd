@@ -141,8 +141,12 @@ func NetworkOutputs(fnode *FactomNode) {
 					}
 				} else {
 					for i, peer := range fnode.Peers {
+						wt := 1
+						if p >= 0 {
+							wt = fnode.Peers[p].Weight()
+						}
 						// Don't resend to the node that sent it to you.
-						if i != p || true {
+						if i != p || wt > 1 {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							if !fnode.State.GetNetStateOff() {
