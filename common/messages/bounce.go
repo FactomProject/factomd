@@ -173,7 +173,7 @@ func (m *Bounce) String() string {
 	for _, ts := range m.Stamps {
 		elapse := ts.GetTimeMilli()-last
 		last = ts.GetTimeMilli()
-		str = fmt.Sprintf("%s %30s %4d.3d seconds\n",str ,ts.String(), elapse)
+		str = fmt.Sprintf("%s %30s %4d.%3d seconds\n",str ,ts.String(), elapse/1000, elapse%1000)
 	}
 	return str
 }
