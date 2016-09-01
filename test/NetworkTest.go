@@ -34,6 +34,7 @@ func InitNetwork() {
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
 
+	old = make(map[[32]byte]interfaces.IMsg,0)
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     port,
