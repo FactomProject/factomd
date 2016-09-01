@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/p2p"
+	"math/rand"
 	"time"
 )
 
@@ -19,9 +20,11 @@ var p2pProxy *engine.P2PProxy
 var old map[[32]byte]interfaces.IMsg
 var msgcnt int
 var bounces int
+var name string
 
 func InitNetwork() {
 
+	namePtr := flag.String("name", fmt.Sprintf("%d", rand.Int()), "Name for this node")
 	networkPortOverridePtr := flag.String("networkPort", "8108", "Address for p2p network to listen on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
@@ -29,12 +32,13 @@ func InitNetwork() {
 
 	flag.Parse()
 
+	name = *namePtr
 	port := *networkPortOverridePtr
 	peers := *peersPtr
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
 
-	old = make(map[[32]byte]interfaces.IMsg,0)
+	old = make(map[[32]byte]interfaces.IMsg, 0)
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     port,
@@ -90,6 +94,7 @@ func main() {
 
 		if bounces == 0 {
 			bounce := new(messages.Bounce)
+			bounce.Name = name
 			bounce.Timestamp = primitives.NewTimestampNow()
 			p2pProxy.Send(bounce)
 			msgcnt++

@@ -17,6 +17,7 @@ import (
 
 type Bounce struct {
 	MessageBase
+	Name      string
 	Timestamp interfaces.Timestamp
 	Stamps    []interfaces.Timestamp
 }
@@ -114,6 +115,9 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}
 	newData = newData[1:]
 
+	m.Name = string(newData[:32])
+	newData = newData[32:]
+
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -143,6 +147,10 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
 
+	var buff [32]byte
+
+	copy(buff[:32], []byte(fmt.Sprintf("%32s", m.Name)))
+
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
 	if err != nil {
@@ -168,12 +176,12 @@ func (m *Bounce) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Bounce) String() string {
-	str := "Bounce: " + m.Timestamp.String() + "\n"
+	str := fmt.Sprintf("%32s Bounce:  %30s \n", m.Name, m.Timestamp.String())
 	last := m.Timestamp.GetTimeMilli()
 	for _, ts := range m.Stamps {
-		elapse := ts.GetTimeMilli()-last
+		elapse := ts.GetTimeMilli() - last
 		last = ts.GetTimeMilli()
-		str = fmt.Sprintf("%s %30s %4d.3d seconds\n",str ,ts.String(), elapse)
+		str = fmt.Sprintf("%s %30s %4d.3d seconds\n", str, ts.String(), elapse)
 	}
 	return str
 }
