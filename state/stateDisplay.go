@@ -105,7 +105,11 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
 	ds.CurrentEBDBHeight = s.EntryBlockDBHeightProcessing
 	ds.ProcessListHeight = uint32(int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1)
-	if dir := s.GetDirectoryBlock(); dir != nil {
+	dir := s.GetDirectoryBlockByHeight(s.GetLeaderHeight())
+	if dir == nil {
+		dir = s.GetDirectoryBlockByHeight(s.GetLeaderHeight() - 1)
+	}
+	if dir != nil {
 		data, err := dir.MarshalBinary()
 		if err != nil || dir == nil {
 		} else {
