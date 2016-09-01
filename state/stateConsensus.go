@@ -281,7 +281,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		pdbstate := s.DBStates.Get(int(dbheight - 1))
 		if pdbstate == nil {
 			// Must be out of order.  so keep around until we can process.
-			fmt.Println("dddd dbstate ", s.FactomNodeName, "Is Nil", dbheight-1)
 			k := fmt.Sprint(dbheight - 1)
 			key := primitives.NewHash([]byte(k))
 			s.Holding[key.Fixed()] = msg
