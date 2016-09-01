@@ -1,9 +1,13 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
 package main
 
 import (
 	"flag"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/p2p"
@@ -63,9 +67,9 @@ func listen() {
 		msg, err := p2pProxy.Recieve()
 		if err == nil && msg != nil && old[msg.GetHash().Fixed()] == nil {
 			old[msg.GetHash().Fixed()] = msg
-			bounce, ok := msg.(*Bounce)
+			bounce, ok := msg.(*messages.Bounce)
 			if ok {
-				bounce.stamps = append(bounce.stamps, primitives.NewTimestampNow())
+				bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
 				p2pProxy.Send(msg)
 				fmt.Println(msg.String())
 			}
@@ -84,7 +88,7 @@ func main() {
 	for {
 
 		if bounces == 0 {
-			bounce := new(Bounce)
+			bounce := new(messages.Bounce)
 			bounce.Timestamp = primitives.NewTimestampNow()
 			p2pProxy.Send(bounce)
 			msgcnt++

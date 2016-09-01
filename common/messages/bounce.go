@@ -1,4 +1,8 @@
-package main
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+package messages
 
 import ()
 import (
@@ -6,15 +10,15 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type Bounce struct {
+	MessageBase
 	Timestamp interfaces.Timestamp
-	messages.MessageBase
-	stamps []interfaces.Timestamp
+	Stamps    []interfaces.Timestamp
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
@@ -40,7 +44,7 @@ func (m *Bounce) GetMsgHash() interfaces.IHash {
 }
 
 func (m *Bounce) Type() byte {
-	return 1
+	return constants.BOUNCE_MSG
 }
 
 func (m *Bounce) GetTimestamp() interfaces.Timestamp {
@@ -124,7 +128,7 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
-		m.stamps = append(m.stamps, ts)
+		m.Stamps = append(m.Stamps, ts)
 	}
 	return
 }
@@ -146,9 +150,9 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, int32(len(m.stamps)))
+	binary.Write(&buf, binary.BigEndian, int32(len(m.Stamps)))
 
-	for _, ts := range m.stamps {
+	for _, ts := range m.Stamps {
 		data, err := ts.MarshalBinary()
 		if err != nil {
 			return nil, err
@@ -165,7 +169,7 @@ func (m *Bounce) MarshalBinary() (data []byte, err error) {
 
 func (m *Bounce) String() string {
 	str := "Bounce: " + m.Timestamp.String() + "\n"
-	for _, ts := range m.stamps {
+	for _, ts := range m.Stamps {
 		str = str + "    " + ts.String() + "\n"
 	}
 	return str
