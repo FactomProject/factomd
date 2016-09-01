@@ -18,6 +18,7 @@ import (
 var p2pProxy *engine.P2PProxy
 
 var old map[[32]byte]interfaces.IMsg
+var oldcnt int
 var msgcnt int
 var bounces int
 var name string
@@ -68,9 +69,24 @@ func InitNetwork() {
 }
 
 func listen() {
+	prtone := false
 	for {
 		msg, err := p2pProxy.Recieve()
-		if err == nil && msg != nil && old[msg.GetHash().Fixed()] == nil {
+		if err != nil || msg == nil {
+			if !prtone {
+				if err != nil {
+					fmt.Println(err.Error())
+				}else{
+					fmt.Println("Msg is nil")
+				}
+			}
+			prtone = true
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		if old[msg.GetHash().Fixed()] == nil {
+			prtone = false
 			old[msg.GetHash().Fixed()] = msg
 			bounce, ok := msg.(*messages.Bounce)
 			if ok {
@@ -80,6 +96,7 @@ func listen() {
 			}
 			bounces++
 		} else {
+			oldcnt++
 			time.Sleep(10 * time.Second)
 		}
 	}
@@ -100,7 +117,7 @@ func main() {
 			msgcnt++
 		}
 		fmt.Println("Hi!  My name is ",name)
-		fmt.Println("Messages", msgcnt, "bounces", bounces)
+		fmt.Println("Messages", msgcnt, "duplicates",oldcnt,"bounces", bounces)
 		time.Sleep(10 * time.Second)
 	}
 
