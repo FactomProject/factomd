@@ -99,7 +99,7 @@ func main() {
 			p2pProxy.Send(bounce)
 			msgcnt++
 		}
-
+		fmt.Println("Hi!  My name is ",name)
 		fmt.Println("Messages", msgcnt, "bounces", bounces)
 		time.Sleep(10 * time.Second)
 	}
