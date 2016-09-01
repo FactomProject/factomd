@@ -109,7 +109,7 @@ func main() {
 
 	for {
 
-		if bounces == 0 {
+		if bounces < 10 {
 			bounce := new(messages.Bounce)
 			bounce.Name = name
 			bounce.Timestamp = primitives.NewTimestampNow()
