@@ -1,24 +1,20 @@
 package main
 
+import ()
 import (
-	
-)
-import (
-	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 	"bytes"
 	"encoding/binary"
-	"github.com/FactomProject/factomd/common/messages"
 	"errors"
+	"fmt"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 )
-
-
 
 type Bounce struct {
 	Timestamp interfaces.Timestamp
 	messages.MessageBase
-	stamps [] interfaces.Timestamp
+	stamps []interfaces.Timestamp
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
@@ -60,7 +56,7 @@ func (m *Bounce) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Bounce) Validate(state interfaces.IState) int {
-		return 1
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
@@ -122,13 +118,13 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	numTS, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	for i:= uint32(0); i < numTS; i++ {
+	for i := uint32(0); i < numTS; i++ {
 		ts := new(primitives.Timestamp)
 		newData, err = ts.UnmarshalBinaryData(newData)
 		if err != nil {
 			return nil, err
 		}
-		m.stamps = append(m.stamps,ts)
+		m.stamps = append(m.stamps, ts)
 	}
 	return
 }
@@ -152,7 +148,7 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 
 	binary.Write(&buf, binary.BigEndian, int32(len(m.stamps)))
 
-	for _,ts := range m.stamps {
+	for _, ts := range m.stamps {
 		data, err := ts.MarshalBinary()
 		if err != nil {
 			return nil, err
@@ -168,9 +164,9 @@ func (m *Bounce) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Bounce) String() string {
-	str := "Bounce: "+m.Timestamp.String()+"\n"
-	for _,ts := range m.stamps {
-		str = str + "    "+ts.String()+"\n"
+	str := "Bounce: " + m.Timestamp.String() + "\n"
+	for _, ts := range m.stamps {
+		str = str + "    " + ts.String() + "\n"
 	}
 	return str
 }

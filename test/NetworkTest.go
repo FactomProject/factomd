@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/engine"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"flag"
-	"github.com/FactomProject/factomd/common/primitives"
-	"time"
 	"fmt"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/p2p"
+	"time"
 )
 
 var p2pProxy *engine.P2PProxy
@@ -17,7 +17,6 @@ var msgcnt int
 var bounces int
 
 func InitNetwork() {
-
 
 	networkPortOverridePtr := flag.String("networkPort", "8108", "Address for p2p network to listen on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
@@ -61,22 +60,21 @@ func InitNetwork() {
 
 func listen() {
 	for {
-		msg,err := p2pProxy.Recieve()
-		if err == nil && msg != nil && old[msg.GetHash().Fixed()]== nil {
-			old[msg.GetHash().Fixed()]= msg
-			bounce,ok := msg.(*Bounce)
+		msg, err := p2pProxy.Recieve()
+		if err == nil && msg != nil && old[msg.GetHash().Fixed()] == nil {
+			old[msg.GetHash().Fixed()] = msg
+			bounce, ok := msg.(*Bounce)
 			if ok {
-				bounce.stamps = append(bounce.stamps,primitives.NewTimestampNow())
+				bounce.stamps = append(bounce.stamps, primitives.NewTimestampNow())
 				p2pProxy.Send(msg)
 				fmt.Println(msg.String())
 			}
 			bounces++
-		}else{
-			time.Sleep(10*time.Second)
+		} else {
+			time.Sleep(10 * time.Second)
 		}
 	}
 }
-
 
 func main() {
 	InitNetwork()
@@ -92,8 +90,8 @@ func main() {
 			msgcnt++
 		}
 
-		fmt.Println("Messages",msgcnt,"bounces",bounces)
-		time.Sleep(10*time.Second)
+		fmt.Println("Messages", msgcnt, "bounces", bounces)
+		time.Sleep(10 * time.Second)
 	}
 
 }
