@@ -111,7 +111,7 @@ func main() {
 
 	for {
 
-		if bounces < 10 {
+		if bounces < 100 {
 			bounce := new(messages.Bounce)
 			bounce.Name = name
 			bounce.Timestamp = primitives.NewTimestampNow()
@@ -120,7 +120,7 @@ func main() {
 		}
 		fmt.Println("Hi!  My name is ",name)
 		fmt.Println("Messages", msgcnt, "duplicates",oldcnt,"bounces", bounces)
-		time.Sleep(10 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 }
