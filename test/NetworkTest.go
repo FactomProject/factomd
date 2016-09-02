@@ -25,6 +25,8 @@ var name string
 
 func InitNetwork() {
 
+	go engine.StartProfiler()
+
 	namePtr := flag.String("name", fmt.Sprintf("%d", rand.Int()), "Name for this node")
 	networkPortOverridePtr := flag.String("networkPort", "8108", "Address for p2p network to listen on.")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
