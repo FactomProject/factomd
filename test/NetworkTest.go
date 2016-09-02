@@ -99,7 +99,7 @@ func listen() {
 			bounces++
 		} else {
 			oldcnt++
-			time.Sleep(10 * time.Second)
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 }
