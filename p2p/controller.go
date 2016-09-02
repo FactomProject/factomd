@@ -299,11 +299,14 @@ func (c *Controller) runloop() {
 
 	for c.keepRunning { // Run until we get the exit command
 		dot("@@1\n")
-		time.Sleep(time.Millisecond * 121) // This can be a tight loop, don't want to starve the application
-		dot("@@2\n")
+		progress := false
 		for 0 < len(c.commandChannel) {
 			command := <-c.commandChannel
 			c.handleCommand(command)
+			progress = true
+		}
+		if !progress {
+			time.Sleep(time.Millisecond * 121) // This can be a tight loop, don't want to starve the application
 		}
 		dot("@@3\n")
 		// route messages to and from application
