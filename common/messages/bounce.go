@@ -13,8 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"time"
 	"strings"
+	"time"
 )
 
 type Bounce struct {
@@ -190,21 +190,21 @@ func (m *Bounce) MarshalBinary() (data []byte, err error) {
 func (m *Bounce) String() string {
 	// bbbb Origin: 2016-09-05 12:26:20.426954586 -0500 CDT left Bounce Start:             2016-09-05 12:26:05 Hops:     1 Size:    43 Last Hop Took 14.955 Average Hop: 14.955
 	now := time.Now()
-	t := fmt.Sprintf("%2d:%2d:%2d.%03d", now.Hour(),now.Minute(),now.Second(),now.Nanosecond()/1000000)
+	t := fmt.Sprintf("%2d:%2d:%2d.%03d", now.Hour(), now.Minute(), now.Second(), now.Nanosecond()/1000000)
 	mill := m.Timestamp.GetTimeMilli()
-	mills := mill%1000
+	mills := mill % 1000
 	mill = mill / 1000
-	secs := mill %60
+	secs := mill % 60
 	mill = mill / 60
 	mins := mill % 60
 	mill = mill / 60
 	hrs := mill % 24
-	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs,mins,secs,mills)
+	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs, mins, secs, mills)
 	str := fmt.Sprintf("bbbb Origin: %12s %10s Bounce Start: %12s Hops: %5d Size: %5d ",
 		t,
 		strings.TrimSpace(m.Name),
 		t2,
-		len(m.Stamps),m.SizeOf())
+		len(m.Stamps), m.SizeOf())
 
 	last := m.Timestamp.GetTimeMilli()
 	elapse := int64(0)
@@ -213,15 +213,15 @@ func (m *Bounce) String() string {
 		elapse = ts.GetTimeMilli() - last
 		sum += elapse
 		last = ts.GetTimeMilli()
-//		str = fmt.Sprintf("%sbbbb %30s %4d.%03d seconds\n", str, ts.String(), elapse/1000, elapse%1000)
+		//		str = fmt.Sprintf("%sbbbb %30s %4d.%03d seconds\n", str, ts.String(), elapse/1000, elapse%1000)
 	}
 	sign := " "
 	if sum < 0 {
 		sign = "-"
 		sum = sum * -1
 	}
-	avg := sum/int64(len(m.Stamps))
-	str = str + fmt.Sprintf("Last Hop Took %d.%03d Average Hop: %s%d.%03d",elapse/1000,elapse%1000,sign, avg/1000,avg%1000)
+	avg := sum / int64(len(m.Stamps))
+	str = str + fmt.Sprintf("Last Hop Took %d.%03d Average Hop: %s%d.%03d", elapse/1000, elapse%1000, sign, avg/1000, avg%1000)
 	return str
 }
 

@@ -47,34 +47,34 @@ var Reads int
 var WritesErr int
 var ReadsErr int
 
-func (m *middle)Write(b []byte)(int,error){
+func (m *middle) Write(b []byte) (int, error) {
 
-	if m.conn.LocalAddr().String()==m.conn.RemoteAddr().String() {
-		fmt.Println("Middle Ignore",m.conn.LocalAddr().String())
-		return 0,nil
+	if m.conn.LocalAddr().String() == m.conn.RemoteAddr().String() {
+		fmt.Println("Middle Ignore", m.conn.LocalAddr().String())
+		return 0, nil
 	}
 
 	// /end := 10
 	//if end > len(b) {
 	//	end = len(b)
 	//}
-	i,e := m.conn.Write(b)
+	i, e := m.conn.Write(b)
 	if e == nil {
 		Writes += len(b)
-	}else{
+	} else {
 		WritesErr++
 	}
 	//fmt.Printf("bbbb Write %s %d/%d bytes, Data:%x\n",time.Now().String(),len(b),i,b[:end])
-	return i,e
+	return i, e
 }
-func (m *middle)Read(b[]byte)(int,error) {
+func (m *middle) Read(b []byte) (int, error) {
 
-	if m.conn.LocalAddr().String()==m.conn.RemoteAddr().String() {
-		fmt.Println("Middle Ignore",m.conn.LocalAddr().String())
+	if m.conn.LocalAddr().String() == m.conn.RemoteAddr().String() {
+		fmt.Println("Middle Ignore", m.conn.LocalAddr().String())
 		return 0, nil
 	}
 
-	i,e := m.conn.Read(b)
+	i, e := m.conn.Read(b)
 	//end := 10
 	//if end > len(b) {
 	//	end = len(b)
@@ -84,10 +84,10 @@ func (m *middle)Read(b[]byte)(int,error) {
 	//}
 	if e == nil {
 		Reads += len(b)
-	}else{
+	} else {
 		ReadsErr++
 	}
-	return i,e
+	return i, e
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -213,7 +213,7 @@ func (c *Connection) commonInit(peer Peer) {
 	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
-	c.timeLastAttempt = time.Now().Add( -1 * TimeBetweenRedials)
+	c.timeLastAttempt = time.Now().Add(-1 * TimeBetweenRedials)
 	c.timeLastStatus = time.Now()
 }
 
@@ -342,13 +342,12 @@ func (c *Connection) dial() bool {
 		c.setNotes(fmt.Sprintf("Connection.dial(%s) got error: %+v", address, err))
 		return false
 	}
-        
-        if err := conn.(*net.TCPConn).SetNoDelay(true); err != nil {
+
+	if err := conn.(*net.TCPConn).SetNoDelay(true); err != nil {
 		fmt.Printf("error, nodelay didn't take")
 		return false
 	}
-	
-	
+
 	m := new(middle)
 	c.conn = m
 	m.conn = conn

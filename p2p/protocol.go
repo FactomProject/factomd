@@ -82,7 +82,6 @@ const (
 // NetworkIdentifier represents the P2P network we are participating in (eg: test, nmain, etc.)
 type NetworkID uint32
 
-
 // Network indicators.
 const (
 	// MainNet represents the production network

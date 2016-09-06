@@ -77,13 +77,12 @@ func listen() {
 		if err != nil || msg == nil {
 			if !prtone {
 				if err != nil {
-					fmt.Println(err.Error())
+					time.Sleep(1 * time.Millisecond)
 				} else {
 					fmt.Println("Msg is nil")
 				}
 			}
 			prtone = true
-			time.Sleep(1 * time.Millisecond)
 			continue
 		}
 
@@ -99,7 +98,6 @@ func listen() {
 			bounces++
 		} else {
 			oldcnt++
-			time.Sleep(1 * time.Millisecond)
 		}
 	}
 }
