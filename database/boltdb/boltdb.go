@@ -6,6 +6,8 @@ package boltdb
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/FactomProject/bolt"
@@ -249,7 +251,9 @@ func (db *BoltDB) Init(bucketList [][]byte, filename string) {
 		if filename == "" {
 			filename = "/tmp/bolt_my.db"
 		}
-
+		if info, err := os.Stat(filename); err == nil && info.IsDir() {
+			filename = filepath.Dir(filename) + "/walllet.db"
+		}
 		tdb, err := bolt.Open(filename, 0600, nil)
 		if err != nil {
 			panic("Database was not found, and could not be createdb.")
