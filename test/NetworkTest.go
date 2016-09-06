@@ -78,7 +78,7 @@ func listen() {
 			if !prtone {
 				if err != nil {
 					fmt.Println(err.Error())
-				}else{
+				} else {
 					fmt.Println("Msg is nil")
 				}
 			}
@@ -118,8 +118,8 @@ func main() {
 			p2pProxy.Send(bounce)
 			msgcnt++
 		}
-		fmt.Println("Hi!  My name is ",name)
-		fmt.Println("Messages", msgcnt, "duplicates",oldcnt,"bounces", bounces)
+		fmt.Println("Hi!  My name is ", name)
+		fmt.Println("Messages", msgcnt, "duplicates", oldcnt, "bounces", bounces)
 		time.Sleep(500 * time.Millisecond)
 	}
 
