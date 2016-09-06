@@ -98,9 +98,8 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				if nil == err {
 					msg.SetNetworkOrigin(fmessage.peerHash)
 				}
-				if 1 < f.debugMode {
+				if  1 < f.debugMode {
 					f.logMessage(msg, true) // NODE_TALK_FIX
-					fmt.Printf(".")
 				}
 				return msg, err
 			default:
@@ -245,7 +244,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		for _, f := range fnodes {
 			f.State.Status = 1
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		for _, f := range fnodes {
 			fmt.Printf("%s \n\n", f.State.ShortString())
 		}

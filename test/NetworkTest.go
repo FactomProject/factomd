@@ -83,7 +83,7 @@ func listen() {
 				}
 			}
 			prtone = true
-			time.Sleep(10 * time.Second)
+			time.Sleep(1 * time.Millisecond)
 			continue
 		}
 
@@ -99,7 +99,7 @@ func listen() {
 			bounces++
 		} else {
 			oldcnt++
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(1 * time.Millisecond)
 		}
 	}
 }
@@ -110,17 +110,18 @@ func main() {
 	go listen()
 
 	for {
-
-		if bounces < 100 {
+		if msgcnt < 100 {
 			bounce := new(messages.Bounce)
 			bounce.Name = name
 			bounce.Timestamp = primitives.NewTimestampNow()
 			p2pProxy.Send(bounce)
 			msgcnt++
 		}
-		fmt.Println("Hi!  My name is ", name)
-		fmt.Println("Messages", msgcnt, "duplicates", oldcnt, "bounces", bounces)
-		time.Sleep(500 * time.Millisecond)
+		fmt.Printf("bbbb Summary: Reads: %d errs %d Writes %d errs %d Msg Sent %d Msg Received %d\n",
+			p2p.Reads, p2p.ReadsErr,
+			p2p.Writes, p2p.WritesErr,
+			msgcnt, bounces)
+		time.Sleep(20 * time.Second)
 	}
 
 }

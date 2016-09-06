@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"time"
+	"strings"
 )
 
 type Bounce struct {
@@ -20,6 +22,7 @@ type Bounce struct {
 	Name      string
 	Timestamp interfaces.Timestamp
 	Stamps    []interfaces.Timestamp
+	size      int
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
@@ -33,9 +36,17 @@ func (m *Bounce) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
+func (m *Bounce) SizeOf() int {
+	m.GetMsgHash()
+	return m.size
+}
+
 func (m *Bounce) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalForSignature()
+
+		m.size = len(data)
+
 		if err != nil {
 			return nil
 		}
@@ -177,13 +188,40 @@ func (m *Bounce) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Bounce) String() string {
-	str := fmt.Sprintf("Origin: %32s Bounce Start:  %30s \n", m.Name, m.Timestamp.String())
+	// bbbb Origin: 2016-09-05 12:26:20.426954586 -0500 CDT left Bounce Start:             2016-09-05 12:26:05 Hops:     1 Size:    43 Last Hop Took 14.955 Average Hop: 14.955
+	now := time.Now()
+	t := fmt.Sprintf("%2d:%2d:%2d.%03d", now.Hour(),now.Minute(),now.Second(),now.Nanosecond()/1000000)
+	mill := m.Timestamp.GetTimeMilli()
+	mills := mill%1000
+	mill = mill / 1000
+	secs := mill %60
+	mill = mill / 60
+	mins := mill % 60
+	mill = mill / 60
+	hrs := mill % 24
+	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs,mins,secs,mills)
+	str := fmt.Sprintf("bbbb Origin: %12s %10s Bounce Start: %12s Hops: %5d Size: %5d ",
+		t,
+		strings.TrimSpace(m.Name),
+		t2,
+		len(m.Stamps),m.SizeOf())
+
 	last := m.Timestamp.GetTimeMilli()
+	elapse := int64(0)
+	sum := elapse
 	for _, ts := range m.Stamps {
-		elapse := ts.GetTimeMilli() - last
+		elapse = ts.GetTimeMilli() - last
+		sum += elapse
 		last = ts.GetTimeMilli()
-		str = fmt.Sprintf("%s %30s %4d.%3d seconds\n", str, ts.String(), elapse/1000, elapse%1000)
+//		str = fmt.Sprintf("%sbbbb %30s %4d.%03d seconds\n", str, ts.String(), elapse/1000, elapse%1000)
 	}
+	sign := " "
+	if sum < 0 {
+		sign = "-"
+		sum = sum * -1
+	}
+	avg := sum/int64(len(m.Stamps))
+	str = str + fmt.Sprintf("Last Hop Took %d.%03d Average Hop: %s%d.%03d",elapse/1000,elapse%1000,sign, avg/1000,avg%1000)
 	return str
 }
 

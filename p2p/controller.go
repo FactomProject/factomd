@@ -306,7 +306,7 @@ func (c *Controller) runloop() {
 			progress = true
 		}
 		if !progress {
-			time.Sleep(time.Millisecond * 121) // This can be a tight loop, don't want to starve the application
+			time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
 		}
 		dot("@@3\n")
 		// route messages to and from application
