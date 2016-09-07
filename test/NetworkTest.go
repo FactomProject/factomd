@@ -85,6 +85,7 @@ func listen() {
 			prtone = true
 			continue
 		}
+		time.Sleep(1 * time.Millisecond)
 
 		if old[msg.GetHash().Fixed()] == nil {
 			prtone = false
