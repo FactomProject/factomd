@@ -38,6 +38,8 @@ const (
 	CHANGESERVER_KEY_MSG // 23
 	REMOVESERVER_MSG     // 24
 	NEGOTIATION_MSG      // 25
+
+	BOUNCE_MSG // 26	test message
 )
 
 const (

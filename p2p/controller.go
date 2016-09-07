@@ -299,11 +299,14 @@ func (c *Controller) runloop() {
 
 	for c.keepRunning { // Run until we get the exit command
 		dot("@@1\n")
-		time.Sleep(time.Millisecond * 121) // This can be a tight loop, don't want to starve the application
-		dot("@@2\n")
+		progress := false
 		for 0 < len(c.commandChannel) {
 			command := <-c.commandChannel
 			c.handleCommand(command)
+			progress = true
+		}
+		if !progress {
+			time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
 		}
 		dot("@@3\n")
 		// route messages to and from application
@@ -335,19 +338,23 @@ func (c *Controller) route() {
 		// Empty the recieve channel, stuff the application channel.
 		dot("&&b\n")
 		note(peerHash, "ctrlr.route() size of recieve channel: %d", len(connection.ReceiveChannel))
-		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
-			dot("&&c\n")
-			message := <-connection.ReceiveChannel
-			dot("&&d\n")
-			switch message.(type) {
-			case ConnectionCommand:
-				note(peerHash, "ctrlr.route() ConnectionCommand")
-				c.handleConnectionCommand(message.(ConnectionCommand), connection)
-			case ConnectionParcel:
-				note(peerHash, "ctrlr.route() ConnectionParcel")
-				c.handleParcelReceive(message, peerHash, connection)
+
+	loop:
+		for {
+			select {
+			case message := <-connection.ReceiveChannel:
+				switch message.(type) {
+				case ConnectionCommand:
+					note(peerHash, "ctrlr.route() ConnectionCommand")
+					c.handleConnectionCommand(message.(ConnectionCommand), connection)
+				case ConnectionParcel:
+					note(peerHash, "ctrlr.route() ConnectionParcel")
+					c.handleParcelReceive(message, peerHash, connection)
+				default:
+					logfatal("ctrlr", "route() unknown message?: %+v ", message)
+				}
 			default:
-				logfatal("ctrlr", "route() unknown message?: %+v ", message)
+				break loop
 			}
 		}
 	}

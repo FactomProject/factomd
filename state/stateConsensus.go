@@ -59,7 +59,12 @@ func (s *State) Process() (progress bool) {
 				int(vm.Height) == len(vm.List) &&
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
-				msg.LeaderExecute(s)
+				if len(vm.List) == 0 {
+					s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
+					s.XReview = append(s.XReview, msg)
+				} else {
+					msg.LeaderExecute(s)
+				}
 			} else {
 				msg.FollowerExecute(s)
 			}
@@ -80,7 +85,7 @@ func (s *State) Process() (progress bool) {
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 1 && len(s.XReview) > 0; i++ {
+	for i := 0; i < 5 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		progress = executeMsg(msg)
 		s.XReview = s.XReview[1:]
@@ -94,7 +99,7 @@ func (s *State) Process() (progress bool) {
 		}
 		progress = true
 	case msg := <-s.msgQueue:
-		if executeMsg(msg) {
+		if executeMsg(msg) && !msg.IsPeer2Peer() {
 			msg.SendOut(s, msg)
 		}
 	default:
@@ -276,7 +281,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		pdbstate := s.DBStates.Get(int(dbheight - 1))
 		if pdbstate == nil {
 			// Must be out of order.  so keep around until we can process.
-			fmt.Println("dddd dbstate ", s.FactomNodeName, "Is Nil", dbheight-1)
 			k := fmt.Sprint(dbheight - 1)
 			key := primitives.NewHash([]byte(k))
 			s.Holding[key.Fixed()] = msg
@@ -299,24 +303,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstate.ReadyToSave = true
 
 	s.DBStateReplyCnt++
-	/*
-		fmt.Println("dddd dbstate ", s.FactomNodeName, dbheight, s.DBStates.Base + s.DBStates.Complete)
-		if dbheight <= s.DBStates.Base + s.DBStates.Complete {
-			return // Just ignore if we already have this dbstate.
-		}
 
-
-		}
-		fmt.Println("dddd dbstate ", s.FactomNodeName, "Writing", dbheight)
-
-		s.DBStates.LastTime = s.GetTimestamp()
-		dbstate := s.AddDBState(false, // Not a new block; got it from the network
-			dbstatemsg.DirectoryBlock,
-			dbstatemsg.AdminBlock,
-			dbstatemsg.FactoidBlock,
-			dbstatemsg.EntryCreditBlock)
-		dbstate.ReadyToSave = true
-	*/
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
@@ -679,18 +666,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	m := msg.(*messages.MissingMsg)
-	if s.DBSig && m.ProcessListHeight == 0 {
-		// Make sure the request is reasonable, and that we are asking this of the first
-		// entry in the VM... Then we need to issue a DBSig.
-		pl := s.ProcessLists.Get(m.DBHeight)
-		if pl != nil {
-			if m.VMIndex < len(pl.FedServers) && len(pl.VMs[m.VMIndex].List) == 0 {
-				s.SendDBSig(m.DBHeight, m.VMIndex)
-			}
-		} else {
-			return
-		}
-	}
 
 	missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
 
@@ -710,14 +685,21 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
 	if ack != nil {
+
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
-		msg := m.(*messages.RevealEntryMsg)
-		s.NextCommit(msg.Entry.GetHash())
+
+		// If we added the ack, then it will be cleared from the ack map.
+		if s.Acks[m.GetMsgHash().Fixed()] == nil {
+			msg := m.(*messages.RevealEntryMsg)
+			s.NextCommit(msg.Entry.GetHash())
+		}
+
 	}
 
 }
@@ -784,12 +766,30 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
-	commit := s.NextCommit(re.Entry.GetHash())
-	if commit == nil {
-		s.Holding[re.GetMsgHash().Fixed()] = m
+	eh := re.Entry.GetHash()
+
+	commit, rtn := re.ValidateRTN(s)
+
+	switch rtn {
+	case 0:
+		m.FollowerExecute(s)
+	case -1:
 		return
 	}
-	s.LeaderExecute(m)
+
+	ack := s.NewAck(m).(*messages.Ack)
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
+	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
+	s.Acks[m.GetMsgHash().Fixed()] = ack
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
+	// If it was added, then get rid of the matching Commit.
+	if s.Acks[m.GetMsgHash().Fixed()] != nil {
+		m.FollowerExecute(s)
+		s.PutCommit(eh, commit)
+	}
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
@@ -1014,13 +1014,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.ReviewHolding()
 			s.Syncing = false
-
-			// If we are the leader for this vm, and the previous block has not been signed,
-			// submit a dbsignature to the network of the previous block.  See the discussion
-			// about DBSig below.
-			if s.Leader {
-				s.SendDBSig(dbheight, s.LeaderVMIndex)
-			}
 		}
 		return true
 	}

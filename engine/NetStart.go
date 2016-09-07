@@ -296,7 +296,7 @@ func NetStart(s *state.State) {
 	} else {
 		p2pNetwork.StartLogging(uint8(0))
 	}
-	p2pProxy.startProxy()
+	p2pProxy.StartProxy()
 	// Command line peers lets us manually set special peers
 	p2pNetwork.DialSpecialPeersString(peers)
 

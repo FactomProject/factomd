@@ -44,6 +44,11 @@ type factomMessage struct {
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
 
+func (f *P2PProxy) Weight() int {
+	// should return the number of connections this peer represents.  For now, just say a lot
+	return 10
+}
+
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
@@ -95,7 +100,6 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				}
 				if 1 < f.debugMode {
 					f.logMessage(msg, true) // NODE_TALK_FIX
-					fmt.Printf(".")
 				}
 				return msg, err
 			default:
@@ -132,7 +136,7 @@ func (f *P2PProxy) Len() int {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-func (p *P2PProxy) startProxy() {
+func (p *P2PProxy) StartProxy() {
 	if 1 < p.debugMode {
 		go p.ManageLogging()
 	}
@@ -240,7 +244,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		for _, f := range fnodes {
 			f.State.Status = 1
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		for _, f := range fnodes {
 			fmt.Printf("%s \n\n", f.State.ShortString())
 		}

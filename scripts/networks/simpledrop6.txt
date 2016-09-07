@@ -1,0 +1,35 @@
+; http://arborjs.org/halfviz/#/MTA0MzA
+
+; Default node color: Gray
+{color:#555555}
+
+0 -- 1
+0 -- 2 
+1 -- 2
+2 -- 3
+3 -- 0
+3 -- 1
+3 -- 4
+4 -- 1
+4 -- 2
+4 -- 0
+4 -- 5
+5 
+
+; Slow Server
+{color: #ff0000}
+
+4
+
+; Federated Servers: Blue
+{color: #3333ff}
+
+0 
+1
+
+; Audit Servers: Green
+{color: #338833}
+
+2
+3
+

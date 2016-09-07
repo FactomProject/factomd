@@ -62,7 +62,7 @@ done
 #create chain with each of the entry credit address
 for i in $(seq 20); do
 echo ${ec[i]}
-echo "hello world" | factom-cli addchain -e testing$i -e factom ${ec[i]} 
+echo "hello world" $RANDOM | factom-cli addchain -e testing$i -e factom ${ec[i]}
 sleep 1s
 done
 
@@ -99,8 +99,8 @@ echo "---------------------------------"
 factom-cli get allentries ${ChainID[i]}
 echo "Making entries into chain $i" 
 echo "---------------------------------"
-echo $i-$j | factom-cli addentry -c ${ChainID[i]} ${ec[i]} 
-echo $i-$j | factom-cli addentry -c ${ChainID[i]} ${ec[i]} 
+echo $i-$j $RANDOM | factom-cli addentry -c ${ChainID[i]} ${ec[i]}
+echo $i-$j $RANDOM | factom-cli addentry -c ${ChainID[i]} ${ec[i]}
 echo "---------------------------------"
 echo "Getting all entries after adding the entry $i"  
 
