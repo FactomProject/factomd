@@ -25,8 +25,9 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 		panic("Full channel.")
 	case highWaterMark < clen:
 		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, message)
-		for highWaterMark <= clen-100 { // Clear out some messages
+		for highWaterMark < clen+100 { // Clear out some messages
 			<-channel
+			clen = len(channel)
 		}
 		fallthrough
 	default:
