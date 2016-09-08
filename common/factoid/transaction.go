@@ -29,8 +29,6 @@ type Transaction struct {
 	RCDs      []interfaces.IRCD
 	SigBlocks []interfaces.ISignatureBlock
 
-	//MarshalSig interfaces.IHash // cache to avoid unnecessary marshal/unmarshals
-
 	// Not marshalled
 	BlockHeight uint32
 }
@@ -54,7 +52,6 @@ func (t *Transaction) GetBlockHeight() (height uint32) {
 // Clears caches if they are no long valid.
 func (t *Transaction) clearCaches() {
 	return
-//	t.MarshalSig = nil
 }
 
 func (*Transaction) GetVersion() uint64 {
