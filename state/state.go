@@ -119,6 +119,10 @@ type State struct {
 	serverPendingPrivKeys []*primitives.PrivateKey
 	serverPendingPubKeys  []*primitives.PublicKey
 
+	// RPC connection config
+	RpcUser string
+	RpcPass string
+
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
@@ -327,6 +331,9 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.OneLeader = s.OneLeader
 
+	clone.RpcUser = s.RpcUser
+	clone.RpcPass = s.RpcPass
+
 	return clone
 }
 
@@ -352,6 +359,14 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 
 func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
+}
+
+func (s *State) GetRpcUser() string {
+	return s.RpcUser
+}
+
+func (s *State) GetRpcPass() string {
+	return s.RpcPass
 }
 
 func (s *State) IncMissingMsgReply() {
@@ -425,6 +440,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		s.RpcUser = cfg.Rpc.RpcUser
+		s.RpcPass = cfg.Rpc.RpcPass
 		switch cfg.App.ControlPanelSetting {
 		case "disabled":
 			s.ControlPanelSetting = 0

@@ -5,10 +5,14 @@
 package wsapi
 
 import (
+	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"reflect"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -19,12 +23,64 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/receipts"
+	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/web"
 )
 
 const API_VERSION string = "2.0"
 
+var (
+	RpcUser string
+	RpcPass string
+	Authsha [fastsha256.Size]byte
+)
+
+// httpBasicAuth returns the UTF-8 bytes of the HTTP Basic authentication
+// string:
+//
+//   "Basic " + base64(username + ":" + password)
+func httpBasicAuth(username, password string) []byte {
+	const header = "Basic "
+	base64 := base64.StdEncoding
+
+	b64InputLen := len(username) + len(":") + len(password)
+	b64Input := make([]byte, 0, b64InputLen)
+	b64Input = append(b64Input, username...)
+	b64Input = append(b64Input, ':')
+	b64Input = append(b64Input, password...)
+
+	output := make([]byte, len(header)+base64.EncodedLen(b64InputLen))
+	copy(output, header)
+	base64.Encode(output[len(header):], b64Input)
+	return output
+}
+
+func checkAuthHeader(r *http.Request) error {
+	authhdr := r.Header["Authorization"]
+	if len(authhdr) == 0 {
+		return errors.New("no auth")
+	}
+
+	authsha := fastsha256.Sum256([]byte(authhdr[0]))
+	cmp := subtle.ConstantTimeCompare(authsha[:], Authsha[:])
+	if cmp != 1 {
+		return errors.New("bad auth")
+	}
+	return nil
+}
+
+func jsonAuthFail(w http.ResponseWriter) {
+	w.Header().Add("WWW-Authenticate", `Basic realm="btcwallet RPC"`)
+	http.Error(w, "401 Unauthorized.", http.StatusUnauthorized)
+}
+
 func HandleV2(ctx *web.Context) {
+	if err := checkAuthHeader(ctx.Request); err != nil {
+		fmt.Println("Unauthorized client connection attempt")
+		jsonAuthFail(ctx.ResponseWriter)
+		return
+	}
+	
 	body, err := ioutil.ReadAll(ctx.Request.Body)
 	if err != nil {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
