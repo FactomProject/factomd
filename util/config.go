@@ -82,7 +82,7 @@ type FactomdConfig struct {
 		ApplicationName  string
 		RefreshInSeconds int
 		RpcUser          string
-		RpvPass          string 
+		RpcPass          string 
 	}
 	Wsapi struct {
 		PortNumber      int
