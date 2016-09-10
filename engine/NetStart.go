@@ -216,8 +216,13 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Rpc user", s.RpcUser))
-
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
+	if "" == s.RpcPass {
+		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
+	} else {
+		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
+	}
+		
 	s.AddPrefix(prefix)
 	s.SetOut(false)
 	s.Init()
