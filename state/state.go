@@ -120,8 +120,9 @@ type State struct {
 	serverPendingPubKeys  []*primitives.PublicKey
 
 	// RPC connection config
-	RpcUser string
-	RpcPass string
+	RpcUser     string
+	RpcPass     string
+	RpcAuthHash []byte
 
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
@@ -333,6 +334,7 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.RpcUser = s.RpcUser
 	clone.RpcPass = s.RpcPass
+	clone.RpcAuthHash = s.RpcAuthHash
 
 	return clone
 }
@@ -367,6 +369,14 @@ func (s *State) GetRpcUser() string {
 
 func (s *State) GetRpcPass() string {
 	return s.RpcPass
+}
+
+func (s *State) SetRpcAuthHash(authHash []byte) {
+	s.RpcAuthHash = authHash
+}
+
+func (s *State) GetRpcAuthHash() []byte {
+	return s.RpcAuthHash
 }
 
 func (s *State) IncMissingMsgReply() {

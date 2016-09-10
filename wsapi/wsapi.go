@@ -5,6 +5,8 @@
 package wsapi
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,7 +16,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/fastsha256"
 	"github.com/FactomProject/web"
 	"sync"
 )
@@ -36,9 +37,11 @@ func Start(state interfaces.IState) {
 		Servers = make(map[int]*web.Server)
 	}
 
-	RpcUser = state.GetRpcUser()
-	RpcPass = state.GetRpcPass()
-	Authsha = fastsha256.Sum256(httpBasicAuth(RpcUser, RpcPass))
+	rpcUser := state.GetRpcUser()
+	rpcPass := state.GetRpcPass()
+	h := sha256.New()
+	h.Write(httpBasicAuth(rpcUser, rpcPass))
+	state.SetRpcAuthHash(h.Sum(nil)) //set this in the beginning to prevent timing attacks
 
 	if Servers[state.GetPort()] == nil {
 		server = web.NewServer()
@@ -70,6 +73,26 @@ func Start(state interfaces.IState) {
 		log.Print("Starting server")
 		go server.Run(fmt.Sprintf(":%d", state.GetPort()))
 	}
+}
+
+// httpBasicAuth returns the UTF-8 bytes of the HTTP Basic authentication
+// string:
+//
+//   "Basic " + base64(username + ":" + password)
+func httpBasicAuth(username, password string) []byte {
+	const header = "Basic "
+	base64 := base64.StdEncoding
+
+	b64InputLen := len(username) + len(":") + len(password)
+	b64Input := make([]byte, 0, b64InputLen)
+	b64Input = append(b64Input, username...)
+	b64Input = append(b64Input, ':')
+	b64Input = append(b64Input, password...)
+
+	output := make([]byte, len(header)+base64.EncodedLen(b64InputLen))
+	copy(output, header)
+	base64.Encode(output[len(header):], b64Input)
+	return output
 }
 
 func SetState(state interfaces.IState) {

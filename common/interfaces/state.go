@@ -46,7 +46,9 @@ type IState interface {
 	//RPC
 	GetRpcUser() string
 	GetRpcPass() string
-	
+	SetRpcAuthHash(authHash []byte)
+	GetRpcAuthHash() []byte
+
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
 	Process() (progress bool)
