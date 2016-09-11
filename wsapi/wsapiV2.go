@@ -5,11 +5,8 @@
 package wsapi
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -29,35 +26,6 @@ import (
 
 const API_VERSION string = "2.0"
 
-func checkAuthHeader(state interfaces.IState, r *http.Request) error {
-	if "" == state.GetRpcUser() {
-		//no username was specified in the config file or command line, meaning factomd API is open access
-		return nil
-	}
-
-	authhdr := r.Header["Authorization"]
-	if len(authhdr) == 0 {
-		return errors.New("no auth")
-	}
-
-	correctAuth := state.GetRpcAuthHash()
-
-	h := sha256.New()
-	h.Write([]byte(authhdr[0]))
-	presentedPassHash := h.Sum(nil)
-
-	cmp := subtle.ConstantTimeCompare(presentedPassHash, correctAuth) //compare hashes because ConstantTimeCompare takes a constant time based on the slice size.  hashing gives a constant slice size.
-	if cmp != 1 {
-		return errors.New("bad auth")
-	}
-	return nil
-}
-
-func jsonAuthFail(w http.ResponseWriter) {
-	w.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
-	http.Error(w, "401 Unauthorized.", http.StatusUnauthorized)
-}
-
 func HandleV2(ctx *web.Context) {
 	ServersMutex.Lock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
@@ -66,8 +34,10 @@ func HandleV2(ctx *web.Context) {
 	if err := checkAuthHeader(state, ctx.Request); err != nil {
 		remoteIP := ""
 		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
-		fmt.Printf("Unauthorized client connection attempt from %s\n", remoteIP)
-		jsonAuthFail(ctx.ResponseWriter)
+		fmt.Printf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
+		ctx.ResponseWriter.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
+		http.Error(ctx.ResponseWriter, "401 Unauthorized.", http.StatusUnauthorized)
+
 		return
 	}
 
