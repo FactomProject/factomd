@@ -25,8 +25,9 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 		panic("Full channel.")
 	case highWaterMark < clen:
 		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, message)
-		for highWaterMark <= clen-100 { // Clear out some messages
+		for highWaterMark < clen+100 { // Clear out some messages
 			<-channel
+			clen = len(channel)
 		}
 		fallthrough
 	default:
@@ -159,7 +160,7 @@ func debug(component string, format string, v ...interface{}) {
 	log(Debugging, component, format, v...)
 }
 func verbose(component string, format string, v ...interface{}) {
-	log(Verbose, component, format, v...)
+	//log(Verbose, component, format, v...)
 }
 
 // log is the base log function to produce parsable log output for mass metrics consumption

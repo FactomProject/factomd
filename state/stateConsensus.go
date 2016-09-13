@@ -256,6 +256,9 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
+	if pl == nil {
+		return
+	}
 	list := pl.VMs[ack.VMIndex].List
 	if len(list) > int(ack.Height) && list[ack.Height] != nil {
 		return

@@ -16,6 +16,8 @@ import (
 	"math/rand"
 
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -53,6 +55,9 @@ func SimControl(listenTo int) {
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
 			listenTo = v
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
+			// Update which node will be displayed on the controlPanel page
+			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
+			go controlPanel.ServeControlPanel(fnodes[listenTo].State.ControlPanelChannel, fnodes[listenTo].State, connectionMetricsChannel, p2pNetwork, Build)
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
@@ -683,7 +688,7 @@ func SimControl(listenTo int) {
 
 				for _, fn := range fnodes {
 					fn.State.Delay = nnn
-					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%01d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
+					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
 				}
 
 				for _, f := range fnodes {

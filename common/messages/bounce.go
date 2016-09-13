@@ -20,6 +20,7 @@ import (
 type Bounce struct {
 	MessageBase
 	Name      string
+	Number    int32
 	Timestamp interfaces.Timestamp
 	Stamps    []interfaces.Timestamp
 	size      int
@@ -42,16 +43,14 @@ func (m *Bounce) SizeOf() int {
 }
 
 func (m *Bounce) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		data, err := m.MarshalForSignature()
+	data, err := m.MarshalForSignature()
 
-		m.size = len(data)
+	m.size = len(data)
 
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+	if err != nil {
+		return nil
 	}
+	m.MsgHash = primitives.Sha(data)
 	return m.MsgHash
 }
 
@@ -129,6 +128,8 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.Name = string(newData[:32])
 	newData = newData[32:]
 
+	m.Number, newData = int32(binary.BigEndian.Uint32(newData[0:4])), newData[4:]
+
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
@@ -162,6 +163,8 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 
 	copy(buff[:32], []byte(fmt.Sprintf("%32s", m.Name)))
 	buf.Write(buff[:])
+
+	binary.Write(&buf, binary.BigEndian, m.Number)
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -200,14 +203,16 @@ func (m *Bounce) String() string {
 	mill = mill / 60
 	hrs := mill % 24
 	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs, mins, secs, mills)
-	str := fmt.Sprintf("bbbb Origin: %12s %10s Bounce Start: %12s Hops: %5d Size: %5d ",
+	str := fmt.Sprintf("Origin: %12s  %10s-%03d-%03d Bounce Start: %12s Hops: %5d Size: %5d ",
 		t,
 		strings.TrimSpace(m.Name),
+		m.Number,
+		len(m.Stamps),
 		t2,
 		len(m.Stamps), m.SizeOf())
-
+	nowms := primitives.NewTimestampNow().GetTimeMilli()
 	last := m.Timestamp.GetTimeMilli()
-	elapse := int64(0)
+	elapse := nowms - last
 	sum := elapse
 	for _, ts := range m.Stamps {
 		elapse = ts.GetTimeMilli() - last
@@ -220,7 +225,7 @@ func (m *Bounce) String() string {
 		sign = "-"
 		sum = sum * -1
 	}
-	avg := sum / int64(len(m.Stamps))
+	avg := sum / (int64(len(m.Stamps)) + 1)
 	str = str + fmt.Sprintf("Last Hop Took %d.%03d Average Hop: %s%d.%03d", elapse/1000, elapse%1000, sign, avg/1000, avg%1000)
 	return str
 }

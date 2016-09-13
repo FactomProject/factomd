@@ -5,9 +5,11 @@
 package p2p
 
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	//"github.com/FactomProject/factomd/common/primitives"
+	"encoding/binary"
 	"github.com/FactomProject/factomd/common/primitives"
 	"hash/crc32"
 	"strconv"
@@ -37,11 +39,11 @@ type ParcelHeader struct {
 
 var _ interfaces.BinaryMarshallable
 
-//var _ interfaces.BinaryMarshallable = (*Parcel)(nil)
+var _ interfaces.BinaryMarshallable = (*Parcel)(nil)
 
 // Gob does not really support the interfaces.BinaryMarshallable interface, so we are removing it for now.
 // Might add it back in for some other encoder/decoder
-func (p *Parcel) xMarshalBinary() ([]byte, error) {
+func (p *Parcel) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
 	binary.Write(&buf, binary.BigEndian, uint32(p.Length)) // Will be patched up at the end
 	binary.Write(&buf, binary.BigEndian, uint32(p.Header.Network))
@@ -71,36 +73,10 @@ func (p *Parcel) xMarshalBinary() ([]byte, error) {
 	data[2] = byte(blen >> 8)
 	data[3] = byte(blen)
 
-	pd := data
-	v32 := binary.BigEndian.Uint32(pd)
-	fmt.Printf("%20s %d %x\n", "Length", v32, pd[:4])
-	pd = pd[4:]
-	v32 = binary.BigEndian.Uint32(pd)
-	fmt.Printf("%20s %d %x\n", "NetworkID", v32, pd[:4])
-	pd = pd[4:]
-	fmt.Printf("%20s %x\n", "Version", pd[:2])
-	pd = pd[2:]
-	fmt.Printf("%20s %x\n", "Type", pd[:2])
-	pd = pd[2:]
-	fmt.Printf("%20s %x\n", "Crc32", pd[:4])
-	pd = pd[4:]
-	fmt.Printf("%20s %x\n", "NodeID", pd[:8])
-	pd = pd[8:]
-	vlen, pd := binary.BigEndian.Uint32(pd), pd[4:]
-	fmt.Printf("%20s %s\n", "TargetPeer", string(pd[:vlen]))
-	pd = pd[vlen:]
-	vlen, pd = binary.BigEndian.Uint32(pd), pd[4:]
-	fmt.Printf("%20s %s\n", "PeerAddress", string(pd[:vlen]))
-	pd = pd[vlen:]
-	vlen, pd = binary.BigEndian.Uint32(pd), pd[4:]
-	fmt.Printf("%20s %s\n", "PeerPort", string(pd[:vlen]))
-	pd = pd[vlen:]
-	fmt.Printf("Total Length %d\n", len(data))
-
 	return data, nil
 }
 
-func (p *Parcel) xUnmarshalBinary(data []byte) error {
+func (p *Parcel) UnmarshalBinary(data []byte) error {
 	_, err := p.UnmarshalBinaryData(data)
 	return err
 }
@@ -109,30 +85,21 @@ func (p *Parcel) UnmarshalBinaryData(Data []byte) (newData []byte, err error) {
 
 	p.Length, newData = binary.BigEndian.Uint32(Data), Data[4:]
 
-	fmt.Println("Len", p.Length, len(Data))
 	p.Header.Network, newData = NetworkID(binary.BigEndian.Uint32(newData)), newData[4:]
-	fmt.Println("Network", p.Header.Network)
 	p.Header.Version, newData = (binary.BigEndian.Uint16(newData)), newData[2:]
-	fmt.Println("Version", p.Header.Version)
 	p.Header.Type, newData = ParcelCommandType(binary.BigEndian.Uint16(newData)), newData[2:]
-	fmt.Println("Type", p.Header.Type)
 	p.Header.Crc32, newData = binary.BigEndian.Uint32(newData), newData[4:]
-	fmt.Println("Crc32", p.Header.Crc32)
 	p.Header.NodeID, newData = binary.BigEndian.Uint64(newData), newData[8:]
-	fmt.Println("NodeID", p.Header.NodeID)
 
 	blen, newData := binary.BigEndian.Uint32(newData), newData[4:]
-	fmt.Println("blen1", blen)
 	p.Header.TargetPeer = (string)(newData[:blen])
 	newData = newData[blen:]
 
 	blen, newData = binary.BigEndian.Uint32(newData), newData[4:]
-	fmt.Println("blen2", blen)
 	p.Header.PeerAddress = (string)(newData[:blen])
 	newData = newData[blen:]
 
 	blen, newData = binary.BigEndian.Uint32(newData), newData[4:]
-	fmt.Println("blen3", blen)
 	p.Header.PeerPort = (string)(newData[:blen])
 	newData = newData[blen:]
 
