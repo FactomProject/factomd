@@ -457,6 +457,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 								listOfSigs = append(listOfSigs, sig)
 							}
 							fullFault := messages.NewFullServerFault(sf, listOfSigs)
+							absf := fullFault.ToAdminBlockEntry()
+							s.LeaderPL.AdminBlock.AddServerFault(absf)
 							if fullFault != nil {
 								fullFault.Sign(s.serverPrivKey)
 								s.NetworkOutMsgQueue() <- fullFault

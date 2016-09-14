@@ -110,6 +110,23 @@ func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfac
 	}
 }
 
+func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) {
+	sf, ok := serverFault.(*ServerFault)
+	if ok == false {
+		return
+	}
+
+	for i := range c.ABEntries {
+		if c.ABEntries[i].Type() == sf.Type() {
+			if c.ABEntries[i].(*ServerFault).Compare(sf) > 0 {
+				c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{sf}, c.ABEntries[i:]...)...)
+				return
+			}
+		}
+	}
+	c.ABEntries = append(c.ABEntries, sf)
+}
+
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
 	return c.Header
 }

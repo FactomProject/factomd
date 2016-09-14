@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -379,6 +380,22 @@ func (a *FullServerFault) IsSameAs(b *FullServerFault) bool {
 	//TODO: expand
 
 	return true
+}
+
+func (a *FullServerFault) ToAdminBlockEntry() *adminBlock.ServerFault {
+	sf := new(adminBlock.ServerFault)
+
+	sf.Timestamp = a.Timestamp
+	sf.ServerID = a.ServerID
+	sf.AuditServerID = a.AuditServerID
+	sf.VMIndex = a.VMIndex
+	sf.DBHeight = a.DBHeight
+	sf.Height = a.Height
+
+	sf.SignatureList.Length = a.SignatureList.Length
+	sf.SignatureList.List = a.SignatureList.List
+
+	return sf
 }
 
 //*******************************************************************************
