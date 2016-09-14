@@ -288,6 +288,8 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 			b.ABEntries[i] = new(AddFederatedServerSigningKey)
 		case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 			b.ABEntries[i] = new(AddFederatedServerBitcoinAnchorKey)
+		case constants.TYPE_SERVER_FAULT:
+			b.ABEntries[i] = new(ServerFault)
 		default:
 			fmt.Println("AB UNDEFINED ENTRY")
 			panic("Undefined Admin Block Entry Type")
