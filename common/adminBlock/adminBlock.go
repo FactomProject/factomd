@@ -63,28 +63,28 @@ func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IF
 	if err != nil {
 		return err
 	}
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 	return nil
 }
 
 func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
 	entry := NewAddFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) {
 	entry := NewAddAuditServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) {
 	entry := NewRemoveFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) {
 	entry := NewAddReplaceMatryoshkaHash(identityChainID, mHash)
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey *[32]byte) error {
@@ -94,7 +94,7 @@ func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHa
 		return err
 	}
 	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p, c.Header.GetDBHeight()+1)
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 	return nil
 }
 
@@ -105,9 +105,19 @@ func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfac
 		return err
 	} else {
 		entry := NewAddFederatedServerBitcoinAnchorKey(identityChainID, keyPriority, keyType, *b)
-		c.ABEntries = append(c.ABEntries, entry)
+		c.AddEntry(entry)
 		return nil
 	}
+}
+
+func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) {
+	for i := range c.ABEntries {
+		if c.ABEntries[i].Type() == constants.TYPE_SERVER_FAULT {
+			c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{entry}, c.ABEntries[i:]...)...)
+			return
+		}
+	}
+	c.ABEntries = append(c.ABEntries, entry)
 }
 
 func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) {
@@ -200,7 +210,7 @@ func (b *AdminBlock) LookupHash() (interfaces.IHash, error) {
 
 // Add an Admin Block entry to the block
 func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
-	b.ABEntries = append(b.ABEntries, e)
+	b.AddEntry(e)
 	return
 }
 
