@@ -450,8 +450,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
-		s.RpcUser = cfg.Rpc.RpcUser
-		s.RpcPass = cfg.Rpc.RpcPass
+		s.RpcUser = cfg.Rpc.FactomdRpcUser
+		s.RpcPass = cfg.Rpc.FactomdRpcPass
 		switch cfg.App.ControlPanelSetting {
 		case "disabled":
 			s.ControlPanelSetting = 0

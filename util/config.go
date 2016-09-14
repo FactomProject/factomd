@@ -81,8 +81,8 @@ type FactomdConfig struct {
 		PortNumber       int
 		ApplicationName  string
 		RefreshInSeconds int
-		RpcUser          string
-		RpcPass          string
+		FactomdRpcUser   string
+		FactomdRpcPass   string
 	}
 	Wsapi struct {
 		PortNumber      int
@@ -101,6 +101,10 @@ type FactomdConfig struct {
 		BoltDBPath       string
 		FactomdAddress   string
 		FactomdPort      int
+	}
+	Walletd struct {
+		WalletRpcUser string
+		WalletRpcPass string
 	}
 }
 
@@ -183,6 +187,12 @@ Port                                  = 8089
 DataFile                              = fctwallet.dat
 RefreshInSeconds                      = 6
 BoltDBPath                            = ""
+
+; ------------------------------------------------------------------------------
+; Configurations for factom-walletd
+; ------------------------------------------------------------------------------
+WalletRpcUser                         = ""
+WalletRpcPass                         = ""
 `
 
 func (s *FactomdConfig) String() string {
@@ -204,7 +214,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
 	out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
 	out.WriteString(fmt.Sprintf("\n    MainNetworkPort         %v", s.App.MainNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    PeersFile           %v", s.App.PeersFile))
+	out.WriteString(fmt.Sprintf("\n    PeersFile               %v", s.App.PeersFile))
 	out.WriteString(fmt.Sprintf("\n    MainSeedURL             %v", s.App.MainSeedURL))
 	out.WriteString(fmt.Sprintf("\n    MainSpecialPeers        %v", s.App.MainSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    TestNetworkPort         %v", s.App.TestNetworkPort))
@@ -244,8 +254,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Rpc.PortNumber))
 	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Rpc.ApplicationName))
 	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Rpc.RefreshInSeconds))
-	out.WriteString(fmt.Sprintf("\n    RpcUser                 %v", s.Rpc.RpcUser))
-	out.WriteString(fmt.Sprintf("\n    RpcPass                 %v", s.Rpc.RpcPass))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.Rpc.FactomdRpcUser))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.Rpc.FactomdRpcPass))
 
 	out.WriteString(fmt.Sprintf("\n  Wsapi"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Wsapi.PortNumber))
@@ -263,6 +273,9 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Wallet.RefreshInSeconds))
 	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.Wallet.BoltDBPath))
 
+	out.WriteString(fmt.Sprintf("\n  Walletd"))
+	out.WriteString(fmt.Sprintf("\n    WalletRpcUser           %v", s.Walletd.WalletRpcUser))
+	out.WriteString(fmt.Sprintf("\n    WalletRpcPass           %v", s.Walletd.WalletRpcPass))
 	return out.String()
 }
 
