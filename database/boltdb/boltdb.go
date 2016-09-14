@@ -252,7 +252,7 @@ func (db *BoltDB) Init(bucketList [][]byte, filename string) {
 
 		tdb, err := bolt.Open(filename, 0600, nil)
 		if err != nil {
-			panic("Database was not found, and could not be createdb.")
+			panic("Database was not found, and could not be created.")
 		}
 
 		db.db = tdb
