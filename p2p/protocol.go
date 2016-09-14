@@ -25,9 +25,8 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 		panic("Full channel.")
 	case highWaterMark < clen:
 		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, message)
-		for highWaterMark < clen+100 { // Clear out some messages
+		for highWaterMark <= clen-100 { // Clear out some messages
 			<-channel
-			clen = len(channel)
 		}
 		fallthrough
 	default:
@@ -43,6 +42,8 @@ var (
 	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                       = TestNet
 	NetworkListenPort                    = "8108"
+	BroadcastFlag                        = "<BROADCAST>"
+	RandomPeerFlag                       = "<RANDOMPEER>"
 	NodeID                        uint64 = 0           // Random number used for loopback protection
 	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
@@ -134,7 +135,7 @@ func dot(dot string) {
 	if 5 < CurrentLoggingLevel {
 		switch dot {
 		case "":
-
+			fmt.Printf(".")
 		default:
 			fmt.Printf(dot)
 		}
@@ -160,7 +161,7 @@ func debug(component string, format string, v ...interface{}) {
 	log(Debugging, component, format, v...)
 }
 func verbose(component string, format string, v ...interface{}) {
-	//log(Verbose, component, format, v...)
+	log(Verbose, component, format, v...)
 }
 
 // log is the base log function to produce parsable log output for mass metrics consumption
