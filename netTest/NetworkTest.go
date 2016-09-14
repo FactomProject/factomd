@@ -12,8 +12,8 @@ import (
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/p2p"
 	"math/rand"
-	"time"
 	"strings"
+	"time"
 )
 
 var p2pProxy *engine.P2PProxy
@@ -44,8 +44,8 @@ func InitNetwork() {
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	deadlinePtr := flag.Int64("deadline", 1, "Deadline for Reads and Writes to conn.")
 	p2pPtr := flag.Bool("p2p", false, "Test p2p messages (default to false)")
-	numStampsPtr := flag.Int("numstamps",1,"Number of timestamps per reply on p2p test. (makes messages big)")
-	numReplysPtr := flag.Int("numreplies",1,"Number of replies to any request")
+	numStampsPtr := flag.Int("numstamps", 1, "Number of timestamps per reply on p2p test. (makes messages big)")
+	numReplysPtr := flag.Int("numreplies", 1, "Number of replies to any request")
 	flag.Parse()
 
 	numReplies = *numReplysPtr
@@ -104,25 +104,25 @@ func listen() {
 
 		if old[msg.GetHash().Fixed()] == nil {
 			old[msg.GetHash().Fixed()] = msg
-			if ok1 && len(bounce.Stamps) < 5{
+			if ok1 && len(bounce.Stamps) < 5 {
 				if isp2p {
-					for i:=0; i<numReplies; i++ {
+					for i := 0; i < numReplies; i++ {
 						bounceReply = new(messages.BounceReply)
 						bounceReply.Number = cnt
 						cnt++
 						bounceReply.Name = name + "->" + strings.TrimSpace(bounce.Name)
 
 						bounceReply.Timestamp = bounce.Timestamp
-						bounceReply.Stamps = append(bounceReply.Stamps, bounce.Stamps ...)
+						bounceReply.Stamps = append(bounceReply.Stamps, bounce.Stamps...)
 
-						for j:=0; j<numStamps; j++ {
+						for j := 0; j < numStamps; j++ {
 							bounceReply.Stamps = append(bounceReply.Stamps, primitives.NewTimestampNow())
 						}
 
 						bounceReply.SetOrigin(bounce.GetOrigin())
 						bounceReply.SetNetworkOrigin(bounce.GetNetworkOrigin())
 
-						if i==0 {
+						if i == 0 {
 							fmt.Println(">>>>>>>>>", bounceReply.String())
 						}
 
@@ -161,7 +161,7 @@ func main() {
 	InitNetwork()
 
 	time.Sleep(10 * time.Second)
-	fmt.Println ("Starting...")
+	fmt.Println("Starting...")
 	time.Sleep(3 * time.Second)
 	go listen()
 
