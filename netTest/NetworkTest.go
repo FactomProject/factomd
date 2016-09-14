@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"math/rand"
 	"time"
+	"strings"
 )
 
 var p2pProxy *engine.P2PProxy
@@ -29,6 +30,8 @@ var p2pRequestReceived int
 
 var name string
 var isp2p bool
+var numStamps int
+var numReplies int
 
 func InitNetwork() {
 
@@ -41,8 +44,12 @@ func InitNetwork() {
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
 	deadlinePtr := flag.Int64("deadline", 1, "Deadline for Reads and Writes to conn.")
 	p2pPtr := flag.Bool("p2p", false, "Test p2p messages (default to false)")
+	numStampsPtr := flag.Int("numstamps",1,"Number of timestamps per reply on p2p test. (makes messages big)")
+	numReplysPtr := flag.Int("numreplies",1,"Number of replies to any request")
 	flag.Parse()
 
+	numReplies = *numReplysPtr
+	numStamps = *numStampsPtr
 	name = *namePtr
 	port := *networkPortOverridePtr
 	peers := *peersPtr
@@ -80,6 +87,8 @@ func InitNetwork() {
 	p2pNetwork.DialSpecialPeersString("")
 }
 
+var cnt int32
+
 func listen() {
 
 	for {
@@ -97,15 +106,25 @@ func listen() {
 			old[msg.GetHash().Fixed()] = msg
 			if ok1 && len(bounce.Stamps) < 5{
 				if isp2p {
-					for i:=0; i<200; i++ {
+					for i:=0; i<numReplies; i++ {
 						bounceReply = new(messages.BounceReply)
-						bounceReply.Number = int32(i)
-						bounceReply.Name = name
+						bounceReply.Number = cnt
+						cnt++
+						bounceReply.Name = name + "->" + strings.TrimSpace(bounce.Name)
+
 						bounceReply.Timestamp = bounce.Timestamp
-						bounceReply.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
+						bounceReply.Stamps = append(bounceReply.Stamps, bounce.Stamps ...)
+
+						for j:=0; j<numStamps; j++ {
+							bounceReply.Stamps = append(bounceReply.Stamps, primitives.NewTimestampNow())
+						}
 
 						bounceReply.SetOrigin(bounce.GetOrigin())
 						bounceReply.SetNetworkOrigin(bounce.GetNetworkOrigin())
+
+						if i==0 {
+							fmt.Println(">>>>>>>>>", bounceReply.String())
+						}
 
 						p2pProxy.Send(bounceReply)
 						old[msg.GetHash().Fixed()] = msg
