@@ -228,3 +228,19 @@ func (e *ServerFault) String() string {
 func (e *ServerFault) Type() byte {
 	return constants.TYPE_SERVER_FAULT
 }
+
+func (e *ServerFault) Compare(b *ServerFault) int {
+	if e.Timestamp.GetTimeMilliUInt64() < b.Timestamp.GetTimeMilliUInt64() {
+		return -1
+	}
+	if e.Timestamp.GetTimeMilliUInt64() > b.Timestamp.GetTimeMilliUInt64() {
+		return 1
+	}
+	if e.VMIndex < b.VMIndex {
+		return -1
+	}
+	if e.VMIndex > b.VMIndex {
+		return 1
+	}
+	return 0
+}
