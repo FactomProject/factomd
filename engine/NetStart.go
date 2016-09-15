@@ -62,7 +62,7 @@ func NetStart(s *state.State) {
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 20, "Delay to start processing messages, in seconds")
-	deadlinePtr := flag.Int("deadline", 10, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	deadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 
 	flag.Parse()
 
@@ -279,7 +279,7 @@ func NetStart(s *state.State) {
 	}
 
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-	p2p.Deadline = time.Duration(deadline) * time.Millisecond
+	p2p.NetworkDeadline = time.Duration(deadline) * time.Millisecond
 
 	if enableNet {
 

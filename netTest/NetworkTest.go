@@ -55,7 +55,7 @@ func InitNetwork() {
 	peers := *peersPtr
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
-	p2p.Deadline = time.Duration(*deadlinePtr) * time.Millisecond
+	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
 	isp2p = *p2pPtr
 
 	old = make(map[[32]byte]interfaces.IMsg, 0)
@@ -104,7 +104,7 @@ func listen() {
 
 		if old[msg.GetHash().Fixed()] == nil {
 			old[msg.GetHash().Fixed()] = msg
-			if ok1 && len(bounce.Stamps) < 5{
+			if ok1 && len(bounce.Stamps) < 5 {
 				if isp2p {
 					for i := 0; i < numReplies; i++ {
 						bounceReply = new(messages.BounceReply)
@@ -113,16 +113,16 @@ func listen() {
 						bounceReply.Name = name + "->" + strings.TrimSpace(bounce.Name)
 
 						bounceReply.Timestamp = bounce.Timestamp
-						bounceReply.Stamps = append(bounceReply.Stamps, bounce.Stamps ...)
+						bounceReply.Stamps = append(bounceReply.Stamps, bounce.Stamps...)
 
-						for j:=0; j<numStamps; j++ {
+						for j := 0; j < numStamps; j++ {
 							bounceReply.Stamps = append(bounceReply.Stamps, primitives.NewTimestampNow())
 						}
 
 						bounceReply.SetOrigin(bounce.GetOrigin())
 						bounceReply.SetNetworkOrigin(bounce.GetNetworkOrigin())
 
-						if i==0 {
+						if i == 0 {
 							fmt.Println(">>>>>>>>>", bounceReply.String())
 						}
 
@@ -164,8 +164,8 @@ func main() {
 	InitNetwork()
 
 	time.Sleep(3 * time.Second)
-	fmt.Println ("Starting...")
-	time.Sleep(3 * time.Second)
+	fmt.Println("Starting...")
+
 	go listen()
 
 	for {
@@ -184,20 +184,33 @@ func main() {
 		old[bounce.GetHash().Fixed()] = bounce
 
 		if isp2p {
-			fmt.Printf("netTest(%s): Reads: %d errs %d Writes %d errs %d  ::p2p:: request sent: %d request recieved %d sent: %d received: %d\n",
+			fmt.Printf("netTest(%s):  ::p2p:: request sent: %d request recieved %d sent: %d received: %d\n",
 				name,
-				p2p.Reads, p2p.ReadsErr,
-				p2p.Writes, p2p.WritesErr,
 				p2pRequestSent, p2pRequestReceived,
 				p2pSent, p2pReceived)
 
 		} else {
-			fmt.Printf("netTest(%s): Reads: %d errs %d Writes %d errs %d  ::: broadcast sent: %d broadcast received: %d\n",
+			fmt.Printf("netTest(%s):  ::: broadcast sent: %d broadcast received: %d\n",
 				name,
-				p2p.Reads, p2p.ReadsErr,
-				p2p.Writes, p2p.WritesErr,
+
 				broadcastSent, broadcastReceived)
 		}
 		time.Sleep(20 * time.Second)
 	}
 }
+
+// if isp2p {
+// 	fmt.Printf("netTest(%s): Reads: %d errs %d Writes %d errs %d  ::p2p:: request sent: %d request recieved %d sent: %d received: %d\n",
+// 		name,
+// 		p2p.Reads, p2p.ReadsErr,
+// 		p2p.Writes, p2p.WritesErr,
+// 		p2pRequestSent, p2pRequestReceived,
+// 		p2pSent, p2pReceived)
+
+// } else {
+// 	fmt.Printf("netTest(%s): Reads: %d errs %d Writes %d errs %d  ::: broadcast sent: %d broadcast received: %d\n",
+// 		name,
+// 		p2p.Reads, p2p.ReadsErr,
+// 		p2p.Writes, p2p.WritesErr,
+// 		broadcastSent, broadcastReceived)
+// }
