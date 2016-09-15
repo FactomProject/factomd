@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"encoding/binary"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -630,6 +631,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		} else {
 			myIndex = len(p.FedServers) - 1
 		}
+		fmt.Println("JUSTIN SFSF", p.State.FactomNodeName, "SETTING", myIndex, "OFFLINE")
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
 
