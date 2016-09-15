@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"math/rand"
 	"net"
 	"syscall"
 	"time"
@@ -176,9 +175,9 @@ func (c *Connection) runLoop() {
 		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
 		c.updateStats()                   // Update controller with metrics
 		c.connectionStatusReport()
-		if 2 == rand.Intn(100) {
-			significant(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
-		}
+		// if 2 == rand.Intn(100) {
+		significant(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
+		// }
 		switch c.state {
 		case ConnectionInitialized:
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
