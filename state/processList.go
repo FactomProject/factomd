@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"encoding/binary"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -31,10 +32,21 @@ type Request struct {
 	sent     int64  // Last time sent (zero means none have been sent)
 }
 
-func (r *Request) key() string {
-	str := fmt.Sprintf("%d %d %d", r.vmIndex, r.vmheight, r.wait)
-	return str
+func (r *Request) key() (thekey [20]byte) {
+	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
+	binary.BigEndian.PutUint64(thekey[4:12], uint64(r.wait))
+	binary.BigEndian.PutUint64(thekey[12:20], uint64(r.vmheight))
+	return thekey
 }
+
+/*
+func (r *Request) key() (thekey [20]byte) {
+	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
+	binary.BigEndian.PutUint64(thekey[4:12], uint64(r.wait))
+	binary.BigEndian.PutUint64(thekey[12:20], uint64(r.sent))
+	return
+}
+*/
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
@@ -118,7 +130,8 @@ type ProcessList struct {
 	// DB Sigs
 	DBSignatures []DBSig
 
-	Requests map[string]*Request
+	Requests map[[20]byte]*Request
+	//Requests map[[20]byte]*Request
 }
 
 // Data needed to add to admin block
@@ -723,7 +736,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.faultHeight = -1
 			leaderMin := getLeaderMin(p)
 			myIndex := p.ServerMap[leaderMin][i]
-			p.FedServers[myIndex].SetOnline(true)
+			if myIndex >= 0 && myIndex < len(p.FedServers) && p.FedServers[myIndex] != nil {
+				p.FedServers[myIndex].SetOnline(true)
+			}
 		}
 
 	VMListLoop:
@@ -963,7 +978,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
-	pl.Requests = make(map[string]*Request)
+	pl.Requests = make(map[[20]byte]*Request)
+	//pl.Requests = make(map[[20]byte]*Request)
 
 	pl.FactoidBalancesT = map[[32]byte]int64{}
 	pl.ECBalancesT = map[[32]byte]int64{}

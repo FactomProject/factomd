@@ -37,6 +37,7 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 
 func NetStart(s *state.State) {
+	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
@@ -61,9 +62,11 @@ func NetStart(s *state.State) {
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 20, "Delay to start processing messages, in seconds")
+	deadlinePtr := flag.Int("deadline", 10, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 
 	flag.Parse()
 
+	enableNet := *enablenetPtr
 	listenTo := *listenToPtr
 	cnt := *cntPtr
 	net := *netPtr
@@ -88,6 +91,7 @@ func NetStart(s *state.State) {
 	timeOffset := *timeOffsetPtr
 	keepMismatch := *keepMismatchPtr
 	startDelay := int64(*startDelayPtr)
+	deadline := *deadlinePtr
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -136,9 +140,11 @@ func NetStart(s *state.State) {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 			fnode.State.ShutdownChan <- 0
 		}
-		p2pNetwork.NetworkStop()
-		// NODE_TALK_FIX
-		p2pProxy.stopProxy()
+		if enableNet {
+			p2pNetwork.NetworkStop()
+			// NODE_TALK_FIX
+			p2pProxy.stopProxy()
+		}
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
 		os.Exit(0)
@@ -186,6 +192,7 @@ func NetStart(s *state.State) {
 
 	go StartProfiler()
 
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", enableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", cnt))
@@ -205,6 +212,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", deadline))
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -269,36 +277,42 @@ func NetStart(s *state.State) {
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 	}
-	if 0 < networkPortOverride {
-		networkPort = fmt.Sprintf("%d", networkPortOverride)
-	}
+
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-	ci := p2p.ControllerInit{
-		Port:                     networkPort,
-		PeersFile:                s.PeersFile,
-		Network:                  networkID,
-		Exclusive:                exclusive,
-		SeedURL:                  seedURL,
-		SpecialPeers:             specialPeers,
-		ConnectionMetricsChannel: connectionMetricsChannel,
+	p2p.Deadline = time.Duration(deadline) * time.Millisecond
+
+	if enableNet {
+
+		if 0 < networkPortOverride {
+			networkPort = fmt.Sprintf("%d", networkPortOverride)
+		}
+		ci := p2p.ControllerInit{
+			Port:                     networkPort,
+			PeersFile:                s.PeersFile,
+			Network:                  networkID,
+			Exclusive:                exclusive,
+			SeedURL:                  seedURL,
+			SpecialPeers:             specialPeers,
+			ConnectionMetricsChannel: connectionMetricsChannel,
+		}
+		p2pNetwork = new(p2p.Controller).Init(ci)
+		p2pNetwork.StartNetwork()
+		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+		p2pProxy.SetDebugMode(netdebug)
+		if 0 < netdebug {
+			go p2pProxy.PeriodicStatusReport(fnodes)
+			p2pNetwork.StartLogging(uint8(netdebug))
+		} else {
+			p2pNetwork.StartLogging(uint8(0))
+		}
+		p2pProxy.StartProxy()
+		// Command line peers lets us manually set special peers
+		p2pNetwork.DialSpecialPeersString(peers)
 	}
-	p2pNetwork = new(p2p.Controller).Init(ci)
-	p2pNetwork.StartNetwork()
-	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
-	p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
-	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-	p2pProxy.SetDebugMode(netdebug)
-	if 0 < netdebug {
-		go p2pProxy.PeriodicStatusReport(fnodes)
-		p2pNetwork.StartLogging(uint8(netdebug))
-	} else {
-		p2pNetwork.StartLogging(uint8(0))
-	}
-	p2pProxy.StartProxy()
-	// Command line peers lets us manually set special peers
-	p2pNetwork.DialSpecialPeersString(peers)
 
 	switch net {
 	case "file":

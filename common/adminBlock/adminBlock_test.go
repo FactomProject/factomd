@@ -8,8 +8,10 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestAdminBlockPreviousHash(t *testing.T) {
@@ -345,6 +347,96 @@ func TestExpandedABlockHeader(t *testing.T) {
 	}
 	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000a"`) {
 		t.Error("Header does not contain ChainID")
+	}
+}
+
+func TestAddServerFault(t *testing.T) {
+	block := createTestAdminBlock().(*AdminBlock)
+
+	for i := 0; i < 5; i++ {
+		block.ABEntries = append(block.ABEntries, new(AddFederatedServer))
+		block.ABEntries = append(block.ABEntries, new(DBSignatureEntry))
+		block.ABEntries = append(block.ABEntries, new(EndOfMinuteEntry))
+		block.ABEntries = append(block.ABEntries, new(IncreaseServerCount))
+		block.ABEntries = append(block.ABEntries, new(AddFederatedServerBitcoinAnchorKey))
+	}
+
+	for i := 0; i < 10; i++ {
+		sf := new(ServerFault)
+
+		sf.Timestamp = primitives.NewTimestampFromMinutes(uint32(i * 2))
+		sf.ServerID = testHelper.NewRepeatingHash(1)
+		sf.AuditServerID = testHelper.NewRepeatingHash(2)
+
+		sf.VMIndex = 5
+		sf.DBHeight = 0x44556677
+		sf.Height = 0x88990011
+
+		block.AddServerFault(sf)
+	}
+
+	for i := 0; i < 10; i++ {
+		sf := new(ServerFault)
+
+		sf.Timestamp = primitives.NewTimestampFromMinutes(uint32(i*2 + 1))
+		sf.ServerID = testHelper.NewRepeatingHash(1)
+		sf.AuditServerID = testHelper.NewRepeatingHash(2)
+
+		sf.VMIndex = 5
+		sf.DBHeight = 0x44556677
+		sf.Height = 0x88990011
+
+		block.AddServerFault(sf)
+	}
+
+	for i := 0; i < 20; i++ {
+		sf := new(ServerFault)
+
+		sf.Timestamp = primitives.NewTimestampFromMinutes(uint32(i))
+		sf.ServerID = testHelper.NewRepeatingHash(1)
+		sf.AuditServerID = testHelper.NewRepeatingHash(2)
+
+		sf.VMIndex = byte(i)
+		sf.DBHeight = 0x44556677
+		sf.Height = 0x88990011
+
+		block.AddServerFault(sf)
+	}
+
+	if len(block.ABEntries) != 5*5+10+10+20 {
+		t.Errorf("Wrong length of ABEntries - %v", len(block.ABEntries))
+	}
+
+	sfFound := false
+	for i := range block.ABEntries {
+		if block.ABEntries[i].Type() != constants.TYPE_SERVER_FAULT {
+			if sfFound {
+				t.Errorf("Non-SF entry between SF entries at position %v", i)
+			}
+			continue
+		}
+		if i == 0 {
+			t.Errorf("SF entry is at position 0 when it shouldn't be")
+			continue
+		}
+		if block.ABEntries[i-1].Type() != constants.TYPE_SERVER_FAULT {
+			continue
+		}
+
+		prev := block.ABEntries[i-1].(*ServerFault)
+		cur := block.ABEntries[i].(*ServerFault)
+
+		if prev.Timestamp.GetTimeMilliUInt64() > cur.Timestamp.GetTimeMilliUInt64() {
+			t.Errorf("Wrong order by Timestamp")
+			continue
+		}
+		if prev.Timestamp.GetTimeMilliUInt64() < cur.Timestamp.GetTimeMilliUInt64() {
+			continue
+		}
+		if prev.VMIndex > cur.VMIndex {
+			t.Errorf("Wrong order by VMIndex")
+			continue
+		}
 	}
 }
 

@@ -160,7 +160,7 @@ func debug(component string, format string, v ...interface{}) {
 	log(Debugging, component, format, v...)
 }
 func verbose(component string, format string, v ...interface{}) {
-	log(Verbose, component, format, v...)
+	//log(Verbose, component, format, v...)
 }
 
 // log is the base log function to produce parsable log output for mass metrics consumption

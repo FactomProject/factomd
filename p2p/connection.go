@@ -38,58 +38,6 @@ type Connection struct {
 	metrics         ConnectionMetrics // Metrics about this connection
 }
 
-type middle struct {
-	conn net.Conn
-}
-
-var Writes int
-var Reads int
-var WritesErr int
-var ReadsErr int
-
-func (m *middle) Write(b []byte) (int, error) {
-
-	if m.conn.LocalAddr().String() == m.conn.RemoteAddr().String() {
-		fmt.Println("Middle Ignore", m.conn.LocalAddr().String())
-		return 0, nil
-	}
-
-	// /end := 10
-	//if end > len(b) {
-	//	end = len(b)
-	//}
-	i, e := m.conn.Write(b)
-	if e == nil {
-		Writes += len(b)
-	} else {
-		WritesErr++
-	}
-	//fmt.Printf("bbbb Write %s %d/%d bytes, Data:%x\n",time.Now().String(),len(b),i,b[:end])
-	return i, e
-}
-func (m *middle) Read(b []byte) (int, error) {
-
-	if m.conn.LocalAddr().String() == m.conn.RemoteAddr().String() {
-		fmt.Println("Middle Ignore", m.conn.LocalAddr().String())
-		return 0, nil
-	}
-
-	i, e := m.conn.Read(b)
-	//end := 10
-	//if end > len(b) {
-	//	end = len(b)
-	//}
-	//if e == nil {
-	//	fmt.Printf("bbbb Read  %s %d bytes, Data: %x\n", time.Now().String(), len(b), b[:end])
-	//}
-	if e == nil {
-		Reads += len(b)
-	} else {
-		ReadsErr++
-	}
-	return i, e
-}
-
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
 // The flow is this:  Connection gets initialized, and either has a peer or a net connection (From an accept())
 // If no network connection, the Connection dials.  If the dial is successful, it moves to the Online state
@@ -276,7 +224,7 @@ func (c *Connection) runLoop() {
 
 func (c *Connection) setNotes(format string, v ...interface{}) {
 	c.notes = fmt.Sprintf(format, v...)
-	note(c.peer.PeerIdent(), c.notes)
+	significant(c.peer.PeerIdent(), c.notes)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
@@ -360,6 +308,7 @@ func (c *Connection) goOnline() {
 	debug(c.peer.PeerIdent(), "Connection.goOnline() called.")
 	c.state = ConnectionOnline
 	now := time.Now()
+	c.conn.Init()
 	c.encoder = gob.NewEncoder(c.conn)
 	c.decoder = gob.NewDecoder(c.conn)
 	c.attempts = 0
@@ -386,7 +335,7 @@ func (c *Connection) goShutdown() {
 	c.goOffline()
 	c.updatePeer()
 	if nil != c.conn {
-		defer c.conn.conn.Close()
+		defer c.conn.Close()
 	}
 	c.decoder = nil
 	c.encoder = nil
@@ -443,9 +392,9 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 func (c *Connection) sendParcel(parcel Parcel) {
 	debug(c.peer.PeerIdent(), "sendParcel() sending message to network of type: %s", parcel.MessageType())
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-	verbose(c.peer.PeerIdent(), "sendParcel() Sanity check. State: %s Encoder: %+v, Parcel: %s", c.ConnectionState(), c.encoder, parcel.MessageType())
-	c.conn.conn.SetWriteDeadline(time.Now().Add(100 * time.Millisecond))
-	err := c.encoder.Encode(parcel)
+
+	err := c.conn.Send(parcel)
+
 	switch {
 	case nil == err:
 		c.metrics.BytesSent += uint32(len(parcel.Payload))
@@ -462,19 +411,22 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- we run out of data to recieve (which gives an io.EOF which is handled by handleNetErrors)
 func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
-		var message Parcel
-		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
-		c.conn.conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
-		err := c.decoder.Decode(&message)
+
+		//message, err := c.Receive()
+		message, err := c.conn.Receive()
+
 		switch {
-		case nil == err:
+		case message != nil:
 			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.metrics.BytesReceived += uint32(len(message.Payload))
 			c.metrics.MessagesReceived += 1
 			message.Header.PeerAddress = c.peer.Address
-			c.handleParcel(message)
-		default:
+			c.handleParcel(*message)
+		case err != nil:
 			c.handleNetErrors(err)
+			return
+		default:
+			time.Sleep(10 * time.Millisecond)
 			return
 		}
 	}

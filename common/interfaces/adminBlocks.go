@@ -31,6 +31,7 @@ type IAdminBlock interface {
 	AddMatryoshkaHash(IHash, IHash)
 	AddFederatedServerBitcoinAnchorKey(IHash, byte, byte, *[20]byte) (err error)
 	AddFederatedServerSigningKey(IHash, *[32]byte) (err error)
+	AddServerFault(IABEntry)
 	AddAuditServer(IHash)
 	UpdateState(IState)
 }

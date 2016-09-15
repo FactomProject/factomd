@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-type Bounce struct {
+type BounceReply struct {
 	MessageBase
 	Name      string
 	Number    int32
@@ -26,23 +26,23 @@ type Bounce struct {
 	size      int
 }
 
-var _ interfaces.IMsg = (*Bounce)(nil)
+var _ interfaces.IMsg = (*BounceReply)(nil)
 
-func (m *Bounce) GetRepeatHash() interfaces.IHash {
+func (m *BounceReply) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
 // We have to return the haswh of the underlying message.
-func (m *Bounce) GetHash() interfaces.IHash {
+func (m *BounceReply) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *Bounce) SizeOf() int {
+func (m *BounceReply) SizeOf() int {
 	m.GetMsgHash()
 	return m.size
 }
 
-func (m *Bounce) GetMsgHash() interfaces.IHash {
+func (m *BounceReply) GetMsgHash() interfaces.IHash {
 	data, err := m.MarshalForSignature()
 
 	m.size = len(data)
@@ -54,15 +54,15 @@ func (m *Bounce) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *Bounce) Type() byte {
-	return constants.BOUNCE_MSG
+func (m *BounceReply) Type() byte {
+	return constants.BOUNCEREPLY_MSG
 }
 
-func (m *Bounce) GetTimestamp() interfaces.Timestamp {
+func (m *BounceReply) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *Bounce) VerifySignature() (bool, error) {
+func (m *BounceReply) VerifySignature() (bool, error) {
 	return true, nil
 }
 
@@ -70,56 +70,60 @@ func (m *Bounce) VerifySignature() (bool, error) {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *Bounce) Validate(state interfaces.IState) int {
+func (m *BounceReply) Validate(state interfaces.IState) int {
 	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *Bounce) ComputeVMIndex(state interfaces.IState) {
+func (m *BounceReply) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
 // Leader, follower, do the same thing.
-func (m *Bounce) LeaderExecute(state interfaces.IState) {
+func (m *BounceReply) LeaderExecute(state interfaces.IState) {
 }
 
-func (m *Bounce) FollowerExecute(state interfaces.IState) {
+func (m *BounceReply) FollowerExecute(state interfaces.IState) {
 }
 
 // Acknowledgements do not go into the process list.
-func (e *Bounce) Process(dbheight uint32, state interfaces.IState) bool {
+func (e *BounceReply) Process(dbheight uint32, state interfaces.IState) bool {
 	return true
 }
 
-func (e *Bounce) JSONByte() ([]byte, error) {
+func (e *BounceReply) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *Bounce) JSONString() (string, error) {
+func (e *BounceReply) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *Bounce) JSONBuffer(b *bytes.Buffer) error {
+func (e *BounceReply) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (m *Bounce) Sign(key interfaces.Signer) error {
+func (m *BounceReply) Sign(key interfaces.Signer) error {
 	return nil
 }
 
-func (m *Bounce) GetSignature() interfaces.IFullSignature {
+func (m *BounceReply) GetSignature() interfaces.IFullSignature {
 	return nil
 }
 
-func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *BounceReply) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+
+	m.SetPeer2Peer(true)
+
 	newData = data
+
 	if newData[0] != m.Type() {
 		return nil, errors.New("Invalid Message type")
 	}
@@ -149,12 +153,12 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	return
 }
 
-func (m *Bounce) UnmarshalBinary(data []byte) error {
+func (m *BounceReply) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *Bounce) MarshalForSignature() ([]byte, error) {
+func (m *BounceReply) MarshalForSignature() ([]byte, error) {
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -186,12 +190,12 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *Bounce) MarshalBinary() (data []byte, err error) {
+func (m *BounceReply) MarshalBinary() (data []byte, err error) {
 	return m.MarshalForSignature()
 }
 
-func (m *Bounce) String() string {
-	// bbbb Origin: 2016-09-05 12:26:20.426954586 -0500 CDT left Bounce Start:             2016-09-05 12:26:05 Hops:     1 Size:    43 Last Hop Took 14.955 Average Hop: 14.955
+func (m *BounceReply) String() string {
+	// bbbb Origin: 2016-09-05 12:26:20.426954586 -0500 CDT left BounceReply Start:             2016-09-05 12:26:05 Hops:     1 Size:    43 Last Hop Took 14.955 Average Hop: 14.955
 	now := time.Now()
 	t := fmt.Sprintf("%2d:%2d:%2d.%03d", now.Hour(), now.Minute(), now.Second(), now.Nanosecond()/1000000)
 	mill := m.Timestamp.GetTimeMilli()
@@ -203,7 +207,7 @@ func (m *Bounce) String() string {
 	mill = mill / 60
 	hrs := mill % 24
 	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs, mins, secs, mills)
-	str := fmt.Sprintf("Origin: %12s  %10s-%03d-%03d Bounce Start: %12s Hops: %5d Size: %5d ",
+	str := fmt.Sprintf("Origin: %12s  %10s-%03d-%03d BounceReply Start: %12s Hops: %5d Size: %5d ",
 		t,
 		strings.TrimSpace(m.Name),
 		m.Number,
@@ -230,7 +234,7 @@ func (m *Bounce) String() string {
 	return str
 }
 
-func (a *Bounce) IsSameAs(b *Bounce) bool {
+func (a *BounceReply) IsSameAs(b *BounceReply) bool {
 
 	return true
 }

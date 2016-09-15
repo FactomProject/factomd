@@ -39,7 +39,8 @@ const (
 	REMOVESERVER_MSG     // 24
 	NEGOTIATION_MSG      // 25
 
-	BOUNCE_MSG // 26	test message
+	BOUNCE_MSG      // 26	test message
+	BOUNCEREPLY_MSG // 26	test message
 )
 
 const (
@@ -165,6 +166,7 @@ const (
 	TYPE_REMOVE_FED_SERVER               // 7
 	TYPE_ADD_FED_SERVER_KEY              // 8
 	TYPE_ADD_BTC_ANCHOR_KEY              // 9
+	TYPE_SERVER_FAULT
 )
 
 //---------------------------------------------------------------------
