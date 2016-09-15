@@ -1200,17 +1200,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		dbsBodyMR := dbs.DirectoryBlockHeader.GetBodyMR()
-		prevDBState := s.GetDBState(dbheight - 1)
-		var prevBodyMR interfaces.IHash
-		if prevDBState != nil {
-			db, err := s.DB.FetchDBlockByHeight(dbheight - 1)
-			if err != nil || db == nil {
-				panic("Missing previous Directory Block for DBSig")
-			}
-			prevBodyMR = db.GetHeader().GetBodyMR()
-		}
-		if !dbsBodyMR.IsSameAs(prevBodyMR) {
+		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR()) {
 			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
