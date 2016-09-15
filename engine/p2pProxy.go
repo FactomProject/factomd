@@ -257,9 +257,11 @@ func (f *P2PProxy) ManageInChannel() {
 	}
 }
 
-func (f *P2PProxy) trace(appHash string, appType string, location string, sequence string) {
-	time := time.Now().Unix()
-	fmt.Printf("\nParcelTrace, %s, %s, %s, Message, %s, %d \n", appHash, sequence, appType, location, time)
+func (p *P2PProxy) trace(appHash string, appType string, location string, sequence string) {
+	if 0 < p.debugMode {
+		time := time.Now().Unix()
+		fmt.Printf("\nParcelTrace, %s, %s, %s, Message, %s, %d \n", appHash, sequence, appType, location, time)
+	}
 }
 
 func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
