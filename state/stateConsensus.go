@@ -1201,10 +1201,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
 		dbsBodyMR := dbs.DirectoryBlockHeader.GetBodyMR()
-		prevDBState := s.GetDBState(dbheight-1)
+		prevDBState := s.GetDBState(dbheight - 1)
 		var prevBodyMR interfaces.IHash
-		if prevDBState == nil {
-			db, err := s.DB.FetchDBlockByHeight(dbheight-1)
+		if prevDBState != nil {
+			db, err := s.DB.FetchDBlockByHeight(dbheight - 1)
 			if err != nil || db == nil {
 				panic("Missing previous Directory Block for DBSig")
 			}
