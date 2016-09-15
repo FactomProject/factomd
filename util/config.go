@@ -48,6 +48,8 @@ type FactomdConfig struct {
 		LocalNetworkPort  string
 		LocalSeedURL      string
 		LocalSpecialPeers string
+		FactomdRpcUser    string
+		FactomdRpcPass    string
 	}
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
@@ -76,13 +78,6 @@ type FactomdConfig struct {
 		BtcTransFee        float64
 		CertHomePathBtcd   string
 		RpcBtcdHost        string
-	}
-	Rpc struct {
-		PortNumber       int
-		ApplicationName  string
-		RefreshInSeconds int
-		FactomdRpcUser   string
-		FactomdRpcPass   string
 	}
 	Wsapi struct {
 		PortNumber      int
@@ -147,6 +142,8 @@ LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482
 ExchangeRate                          = 00100000
 ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
 ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
+FactomdRpcUser                        = ""
+FactomdRpcPass                        = ""
 
 [anchor]
 ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
@@ -231,6 +228,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityAddress   %v", s.App.ExchangeRateAuthorityAddress))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
 
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
 	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
@@ -250,13 +249,6 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    BtcTransFee             %v", s.Btc.BtcTransFee))
 	out.WriteString(fmt.Sprintf("\n    CertHomePathBtcd        %v", s.Btc.CertHomePathBtcd))
 	out.WriteString(fmt.Sprintf("\n    RpcBtcdHost             %v", s.Btc.RpcBtcdHost))
-
-	out.WriteString(fmt.Sprintf("\n  Rpc"))
-	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Rpc.PortNumber))
-	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Rpc.ApplicationName))
-	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Rpc.RefreshInSeconds))
-	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.Rpc.FactomdRpcUser))
-	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.Rpc.FactomdRpcPass))
 
 	out.WriteString(fmt.Sprintf("\n  Wsapi"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Wsapi.PortNumber))

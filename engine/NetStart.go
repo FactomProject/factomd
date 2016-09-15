@@ -61,8 +61,8 @@ func NetStart(s *state.State) {
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 20, "Delay to start processing messages, in seconds")
-	rpcUserflag := flag.String("rpcuser", "", "Username for JSON-RPC connections")
-	rpcPasswordflag := flag.String("rpcpassword", "", "Password for JSON-RPC connections")
+	rpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
+	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	flag.Parse()
 
 	listenTo := *listenToPtr
@@ -222,7 +222,7 @@ func NetStart(s *state.State) {
 	} else {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
 	}
-		
+
 	s.AddPrefix(prefix)
 	s.SetOut(false)
 	s.Init()
