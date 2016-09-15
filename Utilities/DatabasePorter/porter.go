@@ -200,6 +200,7 @@ mainloop:
 			panic(err)
 		}
 		if ecBlock == nil {
+			fmt.Printf("Found a free-floating block - %v\n", prev.GetHeader().GetPrevHeaderHash().String())
 			ecblock, err := GetECBlock(prev.GetHeader().GetPrevHeaderHash().String())
 			if err != nil {
 				panic(err)
