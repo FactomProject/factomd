@@ -633,7 +633,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		}
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
-		fmt.Println("JUSTIN SFSF", p.State.FactomNodeName, "SETTING", myIndex, "(", id, ") OFFLINE AT", now)
+		fmt.Println("JUSTIN SFSF", p.State.FactomNodeName, "SETTING", myIndex, "(", id, ") OFFLINE AT", now, "HEIGHT:", height, "TAG:", tag)
 
 		if vm.faultHeight < 0 {
 			vm.whenFaulted = now
