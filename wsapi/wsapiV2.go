@@ -254,7 +254,6 @@ func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (in
 }
 
 func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	var block interfaces.BinaryMarshallable
 	hashkey := new(HashRequest)
 	err := MapToObject(params, hashkey)
 	if err != nil {
@@ -267,28 +266,39 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
-
+	var block interfaces.BinaryMarshallable
 	var b []byte
 
-	// try to find the block data in db and return the first one found
-	if block, _ = dbase.FetchFBlock(h); block != nil {
+	if block, _ = state.FetchECTransactionByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchDBlock(h); block != nil {
+	} else if block, _ = state.FetchFactoidTransactionByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchABlock(h); block != nil {
+	} else if block, _ = state.FetchEntryByHash(h); block != nil {
 		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchEBlock(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchECBlock(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchFBlock(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else if block, _ = dbase.FetchEntry(h); block != nil {
-		b, _ = block.MarshalBinary()
-	} else {
-		return nil, NewEntryNotFoundError()
+	}
+
+	if b == nil {
+		dbase := state.GetAndLockDB()
+		defer state.UnlockDB()
+
+		// try to find the block data in db and return the first one found
+		if block, _ = dbase.FetchFBlock(h); block != nil {
+			b, _ = block.MarshalBinary()
+		} else if block, _ = dbase.FetchDBlock(h); block != nil {
+			b, _ = block.MarshalBinary()
+		} else if block, _ = dbase.FetchABlock(h); block != nil {
+			b, _ = block.MarshalBinary()
+		} else if block, _ = dbase.FetchEBlock(h); block != nil {
+			b, _ = block.MarshalBinary()
+		} else if block, _ = dbase.FetchECBlock(h); block != nil {
+			b, _ = block.MarshalBinary()
+		} else if block, _ = dbase.FetchFBlock(h); block != nil {
+			b, _ = block.MarshalBinary()
+		} else if block, _ = dbase.FetchEntry(h); block != nil {
+			b, _ = block.MarshalBinary()
+		} else {
+			return nil, NewEntryNotFoundError()
+		}
 	}
 
 	d := new(RawDataResponse)
@@ -446,15 +456,21 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 		return nil, NewInvalidHashError()
 	}
 
-	dbase := state.GetAndLockDB()
-	defer state.UnlockDB()
-
-	entry, err := dbase.FetchEntry(h)
+	entry, err := state.FetchEntryByHash(h)
 	if err != nil {
-		return nil, NewInvalidHashError()
+		return nil, NewInternalError()
 	}
 	if entry == nil {
-		return nil, NewEntryNotFoundError()
+		dbase := state.GetAndLockDB()
+		defer state.UnlockDB()
+
+		entry, err = dbase.FetchEntry(h)
+		if err != nil {
+			return nil, NewInvalidHashError()
+		}
+		if entry == nil {
+			return nil, NewEntryNotFoundError()
+		}
 	}
 
 	e.ChainID = entry.GetChainIDHash().String()
@@ -650,26 +666,51 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidHashError()
 	}
 
+	fTx, err := state.FetchFactoidTransactionByHash(h)
+	if err != nil {
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
+	}
+
+	ecTx, err := state.FetchECTransactionByHash(h)
+	if err != nil {
+		if err.Error() != "Block not found, should not happen" {
+			return nil, NewInternalError()
+		}
+	}
+
+	e, err := state.FetchEntryByHash(h)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
-	fTx, err := dbase.FetchFactoidTransaction(h)
-	if err != nil {
-		if err.Error() != "Block not found, should not happen" {
-			return nil, NewInternalError()
+	if fTx == nil {
+		fTx, err = dbase.FetchFactoidTransaction(h)
+		if err != nil {
+			if err.Error() != "Block not found, should not happen" {
+				return nil, NewInternalError()
+			}
 		}
 	}
 
-	ecTx, err := dbase.FetchECTransaction(h)
-	if err != nil {
-		if err.Error() != "Block not found, should not happen" {
-			return nil, NewInternalError()
+	if ecTx == nil {
+		ecTx, err = dbase.FetchECTransaction(h)
+		if err != nil {
+			if err.Error() != "Block not found, should not happen" {
+				return nil, NewInternalError()
+			}
 		}
 	}
 
-	e, err := dbase.FetchEntry(h)
-	if err != nil {
-		return nil, NewInternalError()
+	if e == nil {
+		e, err = dbase.FetchEntry(h)
+		if err != nil {
+			return nil, NewInternalError()
+		}
 	}
 
 	blockHash, err := dbase.FetchIncludedIn(h)
