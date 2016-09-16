@@ -187,21 +187,21 @@ mainloop:
 		}
 	}
 	fmt.Printf("\t\tIterating over ECBlocks\n")
-	prev, err := dbo.FetchECBlockHead()
+	prevEC, err := dbo.FetchECBlockHead()
 	if err != nil {
 		panic(err)
 	}
 	for {
-		if prev.GetHeader().GetPrevHeaderHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
+		if prevEC.GetHeader().GetPrevHeaderHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
 		}
-		ecBlock, err := dbo.FetchECBlock(prev.GetHeader().GetPrevHeaderHash())
+		ecBlock, err := dbo.FetchECBlock(prevEC.GetHeader().GetPrevHeaderHash())
 		if err != nil {
 			panic(err)
 		}
 		if ecBlock == nil {
-			fmt.Printf("Found a free-floating block - %v\n", prev.GetHeader().GetPrevHeaderHash().String())
-			ecblock, err := GetECBlock(prev.GetHeader().GetPrevHeaderHash().String())
+			fmt.Printf("Found a missing block - %v\n", prevEC.GetHeader().GetPrevHeaderHash().String())
+			ecblock, err := GetECBlock(prevEC.GetHeader().GetPrevHeaderHash().String())
 			if err != nil {
 				panic(err)
 			}
@@ -211,7 +211,94 @@ mainloop:
 			}
 		} else {
 			//only iterate to the next block if it was properly fetched from the database
-			prev = ecBlock
+			prevEC = ecBlock
+		}
+	}
+
+	fmt.Printf("\t\tIterating over FBlocks\n")
+	prevF, err := dbo.FetchFBlockHead()
+	if err != nil {
+		panic(err)
+	}
+	for {
+		if prevF.GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
+			break
+		}
+		fBlock, err := dbo.FetchFBlock(prevF.GetPrevKeyMR())
+		if err != nil {
+			panic(err)
+		}
+		if fBlock == nil {
+			fmt.Printf("Found a missing block - %v\n", prevF.GetPrevKeyMR().String())
+			fBlock, err := GetFBlock(prevF.GetPrevKeyMR().String())
+			if err != nil {
+				panic(err)
+			}
+			err = dbo.ProcessFBlockBatchWithoutHead(fBlock)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			//only iterate to the next block if it was properly fetched from the database
+			prevF = fBlock
+		}
+	}
+
+	fmt.Printf("\t\tIterating over ABlocks\n")
+	prevA, err := dbo.FetchABlockHead()
+	if err != nil {
+		panic(err)
+	}
+	for {
+		if prevA.GetHeader().GetPrevBackRefHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
+			break
+		}
+		aBlock, err := dbo.FetchABlock(prevA.GetHeader().GetPrevBackRefHash())
+		if err != nil {
+			panic(err)
+		}
+		if aBlock == nil {
+			fmt.Printf("Found a missing block - %v\n", prevA.GetHeader().GetPrevBackRefHash().String())
+			aBlock, err := GetABlock(prevA.GetHeader().GetPrevBackRefHash().String())
+			if err != nil {
+				panic(err)
+			}
+			err = dbo.ProcessABlockBatchWithoutHead(aBlock)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			//only iterate to the next block if it was properly fetched from the database
+			prevA = aBlock
+		}
+	}
+
+	fmt.Printf("\t\tIterating over DBlocks\n")
+	prevD, err := dbo.FetchDBlockHead()
+	if err != nil {
+		panic(err)
+	}
+	for {
+		if prevD.GetHeader().GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
+			break
+		}
+		dBlock, err := dbo.FetchDBlock(prevD.GetHeader().GetPrevKeyMR())
+		if err != nil {
+			panic(err)
+		}
+		if dBlock == nil {
+			fmt.Printf("Found a missing block - %v\n", prevD.GetHeader().GetPrevKeyMR().String())
+			ecblock, err := GetDBlock(prevD.GetHeader().GetPrevKeyMR().String())
+			if err != nil {
+				panic(err)
+			}
+			err = dbo.ProcessDBlockBatchWithoutHead(ecblock)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			//only iterate to the next block if it was properly fetched from the database
+			prevD = dBlock
 		}
 	}
 

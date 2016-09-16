@@ -13,6 +13,10 @@ func (db *Overlay) ProcessABlockBatch(block interfaces.DatabaseBatchable) error 
 	return db.ProcessBlockBatch(ADMINBLOCK, ADMINBLOCK_NUMBER, ADMINBLOCK_SECONDARYINDEX, block)
 }
 
+func (db *Overlay) ProcessABlockBatchWithoutHead(block interfaces.DatabaseBatchable) error {
+	return db.ProcessBlockBatchWithoutHead(ADMINBLOCK, ADMINBLOCK_NUMBER, ADMINBLOCK_SECONDARYINDEX, block)
+}
+
 func (db *Overlay) ProcessABlockMultiBatch(block interfaces.DatabaseBatchable) error {
 	return db.ProcessBlockMultiBatch(ADMINBLOCK, ADMINBLOCK_NUMBER, ADMINBLOCK_SECONDARYINDEX, block)
 }

@@ -25,6 +25,17 @@ func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBlockWithEntries
 	return db.SaveIncludedInMultiFromBlock(dblock, false)
 }
 
+func (db *Overlay) ProcessDBlockBatchWithoutHead(dblock interfaces.DatabaseBlockWithEntries) error {
+	err := db.ProcessBlockBatchWithoutHead(DIRECTORYBLOCK,
+		DIRECTORYBLOCK_NUMBER,
+		DIRECTORYBLOCK_SECONDARYINDEX, dblock)
+	if err != nil {
+		return err
+	}
+
+	return db.SaveIncludedInMultiFromBlock(dblock, false)
+}
+
 func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEntries) error {
 	err := db.ProcessBlockMultiBatch(DIRECTORYBLOCK,
 		DIRECTORYBLOCK_NUMBER,
