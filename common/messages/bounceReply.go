@@ -214,23 +214,10 @@ func (m *BounceReply) String() string {
 		len(m.Stamps),
 		t2,
 		len(m.Stamps), m.SizeOf())
-	nowms := primitives.NewTimestampNow().GetTimeMilli()
-	last := m.Timestamp.GetTimeMilli()
-	elapse := nowms - last
-	sum := elapse
-	for _, ts := range m.Stamps {
-		elapse = ts.GetTimeMilli() - last
-		sum += elapse
-		last = ts.GetTimeMilli()
-		//		str = fmt.Sprintf("%sbbbb %30s %4d.%03d seconds\n", str, ts.String(), elapse/1000, elapse%1000)
-	}
-	sign := " "
-	if sum < 0 {
-		sign = "-"
-		sum = sum * -1
-	}
-	avg := sum / (int64(len(m.Stamps)) + 1)
-	str = str + fmt.Sprintf("Last Hop Took %d.%03d Average Hop: %s%d.%03d", elapse/1000, elapse%1000, sign, avg/1000, avg%1000)
+
+	elapse := primitives.NewTimestampNow().GetTimeMilli()-m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+
+	str = str + fmt.Sprintf("Last Hop Took %d.%03d", elapse/1000, elapse%1000)
 	return str
 }
 

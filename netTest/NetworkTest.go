@@ -104,10 +104,15 @@ func listen() {
 
 		if old[msg.GetHash().Fixed()] == nil {
 			old[msg.GetHash().Fixed()] = msg
+
+			fmt.Println("    ", msg.String())
+
 			if ok1 && len(bounce.Stamps) < 5 {
 				if isp2p {
 					for i := 0; i < numReplies; i++ {
 						bounceReply = new(messages.BounceReply)
+						bounceReply.SetPeer2Peer(true)
+
 						bounceReply.Number = cnt
 						cnt++
 						bounceReply.Name = name + "->" + strings.TrimSpace(bounce.Name)
@@ -122,12 +127,8 @@ func listen() {
 						bounceReply.SetOrigin(bounce.GetOrigin())
 						bounceReply.SetNetworkOrigin(bounce.GetNetworkOrigin())
 
-						if i == 0 {
-							fmt.Println(">>>>>>>>>", bounceReply.String())
-						}
-
-						p2pProxy.Send(bounceReply)
 						old[msg.GetHash().Fixed()] = msg
+						p2pProxy.Send(bounceReply)
 
 						p2pSent++
 					}
@@ -135,22 +136,25 @@ func listen() {
 				} else {
 					bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
 					bounce.Number = cnt
+					bounce.Name = strings.TrimSpace(bounce.Name) + "-" + name
 					cnt++
-					fmt.Println(">>> ", bounce.String())
-					p2pProxy.Send(msg)
+
 					old[msg.GetHash().Fixed()] = msg
+					p2pProxy.Send(msg)
+
 					broadcastReceived++
 					broadcastSent++
 				}
 			}
 			if false && ok2 && len(bounceReply.Stamps) < 5 {
 				bounceReply.Stamps = append(bounceReply.Stamps, primitives.NewTimestampNow())
-				p2pProxy.Send(msg)
+
 				old[msg.GetHash().Fixed()] = msg
+				p2pProxy.Send(msg)
+
 				p2pReceived++
 				p2pSent++
 			}
-			fmt.Println("    ", msg.String())
 
 		} else {
 			oldcnt++
@@ -163,14 +167,15 @@ func listen() {
 func main() {
 	InitNetwork()
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	fmt.Println("Starting...")
 
 	go listen()
 
 	for {
 		bounce := new(messages.Bounce)
-		bounce.Number = int32(p2pRequestSent + 1)
+		bounce.Number = cnt
+		cnt++
 		bounce.Name = name
 		bounce.Timestamp = primitives.NewTimestampNow()
 		bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
@@ -195,7 +200,7 @@ func main() {
 
 				broadcastSent, broadcastReceived)
 		}
-		time.Sleep(20 * time.Second)
+		time.Sleep(8 * time.Second)
 	}
 }
 
