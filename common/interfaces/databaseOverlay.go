@@ -36,6 +36,7 @@ type DBOverlay interface {
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessEBlockBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	FetchEBlock(IHash) (IEntryBlock, error)

@@ -21,6 +21,16 @@ func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries
 	return db.SaveIncludedInMultiFromBlock(eblock, checkForDuplicateEntries)
 }
 
+func (db *Overlay) ProcessEBlockBatchWithoutHead(eblock interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
+	//Each chain has its own number bucket, otherwise we would have conflicts
+	numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, eblock.GetChainID().Bytes()...)
+	err := db.ProcessBlockBatchWithoutHead(ENTRYBLOCK, numberBucket, ENTRYBLOCK_SECONDARYINDEX, eblock)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlock(eblock, checkForDuplicateEntries)
+}
+
 func (db *Overlay) ProcessEBlockMultiBatch(eblock interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
 	numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, eblock.GetChainID().Bytes()...)
