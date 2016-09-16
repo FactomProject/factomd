@@ -211,10 +211,10 @@ func (m *Bounce) String() string {
 		t2,
 		len(m.Stamps), m.SizeOf())
 	var sum int64
-	for i:=0;i<len(m.Stamps)-1;i++ {
-		sum += m.Stamps[i+1].GetTimeMilli()-m.Stamps[i].GetTimeMilli()
+	for i := 0; i < len(m.Stamps)-1; i++ {
+		sum += m.Stamps[i+1].GetTimeMilli() - m.Stamps[i].GetTimeMilli()
 	}
-	elapse := primitives.NewTimestampNow().GetTimeMilli()-m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+	elapse := primitives.NewTimestampNow().GetTimeMilli() - m.Stamps[len(m.Stamps)-1].GetTimeMilli()
 	sum += elapse
 	sign := " "
 	if sum < 0 {

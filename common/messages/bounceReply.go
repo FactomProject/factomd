@@ -215,7 +215,7 @@ func (m *BounceReply) String() string {
 		t2,
 		len(m.Stamps), m.SizeOf())
 
-	elapse := primitives.NewTimestampNow().GetTimeMilli()-m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+	elapse := primitives.NewTimestampNow().GetTimeMilli() - m.Stamps[len(m.Stamps)-1].GetTimeMilli()
 
 	str = str + fmt.Sprintf("Last Hop Took %d.%03d", elapse/1000, elapse%1000)
 	return str
