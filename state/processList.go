@@ -731,7 +731,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 10, 2)
 		}
 
-		if vm.Height > vm.faultHeight {
+		if vm.Height > vm.faultHeight+1 {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
 				p.AmINegotiator = false
 			}
