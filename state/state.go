@@ -938,7 +938,6 @@ func (s *State) catchupEBlocks() {
 
 				// Ask for blocks we don't have.
 				if !s.DatabaseContains(ebKeyMR) {
-					//fmt.Println("JUSTIN", s.FactomNodeName, "APPENDING TO MISSINGENTRYBLOCKS:", ebKeyMR.String()[:15])
 					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 				} else {
@@ -959,7 +958,6 @@ func (s *State) catchupEBlocks() {
 								v.dbheight = eblock.GetHeader().GetDBHeight()
 								v.entryhash = entryhash
 								v.ebhash = ebKeyMR
-								fmt.Println("JUSTIN", s.FactomNodeName, "FROM EB APP2 ", entryhash.String())
 
 								s.MissingEntries = append(s.MissingEntries, v)
 							}
@@ -967,7 +965,6 @@ func (s *State) catchupEBlocks() {
 					}
 				}
 			}
-			//fmt.Println("JUSTIN", s.FactomNodeName, "INCREMENTING EBDBHP TO", s.EntryBlockDBHeightProcessing+1)
 			s.EntryBlockDBHeightProcessing++
 		}
 	}
