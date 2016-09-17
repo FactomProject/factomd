@@ -624,16 +624,18 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		}*/
 
 		leaderMin := getLeaderMin(p)
+		leaderMin--
+		if leaderMin < 0 {
+			leaderMin = 9
+		}
 
 		myIndex := p.ServerMap[leaderMin][vmIndex]
-		if myIndex > 0 {
-			myIndex--
-		} else {
-			myIndex = len(p.FedServers) - 1
-		}
+		fmt.Printf("JUSTIN %v LOOK AT THE SERVERMAP: %+v\n", p.State.FactomNodeName, p.ServerMap)
+		fmt.Printf("JUSTIN %v FedSERVS: %+v\n", p.State.FactomNodeName, p.FedServers)
+
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
-		fmt.Println("JUSTIN SFSF", p.State.FactomNodeName, "SETTING", myIndex, "(", id, ") OFFLINE AT", now, "HEIGHT:", height, "TAG:", tag)
+		fmt.Println("JUSTIN SFSF", p.State.FactomNodeName, "SETTING", myIndex, "(", id, ") OFFLINE AT", now, "HEIGHT:", height, "LM", leaderMin, "vmi", vmIndex, "TAG:", tag)
 
 		if vm.faultHeight < 0 {
 			vm.whenFaulted = now
