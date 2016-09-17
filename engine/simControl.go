@@ -954,7 +954,6 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 }
 
 func faultSummary() string {
-	fmt.Println("JUSTIN CONSTRUCTING FS AT", time.Now().Unix())
 	prt := ""
 	headerTitle := "Faults"
 	headerLabel := "Fed   "

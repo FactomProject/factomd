@@ -630,12 +630,9 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		}
 
 		myIndex := p.ServerMap[leaderMin][vmIndex]
-		fmt.Printf("JUSTIN %v LOOK AT THE SERVERMAP: %+v\n", p.State.FactomNodeName, p.ServerMap)
-		fmt.Printf("JUSTIN %v FedSERVS: %+v\n", p.State.FactomNodeName, p.FedServers)
 
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
-		fmt.Println("JUSTIN SFSF", p.State.FactomNodeName, "SETTING", myIndex, "(", id, ") OFFLINE AT", now, "HEIGHT:", height, "LM", leaderMin, "vmi", vmIndex, "TAG:", tag)
 
 		if vm.faultHeight < 0 {
 			vm.whenFaulted = now
@@ -741,7 +738,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			leaderMin := getLeaderMin(p)
 			myIndex := p.ServerMap[leaderMin][i]
 			if myIndex >= 0 && myIndex < len(p.FedServers) && p.FedServers[myIndex] != nil {
-				fmt.Println("JUSTIN", state.FactomNodeName, "SETTING", myIndex, "BACK ONLINE AT", time.Now().Unix())
 				p.FedServers[myIndex].SetOnline(true)
 			}
 		}
@@ -1000,7 +996,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 			}
 		}
 		for _, fedServer := range pl.FedServers {
-			fmt.Println("JUSTIN", pl.State.FactomNodeName, "SETTING ALL BACK ONLINE AT", time.Now().Unix(), "(NEW PL)")
 			fedServer.SetOnline(true)
 		}
 		pl.SortFedServers()
