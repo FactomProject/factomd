@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"encoding/binary"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -623,13 +624,13 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		}*/
 
 		leaderMin := getLeaderMin(p)
+		leaderMin--
+		if leaderMin < 0 {
+			leaderMin = 9
+		}
 
 		myIndex := p.ServerMap[leaderMin][vmIndex]
-		if myIndex > 0 {
-			myIndex--
-		} else {
-			myIndex = len(p.FedServers) - 1
-		}
+
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
 
@@ -729,7 +730,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 10, 2)
 		}
 
-		if vm.Height > vm.faultHeight {
+		if vm.faultHeight > 0 && vm.Height > vm.faultHeight {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
 				p.AmINegotiator = false
 			}
