@@ -823,9 +823,12 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	for *summary == value {
 		prt := "===SummaryStart===\n"
 
+		for i, f := range fnodes {
+			f.Index = i
+		}
+
 		var pnodes []*FactomNode
 		pnodes = append(pnodes, fnodes...)
-
 		if sortByID {
 			for i := 0; i < len(pnodes)-1; i++ {
 				for j := 0; j < len(pnodes)-1-i; j++ {
@@ -846,15 +849,15 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		time.Sleep(time.Second)
 
-		prt = prt + pnodes[0].State.SummaryHeader()
+		prt = prt + "    " + pnodes[0].State.SummaryHeader()
 
 		for i, f := range pnodes {
 			in := ""
 			api := ""
-			if i == *listenTo {
+			if f.Index == *listenTo {
 				in = "f"
 			}
-			if i == *wsapiNode {
+			if f.Index == *wsapiNode {
 				api = "w"
 			}
 
@@ -868,9 +871,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 
 		totals := fmt.Sprintf("%d/%d/%d", fctSubmits, ecCommits, eCommits)
-		prt = prt + fmt.Sprintf("%133s %20s\n", "", totals)
+		prt = prt + fmt.Sprintf("%137s %20s\n", "", totals)
 
-		fmtstr := "%22s%s\n"
+		fmtstr := "%26s%s\n"
 
 		var list string
 

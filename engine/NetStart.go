@@ -25,6 +25,7 @@ import (
 var _ = fmt.Print
 
 type FactomNode struct {
+	Index int
 	State *state.State
 	Peers []interfaces.IPeer
 	MLog  *MsgLog
