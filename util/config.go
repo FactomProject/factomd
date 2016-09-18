@@ -100,6 +100,8 @@ type FactomdConfig struct {
 	Walletd struct {
 		WalletRpcUser string
 		WalletRpcPass string
+		FactomdLocation string
+		WalletdLocation string
 	}
 }
 
@@ -189,8 +191,16 @@ BoltDBPath                            = ""
 ; Configurations for factom-walletd
 ; ------------------------------------------------------------------------------
 [Walletd]
+; These are the username and password that factom-walletd requires
+; This file is also used by factom-cli to determine what login to use
 WalletRpcUser                         = ""
 WalletRpcPass                         = ""
+
+; This is where factom-walletd and factom-cli will find factomd to interact with the blockchain
+FactomdLocation                       = "localhost:8088"
+
+; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
+WalletdLocation                       = "localhost:8089"
 `
 
 func (s *FactomdConfig) String() string {
@@ -269,6 +279,9 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n  Walletd"))
 	out.WriteString(fmt.Sprintf("\n    WalletRpcUser           %v", s.Walletd.WalletRpcUser))
 	out.WriteString(fmt.Sprintf("\n    WalletRpcPass           %v", s.Walletd.WalletRpcPass))
+	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
+	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))	
+	
 	return out.String()
 }
 
