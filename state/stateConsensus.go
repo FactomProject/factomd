@@ -672,18 +672,20 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	m := msg.(*messages.MissingMsg)
 
-	missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, m.ProcessListHeight)
+	for _, h := range m.ProcessListHeight {
+		missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, h)
 
-	if missingmsg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
-		msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
-		msgResponse.SetOrigin(m.GetOrigin())
-		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		s.NetworkOutMsgQueue() <- msgResponse
-		s.IncMissingMsgReply()
-	} else {
-		s.MissingIgnoreCnt++
+		if missingmsg != nil && ackMsg != nil && err == nil {
+			// If I don't have this message, ignore.
+			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
+			msgResponse.SetOrigin(m.GetOrigin())
+			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+			s.NetworkOutMsgQueue() <- msgResponse
+			s.MissingAnsCnt++
+		} else {
+			s.MissingIgnoreCnt++
+		}
 	}
-
 	return
 }
 

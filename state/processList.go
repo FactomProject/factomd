@@ -574,20 +574,20 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 
 	if now-r.sent >= waitSeconds*1000+1500 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
-		if missingMsgRequest != nil {
-			//fmt.Printf("dddd *Request --> %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
-			//	p.State.FactomNodeName,
-			//	p.DBHeight,
-			//	r.vmIndex,
-			//	r.vmheight,
-			//	r.wait,
-			//	now-r.sent,
-			//	waitSeconds*1000+1000)
-			missingMsgRequest.SendOut(p.State, missingMsgRequest)
-			missingMsgRequest.SendOut(p.State, missingMsgRequest)
-			missingMsgRequest.SendOut(p.State, missingMsgRequest)
-			p.State.MissingAskCnt++
+
+		// Okay, we are going to send one, so ask for all nil messages for this vm
+		vm := p.VMs[vmIndex]
+		for i, v := range vm.List {
+			if i != int(r.vmheight) && v == nil {
+				missingMsgRequest.AddHeight(uint32(i))
+			}
 		}
+		// Might as well as for the next message too.  Won't hurt.
+		missingMsgRequest.AddHeight(uint32(len(vm.List)))
+
+		missingMsgRequest.SendOut(p.State, missingMsgRequest)
+		p.State.MissingAskCnt++
+
 		r.sent = now
 	}
 }
@@ -918,7 +918,7 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("===ProcessListStart===\n"))
+		buf.WriteString("===ProcessListStart===\n")
 		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d \n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete(), p.DBHeight))
 
 		for i := 0; i < len(p.FedServers); i++ {

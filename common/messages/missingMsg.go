@@ -20,7 +20,7 @@ type MissingMsg struct {
 
 	Timestamp         interfaces.Timestamp
 	DBHeight          uint32
-	ProcessListHeight uint32
+	ProcessListHeight []uint32
 
 	//No signature!
 
@@ -46,8 +46,13 @@ func (a *MissingMsg) IsSameAs(b *MissingMsg) bool {
 		return false
 	}
 
-	if a.ProcessListHeight != b.ProcessListHeight {
+	if len(a.ProcessListHeight) != len(b.ProcessListHeight) {
 		return false
+	}
+	for i, v := range a.ProcessListHeight {
+		if v != b.ProcessListHeight[i] {
+			return false
+		}
 	}
 
 	return true
@@ -119,10 +124,13 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.ProcessListHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	if m.DBHeight < 0 || m.ProcessListHeight < 0 {
-		return nil, fmt.Errorf("%s", "DBHeight or ProcListHeight is negative")
+	// Get all the missing messages...
+	lenl, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	for i := 0; i < int(lenl); i++ {
+		var height uint32
+		height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+		m.ProcessListHeight = append(m.ProcessListHeight, height)
 	}
 
 	m.Peer2Peer = true // Always a peer2peer request.
@@ -149,23 +157,23 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 
 	buf.WriteByte(uint8(m.VMIndex))
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.ProcessListHeight)
 
-	var mmm MissingMsg
+	binary.Write(&buf, binary.BigEndian, uint32(len(m.ProcessListHeight)))
+	for _, h := range m.ProcessListHeight {
+		binary.Write(&buf, binary.BigEndian, h)
+	}
 
 	bb := buf.DeepCopyBytes()
-
-	//TODO: delete this once we have unit tests
-	if unmarshalErr := mmm.UnmarshalBinary(bb); unmarshalErr != nil {
-		fmt.Println("Missing failed to marshal/unmarshal")
-		return nil, unmarshalErr
-	}
 
 	return bb, nil
 }
 
 func (m *MissingMsg) String() string {
-	return fmt.Sprintf("MissingMsg --> DBHeight:%3d vm=%3d PL Height:%3d msgHash[%x]", m.DBHeight, m.VMIndex, m.ProcessListHeight, m.GetMsgHash().Bytes()[:3])
+	str := ""
+	for _, n := range m.ProcessListHeight {
+		str = fmt.Sprintf("%s%d,", str, n)
+	}
+	return fmt.Sprintf("MissingMsg --> DBHeight:%3d vm=%3d Hts::%s msgHash[%x]", m.DBHeight, m.VMIndex, str, m.GetMsgHash().Bytes()[:3])
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -208,7 +216,13 @@ func (e *MissingMsg) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlistHeight uint32) interfaces.IMsg {
+// AddHeight: Add a Missing Message Height to the request
+func (e *MissingMsg) AddHeight(h uint32) {
+	e.ProcessListHeight = append(e.ProcessListHeight, h)
+}
+
+// NewMissingMsg: Build a missing Message request, and add the first Height
+func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlistHeight uint32) *MissingMsg {
 
 	msg := new(MissingMsg)
 
@@ -216,7 +230,7 @@ func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlist
 	msg.VMIndex = vm
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeight = dbHeight
-	msg.ProcessListHeight = processlistHeight
+	msg.ProcessListHeight = append(msg.ProcessListHeight, processlistHeight)
 
 	return msg
 }
