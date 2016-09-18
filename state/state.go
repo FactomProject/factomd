@@ -865,6 +865,11 @@ func (s *State) UpdateState() (progress bool) {
 	return
 }
 
+func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) bool {
+	_, ok := s.Replay.Valid(constants.REVEAL_REPLAY, entryhash.Fixed(), ts, s.GetTimestamp())
+	return ok
+}
+
 func (s *State) catchupEBlocks() {
 	now := s.GetTimestamp()
 
@@ -928,6 +933,9 @@ func (s *State) catchupEBlocks() {
 		// While we have less than 20 that we are asking for, look for more to ask for.
 		for s.EntryBlockDBHeightProcessing < s.GetHighestRecordedBlock() && len(s.MissingEntryBlocks) < 20 {
 			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
+
+			updateCommits := now.GetTime().Sub(db.GetTimestamp().GetTime()).Hours() <= 5
+
 			for i, ebKeyMR := range db.GetEntryHashes() {
 				// The first three entries (0,1,2) in every directory block are blocks we already have by
 				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
@@ -942,6 +950,7 @@ func (s *State) catchupEBlocks() {
 						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 				} else {
 					eblock, err := s.DB.FetchEBlock(ebKeyMR)
+
 					if err == nil && eblock != nil {
 						for _, entryhash := range eblock.GetEntryHashes() {
 							if entryhash.IsMinuteMarker() {
@@ -960,6 +969,10 @@ func (s *State) catchupEBlocks() {
 								v.ebhash = ebKeyMR
 
 								s.MissingEntries = append(s.MissingEntries, v)
+							}
+							if updateCommits {
+								s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now)
+								delete(s.Commits, entryhash.Fixed())
 							}
 						}
 					}

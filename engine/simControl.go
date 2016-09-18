@@ -15,6 +15,7 @@ import (
 
 	"math/rand"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
@@ -22,6 +23,7 @@ import (
 )
 
 var _ = fmt.Print
+var sortByID bool
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -109,6 +111,13 @@ func SimControl(listenTo int) {
 							fmt.Println(ele.ChainID.String())
 						}
 					}
+				}
+			case '/' == b[0]:
+				sortByID = !sortByID
+				if sortByID {
+					os.Stderr.WriteString("Sort Status by Chain IDs\n")
+				} else {
+					os.Stderr.WriteString("Sort Status by Node Name\n")
 				}
 			case 'w' == b[0]:
 				if listenTo >= 0 && listenTo < len(fnodes) {
@@ -814,82 +823,98 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	for *summary == value {
 		prt := "===SummaryStart===\n"
 
+		for i, f := range fnodes {
+			f.Index = i
+		}
+
+		var pnodes []*FactomNode
+		pnodes = append(pnodes, fnodes...)
+		if sortByID {
+			for i := 0; i < len(pnodes)-1; i++ {
+				for j := 0; j < len(pnodes)-1-i; j++ {
+					if bytes.Compare(pnodes[j].State.GetIdentityChainID().Bytes(), pnodes[j+1].State.GetIdentityChainID().Bytes()) > 0 {
+						pnodes[j], pnodes[j+1] = pnodes[j+1], pnodes[j]
+					}
+				}
+			}
+		}
+
 		fctSubmits := 0
 		ecCommits := 0
 		eCommits := 0
 
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			f.State.Status = 1
 		}
 
 		time.Sleep(time.Second)
 
-		prt = prt + fnodes[0].State.SummaryHeader()
+		prt = prt + "    " + pnodes[0].State.SummaryHeader()
 
-		for i, f := range fnodes {
+		for i, f := range pnodes {
 			in := ""
 			api := ""
-			if i == *listenTo {
+			if f.Index == *listenTo {
 				in = "f"
 			}
-			if i == *wsapiNode {
+			if f.Index == *wsapiNode {
 				api = "w"
 			}
 
-			prt = prt + fmt.Sprintf("%1s%1s %s \n", in, api, f.State.ShortString())
+			prt = prt + fmt.Sprintf("%3d %1s%1s %s \n", i, in, api, f.State.ShortString())
 		}
 
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			fctSubmits += f.State.FCTSubmits
 			ecCommits += f.State.ECCommits
 			eCommits += f.State.ECommits
 		}
 
 		totals := fmt.Sprintf("%d/%d/%d", fctSubmits, ecCommits, eCommits)
-		prt = prt + fmt.Sprintf("%133s %20s\n", "", totals)
+		prt = prt + fmt.Sprintf("%137s %20s\n", "", totals)
 
-		fmtstr := "%22s%s\n"
+		fmtstr := "%26s%s\n"
 
 		var list string
 
 		list = ""
-		for i, _ := range fnodes {
+		for i, _ := range pnodes {
 			list = list + fmt.Sprintf(" %3d", i)
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Commits))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Commits", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", f.State.LeaderPL.LenNewEntries())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending Entries", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Acks", list)
@@ -897,25 +922,25 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		prt = prt + "\n"
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "AckQueue", list)
@@ -923,19 +948,19 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		prt = prt + "\n"
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "TimerMsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)

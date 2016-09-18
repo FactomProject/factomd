@@ -558,6 +558,7 @@ func buildMessages() []hardCodedAuthority {
 		list[index].EntryReveals = append(list[index].EntryReveals, eRevs[i+1])
 	}
 	chainIDList := strings.Split(chainIDs, "#")
+
 	for i := 0; i < len(chainIDList); i = i + 2 {
 		index, err := strconv.Atoi(chainIDList[i])
 		if err != nil {
@@ -676,6 +677,7 @@ func v2Request(req *primitives.JSON2Request, port int) (*primitives.JSON2Respons
 
 func modifyLoadIdentities() {
 	chainIDList := strings.Split(chainIDs, "#")
+
 	list := make([]interfaces.IHash, 0)
 	for i := 0; i < len(chainIDList); i = i + 2 {
 		next, err := primitives.HexToHash(chainIDList[i+1])

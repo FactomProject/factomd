@@ -13,7 +13,6 @@ import (
 	"math"
 
 	"bufio"
-	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -26,6 +25,7 @@ import (
 var _ = fmt.Print
 
 type FactomNode struct {
+	Index int
 	State *state.State
 	Peers []interfaces.IPeer
 	MLog  *MsgLog
@@ -236,20 +236,6 @@ func NetStart(s *state.State) {
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
-	// Sort the FNodes by ID
-	for i := 0; i < len(fnodes)-1; i++ {
-		for j := 0; j < len(fnodes)-1-i; j++ {
-			if bytes.Compare(fnodes[j].State.IdentityChainID.Bytes(), fnodes[j+1].State.IdentityChainID.Bytes()) > 0 {
-				tmp := fnodes[j]
-				fnodes[j] = fnodes[j+1]
-				fnodes[j+1] = tmp
-			}
-		}
-	}
-	for i := 0; i < len(fnodes); i++ {
-		fnodes[i].State.FactomNodeName = fmt.Sprintf("FNode%d", i)
-	}
-
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
@@ -350,7 +336,6 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, i-1, i)
 		}
 		// Make long into a circle
-		AddSimPeer(fnodes, 0, cnt-1)
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {
