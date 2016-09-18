@@ -367,6 +367,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
+	d.EntryCreditBlock.UpdateState(list.State)
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
@@ -390,9 +391,31 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	s := list.State
 	// Time out commits every now and again.
+	now := s.GetTimestamp()
 	for k := range s.Commits {
 		var keep []interfaces.IMsg
-		for _, v := range s.Commits[k] {
+		commits := s.Commits[k]
+
+		// Check to see if an entry Reveal has negated any pending commits.  All commits to the same EntryReveal
+		// are discarded after we have recorded said Entry Reveal
+		if len(commits) == 0 {
+			delete(s.Commits, k)
+		} else {
+			{
+				c, ok := s.Commits[k][0].(*messages.CommitChainMsg)
+				if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
+					delete(s.Commits, k)
+					continue
+				}
+			}
+			c, ok := s.Commits[k][0].(*messages.CommitEntryMsg)
+			if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+				delete(s.Commits, k)
+				continue
+			}
+		}
+
+		for _, v := range commits {
 			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 			if ok {
 				keep = append(keep, v)

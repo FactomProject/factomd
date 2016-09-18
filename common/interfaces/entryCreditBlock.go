@@ -19,6 +19,8 @@ type IEntryCreditBlock interface {
 	GetEntrySigHashes() []IHash
 	GetEntries() []IECBlockEntry
 	GetEntryByHash(hash IHash) IECBlockEntry
+
+	UpdateState(IState)
 }
 
 type IECBlockHeader interface {

@@ -13,12 +13,15 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 )
 
 var p2pProxy *engine.P2PProxy
 
 var old map[[32]byte]interfaces.IMsg
+var oldsync sync.Mutex
+
 var oldcnt int
 
 var broadcastSent int
@@ -87,7 +90,21 @@ func InitNetwork() {
 	p2pNetwork.DialSpecialPeersString("")
 }
 
-var cnt int32
+var cntreq int32
+var cntreply int32
+
+// Returns true if message is new
+func MsgIsNew(msg interfaces.IMsg) bool {
+	oldsync.Lock()
+	defer oldsync.Unlock()
+	return old[msg.GetHash().Fixed()] == nil
+}
+
+func SetMsg(msg interfaces.IMsg) {
+	oldsync.Lock()
+	old[msg.GetHash().Fixed()] = msg
+	oldsync.Unlock()
+}
 
 func listen() {
 
@@ -102,8 +119,8 @@ func listen() {
 		bounce, ok1 := msg.(*messages.Bounce)
 		bounceReply, ok2 := msg.(*messages.BounceReply)
 
-		if old[msg.GetHash().Fixed()] == nil {
-			old[msg.GetHash().Fixed()] = msg
+		if MsgIsNew(msg) {
+			SetMsg(msg)
 
 			fmt.Println("    ", msg.String())
 
@@ -113,8 +130,8 @@ func listen() {
 						bounceReply = new(messages.BounceReply)
 						bounceReply.SetPeer2Peer(true)
 
-						bounceReply.Number = cnt
-						cnt++
+						bounceReply.Number = cntreply
+						cntreply++
 						bounceReply.Name = name + "->" + strings.TrimSpace(bounce.Name)
 
 						bounceReply.Timestamp = bounce.Timestamp
@@ -127,7 +144,7 @@ func listen() {
 						bounceReply.SetOrigin(bounce.GetOrigin())
 						bounceReply.SetNetworkOrigin(bounce.GetNetworkOrigin())
 
-						old[msg.GetHash().Fixed()] = msg
+						SetMsg(msg)
 						p2pProxy.Send(bounceReply)
 
 						p2pSent++
@@ -135,11 +152,11 @@ func listen() {
 					p2pRequestReceived++
 				} else {
 					bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
-					bounce.Number = cnt
+					bounce.Number = cntreq
 					bounce.Name = strings.TrimSpace(bounce.Name) + "-" + name
-					cnt++
+					cntreq++
 
-					old[msg.GetHash().Fixed()] = msg
+					SetMsg(msg)
 					p2pProxy.Send(msg)
 
 					broadcastReceived++
@@ -149,7 +166,7 @@ func listen() {
 			if false && ok2 && len(bounceReply.Stamps) < 5 {
 				bounceReply.Stamps = append(bounceReply.Stamps, primitives.NewTimestampNow())
 
-				old[msg.GetHash().Fixed()] = msg
+				SetMsg(msg)
 				p2pProxy.Send(msg)
 
 				p2pReceived++
@@ -174,8 +191,8 @@ func main() {
 
 	for {
 		bounce := new(messages.Bounce)
-		bounce.Number = cnt
-		cnt++
+		bounce.Number = cntreq
+		cntreq++
 		bounce.Name = name
 		bounce.Timestamp = primitives.NewTimestampNow()
 		bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
@@ -186,7 +203,7 @@ func main() {
 			broadcastSent++
 		}
 		p2pProxy.Send(bounce)
-		old[bounce.GetHash().Fixed()] = bounce
+		SetMsg(bounce)
 
 		if isp2p {
 			fmt.Printf("netTest(%s):  ::p2p:: request sent: %d request recieved %d sent: %d received: %d\n",

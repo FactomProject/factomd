@@ -181,8 +181,12 @@ type IState interface {
 
 	ValidatorLoop()
 
+	UpdateECs(IEntryCreditBlock)
 	SetIsReplaying()
 	SetIsDoneReplaying()
+	// No Entry Yet returns true if no Entry Hash is found in the Replay structs.
+	// Returns false if we have seen an Entry Replay in the current period.
+	NoEntryYet(IHash, Timestamp) bool
 
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)

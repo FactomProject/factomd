@@ -76,7 +76,7 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitEntryMsg) GetRepeatHash() interfaces.IHash {
-	return m.CommitEntry.GetSigHash()
+	return m.GetMsgHash()
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
@@ -85,11 +85,7 @@ func (m *CommitEntryMsg) GetHash() interfaces.IHash {
 
 func (m *CommitEntryMsg) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+		m.MsgHash = m.CommitEntry.GetSigHash()
 	}
 	return m.MsgHash
 }
@@ -228,7 +224,13 @@ func (m *CommitEntryMsg) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *CommitEntryMsg) LeaderExecute(state interfaces.IState) {
-	state.LeaderExecute(m)
+	// Check if we have yet to see an entry.  If we have seen one (NoEntryYet == false) then
+	// this commit is invalid.
+	if !state.NoEntryYet(m.CommitEntry.EntryHash, m.CommitEntry.GetTimestamp()) {
+		m.FollowerExecute(state)
+	} else {
+		state.LeaderExecute(m)
+	}
 }
 
 func (m *CommitEntryMsg) FollowerExecute(state interfaces.IState) {
