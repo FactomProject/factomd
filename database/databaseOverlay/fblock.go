@@ -16,6 +16,14 @@ func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries)
 	return db.SaveIncludedInMultiFromBlock(block, false)
 }
 
+func (db *Overlay) ProcessFBlockBatchWithoutHead(block interfaces.DatabaseBlockWithEntries) error {
+	err := db.ProcessBlockBatchWithoutHead(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
+	if err != nil {
+		return err
+	}
+	return db.SaveIncludedInMultiFromBlock(block, false)
+}
+
 func (db *Overlay) ProcessFBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
 	err := db.ProcessBlockMultiBatch(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
 	if err != nil {
