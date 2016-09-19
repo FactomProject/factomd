@@ -386,7 +386,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	debug(c.peer.PeerIdent(), "sendParcel() sending message to network of type: %s", parcel.MessageType())
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	verbose(c.peer.PeerIdent(), "sendParcel() Sanity check. State: %s Encoder: %+v, Parcel: %s", c.ConnectionState(), c.encoder, parcel.MessageType())
-	c.conn.SetWriteDeadline(time.Now().Add(20 * time.Millisecond))
+	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
 	parcel.Trace("Connection.sendParcel().encoder.Encode(parcel)", "f")
 	err := c.encoder.Encode(parcel)
 	switch {
