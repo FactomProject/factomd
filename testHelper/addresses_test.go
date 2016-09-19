@@ -20,3 +20,13 @@ func TestRCDAddress(t *testing.T) {
 		t.Error("RCD public keys are not equal")
 	}
 }
+
+func TestPrivPubKeys(t *testing.T) {
+	priv := NewPrimitivesPrivateKey(1)
+	privStr := priv.PrivateKeyString()
+	pubStr := priv.PublicKeyString()
+
+	if privStr+pubStr != "00000000000000000000000000000000000000000000000000000000000000014cb5abf6ad79fbf5abbccafcc269d85cd2651ed4b885b5869f241aedf0a5ba29" {
+		t.Errorf("Invalid keys")
+	}
+}

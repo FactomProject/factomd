@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
@@ -77,5 +78,49 @@ func TestServerFaultMarshalUnmarshal(t *testing.T) {
 				t.Errorf("Invalid SignatureList.List at %v", i)
 			}
 		}
+	}
+}
+
+func TestVerifySignatures(t *testing.T) {
+	sigs := 10
+	sf := new(ServerFault)
+
+	sf.Timestamp = primitives.NewTimestampNow()
+	sf.ServerID = testHelper.NewRepeatingHash(1)
+	sf.AuditServerID = testHelper.NewRepeatingHash(2)
+
+	sf.VMIndex = 0x33
+	sf.DBHeight = 0x44556677
+	sf.Height = 0x88990011
+
+	core, err := sf.MarshalCore()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	for i := 0; i < sigs; i++ {
+		priv := testHelper.NewPrimitivesPrivateKey(uint64(i))
+		sig := priv.Sign(core)
+		sf.SignatureList.List = append(sf.SignatureList.List, sig)
+	}
+	sf.SignatureList.Length = uint32(len(sf.SignatureList.List))
+
+	usedKeys := []interfaces.Verifier{}
+	unusedKeys := []interfaces.Verifier{}
+	mixedKeys := []interfaces.Verifier{}
+	for i := 0; i < sigs; i++ {
+		usedKeys = append(usedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i)).Pub)
+		unusedKeys = append(unusedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i+sigs)).Pub)
+		mixedKeys = append(mixedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i)).Pub)
+		mixedKeys = append(mixedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i+sigs)).Pub)
+	}
+
+	if sf.VerifySignatures(usedKeys) != 10 {
+		t.Errorf("Invalid number of signatures returned for usedKeys - %v vs 10", sf.VerifySignatures(usedKeys))
+	}
+	if sf.VerifySignatures(unusedKeys) != 0 {
+		t.Errorf("Invalid number of signatures returned for unusedKeys - %v vs 0", sf.VerifySignatures(unusedKeys))
+	}
+	if sf.VerifySignatures(mixedKeys) != 10 {
+		t.Errorf("Invalid number of signatures returned for mixedKeys - %v vs 10", sf.VerifySignatures(mixedKeys))
 	}
 }

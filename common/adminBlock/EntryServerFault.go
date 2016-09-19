@@ -74,6 +74,7 @@ func (c *ServerFault) UpdateState(state interfaces.IState) {
 		state.UpdateAuthorityFromABEntry(c)
 	*/
 }
+
 func (m *ServerFault) MarshalCore() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -243,4 +244,25 @@ func (e *ServerFault) Compare(b *ServerFault) int {
 		return 1
 	}
 	return 0
+}
+
+func (e *ServerFault) VerifySignatures(publicKeys []interfaces.Verifier) int {
+	core, err := e.MarshalCore()
+	if err != nil {
+		return -1
+	}
+
+	verifiedSignatures := 0
+Signatures:
+	for _, pk := range publicKeys {
+		for _, fullSig := range e.SignatureList.List {
+			sig := fullSig.GetSignature()
+			if pk.Verify(core, sig) == true {
+				verifiedSignatures++
+				continue Signatures
+			} else {
+			}
+		}
+	}
+	return verifiedSignatures
 }
