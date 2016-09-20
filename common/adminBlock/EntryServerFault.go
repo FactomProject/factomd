@@ -67,11 +67,35 @@ func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) 
 	return newData, nil
 }
 
-func (c *ServerFault) UpdateState(state interfaces.IState) error {
+func (e *ServerFault) UpdateState(state interfaces.IState) error {
+	core, err := e.MarshalCore()
+	if err != nil {
+		return err
+	}
+
+	verifiedSignatures := 0
+	for _, fullSig := range e.SignatureList.List {
+		sig := fullSig.GetSignature()
+		v, err := state.VerifyAuthoritySignature(core, sig, state.GetLeaderHeight())
+		if err != nil {
+			return err
+		}
+		if v == 1 {
+			verifiedSignatures++
+		}
+	}
+
+	feds := state.GetFedServers(state.GetLeaderHeight())
+
+	//50% threshold
+	if verifiedSignatures < len(feds)/2 {
+		return fmt.Errorf("Quorum not reached for ServerFault")
+	}
+
 	//TODO: do
 	/*
-		state.AddFedServer(c.DBHeight, c.IdentityChainID)
-		state.UpdateAuthorityFromABEntry(c)
+		state.AddFedServer(e.DBHeight, e.IdentityChainID)
+		state.UpdateAuthorityFromABEntry(e)
 	*/
 	return nil
 }
@@ -245,25 +269,4 @@ func (e *ServerFault) Compare(b *ServerFault) int {
 		return 1
 	}
 	return 0
-}
-
-func (e *ServerFault) VerifySignatures(publicKeys []interfaces.Verifier) int {
-	core, err := e.MarshalCore()
-	if err != nil {
-		return -1
-	}
-
-	verifiedSignatures := 0
-Signatures:
-	for _, pk := range publicKeys {
-		for _, fullSig := range e.SignatureList.List {
-			sig := fullSig.GetSignature()
-			if pk.Verify(core, sig) == true {
-				verifiedSignatures++
-				continue Signatures
-			} else {
-			}
-		}
-	}
-	return verifiedSignatures
 }

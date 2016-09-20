@@ -52,7 +52,10 @@ func (c *AdminBlock) String() string {
 
 func (c *AdminBlock) UpdateState(state interfaces.IState) error {
 	for _, entry := range c.ABEntries {
-		entry.UpdateState(state)
+		err := entry.UpdateState(state)
+		if err != nil {
+			return err
+		}
 	}
 	// Clear any keys that are now too old to be valid
 	state.UpdateAuthSigningKeys(c.Header.GetDBHeight())

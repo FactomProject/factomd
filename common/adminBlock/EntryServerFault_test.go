@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/interfaces"
+	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
@@ -81,6 +81,7 @@ func TestServerFaultMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+/*
 func TestVerifySignatures(t *testing.T) {
 	sigs := 10
 	sf := new(ServerFault)
@@ -124,3 +125,4 @@ func TestVerifySignatures(t *testing.T) {
 		t.Errorf("Invalid number of signatures returned for mixedKeys - %v vs 10", sf.VerifySignatures(mixedKeys))
 	}
 }
+*/
