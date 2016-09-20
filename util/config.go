@@ -98,10 +98,13 @@ type FactomdConfig struct {
 		FactomdPort      int
 	}
 	Walletd struct {
-		WalletRpcUser string
-		WalletRpcPass string
-		FactomdLocation string
-		WalletdLocation string
+		WalletRpcUser       string
+		WalletRpcPass       string
+		WalletTlsEnabled    bool
+		WalletTlsPrivateKey string
+		WalletTlsPublicCert string
+		FactomdLocation     string
+		WalletdLocation     string
 	}
 }
 
@@ -196,6 +199,12 @@ BoltDBPath                            = ""
 WalletRpcUser                         = ""
 WalletRpcPass                         = ""
 
+; These define if the connection to the wallet should be encrypted, and if it is, what files
+; are the secret key and the public certificate.  factom-cli uses the certificate specified here if TLS is enabled.
+WalletTlsEnabled                      = false
+WalletTlsPrivateKey                   = "/full/path/to/walletAPIpriv.key"
+WalletTlsPublicCert                   = "/full/path/to/walletAPIpub.cert"
+
 ; This is where factom-walletd and factom-cli will find factomd to interact with the blockchain
 FactomdLocation                       = "localhost:8088"
 
@@ -279,9 +288,12 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n  Walletd"))
 	out.WriteString(fmt.Sprintf("\n    WalletRpcUser           %v", s.Walletd.WalletRpcUser))
 	out.WriteString(fmt.Sprintf("\n    WalletRpcPass           %v", s.Walletd.WalletRpcPass))
+	out.WriteString(fmt.Sprintf("\n    WalletTlsEnabled        %v", s.Walletd.WalletTlsEnabled))
+	out.WriteString(fmt.Sprintf("\n    WalletTlsPrivateKey     %v", s.Walletd.WalletTlsPrivateKey))
+	out.WriteString(fmt.Sprintf("\n    WalletTlsPublicCert     %v", s.Walletd.WalletTlsPublicCert))
 	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
-	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))	
-	
+	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
+
 	return out.String()
 }
 
