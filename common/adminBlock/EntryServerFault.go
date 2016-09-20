@@ -67,12 +67,13 @@ func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) 
 	return newData, nil
 }
 
-func (c *ServerFault) UpdateState(state interfaces.IState) {
+func (c *ServerFault) UpdateState(state interfaces.IState) error {
 	//TODO: do
 	/*
 		state.AddFedServer(c.DBHeight, c.IdentityChainID)
 		state.UpdateAuthorityFromABEntry(c)
 	*/
+	return nil
 }
 
 func (m *ServerFault) MarshalCore() (data []byte, err error) {

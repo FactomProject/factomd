@@ -20,7 +20,7 @@ type IEntryCreditBlock interface {
 	GetEntries() []IECBlockEntry
 	GetEntryByHash(hash IHash) IECBlockEntry
 
-	UpdateState(IState)
+	UpdateState(IState) error
 }
 
 type IECBlockHeader interface {

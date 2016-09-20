@@ -18,8 +18,9 @@ type DBSignatureEntry struct {
 var _ interfaces.IABEntry = (*DBSignatureEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
-func (c *DBSignatureEntry) UpdateState(state interfaces.IState) {
+func (c *DBSignatureEntry) UpdateState(state interfaces.IState) error {
 
+	return nil
 }
 
 // Create a new DB Signature Entry

@@ -33,7 +33,7 @@ type IAdminBlock interface {
 	AddFederatedServerSigningKey(IHash, *[32]byte) (err error)
 	AddServerFault(IABEntry)
 	AddAuditServer(IHash)
-	UpdateState(IState)
+	UpdateState(IState) error
 }
 
 // Admin Block Header
@@ -61,7 +61,7 @@ type IABEntry interface {
 	BinaryMarshallable
 	ShortInterpretable
 
-	UpdateState(IState) // When loading Admin Blocks,
+	UpdateState(IState) error // When loading Admin Blocks,
 
 	Type() byte
 	Hash() IHash
