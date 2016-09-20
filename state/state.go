@@ -92,10 +92,10 @@ type State struct {
 	DBStateReplyCnt int
 	DBStateFailsCnt int
 
-	MissingAskCnt    int
-	MissingAnsCnt    int
-	MissingReplyCnt  int
-	MissingIgnoreCnt int
+	MissingRequestSendCnt     int
+	MissingRequestReplyCnt    int
+	MissingRequestIgnoreCnt   int
+	MissingResponseAppliedCnt int
 
 	ResendCnt int
 	ExpireCnt int
@@ -352,10 +352,6 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 
 func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
-}
-
-func (s *State) IncMissingMsgReply() {
-	s.MissingReplyCnt++
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -1300,7 +1296,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %4s %10s %-8s %-9s %15s %9s\n",
+	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -1310,7 +1306,7 @@ func (s *State) SummaryHeader() string {
 		"PL  ",
 		" ",
 		"Min",
-		"DBState(ask/ans/rply/fail)",
+		"DBState(ask/rply/drop/apply)",
 		"Msg",
 		"   Resend",
 		"Expire",
@@ -1426,8 +1422,8 @@ func (s *State) SetStringQueues() {
 		pls)
 
 	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
-	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
-	str = str + fmt.Sprintf(" %2s/%2d %15s %18s ",
+	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestSendCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
+	str = str + fmt.Sprintf(" %2s/%2d %15s %26s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,

@@ -27,10 +27,11 @@ var _ = fmt.Print
 var _ = log.Print
 
 type Request struct {
-	vmIndex  int    // VM Index
-	vmheight uint32 // Height in the Process List where we are missing a message
-	wait     int64  // How long to wait before we actually request
-	sent     int64  // Last time sent (zero means none have been sent)
+	vmIndex    int    // VM Index
+	vmheight   uint32 // Height in the Process List where we are missing a message
+	wait       int64  // How long to wait before we actually request
+	sent       int64  // Last time sent (zero means none have been sent)
+	requestCnt int
 }
 
 func (r *Request) key() (thekey [20]byte) {
@@ -549,7 +550,8 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
+// Return the number of times we have tripped an ask for this request.
+func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
 	r := new(Request)
@@ -586,10 +588,13 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 		missingMsgRequest.AddHeight(uint32(len(vm.List)))
 
 		missingMsgRequest.SendOut(p.State, missingMsgRequest)
-		p.State.MissingAskCnt++
+		p.State.MissingRequestSendCnt++
 
 		r.sent = now
+		r.requestCnt++
 	}
+
+	return r.requestCnt
 }
 
 func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
@@ -794,6 +799,13 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
+				// We give an entry time to become valid.  If it doesn't wash out by then, we
+				// nuke the entry, and ask for another one.
+				cnt := p.Ask(i, j, 30, 6) // give 30 seconds
+				if cnt > 0 {
+					vm.List[j] = nil
+					vm.ListAck[j] = nil
+				}
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 		}

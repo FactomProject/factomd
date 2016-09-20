@@ -49,6 +49,30 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
+// Validate this directory block is a possible part of a valid Next DBState.  Doesn't check
+// signatures, as those are in the next block. Does check that this DBState holds
+// a previous KeyMR that matches the previous DBState KeyMR.
+func (d *DBState) ValidNext(state *State, dirblk interfaces.IDirectoryBlock) int {
+	dbheight := dirblk.GetHeader().GetDBHeight()
+	if dbheight == 0 {
+		// The genesis block is valid by definition.
+		return 1
+	}
+	if d == nil || !d.Saved {
+		// Must be out of order.  Can't make the call if valid or not yet.
+		return 0
+	}
+	// Get the keymr of the Previous DBState
+	pkeymr := d.DirectoryBlock.GetKeyMR()
+	// Get the Previous KeyMR pointer in the possible new Directory Block
+	prevkeymr := dirblk.GetHeader().GetPrevKeyMR()
+	if !pkeymr.IsSameAs(prevkeymr) {
+		// If not the same, this is a bad new Directory Block
+		return -1
+	}
+	return 1
+}
+
 func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
 	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
@@ -373,6 +397,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
+	list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
 	fs.ProcessEndOfBlock(list.State)
 
 	// Promote the currently scheduled next FER

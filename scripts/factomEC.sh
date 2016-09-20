@@ -11,7 +11,7 @@ echo "SSSSSSSSSSSSSSSSSSSleeping for " $x
 
 sleep $x
 
-sleep 100
+sleep 110
 echo yyyyyyyyyyyyyyyyyyyy
 factom-cli2 get chainhead ${chain}
 

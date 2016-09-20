@@ -871,7 +871,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 
 		totals := fmt.Sprintf("%d/%d/%d", fctSubmits, ecCommits, eCommits)
-		prt = prt + fmt.Sprintf("%137s %20s\n", "", totals)
+		prt = prt + fmt.Sprintf("%145s %20s\n", "", totals)
 
 		fmtstr := "%26s%s\n"
 

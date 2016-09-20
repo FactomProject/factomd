@@ -279,22 +279,18 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	if s.GetHighestRecordedBlock() > dbheight {
 		return
 	}
+	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
-	if dbheight > 1 {
-		pdbstate := s.DBStates.Get(int(dbheight - 1))
-		if pdbstate == nil {
-			// Must be out of order.  so keep around until we can process.
-			k := fmt.Sprint(dbheight - 1)
-			key := primitives.NewHash([]byte(k))
-			s.Holding[key.Fixed()] = msg
-			return
-		}
-		pkeymr := pdbstate.DirectoryBlock.GetKeyMR()
-		ppkeymr := dbstatemsg.DirectoryBlock.GetHeader().GetPrevKeyMR()
-		if !pkeymr.IsSameAs(ppkeymr) {
-			s.DBStateFailsCnt++
-			s.networkInvalidMsgQueue <- msg
-		}
+	switch pdbstate.ValidNext(s, dbstatemsg.DirectoryBlock) {
+	case 0:
+		k := fmt.Sprint("dbstate", dbheight-1)
+		key := primitives.NewHash([]byte(k))
+		s.Holding[key.Fixed()] = msg
+		return
+	case -1:
+		s.DBStateFailsCnt++
+		s.networkInvalidMsgQueue <- msg
+		return
 	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
@@ -562,8 +558,19 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 	ack := mmr.AckResponse.(*messages.Ack)
 	msg := mmr.MsgResponse
+	pl := s.ProcessLists.Get(ack.DBHeight)
 	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+
+	if pl == nil {
+		return
+	}
+
+	list := pl.VMs[ack.VMIndex].List
+	if ack.VMIndex < len(pl.FedServers) && int(ack.Height) >= len(list) || list[ack.Height] == nil {
+		s.MissingResponseAppliedCnt++
+	}
+
 	if okr {
 		ack.FollowerExecute(s)
 	}
@@ -571,10 +578,8 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		msg.FollowerExecute(s)
 	}
 	if !okr && !okm {
-		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, msg)
 	}
-	s.MissingAnsCnt++
 }
 
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
@@ -681,9 +686,9 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
 			s.NetworkOutMsgQueue() <- msgResponse
-			s.MissingAnsCnt++
+			s.MissingRequestReplyCnt++
 		} else {
-			s.MissingIgnoreCnt++
+			s.MissingRequestIgnoreCnt++
 		}
 	}
 	return
@@ -881,10 +886,10 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
-	s.GetFactoidState().UpdateECTransaction(true, c.CommitChain)
-
-	// save the Commit to match agains the Reveal later
-	s.PutCommit(c.CommitChain.EntryHash, c)
+	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e != nil {
+		// save the Commit to match agains the Reveal later
+		s.PutCommit(c.CommitChain.EntryHash, c)
+	}
 
 	return true
 }
@@ -894,11 +899,10 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
-	s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry)
-
-	// save the Commit to match agains the Reveal later
-	s.PutCommit(c.CommitEntry.EntryHash, c)
-
+	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e != nil {
+		// save the Commit to match agains the Reveal later
+		s.PutCommit(c.CommitEntry.EntryHash, c)
+	}
 	return true
 }
 
