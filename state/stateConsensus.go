@@ -886,12 +886,15 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
-	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e != nil {
+	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match agains the Reveal later
 		s.PutCommit(c.CommitChain.EntryHash, c)
+		return true
+	} else {
+		fmt.Println(e)
 	}
 
-	return true
+	return false
 }
 
 func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg) bool {
@@ -899,11 +902,14 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 
 	pl := s.ProcessLists.Get(dbheight)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
-	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e != nil {
+	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
 		// save the Commit to match agains the Reveal later
 		s.PutCommit(c.CommitEntry.EntryHash, c)
+		return true
+	} else {
+		fmt.Println(e)
 	}
-	return true
+	return false
 }
 
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {

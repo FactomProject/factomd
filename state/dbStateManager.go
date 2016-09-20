@@ -397,6 +397,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
+	// Make the current exchange rate whatever we had in the previous block.
 	list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
 	fs.ProcessEndOfBlock(list.State)
 
