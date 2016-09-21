@@ -78,7 +78,9 @@ func (e *ServerFault) UpdateState(state interfaces.IState) error {
 		sig := fullSig.GetSignature()
 		v, err := state.VerifyAuthoritySignature(core, sig, state.GetLeaderHeight())
 		if err != nil {
-			return err
+			if err.Error() != "Signature Key Invalid or not Federated Server Key" {
+				return err
+			}
 		}
 		if v == 1 {
 			verifiedSignatures++
