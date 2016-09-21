@@ -38,7 +38,7 @@ func GetDBlock(keymr string) (interfaces.IDirectoryBlock, error) {
 
 func GetABlock(keymr string) (interfaces.IAdminBlock, error) {
 	raw, err := GetRaw(keymr)
-	//fmt.Printf("Raw - %x, %v\n", raw, err)
+	fmt.Printf("Raw %v - %x, %v\n", keymr, raw, err)
 	if err != nil {
 		return nil, err
 	}
