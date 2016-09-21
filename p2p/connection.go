@@ -176,7 +176,7 @@ func (c *Connection) runLoop() {
 		c.updateStats()                   // Update controller with metrics
 		c.connectionStatusReport()
 		// if 2 == rand.Intn(100) {
-		significant(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
+		note(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
 		// }
 		switch c.state {
 		case ConnectionInitialized:
@@ -225,7 +225,7 @@ func (c *Connection) runLoop() {
 
 func (c *Connection) setNotes(format string, v ...interface{}) {
 	c.notes = fmt.Sprintf(format, v...)
-	significant(c.peer.PeerIdent(), c.notes)
+	note(c.peer.PeerIdent(), c.notes)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.

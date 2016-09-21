@@ -377,7 +377,7 @@ func (c *Controller) route() {
 			note("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
 			for _, connection := range c.connections {
 				dot("&&k\n")
-				significant("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
+				note("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
 				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
 			}
 		case RandomPeerFlag: // Find a random peer, send to that peer.
