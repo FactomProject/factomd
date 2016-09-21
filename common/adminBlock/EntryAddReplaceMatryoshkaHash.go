@@ -31,8 +31,9 @@ func (m *AddReplaceMatryoshkaHash) Type() byte {
 	return constants.TYPE_ADD_MATRYOSHKA
 }
 
-func (c *AddReplaceMatryoshkaHash) UpdateState(state interfaces.IState) {
+func (c *AddReplaceMatryoshkaHash) UpdateState(state interfaces.IState) error {
 	state.UpdateAuthorityFromABEntry(c)
+	return nil
 }
 
 func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) *AddReplaceMatryoshkaHash {

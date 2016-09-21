@@ -37,3 +37,5 @@ if [ $? -eq 0 ]; then
     kill -2 $node0 $node2 $node3
     kill  $ncsp
 fi
+
+    ./testing/analyze.sh

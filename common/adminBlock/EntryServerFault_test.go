@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
@@ -79,3 +81,86 @@ func TestServerFaultMarshalUnmarshal(t *testing.T) {
 		}
 	}
 }
+
+func TestServerFaultUpdateState(t *testing.T) {
+	sigs := 10
+	sf := new(ServerFault)
+
+	sf.Timestamp = primitives.NewTimestampNow()
+	sf.ServerID = testHelper.NewRepeatingHash(1)
+	sf.AuditServerID = testHelper.NewRepeatingHash(2)
+
+	sf.VMIndex = 0x33
+	sf.DBHeight = 0x44556677
+	sf.Height = 0x88990011
+
+	core, err := sf.MarshalCore()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	for i := 0; i < sigs; i++ {
+		priv := testHelper.NewPrimitivesPrivateKey(uint64(i))
+		sig := priv.Sign(core)
+		sf.SignatureList.List = append(sf.SignatureList.List, sig)
+	}
+	sf.SignatureList.Length = uint32(len(sf.SignatureList.List))
+
+	s := testHelper.CreateAndPopulateTestState()
+	idindex := state.CreateBlankFactomIdentity(s, primitives.NewZeroHash())
+	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+	for i := 0; i < sigs; i++ {
+		//Federated Server
+		index := s.AddAuthorityFromChainID(testHelper.NewRepeatingHash(byte(i)))
+		s.Authorities[index].SigningKey = *testHelper.NewPrimitivesPrivateKey(uint64(i)).Pub
+		s.Authorities[index].Status = 1
+
+		//Audit Server
+		index = s.AddAuthorityFromChainID(testHelper.NewRepeatingHash(byte(i + sigs)))
+		s.Authorities[index].SigningKey = *testHelper.NewPrimitivesPrivateKey(uint64(i + sigs)).Pub
+		s.Authorities[index].Status = 0
+	}
+
+	err = sf.UpdateState(s)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+}
+
+/*
+func TestAuthoritySignature(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	idindex := CreateBlankFactomIdentity(s, primitives.NewZeroHash())
+	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+
+	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
+	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
+	s.Authorities[index].Status = 1
+
+	ack := new(messages.Ack)
+	ack.DBHeight = s.LLeaderHeight
+	ack.VMIndex = 1
+	ack.Minute = byte(5)
+	ack.Timestamp = s.GetTimestamp()
+	ack.MessageHash = primitives.NewZeroHash()
+	ack.LeaderChainID = s.IdentityChainID
+	ack.SerialHash = primitives.NewZeroHash()
+
+	err := ack.Sign(s)
+	if err != nil {
+		t.Error("Authority Test Failed when signing message")
+	}
+
+	msg, err := ack.MarshalForSignature()
+	if err != nil {
+		t.Error("Authority Test Failed when marshalling for sig")
+	}
+
+	sig := ack.GetSignature()
+	server, err := s.Authorities[0].VerifySignature(msg, sig.GetSignature())
+	if !server || err != nil {
+		t.Error("Authority Test Failed when checking sigs")
+	}
+}
+
+*/

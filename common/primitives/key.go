@@ -67,7 +67,7 @@ func NewPrivateKeyFromHexBytes(privKeybytes []byte) *PrivateKey {
 	pk := new(PrivateKey)
 	pk.AllocateNew()
 	copy(pk.Key[:], privKeybytes)
-	pk.Pub.UnmarshalBinary(privKeybytes)
+	pk.Pub.UnmarshalBinary(ed25519.GetPublicKey(pk.Key)[:])
 	return pk
 }
 

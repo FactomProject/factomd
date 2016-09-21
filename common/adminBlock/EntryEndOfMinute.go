@@ -21,8 +21,9 @@ func (m *EndOfMinuteEntry) Type() byte {
 	return constants.TYPE_MINUTE_NUM
 }
 
-func (c *EndOfMinuteEntry) UpdateState(state interfaces.IState) {
+func (c *EndOfMinuteEntry) UpdateState(state interfaces.IState) error {
 
+	return nil
 }
 
 func NewEndOfMinuteEntry(minuteNumber byte) *EndOfMinuteEntry {

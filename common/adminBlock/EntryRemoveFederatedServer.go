@@ -25,7 +25,7 @@ func (e *RemoveFederatedServer) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
+func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) error {
 	if len(state.GetFedServers(c.DBHeight)) != 0 {
 		state.RemoveFedServer(c.DBHeight, c.IdentityChainID)
 	}
@@ -33,6 +33,7 @@ func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) {
 		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:4]))
 	}
 	state.UpdateAuthorityFromABEntry(c)
+	return nil
 }
 
 // Create a new DB Signature Entry

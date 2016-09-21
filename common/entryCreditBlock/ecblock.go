@@ -36,8 +36,9 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*ECBlock)(nil)
 var _ interfaces.IEntryCreditBlock = (*ECBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*ECBlock)(nil)
 
-func (c *ECBlock) UpdateState(state interfaces.IState) {
+func (c *ECBlock) UpdateState(state interfaces.IState) error {
 	state.UpdateECs(c)
+	return nil
 }
 
 func (c *ECBlock) String() string {

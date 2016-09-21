@@ -30,8 +30,9 @@ func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *AddFederatedServerBitcoinAnchorKey) UpdateState(state interfaces.IState) {
+func (c *AddFederatedServerBitcoinAnchorKey) UpdateState(state interfaces.IState) error {
 	state.UpdateAuthorityFromABEntry(c)
+	return nil
 }
 
 // Create a new DB Signature Entry

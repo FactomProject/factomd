@@ -67,13 +67,39 @@ func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) 
 	return newData, nil
 }
 
-func (c *ServerFault) UpdateState(state interfaces.IState) {
+func (e *ServerFault) UpdateState(state interfaces.IState) error {
+	core, err := e.MarshalCore()
+	if err != nil {
+		return err
+	}
+
+	verifiedSignatures := 0
+	for _, fullSig := range e.SignatureList.List {
+		sig := fullSig.GetSignature()
+		v, err := state.VerifyAuthoritySignature(core, sig, state.GetLeaderHeight())
+		if err != nil {
+			return err
+		}
+		if v == 1 {
+			verifiedSignatures++
+		}
+	}
+
+	feds := state.GetFedServers(state.GetLeaderHeight())
+
+	//50% threshold
+	if verifiedSignatures < len(feds)/2 {
+		return fmt.Errorf("Quorum not reached for ServerFault")
+	}
+
 	//TODO: do
 	/*
-		state.AddFedServer(c.DBHeight, c.IdentityChainID)
-		state.UpdateAuthorityFromABEntry(c)
+		state.AddFedServer(e.DBHeight, e.IdentityChainID)
+		state.UpdateAuthorityFromABEntry(e)
 	*/
+	return nil
 }
+
 func (m *ServerFault) MarshalCore() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

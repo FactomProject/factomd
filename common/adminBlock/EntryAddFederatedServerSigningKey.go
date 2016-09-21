@@ -21,8 +21,9 @@ type AddFederatedServerSigningKey struct {
 var _ interfaces.IABEntry = (*AddFederatedServerSigningKey)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServerSigningKey)(nil)
 
-func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) {
+func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) error {
 	state.UpdateAuthorityFromABEntry(c)
+	return nil
 }
 
 func (e *AddFederatedServerSigningKey) String() string {
