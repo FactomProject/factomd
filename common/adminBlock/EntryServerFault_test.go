@@ -6,6 +6,7 @@ import (
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
@@ -81,8 +82,7 @@ func TestServerFaultMarshalUnmarshal(t *testing.T) {
 	}
 }
 
-/*
-func TestVerifySignatures(t *testing.T) {
+func TestServerFaultUpdateState(t *testing.T) {
 	sigs := 10
 	sf := new(ServerFault)
 
@@ -105,24 +105,62 @@ func TestVerifySignatures(t *testing.T) {
 	}
 	sf.SignatureList.Length = uint32(len(sf.SignatureList.List))
 
-	usedKeys := []interfaces.Verifier{}
-	unusedKeys := []interfaces.Verifier{}
-	mixedKeys := []interfaces.Verifier{}
+	s := testHelper.CreateAndPopulateTestState()
+	idindex := state.CreateBlankFactomIdentity(s, primitives.NewZeroHash())
+	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
 	for i := 0; i < sigs; i++ {
-		usedKeys = append(usedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i)).Pub)
-		unusedKeys = append(unusedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i+sigs)).Pub)
-		mixedKeys = append(mixedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i)).Pub)
-		mixedKeys = append(mixedKeys, testHelper.NewPrimitivesPrivateKey(uint64(i+sigs)).Pub)
+		//Federated Server
+		index := s.AddAuthorityFromChainID(testHelper.NewRepeatingHash(byte(i)))
+		s.Authorities[index].SigningKey = *testHelper.NewPrimitivesPrivateKey(uint64(i)).Pub
+		s.Authorities[index].Status = 1
+
+		//Audit Server
+		index = s.AddAuthorityFromChainID(testHelper.NewRepeatingHash(byte(i + sigs)))
+		s.Authorities[index].SigningKey = *testHelper.NewPrimitivesPrivateKey(uint64(i + sigs)).Pub
+		s.Authorities[index].Status = 0
 	}
 
-	if sf.VerifySignatures(usedKeys) != 10 {
-		t.Errorf("Invalid number of signatures returned for usedKeys - %v vs 10", sf.VerifySignatures(usedKeys))
+	err = sf.UpdateState(s)
+	if err != nil {
+		t.Errorf("%v", err)
 	}
-	if sf.VerifySignatures(unusedKeys) != 0 {
-		t.Errorf("Invalid number of signatures returned for unusedKeys - %v vs 0", sf.VerifySignatures(unusedKeys))
+
+}
+
+/*
+func TestAuthoritySignature(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	idindex := CreateBlankFactomIdentity(s, primitives.NewZeroHash())
+	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+
+	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
+	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
+	s.Authorities[index].Status = 1
+
+	ack := new(messages.Ack)
+	ack.DBHeight = s.LLeaderHeight
+	ack.VMIndex = 1
+	ack.Minute = byte(5)
+	ack.Timestamp = s.GetTimestamp()
+	ack.MessageHash = primitives.NewZeroHash()
+	ack.LeaderChainID = s.IdentityChainID
+	ack.SerialHash = primitives.NewZeroHash()
+
+	err := ack.Sign(s)
+	if err != nil {
+		t.Error("Authority Test Failed when signing message")
 	}
-	if sf.VerifySignatures(mixedKeys) != 10 {
-		t.Errorf("Invalid number of signatures returned for mixedKeys - %v vs 10", sf.VerifySignatures(mixedKeys))
+
+	msg, err := ack.MarshalForSignature()
+	if err != nil {
+		t.Error("Authority Test Failed when marshalling for sig")
+	}
+
+	sig := ack.GetSignature()
+	server, err := s.Authorities[0].VerifySignature(msg, sig.GetSignature())
+	if !server || err != nil {
+		t.Error("Authority Test Failed when checking sigs")
 	}
 }
+
 */
