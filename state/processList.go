@@ -801,11 +801,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			} else {
 				// We give an entry time to become valid.  If it doesn't wash out by then, we
 				// nuke the entry, and ask for another one.
-				cnt := p.Ask(i, j, 30, 6) // give 30 seconds
-				if cnt > 0 {
-					vm.List[j] = nil
-					vm.ListAck[j] = nil
-				}
+				//cnt := p.Ask(i, j, 30, 6) // give 30 seconds
+				//if cnt > 0 {
+				//	vm.List[j] = nil
+				//	vm.ListAck[j] = nil
+				//}
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 		}
