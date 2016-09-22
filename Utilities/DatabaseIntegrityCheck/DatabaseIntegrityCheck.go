@@ -75,6 +75,11 @@ func CheckDatabase(db interfaces.IDatabase) {
 
 	var i int
 	for {
+		/*
+			if next.DBlock.GetDatabaseHeight()%1000 == 0 {
+				fmt.Printf("\"%v\", //%v\n", next.DBlock.DatabasePrimaryIndex(), next.DBlock.GetDatabaseHeight())
+			}
+		*/
 		prev := FetchBlockSet(dbo, next.DBlock.GetHeader().GetPrevKeyMR())
 
 		hashMap[next.DBlock.DatabasePrimaryIndex().String()] = "OK"

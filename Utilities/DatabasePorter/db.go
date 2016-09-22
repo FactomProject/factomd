@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"os"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -14,7 +14,7 @@ import (
 //DBInit
 
 func InitBolt(cfg *util.FactomdConfig) interfaces.DBOverlay {
-	fmt.Println("InitBolt")
+	//fmt.Println("InitBolt")
 	path := cfg.App.BoltDBPath + "/"
 
 	os.MkdirAll(path, 0777)
@@ -23,7 +23,7 @@ func InitBolt(cfg *util.FactomdConfig) interfaces.DBOverlay {
 }
 
 func InitLevelDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
-	fmt.Println("InitLevelDB")
+	//fmt.Println("InitLevelDB")
 	path := cfg.App.LdbPath + "/" + "FactoidLevel-Import.db"
 
 	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
@@ -39,7 +39,7 @@ func InitLevelDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
 }
 
 func InitMapDB(cfg *util.FactomdConfig) interfaces.DBOverlay {
-	fmt.Println("InitMapDB")
+	//fmt.Println("InitMapDB")
 	dbase := new(mapdb.MapDB)
 	dbase.Init(nil)
 	return databaseOverlay.NewOverlay(dbase)
