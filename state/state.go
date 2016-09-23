@@ -630,8 +630,15 @@ func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
 	s.EntryBlockDBHeightProcessing = newHeight
 }
 
-func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
+func (s *State) GetLLeaderHeight() uint32 {
+	return s.LLeaderHeight
+}
 
+func (s *State) GetEntryDBHeightComplete() uint32 {
+	return s.EntryDBHeightComplete
+}
+
+func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
 	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
 		return nil

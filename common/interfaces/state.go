@@ -205,4 +205,7 @@ type IState interface {
 	UpdateAuthorityFromABEntry(entry IABEntry) error
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+
+	GetLLeaderHeight() uint32
+	GetEntryDBHeightComplete() uint32
 }
