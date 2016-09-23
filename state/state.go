@@ -905,6 +905,7 @@ func (s *State) catchupEBlocks() {
 
 	if len(s.MissingEntries) == 0 {
 		s.MissingEntryRepeat = nil
+		s.EntryDBHeightComplete = s.EntryBlockDBHeightComplete
 	} else {
 		if s.MissingEntryRepeat == nil {
 			s.MissingEntryRepeat = now
