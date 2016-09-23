@@ -305,7 +305,7 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		case constants.TYPE_SERVER_FAULT:
 			b.ABEntries[i] = new(ServerFault)
 		default:
-			fmt.Println("AB UNDEFINED ENTRY")
+			fmt.Printf("AB UNDEFINED ENTRY %x for block %v\n", newData[0], b.Header.GetDBHeight())
 			panic("Undefined Admin Block Entry Type")
 		}
 		newData, err = b.ABEntries[i].UnmarshalBinaryData(newData)
