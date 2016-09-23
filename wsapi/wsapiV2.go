@@ -621,8 +621,8 @@ func HandleV2DirectoryBlockHeight(state interfaces.IState, params interface{}) (
 func HandleV2GetHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	h := new(HeightResponse)
 
-	h.DirectoryBlockHeight = int64(state.GetHighestRecordedBlock())
-	h.LeaderHeight = int64(state.GetHighestRecordedBlock())
+	h.DirectoryBlockHeight = int64(state.GetHighestCompletedBlock())
+	h.LeaderHeight = int64(state.GetLLeaderHeight())
 	h.EntryBlockHeight = int64(state.GetLLeaderHeight())
 	h.EntryHeight = int64(state.GetEntryDBHeightComplete())
 
