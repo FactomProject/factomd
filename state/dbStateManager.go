@@ -138,10 +138,24 @@ func (ds *DBState) String() string {
 	return str
 }
 
-func (list *DBStateList) GetHighestRecordedBlock() uint32 {
+func (list *DBStateList) GetHighestSavedBlock() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
 		if dbstate != nil && dbstate.Locked {
+			ht = list.Base + uint32(i)
+		} else {
+			if dbstate == nil {
+				return ht
+			}
+		}
+	}
+	return ht
+}
+
+func (list *DBStateList) GetHighestCompletedBlock() uint32 {
+	ht := list.Base
+	for i, dbstate := range list.DBStates {
+		if dbstate != nil && dbstate.Saved {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
@@ -157,7 +171,7 @@ func (list *DBStateList) Catchup() {
 
 	now := list.State.GetTimestamp()
 
-	dbsHeight := list.GetHighestRecordedBlock()
+	dbsHeight := list.GetHighestCompletedBlock()
 
 	// We only check if we need updates once every so often.
 

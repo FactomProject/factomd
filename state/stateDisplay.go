@@ -101,7 +101,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	ds.ControlPanelSetting = s.ControlPanelSetting
 
 	// DB Info
-	ds.CurrentNodeHeight = s.GetHighestRecordedBlock()
+	ds.CurrentNodeHeight = s.GetHighestCompletedBlock()
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
 	ds.CurrentEBDBHeight = s.EntryBlockDBHeightProcessing
 	ds.ProcessListHeight = uint32(int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1)
@@ -202,7 +202,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 	ds.RawSummary = prt
 
-	pl := s.ProcessLists.Get(s.GetHighestRecordedBlock())
+	pl := s.ProcessLists.Get(s.GetHighestCompletedBlock())
 	if pl != nil && pl.FedServers != nil {
 		ds.PrintMap = pl.PrintMap()
 		ds.ProcessList = pl.String()

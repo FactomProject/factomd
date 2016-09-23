@@ -46,11 +46,14 @@ type IState interface {
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
 	Process() (progress bool)
-	// This is the highest block signed off and recorded in the Database.  This
+	// This is the highest block completed.  It may or may not be saved in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
 	// validate transactions where the HighestRecordedBlock+1 != block holding said
 	// transaction.
-	GetHighestRecordedBlock() uint32
+	GetHighestCompletedBlock() uint32
+	// This is the highest block saved in the Database. A block is completed, then validated
+	// then saved.
+	GetHighestSavedBlock() uint32
 	// This is the Leader's view of the Height. It must be == HighestRecordedBlock+1.  Since
 	// Recording a block can take time, messages must be queued until the previous block is
 	// recorded (either by processing messages, or timing out and Leaders signing off the block)

@@ -766,6 +766,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
 				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds\n")
+				os.Stderr.WriteString("/             Toggle the sort order between ChainID and Factom Node Name\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
@@ -985,7 +986,7 @@ func faultSummary() string {
 	currentlyFaulted := "."
 
 	for i, fnode := range fnodes {
-		b := fnode.State.GetHighestRecordedBlock()
+		b := fnode.State.GetHighestCompletedBlock()
 		pl := fnode.State.ProcessLists.Get(b)
 		if pl != nil {
 			if i == 0 {
@@ -1017,7 +1018,7 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 	for *watchPL == value {
 		fnode := fnodes[*listenTo]
 		nprt := fnode.State.DBStates.String()
-		b := fnode.State.GetHighestRecordedBlock()
+		b := fnode.State.GetHighestCompletedBlock()
 		nprt = nprt + fnode.State.ProcessLists.String()
 		pl := fnode.State.ProcessLists.Get(b)
 		if pl != nil {

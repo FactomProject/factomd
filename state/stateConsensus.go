@@ -26,6 +26,47 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
+func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
+	if !ok {
+		return
+	}
+	s.SetString()
+	msg.ComputeVMIndex(s)
+
+	switch msg.Validate(s) {
+	case 1:
+		if s.RunLeader &&
+			s.Leader &&
+			!s.Saving &&
+			int(vm.Height) == len(vm.List) &&
+			(!s.Syncing || !vm.Synced) &&
+			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
+			s.LeaderPL.DBHeight == s.GetHighestKnownBlock() {
+			if len(vm.List) == 0 {
+				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
+				s.XReview = append(s.XReview, msg)
+			} else {
+				msg.LeaderExecute(s)
+			}
+		} else {
+			msg.FollowerExecute(s)
+		}
+		ret = true
+	case 0:
+		s.Holding[msg.GetMsgHash().Fixed()] = msg
+	default:
+		s.Holding[msg.GetMsgHash().Fixed()] = msg
+		if !msg.SentInvlaid() {
+			msg.MarkSentInvalid(true)
+			s.networkInvalidMsgQueue <- msg
+		}
+	}
+
+	return
+
+}
+
 func (s *State) Process() (progress bool) {
 
 	if !s.RunLeader {
@@ -42,52 +83,12 @@ func (s *State) Process() (progress bool) {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
 	}
 
-	// Executing a message means looking if it is valid, checking if we are a leader.
-	executeMsg := func(msg interfaces.IMsg) (ret bool) {
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
-		if !ok {
-			return
-		}
-		s.SetString()
-		msg.ComputeVMIndex(s)
-
-		switch msg.Validate(s) {
-		case 1:
-			if s.RunLeader &&
-				s.Leader &&
-				!s.Saving &&
-				int(vm.Height) == len(vm.List) &&
-				(!s.Syncing || !vm.Synced) &&
-				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) {
-				if len(vm.List) == 0 {
-					s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-					s.XReview = append(s.XReview, msg)
-				} else {
-					msg.LeaderExecute(s)
-				}
-			} else {
-				msg.FollowerExecute(s)
-			}
-			ret = true
-		case 0:
-			s.Holding[msg.GetMsgHash().Fixed()] = msg
-		default:
-			s.Holding[msg.GetMsgHash().Fixed()] = msg
-			if !msg.SentInvlaid() {
-				msg.MarkSentInvalid(true)
-				s.networkInvalidMsgQueue <- msg
-			}
-		}
-
-		return
-	}
-
 	s.ReviewHolding()
 
 	// Reprocess any stalled Acknowledgements
 	for i := 0; i < 5 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
-		progress = executeMsg(msg)
+		progress = s.executeMsg(vm, msg)
 		s.XReview = s.XReview[1:]
 	}
 
@@ -99,7 +100,7 @@ func (s *State) Process() (progress bool) {
 		}
 		progress = true
 	case msg := <-s.msgQueue:
-		if executeMsg(msg) && !msg.IsPeer2Peer() {
+		if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 			msg.SendOut(s, msg)
 		}
 	default:
@@ -276,7 +277,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if s.GetHighestRecordedBlock() > dbheight {
+	if s.GetHighestCompletedBlock() > dbheight {
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
@@ -979,7 +980,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
-	ht := s.GetHighestRecordedBlock()
+	ht := s.GetHighestCompletedBlock()
 	if dbheight <= ht || s.EOM {
 		return
 	}
@@ -1368,9 +1369,14 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
+// This is the highest block signed off, but not necessarily validted.
+func (s *State) GetHighestCompletedBlock() uint32 {
+	return s.DBStates.GetHighestCompletedBlock()
+}
+
 // This is the highest block signed off and recorded in the Database.
-func (s *State) GetHighestRecordedBlock() uint32 {
-	return s.DBStates.GetHighestRecordedBlock()
+func (s *State) GetHighestSavedBlock() uint32 {
+	return s.DBStates.GetHighestCompletedBlock()
 }
 
 // This is lowest block currently under construction under the "leader".
@@ -1395,7 +1401,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1415,7 +1421,7 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1432,7 +1438,7 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
@@ -1451,7 +1457,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestRecordedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()

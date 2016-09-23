@@ -758,7 +758,7 @@ func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	if pLists == nil {
 		return nil
 	}
-	ht := pLists.State.GetHighestRecordedBlock()
+	ht := pLists.State.GetHighestCompletedBlock()
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
@@ -840,7 +840,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() (progress bool) {
 
-	dbheight := s.GetHighestRecordedBlock()
+	dbheight := s.GetHighestCompletedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
 		dbheight++
@@ -927,7 +927,7 @@ func (s *State) catchupEBlocks() {
 	// If we still have 10 that we are asking for, then let's not add to the list.
 	if len(s.MissingEntryBlocks) < 10 {
 		// While we have less than 20 that we are asking for, look for more to ask for.
-		for s.EntryBlockDBHeightProcessing < s.GetHighestRecordedBlock() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
 			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
 			updateCommits := now.GetTime().Sub(db.GetTimestamp().GetTime()).Hours() <= 5
