@@ -623,7 +623,7 @@ func HandleV2GetHeight(state interfaces.IState, params interface{}) (interface{}
 
 	h.DirectoryBlockHeight = int64(state.GetHighestCompletedBlock())
 	h.LeaderHeight = int64(state.GetLLeaderHeight())
-	h.EntryBlockHeight = int64(state.GetEntryBlockDBHeightComplete())
+	h.EntryBlockHeight = int64(state.GetHighestCompletedBlock())
 	h.EntryHeight = int64(state.GetEntryDBHeightComplete())
 
 	return h, nil
