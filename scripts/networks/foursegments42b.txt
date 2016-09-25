@@ -1,12 +1,8 @@
 
-{color:#aa0000}
-
-http://arborjs.org/halfviz/#/MTA0ODM -> cap
+; http://arborjs.org/halfviz/#/MTA1NjA
 
 ; Default node color: Gray
 {color:#555555}
-
-Followers Gray -> cap
 
 0 -- 1 
 0 -- 2
@@ -88,7 +84,7 @@ Followers Gray -> cap
 33 -- 29
 
 34 -- 35
-34 -- 36
+35 -- 36
 36 -- 37
 37 -- 38
 38 -- 39
@@ -102,11 +98,62 @@ Followers Gray -> cap
 41 -- 27
 
 
+7 -- 34
+34 -- 19
+40 -- 24
+34 -- 38
+38 -- 25
+40 -- 17
+25 -- 14
+17 -- 27
+12 -- 20
+22 -- 7
+
+6 -- 18
+12 -- 28
+20 -- 41
+32 -- 9
+
+33 -- 15
+13 -- 3
+26 -- 11
+
+39 -- 24
+39 -- 19
+19 -- 6
+22 -- 34
+34 -- 39
+23 -- 34
+36 -- 38
+36 -- 34
+34 -- 6
+28 -- 41
+28 -- 20
+
+28 -- 15
+17 -- 41
+17 -- 24
+24 -- 38
+38 -- 26
+13 -- 18
+18 -- 20
+18 -- 3
+0 -- 20
+20 -- 40
+17 -- 32
+7 -- 39
+22 -- 36
+39 -- 25
+19 -- 40
+19 -- 12
+12 -- 41
+41 -- 8
+27 -- 9
+0 -- 13
+
+
 ; Federated Servers: Blue
 {color:#3333ff}
-
-Federated Servers Blue -> cap
-
 0
 1
 2
@@ -123,8 +170,6 @@ Federated Servers Blue -> cap
 ; Audit Servers: Green
 {color:#338833}
 
-Audit Servers Green -> cap
-
 12
 13
 14
@@ -136,8 +181,4 @@ Audit Servers Green -> cap
 20
 21
 22
-23
 
-{color:#ffffff}
-
-cap

@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
+	"time"
 )
 
 var _ = fmt.Print
@@ -42,7 +43,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			int(vm.Height) == len(vm.List) &&
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
-			s.LeaderPL.DBHeight == s.GetHighestKnownBlock() {
+			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				s.XReview = append(s.XReview, msg)
@@ -85,25 +86,45 @@ func (s *State) Process() (progress bool) {
 
 	s.ReviewHolding()
 
-	// Reprocess any stalled Acknowledgements
-	for i := 0; i < 5 && len(s.XReview) > 0; i++ {
+	more := false
+	// Process acknowledgements if we have some.
+ackLoop:
+	for i := 0; i < 55; i++ {
+		select {
+		case ack := <-s.ackQueue:
+			a := ack.(*messages.Ack)
+			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
+				ack.FollowerExecute(s)
+			}
+			progress = true
+		default:
+			more = true
+			break ackLoop
+		}
+	}
+
+	// Process inbound messages
+emptyLoop:
+	for i := 0; i < 55; i++ {
+		select {
+		case msg := <-s.msgQueue:
+			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
+				msg.SendOut(s, msg)
+			}
+		default:
+			more = true
+			break emptyLoop
+		}
+	}
+
+	// Reprocess any stalled messages, but not so much compared inbound messages
+	for i := 0; i < 2 && len(s.XReview) > 0; i++ {
 		msg := s.XReview[0]
 		progress = s.executeMsg(vm, msg)
 		s.XReview = s.XReview[1:]
 	}
-
-	select {
-	case ack := <-s.ackQueue:
-		a := ack.(*messages.Ack)
-		if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
-			ack.FollowerExecute(s)
-		}
-		progress = true
-	case msg := <-s.msgQueue:
-		if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
-			msg.SendOut(s, msg)
-		}
-	default:
+	if !more {
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	return
@@ -1144,35 +1165,35 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 						hb.DBlockHash = dbstate.DBHash
 						hb.IdentityChainID = s.IdentityChainID
 						hb.Sign(s.GetServerPrivateKey())
-						s.NetworkOutMsgQueue() <- hb
+						hb.SendOut(s, hb)
 					}
 				}
 			}
 			s.Saving = true
 		}
-	}
 
-	for k := range s.Commits {
-		vs := s.Commits[k]
-		if len(vs) == 0 {
-			delete(s.Commits, k)
-			continue
-		}
-		v, ok := vs[0].(interfaces.IMsg)
-		if ok {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-			if !ok {
-				copy(vs, vs[1:])
-				vs[len(vs)-1] = nil
-				s.Commits[k] = vs[:len(vs)-1]
+		for k := range s.Commits {
+			vs := s.Commits[k]
+			if len(vs) == 0 {
+				delete(s.Commits, k)
+				continue
+			}
+			v, ok := vs[0].(interfaces.IMsg)
+			if ok {
+				_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+				if !ok {
+					copy(vs, vs[1:])
+					vs[len(vs)-1] = nil
+					s.Commits[k] = vs[:len(vs)-1]
+				}
 			}
 		}
-	}
 
-	for k := range s.Acks {
-		v := s.Acks[k].(*messages.Ack)
-		if v.DBHeight < s.LLeaderHeight {
-			delete(s.Acks, k)
+		for k := range s.Acks {
+			v := s.Acks[k].(*messages.Ack)
+			if v.DBHeight < s.LLeaderHeight {
+				delete(s.Acks, k)
+			}
 		}
 	}
 

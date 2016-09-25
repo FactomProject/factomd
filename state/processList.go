@@ -560,7 +560,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	r.vmheight = uint32(height)
 
 	if p.Requests[r.key()] == nil {
-		r.sent = now + 1000
+		r.sent = now + 300
 		p.Requests[r.key()] = r
 		//fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
 		//	p.State.FactomNodeName,
@@ -574,7 +574,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		r = p.Requests[r.key()]
 	}
 
-	if now-r.sent >= waitSeconds*1000+1500 {
+	if now-r.sent >= waitSeconds*1000+300 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
 		// Okay, we are going to send one, so ask for all nil messages for this vm
@@ -727,7 +727,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			p.Ask(i, vm.Height, 1, 1)
+			p.Ask(i, vm.Height, 0, 1)
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
