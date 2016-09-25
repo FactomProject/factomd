@@ -119,7 +119,7 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 			// If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
 			msg.SetNetworkOrigin(m.GetNetworkOrigin())
-			state.NetworkOutMsgQueue() <- msg
+			msg.SendOut(state, msg)
 			state.IncDBStateAnswerCnt()
 		}
 	}
