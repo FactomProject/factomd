@@ -216,6 +216,8 @@ func (list *DBStateList) Catchup() {
 		}
 	}
 
+	end++ // ask for one more, just in case.
+
 	list.Lastreq = begin
 
 	end2 := begin + 400

@@ -40,7 +40,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		if s.RunLeader &&
 			s.Leader &&
 			!s.Saving &&
-			int(vm.Height) == len(vm.List) &&
+			vm != nil && int(vm.Height) == len(vm.List) &&
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
@@ -1089,6 +1089,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
+
+		s.SendHeartBeat()
+
 		return false
 	}
 
@@ -1157,18 +1160,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 				dbs.LeaderExecute(s)
 
-			} else {
-				for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
-					if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
-						hb := new(messages.Heartbeat)
-						hb.Timestamp = primitives.NewTimestampNow()
-						hb.DBlockHash = dbstate.DBHash
-						hb.IdentityChainID = s.IdentityChainID
-						hb.Sign(s.GetServerPrivateKey())
-						hb.SendOut(s, hb)
-					}
-				}
 			}
+
 			s.Saving = true
 		}
 
@@ -1198,6 +1191,23 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	return false
+}
+
+func (s *State) SendHeartBeat() {
+	dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
+	if dbstate == nil {
+		return
+	}
+	for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
+		if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
+			hb := new(messages.Heartbeat)
+			hb.Timestamp = primitives.NewTimestampNow()
+			hb.DBlockHash = dbstate.DBHash
+			hb.IdentityChainID = s.IdentityChainID
+			hb.Sign(s.GetServerPrivateKey())
+			hb.SendOut(s, hb)
+		}
+	}
 }
 
 // When we process the directory Signature, and we are the leader for said signature, it
@@ -1397,7 +1407,7 @@ func (s *State) GetHighestCompletedBlock() uint32 {
 
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestSavedBlock() uint32 {
-	return s.DBStates.GetHighestCompletedBlock()
+	return s.DBStates.GetHighestSavedBlock()
 }
 
 // This is lowest block currently under construction under the "leader".

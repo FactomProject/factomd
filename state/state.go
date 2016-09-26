@@ -32,6 +32,8 @@ var _ = fmt.Print
 type State struct {
 	filename string
 
+	SecretCode interfaces.IHash
+
 	Cfg interfaces.IFactomConfig
 
 	Prefix            string
@@ -1398,7 +1400,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Last().DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestSavedBlock())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}

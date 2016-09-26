@@ -10,7 +10,7 @@ sleep $x
 
 sleep 600
 
-for i in `seq 1 8`;
+for i in `seq 1 12`;
 do
     let y=$(shuf -i 3-10 -n 1)
 
