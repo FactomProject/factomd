@@ -546,6 +546,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 				relevantPL.FedServers[listIdx] = theAuditReplacement
 				relevantPL.FedServers[listIdx].SetOnline(true)
+				fmt.Println("JUSTIN FFF", relevantPL.State.FactomNodeName, "NOW HAS", relevantPL.FedServers[listIdx].GetChainID().String()[:10], "AT", listIdx)
 				relevantPL.AddAuditServer(fedServ.GetChainID())
 				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 				if foundVM, vmindex := relevantPL.GetVirtualServers(s.CurrentMinute, theAuditReplacement.GetChainID()); foundVM {

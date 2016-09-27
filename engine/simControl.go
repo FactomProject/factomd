@@ -988,7 +988,10 @@ func faultSummary() string {
 
 	for i, fnode := range fnodes {
 		b := fnode.State.GetHighestCompletedBlock()
-		pl := fnode.State.ProcessLists.Get(b)
+		pl := fnode.State.ProcessLists.Get(b + 1)
+		if pl == nil {
+			pl = fnode.State.ProcessLists.Get(b)
+		}
 		if pl != nil {
 			if i == 0 {
 				prt = prt + fmt.Sprintf("%s\n", headerTitle)
@@ -1000,12 +1003,13 @@ func faultSummary() string {
 			}
 			if fnode.State.Leader {
 				prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
-				for _, fed := range pl.FedServers {
+				for nn, fed := range pl.FedServers {
 					currentlyFaulted = "."
 					if !fed.IsOnline() {
 						currentlyFaulted = "F"
 					}
 					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
+					fmt.Println("JUSTIN", fnode.State.FactomNodeName, "SAYS", fed.GetChainID().String()[:10], currentlyFaulted, "(", nn, ")")
 				}
 				prt = prt + fmt.Sprintf("\n")
 			}
