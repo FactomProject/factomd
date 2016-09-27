@@ -640,6 +640,10 @@ func (s *State) GetEntryDBHeightComplete() uint32 {
 	return s.EntryDBHeightComplete
 }
 
+func (s *State) GetMissingEntryCount() uint32 {
+	return uint32(len(s.MissingEntries))
+}
+
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
 	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
