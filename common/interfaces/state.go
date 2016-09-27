@@ -85,8 +85,7 @@ type IState interface {
 
 	// Lists and Maps
 	// =====
-	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
-	GetFedServerFaults() [][]IMsg // Keep a fault list for every serverdata
+	GetAuditHeartBeats() []IMsg // The checklist of HeartBeats for this period
 
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)

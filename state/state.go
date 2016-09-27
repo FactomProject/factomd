@@ -177,8 +177,7 @@ type State struct {
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
 
-	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
-	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
+	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
@@ -598,7 +597,6 @@ func (s *State) Init() {
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
-	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
@@ -1106,10 +1104,6 @@ func (s *State) LogInfo(args ...interface{}) {
 
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
-}
-
-func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
-	return s.FedServerFaults
 }
 
 func (s *State) SetIsReplaying() {
