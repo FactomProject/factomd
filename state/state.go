@@ -32,6 +32,8 @@ var _ = fmt.Print
 type State struct {
 	filename string
 
+	SecretCode interfaces.IHash
+
 	Cfg interfaces.IFactomConfig
 
 	Prefix            string
@@ -638,6 +640,10 @@ func (s *State) GetEntryDBHeightComplete() uint32 {
 	return s.EntryDBHeightComplete
 }
 
+func (s *State) GetMissingEntryCount() uint32 {
+	return uint32(len(s.MissingEntries))
+}
+
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
 	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
@@ -923,8 +929,8 @@ func (s *State) catchupEBlocks() {
 				s.EntryDBHeightComplete)
 
 			for i, eb := range s.MissingEntries {
-				if i > 20 {
-					// Only send out 20 requests at a time.
+				if i > 200 {
+					// Only send out 200 requests at a time.
 					break
 				}
 				entryRequest := messages.NewMissingData(s, eb.entryhash)
@@ -1398,7 +1404,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Last().DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestSavedBlock())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}
