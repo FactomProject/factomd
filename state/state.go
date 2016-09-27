@@ -929,8 +929,8 @@ func (s *State) catchupEBlocks() {
 				s.EntryDBHeightComplete)
 
 			for i, eb := range s.MissingEntries {
-				if i > 20 {
-					// Only send out 20 requests at a time.
+				if i > 200 {
+					// Only send out 200 requests at a time.
 					break
 				}
 				entryRequest := messages.NewMissingData(s, eb.entryhash)
