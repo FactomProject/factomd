@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -17,6 +18,7 @@ import (
 type Heartbeat struct {
 	MessageBase
 	Timestamp       interfaces.Timestamp
+	SecretNumber    uint32
 	DBlockHash      interfaces.IHash //Hash of last Directory Block
 	IdentityChainID interfaces.IHash //Identity Chain ID
 
@@ -131,6 +133,8 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 		return nil, err
 	}
 
+	m.SecretNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
 	hash := new(primitives.Hash)
 
 	newData, err = hash.UnmarshalBinaryData(newData)
@@ -175,6 +179,8 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 	} else {
 		buf.Write(d)
 	}
+
+	binary.Write(&buf, binary.BigEndian, m.SecretNumber)
 
 	if d, err := m.DBlockHash.MarshalBinary(); err != nil {
 		return nil, err
@@ -262,6 +268,11 @@ func (m *Heartbeat) LeaderExecute(state interfaces.IState) {
 func (m *Heartbeat) FollowerExecute(state interfaces.IState) {
 	for _, auditServer := range state.GetAuditServers(state.GetLeaderHeight()) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
+			if m.IdentityChainID.IsSameAs(state.GetIdentityChainID()) {
+				if m.SecretNumber != state.GetSecretNumber(m.Timestamp) {
+					panic("We have seen a heartbeat using our Identity that isn't ours")
+				}
+			}
 			auditServer.SetOnline(true)
 		}
 	}

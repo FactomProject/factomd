@@ -13,6 +13,7 @@ type IState interface {
 
 	// Server
 	GetFactomNodeName() string
+	GetSecretNumber(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
 	Clone(number string) IState
 	GetCfg() IFactomConfig
 	LoadConfig(filename string, networkFlag string)

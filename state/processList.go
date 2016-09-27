@@ -815,6 +815,13 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
+	if ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
+		num := p.State.GetSecretNumber(ack.Timestamp)
+		if num != ack.SecretNumber {
+			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
+		}
+	}
+
 	if _, ok := m.(*messages.MissingMsg); ok {
 		panic("This shouldn't happen")
 	}

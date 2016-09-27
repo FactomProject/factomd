@@ -1202,6 +1202,7 @@ func (s *State) SendHeartBeat() {
 		if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
 			hb := new(messages.Heartbeat)
 			hb.Timestamp = primitives.NewTimestampNow()
+			hb.SecretNumber = s.GetSecretNumber(hb.Timestamp)
 			hb.DBlockHash = dbstate.DBHash
 			hb.IdentityChainID = s.IdentityChainID
 			hb.Sign(s.GetServerPrivateKey())
@@ -1543,6 +1544,7 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 	ack.VMIndex = vmIndex
 	ack.Minute = byte(s.ProcessLists.Get(s.LLeaderHeight).VMs[vmIndex].LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
+	ack.SecretNumber = s.GetSecretNumber(ack.Timestamp)
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
 
