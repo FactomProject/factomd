@@ -1009,7 +1009,6 @@ func faultSummary() string {
 						currentlyFaulted = "F"
 					}
 					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
-					fmt.Println("JUSTIN", fnode.State.FactomNodeName, "SAYS", fed.GetChainID().String()[:10], currentlyFaulted, "(", nn, ")")
 				}
 				prt = prt + fmt.Sprintf("\n")
 			}
