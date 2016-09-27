@@ -1003,7 +1003,7 @@ func faultSummary() string {
 			}
 			if fnode.State.Leader {
 				prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
-				for nn, fed := range pl.FedServers {
+				for _, fed := range pl.FedServers {
 					currentlyFaulted = "."
 					if !fed.IsOnline() {
 						currentlyFaulted = "F"
