@@ -629,10 +629,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		}*/
 
 		leaderMin := getLeaderMin(p)
-		leaderMin--
-		if leaderMin < 0 {
-			leaderMin = 9
-		}
 
 		myIndex := p.ServerMap[leaderMin][vmIndex]
 
@@ -702,6 +698,10 @@ func getLeaderMin(p *ProcessList) int {
 	}
 	if leaderMin >= 10 {
 		leaderMin = 0
+	}
+	leaderMin--
+	if leaderMin < 0 {
+		leaderMin = 9
 	}
 	return leaderMin
 }
