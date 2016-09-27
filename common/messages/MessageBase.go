@@ -51,7 +51,7 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	case DBStateMissing:
 		go resend(state, msg, 10, 5)
 	default:
-		state.NetworkOutMsgQueue() <- msg
+		go resend(state, msg, 2,1)
 	}
 }
 

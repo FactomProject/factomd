@@ -14,6 +14,8 @@ import (
 
 	"sync"
 
+	"crypto/rand"
+	"encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -477,6 +479,23 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 
 	}
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
+}
+
+func (s *State) GetSecretNumber(ts interfaces.Timestamp) uint32 {
+	if s.SecretCode == nil {
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		// Note that err == nil only if we read len(b) bytes.
+		if err != nil {
+			panic("Random Number Failure")
+		}
+		s.SecretCode = primitives.Sha(b)
+	}
+	var b [32]byte
+	copy(b[:], s.SecretCode.Bytes())
+	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))
+	c := primitives.Sha(b[:])
+	return binary.BigEndian.Uint32(c.Bytes())
 }
 
 func (s *State) Init() {
