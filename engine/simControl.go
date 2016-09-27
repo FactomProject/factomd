@@ -16,6 +16,7 @@ import (
 	"math/rand"
 
 	"bytes"
+
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
@@ -982,7 +983,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 func faultSummary() string {
 	prt := ""
 	headerTitle := "Faults"
-	headerLabel := "Fed   "
+	headerLabel := "VM    "
 	currentlyFaulted := "."
 
 	for i, fnode := range fnodes {
