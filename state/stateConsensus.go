@@ -665,7 +665,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
 			s.DB.ProcessEBlockBatch(eblock, true)
 
-			s.DB.ProcessEBlockBatch(eblock, true)
+			//s.DB.ProcessEBlockBatch(eblock, true)
 
 			for _, entryhash := range eblock.GetEntryHashes() {
 				if entryhash.IsMinuteMarker() {

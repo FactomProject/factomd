@@ -137,6 +137,10 @@ func (db *Overlay) FetchAllDBlocks() ([]interfaces.IDirectoryBlock, error) {
 	return toDBlocksList(list), nil
 }
 
+func (db *Overlay) FetchAllDBlockKeys() ([]interfaces.IHash, error) {
+	return db.FetchAllBlockKeysFromBucket(DIRECTORYBLOCK)
+}
+
 func toDBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IDirectoryBlock {
 	answer := make([]interfaces.IDirectoryBlock, len(source))
 	for i, v := range source {
