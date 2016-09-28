@@ -227,6 +227,19 @@ func (s *State) AddDBState(isNew bool,
 		s.RunLeader = false
 		s.Newblk = true
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+
+		{
+			// Okay, we have just loaded a new DBState.  The temp balances are no longer valid, if they exist.  Nuke them.
+			s.LeaderPL.FactoidBalancesTMutex.Lock()
+			defer s.LeaderPL.FactoidBalancesTMutex.Unlock()
+
+			s.LeaderPL.ECBalancesTMutex.Lock()
+			defer s.LeaderPL.ECBalancesTMutex.Unlock()
+
+			s.LeaderPL.FactoidBalancesT = map[[32]byte]int64{}
+			s.LeaderPL.ECBalancesT = map[[32]byte]int64{}
+		}
+
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		s.ProcessLists.UpdateState(s.LLeaderHeight)
 	}
