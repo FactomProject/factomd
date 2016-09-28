@@ -171,7 +171,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		GitBuild = "Unknown (Must install with script)"
 	}
 	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
-	
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -802,7 +802,7 @@ func checkControlPanelPassword(response http.ResponseWriter, request *http.Reque
 
 func checkAuthHeader(r *http.Request) bool {
 	if "" == StatePointer.GetRpcUser() {
-		//no username was specified in the config file or command line, meaning factomd API is open access
+		//no username was specified in the config file or command line, meaning factomd control panel is open access
 		return true
 	}
 

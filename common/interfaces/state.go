@@ -48,6 +48,8 @@ type IState interface {
 	GetRpcPass() string
 	SetRpcAuthHash(authHash []byte)
 	GetRpcAuthHash() []byte
+	GetTlsInfo() (bool, string, string)
+	GetFactomdLocations() string
 
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.

@@ -37,19 +37,22 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityAddress string
 
 		// Network Configuration
-		Network           string
-		MainNetworkPort   string
-		PeersFile         string
-		MainSeedURL       string
-		MainSpecialPeers  string
-		TestNetworkPort   string
-		TestSeedURL       string
-		TestSpecialPeers  string
-		LocalNetworkPort  string
-		LocalSeedURL      string
-		LocalSpecialPeers string
-		FactomdRpcUser    string
-		FactomdRpcPass    string
+		Network              string
+		MainNetworkPort      string
+		PeersFile            string
+		MainSeedURL          string
+		MainSpecialPeers     string
+		TestNetworkPort      string
+		TestSeedURL          string
+		TestSpecialPeers     string
+		LocalNetworkPort     string
+		LocalSeedURL         string
+		LocalSpecialPeers    string
+		FactomdTlsEnabled    bool
+		FactomdTlsPrivateKey string
+		FactomdTlsPublicCert string
+		FactomdRpcUser       string
+		FactomdRpcPass       string
 	}
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
@@ -147,6 +150,15 @@ LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482
 ExchangeRate                          = 00100000
 ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
 ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
+
+; These define if the PRC and Control Panel connection to factomd should be encrypted, and if it is, what files
+; are the secret key and the public certificate.  factom-cli and factom-walletd uses the certificate specified here if TLS is enabled.
+FactomdTlsEnabled                     = false
+FactomdTlsPrivateKey                  = "/full/path/to/factomdAPIpriv.key"
+FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
+
+; These are the username and password that factomd requires for the RPC API and the Control Panel
+; This file is also used by factom-cli and factom-walletd to determine what login to use
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
@@ -247,6 +259,9 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityAddress   %v", s.App.ExchangeRateAuthorityAddress))
+	out.WriteString(fmt.Sprintf("\n    FactomdTlsEnabled        %v", s.App.FactomdTlsEnabled))
+	out.WriteString(fmt.Sprintf("\n    FactomdTlsPrivateKey     %v", s.App.FactomdTlsPrivateKey))
+	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
 
