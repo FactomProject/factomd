@@ -61,7 +61,7 @@ func main() {
 		panic(err)
 	}
 
-	c := make(chan []interfaces.IDirectoryBlock, 100)
+	c := make(chan []interfaces.IDirectoryBlock, 5)
 	done := make(chan int, 100)
 
 	go SaveBlocksLoop(c, done)
