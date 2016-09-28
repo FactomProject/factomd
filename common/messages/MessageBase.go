@@ -41,7 +41,7 @@ func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	switch msg.(interface{}).(type) {
 	case ServerFault:
-		go resend(state, msg, 4, 1)
+		go resend(state, msg, 4, 5)
 	case FullServerFault:
 		go resend(state, msg, 3, 8)
 		go resend(state, msg, 9, 60)

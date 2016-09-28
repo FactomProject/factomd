@@ -582,6 +582,12 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 	ack := mmr.AckResponse.(*messages.Ack)
+
+	// If we don't need this message, we don't have to do everything else.
+	if ack.Validate(s) == -1 {
+		return
+	}
+
 	ack.Response = true
 	msg := mmr.MsgResponse
 	pl := s.ProcessLists.Get(ack.DBHeight)
