@@ -595,7 +595,8 @@ func (list *DBStateList) Highest() uint32 {
 	return high
 }
 
-func (list *DBStateList) Put(dbState *DBState) {
+// Return true if we actually added the dbstate to the list
+func (list *DBStateList) Put(dbState *DBState) bool {
 
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
@@ -627,7 +628,7 @@ searchLoop:
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		return
+		return false
 	}
 
 	// make room for this entry.
@@ -637,6 +638,8 @@ searchLoop:
 	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
 	}
+
+	return true
 }
 
 func (list *DBStateList) Get(height int) *DBState {
@@ -669,7 +672,11 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.FactoidBlock = factoidBlock
 	dbState.EntryCreditBlock = entryCreditBlock
 
-	list.Put(dbState)
+	// If we actually add this to the list, return the dbstate.
+	if list.Put(dbState) {
+		return dbState
+	}
 
-	return dbState
+	// Failed, so return nil
+	return nil
 }

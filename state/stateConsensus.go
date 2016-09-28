@@ -206,6 +206,10 @@ func (s *State) AddDBState(isNew bool,
 
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
 
+	if dbState == nil {
+		return nil
+	}
+
 	ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
 	DBKeyMR := dbState.DirectoryBlock.GetKeyMR().String()
 
@@ -336,10 +340,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
 		dbstatemsg.EntryCreditBlock)
-	dbstate.ReadyToSave = true
-
-	s.DBStateReplyCnt++
-
+	if dbstate == nil {
+		s.DBStateFailsCnt++
+	} else {
+		dbstate.ReadyToSave = true
+	}
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
@@ -1148,6 +1153,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		case s.CurrentMinute == 10:
 			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
+			if dbstate == nil {
+				dbstate = s.DBStates.Get(int(s.LeaderPL.DirectoryBlock.GetHeader().GetDBHeight()))
+			}
 			dbht := int(dbstate.DirectoryBlock.GetHeader().GetDBHeight())
 			if dbht > 0 {
 				prev := s.DBStates.Get(dbht - 1)
@@ -1183,7 +1191,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				if err != nil {
 					panic(err)
 				}
-
 				dbs.LeaderExecute(s)
 
 			}
