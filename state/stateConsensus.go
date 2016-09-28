@@ -10,6 +10,7 @@ import (
 
 	"time"
 
+	"errors"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -591,10 +592,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 
-	list := pl.VMs[ack.VMIndex].List
-	if ack.VMIndex < len(pl.FedServers) && int(ack.Height) >= len(list) || list[ack.Height] == nil {
-		s.MissingResponseAppliedCnt++
-	}
+	s.Acks[ack.GetHash().Fixed()] = ack
 
 	if okr {
 		ack.FollowerExecute(s)
@@ -605,6 +603,11 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	if !okr && !okm {
 		pl.AddToProcessList(ack, msg)
 	}
+
+	if s.Acks[ack.GetHash().Fixed()] == nil {
+		s.MissingResponseAppliedCnt++
+	}
+
 }
 
 func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
@@ -1197,24 +1200,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	return false
 }
 
-func (s *State) SendHeartBeat() {
-	dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
-	if dbstate == nil {
-		return
-	}
-	for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
-		if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
-			hb := new(messages.Heartbeat)
-			hb.Timestamp = primitives.NewTimestampNow()
-			hb.SecretNumber = s.GetSecretNumber(hb.Timestamp)
-			hb.DBlockHash = dbstate.DBHash
-			hb.IdentityChainID = s.IdentityChainID
-			hb.Sign(s.GetServerPrivateKey())
-			hb.SendOut(s, hb)
-		}
-	}
-}
-
 // When we process the directory Signature, and we are the leader for said signature, it
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
@@ -1324,6 +1309,36 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			fmt.Printf("Error in adding DB sig to admin block, %s\n", err.Error())
 		}
 	*/
+}
+
+func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
+	vms := s.ProcessLists.Get(uint32(dbheight)).VMs
+	if len(vms) <= vmIndex {
+		return nil, errors.New("Bad VM Index")
+	}
+	vm := vms[vmIndex]
+	if vm.Height > height {
+		return vm.List[height], nil
+	}
+	return nil, nil
+}
+
+func (s *State) SendHeartBeat() {
+	dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
+	if dbstate == nil {
+		return
+	}
+	for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
+		if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
+			hb := new(messages.Heartbeat)
+			hb.Timestamp = primitives.NewTimestampNow()
+			hb.SecretNumber = s.GetSecretNumber(hb.Timestamp)
+			hb.DBlockHash = dbstate.DBHash
+			hb.IdentityChainID = s.IdentityChainID
+			hb.Sign(s.GetServerPrivateKey())
+			hb.SendOut(s, hb)
+		}
+	}
 }
 
 func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {

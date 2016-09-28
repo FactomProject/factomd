@@ -80,9 +80,17 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
+
 	if m.authvalid {
 		return 1
 	}
+
+	// Only new acks are valid. Of course, the VMIndex has to be valid too.
+	msg, err := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	if err != nil || msg != nil {
+		return -1
+	}
+
 	// Check signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {

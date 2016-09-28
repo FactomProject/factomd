@@ -119,6 +119,10 @@ type IState interface {
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
 
+	// Get the message for the given vm index, dbheight, and height.  Returns nil if I
+	// have no such message.
+	GetMsg(vmIndex int, dbheight int, height int) (IMsg, error)
+
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
 
