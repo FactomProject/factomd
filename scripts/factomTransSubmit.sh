@@ -2,7 +2,7 @@
 
 	echo "Transactions: "
 
-for i in `seq 1 1`;
+for i in `seq 1 5`;
 do
     export loadrun
 	factom-cli2 newtransaction t
@@ -13,6 +13,8 @@ do
 	factom-cli2 sign t
 	factom-cli2 submit t
 	scripts/factomEC.sh &
-	sleep 10
 done
 
+let y=$(shuf -i 7-13 -n 1)
+echo SLEEP $y  YAWN
+sleep $y
