@@ -13,6 +13,5 @@ do
 	factom-cli2 sign t
 	factom-cli2 submit t
 	scripts/factomEC.sh &
-
 done
 sleep 10

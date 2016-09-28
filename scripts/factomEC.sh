@@ -8,7 +8,7 @@ echo xxxxxxxxxxxxxxxxxxxx Made Chain number: $mychain chainid: ${chain}
 let x=$(shuf -i 10-30 -n 1)
 sleep $x
 
-sleep 300
+sleep 600
 
 for i in `seq 1 12`;
 do
