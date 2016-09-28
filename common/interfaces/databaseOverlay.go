@@ -143,6 +143,7 @@ type DBOverlay interface {
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
+	FetchAllABlockKeys() ([]IHash, error)
 
 	SaveABlockHead(DatabaseBatchable) error
 
