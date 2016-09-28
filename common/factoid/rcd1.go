@@ -22,6 +22,7 @@ import (
 // this transaction.
 type RCD_1 struct {
 	PublicKey [constants.ADDRESS_LENGTH]byte
+	validSig  bool
 }
 
 var _ interfaces.IRCD = (*RCD_1)(nil)
@@ -68,6 +69,9 @@ func (r *RCD_1) MarshalText() ([]byte, error) {
 }
 
 func (w RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignatureBlock) bool {
+	if w.validSig {
+		return true
+	}
 	if sigblk == nil {
 		return false
 	}
@@ -84,7 +88,9 @@ func (w RCD_1) CheckSig(trans interfaces.ITransaction, sigblk interfaces.ISignat
 		return false
 	}
 
-	return ed25519.VerifyCanonical(&w.PublicKey, data, cryptosig)
+	w.validSig = ed25519.VerifyCanonical(&w.PublicKey, data, cryptosig)
+
+	return w.validSig
 }
 
 func (w RCD_1) Clone() interfaces.IRCD {

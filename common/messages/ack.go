@@ -17,18 +17,19 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
-	Timestamp    interfaces.Timestamp // Timestamp of Ack by Leader
-	SecretNumber uint32               // Secret Number used to detect multiple servers with the same ID
-	MessageHash  interfaces.IHash     // Hash of message acknowledged
-	DBHeight     uint32               // Directory Block Height that owns this ack
-	Height       uint32               // Height of this ack in this process list
-	SerialHash   interfaces.IHash     // Serial hash including previous ack
+	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
+	SaltNumber  uint32               // Secret Number used to detect multiple servers with the same ID
+	MessageHash interfaces.IHash     // Hash of message acknowledged
+	DBHeight    uint32               // Directory Block Height that owns this ack
+	Height      uint32               // Height of this ack in this process list
+	SerialHash  interfaces.IHash     // Serial hash including previous ack
 
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
 	hash      interfaces.IHash
 	authvalid bool
+	Response  bool // A response to a missing data request
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
@@ -169,7 +170,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
-	m.SecretNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.SaltNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	m.MessageHash = new(primitives.Hash)
 	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
@@ -228,7 +229,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, m.SecretNumber)
+	binary.Write(&buf, binary.BigEndian, m.SaltNumber)
 
 	data, err = m.MessageHash.MarshalBinary()
 	if err != nil {

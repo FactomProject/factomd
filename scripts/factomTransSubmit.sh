@@ -2,7 +2,7 @@
 
 	echo "Transactions: "
 
-for i in `seq 1 1`;
+for i in `seq 1 5`;
 do
     export loadrun
 	factom-cli2 newtransaction t
@@ -12,7 +12,6 @@ do
 	factom-cli2 addfee t b
 	factom-cli2 sign t
 	factom-cli2 submit t
-	scripts/factomEC.sh &
-	sleep 10
+	//scripts/factomEC.sh &
 done
 

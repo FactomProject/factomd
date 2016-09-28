@@ -961,8 +961,6 @@ func (s *State) catchupEBlocks() {
 		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
 			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
-			updateCommits := now.GetTime().Sub(db.GetTimestamp().GetTime()).Hours() <= 5
-
 			for i, ebKeyMR := range db.GetEntryHashes() {
 				// The first three entries (0,1,2) in every directory block are blocks we already have by
 				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
@@ -997,10 +995,8 @@ func (s *State) catchupEBlocks() {
 
 								s.MissingEntries = append(s.MissingEntries, v)
 							}
-							if updateCommits {
-								s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now)
-								delete(s.Commits, entryhash.Fixed())
-							}
+							s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now)
+							delete(s.Commits, entryhash.Fixed())
 						}
 					}
 				}

@@ -574,11 +574,20 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		r = p.Requests[r.key()]
 	}
 
+	vm := p.VMs[vmIndex]
+	if len(vm.List) > height && vm.List[height] == nil {
+		if p.Requests[r.key()] != nil {
+			s := r.sent
+			delete(p.Requests, r.key())
+			return int(s)
+		}
+		return 0
+	}
+
 	if now-r.sent >= waitSeconds*1000+300 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
 		// Okay, we are going to send one, so ask for all nil messages for this vm
-		vm := p.VMs[vmIndex]
 		for i, v := range vm.List {
 			if i != int(r.vmheight) && v == nil {
 				missingMsgRequest.AddHeight(uint32(i))
@@ -727,7 +736,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			p.Ask(i, vm.Height, 0, 1)
+			p.Ask(i, vm.Height, 2, 1)
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
@@ -750,7 +759,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				p.Ask(i, j, 0, 3)
+				p.Ask(i, j, 1, 3)
 				break VMListLoop
 			}
 
@@ -788,8 +797,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
-					vm.List[j] = nil
-					p.Ask(i, j, 0, 5)
 					break VMListLoop
 				}
 			}
@@ -815,9 +822,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
-	if ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
+	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
+	// the past.
+	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		num := p.State.GetSecretNumber(ack.Timestamp)
-		if num != ack.SecretNumber {
+		if num != ack.SaltNumber {
 			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
 	}

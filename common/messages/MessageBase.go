@@ -41,17 +41,18 @@ func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	switch msg.(interface{}).(type) {
 	case ServerFault:
-		go resend(state, msg, 20, 1)
+		go resend(state, msg, 4, 1)
 	case FullServerFault:
-		go resend(state, msg, 20, 1)
+		go resend(state, msg, 3, 8)
+		go resend(state, msg, 9, 60)
 	case Negotiation:
 		go resend(state, msg, 3, 1)
 	case MissingMsg:
-		go resend(state, msg, 3, 1)
+		go resend(state, msg, 1, 1)
 	case DBStateMissing:
-		go resend(state, msg, 10, 5)
+		go resend(state, msg, 2, 1)
 	default:
-		go resend(state, msg, 2,1)
+		go resend(state, msg, 1, 1)
 	}
 }
 

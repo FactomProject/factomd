@@ -581,6 +581,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 	ack := mmr.AckResponse.(*messages.Ack)
+	ack.Response = true
 	msg := mmr.MsgResponse
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
@@ -733,7 +734,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// If we added the ack, then it will be cleared from the ack map.
 		if s.Acks[m.GetMsgHash().Fixed()] == nil {
 			msg := m.(*messages.RevealEntryMsg)
-			s.NextCommit(msg.Entry.GetHash())
+			delete(s.Commits, msg.Entry.GetHash().Fixed())
 			// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 			s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 		}
@@ -835,6 +836,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	} else {
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
+		delete(s.Commits, eh.Fixed())
 	}
 }
 
@@ -1546,7 +1548,7 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 	ack.VMIndex = vmIndex
 	ack.Minute = byte(s.ProcessLists.Get(s.LLeaderHeight).VMs[vmIndex].LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
-	ack.SecretNumber = s.GetSecretNumber(ack.Timestamp)
+	ack.SaltNumber = s.GetSecretNumber(ack.Timestamp)
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
 
