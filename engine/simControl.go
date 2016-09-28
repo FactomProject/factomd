@@ -16,6 +16,7 @@ import (
 	"math/rand"
 
 	"bytes"
+
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
@@ -987,7 +988,10 @@ func faultSummary() string {
 
 	for i, fnode := range fnodes {
 		b := fnode.State.GetHighestCompletedBlock()
-		pl := fnode.State.ProcessLists.Get(b)
+		pl := fnode.State.ProcessLists.Get(b + 1)
+		if pl == nil {
+			pl = fnode.State.ProcessLists.Get(b)
+		}
 		if pl != nil {
 			if i == 0 {
 				prt = prt + fmt.Sprintf("%s\n", headerTitle)

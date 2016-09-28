@@ -179,8 +179,7 @@ type State struct {
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
 
-	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
-	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
+	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
@@ -617,7 +616,6 @@ func (s *State) Init() {
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
-	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
@@ -657,6 +655,10 @@ func (s *State) GetLLeaderHeight() uint32 {
 
 func (s *State) GetEntryDBHeightComplete() uint32 {
 	return s.EntryDBHeightComplete
+}
+
+func (s *State) GetMissingEntryCount() uint32 {
+	return uint32(len(s.MissingEntries))
 }
 
 func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
@@ -944,8 +946,8 @@ func (s *State) catchupEBlocks() {
 				s.EntryDBHeightComplete)
 
 			for i, eb := range s.MissingEntries {
-				if i > 20 {
-					// Only send out 20 requests at a time.
+				if i > 200 {
+					// Only send out 200 requests at a time.
 					break
 				}
 				entryRequest := messages.NewMissingData(s, eb.entryhash)
@@ -1121,10 +1123,6 @@ func (s *State) LogInfo(args ...interface{}) {
 
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
-}
-
-func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
-	return s.FedServerFaults
 }
 
 func (s *State) SetIsReplaying() {

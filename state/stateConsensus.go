@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"hash"
 
+	"time"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -15,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
-	"time"
 )
 
 var _ = fmt.Print
@@ -544,6 +545,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		for listIdx, fedServ := range relevantPL.FedServers {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 				relevantPL.FedServers[listIdx] = theAuditReplacement
+				relevantPL.FedServers[listIdx].SetOnline(true)
 				relevantPL.AddAuditServer(fedServ.GetChainID())
 				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 				if foundVM, vmindex := relevantPL.GetVirtualServers(s.CurrentMinute, theAuditReplacement.GetChainID()); foundVM {

@@ -56,6 +56,7 @@ type HeightResponse struct {
 	LeaderHeight         int64 `json:"leaderheight"`
 	EntryBlockHeight     int64 `json:"entryblockheight"`
 	EntryHeight          int64 `json:"entryheight"`
+	MissingEntryCount    int64 `json:"missingentrycount"`
 }
 
 type RawDataResponse struct {
