@@ -329,6 +329,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.Holding[key.Fixed()] = msg
 		return
 	case -1:
+		// Kill the previous DBState, because it could be bad.
+		s.DBStates.DBStates[dbheight-s.DBStates.Base] = nil
 		s.DBStateFailsCnt++
 		s.networkInvalidMsgQueue <- msg
 		return
