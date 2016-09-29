@@ -1338,7 +1338,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 }
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
-	vms := s.ProcessLists.Get(uint32(dbheight)).VMs
+
+	pl := s.ProcessLists.Get(uint32(dbheight))
+	if pl == nil {
+		return nil, errors.New("No Process List")
+	}
+	vms := pl.VMs
 	if len(vms) <= vmIndex {
 		return nil, errors.New("Bad VM Index")
 	}
