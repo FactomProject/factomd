@@ -122,25 +122,17 @@ func (m *EntryBlockResponse) FollowerExecute(state interfaces.IState) {
 	if len(state.NetworkOutMsgQueue()) > 1000 {
 		return
 	}
-	/*
-		// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
-		// just give them what they ask for.
-		start := m.DBHeightStart
-		end := m.DBHeightEnd
-		if end-start > 200 {
-			end = start + 200
-		}
-		for dbs := start; dbs <= end; dbs++ {
-			msg, err := state.LoadDBState(dbs)
-			if msg != nil && err == nil {
-				// If I don't have this block, ignore.
-				msg.SetOrigin(m.GetOrigin())
-				msg.SetNetworkOrigin(m.GetNetworkOrigin())
-				msg.SendOut(state, msg)
-				state.IncDBStateAnswerCnt()
-			}
-		}
-	*/
+
+	db := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	for _, v := range m.EBlocks {
+		db.ProcessEBlockBatchWithoutHead(v, true)
+	}
+	for _, v := range m.Entries {
+		db.InsertEntry(v)
+	}
+
 	return
 }
 
