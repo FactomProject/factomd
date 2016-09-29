@@ -218,7 +218,6 @@ func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAnd
 
 	answer := []interfaces.BinaryMarshallableAndCopyable{}
 	keys := [][]byte{}
-
 	for iter.Next() {
 		v := iter.Value()
 		vCopy := make([]byte, len(v))

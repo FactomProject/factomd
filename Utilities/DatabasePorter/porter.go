@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -24,11 +25,14 @@ type Printout struct {
 }
 
 var printout Printout
+var doPrint bool
 
 func PrintoutLoop() {
 	for {
 		time.Sleep(time.Second)
-		fmt.Printf("Fetching\t%5d/%v\t\tSaving\t%5d/%v\n", printout.FetchedBlock, printout.FetchingUntil, printout.SavedBlock, printout.SavingUntil)
+		if doPrint {
+			fmt.Printf("Fetching\t%5d/%v\t\tSaving\t%5d/%v\n", printout.FetchedBlock, printout.FetchingUntil, printout.SavedBlock, printout.SavingUntil)
+		}
 	}
 }
 
@@ -57,14 +61,15 @@ func main() {
 		panic(err)
 	}
 
-	c := make(chan []interfaces.IDirectoryBlock, 100)
+	c := make(chan []interfaces.IDirectoryBlock, 5)
 	done := make(chan int, 100)
 
 	go SaveBlocksLoop(c, done)
 	go PrintoutLoop()
+	doPrint = true
 
-	keyMRList := GetDBlockList()
-	for _, keymr := range keyMRList {
+	savedBatches := 0
+	for _, keymr := range GetDBlockList() {
 		endKeyMR := "0000000000000000000000000000000000000000000000000000000000000000"
 		startIndex := 0
 		if dbHead != nil {
@@ -123,16 +128,18 @@ func main() {
 
 		dBlockList = dBlockList[startIndex:]
 		c <- dBlockList
+		savedBatches++
 
 		dbHead = nextHead
 	}
 
-	for _ = range keyMRList {
+	for i := 0; i < savedBatches; i++ {
 		<-done
 	}
+	doPrint = false
 	time.Sleep(time.Second)
 
-	CheckDatabaseForMissingentries(dbo)
+	CheckDatabaseForMissingEntries(dbo)
 
 	fmt.Printf("\t\tRebulding DirBlockInfo\n")
 	err = dbo.RebuildDirBlockInfo()
@@ -262,14 +269,18 @@ func SaveBlocksLoop(input chan []interfaces.IDirectoryBlock, done chan int) {
 	}
 }
 
-func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
+func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 	fmt.Printf("\t\tIterating over DBlocks\n")
 	prevD, err := dbo.FetchDBlockHead()
 	if err != nil {
 		panic(err)
 	}
+
+	hashMap := map[string]string{}
+
 	for {
 		CheckDBlockEntries(prevD, dbo)
+		hashMap[prevD.DatabasePrimaryIndex().String()] = "OK"
 
 		if prevD.GetHeader().GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
@@ -300,6 +311,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		hashMap[prevEC.DatabasePrimaryIndex().String()] = "OK"
 		if prevEC.GetHeader().GetPrevHeaderHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
 		}
@@ -329,6 +341,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		hashMap[prevF.DatabasePrimaryIndex().String()] = "OK"
 		if prevF.GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
 		}
@@ -358,6 +371,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		hashMap[prevA.DatabasePrimaryIndex().String()] = "OK"
 		if prevA.GetHeader().GetPrevBackRefHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
 		}
@@ -379,6 +393,52 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 			//only iterate to the next block if it was properly fetched from the database
 			prevA = aBlock
 		}
+	}
+
+	fmt.Printf("\t\tFinding unused blocks\n")
+
+	hashes, err := dbo.FetchAllDBlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if hashMap[h.String()] == "" {
+			fmt.Printf("Superfluous DBlock - %v\n", h)
+		}
+		dbo.Delete(databaseOverlay.DIRECTORYBLOCK, h.Bytes())
+	}
+
+	hashes, err = dbo.FetchAllABlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if hashMap[h.String()] == "" {
+			fmt.Printf("Superfluous ABlock - %v\n", h)
+		}
+		dbo.Delete(databaseOverlay.ADMINBLOCK, h.Bytes())
+	}
+
+	hashes, err = dbo.FetchAllECBlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if hashMap[h.String()] == "" {
+			fmt.Printf("Superfluous ECBlock - %v\n", h)
+		}
+		dbo.Delete(databaseOverlay.ENTRYCREDITBLOCK, h.Bytes())
+	}
+
+	hashes, err = dbo.FetchAllFBlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if hashMap[h.String()] == "" {
+			fmt.Printf("Superfluous FBlock - %v\n", h)
+		}
+		dbo.Delete(databaseOverlay.FACTOIDBLOCK, h.Bytes())
 	}
 }
 

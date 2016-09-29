@@ -10,9 +10,9 @@ sleep $x
 
 sleep 600
 
-for i in `seq 1 5`;
+for i in `seq 1 12`;
 do
-    let y=$(shuf -i 3-40 -n 1)
+    let y=$(shuf -i 3-10 -n 1)
 
     sleep $y
     entry="$(echo "                Here are some random numbers: " $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM $RANDOM)"

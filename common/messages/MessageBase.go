@@ -7,6 +7,7 @@ package messages
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"time"
 )
 
 type MessageBase struct {
@@ -30,8 +31,28 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
+func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
+	for i := 0; i < cnt; i++ {
+		state.NetworkOutMsgQueue() <- msg
+		time.Sleep(time.Duration(delay) * time.Second)
+	}
+}
+
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
-	state.NetworkOutMsgQueue() <- msg
+	switch msg.(interface{}).(type) {
+	case ServerFault:
+		go resend(state, msg, 20, 1)
+	case FullServerFault:
+		go resend(state, msg, 20, 1)
+	case Negotiation:
+		go resend(state, msg, 3, 1)
+	case MissingMsg:
+		go resend(state, msg, 3, 1)
+	case DBStateMissing:
+		go resend(state, msg, 10, 5)
+	default:
+		go resend(state, msg, 2, 1)
+	}
 }
 
 func (m *MessageBase) IsValid() bool {
