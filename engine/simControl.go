@@ -1010,6 +1010,35 @@ func faultSummary() string {
 					}
 					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
 				}
+				if pl.AmINegotiator {
+					if len(fnode.State.FaultMap) > 0 {
+						prt = prt + fmt.Sprintf("| Faults:")
+
+						if len(fnode.State.FaultMap) < 4 {
+							for faultKey, faultKeyList := range fnode.State.FaultMap {
+								prt = prt + fmt.Sprintf(" (%x):", faultKey[:3])
+								for _, faultVoteSig := range faultKeyList {
+									prt = prt + fmt.Sprintf(" %x ", faultVoteSig.Bytes()[:3])
+								}
+							}
+						} else {
+							//too many, line gets cluttered, just show totals
+							for faultKey, faultKeyList := range fnode.State.FaultMap {
+								prt = prt + fmt.Sprintf(" (%x):%d", faultKey[:3], len(faultKeyList))
+							}
+						}
+
+						prt = prt + " |"
+					}
+
+					if len(pl.PledgeMap) > 0 {
+						prt = prt + fmt.Sprintf(" Pledges:")
+						for pledger, pledgeSlot := range pl.PledgeMap {
+							prt = prt + fmt.Sprintf(" %s:%s ", pledger[:10], pledgeSlot[:10])
+						}
+					}
+				}
+
 				prt = prt + fmt.Sprintf("\n")
 			}
 		}
