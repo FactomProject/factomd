@@ -41,6 +41,9 @@ const (
 
 	BOUNCE_MSG      // 26	test message
 	BOUNCEREPLY_MSG // 26	test message
+
+	MISSING_ENTRY_BLOCKS //27
+	ENTRY_BLOCK_RESPONSE //28
 )
 
 const (
