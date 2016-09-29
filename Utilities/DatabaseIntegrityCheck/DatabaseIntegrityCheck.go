@@ -117,7 +117,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 
 	fmt.Printf("\tLooking for free-floating blocks\n")
 
-	dBlocks, err := dbo.FetchAllDBlocks()
+	dBlocks, err := dbo.FetchAllDBlockKeys()
 	if err != nil {
 		panic(err)
 	}
@@ -125,12 +125,12 @@ func CheckDatabase(db interfaces.IDatabase) {
 		fmt.Printf("Found %v dBlocks, expected %v\n", len(dBlocks), i)
 	}
 	for _, block := range dBlocks {
-		if hashMap[block.DatabasePrimaryIndex().String()] == "" {
-			fmt.Printf("Free-floating DBlock - %v, %v\n", block.DatabasePrimaryIndex().String(), block.String())
+		if hashMap[block.String()] == "" {
+			fmt.Printf("Free-floating DBlock - %v\n", block.String())
 		}
 	}
 
-	aBlocks, err := dbo.FetchAllABlocks()
+	aBlocks, err := dbo.FetchAllABlockKeys()
 	if err != nil {
 		panic(err)
 	}
@@ -138,12 +138,12 @@ func CheckDatabase(db interfaces.IDatabase) {
 		fmt.Printf("Found %v aBlocks, expected %v\n", len(aBlocks), i)
 	}
 	for _, block := range aBlocks {
-		if hashMap[block.DatabasePrimaryIndex().String()] == "" {
-			fmt.Printf("Free-floating ABlock - %v, %v\n", block.DatabasePrimaryIndex().String(), block.String())
+		if hashMap[block.String()] == "" {
+			fmt.Printf("Free-floating ABlock - %v\n", block.String())
 		}
 	}
 
-	fBlocks, err := dbo.FetchAllFBlocks()
+	fBlocks, err := dbo.FetchAllFBlockKeys()
 	if err != nil {
 		panic(err)
 	}
@@ -151,12 +151,12 @@ func CheckDatabase(db interfaces.IDatabase) {
 		fmt.Printf("Found %v fBlocks, expected %v\n", len(fBlocks), i)
 	}
 	for _, block := range fBlocks {
-		if hashMap[block.DatabasePrimaryIndex().String()] == "" {
-			fmt.Printf("Free-floating FBlock - %v, %v\n", block.DatabasePrimaryIndex().String(), block.String())
+		if hashMap[block.String()] == "" {
+			fmt.Printf("Free-floating FBlock - %v\n", block.String())
 		}
 	}
 
-	ecBlocks, err := dbo.FetchAllECBlocks()
+	ecBlocks, err := dbo.FetchAllECBlockKeys()
 	if err != nil {
 		panic(err)
 	}
@@ -164,8 +164,8 @@ func CheckDatabase(db interfaces.IDatabase) {
 		fmt.Printf("Found %v ecBlocks, expected %v\n", len(ecBlocks), i)
 	}
 	for _, block := range ecBlocks {
-		if hashMap[block.DatabasePrimaryIndex().String()] == "" {
-			fmt.Printf("Free-floating ECBlock - %v, %v\n", block.DatabasePrimaryIndex().String(), block.String())
+		if hashMap[block.String()] == "" {
+			fmt.Printf("Free-floating ECBlock - %v\n", block.String())
 		}
 	}
 

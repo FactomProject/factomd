@@ -73,6 +73,10 @@ func (db *Overlay) FetchAllFBlocks() ([]interfaces.IFBlock, error) {
 	return toFactoidList(list), nil
 }
 
+func (db *Overlay) FetchAllFBlockKeys() ([]interfaces.IHash, error) {
+	return db.FetchAllBlockKeysFromBucket(FACTOIDBLOCK)
+}
+
 func toFactoidList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IFBlock {
 	answer := make([]interfaces.IFBlock, len(source))
 	for i, v := range source {

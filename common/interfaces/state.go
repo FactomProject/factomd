@@ -216,4 +216,6 @@ type IState interface {
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32
 	GetMissingEntryCount() uint32
+	GetEntryBlockDBHeightProcessing() uint32
+	GetEntryBlockDBHeightComplete() uint32
 }
