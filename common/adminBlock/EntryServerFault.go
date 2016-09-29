@@ -90,7 +90,7 @@ func (e *ServerFault) UpdateState(state interfaces.IState) error {
 	feds := state.GetFedServers(state.GetLeaderHeight())
 
 	//50% threshold
-	if verifiedSignatures < len(feds)/2 {
+	if verifiedSignatures <= len(feds)/2 {
 		return fmt.Errorf("Quorum not reached for ServerFault")
 	}
 

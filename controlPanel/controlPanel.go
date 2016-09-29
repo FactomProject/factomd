@@ -120,7 +120,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	mux = http.NewServeMux()
 	mux.Handle("/", files.StaticServer)
 
-	go doEvery(5*time.Second, getRecentTransactions)
+	go doEvery(10*time.Second, getRecentTransactions)
 	go manageConnections(connections)
 
 	http.HandleFunc("/", static(indexHandler))
