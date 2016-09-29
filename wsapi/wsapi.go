@@ -93,7 +93,7 @@ func Start(state interfaces.IState) {
 				Certificates: []tls.Certificate{keypair},
 				MinVersion:   tls.VersionTLS12,
 			}
-			server.RunTLS(fmt.Sprintf(":%d", state.GetPort()), tlsConfig)
+			go server.RunTLS(fmt.Sprintf(":%d", state.GetPort()), tlsConfig)
 
 		} else {
 			log.Print("Starting API server")
