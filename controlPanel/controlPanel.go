@@ -113,8 +113,6 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
-	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
-
 	// Mux for static files
 	mux = http.NewServeMux()
 	mux.Handle("/", files.StaticServer)
@@ -128,7 +126,25 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	http.HandleFunc("/factomd", factomdHandler)
 	http.HandleFunc("/factomdBatch", factomdBatchHandler)
 
-	http.ListenAndServe(portStr, nil)
+	tlsIsEnabled, tlsPrivate, tlsPublic := StatePointer.GetTlsInfo()
+	if tlsIsEnabled {
+	waitfortls:
+		for {
+			// lets wait for both the tls cert and key to be created.  if they are not created, wait for the RPC API process to create the files.
+			// it is in a different goroutine, so just wait until it is done.  it happens in wsapi.Start with genCertPair()
+			if _, err := os.Stat(tlsPublic); err == nil {
+				if _, err := os.Stat(tlsPrivate); err == nil {
+					break waitfortls
+				}
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		fmt.Println("Starting encrypted Control Panel on https://localhost" + portStr + "/  Please note the HTTPS in the browser.")
+		http.ListenAndServeTLS(portStr, tlsPublic, tlsPrivate, nil)
+	} else {
+		fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
+		http.ListenAndServe(portStr, nil)
+	}
 }
 
 func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
