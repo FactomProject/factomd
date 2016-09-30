@@ -637,8 +637,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 10, 2)
 		}
 
-		fmt.Println("JUSTIN", state.FactomNodeName, vm.faultHeight, vm.faultHeight)
-
 		if vm.faultHeight > 0 && vm.Height > vm.faultHeight {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
 				p.AmINegotiator = false
