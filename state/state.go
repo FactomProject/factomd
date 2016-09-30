@@ -983,8 +983,10 @@ func (s *State) catchupEBlocks() {
 
 							s.MissingEntries = append(s.MissingEntries, v)
 						}
-						s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now)
-						delete(s.Commits, entryhash.Fixed())
+						// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+						if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
+							delete(s.Commits, entryhash.Fixed())
+						}
 					}
 				}
 			}

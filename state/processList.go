@@ -854,6 +854,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
+	if p == nil {
+		return
+	}
+
 	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
 	// the past.
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
@@ -873,10 +877,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-	}
-
-	if p == nil {
-		return
 	}
 
 	now := p.State.GetTimestamp()
