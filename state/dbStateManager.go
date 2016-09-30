@@ -33,9 +33,13 @@ type DBState struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	Locked           bool
-	ReadyToSave      bool
-	Saved            bool
+
+	EntryBlocks []interfaces.IEntryBlock
+	Entries     []interfaces.IEBEntry
+
+	Locked      bool
+	ReadyToSave bool
+	Saved       bool
 }
 
 type DBStateList struct {
@@ -474,7 +478,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
-
 	if !d.Locked || !d.ReadyToSave {
 		return
 	}
@@ -529,6 +532,17 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 		panic(err.Error())
+	}
+
+	for _, eb := range d.EntryBlocks {
+		if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+			panic(err.Error())
+		}
+	}
+	for _, e := range d.Entries {
+		if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
+			panic(err.Error())
+		}
 	}
 
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
@@ -657,7 +671,9 @@ func (list *DBStateList) NewDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
+	entryCreditBlock interfaces.IEntryCreditBlock,
+	eBlocks []interfaces.IEntryBlock,
+	entries []interfaces.IEBEntry) *DBState {
 
 	dbState := new(DBState)
 
@@ -671,6 +687,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.AdminBlock = adminBlock
 	dbState.FactoidBlock = factoidBlock
 	dbState.EntryCreditBlock = entryCreditBlock
+	dbState.EntryBlocks = eBlocks
+	dbState.Entries = entries
 
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {

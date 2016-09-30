@@ -77,7 +77,7 @@ func LoadDatabase(s *State) {
 		dblk.SetECBlockHash(ecblk)
 		dblk.SetFBlockHash(fblk)
 
-		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil)
 		s.InMsgQueue() <- msg
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))

@@ -725,7 +725,27 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic("Should not happen")
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+	var eBlocks []interfaces.IEntryBlock
+	var entries []interfaces.IEBEntry
+
+	if len(dblk.GetDBEntries()) > 2 {
+		for _, v := range dblk.GetDBEntries()[3:] {
+			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+			eBlocks = append(eBlocks, eBlock)
+			for _, e := range eBlock.GetEntryHashes() {
+				entry, err := s.DB.FetchEntry(e)
+				if err != nil {
+					return nil, err
+				}
+				entries = append(entries, entry)
+			}
+		}
+	}
+
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
 
 	return msg, nil
 }
