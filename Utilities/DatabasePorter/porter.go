@@ -24,11 +24,14 @@ type Printout struct {
 }
 
 var printout Printout
+var doPrint bool
 
 func PrintoutLoop() {
 	for {
 		time.Sleep(time.Second)
-		fmt.Printf("Fetching\t%5d/%v\t\tSaving\t%5d/%v\n", printout.FetchedBlock, printout.FetchingUntil, printout.SavedBlock, printout.SavingUntil)
+		if doPrint {
+			fmt.Printf("Fetching\t%5d/%v\t\tSaving\t%5d/%v\n", printout.FetchedBlock, printout.FetchingUntil, printout.SavedBlock, printout.SavingUntil)
+		}
 	}
 }
 
@@ -62,9 +65,10 @@ func main() {
 
 	go SaveBlocksLoop(c, done)
 	go PrintoutLoop()
+	doPrint = true
 
-	keyMRList := GetDBlockList()
-	for _, keymr := range keyMRList {
+	savedBatches := 0
+	for _, keymr := range GetDBlockList() {
 		endKeyMR := "0000000000000000000000000000000000000000000000000000000000000000"
 		startIndex := 0
 		if dbHead != nil {
@@ -123,13 +127,15 @@ func main() {
 
 		dBlockList = dBlockList[startIndex:]
 		c <- dBlockList
+		savedBatches++
 
 		dbHead = nextHead
 	}
 
-	for _ = range keyMRList {
+	for i := 0; i < savedBatches; i++ {
 		<-done
 	}
+	doPrint = false
 	time.Sleep(time.Second)
 
 	CheckDatabaseForMissingentries(dbo)
