@@ -100,6 +100,20 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 							delete(p.PledgeMap, pledger)
 							if pledger == p.State.IdentityChainID.String() {
 								p.AmIPledged = false
+
+								for faultKey, sf := range p.State.FaultInfoMap {
+									if sf.AuditServerID.String() == pledger && len(p.State.FaultVoteMap[faultKey]) > len(p.FedServers)/2 {
+										p.AmIPledged = true
+										p.PledgeMap[p.State.IdentityChainID.String()] = sf.ServerID.String()
+
+										nsf := messages.NewServerFault(p.State.GetTimestamp(), sf.ServerID, p.State.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+										if nsf != nil {
+											nsf.Sign(p.State.serverPrivKey)
+											p.State.NetworkOutMsgQueue() <- nsf
+											p.State.InMsgQueue() <- nsf
+										}
+									}
+								}
 							}
 						}
 					}

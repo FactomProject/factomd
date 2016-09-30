@@ -397,7 +397,7 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
-	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
 
 	p.MakeMap()
 
@@ -418,7 +418,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
-	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID}
+	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
 
 	return i
 }
@@ -637,6 +637,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 10, 2)
 		}
 
+		fmt.Println("JUSTIN", state.FactomNodeName, vm.faultHeight, vm.faultHeight)
+
 		if vm.faultHeight > 0 && vm.Height > vm.faultHeight {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
 				p.AmINegotiator = false
@@ -651,7 +653,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 							delete(p.PledgeMap, pledger)
 							if pledger == state.IdentityChainID.String() {
 								p.AmIPledged = false
+
 							}
+						}
+					}
+					for faultKey, faultInfo := range state.FaultInfoMap {
+						if faultInfo.ServerID.String() == p.FedServers[fedServerToUnfault].GetChainID().String() {
+							delete(state.FaultInfoMap, faultKey)
+							delete(state.FaultVoteMap, faultKey)
 						}
 					}
 				}
