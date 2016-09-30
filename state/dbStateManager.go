@@ -223,6 +223,9 @@ func (list *DBStateList) Catchup() {
 		}
 	}
 
+	if begin > 0 {
+		begin--
+	}
 	end++ // ask for one more, just in case.
 
 	list.Lastreq = begin
@@ -535,17 +538,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 		panic(err.Error())
-	}
-
-	for _, eb := range d.EntryBlocks {
-		if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-			panic(err.Error())
-		}
-	}
-	for _, e := range d.Entries {
-		if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-			panic(err.Error())
-		}
 	}
 
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {

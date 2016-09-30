@@ -731,16 +731,14 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if len(dblk.GetDBEntries()) > 2 {
 		for _, v := range dblk.GetDBEntries()[3:] {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
-			if err != nil || eBlock == nil {
-				return nil, err
+			if err == nil && eBlock != nil {
+				eBlocks = append(eBlocks, eBlock)
 			}
-			eBlocks = append(eBlocks, eBlock)
 			for _, e := range eBlock.GetEntryHashes() {
 				entry, err := s.DB.FetchEntry(e)
-				if err != nil || entry == nil {
-					return nil, err
+				if err == nil && entry != nil {
+					entries = append(entries, entry)
 				}
-				entries = append(entries, entry)
 			}
 		}
 	}
