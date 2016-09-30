@@ -850,7 +850,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	}
 	now := s.GetTimestamp()
 	// If we have already recorded a Reveal Entry with this hash in this period, just ignore.
-	if _, v := s.Replay.Valid(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now); !v {
+	if _, v := s.Replay.Valid(constants.REVEAL_REPLAY, eh.Fixed(), s.GetLeaderTimestamp(), now); !v {
 		return
 	}
 
