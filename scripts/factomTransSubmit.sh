@@ -13,6 +13,8 @@ do
 	factom-cli2 sign t
 	factom-cli2 submit t
 	scripts/factomEC.sh &
-	sleep 10
 done
 
+let y=$(shuf -i 7-13 -n 1)
+echo SLEEP $y  YAWN
+sleep $y

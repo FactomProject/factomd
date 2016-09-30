@@ -13,6 +13,7 @@ type IState interface {
 
 	// Server
 	GetFactomNodeName() string
+	GetSecretNumber(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
 	Clone(number string) IState
 	GetCfg() IFactomConfig
 	LoadConfig(filename string, networkFlag string)
@@ -85,8 +86,7 @@ type IState interface {
 
 	// Lists and Maps
 	// =====
-	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
-	GetFedServerFaults() [][]IMsg // Keep a fault list for every serverdata
+	GetAuditHeartBeats() []IMsg // The checklist of HeartBeats for this period
 
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
@@ -118,6 +118,10 @@ type IState interface {
 	// Returns the list of VirtualServers at a given directory block height and minute
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
+
+	// Get the message for the given vm index, dbheight, and height.  Returns nil if I
+	// have no such message.
+	GetMsg(vmIndex int, dbheight int, height int) (IMsg, error)
 
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
@@ -211,4 +215,7 @@ type IState interface {
 
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32
+	GetMissingEntryCount() uint32
+	GetEntryBlockDBHeightProcessing() uint32
+	GetEntryBlockDBHeightComplete() uint32
 }

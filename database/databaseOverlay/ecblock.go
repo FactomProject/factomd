@@ -95,6 +95,10 @@ func (db *Overlay) FetchAllECBlocks() ([]interfaces.IEntryCreditBlock, error) {
 	return toECBlocksList(list), nil
 }
 
+func (db *Overlay) FetchAllECBlockKeys() ([]interfaces.IHash, error) {
+	return db.FetchAllBlockKeysFromBucket(ENTRYCREDITBLOCK)
+}
+
 func toECBlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IEntryCreditBlock {
 	answer := make([]interfaces.IEntryCreditBlock, len(source))
 	for i, v := range source {

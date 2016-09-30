@@ -550,9 +550,7 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-// Return the number of times we have tripped an ask for this request.
-func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
-	now := p.State.GetTimestamp().GetTimeMilli()
+func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds int64) *Request {
 
 	r := new(Request)
 	r.wait = waitSeconds
@@ -562,23 +560,60 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	if p.Requests[r.key()] == nil {
 		r.sent = now + 300
 		p.Requests[r.key()] = r
-		//fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
-		//	p.State.FactomNodeName,
-		//	p.DBHeight,
-		//	r.vmIndex,
-		//	r.vmheight,
-		//	r.wait,
-		//	now-r.sent,
-		//	waitSeconds*1000+1000)
 	} else {
 		r = p.Requests[r.key()]
 	}
 
-	if now-r.sent >= waitSeconds*1000+300 {
+	vm := p.VMs[vmIndex]
+	if len(vm.List) > height && vm.List[height] != nil {
+		if p.Requests[r.key()] != nil {
+			delete(p.Requests, r.key())
+			return nil
+		}
+	}
+
+	return r
+
+}
+
+// Return the number of times we have tripped an ask for this request.
+func (p *ProcessList) AskDBState(vmIndex int, height int) int {
+	now := p.State.GetTimestamp().GetTimeMilli()
+
+	r := p.GetRequest(now, vmIndex, height, 60)
+
+	if r == nil {
+		return 0
+	}
+
+	if now-r.sent >= r.wait*1000+500 {
+		dbstate := messages.NewDBStateMissing(p.State, p.State.LLeaderHeight, p.State.LLeaderHeight+1)
+
+		dbstate.SendOut(p.State, dbstate)
+		p.State.DBStateAskCnt++
+
+		r.sent = now
+		r.requestCnt++
+	}
+
+	return r.requestCnt
+}
+
+// Return the number of times we have tripped an ask for this request.
+func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
+	now := p.State.GetTimestamp().GetTimeMilli()
+
+	r := p.GetRequest(now, vmIndex, len(p.VMs[0].List), waitSeconds)
+
+	if r == nil {
+		return 0
+	}
+
+	if now-r.sent >= waitSeconds*1000+500 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
-		// Okay, we are going to send one, so ask for all nil messages for this vm
 		vm := p.VMs[vmIndex]
+		// Okay, we are going to send one, so ask for all nil messages for this vm
 		for i, v := range vm.List {
 			if i != int(r.vmheight) && v == nil {
 				missingMsgRequest.AddHeight(uint32(i))
@@ -629,10 +664,6 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		}*/
 
 		leaderMin := getLeaderMin(p)
-		leaderMin--
-		if leaderMin < 0 {
-			leaderMin = 9
-		}
 
 		myIndex := p.ServerMap[leaderMin][vmIndex]
 
@@ -703,6 +734,10 @@ func getLeaderMin(p *ProcessList) int {
 	if leaderMin >= 10 {
 		leaderMin = 0
 	}
+	leaderMin--
+	if leaderMin < 0 {
+		leaderMin = 9
+	}
 	return leaderMin
 }
 
@@ -714,6 +749,9 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
+
+	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
+
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
@@ -765,10 +803,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					vm.List[j] = nil
-					vm.ListAck[j] = nil
-					// Ask for the correct ack if this one is no good.
-					p.Ask(i, j, 0, 4)
+					p.Ask(i, j, 3, 4)
 					break VMListLoop
 				}
 
@@ -788,8 +823,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
-					vm.List[j] = nil
-					p.Ask(i, j, 0, 5)
 					break VMListLoop
 				}
 			}
@@ -814,6 +847,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
+	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
+	// the past.
+	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
+		num := p.State.GetSecretNumber(ack.Timestamp)
+		if num != ack.SaltNumber {
+			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
+		}
+	}
 
 	if _, ok := m.(*messages.MissingMsg); ok {
 		panic("This shouldn't happen")
