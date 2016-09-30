@@ -53,9 +53,12 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-// Validate this directory block is a possible part of a valid Next DBState.  Doesn't check
-// signatures, as those are in the next block. Does check that this DBState holds
+// Validate this directory block given the next Directory Block.  Need to check the
+// signatures as being from the authority set, and valid. Also check that this DBState holds
 // a previous KeyMR that matches the previous DBState KeyMR.
+//
+// Return a -1 on failure.
+//
 func (d *DBState) ValidNext(state *State, dirblk interfaces.IDirectoryBlock) int {
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	if dbheight == 0 {

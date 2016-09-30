@@ -331,6 +331,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.Holding[key.Fixed()] = msg
 		return
 	case -1:
+		// Kill the previous DBState, because it could be bad.
+		s.DBStates.DBStates[dbheight-s.DBStates.Base] = nil
 		s.DBStateFailsCnt++
 		s.networkInvalidMsgQueue <- msg
 		return
@@ -1351,7 +1353,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 }
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
-	vms := s.ProcessLists.Get(uint32(dbheight)).VMs
+
+	pl := s.ProcessLists.Get(uint32(dbheight))
+	if pl == nil {
+		return nil, errors.New("No Process List")
+	}
+	vms := pl.VMs
 	if len(vms) <= vmIndex {
 		return nil, errors.New("Bad VM Index")
 	}
