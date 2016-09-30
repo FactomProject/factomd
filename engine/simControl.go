@@ -866,6 +866,11 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 			prt = prt + fmt.Sprintf("%3d %1s%1s %s \n", i, in, api, f.State.ShortString())
 		}
 
+		if *listenTo < len(pnodes) {
+			f := pnodes[*listenTo]
+			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryHeightComplete)
+		}
+
 		for _, f := range pnodes {
 			fctSubmits += f.State.FCTSubmits
 			ecCommits += f.State.ECCommits
