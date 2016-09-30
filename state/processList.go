@@ -100,18 +100,14 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	// Negotiation tracker variables
-	AmINegotiator bool
 	// This is the index of the VM we are negotiating for, if we are
 	// in fact a Negotiator
 	NegotiatorVMIndex int
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
-	//FaultTimes map[string]int64
-	// FaultTimes keeps track of when a particular ServerID initially
-	// deserved a fault, so that we can time out the negotiation process
-	// (and its various phases) properly
+	AmINegotiator bool
+	// NegotiationInit is used to keep track of the time when a negotiation began
 	NegotiationInit map[string]int64
 
 	AmIPledged       bool
@@ -650,8 +646,17 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if fedServerToUnfault >= 0 && fedServerToUnfault < len(p.FedServers) {
 				if p.FedServers[fedServerToUnfault] != nil {
 					p.FedServers[fedServerToUnfault].SetOnline(true)
+					for pledger, pledgeSlot := range p.PledgeMap {
+						if pledgeSlot == p.FedServers[fedServerToUnfault].GetChainID().String() {
+							delete(p.PledgeMap, pledger)
+							if pledger == state.IdentityChainID.String() {
+								p.AmIPledged = false
+							}
+						}
+					}
 				}
 			}
+
 		}
 
 	VMListLoop:
@@ -953,7 +958,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
 
-	//pl.FaultTimes = make(map[string]int64)
 	pl.AmINegotiator = false
 	pl.NegotiationInit = make(map[string]int64)
 	pl.AlreadyNominated = make(map[string]map[string]int64)

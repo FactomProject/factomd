@@ -151,7 +151,7 @@ type IState interface {
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list
 	FollowerExecuteAck(IMsg)          // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg)      // Add the given DBState to this server
-	FollowerExecuteSFault(IMsg)       // Handle Server Fault Messages
+	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
 	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
 	FollowerExecuteNegotiation(IMsg)  // Message to start the negotiation process to replace a faulted server

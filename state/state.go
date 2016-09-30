@@ -16,6 +16,7 @@ import (
 
 	"crypto/rand"
 	"encoding/binary"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -180,8 +181,10 @@ type State struct {
 	InvalidMessagesMutex sync.RWMutex
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
-	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
+	FaultVoteMap    map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
+	FaultInfoMap map[[32]byte]FaultCore
+	// Contains detailed fault information for the ongoing negotiations
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -299,7 +302,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LocalNetworkPort = s.LocalNetworkPort
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
-	clone.FaultMap = s.FaultMap
+	clone.FaultVoteMap = s.FaultVoteMap
+	clone.FaultInfoMap = s.FaultInfoMap
 	clone.StartDelayLimit = s.StartDelayLimit
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
@@ -541,7 +545,8 @@ func (s *State) Init() {
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
-	s.FaultMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
+	s.FaultVoteMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
+	s.FaultInfoMap = make(map[[32]byte]FaultCore)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}

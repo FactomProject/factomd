@@ -1011,20 +1011,31 @@ func faultSummary() string {
 					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
 				}
 				if pl.AmINegotiator {
-					if len(fnode.State.FaultMap) > 0 {
+					faultsIAmNegotiating := make(map[string]bool)
+					if len(fnode.State.FaultVoteMap) > 0 {
 						prt = prt + fmt.Sprintf("| Faults:")
 
-						if len(fnode.State.FaultMap) < 4 {
-							for faultKey, faultKeyList := range fnode.State.FaultMap {
-								prt = prt + fmt.Sprintf(" (%x):", faultKey[:3])
-								for _, faultVoteSig := range faultKeyList {
-									prt = prt + fmt.Sprintf(" %x ", faultVoteSig.Bytes()[:3])
+						if len(fnode.State.FaultVoteMap) < 4 {
+							for faultKey, faultKeyList := range fnode.State.FaultVoteMap {
+								if faultInfo, faultFound := fnode.State.FaultInfoMap[faultKey]; faultFound {
+									if int(faultInfo.VMIndex) == pl.NegotiatorVMIndex {
+										faultsIAmNegotiating[faultInfo.ServerID.String()] = true
+										prt = prt + fmt.Sprintf(" (%x) %x/%x:", faultKey[:3], faultInfo.ServerID.Bytes()[2:5], faultInfo.AuditServerID.Bytes()[2:5])
+										for _, faultVoteSig := range faultKeyList {
+											prt = prt + fmt.Sprintf(" %x ", faultVoteSig.Bytes()[:3])
+										}
+									}
 								}
 							}
 						} else {
 							//too many, line gets cluttered, just show totals
-							for faultKey, faultKeyList := range fnode.State.FaultMap {
-								prt = prt + fmt.Sprintf(" (%x):%d", faultKey[:3], len(faultKeyList))
+							for faultKey, faultKeyList := range fnode.State.FaultVoteMap {
+								if faultInfo, faultFound := fnode.State.FaultInfoMap[faultKey]; faultFound {
+									if int(faultInfo.VMIndex) == pl.NegotiatorVMIndex {
+										faultsIAmNegotiating[faultInfo.ServerID.String()] = true
+										prt = prt + fmt.Sprintf(" (%x) %x/%x:%d", faultKey[:3], faultInfo.ServerID.Bytes()[2:5], faultInfo.AuditServerID.Bytes()[2:5], len(faultKeyList))
+									}
+								}
 							}
 						}
 
@@ -1032,9 +1043,17 @@ func faultSummary() string {
 					}
 
 					if len(pl.PledgeMap) > 0 {
-						prt = prt + fmt.Sprintf(" Pledges:")
-						for pledger, pledgeSlot := range pl.PledgeMap {
-							prt = prt + fmt.Sprintf(" %s:%s ", pledger[:10], pledgeSlot[:10])
+						alreadyStartedPledgePrint := false
+						for myNegotiationPledge, _ := range faultsIAmNegotiating {
+							for pledger, pledgeSlot := range pl.PledgeMap {
+								if pledgeSlot == myNegotiationPledge {
+									if !alreadyStartedPledgePrint {
+										prt = prt + fmt.Sprintf(" Pledges:")
+										alreadyStartedPledgePrint = true
+									}
+									prt = prt + fmt.Sprintf(" %s/%s ", pledgeSlot[4:10], pledger[4:10])
+								}
+							}
 						}
 					}
 				}
