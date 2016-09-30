@@ -46,7 +46,7 @@ func TestMarshalUnmarshalMissingDsg(t *testing.T) {
 	}
 
 	if msg.IsSameAs(msg2.(*MissingMsg)) != true {
-		t.Errorf("MissingMsg messages are not identical")
+		t.Error("MissingMsg messages are not identical")
 	}
 }
 
@@ -55,7 +55,7 @@ func newMissingMsg() *MissingMsg {
 	msg.Timestamp = primitives.NewTimestampNow()
 
 	msg.DBHeight = 0x12345678
-	msg.ProcessListHeight = 0x98765432
+	msg.ProcessListHeight = append(msg.ProcessListHeight, 0x98765432)
 
 	return msg
 }

@@ -50,12 +50,16 @@ func (c *AdminBlock) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *AdminBlock) UpdateState(state interfaces.IState) {
+func (c *AdminBlock) UpdateState(state interfaces.IState) error {
 	for _, entry := range c.ABEntries {
-		entry.UpdateState(state)
+		err := entry.UpdateState(state)
+		if err != nil {
+			return err
+		}
 	}
 	// Clear any keys that are now too old to be valid
 	state.UpdateAuthSigningKeys(c.Header.GetDBHeight())
+	return nil
 }
 
 func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IFullSignature) error {
@@ -63,28 +67,28 @@ func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IF
 	if err != nil {
 		return err
 	}
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 	return nil
 }
 
 func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
 	entry := NewAddFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) {
 	entry := NewAddAuditServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) {
 	entry := NewRemoveFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) {
 	entry := NewAddReplaceMatryoshkaHash(identityChainID, mHash)
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 }
 
 func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey *[32]byte) error {
@@ -94,7 +98,7 @@ func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHa
 		return err
 	}
 	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p, c.Header.GetDBHeight()+1)
-	c.ABEntries = append(c.ABEntries, entry)
+	c.AddEntry(entry)
 	return nil
 }
 
@@ -105,9 +109,36 @@ func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfac
 		return err
 	} else {
 		entry := NewAddFederatedServerBitcoinAnchorKey(identityChainID, keyPriority, keyType, *b)
-		c.ABEntries = append(c.ABEntries, entry)
+		c.AddEntry(entry)
 		return nil
 	}
+}
+
+func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) {
+	for i := range c.ABEntries {
+		if c.ABEntries[i].Type() == constants.TYPE_SERVER_FAULT {
+			c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{entry}, c.ABEntries[i:]...)...)
+			return
+		}
+	}
+	c.ABEntries = append(c.ABEntries, entry)
+}
+
+func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) {
+	sf, ok := serverFault.(*ServerFault)
+	if ok == false {
+		return
+	}
+
+	for i := range c.ABEntries {
+		if c.ABEntries[i].Type() == sf.Type() {
+			if c.ABEntries[i].(*ServerFault).Compare(sf) > 0 {
+				c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{sf}, c.ABEntries[i:]...)...)
+				return
+			}
+		}
+	}
+	c.ABEntries = append(c.ABEntries, sf)
 }
 
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
@@ -183,7 +214,7 @@ func (b *AdminBlock) LookupHash() (interfaces.IHash, error) {
 
 // Add an Admin Block entry to the block
 func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
-	b.ABEntries = append(b.ABEntries, e)
+	b.AddEntry(e)
 	return
 }
 
@@ -271,8 +302,10 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 			b.ABEntries[i] = new(AddFederatedServerSigningKey)
 		case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 			b.ABEntries[i] = new(AddFederatedServerBitcoinAnchorKey)
+		case constants.TYPE_SERVER_FAULT:
+			b.ABEntries[i] = new(ServerFault)
 		default:
-			fmt.Println("AB UNDEFINED ENTRY")
+			fmt.Printf("AB UNDEFINED ENTRY %x for block %v\n", newData[0], b.Header.GetDBHeight())
 			panic("Undefined Admin Block Entry Type")
 		}
 		newData, err = b.ABEntries[i].UnmarshalBinaryData(newData)

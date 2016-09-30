@@ -14,6 +14,8 @@ import (
 
 	"sync"
 
+	"crypto/rand"
+	"encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -31,6 +33,8 @@ var _ = fmt.Print
 
 type State struct {
 	filename string
+
+	SecretCode interfaces.IHash
 
 	Cfg interfaces.IFactomConfig
 
@@ -92,10 +96,10 @@ type State struct {
 	DBStateReplyCnt int
 	DBStateFailsCnt int
 
-	MissingAskCnt    int
-	MissingAnsCnt    int
-	MissingReplyCnt  int
-	MissingIgnoreCnt int
+	MissingRequestSendCnt     int
+	MissingRequestReplyCnt    int
+	MissingRequestIgnoreCnt   int
+	MissingResponseAppliedCnt int
 
 	ResendCnt int
 	ExpireCnt int
@@ -185,8 +189,7 @@ type State struct {
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
 
-	AuditHeartBeats []interfaces.IMsg   // The checklist of HeartBeats for this period
-	FedServerFaults [][]interfaces.IMsg // Keep a fault list for every server
+	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
 	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
@@ -397,10 +400,6 @@ func (s *State) GetFactomdLocations() string {
 	return s.FactomdLocations
 }
 
-func (s *State) IncMissingMsgReply() {
-	s.MissingReplyCnt++
-}
-
 func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
 }
@@ -540,6 +539,23 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
 }
 
+func (s *State) GetSecretNumber(ts interfaces.Timestamp) uint32 {
+	if s.SecretCode == nil {
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		// Note that err == nil only if we read len(b) bytes.
+		if err != nil {
+			panic("Random Number Failure")
+		}
+		s.SecretCode = primitives.Sha(b)
+	}
+	var b [32]byte
+	copy(b[:], s.SecretCode.Bytes())
+	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))
+	c := primitives.Sha(b[:])
+	return binary.BigEndian.Uint32(c.Bytes())
+}
+
 func (s *State) Init() {
 
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
@@ -658,7 +674,6 @@ func (s *State) Init() {
 	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
-	s.FedServerFaults = make([][]interfaces.IMsg, 0)
 
 	s.initServerKeys()
 	s.AuthorityServerCount = 0
@@ -692,8 +707,19 @@ func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
 	s.EntryBlockDBHeightProcessing = newHeight
 }
 
-func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
+func (s *State) GetLLeaderHeight() uint32 {
+	return s.LLeaderHeight
+}
 
+func (s *State) GetEntryDBHeightComplete() uint32 {
+	return s.EntryDBHeightComplete
+}
+
+func (s *State) GetMissingEntryCount() uint32 {
+	return uint32(len(s.MissingEntries))
+}
+
+func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfaces.IHash {
 	entry, err := s.DB.FetchEntry(entryHash)
 	if err != nil {
 		return nil
@@ -820,7 +846,7 @@ func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	if pLists == nil {
 		return nil
 	}
-	ht := pLists.State.GetHighestRecordedBlock()
+	ht := pLists.State.GetHighestCompletedBlock()
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
@@ -902,7 +928,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() (progress bool) {
 
-	dbheight := s.GetHighestRecordedBlock()
+	dbheight := s.GetHighestCompletedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
 		dbheight++
@@ -921,6 +947,11 @@ func (s *State) UpdateState() (progress bool) {
 		s.CopyStateToControlPanel()
 	}
 	return
+}
+
+func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) bool {
+	_, ok := s.Replay.Valid(constants.REVEAL_REPLAY, entryhash.Fixed(), ts, s.GetTimestamp())
+	return ok
 }
 
 func (s *State) catchupEBlocks() {
@@ -955,6 +986,7 @@ func (s *State) catchupEBlocks() {
 
 	if len(s.MissingEntries) == 0 {
 		s.MissingEntryRepeat = nil
+		s.EntryDBHeightComplete = s.EntryBlockDBHeightComplete
 	} else {
 		if s.MissingEntryRepeat == nil {
 			s.MissingEntryRepeat = now
@@ -972,8 +1004,8 @@ func (s *State) catchupEBlocks() {
 				s.EntryDBHeightComplete)
 
 			for i, eb := range s.MissingEntries {
-				if i > 20 {
-					// Only send out 20 requests at a time.
+				if i > 200 {
+					// Only send out 200 requests at a time.
 					break
 				}
 				entryRequest := messages.NewMissingData(s, eb.entryhash)
@@ -984,8 +1016,9 @@ func (s *State) catchupEBlocks() {
 	// If we still have 10 that we are asking for, then let's not add to the list.
 	if len(s.MissingEntryBlocks) < 10 {
 		// While we have less than 20 that we are asking for, look for more to ask for.
-		for s.EntryBlockDBHeightProcessing < s.GetHighestRecordedBlock() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
 			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
+
 			for i, ebKeyMR := range db.GetEntryHashes() {
 				// The first three entries (0,1,2) in every directory block are blocks we already have by
 				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
@@ -996,11 +1029,11 @@ func (s *State) catchupEBlocks() {
 
 				// Ask for blocks we don't have.
 				if !s.DatabaseContains(ebKeyMR) {
-					//fmt.Println("JUSTIN", s.FactomNodeName, "APPENDING TO MISSINGENTRYBLOCKS:", ebKeyMR.String()[:15])
 					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 				} else {
 					eblock, err := s.DB.FetchEBlock(ebKeyMR)
+
 					if err == nil && eblock != nil {
 						for _, entryhash := range eblock.GetEntryHashes() {
 							if entryhash.IsMinuteMarker() {
@@ -1017,15 +1050,15 @@ func (s *State) catchupEBlocks() {
 								v.dbheight = eblock.GetHeader().GetDBHeight()
 								v.entryhash = entryhash
 								v.ebhash = ebKeyMR
-								fmt.Println("JUSTIN", s.FactomNodeName, "FROM EB APP2 ", entryhash.String())
 
 								s.MissingEntries = append(s.MissingEntries, v)
 							}
+							s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now)
+							delete(s.Commits, entryhash.Fixed())
 						}
 					}
 				}
 			}
-			//fmt.Println("JUSTIN", s.FactomNodeName, "INCREMENTING EBDBHP TO", s.EntryBlockDBHeightProcessing+1)
 			s.EntryBlockDBHeightProcessing++
 		}
 	}
@@ -1144,10 +1177,6 @@ func (s *State) LogInfo(args ...interface{}) {
 
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
-}
-
-func (s *State) GetFedServerFaults() [][]interfaces.IMsg {
-	return s.FedServerFaults
 }
 
 func (s *State) SetIsReplaying() {
@@ -1348,7 +1377,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %4s %10s %-8s %-9s %15s %9s\n",
+	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -1358,7 +1387,7 @@ func (s *State) SummaryHeader() string {
 		"PL  ",
 		" ",
 		"Min",
-		"DBState(ask/ans/rply/fail)",
+		"DBState(ask/rply/drop/apply)",
 		"Msg",
 		"   Resend",
 		"Expire",
@@ -1442,7 +1471,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Last().DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestSavedBlock())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}
@@ -1474,8 +1503,8 @@ func (s *State) SetStringQueues() {
 		pls)
 
 	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
-	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingAskCnt, s.MissingAnsCnt, s.MissingReplyCnt, s.MissingIgnoreCnt)
-	str = str + fmt.Sprintf(" %2s/%2d %15s %18s ",
+	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestSendCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
+	str = str + fmt.Sprintf(" %2s/%2d %15s %26s ",
 		lmin,
 		s.CurrentMinute,
 		dbstate,

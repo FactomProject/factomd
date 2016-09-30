@@ -36,6 +36,7 @@ type DBOverlay interface {
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessEBlockBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	FetchEBlock(IHash) (IEntryBlock, error)
@@ -62,6 +63,7 @@ type DBOverlay interface {
 
 	// ProcessDBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessDBlockBatch(block DatabaseBlockWithEntries) error
+	ProcessDBlockBatchWithoutHead(block DatabaseBlockWithEntries) error
 	ProcessDBlockMultiBatch(block DatabaseBlockWithEntries) error
 
 	// FetchHeightRange looks up a range of blocks by the start and ending
@@ -95,6 +97,7 @@ type DBOverlay interface {
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() ([]IDirectoryBlock, error)
+	FetchAllDBlockKeys() ([]IHash, error)
 
 	SaveDirectoryBlockHead(DatabaseBlockWithEntries) error
 
@@ -117,6 +120,7 @@ type DBOverlay interface {
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
+	FetchAllECBlockKeys() ([]IHash, error)
 
 	SaveECBlockHead(IEntryCreditBlock, bool) error
 
@@ -126,6 +130,7 @@ type DBOverlay interface {
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessABlockBatch(block DatabaseBatchable) error
+	ProcessABlockBatchWithoutHead(block DatabaseBatchable) error
 	ProcessABlockMultiBatch(block DatabaseBatchable) error
 
 	FetchABlock(IHash) (IAdminBlock, error)
@@ -138,6 +143,7 @@ type DBOverlay interface {
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
+	FetchAllABlockKeys() ([]IHash, error)
 
 	SaveABlockHead(DatabaseBatchable) error
 
@@ -147,6 +153,7 @@ type DBOverlay interface {
 
 	// ProcessFBlockBatch inserts the Factoid
 	ProcessFBlockBatch(DatabaseBlockWithEntries) error
+	ProcessFBlockBatchWithoutHead(DatabaseBlockWithEntries) error
 	ProcessFBlockMultiBatch(DatabaseBlockWithEntries) error
 
 	FetchFBlock(IHash) (IFBlock, error)
@@ -158,10 +165,12 @@ type DBOverlay interface {
 
 	// FetchAllFBlocks gets all of the admin blocks
 	FetchAllFBlocks() ([]IFBlock, error)
+	FetchAllFBlockKeys() ([]IHash, error)
 
 	SaveFactoidBlockHead(fblock DatabaseBlockWithEntries) error
 
 	FetchFactoidBlockHead() (IFBlock, error)
+	FetchFBlockHead() (IFBlock, error)
 
 	//******************************DirBlockInfo********************************//
 

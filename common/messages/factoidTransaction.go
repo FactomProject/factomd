@@ -129,11 +129,8 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 	m.processed = true
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
-		// Need to do something here if the transaction sent from the leader
-		// does not validate.  Maybe the follower ignores, but leaders should fault
-		// the offending leader...   For now we print and ignore.
-		// TODO
 		fmt.Println(err)
+		return false
 	}
 
 	state.IncFactoidTrans()

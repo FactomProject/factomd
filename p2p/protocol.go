@@ -25,9 +25,8 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 		panic("Full channel.")
 	case highWaterMark < clen:
 		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, message)
-		for highWaterMark < clen+100 { // Clear out some messages
+		for highWaterMark <= len(channel) { // Clear out some messages
 			<-channel
-			clen = len(channel)
 		}
 		fallthrough
 	default:
@@ -43,11 +42,14 @@ var (
 	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                       = TestNet
 	NetworkListenPort                    = "8108"
+	BroadcastFlag                        = "<BROADCAST>"
+	RandomPeerFlag                       = "<RANDOMPEER>"
 	NodeID                        uint64 = 0           // Random number used for loopback protection
 	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
 	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                     = false
+	NetworkDeadline                      = time.Duration(10000) * time.Millisecond
 	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
@@ -72,9 +74,9 @@ var (
 
 const (
 	// ProtocolVersion is the latest version this package supports
-	ProtocolVersion uint16 = 05
+	ProtocolVersion uint16 = 06
 	// ProtocolVersionMinimum is the earliest version this package supports
-	ProtocolVersionMinimum uint16 = 05
+	ProtocolVersionMinimum uint16 = 06
 	// Don't think we need this.
 	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
 	// Used in generating message CRC values
@@ -131,10 +133,10 @@ var LoggingLevels = map[uint8]string{
 }
 
 func dot(dot string) {
-	if 5 < CurrentLoggingLevel {
+	if 1 < CurrentLoggingLevel {
 		switch dot {
 		case "":
-
+			fmt.Printf(".")
 		default:
 			fmt.Printf(dot)
 		}

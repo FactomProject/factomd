@@ -13,7 +13,6 @@ import (
 	"math"
 
 	"bufio"
-	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -26,6 +25,7 @@ import (
 var _ = fmt.Print
 
 type FactomNode struct {
+	Index int
 	State *state.State
 	Peers []interfaces.IPeer
 	MLog  *MsgLog
@@ -37,6 +37,7 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 
 func NetStart(s *state.State) {
+	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
@@ -60,13 +61,16 @@ func NetStart(s *state.State) {
 	rotatePtr := flag.Bool("rotate", false, "If true, responsiblity is owned by one leader, and rotated over the leaders.")
 	timeOffsetPtr := flag.Int("timedelta", 0, "Maximum timeDelta in milliseconds to offset each node.  Simulates deltas in system clocks over a network.")
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
-	startDelayPtr := flag.Int("startdelay", 20, "Delay to start processing messages, in seconds")
+	startDelayPtr := flag.Int("startdelay", 5, "Delay to start processing messages, in seconds")
+	deadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 	rpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
+
 	flag.Parse()
 
+	enableNet := *enablenetPtr
 	listenTo := *listenToPtr
 	cnt := *cntPtr
 	net := *netPtr
@@ -91,6 +95,7 @@ func NetStart(s *state.State) {
 	timeOffset := *timeOffsetPtr
 	keepMismatch := *keepMismatchPtr
 	startDelay := int64(*startDelayPtr)
+	deadline := *deadlinePtr
 	rpcUser := *rpcUserflag
 	rpcPassword := *rpcPasswordflag
 	factomdTLS := *factomdTLSflag
@@ -162,9 +167,11 @@ func NetStart(s *state.State) {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 			fnode.State.ShutdownChan <- 0
 		}
-		p2pNetwork.NetworkStop()
-		// NODE_TALK_FIX
-		p2pProxy.stopProxy()
+		if enableNet {
+			p2pNetwork.NetworkStop()
+			// NODE_TALK_FIX
+			p2pProxy.stopProxy()
+		}
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
 		os.Exit(0)
@@ -212,6 +219,7 @@ func NetStart(s *state.State) {
 
 	go StartProfiler()
 
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", enableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", cnt))
@@ -231,6 +239,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", deadline))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
@@ -262,20 +271,6 @@ func NetStart(s *state.State) {
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
-	// Sort the FNodes by ID
-	for i := 0; i < len(fnodes)-1; i++ {
-		for j := 0; j < len(fnodes)-1-i; j++ {
-			if bytes.Compare(fnodes[j].State.IdentityChainID.Bytes(), fnodes[j+1].State.IdentityChainID.Bytes()) > 0 {
-				tmp := fnodes[j]
-				fnodes[j] = fnodes[j+1]
-				fnodes[j+1] = tmp
-			}
-		}
-	}
-	for i := 0; i < len(fnodes); i++ {
-		fnodes[i].State.FactomNodeName = fmt.Sprintf("FNode%d", i)
-	}
-
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
@@ -303,36 +298,42 @@ func NetStart(s *state.State) {
 	default:
 		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
 	}
-	if 0 < networkPortOverride {
-		networkPort = fmt.Sprintf("%d", networkPortOverride)
-	}
+
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
-	ci := p2p.ControllerInit{
-		Port:                     networkPort,
-		PeersFile:                s.PeersFile,
-		Network:                  networkID,
-		Exclusive:                exclusive,
-		SeedURL:                  seedURL,
-		SpecialPeers:             specialPeers,
-		ConnectionMetricsChannel: connectionMetricsChannel,
+	p2p.NetworkDeadline = time.Duration(deadline) * time.Millisecond
+
+	if enableNet {
+
+		if 0 < networkPortOverride {
+			networkPort = fmt.Sprintf("%d", networkPortOverride)
+		}
+		ci := p2p.ControllerInit{
+			Port:                     networkPort,
+			PeersFile:                s.PeersFile,
+			Network:                  networkID,
+			Exclusive:                exclusive,
+			SeedURL:                  seedURL,
+			SpecialPeers:             specialPeers,
+			ConnectionMetricsChannel: connectionMetricsChannel,
+		}
+		p2pNetwork = new(p2p.Controller).Init(ci)
+		p2pNetwork.StartNetwork()
+		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
+		p2pProxy.SetDebugMode(netdebug)
+		if 0 < netdebug {
+			go p2pProxy.PeriodicStatusReport(fnodes)
+			p2pNetwork.StartLogging(uint8(netdebug))
+		} else {
+			p2pNetwork.StartLogging(uint8(0))
+		}
+		p2pProxy.StartProxy()
+		// Command line peers lets us manually set special peers
+		p2pNetwork.DialSpecialPeersString(peers)
 	}
-	p2pNetwork = new(p2p.Controller).Init(ci)
-	p2pNetwork.StartNetwork()
-	// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
-	p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
-	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-	fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-	p2pProxy.SetDebugMode(netdebug)
-	if 0 < netdebug {
-		go p2pProxy.PeriodicStatusReport(fnodes)
-		p2pNetwork.StartLogging(uint8(netdebug))
-	} else {
-		p2pNetwork.StartLogging(uint8(0))
-	}
-	p2pProxy.StartProxy()
-	// Command line peers lets us manually set special peers
-	p2pNetwork.DialSpecialPeersString(peers)
 
 	switch net {
 	case "file":
@@ -370,7 +371,6 @@ func NetStart(s *state.State) {
 			AddSimPeer(fnodes, i-1, i)
 		}
 		// Make long into a circle
-		AddSimPeer(fnodes, 0, cnt-1)
 	case "loops":
 		fmt.Println("Using loops Network")
 		for i := 1; i < cnt; i++ {

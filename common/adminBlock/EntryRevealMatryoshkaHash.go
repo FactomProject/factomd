@@ -29,8 +29,9 @@ func NewRevealMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.
 	return e
 }
 
-func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) {
+func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) error {
 
+	return nil
 }
 
 func (e *RevealMatryoshkaHash) MarshalBinary() (data []byte, err error) {

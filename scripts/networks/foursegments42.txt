@@ -1,8 +1,12 @@
 
-; http://arborjs.org/halfviz/#/MTA0OTI
+{color:#aa0000}
+
+http://arborjs.org/halfviz/#/MTA0ODM -> cap
 
 ; Default node color: Gray
 {color:#555555}
+
+Followers Gray -> cap
 
 0 -- 1 
 0 -- 2
@@ -84,7 +88,7 @@
 33 -- 29
 
 34 -- 35
-35 -- 36
+34 -- 36
 36 -- 37
 37 -- 38
 38 -- 39
@@ -100,6 +104,9 @@
 
 ; Federated Servers: Blue
 {color:#3333ff}
+
+Federated Servers Blue -> cap
+
 0
 1
 2
@@ -116,6 +123,8 @@
 ; Audit Servers: Green
 {color:#338833}
 
+Audit Servers Green -> cap
+
 12
 13
 14
@@ -128,3 +137,7 @@
 21
 22
 23
+
+{color:#ffffff}
+
+cap

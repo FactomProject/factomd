@@ -13,6 +13,7 @@ type IState interface {
 
 	// Server
 	GetFactomNodeName() string
+	GetSecretNumber(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
 	Clone(number string) IState
 	GetCfg() IFactomConfig
 	LoadConfig(filename string, networkFlag string)
@@ -54,11 +55,14 @@ type IState interface {
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
 	Process() (progress bool)
-	// This is the highest block signed off and recorded in the Database.  This
+	// This is the highest block completed.  It may or may not be saved in the Database.  This
 	// is a follower's state, but it is also critical to validation; we cannot
 	// validate transactions where the HighestRecordedBlock+1 != block holding said
 	// transaction.
-	GetHighestRecordedBlock() uint32
+	GetHighestCompletedBlock() uint32
+	// This is the highest block saved in the Database. A block is completed, then validated
+	// then saved.
+	GetHighestSavedBlock() uint32
 	// This is the Leader's view of the Height. It must be == HighestRecordedBlock+1.  Since
 	// Recording a block can take time, messages must be queued until the previous block is
 	// recorded (either by processing messages, or timing out and Leaders signing off the block)
@@ -90,8 +94,7 @@ type IState interface {
 
 	// Lists and Maps
 	// =====
-	GetAuditHeartBeats() []IMsg   // The checklist of HeartBeats for this period
-	GetFedServerFaults() [][]IMsg // Keep a fault list for every serverdata
+	GetAuditHeartBeats() []IMsg // The checklist of HeartBeats for this period
 
 	GetNewEBlocks(dbheight uint32, hash IHash) IEntryBlock
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
@@ -124,6 +127,10 @@ type IState interface {
 	GetVirtualServers(dbheight uint32, minute int, identityChainID IHash) (found bool, index int)
 	// Returns true if between minutes
 
+	// Get the message for the given vm index, dbheight, and height.  Returns nil if I
+	// have no such message.
+	GetMsg(vmIndex int, dbheight int, height int) (IMsg, error)
+
 	GetEBlockKeyMRFromEntryHash(entryHash IHash) IHash
 	GetAnchor() IAnchor
 
@@ -145,7 +152,6 @@ type IState interface {
 	GetFactoshisPerEC() uint64
 	SetFactoshisPerEC(factoshisPerEC uint64)
 	IncFactoidTrans()
-	IncMissingMsgReply()
 	IncDBStateAnswerCnt()
 	// MISC
 	// ====
@@ -189,8 +195,12 @@ type IState interface {
 
 	ValidatorLoop()
 
+	UpdateECs(IEntryCreditBlock)
 	SetIsReplaying()
 	SetIsDoneReplaying()
+	// No Entry Yet returns true if no Entry Hash is found in the Replay structs.
+	// Returns false if we have seen an Entry Replay in the current period.
+	NoEntryYet(IHash, Timestamp) bool
 
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
@@ -210,4 +220,10 @@ type IState interface {
 	UpdateAuthorityFromABEntry(entry IABEntry) error
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+
+	GetLLeaderHeight() uint32
+	GetEntryDBHeightComplete() uint32
+	GetMissingEntryCount() uint32
+	GetEntryBlockDBHeightProcessing() uint32
+	GetEntryBlockDBHeightComplete() uint32
 }

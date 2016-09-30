@@ -23,8 +23,9 @@ func NewIncreaseSererCount(num byte) (e *IncreaseServerCount) {
 	return
 }
 
-func (c *IncreaseServerCount) UpdateState(state interfaces.IState) {
+func (c *IncreaseServerCount) UpdateState(state interfaces.IState) error {
 
+	return nil
 }
 
 func (e *IncreaseServerCount) Type() byte {

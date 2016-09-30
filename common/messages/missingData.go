@@ -176,7 +176,7 @@ func (m *MissingData) FollowerExecute(state interfaces.IState) {
 
 		msg.SetOrigin(m.GetOrigin())
 		msg.SetNetworkOrigin(m.GetNetworkOrigin())
-		state.NetworkOutMsgQueue() <- msg
+		msg.SendOut(state, msg)
 	}
 	return
 }

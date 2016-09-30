@@ -15,11 +15,16 @@ import (
 
 	"math/rand"
 
+	"bytes"
+
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
 var _ = fmt.Print
+var sortByID bool
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -53,6 +58,9 @@ func SimControl(listenTo int) {
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
 			listenTo = v
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", listenTo))
+			// Update which node will be displayed on the controlPanel page
+			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
+			go controlPanel.ServeControlPanel(fnodes[listenTo].State.ControlPanelChannel, fnodes[listenTo].State, connectionMetricsChannel, p2pNetwork, Build)
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
@@ -104,6 +112,13 @@ func SimControl(listenTo int) {
 							fmt.Println(ele.ChainID.String())
 						}
 					}
+				}
+			case '/' == b[0]:
+				sortByID = !sortByID
+				if sortByID {
+					os.Stderr.WriteString("Sort Status by Chain IDs\n")
+				} else {
+					os.Stderr.WriteString("Sort Status by Node Name\n")
 				}
 			case 'w' == b[0]:
 				if listenTo >= 0 && listenTo < len(fnodes) {
@@ -683,7 +698,7 @@ func SimControl(listenTo int) {
 
 				for _, fn := range fnodes {
 					fn.State.Delay = nnn
-					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%01d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
+					os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fn.State.FactomNodeName, nnn/1000, nnn%1000))
 				}
 
 				for _, f := range fnodes {
@@ -752,6 +767,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
 				os.Stderr.WriteString("Fnnn          Set the Delay on messages from all nodes to nnn milliseconds\n")
+				os.Stderr.WriteString("/             Toggle the sort order between ChainID and Factom Node Name\n")
 
 				//os.Stderr.WriteString("i[m/b/a][N]   Shows only the Mhash, block signing key, or anchor key up to the Nth identity\n")
 				//os.Stderr.WriteString("isN           Shows only Nth identity\n")
@@ -809,82 +825,98 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	for *summary == value {
 		prt := "===SummaryStart===\n"
 
+		for i, f := range fnodes {
+			f.Index = i
+		}
+
+		var pnodes []*FactomNode
+		pnodes = append(pnodes, fnodes...)
+		if sortByID {
+			for i := 0; i < len(pnodes)-1; i++ {
+				for j := 0; j < len(pnodes)-1-i; j++ {
+					if bytes.Compare(pnodes[j].State.GetIdentityChainID().Bytes(), pnodes[j+1].State.GetIdentityChainID().Bytes()) > 0 {
+						pnodes[j], pnodes[j+1] = pnodes[j+1], pnodes[j]
+					}
+				}
+			}
+		}
+
 		fctSubmits := 0
 		ecCommits := 0
 		eCommits := 0
 
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			f.State.Status = 1
 		}
 
 		time.Sleep(time.Second)
 
-		prt = prt + fnodes[0].State.SummaryHeader()
+		prt = prt + "    " + pnodes[0].State.SummaryHeader()
 
-		for i, f := range fnodes {
+		for i, f := range pnodes {
 			in := ""
 			api := ""
-			if i == *listenTo {
+			if f.Index == *listenTo {
 				in = "f"
 			}
-			if i == *wsapiNode {
+			if f.Index == *wsapiNode {
 				api = "w"
 			}
 
-			prt = prt + fmt.Sprintf("%1s%1s %s \n", in, api, f.State.ShortString())
+			prt = prt + fmt.Sprintf("%3d %1s%1s %s \n", i, in, api, f.State.ShortString())
 		}
 
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			fctSubmits += f.State.FCTSubmits
 			ecCommits += f.State.ECCommits
 			eCommits += f.State.ECommits
 		}
 
 		totals := fmt.Sprintf("%d/%d/%d", fctSubmits, ecCommits, eCommits)
-		prt = prt + fmt.Sprintf("%133s %20s\n", "", totals)
+		prt = prt + fmt.Sprintf("%145s %20s\n", "", totals)
 
-		fmtstr := "%22s%s\n"
+		fmtstr := "%26s%s\n"
 
 		var list string
 
 		list = ""
-		for i, _ := range fnodes {
+		for i, _ := range pnodes {
 			list = list + fmt.Sprintf(" %3d", i)
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Commits))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Commits", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", f.State.LeaderPL.LenNewEntries())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending Entries", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Acks", list)
@@ -892,25 +924,25 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		prt = prt + "\n"
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "AckQueue", list)
@@ -918,19 +950,19 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		prt = prt + "\n"
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "TimerMsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
 
 		list = ""
-		for _, f := range fnodes {
+		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
@@ -955,8 +987,11 @@ func faultSummary() string {
 	currentlyFaulted := "."
 
 	for i, fnode := range fnodes {
-		b := fnode.State.GetHighestRecordedBlock()
-		pl := fnode.State.ProcessLists.Get(b)
+		b := fnode.State.GetHighestCompletedBlock()
+		pl := fnode.State.ProcessLists.Get(b + 1)
+		if pl == nil {
+			pl = fnode.State.ProcessLists.Get(b)
+		}
 		if pl != nil {
 			if i == 0 {
 				prt = prt + fmt.Sprintf("%s\n", headerTitle)
@@ -987,7 +1022,7 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 	for *watchPL == value {
 		fnode := fnodes[*listenTo]
 		nprt := fnode.State.DBStates.String()
-		b := fnode.State.GetHighestRecordedBlock()
+		b := fnode.State.GetHighestCompletedBlock()
 		nprt = nprt + fnode.State.ProcessLists.String()
 		pl := fnode.State.ProcessLists.Get(b)
 		if pl != nil {

@@ -79,7 +79,10 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Control Panel has encountered a panic in ServeControlPanel.\n", r)
+			// The following recover string indicates an overwrite of existing http.ListenAndServe goroutine
+			if r != "http: multiple registrations for /" {
+				fmt.Println("Control Panel has encountered a panic in ServeControlPanel.\n", r)
+			}
 		}
 	}()
 	StatePointer = statePointer
@@ -117,7 +120,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	mux = http.NewServeMux()
 	mux.Handle("/", files.StaticServer)
 
-	go doEvery(5*time.Second, getRecentTransactions)
+	go doEvery(10*time.Second, getRecentTransactions)
 	go manageConnections(connections)
 
 	http.HandleFunc("/", static(indexHandler))

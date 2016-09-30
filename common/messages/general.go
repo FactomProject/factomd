@@ -81,6 +81,8 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		msg = new(Negotiation)
 	case constants.BOUNCE_MSG:
 		msg = new(Bounce)
+	case constants.BOUNCEREPLY_MSG:
+		msg = new(BounceReply)
 	default:
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
@@ -146,6 +148,8 @@ func MessageName(Type byte) string {
 		return "Negotiation"
 	case constants.BOUNCE_MSG:
 		return "Bounce Message"
+	case constants.BOUNCEREPLY_MSG:
+		return "Bounce Reply Message"
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}

@@ -550,7 +550,7 @@ func (a *Anchor) saveToAnchorChain(dirBlockInfo *dbInfo.DirBlockInfo) {
 	anchorRec.AnchorRecordVer = 1
 	anchorRec.DBHeight = dirBlockInfo.GetDBHeight()
 	anchorRec.KeyMR = dirBlockInfo.GetDBMerkleRoot().String()
-	anchorRec.RecordHeight = a.state.GetHighestRecordedBlock() // need the next block height
+	anchorRec.RecordHeight = a.state.GetHighestCompletedBlock() // need the next block height
 	anchorRec.Bitcoin = new(BitcoinStruct)
 	anchorRec.Bitcoin.Address = a.defaultAddress.String()
 	anchorRec.Bitcoin.TXID = dirBlockInfo.GetBTCTxHash().(*primitives.Hash).BTCString()

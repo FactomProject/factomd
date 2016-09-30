@@ -24,9 +24,10 @@ func (e *AddAuditServer) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *AddAuditServer) UpdateState(state interfaces.IState) {
+func (c *AddAuditServer) UpdateState(state interfaces.IState) error {
 	state.AddAuditServer(c.DBHeight, c.IdentityChainID)
 	state.UpdateAuthorityFromABEntry(c)
+	return nil
 }
 
 // Create a new DB Signature Entry

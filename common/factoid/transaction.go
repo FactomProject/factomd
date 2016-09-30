@@ -31,6 +31,7 @@ type Transaction struct {
 
 	// Not marshalled
 	BlockHeight uint32
+	sigValid    bool
 }
 
 var _ interfaces.ITransaction = (*Transaction)(nil)
@@ -280,6 +281,7 @@ func (t Transaction) Validate(index int) error {
 	}
 	// Every input must match the address of an RCD (which is the hash
 	// of the RCD
+
 	for i, rcd := range t.RCDs {
 		// Get the address specified by the RCD.
 		address, err := rcd.GetAddress()
@@ -302,17 +304,19 @@ func (t Transaction) Validate(index int) error {
 // transaction.
 //
 func (t Transaction) ValidateSignatures() error {
-	missingCnt := 0
-	sigBlks := t.GetSignatureBlocks()
-	for i, rcd := range t.RCDs {
-		if !rcd.CheckSig(&t, sigBlks[i]) {
-			missingCnt++
+	if !t.sigValid {
+		missingCnt := 0
+		sigBlks := t.GetSignatureBlocks()
+		for i, rcd := range t.RCDs {
+			if !rcd.CheckSig(&t, sigBlks[i]) {
+				missingCnt++
+			}
 		}
+		if missingCnt != 0 {
+			return fmt.Errorf("Missing %d of %d signatures", missingCnt, len(t.RCDs))
+		}
+		t.sigValid = true
 	}
-	if missingCnt != 0 {
-		return fmt.Errorf("Missing %d of %d signatures", missingCnt, len(t.RCDs))
-	}
-
 	return nil
 }
 

@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"encoding/binary"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -25,16 +27,28 @@ var _ = fmt.Print
 var _ = log.Print
 
 type Request struct {
-	vmIndex  int    // VM Index
-	vmheight uint32 // Height in the Process List where we are missing a message
-	wait     int64  // How long to wait before we actually request
-	sent     int64  // Last time sent (zero means none have been sent)
+	vmIndex    int    // VM Index
+	vmheight   uint32 // Height in the Process List where we are missing a message
+	wait       int64  // How long to wait before we actually request
+	sent       int64  // Last time sent (zero means none have been sent)
+	requestCnt int
 }
 
-func (r *Request) key() string {
-	str := fmt.Sprintf("%d %d %d", r.vmIndex, r.vmheight, r.wait)
-	return str
+func (r *Request) key() (thekey [20]byte) {
+	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
+	binary.BigEndian.PutUint64(thekey[4:12], uint64(r.wait))
+	binary.BigEndian.PutUint64(thekey[12:20], uint64(r.vmheight))
+	return thekey
 }
+
+/*
+func (r *Request) key() (thekey [20]byte) {
+	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
+	binary.BigEndian.PutUint64(thekey[4:12], uint64(r.wait))
+	binary.BigEndian.PutUint64(thekey[12:20], uint64(r.sent))
+	return
+}
+*/
 
 type ProcessList struct {
 	DBHeight uint32 // The directory block height for these lists
@@ -118,7 +132,8 @@ type ProcessList struct {
 	// DB Sigs
 	DBSignatures []DBSig
 
-	Requests map[string]*Request
+	Requests map[[20]byte]*Request
+	//Requests map[[20]byte]*Request
 }
 
 // Data needed to add to admin block
@@ -535,7 +550,8 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
+// Return the number of times we have tripped an ask for this request.
+func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
 	r := new(Request)
@@ -544,7 +560,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 	r.vmheight = uint32(height)
 
 	if p.Requests[r.key()] == nil {
-		r.sent = now + 1000
+		r.sent = now + 300
 		p.Requests[r.key()] = r
 		//fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
 		//	p.State.FactomNodeName,
@@ -558,24 +574,36 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) {
 		r = p.Requests[r.key()]
 	}
 
-	if now-r.sent >= waitSeconds*1000+1500 {
-		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
-		if missingMsgRequest != nil {
-			//fmt.Printf("dddd *Request --> %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
-			//	p.State.FactomNodeName,
-			//	p.DBHeight,
-			//	r.vmIndex,
-			//	r.vmheight,
-			//	r.wait,
-			//	now-r.sent,
-			//	waitSeconds*1000+1000)
-			missingMsgRequest.SendOut(p.State, missingMsgRequest)
-			missingMsgRequest.SendOut(p.State, missingMsgRequest)
-			missingMsgRequest.SendOut(p.State, missingMsgRequest)
-			p.State.MissingAskCnt++
+	vm := p.VMs[vmIndex]
+	if len(vm.List) > height && vm.List[height] != nil {
+		if p.Requests[r.key()] != nil {
+			s := r.sent
+			delete(p.Requests, r.key())
+			return int(s)
 		}
-		r.sent = now
+		return 0
 	}
+
+	if now-r.sent >= waitSeconds*1000+500 {
+		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
+
+		// Okay, we are going to send one, so ask for all nil messages for this vm
+		for i, v := range vm.List {
+			if i != int(r.vmheight) && v == nil {
+				missingMsgRequest.AddHeight(uint32(i))
+			}
+		}
+		// Might as well as for the next message too.  Won't hurt.
+		missingMsgRequest.AddHeight(uint32(len(vm.List)))
+
+		missingMsgRequest.SendOut(p.State, missingMsgRequest)
+		p.State.MissingRequestSendCnt++
+
+		r.sent = now
+		r.requestCnt++
+	}
+
+	return r.requestCnt
 }
 
 func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
@@ -612,11 +640,7 @@ func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64
 		leaderMin := getLeaderMin(p)
 
 		myIndex := p.ServerMap[leaderMin][vmIndex]
-		if myIndex > 0 {
-			myIndex--
-		} else {
-			myIndex = len(p.FedServers) - 1
-		}
+
 		p.FedServers[myIndex].SetOnline(false)
 		id := p.FedServers[myIndex].GetChainID()
 
@@ -684,6 +708,10 @@ func getLeaderMin(p *ProcessList) int {
 	if leaderMin >= 10 {
 		leaderMin = 0
 	}
+	leaderMin--
+	if leaderMin < 0 {
+		leaderMin = 9
+	}
 	return leaderMin
 }
 
@@ -708,7 +736,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
-			p.Ask(i, vm.Height, 1, 1)
+			p.Ask(i, vm.Height, 0, 1)
 		}
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
@@ -716,14 +744,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 10, 2)
 		}
 
-		if vm.Height > vm.faultHeight {
+		if vm.faultHeight > 0 && vm.Height > vm.faultHeight {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
 				p.AmINegotiator = false
 			}
 			vm.faultHeight = -1
 			leaderMin := getLeaderMin(p)
 			myIndex := p.ServerMap[leaderMin][i]
-			p.FedServers[myIndex].SetOnline(true)
+			if myIndex >= 0 && myIndex < len(p.FedServers) && p.FedServers[myIndex] != nil {
+				p.FedServers[myIndex].SetOnline(true)
+			}
 		}
 
 	VMListLoop:
@@ -744,10 +774,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					vm.List[j] = nil
-					vm.ListAck[j] = nil
-					// Ask for the correct ack if this one is no good.
-					p.Ask(i, j, 0, 4)
+					p.Ask(i, j, 3, 4)
 					break VMListLoop
 				}
 
@@ -767,8 +794,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
-					vm.List[j] = nil
-					p.Ask(i, j, 0, 5)
 					break VMListLoop
 				}
 			}
@@ -778,6 +803,13 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				vm.Height = j + 1 // Don't process it again if the process worked.
 				progress = true
 			} else {
+				// We give an entry time to become valid.  If it doesn't wash out by then, we
+				// nuke the entry, and ask for another one.
+				//cnt := p.Ask(i, j, 30, 6) // give 30 seconds
+				//if cnt > 0 {
+				//	vm.List[j] = nil
+				//	vm.ListAck[j] = nil
+				//}
 				break VMListLoop // Don't process further in this list, go to the next.
 			}
 		}
@@ -786,6 +818,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
+	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
+	// the past.
+	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
+		num := p.State.GetSecretNumber(ack.Timestamp)
+		if num != ack.SaltNumber {
+			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
+		}
+	}
 
 	if _, ok := m.(*messages.MissingMsg); ok {
 		panic("This shouldn't happen")
@@ -902,7 +943,7 @@ func (p *ProcessList) String() string {
 	if p == nil {
 		buf.WriteString("-- <nil>\n")
 	} else {
-		buf.WriteString(fmt.Sprintf("===ProcessListStart===\n"))
+		buf.WriteString("===ProcessListStart===\n")
 		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d \n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete(), p.DBHeight))
 
 		for i := 0; i < len(p.FedServers); i++ {
@@ -963,7 +1004,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
-	pl.Requests = make(map[string]*Request)
+	pl.Requests = make(map[[20]byte]*Request)
+	//pl.Requests = make(map[[20]byte]*Request)
 
 	pl.FactoidBalancesT = map[[32]byte]int64{}
 	pl.ECBalancesT = map[[32]byte]int64{}

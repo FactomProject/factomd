@@ -88,7 +88,7 @@ func (m *RevealEntryMsg) Type() byte {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-// Also return the matching commit, if 1
+// Also return the matching commit, if 1 (Don't put it back into the Commit List)
 func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, int) {
 	commit := state.NextCommit(m.Entry.GetHash())
 

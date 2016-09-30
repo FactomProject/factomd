@@ -40,6 +40,8 @@ type P2PProxy struct {
 type factomMessage struct {
 	message  []byte
 	peerHash string
+	appHash  string
+	appType  string
 }
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
@@ -76,11 +78,21 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Println("ERROR on Send: ", err)
 		return err
 	}
-	message := factomMessage{message: data, peerHash: msg.GetNetworkOrigin()}
-	if !msg.IsPeer2Peer() {
-		message.peerHash = ""
-	} else {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), msg.GetNetworkOrigin(), msg.String())
+	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
+	appType := fmt.Sprintf("%d", msg.Type())
+	message := factomMessage{message: data, peerHash: msg.GetNetworkOrigin(), appHash: hash, appType: appType}
+	switch {
+	case !msg.IsPeer2Peer():
+		message.peerHash = p2p.BroadcastFlag
+		f.trace(message.appHash, message.appType, "P2PProxy.Send() - BroadcastFlag", "a")
+	case msg.IsPeer2Peer() && 0 == len(message.peerHash): // directed, with no direction of who to send it to
+		message.peerHash = p2p.RandomPeerFlag
+		f.trace(message.appHash, message.appType, "P2PProxy.Send() - RandomPeerFlag", "a")
+	default:
+		f.trace(message.appHash, message.appType, "P2PProxy.Send() - Addressed by hash", "a")
+	}
+	if msg.IsPeer2Peer() {
+		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.peerHash, msg.String())
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	return nil
@@ -94,12 +106,14 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)
+				f.trace(fmessage.appHash, fmessage.appType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.message)
 				if nil == err {
 					msg.SetNetworkOrigin(fmessage.peerHash)
 				}
 				if 1 < f.debugMode {
 					f.logMessage(msg, true) // NODE_TALK_FIX
+					fmt.Printf(".")
 				}
 				return msg, err
 			default:
@@ -160,7 +174,7 @@ type messageLog struct {
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
-	if 1 < p.debugMode {
+	if 2 < p.debugMode {
 		// if constants.DBSTATE_MSG == msg.Type() {
 		// fmt.Printf("AppMsgLogging: \n Type: %s \n Network Origin: %s \n Message: %s", msg.Type(), msg.GetNetworkOrigin(), msg.String())
 		// }
@@ -194,6 +208,11 @@ func (p *P2PProxy) ManageLogging() {
 				fmt.Printf("Error writing to logging file. %v", err)
 				panic("Error writing to logging file")
 			}
+		case string:
+			message := item.(string)
+			if "stop" == message {
+				return
+			}
 		default:
 			fmt.Printf("Garbage on p.logging. %+v", item)
 			break
@@ -213,6 +232,9 @@ func (f *P2PProxy) ManageOutChannel() {
 			parcel := p2p.NewParcel(p2p.CurrentNetwork, fmessage.message)
 			parcel.Header.Type = p2p.TypeMessage
 			parcel.Header.TargetPeer = fmessage.peerHash
+			parcel.Header.AppHash = fmessage.appHash
+			parcel.Header.AppType = fmessage.appType
+			parcel.Trace("P2PProxy.ManageOutChannel()", "b")
 			p2p.BlockFreeChannelSend(f.ToNetwork, *parcel)
 		default:
 			fmt.Printf("Garbage on f.BrodcastOut. %+v", data)
@@ -226,11 +248,19 @@ func (f *P2PProxy) ManageInChannel() {
 		switch data.(type) {
 		case p2p.Parcel:
 			parcel := data.(p2p.Parcel)
-			message := factomMessage{message: parcel.Payload, peerHash: parcel.Header.TargetPeer}
+			f.trace(parcel.Header.AppHash, parcel.Header.AppType, "P2PProxy.ManageInChannel()", "M")
+			message := factomMessage{message: parcel.Payload, peerHash: parcel.Header.TargetPeer, appHash: parcel.Header.AppHash, appType: parcel.Header.AppType}
 			p2p.BlockFreeChannelSend(f.BroadcastIn, message)
 		default:
 			fmt.Printf("Garbage on f.FromNetwork. %+v", data)
 		}
+	}
+}
+
+func (p *P2PProxy) trace(appHash string, appType string, location string, sequence string) {
+	if 1 < p.debugMode {
+		time := time.Now().Unix()
+		fmt.Printf("\nParcelTrace, %s, %s, %s, Message, %s, %d \n", appHash, sequence, appType, location, time)
 	}
 }
 
@@ -244,7 +274,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		for _, f := range fnodes {
 			f.State.Status = 1
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 		for _, f := range fnodes {
 			fmt.Printf("%s \n\n", f.State.ShortString())
 		}

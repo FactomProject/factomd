@@ -19,6 +19,8 @@ type IEntryCreditBlock interface {
 	GetEntrySigHashes() []IHash
 	GetEntries() []IECBlockEntry
 	GetEntryByHash(hash IHash) IECBlockEntry
+
+	UpdateState(IState) error
 }
 
 type IECBlockHeader interface {
@@ -56,6 +58,7 @@ type IECBlockEntry interface {
 	ECID() byte
 	MarshalBinary() ([]byte, error)
 	UnmarshalBinary(data []byte) error
+	UnmarshalBinaryData(data []byte) ([]byte, error)
 	Hash() IHash
 	GetHash() IHash
 	GetEntryHash() IHash

@@ -237,7 +237,7 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	for _, v := range selectedPeers {
 		finalSet = append(finalSet, v)
 	}
-	significant("discovery", "discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
+	note("discovery", "discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
 	return finalSet
 }
 

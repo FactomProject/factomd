@@ -51,6 +51,16 @@ type DirectoryBlockHeightResponse struct {
 	Height int64 `json:"height"`
 }
 
+type HeightResponse struct {
+	DirectoryBlockHeight         int64 `json:"directoryblockheight"`
+	LeaderHeight                 int64 `json:"leaderheight"`
+	EntryBlockHeight             int64 `json:"entryblockheight"`
+	EntryHeight                  int64 `json:"entryheight"`
+	MissingEntryCount            int64 `json:"missingentrycount"`
+	EntryBlockDBHeightProcessing int64 `json:"entryblockdbheightprocessing"`
+	EntryBlockDBHeightComplete   int64 `json:"entryblockdbheightcomplete"`
+}
+
 type RawDataResponse struct {
 	Data string `json:"data"`
 	//TODO: add

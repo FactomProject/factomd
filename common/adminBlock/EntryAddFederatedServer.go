@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -24,9 +25,10 @@ func (e *AddFederatedServer) String() string {
 	return (string)(out.DeepCopyBytes())
 }
 
-func (c *AddFederatedServer) UpdateState(state interfaces.IState) {
+func (c *AddFederatedServer) UpdateState(state interfaces.IState) error {
 	state.AddFedServer(c.DBHeight, c.IdentityChainID)
 	state.UpdateAuthorityFromABEntry(c)
+	return nil
 }
 
 // Create a new DB Signature Entry

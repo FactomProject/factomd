@@ -72,7 +72,7 @@ func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitChainMsg) GetRepeatHash() interfaces.IHash {
-	return m.CommitChain.GetSigHash()
+	return m.GetMsgHash()
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {
@@ -81,11 +81,7 @@ func (m *CommitChainMsg) GetHash() interfaces.IHash {
 
 func (m *CommitChainMsg) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+		m.MsgHash = m.CommitChain.GetSigHash()
 	}
 	return m.MsgHash
 }
@@ -130,7 +126,13 @@ func (m *CommitChainMsg) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) {
-	state.LeaderExecute(m)
+	// Check if we have yet to see an entry.  If we have seen one (NoEntryYet == false) then
+	// this commit is invalid.
+	if !state.NoEntryYet(m.CommitChain.EntryHash, m.CommitChain.GetTimestamp()) {
+		m.FollowerExecute(state)
+	} else {
+		state.LeaderExecute(m)
+	}
 }
 
 func (m *CommitChainMsg) FollowerExecute(state interfaces.IState) {

@@ -43,16 +43,14 @@ func (m *Bounce) SizeOf() int {
 }
 
 func (m *Bounce) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		data, err := m.MarshalForSignature()
+	data, err := m.MarshalForSignature()
 
-		m.size = len(data)
+	m.size = len(data)
 
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
+	if err != nil {
+		return nil
 	}
+	m.MsgHash = primitives.Sha(data)
 	return m.MsgHash
 }
 
@@ -166,7 +164,7 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 	copy(buff[:32], []byte(fmt.Sprintf("%32s", m.Name)))
 	buf.Write(buff[:])
 
-	binary.Write(&buf,binary.BigEndian, m.Number)
+	binary.Write(&buf, binary.BigEndian, m.Number)
 
 	t := m.GetTimestamp()
 	data, err := t.MarshalBinary()
@@ -195,7 +193,7 @@ func (m *Bounce) MarshalBinary() (data []byte, err error) {
 func (m *Bounce) String() string {
 	// bbbb Origin: 2016-09-05 12:26:20.426954586 -0500 CDT left Bounce Start:             2016-09-05 12:26:05 Hops:     1 Size:    43 Last Hop Took 14.955 Average Hop: 14.955
 	now := time.Now()
-	t := fmt.Sprintf("%2d:%2d:%2d.%03d", now.Hour(), now.Minute(), now.Second(), now.Nanosecond()/1000000)
+	t := fmt.Sprintf("%2d:%02d:%02d.%03d", now.Hour(), now.Minute(), now.Second(), now.Nanosecond()/1000000)
 	mill := m.Timestamp.GetTimeMilli()
 	mills := mill % 1000
 	mill = mill / 1000
@@ -205,30 +203,26 @@ func (m *Bounce) String() string {
 	mill = mill / 60
 	hrs := mill % 24
 	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs, mins, secs, mills)
-	str := fmt.Sprintf("bbbb Origin: %12s  %10s-%03d-%03d Bounce Start: %12s Hops: %5d Size: %5d ",
+	str := fmt.Sprintf("Origin: %12s  %30s-%03d-%03d Bounce Start: %12s Hops: %5d Size: %5d ",
 		t,
 		strings.TrimSpace(m.Name),
 		m.Number,
 		len(m.Stamps),
 		t2,
 		len(m.Stamps), m.SizeOf())
-
-	last := m.Timestamp.GetTimeMilli()
-	elapse := int64(0)
-	sum := elapse
-	for _, ts := range m.Stamps {
-		elapse = ts.GetTimeMilli() - last
-		sum += elapse
-		last = ts.GetTimeMilli()
-		//		str = fmt.Sprintf("%sbbbb %30s %4d.%03d seconds\n", str, ts.String(), elapse/1000, elapse%1000)
+	var sum int64
+	for i := 0; i < len(m.Stamps)-1; i++ {
+		sum += m.Stamps[i+1].GetTimeMilli() - m.Stamps[i].GetTimeMilli()
 	}
+	elapse := primitives.NewTimestampNow().GetTimeMilli() - m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+	sum += elapse
 	sign := " "
 	if sum < 0 {
 		sign = "-"
 		sum = sum * -1
 	}
-	avg := sum / int64(len(m.Stamps))
-	str = str + fmt.Sprintf("Last Hop Took %d.%03d Average Hop: %s%d.%03d", elapse/1000, elapse%1000, sign, avg/1000, avg%1000)
+	avg := sum / (int64(len(m.Stamps)))
+	str = str + fmt.Sprintf("Last Hop Took %3d.%03d Average Hop: %s%3d.%03d Hash: %x", elapse/1000, elapse%1000, sign, avg/1000, avg%1000, m.GetHash().Bytes()[:4])
 	return str
 }
 
