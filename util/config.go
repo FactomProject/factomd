@@ -122,7 +122,6 @@ HomeDir                               = ""
 ; --------------- ControlPanel disabled | readonly | readwrite
 ControlPanelSetting                   = readonly
 ControlPanelPort                      = 8090
-ControlPanelFilesPath                 = "Web/"
 ; --------------- DBType: LDB | Bolt | Map
 DBType                                = "LDB"
 LdbPath                               = "database/ldb"
@@ -133,8 +132,8 @@ ExportData                            = false
 ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
+PeersFile            = "peers.json"
 MainNetworkPort      = 8108
-PeersFile        = "peers.json"
 MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
 MainSpecialPeers     = ""
 TestNetworkPort      = 8109
@@ -142,7 +141,7 @@ TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factompr
 TestSpecialPeers     = ""
 LocalNetworkPort     = 8110
 LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
-LocalSpecialPeers     = ""
+LocalSpecialPeers    = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode                              = FULL
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
@@ -218,9 +217,11 @@ WalletTlsPrivateKey                   = "/full/path/to/walletAPIpriv.key"
 WalletTlsPublicCert                   = "/full/path/to/walletAPIpub.cert"
 
 ; This is where factom-walletd and factom-cli will find factomd to interact with the blockchain
+; This value can also be updated to authorize an external ip or domain name when factomd creates a TLS cert
 FactomdLocation                       = "localhost:8088"
 
 ; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
+; This value can also be updated to authorize an external ip or domain name when factom-walletd creates a TLS cert
 WalletdLocation                       = "localhost:8089"
 `
 
