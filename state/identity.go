@@ -30,7 +30,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 
 	index := st.isIdentityChain(cid)
 	if index == -1 {
-		index = CreateBlankFactomIdentity(st, cid)
+		index = st.CreateBlankFactomIdentity(cid)
 	}
 
 	managementChain, _ := primitives.HexToHash(MAIN_FACTOM_IDENTITY_LIST)
@@ -138,10 +138,16 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 
 func (st *State) RemoveIdentity(chainID interfaces.IHash) {
 	index := st.isIdentityChain(chainID)
+	if st.Identities[index].Status == constants.IDENTITY_SELF || st.Identities[index].Status == constants.IDENTITY_SELF_FULL {
+		return // Do not remove self
+	}
 	st.removeIdentity(index)
 }
 
 func (st *State) removeIdentity(i int) {
+	if st.Identities[i].Status == constants.IDENTITY_SELF || st.Identities[i].Status == constants.IDENTITY_SELF_FULL {
+		return // Do not remove self
+	}
 	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
 }
 
@@ -231,7 +237,7 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 }
 
 // Creates a blank identity
-func CreateBlankFactomIdentity(st *State, chainID interfaces.IHash) int {
+func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	if index := st.isIdentityChain(chainID); index != -1 {
 		return index
 	}
@@ -246,6 +252,9 @@ func CreateBlankFactomIdentity(st *State, chainID interfaces.IHash) int {
 	oneID.IdentityChainID = chainID
 
 	oneID.Status = constants.IDENTITY_UNASSIGNED
+	if chainID.IsSameAs(st.IdentityChainID) {
+		oneID.Status = constants.IDENTITY_SELF
+	}
 	oneID.IdentityRegistered = 0
 	oneID.IdentityCreated = 0
 	oneID.ManagementRegistered = 0
@@ -279,7 +288,7 @@ func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := st.isIdentityChain(idChain)
 	if IdentityIndex == -1 {
-		IdentityIndex = CreateBlankFactomIdentity(st, idChain)
+		IdentityIndex = st.CreateBlankFactomIdentity(idChain)
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
@@ -319,7 +328,7 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 	IdentityIndex := st.isIdentityChain(chainID)
 
 	if IdentityIndex == -1 {
-		IdentityIndex = CreateBlankFactomIdentity(st, chainID)
+		IdentityIndex = st.CreateBlankFactomIdentity(chainID)
 	}
 	h := primitives.NewHash(extIDs[2])
 	st.Identities[IdentityIndex].Key1 = h
@@ -334,11 +343,15 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 }
 
 func checkIdentityForFull(identityIndex int, st *State) error {
-	if st.Identities[identityIndex].Status != constants.IDENTITY_UNASSIGNED {
-		return nil
+	status := st.Identities[identityIndex].Status
+	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || !(status == constants.IDENTITY_SELF || status == constants.IDENTITY_PENDING_FULL) {
+		return nil // If already full, we don't need to check. If it is fed or audit, we do not need to check
 	}
 
-	st.Identities[identityIndex].Status = constants.IDENTITY_PENDING
+	if status != constants.IDENTITY_SELF {
+		st.Identities[identityIndex].Status = constants.IDENTITY_PENDING_FULL
+	}
+
 	id := st.Identities[identityIndex]
 	dif := id.IdentityCreated - id.IdentityRegistered
 	if id.IdentityRegistered > id.IdentityCreated {
@@ -368,7 +381,11 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 	if id.Key1 == nil || id.Key2 == nil || id.Key3 == nil || id.Key4 == nil {
 		return errors.New("Identity Error: Missing an identity key")
 	}
-	st.Identities[identityIndex].Status = constants.IDENTITY_FULL
+	if st.Identities[identityIndex].Status != constants.IDENTITY_SELF {
+		st.Identities[identityIndex].Status = constants.IDENTITY_FULL
+	} else {
+		st.Identities[identityIndex].Status = constants.IDENTITY_SELF_FULL
+	}
 	return nil
 }
 
@@ -387,7 +404,7 @@ func updateManagementKey(entry interfaces.IEBEntry, height uint32, st *State) er
 	idChain := primitives.NewHash(extIDs[2])
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		IdentityIndex = CreateBlankFactomIdentity(st, idChain)
+		IdentityIndex = st.CreateBlankFactomIdentity(idChain)
 	}
 
 	st.Identities[IdentityIndex].ManagementCreated = height
@@ -406,7 +423,7 @@ func registerIdentityAsServer(entry interfaces.IEBEntry, height uint32, st *Stat
 	chainID := entry.GetChainID()
 	IdentityIndex := st.isIdentityChain(chainID)
 	if IdentityIndex == -1 {
-		IdentityIndex = CreateBlankFactomIdentity(st, chainID)
+		IdentityIndex = st.CreateBlankFactomIdentity(chainID)
 	}
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)

@@ -236,6 +236,10 @@ func NetStart(s *state.State) {
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
+	for i := range fnodes {
+		fnodes[i].State.CreateBlankFactomIdentity(fnodes[i].State.IdentityChainID)
+	}
+
 	// Start the P2P netowork
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
