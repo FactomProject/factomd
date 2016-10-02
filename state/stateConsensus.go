@@ -1097,6 +1097,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.ReviewHolding()
 			s.Syncing = false
 		}
+		s.SendHeartBeat()
+
 		return true
 	}
 
@@ -1122,8 +1124,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
-
-		s.SendHeartBeat()
 
 		return false
 	}
