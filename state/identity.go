@@ -23,6 +23,19 @@ var (
 	MAIN_FACTOM_IDENTITY_LIST = "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327"
 )
 
+// Returns if this state has all of its keys to be elected. Will also return true if already an authority
+func (st *State) SelfIsFull() bool {
+	if index := st.isIdentityChain(st.IdentityChainID); index != -1 {
+		status := st.Identities[index].Status
+		if status == constants.IDENTITY_SELF {
+			return false
+		} else if statusIsFedOrAudit(status) || status == constants.IDENTITY_SELF_FULL {
+			return true
+		}
+	}
+	return false
+}
+
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 	if cid.String() == FIRST_IDENTITY { // Ignore first assumed identity
 		return nil
@@ -344,7 +357,7 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 
 func checkIdentityForFull(identityIndex int, st *State) error {
 	status := st.Identities[identityIndex].Status
-	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || !(status == constants.IDENTITY_SELF || status == constants.IDENTITY_PENDING_FULL) {
+	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || !(status == constants.IDENTITY_SELF_FULL || status == constants.IDENTITY_PENDING_FULL) {
 		return nil // If already full, we don't need to check. If it is fed or audit, we do not need to check
 	}
 
