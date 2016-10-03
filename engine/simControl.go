@@ -25,6 +25,7 @@ import (
 
 var _ = fmt.Print
 var sortByID bool
+var showFullPledges = false
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -258,6 +259,14 @@ func SimControl(listenTo int) {
 					} else {
 						fmt.Println("Error: ", err, msg)
 					}
+				}
+			case 'j' == b[0]:
+				if showFullPledges {
+					showFullPledges = false
+					os.Stderr.WriteString("--Show Full Pledges Off--\n")
+				} else {
+					showFullPledges = true
+					os.Stderr.WriteString("--Show Full Pledges On--\n")
 				}
 			case 'k' == b[0]:
 				mLog.all = false
@@ -985,6 +994,8 @@ func faultSummary() string {
 	headerTitle := "Faults"
 	headerLabel := "Fed   "
 	currentlyFaulted := "."
+	fullPledgeInfo := ""
+	alreadyStartedFPP := false
 
 	for i, fnode := range fnodes {
 		b := fnode.State.GetHighestCompletedBlock()
@@ -1015,7 +1026,7 @@ func faultSummary() string {
 					if len(fnode.State.FaultVoteMap) > 0 {
 						prt = prt + fmt.Sprintf("| Faults:")
 
-						if len(fnode.State.FaultVoteMap) < 4 {
+						if len(fnode.State.FaultVoteMap) < 3 {
 							for faultKey, faultKeyList := range fnode.State.FaultVoteMap {
 								if faultInfo, faultFound := fnode.State.FaultInfoMap[faultKey]; faultFound {
 									if int(faultInfo.VMIndex) == pl.NegotiatorVMIndex {
@@ -1060,8 +1071,23 @@ func faultSummary() string {
 
 				prt = prt + fmt.Sprintf("\n")
 			}
+
+			if showFullPledges {
+				if len(pl.PledgeMap) > 0 {
+					if !alreadyStartedFPP {
+						fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("Full Pledges\n")
+						alreadyStartedFPP = true
+					}
+					fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("%s ", fnode.State.FactomNodeName)
+					for pledger, pledgeSlot := range pl.PledgeMap {
+						fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("%s/%s ", pledgeSlot[4:10], pledger[4:10])
+					}
+					fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("\n")
+				}
+			}
 		}
 	}
+	prt = prt + fullPledgeInfo
 	return prt
 }
 
