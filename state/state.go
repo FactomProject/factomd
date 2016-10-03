@@ -183,7 +183,7 @@ type State struct {
 	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
-	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
+	//Network MAIN = 0xFA92E5A1, TEST = 0xFA92E5A2, LOCAL = 0xFA92E5A3, CUSTOM = 0xFA92E5A4
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database

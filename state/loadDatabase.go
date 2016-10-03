@@ -68,7 +68,7 @@ func LoadDatabase(s *State) {
 
 		dblk := directoryBlock.NewDirectoryBlock(nil)
 		ablk := adminBlock.NewAdminBlock(nil)
-		fblk := factoid.GetGenesisFBlock()
+		fblk := factoid.GetGenesisFBlock(s.GetNetworkID())
 		ecblk := entryCreditBlock.NewECBlock()
 
 		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
