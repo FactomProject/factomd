@@ -25,6 +25,7 @@ import (
 
 var _ = fmt.Print
 var sortByID bool
+var verboseFaultOutput = false
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -258,6 +259,14 @@ func SimControl(listenTo int) {
 					} else {
 						fmt.Println("Error: ", err, msg)
 					}
+				}
+			case 'v' == b[0]:
+				if verboseFaultOutput {
+					verboseFaultOutput = false
+					os.Stderr.WriteString("--VerboseFaultOutput Off--\n")
+				} else {
+					verboseFaultOutput = true
+					os.Stderr.WriteString("--VerboseFaultOutput On--\n")
 				}
 			case 'k' == b[0]:
 				mLog.all = false
@@ -991,35 +1000,102 @@ func faultSummary() string {
 	headerTitle := "Faults"
 	headerLabel := "Fed   "
 	currentlyFaulted := "."
+	fullPledgeInfo := ""
+	alreadyStartedFPP := false
 
 	for i, fnode := range fnodes {
-		b := fnode.State.GetHighestCompletedBlock()
-		pl := fnode.State.ProcessLists.Get(b + 1)
-		if pl == nil {
-			pl = fnode.State.ProcessLists.Get(b)
-		}
-		if pl != nil {
-			if i == 0 {
-				prt = prt + fmt.Sprintf("%s\n", headerTitle)
-				prt = prt + fmt.Sprintf("%7s", headerLabel)
-				for headerNum, _ := range pl.FedServers {
-					prt = prt + fmt.Sprintf(" %3d", headerNum)
-				}
-				prt = prt + fmt.Sprintf("\n")
+		if verboseFaultOutput || !fnode.State.GetNetStateOff() {
+			b := fnode.State.GetHighestCompletedBlock()
+			pl := fnode.State.ProcessLists.Get(b + 1)
+			if pl == nil {
+				pl = fnode.State.ProcessLists.Get(b)
 			}
-			if fnode.State.Leader {
-				prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
-				for _, fed := range pl.FedServers {
-					currentlyFaulted = "."
-					if !fed.IsOnline() {
-						currentlyFaulted = "F"
+			if pl != nil {
+				if i == 0 {
+					prt = prt + fmt.Sprintf("%s\n", headerTitle)
+					prt = prt + fmt.Sprintf("%7s", headerLabel)
+					for headerNum, _ := range pl.FedServers {
+						prt = prt + fmt.Sprintf(" %3d", headerNum)
 					}
-					prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
+					prt = prt + fmt.Sprintf("\n")
 				}
-				prt = prt + fmt.Sprintf("\n")
+				if fnode.State.Leader {
+					prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
+					for _, fed := range pl.FedServers {
+						currentlyFaulted = "."
+						if !fed.IsOnline() {
+							currentlyFaulted = "F"
+						}
+						prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
+					}
+					if pl.AmINegotiator {
+						faultsIAmNegotiating := make(map[string]bool)
+						if len(fnode.State.FaultVoteMap) > 0 {
+							prt = prt + fmt.Sprintf("| Faults:")
+
+							if len(fnode.State.FaultVoteMap) < 3 {
+								for faultKey, faultKeyList := range fnode.State.FaultVoteMap {
+									if faultInfo, faultFound := fnode.State.FaultInfoMap[faultKey]; faultFound {
+										if int(faultInfo.VMIndex) == pl.NegotiatorVMIndex {
+											faultsIAmNegotiating[faultInfo.ServerID.String()] = true
+											prt = prt + fmt.Sprintf(" %x/%x:", faultInfo.ServerID.Bytes()[2:5], faultInfo.AuditServerID.Bytes()[2:5])
+											for _, faultVoteSig := range faultKeyList {
+												prt = prt + fmt.Sprintf(" %x ", faultVoteSig.Bytes()[:3])
+											}
+										}
+									}
+								}
+							} else {
+								//too many, line gets cluttered, just show totals
+								for faultKey, faultKeyList := range fnode.State.FaultVoteMap {
+									if faultInfo, faultFound := fnode.State.FaultInfoMap[faultKey]; faultFound {
+										if int(faultInfo.VMIndex) == pl.NegotiatorVMIndex {
+											faultsIAmNegotiating[faultInfo.ServerID.String()] = true
+											prt = prt + fmt.Sprintf(" %x/%x:%d", faultInfo.ServerID.Bytes()[2:5], faultInfo.AuditServerID.Bytes()[2:5], len(faultKeyList))
+										}
+									}
+								}
+							}
+
+							prt = prt + " |"
+						}
+
+						if len(pl.PledgeMap) > 0 {
+							alreadyStartedPledgePrint := false
+							for myNegotiationPledge := range faultsIAmNegotiating {
+								for pledger, pledgeSlot := range pl.PledgeMap {
+									if pledgeSlot == myNegotiationPledge {
+										if !alreadyStartedPledgePrint {
+											prt = prt + fmt.Sprintf(" Pledges:")
+											alreadyStartedPledgePrint = true
+										}
+										prt = prt + fmt.Sprintf(" %s/%s ", pledgeSlot[4:10], pledger[4:10])
+									}
+								}
+							}
+						}
+					}
+
+					prt = prt + fmt.Sprintf("\n")
+				}
+
+				if verboseFaultOutput {
+					if len(pl.PledgeMap) > 0 {
+						if !alreadyStartedFPP {
+							fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("Full Pledges\n")
+							alreadyStartedFPP = true
+						}
+						fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("%s ", fnode.State.FactomNodeName)
+						for pledger, pledgeSlot := range pl.PledgeMap {
+							fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("%s/%s ", pledgeSlot[4:10], pledger[4:10])
+						}
+						fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("\n")
+					}
+				}
 			}
 		}
 	}
+	prt = prt + fullPledgeInfo
 	return prt
 }
 
