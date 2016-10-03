@@ -124,6 +124,16 @@ type State struct {
 	serverPendingPrivKeys []*primitives.PrivateKey
 	serverPendingPubKeys  []*primitives.PublicKey
 
+	// RPC connection config
+	RpcUser     string
+	RpcPass     string
+	RpcAuthHash []byte
+
+	FactomdTLSEnable   bool
+	factomdTLSKeyFile  string
+	factomdTLSCertFile string
+	FactomdLocations   string
+
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
@@ -334,6 +344,15 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.OneLeader = s.OneLeader
 
+	clone.RpcUser = s.RpcUser
+	clone.RpcPass = s.RpcPass
+	clone.RpcAuthHash = s.RpcAuthHash
+
+	clone.FactomdTLSEnable = s.FactomdTLSEnable
+	clone.factomdTLSKeyFile = s.factomdTLSKeyFile
+	clone.factomdTLSCertFile = s.factomdTLSCertFile
+	clone.FactomdLocations = s.FactomdLocations
+
 	return clone
 }
 
@@ -359,6 +378,30 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 
 func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
+}
+
+func (s *State) GetRpcUser() string {
+	return s.RpcUser
+}
+
+func (s *State) GetRpcPass() string {
+	return s.RpcPass
+}
+
+func (s *State) SetRpcAuthHash(authHash []byte) {
+	s.RpcAuthHash = authHash
+}
+
+func (s *State) GetRpcAuthHash() []byte {
+	return s.RpcAuthHash
+}
+
+func (s *State) GetTlsInfo() (bool, string, string) {
+	return s.FactomdTLSEnable, s.factomdTLSKeyFile, s.factomdTLSCertFile
+}
+
+func (s *State) GetFactomdLocations() string {
+	return s.FactomdLocations
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -428,6 +471,21 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		s.RpcUser = cfg.App.FactomdRpcUser
+		s.RpcPass = cfg.App.FactomdRpcPass
+
+		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
+		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
+			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
+		}
+		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
+			s.factomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
+		}
+		externalIP := strings.Split(cfg.Walletd.FactomdLocation, ":")[0]
+		if externalIP != "localhost" {
+			s.FactomdLocations = externalIP
+		}
+
 		switch cfg.App.ControlPanelSetting {
 		case "disabled":
 			s.ControlPanelSetting = 0
