@@ -44,6 +44,14 @@ type IState interface {
 	GetAuditServers(uint32) []IFctServer
 	GetOnlineAuditServers(uint32) []IFctServer
 
+	//RPC
+	GetRpcUser() string
+	GetRpcPass() string
+	SetRpcAuthHash(authHash []byte)
+	GetRpcAuthHash() []byte
+	GetTlsInfo() (bool, string, string)
+	GetFactomdLocations() string
+
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
 	Process() (progress bool)
