@@ -2,19 +2,13 @@
 # Add some funds to our wallet.
 factom-cli2 importaddress b Fs1fbEjDxWhXasmnp6R7DMFRo1oQBCJaa61hqkQQqhVGE8oJWKFE
 
-# Make us some Factom Addresses
-factom-cli2 generateaddress fct b1
-factom-cli2 generateaddress fct b2
-factom-cli2 generateaddress fct b3
-factom-cli2 generateaddress fct b4
-
 # make us an EC address
 factom-cli2 generateaddress ec e1
 
 factom-cli2 newtransaction t
-factom-cli2 addinput t b 1000
-factom-cli2 addecoutput t e1 1000
-factom-cli2 addfee t b
+factom-cli2 addinput       t b 1000
+factom-cli2 addecoutput    t e1 1000
+factom-cli2 addfee         t b
 factom-cli2 sign t
 factom-cli2 submit t
 
@@ -38,9 +32,12 @@ do
     echo $chain3
     export chain3=$chain3
 
-    sleep 70
+    sleep 40
+
+    factom-cli2 balances
+
+    sleep 20
 
     scripts/entryload2.sh &
 
-    factom-cli2 balances
 done
