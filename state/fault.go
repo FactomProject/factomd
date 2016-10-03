@@ -260,6 +260,21 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 					s.NetworkOutMsgQueue() <- nsf
 					s.InMsgQueue() <- nsf
 				}
+			} else {
+				howLongWeNegotiated, areWeNegotiating := pl.NegotiationInit[sf.ServerID.String()]
+				if areWeNegotiating {
+					if howLongWeNegotiated < time.Now().Unix()-120 {
+						if pl.PledgeMap[s.IdentityChainID.String()] != sf.ServerID.String() {
+							pl.PledgeMap[s.IdentityChainID.String()] = sf.ServerID.String()
+							nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+							if nsf != nil {
+								nsf.Sign(s.serverPrivKey)
+								s.NetworkOutMsgQueue() <- nsf
+								s.InMsgQueue() <- nsf
+							}
+						}
+					}
+				}
 			}
 		}
 	}
