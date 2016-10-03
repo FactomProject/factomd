@@ -16,6 +16,7 @@ import (
 
 	"crypto/rand"
 	"encoding/binary"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -123,6 +124,16 @@ type State struct {
 	serverPendingPrivKeys []*primitives.PrivateKey
 	serverPendingPubKeys  []*primitives.PublicKey
 
+	// RPC connection config
+	RpcUser     string
+	RpcPass     string
+	RpcAuthHash []byte
+
+	FactomdTLSEnable   bool
+	factomdTLSKeyFile  string
+	factomdTLSCertFile string
+	FactomdLocations   string
+
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
@@ -180,8 +191,10 @@ type State struct {
 	InvalidMessagesMutex sync.RWMutex
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
-	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
+	FaultVoteMap    map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
+	FaultInfoMap map[[32]byte]FaultCore
+	// Contains detailed fault information for the ongoing negotiations
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -299,7 +312,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LocalNetworkPort = s.LocalNetworkPort
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
-	clone.FaultMap = s.FaultMap
+	clone.FaultVoteMap = s.FaultVoteMap
+	clone.FaultInfoMap = s.FaultInfoMap
 	clone.StartDelayLimit = s.StartDelayLimit
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
@@ -330,6 +344,15 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.OneLeader = s.OneLeader
 
+	clone.RpcUser = s.RpcUser
+	clone.RpcPass = s.RpcPass
+	clone.RpcAuthHash = s.RpcAuthHash
+
+	clone.FactomdTLSEnable = s.FactomdTLSEnable
+	clone.factomdTLSKeyFile = s.factomdTLSKeyFile
+	clone.factomdTLSCertFile = s.factomdTLSCertFile
+	clone.FactomdLocations = s.FactomdLocations
+
 	return clone
 }
 
@@ -355,6 +378,30 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 
 func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
+}
+
+func (s *State) GetRpcUser() string {
+	return s.RpcUser
+}
+
+func (s *State) GetRpcPass() string {
+	return s.RpcPass
+}
+
+func (s *State) SetRpcAuthHash(authHash []byte) {
+	s.RpcAuthHash = authHash
+}
+
+func (s *State) GetRpcAuthHash() []byte {
+	return s.RpcAuthHash
+}
+
+func (s *State) GetTlsInfo() (bool, string, string) {
+	return s.FactomdTLSEnable, s.factomdTLSKeyFile, s.factomdTLSCertFile
+}
+
+func (s *State) GetFactomdLocations() string {
+	return s.FactomdLocations
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -424,6 +471,21 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		s.RpcUser = cfg.App.FactomdRpcUser
+		s.RpcPass = cfg.App.FactomdRpcPass
+
+		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
+		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
+			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
+		}
+		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
+			s.factomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
+		}
+		externalIP := strings.Split(cfg.Walletd.FactomdLocation, ":")[0]
+		if externalIP != "localhost" {
+			s.FactomdLocations = externalIP
+		}
+
 		switch cfg.App.ControlPanelSetting {
 		case "disabled":
 			s.ControlPanelSetting = 0
@@ -541,7 +603,8 @@ func (s *State) Init() {
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
-	s.FaultMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
+	s.FaultVoteMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
+	s.FaultInfoMap = make(map[[32]byte]FaultCore)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
