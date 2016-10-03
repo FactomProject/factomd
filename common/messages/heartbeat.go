@@ -214,7 +214,7 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Heartbeat) String() string {
-	return ""
+	return fmt.Sprintf("HeartBeat ID[%x] ts %d.%03d", m.IdentityChainID.Bytes()[:8], m.Timestamp.GetTimeMilli()/1000, m.Timestamp.GetTimeMilli()%1000)
 }
 
 func (m *Heartbeat) DBHeight() int {

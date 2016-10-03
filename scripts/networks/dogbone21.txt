@@ -1,4 +1,10 @@
-; http://arborjs.org/halfviz/#/MTAzODE
+{color:#aa5555}
+
+
+http://arborjs.org/halfviz/#/MTA1ODI -> top
+
+{color:#ffffff}
+top
 
 ; Default node color: Gray
 {color:#555555}
@@ -59,25 +65,27 @@
 11 -- 17
 11 -- 16
 
-; Federated Servers: Blue
 {color:#3333ff}
-13
-20
-2
-0
-15 
-17
-11
-9
+Federated Servers: Blue -> top
 
-; Audit Servers: Green
-{color:#338833}
 
-3
-12
+
 1
-14
-8
+2
+3
+4
+
 7
+8
+9
 10
+
+{color:#338833}
+Audit Servers: Green -> top
+
+13
+14
+15
 16
+17
+18

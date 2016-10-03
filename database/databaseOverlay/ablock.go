@@ -65,6 +65,10 @@ func (db *Overlay) FetchAllABlocks() ([]interfaces.IAdminBlock, error) {
 	return toABlocksList(list), nil
 }
 
+func (db *Overlay) FetchAllABlockKeys() ([]interfaces.IHash, error) {
+	return db.FetchAllBlockKeysFromBucket(ADMINBLOCK)
+}
+
 func toABlocksList(source []interfaces.BinaryMarshallableAndCopyable) []interfaces.IAdminBlock {
 	answer := make([]interfaces.IAdminBlock, len(source))
 	for i, v := range source {

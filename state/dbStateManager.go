@@ -49,9 +49,12 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-// Validate this directory block is a possible part of a valid Next DBState.  Doesn't check
-// signatures, as those are in the next block. Does check that this DBState holds
+// Validate this directory block given the next Directory Block.  Need to check the
+// signatures as being from the authority set, and valid. Also check that this DBState holds
 // a previous KeyMR that matches the previous DBState KeyMR.
+//
+// Return a -1 on failure.
+//
 func (d *DBState) ValidNext(state *State, dirblk interfaces.IDirectoryBlock) int {
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	if dbheight == 0 {
@@ -458,7 +461,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		}
 
 		for _, v := range commits {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), now)
 			if ok {
 				keep = append(keep, v)
 			}
@@ -595,7 +598,8 @@ func (list *DBStateList) Highest() uint32 {
 	return high
 }
 
-func (list *DBStateList) Put(dbState *DBState) {
+// Return true if we actually added the dbstate to the list
+func (list *DBStateList) Put(dbState *DBState) bool {
 
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
@@ -627,7 +631,7 @@ searchLoop:
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		return
+		return false
 	}
 
 	// make room for this entry.
@@ -637,6 +641,8 @@ searchLoop:
 	if list.DBStates[index] == nil {
 		list.DBStates[index] = dbState
 	}
+
+	return true
 }
 
 func (list *DBStateList) Get(height int) *DBState {
@@ -669,7 +675,11 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.FactoidBlock = factoidBlock
 	dbState.EntryCreditBlock = entryCreditBlock
 
-	list.Put(dbState)
+	// If we actually add this to the list, return the dbstate.
+	if list.Put(dbState) {
+		return dbState
+	}
 
-	return dbState
+	// Failed, so return nil
+	return nil
 }

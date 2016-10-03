@@ -499,13 +499,23 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
+	// get the chain head from the database
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 	if mr == nil {
-		return nil, NewMissingChainHeadError()
+		// get the pending chain head from the process list in the state (if any)
+		pendmr, err := state.GetNewEBlocks(state.GetLeaderHeight(), h).KeyMR()
+		if err != nil {
+			return nil, NewInvalidHashError()
+		}
+		if pendmr == nil {
+			return nil, NewMissingChainHeadError()
+		}
+		mr = pendmr
 	}
+
 	c := new(ChainHeadResponse)
 	c.ChainHead = mr.String()
 	return c, nil
@@ -626,6 +636,8 @@ func HandleV2GetHeight(state interfaces.IState, params interface{}) (interface{}
 	h.EntryBlockHeight = int64(state.GetHighestCompletedBlock())
 	h.EntryHeight = int64(state.GetEntryDBHeightComplete())
 	h.MissingEntryCount = int64(state.GetMissingEntryCount())
+	h.EntryBlockDBHeightProcessing = int64(state.GetEntryBlockDBHeightProcessing())
+	h.EntryBlockDBHeightComplete = int64(state.GetEntryBlockDBHeightComplete())
 
 	return h, nil
 }

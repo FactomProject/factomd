@@ -97,6 +97,7 @@ type DBOverlay interface {
 
 	// FetchAllFBInfo gets all of the fbInfo
 	FetchAllDBlocks() ([]IDirectoryBlock, error)
+	FetchAllDBlockKeys() ([]IHash, error)
 
 	SaveDirectoryBlockHead(DatabaseBlockWithEntries) error
 
@@ -119,6 +120,7 @@ type DBOverlay interface {
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
+	FetchAllECBlockKeys() ([]IHash, error)
 
 	SaveECBlockHead(IEntryCreditBlock, bool) error
 
@@ -141,6 +143,7 @@ type DBOverlay interface {
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
+	FetchAllABlockKeys() ([]IHash, error)
 
 	SaveABlockHead(DatabaseBatchable) error
 
@@ -162,6 +165,7 @@ type DBOverlay interface {
 
 	// FetchAllFBlocks gets all of the admin blocks
 	FetchAllFBlocks() ([]IFBlock, error)
+	FetchAllFBlockKeys() ([]IHash, error)
 
 	SaveFactoidBlockHead(fblock DatabaseBlockWithEntries) error
 

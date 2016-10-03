@@ -900,29 +900,18 @@ func (s *State) catchupEBlocks() {
 	now := s.GetTimestamp()
 
 	// If we have no Entry Blocks in our queue, reset our timer.
-	if len(s.MissingEntryBlocks) == 0 {
-		s.MissingEntryBlockRepeat = nil
-	} else {
-		// If our timer was reset, then set it now.
-		if s.MissingEntryBlockRepeat == nil {
-			s.MissingEntryBlockRepeat = now
-		}
+	if len(s.MissingEntryBlocks) == 0 || s.MissingEntryBlockRepeat == nil {
+		s.MissingEntryBlockRepeat = now
+	}
 
-		// If our delay has been reached, then ask for some missing Entry blocks
-		// This is a replay, because sometimes requests are ignored or lost.
-		if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
-			s.MissingEntryBlockRepeat = now
+	// If our delay has been reached, then ask for some missing Entry blocks
+	// This is a replay, because sometimes requests are ignored or lost.
+	if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
+		s.MissingEntryBlockRepeat = now
 
-			fmt.Printf("dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
-				s.FactomNodeName,
-				len(s.MissingEntryBlocks),
-				s.EntryBlockDBHeightProcessing,
-				s.EntryBlockDBHeightComplete)
-
-			for _, eb := range s.MissingEntryBlocks {
-				eBlockRequest := messages.NewMissingData(s, eb.ebhash)
-				s.NetworkOutMsgQueue() <- eBlockRequest
-			}
+		for _, eb := range s.MissingEntryBlocks {
+			eBlockRequest := messages.NewMissingData(s, eb.ebhash)
+			s.NetworkOutMsgQueue() <- eBlockRequest
 		}
 	}
 
@@ -961,8 +950,6 @@ func (s *State) catchupEBlocks() {
 		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
 			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
-			updateCommits := now.GetTime().Sub(db.GetTimestamp().GetTime()).Hours() <= 5
-
 			for i, ebKeyMR := range db.GetEntryHashes() {
 				// The first three entries (0,1,2) in every directory block are blocks we already have by
 				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
@@ -976,34 +963,35 @@ func (s *State) catchupEBlocks() {
 					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 				} else {
-					eblock, err := s.DB.FetchEBlock(ebKeyMR)
+					eblock, _ := s.DB.FetchEBlock(ebKeyMR)
 
-					if err == nil && eblock != nil {
-						for _, entryhash := range eblock.GetEntryHashes() {
-							if entryhash.IsMinuteMarker() {
-								continue
+					for _, entryhash := range eblock.GetEntryHashes() {
+						if entryhash.IsMinuteMarker() {
+							continue
+						}
+						e, _ := s.DB.FetchEntry(entryhash)
+						if e == nil {
+							var v struct {
+								ebhash    interfaces.IHash
+								entryhash interfaces.IHash
+								dbheight  uint32
 							}
-							e, _ := s.DB.FetchEntry(entryhash)
-							if e == nil {
-								var v struct {
-									ebhash    interfaces.IHash
-									entryhash interfaces.IHash
-									dbheight  uint32
-								}
 
-								v.dbheight = eblock.GetHeader().GetDBHeight()
-								v.entryhash = entryhash
-								v.ebhash = ebKeyMR
+							v.dbheight = eblock.GetHeader().GetDBHeight()
+							v.entryhash = entryhash
+							v.ebhash = ebKeyMR
 
-								s.MissingEntries = append(s.MissingEntries, v)
-							}
-							if updateCommits {
-								s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now)
-								delete(s.Commits, entryhash.Fixed())
-							}
+							s.MissingEntries = append(s.MissingEntries, v)
+						}
+						// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+						if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
+							delete(s.Commits, entryhash.Fixed())
 						}
 					}
 				}
+			}
+			if len(s.MissingEntries) == 0 && s.EntryBlockDBHeightComplete == s.EntryBlockDBHeightProcessing {
+				s.EntryBlockDBHeightComplete++
 			}
 			s.EntryBlockDBHeightProcessing++
 		}

@@ -6,9 +6,11 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -18,6 +20,9 @@ var dbo interfaces.DBOverlay
 type Printout struct {
 	FetchedBlock  uint32
 	FetchingUntil uint32
+
+	FilledBlock  uint32
+	FillingUntil uint32
 
 	SavedBlock  uint32
 	SavingUntil uint32
@@ -30,7 +35,8 @@ func PrintoutLoop() {
 	for {
 		time.Sleep(time.Second)
 		if doPrint {
-			fmt.Printf("Fetching\t%5d/%v\t\tSaving\t%5d/%v\n", printout.FetchedBlock, printout.FetchingUntil, printout.SavedBlock, printout.SavingUntil)
+			fmt.Printf("Fetching\t%5d/%v\t\tFilling\t%5d/%v\t\tSaving\t%5d/%v\n",
+				printout.FetchedBlock, printout.FetchingUntil, printout.FilledBlock, printout.FillingUntil, printout.SavedBlock, printout.SavingUntil)
 		}
 	}
 }
@@ -60,7 +66,7 @@ func main() {
 		panic(err)
 	}
 
-	c := make(chan []interfaces.IDirectoryBlock, 100)
+	c := make(chan []interfaces.IDirectoryBlock, 5)
 	done := make(chan int, 100)
 
 	go SaveBlocksLoop(c, done)
@@ -138,18 +144,153 @@ func main() {
 	doPrint = false
 	time.Sleep(time.Second)
 
-	CheckDatabaseForMissingentries(dbo)
+	if dbo != nil {
+		dbo.Close()
+	}
+	switch cfg.App.DBType {
+	case "Bolt":
+		dbo = InitBolt(cfg)
+		break
+	case "LDB":
+		dbo = InitLevelDB(cfg)
+		break
+	default:
+		dbo = InitMapDB(cfg)
+		break
+	}
+
+	CheckDatabaseForMissingEntries(dbo)
+
+	if dbo != nil {
+		dbo.Close()
+	}
+	switch cfg.App.DBType {
+	case "Bolt":
+		dbo = InitBolt(cfg)
+		break
+	case "LDB":
+		dbo = InitLevelDB(cfg)
+		break
+	default:
+		dbo = InitMapDB(cfg)
+		break
+	}
 
 	fmt.Printf("\t\tRebulding DirBlockInfo\n")
 	err = dbo.RebuildDirBlockInfo()
 	if err != nil {
 		panic(err)
 	}
+
+	dbo.Close()
 }
 
 func SaveBlocksLoop(input chan []interfaces.IDirectoryBlock, done chan int) {
 	//fmt.Printf("\t\tSaving blocks\n")
 
+	dbChan := make(chan []BlockSet, 2)
+	go SaveToDBLoop(dbChan, done)
+
+	for {
+		dBlockList := <-input
+		blockSets := []BlockSet{}
+
+		printout.FillingUntil = dBlockList[len(dBlockList)-1].GetDatabaseHeight()
+
+		for _, v := range dBlockList {
+			blockSet := BlockSet{}
+			blockSet.DBlock = v
+
+			entries := v.GetDBEntries()
+			c := make(chan int, len(entries))
+			for _, ent := range entries {
+				go func(e interfaces.IDBEntry) {
+					defer func() {
+						c <- 1
+					}()
+					switch e.GetChainID().String() {
+					case "000000000000000000000000000000000000000000000000000000000000000a":
+						ablock, err := GetABlock(e.GetKeyMR().String())
+						if err != nil {
+							panic(err)
+						}
+						blockSet.ABlock = ablock
+						break
+					case "000000000000000000000000000000000000000000000000000000000000000f":
+						fblock, err := GetFBlock(e.GetKeyMR().String())
+						if err != nil {
+							panic(err)
+						}
+						blockSet.FBlock = fblock
+						break
+					case "000000000000000000000000000000000000000000000000000000000000000c":
+						ecblock, err := GetECBlock(e.GetKeyMR().String())
+						if err != nil {
+							panic(err)
+						}
+						blockSet.ECBlock = ecblock
+						break
+					default:
+						eblock, err := GetEBlock(e.GetKeyMR().String())
+						if err != nil {
+							panic(err)
+						}
+						blockSet.Mutex.Lock()
+						blockSet.EBlocks = append(blockSet.EBlocks, eblock)
+						blockSet.Mutex.Unlock()
+						eBlockEntries := eblock.GetEntryHashes()
+						c2 := make(chan int, len(eBlockEntries))
+						for _, eHash := range eBlockEntries {
+							go func(ehash interfaces.IHash) {
+								defer func() {
+									c2 <- 1
+								}()
+								if ehash.IsMinuteMarker() == true {
+									return
+								}
+								entry, err := GetEntry(ehash.String())
+								if err != nil {
+									fmt.Printf("Problem getting entry `%v` from block %v\n", ehash.String(), e.GetKeyMR().String())
+									panic(err)
+								}
+
+								blockSet.Mutex.Lock()
+								blockSet.Entries = append(blockSet.Entries, entry)
+								blockSet.Mutex.Unlock()
+							}(eHash)
+						}
+						for range eBlockEntries {
+							<-c2
+						}
+						break
+					}
+				}(ent)
+			}
+			for range entries {
+				<-c
+			}
+
+			blockSets = append(blockSets, blockSet)
+
+			printout.FilledBlock = v.GetDatabaseHeight()
+
+		}
+		dbChan <- blockSets
+	}
+}
+
+type BlockSet struct {
+	DBlock  interfaces.IDirectoryBlock
+	ABlock  interfaces.IAdminBlock
+	ECBlock interfaces.IEntryCreditBlock
+	FBlock  interfaces.IFBlock
+	EBlocks []interfaces.IEntryBlock
+	Entries []interfaces.IEBEntry
+
+	Mutex sync.Mutex
+}
+
+func SaveToDBLoop(input chan []BlockSet, done chan int) {
 	for {
 		if dbo != nil {
 			dbo.Close()
@@ -166,116 +307,70 @@ func SaveBlocksLoop(input chan []interfaces.IDirectoryBlock, done chan int) {
 			break
 		}
 
-		dBlockList := <-input
+		blockSet := <-input
+		printout.SavingUntil = blockSet[len(blockSet)-1].DBlock.GetDatabaseHeight()
 
-		printout.SavingUntil = dBlockList[len(dBlockList)-1].GetDatabaseHeight()
-
-		for _, v := range dBlockList {
+		for _, set := range blockSet {
 			dbo.StartMultiBatch()
 
-			err := dbo.ProcessDBlockMultiBatch(v)
+			err := dbo.ProcessDBlockMultiBatch(set.DBlock)
 			if err != nil {
 				panic(err)
 			}
 
-			entries := v.GetDBEntries()
-			c := make(chan int, len(entries))
-			for _, ent := range entries {
-				go func(e interfaces.IDBEntry) {
-					defer func() {
-						c <- 1
-					}()
-					switch e.GetChainID().String() {
-					case "000000000000000000000000000000000000000000000000000000000000000a":
-						ablock, err := GetABlock(e.GetKeyMR().String())
-						if err != nil {
-							panic(err)
-						}
-						err = dbo.ProcessABlockMultiBatch(ablock)
-						if err != nil {
-							panic(err)
-						}
-						break
-					case "000000000000000000000000000000000000000000000000000000000000000f":
-						fblock, err := GetFBlock(e.GetKeyMR().String())
-						if err != nil {
-							panic(err)
-						}
-						err = dbo.ProcessFBlockMultiBatch(fblock)
-						if err != nil {
-							panic(err)
-						}
-						break
-					case "000000000000000000000000000000000000000000000000000000000000000c":
-						ecblock, err := GetECBlock(e.GetKeyMR().String())
-						if err != nil {
-							panic(err)
-						}
-						err = dbo.ProcessECBlockMultiBatch(ecblock, true)
-						if err != nil {
-							panic(err)
-						}
-						break
-					default:
-						eblock, err := GetEBlock(e.GetKeyMR().String())
-						if err != nil {
-							panic(err)
-						}
-						err = dbo.ProcessEBlockMultiBatch(eblock, true)
-						if err != nil {
-							panic(err)
-						}
-						eBlockEntries := eblock.GetEntryHashes()
-						c2 := make(chan int, len(eBlockEntries))
-						for _, eHash := range eBlockEntries {
-							go func(ehash interfaces.IHash) {
-								defer func() {
-									c2 <- 1
-								}()
-								if ehash.IsMinuteMarker() == true {
-									return
-								}
-								entry, err := GetEntry(ehash.String())
-								if err != nil {
-									fmt.Printf("Problem getting entry `%v` from block %v\n", ehash.String(), e.GetKeyMR().String())
-									panic(err)
-								}
-								err = dbo.InsertEntry(entry)
-								if err != nil {
-									panic(err)
-								}
-							}(eHash)
-						}
-						for range eBlockEntries {
-							<-c2
-						}
-						break
-					}
-				}(ent)
+			err = dbo.ProcessABlockMultiBatch(set.ABlock)
+			if err != nil {
+				panic(err)
 			}
-			for range entries {
-				<-c
+
+			err = dbo.ProcessFBlockMultiBatch(set.FBlock)
+			if err != nil {
+				panic(err)
+			}
+
+			err = dbo.ProcessECBlockMultiBatch(set.ECBlock, true)
+			if err != nil {
+				panic(err)
+			}
+
+			for _, v := range set.EBlocks {
+				err = dbo.ProcessEBlockMultiBatch(v, true)
+				if err != nil {
+					panic(err)
+				}
+			}
+
+			for _, v := range set.Entries {
+				err = dbo.InsertEntry(v)
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			if err := dbo.ExecuteMultiBatch(); err != nil {
 				panic(err)
 			}
-			//fmt.Printf("Saved block height %v\n", v.GetDatabaseHeight())
-			printout.SavedBlock = v.GetDatabaseHeight()
-
+			printout.SavedBlock = set.DBlock.GetDatabaseHeight()
 		}
-		done <- int(dBlockList[len(dBlockList)-1].GetDatabaseHeight())
+
+		done <- int(blockSet[len(blockSet)-1].DBlock.GetDatabaseHeight())
 	}
 }
 
-func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
+var HashMap map[string]string
+
+func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 	fmt.Printf("\t\tIterating over DBlocks\n")
 	prevD, err := dbo.FetchDBlockHead()
 	if err != nil {
 		panic(err)
 	}
+
+	HashMap = map[string]string{}
+
 	for {
 		CheckDBlockEntries(prevD, dbo)
+		HashMap[prevD.DatabasePrimaryIndex().String()] = "OK"
 
 		if prevD.GetHeader().GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
@@ -285,12 +380,12 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 			panic(err)
 		}
 		if dBlock == nil {
-			fmt.Printf("Found a missing block - %v\n", prevD.GetHeader().GetPrevKeyMR().String())
-			ecblock, err := GetDBlock(prevD.GetHeader().GetPrevKeyMR().String())
+			fmt.Printf("Found a missing dblock - %v\n", prevD.GetHeader().GetPrevKeyMR().String())
+			dblock, err := GetDBlock(prevD.GetHeader().GetPrevKeyMR().String())
 			if err != nil {
 				panic(err)
 			}
-			err = dbo.ProcessDBlockBatchWithoutHead(ecblock)
+			err = dbo.ProcessDBlockBatchWithoutHead(dblock)
 			if err != nil {
 				panic(err)
 			}
@@ -306,6 +401,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		HashMap[prevEC.DatabasePrimaryIndex().String()] = "OK"
 		if prevEC.GetHeader().GetPrevHeaderHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
 		}
@@ -314,7 +410,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 			panic(err)
 		}
 		if ecBlock == nil {
-			fmt.Printf("Found a missing block - %v\n", prevEC.GetHeader().GetPrevHeaderHash().String())
+			fmt.Printf("Found a missing ecblock - %v\n", prevEC.GetHeader().GetPrevHeaderHash().String())
 			ecblock, err := GetECBlock(prevEC.GetHeader().GetPrevHeaderHash().String())
 			if err != nil {
 				panic(err)
@@ -335,6 +431,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		HashMap[prevF.DatabasePrimaryIndex().String()] = "OK"
 		if prevF.GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
 		}
@@ -343,7 +440,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 			panic(err)
 		}
 		if fBlock == nil {
-			fmt.Printf("Found a missing block - %v\n", prevF.GetPrevKeyMR().String())
+			fmt.Printf("Found a missing fblock - %v\n", prevF.GetPrevKeyMR().String())
 			fBlock, err := GetFBlock(prevF.GetPrevKeyMR().String())
 			if err != nil {
 				panic(err)
@@ -364,6 +461,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		HashMap[prevA.DatabasePrimaryIndex().String()] = "OK"
 		if prevA.GetHeader().GetPrevBackRefHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
 		}
@@ -372,7 +470,7 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 			panic(err)
 		}
 		if aBlock == nil {
-			fmt.Printf("Found a missing block - %v\n", prevA.GetHeader().GetPrevBackRefHash().String())
+			fmt.Printf("Found a missing ablock - %v\n", prevA.GetHeader().GetPrevBackRefHash().String())
 			aBlock, err := GetABlock(prevA.GetHeader().GetPrevBackRefHash().String())
 			if err != nil {
 				panic(err)
@@ -386,6 +484,52 @@ func CheckDatabaseForMissingentries(dbo interfaces.DBOverlay) {
 			prevA = aBlock
 		}
 	}
+
+	fmt.Printf("\t\tFinding unused blocks\n")
+
+	hashes, err := dbo.FetchAllDBlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if HashMap[h.String()] == "" {
+			fmt.Printf("Superfluous DBlock - %v\n", h)
+			dbo.Delete(databaseOverlay.DIRECTORYBLOCK, h.Bytes())
+		}
+	}
+
+	hashes, err = dbo.FetchAllABlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if HashMap[h.String()] == "" {
+			fmt.Printf("Superfluous ABlock - %v\n", h)
+			dbo.Delete(databaseOverlay.ADMINBLOCK, h.Bytes())
+		}
+	}
+
+	hashes, err = dbo.FetchAllECBlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if HashMap[h.String()] == "" {
+			fmt.Printf("Superfluous ECBlock - %v\n", h)
+			dbo.Delete(databaseOverlay.ENTRYCREDITBLOCK, h.Bytes())
+		}
+	}
+
+	hashes, err = dbo.FetchAllFBlockKeys()
+	if err != nil {
+		panic(err)
+	}
+	for _, h := range hashes {
+		if HashMap[h.String()] == "" {
+			fmt.Printf("Superfluous FBlock - %v\n", h)
+			dbo.Delete(databaseOverlay.FACTOIDBLOCK, h.Bytes())
+		}
+	}
 }
 
 func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOverlay) {
@@ -393,6 +537,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 	for {
 		missing := 0
 		for _, e := range entries {
+			HashMap[e.GetKeyMR().String()] = "OK"
 			switch e.GetChainID().String() {
 			case "000000000000000000000000000000000000000000000000000000000000000a":
 				aBlock, err := dbo.FetchABlock(e.GetKeyMR())
@@ -579,6 +724,7 @@ func GetDBlockList() []string {
 		"792bce3c65bab4321db09b3f5b017b5496dd217352858215ed058faaa00aefeb", //53000
 		"11f44cadaf19eea29dc366a828531e36e8137ea2a5687041cf51e5ad66a7233d", //54000
 		"1101b4c1003a393bc17bae9305b103d07ef7b21bc5f170cf41c7e07e8862e6ad", //55000
+		"1e893bf343234de2a31192a0e5fff02f785989afd99823c1d37de5af76c5be45", //56000
 
 		keymr}
 }
