@@ -173,7 +173,7 @@ func (m *AuditServerFault) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *AuditServerFault) String() string {
-	return ""
+	return "AuditFault"
 }
 
 func (m *AuditServerFault) DBHeight() int {

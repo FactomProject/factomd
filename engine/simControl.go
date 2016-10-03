@@ -429,7 +429,6 @@ func SimControl(listenTo int) {
 				for _, f := range fnodes {
 					f.State.DebugConsensus = c
 				}
-
 			case 'i' == b[0]:
 				show := 0
 				amt := -1
@@ -799,7 +798,9 @@ func returnStatString(i int) string {
 	case 6:
 		stat = "Pending Full"
 	case 7:
-		stat = "Pending"
+		stat = "Self Not Full"
+	case 8:
+		stat = "Self Full"
 	}
 	return stat
 }

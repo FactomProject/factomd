@@ -2,7 +2,7 @@
 
 	echo "Transactions: "
 
-for i in `seq 1 1`;
+for i in `seq 1 5`;
 do
     export loadrun
 	factom-cli2 newtransaction t

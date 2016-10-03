@@ -834,7 +834,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the signatures are processed, we will be 2 behind.
-			if (dbsig && diff <= 2) || diff == 1 {
+			if (dbsig && diff <= 2) || diff <= 1 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 					vm.heartBeat = 0
@@ -853,6 +853,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
+	if p == nil {
+		return
+	}
 
 	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
 	// the past.
@@ -873,10 +877,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-	}
-
-	if p == nil {
-		return
 	}
 
 	now := p.State.GetTimestamp()

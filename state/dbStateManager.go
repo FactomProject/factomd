@@ -468,7 +468,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		}
 
 		for _, v := range commits {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), now)
 			if ok {
 				keep = append(keep, v)
 			}

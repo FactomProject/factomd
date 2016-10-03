@@ -646,6 +646,8 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		return
 	}
 
+	now := s.GetTimestamp()
+
 	//fmt.Println("JUSTIN", s.FactomNodeName, "FOLLEX DR:", msg.DataType, msg.DataHash.String())
 
 	switch msg.DataType {
@@ -667,6 +669,12 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			if !eb.IsSameAs(ebKeyMR) {
 				continue
 			}
+
+			db, err := s.DB.FetchDBlockByHeight(eblock.GetHeader().GetDBHeight())
+			if err != nil || db == nil {
+				return
+			}
+
 			//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND EB", msg.DataHash.String())
 			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
 			s.DB.ProcessEBlockBatch(eblock, true)
@@ -697,7 +705,14 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 					//fmt.Println("JUSTIN", s.FactomNodeName, "FROM EB APP ", entryhash.String())
 
 					s.MissingEntries = append(s.MissingEntries, v)
+
+					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+					if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
+						delete(s.Commits, entryhash.Fixed())
+					}
+
 				}
+
 			}
 
 			mindb := s.GetDBHeightComplete() + 1
@@ -1101,6 +1116,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.ReviewHolding()
 			s.Syncing = false
 		}
+		s.SendHeartBeat()
+
 		return true
 	}
 
@@ -1126,8 +1143,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
-
-		s.SendHeartBeat()
 
 		return false
 	}
