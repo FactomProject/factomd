@@ -115,7 +115,7 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 		}
 
 		for _, entry := range prev.Entries {
-			err = dbo.InsertEntry(entry)
+			err = dbo.InsertEntryMultiBatch(entry)
 			if err != nil {
 				panic(err)
 			}

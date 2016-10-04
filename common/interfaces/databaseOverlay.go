@@ -22,6 +22,7 @@ type DBOverlay interface {
 
 	// InsertEntry inserts an entry
 	InsertEntry(entry IEBEntry) (err error)
+	InsertEntryMultiBatch(entry IEBEntry) error
 
 	// FetchEntry gets an entry by hash from the database.
 	FetchEntry(IHash) (IEBEntry, error)
