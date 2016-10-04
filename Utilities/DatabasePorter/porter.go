@@ -341,7 +341,7 @@ func SaveToDBLoop(input chan []BlockSet, done chan int) {
 			}
 
 			for _, v := range set.Entries {
-				err = dbo.InsertEntry(v)
+				err = dbo.InsertEntryMultiBatch(v)
 				if err != nil {
 					panic(err)
 				}
