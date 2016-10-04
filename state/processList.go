@@ -664,7 +664,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 10, 2)
 		}
 
-		if vm.faultHeight > 0 && vm.Height > vm.faultHeight {
+		if vm.whenFaulted > 0 && vm.Height > vm.faultHeight {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
 				p.AmINegotiator = false
 			}
@@ -977,6 +977,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true
 		pl.VMs[i].faultHeight = -1
+		pl.VMs[i].whenFaulted = 0
 	}
 
 	pl.DBHeight = dbheight

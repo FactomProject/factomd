@@ -338,6 +338,27 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	if sfSigned < 1 {
 		return -1
 	}
+	_, err = m.MarshalCore()
+	if err != nil {
+		return -1
+	}
+	return 1
+}
+
+func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) int {
+	// Check main signature
+	bytes, err := m.MarshalForSignature()
+	if err != nil {
+		return -1
+	}
+	sig := m.Signature.GetSignature()
+	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
+	if err != nil {
+		return -1
+	}
+	if sfSigned < 1 {
+		return -1
+	}
 	cb, err := m.MarshalCore()
 	if err != nil {
 		return -1

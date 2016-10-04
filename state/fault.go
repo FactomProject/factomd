@@ -20,6 +20,13 @@ type FaultState struct {
 	VoteMap            map[[32]byte]interfaces.IFullSignature
 	NegotiationOngoing bool
 	PledgeDone         bool
+	LastMatch          int64
+}
+
+func (fs FaultState) String() string {
+	return fmt.Sprintf("Fed: %s Audit: %s, VM: %d, Height: %d, AmINego: %v, MyVote: %v, Votes: %d, Pledged: %v",
+		fs.FaultCore.ServerID.String()[:10], fs.FaultCore.AuditServerID.String()[:10], int(fs.FaultCore.VMIndex), fs.FaultCore.Height,
+		fs.AmINegotiator, fs.MyVoteTallied, len(fs.VoteMap), fs.PledgeDone)
 }
 
 type FaultCore struct {
@@ -61,18 +68,23 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 }
 
 func handleNegotiations(pl *ProcessList) {
+	amINego := false
 	for {
 		for faultID, faultState := range pl.FaultMap {
 			if faultState.AmINegotiator {
 				craftAndSubmitFullFault(pl, faultID)
+				amINego = true
 			}
 		}
-		time.Sleep(5 * time.Second)
+		pl.AmINegotiator = amINego
+		if !amINego {
+			return
+		}
+		time.Sleep(3 * time.Second)
 	}
 }
 
 func craftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
-	fmt.Println("JUSTIN CRAFTANDSUB", pl.State.FactomNodeName)
 	faultState := pl.FaultMap[faultID]
 	fc := faultState.FaultCore
 
@@ -81,6 +93,10 @@ func craftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
 	var listOfSigs []interfaces.IFullSignature
 	for _, sig := range faultState.VoteMap {
 		listOfSigs = append(listOfSigs, sig)
+	}
+
+	if !pl.State.NetStateOff {
+		fmt.Println("JUSTIN CRAFTANDSUB", pl.State.FactomNodeName, len(listOfSigs))
 	}
 
 	fullFault := messages.NewFullServerFault(sf, listOfSigs)
@@ -118,7 +134,9 @@ func craftFault(pl *ProcessList, vm *VM, vmIndex int, height int) *messages.Serv
 }
 
 func craftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
-	fmt.Println("JUSTIN CRASF", pl.State.FactomNodeName)
+	if !pl.State.NetStateOff {
+		fmt.Println("JUSTIN CRASF", pl.State.FactomNodeName)
+	}
 	// TODO: if I am the Leader being faulted, I should respond by sending out
 	// a MissingMsgResponse to everyone for the msg I'm being faulted for
 	auditServerList := pl.State.GetOnlineAuditServers(pl.DBHeight)
@@ -156,8 +174,6 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		return
 	}
 
-	fmt.Println("JUSTIN FOLLEXSF", pl.State.FactomNodeName, sf.GetCoreHash().String()[:10])
-
 	s.regularFaultExecution(sf, pl)
 }
 
@@ -171,10 +187,18 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	}
 
 	coreHash := sf.GetCoreHash().Fixed()
-	fmt.Println("JUSTIN COREH:", pl.State.FactomNodeName, sf.GetCoreHash().String()[:10], len(pl.FaultMap))
+	if !s.NetStateOff {
+		if s.Leader {
+			fmt.Println("JUSTIN COREH:", pl.State.FactomNodeName, sf.GetCoreHash().String()[:10], len(pl.FaultMap))
+		}
+	}
 	faultState, haveFaultMapped := pl.FaultMap[sf.GetCoreHash().Fixed()]
 	if haveFaultMapped {
-		fmt.Println(faultState)
+		if s.Leader {
+			if !s.NetStateOff {
+				fmt.Println("JUSTIN FROMMAP:", s.FactomNodeName, faultState)
+			}
+		}
 	} else {
 		fcore := FaultCore{ServerID: sf.ServerID, AuditServerID: sf.AuditServerID, VMIndex: sf.VMIndex, DBHeight: sf.DBHeight, Height: sf.Height}
 		pl.FaultMap[coreHash] = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
@@ -208,7 +232,6 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	}
 
 	if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
-		cnt := len(faultState.VoteMap)
 		var fedServerCnt int
 		if pl != nil {
 			fedServerCnt = len(pl.FedServers)
@@ -222,9 +245,12 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 
 		if !faultState.MyVoteTallied {
-			s.matchFault(sf)
+			fmt.Println("JUSTIN MM:", time.Now().Unix(), faultState.LastMatch)
+			if time.Now().Unix()-faultState.LastMatch > 3 {
+				s.matchFault(sf)
+				faultState.LastMatch = time.Now().Unix()
+			}
 		}
-		fmt.Println("JUSTIN CNT:", cnt, s.FactomNodeName)
 	}
 
 	pl.FaultMap[sf.GetCoreHash().Fixed()] = faultState
@@ -235,7 +261,9 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 		sf.Sign(s.serverPrivKey)
 		s.NetworkOutMsgQueue() <- sf
 		s.InMsgQueue() <- sf
-		fmt.Println("JUSTIN MATCHED FAULT", s.FactomNodeName, sf.GetCoreHash().String()[:10])
+		if !s.NetStateOff {
+			fmt.Println("JUSTIN MATCHED FAULT", s.FactomNodeName, sf.GetCoreHash().String()[:10])
+		}
 	}
 }
 
@@ -248,9 +276,17 @@ func wipeOutFaultsFor(pl *ProcessList, faultedServerID interfaces.IHash, promote
 			delete(pl.FaultMap, faultID)
 		}
 	}
+	amINego := false
+	for _, faultState := range pl.FaultMap {
+		if faultState.AmINegotiator {
+			amINego = true
+		}
+	}
+	pl.AmINegotiator = amINego
 }
 
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
+	fmt.Println("JUSTIN FFFFF", s.FactomNodeName)
 	fullFault, _ := m.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
 
@@ -266,7 +302,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		return
 	}
 
-	hasSignatureQuorum := fullFault.Validate(s)
+	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
 	if hasSignatureQuorum > 0 {
 		if s.pledgedByAudit(fullFault) {
 			fmt.Println("JUSTIN PLEDGE SUCCESSSSSSSSSSSSSSSSSSSSSSS", s.FactomNodeName, fullFault.AuditServerID.String()[:10])
@@ -282,6 +318,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 						relevantPL.VMs[vmindex].whenFaulted = 0
 					}
 					wipeOutFaultsFor(relevantPL, fullFault.ServerID, fullFault.AuditServerID)
+					fmt.Println("JUSTIN NOW", s.FactomNodeName, "FF:", len(relevantPL.FaultMap))
 					break
 				}
 			}
@@ -326,12 +363,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
 				fmt.Println("JUSTIN TALLIED", s.FactomNodeName, fullFault.GetCoreHash().String()[:10])
 				return
-			} else {
-				if err != nil {
-					fmt.Println("JUSTIN ERRRR:", err)
-				} else {
-					fmt.Println("WTF")
-				}
 			}
 		}
 	}
