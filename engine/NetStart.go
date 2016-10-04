@@ -6,6 +6,7 @@ package engine
 
 import (
 	"bytes"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"os"
@@ -303,12 +304,12 @@ func NetStart(s *state.State) {
 			panic("Please specify a custom network with -customnet=<something unique here>")
 		}
 		s.CustomNetworkID = customNet
-		networkID = p2p.LocalNet
+		networkID = p2p.NetworkID(binary.BigEndian.Uint32(customNet))
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
 		specialPeers = s.LocalSpecialPeers
 	default:
-		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
+		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
 
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
