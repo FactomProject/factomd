@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	//"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 )
@@ -361,6 +362,7 @@ var HashMap map[string]string
 
 func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 	fmt.Printf("\t\tIterating over DBlocks\n")
+
 	prevD, err := dbo.FetchDBlockHead()
 	if err != nil {
 		panic(err)
@@ -547,7 +549,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				if aBlock != nil {
 					break
 				}
-				fmt.Printf("Found missing aBlock\n")
+				fmt.Printf("Found missing aBlock in #%v\n", dBlock.GetDatabaseHeight())
 				missing++
 				aBlock, err = GetABlock(e.GetKeyMR().String())
 				if err != nil {
@@ -566,7 +568,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				if fBlock != nil {
 					break
 				}
-				fmt.Printf("Found missing fBlock\n")
+				fmt.Printf("Found missing fBlock in #%v\n", dBlock.GetDatabaseHeight())
 				missing++
 				fBlock, err = GetFBlock(e.GetKeyMR().String())
 				if err != nil {
@@ -585,7 +587,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				if ecBlock != nil {
 					break
 				}
-				fmt.Printf("Found missing ecBlock\n")
+				fmt.Printf("Found missing ecBlock in #%v\n", dBlock.GetDatabaseHeight())
 				missing++
 				ecBlock, err = GetECBlock(e.GetKeyMR().String())
 				if err != nil {
@@ -599,10 +601,12 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 			default:
 				eBlock, err := dbo.FetchEBlock(e.GetKeyMR())
 				if err != nil {
-					panic(err)
+					if err.Error() != "EOF" {
+						panic(err)
+					}
 				}
 				if eBlock == nil {
-					fmt.Printf("Found missing eBlock\n")
+					fmt.Printf("Found missing eBlock in #%v\n", dBlock.GetDatabaseHeight())
 					missing++
 					eBlock, err = GetEBlock(e.GetKeyMR().String())
 					if err != nil {
@@ -617,14 +621,14 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				eBlockEntries := eBlock.GetEntryHashes()
 				for _, eHash := range eBlockEntries {
 					if eHash.IsMinuteMarker() == true {
-						return
+						continue
 					}
 					entry, err := dbo.FetchEntry(eHash)
 					if err != nil {
 						panic(err)
 					}
 					if entry == nil {
-						fmt.Printf("Found missing entry\n")
+						fmt.Printf("Found missing entry in #%v\n", dBlock.GetDatabaseHeight())
 						missing++
 						entry, err := GetEntry(eHash.String())
 						if err != nil {
