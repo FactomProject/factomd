@@ -1000,8 +1000,6 @@ func faultSummary() string {
 	headerTitle := "Faults"
 	headerLabel := "Fed   "
 	currentlyFaulted := "."
-	fullPledgeInfo := ""
-	alreadyStartedFPP := false
 
 	for i, fnode := range fnodes {
 		if verboseFaultOutput || !fnode.State.GetNetStateOff() {
@@ -1059,43 +1057,13 @@ func faultSummary() string {
 
 							prt = prt + " |"
 						}
-
-						if len(pl.PledgeMap) > 0 {
-							alreadyStartedPledgePrint := false
-							for myNegotiationPledge := range faultsIAmNegotiating {
-								for pledger, pledgeSlot := range pl.PledgeMap {
-									if pledgeSlot == myNegotiationPledge {
-										if !alreadyStartedPledgePrint {
-											prt = prt + fmt.Sprintf(" Pledges:")
-											alreadyStartedPledgePrint = true
-										}
-										prt = prt + fmt.Sprintf(" %s/%s ", pledgeSlot[4:10], pledger[4:10])
-									}
-								}
-							}
-						}
 					}
 
 					prt = prt + fmt.Sprintf("\n")
 				}
-
-				if verboseFaultOutput {
-					if len(pl.PledgeMap) > 0 {
-						if !alreadyStartedFPP {
-							fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("Full Pledges\n")
-							alreadyStartedFPP = true
-						}
-						fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("%s ", fnode.State.FactomNodeName)
-						for pledger, pledgeSlot := range pl.PledgeMap {
-							fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("%s/%s ", pledgeSlot[4:10], pledger[4:10])
-						}
-						fullPledgeInfo = fullPledgeInfo + fmt.Sprintf("\n")
-					}
-				}
 			}
 		}
 	}
-	prt = prt + fullPledgeInfo
 	return prt
 }
 

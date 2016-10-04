@@ -109,22 +109,8 @@ type ProcessList struct {
 	// that is the assigned negotiator for a particular processList
 	// height
 	AmINegotiator bool
-	// NegotiationInit is used to keep track of the time when a negotiation began
-	NegotiationInit map[string]int64
 
-	AmIPledged       bool
-	AlreadyNominated map[string]map[string]int64
-	// AlreadyNominated is used to track what AuditIDs we have nominated
-	// to replace a particular faulted LeaderID (so that we don't "echo"
-	// infinitely when we are matching others' promotion votes and so
-	// we know when to disqualify an audit server who took too long)
-	// The first map's key is the ServerID being faulted, the key
-	// for the second map is the nominated AuditID
-	PledgeMap map[string]string
-	// PledgeMap keeps track of which audit servers have issued pledges
-	// to replace a particular faulted server. WARNING: the key for
-	// this map is the AuditID, the value is the faulted LeaderID
-	// (which is the opposite of AlreadyNominated)
+	AmIPledged bool
 
 	// DB Sigs
 	DBSignatures []DBSig
@@ -687,15 +673,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if fedServerToUnfault >= 0 && fedServerToUnfault < len(p.FedServers) {
 				if p.FedServers[fedServerToUnfault] != nil {
 					p.FedServers[fedServerToUnfault].SetOnline(true)
-					for pledger, pledgeSlot := range p.PledgeMap {
-						if pledgeSlot == p.FedServers[fedServerToUnfault].GetChainID().String() {
-							delete(p.PledgeMap, pledger)
-							if pledger == state.IdentityChainID.String() {
-								p.AmIPledged = false
-
-							}
-						}
-					}
 					for faultKey, faultInfo := range state.FaultInfoMap {
 						if faultInfo.ServerID.String() == p.FedServers[fedServerToUnfault].GetChainID().String() {
 							delete(state.FaultInfoMap, faultKey)
@@ -1014,9 +991,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.FaultMap = make(map[[32]byte]FaultState)
 
 	pl.AmINegotiator = false
-	pl.NegotiationInit = make(map[string]int64)
-	pl.AlreadyNominated = make(map[string]map[string]int64)
-	pl.PledgeMap = make(map[string]string)
 
 	pl.DBSignatures = make([]DBSig, 0)
 

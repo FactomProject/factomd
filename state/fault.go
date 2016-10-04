@@ -45,15 +45,16 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 				// issue a server fault vote of our own
 				craftAndSubmitFault(pl, vm, vmIndex, height)
 				vm.faultInitiatedAlready = true
+				//if I am negotiator... {
+				//go handleNegotiations(pl)
+				//}
 			}
 			if now-vm.whenFaulted > 40 {
 				// if !vm(f+1).goodNegotiator {
 				//fault(vm(f+1))
 				//}
 			}
-			//if I am negotiator... {
-			//go handleNegotiations(pl)
-			//}
+
 		}
 	}
 }
@@ -62,15 +63,15 @@ func handleNegotiations(pl *ProcessList) {
 	for {
 		for faultID, faultState := range pl.FaultMap {
 			if faultState.AmINegotiator {
-				craftAndSubmitFullFault(faultID)
+				craftAndSubmitFullFault(pl, faultID)
 			}
 		}
 		time.Sleep(5 * time.Second)
 	}
 }
 
-func craftAndSubmitFullFault(faultID [32]byte) {
-	fmt.Println(faultID)
+func craftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
+	fmt.Println("JUSTIN CRAFTANDSUB", pl.State.FactomNodeName)
 }
 
 func craftFault(pl *ProcessList, vm *VM, vmIndex int, height int) *messages.ServerFault {
@@ -122,112 +123,6 @@ func craftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
 	}
 }
 
-func oldfault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
-	now := time.Now().Unix()
-
-	if thetime == 0 {
-		thetime = now
-	}
-
-	if now-thetime >= waitSeconds {
-		atLeastOneServerOnline := false
-		for _, fed := range p.FedServers {
-			if fed.IsOnline() {
-				atLeastOneServerOnline = true
-				break
-			}
-		}
-		if !atLeastOneServerOnline {
-			return now
-		}
-		atLeastOneAuditOnline := false
-		for _, aud := range p.AuditServers {
-			if aud.IsOnline() {
-				atLeastOneAuditOnline = true
-				break
-			}
-		}
-		if !atLeastOneAuditOnline {
-			for _, aud := range p.AuditServers {
-				aud.SetOnline(true)
-			}
-		}
-
-		leaderMin := getLeaderMin(p)
-
-		myIndex := p.ServerMap[leaderMin][vmIndex]
-
-		p.FedServers[myIndex].SetOnline(false)
-		id := p.FedServers[myIndex].GetChainID()
-
-		if vm.faultHeight < 0 {
-			vm.whenFaulted = now
-		}
-
-		vm.faultHeight = height
-
-		responsibleFaulterIdx := vmIndex + 1
-		if responsibleFaulterIdx >= len(p.FedServers) {
-			responsibleFaulterIdx = 0
-		}
-
-		if p.State.Leader {
-			if p.State.LeaderVMIndex == responsibleFaulterIdx {
-				p.NegotiatorVMIndex = vmIndex
-				p.AmINegotiator = true
-				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-				if negotiationMsg != nil {
-					negotiationMsg.Sign(p.State.serverPrivKey)
-					negotiationMsg.SendOut(p.State, negotiationMsg)
-					negotiationMsg.FollowerExecute(p.State)
-				}
-				thetime = now
-			}
-		}
-
-		nextVM := p.VMs[responsibleFaulterIdx]
-
-		// tags of 0 and 1 represent faults for EOM duties
-		// a tag of 2 instead means that we got a bad ack
-		// which means we don't need to fault the negotiator
-		// (who may or may not have gotten that bad ack)
-		if now-vm.whenFaulted > 20 && tag < 2 {
-			_, negotiationInitiated := p.NegotiationInit[id.String()]
-			if !negotiationInitiated || now-vm.whenFaulted > 60 {
-				if nextVM.faultHeight < 0 {
-					for pledger, pledgeSlot := range p.PledgeMap {
-						if pledgeSlot == id.String() {
-							delete(p.PledgeMap, pledger)
-							if pledger == p.State.IdentityChainID.String() {
-								p.AmIPledged = false
-
-								for faultKey, sf := range p.State.FaultInfoMap {
-									if sf.AuditServerID.String() == pledger && len(p.State.FaultVoteMap[faultKey]) > len(p.FedServers)/2 {
-										p.AmIPledged = true
-										p.PledgeMap[p.State.IdentityChainID.String()] = sf.ServerID.String()
-
-										nsf := messages.NewServerFault(p.State.GetTimestamp(), sf.ServerID, p.State.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-										if nsf != nil {
-											nsf.Sign(p.State.serverPrivKey)
-											p.State.NetworkOutMsgQueue() <- nsf
-											p.State.InMsgQueue() <- nsf
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-				//nextVM.faultingEOM = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultingEOM, height, 1)
-			}
-		}
-
-		thetime = now
-	}
-
-	return thetime
-}
-
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
 	pl := s.ProcessLists.Get(sf.DBHeight)
@@ -261,7 +156,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		fmt.Println(faultState)
 	} else {
 		fcore := FaultCore{ServerID: sf.ServerID, AuditServerID: sf.AuditServerID, VMIndex: sf.VMIndex, DBHeight: sf.DBHeight, Height: sf.Height}
-		pl.FaultMap[sf.GetCoreHash().Fixed()] = FaultState{FaultCore: fcore, AmINegotiator: true, MyVoteTallied: true, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
+		pl.FaultMap[sf.GetCoreHash().Fixed()] = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
 		faultState = pl.FaultMap[sf.GetCoreHash().Fixed()]
 	}
 
@@ -288,118 +183,13 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 		if s.Leader && s.LeaderVMIndex == responsibleFaulterIdx {
 			faultState.AmINegotiator = true
+			pl.AmINegotiator = true
 		}
 
 		if !faultState.MyVoteTallied {
 			s.matchFault(sf)
 		}
 		fmt.Println("JUSTIN CNT:", cnt, s.FactomNodeName)
-		/*
-
-
-				if cnt > (fedServerCnt / 2) {
-					if s.LeaderVMIndex == responsibleFaulterIdx {
-						if foundAudit, _ := pl.GetAuditServerIndexHash(sf.AuditServerID); foundAudit {
-							serverToReplace, pledged := pl.PledgeMap[sf.AuditServerID.String()]
-							if pledged {
-								if serverToReplace == sf.ServerID.String() {
-									var listOfSigs []interfaces.IFullSignature
-									for _, sig := range s.FaultVoteMap[coreHash] {
-										listOfSigs = append(listOfSigs, sig)
-									}
-									fullFault := messages.NewFullServerFault(sf, listOfSigs)
-									absf := fullFault.ToAdminBlockEntry()
-									s.LeaderPL.AdminBlock.AddServerFault(absf)
-									if fullFault != nil {
-										fullFault.Sign(s.serverPrivKey)
-										s.NetworkOutMsgQueue() <- fullFault
-										fullFault.FollowerExecute(s)
-										pl.AmINegotiator = false
-										delete(s.FaultVoteMap, sf.GetCoreHash().Fixed())
-										delete(s.FaultInfoMap, sf.GetCoreHash().Fixed())
-									}
-								}
-							}
-						}
-					}
-				}
-
-				//Match a nomination if we haven't nominated the same server already
-				existingNominations, exists := pl.AlreadyNominated[sf.ServerID.String()]
-				if exists {
-					_, alreadyNom := existingNominations[sf.AuditServerID.String()]
-					if !alreadyNom {
-						pl.AlreadyNominated[sf.ServerID.String()][sf.AuditServerID.String()] = s.GetTimestamp().GetTimeSeconds()
-						matchNomination := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-						if matchNomination != nil {
-							matchNomination.Sign(s.serverPrivKey)
-							s.NetworkOutMsgQueue() <- matchNomination
-							s.InMsgQueue() <- matchNomination
-						}
-					}
-				}
-			} else {
-				if s.IdentityChainID.IsSameAs(sf.AuditServerID) {
-					// I am the audit server being promoted;
-					// I will pledge myself to replace the faulted leader
-					// (unless I am already pledged elsewhere)
-					if !pl.AmIPledged {
-						pl.AmIPledged = true
-						pl.PledgeMap[s.IdentityChainID.String()] = sf.ServerID.String()
-
-						nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-						if nsf != nil {
-							nsf.Sign(s.serverPrivKey)
-							s.NetworkOutMsgQueue() <- nsf
-							s.InMsgQueue() <- nsf
-						}
-					} else {
-						howLongWeNegotiated, areWeNegotiating := pl.NegotiationInit[sf.ServerID.String()]
-						if areWeNegotiating {
-							if howLongWeNegotiated < time.Now().Unix()-120 {
-								if pl.PledgeMap[s.IdentityChainID.String()] != sf.ServerID.String() {
-									pl.PledgeMap[s.IdentityChainID.String()] = sf.ServerID.String()
-									nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, s.IdentityChainID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-									if nsf != nil {
-										nsf.Sign(s.serverPrivKey)
-										s.NetworkOutMsgQueue() <- nsf
-										s.InMsgQueue() <- nsf
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-
-			// if this fault is an Audit server voting for itself to be promoted
-			// (i.e. it is an "AOK" message)
-			// then we need to mark the Audit server as "ReadyForPromotion" or
-			// alternatively mark it "offline" if it has voted promiscuously
-			// during this negotiation
-			for _, a := range s.Authorities {
-				if a.AuthorityChainID.IsSameAs(sf.AuditServerID) {
-					marshalledSF, err := sf.MarshalForSignature()
-					if err == nil {
-						sigVer, err := a.VerifySignature(marshalledSF, sf.Signature.GetSignature())
-						if err == nil && sigVer {
-							if foundAudit, audIdx := pl.GetAuditServerIndexHash(sf.AuditServerID); foundAudit {
-								if pledgeSlot, pledged := pl.PledgeMap[sf.AuditServerID.String()]; pledged {
-									//if pl.AuditServers[audIdx].LeaderToReplace() != nil {
-									if pledgeSlot != sf.ServerID.String() {
-										// illegal vote; audit server has already AOK'd replacing a different leader
-										// "punish" them by setting them offline (i.e. make them ineligible for promotion)
-										pl.AuditServers[audIdx].SetOnline(false)
-									}
-								} else {
-									// AOK: set the Audit Server's "Leader to Replace" field to this ServerID
-									//pl.AuditServers[audIdx].SetReplace(sf.ServerID)
-									pl.PledgeMap[sf.AuditServerID.String()] = sf.ServerID.String()
-								}
-							}
-						}
-					}
-				}*/
 	}
 
 	pl.FaultMap[sf.GetCoreHash().Fixed()] = faultState
@@ -447,14 +237,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			delete(relevantPL.FaultMap, fullFault.GetCoreHash().Fixed())
 			delete(relevantPL.FaultMap, fullFault.GetCoreHash().Fixed())
 
-			/*for pledger, pledgeSlot := range relevantPL.PledgeMap {
-				if pledgeSlot == fullFault.ServerID.String() {
-					delete(relevantPL.PledgeMap, pledger)
-					if pledger == s.IdentityChainID.String() {
-						relevantPL.AmIPledged = false
-					}
-				}
-			}*/
 		}
 	} else if hasSignatureQuorum == 0 {
 		fmt.Println("JUSTIN not enough sigs!", s.FactomNodeName, fullFault.GetCoreHash().String()[:10])

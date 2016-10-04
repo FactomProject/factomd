@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"errors"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -350,65 +351,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
-	negotiation, _ := m.(*messages.Negotiation)
-	pl := s.ProcessLists.Get(negotiation.DBHeight)
-	if pl == nil {
-		return
-	}
-
-	if s.Leader {
-		// TODO: if I am the Leader being faulted, I should respond by sending out
-		// a MissingMsgResponse to everyone for the msg I'm being faulted for
-		nowSecond := s.GetTimestamp().GetTimeSeconds()
-		//nowSecond := negotiation.Timestamp.GetTimeSeconds()
-		vmAtFault := pl.VMs[negotiation.VMIndex]
-		if vmAtFault.faultHeight >= 0 {
-			_, negotiationInitiated := pl.NegotiationInit[negotiation.ServerID.String()]
-			if !negotiationInitiated {
-				pl.NegotiationInit[negotiation.ServerID.String()] = nowSecond
-			}
-
-			_, servEntryFound := pl.AlreadyNominated[negotiation.ServerID.String()]
-			if !servEntryFound {
-				pl.AlreadyNominated[negotiation.ServerID.String()] = make(map[string]int64)
-			}
-
-			auditServerList := s.GetOnlineAuditServers(negotiation.DBHeight)
-			if len(auditServerList) > 0 {
-				needToNominate := true
-				replacementServer := auditServerList[0]
-				for _, auditCandidate := range auditServerList {
-					whenNominated, auditNominationFound := pl.AlreadyNominated[negotiation.ServerID.String()][auditCandidate.GetChainID().String()]
-					if auditNominationFound {
-						if nowSecond-whenNominated > 20 {
-							auditCandidate.SetOnline(false)
-						} else {
-							needToNominate = false
-						}
-					} else {
-						replacementServer = auditCandidate
-						needToNominate = true
-						pl.AlreadyNominated[negotiation.ServerID.String()][auditCandidate.GetChainID().String()] = nowSecond
-						break
-					}
-				}
-
-				if needToNominate {
-					//NOMINATE
-					sf := messages.NewServerFault(s.GetTimestamp(), negotiation.ServerID, replacementServer.GetChainID(), int(negotiation.VMIndex), negotiation.DBHeight, negotiation.Height)
-					if sf != nil {
-						sf.Sign(s.serverPrivKey)
-						s.NetworkOutMsgQueue() <- sf
-						s.InMsgQueue() <- sf
-					}
-				}
-			} else {
-				for _, aud := range pl.AuditServers {
-					aud.SetOnline(true)
-				}
-			}
-		}
-	}
+	fmt.Println("JUSTIN : No more negotiation messages")
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
