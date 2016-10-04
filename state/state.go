@@ -77,6 +77,7 @@ type State struct {
 	LocalNetworkPort  string
 	LocalSeedURL      string
 	LocalSpecialPeers string
+	CustomNetworkID   []byte
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []Identity       // Identities of all servers in management chain
@@ -183,7 +184,7 @@ type State struct {
 	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
 
-	//Network MAIN = 0xFA92E5A1, TEST = 0xFA92E5A2, LOCAL = 0xFA92E5A3, CUSTOM = 0xFA92E5A4
+	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
@@ -301,6 +302,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
 	clone.FaultMap = s.FaultMap
 	clone.StartDelayLimit = s.StartDelayLimit
+	clone.CustomNetworkID = s.CustomNetworkID
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
@@ -1242,7 +1244,7 @@ func (s *State) GetNetworkID() uint32 {
 	case constants.NETWORK_LOCAL:
 		return constants.LOCAL_NETWORK_ID
 	case constants.NETWORK_CUSTOM:
-		return constants.CUSTOM_NETWORK_ID
+		return binary.BigEndian.Uint32(s.CustomNetworkID)
 	}
 	return uint32(0)
 }

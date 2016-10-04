@@ -5,6 +5,7 @@
 package engine
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -63,6 +64,7 @@ func NetStart(s *state.State) {
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 5, "Delay to start processing messages, in seconds")
 	deadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	customNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
 
 	flag.Parse()
 
@@ -92,6 +94,7 @@ func NetStart(s *state.State) {
 	keepMismatch := *keepMismatchPtr
 	startDelay := int64(*startDelayPtr)
 	deadline := *deadlinePtr
+	customNet := primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -212,6 +215,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", customNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", deadline))
 
 	s.AddPrefix(prefix)
@@ -256,6 +260,10 @@ func NetStart(s *state.State) {
 		networkPort = s.LocalNetworkPort
 		specialPeers = s.LocalSpecialPeers
 	case "CUSTOM", "custom":
+		if bytes.Compare(customNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
+			panic("Please specify a custom network with -customnet=<something unique here>")
+		}
+		s.CustomNetworkID = customNet
 		networkID = p2p.LocalNet
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
