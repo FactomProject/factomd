@@ -647,7 +647,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		vm := p.VMs[i]
 
 		if !p.State.Syncing {
-			vm.faultingEOM = 0
+			vm.whenFaulted = 0
 		} else {
 			if !vm.Synced {
 				fault(p, vm, i, len(vm.List), 0)
@@ -669,6 +669,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				p.AmINegotiator = false
 			}
 			vm.faultHeight = -1
+			vm.whenFaulted = 0
+			amLeader, myLeaderVMIndex := state.LeaderPL.GetVirtualServers(state.CurrentMinute, state.IdentityChainID)
+
+			if amLeader && p.AmINegotiator && myLeaderVMIndex == i+1%len(p.FedServers) {
+				p.AmINegotiator = false
+			}
 			fedServerToUnfault := p.ServerMap[getLeaderMin(p)][i]
 			if fedServerToUnfault >= 0 && fedServerToUnfault < len(p.FedServers) {
 				if p.FedServers[fedServerToUnfault] != nil {
