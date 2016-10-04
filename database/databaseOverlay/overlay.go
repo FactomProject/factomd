@@ -112,6 +112,9 @@ type Overlay struct {
 	BlockExtractor blockExtractor.BlockExtractor
 }
 
+var _ interfaces.IDatabase = (*Overlay)(nil)
+var _ interfaces.DBOverlay = (*Overlay)(nil)
+
 func (db *Overlay) ListAllBuckets() ([][]byte, error) {
 	return db.DB.ListAllBuckets()
 }

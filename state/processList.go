@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"encoding/binary"
 
@@ -101,18 +100,14 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	// Negotiation tracker variables
-	AmINegotiator bool
 	// This is the index of the VM we are negotiating for, if we are
 	// in fact a Negotiator
 	NegotiatorVMIndex int
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
-	//FaultTimes map[string]int64
-	// FaultTimes keeps track of when a particular ServerID initially
-	// deserved a fault, so that we can time out the negotiation process
-	// (and its various phases) properly
+	AmINegotiator bool
+	// NegotiationInit is used to keep track of the time when a negotiation began
 	NegotiationInit map[string]int64
 
 	AmIPledged       bool
@@ -153,9 +148,8 @@ type VM struct {
 	faultingEOM    int64             // Faulting for EOM because it is too late
 	heartBeat      int64             // Just ping ever so often if we have heard nothing.
 	Signed         bool              // We have signed the previous block.
-	//isFaulting     bool
-	faultHeight int
-	whenFaulted int64
+	faultHeight    int
+	whenFaulted    int64
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -403,7 +397,7 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
-	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID}
+	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
 
 	p.MakeMap()
 
@@ -424,7 +418,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
-	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID}
+	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
 
 	return i
 }
@@ -550,9 +544,7 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-// Return the number of times we have tripped an ask for this request.
-func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
-	now := p.State.GetTimestamp().GetTimeMilli()
+func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds int64) *Request {
 
 	r := new(Request)
 	r.wait = waitSeconds
@@ -562,14 +554,6 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	if p.Requests[r.key()] == nil {
 		r.sent = now + 300
 		p.Requests[r.key()] = r
-		//fmt.Printf("dddd  Request ++  %10s[%4d] vm %2d vm height %3d wait %3d time diff %8d limit %8d\n",
-		//	p.State.FactomNodeName,
-		//	p.DBHeight,
-		//	r.vmIndex,
-		//	r.vmheight,
-		//	r.wait,
-		//	now-r.sent,
-		//	waitSeconds*1000+1000)
 	} else {
 		r = p.Requests[r.key()]
 	}
@@ -577,16 +561,52 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	vm := p.VMs[vmIndex]
 	if len(vm.List) > height && vm.List[height] != nil {
 		if p.Requests[r.key()] != nil {
-			s := r.sent
 			delete(p.Requests, r.key())
-			return int(s)
+			return nil
 		}
+	}
+
+	return r
+
+}
+
+// Return the number of times we have tripped an ask for this request.
+func (p *ProcessList) AskDBState(vmIndex int, height int) int {
+	now := p.State.GetTimestamp().GetTimeMilli()
+
+	r := p.GetRequest(now, vmIndex, height, 60)
+
+	if r == nil {
+		return 0
+	}
+
+	if now-r.sent >= r.wait*1000+500 {
+		dbstate := messages.NewDBStateMissing(p.State, p.State.LLeaderHeight, p.State.LLeaderHeight+1)
+
+		dbstate.SendOut(p.State, dbstate)
+		p.State.DBStateAskCnt++
+
+		r.sent = now
+		r.requestCnt++
+	}
+
+	return r.requestCnt
+}
+
+// Return the number of times we have tripped an ask for this request.
+func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
+	now := p.State.GetTimestamp().GetTimeMilli()
+
+	r := p.GetRequest(now, vmIndex, len(p.VMs[0].List), waitSeconds)
+
+	if r == nil {
 		return 0
 	}
 
 	if now-r.sent >= waitSeconds*1000+500 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
+		vm := p.VMs[vmIndex]
 		// Okay, we are going to send one, so ask for all nil messages for this vm
 		for i, v := range vm.List {
 			if i != int(r.vmheight) && v == nil {
@@ -606,98 +626,6 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	return r.requestCnt
 }
 
-func fault(p *ProcessList, vmIndex int, waitSeconds int64, vm *VM, thetime int64, height int, tag int) int64 {
-	now := time.Now().Unix()
-
-	if thetime == 0 {
-		thetime = now
-	}
-
-	if now-thetime >= waitSeconds {
-		atLeastOneServerOnline := false
-		for _, fed := range p.FedServers {
-			if fed.IsOnline() {
-				atLeastOneServerOnline = true
-				break
-			}
-		}
-		if !atLeastOneServerOnline {
-			return now
-		}
-		/*atLeastOneAuditOnline := false
-		for _, aud := range p.AuditServers {
-			if aud.IsOnline() {
-				atLeastOneAuditOnline = true
-				break
-			}
-		}
-		if !atLeastOneAuditOnline {
-			for _, aud := range p.AuditServers {
-				aud.SetOnline(true)
-			}
-		}*/
-
-		leaderMin := getLeaderMin(p)
-
-		myIndex := p.ServerMap[leaderMin][vmIndex]
-
-		p.FedServers[myIndex].SetOnline(false)
-		id := p.FedServers[myIndex].GetChainID()
-
-		if vm.faultHeight < 0 {
-			vm.whenFaulted = now
-		}
-		//if !vm.isFaulting {
-		//	vm.whenFaulted = now
-		//p.FaultTimes[id.String()] = p.State.GetTimestamp().GetTimeSeconds()
-		//}
-		//vm.isFaulting = true
-		vm.faultHeight = height
-
-		responsibleFaulterIdx := vmIndex + 1
-		if responsibleFaulterIdx >= len(p.FedServers) {
-			responsibleFaulterIdx = 0
-		}
-
-		if p.State.Leader {
-			if p.State.LeaderVMIndex == responsibleFaulterIdx {
-				p.NegotiatorVMIndex = vmIndex
-				p.AmINegotiator = true
-				negotiationMsg := messages.NewNegotiation(p.State.GetTimestamp(), id, vmIndex, p.DBHeight, uint32(height))
-				if negotiationMsg != nil {
-					negotiationMsg.Sign(p.State.serverPrivKey)
-					negotiationMsg.SendOut(p.State, negotiationMsg)
-					negotiationMsg.FollowerExecute(p.State)
-				}
-				thetime = now
-			}
-		}
-
-		nextVM := p.VMs[responsibleFaulterIdx]
-
-		if now-vm.whenFaulted > 20 {
-			_, negotiationInitiated := p.NegotiationInit[id.String()]
-			if !negotiationInitiated {
-				//if !nextVM.isFaulting {
-				//nextVM.isFaulting = true
-				//nextVM.whenFaulted = now
-				if nextVM.faultHeight < 0 {
-					for pledger, pledgeSlot := range p.PledgeMap {
-						if pledgeSlot == id.String() {
-							delete(p.PledgeMap, pledger)
-						}
-					}
-				}
-				nextVM.faultingEOM = fault(p, responsibleFaulterIdx, 20, nextVM, nextVM.faultingEOM, height, 2)
-			}
-		}
-
-		thetime = now
-	}
-
-	return thetime
-}
-
 func getLeaderMin(p *ProcessList) int {
 	leaderMin := 0
 	for _, vm := range p.VMs {
@@ -710,7 +638,7 @@ func getLeaderMin(p *ProcessList) int {
 	}
 	leaderMin--
 	if leaderMin < 0 {
-		leaderMin = 9
+		leaderMin = 0
 	}
 	return leaderMin
 }
@@ -723,6 +651,9 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
+
+	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
+
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 
@@ -730,7 +661,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.faultingEOM = 0
 		} else {
 			if !vm.Synced {
-				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List), 1)
+				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List), 0)
 			}
 		}
 
@@ -749,11 +680,28 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				p.AmINegotiator = false
 			}
 			vm.faultHeight = -1
-			leaderMin := getLeaderMin(p)
-			myIndex := p.ServerMap[leaderMin][i]
-			if myIndex >= 0 && myIndex < len(p.FedServers) && p.FedServers[myIndex] != nil {
-				p.FedServers[myIndex].SetOnline(true)
+			fedServerToUnfault := p.ServerMap[getLeaderMin(p)][i]
+			if fedServerToUnfault >= 0 && fedServerToUnfault < len(p.FedServers) {
+				if p.FedServers[fedServerToUnfault] != nil {
+					p.FedServers[fedServerToUnfault].SetOnline(true)
+					for pledger, pledgeSlot := range p.PledgeMap {
+						if pledgeSlot == p.FedServers[fedServerToUnfault].GetChainID().String() {
+							delete(p.PledgeMap, pledger)
+							if pledger == state.IdentityChainID.String() {
+								p.AmIPledged = false
+
+							}
+						}
+					}
+					for faultKey, faultInfo := range state.FaultInfoMap {
+						if faultInfo.ServerID.String() == p.FedServers[fedServerToUnfault].GetChainID().String() {
+							delete(state.FaultInfoMap, faultKey)
+							delete(state.FaultVoteMap, faultKey)
+						}
+					}
+				}
 			}
+
 		}
 
 	VMListLoop:
@@ -794,23 +742,32 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
+
+					//fault(p, i, 0, vm, 0, j, 2)
+
 					break VMListLoop
 				}
 			}
 
-			if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
-				vm.heartBeat = 0
-				vm.Height = j + 1 // Don't process it again if the process worked.
-				progress = true
+			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
+			// to disk.  Then we can insist on having the entry blocks.
+			diff := p.DBHeight - state.EntryBlockDBHeightComplete
+			_, dbsig := vm.List[j].(*messages.DirectoryBlockSignature)
+
+			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
+			// Until the signatures are processed, we will be 2 behind.
+			if (dbsig && diff <= 2) || diff <= 1 {
+				// If we can't process this entry (i.e. returns false) then we can't process any more.
+				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
+					vm.heartBeat = 0
+					vm.Height = j + 1 // Don't process it again if the process worked.
+					progress = true
+				} else {
+					break VMListLoop // Don't process further in this list, go to the next.
+				}
 			} else {
-				// We give an entry time to become valid.  If it doesn't wash out by then, we
-				// nuke the entry, and ask for another one.
-				//cnt := p.Ask(i, j, 30, 6) // give 30 seconds
-				//if cnt > 0 {
-				//	vm.List[j] = nil
-				//	vm.ListAck[j] = nil
-				//}
-				break VMListLoop // Don't process further in this list, go to the next.
+				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
+				break VMListLoop
 			}
 		}
 	}
@@ -818,6 +775,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
+	if p == nil {
+		return
+	}
 
 	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
 	// the past.
@@ -838,10 +799,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
-	}
-
-	if p == nil {
-		return
 	}
 
 	now := p.State.GetTimestamp()
@@ -1051,7 +1008,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
 
-	//pl.FaultTimes = make(map[string]int64)
 	pl.AmINegotiator = false
 	pl.NegotiationInit = make(map[string]int64)
 	pl.AlreadyNominated = make(map[string]map[string]int64)

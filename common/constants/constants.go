@@ -41,6 +41,9 @@ const (
 
 	BOUNCE_MSG      // 26	test message
 	BOUNCEREPLY_MSG // 26	test message
+
+	MISSING_ENTRY_BLOCKS //27
+	ENTRY_BLOCK_RESPONSE //28
 )
 
 const (
@@ -180,7 +183,8 @@ const (
 	IDENTITY_PENDING_FEDERATED_SERVER            // 4
 	IDENTITY_PENDING_AUDIT_SERVER                // 5
 	IDENTITY_PENDING_FULL                        // 6
-	IDENTITY_PENDING                             // 7
+	IDENTITY_SELF                                // 7
+	IDENTITY_SELF_FULL                           // 8
 )
 
 //---------------------------------------------------------------------

@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -30,6 +31,9 @@ type DBStateMsg struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
+
+	EBlocks []interfaces.IEntryBlock
+	Entries []interfaces.IEBEntry
 
 	//Not signed!
 }
@@ -63,6 +67,8 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	if err != nil || ok == false {
 		return false
 	}
+
+	//TODO: compare more
 
 	return true
 }
@@ -184,6 +190,28 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, err
 	}
 
+	EBlockCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := 0; i < int(EBlockCount); i++ {
+		eBlock := entryBlock.NewEBlock()
+		newData, err = eBlock.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.EBlocks = append(m.EBlocks, eBlock)
+	}
+
+	EntryCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := 0; i < int(EntryCount); i++ {
+		entry := entryBlock.NewEntry()
+		newData, err = entry.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		m.Entries = append(m.Entries, entry)
+	}
+
 	return
 }
 
@@ -228,6 +256,26 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	EBlockCount := uint32(len(m.EBlocks))
+	binary.Write(&buf, binary.BigEndian, EBlockCount)
+	for _, eb := range m.EBlocks {
+		bin, err := eb.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(bin)
+	}
+
+	EntryCount := uint32(len(m.Entries))
+	binary.Write(&buf, binary.BigEndian, EntryCount)
+	for _, e := range m.Entries {
+		bin, err := e.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(bin)
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -245,7 +293,9 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,
-	e interfaces.IEntryCreditBlock) interfaces.IMsg {
+	e interfaces.IEntryCreditBlock,
+	eBlocks []interfaces.IEntryBlock,
+	entries []interfaces.IEBEntry) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
@@ -257,6 +307,9 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	msg.AdminBlock = a
 	msg.FactoidBlock = f
 	msg.EntryCreditBlock = e
+
+	msg.EBlocks = eBlocks
+	msg.Entries = entries
 
 	return msg
 }

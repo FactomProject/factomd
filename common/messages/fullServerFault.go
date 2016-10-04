@@ -20,7 +20,7 @@ type FullServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	// The following 4 fields represent the "Core" of the message
+	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of ServerFault messages
 	ServerID      interfaces.IHash
 	AuditServerID interfaces.IHash

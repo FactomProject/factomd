@@ -65,6 +65,10 @@ func NetStart(s *state.State) {
 	startDelayPtr := flag.Int("startdelay", 5, "Delay to start processing messages, in seconds")
 	deadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
 	customNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
+	rpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
+	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
+	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
+	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 
 	flag.Parse()
 
@@ -95,6 +99,10 @@ func NetStart(s *state.State) {
 	startDelay := int64(*startDelayPtr)
 	deadline := *deadlinePtr
 	customNet := primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
+	rpcUser := *rpcUserflag
+	rpcPassword := *rpcPasswordflag
+	factomdTLS := *factomdTLSflag
+	factomdLocations := *factomdLocationsflag
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -128,6 +136,25 @@ func NetStart(s *state.State) {
 
 	if journal != "" {
 		cnt = 1
+	}
+
+	if rpcUser != "" {
+		s.RpcUser = rpcUser
+	}
+
+	if rpcPassword != "" {
+		s.RpcPass = rpcPassword
+	}
+
+	if factomdTLS == true {
+		s.FactomdTLSEnable = true
+	}
+
+	if factomdLocations != "" {
+		if len(s.FactomdLocations) > 0 {
+			s.FactomdLocations += ","
+		}
+		s.FactomdLocations += factomdLocations
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -217,6 +244,14 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", customNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", deadline))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
+	if "" == s.RpcPass {
+		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
+	} else {
+		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
+	}
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -238,6 +273,10 @@ func NetStart(s *state.State) {
 	// Modify Identities of new nodes
 	if len(fnodes) > 1 && len(s.Prefix) == 0 {
 		modifyLoadIdentities() // We clone s to make all of our servers
+	}
+
+	for i := range fnodes {
+		fnodes[i].State.CreateBlankFactomIdentity(fnodes[i].State.IdentityChainID)
 	}
 
 	// Start the P2P netowork

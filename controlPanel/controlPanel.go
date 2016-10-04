@@ -1,6 +1,8 @@
 package controlPanel
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	//"io/ioutil"
@@ -114,8 +116,6 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
-	fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
-
 	// Mux for static files
 	mux = http.NewServeMux()
 	mux.Handle("/", files.StaticServer)
@@ -129,7 +129,25 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	http.HandleFunc("/factomd", factomdHandler)
 	http.HandleFunc("/factomdBatch", factomdBatchHandler)
 
-	http.ListenAndServe(portStr, nil)
+	tlsIsEnabled, tlsPrivate, tlsPublic := StatePointer.GetTlsInfo()
+	if tlsIsEnabled {
+	waitfortls:
+		for {
+			// lets wait for both the tls cert and key to be created.  if they are not created, wait for the RPC API process to create the files.
+			// it is in a different goroutine, so just wait until it is done.  it happens in wsapi.Start with genCertPair()
+			if _, err := os.Stat(tlsPublic); err == nil {
+				if _, err := os.Stat(tlsPrivate); err == nil {
+					break waitfortls
+				}
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		fmt.Println("Starting encrypted Control Panel on https://localhost" + portStr + "/  Please note the HTTPS in the browser.")
+		http.ListenAndServeTLS(portStr, tlsPublic, tlsPrivate, nil)
+	} else {
+		fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
+		http.ListenAndServe(portStr, nil)
+	}
 }
 
 func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,6 +162,9 @@ func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
 // For all static files. (CSS, JS, IMG, etc...)
 func static(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if false == checkControlPanelPassword(w, r) {
+			return
+		}
 		if strings.ContainsRune(r.URL.Path, '.') {
 			mux.ServeHTTP(w, r)
 			return
@@ -159,13 +180,17 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	TemplateMutex.Lock()
+	defer TemplateMutex.Unlock()
+	if false == checkControlPanelPassword(w, r) {
+		return
+	}
 	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
 	files.CustomParseGlob(templates, "templates/index/*.html")
 	if len(GitBuild) == 0 {
 		GitBuild = "Unknown (Must install with script)"
 	}
 	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
-	TemplateMutex.Unlock()
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -178,6 +203,9 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Control Panel has encountered a panic in PostHandler.\n", r)
 		}
 	}()
+	if false == checkControlPanelPassword(w, r) {
+		return
+	}
 	if r.Method != "POST" {
 		http.NotFound(w, r)
 		return
@@ -212,6 +240,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Control Panel has encountered a panic in SearchHandler.\n", r)
 		}
 	}()
+	if false == checkControlPanelPassword(w, r) {
+		return
+	}
 	searchResult := new(SearchedStruct)
 	if r.Method == "POST" {
 		data := r.FormValue("content")
@@ -227,6 +258,9 @@ var batchQueried = false
 
 // Batches Json in []byte form to an array of json []byte objects
 func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
+	if false == checkControlPanelPassword(w, r) {
+		return
+	}
 	requestData()
 	batchQueried = true
 	if r.Method != "GET" {
@@ -256,6 +290,9 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Control Panel has encountered a panic in FactomdHandler.\n", r)
 		}
 	}()
+	if false == checkControlPanelPassword(w, r) {
+		return
+	}
 	if r.Method != "GET" {
 		return
 	}
@@ -768,4 +805,40 @@ func doEvery(d time.Duration, f func(time.Time)) {
 	for x := range time.Tick(d) {
 		f(x)
 	}
+}
+
+func checkControlPanelPassword(response http.ResponseWriter, request *http.Request) bool {
+	if false == checkAuthHeader(request) {
+		remoteIP := ""
+		remoteIP += strings.Split(request.RemoteAddr, ":")[0]
+		fmt.Printf("Unauthorized Control Panel client connection attempt from %s\n", remoteIP)
+		response.Header().Add("WWW-Authenticate", `Basic realm="factomd Control Panel"`)
+		http.Error(response, "401 Unauthorized.", http.StatusUnauthorized)
+		return false
+	}
+	return true
+}
+
+func checkAuthHeader(r *http.Request) bool {
+	if "" == StatePointer.GetRpcUser() {
+		//no username was specified in the config file or command line, meaning factomd control panel is open access
+		return true
+	}
+
+	authhdr := r.Header["Authorization"]
+	if len(authhdr) == 0 {
+		return false
+	}
+
+	correctAuth := StatePointer.GetRpcAuthHash()
+
+	h := sha256.New()
+	h.Write([]byte(authhdr[0]))
+	presentedPassHash := h.Sum(nil)
+
+	cmp := subtle.ConstantTimeCompare(presentedPassHash, correctAuth) //compare hashes because ConstantTimeCompare takes a constant time based on the slice size.  hashing gives a constant slice size.
+	if cmp != 1 {
+		return false
+	}
+	return true
 }

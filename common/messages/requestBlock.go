@@ -130,8 +130,7 @@ func (m *RequestBlock) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *RequestBlock) String() string {
-	str, _ := m.JSONString()
-	return str
+	return "Request Block"
 }
 
 func (m *RequestBlock) DBHeight() int {
