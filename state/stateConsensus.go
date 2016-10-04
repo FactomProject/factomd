@@ -706,21 +706,9 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		return true
 	}
 
-	leader, _ := s.LeaderPL.GetFedServerIndexHash(as.LeaderChainID)
-
-	if leader && as.ServerType == 0 {
+	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader && as.ServerType == 0 {
 		return true
 	}
-
-	audit, _ := s.LeaderPL.GetAuditServerIndexHash(as.LeaderChainID)
-
-	if audit && as.ServerType == 1 {
-		return true
-	}
-
-	//if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader && as.ServerType == 0 {
-	//			return true
-	//}
 
 	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
