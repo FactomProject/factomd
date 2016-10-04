@@ -46,6 +46,7 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 		// if we did not previously consider this VM faulted
 		// we simply mark it as faulted (by assigning it a nonzero whenFaulted time)
 		vm.whenFaulted = now
+		vm.faultHeight = height
 	} else {
 		if now-vm.whenFaulted > 20 {
 			if !vm.faultInitiatedAlready {
@@ -62,7 +63,6 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 				//fault(vm(f+1))
 				//}
 			}
-
 		}
 	}
 }
@@ -80,6 +80,7 @@ func handleNegotiations(pl *ProcessList) {
 		if !amINego {
 			return
 		}
+
 		time.Sleep(3 * time.Second)
 	}
 }
@@ -148,12 +149,16 @@ func craftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
 
 		pl.FedServers[faultedFed].SetOnline(false)
 		id := pl.FedServers[faultedFed].GetChainID()
+		fmt.Println("JUSTIN CRASF2:", pl.State.FactomNodeName, id.String(), replacementServer.GetChainID().String())
 		//NOMINATE
 		sf := messages.NewServerFault(pl.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, pl.DBHeight, uint32(height))
 		if sf != nil {
 			sf.Sign(pl.State.serverPrivKey)
 			pl.State.NetworkOutMsgQueue() <- sf
 			pl.State.InMsgQueue() <- sf
+			if fm, exists := pl.FaultMap[sf.GetCoreHash().Fixed()]; exists {
+				fm.LastMatch = time.Now().Unix()
+			}
 		}
 	} else {
 		for _, aud := range pl.AuditServers {
@@ -201,12 +206,13 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 	} else {
 		fcore := FaultCore{ServerID: sf.ServerID, AuditServerID: sf.AuditServerID, VMIndex: sf.VMIndex, DBHeight: sf.DBHeight, Height: sf.Height}
-		pl.FaultMap[coreHash] = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
-		faultState = pl.FaultMap[coreHash]
-	}
+		faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
 
-	if faultState.VoteMap == nil {
-		faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
+		if faultState.VoteMap == nil {
+			faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
+		}
+		pl.FaultMap[coreHash] = faultState
+
 	}
 
 	lbytes, err := sf.MarshalForSignature()
@@ -229,6 +235,8 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 
 	if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
 		faultState.VoteMap[issuerID] = sf.GetSignature()
+	} else {
+		return
 	}
 
 	if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
