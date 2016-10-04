@@ -76,6 +76,7 @@ func LoadDatabase(s *State) {
 		dblk.SetABlockHash(ablk)
 		dblk.SetECBlockHash(ecblk)
 		dblk.SetFBlockHash(fblk)
+		dblk.GetHeader().SetNetworkID(s.GetNetworkID())
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 		s.InMsgQueue() <- msg

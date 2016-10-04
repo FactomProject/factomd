@@ -725,6 +725,12 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic("Should not happen")
 	}
 
+	dbaseID := dblk.GetHeader().GetNetworkID()
+	configuredID := s.GetNetworkID()
+	if dbaseID != configuredID {
+		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
+	}
+
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
 
 	return msg, nil
