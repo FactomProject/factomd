@@ -100,6 +100,8 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
+	FaultMap map[[32]byte]FaultState
+
 	// This is the index of the VM we are negotiating for, if we are
 	// in fact a Negotiator
 	NegotiatorVMIndex int
@@ -139,17 +141,18 @@ type DBSig struct {
 }
 
 type VM struct {
-	List           []interfaces.IMsg // Lists of acknowledged messages
-	ListAck        []*messages.Ack   // Acknowledgements
-	Height         int               // Height of messages that have been processed
-	LeaderMinute   int               // Where the leader is in acknowledging messages
-	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
-	Synced         bool              // Is this VM synced yet?
-	faultingEOM    int64             // Faulting for EOM because it is too late
-	heartBeat      int64             // Just ping ever so often if we have heard nothing.
-	Signed         bool              // We have signed the previous block.
-	faultHeight    int
-	whenFaulted    int64
+	List                  []interfaces.IMsg // Lists of acknowledged messages
+	ListAck               []*messages.Ack   // Acknowledgements
+	Height                int               // Height of messages that have been processed
+	LeaderMinute          int               // Where the leader is in acknowledging messages
+	MinuteComplete        int               // Highest minute complete recorded (0-9) by the follower
+	Synced                bool              // Is this VM synced yet?
+	faultingEOM           int64             // Faulting for EOM because it is too late
+	heartBeat             int64             // Just ping ever so often if we have heard nothing.
+	Signed                bool              // We have signed the previous block.
+	faultHeight           int
+	whenFaulted           int64
+	faultInitiatedAlready bool
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -661,7 +664,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.faultingEOM = 0
 		} else {
 			if !vm.Synced {
-				vm.faultingEOM = fault(p, i, 20, vm, vm.faultingEOM, len(vm.List), 0)
+				fault(p, vm, i, len(vm.List), 0)
 			}
 		}
 
@@ -1007,6 +1010,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	pl.Commits = make(map[[32]byte]interfaces.IMsg)
 	pl.commitslock = new(sync.Mutex)
+
+	pl.FaultMap = make(map[[32]byte]FaultState)
 
 	pl.AmINegotiator = false
 	pl.NegotiationInit = make(map[string]int64)
