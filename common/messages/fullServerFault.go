@@ -108,6 +108,33 @@ func (m *FullServerFault) MarshalCore() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
+func (m *FullServerFault) MarshalForSF() (data []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
+		}
+	}()
+
+	var buf primitives.Buffer
+
+	if d, err := m.ServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
+	buf.WriteByte(m.VMIndex)
+	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
+	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
+
+	return buf.DeepCopyBytes(), nil
+}
+
 func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
