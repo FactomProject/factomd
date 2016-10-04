@@ -529,7 +529,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			}
 
 			for _, e := range eb.GetBody().GetEBEntries() {
-				if err := list.State.DB.InsertEntry(pl.GetNewEntry(e.Fixed())); err != nil {
+				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
 					panic(err.Error())
 				}
 			}
