@@ -370,11 +370,9 @@ func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) int {
 			validSigCount++
 		}
 		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
-			//fmt.Println("JUSTIN", state.GetFactomNodeName(), "GOT VALIDD FF:", m.ServerID.String()[:10], "AUD:", m.AuditServerID.String()[:10])
 			return 1
 		}
 	}
-	//fmt.Println("JUSTIN NEVS", state.GetFactomNodeName(), validSigCount, m.AuditServerID.String()[:10], m.ServerID.String()[:10])
 	return 0 // didn't see enough valid sigs
 }
 

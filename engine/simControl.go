@@ -1029,7 +1029,7 @@ func faultSummary() string {
 					if pl.AmINegotiator {
 						if len(pl.FaultMap) > 0 {
 							prt = prt + fmt.Sprintf("| Faults:")
-
+							pl.FaultMapMutex.RLock()
 							if len(pl.FaultMap) < 3 {
 								for _, faultState := range pl.FaultMap {
 									//if (int(faultState.FaultCore.VMIndex)+1)%(len(pl.FedServers)-1) == pl.NegotiatorVMIndex {
@@ -1041,7 +1041,11 @@ func faultSummary() string {
 									if faultState.PledgeDone {
 										pledgeDoneString = "Y"
 									}
-									prt = prt + pledgeDoneString + " "
+									pledgeOngo := "off"
+									if faultState.NegotiationOngoing {
+										pledgeOngo = "on"
+									}
+									prt = prt + pledgeDoneString + " " + pledgeOngo
 									//}
 								}
 							} else {
@@ -1057,7 +1061,8 @@ func faultSummary() string {
 								}
 							}
 
-							prt = prt + " |"
+							//prt = prt + " |"
+							pl.FaultMapMutex.RUnlock()
 						}
 					}
 
