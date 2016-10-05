@@ -68,25 +68,22 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 }
 
 func handleNegotiations(pl *ProcessList) {
-	amINego := false
 	for {
+		amINego := false
 		for faultID, faultState := range pl.FaultMap {
 			if faultState.AmINegotiator {
 				if faultState.NegotiationOngoing {
 					craftAndSubmitFullFault(pl, faultID)
-					fmt.Println("JUSTIN HANDLE", pl.State.FactomNodeName, "SETTING AMINEGO TRUE BC", faultState.FaultCore.ServerID.String()[:10], faultState.FaultCore.AuditServerID.String()[:10], time.Now().Unix())
 					amINego = true
 					break
 				}
 			}
 		}
 
-		fmt.Println("JUSTIN HANDLE", pl.State.FactomNodeName, "SETTING AMINEGO", amINego)
 		pl.AmINegotiator = amINego
 		if !amINego {
 			return
 		}
-
 		time.Sleep(3 * time.Second)
 	}
 }
