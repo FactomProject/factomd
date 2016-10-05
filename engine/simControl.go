@@ -541,18 +541,22 @@ func SimControl(listenTo int) {
 								}
 							}
 						} else if show == 1 {
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
 						} else if show == 2 {
-							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Status:   ", stat, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Identity Chain:  ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 						} else if show == 3 {
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
 						} else if show == 4 {
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							for _, a := range i.AnchorKeys {

@@ -786,9 +786,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		num := p.State.GetSecretNumber(ack.Timestamp)
 		if num != ack.SaltNumber {
-			os.Stderr.WriteString(fmt.Sprintf("Chain ID with conflict %x", p.State.IdentityChainID.Bytes()))
-			os.Stderr.WriteString(fmt.Sprintf("My  SaltNumber %x", num))
-			os.Stderr.WriteString(fmt.Sprintf("Ack SaltNumber %x", ack.SaltNumber))
+			os.Stderr.WriteString(fmt.Sprintf("Chain ID with conflict %x\n", p.State.IdentityChainID.Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("My  Salt       %x\n", p.State.Salt.Bytes()[:8]))
+			os.Stderr.WriteString(fmt.Sprintf("My  Salt       %x\n", ack.Salt))
+			os.Stderr.WriteString(fmt.Sprintf("My  SaltNumber %x\n", num))
+			os.Stderr.WriteString(fmt.Sprintf("Ack SaltNumber %x\n", ack.SaltNumber))
 			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
 	}

@@ -1437,6 +1437,7 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 	ack.Minute = byte(s.ProcessLists.Get(s.LLeaderHeight).VMs[vmIndex].LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
 	ack.SaltNumber = s.GetSecretNumber(ack.Timestamp)
+	copy(ack.Salt[:8], s.Salt.Bytes()[:8])
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
 
