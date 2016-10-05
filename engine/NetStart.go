@@ -5,6 +5,8 @@
 package engine
 
 import (
+	"bytes"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"os"
@@ -63,6 +65,7 @@ func NetStart(s *state.State) {
 	keepMismatchPtr := flag.Bool("keepmismatch", false, "If true, do not discard DBStates even when a majority of DBSignatures have a different hash")
 	startDelayPtr := flag.Int("startdelay", 5, "Delay to start processing messages, in seconds")
 	deadlinePtr := flag.Int("deadline", 1000, "Timeout Delay in milliseconds used on Reads and Writes to the network comm")
+	customNetPtr := flag.String("customnet", "", "This string specifies a custom blockchain network ID.")
 	rpcUserflag := flag.String("rpcuser", "", "Username to protect factomd local API with simple HTTP authentication")
 	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
@@ -96,6 +99,7 @@ func NetStart(s *state.State) {
 	keepMismatch := *keepMismatchPtr
 	startDelay := int64(*startDelayPtr)
 	deadline := *deadlinePtr
+	customNet := primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
 	rpcUser := *rpcUserflag
 	rpcPassword := *rpcPasswordflag
 	factomdTLS := *factomdTLSflag
@@ -239,6 +243,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", keepMismatch))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", startDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", customNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", deadline))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
@@ -295,12 +300,16 @@ func NetStart(s *state.State) {
 		networkPort = s.LocalNetworkPort
 		specialPeers = s.LocalSpecialPeers
 	case "CUSTOM", "custom":
-		networkID = p2p.LocalNet
+		if bytes.Compare(customNet, []byte("\xe3\xb0\xc4\x42")) == 0 {
+			panic("Please specify a custom network with -customnet=<something unique here>")
+		}
+		s.CustomNetworkID = customNet
+		networkID = p2p.NetworkID(binary.BigEndian.Uint32(customNet))
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
 		specialPeers = s.LocalSpecialPeers
 	default:
-		panic("Invalid Network choice in Config File. Choose MAIN, TEST or LOCAL")
+		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
 
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
