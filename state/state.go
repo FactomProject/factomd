@@ -422,6 +422,20 @@ func (s *State) IncECommits() {
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
+
+	if s.Salt == nil {
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		// Note that err == nil only if we read len(b) bytes.
+		if err != nil {
+			panic("Random Number Failure")
+		}
+		s.Salt = primitives.Sha(b)
+	}
+
+	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
+	fmt.Print(salt)
+
 	if len(filename) > 0 {
 		s.filename = filename
 		s.ReadCfg(filename)
@@ -543,16 +557,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
 }
 
-func (s *State) GetSecretNumber(ts interfaces.Timestamp) uint32 {
-	if s.Salt == nil {
-		b := make([]byte, 32)
-		_, err := rand.Read(b)
-		// Note that err == nil only if we read len(b) bytes.
-		if err != nil {
-			panic("Random Number Failure")
-		}
-		s.Salt = primitives.Sha(b)
-	}
+func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 	var b [32]byte
 	copy(b[:], s.Salt.Bytes())
 	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))

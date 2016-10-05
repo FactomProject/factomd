@@ -784,7 +784,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
 	// the past.
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
-		num := p.State.GetSecretNumber(ack.Timestamp)
+		num := p.State.GetSalt(ack.Timestamp)
 		if num != ack.SaltNumber {
 			os.Stderr.WriteString(fmt.Sprintf("Chain ID with conflict %x\n", p.State.IdentityChainID.Bytes()))
 			os.Stderr.WriteString(fmt.Sprintf("My  Salt       %x\n", p.State.Salt.Bytes()[:8]))

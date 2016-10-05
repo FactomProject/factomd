@@ -24,13 +24,13 @@ func TestInit(t *testing.T) {
 func TestSecretCode(t *testing.T) {
 	s := new(state.State)
 	ts1 := s.GetTimestamp()
-	num1 := s.GetSecretNumber(ts1)
-	num2 := s.GetSecretNumber(ts1)
+	num1 := s.GetSalt(ts1)
+	num2 := s.GetSalt(ts1)
 	if num1 != num2 {
 		t.Error("Secret Number failure")
 	}
 	ts1.SetTime(uint64(ts1.GetTimeMilli() + 1000))
-	num3 := s.GetSecretNumber(ts1)
+	num3 := s.GetSalt(ts1)
 	if num1 == num3 {
 		t.Error("Secret Number bad match")
 	}

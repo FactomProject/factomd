@@ -541,22 +541,22 @@ func SimControl(listenTo int) {
 								}
 							}
 						} else if show == 1 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
 						} else if show == 2 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status:   ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain:  ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 						} else if show == 3 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
 						} else if show == 4 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String(), "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							for _, a := range i.AnchorKeys {
@@ -577,6 +577,7 @@ func SimControl(listenTo int) {
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
 					os.Stderr.WriteString(fmt.Sprint("Identity of Current Node Information\n"))
+					os.Stderr.WriteString(fmt.Sprintf("Server Salt:   %s\n", fnodes[listenTo].State.Salt.String()[:16]))
 					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.IdentityChainID.String()))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))

@@ -219,6 +219,16 @@ func NetStart(s *state.State) {
 
 	go StartProfiler()
 
+	s.AddPrefix(prefix)
+	s.SetOut(false)
+	s.Init()
+	s.SetDropRate(droprate)
+
+	mLog.init(runtimeLog, cnt)
+
+	setupFirstAuthority(s)
+
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", enableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
@@ -248,15 +258,6 @@ func NetStart(s *state.State) {
 	} else {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
 	}
-
-	s.AddPrefix(prefix)
-	s.SetOut(false)
-	s.Init()
-	s.SetDropRate(droprate)
-
-	mLog.init(runtimeLog, cnt)
-
-	setupFirstAuthority(s)
 
 	//************************************************
 	// Actually setup the Network
