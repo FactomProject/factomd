@@ -323,10 +323,20 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 	if a.DBHeight != b.DBHeight {
 		return false
 	}
+
 	if a.Height != b.Height {
 		return false
 	}
+
 	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
+		return false
+	}
+
+	if a.Salt != b.Salt {
+		return false
+	}
+
+	if a.SaltNumber != b.SaltNumber {
 		return false
 	}
 
