@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"reflect"
+	"strings"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -25,6 +27,20 @@ import (
 const API_VERSION string = "2.0"
 
 func HandleV2(ctx *web.Context) {
+	ServersMutex.Lock()
+	state := ctx.Server.Env["state"].(interfaces.IState)
+	ServersMutex.Unlock()
+
+	if err := checkAuthHeader(state, ctx.Request); err != nil {
+		remoteIP := ""
+		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
+		fmt.Printf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
+		ctx.ResponseWriter.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
+		http.Error(ctx.ResponseWriter, "401 Unauthorized.", http.StatusUnauthorized)
+
+		return
+	}
+
 	body, err := ioutil.ReadAll(ctx.Request.Body)
 	if err != nil {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
@@ -36,10 +52,6 @@ func HandleV2(ctx *web.Context) {
 		HandleV2Error(ctx, nil, NewInvalidRequestError())
 		return
 	}
-
-	ServersMutex.Lock()
-	state := ctx.Server.Env["state"].(interfaces.IState)
-	ServersMutex.Unlock()
 
 	jsonResp, jsonError := HandleV2Request(state, j)
 

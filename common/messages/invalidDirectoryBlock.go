@@ -177,7 +177,7 @@ func (m *InvalidDirectoryBlock) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *InvalidDirectoryBlock) String() string {
-	return ""
+	return "Invalid Directory Block"
 }
 
 func (m *InvalidDirectoryBlock) DBHeight() int {

@@ -39,7 +39,7 @@ var _ interfaces.Printable = (*Identity)(nil)
 
 func (id *Identity) FixMissingKeys(s *State) {
 	if !statusIsFedOrAudit(id.Status) {
-		return
+		//return
 	}
 	// Rebuilds identity
 	err := s.AddIdentityFromChainID(id.IdentityChainID)

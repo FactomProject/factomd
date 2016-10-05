@@ -44,6 +44,14 @@ type IState interface {
 	GetAuditServers(uint32) []IFctServer
 	GetOnlineAuditServers(uint32) []IFctServer
 
+	//RPC
+	GetRpcUser() string
+	GetRpcPass() string
+	SetRpcAuthHash(authHash []byte)
+	GetRpcAuthHash() []byte
+	GetTlsInfo() (bool, string, string)
+	GetFactomdLocations() string
+
 	// Routine for handling the syncroniztion of the leader and follower processes
 	// and how they process messages.
 	Process() (progress bool)
@@ -155,7 +163,7 @@ type IState interface {
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list
 	FollowerExecuteAck(IMsg)          // Ack Msg calls this function.
 	FollowerExecuteDBState(IMsg)      // Add the given DBState to this server
-	FollowerExecuteSFault(IMsg)       // Handle Server Fault Messages
+	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
 	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
 	FollowerExecuteNegotiation(IMsg)  // Message to start the negotiation process to replace a faulted server

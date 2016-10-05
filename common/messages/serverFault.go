@@ -222,13 +222,15 @@ func (m *ServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *ServerFault) String() string {
-	return fmt.Sprintf("%6s-VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d -- hash[:3]=%x",
+	return fmt.Sprintf("%6s %v VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d sig[:3]=%x hash[:3]=%x",
 		"SFault",
+		m.GetCoreHash().String()[:10],
 		m.VMIndex,
 		m.ServerID.String()[:10],
 		m.AuditServerID.String()[:10],
 		m.Height,
 		m.DBHeight,
+		m.Signature.Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 }
 

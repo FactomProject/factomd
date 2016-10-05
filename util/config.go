@@ -37,17 +37,22 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityAddress string
 
 		// Network Configuration
-		Network           string
-		MainNetworkPort   string
-		PeersFile         string
-		MainSeedURL       string
-		MainSpecialPeers  string
-		TestNetworkPort   string
-		TestSeedURL       string
-		TestSpecialPeers  string
-		LocalNetworkPort  string
-		LocalSeedURL      string
-		LocalSpecialPeers string
+		Network              string
+		MainNetworkPort      string
+		PeersFile            string
+		MainSeedURL          string
+		MainSpecialPeers     string
+		TestNetworkPort      string
+		TestSeedURL          string
+		TestSpecialPeers     string
+		LocalNetworkPort     string
+		LocalSeedURL         string
+		LocalSpecialPeers    string
+		FactomdTlsEnabled    bool
+		FactomdTlsPrivateKey string
+		FactomdTlsPublicCert string
+		FactomdRpcUser       string
+		FactomdRpcPass       string
 	}
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
@@ -77,11 +82,6 @@ type FactomdConfig struct {
 		CertHomePathBtcd   string
 		RpcBtcdHost        string
 	}
-	Rpc struct {
-		PortNumber       int
-		ApplicationName  string
-		RefreshInSeconds int
-	}
 	Wsapi struct {
 		PortNumber      int
 		ApplicationName string
@@ -100,6 +100,15 @@ type FactomdConfig struct {
 		FactomdAddress   string
 		FactomdPort      int
 	}
+	Walletd struct {
+		WalletRpcUser       string
+		WalletRpcPass       string
+		WalletTlsEnabled    bool
+		WalletTlsPrivateKey string
+		WalletTlsPublicCert string
+		FactomdLocation     string
+		WalletdLocation     string
+	}
 }
 
 // defaultConfig
@@ -113,7 +122,6 @@ HomeDir                               = ""
 ; --------------- ControlPanel disabled | readonly | readwrite
 ControlPanelSetting                   = readonly
 ControlPanelPort                      = 8090
-ControlPanelFilesPath                 = "Web/"
 ; --------------- DBType: LDB | Bolt | Map
 DBType                                = "LDB"
 LdbPath                               = "database/ldb"
@@ -124,8 +132,8 @@ ExportData                            = false
 ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = LOCAL
+PeersFile            = "peers.json"
 MainNetworkPort      = 8108
-PeersFile        = "peers.json"
 MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
 MainSpecialPeers     = ""
 TestNetworkPort      = 8109
@@ -133,7 +141,7 @@ TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factompr
 TestSpecialPeers     = ""
 LocalNetworkPort     = 8110
 LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
-LocalSpecialPeers     = ""
+LocalSpecialPeers    = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode                              = FULL
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
@@ -141,6 +149,17 @@ LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482
 ExchangeRate                          = 00100000
 ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
 ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
+
+; These define if the PRC and Control Panel connection to factomd should be encrypted, and if it is, what files
+; are the secret key and the public certificate.  factom-cli and factom-walletd uses the certificate specified here if TLS is enabled.
+FactomdTlsEnabled                     = false
+FactomdTlsPrivateKey                  = "/full/path/to/factomdAPIpriv.key"
+FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
+
+; These are the username and password that factomd requires for the RPC API and the Control Panel
+; This file is also used by factom-cli and factom-walletd to determine what login to use
+FactomdRpcUser                        = ""
+FactomdRpcPass                        = ""
 
 [anchor]
 ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
@@ -181,6 +200,29 @@ Port                                  = 8089
 DataFile                              = fctwallet.dat
 RefreshInSeconds                      = 6
 BoltDBPath                            = ""
+
+; ------------------------------------------------------------------------------
+; Configurations for factom-walletd
+; ------------------------------------------------------------------------------
+[Walletd]
+; These are the username and password that factom-walletd requires
+; This file is also used by factom-cli to determine what login to use
+WalletRpcUser                         = ""
+WalletRpcPass                         = ""
+
+; These define if the connection to the wallet should be encrypted, and if it is, what files
+; are the secret key and the public certificate.  factom-cli uses the certificate specified here if TLS is enabled.
+WalletTlsEnabled                      = false
+WalletTlsPrivateKey                   = "/full/path/to/walletAPIpriv.key"
+WalletTlsPublicCert                   = "/full/path/to/walletAPIpub.cert"
+
+; This is where factom-walletd and factom-cli will find factomd to interact with the blockchain
+; This value can also be updated to authorize an external ip or domain name when factomd creates a TLS cert
+FactomdLocation                       = "localhost:8088"
+
+; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
+; This value can also be updated to authorize an external ip or domain name when factom-walletd creates a TLS cert
+WalletdLocation                       = "localhost:8089"
 `
 
 func (s *FactomdConfig) String() string {
@@ -202,7 +244,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExportDataSubpath       %v", s.App.ExportDataSubpath))
 	out.WriteString(fmt.Sprintf("\n    Network                 %v", s.App.Network))
 	out.WriteString(fmt.Sprintf("\n    MainNetworkPort         %v", s.App.MainNetworkPort))
-	out.WriteString(fmt.Sprintf("\n    PeersFile           %v", s.App.PeersFile))
+	out.WriteString(fmt.Sprintf("\n    PeersFile               %v", s.App.PeersFile))
 	out.WriteString(fmt.Sprintf("\n    MainSeedURL             %v", s.App.MainSeedURL))
 	out.WriteString(fmt.Sprintf("\n    MainSpecialPeers        %v", s.App.MainSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    TestNetworkPort         %v", s.App.TestNetworkPort))
@@ -218,6 +260,11 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityAddress   %v", s.App.ExchangeRateAuthorityAddress))
+	out.WriteString(fmt.Sprintf("\n    FactomdTlsEnabled        %v", s.App.FactomdTlsEnabled))
+	out.WriteString(fmt.Sprintf("\n    FactomdTlsPrivateKey     %v", s.App.FactomdTlsPrivateKey))
+	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
 
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
 	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
@@ -238,11 +285,6 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    CertHomePathBtcd        %v", s.Btc.CertHomePathBtcd))
 	out.WriteString(fmt.Sprintf("\n    RpcBtcdHost             %v", s.Btc.RpcBtcdHost))
 
-	out.WriteString(fmt.Sprintf("\n  Rpc"))
-	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Rpc.PortNumber))
-	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Rpc.ApplicationName))
-	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Rpc.RefreshInSeconds))
-
 	out.WriteString(fmt.Sprintf("\n  Wsapi"))
 	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Wsapi.PortNumber))
 	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Wsapi.ApplicationName))
@@ -258,6 +300,15 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    DataFile                %v", s.Wallet.DataFile))
 	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Wallet.RefreshInSeconds))
 	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.Wallet.BoltDBPath))
+
+	out.WriteString(fmt.Sprintf("\n  Walletd"))
+	out.WriteString(fmt.Sprintf("\n    WalletRpcUser           %v", s.Walletd.WalletRpcUser))
+	out.WriteString(fmt.Sprintf("\n    WalletRpcPass           %v", s.Walletd.WalletRpcPass))
+	out.WriteString(fmt.Sprintf("\n    WalletTlsEnabled        %v", s.Walletd.WalletTlsEnabled))
+	out.WriteString(fmt.Sprintf("\n    WalletTlsPrivateKey     %v", s.Walletd.WalletTlsPrivateKey))
+	out.WriteString(fmt.Sprintf("\n    WalletTlsPublicCert     %v", s.Walletd.WalletTlsPublicCert))
+	out.WriteString(fmt.Sprintf("\n    FactomdLocation         %v", s.Walletd.FactomdLocation))
+	out.WriteString(fmt.Sprintf("\n    WalletdLocation         %v", s.Walletd.WalletdLocation))
 
 	return out.String()
 }

@@ -106,7 +106,7 @@ type EntryCreditRateResponse struct {
 
 type PropertiesResponse struct {
 	FactomdVersion string `json:"factomdversion"`
-	ApiVersion     string `json:"apiversion"`
+	ApiVersion     string `json:"factomdapiversion"`
 }
 
 type SendRawMessageResponse struct {

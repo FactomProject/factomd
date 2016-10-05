@@ -173,7 +173,7 @@ func (m *SignatureTimeout) Sign(key interfaces.Signer) error {
 }
 
 func (m *SignatureTimeout) String() string {
-	return ""
+	return "Signature Timeout"
 }
 
 func (m *SignatureTimeout) DBHeight() int {

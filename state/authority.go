@@ -202,7 +202,11 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			st.RemoveAuthority(f.IdentityChainID)
 			IdentityIndex := st.isIdentityChain(f.IdentityChainID)
 			if IdentityIndex != -1 && IdentityIndex < len(st.Identities) {
-				st.removeIdentity(IdentityIndex)
+				if st.Identities[IdentityIndex].IdentityChainID.IsSameAs(st.IdentityChainID) {
+					st.Identities[IdentityIndex].Status = constants.IDENTITY_SELF
+				} else {
+					st.removeIdentity(IdentityIndex)
+				}
 			}
 		}
 	case constants.TYPE_ADD_FED_SERVER_KEY:
@@ -295,7 +299,7 @@ func (st *State) createAuthority(chainID interfaces.IHash) int {
 	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
 		newAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
 	}
-	newAuth.Status = constants.IDENTITY_PENDING
+	newAuth.Status = constants.IDENTITY_PENDING_FULL
 
 	st.Authorities = append(st.Authorities, *newAuth)
 	return len(st.Authorities) - 1

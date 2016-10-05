@@ -41,6 +41,9 @@ const (
 
 	BOUNCE_MSG      // 26	test message
 	BOUNCEREPLY_MSG // 26	test message
+
+	MISSING_ENTRY_BLOCKS //27
+	ENTRY_BLOCK_RESPONSE //28
 )
 
 const (
@@ -94,10 +97,10 @@ const (
 	//==================
 	VERSION_0                = byte(0)
 	FACTOMD_VERSION          = 4000000
-	MAIN_NETWORK_ID   uint32 = 0xFA92E5A1
-	TEST_NETWORK_ID   uint32 = 0xFA92E5A2
-	LOCAL_NETWORK_ID  uint32 = 0xFA92E5A3
-	CUSTOM_NETWORK_ID uint32 = 0xFA92E5A4
+	MAIN_NETWORK_ID   uint32 = 0xFA92E5A2
+	TEST_NETWORK_ID   uint32 = 0xFA92E5A3
+	LOCAL_NETWORK_ID  uint32 = 0xFA92E5A4
+	CUSTOM_NETWORK_ID uint32 = 0xFA92E5A5  //note, this is overridden by user choice
 	MaxBlocksPerMsg          = 500
 
 	// NETWORKS:
@@ -181,7 +184,8 @@ const (
 	IDENTITY_PENDING_FEDERATED_SERVER            // 4
 	IDENTITY_PENDING_AUDIT_SERVER                // 5
 	IDENTITY_PENDING_FULL                        // 6
-	IDENTITY_PENDING                             // 7
+	IDENTITY_SELF                                // 7
+	IDENTITY_SELF_FULL                           // 8
 )
 
 //---------------------------------------------------------------------

@@ -16,6 +16,7 @@ import (
 
 	"crypto/rand"
 	"encoding/binary"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -123,6 +124,16 @@ type State struct {
 	serverPendingPrivKeys []*primitives.PrivateKey
 	serverPendingPubKeys  []*primitives.PublicKey
 
+	// RPC connection config
+	RpcUser     string
+	RpcPass     string
+	RpcAuthHash []byte
+
+	FactomdTLSEnable   bool
+	factomdTLSKeyFile  string
+	factomdTLSCertFile string
+	FactomdLocations   string
+
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
@@ -180,8 +191,10 @@ type State struct {
 	InvalidMessagesMutex sync.RWMutex
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
-	FaultMap        map[[32]byte]map[[32]byte]interfaces.IFullSignature
+	FaultVoteMap    map[[32]byte]map[[32]byte]interfaces.IFullSignature
 	// -------CoreHash for fault : FaulterIdentity : Msg Signature
+	FaultInfoMap map[[32]byte]FaultCore
+	// Contains detailed fault information for the ongoing negotiations
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -299,7 +312,8 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.LocalNetworkPort = s.LocalNetworkPort
 	clone.LocalSeedURL = s.LocalSeedURL
 	clone.LocalSpecialPeers = s.LocalSpecialPeers
-	clone.FaultMap = s.FaultMap
+	clone.FaultVoteMap = s.FaultVoteMap
+	clone.FaultInfoMap = s.FaultInfoMap
 	clone.StartDelayLimit = s.StartDelayLimit
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
@@ -330,6 +344,15 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.OneLeader = s.OneLeader
 
+	clone.RpcUser = s.RpcUser
+	clone.RpcPass = s.RpcPass
+	clone.RpcAuthHash = s.RpcAuthHash
+
+	clone.FactomdTLSEnable = s.FactomdTLSEnable
+	clone.factomdTLSKeyFile = s.factomdTLSKeyFile
+	clone.factomdTLSCertFile = s.factomdTLSCertFile
+	clone.FactomdLocations = s.FactomdLocations
+
 	return clone
 }
 
@@ -355,6 +378,30 @@ func (s *State) GetNetStateOff() bool { //	If true, all network communications a
 
 func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
+}
+
+func (s *State) GetRpcUser() string {
+	return s.RpcUser
+}
+
+func (s *State) GetRpcPass() string {
+	return s.RpcPass
+}
+
+func (s *State) SetRpcAuthHash(authHash []byte) {
+	s.RpcAuthHash = authHash
+}
+
+func (s *State) GetRpcAuthHash() []byte {
+	return s.RpcAuthHash
+}
+
+func (s *State) GetTlsInfo() (bool, string, string) {
+	return s.FactomdTLSEnable, s.factomdTLSKeyFile, s.factomdTLSCertFile
+}
+
+func (s *State) GetFactomdLocations() string {
+	return s.FactomdLocations
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -424,6 +471,21 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		s.RpcUser = cfg.App.FactomdRpcUser
+		s.RpcPass = cfg.App.FactomdRpcPass
+
+		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
+		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
+			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
+		}
+		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
+			s.factomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
+		}
+		externalIP := strings.Split(cfg.Walletd.FactomdLocation, ":")[0]
+		if externalIP != "localhost" {
+			s.FactomdLocations = externalIP
+		}
+
 		switch cfg.App.ControlPanelSetting {
 		case "disabled":
 			s.ControlPanelSetting = 0
@@ -541,7 +603,8 @@ func (s *State) Init() {
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
-	s.FaultMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
+	s.FaultVoteMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
+	s.FaultInfoMap = make(map[[32]byte]FaultCore)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -725,7 +788,31 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic("Should not happen")
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+	var eBlocks []interfaces.IEntryBlock
+	var entries []interfaces.IEBEntry
+
+	if len(dblk.GetDBEntries()) > 2 {
+		for _, v := range dblk.GetDBEntries()[3:] {
+			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
+			if err == nil && eBlock != nil {
+				eBlocks = append(eBlocks, eBlock)
+			}
+			for _, e := range eBlock.GetEntryHashes() {
+				entry, err := s.DB.FetchEntry(e)
+				if err == nil && entry != nil {
+					entries = append(entries, entry)
+				}
+			}
+		}
+	}
+
+	dbaseID := dblk.GetHeader().GetNetworkID()
+	configuredID := s.GetNetworkID()
+	if dbaseID != configuredID {
+		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
+	}
+
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
 
 	return msg, nil
 }
@@ -900,29 +987,18 @@ func (s *State) catchupEBlocks() {
 	now := s.GetTimestamp()
 
 	// If we have no Entry Blocks in our queue, reset our timer.
-	if len(s.MissingEntryBlocks) == 0 {
-		s.MissingEntryBlockRepeat = nil
-	} else {
-		// If our timer was reset, then set it now.
-		if s.MissingEntryBlockRepeat == nil {
-			s.MissingEntryBlockRepeat = now
-		}
+	if len(s.MissingEntryBlocks) == 0 || s.MissingEntryBlockRepeat == nil {
+		s.MissingEntryBlockRepeat = now
+	}
 
-		// If our delay has been reached, then ask for some missing Entry blocks
-		// This is a replay, because sometimes requests are ignored or lost.
-		if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
-			s.MissingEntryBlockRepeat = now
+	// If our delay has been reached, then ask for some missing Entry blocks
+	// This is a replay, because sometimes requests are ignored or lost.
+	if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
+		s.MissingEntryBlockRepeat = now
 
-			fmt.Printf("dddd Missing EB    %10s #missing %d Processing %d Complete %d\n",
-				s.FactomNodeName,
-				len(s.MissingEntryBlocks),
-				s.EntryBlockDBHeightProcessing,
-				s.EntryBlockDBHeightComplete)
-
-			for _, eb := range s.MissingEntryBlocks {
-				eBlockRequest := messages.NewMissingData(s, eb.ebhash)
-				s.NetworkOutMsgQueue() <- eBlockRequest
-			}
+		for _, eb := range s.MissingEntryBlocks {
+			eBlockRequest := messages.NewMissingData(s, eb.ebhash)
+			s.NetworkOutMsgQueue() <- eBlockRequest
 		}
 	}
 
@@ -974,32 +1050,35 @@ func (s *State) catchupEBlocks() {
 					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 				} else {
-					eblock, err := s.DB.FetchEBlock(ebKeyMR)
+					eblock, _ := s.DB.FetchEBlock(ebKeyMR)
 
-					if err == nil && eblock != nil {
-						for _, entryhash := range eblock.GetEntryHashes() {
-							if entryhash.IsMinuteMarker() {
-								continue
+					for _, entryhash := range eblock.GetEntryHashes() {
+						if entryhash.IsMinuteMarker() {
+							continue
+						}
+						e, _ := s.DB.FetchEntry(entryhash)
+						if e == nil {
+							var v struct {
+								ebhash    interfaces.IHash
+								entryhash interfaces.IHash
+								dbheight  uint32
 							}
-							e, _ := s.DB.FetchEntry(entryhash)
-							if e == nil {
-								var v struct {
-									ebhash    interfaces.IHash
-									entryhash interfaces.IHash
-									dbheight  uint32
-								}
 
-								v.dbheight = eblock.GetHeader().GetDBHeight()
-								v.entryhash = entryhash
-								v.ebhash = ebKeyMR
+							v.dbheight = eblock.GetHeader().GetDBHeight()
+							v.entryhash = entryhash
+							v.ebhash = ebKeyMR
 
-								s.MissingEntries = append(s.MissingEntries, v)
-							}
-							s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now)
+							s.MissingEntries = append(s.MissingEntries, v)
+						}
+						// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+						if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
 							delete(s.Commits, entryhash.Fixed())
 						}
 					}
 				}
+			}
+			if len(s.MissingEntries) == 0 && s.EntryBlockDBHeightComplete == s.EntryBlockDBHeightProcessing {
+				s.EntryBlockDBHeightComplete++
 			}
 			s.EntryBlockDBHeightProcessing++
 		}
