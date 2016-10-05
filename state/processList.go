@@ -21,6 +21,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"os"
 )
 
 var _ = fmt.Print
@@ -824,6 +825,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		num := p.State.GetSecretNumber(ack.Timestamp)
 		if num != ack.SaltNumber {
+			os.Stderr.WriteString(fmt.Sprintf("Chain ID with conflict %x", p.State.IdentityChainID.Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("My  SaltNumber %x", num))
+			os.Stderr.WriteString(fmt.Sprintf("Ack SaltNumber %x", ack.SaltNumber))
 			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
 	}
