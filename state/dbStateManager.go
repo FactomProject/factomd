@@ -33,9 +33,13 @@ type DBState struct {
 	AdminBlock       interfaces.IAdminBlock
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
-	Locked           bool
-	ReadyToSave      bool
-	Saved            bool
+
+	EntryBlocks []interfaces.IEntryBlock
+	Entries     []interfaces.IEBEntry
+
+	Locked      bool
+	ReadyToSave bool
+	Saved       bool
 }
 
 type DBStateList struct {
@@ -49,9 +53,12 @@ type DBStateList struct {
 	DBStates            []*DBState
 }
 
-// Validate this directory block is a possible part of a valid Next DBState.  Doesn't check
-// signatures, as those are in the next block. Does check that this DBState holds
+// Validate this directory block given the next Directory Block.  Need to check the
+// signatures as being from the authority set, and valid. Also check that this DBState holds
 // a previous KeyMR that matches the previous DBState KeyMR.
+//
+// Return a -1 on failure.
+//
 func (d *DBState) ValidNext(state *State, dirblk interfaces.IDirectoryBlock) int {
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	if dbheight == 0 {
@@ -216,6 +223,9 @@ func (list *DBStateList) Catchup() {
 		}
 	}
 
+	if begin > 0 {
+		begin--
+	}
 	end++ // ask for one more, just in case.
 
 	list.Lastreq = begin
@@ -458,7 +468,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		}
 
 		for _, v := range commits {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), now)
 			if ok {
 				keep = append(keep, v)
 			}
@@ -474,7 +484,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
-
 	if !d.Locked || !d.ReadyToSave {
 		return
 	}
@@ -520,7 +529,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			}
 
 			for _, e := range eb.GetBody().GetEBEntries() {
-				if err := list.State.DB.InsertEntry(pl.GetNewEntry(e.Fixed())); err != nil {
+				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
 					panic(err.Error())
 				}
 			}
@@ -657,7 +666,9 @@ func (list *DBStateList) NewDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
+	entryCreditBlock interfaces.IEntryCreditBlock,
+	eBlocks []interfaces.IEntryBlock,
+	entries []interfaces.IEBEntry) *DBState {
 
 	dbState := new(DBState)
 
@@ -671,6 +682,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.AdminBlock = adminBlock
 	dbState.FactoidBlock = factoidBlock
 	dbState.EntryCreditBlock = entryCreditBlock
+	dbState.EntryBlocks = eBlocks
+	dbState.Entries = entries
 
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {
