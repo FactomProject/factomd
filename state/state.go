@@ -35,7 +35,7 @@ var _ = fmt.Print
 type State struct {
 	filename string
 
-	SecretCode interfaces.IHash
+	Salt interfaces.IHash
 
 	Cfg interfaces.IFactomConfig
 
@@ -546,17 +546,17 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 }
 
 func (s *State) GetSecretNumber(ts interfaces.Timestamp) uint32 {
-	if s.SecretCode == nil {
+	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
 		// Note that err == nil only if we read len(b) bytes.
 		if err != nil {
 			panic("Random Number Failure")
 		}
-		s.SecretCode = primitives.Sha(b)
+		s.Salt = primitives.Sha(b)
 	}
 	var b [32]byte
-	copy(b[:], s.SecretCode.Bytes())
+	copy(b[:], s.Salt.Bytes())
 	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))
 	c := primitives.Sha(b[:])
 	return binary.BigEndian.Uint32(c.Bytes())

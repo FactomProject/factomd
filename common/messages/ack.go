@@ -18,6 +18,7 @@ import (
 type Ack struct {
 	MessageBase
 	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
+	Salt        [8]byte              // Eight bytes of the salt
 	SaltNumber  uint32               // Secret Number used to detect multiple servers with the same ID
 	MessageHash interfaces.IHash     // Hash of message acknowledged
 	DBHeight    uint32               // Directory Block Height that owns this ack
@@ -178,6 +179,9 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
+	copy(m.Salt[:], newData[:8])
+	newData = newData[8:]
+
 	m.SaltNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	m.MessageHash = new(primitives.Hash)
@@ -237,6 +241,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	buf.Write(m.Salt[:8])
 	binary.Write(&buf, binary.BigEndian, m.SaltNumber)
 
 	data, err = m.MessageHash.MarshalBinary()
