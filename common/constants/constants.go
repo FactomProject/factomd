@@ -97,10 +97,10 @@ const (
 	//==================
 	VERSION_0                = byte(0)
 	FACTOMD_VERSION          = 4000000
-	MAIN_NETWORK_ID   uint32 = 0xFA92E5A1
-	TEST_NETWORK_ID   uint32 = 0xFA92E5A2
-	LOCAL_NETWORK_ID  uint32 = 0xFA92E5A3
-	CUSTOM_NETWORK_ID uint32 = 0xFA92E5A4
+	MAIN_NETWORK_ID   uint32 = 0xFA92E5A2
+	TEST_NETWORK_ID   uint32 = 0xFA92E5A3
+	LOCAL_NETWORK_ID  uint32 = 0xFA92E5A4
+	CUSTOM_NETWORK_ID uint32 = 0xFA92E5A5  //note, this is overridden by user choice
 	MaxBlocksPerMsg          = 500
 
 	// NETWORKS:
