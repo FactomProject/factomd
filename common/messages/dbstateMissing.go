@@ -113,14 +113,20 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if end-start > 200 {
 		end = start + 200
 	}
+	missingone := false
 	for dbs := start; dbs <= end; dbs++ {
 		msg, err := state.LoadDBState(dbs)
 		if msg != nil && err == nil {
+			if missingone {
+				fmt.Println("dddd Missing some prior dbstates.  Start", start, "End", end, "Found ", dbs)
+			}
 			// If I don't have this block, ignore.
 			msg.SetOrigin(m.GetOrigin())
 			msg.SetNetworkOrigin(m.GetNetworkOrigin())
 			msg.SendOut(state, msg)
 			state.IncDBStateAnswerCnt()
+		} else {
+			missingone = true
 		}
 	}
 

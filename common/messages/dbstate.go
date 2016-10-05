@@ -41,9 +41,16 @@ type DBStateMsg struct {
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
 
 func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+	}()
+
 	if b == nil {
 		return false
 	}
+
 	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
@@ -68,7 +75,23 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 		return false
 	}
 
-	//TODO: compare more
+	if len(a.EBlocks) != len(b.EBlocks) || (len(a.Entries) != len(b.Entries)) {
+		return false
+	}
+
+	for i := range a.EBlocks {
+		ok, err = primitives.AreBinaryMarshallablesEqual(a.EBlocks[i], b.EBlocks[i])
+		if err != nil || ok == false {
+			return false
+		}
+	}
+
+	for i := range a.Entries {
+		ok, err = primitives.AreBinaryMarshallablesEqual(a.Entries[i], b.Entries[i])
+		if err != nil || ok == false {
+			return false
+		}
+	}
 
 	return true
 }

@@ -803,11 +803,11 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
 				eBlocks = append(eBlocks, eBlock)
-			}
-			for _, e := range eBlock.GetEntryHashes() {
-				entry, err := s.DB.FetchEntry(e)
-				if err == nil && entry != nil {
-					entries = append(entries, entry)
+				for _, e := range eBlock.GetEntryHashes() {
+					entry, err := s.DB.FetchEntry(e)
+					if err == nil && entry != nil {
+						entries = append(entries, entry)
+					}
 				}
 			}
 		}
