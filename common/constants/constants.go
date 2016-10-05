@@ -100,7 +100,6 @@ const (
 	MAIN_NETWORK_ID   uint32 = 0xFA92E5A2
 	TEST_NETWORK_ID   uint32 = 0xFA92E5A3
 	LOCAL_NETWORK_ID  uint32 = 0xFA92E5A4
-	CUSTOM_NETWORK_ID uint32 = 0xFA92E5A5 //note, this is overridden by user choice
 	MaxBlocksPerMsg          = 500
 
 	// NETWORKS:
