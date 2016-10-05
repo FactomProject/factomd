@@ -511,25 +511,25 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	dbase := state.GetAndLockDB()
 	defer state.UnlockDB()
 
+	c := new(ChainHeadResponse)
+
+	// get the pending chain head from the process list in the state (if any)
+	if state.GetNewEBlocks(state.GetLeaderHeight(), h) != nil {
+		c.ChainInProcessList = true
+	}
 	// get the chain head from the database
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
 	}
 	if mr == nil {
-		// get the pending chain head from the process list in the state (if any)
-		pendmr, err := state.GetNewEBlocks(state.GetLeaderHeight(), h).KeyMR()
-		if err != nil {
-			return nil, NewInvalidHashError()
-		}
-		if pendmr == nil {
+		if c.ChainInProcessList == false {
 			return nil, NewMissingChainHeadError()
 		}
-		mr = pendmr
+	} else {
+		c.ChainHead = mr.String()
 	}
 
-	c := new(ChainHeadResponse)
-	c.ChainHead = mr.String()
 	return c, nil
 }
 
