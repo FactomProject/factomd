@@ -226,7 +226,7 @@ func (m *ServerFault) String() string {
 	var sig [3]byte
 
 	if m.Signature != nil {
-		copy(sig[:],m.Signature.Bytes()[:3])
+		copy(sig[:], m.Signature.Bytes()[:3])
 	}
 
 	return fmt.Sprintf("%6s %v VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d sig[:3]=%x hash[:3]=%x",

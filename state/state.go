@@ -425,19 +425,6 @@ func (s *State) IncECommits() {
 func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
 
-	if s.Salt == nil {
-		b := make([]byte, 32)
-		_, err := rand.Read(b)
-		// Note that err == nil only if we read len(b) bytes.
-		if err != nil {
-			panic("Random Number Failure")
-		}
-		s.Salt = primitives.Sha(b)
-	}
-
-	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
-	fmt.Print(salt)
-
 	if len(filename) > 0 {
 		s.filename = filename
 		s.ReadCfg(filename)
@@ -568,6 +555,19 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
+
+	if s.Salt == nil {
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		// Note that err == nil only if we read len(b) bytes.
+		if err != nil {
+			panic("Random Number Failure")
+		}
+		s.Salt = primitives.Sha(b)
+	}
+
+	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
+	fmt.Print(salt)
 
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
