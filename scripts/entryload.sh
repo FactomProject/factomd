@@ -32,11 +32,11 @@ do
     echo $chain3
     export chain3=$chain3
 
-    sleep 60
+    sleep 65
 
     factom-cli2 balances
 
-    sleep 10
+    sleep 5
 
     scripts/entryload2.sh &
 

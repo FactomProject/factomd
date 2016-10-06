@@ -764,31 +764,39 @@ func (s *State) UnlockDB() {
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
+		fmt.Println("dddd dbstate 1 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if dblk == nil {
+		fmt.Println("dddd dbstate 2 ", dbheight, s.FactomNodeName)
 		return nil, nil
 	}
 
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
+		fmt.Println("dddd dbstate 3 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ablk == nil {
+		fmt.Println("dddd dbstate 4 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ABlock not found")
 	}
 	ecblk, err := s.DB.FetchECBlock(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
+		fmt.Println("dddd dbstate 5 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ecblk == nil {
+		fmt.Println("dddd dbstate 6 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ECBlock not found")
 	}
 	fblk, err := s.DB.FetchFBlock(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
+		fmt.Println("dddd dbstate 7 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if fblk == nil {
+		fmt.Println("dddd dbstate 8 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "FBlock not found")
 	}
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
@@ -820,6 +828,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	}
 
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
+
+	fmt.Println("dddd dbstate sent ", dbheight, s.FactomNodeName)
 
 	return msg, nil
 }

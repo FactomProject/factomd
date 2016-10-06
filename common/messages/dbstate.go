@@ -137,8 +137,11 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
-
-	return 1
+	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
+	if dbheight <= 1 || dbheight == state.GetHighestCompletedBlock()+1 {
+		return 1
+	}
+	return -1
 }
 
 func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
@@ -170,11 +173,11 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
-		}
-	}()
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//		err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
+	//	}
+	//}()
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -215,22 +218,22 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	EBlockCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	for i := 0; i < int(EBlockCount); i++ {
+	for i := uint32(0); i < EBlockCount; i++ {
 		eBlock := entryBlock.NewEBlock()
 		newData, err = eBlock.UnmarshalBinaryData(newData)
 		if err != nil {
-			return nil, err
+			panic(err.Error())
 		}
 		m.EBlocks = append(m.EBlocks, eBlock)
 	}
 
 	EntryCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	for i := 0; i < int(EntryCount); i++ {
+	for i := uint32(0); i < EntryCount; i++ {
 		entry := entryBlock.NewEntry()
 		newData, err = entry.UnmarshalBinaryData(newData)
 		if err != nil {
-			return nil, err
+			panic(err.Error())
 		}
 		m.Entries = append(m.Entries, entry)
 	}
@@ -279,25 +282,28 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	EBlockCount := uint32(len(m.EBlocks))
-	binary.Write(&buf, binary.BigEndian, EBlockCount)
-	for _, eb := range m.EBlocks {
-		bin, err := eb.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(bin)
-	}
+	binary.Write(&buf, binary.BigEndian, uint32(0))
+	binary.Write(&buf, binary.BigEndian, uint32(0))
 
-	EntryCount := uint32(len(m.Entries))
-	binary.Write(&buf, binary.BigEndian, EntryCount)
-	for _, e := range m.Entries {
-		bin, err := e.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(bin)
-	}
+	//EBlockCount := uint32(len(m.EBlocks))
+	//binary.Write(&buf, binary.BigEndian, EBlockCount)
+	//for _, eb := range m.EBlocks {
+	//	bin, err := eb.MarshalBinary()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	buf.Write(bin)
+	//}
+	//
+	//EntryCount := uint32(len(m.Entries))
+	//binary.Write(&buf, binary.BigEndian, EntryCount)
+	//for _, e := range m.Entries {
+	//	bin, err := e.MarshalBinary()
+	//	if err != nil || bin == nil || len(bin) == 0 {
+	//		return nil, err
+	//	}
+	//	buf.Write(bin)
+	//}
 
 	return buf.DeepCopyBytes(), nil
 }
