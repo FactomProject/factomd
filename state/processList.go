@@ -167,6 +167,31 @@ func (p *ProcessList) LenNewEntries() int {
 	return len(p.NewEntries)
 }
 
+func (p *ProcessList) GetKeysFaultMap() (keys [][32]byte) {
+	keys = make([][32]byte, p.LenFaultMap())
+
+	p.FaultMapMutex.RLock()
+	defer p.FaultMapMutex.RUnlock()
+	i := 0
+	for k := range p.FaultMap {
+		keys[i] = k
+		i++
+	}
+	return
+}
+
+func (p *ProcessList) LenFaultMap() int {
+	p.FaultMapMutex.RLock()
+	defer p.FaultMapMutex.RUnlock()
+	return len(p.FaultMap)
+}
+
+func (p *ProcessList) GetFaultState(key [32]byte) FaultState {
+	p.FaultMapMutex.RLock()
+	defer p.FaultMapMutex.RUnlock()
+	return p.FaultMap[key]
+}
+
 func (p *ProcessList) Complete() bool {
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
@@ -504,6 +529,18 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	p.NewEntriesMutex.Lock()
 	defer p.NewEntriesMutex.Unlock()
 	delete(p.NewEntries, key.Fixed())
+}
+
+func (p *ProcessList) AddFaultState(key [32]byte, value FaultState) {
+	p.FaultMapMutex.Lock()
+	defer p.FaultMapMutex.Unlock()
+	p.FaultMap[key] = value
+}
+
+func (p *ProcessList) DeleteFaultState(key interfaces.IHash) {
+	p.FaultMapMutex.Lock()
+	defer p.FaultMapMutex.Unlock()
+	delete(p.FaultMap, key.Fixed())
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {

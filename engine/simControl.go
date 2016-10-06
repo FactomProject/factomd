@@ -1027,11 +1027,13 @@ func faultSummary() string {
 						prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
 					}
 					if pl.AmINegotiator {
-						if len(pl.FaultMap) > 0 {
+						lenFaults := pl.LenFaultMap()
+						if lenFaults > 0 {
 							prt = prt + fmt.Sprintf("| Faults:")
-							pl.FaultMapMutex.RLock()
-							if len(pl.FaultMap) < 3 {
-								for _, faultState := range pl.FaultMap {
+							if lenFaults < 3 {
+								faultIDs := pl.GetKeysFaultMap()
+								for _, faultID := range faultIDs {
+									faultState := pl.GetFaultState(faultID)
 									//if (int(faultState.FaultCore.VMIndex)+1)%(len(pl.FedServers)-1) == pl.NegotiatorVMIndex {
 									prt = prt + fmt.Sprintf(" %x/%x:", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5])
 									for faulterID, _ := range faultState.VoteMap {
@@ -1050,7 +1052,9 @@ func faultSummary() string {
 								}
 							} else {
 								//too many, line gets cluttered, just show totals
-								for _, faultState := range pl.FaultMap {
+								faultIDs := pl.GetKeysFaultMap()
+								for _, faultID := range faultIDs {
+									faultState := pl.GetFaultState(faultID)
 									//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
 									pledgeDoneString := "N"
 									if faultState.PledgeDone {
@@ -1062,7 +1066,6 @@ func faultSummary() string {
 							}
 
 							//prt = prt + " |"
-							pl.FaultMapMutex.RUnlock()
 						}
 					}
 

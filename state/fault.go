@@ -70,7 +70,9 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 func handleNegotiations(pl *ProcessList) {
 	for {
 		amINego := false
-		for faultID, faultState := range pl.FaultMap {
+		faultIDs := pl.GetKeysFaultMap()
+		for _, faultID := range faultIDs {
+			faultState := pl.GetFaultState(faultID)
 			if faultState.AmINegotiator {
 				if faultState.NegotiationOngoing {
 					craftAndSubmitFullFault(pl, faultID)
@@ -81,15 +83,13 @@ func handleNegotiations(pl *ProcessList) {
 		}
 
 		pl.AmINegotiator = amINego
-		if !amINego {
-			return
-		}
+
 		time.Sleep(3 * time.Second)
 	}
 }
 
 func craftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
-	faultState := pl.FaultMap[faultID]
+	faultState := pl.GetFaultState(faultID)
 	fc := faultState.FaultCore
 
 	sf := messages.NewServerFault(pl.State.GetTimestamp(), fc.ServerID, fc.AuditServerID, int(fc.VMIndex), fc.DBHeight, fc.Height)
@@ -159,9 +159,10 @@ func craftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
 			sf.Sign(pl.State.serverPrivKey)
 			pl.State.NetworkOutMsgQueue() <- sf
 			pl.State.InMsgQueue() <- sf
-			if fm, exists := pl.FaultMap[sf.GetCoreHash().Fixed()]; exists {
-				fm.LastMatch = time.Now().Unix()
-			}
+			fm := pl.GetFaultState(sf.GetCoreHash().Fixed())
+			fm.LastMatch = time.Now().Unix()
+			pl.AddFaultState(sf.GetCoreHash().Fixed(), fm)
+
 		}
 	} else {
 		for _, aud := range pl.AuditServers {
@@ -202,14 +203,14 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	}
 	responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
-	coreHash := sf.GetCoreHash().Fixed()
+	//coreHash := sf.GetCoreHash().Fixed()
 	if !s.NetStateOff {
 		if s.Leader {
-			fmt.Println("JUSTIN COREH:", pl.State.FactomNodeName, sf.GetCoreHash().String()[:10], len(pl.FaultMap))
+			fmt.Println("JUSTIN COREH:", pl.State.FactomNodeName, sf.GetCoreHash().String()[:10], pl.LenFaultMap())
 		}
 	}
-	faultState, haveFaultMapped := pl.FaultMap[sf.GetCoreHash().Fixed()]
-	if haveFaultMapped {
+	faultState := pl.GetFaultState(sf.GetCoreHash().Fixed())
+	if faultState.FaultCore.Height > 0 {
 		if s.Leader {
 			if !s.NetStateOff {
 				fmt.Println("JUSTIN FROMAP:", s.FactomNodeName, faultState)
@@ -229,7 +230,8 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		if faultState.VoteMap == nil {
 			faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
 		}
-		pl.FaultMap[coreHash] = faultState
+		pl.AddFaultState(sf.GetCoreHash().Fixed(), faultState)
+		//pl.FaultMap[coreHash] = faultState
 
 	}
 
@@ -267,7 +269,8 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 	}
 
-	pl.FaultMap[sf.GetCoreHash().Fixed()] = faultState
+	//pl.FaultMap[sf.GetCoreHash().Fixed()] = faultState
+	pl.AddFaultState(sf.GetCoreHash().Fixed(), faultState)
 }
 
 func (s *State) matchFault(sf *messages.ServerFault) {
@@ -282,20 +285,26 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 }
 
 func wipeOutFaultsFor(pl *ProcessList, faultedServerID interfaces.IHash, promotedServerID interfaces.IHash) {
-	for faultID, faultState := range pl.FaultMap {
+
+	faultIDs := pl.GetKeysFaultMap()
+	for _, faultID := range faultIDs {
+		faultState := pl.GetFaultState(faultID)
 		if faultState.FaultCore.ServerID.IsSameAs(faultedServerID) {
 			faultState.NegotiationOngoing = false
 			//delete(pl.FaultMap, faultID)
-			pl.FaultMap[faultID] = faultState
+			//pl.FaultMap[faultID] = faultState
+			pl.AddFaultState(faultID, faultState)
 		}
 		if faultState.FaultCore.AuditServerID.IsSameAs(promotedServerID) {
 			faultState.NegotiationOngoing = false
 			//delete(pl.FaultMap, faultID)
-			pl.FaultMap[faultID] = faultState
+			//pl.FaultMap[faultID] = faultState
+			pl.AddFaultState(faultID, faultState)
 		}
 	}
 	amINego := false
-	for _, faultState := range pl.FaultMap {
+	for _, faultID := range faultIDs {
+		faultState := pl.GetFaultState(faultID)
 		if faultState.AmINegotiator && faultState.NegotiationOngoing {
 			fmt.Println("JUSTIN", pl.State.FactomNodeName, "SETTING AMINEGO TRUE DUE TO", faultState.FaultCore.ServerID.String()[:10], faultState.FaultCore.AuditServerID.String()[:10])
 			amINego = true
@@ -321,13 +330,12 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	if theAuditReplacement == nil {
 		return
 	}
-	/*
-		relevantPL.FaultMapMutex.Lock()
-		defer relevantPL.FaultMapMutex.Unlock()
-	*/
-	theFaultState := relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()]
+
+	theFaultState := relevantPL.GetFaultState(fullFault.GetCoreHash().Fixed())
+	//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()]
 	theFaultState.NegotiationOngoing = true
-	relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
+	//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
+	relevantPL.AddFaultState(fullFault.GetCoreHash().Fixed(), theFaultState)
 
 	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
 	if hasSignatureQuorum > 0 {
@@ -345,23 +353,25 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 						relevantPL.VMs[vmindex].whenFaulted = 0
 					}
 					wipeOutFaultsFor(relevantPL, fullFault.ServerID, fullFault.AuditServerID)
-					fmt.Println("JUSTIN NOW", s.FactomNodeName, "FF:", len(relevantPL.FaultMap))
+					fmt.Println("JUSTIN NOW", s.FactomNodeName, "FF:", relevantPL.LenFaultMap())
 
 					break
 				}
 			}
 
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-			tempFaultState := relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()]
+			//tempFaultState := relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()]
+			tempFaultState := relevantPL.GetFaultState(fullFault.GetCoreHash().Fixed())
 			tempFaultState.NegotiationOngoing = false
-			relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = tempFaultState
-			//delete(relevantPL.FaultMap, fullFault.GetCoreHash().Fixed())
+			//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = tempFaultState
+			relevantPL.AddFaultState(fullFault.GetCoreHash().Fixed(), tempFaultState)
+
 			amLeader, myLeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
 			if amLeader && myLeaderVMIndex == int(fullFault.VMIndex)+1%(len(relevantPL.FedServers)-1) {
 				fmt.Println("JUSTIN POSTEX", s.FactomNodeName, "SETTING AMINEGO false")
 				relevantPL.AmINegotiator = false
-				fmt.Println("JUSTIN POSTEXX", s.FactomNodeName, "SETTING", relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()].NegotiationOngoing, time.Now().Unix())
+				fmt.Println("JUSTIN POSTEXX", s.FactomNodeName, "SETTING", time.Now().Unix())
 			} else {
 				fmt.Println("JUSTIN POSTEX", s.FactomNodeName, "CHECK:", myLeaderVMIndex, int(fullFault.VMIndex)+1%(len(relevantPL.FedServers)-1))
 			}
@@ -386,7 +396,8 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			valid, err := auth.VerifySignature(lbytes, ffSig)
 			if err == nil && valid {
 				theFaultState.MyVoteTallied = true
-				relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
+				//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
+				relevantPL.AddFaultState(fullFault.GetCoreHash().Fixed(), theFaultState)
 				fmt.Println("JUSTIN TALLIED", s.FactomNodeName, fullFault.GetCoreHash().String()[:10])
 				return
 			}
