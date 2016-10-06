@@ -68,7 +68,7 @@ func LoadDatabase(s *State) {
 
 		dblk := directoryBlock.NewDirectoryBlock(nil)
 		ablk := adminBlock.NewAdminBlock(nil)
-		fblk := factoid.GetGenesisFBlock()
+		fblk := factoid.GetGenesisFBlock(s.GetNetworkID())
 		ecblk := entryCreditBlock.NewECBlock()
 
 		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
@@ -76,8 +76,9 @@ func LoadDatabase(s *State) {
 		dblk.SetABlockHash(ablk)
 		dblk.SetECBlockHash(ecblk)
 		dblk.SetFBlockHash(fblk)
+		dblk.GetHeader().SetNetworkID(s.GetNetworkID())
 
-		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil)
 		s.InMsgQueue() <- msg
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))

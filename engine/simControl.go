@@ -176,7 +176,12 @@ func SimControl(listenTo int) {
 						ABlock := dsmsg.AdminBlock
 						fmt.Println(ABlock.String())
 					} else {
-						fmt.Println("Error: ", err, msg)
+						pl := f.State.ProcessLists.Get(uint32(ht))
+						if pl == nil || pl.AdminBlock == nil {
+							fmt.Println("Could not find this Admin block")
+						} else {
+							fmt.Printf(pl.AdminBlock.String())
+						}
 					}
 				}
 			case 'e' == b[0]:
@@ -203,7 +208,12 @@ func SimControl(listenTo int) {
 						ECBlock := dsmsg.EntryCreditBlock
 						fmt.Printf(ECBlock.String())
 					} else {
-						fmt.Println("Error: ", err, msg)
+						pl := f.State.ProcessLists.Get(uint32(ht))
+						if pl == nil || pl.EntryCreditBlock == nil {
+							fmt.Println("Could not find this Entry Credit Block")
+						} else {
+							fmt.Printf(pl.EntryCreditBlock.String())
+						}
 					}
 				}
 			case 'f' == b[0]:
@@ -230,7 +240,12 @@ func SimControl(listenTo int) {
 						FBlock := dsmsg.FactoidBlock
 						fmt.Printf(FBlock.String())
 					} else {
-						fmt.Println("Error: ", err, msg)
+						dbstate := f.State.DBStates.Get(ht)
+						if dbstate == nil || dbstate.FactoidBlock == nil {
+							fmt.Println("Could not find this Factoid block")
+						} else {
+							fmt.Printf(dbstate.FactoidBlock.String())
+						}
 					}
 				}
 			case 'd' == b[0]:
@@ -257,7 +272,12 @@ func SimControl(listenTo int) {
 						DBlock := dsmsg.DirectoryBlock
 						fmt.Printf(DBlock.String())
 					} else {
-						fmt.Println("Error: ", err, msg)
+						pl := f.State.ProcessLists.Get(uint32(ht))
+						if pl == nil || pl.DirectoryBlock == nil {
+							fmt.Println("Could not find this directory block")
+						} else {
+							fmt.Printf(pl.DirectoryBlock.String())
+						}
 					}
 				}
 			case 'v' == b[0]:
@@ -521,18 +541,22 @@ func SimControl(listenTo int) {
 								}
 							}
 						} else if show == 1 {
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
 						} else if show == 2 {
-							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Server Status:   ", stat, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Identity Chain:  ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 						} else if show == 3 {
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
 						} else if show == 4 {
+							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
 							for _, a := range i.AnchorKeys {
@@ -553,6 +577,7 @@ func SimControl(listenTo int) {
 					fullSk = append(fullSk[:], shadSk[:4]...)
 
 					os.Stderr.WriteString(fmt.Sprint("Identity of Current Node Information\n"))
+					os.Stderr.WriteString(fmt.Sprintf("Server Salt:   %s\n", fnodes[listenTo].State.Salt.String()[:16]))
 					os.Stderr.WriteString(fmt.Sprintf("Root Chain ID: %s\n", fnodes[listenTo].State.IdentityChainID.String()))
 					os.Stderr.WriteString(fmt.Sprintf("Sub Chain ID : %s\n", auth.ManageChain))
 					os.Stderr.WriteString(fmt.Sprintf("Sk1 Key (hex): %x\n", fullSk))

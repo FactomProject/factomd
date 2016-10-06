@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -234,7 +235,7 @@ func createTestDirectoryBlockHeader() *DBlockHeader {
 	header.SetDBHeight(1)
 	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
 	header.SetBlockCount(0)
-	header.SetNetworkID(0xffff)
+	header.SetNetworkID(constants.MAIN_NETWORK_ID)
 	header.SetPrevFullHash(primitives.NewZeroHash())
 	header.SetPrevKeyMR(primitives.NewZeroHash())
 	header.SetTimestamp(primitives.NewTimestampFromSeconds(1234))

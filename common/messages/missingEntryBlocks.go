@@ -15,9 +15,9 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// Communicate a Directory Block State
+//Requests entry blocks from a range of DBlocks
 
-type DBStateMissing struct {
+type MissingEntryBlocks struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
@@ -27,9 +27,9 @@ type DBStateMissing struct {
 	//Not signed!
 }
 
-var _ interfaces.IMsg = (*DBStateMissing)(nil)
+var _ interfaces.IMsg = (*MissingEntryBlocks)(nil)
 
-func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
+func (a *MissingEntryBlocks) IsSameAs(b *MissingEntryBlocks) bool {
 	if b == nil {
 		return false
 	}
@@ -46,15 +46,15 @@ func (a *DBStateMissing) IsSameAs(b *DBStateMissing) bool {
 	return true
 }
 
-func (m *DBStateMissing) GetRepeatHash() interfaces.IHash {
+func (m *MissingEntryBlocks) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMissing) GetHash() interfaces.IHash {
+func (m *MissingEntryBlocks) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *DBStateMissing) GetMsgHash() interfaces.IHash {
+func (m *MissingEntryBlocks) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -65,19 +65,19 @@ func (m *DBStateMissing) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *DBStateMissing) Type() byte {
-	return constants.DBSTATE_MISSING_MSG
+func (m *MissingEntryBlocks) Type() byte {
+	return constants.MISSING_ENTRY_BLOCKS
 }
 
-func (m *DBStateMissing) Int() int {
+func (m *MissingEntryBlocks) Int() int {
 	return -1
 }
 
-func (m *DBStateMissing) Bytes() []byte {
+func (m *MissingEntryBlocks) Bytes() []byte {
 	return nil
 }
 
-func (m *DBStateMissing) GetTimestamp() interfaces.Timestamp {
+func (m *MissingEntryBlocks) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
@@ -85,72 +85,89 @@ func (m *DBStateMissing) GetTimestamp() interfaces.Timestamp {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
-func (m *DBStateMissing) Validate(state interfaces.IState) int {
+func (m *MissingEntryBlocks) Validate(state interfaces.IState) int {
 	if m.DBHeightStart > m.DBHeightEnd {
 		return -1
 	}
 	return 1
 }
 
-func (m *DBStateMissing) ComputeVMIndex(state interfaces.IState) {
+func (m *MissingEntryBlocks) ComputeVMIndex(state interfaces.IState) {
 
 }
 
 // Execute the leader functions of the given message
-func (m *DBStateMissing) LeaderExecute(state interfaces.IState) {
+func (m *MissingEntryBlocks) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
+func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
 	if len(state.NetworkOutMsgQueue()) > 1000 {
 		return
 	}
-
-	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
-	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
-	if end-start > 200 {
-		end = start + 200
+	if end-start > 20 {
+		end = start + 20
 	}
-	missingone := false
-	for dbs := start; dbs <= end; dbs++ {
-		msg, err := state.LoadDBState(dbs)
-		if msg != nil && err == nil {
-			if missingone {
-				fmt.Println("dddd Missing some prior dbstates.  Start", start, "End", end, "Found ", dbs)
+	db := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	resp := NewEntryBlockResponse(state).(*EntryBlockResponse)
+
+	for i := start; i <= end; i++ {
+		dblk, err := db.FetchDBlockByHeight(i)
+		if err != nil {
+			return
+		}
+		if dblk == nil {
+			return
+		}
+		for _, v := range dblk.GetDBEntries() {
+			if v.GetChainID().IsMinuteMarker() == true {
+				continue
 			}
-			// If I don't have this block, ignore.
-			msg.SetOrigin(m.GetOrigin())
-			msg.SetNetworkOrigin(m.GetNetworkOrigin())
-			msg.SendOut(state, msg)
-			state.IncDBStateAnswerCnt()
-		} else {
-			missingone = true
+			eBlock, err := db.FetchEBlock(v.GetKeyMR())
+			if err != nil {
+				return
+			}
+			resp.EBlocks = append(resp.EBlocks, eBlock)
+			for _, v := range eBlock.GetBody().GetEBEntries() {
+				entry, err := db.FetchEntry(v)
+				if err != nil {
+					return
+				}
+				resp.Entries = append(resp.Entries, entry)
+			}
 		}
 	}
+
+	resp.SetOrigin(m.GetOrigin())
+	resp.SetNetworkOrigin(m.GetNetworkOrigin())
+	resp.SendOut(state, resp)
+	state.IncDBStateAnswerCnt()
 
 	return
 }
 
 // Acknowledgements do not go into the process list.
-func (e *DBStateMissing) Process(dbheight uint32, state interfaces.IState) bool {
+func (e *MissingEntryBlocks) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *DBStateMissing) JSONByte() ([]byte, error) {
+func (e *MissingEntryBlocks) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *DBStateMissing) JSONString() (string, error) {
+func (e *MissingEntryBlocks) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *DBStateMissing) JSONBuffer(b *bytes.Buffer) error {
+func (e *MissingEntryBlocks) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
 }
 
-func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *MissingEntryBlocks) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
@@ -176,12 +193,12 @@ func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	return
 }
 
-func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
+func (m *MissingEntryBlocks) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
+func (m *MissingEntryBlocks) MarshalForSignature() ([]byte, error) {
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())
@@ -199,16 +216,16 @@ func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *DBStateMissing) MarshalBinary() ([]byte, error) {
+func (m *MissingEntryBlocks) MarshalBinary() ([]byte, error) {
 	return m.MarshalForSignature()
 }
 
-func (m *DBStateMissing) String() string {
-	return fmt.Sprintf("DBStateMissing: %d-%d", m.DBHeightStart, m.DBHeightEnd)
+func (m *MissingEntryBlocks) String() string {
+	return fmt.Sprintf("MissingEntryBlocks: %d-%d", m.DBHeightStart, m.DBHeightEnd)
 }
 
-func NewDBStateMissing(state interfaces.IState, dbheightStart uint32, dbheightEnd uint32) interfaces.IMsg {
-	msg := new(DBStateMissing)
+func NewMissingEntryBlocks(state interfaces.IState, dbheightStart uint32, dbheightEnd uint32) interfaces.IMsg {
+	msg := new(MissingEntryBlocks)
 
 	msg.Peer2Peer = true // Always a peer2peer request.
 	msg.Timestamp = state.GetTimestamp()

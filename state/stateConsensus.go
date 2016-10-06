@@ -203,9 +203,11 @@ func (s *State) AddDBState(isNew bool,
 	directoryBlock interfaces.IDirectoryBlock,
 	adminBlock interfaces.IAdminBlock,
 	factoidBlock interfaces.IFBlock,
-	entryCreditBlock interfaces.IEntryCreditBlock) *DBState {
+	entryCreditBlock interfaces.IEntryCreditBlock,
+	eBlocks []interfaces.IEntryBlock,
+	entries []interfaces.IEBEntry) *DBState {
 
-	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock)
+	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
 		return nil
@@ -342,7 +344,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
-		dbstatemsg.EntryCreditBlock)
+		dbstatemsg.EntryCreditBlock,
+		dbstatemsg.EBlocks,
+		dbstatemsg.Entries)
 	if dbstate == nil {
 		s.DBStateFailsCnt++
 	} else {
@@ -924,7 +928,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		case s.CurrentMinute == 10:
-			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock)
+			eBlocks := []interfaces.IEntryBlock{}
+			entries := []interfaces.IEBEntry{}
+			for _, v := range pl.NewEBlocks {
+				eBlocks = append(eBlocks, v)
+			}
+			for _, v := range pl.NewEntries {
+				entries = append(entries, v)
+			}
+
+			dbstate := s.AddDBState(true, s.LeaderPL.DirectoryBlock, s.LeaderPL.AdminBlock, s.GetFactoidState().GetCurrentBlock(), s.LeaderPL.EntryCreditBlock, eBlocks, entries)
 			if dbstate == nil {
 				dbstate = s.DBStates.Get(int(s.LeaderPL.DirectoryBlock.GetHeader().GetDBHeight()))
 			}
@@ -1135,7 +1148,7 @@ func (s *State) SendHeartBeat() {
 		if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
 			hb := new(messages.Heartbeat)
 			hb.Timestamp = primitives.NewTimestampNow()
-			hb.SecretNumber = s.GetSecretNumber(hb.Timestamp)
+			hb.SecretNumber = s.GetSalt(hb.Timestamp)
 			hb.DBlockHash = dbstate.DBHash
 			hb.IdentityChainID = s.IdentityChainID
 			hb.Sign(s.GetServerPrivateKey())
@@ -1366,7 +1379,8 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 	ack.VMIndex = vmIndex
 	ack.Minute = byte(s.ProcessLists.Get(s.LLeaderHeight).VMs[vmIndex].LeaderMinute)
 	ack.Timestamp = s.GetTimestamp()
-	ack.SaltNumber = s.GetSecretNumber(ack.Timestamp)
+	ack.SaltNumber = s.GetSalt(ack.Timestamp)
+	copy(ack.Salt[:8], s.Salt.Bytes()[:8])
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
 

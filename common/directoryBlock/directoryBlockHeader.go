@@ -112,7 +112,7 @@ func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
 func (e *DBlockHeader) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("  Version:         %v\n", e.Version))
-	out.WriteString(fmt.Sprintf("  NetworkID:       %d\n", e.NetworkID))
+	out.WriteString(fmt.Sprintf("  NetworkID:       %x\n", e.NetworkID))
 	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n", e.BodyMR.String()))
 	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n", e.PrevKeyMR.String()))
 	out.WriteString(fmt.Sprintf("  PrevFullHash:    %s\n", e.PrevFullHash.String()))

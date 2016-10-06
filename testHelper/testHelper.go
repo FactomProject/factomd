@@ -59,7 +59,7 @@ func CreateTestDBStateList() []interfaces.IMsg {
 		timestamp := primitives.NewTimestampNow()
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
 
-		answer[i] = messages.NewDBStateMsg(timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock)
+		answer[i] = messages.NewDBStateMsg(timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil)
 	}
 	return answer
 }
@@ -115,7 +115,7 @@ func PopulateTestDatabaseOverlay(dbo *databaseOverlay.Overlay) {
 		}
 
 		for _, entry := range prev.Entries {
-			err = dbo.InsertEntry(entry)
+			err = dbo.InsertEntryMultiBatch(entry)
 			if err != nil {
 				panic(err)
 			}

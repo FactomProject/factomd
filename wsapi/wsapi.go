@@ -5,12 +5,20 @@
 package wsapi
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
+	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/FactomProject/btcutil/certs"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
@@ -34,6 +42,12 @@ func Start(state interfaces.IState) {
 	if Servers == nil {
 		Servers = make(map[int]*web.Server)
 	}
+
+	rpcUser := state.GetRpcUser()
+	rpcPass := state.GetRpcPass()
+	h := sha256.New()
+	h.Write(httpBasicAuth(rpcUser, rpcPass))
+	state.SetRpcAuthHash(h.Sum(nil)) //set this in the beginning to prevent timing attacks
 
 	if Servers[state.GetPort()] == nil {
 		server = web.NewServer()
@@ -63,8 +77,29 @@ func Start(state interfaces.IState) {
 		server.Post("/v2", HandleV2)
 		server.Get("/v2", HandleV2)
 
-		log.Print("Starting server")
-		go server.Run(fmt.Sprintf(":%d", state.GetPort()))
+		tlsIsEnabled, tlsPrivate, tlsPublic := state.GetTlsInfo()
+		if tlsIsEnabled {
+			log.Print("Starting encrypted API server")
+			if !fileExists(tlsPrivate) && !fileExists(tlsPublic) {
+				err := genCertPair(tlsPublic, tlsPrivate, state.GetFactomdLocations())
+				if err != nil {
+					panic(fmt.Sprintf("could not start encrypted API server with error: %v", err))
+				}
+			}
+			keypair, err := tls.LoadX509KeyPair(tlsPublic, tlsPrivate)
+			if err != nil {
+				panic(fmt.Sprintf("could not create TLS keypair with error: %v", err))
+			}
+			tlsConfig := &tls.Config{
+				Certificates: []tls.Certificate{keypair},
+				MinVersion:   tls.VersionTLS12,
+			}
+			go server.RunTLS(fmt.Sprintf(":%d", state.GetPort()), tlsConfig)
+
+		} else {
+			log.Print("Starting API server")
+			go server.Run(fmt.Sprintf(":%d", state.GetPort()))
+		}
 	}
 }
 
@@ -103,7 +138,6 @@ func handleV1Error(ctx *web.Context, err *primitives.JSONError) {
 		return
 	*/
 	ctx.WriteHeader(httpBad)
-
 	return
 }
 
@@ -120,6 +154,10 @@ func HandleCommitChain(ctx *web.Context) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
 
 	type commitchain struct {
 		CommitChainMsg string
@@ -159,6 +197,10 @@ func HandleCommitEntry(ctx *web.Context) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	type commitentry struct {
 		CommitEntryMsg string
 	}
@@ -195,6 +237,10 @@ func HandleRevealEntry(ctx *web.Context) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	type revealentry struct {
 		Entry string
 	}
@@ -229,6 +275,10 @@ func HandleDirectoryBlockHead(ctx *web.Context) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	req := primitives.NewJSON2Request("directory-block-head", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
@@ -254,6 +304,10 @@ func HandleGetRaw(ctx *web.Context, hashkey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	param := HashRequest{Hash: hashkey}
 	req := primitives.NewJSON2Request("raw-data", 1, param)
 
@@ -267,6 +321,10 @@ func HandleGetReceipt(ctx *web.Context, hashkey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	param := HashRequest{Hash: hashkey}
 	req := primitives.NewJSON2Request("receipt", 1, param)
 
@@ -279,6 +337,11 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	param := KeyMRRequest{KeyMR: hashkey}
 	req := primitives.NewJSON2Request("directory-block", 1, param)
 	jsonResp, jsonError := HandleV2Request(state, req)
@@ -321,6 +384,10 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	req := primitives.NewJSON2Request("directory-block-height", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
@@ -349,6 +416,10 @@ func HandleEntryBlock(ctx *web.Context, hashkey string) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
 
 	param := KeyMRRequest{KeyMR: hashkey}
 	req := primitives.NewJSON2Request("entry-block", 1, param)
@@ -387,6 +458,10 @@ func HandleEntry(ctx *web.Context, hashkey string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	param := HashRequest{Hash: hashkey}
 	req := primitives.NewJSON2Request("entry", 1, param)
 
@@ -409,6 +484,11 @@ func HandleChainHead(ctx *web.Context, chainid string) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	param := ChainIDRequest{ChainID: chainid}
 	req := primitives.NewJSON2Request("chain-head", 1, param)
 
@@ -440,6 +520,10 @@ func HandleEntryCreditBalance(ctx *web.Context, address string) {
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
 
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	param := AddressRequest{Address: address}
 	req := primitives.NewJSON2Request("entry-credit-balance", 1, param)
 
@@ -460,6 +544,10 @@ func HandleGetFee(ctx *web.Context) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
 
 	req := primitives.NewJSON2Request("entry-credit-rate", 1, nil)
 
@@ -489,6 +577,10 @@ func HandleFactoidSubmit(ctx *web.Context) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
 
 	var p []byte
 	var err error
@@ -526,6 +618,11 @@ func HandleFactoidBalance(ctx *web.Context, address string) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	param := AddressRequest{Address: address}
 	req := primitives.NewJSON2Request("factoid-balance", 1, param)
 
@@ -547,6 +644,11 @@ func HandleProperties(ctx *web.Context) {
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
 	req := primitives.NewJSON2Request("properties", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
@@ -617,4 +719,102 @@ func returnV1Msg(ctx *web.Context, msg string, success bool) {
 	bMsg := []byte(msg)
 	ctx.Write(bMsg)
 
+}
+
+// httpBasicAuth returns the UTF-8 bytes of the HTTP Basic authentication
+// string:
+//
+//   "Basic " + base64(username + ":" + password)
+func httpBasicAuth(username, password string) []byte {
+	const header = "Basic "
+	base64 := base64.StdEncoding
+
+	b64InputLen := len(username) + len(":") + len(password)
+	b64Input := make([]byte, 0, b64InputLen)
+	b64Input = append(b64Input, username...)
+	b64Input = append(b64Input, ':')
+	b64Input = append(b64Input, password...)
+
+	output := make([]byte, len(header)+base64.EncodedLen(b64InputLen))
+	copy(output, header)
+	base64.Encode(output[len(header):], b64Input)
+	return output
+}
+
+func checkAuthHeader(state interfaces.IState, r *http.Request) error {
+	if "" == state.GetRpcUser() {
+		//no username was specified in the config file or command line, meaning factomd API is open access
+		return nil
+	}
+
+	authhdr := r.Header["Authorization"]
+	if len(authhdr) == 0 {
+		return errors.New("no auth")
+	}
+
+	correctAuth := state.GetRpcAuthHash()
+
+	h := sha256.New()
+	h.Write([]byte(authhdr[0]))
+	presentedPassHash := h.Sum(nil)
+
+	cmp := subtle.ConstantTimeCompare(presentedPassHash, correctAuth) //compare hashes because ConstantTimeCompare takes a constant time based on the slice size.  hashing gives a constant slice size.
+	if cmp != 1 {
+		return errors.New("bad auth")
+	}
+	return nil
+}
+
+func checkHttpPasswordOkV1(state interfaces.IState, ctx *web.Context) bool {
+
+	if err := checkAuthHeader(state, ctx.Request); err != nil {
+		remoteIP := ""
+		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
+		fmt.Printf("Unauthorized V1 API client connection attempt from %s\n", remoteIP)
+		ctx.ResponseWriter.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
+		http.Error(ctx.ResponseWriter, "401 Unauthorized.", http.StatusUnauthorized)
+		return false
+	}
+	return true
+}
+
+func fileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+func genCertPair(certFile string, keyFile string, extraAddress string) error {
+	fmt.Println("Generating TLS certificates...")
+
+	org := "factom autogenerated cert"
+	validUntil := time.Now().Add(10 * 365 * 24 * time.Hour)
+
+	var externalAddresses []string
+	if extraAddress != "" {
+		externalAddresses = strings.Split(extraAddress, ",")
+		for _, i := range externalAddresses {
+			fmt.Printf("adding %s to certificate\n", i)
+		}
+	}
+
+	cert, key, err := certs.NewTLSCertPair(org, validUntil, externalAddresses)
+	if err != nil {
+		return err
+	}
+
+	// Write cert and key files.
+	if err = ioutil.WriteFile(certFile, cert, 0666); err != nil {
+		return err
+	}
+	if err = ioutil.WriteFile(keyFile, key, 0600); err != nil {
+		os.Remove(certFile)
+		return err
+	}
+
+	fmt.Println("Done generating TLS certificates")
+	return nil
 }

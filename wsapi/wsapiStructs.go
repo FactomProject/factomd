@@ -88,7 +88,8 @@ type EntryResponse struct {
 }
 
 type ChainHeadResponse struct {
-	ChainHead string `json:"chainhead"`
+	ChainHead          string `json:"chainhead"`
+	ChainInProcessList bool   `json"chaininprocesslist`
 }
 
 type EntryCreditBalanceResponse struct {
@@ -105,7 +106,7 @@ type EntryCreditRateResponse struct {
 
 type PropertiesResponse struct {
 	FactomdVersion string `json:"factomdversion"`
-	ApiVersion     string `json:"apiversion"`
+	ApiVersion     string `json:"factomdapiversion"`
 }
 
 type SendRawMessageResponse struct {

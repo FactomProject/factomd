@@ -100,7 +100,7 @@ func (p *Parcel) Trace(location string, sequence string) {
 
 func (p *ParcelHeader) Print() {
 	// debug( true, "\t Cookie: \t%+v", string(p.Cookie))
-	debug("parcel", "\t Network:\t%+v", NetworkIDStrings[p.Network])
+	debug("parcel", "\t Network:\t%+v", p.Network.String())
 	debug("parcel", "\t Version:\t%+v", p.Version)
 	debug("parcel", "\t Type:   \t%+v", CommandStrings[p.Type])
 	debug("parcel", "\t Length:\t%d", p.Length)
@@ -127,7 +127,7 @@ func (p *Parcel) PrintMessageType() {
 func (p *Parcel) String() string {
 	var output string
 	s := strconv.Quote(string(p.Payload))
-	fmt.Sprintf(output, "%s\t Network:\t%+v\n", output, NetworkIDStrings[p.Header.Network])
+	fmt.Sprintf(output, "%s\t Network:\t%+v\n", output, p.Header.Network.String())
 	fmt.Sprintf(output, "%s\t Version:\t%+v\n", output, p.Header.Version)
 	fmt.Sprintf(output, "%s\t Type:   \t%+v\n", output, CommandStrings[p.Header.Type])
 	fmt.Sprintf(output, "%s\t Length:\t%d\n", output, p.Header.Length)

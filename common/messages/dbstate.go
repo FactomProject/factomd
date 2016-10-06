@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -31,15 +32,25 @@ type DBStateMsg struct {
 	FactoidBlock     interfaces.IFBlock
 	EntryCreditBlock interfaces.IEntryCreditBlock
 
+	EBlocks []interfaces.IEntryBlock
+	Entries []interfaces.IEBEntry
+
 	//Not signed!
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
 
 func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+	}()
+
 	if b == nil {
 		return false
 	}
+
 	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}
@@ -62,6 +73,24 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 	ok, err = primitives.AreBinaryMarshallablesEqual(a.EntryCreditBlock, b.EntryCreditBlock)
 	if err != nil || ok == false {
 		return false
+	}
+
+	if len(a.EBlocks) != len(b.EBlocks) || (len(a.Entries) != len(b.Entries)) {
+		return false
+	}
+
+	for i := range a.EBlocks {
+		ok, err = primitives.AreBinaryMarshallablesEqual(a.EBlocks[i], b.EBlocks[i])
+		if err != nil || ok == false {
+			return false
+		}
+	}
+
+	for i := range a.Entries {
+		ok, err = primitives.AreBinaryMarshallablesEqual(a.Entries[i], b.Entries[i])
+		if err != nil || ok == false {
+			return false
+		}
 	}
 
 	return true
@@ -108,8 +137,11 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
-
-	return 1
+	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
+	if dbheight <= 1 || dbheight == state.GetHighestCompletedBlock()+1 {
+		return 1
+	}
+	return -1
 }
 
 func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
@@ -141,11 +173,11 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
-		}
-	}()
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//		err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
+	//	}
+	//}()
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -182,6 +214,30 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	newData, err = m.EntryCreditBlock.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
+	}
+
+	eBlockCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := uint32(0); i < eBlockCount; i++ {
+		eBlock := entryBlock.NewEBlock()
+		newData, err = eBlock.UnmarshalBinaryData(newData)
+		if err != nil {
+			panic(err.Error())
+		}
+		m.EBlocks = append(m.EBlocks, eBlock)
+	}
+
+	entryCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := uint32(0); i < entryCount; i++ {
+		var entrySize uint32
+		entrySize, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+		entry := entryBlock.NewEntry()
+		newData, err = newData[int(entrySize):], entry.UnmarshalBinary(newData[:int(entrySize)])
+		if err != nil {
+			panic(err.Error())
+		}
+		m.Entries = append(m.Entries, entry)
 	}
 
 	return
@@ -228,16 +284,44 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	eBlockCount := uint32(len(m.EBlocks))
+	binary.Write(&buf, binary.BigEndian, eBlockCount)
+	for _, eb := range m.EBlocks {
+		bin, err := eb.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(bin)
+	}
+
+	entryCount := uint32(len(m.Entries))
+	binary.Write(&buf, binary.BigEndian, entryCount)
+	for _, e := range m.Entries {
+		bin, err := e.MarshalBinary()
+		if err != nil || bin == nil || len(bin) == 0 {
+			return nil, err
+		}
+		entrySize := uint32(len(bin))
+		binary.Write(&buf, binary.BigEndian, entrySize)
+		buf.Write(bin)
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DBStateMsg) String() string {
-	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x hash %6x",
+	size := "Error Marshalling"
+	data, err := m.MarshalBinary()
+	if err == nil && data != nil {
+		size = fmt.Sprintf("%8d", len(data))
+	}
+	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x size %s hash %6x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
+		size,
 		m.GetHash().Bytes()[:3])
 }
 
@@ -245,7 +329,9 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	d interfaces.IDirectoryBlock,
 	a interfaces.IAdminBlock,
 	f interfaces.IFBlock,
-	e interfaces.IEntryCreditBlock) interfaces.IMsg {
+	e interfaces.IEntryCreditBlock,
+	eBlocks []interfaces.IEntryBlock,
+	entries []interfaces.IEBEntry) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
@@ -257,6 +343,9 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	msg.AdminBlock = a
 	msg.FactoidBlock = f
 	msg.EntryCreditBlock = e
+
+	msg.EBlocks = eBlocks
+	msg.Entries = entries
 
 	return msg
 }

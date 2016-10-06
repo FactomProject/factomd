@@ -35,7 +35,7 @@ var _ = fmt.Print
 type State struct {
 	filename string
 
-	SecretCode interfaces.IHash
+	Salt interfaces.IHash
 
 	Cfg interfaces.IFactomConfig
 
@@ -78,6 +78,7 @@ type State struct {
 	LocalNetworkPort  string
 	LocalSeedURL      string
 	LocalSpecialPeers string
+	CustomNetworkID   []byte
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []Identity       // Identities of all servers in management chain
@@ -123,6 +124,16 @@ type State struct {
 	serverPubKey          *primitives.PublicKey
 	serverPendingPrivKeys []*primitives.PrivateKey
 	serverPendingPubKeys  []*primitives.PublicKey
+
+	// RPC connection config
+	RpcUser     string
+	RpcPass     string
+	RpcAuthHash []byte
+
+	FactomdTLSEnable   bool
+	factomdTLSKeyFile  string
+	factomdTLSCertFile string
+	FactomdLocations   string
 
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
@@ -305,6 +316,7 @@ func (s *State) Clone(number string) interfaces.IState {
 	clone.FaultVoteMap = s.FaultVoteMap
 	clone.FaultInfoMap = s.FaultInfoMap
 	clone.StartDelayLimit = s.StartDelayLimit
+	clone.CustomNetworkID = s.CustomNetworkID
 
 	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
 	clone.PortNumber = s.PortNumber
@@ -334,6 +346,15 @@ func (s *State) Clone(number string) interfaces.IState {
 
 	clone.OneLeader = s.OneLeader
 
+	clone.RpcUser = s.RpcUser
+	clone.RpcPass = s.RpcPass
+	clone.RpcAuthHash = s.RpcAuthHash
+
+	clone.FactomdTLSEnable = s.FactomdTLSEnable
+	clone.factomdTLSKeyFile = s.factomdTLSKeyFile
+	clone.factomdTLSCertFile = s.factomdTLSCertFile
+	clone.FactomdLocations = s.FactomdLocations
+
 	return clone
 }
 
@@ -361,6 +382,30 @@ func (s *State) SetNetStateOff(net bool) {
 	s.NetStateOff = net
 }
 
+func (s *State) GetRpcUser() string {
+	return s.RpcUser
+}
+
+func (s *State) GetRpcPass() string {
+	return s.RpcPass
+}
+
+func (s *State) SetRpcAuthHash(authHash []byte) {
+	s.RpcAuthHash = authHash
+}
+
+func (s *State) GetRpcAuthHash() []byte {
+	return s.RpcAuthHash
+}
+
+func (s *State) GetTlsInfo() (bool, string, string) {
+	return s.FactomdTLSEnable, s.factomdTLSKeyFile, s.factomdTLSCertFile
+}
+
+func (s *State) GetFactomdLocations() string {
+	return s.FactomdLocations
+}
+
 func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
 }
@@ -379,6 +424,7 @@ func (s *State) IncECommits() {
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.FactomNodeName = s.Prefix + "FNode0" // Default Factom Node Name for Simulation
+
 	if len(filename) > 0 {
 		s.filename = filename
 		s.ReadCfg(filename)
@@ -428,6 +474,21 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
+		s.RpcUser = cfg.App.FactomdRpcUser
+		s.RpcPass = cfg.App.FactomdRpcPass
+
+		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
+		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
+			s.factomdTLSKeyFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpriv.key")
+		}
+		if cfg.App.FactomdTlsPublicCert == "/full/path/to/factomdAPIpub.cert" {
+			s.factomdTLSCertFile = fmt.Sprint(cfg.App.HomeDir, "factomdAPIpub.cert")
+		}
+		externalIP := strings.Split(cfg.Walletd.FactomdLocation, ":")[0]
+		if externalIP != "localhost" {
+			s.FactomdLocations = externalIP
+		}
+
 		switch cfg.App.ControlPanelSetting {
 		case "disabled":
 			s.ControlPanelSetting = 0
@@ -485,24 +546,28 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 	s.JournalFile = s.LogPath + "/journal0" + ".log"
 }
 
-func (s *State) GetSecretNumber(ts interfaces.Timestamp) uint32 {
-	if s.SecretCode == nil {
-		b := make([]byte, 32)
-		_, err := rand.Read(b)
-		// Note that err == nil only if we read len(b) bytes.
-		if err != nil {
-			panic("Random Number Failure")
-		}
-		s.SecretCode = primitives.Sha(b)
-	}
+func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 	var b [32]byte
-	copy(b[:], s.SecretCode.Bytes())
+	copy(b[:], s.Salt.Bytes())
 	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))
 	c := primitives.Sha(b[:])
 	return binary.BigEndian.Uint32(c.Bytes())
 }
 
 func (s *State) Init() {
+
+	if s.Salt == nil {
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		// Note that err == nil only if we read len(b) bytes.
+		if err != nil {
+			panic("Random Number Failure")
+		}
+		s.Salt = primitives.Sha(b)
+	}
+
+	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
+	fmt.Print(salt)
 
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
@@ -699,38 +764,72 @@ func (s *State) UnlockDB() {
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
+		fmt.Println("dddd dbstate 1 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if dblk == nil {
+		fmt.Println("dddd dbstate 2 ", dbheight, s.FactomNodeName)
 		return nil, nil
 	}
 
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
+		fmt.Println("dddd dbstate 3 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ablk == nil {
+		fmt.Println("dddd dbstate 4 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ABlock not found")
 	}
 	ecblk, err := s.DB.FetchECBlock(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
+		fmt.Println("dddd dbstate 5 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ecblk == nil {
+		fmt.Println("dddd dbstate 6 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ECBlock not found")
 	}
 	fblk, err := s.DB.FetchFBlock(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
+		fmt.Println("dddd dbstate 7 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if fblk == nil {
+		fmt.Println("dddd dbstate 8 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "FBlock not found")
 	}
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
 		panic("Should not happen")
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk)
+	var eBlocks []interfaces.IEntryBlock
+	var entries []interfaces.IEBEntry
+
+	if len(dblk.GetDBEntries()) > 2 {
+		for _, v := range dblk.GetDBEntries()[3:] {
+			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
+			if err == nil && eBlock != nil {
+				eBlocks = append(eBlocks, eBlock)
+				for _, e := range eBlock.GetEntryHashes() {
+					entry, err := s.DB.FetchEntry(e)
+					if err == nil && entry != nil {
+						entries = append(entries, entry)
+					}
+				}
+			}
+		}
+	}
+
+	dbaseID := dblk.GetHeader().GetNetworkID()
+	configuredID := s.GetNetworkID()
+	if dbaseID != configuredID {
+		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
+	}
+
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
+
+	fmt.Println("dddd dbstate sent ", dbheight, s.FactomNodeName)
 
 	return msg, nil
 }
@@ -1233,7 +1332,7 @@ func (s *State) GetNetworkID() uint32 {
 	case constants.NETWORK_LOCAL:
 		return constants.LOCAL_NETWORK_ID
 	case constants.NETWORK_CUSTOM:
-		return constants.CUSTOM_NETWORK_ID
+		return binary.BigEndian.Uint32(s.CustomNetworkID)
 	}
 	return uint32(0)
 }

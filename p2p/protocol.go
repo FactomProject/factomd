@@ -97,18 +97,17 @@ const (
 	LocalNet NetworkID = 0xbeaded
 )
 
-// Map of network ids to strings for easy printing of network ID
-var NetworkIDStrings = map[NetworkID]string{
-	MainNet:  "MainNet",
-	TestNet:  "TestNet",
-	LocalNet: "LocalNet",
-}
-
 func (n *NetworkID) String() string {
-	if net, ok := NetworkIDStrings[*n]; ok {
-		return net
+	switch *n {
+	case MainNet:
+		return "MainNet"
+	case TestNet:
+		return "TestNet"
+	case LocalNet:
+		return "LocalNet"
+	default:
+		return fmt.Sprintf("CustomNet ID: %x\n", *n)
 	}
-	return fmt.Sprintf("Unknown NetworkID: %x", *n)
 }
 
 const ( // iota is reset to 0
