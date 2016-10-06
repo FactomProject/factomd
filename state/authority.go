@@ -100,6 +100,76 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
 }
 
+// Checks the signature of a message. Returns an int based on who signed it:
+// 			1  -> Federated Signature
+//			0  -> Audit Signature
+//			-1 -> Neither Fed or Audit Signature
+func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSignature, dbheight uint32) (int, error) {
+	feds := st.GetFedServers(dbheight)
+	if feds == nil {
+		return 0, fmt.Errorf("Federated Servers are unknown at directory block hieght %d", dbheight)
+	}
+	auds := st.GetAuditServers(dbheight)
+
+	for _, fed := range feds {
+		auth, _ := st.GetAuthority(fed.GetChainID())
+		if auth == nil {
+			continue
+		}
+		compareKey, err := auth.SigningKey.MarshalBinary()
+		if err == nil {
+			if pkEq(sig.GetKey(), compareKey) {
+				valid, err := auth.VerifySignature(msg, sig.GetSignature())
+				if err == nil && valid {
+					return 1, nil
+				}
+			}
+		}
+	}
+
+	for _, aud := range auds {
+		auth, _ := st.GetAuthority(aud.GetChainID())
+		if auth == nil {
+			continue
+		}
+		compareKey, err := auth.SigningKey.MarshalBinary()
+		if err == nil {
+			if pkEq(sig.GetKey(), compareKey) {
+				valid, err := auth.VerifySignature(msg, sig.GetSignature())
+				if err == nil && valid {
+					return 0, nil
+				}
+			}
+		}
+	}
+	//fmt.Println("WARNING: A signature failed to validate.")
+
+	return -1, fmt.Errorf("%s", "Signature Key Invalid or not Federated Server Key")
+}
+
+func pkEq(a, b []byte) bool {
+
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Gets the authority matching the identity ChainID.
 // Returns the authority and the int of its type:
 //		1  ->  Federated

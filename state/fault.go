@@ -166,7 +166,7 @@ func isNegotiationFine(pl *ProcessList, vmIndex int) bool {
 	faultIDs := pl.GetKeysFaultMap()
 	for _, faultID := range faultIDs {
 		faultState := pl.GetFaultState(faultID)
-		if faultState.FaultCore.ServerID.IsSameAs(id) {
+		if faultState.FaultCore.ServerID.String() == id.String() {
 			if faultState.NegotiationOngoing {
 				anyNegotiating = true
 				if faultState.PledgeDone && faultState.HasEnoughSigs(pl.State) {
