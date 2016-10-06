@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
@@ -26,8 +27,10 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	str := msg2.String()
-	t.Logf("str - %v", str)
+	str, _ := msg.JSONString()
+	t.Logf("str1 - %v", str)
+	str, _ = msg2.JSONString()
+	t.Logf("str2 - %v", str)
 
 	if msg2.Type() != constants.DBSTATE_MSG {
 		t.Error("Invalid message type unmarshalled")
@@ -62,6 +65,10 @@ func newDBStateMsg() *DBStateMsg {
 	msg.AdminBlock = set.ABlock
 	msg.FactoidBlock = set.FBlock
 	msg.EntryCreditBlock = set.ECBlock
+	msg.EBlocks = []interfaces.IEntryBlock{set.EBlock, set.AnchorEBlock}
+	for _, e := range set.Entries {
+		msg.Entries = append(msg.Entries, e)
+	}
 
 	return msg
 }
