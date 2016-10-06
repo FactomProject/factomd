@@ -39,7 +39,7 @@ func (fs *FaultState) HasEnoughSigs(state interfaces.IState) bool {
 	}
 	validSigCount := 0
 	for _, fedSig := range fs.VoteMap {
-		check, err := state.VerifyAuthoritySignature(cb, fedSig.GetSignature(), fs.FaultCore.DBHeight)
+		check, err := state.FastVerifyAuthoritySignature(cb, fedSig, fs.FaultCore.DBHeight)
 		if err == nil && check == 1 {
 			validSigCount++
 		}
@@ -326,7 +326,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 	}
 
-	sfSigned, err := s.VerifyAuthoritySignature(lbytes, sfSig, sf.DBHeight)
+	sfSigned, err := s.FastVerifyAuthoritySignature(lbytes, sf.Signature, sf.DBHeight)
 
 	if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
 		faultState.VoteMap[issuerID] = sf.GetSignature()
