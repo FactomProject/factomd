@@ -704,7 +704,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.whenFaulted > 0 && vm.Height > vm.faultHeight {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
-				fmt.Println("JUSTIN UNFAULT", state.FactomNodeName, "SETTING AMINEGO false")
 				p.AmINegotiator = false
 			}
 			vm.faultHeight = -1
@@ -712,7 +711,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			amLeader, myLeaderVMIndex := state.LeaderPL.GetVirtualServers(state.CurrentMinute, state.IdentityChainID)
 
 			if amLeader && p.AmINegotiator && myLeaderVMIndex == i+1%len(p.FedServers) {
-				fmt.Println("JUSTIN UNFAULT2", state.FactomNodeName, "SETTING AMINEGO false")
 				p.AmINegotiator = false
 			}
 			fedServerToUnfault := p.ServerMap[getLeaderMin(p)][i]
