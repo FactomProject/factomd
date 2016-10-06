@@ -407,7 +407,6 @@ func wipeOutFaultsFor(pl *ProcessList, faultedServerID interfaces.IHash, promote
 			amINego = true
 		}
 	}
-	fmt.Println("JUSTIN", pl.State.FactomNodeName, "SETTING AMINEGO", amINego)
 	pl.AmINegotiator = amINego
 }
 
@@ -505,7 +504,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 					theFaultState.MyVoteTallied = true
 					//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
 					relevantPL.AddFaultState(fullFault.GetCoreHash().Fixed(), theFaultState)
-					fmt.Println("JUSTIN TALLIED", s.FactomNodeName, fullFault.GetCoreHash().String()[:10])
 					return
 				}
 			}
