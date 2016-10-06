@@ -537,10 +537,10 @@ func (p *ProcessList) AddFaultState(key [32]byte, value FaultState) {
 	p.FaultMap[key] = value
 }
 
-func (p *ProcessList) DeleteFaultState(key interfaces.IHash) {
+func (p *ProcessList) DeleteFaultState(key [32]byte) {
 	p.FaultMapMutex.Lock()
 	defer p.FaultMapMutex.Unlock()
-	delete(p.FaultMap, key.Fixed())
+	delete(p.FaultMap, key)
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
@@ -1060,6 +1060,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	if err != nil {
 		panic(err.Error())
 	}
+
+	go handleNegotiations(pl)
 
 	return pl
 }

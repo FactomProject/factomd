@@ -1034,34 +1034,38 @@ func faultSummary() string {
 								faultIDs := pl.GetKeysFaultMap()
 								for _, faultID := range faultIDs {
 									faultState := pl.GetFaultState(faultID)
-									//if (int(faultState.FaultCore.VMIndex)+1)%(len(pl.FedServers)-1) == pl.NegotiatorVMIndex {
-									prt = prt + fmt.Sprintf(" %x/%x:", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5])
-									for faulterID, _ := range faultState.VoteMap {
-										prt = prt + fmt.Sprintf(" %x ", faulterID[:6])
+									if !faultState.IsNil() {
+										//if (int(faultState.FaultCore.VMIndex)+1)%(len(pl.FedServers)-1) == pl.NegotiatorVMIndex {
+										prt = prt + fmt.Sprintf(" %x/%x:", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5])
+										for faulterID, _ := range faultState.VoteMap {
+											prt = prt + fmt.Sprintf(" %x ", faulterID[:6])
+										}
+										pledgeDoneString := "N"
+										if faultState.PledgeDone {
+											pledgeDoneString = "Y"
+										}
+										pledgeOngo := "off"
+										if faultState.NegotiationOngoing {
+											pledgeOngo = "on"
+										}
+										prt = prt + pledgeDoneString + " " + pledgeOngo
+										//}
 									}
-									pledgeDoneString := "N"
-									if faultState.PledgeDone {
-										pledgeDoneString = "Y"
-									}
-									pledgeOngo := "off"
-									if faultState.NegotiationOngoing {
-										pledgeOngo = "on"
-									}
-									prt = prt + pledgeDoneString + " " + pledgeOngo
-									//}
 								}
 							} else {
 								//too many, line gets cluttered, just show totals
 								faultIDs := pl.GetKeysFaultMap()
 								for _, faultID := range faultIDs {
 									faultState := pl.GetFaultState(faultID)
-									//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
-									pledgeDoneString := "N"
-									if faultState.PledgeDone {
-										pledgeDoneString = "Y"
+									if !faultState.IsNil() {
+										//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
+										pledgeDoneString := "N"
+										if faultState.PledgeDone {
+											pledgeDoneString = "Y"
+										}
+										prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
+										//}
 									}
-									prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
-									//}
 								}
 							}
 
