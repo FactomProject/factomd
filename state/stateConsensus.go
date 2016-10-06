@@ -517,16 +517,6 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			s.MissingRequestReplyCnt++
 		} else {
 			s.MissingRequestIgnoreCnt++
-			if err != nil {
-				fmt.Println("JUSTIN MM?", m.DBHeight, m.VMIndex, h, s.FactomNodeName, err)
-			} else {
-				if missingmsg == nil {
-					fmt.Println("JUSTIN MM1?", m.DBHeight, m.VMIndex, h, s.FactomNodeName)
-				}
-				if ackMsg == nil {
-					fmt.Println("JUSTIN MM2?", m.DBHeight, m.VMIndex, h, s.FactomNodeName)
-				}
-			}
 		}
 	}
 	return
