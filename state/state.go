@@ -290,8 +290,18 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.FactomNodeName = s.Prefix + "FNode" + number
 
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
-	configfile := fmt.Sprintf("%sfactomd%3d.conf", simConfigPath, cloneNumber)
+	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
+
+	if cloneNumber == 1 {
+		os.Stderr.WriteString(fmt.Sprintf("Looking for Config File %s\n", configfile))
+	}
+	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
+		os.Stderr.WriteString("Creating simConfig directory\n")
+		os.MkdirAll(simConfigPath, 0777)
+	}
+
 	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
+		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
 		newState.LoadConfig(configfile, s.GetNetworkName())
 		return newState
 	}

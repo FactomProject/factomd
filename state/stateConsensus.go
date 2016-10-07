@@ -1344,7 +1344,7 @@ func (s *State) ComputeVMIndex(hash []byte) int {
 }
 
 func (s *State) GetNetworkName() string {
-	return (s.Cfg.(util.FactomdConfig)).App.Network
+	return (s.Cfg.(*util.FactomdConfig)).App.Network
 
 }
 
