@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"encoding/binary"
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -23,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/serveridentity/identity"
+	"os"
 )
 
 //
@@ -702,6 +704,12 @@ func modifyLoadIdentities() {
 			if list[index] == nil {
 				continue
 			}
+
+			// Don't "fix" a simulator entry if it already has a good identity.
+			if binary.BigEndian.Uint32(fnodes[i].State.IdentityChainID.Bytes()[:4])>>8 == 0x888888 {
+				continue
+			}
+
 			fnodes[i].State.IdentityChainID = list[index]
 
 			buf := new(bytes.Buffer)

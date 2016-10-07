@@ -287,7 +287,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 
 	newState := new(State)
 	number := fmt.Sprintf("%02d", cloneNumber)
-	newState.FactomNodeName = s.Prefix + "FNode" + number
 
 	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
 	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
@@ -300,12 +299,14 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		os.MkdirAll(simConfigPath, 0777)
 	}
 
+	config := false
 	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
 		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
 		newState.LoadConfig(configfile, s.GetNetworkName())
-		return newState
+		config = true
 	}
 
+	newState.FactomNodeName = s.Prefix + "FNode" + number
 	newState.FactomdVersion = s.FactomdVersion
 	newState.DropRate = s.DropRate
 	newState.LogPath = s.LogPath + "/Sim" + number
@@ -343,15 +344,17 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.ControlPanelPath = s.ControlPanelPath
 	newState.ControlPanelSetting = s.ControlPanelSetting
 
-	newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
 	newState.Identities = s.Identities
 	newState.Authorities = s.Authorities
 	newState.AuthorityServerCount = s.AuthorityServerCount
 
-	//generate and use a new deterministic PrivateKey for this clone
-	shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
-	clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
-	newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+	if !config {
+		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
+		//generate and use a new deterministic PrivateKey for this clone
+		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
+		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
+		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+	}
 
 	newState.SetLeaderTimestamp(s.GetLeaderTimestamp())
 
