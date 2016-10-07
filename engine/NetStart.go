@@ -471,8 +471,7 @@ func makeServer(s *state.State) *FactomNode {
 	newState := s
 
 	if len(fnodes) > 0 {
-		number := fmt.Sprintf("%d", len(fnodes))
-		newState = s.Clone(number).(*state.State)
+		newState = s.Clone(len(fnodes)).(*state.State)
 		time.Sleep(10 * time.Millisecond)
 		newState.Init()
 	}

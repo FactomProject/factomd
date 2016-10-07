@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nchains=1      # number of chains to create
-nentries=1500  # number of entries to add to each chain
+nentries=2500  # number of entries to add to each chain
 
 fa1=$(factom-cli importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
 

@@ -283,79 +283,88 @@ type MissingEntry struct {
 
 var _ interfaces.IState = (*State)(nil)
 
-func (s *State) Clone(number string) interfaces.IState {
+func (s *State) Clone(cloneNumber int) interfaces.IState {
 
-	clone := new(State)
+	newState := new(State)
+	number := fmt.Sprintf("%02d", cloneNumber)
+	newState.FactomNodeName = s.Prefix + "FNode" + number
 
-	clone.FactomNodeName = s.Prefix + "FNode" + number
-	clone.FactomdVersion = s.FactomdVersion
-	clone.DropRate = s.DropRate
-	clone.LogPath = s.LogPath + "/Sim" + number
-	clone.LdbPath = s.LdbPath + "/Sim" + number
-	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
-	clone.Journaling = s.Journaling
-	clone.BoltDBPath = s.BoltDBPath + "/Sim" + number
-	clone.LogLevel = s.LogLevel
-	clone.ConsoleLogLevel = s.ConsoleLogLevel
-	clone.NodeMode = "FULL"
-	clone.CloneDBType = s.CloneDBType
-	clone.DBType = s.CloneDBType
-	clone.ExportData = s.ExportData
-	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
-	clone.Network = s.Network
-	clone.MainNetworkPort = s.MainNetworkPort
-	clone.PeersFile = s.PeersFile
-	clone.MainSeedURL = s.MainSeedURL
-	clone.MainSpecialPeers = s.MainSpecialPeers
-	clone.TestNetworkPort = s.TestNetworkPort
-	clone.TestSeedURL = s.TestSeedURL
-	clone.TestSpecialPeers = s.TestSpecialPeers
-	clone.LocalNetworkPort = s.LocalNetworkPort
-	clone.LocalSeedURL = s.LocalSeedURL
-	clone.LocalSpecialPeers = s.LocalSpecialPeers
-	clone.FaultVoteMap = s.FaultVoteMap
-	clone.FaultInfoMap = s.FaultInfoMap
-	clone.StartDelayLimit = s.StartDelayLimit
-	clone.CustomNetworkID = s.CustomNetworkID
+	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
+	configfile := fmt.Sprintf("%sfactomd%3d.conf", simConfigPath, cloneNumber)
+	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
+		newState.LoadConfig(configfile, s.GetNetworkName())
+		return newState
+	}
 
-	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
-	clone.PortNumber = s.PortNumber
+	newState.FactomdVersion = s.FactomdVersion
+	newState.DropRate = s.DropRate
+	newState.LogPath = s.LogPath + "/Sim" + number
+	newState.LdbPath = s.LdbPath + "/Sim" + number
+	newState.JournalFile = s.LogPath + "/journal" + number + ".log"
+	newState.Journaling = s.Journaling
+	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
+	newState.LogLevel = s.LogLevel
+	newState.ConsoleLogLevel = s.ConsoleLogLevel
+	newState.NodeMode = "FULL"
+	newState.CloneDBType = s.CloneDBType
+	newState.DBType = s.CloneDBType
+	newState.ExportData = s.ExportData
+	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
+	newState.Network = s.Network
+	newState.MainNetworkPort = s.MainNetworkPort
+	newState.PeersFile = s.PeersFile
+	newState.MainSeedURL = s.MainSeedURL
+	newState.MainSpecialPeers = s.MainSpecialPeers
+	newState.TestNetworkPort = s.TestNetworkPort
+	newState.TestSeedURL = s.TestSeedURL
+	newState.TestSpecialPeers = s.TestSpecialPeers
+	newState.LocalNetworkPort = s.LocalNetworkPort
+	newState.LocalSeedURL = s.LocalSeedURL
+	newState.LocalSpecialPeers = s.LocalSpecialPeers
+	newState.FaultVoteMap = s.FaultVoteMap
+	newState.FaultInfoMap = s.FaultInfoMap
+	newState.StartDelayLimit = s.StartDelayLimit
+	newState.CustomNetworkID = s.CustomNetworkID
 
-	clone.ControlPanelPort = s.ControlPanelPort
-	clone.ControlPanelPath = s.ControlPanelPath
-	clone.ControlPanelSetting = s.ControlPanelSetting
+	newState.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
+	newState.PortNumber = s.PortNumber
 
-	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
-	clone.Identities = s.Identities
-	clone.Authorities = s.Authorities
-	clone.AuthorityServerCount = s.AuthorityServerCount
+	newState.ControlPanelPort = s.ControlPanelPort
+	newState.ControlPanelPath = s.ControlPanelPath
+	newState.ControlPanelSetting = s.ControlPanelSetting
+
+	newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
+	newState.Identities = s.Identities
+	newState.Authorities = s.Authorities
+	newState.AuthorityServerCount = s.AuthorityServerCount
 
 	//generate and use a new deterministic PrivateKey for this clone
-	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
+	shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
 	clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
-	clone.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+	newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
 
-	clone.SetLeaderTimestamp(s.GetLeaderTimestamp())
+	newState.SetLeaderTimestamp(s.GetLeaderTimestamp())
 
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
 
-	clone.FactoshisPerEC = s.FactoshisPerEC
+	newState.FactoshisPerEC = s.FactoshisPerEC
 
-	clone.Port = s.Port
+	newState.Port = s.Port
 
-	clone.OneLeader = s.OneLeader
+	newState.OneLeader = s.OneLeader
+	newState.OneLeader = s.OneLeader
 
-	clone.RpcUser = s.RpcUser
-	clone.RpcPass = s.RpcPass
-	clone.RpcAuthHash = s.RpcAuthHash
+	newState.RpcUser = s.RpcUser
+	newState.RpcPass = s.RpcPass
+	newState.RpcAuthHash = s.RpcAuthHash
 
-	clone.FactomdTLSEnable = s.FactomdTLSEnable
-	clone.factomdTLSKeyFile = s.factomdTLSKeyFile
-	clone.factomdTLSCertFile = s.factomdTLSCertFile
-	clone.FactomdLocations = s.FactomdLocations
+	newState.FactomdTLSEnable = s.FactomdTLSEnable
+	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
+	newState.factomdTLSCertFile = s.factomdTLSCertFile
+	newState.FactomdLocations = s.FactomdLocations
 
-	return clone
+	return newState
 }
 
 func (s *State) AddPrefix(prefix string) {
