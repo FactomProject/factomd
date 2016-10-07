@@ -43,8 +43,8 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	switch msg.(interface{}).(type) {
 	//case ServerFault:
 	//	go resend(state, msg, 20, 1)
-	//case FullServerFault:
-	//	go resend(state, msg, 20, 1)
+	case FullServerFault:
+		go resend(state, msg, 20, 1)
 	//case Negotiation:
 	//	go resend(state, msg, 3, 1)
 	case MissingMsg:

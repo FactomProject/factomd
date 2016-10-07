@@ -330,8 +330,10 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	if err != nil {
 		return -1
 	}
-	sig := m.Signature.GetSignature()
-	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
+	//sig := m.Signature.GetSignature()
+
+	//sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
+	sfSigned, err := state.FastVerifyAuthoritySignature(bytes, m.Signature, m.DBHeight)
 	if err != nil {
 		return -1
 	}

@@ -118,6 +118,8 @@ checkout factom       $branch $default
 checkout web          $branch $default
 checkout go-spew      $branch $default
 checkout go-bip39     $branch $default
+checkout go-bip32     $branch $default
+checkout go-bip44     $branch $default
 checkout bolt         $branch $default
 checkout Testing      $branch $default
 checkout btcutil      $branch $default
