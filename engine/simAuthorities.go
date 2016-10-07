@@ -24,7 +24,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/serveridentity/identity"
-	"os"
 )
 
 //
