@@ -15,6 +15,7 @@ import (
 	"math"
 
 	"bufio"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -496,6 +497,7 @@ func startServers(load bool) {
 			go state.LoadDatabase(fnode.State)
 		}
 		go Timer(fnode.State)
+		go Negotiate(fnode.State)
 		go fnode.State.ValidatorLoop()
 	}
 }

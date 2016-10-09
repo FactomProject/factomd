@@ -406,6 +406,10 @@ func (s *State) GetFactomdLocations() string {
 	return s.FactomdLocations
 }
 
+func (s *State) GetCurrentMinute() int {
+	return s.CurrentMinute
+}
+
 func (s *State) IncDBStateAnswerCnt() {
 	s.DBStateAnsCnt++
 }

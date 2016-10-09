@@ -12,6 +12,8 @@ import (
 
 	"encoding/binary"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -20,7 +22,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"os"
 )
 
 var _ = fmt.Print
@@ -129,18 +130,19 @@ type DBSig struct {
 }
 
 type VM struct {
-	List                  []interfaces.IMsg // Lists of acknowledged messages
-	ListAck               []*messages.Ack   // Acknowledgements
-	Height                int               // Height of messages that have been processed
-	LeaderMinute          int               // Where the leader is in acknowledging messages
-	MinuteComplete        int               // Highest minute complete recorded (0-9) by the follower
-	Synced                bool              // Is this VM synced yet?
-	faultingEOM           int64             // Faulting for EOM because it is too late
-	heartBeat             int64             // Just ping ever so often if we have heard nothing.
-	Signed                bool              // We have signed the previous block.
+	List           []interfaces.IMsg // Lists of acknowledged messages
+	ListAck        []*messages.Ack   // Acknowledgements
+	Height         int               // Height of messages that have been processed
+	LeaderMinute   int               // Where the leader is in acknowledging messages
+	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
+	Synced         bool              // Is this VM synced yet?
+	//faultingEOM           int64             // Faulting for EOM because it is too late
+	heartBeat             int64 // Just ping ever so often if we have heard nothing.
+	Signed                bool  // We have signed the previous block.
+	faultInitiatedAlready bool
 	faultHeight           int
 	whenFaulted           int64
-	faultInitiatedAlready bool
+	lastFaultAction       int64
 }
 
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
@@ -709,6 +711,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 			vm.faultHeight = -1
 			vm.whenFaulted = 0
+
 			amLeader, myLeaderVMIndex := state.LeaderPL.GetVirtualServers(state.CurrentMinute, state.IdentityChainID)
 
 			if amLeader && p.AmINegotiator && myLeaderVMIndex == i+1%len(p.FedServers) {
@@ -786,6 +789,9 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
+
+					p.Unfault()
+
 					progress = true
 				} else {
 					break VMListLoop // Don't process further in this list, go to the next.

@@ -227,4 +227,5 @@ type IState interface {
 	GetMissingEntryCount() uint32
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
+	GetCurrentMinute() int
 }
