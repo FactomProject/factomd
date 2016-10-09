@@ -579,10 +579,6 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 	r.vmIndex = vmIndex
 	r.vmheight = uint32(height)
 
-	if len(p.Requests) == 0 {
-		p.State.PLAsking = p.State.PLAsking[0:0]
-	}
-
 	if p.Requests[r.key()] == nil {
 		r.sent = now + 300
 		p.Requests[r.key()] = r
@@ -638,7 +634,6 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		// Might as well as for the next message too.  Won't hurt.
 		missingMsgRequest.AddHeight(uint32(len(vm.List)))
 
-		p.State.PLAsking = append(p.State.PLAsking, missingMsgRequest)
 		missingMsgRequest.SendOut(p.State, missingMsgRequest)
 		p.State.MissingRequestSendCnt++
 

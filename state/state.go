@@ -144,7 +144,6 @@ type State struct {
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
-	PLAsking        []interfaces.IMsg
 	OneLeader       bool
 	OutputAllowed   bool
 	CurrentMinute   int
