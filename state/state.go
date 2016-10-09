@@ -143,6 +143,7 @@ type State struct {
 	Leader          bool
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
+	PLProcessHeight uint32
 	OneLeader       bool
 	OutputAllowed   bool
 	CurrentMinute   int
@@ -283,79 +284,101 @@ type MissingEntry struct {
 
 var _ interfaces.IState = (*State)(nil)
 
-func (s *State) Clone(number string) interfaces.IState {
+func (s *State) Clone(cloneNumber int) interfaces.IState {
 
-	clone := new(State)
+	newState := new(State)
+	number := fmt.Sprintf("%02d", cloneNumber)
 
-	clone.FactomNodeName = s.Prefix + "FNode" + number
-	clone.FactomdVersion = s.FactomdVersion
-	clone.DropRate = s.DropRate
-	clone.LogPath = s.LogPath + "/Sim" + number
-	clone.LdbPath = s.LdbPath + "/Sim" + number
-	clone.JournalFile = s.LogPath + "/journal" + number + ".log"
-	clone.Journaling = s.Journaling
-	clone.BoltDBPath = s.BoltDBPath + "/Sim" + number
-	clone.LogLevel = s.LogLevel
-	clone.ConsoleLogLevel = s.ConsoleLogLevel
-	clone.NodeMode = "FULL"
-	clone.CloneDBType = s.CloneDBType
-	clone.DBType = s.CloneDBType
-	clone.ExportData = s.ExportData
-	clone.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
-	clone.Network = s.Network
-	clone.MainNetworkPort = s.MainNetworkPort
-	clone.PeersFile = s.PeersFile
-	clone.MainSeedURL = s.MainSeedURL
-	clone.MainSpecialPeers = s.MainSpecialPeers
-	clone.TestNetworkPort = s.TestNetworkPort
-	clone.TestSeedURL = s.TestSeedURL
-	clone.TestSpecialPeers = s.TestSpecialPeers
-	clone.LocalNetworkPort = s.LocalNetworkPort
-	clone.LocalSeedURL = s.LocalSeedURL
-	clone.LocalSpecialPeers = s.LocalSpecialPeers
-	clone.FaultVoteMap = s.FaultVoteMap
-	clone.FaultInfoMap = s.FaultInfoMap
-	clone.StartDelayLimit = s.StartDelayLimit
-	clone.CustomNetworkID = s.CustomNetworkID
+	simConfigPath := util.GetHomeDir() + "/.factom/m2/simConfig/"
+	configfile := fmt.Sprintf("%sfactomd%03d.conf", simConfigPath, cloneNumber)
 
-	clone.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
-	clone.PortNumber = s.PortNumber
+	if cloneNumber == 1 {
+		os.Stderr.WriteString(fmt.Sprintf("Looking for Config File %s\n", configfile))
+	}
+	if _, err := os.Stat(simConfigPath); os.IsNotExist(err) {
+		os.Stderr.WriteString("Creating simConfig directory\n")
+		os.MkdirAll(simConfigPath, 0777)
+	}
 
-	clone.ControlPanelPort = s.ControlPanelPort
-	clone.ControlPanelPath = s.ControlPanelPath
-	clone.ControlPanelSetting = s.ControlPanelSetting
+	config := false
+	if _, err := os.Stat(configfile); !os.IsNotExist(err) {
+		os.Stderr.WriteString(fmt.Sprintf("   Using the %s config file.\n", configfile))
+		newState.LoadConfig(configfile, s.GetNetworkName())
+		config = true
+	}
 
-	clone.IdentityChainID = primitives.Sha([]byte(clone.FactomNodeName))
-	clone.Identities = s.Identities
-	clone.Authorities = s.Authorities
-	clone.AuthorityServerCount = s.AuthorityServerCount
+	newState.FactomNodeName = s.Prefix + "FNode" + number
+	newState.FactomdVersion = s.FactomdVersion
+	newState.DropRate = s.DropRate
+	newState.LogPath = s.LogPath + "/Sim" + number
+	newState.LdbPath = s.LdbPath + "/Sim" + number
+	newState.JournalFile = s.LogPath + "/journal" + number + ".log"
+	newState.Journaling = s.Journaling
+	newState.BoltDBPath = s.BoltDBPath + "/Sim" + number
+	newState.LogLevel = s.LogLevel
+	newState.ConsoleLogLevel = s.ConsoleLogLevel
+	newState.NodeMode = "FULL"
+	newState.CloneDBType = s.CloneDBType
+	newState.DBType = s.CloneDBType
+	newState.ExportData = s.ExportData
+	newState.ExportDataSubpath = s.ExportDataSubpath + "sim-" + number
+	newState.Network = s.Network
+	newState.MainNetworkPort = s.MainNetworkPort
+	newState.PeersFile = s.PeersFile
+	newState.MainSeedURL = s.MainSeedURL
+	newState.MainSpecialPeers = s.MainSpecialPeers
+	newState.TestNetworkPort = s.TestNetworkPort
+	newState.TestSeedURL = s.TestSeedURL
+	newState.TestSpecialPeers = s.TestSpecialPeers
+	newState.LocalNetworkPort = s.LocalNetworkPort
+	newState.LocalSeedURL = s.LocalSeedURL
+	newState.LocalSpecialPeers = s.LocalSpecialPeers
+	newState.FaultVoteMap = s.FaultVoteMap
+	newState.FaultInfoMap = s.FaultInfoMap
+	newState.StartDelayLimit = s.StartDelayLimit
+	newState.CustomNetworkID = s.CustomNetworkID
 
-	//generate and use a new deterministic PrivateKey for this clone
-	shaHashOfNodeName := primitives.Sha([]byte(clone.FactomNodeName)) //seed the private key with node name
-	clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
-	clone.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+	newState.DirectoryBlockInSeconds = s.DirectoryBlockInSeconds
+	newState.PortNumber = s.PortNumber
 
-	clone.SetLeaderTimestamp(s.GetLeaderTimestamp())
+	newState.ControlPanelPort = s.ControlPanelPort
+	newState.ControlPanelPath = s.ControlPanelPath
+	newState.ControlPanelSetting = s.ControlPanelSetting
+
+	newState.Identities = s.Identities
+	newState.Authorities = s.Authorities
+	newState.AuthorityServerCount = s.AuthorityServerCount
+
+	if !config {
+		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
+		//generate and use a new deterministic PrivateKey for this clone
+		shaHashOfNodeName := primitives.Sha([]byte(newState.FactomNodeName)) //seed the private key with node name
+		clonePrivateKey := primitives.NewPrivateKeyFromHexBytes(shaHashOfNodeName.Bytes())
+		newState.LocalServerPrivKey = clonePrivateKey.PrivateKeyString()
+	}
+
+	newState.SetLeaderTimestamp(s.GetLeaderTimestamp())
 
 	//serverPrivKey primitives.PrivateKey
 	//serverPubKey  primitives.PublicKey
 
-	clone.FactoshisPerEC = s.FactoshisPerEC
+	newState.FactoshisPerEC = s.FactoshisPerEC
 
-	clone.Port = s.Port
+	newState.Port = s.Port
 
-	clone.OneLeader = s.OneLeader
+	newState.OneLeader = s.OneLeader
+	newState.OneLeader = s.OneLeader
 
-	clone.RpcUser = s.RpcUser
-	clone.RpcPass = s.RpcPass
-	clone.RpcAuthHash = s.RpcAuthHash
+	newState.RpcUser = s.RpcUser
+	newState.RpcPass = s.RpcPass
+	newState.RpcAuthHash = s.RpcAuthHash
 
-	clone.FactomdTLSEnable = s.FactomdTLSEnable
-	clone.factomdTLSKeyFile = s.factomdTLSKeyFile
-	clone.factomdTLSCertFile = s.factomdTLSCertFile
-	clone.FactomdLocations = s.FactomdLocations
+	newState.FactomdTLSEnable = s.FactomdTLSEnable
+	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
+	newState.factomdTLSCertFile = s.factomdTLSCertFile
+	newState.FactomdLocations = s.FactomdLocations
 
-	return clone
+	return newState
 }
 
 func (s *State) AddPrefix(prefix string) {
@@ -768,39 +791,31 @@ func (s *State) UnlockDB() {
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
-		fmt.Println("dddd dbstate 1 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if dblk == nil {
-		fmt.Println("dddd dbstate 2 ", dbheight, s.FactomNodeName)
 		return nil, nil
 	}
 
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
-		fmt.Println("dddd dbstate 3 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ablk == nil {
-		fmt.Println("dddd dbstate 4 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ABlock not found")
 	}
 	ecblk, err := s.DB.FetchECBlock(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
-		fmt.Println("dddd dbstate 5 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ecblk == nil {
-		fmt.Println("dddd dbstate 6 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ECBlock not found")
 	}
 	fblk, err := s.DB.FetchFBlock(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
-		fmt.Println("dddd dbstate 7 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if fblk == nil {
-		fmt.Println("dddd dbstate 8 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "FBlock not found")
 	}
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
@@ -832,8 +847,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	}
 
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
-
-	fmt.Println("dddd dbstate sent ", dbheight, s.FactomNodeName)
 
 	return msg, nil
 }
@@ -983,8 +996,13 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight == 0 {
 		dbheight++
 	}
-	if plbase <= dbheight && s.RunLeader {
-		progress = s.ProcessLists.UpdateState(dbheight)
+	if dbheight > 1 {
+		dbheight--
+	}
+	if plbase <= dbheight {
+		if !s.Leader || s.RunLeader {
+			progress = s.ProcessLists.UpdateState(dbheight)
+		}
 	}
 
 	p2 := s.DBStates.UpdateState()
@@ -1468,12 +1486,12 @@ func (s *State) SetStringQueues() {
 	found, vm := s.GetVirtualServers(s.LLeaderHeight, vmin, s.GetIdentityChainID())
 	vmIndex := ""
 	if found {
-		vmIndex = fmt.Sprintf("vm%2d", vm)
+		vmIndex = fmt.Sprintf("vm%02d", vm)
 	}
-	L := ""
-	X := ""
-	W := ""
-	N := ""
+	L := "_"
+	X := "_"
+	W := "_"
+	N := "_"
 	list := s.ProcessLists.Get(s.LLeaderHeight)
 	if found {
 		L = "L"
@@ -1529,17 +1547,17 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x]%4s %4s %2d.%01d%% %2d.%03d",
+	str := fmt.Sprintf("%7s[%12x] %4s%4s %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
-		vmIndex,
 		stype,
+		vmIndex,
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
-	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf(" %5d[%6x] %-9s ",
+	str = str + fmt.Sprintf(" %5d[%6x] %-13s ",
 		dHeight,
 		keyMR[:3],
 		pls)

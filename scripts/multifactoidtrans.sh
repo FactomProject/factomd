@@ -19,7 +19,7 @@ fct6=FA3pVAwckTzAhCA4U5fg2ygdkQYr5UggaapkNwLhAksMBFiZrZmx
 for ((i=0; i < 50000; i++)); do
 echo $i
 factom-cli newtx t1
-factom-cli addtxinput t1 $fct1 .01
+factom-cli addtxinput  t1 $fct1 .05
 factom-cli addtxoutput t1 $fct2 .01
 factom-cli addtxoutput t1 $fct3 .01
 factom-cli addtxoutput t1 $fct4 .01

@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const HourRange = 4                // Double this for the period we protect, i.e. 4 means +/- 4 hours
+const HourRange = 1                // Double this for the period we protect, i.e. 4 means +/- 4 hours
 const numBuckets = HourRange*2 + 3 // cover an hour each way, and an hour in the middle.
 
 var _ = time.Now()

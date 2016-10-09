@@ -858,7 +858,8 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	}
 
 	for *summary == value {
-		prt := "===SummaryStart===\n"
+		prt := "===SummaryStart===\n\n"
+		prt = fmt.Sprintf("%sTime: %d\n", prt, time.Now().Unix())
 
 		for i, f := range fnodes {
 			f.Index = i

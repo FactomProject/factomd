@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo $loopi "Start............"
-for j in `seq 1 2600`;
+for j in `seq 1 100`;
 do
  echo $loopi $j "entry" | factom-cli2 put -c ${chain1} e1 &
  echo $loopi $j "entry" | factom-cli2 put -c ${chain2} e1 &

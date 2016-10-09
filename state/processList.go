@@ -35,10 +35,10 @@ type Request struct {
 	requestCnt int
 }
 
-func (r *Request) key() (thekey [20]byte) {
+func (r *Request) key() (thekey [32]byte) {
 	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
-	binary.BigEndian.PutUint64(thekey[4:12], uint64(r.wait))
-	binary.BigEndian.PutUint64(thekey[12:20], uint64(r.vmheight))
+	binary.BigEndian.PutUint64(thekey[5:13], uint64(r.wait))
+	binary.BigEndian.PutUint64(thekey[14:22], uint64(r.vmheight))
 	return thekey
 }
 
@@ -118,7 +118,7 @@ type ProcessList struct {
 	// DB Sigs
 	DBSignatures []DBSig
 
-	Requests map[[20]byte]*Request
+	Requests map[[32]byte]*Request
 	//Requests map[[20]byte]*Request
 }
 
@@ -588,14 +588,6 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 		r = p.Requests[r.key()]
 	}
 
-	vm := p.VMs[vmIndex]
-	if len(vm.List) > height && vm.List[height] != nil {
-		if p.Requests[r.key()] != nil {
-			delete(p.Requests, r.key())
-			return nil
-		}
-	}
-
 	return r
 
 }
@@ -605,10 +597,6 @@ func (p *ProcessList) AskDBState(vmIndex int, height int) int {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
 	r := p.GetRequest(now, vmIndex, height, 60)
-
-	if r == nil {
-		return 0
-	}
 
 	if now-r.sent >= r.wait*1000+500 {
 		dbstate := messages.NewDBStateMissing(p.State, p.State.LLeaderHeight, p.State.LLeaderHeight+1)
@@ -637,9 +625,11 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
 		vm := p.VMs[vmIndex]
+
+		missingMsgRequest.AddHeight(uint32(height))
 		// Okay, we are going to send one, so ask for all nil messages for this vm
-		for i, v := range vm.List {
-			if i != int(r.vmheight) && v == nil {
+		for i := 0; i < len(vm.List); i++ {
+			if vm.List[i] == nil {
 				missingMsgRequest.AddHeight(uint32(i))
 			}
 		}
@@ -682,6 +672,8 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
+	state.PLProcessHeight = p.DBHeight
+
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
 	for i := 0; i < len(p.FedServers); i++ {
@@ -702,7 +694,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		// If we haven't heard anything from a VM, ask for a message at the last-known height
 		if vm.Height == len(vm.List) {
-			p.Ask(i, vm.Height, 10, 2)
+			p.Ask(i, vm.Height, 20, 2)
 		}
 
 		if vm.whenFaulted > 0 && vm.Height > vm.faultHeight {
@@ -816,11 +808,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		num := p.State.GetSalt(ack.Timestamp)
 		if num != ack.SaltNumber {
-			os.Stderr.WriteString(fmt.Sprintf("Chain ID with conflict %x\n", p.State.IdentityChainID.Bytes()))
-			os.Stderr.WriteString(fmt.Sprintf("My  Salt       %x\n", p.State.Salt.Bytes()[:8]))
-			os.Stderr.WriteString(fmt.Sprintf("My  Salt       %x\n", ack.Salt))
-			os.Stderr.WriteString(fmt.Sprintf("My  SaltNumber %x\n", num))
-			os.Stderr.WriteString(fmt.Sprintf("Ack SaltNumber %x\n", ack.SaltNumber))
+			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
+			os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
+			os.Stderr.WriteString(fmt.Sprintf("Ack   ChainID    %x\n", ack.LeaderChainID.Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("Ack   Salt       %x\n", ack.Salt))
+			os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
 			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
 	}
@@ -997,7 +990,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// Make a copy of the previous FedServers
 	pl.FedServers = make([]interfaces.IFctServer, 0)
 	pl.AuditServers = make([]interfaces.IFctServer, 0)
-	pl.Requests = make(map[[20]byte]*Request)
+	pl.Requests = make(map[[32]byte]*Request)
 	//pl.Requests = make(map[[20]byte]*Request)
 
 	pl.FactoidBalancesT = map[[32]byte]int64{}

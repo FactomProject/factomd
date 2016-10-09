@@ -19,6 +19,7 @@ type MissingMsg struct {
 	MessageBase
 
 	Timestamp         interfaces.Timestamp
+	Asking            interfaces.IHash
 	DBHeight          uint32
 	ProcessListHeight []uint32
 
@@ -122,6 +123,12 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, err
 	}
 
+	m.Asking = new(primitives.Hash)
+	newData, err = m.Asking.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -155,6 +162,12 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	data, err = m.Asking.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
 	buf.WriteByte(uint8(m.VMIndex))
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 
@@ -173,7 +186,12 @@ func (m *MissingMsg) String() string {
 	for _, n := range m.ProcessListHeight {
 		str = fmt.Sprintf("%s%d,", str, n)
 	}
-	return fmt.Sprintf("MissingMsg --> DBHeight:%3d vm=%3d Hts::%s msgHash[%x]", m.DBHeight, m.VMIndex, str, m.GetMsgHash().Bytes()[:3])
+	return fmt.Sprintf("MissingMsg --> Asking %x DBHeight:%3d vm=%3d Hts::%s msgHash[%x]",
+		m.Asking.Bytes()[:8],
+		m.DBHeight,
+		m.VMIndex,
+		str,
+		m.GetMsgHash().Bytes()[:3])
 }
 
 func (m *MissingMsg) ChainID() []byte {
@@ -226,6 +244,7 @@ func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlist
 
 	msg := new(MissingMsg)
 
+	msg.Asking = state.GetIdentityChainID()
 	msg.Peer2Peer = true // Always a peer2peer request // .
 	msg.VMIndex = vm
 	msg.Timestamp = state.GetTimestamp()

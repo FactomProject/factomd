@@ -91,7 +91,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	default:
 		f.trace(message.appHash, message.appType, "P2PProxy.Send() - Addressed by hash", "a")
 	}
-	if msg.IsPeer2Peer() {
+	if msg.IsPeer2Peer() && 1 < f.debugMode {
 		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.peerHash, msg.String())
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)

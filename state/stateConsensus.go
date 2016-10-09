@@ -121,10 +121,12 @@ emptyLoop:
 	}
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
-	for i := 0; i < 2 && len(s.XReview) > 0; i++ {
-		msg := s.XReview[0]
+	// Process last first
+	for i := 0; i < 30 && len(s.XReview) > 0; i++ {
+		l := len(s.XReview) - 1
+		msg := s.XReview[l]
 		progress = s.executeMsg(vm, msg)
-		s.XReview = s.XReview[1:]
+		s.XReview = s.XReview[:l]
 	}
 	if !more {
 		time.Sleep(10 * time.Millisecond)
@@ -163,10 +165,10 @@ func (s *State) ReviewHolding() {
 	if s.resendHolding == nil {
 		s.resendHolding = now
 	}
-	if now.GetTimeSeconds()-s.resendHolding.GetTimeSeconds() < 2 {
+	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 100 {
 		return
 	}
-
+	s.resendHolding = now
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -333,9 +335,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	case -1:
 		// Kill the previous DBState, because it could be bad.
-		s.DBStates.DBStates[dbheight-s.DBStates.Base] = nil
-		s.DBStateFailsCnt++
-		s.networkInvalidMsgQueue <- msg
+		if dbheight > s.DBStates.Base && len(s.DBStates.DBStates) > int(dbheight-s.DBStates.Base) {
+			s.DBStates.DBStates[dbheight-s.DBStates.Base] = nil
+			s.DBStateFailsCnt++
+			s.networkInvalidMsgQueue <- msg
+		}
 		return
 	}
 
@@ -645,17 +649,8 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
-	if !ok {
-		return true
-	}
-
-	if leader, _ := s.LeaderPL.GetFedServerIndexHash(as.ServerChainID); leader && as.ServerType == 0 {
-		return true
-	}
-
-	if !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "Addserver message did not add to admin block.")
-		return true
+	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		return false
 	}
 	return true
 }
@@ -717,7 +712,14 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitChain)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitChain); e == nil {
 		// save the Commit to match agains the Reveal later
-		s.PutCommit(c.CommitChain.EntryHash, c)
+		h := c.CommitChain.EntryHash
+		s.PutCommit(h, c)
+		if s.Holding[h.Fixed()] != nil {
+			entry := s.Holding[h.Fixed()]
+			entry.SendOut(s, entry)
+			//		s.XReview = append(s.XReview, s.Holding[h.Fixed()])
+			//		delete(s.Holding, h.Fixed())
+		}
 		return true
 	} else {
 		fmt.Println(e)
@@ -733,7 +735,14 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	pl.EntryCreditBlock.GetBody().AddEntry(c.CommitEntry)
 	if e := s.GetFactoidState().UpdateECTransaction(true, c.CommitEntry); e == nil {
 		// save the Commit to match agains the Reveal later
-		s.PutCommit(c.CommitEntry.EntryHash, c)
+		h := c.CommitEntry.EntryHash
+		s.PutCommit(h, c)
+		if s.Holding[h.Fixed()] != nil {
+			entry := s.Holding[h.Fixed()]
+			entry.SendOut(s, entry)
+			//		s.XReview = append(s.XReview, s.Holding[h.Fixed()])
+			//		delete(s.Holding, h.Fixed())
+		}
 		return true
 	} else {
 		fmt.Println(e)
@@ -747,6 +756,8 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	myhash := msg.Entry.GetHash()
 
 	chainID := msg.Entry.GetChainID()
+
+	delete(s.Commits, msg.Entry.GetHash().Fixed())
 
 	eb := s.GetNewEBlocks(dbheight, chainID)
 	eb_db := s.GetNewEBlocks(dbheight-1, chainID)
@@ -1344,7 +1355,7 @@ func (s *State) ComputeVMIndex(hash []byte) int {
 }
 
 func (s *State) GetNetworkName() string {
-	return (s.Cfg.(util.FactomdConfig)).App.Network
+	return (s.Cfg.(*util.FactomdConfig)).App.Network
 
 }
 
