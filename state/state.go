@@ -143,6 +143,8 @@ type State struct {
 	Leader          bool
 	LeaderVMIndex   int
 	LeaderPL        *ProcessList
+	PLProcessHeight uint32
+	PLAsking        []interfaces.IMsg
 	OneLeader       bool
 	OutputAllowed   bool
 	CurrentMinute   int
@@ -786,39 +788,31 @@ func (s *State) UnlockDB() {
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
-		fmt.Println("dddd dbstate 1 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if dblk == nil {
-		fmt.Println("dddd dbstate 2 ", dbheight, s.FactomNodeName)
 		return nil, nil
 	}
 
 	ablk, err := s.DB.FetchABlock(dblk.GetDBEntries()[0].GetKeyMR())
 	if err != nil {
-		fmt.Println("dddd dbstate 3 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ablk == nil {
-		fmt.Println("dddd dbstate 4 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ABlock not found")
 	}
 	ecblk, err := s.DB.FetchECBlock(dblk.GetDBEntries()[1].GetKeyMR())
 	if err != nil {
-		fmt.Println("dddd dbstate 5 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if ecblk == nil {
-		fmt.Println("dddd dbstate 6 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "ECBlock not found")
 	}
 	fblk, err := s.DB.FetchFBlock(dblk.GetDBEntries()[2].GetKeyMR())
 	if err != nil {
-		fmt.Println("dddd dbstate 7 ", dbheight, s.FactomNodeName)
 		return nil, err
 	}
 	if fblk == nil {
-		fmt.Println("dddd dbstate 8 ", dbheight, s.FactomNodeName)
 		return nil, fmt.Errorf("%s", "FBlock not found")
 	}
 	if bytes.Compare(fblk.GetKeyMR().Bytes(), dblk.GetDBEntries()[2].GetKeyMR().Bytes()) != 0 {
@@ -850,8 +844,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	}
 
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
-
-	fmt.Println("dddd dbstate sent ", dbheight, s.FactomNodeName)
 
 	return msg, nil
 }
@@ -1001,8 +993,13 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight == 0 {
 		dbheight++
 	}
-	if plbase <= dbheight && s.RunLeader {
-		progress = s.ProcessLists.UpdateState(dbheight)
+	if dbheight > 1 {
+		dbheight--
+	}
+	if plbase <= dbheight {
+		if !s.Leader || s.RunLeader {
+			progress = s.ProcessLists.UpdateState(dbheight)
+		}
 	}
 
 	p2 := s.DBStates.UpdateState()
@@ -1486,12 +1483,12 @@ func (s *State) SetStringQueues() {
 	found, vm := s.GetVirtualServers(s.LLeaderHeight, vmin, s.GetIdentityChainID())
 	vmIndex := ""
 	if found {
-		vmIndex = fmt.Sprintf("vm%2d", vm)
+		vmIndex = fmt.Sprintf("vm%02d", vm)
 	}
-	L := ""
-	X := ""
-	W := ""
-	N := ""
+	L := "_"
+	X := "_"
+	W := "_"
+	N := "_"
 	list := s.ProcessLists.Get(s.LLeaderHeight)
 	if found {
 		L = "L"
@@ -1547,17 +1544,17 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x]%4s %4s %2d.%01d%% %2d.%03d",
+	str := fmt.Sprintf("%7s[%12x] %4s%4s %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
-		vmIndex,
 		stype,
+		vmIndex,
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
-	pls := fmt.Sprintf("%d/%d", s.ProcessLists.DBHeightBase, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf(" %5d[%6x] %-9s ",
+	str = str + fmt.Sprintf(" %5d[%6x] %-13s ",
 		dHeight,
 		keyMR[:3],
 		pls)

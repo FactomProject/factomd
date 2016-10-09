@@ -48,11 +48,11 @@ func (m *RevealEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *RevealEntryMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.Entry.GetHash()
 }
 
 func (m *RevealEntryMsg) GetHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.Entry.GetHash()
 }
 
 func (m *RevealEntryMsg) GetMsgHash() interfaces.IHash {
