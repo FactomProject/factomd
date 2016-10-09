@@ -32,4 +32,4 @@ for ((i=0; i<nchains; i++)); do
     sleep 3s
 done
 
-sleep 240s
+sleep 540s

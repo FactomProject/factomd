@@ -4,18 +4,56 @@ BEGIN{
 	FS="[ [/]+"
 }
 
+{
+  statusfield=0
+}
+
 $3 == "f" || $3 == "w" || $3 == "fw" {
 	statusfield=1
 }
 
-{
-	print(	"blocks\t" 	,$(8 +statusfield), 
-		"\tDropped\t"	,$(6 +statusfield),
-		"\tDelay\t"	,$(7 +statusfield))
+/Time:/ {
+ 	leadercnt=0
+}
+
+{ 
+  node  = $(3+statusfield) 
+  if (length(node) > 5 && substr(node,1,5)=="FNode") {
+     nodeNum = 	substr(node,6)
+     if (maxNum < nodeNum) {
+        maxNum = nodeNum
+     }
+     status = substr($(5+statusfield),1,1)
+     if (status == "L") {
+	leadercnt++
+     }
+  }
+}
+
+node =="FNode0" {
+	block 	= $(8 +statusfield)
+	dropped = $(6 +statusfield)
+	delay	= $(7 +statusfield)
+	fct	= $(25+statusfield)	
+	ec	= $(26+statusfield)
+	e 	= $(27+statusfield)
+}
+
+
+
+
+
+END {	
+	print(  "nodes\t"       ,maxNum+1,
+		"\tleaders\t" 	,leadercnt)
+
+	print(	"blocks\t" 	,block,
+		"\tDropped\t"	,dropped,
+		"\tDelay\t"	,delay)
 	
-	print(	"FCT\t"		,$(25+statusfield),
-		"\tEC\t"	,$(26+statusfield),
-		"\tE\t"		,$(27+statusfield))
+	print(	"FCT\t"		,fct,
+		"\tEC\t"	,ec,
+		"\tE\t"		,e)
 }
 
 
