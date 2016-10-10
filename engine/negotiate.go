@@ -14,7 +14,7 @@ func Negotiate(s *state.State) {
 	time.Sleep(3 * time.Second)
 	for {
 		pl := s.ProcessLists.LastList()
-		if pl.LenFaultMap() > 0 {
+		if pl != nil && pl.LenFaultMap() > 0 {
 			faultIDs := pl.GetKeysFaultMap()
 			for _, faultID := range faultIDs {
 				faultState := pl.GetFaultState(faultID)

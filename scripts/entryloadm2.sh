@@ -1,7 +1,7 @@
 #!/bin/bash
 
-nchains=20      # number of chains to create
-nentries=1500  # number of entries to add to each chain
+nchains=15      # number of chains to create
+nentries=1800  # number of entries to add to each chain
 
 fa1=$(factom-cli importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
 
@@ -19,7 +19,7 @@ addentries() {
 	for ((i=0; i<nentries; i++)); do
     	echo test $i $RANDOM | factom-cli addentry -c $1 -e test -e $i -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
-		sleep .1s
+		sleep .04s
 	done
 }
 
@@ -32,4 +32,4 @@ for ((i=0; i<nchains; i++)); do
     sleep 15s
 done
 
-sleep 540s
+sleep 200s
