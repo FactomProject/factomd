@@ -219,10 +219,13 @@ func (p *ProcessList) LenNewEntries() int {
 }
 
 func (p *ProcessList) GetKeysFaultMap() (keys [][32]byte) {
-	keys = make([][32]byte, p.LenFaultMap())
-
 	p.FaultMapMutex.RLock()
 	defer p.FaultMapMutex.RUnlock()
+	if len(p.FaultMap) < 1 {
+		return nil
+	}
+	keys = make([][32]byte, p.LenFaultMap())
+
 	i := 0
 	for k := range p.FaultMap {
 		keys[i] = k

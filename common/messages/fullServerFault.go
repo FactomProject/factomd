@@ -345,8 +345,8 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	fmt.Println("JFF:", state.GetFactomNodeName(), state.GetCurrentMinute(), int(m.Height), state.GetLLeaderHeight(), m.DBHeight)
-	fmt.Println("JFF2:", state.GetFactomNodeName(), state.GetTimestamp().GetTimeSeconds())
+	//fmt.Println("JFF:", state.GetFactomNodeName(), state.GetCurrentMinute(), int(m.Height), state.GetLLeaderHeight(), m.DBHeight)
+	//fmt.Println("JFF2:", state.GetFactomNodeName(), state.GetTimestamp().GetTimeSeconds())
 
 	/*if state.GetCurrentMinute() >= int(m.Height) {
 		return -1
