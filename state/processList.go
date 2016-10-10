@@ -704,23 +704,25 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.faultHeight = -1
 			vm.whenFaulted = 0
 
-			amLeader, myLeaderVMIndex := state.LeaderPL.GetVirtualServers(state.CurrentMinute, state.IdentityChainID)
+			/*
+				amLeader, myLeaderVMIndex := state.LeaderPL.GetVirtualServers(state.CurrentMinute, state.IdentityChainID)
 
-			if amLeader && p.AmINegotiator && myLeaderVMIndex == i+1%len(p.FedServers) {
-				p.AmINegotiator = false
-			}
-			fedServerToUnfault := p.ServerMap[getLeaderMin(p)][i]
-			if fedServerToUnfault >= 0 && fedServerToUnfault < len(p.FedServers) {
-				if p.FedServers[fedServerToUnfault] != nil {
-					p.FedServers[fedServerToUnfault].SetOnline(true)
-					for faultKey, faultInfo := range state.FaultInfoMap {
-						if faultInfo.ServerID.String() == p.FedServers[fedServerToUnfault].GetChainID().String() {
-							delete(state.FaultInfoMap, faultKey)
-							delete(state.FaultVoteMap, faultKey)
+				if amLeader && p.AmINegotiator && myLeaderVMIndex == i+1%len(p.FedServers) {
+					p.AmINegotiator = false
+				}
+				fedServerToUnfault := p.ServerMap[getLeaderMin(p)][i]
+				if fedServerToUnfault >= 0 && fedServerToUnfault < len(p.FedServers) {
+					if p.FedServers[fedServerToUnfault] != nil {
+						p.FedServers[fedServerToUnfault].SetOnline(true)
+						for faultKey, faultInfo := range state.FaultInfoMap {
+							if faultInfo.ServerID.String() == p.FedServers[fedServerToUnfault].GetChainID().String() {
+								delete(state.FaultInfoMap, faultKey)
+								delete(state.FaultVoteMap, faultKey)
+							}
 						}
 					}
-				}
-			}
+				}*/
+			p.Unfault()
 
 		}
 
@@ -782,7 +784,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 
-					p.Unfault()
+					//p.Unfault()
 
 					progress = true
 				} else {

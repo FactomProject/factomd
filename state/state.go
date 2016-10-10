@@ -1557,7 +1557,7 @@ func (s *State) SetStringQueues() {
 
 	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
 
-	str = str + fmt.Sprintf(" %5d[%6x] %-13s ",
+	str = str + fmt.Sprintf(" %5d[%6x] %-11s ",
 		dHeight,
 		keyMR[:3],
 		pls)

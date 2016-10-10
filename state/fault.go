@@ -557,7 +557,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 							vmReset.faultInitiatedAlready = false
 						}
 						wipeOutFaultsFor(relevantPL, fullFault.ServerID, fullFault.AuditServerID)*/
-
 					relevantPL.Unfault()
 					break
 				}

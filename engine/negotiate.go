@@ -20,6 +20,9 @@ func Negotiate(s *state.State) {
 				faultState := pl.GetFaultState(faultID)
 				if faultState.AmINegotiator {
 					state.CraftAndSubmitFullFault(pl, faultID)
+					if faultState.HasEnoughSigs(s) && faultState.PledgeDone {
+						break
+					}
 				}
 			}
 		}
