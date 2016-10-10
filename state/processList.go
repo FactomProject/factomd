@@ -1114,7 +1114,5 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		panic(err.Error())
 	}
 
-	go handleNegotiations(pl)
-
 	return pl
 }

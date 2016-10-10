@@ -128,32 +128,9 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 				// issue a server fault vote of our own
 				craftAndSubmitFault(pl, vm, vmIndex, height)
 				vm.faultInitiatedAlready = true
-				//if I am negotiator... {
-				//go handleNegotiations(pl)
 				//}
 			}
 		}
-	}
-}
-
-func handleNegotiations(pl *ProcessList) {
-	for {
-		amINego := false
-		faultIDs := pl.GetKeysFaultMap()
-		for _, faultID := range faultIDs {
-			faultState := pl.GetFaultState(faultID)
-			if faultState.AmINegotiator {
-				if faultState.NegotiationOngoing {
-					CraftAndSubmitFullFault(pl, faultID)
-					amINego = true
-					break
-				}
-			}
-		}
-
-		pl.AmINegotiator = amINego
-
-		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -190,7 +167,7 @@ func couldIFullFault(pl *ProcessList, vmIndex int) bool {
 }
 
 func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
-	fmt.Printf("JUSTIN CRASFF %s %x\n", pl.State.FactomNodeName, faultID)
+	//fmt.Printf("JUSTIN CRASFF %s %x\n", pl.State.FactomNodeName, faultID)
 
 	faultState := pl.GetFaultState(faultID)
 	fc := faultState.FaultCore
@@ -312,7 +289,6 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 			faultState.AmINegotiator = true
 			faultState.NegotiationOngoing = true
 			pl.AmINegotiator = true
-			//go handleNegotiations(pl)
 		}
 
 		if faultState.VoteMap == nil {
