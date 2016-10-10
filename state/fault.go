@@ -295,8 +295,6 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 			faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
 		}
 		pl.AddFaultState(coreHash, faultState)
-		//pl.FaultMap[coreHash] = faultState
-
 	}
 
 	lbytes, err := sf.MarshalForSignature()
@@ -332,7 +330,6 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 	}
 
-	//pl.FaultMap[sf.GetCoreHash().Fixed()] = faultState
 	pl.AddFaultState(coreHash, faultState)
 }
 
@@ -455,37 +452,6 @@ func (pl *ProcessList) ClearFaultMap() {
 	pl.FaultMap = make(map[[32]byte]FaultState)
 }
 
-/*
-func wipeOutFaultsFor(pl *ProcessList, faultedServerID interfaces.IHash, promotedServerID interfaces.IHash) {
-
-	faultIDs := pl.GetKeysFaultMap()
-	for _, faultID := range faultIDs {
-		faultState := pl.GetFaultState(faultID)
-		if faultState.FaultCore.ServerID.IsSameAs(faultedServerID) {
-			//faultState.NegotiationOngoing = false
-			//delete(pl.FaultMap, faultID)
-			//pl.FaultMap[faultID] = faultState
-			//pl.AddFaultState(faultID, faultState)
-			pl.DeleteFaultState(faultID)
-		}
-		if faultState.FaultCore.AuditServerID.IsSameAs(promotedServerID) {
-			//faultState.NegotiationOngoing = false
-			//delete(pl.FaultMap, faultID)
-			//pl.FaultMap[faultID] = faultState
-			//pl.AddFaultState(faultID, faultState)
-			pl.DeleteFaultState(faultID)
-		}
-	}
-	amINego := false
-	for _, faultID := range faultIDs {
-		faultState := pl.GetFaultState(faultID)
-		if faultState.AmINegotiator && faultState.NegotiationOngoing {
-			amINego = true
-		}
-	}
-	pl.AmINegotiator = amINego
-}*/
-
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fullFault, _ := m.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
@@ -521,38 +487,12 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 					relevantPL.FedServers[listIdx].SetOnline(true)
 					relevantPL.AddAuditServer(fedServ.GetChainID())
 					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
-
-					/*
-						if foundVM, vmindex := relevantPL.GetVirtualServers(s.CurrentMinute, theAuditReplacement.GetChainID()); foundVM {
-							relevantPL.VMs[vmindex].faultHeight = -1
-							//						relevantPL.VMs[vmindex].faultingEOM = 0
-							relevantPL.VMs[vmindex].whenFaulted = 0
-						}
-						for _, vmReset := range relevantPL.VMs {
-							vmReset.whenFaulted = 0
-							vmReset.faultInitiatedAlready = false
-						}
-						wipeOutFaultsFor(relevantPL, fullFault.ServerID, fullFault.AuditServerID)*/
 					relevantPL.Unfault()
 					break
 				}
 			}
 
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-			//tempFaultState := relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()]
-			/*tempFaultState := relevantPL.GetFaultState(fullFault.GetCoreHash().Fixed())
-			if !tempFaultState.IsNil() {
-				tempFaultState.NegotiationOngoing = false
-				//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = tempFaultState
-				relevantPL.AddFaultState(fullFault.GetCoreHash().Fixed(), tempFaultState)
-			}
-			relevantPL.DeleteFaultState(fullFault.GetCoreHash().Fixed())
-
-			amLeader, myLeaderVMIndex := s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
-			if amLeader && myLeaderVMIndex == int(fullFault.VMIndex)+1%(len(relevantPL.FedServers)-1) {
-				relevantPL.AmINegotiator = false
-			}*/
 			return
 		} else {
 			// MISSING A PLEDGE
