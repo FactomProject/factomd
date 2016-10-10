@@ -228,12 +228,10 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 				if len(ent.ExternalIDs()) == 7 {
 					registerBlockSigningKey(ent, initial, height, st)
 				}
-
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 				if len(ent.ExternalIDs()) == 9 {
 					registerAnchorSigningKey(ent, initial, height, st, "BTC")
 				}
-
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 				if len(ent.ExternalIDs()) == 7 {
 					updateMatryoshkaHash(ent, initial, height, st)
@@ -306,7 +304,6 @@ func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 
 	sigmsg, err := AppendExtIDs(extIDs, 0, 2)
 	if err != nil {
-		log.Printfln("Identity Error:", err)
 		return err
 	} else {
 		// Verify Signature
@@ -314,7 +311,6 @@ func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash,
 		if CheckSig(idKey, extIDs[3][1:33], sigmsg, extIDs[4]) {
 			st.Identities[IdentityIndex].ManagementRegistered = height
 		} else {
-			log.Println("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 			return errors.New("New Management Chain Register for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 
@@ -332,7 +328,6 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 	}
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
 		!CheckExternalIDsLength(extIDs[:6], []int{1, 14, 32, 32, 32, 32}) { // Nonce
-		log.Println("Identity Error Create Identity Chain: Invalid external ID length")
 		return errors.New("Identity Error Create Identity Chain: Invalid external ID length")
 	}
 
@@ -494,6 +489,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 			dbase := st.GetAndLockDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
 			st.UnlockDB()
+
 			if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
@@ -517,7 +513,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 				st.InMsgQueue() <- msg
 			}
 		} else {
-			errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
+			return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
 		}
 	}
 	return nil
@@ -714,12 +710,12 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	}
 
 	if index == -1 {
+		index = st.CreateBlankFactomIdentity(chainID)
 		err := st.AddIdentityFromChainID(chainID)
 		if err != nil {
 			log.Println(err.Error())
-			return false
+			return true
 		}
-		index = st.isIdentityChain(chainID)
 	}
 	if index != -1 {
 		id := st.Identities[index]
@@ -730,7 +726,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
-			return false
+			return true
 		} else {
 			copy(blockSigningKey[:32], id.SigningKey.Bytes()[:32])
 		}
@@ -740,7 +736,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
-			return false
+			return true
 		} else {
 			for _, aKey := range id.AnchorKeys {
 				if strings.Compare(aKey.BlockChain, "BTC") == 0 {
@@ -754,7 +750,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
-			return false
+			return true
 		}
 		matryoshkaHash = id.MatryoshkaHash
 
@@ -766,7 +762,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		st.Identities[index] = id
 	} else {
 		log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an identity associated to it")
-		return false
+		return true
 	}
 
 	// Add to admin block
