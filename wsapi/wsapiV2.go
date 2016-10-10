@@ -83,9 +83,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "directory-block-head":
 		resp, jsonError = HandleV2DirectoryBlockHead(state, params)
 		break
-	case "directory-block-height":
-		resp, jsonError = HandleV2DirectoryBlockHeight(state, params)
-		break
 	case "entry-block":
 		resp, jsonError = HandleV2EntryBlock(state, params)
 		break
@@ -103,6 +100,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	case "factoid-submit":
 		resp, jsonError = HandleV2FactoidSubmit(state, params)
+		break
+	case "heights":
+		resp, jsonError = HandleV2Heights(state, params)
 		break
 	case "raw-data":
 		resp, jsonError = HandleV2RawData(state, params)
@@ -130,9 +130,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	case "get-transaction":
 		resp, jsonError = HandleV2GetTranasction(state, params)
-		break
-	case "get-height":
-		resp, jsonError = HandleV2GetHeight(state, params)
 		break
 	default:
 		jsonError = NewMethodNotFoundError()
@@ -634,14 +631,8 @@ func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interf
 	return resp, nil
 }
 
-func HandleV2DirectoryBlockHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	h := new(DirectoryBlockHeightResponse)
-	h.Height = int64(state.GetHighestCompletedBlock())
-	return h, nil
-}
-
-func HandleV2GetHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	h := new(HeightResponse)
+func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	h := new(HeightsResponse)
 
 	h.DirectoryBlockHeight = int64(state.GetHighestCompletedBlock())
 	h.LeaderHeight = int64(state.GetLLeaderHeight())

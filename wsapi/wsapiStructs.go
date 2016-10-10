@@ -47,11 +47,11 @@ type DirectoryBlockHeadResponse struct {
 	//Add height, etc?
 }
 
-type DirectoryBlockHeightResponse struct {
-	Height int64 `json:"height"`
-}
+// type DirectoryBlockHeightResponse struct {
+// 	Height int64 `json:"height"`
+// }
 
-type HeightResponse struct {
+type HeightsResponse struct {
 	DirectoryBlockHeight         int64 `json:"directoryblockheight"`
 	LeaderHeight                 int64 `json:"leaderheight"`
 	EntryBlockHeight             int64 `json:"entryblockheight"`
