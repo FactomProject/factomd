@@ -18,12 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/FactomProject/btcutil/certs"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
-	"sync"
 )
 
 const (
@@ -388,26 +389,28 @@ func HandleDirectoryBlockHeight(ctx *web.Context) {
 		return
 	}
 
-	req := primitives.NewJSON2Request("directory-block-height", 1, nil)
+	req := primitives.NewJSON2Request("heights", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {
 		returnV1(ctx, nil, jsonError)
 		return
 	}
-	tmp, err := json.Marshal(jsonResp.Result)
-	resp := string(tmp)
+
+	resp := "{\"Height\":0}"
+
+	// get the HeightsResponse from the return object
+	p, err := json.Marshal(jsonResp.Result)
 	if err != nil {
-		resp = "{\"Height\",0}"
+		returnV1Msg(ctx, resp, true)
+	}
+	h := new(HeightsResponse)
+	if err := json.Unmarshal(p, h); err != nil {
 		returnV1Msg(ctx, resp, true)
 	}
 
-	type DirectoryBlockHeightResponse struct {
-		Height int64 /*`json:"height"` V1 doesn't use the json tye def */
-	}
-
-	resp = strings.Replace(resp, "height", "Height", -1)
-
+	// return just the DirectoryBlockHeight from the HeightsResponse
+	resp = fmt.Sprintf("{\"Height\":%d}", h.DirectoryBlockHeight)
 	returnV1Msg(ctx, resp, true)
 }
 
