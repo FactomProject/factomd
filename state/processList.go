@@ -145,6 +145,54 @@ type VM struct {
 	lastFaultAction       int64
 }
 
+func (p *ProcessList) Clear() {
+	p.FactoidBalancesTMutex.Lock()
+	defer p.FactoidBalancesTMutex.Unlock()
+	p.FactoidBalancesT = nil
+
+	p.ECBalancesTMutex.Lock()
+	defer p.ECBalancesTMutex.Unlock()
+	p.ECBalancesT = nil
+
+	p.MsgQueue = nil
+	p.VMs = nil
+
+	p.oldmsgslock.Lock()
+	defer p.oldmsgslock.Unlock()
+	p.OldMsgs = nil
+
+	p.oldackslock.Lock()
+	defer p.oldackslock.Unlock()
+	p.OldAcks = nil
+
+	p.neweblockslock.Lock()
+	defer p.neweblockslock.Unlock()
+	p.NewEBlocks = nil
+
+	p.NewEntriesMutex.Lock()
+	defer p.NewEntriesMutex.Unlock()
+	p.NewEntries = nil
+
+	p.commitslock.Lock()
+	defer p.commitslock.Unlock()
+	p.Commits = nil
+	p.AdminBlock = nil
+	p.EntryCreditBlock = nil
+	p.DirectoryBlock = nil
+
+	p.Matryoshka = nil
+	p.AuditServers = nil
+	p.FedServers = nil
+
+	p.FaultMapMutex.Lock()
+	defer p.FaultMapMutex.Unlock()
+	p.FaultMap = nil
+
+	p.DBSignatures = nil
+
+	p.Requests = nil
+}
+
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
 	keys = make([][32]byte, p.LenNewEntries())
 
