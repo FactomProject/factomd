@@ -193,10 +193,17 @@ func (s *State) ReviewHolding() {
 				v.SendOut(s, v)
 			}
 		}
-
-		s.XReview = append(s.XReview, v)
-		delete(s.Holding, k)
-
+		// Pointless to review a Reveal Entry;  it will be pulled into play when its commit
+		// comes around.
+		if re, ok := v.(*messages.RevealEntryMsg); ok {
+			if s.Commits[re.Entry.GetHash().Fixed()] != nil {
+				s.XReview = append(s.XReview, v)
+				delete(s.Holding, k)
+			}
+		} else {
+			s.XReview = append(s.XReview, v)
+			delete(s.Holding, k)
+		}
 	}
 }
 
@@ -526,6 +533,26 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	return
 }
 
+func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
+	s.FollowerExecuteMsg(m)
+	cc := m.(*messages.CommitChainMsg)
+	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
+	if re != nil {
+		s.XReview = append(s.XReview, re)
+		re.SendOut(s, re)
+	}
+}
+
+func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
+	s.FollowerExecuteMsg(m)
+	ce := m.(*messages.CommitEntryMsg)
+	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
+	if re != nil {
+		s.XReview = append(s.XReview, re)
+		re.SendOut(s, re)
+	}
+}
+
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
@@ -608,6 +635,26 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
+}
+
+func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
+	s.LeaderExecute(m)
+	cc := m.(*messages.CommitChainMsg)
+	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
+	if re != nil {
+		s.XReview = append(s.XReview, re)
+		re.SendOut(s, re)
+	}
+}
+
+func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
+	s.LeaderExecute(m)
+	ce := m.(*messages.CommitEntryMsg)
+	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
+	if re != nil {
+		s.XReview = append(s.XReview, re)
+		re.SendOut(s, re)
+	}
 }
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
@@ -717,8 +764,8 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		if s.Holding[h.Fixed()] != nil {
 			entry := s.Holding[h.Fixed()]
 			entry.SendOut(s, entry)
-			//		s.XReview = append(s.XReview, s.Holding[h.Fixed()])
-			//		delete(s.Holding, h.Fixed())
+			s.XReview = append(s.XReview, entry)
+			delete(s.Holding, h.Fixed())
 		}
 		return true
 	} else {
@@ -740,8 +787,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		if s.Holding[h.Fixed()] != nil {
 			entry := s.Holding[h.Fixed()]
 			entry.SendOut(s, entry)
-			//		s.XReview = append(s.XReview, s.Holding[h.Fixed()])
-			//		delete(s.Holding, h.Fixed())
+			s.XReview = append(s.XReview, entry)
+			delete(s.Holding, h.Fixed())
 		}
 		return true
 	} else {

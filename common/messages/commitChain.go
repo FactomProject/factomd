@@ -127,11 +127,11 @@ func (m *CommitChainMsg) ComputeVMIndex(state interfaces.IState) {
 // Execute the leader functions of the given message
 func (m *CommitChainMsg) LeaderExecute(state interfaces.IState) {
 	// Check if we have yet to see an entry.  If we have seen one (NoEntryYet == false) then
-	// this commit is invalid.
-	if !state.NoEntryYet(m.CommitChain.EntryHash, m.CommitChain.GetTimestamp()) {
-		m.FollowerExecute(state)
+	// we can record it.
+	if state.NoEntryYet(m.CommitChain.EntryHash, m.CommitChain.GetTimestamp()) {
+		state.LeaderExecuteCommitChain(m)
 	} else {
-		state.LeaderExecute(m)
+		state.FollowerExecuteCommitChain(m)
 	}
 }
 

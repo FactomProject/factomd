@@ -20,9 +20,8 @@
 #Process
 
 END {
-	scale 	 = 500 / cnt
-	realdays = 10/60/60/24  	   # Value of each data point in real time.
-	simdays  = realdays * simscale
+	scale 	  = 500 / cnt
+	realhours = 10/60/60  	   # Value of each data point in real time.
 		
 	for (i=0;i<cnt;i++){
 		oldptr = ptr		# Remember the old pointer
@@ -32,11 +31,10 @@ END {
 		sumCnt++
 		# print "pointers" oldptr " " ptr		
 		if (oldptr != ptr || i+1 == cnt) {
-			realtime = i * realdays
-			simtime = i * simdays
+			realtime = i * realhours
 			cpu = sumCPU/sumCnt
 			mem = sumMEM/sumCnt
-			outstr = sprintf(" %8.4f\t%8.4f\t%6.2f\t%6.2f",realtime,simtime,cpu,mem) 
+			outstr = sprintf(" %8.4f\t%8.4f\t%6.2f\t%6.2f",realtime,realtime,cpu,mem) 
 			print outstr
 			ot++
 			sumCPU=0

@@ -169,6 +169,8 @@ type IState interface {
 	FollowerExecuteNegotiation(IMsg)  // Message to start the negotiation process to replace a faulted server
 	FollowerExecuteDataResponse(IMsg) // Handle Data Response
 	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages
+	FollowerExecuteCommitChain(IMsg)  // CommitChain needs to look for a Reveal Entry
+	FollowerExecuteCommitEntry(IMsg)  // CommitEntry needs to look for a Reveal Entry
 	FollowerExecuteRevealEntry(IMsg)
 
 	ProcessAddServer(dbheight uint32, addServerMsg IMsg) bool
@@ -183,6 +185,8 @@ type IState interface {
 	LeaderExecute(IMsg)
 	LeaderExecuteEOM(IMsg)
 	LeaderExecuteRevealEntry(IMsg)
+	LeaderExecuteCommitChain(IMsg)
+	LeaderExecuteCommitEntry(IMsg)
 
 	GetNetStateOff() bool //	If true, all network communications are disabled
 	SetNetStateOff(bool)

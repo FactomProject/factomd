@@ -69,7 +69,7 @@ node =="FNode0" {
 
 
 END {	
-	samples = 100
+	samples = 200
 	scale = samples/rec*.99999 # Make sure we get at least our sample count.
 	j = 0	
 	for(i=0;i<rec;i++){
