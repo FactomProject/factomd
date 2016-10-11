@@ -13,23 +13,23 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const HourRange = 1                // Double this for the period we protect, i.e. 4 means +/- 4 hours
-const numBuckets = HourRange*2 + 3 // cover an hour each way, and an hour in the middle.
+const HourRange = 1                    // Double this for the period we protect, i.e. 4 means +/- 4 hours
+const numBuckets = HourRange*2*60 + 60 // cover an hour each way, and an hour in the middle.
 
 var _ = time.Now()
 var _ = fmt.Print
 
 type Replay struct {
-	mutex    sync.Mutex
-	buckets  [numBuckets]map[[32]byte]int
-	basetime int // hours since 1970
-	center   int // Hour of the current time.
+	Mutex    sync.Mutex
+	Buckets  [numBuckets]map[[32]byte]int
+	Basetime int // hours since 1970
+	Center   int // Hour of the current time.
 }
 
 // Remember that Unix time is in seconds since 1970.  This code
 // wants to be handed time in seconds.
-func hours(unix int64) int {
-	return int(unix / 60 / 60)
+func Minutes(unix int64) int {
+	return int(unix / 60)
 }
 
 // Returns false if the hash is too old, or is already a
@@ -37,46 +37,48 @@ func hours(unix int64) int {
 func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
 	timeSeconds := timestamp.GetTimeSeconds()
 	systemTimeSeconds := systemtime.GetTimeSeconds()
+	diff := Minutes(systemTimeSeconds) - Minutes(timeSeconds)
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
-	if hours(timeSeconds-systemTimeSeconds) > HourRange || hours(systemTimeSeconds-timeSeconds) > HourRange {
+	if diff >= Minutes(HourRange*60*60) || diff <= -Minutes(HourRange*60*60) {
 		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
 		return -1, false
 	}
 
-	now := hours(systemTimeSeconds)
-	t := hours(timeSeconds)
+	now := Minutes(systemTimeSeconds)
+	t := Minutes(timeSeconds)
 
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
-	if now < r.center {
-		now = r.center
+	// Move the current time up to r.center if it is in the past.
+	if now < r.Center {
+		now = r.Center
 	}
 
-	if r.center == 0 {
-		r.center = now
-		r.basetime = now - (numBuckets / 2) + 1
+	if r.Center == 0 {
+		r.Center = now
+		r.Basetime = now - (numBuckets / 2) + 1
 	}
-	for r.center < now {
-		copy(r.buckets[:], r.buckets[1:])
-		r.buckets[numBuckets-1] = nil
-		r.center++
-		r.basetime++
+	for r.Center < now {
+		copy(r.Buckets[:], r.Buckets[1:])
+		r.Buckets[numBuckets-1] = nil
+		r.Center++
+		r.Basetime++
 	}
 
 	// Just take the time of the thing in hours less the basetime to get the index.
-	index = t - r.basetime
+	index = t - r.Basetime
 
 	if index < 0 || index >= numBuckets {
 		return 0, false
 	}
 
-	if r.buckets[index] == nil {
-		r.buckets[index] = make(map[[32]byte]int)
+	if r.Buckets[index] == nil {
+		r.Buckets[index] = make(map[[32]byte]int)
 	} else {
-		v, _ := r.buckets[index][hash]
+		v, _ := r.Buckets[index][hash]
 		if v&mask > 0 {
 			return index, false
 		}
@@ -99,10 +101,10 @@ func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces
 func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
 
 	if index, ok := r.Valid(mask, hash, timestamp, now); ok {
-		r.mutex.Lock()
-		defer r.mutex.Unlock()
+		r.Mutex.Lock()
+		defer r.Mutex.Unlock()
 		// Mark this hash as seen
-		r.buckets[index][hash] = r.buckets[index][hash] | mask
+		r.Buckets[index][hash] = r.Buckets[index][hash] | mask
 		return true
 	}
 
