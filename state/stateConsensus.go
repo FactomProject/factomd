@@ -1184,7 +1184,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	// If we are here, this means that the FullFault message is complete
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
-	//fmt.Println("FULL FAULT P:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
+
+	//fmt.Println("FULL FAULT:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
 
 	haveReplaced := false
 
@@ -1208,7 +1209,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 	for listIdx, fedServ := range relevantPL.FedServers {
 		if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-			//fmt.Println("FULL FAULT:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
+			//fmt.Println("FULL FAULT X:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
 			relevantPL.FedServers[listIdx] = theAuditReplacement
 			relevantPL.FedServers[listIdx].SetOnline(true)
 			relevantPL.AddAuditServer(fedServ.GetChainID())
