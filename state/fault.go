@@ -240,8 +240,8 @@ func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
 	}
 
 	fullFault := messages.NewFullServerFault(sf, listOfSigs)
-	adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
-	pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
+	//adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
+	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
 	if fullFault != nil {
 		fullFault.Sign(pl.State.serverPrivKey)
 		pl.State.NetworkOutMsgQueue() <- fullFault
