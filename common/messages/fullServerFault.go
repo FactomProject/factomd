@@ -44,7 +44,9 @@ type SigList struct {
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
 
-func (m *FullServerFault) Process(uint32, interfaces.IState) bool { return true }
+func (m *FullServerFault) Process(dbheight uint32, state interfaces.IState) bool {
+	return state.ProcessFullServerFault(dbheight, m)
+}
 
 func (m *FullServerFault) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()

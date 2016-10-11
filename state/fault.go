@@ -228,7 +228,7 @@ func CraftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
 // (which fires once every 5 seconds on each server); most of the time
 // these are "incomplete" FullFault messages which serve as status pings
 // for the negotiation in progress
-func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
+func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) *messages.FullServerFault {
 	faultState := pl.GetFaultState(faultID)
 	fc := faultState.FaultCore
 
@@ -247,6 +247,8 @@ func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
 		pl.State.NetworkOutMsgQueue() <- fullFault
 		fullFault.FollowerExecute(pl.State)
 	}
+
+	return fullFault
 }
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
@@ -493,20 +495,16 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			// If we are here, this means that the FullFault message is complete
 			// and we can execute it as such (replacing the faulted Leader with
 			// the nominated Audit server)
-			for listIdx, fedServ := range relevantPL.FedServers {
-				if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-					//fmt.Println("FULL FAULT:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
-					relevantPL.FedServers[listIdx] = theAuditReplacement
-					relevantPL.FedServers[listIdx].SetOnline(true)
-					relevantPL.AddAuditServer(fedServ.GetChainID())
-					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
-					// After executing the FullFault successfully, we want to reset
-					// to the default state (No One At Fault)
-					relevantPL.Unfault()
-					break
-				}
-			}
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+			// We now do the above by sticking the message in the Process list,
+			// which will ultimately result in ProcessFullServerFault being
+			// done with it
+
+			/*ack := s.NewAck(fullFault).(*messages.Ack)
+			ack.SetVMIndex(int(fullFault.VMIndex))
+			relevantPL.AddToProcessList(ack, fullFault)*/
+			s.FollowerExecuteMsg(fullFault)
+
 			return
 		} else {
 			// MISSING A PLEDGE
