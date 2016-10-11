@@ -456,6 +456,7 @@ func (pl *ProcessList) Unfault() {
 		vm.faultInitiatedAlready = false
 	}
 	pl.AmINegotiator = false
+	pl.ChosenNegotiation = [32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 }
 
 func (pl *ProcessList) ClearFaultMap() {

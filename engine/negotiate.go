@@ -11,17 +11,29 @@ import (
 )
 
 func Negotiate(s *state.State) {
+	zeroBytes := [32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	time.Sleep(3 * time.Second)
 	for {
 		pl := s.ProcessLists.LastList()
 		if pl != nil && pl.LenFaultMap() > 0 {
-			faultIDs := pl.GetKeysFaultMap()
-			for _, faultID := range faultIDs {
-				faultState := pl.GetFaultState(faultID)
+			if pl.ChosenNegotiation != zeroBytes {
+				faultState := pl.GetFaultState(pl.ChosenNegotiation)
 				if faultState.AmINegotiator {
-					state.CraftAndSubmitFullFault(pl, faultID)
+					state.CraftAndSubmitFullFault(pl, pl.ChosenNegotiation)
 					if faultState.HasEnoughSigs(s) && faultState.PledgeDone {
 						break
+					}
+				}
+			} else {
+				faultIDs := pl.GetKeysFaultMap()
+				for _, faultID := range faultIDs {
+					faultState := pl.GetFaultState(faultID)
+					if faultState.AmINegotiator {
+						state.CraftAndSubmitFullFault(pl, faultID)
+						if faultState.HasEnoughSigs(s) && faultState.PledgeDone {
+							pl.ChosenNegotiation = faultID
+							break
+						}
 					}
 				}
 			}

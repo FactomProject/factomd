@@ -112,8 +112,10 @@ type ProcessList struct {
 	// that is the assigned negotiator for a particular processList
 	// height
 	AmINegotiator bool
-
-	AmIPledged bool
+	// ChosenNegotiation tells a negotiator whether they have already
+	// chosen which FullFault to issue (so that they don't accidentally
+	// issue conflicting FullFaults for the same negotiation)
+	ChosenNegotiation [32]byte
 
 	// DB Sigs
 	DBSignatures []DBSig
