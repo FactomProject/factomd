@@ -1180,6 +1180,51 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	*/
 }
 
+func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) bool {
+	// If we are here, this means that the FullFault message is complete
+	// and we can execute it as such (replacing the faulted Leader with
+	// the nominated Audit server)
+	//fmt.Println("FULL FAULT P:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
+
+	haveReplaced := false
+
+	fullFault, _ := msg.(*messages.FullServerFault)
+	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
+
+	auditServerList := s.GetAuditServers(fullFault.DBHeight)
+	var theAuditReplacement interfaces.IFctServer
+
+	for _, auditServer := range auditServerList {
+		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
+			theAuditReplacement = auditServer
+		}
+	}
+	if theAuditReplacement == nil {
+		// If we don't have any Audit Servers in our Authority set
+		// that match the nominated Audit Server in the FullFault,
+		// we can't really do anything useful with it
+		return haveReplaced
+	}
+
+	for listIdx, fedServ := range relevantPL.FedServers {
+		if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
+			//fmt.Println("FULL FAULT:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
+			relevantPL.FedServers[listIdx] = theAuditReplacement
+			relevantPL.FedServers[listIdx].SetOnline(true)
+			relevantPL.AddAuditServer(fedServ.GetChainID())
+			s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
+			// After executing the FullFault successfully, we want to reset
+			// to the default state (No One At Fault)
+			relevantPL.Unfault()
+			haveReplaced = true
+			break
+		}
+	}
+
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	return haveReplaced
+}
+
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
 
 	pl := s.ProcessLists.Get(uint32(dbheight))
