@@ -26,7 +26,10 @@ func Negotiate(s *state.State) {
 
 							ack := s.NewAck(fullFault).(*messages.Ack)
 							ack.SetVMIndex(int(fullFault.VMIndex))
-							s.NetworkOutMsgQueue() <- ack
+							ack.Height = fullFault.Height
+							ack.Sign(s)
+							ack.SendOut(s, ack)
+
 						}
 					}
 				}

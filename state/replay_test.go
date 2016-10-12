@@ -26,7 +26,7 @@ var hour = int64(60 * 60)
 
 var r = Replay{}
 
-var span int64 = 1     // How many hours +/- that will be valid (1== valid 1 hour in the past to 1 hour in the future)
+var spanMin int64 = 60 // How many hours +/- that will be valid (1== valid 1 hour in the past to 1 hour in the future)
 var speed int64 = 1000 // Speed in milliseconds (max) that we will move the clock
 var _ = pprof.Cmdline
 
@@ -41,7 +41,7 @@ func Test_Replay(test *testing.T) {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	XTrans := 102400 //61440 //145000
+	XTrans := 102400000 //61440 //145000
 
 	var mhs []*mh
 
@@ -66,7 +66,7 @@ func Test_Replay(test *testing.T) {
 				i := rand.Int() % len(mhs)
 				x := mhs[i]
 				if r.IsTSValid_(constants.INTERNAL_REPLAY, x.hash, x.time, now) {
-					fmt.Printf("Failed Test ", i, "repeat")
+					fmt.Printf("Failed Repeat Test %d\n", i)
 					test.Fail()
 					return
 				}
@@ -84,14 +84,14 @@ func Test_Replay(test *testing.T) {
 		mhs = append(mhs, x)
 
 		// Build a valid transaction somewhere +/- span hours of now
-		delta := (span*60*2 - 2)
-		ntime := now.GetTimeSeconds() - span*60 + 1
-		x.time = primitives.NewTimestampFromSeconds(uint32(ntime + delta))
+		delta := int64(float32(spanMin*2) * rand.Float32())
+		ntime := now.GetTimeSeconds()/60 - spanMin + delta
+		x.time = primitives.NewTimestampFromSeconds(uint32(ntime * 60))
 
 		if _, ok := r.Valid(constants.INTERNAL_REPLAY, x.hash, x.time, now); !ok {
-			xsec := x.time.GetTimeSeconds()
-			nsec := now.GetTimeSeconds()
-			fmt.Println("Failed Test ", i, "pre-test", Minutes(xsec), Minutes(nsec), Minutes(xsec-nsec))
+			mnow := Minutes(now.GetTimeSeconds())
+			mx := Minutes(x.time.GetTimeSeconds())
+			fmt.Printf("Failed an element in the time range. Test %d element Time: %d now %d Diff %d\n", i, mx, mnow, mx-mnow)
 			test.Fail()
 			return
 		}
@@ -114,11 +114,15 @@ func Test_Replay(test *testing.T) {
 		x.hash = primitives.Sha([]byte(fmt.Sprintf("xh%d", i))).Fixed()
 
 		// Build a invalid transaction > span in the past
-		x.time = primitives.NewTimestampFromSeconds(uint32(now.GetTimeSeconds() - span*hour - ((rand.Int63() % (100)) + 1)))
+		delta = now.GetTimeSeconds()/60 - spanMin + 1 + rand.Int63()%20
+		ntime = now.GetTimeSeconds()/60 - delta
+		x.time = primitives.NewTimestampFromSeconds(uint32(ntime * 60))
 
 		// should not be valid
 		if _, ok := r.Valid(constants.INTERNAL_REPLAY, x.hash, x.time, now); ok {
-			fmt.Println("Failed Test ", i, "bad-pre-test", Minutes(now.GetTimeSeconds()), Minutes(x.time.GetTimeSeconds()))
+			mnow := Minutes(now.GetTimeSeconds())
+			mx := Minutes(x.time.GetTimeSeconds())
+			fmt.Printf("Okayed an element out of time range. Test %d element Time: %d now %d Diff %d\n", i, mx, mnow, mx-mnow)
 			test.Fail()
 			return
 		}

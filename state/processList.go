@@ -60,11 +60,6 @@ type ProcessList struct {
 	ECBalancesT           map[[32]byte]int64
 	ECBalancesTMutex      sync.Mutex
 
-	// List of messsages that came in before the previous block was built
-	// We can not completely validate these messages until the previous block
-	// is built.
-	MsgQueue []interfaces.IMsg
-
 	State     *State
 	VMs       []*VM       // Process list for each server (up to 32)
 	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
@@ -86,10 +81,6 @@ type ProcessList struct {
 
 	NewEntriesMutex sync.RWMutex
 	NewEntries      map[[32]byte]interfaces.IEntry
-
-	// Used by the leader, validate
-	Commits     map[[32]byte]interfaces.IMsg
-	commitslock *sync.Mutex
 
 	// State information about the directory block while it is under construction.  We may
 	// have to start building the next block while still building the previous block.
@@ -156,9 +147,6 @@ func (p *ProcessList) Clear() {
 	defer p.ECBalancesTMutex.Unlock()
 	p.ECBalancesT = nil
 
-	p.MsgQueue = nil
-	p.VMs = nil
-
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
 	p.OldMsgs = nil
@@ -175,9 +163,6 @@ func (p *ProcessList) Clear() {
 	defer p.NewEntriesMutex.Unlock()
 	p.NewEntries = nil
 
-	p.commitslock.Lock()
-	defer p.commitslock.Unlock()
-	p.Commits = nil
 	p.AdminBlock = nil
 	p.EntryCreditBlock = nil
 	p.DirectoryBlock = nil
@@ -913,13 +898,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			return
 		}
 
-		fmt.Printf("dddd\t%12s %s %s\n", "OverWriting:", vm.List[ack.Height].String(), "with")
-		fmt.Printf("dddd\t%12s %s\n", "with:", m.String())
-		fmt.Printf("dddd\t%12s %s\n", "Detected on:", p.State.GetFactomNodeName())
-		fmt.Printf("dddd\t%12s %s\n", "old ack", vm.ListAck[ack.Height].String())
-		fmt.Printf("dddd\t%12s %s\n", "new ack", ack.String())
-		fmt.Printf("dddd\t%12s %s\n", "VM Index", ack.VMIndex)
-		toss("3")
+		vm.List[ack.Height] = nil
+
 		return
 	}
 
@@ -1030,6 +1010,74 @@ func (p *ProcessList) String() string {
 	return buf.String()
 }
 
+func (p *ProcessList) Reset() {
+
+	// Make a copy of the previous FedServers
+	p.FedServers = make([]interfaces.IFctServer, 0)
+	p.AuditServers = make([]interfaces.IFctServer, 0)
+	p.Requests = make(map[[32]byte]*Request)
+	//pl.Requests = make(map[[20]byte]*Request)
+
+	p.FactoidBalancesT = map[[32]byte]int64{}
+	p.ECBalancesT = map[[32]byte]int64{}
+
+	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
+
+	if previous != nil {
+		p.FedServers = append(p.FedServers, previous.FedServers...)
+		p.AuditServers = append(p.AuditServers, previous.AuditServers...)
+		for _, auditServer := range p.AuditServers {
+			auditServer.SetOnline(false)
+			if p.State.GetIdentityChainID().IsSameAs(auditServer.GetChainID()) {
+				// Always consider yourself "online"
+				auditServer.SetOnline(true)
+			}
+		}
+		for _, fedServer := range p.FedServers {
+			fedServer.SetOnline(true)
+		}
+		p.SortFedServers()
+	} else {
+		p.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+	}
+
+	p.OldMsgs = make(map[[32]byte]interfaces.IMsg)
+	p.OldAcks = make(map[[32]byte]interfaces.IMsg)
+
+	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
+
+	p.FaultMap = make(map[[32]byte]FaultState)
+
+	p.AmINegotiator = false
+
+	p.DBSignatures = make([]DBSig, 0)
+
+	// If a federated server, this is the server index, which is our index in the FedServers list
+
+	var err error
+
+	if previous != nil {
+		p.DirectoryBlock = directoryBlock.NewDirectoryBlock(previous.DirectoryBlock)
+		p.AdminBlock = adminBlock.NewAdminBlock(previous.AdminBlock)
+		p.EntryCreditBlock, err = entryCreditBlock.NextECBlock(previous.EntryCreditBlock)
+	} else {
+		p.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
+		p.AdminBlock = adminBlock.NewAdminBlock(nil)
+		p.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
+	}
+
+	p.ResetDiffSigTally()
+
+	for i := range p.FedServers {
+		p.VMs[i].Height = 0
+	}
+
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
 /************************************************
  * Support
  ************************************************/
@@ -1090,8 +1138,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
-	pl.Commits = make(map[[32]byte]interfaces.IMsg)
-	pl.commitslock = new(sync.Mutex)
 
 	pl.FaultMap = make(map[[32]byte]FaultState)
 

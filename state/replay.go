@@ -13,8 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const HourRange = 1                    // Double this for the period we protect, i.e. 4 means +/- 4 hours
-const numBuckets = HourRange*2*60 + 60 // cover an hour each way, and an hour in the middle.
+const Range = 60                // Double this for the period we protect, i.e. 120 means +/- 120 minutes
+const numBuckets = Range*2 + 60 // Cover the rage in the future and in the past, with an hour buffer.
 
 var _ = time.Now()
 var _ = fmt.Print
@@ -35,18 +35,17 @@ func Minutes(unix int64) int {
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
 func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
-	timeSeconds := timestamp.GetTimeSeconds()
-	systemTimeSeconds := systemtime.GetTimeSeconds()
-	diff := Minutes(systemTimeSeconds) - Minutes(timeSeconds)
+
+	now := Minutes(systemtime.GetTimeSeconds())
+	t := Minutes(timestamp.GetTimeSeconds())
+
+	diff := now - t
 	// Check the timestamp to see if within 12 hours of the system time.  That not valid, we are
 	// just done without any added concerns.
-	if diff >= Minutes(HourRange*60*60) || diff <= -Minutes(HourRange*60*60) {
+	if diff > Range || diff < -Range {
 		//fmt.Println("Time in hours, range:", hours(timeSeconds-systemTimeSeconds), HourRange)
 		return -1, false
 	}
-
-	now := Minutes(systemTimeSeconds)
-	t := Minutes(timeSeconds)
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -59,11 +58,11 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 
 	if r.Center == 0 {
 		r.Center = now
-		r.Basetime = now - (numBuckets / 2) + 1
+		r.Basetime = r.Center - (numBuckets / 2)
 	}
 	for r.Center < now {
 		copy(r.Buckets[:], r.Buckets[1:])
-		r.Buckets[numBuckets-1] = nil
+		r.Buckets[numBuckets-1] = make(map[[32]byte]int)
 		r.Center++
 		r.Basetime++
 	}
