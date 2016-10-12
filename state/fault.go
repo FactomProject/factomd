@@ -244,7 +244,7 @@ func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) *messages.FullSe
 	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
 	if fullFault != nil {
 		fullFault.Sign(pl.State.serverPrivKey)
-		pl.State.NetworkOutMsgQueue() <- fullFault
+		fullFault.SendOut(pl.State, fullFault)
 		fullFault.FollowerExecute(pl.State)
 	}
 
@@ -503,6 +503,15 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			/*ack := s.NewAck(fullFault).(*messages.Ack)
 			ack.SetVMIndex(int(fullFault.VMIndex))
 			relevantPL.AddToProcessList(ack, fullFault)*/
+			vm := relevantPL.VMs[int(fullFault.VMIndex)]
+			rHt := vm.Height
+			ffHt := int(fullFault.Height)
+			if false && rHt > ffHt {
+				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt)
+				vm.Height = ffHt
+				vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
+			}
+
 			s.FollowerExecuteMsg(fullFault)
 
 			return

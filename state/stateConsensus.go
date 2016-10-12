@@ -1180,14 +1180,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	*/
 }
 
-func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) bool {
+func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (haveReplaced bool) {
 	// If we are here, this means that the FullFault message is complete
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
 
 	//fmt.Println("FULL FAULT:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
-
-	haveReplaced := false
 
 	fullFault, _ := msg.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
@@ -1204,7 +1202,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		// If we don't have any Audit Servers in our Authority set
 		// that match the nominated Audit Server in the FullFault,
 		// we can't really do anything useful with it
-		return haveReplaced
+		return
 	}
 
 	for listIdx, fedServ := range relevantPL.FedServers {
