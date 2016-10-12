@@ -112,8 +112,10 @@ type ProcessList struct {
 	// that is the assigned negotiator for a particular processList
 	// height
 	AmINegotiator bool
-
-	AmIPledged bool
+	// ChosenNegotiation tells a negotiator whether they have already
+	// chosen which FullFault to issue (so that they don't accidentally
+	// issue conflicting FullFaults for the same negotiation)
+	ChosenNegotiation [32]byte
 
 	// DB Sigs
 	DBSignatures []DBSig
@@ -219,10 +221,13 @@ func (p *ProcessList) LenNewEntries() int {
 }
 
 func (p *ProcessList) GetKeysFaultMap() (keys [][32]byte) {
-	keys = make([][32]byte, p.LenFaultMap())
-
 	p.FaultMapMutex.RLock()
 	defer p.FaultMapMutex.RUnlock()
+	if len(p.FaultMap) < 1 {
+		return nil
+	}
+	keys = make([][32]byte, p.LenFaultMap())
+
 	i := 0
 	for k := range p.FaultMap {
 		keys[i] = k

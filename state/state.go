@@ -1154,12 +1154,17 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 }
 
 func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
-	return s.ProcessLists.Get(dbheight).AuditServers
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		return pl.AuditServers
+	}
+	return nil
 }
 
 func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
-	allAuditServers := s.ProcessLists.Get(dbheight).AuditServers
+	allAuditServers := s.GetAuditServers(dbheight)
 	var onlineAuditServers []interfaces.IFctServer
+
 	for _, server := range allAuditServers {
 		if server.IsOnline() {
 			onlineAuditServers = append(onlineAuditServers, server)

@@ -107,33 +107,48 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 	if vm.whenFaulted == 0 {
 		// if we did not previously consider this VM faulted
 		// we simply mark it as faulted (by assigning it a nonzero whenFaulted time)
+		// and keep track of the ProcessList height it has faulted at
 		vm.whenFaulted = now
 		vm.faultHeight = height
 	} else {
 		if now-vm.whenFaulted > 20 {
+			// once 20 seconds have elapsed after the server has faulted
+			// we have given them enough time, and it is time to initiate
+			// actual fault messages (and negotiate for their leader slot)
 			if vm.faultInitiatedAlready {
 				if now-vm.whenFaulted > 40 {
+					// this indicates that we have been faulting/negotiating
+					// for this server for >20 seconds (40-20==20)...
+					// in this case, we want to consider faulting the negotiator
+					// if they have not fulfilled their negotiating duties
 					if now-vm.lastFaultAction > 3 {
+						// throttle this action, so it doesn't happen more often than
+						// once every 3 seconds
 						vm.lastFaultAction = now
-						if !couldIFullFault(pl, vmIndex) {
+						if couldIFullFault(pl, vmIndex) {
+							// if we would have been able to FullFault the server
+							// successfully, but for some reason the negotiator
+							// hasn't done so, we consider the negotiator at fault
 							newVMI := (vmIndex + 1) % len(pl.FedServers)
-							//fmt.Println("JUSTIN TIME TO FAULT FAULTER", pl.State.FactomNodeName, newVMI, now)
 							fault(pl, pl.VMs[newVMI], newVMI, len(vm.List), 1)
 						}
 					}
 				}
 			} else {
-				vm.lastFaultAction = now
 				// after 20 seconds, we take initiative and
 				// issue a server fault vote of our own
-				craftAndSubmitFault(pl, vm, vmIndex, height)
+				vm.lastFaultAction = now
+				CraftAndSubmitFault(pl, vm, vmIndex, height)
 				vm.faultInitiatedAlready = true
-				//}
 			}
 		}
 	}
 }
 
+// couldIFullFault is our check to see if there are any negotiations
+// ongoing for a particular VM (leader), and if so, have we gathered
+// enough ServerFaults (+the Audit Pledge) to issue a FullFault message
+// and conclude the faulting process ourselves
 func couldIFullFault(pl *ProcessList, vmIndex int) bool {
 	leaderMin := getLeaderMin(pl)
 	faultedFed := pl.ServerMap[leaderMin][vmIndex]
@@ -141,7 +156,7 @@ func couldIFullFault(pl *ProcessList, vmIndex int) bool {
 	stringid := id.String()
 
 	if pl.LenFaultMap() < 1 {
-		return true
+		return false
 	}
 
 	faultIDs := pl.GetKeysFaultMap()
@@ -151,24 +166,69 @@ func couldIFullFault(pl *ProcessList, vmIndex int) bool {
 			faultedServerFromFaultState := faultState.FaultCore.ServerID.String()
 			if faultedServerFromFaultState == stringid {
 				if faultState.PledgeDone && faultState.HasEnoughSigs(pl.State) {
-					return false
+					// if the above 2 conditions are satisfied, we could issue
+					// a FullFault message (if we were the negotiator for this fault)
+					return true
 				}
-				/*if faultState.NegotiationOngoing {
-					anyNegotiating = true
-					if faultState.PledgeDone && faultState.HasEnoughSigs(pl.State) {
-						return false
-					}
-				}*/
 			}
 		}
 	}
 
-	return true
+	return false
 }
 
-func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
-	//fmt.Printf("JUSTIN CRASFF %s %x\n", pl.State.FactomNodeName, faultID)
+// CraftAndSubmitFault is how we issue ServerFault messages when we have an
+// open choice of which Audit Server we want to vote for (i.e. when we're not
+// just matching someone else's existing Fault message vote)
+func CraftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
+	// TODO: if I am the Leader being faulted, I should respond by sending out
+	// a MissingMsgResponse to everyone for the msg I'm being faulted for
 
+	// Only consider Online Audit servers as candidates for promotion (this
+	// allows us to cycle through Audits on successive calls to CraftAndSubmitFault,
+	// so that we make sure to (eventually) find one that is ready and able to
+	// accept the promotion)
+	auditServerList := pl.State.GetOnlineAuditServers(pl.DBHeight)
+	if len(auditServerList) > 0 {
+		// Nominate the top candidate from the list of Online Audit Servers
+		replacementServer := auditServerList[0]
+		leaderMin := pl.State.CurrentMinute
+
+		faultedFed := pl.ServerMap[leaderMin][vmIndex]
+		pl.FedServers[faultedFed].SetOnline(false)
+		faultedFedID := pl.FedServers[faultedFed].GetChainID()
+
+		// Create and send ServerFault (vote) message
+		sf := messages.NewServerFault(pl.State.GetTimestamp(), faultedFedID, replacementServer.GetChainID(), vmIndex, pl.DBHeight, uint32(height))
+		if sf != nil {
+			sf.Sign(pl.State.serverPrivKey)
+			pl.State.NetworkOutMsgQueue() <- sf
+			pl.State.InMsgQueue() <- sf
+			fm := pl.GetFaultState(sf.GetCoreHash().Fixed())
+			if !fm.IsNil() {
+				// If we already have a FaultState saved to our ProcessList's
+				// FaultMap, we update its "LastMatch" value to the current time
+				// (LastMatch is merely a throttling mechanism)
+				fm.LastMatch = time.Now().Unix()
+				pl.AddFaultState(sf.GetCoreHash().Fixed(), fm)
+			}
+			// Now let's set the Audit Server offline (so we don't just re-nominate them over and over)
+			replacementServer.SetOnline(false)
+		}
+	} else {
+		// If we don't see any Audit servers as Online, we reset all of
+		// them to an Online state and start the cycle anew
+		for _, aud := range pl.AuditServers {
+			aud.SetOnline(true)
+		}
+	}
+}
+
+// CraftAndSubmitFullFault is called from the Negotiate goroutine
+// (which fires once every 5 seconds on each server); most of the time
+// these are "incomplete" FullFault messages which serve as status pings
+// for the negotiation in progress
+func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) *messages.FullServerFault {
 	faultState := pl.GetFaultState(faultID)
 	fc := faultState.FaultCore
 
@@ -180,87 +240,33 @@ func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) {
 	}
 
 	fullFault := messages.NewFullServerFault(sf, listOfSigs)
-	absf := fullFault.ToAdminBlockEntry()
-	pl.State.LeaderPL.AdminBlock.AddServerFault(absf)
+	//adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
+	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
 	if fullFault != nil {
 		fullFault.Sign(pl.State.serverPrivKey)
 		pl.State.NetworkOutMsgQueue() <- fullFault
 		fullFault.FollowerExecute(pl.State)
-		//pl.AmINegotiator = false
-		//delete(pl.FaultMap, faultID)
 	}
-}
 
-/*func craftFault(pl *ProcessList, vm *VM, vmIndex int, height int) *messages.ServerFault {
-	// TODO: if I am the Leader being faulted, I should respond by sending out
-	// a MissingMsgResponse to everyone for the msg I'm being faulted for
-	auditServerList := pl.State.GetOnlineAuditServers(pl.DBHeight)
-	if len(auditServerList) > 0 {
-		replacementServer := auditServerList[0]
-		leaderMin := getLeaderMin(pl)
-
-		faultedFed := pl.ServerMap[leaderMin][vmIndex]
-
-		pl.FedServers[faultedFed].SetOnline(false)
-		id := pl.FedServers[faultedFed].GetChainID()
-		//NOMINATE
-		sf := messages.NewServerFault(pl.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, pl.DBHeight, uint32(height))
-		if sf != nil {
-			sf.Sign(pl.State.serverPrivKey)
-			return sf
-		}
-	}
-	return nil
-}*/
-
-func craftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
-	// TODO: if I am the Leader being faulted, I should respond by sending out
-	// a MissingMsgResponse to everyone for the msg I'm being faulted for
-	auditServerList := pl.State.GetOnlineAuditServers(pl.DBHeight)
-	if len(auditServerList) > 0 {
-		replacementServer := auditServerList[0]
-		leaderMin := getLeaderMin(pl)
-
-		faultedFed := pl.ServerMap[leaderMin][vmIndex]
-
-		pl.FedServers[faultedFed].SetOnline(false)
-		id := pl.FedServers[faultedFed].GetChainID()
-		//NOMINATE
-		sf := messages.NewServerFault(pl.State.GetTimestamp(), id, replacementServer.GetChainID(), vmIndex, pl.DBHeight, uint32(height))
-		if sf != nil {
-			sf.Sign(pl.State.serverPrivKey)
-			pl.State.NetworkOutMsgQueue() <- sf
-			pl.State.InMsgQueue() <- sf
-			fm := pl.GetFaultState(sf.GetCoreHash().Fixed())
-			if !fm.IsNil() {
-				fm.LastMatch = time.Now().Unix()
-				pl.AddFaultState(sf.GetCoreHash().Fixed(), fm)
-			}
-			// Now let's set the Audit Server offline (so we don't just re-nominate them over and over)
-			replacementServer.SetOnline(false)
-		}
-	} else {
-		for _, aud := range pl.AuditServers {
-			aud.SetOnline(true)
-		}
-	}
+	return fullFault
 }
 
 func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
 	pl := s.ProcessLists.Get(sf.DBHeight)
 
-	if pl == nil {
-		return
-	}
-
-	if pl.VMs[sf.VMIndex].whenFaulted == 0 {
+	if pl == nil || pl.VMs[sf.VMIndex].whenFaulted == 0 {
+		// If no such ProcessList exists, or if we don't consider
+		// the VM in this ServerFault message to be at fault,
+		// do not proceed with regularFaultExecution
 		return
 	}
 
 	s.regularFaultExecution(sf, pl)
 }
 
+// regularFaultExecution will create a FaultState in our FaultMap (if none exists already)
+// and save the signature of this particular ServerFault to that FaultStat's VoteMap
 func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList) {
 	var issuerID [32]byte
 	rawIssuerID := sf.GetSignature().GetKey()
@@ -330,9 +336,14 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 	}
 
+	// Update the FaultState in our FaultMap with any updates that were applied
+	// during execution of this function
 	pl.AddFaultState(coreHash, faultState)
 }
 
+// regularFullFaultExecution does the same thing as regularFaultExecution, except
+// it will make sure to add every signature from the FullFault to the corresponding
+// FaultState's VoteMap
 func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *ProcessList) {
 	coreHash := sf.GetCoreHash().Fixed()
 	var fedServerCnt int
@@ -376,7 +387,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 			if !faultState.MyVoteTallied {
 				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
-				sfbytes, err := nsf.MarshalForSignature() //fullFault.MarshalForSF()
+				sfbytes, err := nsf.MarshalForSignature()
 				myAuth, _ := s.GetAuthority(s.IdentityChainID)
 				if myAuth == nil || err != nil {
 					return
@@ -423,6 +434,8 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 	}
 }
 
+// matchFault does what it sounds like; given a particular ServerFault
+// message, it will copy it, sign it, and send it out to the network
 func (s *State) matchFault(sf *messages.ServerFault) {
 	if sf != nil {
 		sf.Sign(s.serverPrivKey)
@@ -431,6 +444,7 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 	}
 }
 
+// Unfault is used to reset to the default state (No One At Fault)
 func (pl *ProcessList) Unfault() {
 	// Delete all entries in FaultMap
 	pl.ClearFaultMap()
@@ -444,6 +458,7 @@ func (pl *ProcessList) Unfault() {
 		vm.faultInitiatedAlready = false
 	}
 	pl.AmINegotiator = false
+	pl.ChosenNegotiation = [32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 }
 
 func (pl *ProcessList) ClearFaultMap() {
@@ -452,6 +467,9 @@ func (pl *ProcessList) ClearFaultMap() {
 	pl.FaultMap = make(map[[32]byte]FaultState)
 }
 
+// When we execute a FullFault message, it could be complete (includes all
+// necessary signatures + pledge) or incomplete, in which case it is just
+// a negotiation ping
 func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fullFault, _ := m.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
@@ -465,80 +483,59 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		}
 	}
 	if theAuditReplacement == nil {
+		// If we don't have any Audit Servers in our Authority set
+		// that match the nominated Audit Server in the FullFault,
+		// we can't really do anything useful with it
 		return
 	}
-
-	/*theFaultState := relevantPL.GetFaultState(fullFault.GetCoreHash().Fixed())
-	if !theFaultState.IsNil() {
-		//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()]
-		theFaultState.NegotiationOngoing = true
-		//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
-		relevantPL.AddFaultState(fullFault.GetCoreHash().Fixed(), theFaultState)
-	}*/
 
 	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
 	if hasSignatureQuorum > 0 {
 		if s.pledgedByAudit(fullFault) {
-			//fmt.Println("JUSTIN EXECUTING FULLFAULT", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10])
-			for listIdx, fedServ := range relevantPL.FedServers {
-				if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-					fmt.Println("FULL FAULT:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
-					relevantPL.FedServers[listIdx] = theAuditReplacement
-					relevantPL.FedServers[listIdx].SetOnline(true)
-					relevantPL.AddAuditServer(fedServ.GetChainID())
-					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
-					relevantPL.Unfault()
-					break
-				}
-			}
+			// If we are here, this means that the FullFault message is complete
+			// and we can execute it as such (replacing the faulted Leader with
+			// the nominated Audit server)
 
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+			// We now do the above by sticking the message in the Process list,
+			// which will ultimately result in ProcessFullServerFault being
+			// done with it
+
+			/*ack := s.NewAck(fullFault).(*messages.Ack)
+			ack.SetVMIndex(int(fullFault.VMIndex))
+			relevantPL.AddToProcessList(ack, fullFault)*/
+			s.FollowerExecuteMsg(fullFault)
+
 			return
 		} else {
 			// MISSING A PLEDGE
 			if s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
+				// If the FullFault had enough signatures, but didn't include
+				// a pledge from the Audit server, and we are the Audit server,
+				// we should just match the fault so we get promoted!
 				sf := messages.NewServerFault(s.GetTimestamp(), fullFault.ServerID, fullFault.AuditServerID,
 					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height)
 				s.matchFault(sf)
 			} else {
+				// If the FullFault had enough signatures, but didn't include
+				// a pledge from the Audit server, we should nominate another
+				// Audit server to make sure we don't just stall waiting for
+				// a pledge from a potentially-offline Audit candidate
 				if s.Leader {
 					if relevantPL.VMs[fullFault.VMIndex].whenFaulted > 0 {
-						craftAndSubmitFault(relevantPL, relevantPL.VMs[fullFault.VMIndex], int(fullFault.VMIndex), int(fullFault.Height))
+						CraftAndSubmitFault(relevantPL, relevantPL.VMs[fullFault.VMIndex], int(fullFault.VMIndex), int(fullFault.Height))
 					}
-					/*sf := messages.NewServerFault(s.GetTimestamp(), fullFault.ServerID, fullFault.AuditServerID,
-						int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height)
-					s.regularFaultExecution(sf, relevantPL)*/
 				}
 			}
 		}
 	} else if hasSignatureQuorum == 0 {
 		// NOT ENOUGH SIGNATURES TO EXECUTE
+		// Add the signatures that are included to our FaultState's VoteMap
 		s.regularFullFaultExecution(fullFault, relevantPL)
 	}
-
-	/*
-		if !theFaultState.IsNil() {
-			if !theFaultState.MyVoteTallied {
-				nsf := messages.NewServerFault(s.GetTimestamp(), fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height)
-				lbytes, err := nsf.MarshalForSignature() //fullFault.MarshalForSF()
-				auth, _ := s.GetAuthority(s.IdentityChainID)
-				if auth == nil || err != nil {
-					return
-				}
-				for _, sig := range fullFault.SignatureList.List {
-					ffSig := sig.GetSignature()
-					valid, err := auth.VerifySignature(lbytes, ffSig)
-					if err == nil && valid {
-						theFaultState.MyVoteTallied = true
-						//relevantPL.FaultMap[fullFault.GetCoreHash().Fixed()] = theFaultState
-						relevantPL.AddFaultState(fullFault.GetCoreHash().Fixed(), theFaultState)
-						return
-					}
-				}
-			}
-		}*/
 }
 
+// If a FullFault message includes a signature from the Audit server
+// which was nominated in the Fault, pledgedByAudit will return true
 func (s *State) pledgedByAudit(fullFault *messages.FullServerFault) bool {
 	for _, a := range s.Authorities {
 		if a.AuthorityChainID.IsSameAs(fullFault.AuditServerID) {
