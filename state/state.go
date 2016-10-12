@@ -61,7 +61,6 @@ type State struct {
 	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
 	ControlPanelPort        int
-	ControlPanelPath        string
 	ControlPanelSetting     int
 	ControlPanelChannel     chan DisplayState
 	ControlPanelDataRequest bool // If true, update Display state
@@ -342,7 +341,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.PortNumber = s.PortNumber
 
 	newState.ControlPanelPort = s.ControlPanelPort
-	newState.ControlPanelPath = s.ControlPanelPath
 	newState.ControlPanelSetting = s.ControlPanelSetting
 
 	newState.Identities = s.Identities
@@ -500,7 +498,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.Wsapi.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
-		s.ControlPanelPath = cfg.App.ControlPanelFilesPath
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
 
@@ -563,7 +560,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
-		s.ControlPanelPath = "Web/"
 		s.ControlPanelSetting = 1
 
 		// TODO:  Actually load the IdentityChainID from the config file
@@ -1158,12 +1154,17 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 }
 
 func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
-	return s.ProcessLists.Get(dbheight).AuditServers
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		return pl.AuditServers
+	}
+	return nil
 }
 
 func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
-	allAuditServers := s.ProcessLists.Get(dbheight).AuditServers
+	allAuditServers := s.GetAuditServers(dbheight)
 	var onlineAuditServers []interfaces.IFctServer
+
 	for _, server := range allAuditServers {
 		if server.IsOnline() {
 			onlineAuditServers = append(onlineAuditServers, server)

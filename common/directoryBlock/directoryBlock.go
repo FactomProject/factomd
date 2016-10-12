@@ -258,12 +258,13 @@ func (b *DirectoryBlock) BuildKeyMerkleRoot() (keyMR interfaces.IHash, err error
 	// Create the Entry Block Key Merkle Root from the hash of Header and the Body Merkle Root
 
 	hashes := make([]interfaces.IHash, 0, 2)
+	bodyKeyMR := b.BodyKeyMR() //This needs to be called first to build the header properly!!
 	headerHash, err := b.HeaderHash()
 	if err != nil {
 		return nil, err
 	}
 	hashes = append(hashes, headerHash)
-	hashes = append(hashes, b.BodyKeyMR())
+	hashes = append(hashes, bodyKeyMR)
 	merkle := primitives.BuildMerkleTreeStore(hashes)
 	keyMR = merkle[len(merkle)-1] // MerkleRoot is not marshalized in Dir Block
 

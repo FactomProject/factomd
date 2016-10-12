@@ -16,7 +16,7 @@ const (
 )
 
 type ServerIndexNumber struct {
-	Number uint8
+	ServerIndexNumber uint8
 }
 
 var _ interfaces.Printable = (*ServerIndexNumber)(nil)
@@ -27,7 +27,7 @@ var _ interfaces.IECBlockEntry = (*ServerIndexNumber)(nil)
 func (e *ServerIndexNumber) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf(" %-20s\n", "ServerIndexNumber"))
-	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Number", e.Number))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Number", e.ServerIndexNumber))
 	return (string)(out.DeepCopyBytes())
 }
 
@@ -56,7 +56,7 @@ func (b *ServerIndexNumber) IsInterpretable() bool {
 }
 
 func (b *ServerIndexNumber) Interpret() string {
-	return fmt.Sprintf("ServerIndexNumber %v", b.Number)
+	return fmt.Sprintf("ServerIndexNumber %v", b.ServerIndexNumber)
 }
 
 func NewServerIndexNumber() *ServerIndexNumber {
@@ -65,7 +65,7 @@ func NewServerIndexNumber() *ServerIndexNumber {
 
 func NewServerIndexNumber2(number uint8) *ServerIndexNumber {
 	sin := new(ServerIndexNumber)
-	sin.Number = number
+	sin.ServerIndexNumber = number
 	return sin
 }
 
@@ -75,7 +75,7 @@ func (s *ServerIndexNumber) ECID() byte {
 
 func (s *ServerIndexNumber) MarshalBinary() ([]byte, error) {
 	buf := new(primitives.Buffer)
-	buf.WriteByte(s.Number)
+	buf.WriteByte(s.ServerIndexNumber)
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -91,7 +91,7 @@ func (s *ServerIndexNumber) UnmarshalBinaryData(data []byte) (newData []byte, er
 	if c, err = buf.ReadByte(); err != nil {
 		return
 	} else {
-		s.Number = c
+		s.ServerIndexNumber = c
 	}
 	newData = buf.DeepCopyBytes()
 	return

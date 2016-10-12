@@ -152,11 +152,8 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 func noStaticFilesFoundHandler(w http.ResponseWriter, r *http.Request) {
 	DisplayStateMutex.RLock()
-	Path := DisplayState.ControlPanelPath
 	DisplayStateMutex.RUnlock()
-	fmt.Fprintf(w, "The control panel was not able to be correctly loaded because the Web files were not found. "+
-		"\nFactomd is looking in %s folder for the files, placing the \n"+
-		"Web files in that directory should resolve this error.", Path)
+	fmt.Fprintf(w, "The control panel was not able to be correctly loaded because the Web files were not found. \n")
 }
 
 // For all static files. (CSS, JS, IMG, etc...)

@@ -21,7 +21,6 @@ type DisplayState struct {
 	NodeName string
 
 	ControlPanelPort    int
-	ControlPanelPath    string
 	ControlPanelSetting int
 
 	// DB Info
@@ -97,7 +96,6 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 	ds.NodeName = s.GetFactomNodeName()
 	ds.ControlPanelPort = s.ControlPanelPort
-	ds.ControlPanelPath = s.ControlPanelPath
 	ds.ControlPanelSetting = s.ControlPanelSetting
 
 	// DB Info
@@ -220,7 +218,6 @@ func (d *DisplayState) Clone() *DisplayState {
 
 	ds.NodeName = d.NodeName
 	ds.ControlPanelPort = d.ControlPanelPort
-	ds.ControlPanelPath = d.ControlPanelPath
 	ds.ControlPanelSetting = d.ControlPanelSetting
 
 	// DB Info
