@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"os"
@@ -66,20 +68,36 @@ func LoadDatabase(s *State) {
 		s.Println("******* New Database **************")
 		s.Println("***********************************\n")
 
-		dblk := directoryBlock.NewDirectoryBlock(nil)
-		ablk := adminBlock.NewAdminBlock(nil)
-		fblk := factoid.GetGenesisFBlock(s.GetNetworkID())
-		ecblk := entryCreditBlock.NewECBlock()
-
-		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
-
-		dblk.SetABlockHash(ablk)
-		dblk.SetECBlockHash(ecblk)
-		dblk.SetFBlockHash(fblk)
-		dblk.GetHeader().SetNetworkID(s.GetNetworkID())
+		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil)
 		s.InMsgQueue() <- msg
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
+}
+
+func GenerateGenesisBlocks(networkID uint32) (interfaces.IDirectoryBlock, interfaces.IAdminBlock, interfaces.IFBlock, interfaces.IEntryCreditBlock) {
+	dblk := directoryBlock.NewDirectoryBlock(nil)
+	ablk := adminBlock.NewAdminBlock(nil)
+	fblk := factoid.GetGenesisFBlock(networkID)
+	ecblk := entryCreditBlock.NewECBlock()
+
+	if networkID != constants.MAIN_NETWORK_ID {
+		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
+	} else {
+		ecblk.GetBody().AddEntry(entryCreditBlock.NewServerIndexNumber())
+		for i := 1; i < 11; i++ {
+			minute := entryCreditBlock.NewMinuteNumber(uint8(i))
+			ecblk.GetBody().AddEntry(minute)
+		}
+	}
+
+	dblk.SetABlockHash(ablk)
+	dblk.SetECBlockHash(ecblk)
+	dblk.SetFBlockHash(fblk)
+	dblk.GetHeader().SetNetworkID(networkID)
+
+	dblk.GetHeader().SetTimestamp(primitives.NewTimestampFromMinutes(24018960))
+
+	return dblk, ablk, fblk, ecblk
 }

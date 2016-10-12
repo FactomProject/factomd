@@ -23,7 +23,7 @@ func GetGenesisFBlock(netID uint32) interfaces.IFBlock {
 		panic(err)
 	}
 	err = block.UnmarshalBinary(data)
-	block.SetExchRate(10000)
+	//block.SetExchRate(10000)
 	block.GetBodyMR()
 	if err != nil {
 		panic(err)
