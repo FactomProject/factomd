@@ -864,20 +864,34 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
-func (p *ProcessList) AddToSystemList(m interfaces.IMsg) successfullyAdded bool {
+func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	if p == nil {
-		return
+		return false
 	}
 	fullFault, _ := m.(*messages.FullServerFault)
 
-	if int(fullFault.Height) < len(p.System.List)-1 {
-		return
-	} else if int(fullFault.Height) >= len(p.System.List) {
+	if int(fullFault.SystemHeight) < p.System.Height {
+		return false
+	} else if int(fullFault.SystemHeight) > p.System.Height {
 		p.State.Holding[m.GetMsgHash().Fixed()] = fullFault
-        return
+		return false
 	} else {
-        // fullFault.Height == len(p.System.List)-1
-        return true
+		// If we are here, fullFault.SystemHeight == p.System.Height
+		if len(p.System.List) == p.System.Height {
+			// Nothing in our list a this slot yet, so insert this FullFault message
+			p.System.List = append(p.System.List, fullFault)
+			return true
+		} else {
+			// Something is in our SystemList at this height;
+			// We will prioritize the FullFault with the highest VMIndex
+			existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
+			if int(existingSystemFault.VMIndex) >= int(fullFault.VMIndex) {
+				return false
+			} else {
+				p.System.List[p.System.Height] = fullFault
+				return true
+			}
+		}
 	}
 }
 
