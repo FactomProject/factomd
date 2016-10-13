@@ -165,6 +165,9 @@ func (st *State) removeIdentity(i int) {
 }
 
 func (st *State) isIdentityChain(cid interfaces.IHash) int {
+	if cid.IsSameAs(primitives.NewZeroHash()) {
+		return -1
+	}
 	// is this an identity chain
 	for i, identityChain := range st.Identities {
 		if identityChain.IdentityChainID.IsSameAs(cid) {
