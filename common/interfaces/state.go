@@ -36,6 +36,7 @@ type IState interface {
 	SetString()
 	ShortString() string
 
+	AddDBSig(dbheight uint32, chainID IHash, sig IFullSignature)
 	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
