@@ -60,13 +60,14 @@ type ProcessList struct {
 	ECBalancesT           map[[32]byte]int64
 	ECBalancesTMutex      sync.Mutex
 
-	State     *State
-	VMs       []*VM       // Process list for each server (up to 32)
-	ServerMap [10][64]int // Map of FedServers to all Servers for each minute
-
-	diffSigTally int /*     Tally of how many VMs have provided different
-		                    Directory Block Signatures than what we have
-	                        (discard DBlock if > 1/2 have sig differences) */
+	State     						*State
+	VMs       						[]*VM                // Process list for each server (up to 32)
+	ServerMap 						[10][64]int          // Map of FedServers to all Servers for each minute
+	System    						[]interfaces.ISystem // System Faults and other system wide messages
+	SysHighest 						int
+	diffSigTally 					int 								/* Tally of how many VMs have provided different
+		                    					             Directory Block Signatures than what we have
+	                                            (discard DBlock if > 1/2 have sig differences) */
 
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
@@ -664,6 +665,13 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 
 		vm := p.VMs[vmIndex]
 
+		for k := range p.Requests {
+			r2 := p.Requests[k]
+			if r2.vmIndex == vmIndex && int(r2.vmheight) < vm.Height {
+				delete(p.Requests, k)
+			}
+		}
+
 		missingMsgRequest.AddHeight(uint32(height))
 		// Okay, we are going to send one, so ask for all nil messages for this vm
 		for i := 0; i < len(vm.List); i++ {
@@ -1117,8 +1125,9 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}
 
-	pl.VMs = make([]*VM, 32)
-	for i := 0; i < 32; i++ {
+	// We just make lots of VMs as they have nearly no impact if not used.
+	pl.VMs = make([]*VM, 65)
+	for i := 0; i < 65; i++ {
 		pl.VMs[i] = new(VM)
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true

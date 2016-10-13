@@ -32,8 +32,8 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
-	if diff > 2 && len(lists.Lists) > 1 {
-		diff = diff - 2
+	if diff > 1 && len(lists.Lists) > 1 {
+		diff = diff - 1
 		progress = true
 		lists.DBHeightBase += uint32(diff)
 		var newlist []*ProcessList

@@ -61,6 +61,9 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 		r.Basetime = r.Center - (numBuckets / 2)
 	}
 	for r.Center < now {
+		for k := range r.Buckets[0] {
+			delete(r.Buckets,k)
+		}
 		copy(r.Buckets[:], r.Buckets[1:])
 		r.Buckets[numBuckets-1] = make(map[[32]byte]int)
 		r.Center++
