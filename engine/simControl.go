@@ -767,7 +767,7 @@ func SimControl(listenTo int) {
 				}
 
 				fnodes[listenTo].State.Delay = nnn
-				os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%01d Seconds\n", fnodes[listenTo].State.FactomNodeName, nnn/1000, nnn%1000))
+				os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fnodes[listenTo].State.FactomNodeName, nnn/1000, nnn%1000))
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
