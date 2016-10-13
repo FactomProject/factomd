@@ -49,8 +49,8 @@ func LoadDatabase(s *State) {
 			if msg != nil {
 				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 50 {
-					for len(s.InMsgQueue()) > 10 {
+				if len(s.InMsgQueue()) > 20 {
+					for len(s.InMsgQueue()) > 5 {
 						time.Sleep(100 * time.Millisecond)
 					}
 				}
