@@ -855,6 +855,23 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	return
 }
 
+func (p *ProcessList) AddToSystemList(m interfaces.IMsg) successfullyAdded bool {
+	if p == nil {
+		return
+	}
+	fullFault, _ := m.(*messages.FullServerFault)
+
+	if int(fullFault.Height) < len(p.System.List)-1 {
+		return
+	} else if int(fullFault.Height) >= len(p.System.List) {
+		p.State.Holding[m.GetMsgHash().Fixed()] = fullFault
+        return
+	} else {
+        // fullFault.Height == len(p.System.List)-1
+        return true
+	}
+}
+
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if p == nil {

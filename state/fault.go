@@ -456,6 +456,7 @@ func (pl *ProcessList) Unfault() {
 		vm.whenFaulted = 0
 		vm.lastFaultAction = 0
 		vm.faultInitiatedAlready = false
+		pl.FedServers[i].SetOnline(true)
 	}
 	pl.AmINegotiator = false
 	pl.ChosenNegotiation = [32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -512,7 +513,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
 			}
 
-			s.FollowerExecuteMsg(fullFault)
+			relevantPL.AddToSystemList(fullFault)
 
 			return
 		} else {
