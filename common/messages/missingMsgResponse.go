@@ -115,12 +115,15 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 		return nil, err
 	}
 
-	m.AckResponse = new(Ack)
+	b, newData := newData[0], newData[1:]
 
-	newData, err = m.AckResponse.UnmarshalBinaryData(newData)
+	if b == 1 {
+		m.AckResponse = new(Ack)
+		newData, err = m.AckResponse.UnmarshalBinaryData(newData)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	mr, err := UnmarshalMessage(newData)
@@ -152,12 +155,17 @@ func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	ackData, err := m.AckResponse.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
+	if m.AckResponse == nil {
+		buf.WriteByte(0)
+	} else {
+		buf.WriteByte(1)
 
-	buf.Write(ackData)
+		ackData, err := m.AckResponse.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(ackData)
+	}
 
 	msgData, err := m.MsgResponse.MarshalBinary()
 	if err != nil {

@@ -21,6 +21,7 @@ type MissingMsg struct {
 	Timestamp         interfaces.Timestamp
 	Asking            interfaces.IHash
 	DBHeight          uint32
+	SystemHeight      uint32 // Might as well check for a missing Server Fault
 	ProcessListHeight []uint32
 
 	//No signature!
@@ -131,6 +132,7 @@ func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.SystemHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	// Get all the missing messages...
 	lenl, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
@@ -162,6 +164,9 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	if m.Asking == nil {
+		m.Asking = primitives.NewHash(constants.ZERO_HASH)
+	}
 	data, err = m.Asking.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -170,6 +175,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 
 	buf.WriteByte(uint8(m.VMIndex))
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
+	binary.Write(&buf, binary.BigEndian, m.SystemHeight)
 
 	binary.Write(&buf, binary.BigEndian, uint32(len(m.ProcessListHeight)))
 	for _, h := range m.ProcessListHeight {
@@ -186,11 +192,12 @@ func (m *MissingMsg) String() string {
 	for _, n := range m.ProcessListHeight {
 		str = fmt.Sprintf("%s%d,", str, n)
 	}
-	return fmt.Sprintf("MissingMsg --> Asking %x DBHeight:%3d vm=%3d Hts::%s msgHash[%x]",
+	return fmt.Sprintf("MissingMsg --> Asking %x DBHeight:%3d vm=%3d Hts::[%s] Sys: %d msgHash[%x]",
 		m.Asking.Bytes()[:8],
 		m.DBHeight,
 		m.VMIndex,
 		str,
+		m.SystemHeight,
 		m.GetMsgHash().Bytes()[:3])
 }
 
