@@ -687,6 +687,10 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		// Might as well as for the next message too.  Won't hurt.
 		missingMsgRequest.AddHeight(uint32(len(vm.List)))
 
+		if vmIndex < 0 {
+			missingMsgRequest.SystemHeight = uint32(p.System.Height)
+		}
+
 		missingMsgRequest.SendOut(p.State, missingMsgRequest)
 		p.State.MissingRequestSendCnt++
 
@@ -737,7 +741,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		if fault == nil {
 			p.Ask(-1, i, 10, 100)
 		}
-
 		p.System.Height++
 	}
 

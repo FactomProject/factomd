@@ -371,15 +371,27 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
-	ack := mmr.AckResponse.(*messages.Ack)
+
+	sys, ok := mmr.MsgResponse.(*messages.FullServerFault)
+	if ok && sys != nil {
+		// Handle the missing full fault here
+		return
+	}
+
+	ack, ok := mmr.AckResponse.(*messages.Ack)
 
 	// If we don't need this message, we don't have to do everything else.
-	if ack.Validate(s) == -1 {
+	if !ok || ack.Validate(s) == -1 {
 		return
 	}
 
 	ack.Response = true
 	msg := mmr.MsgResponse
+
+	if msg == nil {
+		return
+	}
+
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -516,6 +528,22 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	m := msg.(*messages.MissingMsg)
 
+	pl := s.ProcessLists.Get(m.DBHeight)
+
+	if pl == nil {
+		s.MissingRequestIgnoreCnt++
+		return
+	}
+	sent := false
+	if len(pl.System.List) > int(m.SystemHeight) && pl.System.List[m.SystemHeight] != nil {
+		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
+		msgResponse.SetOrigin(m.GetOrigin())
+		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+		s.NetworkOutMsgQueue() <- msgResponse
+		s.MissingRequestReplyCnt++
+		sent = true
+	}
+
 	for _, h := range m.ProcessListHeight {
 		missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, h)
 
@@ -526,9 +554,12 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
 			s.NetworkOutMsgQueue() <- msgResponse
 			s.MissingRequestReplyCnt++
-		} else {
-			s.MissingRequestIgnoreCnt++
+			sent = true
 		}
+	}
+
+	if !sent {
+		s.MissingRequestIgnoreCnt++
 	}
 	return
 }
@@ -956,11 +987,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
-
+		if s.LeaderPL.SysHighest < int(e.SysHeight) {
+			s.LeaderPL.SysHighest = int(e.SysHeight)
+		}
 		return false
 	}
 
-	allfaults := s.LeaderPL.System.Height == s.LeaderPL.SysHighest
+	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
