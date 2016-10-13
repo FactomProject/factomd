@@ -53,6 +53,7 @@ func TestMarshalUnmarshalMissingDsg(t *testing.T) {
 func newMissingMsg() *MissingMsg {
 	msg := new(MissingMsg)
 	msg.Timestamp = primitives.NewTimestampNow()
+	msg.Asking = primitives.NewZeroHash()
 
 	msg.DBHeight = 0x12345678
 	msg.ProcessListHeight = append(msg.ProcessListHeight, 0x98765432)
