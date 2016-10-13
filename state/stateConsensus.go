@@ -987,11 +987,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
-
+		if s.LeaderPL.SysHighest < int(e.SysHeight) {
+			s.LeaderPL.SysHighest = int(e.SysHeight)
+		}
 		return false
 	}
 
-	allfaults := s.LeaderPL.System.Height == s.LeaderPL.SysHighest
+	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
