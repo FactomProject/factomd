@@ -36,6 +36,7 @@ func CreateAndPopulateTestState() *state.State {
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
 	s.LoadConfig("", "")
 	s.Init()
+	s.NetworkNumber = constants.NETWORK_MAIN
 	/*err := s.RecalculateBalances()
 	if err != nil {
 		panic(err)

@@ -45,7 +45,7 @@ func TestGetGenesisFBlockExchangeRate(t *testing.T) {
 		t.FailNow()
 	}
 
-	if g.GetExchRate() != 10000 {
+	if g.GetExchRate() != 666600 {
 		t.Errorf("Wrong exchange rate - %v", g.GetExchRate())
 	}
 
@@ -54,7 +54,7 @@ func TestGetGenesisFBlockExchangeRate(t *testing.T) {
 		t.FailNow()
 	}
 
-	if g.GetExchRate() != 10000 {
+	if g.GetExchRate() != 666600 {
 		t.Errorf("Wrong exchange rate - %v", g.GetExchRate())
 	}
 }
