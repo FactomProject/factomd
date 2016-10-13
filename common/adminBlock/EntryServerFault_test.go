@@ -6,7 +6,7 @@ import (
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
+	//"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
@@ -106,7 +106,7 @@ func TestServerFaultUpdateState(t *testing.T) {
 	sf.SignatureList.Length = uint32(len(sf.SignatureList.List))
 
 	s := testHelper.CreateAndPopulateTestState()
-	idindex := state.CreateBlankFactomIdentity(s, primitives.NewZeroHash())
+	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
 	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
 	for i := 0; i < sigs; i++ {
 		//Federated Server

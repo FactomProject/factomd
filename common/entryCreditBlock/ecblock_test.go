@@ -128,7 +128,7 @@ func createECBlock() *ECBlock {
 
 	// add a ServerIndexNumber
 	si1 := NewServerIndexNumber()
-	si1.Number = 3
+	si1.ServerIndexNumber = 3
 	ecb1.AddEntry(si1)
 
 	// create an IncreaseBalance for testing

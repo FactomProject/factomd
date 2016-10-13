@@ -11,7 +11,7 @@ import (
 
 func TestServerIndexMarshalUnmarshal(t *testing.T) {
 	si1 := NewServerIndexNumber()
-	si1.Number = 3
+	si1.ServerIndexNumber = 3
 	b, err := si1.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -28,14 +28,14 @@ func TestServerIndexMarshalUnmarshal(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if si1.Number != si2.Number {
+	if si1.ServerIndexNumber != si2.ServerIndexNumber {
 		t.Error("Invalid data unmarshalled")
 	}
 }
 
 func TestServerIndexNumberMisc(t *testing.T) {
 	si := NewServerIndexNumber()
-	si.Number = 4
+	si.ServerIndexNumber = 4
 	if si.IsInterpretable() == false {
 		t.Fail()
 	}
