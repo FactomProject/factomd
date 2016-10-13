@@ -200,7 +200,11 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 	ds.RawSummary = prt
 
-	pl := s.ProcessLists.Get(s.GetHighestCompletedBlock())
+	b := s.GetHighestCompletedBlock()
+	pl := s.ProcessLists.Get(b + 1)
+	if pl == nil {
+		pl = s.ProcessLists.Get(b)
+	}
 	if pl != nil && pl.FedServers != nil {
 		ds.PrintMap = pl.PrintMap()
 		ds.ProcessList = pl.String()
