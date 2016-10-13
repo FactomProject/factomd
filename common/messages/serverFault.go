@@ -26,6 +26,7 @@ type ServerFault struct {
 	VMIndex       byte
 	DBHeight      uint32
 	Height        uint32
+	SystemHeight  uint32
 
 	Signature interfaces.IFullSignature
 
@@ -96,6 +97,7 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
+	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -129,6 +131,7 @@ func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
+	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -187,6 +190,7 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	m.VMIndex, newData = newData[0], newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.SystemHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -229,7 +233,7 @@ func (m *ServerFault) String() string {
 		copy(sig[:], m.Signature.Bytes()[:3])
 	}
 
-	return fmt.Sprintf("%6s %v VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d sig[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s %v VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d SysHt:%3d sig[:3]=%x hash[:3]=%x",
 		"SFault",
 		m.GetCoreHash().String()[:10],
 		m.VMIndex,
@@ -237,6 +241,7 @@ func (m *ServerFault) String() string {
 		m.AuditServerID.String()[:10],
 		m.Height,
 		m.DBHeight,
+		m.SystemHeight,
 		sig[:3],
 		m.GetHash().Bytes()[:3])
 }

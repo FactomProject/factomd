@@ -663,7 +663,12 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	if now-r.sent >= waitSeconds*1000+500 {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
-		vm := p.VMs[vmIndex]
+		// The System (handling full faults) is a special VM.  Let's guess it first.
+		vm := &p.System
+		if vmIndex >= 0 {
+			// Ah, not the System VM, so let's look up the one we are really talking about.
+			vm = p.VMs[vmIndex]
+		}
 
 		for k := range p.Requests {
 			r2 := p.Requests[k]
@@ -722,13 +727,17 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
-	for _, f := range p.System.List[p.System.Height:] {
+	for i, f := range p.System.List[p.System.Height:] {
 		fault, ok := f.(interfaces.ISystem)
 		if ok {
 			if !fault.Process(p.DBHeight, p.State) {
 				break
 			}
 		}
+		if fault == nil {
+			p.Ask(-1, i, 10, 100)
+		}
+
 		p.System.Height++
 	}
 
