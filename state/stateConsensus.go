@@ -960,7 +960,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	allfaults := len(s.LeaderPL.System) == s.LeaderPL.SysHighest
+	allfaults := s.LeaderPL.System.Height == s.LeaderPL.SysHighest
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {

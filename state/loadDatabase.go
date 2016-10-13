@@ -47,13 +47,13 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
+				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 500 {
-					for len(s.InMsgQueue()) > 200 {
-						time.Sleep(10 * time.Millisecond)
+				if len(s.InMsgQueue()) > 50 {
+					for len(s.InMsgQueue()) > 10 {
+						time.Sleep(100 * time.Millisecond)
 					}
 				}
-				s.InMsgQueue() <- msg
 			} else {
 				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break

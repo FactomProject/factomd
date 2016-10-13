@@ -60,12 +60,12 @@ type ProcessList struct {
 	ECBalancesT           map[[32]byte]int64
 	ECBalancesTMutex      sync.Mutex
 
-	State     						*State
-	VMs       						[]*VM                // Process list for each server (up to 32)
-	ServerMap 						[10][64]int          // Map of FedServers to all Servers for each minute
-	System    						[]interfaces.ISystem // System Faults and other system wide messages
-	SysHighest 						int
-	diffSigTally 					int 								/* Tally of how many VMs have provided different
+	State        *State
+	VMs          []*VM       // Process list for each server (up to 32)
+	ServerMap    [10][64]int // Map of FedServers to all Servers for each minute
+	System       VM          // System Faults and other system wide messages
+	SysHighest   int
+	diffSigTally int /* Tally of how many VMs have provided different
 		                    					             Directory Block Signatures than what we have
 	                                            (discard DBlock if > 1/2 have sig differences) */
 
@@ -721,6 +721,16 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	state.PLProcessHeight = p.DBHeight
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
+
+	for _, f := range p.System.List[p.System.Height:] {
+		fault, ok := f.(interfaces.ISystem)
+		if ok {
+			if !fault.Process(p.DBHeight, p.State) {
+				break
+			}
+		}
+		p.System.Height++
+	}
 
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
