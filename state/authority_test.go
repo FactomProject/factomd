@@ -8,13 +8,13 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/state"
+	//. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestAuthoritySignature(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
-	idindex := CreateBlankFactomIdentity(s, primitives.NewZeroHash())
+	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
 	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
 
 	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
