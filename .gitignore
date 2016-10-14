@@ -16,6 +16,7 @@ debug
 peers.json
 *.csv
 *.gz
+*.swp
 
 # Folders
 _obj
