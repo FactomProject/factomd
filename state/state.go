@@ -1566,7 +1566,7 @@ func (s *State) SetStringQueues() {
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
-	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, s.GetTrueLeaderHeight())
 
 	str = str + fmt.Sprintf(" %5d[%6x] %-11s ",
 		dHeight,
@@ -1592,6 +1592,10 @@ func (s *State) SetStringQueues() {
 		stps)
 
 	s.serverPrt = str
+}
+
+func (s *State) GetTrueLeaderHeight() uint32 {
+	return uint32(int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1)
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
