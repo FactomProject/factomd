@@ -510,10 +510,15 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 
 	c := new(ChainHeadResponse)
 
-	// get the pending chain head from the process list in the state (if any)
-	if state.GetNewEBlocks(state.GetLeaderHeight(), h) != nil {
+	// get the pending chain head from the current or previous process list in
+	// the state
+	lh := state.GetLeaderHeight()
+	pend1 := state.GetNewEBlocks(lh, h)
+	pend2 := state.GetNewEBlocks(lh-1, h)
+	if pend1 != nil || pend2 != nil {
 		c.ChainInProcessList = true
 	}
+
 	// get the chain head from the database
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
