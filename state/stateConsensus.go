@@ -987,11 +987,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
-
+		if s.LeaderPL.SysHighest < int(e.SysHeight) {
+			s.LeaderPL.SysHighest = int(e.SysHeight)
+		}
 		return false
 	}
 
-	allfaults := s.LeaderPL.System.Height == s.LeaderPL.SysHighest
+	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
@@ -1238,22 +1240,67 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		return
 	}
 
-	for listIdx, fedServ := range relevantPL.FedServers {
-		if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-			//fmt.Println("FULL FAULT X:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
-			relevantPL.FedServers[listIdx] = theAuditReplacement
-			relevantPL.FedServers[listIdx].SetOnline(true)
-			relevantPL.AddAuditServer(fedServ.GetChainID())
-			s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
-			// After executing the FullFault successfully, we want to reset
-			// to the default state (No One At Fault)
-			relevantPL.Unfault()
-			haveReplaced = true
-			break
+	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
+	if hasSignatureQuorum > 0 {
+		if s.pledgedByAudit(fullFault) {
+			// If we are here, this means that the FullFault message is complete
+			// and we can execute it as such (replacing the faulted Leader with
+			// the nominated Audit server)
+
+			vm := relevantPL.VMs[int(fullFault.VMIndex)]
+			rHt := vm.Height
+			ffHt := int(fullFault.Height)
+			if false && rHt > ffHt {
+				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt)
+				vm.Height = ffHt
+				vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
+			}
+
+			// Here is where we actually swap out the Leader with the Audit server
+			// being promoted
+			for listIdx, fedServ := range relevantPL.FedServers {
+				if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
+					fmt.Println("FULL FAULT X:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
+					relevantPL.FedServers[listIdx] = theAuditReplacement
+					relevantPL.FedServers[listIdx].SetOnline(true)
+					relevantPL.AddAuditServer(fedServ.GetChainID())
+					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
+					// After executing the FullFault successfully, we want to reset
+					// to the default state (No One At Fault)
+					relevantPL.Unfault()
+					haveReplaced = true
+					break
+				}
+			}
+
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		} else {
+			// MISSING A PLEDGE
+			if s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
+				// If the FullFault had enough signatures, but didn't include
+				// a pledge from the Audit server, and we are the Audit server,
+				// we should just match the fault so we get promoted!
+				sf := messages.NewServerFault(s.GetTimestamp(), fullFault.ServerID, fullFault.AuditServerID,
+					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height)
+				s.matchFault(sf)
+			} else {
+				// If the FullFault had enough signatures, but didn't include
+				// a pledge from the Audit server, we should nominate another
+				// Audit server to make sure we don't just stall waiting for
+				// a pledge from a potentially-offline Audit candidate
+				if s.Leader {
+					if relevantPL.VMs[fullFault.VMIndex].whenFaulted > 0 {
+						CraftAndSubmitFault(relevantPL, relevantPL.VMs[fullFault.VMIndex], int(fullFault.VMIndex), int(fullFault.Height))
+					}
+				}
+			}
 		}
+	} else if hasSignatureQuorum == 0 {
+		// NOT ENOUGH SIGNATURES TO EXECUTE
+		// Add the signatures that are included to our FaultState's VoteMap
+		s.regularFullFaultExecution(fullFault, relevantPL)
 	}
 
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	return haveReplaced
 }
 

@@ -456,6 +456,7 @@ func (pl *ProcessList) Unfault() {
 		vm.whenFaulted = 0
 		vm.lastFaultAction = 0
 		vm.faultInitiatedAlready = false
+		pl.FedServers[i].SetOnline(true)
 	}
 	pl.AmINegotiator = false
 	pl.ChosenNegotiation = [32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -496,13 +497,10 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 			// and we can execute it as such (replacing the faulted Leader with
 			// the nominated Audit server)
 
-			// We now do the above by sticking the message in the Process list,
+			// We now do the above by sticking the message in the System list,
 			// which will ultimately result in ProcessFullServerFault being
 			// done with it
 
-			/*ack := s.NewAck(fullFault).(*messages.Ack)
-			ack.SetVMIndex(int(fullFault.VMIndex))
-			relevantPL.AddToProcessList(ack, fullFault)*/
 			vm := relevantPL.VMs[int(fullFault.VMIndex)]
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
@@ -512,7 +510,14 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
 			}
 
-			s.FollowerExecuteMsg(fullFault)
+			wasItAdded := relevantPL.AddToSystemList(fullFault)
+			if wasItAdded {
+				fmt.Println("JUSTIN WIAT")
+				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d %s %s \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10])
+			} else {
+				fmt.Println("JUSTIN WIAF")
+				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d %s %s \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10])
+			}
 
 			return
 		} else {
