@@ -115,6 +115,7 @@ func fault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 			// once 20 seconds have elapsed after the server has faulted
 			// we have given them enough time, and it is time to initiate
 			// actual fault messages (and negotiate for their leader slot)
+
 			if vm.faultInitiatedAlready {
 				if now-vm.whenFaulted > 40 {
 					// this indicates that we have been faulting/negotiating
@@ -277,23 +278,15 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 			issuerID[i] = rawIssuerID[i]
 		}
 	}
-	var fedServerCnt int
-
-	if pl != nil {
-		fedServerCnt = len(pl.FedServers)
-	} else {
-		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
-	}
-	responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
 
 	coreHash := sf.GetCoreHash().Fixed()
 	faultState := pl.GetFaultState(coreHash)
 	if faultState.IsNil() {
 		// We don't have a map entry yet; let's create one
-		fcore := FaultCore{ServerID: sf.ServerID, AuditServerID: sf.AuditServerID, VMIndex: sf.VMIndex, DBHeight: sf.DBHeight, Height: sf.Height}
+		fcore := ExtractFaultCore(sf)
 		faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
 
-		if s.Leader && s.LeaderVMIndex == responsibleFaulterIdx {
+		if isMyNegotiation(fcore, pl) {
 			faultState.AmINegotiator = true
 			faultState.NegotiationOngoing = true
 			pl.AmINegotiator = true
@@ -343,19 +336,39 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	pl.AddFaultState(coreHash, faultState)
 }
 
-// regularFullFaultExecution does the same thing as regularFaultExecution, except
-// it will make sure to add every signature from the FullFault to the corresponding
-// FaultState's VoteMap
-func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *ProcessList) {
-	coreHash := sf.GetCoreHash().Fixed()
+func ExtractFaultCore(sfMsg interfaces.IMsg) FaultCore {
+	sf, ok := sfMsg.(*messages.ServerFault)
+	if !ok {
+		sf, ok2 := sfMsg.(*messages.FullServerFault)
+		if !ok2 {
+			return *new(FaultCore)
+		}
+		return FaultCore{ServerID: sf.ServerID, AuditServerID: sf.AuditServerID, VMIndex: sf.VMIndex, DBHeight: sf.DBHeight, Height: sf.Height}
+	}
+	return FaultCore{ServerID: sf.ServerID, AuditServerID: sf.AuditServerID, VMIndex: sf.VMIndex, DBHeight: sf.DBHeight, Height: sf.Height}
+}
+
+func isMyNegotiation(sf FaultCore, pl *ProcessList) bool {
 	var fedServerCnt int
 
 	if pl != nil {
 		fedServerCnt = len(pl.FedServers)
 	} else {
-		fedServerCnt = len(s.GetFedServers(sf.DBHeight))
+		fedServerCnt = len(pl.State.GetFedServers(sf.DBHeight))
 	}
 	responsibleFaulterIdx := (int(sf.VMIndex) + 1) % fedServerCnt
+
+	if pl.State.Leader && pl.State.LeaderVMIndex == responsibleFaulterIdx {
+		return true
+	}
+	return false
+}
+
+// regularFullFaultExecution does the same thing as regularFaultExecution, except
+// it will make sure to add every signature from the FullFault to the corresponding
+// FaultState's VoteMap
+func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *ProcessList) {
+	coreHash := sf.GetCoreHash().Fixed()
 
 	for _, signature := range sf.SignatureList.List {
 		var issuerID [32]byte
@@ -371,10 +384,10 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 			// We already have a map entry
 		} else {
 			// We don't have a map entry yet; let's create one
-			fcore := FaultCore{ServerID: sf.ServerID, AuditServerID: sf.AuditServerID, VMIndex: sf.VMIndex, DBHeight: sf.DBHeight, Height: sf.Height}
+			fcore := ExtractFaultCore(sf)
 			faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
 
-			if s.Leader && s.LeaderVMIndex == responsibleFaulterIdx {
+			if isMyNegotiation(fcore, pl) {
 				faultState.AmINegotiator = true
 				faultState.NegotiationOngoing = true
 				pl.AmINegotiator = true
