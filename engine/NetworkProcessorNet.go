@@ -29,7 +29,10 @@ func Peers(fnode *FactomNode) {
 		for i := 0; i < 100 && len(fnode.State.APIQueue()) > 0; i++ {
 			select {
 			case msg := <-fnode.State.APIQueue():
-				if msg == nil {
+				if msg.GetRepeatHash() == nil {
+					fmt.Println("dddd ERROR!", msg.String())
+				}
+				if msg == nil || msg.GetRepeatHash() == nil {
 					break
 				}
 				cnt++
