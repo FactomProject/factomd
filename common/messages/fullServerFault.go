@@ -477,7 +477,7 @@ func (a *FullServerFault) ToAdminBlockEntry() *adminBlock.ServerFault {
 // Build Function
 //*******************************************************************************
 
-func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSignature) *FullServerFault {
+func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSignature, sysHeight int) *FullServerFault {
 	sf := new(FullServerFault)
 	sf.Timestamp = faultMessage.Timestamp
 	sf.VMIndex = faultMessage.VMIndex
@@ -485,6 +485,7 @@ func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSig
 	sf.Height = faultMessage.Height
 	sf.ServerID = faultMessage.ServerID
 	sf.AuditServerID = faultMessage.AuditServerID
+	sf.SystemHeight = uint32(sysHeight)
 
 	numSigs := len(sigList)
 	var allSigs []interfaces.IFullSignature

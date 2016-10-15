@@ -1240,6 +1240,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		return
 	}
 
+	relevantPL.FaultedVMIndex = int(fullFault.VMIndex)
+
 	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
 	if hasSignatureQuorum > 0 {
 		if s.pledgedByAudit(fullFault) {
@@ -1281,7 +1283,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 				// a pledge from the Audit server, and we are the Audit server,
 				// we should just match the fault so we get promoted!
 				sf := messages.NewServerFault(s.GetTimestamp(), fullFault.ServerID, fullFault.AuditServerID,
-					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height)
+					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight))
 				s.matchFault(sf)
 			} else {
 				// If the FullFault had enough signatures, but didn't include

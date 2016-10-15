@@ -199,7 +199,7 @@ func CraftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
 		faultedFedID := pl.FedServers[faultedFed].GetChainID()
 
 		// Create and send ServerFault (vote) message
-		sf := messages.NewServerFault(pl.State.GetTimestamp(), faultedFedID, replacementServer.GetChainID(), vmIndex, pl.DBHeight, uint32(height))
+		sf := messages.NewServerFault(pl.State.GetTimestamp(), faultedFedID, replacementServer.GetChainID(), vmIndex, pl.DBHeight, uint32(height), pl.System.Height)
 		if sf != nil {
 			sf.Sign(pl.State.serverPrivKey)
 			pl.State.NetworkOutMsgQueue() <- sf
@@ -232,17 +232,19 @@ func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) *messages.FullSe
 	faultState := pl.GetFaultState(faultID)
 	fc := faultState.FaultCore
 
-	sf := messages.NewServerFault(pl.State.GetTimestamp(), fc.ServerID, fc.AuditServerID, int(fc.VMIndex), fc.DBHeight, fc.Height)
+	sf := messages.NewServerFault(pl.State.GetTimestamp(), fc.ServerID, fc.AuditServerID, int(fc.VMIndex), fc.DBHeight, fc.Height, pl.System.Height)
 
 	var listOfSigs []interfaces.IFullSignature
 	for _, sig := range faultState.VoteMap {
 		listOfSigs = append(listOfSigs, sig)
 	}
 
-	fullFault := messages.NewFullServerFault(sf, listOfSigs)
+	fmt.Println("JUSTIN CRASF:", pl.State.FactomNodeName, pl.System.Height)
+	fullFault := messages.NewFullServerFault(sf, listOfSigs, pl.System.Height)
 	//adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
 	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
 	if fullFault != nil {
+		fmt.Println("WFWF", fullFault.SystemHeight)
 		fullFault.Sign(pl.State.serverPrivKey)
 		fullFault.SendOut(pl.State, fullFault)
 		fullFault.FollowerExecute(pl.State)
@@ -386,7 +388,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 			if !faultState.MyVoteTallied {
-				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height, pl.System.Height)
 				sfbytes, err := nsf.MarshalForSignature()
 				myAuth, _ := s.GetAuthority(s.IdentityChainID)
 				if myAuth == nil || err != nil {
@@ -427,7 +429,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 	if !faultState.IsNil() {
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 			if !faultState.MyVoteTallied {
-				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height)
+				nsf := messages.NewServerFault(s.GetTimestamp(), sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height, pl.System.Height)
 				s.matchFault(nsf)
 			}
 		}
@@ -475,6 +477,10 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	fullFault, _ := m.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
 
+	if relevantPL.FaultedVMIndex > int(fullFault.VMIndex) {
+		return
+	}
+
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
 
@@ -490,62 +496,16 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		return
 	}
 
-	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
-	if hasSignatureQuorum > 0 {
-		if s.pledgedByAudit(fullFault) {
-			// If we are here, this means that the FullFault message is complete
-			// and we can execute it as such (replacing the faulted Leader with
-			// the nominated Audit server)
-
-			// We now do the above by sticking the message in the System list,
-			// which will ultimately result in ProcessFullServerFault being
-			// done with it
-
-			vm := relevantPL.VMs[int(fullFault.VMIndex)]
-			rHt := vm.Height
-			ffHt := int(fullFault.Height)
-			if false && rHt > ffHt {
-				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt)
-				vm.Height = ffHt
-				vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
-			}
-
-			wasItAdded := relevantPL.AddToSystemList(fullFault)
-			if wasItAdded {
-				fmt.Println("JUSTIN WIAT")
-				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d %s %s \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10])
-			} else {
-				fmt.Println("JUSTIN WIAF")
-				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d %s %s \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10])
-			}
-
-			return
-		} else {
-			// MISSING A PLEDGE
-			if s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
-				// If the FullFault had enough signatures, but didn't include
-				// a pledge from the Audit server, and we are the Audit server,
-				// we should just match the fault so we get promoted!
-				sf := messages.NewServerFault(s.GetTimestamp(), fullFault.ServerID, fullFault.AuditServerID,
-					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height)
-				s.matchFault(sf)
-			} else {
-				// If the FullFault had enough signatures, but didn't include
-				// a pledge from the Audit server, we should nominate another
-				// Audit server to make sure we don't just stall waiting for
-				// a pledge from a potentially-offline Audit candidate
-				if s.Leader {
-					if relevantPL.VMs[fullFault.VMIndex].whenFaulted > 0 {
-						CraftAndSubmitFault(relevantPL, relevantPL.VMs[fullFault.VMIndex], int(fullFault.VMIndex), int(fullFault.Height))
-					}
-				}
-			}
-		}
-	} else if hasSignatureQuorum == 0 {
-		// NOT ENOUGH SIGNATURES TO EXECUTE
-		// Add the signatures that are included to our FaultState's VoteMap
-		s.regularFullFaultExecution(fullFault, relevantPL)
+	vm := relevantPL.VMs[int(fullFault.VMIndex)]
+	rHt := vm.Height
+	ffHt := int(fullFault.Height)
+	if false && rHt > ffHt {
+		fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt)
+		vm.Height = ffHt
+		vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
 	}
+
+	relevantPL.AddToSystemList(fullFault)
 }
 
 // If a FullFault message includes a signature from the Audit server

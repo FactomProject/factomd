@@ -327,7 +327,7 @@ func (a *ServerFault) IsSameAs(b *ServerFault) bool {
 // Support Functions
 //*******************************************************************************
 
-func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, auditServerID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
+func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, auditServerID interfaces.IHash, vmIndex int, dbheight uint32, height uint32, systemHeight int) *ServerFault {
 	sf := new(ServerFault)
 	sf.Timestamp = timeStamp
 	sf.VMIndex = byte(vmIndex)
@@ -335,5 +335,6 @@ func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, a
 	sf.Height = height
 	sf.ServerID = serverID
 	sf.AuditServerID = auditServerID
+	sf.SystemHeight = uint32(systemHeight)
 	return sf
 }

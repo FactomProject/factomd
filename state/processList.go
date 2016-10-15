@@ -97,6 +97,7 @@ type ProcessList struct {
 	FaultMapMutex sync.RWMutex
 	FaultMap      map[[32]byte]FaultState
 
+	FaultedVMIndex int
 	// This is the index of the VM we are negotiating for, if we are
 	// in fact a Negotiator
 	NegotiatorVMIndex int
@@ -737,11 +738,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if !fault.Process(p.DBHeight, p.State) {
 				break
 			}
+			fmt.Println("JUSTIN INCREMENT PSYSHEIGHT", state.FactomNodeName)
+			p.System.Height++
 		}
 		if fault == nil {
 			p.Ask(-1, i, 10, 100)
 		}
-		p.System.Height++
 	}
 
 	for i := 0; i < len(p.FedServers); i++ {
@@ -872,15 +874,18 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		return false
 	}
 	fullFault, _ := m.(*messages.FullServerFault)
-
+	fmt.Println("WF0", fullFault.ServerID.String()[:10], p.State.FactomNodeName)
 	if int(fullFault.SystemHeight) < p.System.Height {
+		fmt.Println("WF1", int(fullFault.SystemHeight), p.System.Height)
 		return false
 	} else if int(fullFault.SystemHeight) > p.System.Height {
+		fmt.Println("WF2", int(fullFault.SystemHeight), p.System.Height)
 		p.State.Holding[m.GetMsgHash().Fixed()] = fullFault
 		return false
 	} else {
 		// If we are here, fullFault.SystemHeight == p.System.Height
-		if len(p.System.List) == p.System.Height {
+		if len(p.System.List) <= p.System.Height {
+			fmt.Println("WF3", int(fullFault.SystemHeight), p.System.Height)
 			// Nothing in our list a this slot yet, so insert this FullFault message
 			p.System.List = append(p.System.List, fullFault)
 			return true
@@ -889,8 +894,10 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 			// We will prioritize the FullFault with the highest VMIndex
 			existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
 			if int(existingSystemFault.VMIndex) >= int(fullFault.VMIndex) {
+				fmt.Println("WF4", int(fullFault.SystemHeight), p.System.Height)
 				return false
 			} else {
+				fmt.Println("WF5", int(fullFault.SystemHeight), p.System.Height)
 				p.System.List[p.System.Height] = fullFault
 				return true
 			}

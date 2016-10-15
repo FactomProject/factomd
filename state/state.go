@@ -1438,7 +1438,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s\n",
+	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -1454,7 +1454,8 @@ func (s *State) SummaryHeader() string {
 		"Expire",
 		"Fct/EC/E",
 		"API:Fct/EC/E",
-		"tps t/i")
+		"tps t/i",
+		"SysHeight")
 
 	return str
 }
@@ -1580,6 +1581,15 @@ func (s *State) SetStringQueues() {
 		trans,
 		apis,
 		stps)
+
+	str = str + fmt.Sprintf(" %d", list.System.Height)
+
+	if list.System.Height < len(list.System.List) {
+		ff := list.System.List[list.System.Height].(*messages.FullServerFault)
+		str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
+	} else {
+		str = str + " -"
+	}
 
 	s.serverPrt = str
 }
