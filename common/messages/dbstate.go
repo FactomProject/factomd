@@ -148,18 +148,12 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	}
 
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
-	/*
-		if dbheight == 0 {
-			//Don't synch genesis block?
-			return -1
-		}
-	*/
-	/*
-		if dbheight != state.GetHighestCompletedBlock()+1 {
-			//We only expect the next height
-			return -1
-		}
-	*/
+
+	if dbheight != state.GetHighestCompletedBlock()+1 && dbheight != 0 {
+		//We only expect the next height
+		return -1
+	}
+
 	if m.DirectoryBlock.GetHeader().GetNetworkID() == constants.MAIN_NETWORK_ID {
 		key := constants.CheckPoints[dbheight]
 		if key != "" {
