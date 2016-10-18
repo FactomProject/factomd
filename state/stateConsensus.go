@@ -350,8 +350,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	}
 
+	isLocal := msg.IsLocal()
+
 	s.DBStates.LastTime = s.GetTimestamp()
-	dbstate := s.AddDBState(false, // Not a new block; got it from the network
+	dbstate := s.AddDBState(isLocal, // If the message is local, don't save the block again
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
@@ -361,7 +363,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	if dbstate == nil {
 		s.DBStateFailsCnt++
 	} else {
-		dbstate.ReadyToSave = true
+		if isLocal == false {
+			dbstate.ReadyToSave = true
+		}
 	}
 }
 
