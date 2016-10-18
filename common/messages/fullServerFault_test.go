@@ -16,11 +16,11 @@ import (
 func TestMarshalUnmarshalFullServerFault(t *testing.T) {
 	ts := primitives.NewTimestampNow()
 	vmIndex := int(*ts) % 10
-	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100)
+	sf := NewServerFault(primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100, 0, ts)
 
 	sl := coupleOfSigs(t)
 
-	fsf := NewFullServerFault(sf, sl)
+	fsf := NewFullServerFault(sf, sl, 0)
 	hex, err := fsf.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -99,11 +99,11 @@ func makeSigList(t *testing.T) SigList {
 func TestThatFullAndFaultCoreHashesMatch(t *testing.T) {
 	ts := primitives.NewTimestampNow()
 	vmIndex := int(*ts) % 10
-	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100)
+	sf := NewServerFault(primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100, 0, ts)
 
 	sl := coupleOfSigs(t)
 
-	fsf := NewFullServerFault(sf, sl)
+	fsf := NewFullServerFault(sf, sl, 0)
 
 	if !sf.GetCoreHash().IsSameAs(fsf.GetCoreHash()) {
 		t.Error("CoreHashes do not match between FullServerFault and ServerFault")

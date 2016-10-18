@@ -192,10 +192,11 @@ type State struct {
 	InvalidMessagesMutex sync.RWMutex
 
 	AuditHeartBeats []interfaces.IMsg // The checklist of HeartBeats for this period
-	FaultVoteMap    map[[32]byte]map[[32]byte]interfaces.IFullSignature
-	// -------CoreHash for fault : FaulterIdentity : Msg Signature
-	FaultInfoMap map[[32]byte]FaultCore
-	// Contains detailed fault information for the ongoing negotiations
+
+	FaultTimeout    int
+	FaultWait       int
+	EOMfaultIndex   int
+	LastFaultAction int64
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -332,8 +333,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.LocalNetworkPort = s.LocalNetworkPort
 	newState.LocalSeedURL = s.LocalSeedURL
 	newState.LocalSpecialPeers = s.LocalSpecialPeers
-	newState.FaultVoteMap = s.FaultVoteMap
-	newState.FaultInfoMap = s.FaultInfoMap
 	newState.StartDelayLimit = s.StartDelayLimit
 	newState.CustomNetworkID = s.CustomNetworkID
 
@@ -346,6 +345,10 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.Identities = s.Identities
 	newState.Authorities = s.Authorities
 	newState.AuthorityServerCount = s.AuthorityServerCount
+
+	newState.FaultTimeout = s.FaultTimeout
+	newState.FaultWait = s.FaultWait
+	newState.EOMfaultIndex = s.EOMfaultIndex
 
 	if !config {
 		newState.IdentityChainID = primitives.Sha([]byte(newState.FactomNodeName))
@@ -643,9 +646,6 @@ func (s *State) Init() {
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
-	s.FaultVoteMap = make(map[[32]byte]map[[32]byte]interfaces.IFullSignature)
-	s.FaultInfoMap = make(map[[32]byte]FaultCore)
-
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
 	s.ECBalancesP = map[[32]byte]int64{}
@@ -656,7 +656,10 @@ func (s *State) Init() {
 
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
-
+	s.FaultTimeout = 20
+	s.FaultWait = 5
+	s.LastFaultAction = 0
+	s.EOMfaultIndex = 0
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
@@ -754,6 +757,14 @@ func (s *State) SetEntryBlockDBHeightProcessing(newHeight uint32) {
 
 func (s *State) GetLLeaderHeight() uint32 {
 	return s.LLeaderHeight
+}
+
+func (s *State) GetFaultTimeout() int {
+	return s.FaultTimeout
+}
+
+func (s *State) GetFaultWait() int {
+	return s.FaultWait
 }
 
 func (s *State) GetEntryDBHeightComplete() uint32 {
@@ -1337,6 +1348,14 @@ func (s *State) SetLeaderTimestamp(ts interfaces.Timestamp) {
 	s.LeaderTimestamp = ts
 }
 
+func (s *State) SetFaultTimeout(timeout int) {
+	s.FaultTimeout = timeout
+}
+
+func (s *State) SetFaultWait(wait int) {
+	s.FaultWait = wait
+}
+
 //var _ IState = (*State)(nil)
 
 // Getting the cfg state for Factom doesn't force a read of the config file unless
@@ -1449,7 +1468,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s\n",
+	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -1465,7 +1484,8 @@ func (s *State) SummaryHeader() string {
 		"Expire",
 		"Fct/EC/E",
 		"API:Fct/EC/E",
-		"tps t/i")
+		"tps t/i",
+		"SysHeight")
 
 	return str
 }
@@ -1591,6 +1611,15 @@ func (s *State) SetStringQueues() {
 		trans,
 		apis,
 		stps)
+
+	str = str + fmt.Sprintf(" %d", list.System.Height)
+
+	if list.System.Height < len(list.System.List) {
+		ff := list.System.List[list.System.Height].(*messages.FullServerFault)
+		str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
+	} else {
+		str = str + " -"
+	}
 
 	s.serverPrt = str
 }

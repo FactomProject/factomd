@@ -375,15 +375,27 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
-	ack := mmr.AckResponse.(*messages.Ack)
+
+	sys, ok := mmr.MsgResponse.(*messages.FullServerFault)
+	if ok && sys != nil {
+		// Handle the missing full fault here
+		return
+	}
+
+	ack, ok := mmr.AckResponse.(*messages.Ack)
 
 	// If we don't need this message, we don't have to do everything else.
-	if ack.Validate(s) == -1 {
+	if !ok || ack.Validate(s) == -1 {
 		return
 	}
 
 	ack.Response = true
 	msg := mmr.MsgResponse
+
+	if msg == nil {
+		return
+	}
+
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -520,6 +532,22 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	m := msg.(*messages.MissingMsg)
 
+	pl := s.ProcessLists.Get(m.DBHeight)
+
+	if pl == nil {
+		s.MissingRequestIgnoreCnt++
+		return
+	}
+	sent := false
+	if len(pl.System.List) > int(m.SystemHeight) && pl.System.List[m.SystemHeight] != nil {
+		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
+		msgResponse.SetOrigin(m.GetOrigin())
+		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+		s.NetworkOutMsgQueue() <- msgResponse
+		s.MissingRequestReplyCnt++
+		sent = true
+	}
+
 	for _, h := range m.ProcessListHeight {
 		missingmsg, ackMsg, err := s.LoadSpecificMsgAndAck(m.DBHeight, m.VMIndex, h)
 
@@ -530,9 +558,12 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
 			s.NetworkOutMsgQueue() <- msgResponse
 			s.MissingRequestReplyCnt++
-		} else {
-			s.MissingRequestIgnoreCnt++
+			sent = true
 		}
+	}
+
+	if !sent {
+		s.MissingRequestIgnoreCnt++
 	}
 	return
 }
@@ -960,12 +991,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
-
+		if s.LeaderPL.SysHighest < int(e.SysHeight) {
+			s.LeaderPL.SysHighest = int(e.SysHeight)
+		}
 		return false
 	}
 
+	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
+
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
-	if s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
 
 		s.EOMDone = true
 		for _, eb := range pl.NewEBlocks {
@@ -1184,14 +1219,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	*/
 }
 
-func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) bool {
+func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (haveReplaced bool) {
 	// If we are here, this means that the FullFault message is complete
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
 
 	//fmt.Println("FULL FAULT:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
-
-	haveReplaced := false
 
 	fullFault, _ := msg.(*messages.FullServerFault)
 	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
@@ -1208,25 +1241,48 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		// If we don't have any Audit Servers in our Authority set
 		// that match the nominated Audit Server in the FullFault,
 		// we can't really do anything useful with it
-		return haveReplaced
+		return
 	}
 
-	for listIdx, fedServ := range relevantPL.FedServers {
-		if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-			//fmt.Println("FULL FAULT X:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
-			relevantPL.FedServers[listIdx] = theAuditReplacement
-			relevantPL.FedServers[listIdx].SetOnline(true)
-			relevantPL.AddAuditServer(fedServ.GetChainID())
-			s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
-			// After executing the FullFault successfully, we want to reset
-			// to the default state (No One At Fault)
-			relevantPL.Unfault()
-			haveReplaced = true
-			break
+	relevantPL.FaultedVMIndex = int(fullFault.VMIndex)
+
+	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
+	if hasSignatureQuorum > 0 {
+		if s.pledgedByAudit(fullFault) {
+			// If we are here, this means that the FullFault message is complete
+			// and we can execute it as such (replacing the faulted Leader with
+			// the nominated Audit server)
+
+			vm := relevantPL.VMs[int(fullFault.VMIndex)]
+			rHt := vm.Height
+			ffHt := int(fullFault.Height)
+			if false && rHt > ffHt {
+				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt)
+				vm.Height = ffHt
+				vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
+			}
+
+			// Here is where we actually swap out the Leader with the Audit server
+			// being promoted
+			for listIdx, fedServ := range relevantPL.FedServers {
+				if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
+					fmt.Println("FULL FAULT X:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
+					relevantPL.FedServers[listIdx] = theAuditReplacement
+					relevantPL.FedServers[listIdx].SetOnline(true)
+					relevantPL.AddAuditServer(fedServ.GetChainID())
+					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
+					// After executing the FullFault successfully, we want to reset
+					// to the default state (No One At Fault)
+					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+					relevantPL.Unfault()
+					haveReplaced = true
+					break
+				}
+			}
+
 		}
 	}
-
-	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	return haveReplaced
 }
 
