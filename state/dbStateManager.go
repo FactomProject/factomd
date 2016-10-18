@@ -678,7 +678,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.ECHash = entryCreditBlock.DatabasePrimaryIndex()
 
 	dbState.isNew = isNew
-	dbState.Saved = isNew
 	dbState.DirectoryBlock = directoryBlock
 	dbState.AdminBlock = adminBlock
 	dbState.FactoidBlock = factoidBlock
