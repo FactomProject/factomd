@@ -69,18 +69,6 @@ func TestDBStateMsgValidate(t *testing.T) {
 	}
 
 	msg = newDBStateMsg()
-	msg.DirectoryBlock.GetHeader().SetDBHeight(0x00)
-	if msg.Validate(state) >= 0 {
-		t.Errorf("Block height 0 validated")
-	}
-	/*
-		msg = newDBStateMsg()
-		msg.DirectoryBlock.GetHeader().SetDBHeight(0x01)
-		if msg.Validate(state) >= 0 {
-			t.Errorf("Block height 1 validated")
-		}
-	*/
-	msg = newDBStateMsg()
 	msg.DirectoryBlock.GetHeader().SetDBHeight(state.GetHighestCompletedBlock() + 1)
 	constants.CheckPoints[state.GetHighestCompletedBlock()+1] = "123"
 	if msg.Validate(state) >= 0 {
