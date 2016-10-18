@@ -15,7 +15,7 @@ import (
 func TestMarshalUnmarshalServerFault(t *testing.T) {
 	ts := primitives.NewTimestampNow()
 	vmIndex := int(*ts) % 10
-	sf := NewServerFault(ts, primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100, 0)
+	sf := NewServerFault(primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100, 0, ts)
 	hex, err := sf.MarshalBinary()
 	if err != nil {
 		t.Error(err)

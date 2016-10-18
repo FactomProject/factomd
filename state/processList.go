@@ -137,6 +137,7 @@ type VM struct {
 	faultInitiatedAlready bool
 	faultHeight           int
 	whenFaulted           int64
+	whenEOMFaulted        int64
 	lastFaultAction       int64
 }
 
@@ -753,7 +754,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.whenFaulted = 0
 		} else {
 			if !vm.Synced {
-				fault(p, vm, i, len(vm.List), 0)
+				eomFault(p, vm, i, len(vm.List), 0)
 			}
 		}
 
@@ -774,24 +775,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.faultHeight = -1
 			vm.whenFaulted = 0
 
-			/*
-				amLeader, myLeaderVMIndex := state.LeaderPL.GetVirtualServers(state.CurrentMinute, state.IdentityChainID)
-
-				if amLeader && p.AmINegotiator && myLeaderVMIndex == i+1%len(p.FedServers) {
-					p.AmINegotiator = false
-				}
-				fedServerToUnfault := p.ServerMap[getLeaderMin(p)][i]
-				if fedServerToUnfault >= 0 && fedServerToUnfault < len(p.FedServers) {
-					if p.FedServers[fedServerToUnfault] != nil {
-						p.FedServers[fedServerToUnfault].SetOnline(true)
-						for faultKey, faultInfo := range state.FaultInfoMap {
-							if faultInfo.ServerID.String() == p.FedServers[fedServerToUnfault].GetChainID().String() {
-								delete(state.FaultInfoMap, faultKey)
-								delete(state.FaultVoteMap, faultKey)
-							}
-						}
-					}
-				}*/
 			p.Unfault()
 
 		}

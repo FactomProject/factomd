@@ -1282,8 +1282,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 				// If the FullFault had enough signatures, but didn't include
 				// a pledge from the Audit server, and we are the Audit server,
 				// we should just match the fault so we get promoted!
-				sf := messages.NewServerFault(s.GetTimestamp(), fullFault.ServerID, fullFault.AuditServerID,
-					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight))
+				sf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID,
+					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), s.GetTimestamp())
 				s.matchFault(sf)
 			} else {
 				// If the FullFault had enough signatures, but didn't include

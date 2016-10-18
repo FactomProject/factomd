@@ -288,6 +288,16 @@ func SimControl(listenTo int) {
 					verboseFaultOutput = true
 					os.Stderr.WriteString("--VerboseFaultOutput On--\n")
 				}
+			case 'V' == b[0]:
+				nnn, err := strconv.Atoi(string(b[1:]))
+				if err != nil || nnn < 0 || nnn > 99 {
+					os.Stderr.WriteString("Specifiy a FaultTimeout between 0 and 100\n")
+					break
+				}
+				for _, fn := range fnodes {
+					fn.State.FaultTimeout = nnn
+					os.Stderr.WriteString(fmt.Sprintf("Setting FaultTimeout of %10s to %d\n", fn.State.FactomNodeName, nnn))
+				}
 			case 'k' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
