@@ -200,7 +200,7 @@ func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (i
 	key := make([]byte, 4)
 	binary.BigEndian.PutUint32(key, blockHeight)
 
-	block, err := db.DB.Get(bucket, key, new(primitives.Hash))
+	block, err := db.Get(bucket, key, new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (db *Overlay) FetchBlockIndexByHeight(bucket []byte, blockHeight uint32) (i
 }
 
 func (db *Overlay) FetchPrimaryIndexBySecondaryIndex(secondaryIndexBucket []byte, key interfaces.IHash) (interfaces.IHash, error) {
-	block, err := db.DB.Get(secondaryIndexBucket, key.Bytes(), new(primitives.Hash))
+	block, err := db.Get(secondaryIndexBucket, key.Bytes(), new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func (db *Overlay) FetchBlockBySecondaryIndex(secondaryIndexBucket, blockBucket 
 }
 
 func (db *Overlay) FetchBlock(bucket []byte, key interfaces.IHash, dst interfaces.DatabaseBatchable) (interfaces.DatabaseBatchable, error) {
-	block, err := db.DB.Get(bucket, key.Bytes(), dst)
+	block, err := db.Get(bucket, key.Bytes(), dst)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +244,7 @@ func (db *Overlay) FetchBlock(bucket []byte, key interfaces.IHash, dst interface
 }
 
 func (db *Overlay) FetchAllBlocksFromBucket(bucket []byte, sample interfaces.BinaryMarshallableAndCopyable) ([]interfaces.BinaryMarshallableAndCopyable, error) {
-	answer, _, err := db.DB.GetAll(bucket, sample)
+	answer, _, err := db.GetAll(bucket, sample)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (db *Overlay) FetchAllBlockKeysFromBucket(bucket []byte) ([]interfaces.IHas
 }
 
 func (db *Overlay) Insert(bucket []byte, entry interfaces.DatabaseBatchable) error {
-	err := db.DB.Put(bucket, entry.DatabasePrimaryIndex().Bytes(), entry)
+	err := db.Put(bucket, entry.DatabasePrimaryIndex().Bytes(), entry)
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func (db *Overlay) ProcessBlockBatch(blockBucket, numberBucket, secondaryIndexBu
 
 	batch = append(batch, interfaces.Record{CHAIN_HEAD, block.GetChainID().Bytes(), block.DatabasePrimaryIndex()})
 
-	err := db.DB.PutInBatch(batch)
+	err := db.PutInBatch(batch)
 	if err != nil {
 		return err
 	}
@@ -360,7 +360,7 @@ func (db *Overlay) ProcessBlockBatchWithoutHead(blockBucket, numberBucket, secon
 		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
 	}
 
-	err := db.DB.PutInBatch(batch)
+	err := db.PutInBatch(batch)
 	if err != nil {
 		return err
 	}
@@ -377,7 +377,7 @@ func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces
 	bucket := CHAIN_HEAD
 	key := chainID.Bytes()
 
-	block, err := db.DB.Get(bucket, key, new(primitives.Hash))
+	block, err := db.Get(bucket, key, new(primitives.Hash))
 	if err != nil {
 		return nil, err
 	}
