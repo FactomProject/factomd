@@ -120,6 +120,9 @@ func NetworkOutputs(fnode *FactomNode) {
 				// We don't care about the result, but we do want to log that we have
 				// seen this message before, because we might have generated the message
 				// ourselves.
+				if msg.GetRepeatHash() == nil {
+					continue
+				}
 				fnode.State.Replay.IsTSValid_(
 					constants.NETWORK_REPLAY,
 					msg.GetRepeatHash().Fixed(),

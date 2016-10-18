@@ -1269,40 +1269,16 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 					// After executing the FullFault successfully, we want to reset
 					// to the default state (No One At Fault)
+					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
 					relevantPL.Unfault()
 					haveReplaced = true
 					break
 				}
 			}
 
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		} else {
-			// MISSING A PLEDGE
-			if s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
-				// If the FullFault had enough signatures, but didn't include
-				// a pledge from the Audit server, and we are the Audit server,
-				// we should just match the fault so we get promoted!
-				sf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID,
-					int(fullFault.VMIndex), fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), s.GetTimestamp())
-				s.matchFault(sf)
-			} else {
-				// If the FullFault had enough signatures, but didn't include
-				// a pledge from the Audit server, we should nominate another
-				// Audit server to make sure we don't just stall waiting for
-				// a pledge from a potentially-offline Audit candidate
-				if s.Leader {
-					if relevantPL.VMs[fullFault.VMIndex].whenFaulted > 0 {
-						CraftAndSubmitFault(relevantPL, relevantPL.VMs[fullFault.VMIndex], int(fullFault.VMIndex), int(fullFault.Height))
-					}
-				}
-			}
 		}
-	} else if hasSignatureQuorum == 0 {
-		// NOT ENOUGH SIGNATURES TO EXECUTE
-		// Add the signatures that are included to our FaultState's VoteMap
-		s.regularFullFaultExecution(fullFault, relevantPL)
 	}
-
 	return haveReplaced
 }
 

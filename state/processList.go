@@ -137,7 +137,6 @@ type VM struct {
 	faultInitiatedAlready bool
 	faultHeight           int
 	whenFaulted           int64
-	whenEOMFaulted        int64
 	lastFaultAction       int64
 }
 
@@ -739,7 +738,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if !fault.Process(p.DBHeight, p.State) {
 				break
 			}
-			fmt.Println("JUSTIN INCREMENT PSYSHEIGHT", state.FactomNodeName)
 			p.System.Height++
 		}
 		if fault == nil {
@@ -752,6 +750,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if !p.State.Syncing {
 			vm.whenFaulted = 0
+			p.Unfault()
 		} else {
 			if !vm.Synced {
 				eomFault(p, vm, i, len(vm.List), 0)
@@ -776,7 +775,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			vm.whenFaulted = 0
 
 			p.Unfault()
-
 		}
 
 	VMListLoop:
@@ -857,18 +855,14 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		return false
 	}
 	fullFault, _ := m.(*messages.FullServerFault)
-	fmt.Println("WF0", fullFault.ServerID.String()[:10], p.State.FactomNodeName)
 	if int(fullFault.SystemHeight) < p.System.Height {
-		fmt.Println("WF1", int(fullFault.SystemHeight), p.System.Height)
 		return false
 	} else if int(fullFault.SystemHeight) > p.System.Height {
-		fmt.Println("WF2", int(fullFault.SystemHeight), p.System.Height)
 		p.State.Holding[m.GetMsgHash().Fixed()] = fullFault
 		return false
 	} else {
 		// If we are here, fullFault.SystemHeight == p.System.Height
 		if len(p.System.List) <= p.System.Height {
-			fmt.Println("WF3", int(fullFault.SystemHeight), p.System.Height)
 			// Nothing in our list a this slot yet, so insert this FullFault message
 			p.System.List = append(p.System.List, fullFault)
 			return true
@@ -877,10 +871,8 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 			// We will prioritize the FullFault with the highest VMIndex
 			existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
 			if int(existingSystemFault.VMIndex) >= int(fullFault.VMIndex) {
-				fmt.Println("WF4", int(fullFault.SystemHeight), p.System.Height)
 				return false
 			} else {
-				fmt.Println("WF5", int(fullFault.SystemHeight), p.System.Height)
 				p.System.List[p.System.Height] = fullFault
 				return true
 			}

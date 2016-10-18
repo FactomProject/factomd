@@ -108,6 +108,11 @@ func (m *FullServerFault) MarshalCore() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -136,6 +141,11 @@ func (m *FullServerFault) MarshalForSF() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -150,11 +160,7 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 	var buf primitives.Buffer
 
 	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
+
 	if d, err := m.ServerID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -170,6 +176,11 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
 	if d, err := m.SignatureList.MarshalBinary(); err != nil {
 		return nil, err
@@ -246,12 +257,6 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
@@ -272,6 +277,12 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.SystemHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	m.Timestamp = new(primitives.Timestamp)
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
 
 	newData, err = m.SignatureList.UnmarshalBinaryData(newData)
 	if err != nil {
