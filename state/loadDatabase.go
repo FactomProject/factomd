@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -16,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"os"
 )
 
 var _ = fmt.Print
@@ -47,13 +48,13 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
+				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
 				if len(s.InMsgQueue()) > 20 {
 					for len(s.InMsgQueue()) > 10 {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
-				s.InMsgQueue() <- msg
 			} else {
 				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break

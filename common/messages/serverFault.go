@@ -17,7 +17,6 @@ import (
 //A placeholder structure for messages
 type ServerFault struct {
 	MessageBase
-	Timestamp interfaces.Timestamp
 
 	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of FullServerFault messages
@@ -26,6 +25,8 @@ type ServerFault struct {
 	VMIndex       byte
 	DBHeight      uint32
 	Height        uint32
+	SystemHeight  uint32
+	Timestamp     interfaces.Timestamp
 
 	Signature interfaces.IFullSignature
 
@@ -96,6 +97,13 @@ func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
+	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
+
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -110,11 +118,6 @@ func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
 	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
 	if d, err := m.ServerID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -129,6 +132,12 @@ func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
 	buf.WriteByte(m.VMIndex)
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
+	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -163,12 +172,6 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	}
 	newData = newData[1:]
 
-	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
-
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
@@ -187,6 +190,13 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	m.VMIndex, newData = newData[0], newData[1:]
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.SystemHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	m.Timestamp = new(primitives.Timestamp)
+	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -229,7 +239,7 @@ func (m *ServerFault) String() string {
 		copy(sig[:], m.Signature.Bytes()[:3])
 	}
 
-	return fmt.Sprintf("%6s %v VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d sig[:3]=%x hash[:3]=%x",
+	return fmt.Sprintf("%6s %v VM%3d: (%v) AuditID: %v PL:%5d DBHt:%5d SysHt:%3d sig[:3]=%x hash[:3]=%x",
 		"SFault",
 		m.GetCoreHash().String()[:10],
 		m.VMIndex,
@@ -237,6 +247,7 @@ func (m *ServerFault) String() string {
 		m.AuditServerID.String()[:10],
 		m.Height,
 		m.DBHeight,
+		m.SystemHeight,
 		sig[:3],
 		m.GetHash().Bytes()[:3])
 }
@@ -322,13 +333,14 @@ func (a *ServerFault) IsSameAs(b *ServerFault) bool {
 // Support Functions
 //*******************************************************************************
 
-func NewServerFault(timeStamp interfaces.Timestamp, serverID interfaces.IHash, auditServerID interfaces.IHash, vmIndex int, dbheight uint32, height uint32) *ServerFault {
+func NewServerFault(serverID interfaces.IHash, auditServerID interfaces.IHash, vmIndex int, dbheight uint32, height uint32, systemHeight int, timeStamp interfaces.Timestamp) *ServerFault {
 	sf := new(ServerFault)
-	sf.Timestamp = timeStamp
 	sf.VMIndex = byte(vmIndex)
 	sf.DBHeight = dbheight
 	sf.Height = height
 	sf.ServerID = serverID
 	sf.AuditServerID = auditServerID
+	sf.SystemHeight = uint32(systemHeight)
+	sf.Timestamp = timeStamp
 	return sf
 }
