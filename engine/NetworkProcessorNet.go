@@ -32,9 +32,14 @@ func Peers(fnode *FactomNode) {
 				if msg == nil {
 					break
 				}
+				repeatHash := msg.GetRepeatHash()
+				if repeatHash == nil {
+					fmt.Println("dddd ERROR!", msg.String())
+					break
+				}
 				cnt++
 				msg.SetOrigin(0)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 
