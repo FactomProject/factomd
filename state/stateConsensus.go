@@ -351,7 +351,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	dbstate := s.AddDBState(dbstatemsg.IsInDB, // Don't save blocks we loaded from DB
+	dbstate := s.AddDBState(!dbstatemsg.IsInDB, // Don't save blocks we loaded from DB
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
