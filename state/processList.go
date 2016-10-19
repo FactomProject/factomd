@@ -144,6 +144,14 @@ type VM struct {
 	lastFaultAction       int64
 }
 
+func (p *ProcessList) GetAmINegotiator() bool {
+	return p.AmINegotiator
+}
+
+func (p *ProcessList) SetAmINegotiator(b bool) {
+	p.AmINegotiator = b
+}
+
 func (p *ProcessList) Clear() {
 	p.FactoidBalancesTMutex.Lock()
 	defer p.FactoidBalancesTMutex.Unlock()

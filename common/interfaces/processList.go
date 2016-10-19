@@ -1,6 +1,8 @@
 package interfaces
 
 type IProcessList interface {
+	GetAmINegotiator() bool
+	SetAmINegotiator(b bool)
 	Clear()
 	GetKeysNewEntries() (keys [][32]byte)
 	GetNewEntry(key [32]byte) IEntry
