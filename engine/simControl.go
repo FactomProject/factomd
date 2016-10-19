@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -1081,7 +1082,7 @@ func faultSummary() string {
 							if lenFaults < 3 {
 								faultIDs := pl.GetKeysFaultMap()
 								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID)
+									faultState := pl.GetFaultState(faultID).(*state.FaultState)
 									if !faultState.IsNil() {
 										//if (int(faultState.FaultCore.VMIndex)+1)%(len(pl.FedServers)-1) == pl.NegotiatorVMIndex {
 										prt = prt + fmt.Sprintf(" %x/%x:", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5])
@@ -1104,7 +1105,7 @@ func faultSummary() string {
 								//too many, line gets cluttered, just show totals
 								faultIDs := pl.GetKeysFaultMap()
 								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID)
+									faultState := pl.GetFaultState(faultID).(*state.FaultState)
 									if !faultState.IsNil() {
 										//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
 										pledgeDoneString := "N"

@@ -18,7 +18,7 @@ func Negotiate(s *state.State) {
 		pl := s.ProcessLists.LastList()
 		if pl != nil && pl.LenFaultMap() > 0 {
 			if pl.ChosenNegotiation != zeroBytes {
-				faultState := pl.GetFaultState(pl.ChosenNegotiation)
+				faultState := pl.GetFaultState(pl.ChosenNegotiation).(*state.FaultState)
 				if !faultState.IsNil() {
 					if faultState.AmINegotiator {
 						fullFault := state.CraftAndSubmitFullFault(pl, pl.ChosenNegotiation)
@@ -36,7 +36,7 @@ func Negotiate(s *state.State) {
 			} else {
 				faultIDs := pl.GetKeysFaultMap()
 				for _, faultID := range faultIDs {
-					faultState := pl.GetFaultState(faultID)
+					faultState := pl.GetFaultState(faultID).(*state.FaultState)
 					if faultState.AmINegotiator {
 						fullFault := state.CraftAndSubmitFullFault(pl, faultID)
 						if faultState.HasEnoughSigs(s) && faultState.PledgeDone {
