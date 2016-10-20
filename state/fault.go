@@ -155,6 +155,8 @@ func Fault(pl *ProcessList, vm *VM, vmIndex, height int) {
 	if pl.State.Leader && pl.State.LeaderVMIndex == responsibleFaulterIdx {
 		CraftAndSubmitFault(pl, vm, vmIndex, height)
 	}
+	pl.FedServers[pl.ServerMap[pl.State.CurrentMinute][vmIndex]].SetOnline(false)
+
 }
 
 func TopPriorityFaultState(pl *ProcessList) FaultState {
