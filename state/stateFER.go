@@ -17,35 +17,35 @@ func (this *State) ProcessRecentFERChainEntries() {
 	// Find the FER entry chain
 	FERChainHash, err := primitives.HexToHash(this.FERChainId)
 	if err != nil {
-		this.Println("The FERChainId couldn't be turned into a IHASH")
+		fmt.Println("The FERChainId couldn't be turned into a IHASH")
 		return
 	}
 
 	//  Get the first eblock from the FERChain
 	entryBlock, err := this.DB.FetchEBlockHead(FERChainHash)
 	if err != nil {
-		this.Println("Couldn't find the FER chain for id ", this.FERChainId)
+		fmt.Println("Couldn't find the FER chain for id ", this.FERChainId)
 		return
 	}
 	if entryBlock == nil {
-		this.Println("FER Chain head found to be nil")
+		fmt.Println("FER Chain head found to be nil")
 		return
 	}
 
-	this.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
-	this.Println("Current block height: ", this.GetDBHeightComplete())
-	this.Println("BEFORE processing recent block: ")
-	this.Println("    FERChangePrice: ", this.FERChangePrice)
-	this.Println("    FERChangeHeight: ", this.FERChangeHeight)
-	this.Println("    FERPriority: ", this.FERPriority)
-	this.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
-	this.Println("    FER current: ", this.GetFactoshisPerEC())
+	fmt.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
+	fmt.Println("Current block height: ", this.GetDBHeightComplete())
+	fmt.Println("BEFORE processing recent block: ")
+	fmt.Println("    FERChangePrice: ", this.FERChangePrice)
+	fmt.Println("    FERChangeHeight: ", this.FERChangeHeight)
+	fmt.Println("    FERPriority: ", this.FERPriority)
+	fmt.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
+	fmt.Println("    FER current: ", this.GetFactoshisPerEC())
 
 	// Check to see if a price change targets the next block
 	if this.FERChangeHeight == (this.GetDBHeightComplete())+1 {
 		this.FactoshisPerEC = this.FERChangePrice
-		this.FERChangePrice = 100000000
-		this.FERChangeHeight = 0
+		this.FERChangePrice = 0
+		this.FERChangeHeight = 1
 	}
 
 	// Check for the need to clear the priority
@@ -58,10 +58,12 @@ func (this *State) ProcessRecentFERChainEntries() {
 	}
 
 	// Check last entry block method
-	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-1 {
+	// predictive rate change needs to see this coming 3 blocks in advance
+	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-3 {
+		fmt.Println ("Rate Change in 3 blocks")
 		entryHashes := entryBlock.GetEntryHashes()
 
-		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
+		// fmt.Println("Found FER entry hashes in a block as: ", entryHashes)
 		// create a map of possible minute markers that may be found in the EBlock Body
 		mins := make(map[string]uint8)
 		for i := byte(0); i <= 10; i++ {
@@ -80,25 +82,25 @@ func (this *State) ProcessRecentFERChainEntries() {
 			// Make sure the entry exists
 			anEntry, err := this.DB.FetchEntry(entryHash)
 			if err != nil {
-				this.Println("Error during FetchEntryByHash: ", err)
+				fmt.Println("Error during FetchEntryByHash: ", err)
 				continue
 			}
 			if anEntry == nil {
-				this.Println("Nil entry during FetchEntryByHash: ", entryHash)
+				fmt.Println("Nil entry during FetchEntryByHash: ", entryHash)
 				continue
 			}
 
 			if !this.ExchangeRateAuthorityIsValid(anEntry) {
-				this.Println("Skipping non-authority FER chain entry", entryHash)
+				fmt.Println("Skipping non-authority FER chain entry", entryHash)
 				continue
 			}
 
 			entryContent := anEntry.GetContent()
-			// this.Println("Found content of an FER entry is:  ", string(entryContent))
+			// fmt.Println("Found content of an FER entry is:  ", string(entryContent))
 			ferEntry := new(specialEntries.FEREntry)
 			err = ferEntry.UnmarshalBinary(entryContent)
 			if err != nil {
-				this.Println("A FEREntry messgae didn't unmarshal correctly: ", err)
+				fmt.Println("A FEREntry messgae didn't unmarshal correctly: ", err)
 				continue
 			}
 
@@ -122,13 +124,13 @@ func (this *State) ProcessRecentFERChainEntries() {
 		}
 	}
 
-	this.Println("AFTER processing recent block: ")
-	this.Println("    FERChangePrice: ", this.FERChangePrice)
-	this.Println("    FERChangeHeight: ", this.FERChangeHeight)
-	this.Println("    FERPriority: ", this.FERPriority)
-	this.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
-	this.Println("    FER current: ", this.GetFactoshisPerEC())
-	this.Println("----------------------------------")
+	fmt.Println("AFTER processing recent block: ")
+	fmt.Println("    FERChangePrice: ", this.FERChangePrice)
+	fmt.Println("    FERChangeHeight: ", this.FERChangeHeight)
+	fmt.Println("    FERPriority: ", this.FERPriority)
+	fmt.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
+	fmt.Println("    FER current: ", this.GetFactoshisPerEC())
+	fmt.Println("----------------------------------")
 
 	return
 }
