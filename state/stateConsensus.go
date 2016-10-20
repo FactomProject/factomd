@@ -1564,7 +1564,7 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
-		last := s.LeaderPL.GetAckAt(vmIndex, listlen-1)
+		last := s.LeaderPL.GetAckAt(vmIndex, listlen-1).(*messages.Ack)
 		ack.Height = last.Height + 1
 		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 	}
