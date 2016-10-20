@@ -9,8 +9,6 @@ type IFaultState interface {
 	SetAmINegotiator(b bool)
 	GetMyVoteTallied() bool
 	SetMyVoteTallied(b bool)
-	GetNegotiationOngoing() bool
-	SetNegotiationOngoing(b bool)
 	GetPledgeDone() bool
 	SetPledgeDone(b bool)
 	GetLastMatch() int64
