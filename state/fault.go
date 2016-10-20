@@ -532,8 +532,6 @@ func (pl *ProcessList) Unfault() {
 		vm := pl.VMs[i]
 		vm.faultHeight = -1
 		vm.whenFaulted = 0
-		vm.lastFaultAction = 0
-		vm.faultInitiatedAlready = false
 		pl.FedServers[i].SetOnline(true)
 	}
 	pl.AmINegotiator = false
