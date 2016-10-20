@@ -117,6 +117,7 @@ func (e *DBlockHeader) String() string {
 	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n", e.PrevKeyMR.String()))
 	out.WriteString(fmt.Sprintf("  PrevFullHash:    %s\n", e.PrevFullHash.String()))
 	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
+	out.WriteString(fmt.Sprintf("  Timestamp Str:   %s\n", e.GetTimestamp().String()))
 	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
 	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
 

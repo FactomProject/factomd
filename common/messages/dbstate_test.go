@@ -54,6 +54,36 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	}
 }
 
+func TestDBStateMsgValidate(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+
+	msg := new(DBStateMsg)
+	if msg.Validate(state) >= 0 {
+		t.Errorf("Empty DBState validated")
+	}
+
+	msg = newDBStateMsg()
+	msg.DirectoryBlock.GetHeader().SetNetworkID(0x00)
+	if msg.Validate(state) >= 0 {
+		t.Errorf("Wrong network ID validated")
+	}
+
+	msg = newDBStateMsg()
+	msg.DirectoryBlock.GetHeader().SetDBHeight(state.GetHighestCompletedBlock() + 1)
+	constants.CheckPoints[state.GetHighestCompletedBlock()+1] = "123"
+	if msg.Validate(state) >= 0 {
+		t.Errorf("Wrong checkpoint validated")
+	}
+
+	delete(constants.CheckPoints, state.GetHighestCompletedBlock()+1)
+
+	msg = newDBStateMsg()
+	msg.DirectoryBlock.GetHeader().SetDBHeight(state.GetHighestCompletedBlock() + 1)
+	if msg.Validate(state) <= 0 {
+		t.Errorf("Proper block not validated!")
+	}
+}
+
 func newDBStateMsg() *DBStateMsg {
 	msg := new(DBStateMsg)
 	msg.Timestamp = primitives.NewTimestampNow()

@@ -36,6 +36,7 @@ type IState interface {
 	SetString()
 	ShortString() string
 
+	AddDBSig(dbheight uint32, chainID IHash, sig IFullSignature)
 	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
 	GetFedServers(uint32) []IFctServer
@@ -115,6 +116,7 @@ type IState interface {
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	GetNetworkNumber() int  // Encoded into Directory Blocks
 	GetNetworkName() string // Some networks have defined names
+	GetNetworkID() uint32
 
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
@@ -195,6 +197,7 @@ type IState interface {
 	GetTimestamp() Timestamp
 	GetTimeOffset() Timestamp
 
+	GetTrueLeaderHeight() uint32
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 

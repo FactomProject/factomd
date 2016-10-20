@@ -1251,10 +1251,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			vm := pl.VMs[int(fullFault.VMIndex)]
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
-			if false && rHt > ffHt {
-				fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt)
-				vm.Height = ffHt
-				vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
+			if rHt > ffHt {
+				relevantPL.Reset()
 			}
 
 			// Here is where we actually swap out the Leader with the Audit server

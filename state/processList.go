@@ -1107,16 +1107,32 @@ func (p *ProcessList) Reset() {
 		p.AdminBlock = adminBlock.NewAdminBlock(nil)
 		p.EntryCreditBlock, err = entryCreditBlock.NextECBlock(nil)
 	}
+	if err != nil {
+		panic(err.Error())
+	}
 
 	p.ResetDiffSigTally()
 
 	for i := range p.FedServers {
-		p.VMs[i].Height = 0
+		p.VMs[i].Height = 0               // Knock all the VMs back
+		p.VMs[i].List = p.VMs[i].List[:0] // Knock all the lists back.
 	}
 
-	if err != nil {
-		panic(err.Error())
-	}
+	s := p.State
+
+	s.Syncing = false
+	s.EOM = false
+	s.DBSig = false
+	s.CurrentMinute = 0
+	s.EOMProcessed = 0
+	s.DBSigProcessed = 0
+	s.StartDelay = s.GetTimestamp().GetTimeMilli()
+	s.RunLeader = false
+	s.Newblk = true
+	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+
+	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
 }
 
 /************************************************

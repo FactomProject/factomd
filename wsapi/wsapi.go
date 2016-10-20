@@ -73,7 +73,7 @@ func Start(state interfaces.IState) {
 		server.Get("/v1/factoid-balance/([^/]+)", HandleFactoidBalance)
 		server.Get("/v1/factoid-get-fee/", HandleGetFee)
 		server.Get("/v1/properties/", HandleProperties)
-		server.Get("/v1/get-height/", HandleGetHeight)
+		server.Get("/v1/heights/", HandleHeights)
 
 		server.Post("/v2", HandleV2)
 		server.Get("/v2", HandleV2)
@@ -669,12 +669,12 @@ func HandleProperties(ctx *web.Context) {
 	returnMsg(ctx, d, true)
 }
 
-func HandleGetHeight(ctx *web.Context) {
+func HandleHeights(ctx *web.Context) {
 	ServersMutex.Lock()
 	defer ServersMutex.Unlock()
 
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	req := primitives.NewJSON2Request("get-height", 1, nil)
+	req := primitives.NewJSON2Request("heights", 1, nil)
 
 	jsonResp, jsonError := HandleV2Request(state, req)
 	if jsonError != nil {

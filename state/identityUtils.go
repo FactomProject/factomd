@@ -37,14 +37,16 @@ type Identity struct {
 
 var _ interfaces.Printable = (*Identity)(nil)
 
-func (id *Identity) FixMissingKeys(s *State) {
+func (id *Identity) FixMissingKeys(s *State) error {
 	if !statusIsFedOrAudit(id.Status) {
 		//return
 	}
 	// Rebuilds identity
 	err := s.AddIdentityFromChainID(id.IdentityChainID)
 	if err != nil {
+		return err
 	}
+	return nil
 }
 
 func (id *Identity) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {

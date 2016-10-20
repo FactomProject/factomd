@@ -165,6 +165,9 @@ func (st *State) removeIdentity(i int) {
 }
 
 func (st *State) isIdentityChain(cid interfaces.IHash) int {
+	if cid.IsSameAs(primitives.NewZeroHash()) {
+		return -1
+	}
 	// is this an identity chain
 	for i, identityChain := range st.Identities {
 		if identityChain.IdentityChainID.IsSameAs(cid) {
@@ -352,7 +355,7 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 
 func checkIdentityForFull(identityIndex int, st *State) error {
 	status := st.Identities[identityIndex].Status
-	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || !(status == constants.IDENTITY_SELF_FULL || status == constants.IDENTITY_PENDING_FULL) {
+	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || (status == constants.IDENTITY_SELF_FULL || status == constants.IDENTITY_PENDING_FULL) {
 		return nil // If already full, we don't need to check. If it is fed or audit, we do not need to check
 	}
 
@@ -692,31 +695,14 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	var btcKeyLevel byte
 	var btcKeyType byte
 
-	// If already in authority list, only the change in status needs to be recorded
-	index := st.isIdentityChain(chainID)
-	if auth := st.isAuthorityChain(chainID); auth != -1 {
-		if servertype == 0 {
-			st.LeaderPL.AdminBlock.AddFedServer(chainID)
-			if index != -1 {
-				st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
-			}
-		} else if servertype == 1 {
-			st.LeaderPL.AdminBlock.AddAuditServer(chainID)
-			if index != -1 {
-				st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
-			}
-		}
+	err := st.AddIdentityFromChainID(chainID)
+	if err != nil {
+		log.Println(err.Error())
 		return true
 	}
 
-	if index == -1 {
-		index = st.CreateBlankFactomIdentity(chainID)
-		err := st.AddIdentityFromChainID(chainID)
-		if err != nil {
-			log.Println(err.Error())
-			return true
-		}
-	}
+	index := st.isIdentityChain(chainID)
+
 	if index != -1 {
 		id := st.Identities[index]
 		zero := primitives.NewZeroHash()

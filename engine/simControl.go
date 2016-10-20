@@ -65,6 +65,18 @@ func SimControl(listenTo int) {
 		} else {
 			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
+			case '!' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					break
+				}
+				s := fnodes[listenTo].State
+				pl := s.ProcessLists.Get(s.LLeaderHeight)
+				if pl == nil {
+					os.Stderr.WriteString("No Process List to Reset\n")
+				} else {
+					os.Stderr.WriteString(fmt.Sprintf("Resetting ProcessList on node %s\n", s.FactomNodeName))
+					pl.Reset()
+				}
 			case 'g' == b[0]:
 				if len(b) > 1 {
 					if b[1] == 'c' {
@@ -777,7 +789,7 @@ func SimControl(listenTo int) {
 				}
 
 				fnodes[listenTo].State.Delay = nnn
-				os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%01d Seconds\n", fnodes[listenTo].State.FactomNodeName, nnn/1000, nnn%1000))
+				os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fnodes[listenTo].State.FactomNodeName, nnn/1000, nnn%1000))
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")

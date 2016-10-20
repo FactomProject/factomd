@@ -574,6 +574,16 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 }
 
 func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
+	if s.Salt == nil {
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		// Note that err == nil only if we read len(b) bytes.
+		if err != nil {
+			panic("Random Number Failure")
+		}
+		s.Salt = primitives.Sha(b)
+	}
+
 	var b [32]byte
 	copy(b[:], s.Salt.Bytes())
 	binary.BigEndian.PutUint64(b[:], uint64(ts.GetTimeMilli()))
@@ -1578,7 +1588,7 @@ func (s *State) SetStringQueues() {
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
-	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists)-1)
+	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, s.GetTrueLeaderHeight())
 
 	str = str + fmt.Sprintf(" %5d[%6x] %-11s ",
 		dHeight,
@@ -1613,6 +1623,10 @@ func (s *State) SetStringQueues() {
 	}
 
 	s.serverPrt = str
+}
+
+func (s *State) GetTrueLeaderHeight() uint32 {
+	return uint32(int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1)
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {

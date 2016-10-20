@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"os"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -16,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"os"
 )
 
 var _ = fmt.Print
@@ -50,8 +51,8 @@ func LoadDatabase(s *State) {
 				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
 				if len(s.InMsgQueue()) > 20 {
-					for len(s.InMsgQueue()) > 5 {
-						time.Sleep(100 * time.Millisecond)
+					for len(s.InMsgQueue()) > 10 {
+						time.Sleep(10 * time.Millisecond)
 					}
 				}
 			} else {

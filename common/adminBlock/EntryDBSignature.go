@@ -19,8 +19,8 @@ var _ interfaces.IABEntry = (*DBSignatureEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
 func (c *DBSignatureEntry) UpdateState(state interfaces.IState) error {
-
-	return nil
+	return fmt.Errorf("Should not be called alone!")
+	//return nil
 }
 
 // Create a new DB Signature Entry

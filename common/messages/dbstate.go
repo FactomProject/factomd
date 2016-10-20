@@ -137,11 +137,33 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
-	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
-	if dbheight <= 1 || dbheight == state.GetHighestCompletedBlock()+1 {
-		return 1
+	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
+		//We need the basic block types
+		return -1
 	}
-	return -1
+
+	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
+		//Wrong network ID
+		return -1
+	}
+
+	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
+
+	if dbheight != state.GetHighestCompletedBlock()+1 && dbheight != 0 {
+		//We only expect the next height
+		return -1
+	}
+
+	if m.DirectoryBlock.GetHeader().GetNetworkID() == constants.MAIN_NETWORK_ID {
+		key := constants.CheckPoints[dbheight]
+		if key != "" {
+			if key != m.DirectoryBlock.DatabasePrimaryIndex().String() {
+				//Key does not match checkpoint
+				return -1
+			}
+		}
+	}
+	return 1
 }
 
 func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}

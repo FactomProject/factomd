@@ -51,12 +51,23 @@ func (c *AdminBlock) String() string {
 }
 
 func (c *AdminBlock) UpdateState(state interfaces.IState) error {
+	dbSigs := []*DBSignatureEntry{}
 	for _, entry := range c.ABEntries {
-		err := entry.UpdateState(state)
-		if err != nil {
-			return err
+		if entry.Type() == constants.TYPE_DB_SIGNATURE {
+			dbSigs = append(dbSigs, entry.(*DBSignatureEntry))
+		} else {
+			err := entry.UpdateState(state)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	for _, dbSig := range dbSigs {
+		//list.State.ProcessLists.Get(currentDBHeight).DBSignatures
+		state.AddDBSig(c.GetDBHeight()-1, dbSig.IdentityAdminChainID, &dbSig.PrevDBSig)
+	}
+
 	// Clear any keys that are now too old to be valid
 	state.UpdateAuthSigningKeys(c.Header.GetDBHeight())
 	return nil
