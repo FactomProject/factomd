@@ -42,6 +42,14 @@ func (fs *FaultState) SetMyVoteTallied(b bool) {
 	fs.MyVoteTallied = b
 }
 
+func (fs *FaultState) GetNegotiationOngoing() bool {
+	return fs.NegotiationOngoing
+}
+
+func (fs *FaultState) SetNegotiationOngoing(b bool) {
+	fs.NegotiationOngoing = b
+}
+
 func (fs *FaultState) GetPledgeDone() bool {
 	return fs.PledgeDone
 }
