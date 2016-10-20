@@ -385,35 +385,39 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	return 1
 }
 
-func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) int {
+func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) bool {
+	if m.SigTally(state) > len(state.GetFedServers(m.DBHeight))/2 {
+		return true
+	}
+	return false
+}
+
+func (m *FullServerFault) SigTally(state interfaces.IState) int {
+	validSigCount := 0
 	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
-		return -1
+		return validSigCount
 	}
 	sig := m.Signature.GetSignature()
 	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 	if err != nil {
-		return -1
+		return validSigCount
 	}
 	if sfSigned < 1 {
-		return -1
+		return validSigCount
 	}
 	cb, err := m.MarshalCore()
 	if err != nil {
-		return -1
+		return validSigCount
 	}
-	validSigCount := 0
 	for _, fedSig := range m.SignatureList.List {
 		check, err := state.VerifyAuthoritySignature(cb, fedSig.GetSignature(), m.DBHeight)
 		if err == nil && check == 1 {
 			validSigCount++
 		}
-		if validSigCount > len(state.GetFedServers(m.DBHeight))/2 {
-			return 1
-		}
 	}
-	return 0 // didn't see enough valid sigs
+	return validSigCount
 }
 
 func (m *FullServerFault) ComputeVMIndex(state interfaces.IState) {
