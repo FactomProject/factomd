@@ -32,20 +32,25 @@ func (fs *FaultState) IsNil() bool {
 	return false
 }
 
-func (fs *FaultState) HasEnoughSigs(state interfaces.IState) bool {
+func (fs *FaultState) SigTally(state interfaces.IState) int {
+	validSigCount := 0
 	cb, err := fs.FaultCore.MarshalCore()
 	if err != nil {
-		return false
+		return validSigCount
 	}
-	validSigCount := 0
 	for _, fedSig := range fs.VoteMap {
 		check, err := state.FastVerifyAuthoritySignature(cb, fedSig, fs.FaultCore.DBHeight)
 		if err == nil && check == 1 {
 			validSigCount++
 		}
-		if validSigCount > len(state.GetFedServers(fs.FaultCore.DBHeight))/2 {
-			return true
-		}
+
+	}
+	return validSigCount
+}
+
+func (fs *FaultState) HasEnoughSigs(state interfaces.IState) bool {
+	if fs.SigTally(state) > len(state.GetFedServers(fs.FaultCore.DBHeight))/2 {
+		return true
 	}
 	return false
 }
@@ -561,8 +566,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	}
 
 	if int(fullFault.SystemHeight) == pl.System.Height {
-		hasSignatureQuorum := fullFault.HasEnoughSigs(s)
-		if hasSignatureQuorum > 0 && s.pledgedByAudit(fullFault) {
+		if fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
 			// COMPLETE
 			pl.AddToSystemList(fullFault)
 		} else {

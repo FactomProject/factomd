@@ -1242,8 +1242,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 	relevantPL.FaultedVMIndex = int(fullFault.VMIndex)
 
-	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
-	if hasSignatureQuorum > 0 {
+	if fullFault.HasEnoughSigs(s) {
 		if s.pledgedByAudit(fullFault) {
 			// If we are here, this means that the FullFault message is complete
 			// and we can execute it as such (replacing the faulted Leader with
