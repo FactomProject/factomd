@@ -158,7 +158,7 @@ type IState interface {
 	// MISC
 	// ====
 
-	Reset()														// Trim back the state to the last saved block
+	Reset() // Trim back the state to the last saved block
 
 	// Height of the block where the sig goes, and the vmIndex missing the sig
 	SendDBSig(dbheight uint32, vmIndex int) // If a Leader, we have to send a DBSig out for the previous block

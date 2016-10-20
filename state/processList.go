@@ -1053,6 +1053,8 @@ func (p *ProcessList) String() string {
 
 func (p *ProcessList) Reset() {
 
+	now := p.State.GetTimestamp()
+
 	// Make a copy of the previous FedServers
 	p.FedServers = make([]interfaces.IFctServer, 0)
 	p.AuditServers = make([]interfaces.IFctServer, 0)
@@ -1114,12 +1116,27 @@ func (p *ProcessList) Reset() {
 	p.ResetDiffSigTally()
 
 	for i := range p.FedServers {
-		p.VMs[i].Height = 0               // Knock all the VMs back
-		p.VMs[i].List = p.VMs[i].List[:0] // Knock all the lists back.
+		vm := p.VMs[i]
+		vm.Height = 0 // Knock all the VMs back
+
+		for _, msg := range vm.List {
+			if msg != nil {
+				p.State.Holding[msg.GetHash().Fixed()] = msg
+			}
+		}
+
+		for _, ack := range vm.ListAck {
+			p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetHash().Fixed(), ack, now)
+			p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetHash().Fixed(), ack, now)
+		}
+
+		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
+		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
+
 	}
 
 	s := p.State
-
+	s.Saving = true
 	s.Syncing = false
 	s.EOM = false
 	s.DBSig = false
@@ -1129,6 +1146,8 @@ func (p *ProcessList) Reset() {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	s.RunLeader = false
 	s.Newblk = true
+
+	s.LLeaderHeight--
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)

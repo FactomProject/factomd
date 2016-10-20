@@ -681,4 +681,26 @@ func (s *State) pledgedByAudit(fullFault *messages.FullServerFault) bool {
 	return false
 }
 
-func (s *State) Reset() {}
+func (s *State) Reset() {
+	s.ResetRequest = true
+}
+
+// Set to reprocess all messages and states
+func (s *State) DoReset() {
+	ldbs := len(s.DBStates.DBStates)
+	dbs := s.DBStates.DBStates[ldbs-1]
+	ht := s.DBStates.Base + uint32(ldbs)
+	if !dbs.Saved {
+		s.DBStates.DBStates = s.DBStates.DBStates[:ldbs-1]
+		pl := s.ProcessLists.Get(ht)
+		if pl != nil {
+			pl.Reset()
+		}
+		ht--
+	}
+	pl := s.ProcessLists.Get(ht)
+	if pl != nil {
+		pl.Reset()
+	}
+	s.ResetRequest = false
+}

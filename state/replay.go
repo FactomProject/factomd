@@ -74,7 +74,7 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 	index = t - r.Basetime
 
 	if index < 0 || index >= numBuckets {
-		return 0, false
+		return -1, false
 	}
 
 	if r.Buckets[index] == nil {
@@ -111,4 +111,30 @@ func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timest
 	}
 
 	return false
+}
+
+func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
+	for _, bucket := range r.Buckets {
+		if bucket[hash]&mask > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
+	if r.IsHashUnique(mask, hash) {
+		index := Minutes(now.GetTimeSeconds()) - r.Basetime
+		if index < 0 || index >= len(r.Buckets) {
+			return
+		}
+		r.Buckets[index][hash] = mask | r.Buckets[index][hash]
+	}
+}
+
+func (r *Replay) Clear(mask int, hash [32]byte, msg interfaces.IMsg, now interfaces.Timestamp) {
+	index, ok := r.Valid(mask, hash, msg.GetTimestamp(), now)
+	if !ok && index >= 0 {
+		r.Buckets[index][hash] = r.Buckets[index][hash] ^ mask
+	}
 }

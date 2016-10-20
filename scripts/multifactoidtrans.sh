@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 factom-cli importaddress Fs2DNirmGDtnAZGXqca3XHkukTNMxoMGFFQxJA3bAjJnKzzsZBMH
 factom-cli importaddress Fs1XY1RcH3b9ezVqCA3WDxAQhnVFnWs5AgcKUU9YqJeradPsimcA
 factom-cli importaddress Fs2ddd3Wh37sWYNFuGgNjdCPxBMpLYZjLKGXE859SyTfiGGPX9JU
@@ -28,7 +29,7 @@ factom-cli addtxoutput t1 $fct6 .01
 factom-cli addtxfee t1 $fct1
 factom-cli signtx t1
 factom-cli sendtx t1
-sleep 2s
+sleep .02s
 factom-cli listaddresses
 done
 
