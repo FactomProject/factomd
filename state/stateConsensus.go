@@ -1153,7 +1153,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
 		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR()) {
-			fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
+			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
 
@@ -1227,7 +1227,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 	//fmt.Println("FULL FAULT:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
 
 	fullFault, _ := msg.(*messages.FullServerFault)
-	relevantPL := s.ProcessLists.Get(fullFault.DBHeight)
+	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
@@ -1244,36 +1244,35 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		return
 	}
 
-	relevantPL.FaultedVMIndex = int(fullFault.VMIndex)
+	pl.FaultedVMIndex = int(fullFault.VMIndex)
 
-	hasSignatureQuorum := fullFault.HasEnoughSigs(s)
-	if hasSignatureQuorum > 0 {
+	if fullFault.HasEnoughSigs(s) {
 		if s.pledgedByAudit(fullFault) {
 			// If we are here, this means that the FullFault message is complete
 			// and we can execute it as such (replacing the faulted Leader with
 			// the nominated Audit server)
 
-			vm := relevantPL.VMs[int(fullFault.VMIndex)]
+			vm := pl.VMs[int(fullFault.VMIndex)]
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {
-				relevantPL.Reset()
+				pl.Reset()
 			}
 
 			// Here is where we actually swap out the Leader with the Audit server
 			// being promoted
-			for listIdx, fedServ := range relevantPL.FedServers {
+			for listIdx, fedServ := range pl.FedServers {
 				if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
 					fmt.Println("FULL FAULT X:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
-					relevantPL.FedServers[listIdx] = theAuditReplacement
-					relevantPL.FedServers[listIdx].SetOnline(true)
-					relevantPL.AddAuditServer(fedServ.GetChainID())
+					pl.FedServers[listIdx] = theAuditReplacement
+					pl.FedServers[listIdx].SetOnline(true)
+					pl.AddAuditServer(fedServ.GetChainID())
 					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 					// After executing the FullFault successfully, we want to reset
 					// to the default state (No One At Fault)
 					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
-					relevantPL.Unfault()
+					pl.Unfault()
 					haveReplaced = true
 					break
 				}

@@ -136,12 +136,10 @@ type VM struct {
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	Synced         bool              // Is this VM synced yet?
 	//faultingEOM           int64             // Faulting for EOM because it is too late
-	heartBeat             int64 // Just ping ever so often if we have heard nothing.
-	Signed                bool  // We have signed the previous block.
-	faultInitiatedAlready bool
-	faultHeight           int
-	whenFaulted           int64
-	lastFaultAction       int64
+	heartBeat   int64 // Just ping ever so often if we have heard nothing.
+	Signed      bool  // We have signed the previous block.
+	faultHeight int
+	whenFaulted int64
 }
 
 func (p *ProcessList) GetAmINegotiator() bool {
