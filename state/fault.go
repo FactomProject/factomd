@@ -128,7 +128,7 @@ func eomFault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 			if int(now-vm.whenFaulted) > pl.State.FaultTimeout*(1+pl.State.EOMfaultIndex) {
 				if pl.LenFaultMap() < 1 {
 					modFaultIndex := pl.State.EOMfaultIndex % len(pl.FedServers)
-					Fault(pl, vm, vmIndex+modFaultIndex, height)
+					Fault(pl, vmIndex+modFaultIndex, height)
 					pl.State.EOMfaultIndex = pl.State.EOMfaultIndex + 1
 				}
 
@@ -142,8 +142,9 @@ func eomFault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 	}
 }
 
-func Fault(pl *ProcessList, vm *VM, vmIndex, height int) {
+func Fault(pl *ProcessList, vmIndex, height int) {
 	now := time.Now().Unix()
+	vm := pl.VMs[vmIndex]
 
 	if vm.whenFaulted == 0 {
 		// if we did not previously consider this VM faulted
@@ -157,7 +158,7 @@ func Fault(pl *ProcessList, vm *VM, vmIndex, height int) {
 	responsibleFaulterIdx := (vmIndex + 1) % fedServerCnt
 
 	if pl.State.Leader && pl.State.LeaderVMIndex == responsibleFaulterIdx {
-		CraftAndSubmitFault(pl, vm, vmIndex, height)
+		CraftAndSubmitFault(pl, vmIndex, height)
 	}
 	pl.FedServers[pl.ServerMap[pl.State.CurrentMinute][vmIndex]].SetOnline(false)
 
@@ -184,11 +185,34 @@ func TopPriorityFaultState(pl *ProcessList) FaultState {
 func FaultCheck(pl *ProcessList) {
 	faultState := TopPriorityFaultState(pl)
 	if !faultState.IsNil() {
+		timeElapsed := time.Now().Unix() - faultState.FaultCore.Timestamp.GetTimeSeconds()
 		if isMyNegotiation(faultState.FaultCore, pl) {
-			/*faultState.AmINegotiator = true
-			pl.AmINegotiator = true
-			pl.AddFaultState(faultState.FaultCore.GetHash().Fixed(), faultState)*/
-			CraftAndSubmitFullFault(pl, faultState.FaultCore.GetHash().Fixed())
+			if int(timeElapsed) > pl.State.FaultTimeout+1 {
+				// Negotiation has timed out; must issue RENEWAL (new negotiation)
+				if !faultState.PledgeDone {
+					// Now let's set the Audit Server offline (so we don't just re-nominate them over and over)
+					auditServerList := pl.State.GetAuditServers(faultState.FaultCore.DBHeight)
+					var theAuditReplacement interfaces.IFctServer
+
+					for _, auditServer := range auditServerList {
+						if auditServer.GetChainID().IsSameAs(faultState.FaultCore.AuditServerID) {
+							theAuditReplacement = auditServer
+						}
+					}
+					if theAuditReplacement != nil {
+						theAuditReplacement.SetOnline(false)
+					}
+				}
+				CraftAndSubmitFault(pl, int(faultState.FaultCore.VMIndex), int(faultState.FaultCore.Height))
+			} else {
+				CraftAndSubmitFullFault(pl, faultState.FaultCore.GetHash().Fixed())
+			}
+		} else {
+			if int(timeElapsed) > pl.State.FaultTimeout*2 {
+				// The negotiation has expired; time to fault negotiator
+				newVMI := (int(faultState.FaultCore.VMIndex) + 1) % len(pl.FedServers)
+				Fault(pl, newVMI, int(faultState.FaultCore.Height))
+			}
 		}
 	}
 }
@@ -228,7 +252,7 @@ func couldIFullFault(pl *ProcessList, vmIndex int) bool {
 // CraftAndSubmitFault is how we issue ServerFault messages when we have an
 // open choice of which Audit Server we want to vote for (i.e. when we're not
 // just matching someone else's existing Fault message vote)
-func CraftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
+func CraftAndSubmitFault(pl *ProcessList, vmIndex int, height int) {
 	// TODO: if I am the Leader being faulted, I should respond by sending out
 	// a MissingMsgResponse to everyone for the msg I'm being faulted for
 
@@ -260,8 +284,6 @@ func CraftAndSubmitFault(pl *ProcessList, vm *VM, vmIndex int, height int) {
 				fm.LastMatch = time.Now().Unix()
 				pl.AddFaultState(sf.GetCoreHash().Fixed(), fm)
 			}
-			// Now let's set the Audit Server offline (so we don't just re-nominate them over and over)
-			replacementServer.SetOnline(false)
 		}
 	} else {
 		// If we don't see any Audit servers as Online, we reset all of
@@ -589,14 +611,12 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 							if int(ffts-tpts) < s.FaultTimeout {
 								//TOO SOON
 								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-								newVM := pl.VMs[newVMI]
-								Fault(pl, newVM, newVMI, int(fullFault.Height))
+								Fault(pl, newVMI, int(fullFault.Height))
 							} else {
 								if !currentTopPriority.IsNil() && couldIFullFault(pl, int(currentTopPriority.FaultCore.VMIndex)) {
 									//I COULD FAULT BUT HE HASN'T
 									newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-									newVM := pl.VMs[newVMI]
-									Fault(pl, newVM, newVMI, int(fullFault.Height))
+									Fault(pl, newVMI, int(fullFault.Height))
 								} else {
 									willUpdate = true
 								}
