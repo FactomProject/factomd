@@ -1252,7 +1252,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {
-				relevantPL.Reset()
+				pl.Reset()
 			}
 
 			// Here is where we actually swap out the Leader with the Audit server
