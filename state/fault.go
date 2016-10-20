@@ -644,3 +644,5 @@ func (s *State) pledgedByAudit(fullFault *messages.FullServerFault) bool {
 	}
 	return false
 }
+
+func (s *State) Reset() {}
