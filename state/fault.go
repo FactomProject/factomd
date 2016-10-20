@@ -388,9 +388,15 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 
 	if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 		if !faultState.MyVoteTallied {
-			if time.Now().Unix()-faultState.LastMatch > 3 {
-				s.matchFault(sf)
-				faultState.LastMatch = time.Now().Unix()
+			now := time.Now().Unix()
+			if now-faultState.LastMatch > 3 {
+				if int(now-s.LastTiebreak) > s.FaultTimeout/2 {
+					if faultState.SigTally(s) >= len(pl.FedServers)-1 {
+						s.LastTiebreak = now
+					}
+					s.matchFault(sf)
+					faultState.LastMatch = now
+				}
 			}
 		}
 	}
@@ -505,8 +511,15 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 	if !faultState.IsNil() {
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 			if !faultState.MyVoteTallied {
-				nsf := messages.NewServerFault(sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height, int(sf.SystemHeight), sf.Timestamp)
-				s.matchFault(nsf)
+				now := time.Now().Unix()
+				if int(now-s.LastTiebreak) > s.FaultTimeout/2 {
+					if faultState.SigTally(s) >= len(pl.FedServers)-1 {
+						s.LastTiebreak = now
+					}
+
+					nsf := messages.NewServerFault(sf.ServerID, sf.AuditServerID, int(sf.VMIndex), sf.DBHeight, sf.Height, int(sf.SystemHeight), sf.Timestamp)
+					s.matchFault(nsf)
+				}
 			}
 		}
 	}
@@ -634,7 +647,10 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 				if !theFaultState.MyVoteTallied {
 					now := time.Now().Unix()
 
-					if now-theFaultState.LastMatch > 5 {
+					if now-theFaultState.LastMatch > 5 && int(now-s.LastTiebreak) > s.FaultTimeout/2 {
+						if theFaultState.SigTally(s) >= len(pl.FedServers)-1 {
+							s.LastTiebreak = now
+						}
 						nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex),
 							fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
 						s.matchFault(nsf)

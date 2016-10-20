@@ -197,6 +197,7 @@ type State struct {
 	FaultWait       int
 	EOMfaultIndex   int
 	LastFaultAction int64
+	LastTiebreak    int64
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -649,6 +650,7 @@ func (s *State) Init() {
 	s.FaultTimeout = 20
 	s.FaultWait = 5
 	s.LastFaultAction = 0
+	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
