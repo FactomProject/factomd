@@ -35,9 +35,7 @@ type Request struct {
 	requestCnt int
 }
 
-var _ interfaces.IRequest = (*Request)(nil)
-
-func (r *Request) Key() (thekey [32]byte) {
+func (r *Request) key() (thekey [32]byte) {
 	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
 	binary.BigEndian.PutUint64(thekey[5:13], uint64(r.wait))
 	binary.BigEndian.PutUint64(thekey[14:22], uint64(r.vmheight))
@@ -97,7 +95,7 @@ type ProcessList struct {
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
 	FaultMapMutex sync.RWMutex
-	FaultMap      map[[32]byte]*FaultState
+	FaultMap      map[[32]byte]FaultState
 
 	FaultedVMIndex int
 	// This is the index of the VM we are negotiating for, if we are
@@ -119,8 +117,6 @@ type ProcessList struct {
 	//Requests map[[20]byte]*Request
 }
 
-var _ interfaces.IProcessList = (*ProcessList)(nil)
-
 // Data needed to add to admin block
 type DBSig struct {
 	ChainID   interfaces.IHash
@@ -140,14 +136,6 @@ type VM struct {
 	Signed      bool  // We have signed the previous block.
 	faultHeight int
 	whenFaulted int64
-}
-
-func (p *ProcessList) GetAmINegotiator() bool {
-	return p.AmINegotiator
-}
-
-func (p *ProcessList) SetAmINegotiator(b bool) {
-	p.AmINegotiator = b
 }
 
 func (p *ProcessList) Clear() {
@@ -239,7 +227,7 @@ func (p *ProcessList) LenFaultMap() int {
 	return len(p.FaultMap)
 }
 
-func (p *ProcessList) GetFaultState(key [32]byte) interfaces.IFaultState {
+func (p *ProcessList) GetFaultState(key [32]byte) FaultState {
 	p.FaultMapMutex.RLock()
 	defer p.FaultMapMutex.RUnlock()
 	return p.FaultMap[key]
@@ -512,12 +500,12 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 }
 
 // Given a server index, return the last Ack
-func (p *ProcessList) GetAck(vmIndex int) interfaces.IMsg {
+func (p *ProcessList) GetAck(vmIndex int) *messages.Ack {
 	return p.GetAckAt(vmIndex, p.VMs[vmIndex].Height)
 }
 
 // Given a server index, return the last Ack
-func (p *ProcessList) GetAckAt(vmIndex int, height int) interfaces.IMsg {
+func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 	vm := p.VMs[vmIndex]
 	if height < 0 || height >= len(vm.ListAck) {
 		return nil
@@ -584,10 +572,10 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	delete(p.NewEntries, key.Fixed())
 }
 
-func (p *ProcessList) AddFaultState(key [32]byte, value interfaces.IFaultState) {
+func (p *ProcessList) AddFaultState(key [32]byte, value FaultState) {
 	p.FaultMapMutex.Lock()
 	defer p.FaultMapMutex.Unlock()
-	p.FaultMap[key] = value.(*FaultState)
+	p.FaultMap[key] = value
 }
 
 func (p *ProcessList) DeleteFaultState(key [32]byte) {
@@ -624,17 +612,18 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	return true
 }
 
-func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds int64) interfaces.IRequest {
+func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds int64) *Request {
+
 	r := new(Request)
 	r.wait = waitSeconds
 	r.vmIndex = vmIndex
 	r.vmheight = uint32(height)
 
-	if p.Requests[r.Key()] == nil {
+	if p.Requests[r.key()] == nil {
 		r.sent = now + 300
-		p.Requests[r.Key()] = r
+		p.Requests[r.key()] = r
 	} else {
-		r = p.Requests[r.Key()]
+		r = p.Requests[r.key()]
 	}
 
 	return r
@@ -645,7 +634,7 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 func (p *ProcessList) AskDBState(vmIndex int, height int) int {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
-	r := p.GetRequest(now, vmIndex, height, 60).(*Request)
+	r := p.GetRequest(now, vmIndex, height, 60)
 
 	if now-r.sent >= r.wait*1000+500 {
 		dbstate := messages.NewDBStateMissing(p.State, p.State.LLeaderHeight, p.State.LLeaderHeight+1)
@@ -664,7 +653,7 @@ func (p *ProcessList) AskDBState(vmIndex int, height int) int {
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
-	r := p.GetRequest(now, vmIndex, len(p.VMs[0].List), waitSeconds).(*Request)
+	r := p.GetRequest(now, vmIndex, len(p.VMs[0].List), waitSeconds)
 
 	if r == nil {
 		return 0
@@ -735,8 +724,9 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 }
 
 // Process messages and update our state.
-func (p *ProcessList) Process(state interfaces.IState) (progress bool) {
-	state.(*State).PLProcessHeight = p.DBHeight
+func (p *ProcessList) Process(state *State) (progress bool) {
+
+	state.PLProcessHeight = p.DBHeight
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
@@ -832,7 +822,7 @@ func (p *ProcessList) Process(state interfaces.IState) (progress bool) {
 
 			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 			// to disk.  Then we can insist on having the entry blocks.
-			diff := p.DBHeight - state.GetEntryBlockDBHeightComplete()
+			diff := p.DBHeight - state.EntryBlockDBHeightComplete
 			_, dbsig := vm.List[j].(*messages.DirectoryBlockSignature)
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
@@ -888,11 +878,11 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	}
 }
 
-func (p *ProcessList) AddToProcessList(a interfaces.IMsg, m interfaces.IMsg) {
+func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
+
 	if p == nil {
 		return
 	}
-	ack := a.(*messages.Ack)
 
 	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
 	// the past.
@@ -1100,7 +1090,7 @@ func (p *ProcessList) Reset() {
 	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	p.FaultMap = make(map[[32]byte]*FaultState)
+	p.FaultMap = make(map[[32]byte]FaultState)
 
 	p.AmINegotiator = false
 
@@ -1226,7 +1216,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	pl.FaultMap = make(map[[32]byte]*FaultState)
+	pl.FaultMap = make(map[[32]byte]FaultState)
 
 	pl.AmINegotiator = false
 
