@@ -16,13 +16,12 @@ import (
 )
 
 type FaultState struct {
-	FaultCore          FaultCore
-	AmINegotiator      bool
-	MyVoteTallied      bool
-	VoteMap            map[[32]byte]interfaces.IFullSignature
-	NegotiationOngoing bool
-	PledgeDone         bool
-	LastMatch          int64
+	FaultCore     FaultCore
+	AmINegotiator bool
+	MyVoteTallied bool
+	VoteMap       map[[32]byte]interfaces.IFullSignature
+	PledgeDone    bool
+	LastMatch     int64
 }
 
 func (fs *FaultState) IsNil() bool {
@@ -187,7 +186,6 @@ func FaultCheck(pl *ProcessList) {
 	if !faultState.IsNil() {
 		if isMyNegotiation(faultState.FaultCore, pl) {
 			/*faultState.AmINegotiator = true
-			faultState.NegotiationOngoing = true
 			pl.AmINegotiator = true
 			pl.AddFaultState(faultState.FaultCore.GetHash().Fixed(), faultState)*/
 			CraftAndSubmitFullFault(pl, faultState.FaultCore.GetHash().Fixed())
@@ -331,11 +329,10 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	if faultState.IsNil() {
 		// We don't have a map entry yet; let's create one
 		fcore := ExtractFaultCore(sf)
-		faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
+		faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
 
 		if isMyNegotiation(fcore, pl) {
 			faultState.AmINegotiator = true
-			faultState.NegotiationOngoing = true
 			pl.AmINegotiator = true
 		}
 
@@ -430,11 +427,10 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 		} else {
 			// We don't have a map entry yet; let's create one
 			fcore := ExtractFaultCore(sf)
-			faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature), NegotiationOngoing: false}
+			faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
 
 			if isMyNegotiation(fcore, pl) {
 				faultState.AmINegotiator = true
-				faultState.NegotiationOngoing = true
 				pl.AmINegotiator = true
 			}
 
