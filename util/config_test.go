@@ -54,77 +54,120 @@ func TestLoadDefaultConfig(t *testing.T) {
 
 func TestLoadDefaultConfigFull(t *testing.T) {
 	var defaultConfig string = `
-	; ------------------------------------------------------------------------------
-	; App settings
-	; ------------------------------------------------------------------------------
-	[app]
-	PortNumber                            = 8088
-	HomeDir                               = ""
-	; --------------- DBType: LDB | Bolt | Map
-	DBType                                = "Map"
-	LdbPath                               = "ldb"
-	BoltDBPath                            = ""
-	DataStorePath                         = "data/export/"
-	DirectoryBlockInSeconds               = 6
-	ExportData                            = true
-	ExportDataSubpath                     = "export/"
-	; --------------- Network: MAIN | TEST | LOCAL
-	Network                               = LOCAL
-	MainNetworkPort      = 8108
-	PeersFile        = "peers.json"
-	MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
-	MainSpecialPeers     = ""
-	TestNetworkPort      = 8109
-	TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
-	TestSpecialPeers     = ""
-	LocalNetworkPort     = 8110
-	LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
-	LocalSpecialPeers     = ""
+; ------------------------------------------------------------------------------
+; App settings
+; ------------------------------------------------------------------------------
+[app]
+PortNumber                            = 8088
+HomeDir                               = ""
+; --------------- ControlPanel disabled | readonly | readwrite
+ControlPanelSetting                   = readonly
+ControlPanelPort                      = 8090
+; --------------- DBType: LDB | Bolt | Map
+DBType                                = "Map"
+LdbPath                               = "ldb"
+BoltDBPath                            = ""
+DataStorePath                         = "data/export/"
+DirectoryBlockInSeconds               = 6
+ExportData                            = false
+ExportDataSubpath                     = "database/export/"
+; --------------- Network: MAIN | TEST | LOCAL
+Network                               = LOCAL
+PeersFile            = "peers.json"
+MainNetworkPort      = 8108
+MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+MainSpecialPeers     = ""
+TestNetworkPort      = 8109
+TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+TestSpecialPeers     = ""
+LocalNetworkPort     = 8110
+LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+LocalSpecialPeers    = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
-	NodeMode                              = FULL
-	LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
-	LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
-	ExchangeRate                          = 00100000
+NodeMode                              = FULL
+LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
+LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
+ExchangeRate                          = 00100000
+ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
+ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
 
-	[anchor]
-	ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
-	ServerECPublicKey                     = 06ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
-	AnchorChainID                         = df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
-	ConfirmationsNeeded                   = 20
+; These define if the PRC and Control Panel connection to factomd should be encrypted, and if it is, what files
+; are the secret key and the public certificate.  factom-cli and factom-walletd uses the certificate specified here if TLS is enabled.
+FactomdTlsEnabled                     = false
+FactomdTlsPrivateKey                  = "/full/path/to/factomdAPIpriv.key"
+FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 
-	[btc]
-	WalletPassphrase                      = "lindasilva"
-	CertHomePath                          = "btcwallet"
-	RpcClientHost                         = "localhost:18332"
-	RpcClientEndpoint                     = "ws"
-	RpcClientUser                         = "testuser"
-	RpcClientPass                         = "notarychain"
-	BtcTransFee                           = 0.0001
-	CertHomePathBtcd                      = "btcd"
-	RpcBtcdHost                           = "localhost:18334"
+; These are the username and password that factomd requires for the RPC API and the Control Panel
+; This file is also used by factom-cli and factom-walletd to determine what login to use
+FactomdRpcUser                        = ""
+FactomdRpcPass                        = ""
 
-	[wsapi]
-	ApplicationName                       = "Factom/wsapi"
-	PortNumber                            = 8088
+; Specifying when to stop or start ACKs for switching leader servers
+StopAcksHeight					      = 123
+StartAcksHeight						  = 456
 
-	; ------------------------------------------------------------------------------
-	; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
-	; ConsoleLogLevel - allowed values are: debug, standard
-	; ------------------------------------------------------------------------------
-	[log]
-	logLevel                              = debug
-	LogPath                               = "m2factom-d.log"
-	ConsoleLogLevel                       = debug
+[anchor]
+ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
+ServerECPublicKey                     = 06ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
+AnchorChainID                         = df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
+ConfirmationsNeeded                   = 20
 
-	; ------------------------------------------------------------------------------
-	; Configurations for fctwallet
-	; ------------------------------------------------------------------------------
-	[Wallet]
-	Address                               = localhost
-	Port                                  = 8089
-	DataFile                              = fctwallet.dat
-	RefreshInSeconds                      = 60
-	BoltDBPath                            = ""
+[btc]
+WalletPassphrase                      = "lindasilva"
+CertHomePath                          = "btcwallet"
+RpcClientHost                         = "localhost:18332"
+RpcClientEndpoint                     = "ws"
+RpcClientUser                         = "testuser"
+RpcClientPass                         = "notarychain"
+BtcTransFee                           = 0.000001
+CertHomePathBtcd                      = "btcd"
+RpcBtcdHost                           = "localhost:18334"
+
+[wsapi]
+ApplicationName                       = "Factom/wsapi"
+PortNumber                            = 8088
+
+; ------------------------------------------------------------------------------
+; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
+; ConsoleLogLevel - allowed values are: debug, standard
+; ------------------------------------------------------------------------------
+[log]
+logLevel                              = error
+LogPath                               = "database/Log"
+ConsoleLogLevel                       = standard
+
+; ------------------------------------------------------------------------------
+; Configurations for fctwallet
+; ------------------------------------------------------------------------------
+[Wallet]
+Address                               = localhost
+Port                                  = 8089
+DataFile                              = fctwallet.dat
+RefreshInSeconds                      = 6
+BoltDBPath                            = ""
+
+; ------------------------------------------------------------------------------
+; Configurations for factom-walletd
+; ------------------------------------------------------------------------------
+[Walletd]
+; These are the username and password that factom-walletd requires
+; This file is also used by factom-cli to determine what login to use
+WalletRpcUser                         = ""
+WalletRpcPass                         = ""
+
+; These define if the connection to the wallet should be encrypted, and if it is, what files
+; are the secret key and the public certificate.  factom-cli uses the certificate specified here if TLS is enabled.
+WalletTlsEnabled                      = false
+WalletTlsPrivateKey                   = "/full/path/to/walletAPIpriv.key"
+WalletTlsPublicCert                   = "/full/path/to/walletAPIpub.cert"
+
+; This is where factom-walletd and factom-cli will find factomd to interact with the blockchain
+; This value can also be updated to authorize an external ip or domain name when factomd creates a TLS cert
+FactomdLocation                       = "localhost:8088"
+
+; This is where factom-cli will find factom-walletd to create Factoid and Entry Credit transactions
+; This value can also be updated to authorize an external ip or domain name when factom-walletd creates a TLS cert
+WalletdLocation                       = "localhost:8089"
 	`
 
 	var modifiedConfig string = `
@@ -161,6 +204,14 @@ func TestLoadDefaultConfigFull(t *testing.T) {
 	}
 	if cfg.App.DataStorePath != "data/export/" {
 		t.Errorf("Wrong variable read - %v", cfg.App.DataStorePath)
+	}
+
+	if cfg.App.StopAcksHeight != 123 {
+		t.Errorf("Wrong variable read - %v", cfg.App.StopAcksHeight)
+	}
+
+	if cfg.App.StartAcksHeight != 456 {
+		t.Errorf("Wrong variable read - %v", cfg.App.StartAcksHeight)
 	}
 
 }

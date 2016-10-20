@@ -53,6 +53,9 @@ type FactomdConfig struct {
 		FactomdTlsPublicCert string
 		FactomdRpcUser       string
 		FactomdRpcPass       string
+
+		StopAcksHeight  uint32
+		StartAcksHeight uint32
 	}
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
@@ -161,6 +164,10 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
+; Specifying when to stop or start ACKs for switching leader servers
+StopAcksHeight					      = 0
+StartAcksHeight						  = 0
+
 [anchor]
 ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
 ServerECPublicKey                     = 06ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
@@ -265,6 +272,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
+	out.WriteString(fmt.Sprintf("\n    StopAcksHeight          %v", s.App.StopAcksHeight))
+	out.WriteString(fmt.Sprintf("\n    StartAcksHeight         %v", s.App.StartAcksHeight))
 
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
 	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
@@ -319,6 +328,18 @@ func ConfigFilename() string {
 
 func GetConfigFilename(dir string) string {
 	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
+}
+
+func GetAckStartStop(filename string) (start uint32, stop uint32, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error getting acks - %v\n", r)
+		}
+	}()
+
+	config := ReadConfig(filename)
+
+	return config.App.StartAcksHeight, config.App.StopAcksHeight, nil
 }
 
 func ReadConfig(filename string) *FactomdConfig {
