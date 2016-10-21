@@ -220,6 +220,7 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
+	ResetRequest bool // Set to true to trigger a reset
 	ProcessLists *ProcessLists
 
 	// Factom State
@@ -1130,7 +1131,9 @@ func (s *State) catchupEBlocks() {
 							s.MissingEntries = append(s.MissingEntries, v)
 						}
 						// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-						if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
+						if s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+							s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), now)
+						} else {
 							delete(s.Commits, entryhash.Fixed())
 						}
 					}

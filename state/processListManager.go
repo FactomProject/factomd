@@ -18,7 +18,8 @@ type ProcessLists struct {
 	State        *State         // Pointer to the state object
 	DBHeightBase uint32         // Height of the first Process List in this structure.
 	Lists        []*ProcessList // Pointer to the ProcessList structure for each DBHeight under construction
-
+	SetString    bool
+	Str          string
 }
 
 func (lists *ProcessLists) LastList() *ProcessList {
@@ -29,6 +30,11 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
+
+	if lists.SetString {
+		lists.SetString = false
+		lists.Str = lists.String()
+	}
 
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)

@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/wsapi"
 )
 
@@ -71,13 +70,8 @@ func SimControl(listenTo int) {
 					break
 				}
 				s := fnodes[listenTo].State
-				pl := s.ProcessLists.Get(s.LLeaderHeight)
-				if pl == nil {
-					os.Stderr.WriteString("No Process List to Reset\n")
-				} else {
-					os.Stderr.WriteString(fmt.Sprintf("Resetting ProcessList on node %s\n", s.FactomNodeName))
-					pl.Reset()
-				}
+				s.Reset()
+
 			case 'g' == b[0]:
 				if len(b) > 1 {
 					if b[1] == 'c' {
@@ -1082,7 +1076,7 @@ func faultSummary() string {
 							if lenFaults < 3 {
 								faultIDs := pl.GetKeysFaultMap()
 								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID).(*state.FaultState)
+									faultState := pl.GetFaultState(faultID)
 									if !faultState.IsNil() {
 										prt = prt + fmt.Sprintf(" %x/%x:%d ", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], faultState.SigTally(pl.State))
 
@@ -1097,7 +1091,7 @@ func faultSummary() string {
 								//too many, line gets cluttered, just show totals
 								faultIDs := pl.GetKeysFaultMap()
 								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID).(*state.FaultState)
+									faultState := pl.GetFaultState(faultID)
 									if !faultState.IsNil() {
 										//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
 										pledgeDoneString := "N"
@@ -1128,7 +1122,8 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 		fnode := fnodes[*listenTo]
 		nprt := fnode.State.DBStates.String()
 		b := fnode.State.GetHighestCompletedBlock()
-		nprt = nprt + fnode.State.ProcessLists.String()
+		fnode.State.ProcessLists.SetString = true
+		nprt = nprt + fnode.State.ProcessLists.Str
 		pl := fnode.State.ProcessLists.Get(b)
 		if pl != nil {
 			nprt = nprt + pl.PrintMap()

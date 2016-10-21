@@ -73,6 +73,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 func (s *State) Process() (progress bool) {
 
+	if s.ResetRequest {
+		s.DoReset()
+	}
+
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
@@ -175,7 +179,19 @@ func (s *State) ReviewHolding() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 
-		_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		eom, ok := s.Holding[k].(*messages.EOM)
+		if ok && eom.DBHeight < s.LLeaderHeight-1 {
+			delete(s.Holding, k)
+			continue
+		}
+
+		dbsmsg, ok := s.Holding[k].(*messages.DBStateMsg)
+		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < s.LLeaderHeight-1 {
+			delete(s.Holding, k)
+			continue
+		}
+
+		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			delete(s.Holding, k)
 			continue
@@ -1181,8 +1197,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		vm.Synced = true
 	}
 
+	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
+
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
-	if s.DBSigProcessed >= s.DBSigLimit {
+	if allfaults && !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
@@ -1550,7 +1568,7 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 		ack.Height = 0
 		ack.SerialHash = ack.MessageHash
 	} else {
-		last := s.LeaderPL.GetAckAt(vmIndex, listlen-1).(*messages.Ack)
+		last := s.LeaderPL.GetAckAt(vmIndex, listlen-1)
 		ack.Height = last.Height + 1
 		ack.SerialHash, _ = primitives.CreateHash(last.MessageHash, ack.MessageHash)
 	}
