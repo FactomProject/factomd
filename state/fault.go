@@ -24,6 +24,40 @@ type FaultState struct {
 	LastMatch     int64
 }
 
+var _ interfaces.IFaultState = (*FaultState)(nil)
+
+func (fs *FaultState) GetAmINegotiator() bool {
+	return fs.AmINegotiator
+}
+
+func (fs *FaultState) SetAmINegotiator(b bool) {
+	fs.AmINegotiator = b
+}
+
+func (fs *FaultState) GetMyVoteTallied() bool {
+	return fs.MyVoteTallied
+}
+
+func (fs *FaultState) SetMyVoteTallied(b bool) {
+	fs.MyVoteTallied = b
+}
+
+func (fs *FaultState) GetPledgeDone() bool {
+	return fs.PledgeDone
+}
+
+func (fs *FaultState) SetPledgeDone(b bool) {
+	fs.PledgeDone = b
+}
+
+func (fs *FaultState) GetLastMatch() int64 {
+	return fs.LastMatch
+}
+
+func (fs *FaultState) SetLastMatch(b int64) {
+	fs.LastMatch = b
+}
+
 func (fs *FaultState) IsNil() bool {
 	if fs.VoteMap == nil || fs.FaultCore.ServerID.IsZero() || fs.FaultCore.AuditServerID.IsZero() {
 		return true
