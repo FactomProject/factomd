@@ -35,6 +35,8 @@ type Request struct {
 	requestCnt int
 }
 
+var _ interfaces.IRequest = (*Request)(nil)
+
 func (r *Request) key() (thekey [32]byte) {
 	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
 	binary.BigEndian.PutUint64(thekey[5:13], uint64(r.wait))
@@ -117,6 +119,16 @@ type ProcessList struct {
 	//Requests map[[20]byte]*Request
 }
 
+var _ interfaces.IProcessList = (*ProcessList)(nil)
+
+func (p *ProcessList) GetAmINegotiator() bool {
+	return p.AmINegotiator
+}
+
+func (p *ProcessList) SetAmINegotiator(b bool) {
+	p.AmINegotiator = b
+}
+
 // Data needed to add to admin block
 type DBSig struct {
 	ChainID   interfaces.IHash
@@ -132,12 +144,10 @@ type VM struct {
 	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
 	Synced         bool              // Is this VM synced yet?
 	//faultingEOM           int64             // Faulting for EOM because it is too late
-	heartBeat             int64 // Just ping ever so often if we have heard nothing.
-	Signed                bool  // We have signed the previous block.
-	faultInitiatedAlready bool
-	faultHeight           int
-	whenFaulted           int64
-	lastFaultAction       int64
+	heartBeat   int64 // Just ping ever so often if we have heard nothing.
+	Signed      bool  // We have signed the previous block.
+	faultHeight int
+	whenFaulted int64
 }
 
 func (p *ProcessList) Clear() {
@@ -1055,6 +1065,8 @@ func (p *ProcessList) String() string {
 
 func (p *ProcessList) Reset() {
 
+	now := p.State.GetTimestamp()
+
 	// Make a copy of the previous FedServers
 	p.FedServers = make([]interfaces.IFctServer, 0)
 	p.AuditServers = make([]interfaces.IFctServer, 0)
@@ -1116,12 +1128,27 @@ func (p *ProcessList) Reset() {
 	p.ResetDiffSigTally()
 
 	for i := range p.FedServers {
-		p.VMs[i].Height = 0               // Knock all the VMs back
-		p.VMs[i].List = p.VMs[i].List[:0] // Knock all the lists back.
+		vm := p.VMs[i]
+		vm.Height = 0 // Knock all the VMs back
+
+		for _, msg := range vm.List {
+			if msg != nil {
+				p.State.Holding[msg.GetHash().Fixed()] = msg
+			}
+		}
+
+		for _, ack := range vm.ListAck {
+			p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetHash().Fixed(), ack, now)
+			p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetHash().Fixed(), ack, now)
+		}
+
+		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
+		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
+
 	}
 
 	s := p.State
-
+	s.Saving = true
 	s.Syncing = false
 	s.EOM = false
 	s.DBSig = false
@@ -1131,6 +1158,8 @@ func (p *ProcessList) Reset() {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	s.RunLeader = false
 	s.Newblk = true
+
+	s.LLeaderHeight--
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)

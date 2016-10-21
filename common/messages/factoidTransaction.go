@@ -46,25 +46,27 @@ func (m *FactoidTransaction) GetRepeatHash() interfaces.IHash {
 
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
 
-	m.SetFullMsgHash(m.Transaction.GetFullHash())
+	if m.hash == nil {
+		m.SetFullMsgHash(m.Transaction.GetFullHash())
 
-	data, err := m.Transaction.MarshalBinarySig()
-	if err != nil {
-		panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
+		data, err := m.Transaction.MarshalBinarySig()
+		if err != nil {
+			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
+		}
+		m.hash = primitives.Sha(data)
 	}
-	m.hash = primitives.Sha(data)
 
 	return m.hash
 }
 
 func (m *FactoidTransaction) GetMsgHash() interfaces.IHash {
-
-	data, err := m.MarshalBinary()
-	if err != nil {
-		return nil
+	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
 	}
-	m.MsgHash = primitives.Sha(data)
-
 	return m.MsgHash
 }
 
