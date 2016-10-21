@@ -137,12 +137,11 @@ type DBSig struct {
 }
 
 type VM struct {
-	List           []interfaces.IMsg // Lists of acknowledged messages
-	ListAck        []*messages.Ack   // Acknowledgements
-	Height         int               // Height of messages that have been processed
-	LeaderMinute   int               // Where the leader is in acknowledging messages
-	MinuteComplete int               // Highest minute complete recorded (0-9) by the follower
-	Synced         bool              // Is this VM synced yet?
+	List         []interfaces.IMsg // Lists of acknowledged messages
+	ListAck      []*messages.Ack   // Acknowledgements
+	Height       int               // Height of messages that have been processed
+	LeaderMinute int               // Where the leader is in acknowledging messages
+	Synced       bool              // Is this VM synced yet?
 	//faultingEOM           int64             // Faulting for EOM because it is too late
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.
@@ -749,6 +748,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				break
 			}
 			p.System.Height++
+			progress = true
 		}
 		if fault == nil {
 			p.Ask(-1, i, 10, 100)
@@ -1065,8 +1065,6 @@ func (p *ProcessList) String() string {
 
 func (p *ProcessList) Reset() {
 
-	now := p.State.GetTimestamp()
-
 	// Make a copy of the previous FedServers
 	p.FedServers = make([]interfaces.IFctServer, 0)
 	p.AuditServers = make([]interfaces.IFctServer, 0)
@@ -1129,17 +1127,32 @@ func (p *ProcessList) Reset() {
 
 	for i := range p.FedServers {
 		vm := p.VMs[i]
+
 		vm.Height = 0 // Knock all the VMs back
+		vm.LeaderMinute = 0
+		vm.faultHeight = 0
+		vm.heartBeat = 0
+		vm.Signed = false
+		vm.Synced = false
+		vm.whenFaulted = 0
 
 		for _, msg := range vm.List {
 			if msg != nil {
 				p.State.Holding[msg.GetHash().Fixed()] = msg
+				p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
+				p.State.Replay.Clear(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed())
+				if dbsig, ok := msg.(*messages.DirectoryBlockSignature); ok {
+					dbsig.Processed = false
+				}
+				if eom, ok := msg.(*messages.EOM); ok {
+					eom.Processed = false
+				}
 			}
 		}
 
 		for _, ack := range vm.ListAck {
-			p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetHash().Fixed(), ack, now)
-			p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetHash().Fixed(), ack, now)
+			p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed())
+			p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetRepeatHash().Fixed())
 		}
 
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.

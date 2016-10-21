@@ -1242,6 +1242,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 	fullFault, _ := msg.(*messages.FullServerFault)
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
+	vm := pl.VMs[int(fullFault.VMIndex)]
+
+	if fullFault.Height >= uint32(vm.Height) {
+		return false
+	}
 
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
@@ -1266,7 +1271,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			// and we can execute it as such (replacing the faulted Leader with
 			// the nominated Audit server)
 
-			vm := pl.VMs[int(fullFault.VMIndex)]
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {

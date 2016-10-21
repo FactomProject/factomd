@@ -135,9 +135,12 @@ func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
 	}
 }
 
-func (r *Replay) Clear(mask int, hash [32]byte, msg interfaces.IMsg, now interfaces.Timestamp) {
-	index, ok := r.Valid(mask, hash, msg.GetTimestamp(), now)
-	if !ok && index >= 0 {
-		r.Buckets[index][hash] = r.Buckets[index][hash] ^ mask
+func (r *Replay) Clear(mask int, hash [32]byte) {
+	for _, bucket := range r.Buckets {
+		if bucket != nil {
+			if v, ok := bucket[hash]; ok {
+				bucket[hash] = v &^ mask
+			}
+		}
 	}
 }
