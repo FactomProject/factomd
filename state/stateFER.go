@@ -17,29 +17,29 @@ func (this *State) ProcessRecentFERChainEntries() {
 	// Find the FER entry chain
 	FERChainHash, err := primitives.HexToHash(this.FERChainId)
 	if err != nil {
-		fmt.Println("The FERChainId couldn't be turned into a IHASH")
+		this.Println("The FERChainId couldn't be turned into a IHASH")
 		return
 	}
 
 	//  Get the first eblock from the FERChain
 	entryBlock, err := this.DB.FetchEBlockHead(FERChainHash)
 	if err != nil {
-		fmt.Println("Couldn't find the FER chain for id ", this.FERChainId)
+		this.Println("Couldn't find the FER chain for id ", this.FERChainId)
 		return
 	}
 	if entryBlock == nil {
-		fmt.Println("FER Chain head found to be nil")
+		this.Println("FER Chain head found to be nil")
 		return
 	}
 
-	fmt.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
-	fmt.Println("Current block height: ", this.GetDBHeightComplete())
-	fmt.Println("BEFORE processing recent block: ")
-	fmt.Println("    FERChangePrice: ", this.FERChangePrice)
-	fmt.Println("    FERChangeHeight: ", this.FERChangeHeight)
-	fmt.Println("    FERPriority: ", this.FERPriority)
-	fmt.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
-	fmt.Println("    FER current: ", this.GetFactoshisPerEC())
+	this.Println("Checking last e block of FER chain with height of: ", entryBlock.GetHeader().GetDBHeight())
+	this.Println("Current block height: ", this.GetDBHeightComplete())
+	this.Println("BEFORE processing recent block: ")
+	this.Println("    FERChangePrice: ", this.FERChangePrice)
+	this.Println("    FERChangeHeight: ", this.FERChangeHeight)
+	this.Println("    FERPriority: ", this.FERPriority)
+	this.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
+	this.Println("    FER current: ", this.GetFactoshisPerEC())
 
 	// Check to see if a price change targets the next block
 	if this.FERChangeHeight == (this.GetDBHeightComplete())+1 {
@@ -60,10 +60,10 @@ func (this *State) ProcessRecentFERChainEntries() {
 	// Check last entry block method
 	// predictive rate change needs to see this coming 3 blocks in advance
 	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-3 {
-		fmt.Println ("Rate Change in 3 blocks")
+		this.Println ("Rate Change in 3 blocks")
 		entryHashes := entryBlock.GetEntryHashes()
 
-		// fmt.Println("Found FER entry hashes in a block as: ", entryHashes)
+		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
 		// create a map of possible minute markers that may be found in the EBlock Body
 		mins := make(map[string]uint8)
 		for i := byte(0); i <= 10; i++ {
@@ -82,25 +82,25 @@ func (this *State) ProcessRecentFERChainEntries() {
 			// Make sure the entry exists
 			anEntry, err := this.DB.FetchEntry(entryHash)
 			if err != nil {
-				fmt.Println("Error during FetchEntryByHash: ", err)
+				this.Println("Error during FetchEntryByHash: ", err)
 				continue
 			}
 			if anEntry == nil {
-				fmt.Println("Nil entry during FetchEntryByHash: ", entryHash)
+				this.Println("Nil entry during FetchEntryByHash: ", entryHash)
 				continue
 			}
 
 			if !this.ExchangeRateAuthorityIsValid(anEntry) {
-				fmt.Println("Skipping non-authority FER chain entry", entryHash)
+				this.Println("Skipping non-authority FER chain entry", entryHash)
 				continue
 			}
 
 			entryContent := anEntry.GetContent()
-			// fmt.Println("Found content of an FER entry is:  ", string(entryContent))
+			// this.Println("Found content of an FER entry is:  ", string(entryContent))
 			ferEntry := new(specialEntries.FEREntry)
 			err = ferEntry.UnmarshalBinary(entryContent)
 			if err != nil {
-				fmt.Println("A FEREntry messgae didn't unmarshal correctly: ", err)
+				this.Println("A FEREntry messgae didn't unmarshal correctly: ", err)
 				continue
 			}
 
@@ -108,7 +108,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 			ferEntry.SetResidentHeight(this.GetDBHeightComplete())
 
 			if (this.FerEntryIsValid(ferEntry)) && (ferEntry.Priority > this.FERPriority) {
-				fmt.Println(" Processing FER entry : ", string(entryContent))
+				this.Println(" Processing FER entry : ", string(entryContent))
 				this.FERPriority = ferEntry.GetPriority()
 				this.FERPrioritySetHeight = this.GetDBHeightComplete()
 				this.FERChangePrice = ferEntry.GetTargetPrice()
@@ -119,18 +119,18 @@ func (this *State) ProcessRecentFERChainEntries() {
 					this.FERChangeHeight = this.GetDBHeightComplete() + 2
 				}
 			} else {
-				fmt.Println(" Failed FER entry : ", string(entryContent))
+				this.Println(" Failed FER entry : ", string(entryContent))
 			}
 		}
 	}
 
-	fmt.Println("AFTER processing recent block: ")
-	fmt.Println("    FERChangePrice: ", this.FERChangePrice)
-	fmt.Println("    FERChangeHeight: ", this.FERChangeHeight)
-	fmt.Println("    FERPriority: ", this.FERPriority)
-	fmt.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
-	fmt.Println("    FER current: ", this.GetFactoshisPerEC())
-	fmt.Println("----------------------------------")
+	this.Println("AFTER processing recent block: ")
+	this.Println("    FERChangePrice: ", this.FERChangePrice)
+	this.Println("    FERChangeHeight: ", this.FERChangeHeight)
+	this.Println("    FERPriority: ", this.FERPriority)
+	this.Println("    FERPrioritySetHeight: ", this.FERPrioritySetHeight)
+	this.Println("    FER current: ", this.GetFactoshisPerEC())
+	this.Println("----------------------------------")
 
 	return
 }
@@ -173,11 +173,13 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	// fail if expired
 	if passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight() {
+		this.Println("expired FER Requst")
 		return false
 	}
 
 	// fail if expired height is too far out
-	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 6) {
+	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 12) {
+		this.Println("Too Far in advance FER Requst")
 		return false
 	}
 
@@ -186,7 +188,7 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	if (passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
 		((passedFEREntry.GetExpirationHeight() >= 6) &&
 			(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6))) {
-
+this.Println("Too Far from expiration FER Requst")
 		return false
 	}
 

@@ -430,7 +430,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if list.State.FERChangeHeight == 1 {
 		list.State.FERChangeHeight = 0
 	} else	{
-		fmt.Println("setting rate",list.State.FactoshisPerEC ," to " ,  d.FactoidBlock.GetExchRate())
+		fmt.Println("setting rate",list.State.FactoshisPerEC ," to " ,  d.FactoidBlock.GetExchRate()," - Height ",d.DirectoryBlock.GetHeader().GetDBHeight())
 		list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
 	}
 	
