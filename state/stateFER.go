@@ -172,11 +172,14 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	// fail if expired
 	if passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight() {
+		fmt.Println("FER Failed-fail if expired")
 		return false
 	}
 
 	// fail if expired height is too far out
-	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 6) {
+	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 12) {
+		fmt.Println("FER Failed-fail if expired height is too far out")
+	
 		return false
 	}
 
@@ -185,6 +188,7 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	if (passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
 		((passedFEREntry.GetExpirationHeight() >= 6) &&
 			(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6))) {
+				fmt.Println("FER Failed-fail if target is out of range of the expire height")
 		return false
 	}
 
