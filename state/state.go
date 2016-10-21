@@ -271,6 +271,9 @@ type State struct {
 	FERChangePrice       uint64
 	FERPriority          uint32
 	FERPrioritySetHeight uint32
+
+	AckStart uint32
+	AckStop  uint32
 }
 
 type MissingEntryBlock struct {
@@ -450,6 +453,31 @@ func (s *State) IncECCommits() {
 
 func (s *State) IncECommits() {
 	s.ECommits++
+}
+
+func (s *State) GetAckStartStop() error {
+	start, stop, err := util.GetAckStartStop(s.filename)
+	if err != nil {
+		return err
+	}
+
+	s.AckStart = start
+	s.AckStop = stop
+
+	fmt.Printf("Called GetAckStartStop\n")
+
+	return nil
+}
+
+func (s *State) PeriodicalChecks() {
+	//A function that periodically calls other functions
+	for {
+		err := s.GetAckStartStop()
+		if err != nil {
+			fmt.Printf("Error getting ACK Start/Stop\n")
+		}
+		time.Sleep(10 * time.Minute)
+	}
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
@@ -740,6 +768,8 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.starttime = time.Now()
+
+	go s.PeriodicalChecks()
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
