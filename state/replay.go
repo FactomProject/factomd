@@ -128,6 +128,9 @@ func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
 		if index < 0 || index >= len(r.Buckets) {
 			return
 		}
+		if r.Buckets[index] == nil {
+			r.Buckets[index] = make(map[[32]byte]int)
+		}
 		r.Buckets[index][hash] = mask | r.Buckets[index][hash]
 	}
 }
