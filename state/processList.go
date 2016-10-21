@@ -1151,8 +1151,10 @@ func (p *ProcessList) Reset() {
 		}
 
 		for _, ack := range vm.ListAck {
-			p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed())
-			p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetRepeatHash().Fixed())
+			if ack != nil {
+				p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed())
+				p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetRepeatHash().Fixed())
+			}
 		}
 
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
