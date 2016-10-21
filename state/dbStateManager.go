@@ -59,7 +59,7 @@ type DBStateList struct {
 //
 // Return a -1 on failure.
 //
-func (d *DBState) ValidNext(state *State, dirblk interfaces.IDirectoryBlock) int {
+func (d *DBState) ValidNext(state interfaces.IState, dirblk interfaces.IDirectoryBlock) int {
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	if dbheight == 0 {
 		// The genesis block is valid by definition.
@@ -98,7 +98,8 @@ func (list *DBStateList) String() string {
 			if ds.DirectoryBlock != nil {
 				rec = "x"
 
-				dblk, _ := list.State.DB.FetchDBlock(ds.DirectoryBlock.GetKeyMR())
+				dblk, _ := list.State.GetAndLockDB().FetchDBlock(ds.DirectoryBlock.GetKeyMR())
+				defer list.State.UnlockDB()
 				if dblk != nil {
 					rec = "s"
 				}

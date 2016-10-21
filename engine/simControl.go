@@ -70,13 +70,8 @@ func SimControl(listenTo int) {
 					break
 				}
 				s := fnodes[listenTo].State
-				pl := s.ProcessLists.Get(s.LLeaderHeight)
-				if pl == nil {
-					os.Stderr.WriteString("No Process List to Reset\n")
-				} else {
-					os.Stderr.WriteString(fmt.Sprintf("Resetting ProcessList on node %s\n", s.FactomNodeName))
-					pl.Reset()
-				}
+				s.Reset()
+
 			case 'g' == b[0]:
 				if len(b) > 1 {
 					if b[1] == 'c' {
@@ -1083,21 +1078,13 @@ func faultSummary() string {
 								for _, faultID := range faultIDs {
 									faultState := pl.GetFaultState(faultID)
 									if !faultState.IsNil() {
-										//if (int(faultState.FaultCore.VMIndex)+1)%(len(pl.FedServers)-1) == pl.NegotiatorVMIndex {
-										prt = prt + fmt.Sprintf(" %x/%x:", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5])
-										for faulterID, _ := range faultState.VoteMap {
-											prt = prt + fmt.Sprintf(" %x ", faulterID[:6])
-										}
+										prt = prt + fmt.Sprintf(" %x/%x:%d ", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], faultState.SigTally(pl.State))
+
 										pledgeDoneString := "N"
 										if faultState.PledgeDone {
 											pledgeDoneString = "Y"
 										}
-										pledgeOngo := "off"
-										if faultState.NegotiationOngoing {
-											pledgeOngo = "on"
-										}
-										prt = prt + pledgeDoneString + " " + pledgeOngo
-										//}
+										prt = prt + pledgeDoneString
 									}
 								}
 							} else {
@@ -1135,7 +1122,8 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 		fnode := fnodes[*listenTo]
 		nprt := fnode.State.DBStates.String()
 		b := fnode.State.GetHighestCompletedBlock()
-		nprt = nprt + fnode.State.ProcessLists.String()
+		fnode.State.ProcessLists.SetString = true
+		nprt = nprt + fnode.State.ProcessLists.Str
 		pl := fnode.State.ProcessLists.Get(b)
 		if pl != nil {
 			nprt = nprt + pl.PrintMap()

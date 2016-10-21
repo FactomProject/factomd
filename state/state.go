@@ -197,6 +197,7 @@ type State struct {
 	FaultWait       int
 	EOMfaultIndex   int
 	LastFaultAction int64
+	LastTiebreak    int64
 
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
@@ -219,6 +220,7 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
+	ResetRequest bool // Set to true to trigger a reset
 	ProcessLists *ProcessLists
 
 	// Factom State
@@ -659,6 +661,7 @@ func (s *State) Init() {
 	s.FaultTimeout = 20
 	s.FaultWait = 5
 	s.LastFaultAction = 0
+	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
@@ -1127,7 +1130,9 @@ func (s *State) catchupEBlocks() {
 							s.MissingEntries = append(s.MissingEntries, v)
 						}
 						// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-						if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
+						if s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+							s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), now)
+						} else {
 							delete(s.Commits, entryhash.Fixed())
 						}
 					}
