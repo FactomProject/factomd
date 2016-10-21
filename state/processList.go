@@ -35,6 +35,8 @@ type Request struct {
 	requestCnt int
 }
 
+var _ interfaces.IRequest = (*Request)(nil)
+
 func (r *Request) key() (thekey [32]byte) {
 	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
 	binary.BigEndian.PutUint64(thekey[5:13], uint64(r.wait))
@@ -115,6 +117,16 @@ type ProcessList struct {
 
 	Requests map[[32]byte]*Request
 	//Requests map[[20]byte]*Request
+}
+
+var _ interfaces.IProcessList = (*ProcessList)(nil)
+
+func (p *ProcessList) GetAmINegotiator() bool {
+	return p.AmINegotiator
+}
+
+func (p *ProcessList) SetAmINegotiator(b bool) {
+	p.AmINegotiator = b
 }
 
 // Data needed to add to admin block
