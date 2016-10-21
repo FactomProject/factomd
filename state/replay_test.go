@@ -41,7 +41,7 @@ func Test_Replay(test *testing.T) {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	XTrans := 102400000 //61440 //145000
+	XTrans := 61440 //102400000 //61440 //145000
 
 	var mhs []*mh
 
