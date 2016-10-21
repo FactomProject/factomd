@@ -58,9 +58,8 @@ func (this *State) ProcessRecentFERChainEntries() {
 	}
 
 	// Check last entry block method
-	// predictive rate change needs to see this coming 3 blocks in advance
-	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-3 {
-		this.Println ("Rate Change in 3 blocks")
+	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-1 {
+		
 		entryHashes := entryBlock.GetEntryHashes()
 
 		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
@@ -173,13 +172,11 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	// fail if expired
 	if passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight() {
-		this.Println("expired FER Requst")
 		return false
 	}
 
 	// fail if expired height is too far out
-	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 12) {
-		this.Println("Too Far in advance FER Requst")
+	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 6) {
 		return false
 	}
 
@@ -188,7 +185,6 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	if (passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
 		((passedFEREntry.GetExpirationHeight() >= 6) &&
 			(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6))) {
-this.Println("Too Far from expiration FER Requst")
 		return false
 	}
 
