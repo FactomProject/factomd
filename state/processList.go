@@ -117,6 +117,7 @@ type ProcessList struct {
 
 	Requests map[[32]byte]*Request
 	//Requests map[[20]byte]*Request
+	NextHeightToProcess [64]int
 }
 
 var _ interfaces.IProcessList = (*ProcessList)(nil)
@@ -245,6 +246,9 @@ func (p *ProcessList) GetFaultState(key [32]byte) FaultState {
 }
 
 func (p *ProcessList) Complete() bool {
+	if p.DBHeight <= p.State.GetHighestCompletedBlock() {
+		return true
+	}
 	for i := 0; i < len(p.FedServers); i++ {
 		vm := p.VMs[i]
 		if vm.LeaderMinute < 10 {
@@ -737,6 +741,11 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
+	dbht := state.GetHighestCompletedBlock()
+	if dbht >= p.DBHeight {
+		return true
+	}
+
 	state.PLProcessHeight = p.DBHeight
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
@@ -841,6 +850,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// Until the signatures are processed, we will be 2 behind.
 			if (dbsig && diff <= 2) || diff <= 1 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
+				p.NextHeightToProcess[i] = j + 1
 				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
@@ -1018,12 +1028,18 @@ func (p *ProcessList) String() string {
 		buf.WriteString("-- <nil>\n")
 	} else {
 		buf.WriteString("===ProcessListStart===\n")
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d \n", p.State.GetFactomNodeName(), len(p.FedServers), p.Complete(), p.DBHeight))
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v\n",
+			p.State.GetFactomNodeName(),
+			len(p.FedServers),
+			p.Complete(),
+			p.DBHeight,
+			p.State.DBSig,
+			p.State.EOM))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
-			buf.WriteString(fmt.Sprintf("  VM %d  vMin %d vHeight %v len(List)%d Syncing %v Synced %v EOMProcessed %d DBSigProcessed %d\n",
-				i, vm.LeaderMinute, vm.Height, len(vm.List), p.State.Syncing, vm.Synced, p.State.EOMProcessed, p.State.DBSigProcessed))
+			buf.WriteString(fmt.Sprintf("  VM %d  vMin %d vHeight %v len(List)%d Syncing %v Synced %v EOMProcessed %d DBSigProcessed %d NextHt: %d\n",
+				i, vm.LeaderMinute, vm.Height, len(vm.List), p.State.Syncing, vm.Synced, p.State.EOMProcessed, p.State.DBSigProcessed, p.NextHeightToProcess[i]))
 			for j, msg := range vm.List {
 				buf.WriteString(fmt.Sprintf("   %3d", j))
 				if j < vm.Height {
@@ -1151,8 +1167,10 @@ func (p *ProcessList) Reset() {
 		}
 
 		for _, ack := range vm.ListAck {
-			p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed())
-			p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetRepeatHash().Fixed())
+			if ack != nil {
+				p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed())
+				p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetRepeatHash().Fixed())
+			}
 		}
 
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
@@ -1172,7 +1190,7 @@ func (p *ProcessList) Reset() {
 	s.RunLeader = false
 	s.Newblk = true
 
-	s.LLeaderHeight--
+	s.LLeaderHeight = s.GetHighestCompletedBlock() + 1
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)

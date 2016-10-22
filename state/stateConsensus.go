@@ -273,7 +273,8 @@ func (s *State) AddDBState(isNew bool,
 		}
 
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		s.ProcessLists.UpdateState(s.LLeaderHeight)
+		for s.ProcessLists.UpdateState(s.LLeaderHeight) {
+		}
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
@@ -970,7 +971,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// let processing continue.
 	if s.EOMDone {
 		s.EOMProcessed--
-		if s.EOMProcessed == 0 {
+		if s.EOMProcessed <= 0 {
 			s.EOM = false
 			s.EOMDone = false
 			s.ReviewHolding()
