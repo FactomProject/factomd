@@ -1245,7 +1245,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 	vm := pl.VMs[int(fullFault.VMIndex)]
 
-	if fullFault.Height >= uint32(vm.Height) {
+	if fullFault.Height > uint32(vm.Height) {
 		return false
 	}
 
