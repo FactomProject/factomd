@@ -219,17 +219,6 @@ func (m *MissingMsgResponse) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingMsgResponse) FollowerExecute(state interfaces.IState) {
-	/*msg, ackMsg, err := state.LoadSpecificMsgAndAck(m.DBHeight, m.VM, m.ProcessListHeight)
-	if msg != nil && ackMsg != nil && err == nil { // If I don't have this message, ignore.
-		msg.SetOrigin(m.GetOrigin())
-		msg.SetNetworkOrigin(m.GetNetworkOrigin())
-		msg.SetPeer2Peer(true)
-		ackMsg.SetOrigin(m.GetOrigin())
-		ackMsg.SetNetworkOrigin(m.GetNetworkOrigin())
-		ackMsg.SetPeer2Peer(true)
-		state.NetworkOutMsgQueue() <- msg
-		state.NetworkOutMsgQueue() <- ackMsg
-	}*/
 
 	state.FollowerExecuteMMR(m)
 

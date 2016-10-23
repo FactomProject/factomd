@@ -391,7 +391,17 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	sys, ok := mmr.MsgResponse.(*messages.FullServerFault)
 	if ok && sys != nil {
-		// Handle the missing full fault here
+		switch sys.Validate(s) {
+		case 1:
+			pl := s.ProcessLists.Get(sys.DBHeight)
+			if pl != nil {
+				pl.AddToSystemList(sys)
+			}
+		case 0:
+			s.Holding[sys.GetRepeatHash().Fixed()] = sys
+		default:
+			// Ignore if -1 or anything but 0 and 1
+		}
 		return
 	}
 

@@ -881,6 +881,9 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		p.State.Holding[m.GetMsgHash().Fixed()] = fullFault
 		return false
 	} else {
+		for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
+			p.System.List = p.System.List[:len(p.System.List)-1]
+		}
 		// If we are here, fullFault.SystemHeight == p.System.Height
 		if len(p.System.List) <= p.System.Height {
 			// Nothing in our list a this slot yet, so insert this FullFault message
