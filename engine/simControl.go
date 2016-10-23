@@ -881,7 +881,7 @@ func returnStatString(i int) string {
 // come back before we are faulted, or we might not.
 func bringback(f *FactomNode) {
 	t := rand.Int() % 120
-	os.Stderr.WriteString(fmt.Sprintf("Bringing %s back in %d seconds.\n", f.State.FactomNodeName, t))
+	os.Stderr.WriteString(fmt.Sprintf("  Bringing %s back in %d seconds.\n", f.State.FactomNodeName, t))
 	time.Sleep(time.Duration(t) * time.Second)
 	f.State.SetNetStateOff(false) // Bring this node back
 }
@@ -949,7 +949,6 @@ func faultTest(faulting *bool) {
 			totalServerFaults += kill
 
 		} else {
-			os.Stderr.WriteString(". ")
 			time.Sleep(20 * time.Second)
 		}
 	}
