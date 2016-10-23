@@ -880,8 +880,8 @@ func returnStatString(i int) string {
 // Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
 // come back before we are faulted, or we might not.
 func bringback(f *FactomNode) {
-	t := rand.Int()%120
-	os.Stderr.WriteString(fmt.Sprintf("Bringing %s back in %d seconds.",f.State.FactomNodeName, t)
+	t := rand.Int() % 120
+	os.Stderr.WriteString(fmt.Sprintf("Bringing %s back in %d seconds.\n", f.State.FactomNodeName, t))
 	time.Sleep(time.Duration(t) * time.Second)
 	f.State.SetNetStateOff(false) // Bring this node back
 }
