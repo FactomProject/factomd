@@ -877,6 +877,15 @@ func returnStatString(i int) string {
 	return stat
 }
 
+// Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
+// come back before we are faulted, or we might not.
+func bringback(f *FactomNode) {
+	t := rand.Int()%120
+	os.Stderr.WriteString(fmt.Sprintf("Bringing %s back in %d seconds.",f.State.FactomNodeName, t)
+	time.Sleep(time.Duration(t) * time.Second)
+	f.State.SetNetStateOff(false) // Bring this node back
+}
+
 func faultTest(faulting *bool) {
 	dbheight := 0
 	lastheight := 0
@@ -919,6 +928,10 @@ func faultTest(faulting *bool) {
 		}
 
 		if lastheight < dbheight {
+			// Wait some random amount of time.
+			delta := rand.Int() % 20
+			time.Sleep(time.Duration(delta) * time.Second)
+
 			lastheight = dbheight
 			kill := rand.Int() % ((numleaders / 2) - 2)
 			kill++
@@ -928,19 +941,12 @@ func faultTest(faulting *bool) {
 				if !leaders[n].State.GetNetStateOff() {
 					fmt.Sprintf("Killing %s", leaders[n].State.FactomNodeName)
 					leaders[n].State.SetNetStateOff(true)
+					go bringback(leaders[n])
 					i++
 				}
 			}
-			totalServerFaults += kill
-			delta := rand.Int() % 20
-			time.Sleep(time.Duration(20+delta) * time.Second)
 
-			// Wait a minute, then bring everyone back.
-			for _, f := range fnodes {
-				if f.State.GetNetStateOff() {
-					f.State.SetNetStateOff(false)
-				}
-			}
+			totalServerFaults += kill
 
 		} else {
 			os.Stderr.WriteString(". ")
