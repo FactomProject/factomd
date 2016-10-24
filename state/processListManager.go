@@ -99,11 +99,13 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 func (lists *ProcessLists) String() string {
 	str := "Process Lists"
 	if len(lists.Lists) > 0 {
-		pl := lists.Lists[len(lists.Lists)-2]
-		str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
+		if len(lists.Lists) > 1 {
+			pl := lists.Lists[len(lists.Lists)-2]
+			str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
+			str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
+		}
 
-		pl = lists.Lists[len(lists.Lists)-1]
+		pl := lists.Lists[len(lists.Lists)-1]
 		str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
 		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
 	}
