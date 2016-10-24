@@ -836,8 +836,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// according to this node's processList
 
 					//fault(p, i, 0, vm, 0, j, 2)
-
-					break VMListLoop
+					p.State.Reset()
+					return
 				}
 			}
 
@@ -1093,7 +1093,7 @@ func (p *ProcessList) Reset() {
 	p.FactoidBalancesT = map[[32]byte]int64{}
 	p.ECBalancesT = map[[32]byte]int64{}
 
-	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
+	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
 
 	if previous != nil {
 		p.FedServers = append(p.FedServers, previous.FedServers...)
@@ -1157,6 +1157,15 @@ func (p *ProcessList) Reset() {
 
 		for _, msg := range vm.List {
 			if msg != nil {
+				if _, ok := msg.(*messages.EOM); ok {
+					continue
+				}
+				if _, ok := msg.(*messages.DirectoryBlockSignature); ok {
+					continue
+				}
+				if _, ok := msg.(*messages.Ack); ok {
+					continue
+				}
 				p.State.Holding[msg.GetHash().Fixed()] = msg
 				p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 				p.State.Replay.Clear(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed())
@@ -1169,16 +1178,10 @@ func (p *ProcessList) Reset() {
 			}
 		}
 
-		for _, ack := range vm.ListAck {
-			if ack != nil {
-				p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed())
-				p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetRepeatHash().Fixed())
-			}
-		}
-
+		p.State.Acks = make(map[[32]byte]interfaces.IMsg, 0)
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
 		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
-
+		p.State.SendDBSig(p.DBHeight, i)
 	}
 
 	s := p.State
