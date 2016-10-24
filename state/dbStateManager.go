@@ -406,16 +406,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
-	if len(pl.FedServers) > 0 {
-		pln.FedServers = pln.FedServers[:0]
-		for _, f := range pl.FedServers {
-			pln.FedServers = append(pln.FedServers, f)
-		}
-		pln.AuditServers = pln.AuditServers[:0]
-		for _, a := range pl.AuditServers {
-			pln.AuditServers = append(pln.AuditServers, a)
-		}
-	}
+
+	// Reset the pln to the value of the previous pl.
+	pln.FedServers = make([]interfaces.IFctServer, 0)
+	pln.AuditServers = make([]interfaces.IFctServer, 0)
+	pln.FedServers = append(pln.FedServers, pl.FedServers...)
+	pln.AuditServers = append(pln.AuditServers, pl.AuditServers...)
+
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)

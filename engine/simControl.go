@@ -26,6 +26,7 @@ import (
 var _ = fmt.Print
 var sortByID bool
 var verboseFaultOutput = false
+var totalServerFaults int
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -34,6 +35,7 @@ func SimControl(listenTo int) {
 	var watchMessages int
 	var rotate int
 	var wsapiNode int
+	var faulting bool
 
 	for {
 		l := make([]byte, 100)
@@ -290,12 +292,23 @@ func SimControl(listenTo int) {
 			case 'v' == b[0]:
 				if verboseFaultOutput {
 					verboseFaultOutput = false
-					os.Stderr.WriteString("--VerboseFaultOutput Off--\n")
+					os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
 				} else {
 					verboseFaultOutput = true
 					os.Stderr.WriteString("--VerboseFaultOutput On--\n")
 				}
 			case 'V' == b[0]:
+				if b[1] == 't' {
+					faulting = !faulting
+					if faulting {
+						os.Stderr.WriteString("Start Faulting Test\n")
+						go faultTest(&faulting)
+					} else {
+						os.Stderr.WriteString("Stop Faulting Test\n")
+					}
+					break
+				}
+
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 99 {
 					os.Stderr.WriteString("Specifiy a FaultTimeout between 0 and 100\n")
@@ -305,6 +318,7 @@ func SimControl(listenTo int) {
 					fn.State.FaultTimeout = nnn
 					os.Stderr.WriteString(fmt.Sprintf("Setting FaultTimeout of %10s to %d\n", fn.State.FactomNodeName, nnn))
 				}
+
 			case 'k' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
@@ -788,7 +802,10 @@ func SimControl(listenTo int) {
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
-				os.Stderr.WriteString("h or ENTER    Shows this help\n")
+				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
+				os.Stderr.WriteString("nnn           For some number nnn < the number of nodes:  Set focus on that node\n")
+				os.Stderr.WriteString("n             increment (with wrap) the node under focus.  i.e. if on 1, focus is set to 2\n")
+				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
 				os.Stderr.WriteString("aN            Show Admin block    			 N. Indicate node eg:\"a5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("eN            Show Entry Credit Block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("fN            Show Factoid block  			 N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
@@ -813,6 +830,10 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("tN            Attaches Nth identity in pool to current node. Can also just press 't' to grab the next\n")
 				os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
 				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
+				os.Stderr.WriteString("v             Verbose Fault Debug Output\n")
+				os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
+				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
+				os.Stderr.WriteString("!             Reset the current node with the focus (i.e. the 'f' by it)\n")
 				os.Stderr.WriteString("Snnn          Set Drop Rate to nnn on everyone\n")
 				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
@@ -854,6 +875,83 @@ func returnStatString(i int) string {
 		stat = "Self Full"
 	}
 	return stat
+}
+
+// Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
+// come back before we are faulted, or we might not.
+func bringback(f *FactomNode) {
+	t := rand.Int() % 120
+	os.Stderr.WriteString(fmt.Sprintf("  Bringing %s back in %d seconds.\n", f.State.FactomNodeName, t))
+	time.Sleep(time.Duration(t) * time.Second)
+	f.State.SetNetStateOff(false) // Bring this node back
+}
+
+func faultTest(faulting *bool) {
+	dbheight := 0
+	lastheight := 0
+	numleaders := 0
+	for *faulting {
+
+		var leaders []*FactomNode
+		var running []*FactomNode
+
+		// How many nodes are running.
+		for _, f := range fnodes {
+			if !f.State.GetNetStateOff() {
+				running = append(running, f)
+			}
+		}
+
+		// How many of the running nodes are leaders
+		for _, f := range running {
+			if f.State.Leader {
+				leaders = append(leaders, f)
+			}
+		}
+
+		// Look at their process lists.  How many leaders do we expect?  What is the dbheight?
+		for _, f := range leaders {
+			if int(f.State.LLeaderHeight) > dbheight {
+				dbheight = int(f.State.LLeaderHeight)
+			}
+			pl := f.State.ProcessLists.Get(f.State.LLeaderHeight)
+			if pl != nil && len(pl.FedServers) > numleaders {
+				numleaders = len(pl.FedServers)
+			}
+		}
+
+		// Can't run this test without at least three leaders.
+		if numleaders < 3 {
+			os.Stderr.WriteString("Not enough leaders to run fault test\n")
+			*faulting = false
+			return
+		}
+
+		if lastheight < dbheight {
+			// Wait some random amount of time.
+			delta := rand.Int() % 20
+			time.Sleep(time.Duration(delta) * time.Second)
+
+			lastheight = dbheight
+			kill := rand.Int() % ((numleaders / 2) - 2)
+			kill++
+			os.Stderr.WriteString(fmt.Sprintf("Killing %d of %d Leaders\n", kill, numleaders))
+			for i := 0; i < kill; {
+				n := rand.Int() % len(leaders)
+				if !leaders[n].State.GetNetStateOff() {
+					fmt.Sprintf("Killing %s", leaders[n].State.FactomNodeName)
+					leaders[n].State.SetNetStateOff(true)
+					go bringback(leaders[n])
+					i++
+				}
+			}
+
+			totalServerFaults += kill
+
+		} else {
+			time.Sleep(20 * time.Second)
+		}
+	}
 }
 
 // Allows us to scatter transactions across all nodes.
@@ -921,7 +1019,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		if *listenTo < len(pnodes) {
 			f := pnodes[*listenTo]
-			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryHeightComplete)
+			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryHeightComplete, totalServerFaults)
 		}
 
 		for _, f := range pnodes {

@@ -126,6 +126,15 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
+
+	if m.DBHeight < state.GetLLeaderHeight() {
+		return -1
+	}
+
+	if m.DBHeight > state.GetLLeaderHeight() {
+		return 0
+	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {

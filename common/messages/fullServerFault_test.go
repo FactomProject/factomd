@@ -7,6 +7,7 @@ package messages_test
 import (
 	"testing"
 
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
@@ -20,7 +21,9 @@ func TestMarshalUnmarshalFullServerFault(t *testing.T) {
 
 	sl := coupleOfSigs(t)
 
-	fsf := NewFullServerFault(sf, sl, 0)
+	fsf := NewFullServerFault(nil, sf, sl, 0)
+	fmt.Println("fsf", fsf)
+	fmt.Println("Serial Hash: ", fsf.GetSerialHash().String())
 	hex, err := fsf.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -99,11 +102,12 @@ func makeSigList(t *testing.T) SigList {
 func TestThatFullAndFaultCoreHashesMatch(t *testing.T) {
 	ts := primitives.NewTimestampNow()
 	vmIndex := int(*ts) % 10
+
 	sf := NewServerFault(primitives.NewHash([]byte("a test")), primitives.NewHash([]byte("a test2")), vmIndex, 10, 100, 0, ts)
 
 	sl := coupleOfSigs(t)
 
-	fsf := NewFullServerFault(sf, sl, 0)
+	fsf := NewFullServerFault(nil, sf, sl, 0)
 
 	if !sf.GetCoreHash().IsSameAs(fsf.GetCoreHash()) {
 		t.Error("CoreHashes do not match between FullServerFault and ServerFault")

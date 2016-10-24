@@ -114,6 +114,9 @@ func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timest
 }
 
 func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+
 	for _, bucket := range r.Buckets {
 		if bucket[hash]&mask > 0 {
 			return false
@@ -123,11 +126,16 @@ func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
 }
 
 func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
+
 	if r.IsHashUnique(mask, hash) {
 		index := Minutes(now.GetTimeSeconds()) - r.Basetime
 		if index < 0 || index >= len(r.Buckets) {
 			return
 		}
+
+		r.Mutex.Lock()
+		defer r.Mutex.Unlock()
+
 		if r.Buckets[index] == nil {
 			r.Buckets[index] = make(map[[32]byte]int)
 		}
@@ -135,9 +143,15 @@ func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
 	}
 }
 
-func (r *Replay) Clear(mask int, hash [32]byte, msg interfaces.IMsg, now interfaces.Timestamp) {
-	index, ok := r.Valid(mask, hash, msg.GetTimestamp(), now)
-	if !ok && index >= 0 {
-		r.Buckets[index][hash] = r.Buckets[index][hash] ^ mask
+func (r *Replay) Clear(mask int, hash [32]byte) {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+
+	for _, bucket := range r.Buckets {
+		if bucket != nil {
+			if v, ok := bucket[hash]; ok {
+				bucket[hash] = v &^ mask
+			}
+		}
 	}
 }

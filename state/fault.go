@@ -342,8 +342,11 @@ func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) *messages.FullSe
 	for _, sig := range faultState.VoteMap {
 		listOfSigs = append(listOfSigs, sig)
 	}
-
-	fullFault := messages.NewFullServerFault(sf, listOfSigs, pl.System.Height)
+	var pff *messages.FullServerFault
+	if pl.System.Height > 0 {
+		pff = pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+	}
+	fullFault := messages.NewFullServerFault(pff, sf, listOfSigs, pl.System.Height)
 	//adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
 	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
 	if fullFault != nil {

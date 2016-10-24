@@ -30,6 +30,7 @@ type FullServerFault struct {
 	SystemHeight  uint32 // The order of this Full Fault relative to all Full Faults. (Height in System List)
 
 	SignatureList SigList
+	SSerialHash   interfaces.IHash // Serial hash of the previous Full Fault Messages
 
 	Signature interfaces.IFullSignature
 
@@ -44,6 +45,19 @@ type SigList struct {
 
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
+
+// Return the serial height for this Full Fault message.  Can return nil if there is
+// no process list at this dbheight, or if we are missing a preceeding Full Fault message.
+func (m *FullServerFault) GetSerialHash() interfaces.IHash {
+	if m.SSerialHash == nil {
+		sh, err := primitives.CreateHash(m.SSerialHash, m.GetCoreHash())
+		if err != nil {
+			panic(err.Error())
+		}
+		m.SSerialHash = sh
+	}
+	return m.SSerialHash
+}
 
 func (m *FullServerFault) Process(dbheight uint32, state interfaces.IState) bool {
 	return state.ProcessFullServerFault(dbheight, m)
@@ -176,11 +190,18 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
 	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
 	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
+
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
 		buf.Write(d)
 	}
+
+	sh, err := m.SSerialHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(sh)
 
 	if d, err := m.SignatureList.MarshalBinary(); err != nil {
 		return nil, err
@@ -208,11 +229,13 @@ func (sl *SigList) MarshalBinary() (data []byte, err error) {
 }
 
 func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
 		}
 	}()
+
 	newData = data
 	sl.Length, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
@@ -232,8 +255,8 @@ func (m *FullServerFault) MarshalBinary() (data []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	sig := m.GetSignature()
 
+	sig := m.GetSignature()
 	if sig != nil {
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
@@ -245,12 +268,25 @@ func (m *FullServerFault) MarshalBinary() (data []byte, err error) {
 	return resp, nil
 }
 
+// Make this stuff easier to read.
+func Unmarshall(thing interfaces.BinaryMarshallable, err error, data []byte) ([]byte, error) {
+	if err != nil {
+		return nil, err
+	}
+	newdata, err := thing.UnmarshalBinaryData(data)
+	return newdata, err
+}
+
+//
+//                               UnmarshalBinaryData for FullServerFault
+//
 func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Server Fault: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -260,10 +296,8 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
-	newData, err = m.ServerID.UnmarshalBinaryData(newData)
-	if err != nil {
-		return nil, err
-	}
+
+	newData, err = Unmarshall(m.ServerID, err, newData)
 
 	if m.AuditServerID == nil {
 		m.AuditServerID = primitives.NewZeroHash()
@@ -280,6 +314,12 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	m.SSerialHash = primitives.NewZeroHash()
+	newData, err = m.SSerialHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -323,6 +363,9 @@ func (m *FullServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *FullServerFault) String() string {
+	if m == nil {
+		return "-nil-"
+	}
 	return fmt.Sprintf("%6s-VM%3d (%v) AuditID: %v PL:%5d DBHt:%5d SysHt:%3d -- hash[:3]=%x\n SigList: %+v",
 		"FullSFault",
 		m.VMIndex,
@@ -364,23 +407,28 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	//fmt.Println("JFF:", state.GetFactomNodeName(), state.GetCurrentMinute(), int(m.Height), state.GetLLeaderHeight(), m.DBHeight)
-	//fmt.Println("JFF2:", state.GetFactomNodeName(), state.GetTimestamp().GetTimeSeconds())
+	/*
+		sht := state.GetSystemHeight(m.DBHeight)
+		if sht < 0 {
+			return 0
+		}
 
-	/*if state.GetCurrentMinute() >= int(m.Height) {
-		return -1
-	}*/
+		if sht >= int(m.Height) {
+			return -1
+		}
 
-	/*if state.GetCurrentMinute()+1 < int(m.Height) {
-		return 0
-	}
+		if sht < int(m.Height) {
+			return 0
+		}
 
-	if state.GetLLeaderHeight() < m.DBHeight {
-		return 0
-	}*/
-	if state.GetLLeaderHeight() > m.DBHeight {
-		return -1
-	}
+		if state.GetLLeaderHeight() < m.DBHeight {
+			return 0
+		}
+
+		if state.GetLLeaderHeight() > m.DBHeight {
+			return -1
+		}
+	*/
 
 	return 1
 }
@@ -397,19 +445,19 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
-		return validSigCount
+		return 0
 	}
 	sig := m.Signature.GetSignature()
 	sfSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 	if err != nil {
-		return validSigCount
+		return 0
 	}
 	if sfSigned < 1 {
-		return validSigCount
+		return 0
 	}
 	cb, err := m.MarshalCore()
 	if err != nil {
-		return validSigCount
+		return 0
 	}
 	for _, fedSig := range m.SignatureList.List {
 		check, err := state.VerifyAuthoritySignature(cb, fedSig.GetSignature(), m.DBHeight)
@@ -492,7 +540,7 @@ func (a *FullServerFault) ToAdminBlockEntry() *adminBlock.ServerFault {
 // Build Function
 //*******************************************************************************
 
-func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSignature, sysHeight int) *FullServerFault {
+func NewFullServerFault(Previous *FullServerFault, faultMessage *ServerFault, sigList []interfaces.IFullSignature, sysHeight int) *FullServerFault {
 	sf := new(FullServerFault)
 	sf.Timestamp = faultMessage.Timestamp
 	sf.VMIndex = faultMessage.VMIndex
@@ -501,6 +549,16 @@ func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSig
 	sf.ServerID = faultMessage.ServerID
 	sf.AuditServerID = faultMessage.AuditServerID
 	sf.SystemHeight = uint32(sysHeight)
+
+	if Previous != nil {
+		sf.SSerialHash = Previous.GetSerialHash()
+	} else {
+		core, err := sf.MarshalCore()
+		if err != nil {
+			panic("Failed to Marshal Core of a Full Server Fault")
+		}
+		sf.SSerialHash = primitives.Sha(core)
+	}
 
 	numSigs := len(sigList)
 	var allSigs []interfaces.IFullSignature
@@ -513,5 +571,6 @@ func NewFullServerFault(faultMessage *ServerFault, sigList []interfaces.IFullSig
 	sl.List = allSigs
 
 	sf.SignatureList = *sl
+
 	return sf
 }

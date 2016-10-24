@@ -148,6 +148,7 @@ type IState interface {
 	// Factoid State
 	// =============
 	UpdateState() bool
+	GetSystemHeight(dbheight uint32) int
 	GetFactoidState() IFactoidState
 
 	SetFactoidState(dbheight uint32, fs IFactoidState)
@@ -158,10 +159,9 @@ type IState interface {
 	// MISC
 	// ====
 
-	Reset() // Trim back the state to the last saved block
-
-	// Height of the block where the sig goes, and the vmIndex missing the sig
-	SendDBSig(dbheight uint32, vmIndex int) // If a Leader, we have to send a DBSig out for the previous block
+	Reset()                                    // Trim back the state to the last saved block
+	GetSystemMsg(dbheight, height uint32) IMsg // Return the system message at the given height.
+	SendDBSig(dbheight uint32, vmIndex int)    // If a Leader, we have to send a DBSig out for the previous block
 
 	FollowerExecuteMsg(IMsg)          // Messages that go into the process list
 	FollowerExecuteEOM(IMsg)          // Messages that go into the process list
