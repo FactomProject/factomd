@@ -482,6 +482,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
+	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
+	// way, not all nodes in a simulation Trim() at the same time.
+	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
+	if v%4 == 0 {
+		list.State.DB.Trim()
+	}
+
 	if !d.Locked || !d.ReadyToSave {
 		return
 	}
@@ -498,13 +505,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
-
-	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
-	// way, not all nodes in a simulation Trim() at the same time.
-	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
-	if v%4 == 0 {
-		list.State.DB.Trim()
-	}
 
 	list.State.DB.StartMultiBatch()
 
