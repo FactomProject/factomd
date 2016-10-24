@@ -13,11 +13,15 @@ import (
 )
 
 func waitToKill(k *bool) {
-	t := rand.Int() % 120
+	t := rand.Int() % 30
 	for t > 0 {
 		os.Stderr.WriteString(fmt.Sprintf("     Will kill some servers in about %d seconds\n", t))
-		t -= 10
-		time.Sleep(10 * time.Second)
+		if t < 30 {
+			time.Sleep(time.Duration(t) * time.Second)
+		} else {
+			time.Sleep(30 * time.Second)
+		}
+		t -= 30
 	}
 	*k = true
 }
@@ -25,14 +29,18 @@ func waitToKill(k *bool) {
 // Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
 // come back before we are faulted, or we might not.
 func bringback(f *FactomNode) {
-	t := rand.Int() % 240
+	t := rand.Int() % 120
 	for t > 0 {
 		if !f.State.GetNetStateOff() {
 			return
 		}
 		os.Stderr.WriteString(fmt.Sprintf("  Bringing %s back in %d seconds.\n", f.State.FactomNodeName, t))
-		time.Sleep(10 * time.Second)
-		t -= 10
+		if t < 30 {
+			time.Sleep(time.Duration(t) * time.Second)
+		} else {
+			time.Sleep(30 * time.Second)
+		}
+		t -= 30
 	}
 	f.State.SetNetStateOff(false) // Bring this node back
 }
@@ -73,7 +81,9 @@ func faultTest(faulting *bool) {
 		goodleaders = 0
 		// How many of the running nodes are leaders
 		for _, f := range fnodes {
-			if !f.State.GetNetStateOff() {
+			if !f.State.GetNetStateOff() &&
+				int(f.State.LLeaderHeight) >= currentdbht &&
+				int(f.State.CurrentMinute) >= currentminute {
 				running = append(running, f)
 				if f.State.Leader {
 					goodleaders++
@@ -111,7 +121,7 @@ func faultTest(faulting *bool) {
 			}
 		}
 
-		if !killing && goodleaders == numleaders {
+		if !killing && goodleaders >= numleaders {
 			if currentdbht > lastdbht || currentminute > lastminute {
 				killing = true
 				go waitToKill(&killsome)
@@ -124,20 +134,23 @@ func faultTest(faulting *bool) {
 			return
 		}
 
-		if killsome {
+		if killsome && len(leaders) > 0 {
 			killing = false
+			killsome = false
 			// Wait some random amount of time.
 			delta := rand.Int() % 20
 			time.Sleep(time.Duration(delta) * time.Second)
 
-			killsome = false
 			kill := rand.Int() % ((numleaders / 2) - 2)
 			kill++
-			os.Stderr.WriteString(fmt.Sprintf("Killing %d of %d Leaders\n", kill, numleaders))
+
+			os.Stderr.WriteString(fmt.Sprintf("Killing %3d of %3d Leaders\n", kill, numleaders))
 			for i := 0; i < kill; {
 				n := rand.Int() % len(leaders)
 				if !leaders[n].State.GetNetStateOff() {
-					fmt.Sprintf(">>>> Killing %s", leaders[n].State.FactomNodeName)
+					os.Stderr.WriteString(fmt.Sprintf("     >>>> Killing %10s %s\n",
+						leaders[n].State.FactomNodeName,
+						leaders[n].State.GetIdentityChainID().String()[4:16]))
 					leaders[n].State.SetNetStateOff(true)
 					go bringback(leaders[n])
 					i++

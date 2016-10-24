@@ -750,17 +750,25 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
-	for i, f := range p.System.List[p.System.Height:] {
-		fault, ok := f.(interfaces.ISystem)
-		if ok {
-			if !fault.Process(p.DBHeight, p.State) {
-				break
+	if len(p.System.List) > 0 {
+	systemloop:
+		for i, f := range p.System.List[p.System.Height:] {
+			fault, ok := f.(*messages.FullServerFault)
+
+			if ok {
+				vm := p.VMs[fault.VMIndex]
+				if vm.Height < int(fault.Height) {
+					break systemloop
+				}
+				if !fault.Process(p.DBHeight, p.State) {
+					break
+				}
+				p.System.Height++
+				progress = true
 			}
-			p.System.Height++
-			progress = true
-		}
-		if fault == nil {
-			p.Ask(-1, i, 10, 100)
+			if fault == nil {
+				p.Ask(-1, i, 10, 100)
+			}
 		}
 	}
 
@@ -1087,6 +1095,8 @@ func (p *ProcessList) Reset() {
 	// Make a copy of the previous FedServers
 	p.FedServers = make([]interfaces.IFctServer, 0)
 	p.AuditServers = make([]interfaces.IFctServer, 0)
+	p.System.List = p.System.List[:0]
+	p.System.Height = 0
 	p.Requests = make(map[[32]byte]*Request)
 	//pl.Requests = make(map[[20]byte]*Request)
 
