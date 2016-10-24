@@ -1616,7 +1616,7 @@ func (s *State) SetStringQueues() {
 		apis,
 		stps)
 
-	str = str + fmt.Sprintf(" %d", list.System.Height)
+	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
 		ff, ok := list.System.List[list.System.Height].(*messages.FullServerFault)
