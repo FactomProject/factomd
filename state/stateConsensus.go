@@ -382,6 +382,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 			dbstate.ReadyToSave = true
 		} else {
 			dbstate.Saved = true
+			dbstate.isNew = false
+			dbstate.Locked = false
 		}
 	}
 }

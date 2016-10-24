@@ -565,20 +565,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			return
 		}
 
-		if d.Saved {
-			continue
-		}
-
 		if i > 0 {
 			progress = list.FixupLinks(list.DBStates[i-1], d)
 		}
+
 		progress = list.ProcessBlocks(d) || progress
 
 		progress = list.SaveDBStateToDB(d) || progress
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
-
 	}
 	return
 }
