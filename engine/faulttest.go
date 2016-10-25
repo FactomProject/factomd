@@ -139,12 +139,14 @@ func faultTest(faulting *bool) {
 			delta := rand.Int() % 20
 			time.Sleep(time.Duration(delta) * time.Second)
 
-			maxLeadersToKill := (numleaders / 2) - 1
+			kill := 1
+			maxLeadersToKill := (numleaders-1) / 2
 			if maxLeadersToKill == 0 {
 				maxLeadersToKill = 1
+			}else {
+				kill = rand.Int() % maxLeadersToKill
+				kill++
 			}
-			kill := rand.Int() % maxLeadersToKill
-			kill++
 
 			os.Stderr.WriteString(fmt.Sprintf("Killing %3d of %3d Leaders\n", kill, numleaders))
 			for i := 0; i < kill; {
