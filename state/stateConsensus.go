@@ -395,10 +395,8 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 1:
 			pl := s.ProcessLists.Get(fullFault.DBHeight)
 			if pl != nil {
-				if int(fullFault.SystemHeight) == pl.System.Height {
-					if fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-						pl.AddToSystemList(fullFault)
-					}
+				if fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
+					pl.AddToSystemList(fullFault)
 				}
 			}
 		case 0:
