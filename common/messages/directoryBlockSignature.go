@@ -29,6 +29,8 @@ type DirectoryBlockSignature struct {
 	// Signature that goes into the admin block
 	// Signature of directory block header
 	DBSignature interfaces.IFullSignature
+	SysHeight   uint32
+	SysHash     interfaces.IHash
 
 	//Not marshalled
 	Processed bool
@@ -166,7 +168,7 @@ func (m *DirectoryBlockSignature) ComputeVMIndex(state interfaces.IState) {
 
 // Execute the leader functions of the given message
 func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) {
-	state.LeaderExecute(m)
+	state.LeaderExecuteDBSig(m)
 }
 
 func (m *DirectoryBlockSignature) FollowerExecute(state interfaces.IState) {
@@ -220,6 +222,14 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		return nil, err
 	}
 
+	m.SysHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	hash := new(primitives.Hash)
+	newData, err = hash.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+	m.SysHash = hash
+
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.VMIndex, newData = int(newData[0]), newData[1:]
 
@@ -230,7 +240,7 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 	}
 	m.DirectoryBlockHeader = header
 
-	hash := new(primitives.Hash)
+	hash = new(primitives.Hash)
 	newData, err = hash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
@@ -278,6 +288,16 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	binary.Write(&buf, binary.BigEndian, m.SysHeight)
+	if m.SysHash == nil {
+		m.SysHash = primitives.NewZeroHash()
+	}
+	hash, err := m.SysHash.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(hash)
+
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
 
@@ -287,7 +307,7 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(header)
 
-	hash, err := m.ServerIdentityChainID.MarshalBinary()
+	hash, err = m.ServerIdentityChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}

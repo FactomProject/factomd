@@ -674,7 +674,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	if pl.System.Height > 1 {
 		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
 		if ok {
-			eom.Syshash = ff.GetSerialHash()
+			eom.SysHash = ff.GetSerialHash()
 		}
 	}
 
@@ -706,6 +706,23 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
+}
+
+func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
+
+	dbs := m.(*messages.DirectoryBlockSignature)
+	pl := s.ProcessLists.Get(s.LLeaderHeight)
+
+	// Put the System Height and Serial Hash into the EOM
+	dbs.SysHeight = uint32(pl.System.Height)
+	if pl.System.Height > 1 {
+		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+		if ok {
+			dbs.SysHash = ff.GetSerialHash()
+		}
+	}
+
+	s.LeaderExecute(dbs)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -1163,8 +1180,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
+	if uint32(pl.System.Height) >= dbs.SysHeight {
+		s.DBSigSys = true
+	}
+
 	// If we are done with DBSigs, and this message is processed, then we are done.  Let everything go!
-	if s.DBSig && s.DBSigDone {
+	if s.DBSigSys && s.DBSig && s.DBSigDone {
 		s.DBSigProcessed--
 		if s.DBSigProcessed <= 0 {
 			s.DBSig = false
@@ -1278,7 +1299,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 	vm := pl.VMs[int(fullFault.VMIndex)]
 
-	if fullFault.Height > uint32(vm.Height)+1 {
+	if fullFault.Height > uint32(vm.Height) {
 		return false
 	}
 

@@ -189,6 +189,7 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(IMsg)
 	LeaderExecuteEOM(IMsg)
+	LeaderExecuteDBSig(IMsg)
 	LeaderExecuteRevealEntry(IMsg)
 	LeaderExecuteCommitChain(IMsg)
 	LeaderExecuteCommitEntry(IMsg)
