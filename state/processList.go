@@ -1107,8 +1107,6 @@ func (p *ProcessList) String() string {
 func (p *ProcessList) Reset() {
 
 	// Make a copy of the previous FedServers
-	p.FedServers = make([]interfaces.IFctServer, 0)
-	p.AuditServers = make([]interfaces.IFctServer, 0)
 	p.System.List = p.System.List[:0]
 	p.System.Height = 0
 	p.Requests = make(map[[32]byte]*Request)
@@ -1120,6 +1118,8 @@ func (p *ProcessList) Reset() {
 	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
 
 	if previous != nil {
+		p.FedServers = make([]interfaces.IFctServer, 0)
+		p.AuditServers = make([]interfaces.IFctServer, 0)
 		p.FedServers = append(p.FedServers, previous.FedServers...)
 		p.AuditServers = append(p.AuditServers, previous.AuditServers...)
 		for _, auditServer := range p.AuditServers {

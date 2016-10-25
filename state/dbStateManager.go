@@ -312,9 +312,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
 
-	d.FedServers = append(d.FedServers, currentFeds...)
-	d.AuditServers = append(d.AuditServers, currentAuds...)
-
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
 	if len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures) < majority {
@@ -415,21 +412,59 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
 
-	// Reset the pln to the value of the previous pl.
-	pln.FedServers = make([]interfaces.IFctServer, 0)
-	pln.AuditServers = make([]interfaces.IFctServer, 0)
-	pln.FedServers = append(pln.FedServers, pl.FedServers...)
-	pln.AuditServers = append(pln.AuditServers, pl.AuditServers...)
+	hdr := fmt.Sprintf("dddd%x %7s dbnt: %4d", list.State.GetIdentityChainID().Bytes()[4:16], list.State.FactomNodeName, ht)
+	str := fmt.Sprintf("%s  %s\n", hdr, "DBState")
+
+	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "Before we push back")
+	for _, f := range pl.FedServers {
+		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
+	}
+
+	pdbstate := list.Get(int(ht - 2))
+	if pdbstate != nil && len(pdbstate.FedServers) > 0 {
+		// Reset the pln to the value of the previous pl.
+		pl.FedServers = make([]interfaces.IFctServer, 0)
+		pl.AuditServers = make([]interfaces.IFctServer, 0)
+		pl.FedServers = append(pl.FedServers, pdbstate.FedServers...)
+		pl.AuditServers = append(pl.AuditServers, pdbstate.AuditServers...)
+	}
+
+	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After we push back")
+	for _, f := range pl.FedServers {
+		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
+	}
 
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
+	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pl")
+	for _, f := range pl.FedServers {
+		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
+	}
+	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pln")
+	for _, f := range pln.FedServers {
+		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
+	}
+
+	fmt.Println("\n" + str)
+
+	for len(pl.FedServers) > 0 && pl.FedServers[len(pl.FedServers)-1] == nil {
+		pl.FedServers = pl.FedServers[:len(pl.FedServers)-1]
+	}
+
+	for len(pl.AuditServers) > 0 && pl.AuditServers[len(pl.AuditServers)-1] == nil {
+		pl.AuditServers = pl.AuditServers[:len(pl.AuditServers)-1]
+	}
+
+	pl.SortAuditServers()
+	pl.SortFedServers()
+
 	dbstate := list.Get(int(ht))
 
 	if len(dbstate.FedServers) == 0 {
-		dbstate.FedServers = append(dbstate.FedServers, pl.FedServers...)
-		dbstate.AuditServers = append(dbstate.AuditServers, pl.AuditServers...)
+		dbstate.FedServers = append(dbstate.FedServers, pln.FedServers...)
+		dbstate.AuditServers = append(dbstate.AuditServers, pln.AuditServers...)
 	}
 
 	// Process the Factoid End of Block
