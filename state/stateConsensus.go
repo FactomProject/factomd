@@ -661,10 +661,19 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// The zero based minute for the message is equal to
 	// the one based "LastMinute".  This way we know we are
 	// generating minutes in order.
-
 	eom := m.(*messages.EOM)
+
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
+
+	eom.SysHeight = uint32(pl.System.Height)
+	if pl.System.Height > 1 {
+		ff,ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+		if ok {
+			eom.Syshash = ff.GetSerialHash()
+		}
+	}
+
 	if s.Syncing && vm.Synced {
 		return
 	} else if !s.Syncing {
@@ -977,9 +986,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
+	if uint32(pl.System.Height) >= e.SysHeight {
+		s.EOMSys = true
+	}
+
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
-	if s.EOMDone {
+	if s.EOMDone && s.EOMSys {
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
 			s.EOM = false
@@ -994,6 +1007,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
+		s.EOMSys = false
 		s.Syncing = true
 		s.EOM = true
 		s.EOMLimit = len(s.LeaderPL.FedServers)
@@ -1286,6 +1300,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {
 				pl.Reset()
+				return false
 			}
 
 			// Here is where we actually swap out the Leader with the Audit server
@@ -1311,6 +1326,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 	}
 	return haveReplaced
 }
+
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
 

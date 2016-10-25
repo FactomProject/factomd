@@ -154,11 +154,13 @@ type State struct {
 	EOMProcessed int
 	EOMDone      bool
 	EOMMinute    int
+	EOMSys       bool // At least one EOM has covered the System List
 
 	DBSig          bool
 	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
+	DBSigSys       bool // At least one DBSig has covered the System List
 
 	// By default, this is false, which means DBstates are discarded
 	//when a majority of leaders disagree with the hash we have via DBSigs
@@ -1616,7 +1618,7 @@ func (s *State) SetStringQueues() {
 		apis,
 		stps)
 
-	str = str + fmt.Sprintf(" %d", list.System.Height)
+	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
 		ff, ok := list.System.List[list.System.Height].(*messages.FullServerFault)

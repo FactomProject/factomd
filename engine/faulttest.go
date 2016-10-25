@@ -75,21 +75,25 @@ func faultTest(faulting *bool) {
 
 	for *faulting {
 		var leaders []*FactomNode
-		var running []*FactomNode
 
 		lastgood := goodleaders
 		goodleaders = 0
 		// How many of the running nodes are leaders
 		for _, f := range fnodes {
-			if !f.State.GetNetStateOff() &&
-				int(f.State.LLeaderHeight) >= currentdbht &&
-				int(f.State.CurrentMinute) >= currentminute {
-				running = append(running, f)
-				if f.State.Leader {
-					goodleaders++
-				}
+			if f.State.GetNetStateOff() || !f.State.Leader {
+				continue
 			}
-			pl := f.State.ProcessLists.Get(f.State.LLeaderHeight)
+			if int(f.State.LLeaderHeight) < currentdbht {
+				continue
+			}
+			if int(f.State.LLeaderHeight) == currentdbht && int(f.State.CurrentMinute) < currentminute {
+				continue
+			}
+
+			goodleaders++
+			leaders = append(leaders, f)
+
+			pl := f.State.LeaderPL
 			if pl != nil && len(pl.FedServers) > numleaders {
 				numleaders = len(pl.FedServers)
 			}
@@ -97,12 +101,6 @@ func faultTest(faulting *bool) {
 
 		if lastgood != goodleaders {
 			os.Stderr.WriteString(fmt.Sprintf("Of %d Leaders, we now have %d in working order.\n", numleaders, goodleaders))
-		}
-
-		for _, f := range running {
-			if f.State.Leader {
-				leaders = append(leaders, f)
-			}
 		}
 
 		nextblk := false

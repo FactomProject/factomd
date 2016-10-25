@@ -761,7 +761,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					break systemloop
 				}
 				if !fault.Process(p.DBHeight, p.State) {
-					break
+					return
 				}
 				p.System.Height++
 				progress = true
@@ -879,37 +879,37 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 }
 
 func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
+	// Make sure we have a list, and punt if we don't.
 	if p == nil {
+		p.State.Holding[m.GetRepeatHash().Fixed()] = m
 		return false
 	}
-	fullFault, _ := m.(*messages.FullServerFault)
-	if int(fullFault.SystemHeight) < p.System.Height {
-		return false
-	} else if int(fullFault.SystemHeight) > p.System.Height {
-		p.State.Holding[m.GetMsgHash().Fixed()] = fullFault
-		return false
-	} else {
-		for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
-			p.System.List = p.System.List[:len(p.System.List)-1]
-		}
-		// If we are here, fullFault.SystemHeight == p.System.Height
-		if len(p.System.List) <= p.System.Height {
-			// Nothing in our list a this slot yet, so insert this FullFault message
-			p.System.List = append(p.System.List, fullFault)
-			return true
-		} else {
-			// Something is in our SystemList at this height;
-			// We will prioritize the FullFault with the highest VMIndex
-			existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
-			if int(existingSystemFault.VMIndex) >= int(fullFault.VMIndex) {
-				return false
-			} else {
-				p.System.List[p.System.Height] = fullFault
-				return true
-			}
-		}
+
+	fullFault, ok := m.(*messages.FullServerFault)
+	if !ok {
+		return false // Should never happen;  Don't pass junk to be added to the System List
 	}
+
+	// If we have already processed past this fault, just ignore.
+	if p.System.Height > int(fullFault.SystemHeight) {
+		return false
+	}
+
+	// If the fault is in the future, hold it.
+	if p.System.Height < int(fullFault.SystemHeight) {
+		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		return false
+	}
+
+	for len(p.System.List) <= p.System.Height {
+		p.System.List = append(p.System.List, nil)
+	}
+
+	p.System.List[p.System.Height] = m
+
+	return true
 }
+
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
