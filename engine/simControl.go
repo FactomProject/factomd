@@ -7,21 +7,23 @@ package engine
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/controlPanel"
-	"github.com/FactomProject/factomd/p2p"
-	"github.com/FactomProject/factomd/wsapi"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 var _ = fmt.Print
 var sortByID bool
 var verboseFaultOutput = false
+var verboseAuthoritySet = false
 var totalServerFaults int
 
 func SimControl(listenTo int) {
@@ -310,6 +312,17 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("Reset all nodes in the simulation!\n")
 					for _, f := range fnodes {
 						f.State.Reset()
+					}
+					break
+				}
+
+				if b[1] == 'l' {
+					if verboseAuthoritySet {
+						verboseAuthoritySet = false
+						os.Stderr.WriteString("--VerboseAuthoritySet Off--\n")
+					} else {
+						verboseAuthoritySet = true
+						os.Stderr.WriteString("--VerboseAuthoritySet On--\n")
 					}
 					break
 				}

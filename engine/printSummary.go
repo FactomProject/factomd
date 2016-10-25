@@ -168,6 +168,14 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		prt = prt + faultSummary()
 
+		if verboseAuthoritySet {
+			for _, f := range pnodes {
+				prt = prt + "\n"
+				prt = prt + f.State.GetAuthoritySetString()
+			}
+			prt = prt + "\n"
+		}
+
 		prt = prt + "===SummaryEnd===\n"
 
 		if prt != out {

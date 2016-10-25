@@ -1346,6 +1346,17 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 					// to the default state (No One At Fault)
 					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
+					authoritiesString := fmt.Sprintf("%7s (%d) Feds:", pl.State.FactomNodeName, fullFault.DBHeight)
+					for _, fd := range pl.FedServers {
+						authoritiesString += " " + fd.GetChainID().String()[6:10]
+					}
+					authoritiesString += " || Auds :"
+					for _, fd := range pl.AuditServers {
+						authoritiesString += " " + fd.GetChainID().String()[6:10]
+					}
+					// Any updates required to the state as established by the AdminBlock are applied here.
+					pl.State.SetAuthoritySetString(authoritiesString)
+
 					pl.Unfault()
 					haveReplaced = true
 					break
