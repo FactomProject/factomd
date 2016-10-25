@@ -761,7 +761,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					break systemloop
 				}
 				if !fault.Process(p.DBHeight, p.State) {
-					break
+					return false
 				}
 				p.System.Height++
 				progress = true
