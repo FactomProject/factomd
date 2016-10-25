@@ -389,16 +389,19 @@ func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
-	sys, ok := mmr.MsgResponse.(*messages.FullServerFault)
-	if ok && sys != nil {
-		switch sys.Validate(s) {
+	fullFault, ok := mmr.MsgResponse.(*messages.FullServerFault)
+	if ok && fullFault != nil {
+		switch fullFault.Validate(s) {
 		case 1:
-			pl := s.ProcessLists.Get(sys.DBHeight)
-			if pl != nil {
-				pl.AddToSystemList(sys)
+			pl := s.ProcessLists.Get(fullFault.DBHeight)
+			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
+				pl.AddToSystemList(fullFault)
+				
+			}else{
+				s.Holding[fullFault.GetRepeatHash().Fixed()]=fullFault
 			}
 		case 0:
-			s.Holding[sys.GetRepeatHash().Fixed()] = sys
+			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 		default:
 			// Ignore if -1 or anything but 0 and 1
 		}
@@ -661,8 +664,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// The zero based minute for the message is equal to
 	// the one based "LastMinute".  This way we know we are
 	// generating minutes in order.
-	eom := m.(*messages.EOM)
 
+	eom := m.(*messages.EOM)
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
 
@@ -1267,6 +1270,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 	fullFault, _ := msg.(*messages.FullServerFault)
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
+
+	if pl.System.Height < int(fullFault.SystemHeight)-1 {
+		return false
+	}
+
 	vm := pl.VMs[int(fullFault.VMIndex)]
 
 	if fullFault.Height > uint32(vm.Height) {
@@ -1326,7 +1334,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 	}
 	return haveReplaced
 }
-
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
 
