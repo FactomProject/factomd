@@ -140,10 +140,10 @@ func faultTest(faulting *bool) {
 			time.Sleep(time.Duration(delta) * time.Second)
 
 			kill := 1
-			maxLeadersToKill := (numleaders-1) / 2
+			maxLeadersToKill := (numleaders - 1) / 2
 			if maxLeadersToKill == 0 {
 				maxLeadersToKill = 1
-			}else {
+			} else {
 				kill = rand.Int() % maxLeadersToKill
 				kill++
 			}
