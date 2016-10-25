@@ -1616,11 +1616,15 @@ func (s *State) SetStringQueues() {
 		apis,
 		stps)
 
-	str = str + fmt.Sprintf(" %d", list.System.Height)
+	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
-		ff := list.System.List[list.System.Height].(*messages.FullServerFault)
-		str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
+		ff, ok := list.System.List[list.System.Height].(*messages.FullServerFault)
+		if ok {
+			str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
+		} else {
+			str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
+		}
 	} else {
 		str = str + " -"
 	}
@@ -1679,6 +1683,27 @@ func (s *State) GetOut() bool {
 
 func (s *State) SetOut(o bool) {
 	s.OutputAllowed = o
+}
+
+func (s *State) GetSystemHeight(dbheight uint32) int {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return -1
+	}
+	return pl.System.Height
+}
+
+// Gets the system message at the given dbheight, and given height in the
+// System list
+func (s *State) GetSystemMsg(dbheight uint32, height uint32) interfaces.IMsg {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return nil
+	}
+	if height >= uint32(len(pl.System.List)) {
+		return nil
+	}
+	return pl.System.List[height]
 }
 
 func (s *State) GetInvalidMsg(hash interfaces.IHash) interfaces.IMsg {

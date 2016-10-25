@@ -273,7 +273,8 @@ func (s *State) AddDBState(isNew bool,
 		}
 
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		s.ProcessLists.UpdateState(s.LLeaderHeight)
+		for s.ProcessLists.UpdateState(s.LLeaderHeight) {
+		}
 	}
 	if ht == 0 && s.LLeaderHeight < 1 {
 		s.LLeaderHeight = 1
@@ -390,7 +391,17 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	sys, ok := mmr.MsgResponse.(*messages.FullServerFault)
 	if ok && sys != nil {
-		// Handle the missing full fault here
+		switch sys.Validate(s) {
+		case 1:
+			pl := s.ProcessLists.Get(sys.DBHeight)
+			if pl != nil {
+				pl.AddToSystemList(sys)
+			}
+		case 0:
+			s.Holding[sys.GetRepeatHash().Fixed()] = sys
+		default:
+			// Ignore if -1 or anything but 0 and 1
+		}
 		return
 	}
 
@@ -970,7 +981,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// let processing continue.
 	if s.EOMDone {
 		s.EOMProcessed--
-		if s.EOMProcessed == 0 {
+		if s.EOMProcessed <= 0 {
 			s.EOM = false
 			s.EOMDone = false
 			s.ReviewHolding()
@@ -1242,6 +1253,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 	fullFault, _ := msg.(*messages.FullServerFault)
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
+	vm := pl.VMs[int(fullFault.VMIndex)]
+
+	if fullFault.Height > uint32(vm.Height) {
+		return false
+	}
 
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
@@ -1266,7 +1282,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			// and we can execute it as such (replacing the faulted Leader with
 			// the nominated Audit server)
 
-			vm := pl.VMs[int(fullFault.VMIndex)]
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {

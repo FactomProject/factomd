@@ -194,7 +194,12 @@ func Fault(pl *ProcessList, vmIndex, height int) {
 	if pl.State.Leader && pl.State.LeaderVMIndex == responsibleFaulterIdx {
 		CraftAndSubmitFault(pl, vmIndex, height)
 	}
-	pl.FedServers[pl.ServerMap[pl.State.CurrentMinute][vmIndex]].SetOnline(false)
+	c := pl.State.CurrentMinute
+	if c > 9 {
+		c = 9
+	}
+	index := pl.ServerMap[c][vmIndex]
+	pl.FedServers[index].SetOnline(false)
 
 }
 
@@ -342,8 +347,11 @@ func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) *messages.FullSe
 	for _, sig := range faultState.VoteMap {
 		listOfSigs = append(listOfSigs, sig)
 	}
-
-	fullFault := messages.NewFullServerFault(sf, listOfSigs, pl.System.Height)
+	var pff *messages.FullServerFault
+	if pl.System.Height > 0 {
+		pff = pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+	}
+	fullFault := messages.NewFullServerFault(pff, sf, listOfSigs, pl.System.Height)
 	//adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
 	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
 	if fullFault != nil {
