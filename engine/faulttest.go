@@ -139,7 +139,7 @@ func faultTest(faulting *bool) {
 			delta := rand.Int() % 20
 			time.Sleep(time.Duration(delta) * time.Second)
 
-			kill := rand.Int() % ((numleaders / 2) - 2)
+			kill := rand.Int() % ((numleaders / 2) - 1)
 			kill++
 
 			os.Stderr.WriteString(fmt.Sprintf("Killing %3d of %3d Leaders\n", kill, numleaders))

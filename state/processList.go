@@ -899,7 +899,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	if p.System.Height < int(fullFault.SystemHeight) {
 		p.State.Holding[m.GetRepeatHash().Fixed()] = m
 		return false
-	} 
+	}
 
 	for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
 		p.System.List = p.System.List[:len(p.System.List)-1]
@@ -910,19 +910,19 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		// Nothing in our list a this slot yet, so insert this FullFault message
 		p.System.List = append(p.System.List, fullFault)
 		return true
-	} 
-	
+	}
+
 	// Something is in our SystemList at this height;
 	// We will prioritize the FullFault with the highest VMIndex
 	existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
 	if int(existingSystemFault.VMIndex) >= int(fullFault.VMIndex) {
 		return false
-	} 
-	
+	}
+
 	p.System.List[p.System.Height] = fullFault
 
-	return true	
-	
+	return true
+
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
@@ -1182,12 +1182,15 @@ func (p *ProcessList) Reset() {
 		for _, msg := range vm.List {
 			if msg != nil {
 				if _, ok := msg.(*messages.EOM); ok {
+					p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 					continue
 				}
 				if _, ok := msg.(*messages.DirectoryBlockSignature); ok {
+					p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 					continue
 				}
 				if _, ok := msg.(*messages.Ack); ok {
+					p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 					continue
 				}
 				p.State.Holding[msg.GetHash().Fixed()] = msg

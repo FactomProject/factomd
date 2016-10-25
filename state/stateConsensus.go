@@ -396,9 +396,9 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 			pl := s.ProcessLists.Get(fullFault.DBHeight)
 			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
 				pl.AddToSystemList(fullFault)
-				
-			}else{
-				s.Holding[fullFault.GetRepeatHash().Fixed()]=fullFault
+
+			} else {
+				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 			}
 		case 0:
 			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
@@ -669,9 +669,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
 
+	// Put the System Height and Serial Hash into the EOM
 	eom.SysHeight = uint32(pl.System.Height)
 	if pl.System.Height > 1 {
-		ff,ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
 		if ok {
 			eom.Syshash = ff.GetSerialHash()
 		}
@@ -1271,13 +1272,13 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 	fullFault, _ := msg.(*messages.FullServerFault)
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
-	if pl.System.Height < int(fullFault.SystemHeight)-1 {
+	if pl.System.Height < int(fullFault.SystemHeight) {
 		return false
 	}
 
 	vm := pl.VMs[int(fullFault.VMIndex)]
 
-	if fullFault.Height > uint32(vm.Height) {
+	if fullFault.Height > uint32(vm.Height)+2 {
 		return false
 	}
 
