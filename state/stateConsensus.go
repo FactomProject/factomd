@@ -1278,7 +1278,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 	vm := pl.VMs[int(fullFault.VMIndex)]
 
-	if fullFault.Height > uint32(vm.Height)+2 {
+	if fullFault.Height > uint32(vm.Height)+1 {
 		return false
 	}
 
