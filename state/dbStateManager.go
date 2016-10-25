@@ -421,7 +421,19 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln.FedServers = append(pln.FedServers, pl.FedServers...)
 	pln.AuditServers = append(pln.AuditServers, pl.AuditServers...)
 
+	authoritiesString := fmt.Sprintf("%7s (%d) Feds:", list.State.FactomNodeName, ht)
+	for _, fd := range pl.FedServers {
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
+	}
+	authoritiesString += " || Auds :"
+	for _, fd := range pl.AuditServers {
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
+	}
 	// Any updates required to the state as established by the AdminBlock are applied here.
+	list.State.SetAuthoritySetString(authoritiesString)
+
+	fmt.Println("AAADMIN BLOCK FOR", list.State.FactomNodeName, " (", ht, "):", d.AdminBlock.String())
+
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 

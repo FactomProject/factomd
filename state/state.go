@@ -201,6 +201,7 @@ type State struct {
 	LastFaultAction int64
 	LastTiebreak    int64
 
+	AuthoritySetString string
 	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
@@ -400,6 +401,14 @@ func (s *State) GetDropRate() int {
 
 func (s *State) SetDropRate(droprate int) {
 	s.DropRate = droprate
+}
+
+func (s *State) SetAuthoritySetString(authSet string) {
+	s.AuthoritySetString = authSet
+}
+
+func (s *State) GetAuthoritySetString() string {
+	return s.AuthoritySetString
 }
 
 func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
