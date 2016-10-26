@@ -296,6 +296,14 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("--VerboseFaultOutput On--\n")
 				}
 			case 'V' == b[0]:
+				if len(b) == 1 {
+					os.Stderr.WriteString("Vnnn -- Set the timeout for faulting a server to nnn seconds\n")
+					os.Stderr.WriteString("Vt   -- Start an automated Faulting Test, or stop a running Faulting Test\n")
+					os.Stderr.WriteString("VL   -- Display all the authority sets in the Status update\n")
+					os.Stderr.WriteString("Vr   -- Reset all nodes in the simulation\n")
+					break
+				}
+
 				if b[1] == 't' {
 					faulting = !faulting
 					if faulting {
@@ -316,7 +324,7 @@ func SimControl(listenTo int) {
 					break
 				}
 
-				if b[1] == 'l' {
+				if b[1] == 'l' || b[1] == 'L' {
 					if verboseAuthoritySet {
 						verboseAuthoritySet = false
 						os.Stderr.WriteString("--VerboseAuthoritySet Off--\n")

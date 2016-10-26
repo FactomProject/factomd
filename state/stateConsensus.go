@@ -191,6 +191,12 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		dbsigmsg, ok := s.Holding[k].(*messages.DirectoryBlockSignature)
+		if ok && dbsigmsg.DBHeight < s.LLeaderHeight-1 {
+			delete(s.Holding, k)
+			continue
+		}
+
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			delete(s.Holding, k)
@@ -1214,7 +1220,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR()) {
+		dbstate := s.GetDBState(dbheight - 1)
+
+		if dbstate == nil || !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
 			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
@@ -1329,7 +1337,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {
-				pl.Reset()
+				s.DoReset()
 				return false
 			}
 

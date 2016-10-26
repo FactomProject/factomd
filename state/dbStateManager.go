@@ -420,7 +420,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
 	}
 
-	pdbstate := list.Get(int(ht - 2))
+	pdbstate := list.Get(int(ht - 1))
 	if pdbstate != nil && len(pdbstate.FedServers) > 0 {
 		// Reset the pln to the value of the previous pl.
 		pl.FedServers = make([]interfaces.IFctServer, 0)
@@ -447,17 +447,12 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	fmt.Println("AAADMIN BLOCK FOR", list.State.FactomNodeName, " (", ht, "):", d.AdminBlock.String())
 
+	//
+	// ***** Apply the AdminBlock chainges to the next DBState
+	//
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
-	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pl")
-	for _, f := range pl.FedServers {
-		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
-	}
-	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pln")
-	for _, f := range pln.FedServers {
-		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
-	}
 
 	fmt.Println("\n" + str)
 
@@ -475,8 +470,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbstate := list.Get(int(ht))
 
 	if len(dbstate.FedServers) == 0 {
-		dbstate.FedServers = append(dbstate.FedServers, pln.FedServers...)
-		dbstate.AuditServers = append(dbstate.AuditServers, pln.AuditServers...)
+		dbstate.FedServers = append(dbstate.FedServers, pl.FedServers...)
+		dbstate.AuditServers = append(dbstate.AuditServers, pl.AuditServers...)
 	}
 
 	// Process the Factoid End of Block

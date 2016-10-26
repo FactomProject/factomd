@@ -91,6 +91,7 @@ type State struct {
 	transCnt  int
 	lasttime  time.Time
 	tps       float64
+	ResetCnt  int
 
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
@@ -1483,10 +1484,11 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
+	str := fmt.Sprintf(" %7s %12s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
+		"Resets",
 		"Drop",
 		"Delay",
 		"DB ",
@@ -1594,11 +1596,12 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x] %4s%4s %2d.%01d%% %2d.%03d",
+	str := fmt.Sprintf("%7s[%12x] %4s%4s %5d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[:6],
 		stype,
 		vmIndex,
+		s.ResetCnt,
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 

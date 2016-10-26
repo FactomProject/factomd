@@ -844,7 +844,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// according to this node's processList
 
 					//fault(p, i, 0, vm, 0, j, 2)
-					p.State.Reset()
+					p.State.DoReset()
 					return
 				}
 			}
@@ -1106,6 +1106,8 @@ func (p *ProcessList) String() string {
 
 func (p *ProcessList) Reset() {
 
+	p.State.ResetCnt++
+
 	// Make a copy of the previous FedServers
 	p.System.List = p.System.List[:0]
 	p.System.Height = 0
@@ -1193,7 +1195,7 @@ func (p *ProcessList) Reset() {
 					p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 					continue
 				}
-				p.State.Holding[msg.GetHash().Fixed()] = msg
+				p.State.Holding[msg.GetRepeatHash().Fixed()] = msg
 				p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 				p.State.Replay.Clear(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed())
 				if dbsig, ok := msg.(*messages.DirectoryBlockSignature); ok {
