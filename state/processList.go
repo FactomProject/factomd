@@ -750,17 +750,25 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
-	for i, f := range p.System.List[p.System.Height:] {
-		fault, ok := f.(interfaces.ISystem)
-		if ok {
-			if !fault.Process(p.DBHeight, p.State) {
-				break
+	if len(p.System.List) > 0 {
+	systemloop:
+		for i, f := range p.System.List[p.System.Height:] {
+			fault, ok := f.(*messages.FullServerFault)
+
+			if ok {
+				vm := p.VMs[fault.VMIndex]
+				if vm.Height < int(fault.Height) {
+					break systemloop
+				}
+				if !fault.Process(p.DBHeight, p.State) {
+					break
+				}
+				p.System.Height++
+				progress = true
 			}
-			p.System.Height++
-			progress = true
-		}
-		if fault == nil {
-			p.Ask(-1, i, 10, 100)
+			if fault == nil {
+				p.Ask(-1, i, 10, 100)
+			}
 		}
 	}
 
@@ -836,8 +844,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// according to this node's processList
 
 					//fault(p, i, 0, vm, 0, j, 2)
-
-					break VMListLoop
+					p.State.Reset()
+					return
 				}
 			}
 
@@ -1087,13 +1095,15 @@ func (p *ProcessList) Reset() {
 	// Make a copy of the previous FedServers
 	p.FedServers = make([]interfaces.IFctServer, 0)
 	p.AuditServers = make([]interfaces.IFctServer, 0)
+	p.System.List = p.System.List[:0]
+	p.System.Height = 0
 	p.Requests = make(map[[32]byte]*Request)
 	//pl.Requests = make(map[[20]byte]*Request)
 
 	p.FactoidBalancesT = map[[32]byte]int64{}
 	p.ECBalancesT = map[[32]byte]int64{}
 
-	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
+	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
 
 	if previous != nil {
 		p.FedServers = append(p.FedServers, previous.FedServers...)
@@ -1157,6 +1167,15 @@ func (p *ProcessList) Reset() {
 
 		for _, msg := range vm.List {
 			if msg != nil {
+				if _, ok := msg.(*messages.EOM); ok {
+					continue
+				}
+				if _, ok := msg.(*messages.DirectoryBlockSignature); ok {
+					continue
+				}
+				if _, ok := msg.(*messages.Ack); ok {
+					continue
+				}
 				p.State.Holding[msg.GetHash().Fixed()] = msg
 				p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 				p.State.Replay.Clear(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed())
@@ -1169,16 +1188,10 @@ func (p *ProcessList) Reset() {
 			}
 		}
 
-		for _, ack := range vm.ListAck {
-			if ack != nil {
-				p.State.Replay.Clear(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed())
-				p.State.Replay.Clear(constants.NETWORK_REPLAY, ack.GetRepeatHash().Fixed())
-			}
-		}
-
+		p.State.Acks = make(map[[32]byte]interfaces.IMsg, 0)
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
 		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
-
+		p.State.SendDBSig(p.DBHeight, i)
 	}
 
 	s := p.State
