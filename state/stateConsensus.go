@@ -368,7 +368,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	dbstate := s.AddDBState(!dbstatemsg.IsInDB, // Don't save blocks we loaded from DB
+	dbstate := s.AddDBState(false,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
 		dbstatemsg.FactoidBlock,
@@ -380,6 +380,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	} else {
 		if dbstatemsg.IsInDB == false {
 			dbstate.ReadyToSave = true
+			dbstate.Locked = false
 		} else {
 			dbstate.Saved = true
 			dbstate.isNew = false
