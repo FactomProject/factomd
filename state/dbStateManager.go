@@ -453,6 +453,15 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
+	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pl")
+	for _, f := range pl.FedServers {
+		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
+	}
+	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pln")
+	for _, f := range pln.FedServers {
+		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
+	}
+
 	fmt.Println("\n" + str)
 
 	for len(pl.FedServers) > 0 && pl.FedServers[len(pl.FedServers)-1] == nil {
