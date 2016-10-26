@@ -453,7 +453,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
-
 	fmt.Println("\n" + str)
 
 	for len(pl.FedServers) > 0 && pl.FedServers[len(pl.FedServers)-1] == nil {
