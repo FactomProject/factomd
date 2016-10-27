@@ -283,8 +283,10 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 
 	dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
-	dbstate.FinalExchangeRate = fs.State.GetFactoshisPerEC()
-	dbstate.NextTimestamp = fs.State.GetLeaderTimestamp()
+	if dbstate != nil {
+		dbstate.FinalExchangeRate = fs.State.GetFactoshisPerEC()
+		dbstate.NextTimestamp = fs.State.GetLeaderTimestamp()
+	}
 
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
