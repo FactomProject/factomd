@@ -1117,7 +1117,7 @@ func (p *ProcessList) Reset() {
 	p.FactoidBalancesT = map[[32]byte]int64{}
 	p.ECBalancesT = map[[32]byte]int64{}
 
-	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
+	previous := p.State.DBStates.Get(int(p.DBHeight - 2))
 
 	if previous != nil {
 		p.FedServers = make([]interfaces.IFctServer, 0)
