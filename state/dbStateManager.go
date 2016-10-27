@@ -423,7 +423,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
 	}
 
-	pdbstate := list.Get(int(ht - 2))
+	pdbstate := list.Get(int(ht - 1))
 	if pdbstate != nil && len(pdbstate.FedServers) > 0 {
 		// Reset the pln to the value of the previous pl.
 		pl.FedServers = make([]interfaces.IFctServer, 0)
