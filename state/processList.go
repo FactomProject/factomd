@@ -999,7 +999,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
-	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
 	delete(p.State.Acks, ack.GetHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
@@ -1117,7 +1116,7 @@ func (p *ProcessList) Reset() {
 	p.FactoidBalancesT = map[[32]byte]int64{}
 	p.ECBalancesT = map[[32]byte]int64{}
 
-	previous := p.State.DBStates.Get(int(p.DBHeight - 2))
+	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
 
 	if previous != nil {
 		p.FedServers = make([]interfaces.IFctServer, 0)
@@ -1135,6 +1134,7 @@ func (p *ProcessList) Reset() {
 			fedServer.SetOnline(true)
 		}
 		p.SortFedServers()
+		p.SortAuditServers()
 	} else {
 		p.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
 	}
@@ -1183,21 +1183,9 @@ func (p *ProcessList) Reset() {
 
 		for _, msg := range vm.List {
 			if msg != nil {
-				if _, ok := msg.(*messages.EOM); ok {
-					p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
-					continue
-				}
-				if _, ok := msg.(*messages.DirectoryBlockSignature); ok {
-					p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
-					continue
-				}
-				if _, ok := msg.(*messages.Ack); ok {
-					p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
-					continue
-				}
-				p.State.Holding[msg.GetRepeatHash().Fixed()] = msg
 				p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
 				p.State.Replay.Clear(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed())
+				p.State.Replay.Clear(constants.REVEAL_REPLAY, msg.GetRepeatHash().Fixed())
 				if dbsig, ok := msg.(*messages.DirectoryBlockSignature); ok {
 					dbsig.Processed = false
 				}

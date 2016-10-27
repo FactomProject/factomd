@@ -521,7 +521,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 					s.MissingEntries = append(s.MissingEntries, v)
 
 					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-					if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
+					if s.Replay.IsTSValid_(constants.TIME_TEST, entryhash.Fixed(), db.GetTimestamp(), now) {
 						delete(s.Commits, entryhash.Fixed())
 					}
 
@@ -960,17 +960,22 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+
 	ht := s.GetHighestCompletedBlock()
 	if dbheight <= ht || s.EOM {
 		return
 	}
 	pl := s.ProcessLists.Get(dbheight)
 	vm := pl.VMs[vmIndex]
-	if vm.LeaderMinute > 9 {
+	if vm.Height > 0 {
 		return
 	}
 	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
-	if leader && !vm.Signed {
+	if !leader || lvm != vmIndex {
+		return
+	}
+
+	if !vm.Signed {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 		if dbstate == nil && dbheight > 0 {
 			s.SendDBSig(dbheight-1, vmIndex)
@@ -1243,6 +1248,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		if allChecks {
+			dbs.Matches = true
 			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
 		}
 
@@ -1255,6 +1261,23 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
 	if allfaults && !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
+		fails := 0
+		for i := range pl.FedServers {
+			vm := pl.VMs[i]
+			tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
+			if !ok || !tdbsig.Matches {
+				fails++
+				vm.List[0] = nil
+				vm.Height = 0
+				s.DBSigProcessed--
+			}
+		}
+		if fails > len(pl.FedServers)/2 {
+			s.Reset()
+			return false
+		} else if fails > 0 {
+			return false
+		}
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
@@ -1415,7 +1438,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 	now := s.GetTimestamp()
 	for _, entry := range ec.GetEntries() {
 		cc, ok := entry.(*entryCreditBlock.CommitChain)
-		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, cc.GetHash().Fixed(), cc.GetTimestamp(), now) {
+		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, cc.GetSigHash().Fixed(), cc.GetTimestamp(), now) {
 			if s.NoEntryYet(cc.EntryHash, cc.GetTimestamp()) {
 				cmsg := new(messages.CommitChainMsg)
 				cmsg.CommitChain = cc
@@ -1424,7 +1447,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 			continue
 		}
 		ce, ok := entry.(*entryCreditBlock.CommitEntry)
-		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, ce.GetHash().Fixed(), ce.GetTimestamp(), now) {
+		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, ce.GetSigHash().Fixed(), ce.GetTimestamp(), now) {
 			if s.NoEntryYet(ce.EntryHash, ce.GetTimestamp()) {
 				emsg := new(messages.CommitEntryMsg)
 				emsg.CommitEntry = ce

@@ -33,6 +33,7 @@ type DirectoryBlockSignature struct {
 	SysHash     interfaces.IHash
 
 	//Not marshalled
+	Matches   bool
 	Processed bool
 	hash      interfaces.IHash
 }

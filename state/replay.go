@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -49,6 +50,10 @@ func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, 
 
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
+
+	if mask == constants.TIME_TEST {
+		return -1, true
+	}
 
 	// We don't let the system clock go backwards.  likely an attack if it does.
 	// Move the current time up to r.center if it is in the past.
@@ -106,13 +111,17 @@ func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timest
 		r.Mutex.Lock()
 		defer r.Mutex.Unlock()
 		// Mark this hash as seen
-		r.Buckets[index][hash] = r.Buckets[index][hash] | mask
+		if mask != constants.TIME_TEST {
+			r.Buckets[index][hash] = r.Buckets[index][hash] | mask
+		}
 		return true
 	}
 
 	return false
 }
 
+// Returns True if there is no record of this hash in the Replay structures.
+// Returns false if we have seen this hash before.
 func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()

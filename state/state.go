@@ -1049,9 +1049,11 @@ func (s *State) UpdateState() (progress bool) {
 	return
 }
 
+// Returns true if this hash exists nowhere in the Replay structures.  Returns False if we
+// have already seen this hash before.  Replay is NOT updated yet.
 func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) bool {
-	_, ok := s.Replay.Valid(constants.REVEAL_REPLAY, entryhash.Fixed(), ts, s.GetTimestamp())
-	return ok
+	unique := s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed())
+	return unique
 }
 
 func (s *State) catchupEBlocks() {
