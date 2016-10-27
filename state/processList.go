@@ -1118,26 +1118,29 @@ func (p *ProcessList) Reset() {
 
 	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
 
-	if previous != nil {
-		p.FedServers = make([]interfaces.IFctServer, 0)
-		p.AuditServers = make([]interfaces.IFctServer, 0)
-		p.FedServers = append(p.FedServers, previous.FedServers...)
-		p.AuditServers = append(p.AuditServers, previous.AuditServers...)
-		for _, auditServer := range p.AuditServers {
-			auditServer.SetOnline(false)
-			if p.State.GetIdentityChainID().IsSameAs(auditServer.GetChainID()) {
-				// Always consider yourself "online"
-				auditServer.SetOnline(true)
-			}
-		}
-		for _, fedServer := range p.FedServers {
-			fedServer.SetOnline(true)
-		}
-		p.SortFedServers()
-		p.SortAuditServers()
-	} else {
-		p.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+	if previous == nil {
+		panic("No reset is possible if we have no supporting state for it.")
 	}
+
+	fs := p.State.FactoidState.(*FactoidState)
+	fs.Reset(previous)
+
+	p.FedServers = make([]interfaces.IFctServer, 0)
+	p.AuditServers = make([]interfaces.IFctServer, 0)
+	p.FedServers = append(p.FedServers, previous.FedServers...)
+	p.AuditServers = append(p.AuditServers, previous.AuditServers...)
+	for _, auditServer := range p.AuditServers {
+		auditServer.SetOnline(false)
+		if p.State.GetIdentityChainID().IsSameAs(auditServer.GetChainID()) {
+			// Always consider yourself "online"
+			auditServer.SetOnline(true)
+		}
+	}
+	for _, fedServer := range p.FedServers {
+		fedServer.SetOnline(true)
+	}
+	p.SortFedServers()
+	p.SortAuditServers()
 
 	p.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	p.OldAcks = make(map[[32]byte]interfaces.IMsg)

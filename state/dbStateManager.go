@@ -45,6 +45,9 @@ type DBState struct {
 	Locked      bool
 	ReadyToSave bool
 	Saved       bool
+
+	FinalExchangeRate uint64
+	NextTimestamp     interfaces.Timestamp
 }
 
 type DBStateList struct {

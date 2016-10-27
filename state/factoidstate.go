@@ -31,6 +31,35 @@ type FactoidState struct {
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
 
+// Reset this Factoid state to an empty state at a dbheight following the
+// given dbstate.
+func (fs *FactoidState) Reset(dbstate *DBState) {
+	ht := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
+	if fs.DBHeight > ht+1 {
+		fs.DBHeight = ht
+
+		dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
+
+		fBlock := factoid.NewFBlock(dbstate.FactoidBlock)
+		fBlock.SetExchRate(dbstate.FinalExchangeRate)
+
+		fs.CurrentBlock = fBlock
+
+		t := factoid.GetCoinbase(dbstate.NextTimestamp)
+
+		fs.State.FactoshisPerEC = dbstate.FinalExchangeRate
+		fs.State.LeaderTimestamp = dbstate.NextTimestamp
+
+		err := fs.CurrentBlock.AddCoinbase(t)
+		if err != nil {
+			panic(err.Error())
+		}
+		fs.UpdateTransaction(true, t)
+
+		fs.DBHeight++
+	}
+}
+
 func (fs *FactoidState) EndOfPeriod(period int) {
 	if period > 9 || period < 0 {
 		panic(fmt.Sprintf("Minute is out of range: %d", period))
@@ -252,6 +281,11 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	fs.CurrentBlock = fBlock
 
 	t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
+
+	dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
+	dbstate.FinalExchangeRate = fs.State.GetFactoshisPerEC()
+	dbstate.NextTimestamp = fs.State.GetLeaderTimestamp()
+
 	err := fs.CurrentBlock.AddCoinbase(t)
 	if err != nil {
 		panic(err.Error())
