@@ -508,6 +508,13 @@ list.State.ProcessRecentFERChainEntries()
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
+	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
+	// way, not all nodes in a simulation Trim() at the same time.
+	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
+	if v%4 == 0 {
+		list.State.DB.Trim()
+	}
+
 	if !d.Locked || !d.ReadyToSave {
 		return
 	}
@@ -524,13 +531,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
-
-	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
-	// way, not all nodes in a simulation Trim() at the same time.
-	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
-	if v%4 == 0 {
-		list.State.DB.Trim()
-	}
 
 	list.State.DB.StartMultiBatch()
 
@@ -591,20 +591,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			return
 		}
 
-		if d.Saved {
-			continue
-		}
-
 		if i > 0 {
 			progress = list.FixupLinks(list.DBStates[i-1], d)
 		}
+
 		progress = list.ProcessBlocks(d) || progress
 
 		progress = list.SaveDBStateToDB(d) || progress
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
-
 	}
 	return
 }

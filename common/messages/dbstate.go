@@ -36,6 +36,9 @@ type DBStateMsg struct {
 	Entries []interfaces.IEBEntry
 
 	//Not signed!
+
+	//Not marshalled
+	IsInDB bool
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
