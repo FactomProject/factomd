@@ -436,13 +436,24 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
+
+
 	// Make the current exchange rate whatever we had in the previous block.
-	list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
+	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
+	if list.State.FERChangeHeight == 1 {
+		list.State.FERChangeHeight = 0
+	} else	{
+		fmt.Println("setting rate",list.State.FactoshisPerEC ," to " ,  d.FactoidBlock.GetExchRate()," - Height ",d.DirectoryBlock.GetHeader().GetDBHeight())
+		list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
+	}
+	
+
 	fs.ProcessEndOfBlock(list.State)
 
 	// Promote the currently scheduled next FER
-	list.State.ProcessRecentFERChainEntries()
+	
 
+list.State.ProcessRecentFERChainEntries()
 	// Step my counter of Complete blocks
 	i := d.DirectoryBlock.GetHeader().GetDBHeight() - list.Base
 	if uint32(i) > list.Complete {
