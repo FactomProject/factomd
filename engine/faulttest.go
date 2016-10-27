@@ -13,7 +13,7 @@ import (
 )
 
 func waitToKill(k *bool) {
-	t := rand.Int() % 30
+	t := rand.Int()%60 + 60
 	for t > 0 {
 		os.Stderr.WriteString(fmt.Sprintf("     Will kill some servers in about %d seconds\n", t))
 		if t < 30 {
@@ -132,7 +132,7 @@ func faultTest(faulting *bool) {
 			return
 		}
 
-		if killsome && len(leaders) > 0 {
+		if killsome && len(leaders) > 0 && currentminute < 9 && currentminute > 1 {
 			killing = false
 			killsome = false
 			// Wait some random amount of time.

@@ -423,15 +423,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
 	}
 
-	pdbstate := list.Get(int(ht - 1))
-	if pdbstate != nil && len(pdbstate.FedServers) > 0 {
-		// Reset the pln to the value of the previous pl.
-		pl.FedServers = make([]interfaces.IFctServer, 0)
-		pl.AuditServers = make([]interfaces.IFctServer, 0)
-		pl.FedServers = append(pl.FedServers, pdbstate.FedServers...)
-		pl.AuditServers = append(pl.AuditServers, pdbstate.AuditServers...)
-	}
-
 	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After we push back")
 	for _, f := range pl.FedServers {
 		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
@@ -470,12 +461,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl.SortAuditServers()
 	pl.SortFedServers()
 
-	dbstate := list.Get(int(ht))
-
-	if len(dbstate.FedServers) == 0 {
-		dbstate.FedServers = append(dbstate.FedServers, pln.FedServers...)
-		dbstate.AuditServers = append(dbstate.AuditServers, pln.AuditServers...)
-	}
+	d.FedServers = d.FedServers[:0]
+	d.FedServers = append(d.FedServers, pl.FedServers...)
+	d.AuditServers = d.AuditServers[:0]
+	d.AuditServers = append(d.AuditServers, pl.AuditServers...)
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()

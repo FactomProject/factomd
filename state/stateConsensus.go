@@ -719,6 +719,10 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	dbs := m.(*messages.DirectoryBlockSignature)
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 
+	if pl.VMs[dbs.VMIndex].Height > 0 {
+		return
+	}
+
 	// Put the System Height and Serial Hash into the EOM
 	dbs.SysHeight = uint32(pl.System.Height)
 	if pl.System.Height > 1 {
@@ -1273,7 +1277,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		}
 		if fails > len(pl.FedServers)/2 {
-			s.Reset()
+			//s.Reset()
 			return false
 		} else if fails > 0 {
 			return false
