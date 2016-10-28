@@ -1483,6 +1483,7 @@ func (s *State) SetString() {
 	}
 
 	s.Status = 0
+
 }
 
 func (s *State) SummaryHeader() string {
@@ -1646,6 +1647,21 @@ func (s *State) SetStringQueues() {
 	}
 
 	s.serverPrt = str
+
+	ht := s.LLeaderHeight
+	pl := s.LeaderPL
+
+	authoritiesString := fmt.Sprintf("%7s (%d) Feds:", list.State.FactomNodeName, ht)
+	for _, fd := range pl.FedServers {
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
+	}
+	authoritiesString += " || Auds :"
+	for _, fd := range pl.AuditServers {
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
+	}
+	// Any updates required to the state as established by the AdminBlock are applied here.
+	list.State.SetAuthoritySetString(authoritiesString)
+
 }
 
 func (s *State) GetTrueLeaderHeight() uint32 {
