@@ -59,7 +59,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 
 	// Check last entry block method
 	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-1 {
-		
+
 		entryHashes := entryBlock.GetEntryHashes()
 
 		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
@@ -179,7 +179,7 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	// fail if expired height is too far out
 	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 12) {
 		fmt.Println("FER Failed-fail if expired height is too far out")
-	
+
 		return false
 	}
 
@@ -188,7 +188,7 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	if (passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
 		((passedFEREntry.GetExpirationHeight() >= 6) &&
 			(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6))) {
-				fmt.Println("FER Failed-fail if target is out of range of the expire height")
+		fmt.Println("FER Failed-fail if target is out of range of the expire height")
 		return false
 	}
 
