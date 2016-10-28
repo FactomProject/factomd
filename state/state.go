@@ -845,8 +845,9 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	var eBlocks []interfaces.IEntryBlock
 	var entries []interfaces.IEBEntry
 
-	if len(dblk.GetDBEntries()) > 2 {
-		for _, v := range dblk.GetDBEntries()[3:] {
+	ebDBEntries := dblk.GetEBlockDBEntries()
+	if len(ebDBEntries) > 0 {
+		for _, v := range ebDBEntries {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
 				eBlocks = append(eBlocks, eBlock)
@@ -1095,46 +1096,74 @@ func (s *State) catchupEBlocks() {
 	if len(s.MissingEntryBlocks) < 10 {
 		// While we have less than 20 that we are asking for, look for more to ask for.
 		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
-			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
-
-			for i, ebKeyMR := range db.GetEntryHashes() {
-				// The first three entries (0,1,2) in every directory block are blocks we already have by
-				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
-				// then this assumption might not hold.  But it does for now.
-				if i <= 2 {
-					continue
+			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
+			doubleCheck := false
+			if dbstate != nil {
+				if len(dbstate.DirectoryBlock.GetEBlockDBEntries()) != len(dbstate.EntryBlocks) {
+					fmt.Printf("Wrong amount of entry blocks\n")
+					doubleCheck = true
 				}
-
-				// Ask for blocks we don't have.
-				if !s.DatabaseContains(ebKeyMR) {
-					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
-						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
-				} else {
-					eblock, _ := s.DB.FetchEBlock(ebKeyMR)
-
-					for _, entryhash := range eblock.GetEntryHashes() {
-						if entryhash.IsMinuteMarker() {
-							continue
-						}
-						e, _ := s.DB.FetchEntry(entryhash)
-						if e == nil {
-							var v struct {
-								ebhash    interfaces.IHash
-								entryhash interfaces.IHash
-								dbheight  uint32
+				if doubleCheck == false {
+					entryCount := 0
+					for _, v := range dbstate.EntryBlocks {
+						for _, w := range v.GetEntryHashes() {
+							if !w.IsMinuteMarker() {
+								entryCount++
 							}
-
-							v.dbheight = eblock.GetHeader().GetDBHeight()
-							v.entryhash = entryhash
-							v.ebhash = ebKeyMR
-
-							s.MissingEntries = append(s.MissingEntries, v)
 						}
-						// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-						if s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
-							s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), now)
-						} else {
-							delete(s.Commits, entryhash.Fixed())
+					}
+					if entryCount != len(dbstate.Entries) {
+						fmt.Printf("Wrong amount of entries - %v vs %v\n", entryCount, len(dbstate.Entries))
+						doubleCheck = true
+					}
+				}
+			} else {
+				doubleCheck = true
+			}
+
+			if doubleCheck {
+				db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
+
+				for i, ebKeyMR := range db.GetEntryHashes() {
+					// The first three entries (0,1,2) in every directory block are blocks we already have by
+					// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
+					// then this assumption might not hold.  But it does for now.
+					if i <= 2 {
+						continue
+					}
+
+					eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
+
+					// Ask for blocks we don't have.
+					if eBlock == nil {
+						fmt.Printf("Could not find block %v\n", ebKeyMR)
+						s.MissingEntryBlocks = append(s.MissingEntryBlocks,
+							MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+					} else {
+						for _, entryhash := range eBlock.GetEntryHashes() {
+							if entryhash.IsMinuteMarker() {
+								continue
+							}
+							e, _ := s.DB.FetchEntry(entryhash)
+							if e == nil {
+								var v struct {
+									ebhash    interfaces.IHash
+									entryhash interfaces.IHash
+									dbheight  uint32
+								}
+
+								v.dbheight = eBlock.GetHeader().GetDBHeight()
+								v.entryhash = entryhash
+								v.ebhash = ebKeyMR
+
+								s.MissingEntries = append(s.MissingEntries, v)
+							}
+							// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+							if s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+								s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), now)
+							} else {
+								delete(s.Commits, entryhash.Fixed())
+							}
 						}
 					}
 				}
