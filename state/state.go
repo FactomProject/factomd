@@ -224,8 +224,9 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
-	ResetRequest bool // Set to true to trigger a reset
-	ProcessLists *ProcessLists
+	ResetRequest    bool // Set to true to trigger a reset
+	ProcessLists    *ProcessLists
+	AuthorityDeltas string
 
 	// Factom State
 	FactoidState    interfaces.IFactoidState
@@ -410,6 +411,14 @@ func (s *State) SetAuthoritySetString(authSet string) {
 
 func (s *State) GetAuthoritySetString() string {
 	return s.AuthoritySetString
+}
+
+func (s *State) AddAuthorityDelta(authSet string) {
+	s.AuthorityDeltas += fmt.Sprintf("\n%s", authSet)
+}
+
+func (s *State) GetAuthorityDeltas() string {
+	return s.AuthorityDeltas
 }
 
 func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled

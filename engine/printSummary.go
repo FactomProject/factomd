@@ -176,6 +176,16 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 			prt = prt + "\n"
 		}
 
+		if verboseAuthorityDeltas {
+			prt = prt + "AuthorityDeltas:"
+			for _, f := range pnodes {
+				prt = prt + "\n"
+				prt = prt + f.State.FactomNodeName
+				prt = prt + f.State.GetAuthorityDeltas()
+				prt = prt + "\n"
+			}
+		}
+
 		prt = prt + "===SummaryEnd===\n"
 
 		if prt != out {

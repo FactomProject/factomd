@@ -233,6 +233,8 @@ type IState interface {
 	FastVerifyAuthoritySignature(Message []byte, signature IFullSignature, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
 
+	AddAuthorityDelta(changeString string)
+
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32
 	GetMissingEntryCount() uint32

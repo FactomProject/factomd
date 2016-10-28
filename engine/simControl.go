@@ -24,6 +24,7 @@ var _ = fmt.Print
 var sortByID bool
 var verboseFaultOutput = false
 var verboseAuthoritySet = false
+var verboseAuthorityDeltas = false
 var totalServerFaults int
 
 func SimControl(listenTo int) {
@@ -331,6 +332,17 @@ func SimControl(listenTo int) {
 					} else {
 						verboseAuthoritySet = true
 						os.Stderr.WriteString("--VerboseAuthoritySet On--\n")
+					}
+					break
+				}
+
+				if b[1] == 'd' || b[1] == 'D' {
+					if verboseAuthorityDeltas {
+						verboseAuthorityDeltas = false
+						os.Stderr.WriteString("--VerboseAuthorityDeltas Off--\n")
+					} else {
+						verboseAuthorityDeltas = true
+						os.Stderr.WriteString("--VerboseAuthorityDeltas On--\n")
 					}
 					break
 				}
