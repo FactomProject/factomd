@@ -742,7 +742,9 @@ func (s *State) DoReset() {
 	}
 	pl := s.ProcessLists.Get(ht)
 	if pl != nil {
-		pl.Reset()
+		if !pl.Reset() {
+			panic("Reset wasn't possible")
+		}
 	}
 	s.ResetRequest = false
 }

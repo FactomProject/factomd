@@ -1103,9 +1103,15 @@ func (p *ProcessList) String() string {
 	return buf.String()
 }
 
-func (p *ProcessList) Reset() {
+func (p *ProcessList) Reset() bool {
 
 	p.State.ResetCnt++
+
+	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
+
+	if previous == nil {
+		return false
+	}
 
 	// Make a copy of the previous FedServers
 	p.System.List = p.System.List[:0]
@@ -1116,14 +1122,10 @@ func (p *ProcessList) Reset() {
 	p.FactoidBalancesT = map[[32]byte]int64{}
 	p.ECBalancesT = map[[32]byte]int64{}
 
-	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
-
-	if previous == nil {
-		panic("No reset is possible if we have no supporting state for it.")
-	}
-
 	fs := p.State.FactoidState.(*FactoidState)
-	fs.Reset(previous)
+	if previous.NextTimestamp != nil {
+		fs.Reset(previous)
+	}
 
 	p.FedServers = make([]interfaces.IFctServer, 0)
 	p.AuditServers = make([]interfaces.IFctServer, 0)
@@ -1221,6 +1223,7 @@ func (p *ProcessList) Reset() {
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
+	return true
 }
 
 /************************************************
