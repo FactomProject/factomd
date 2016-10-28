@@ -1122,11 +1122,6 @@ func (p *ProcessList) Reset() bool {
 	p.FactoidBalancesT = map[[32]byte]int64{}
 	p.ECBalancesT = map[[32]byte]int64{}
 
-	fs := p.State.FactoidState.(*FactoidState)
-	if previous.NextTimestamp != nil {
-		fs.Reset(previous)
-	}
-
 	p.FedServers = make([]interfaces.IFctServer, 0)
 	p.AuditServers = make([]interfaces.IFctServer, 0)
 	p.FedServers = append(p.FedServers, previous.FedServers...)
@@ -1204,6 +1199,11 @@ func (p *ProcessList) Reset() bool {
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
 		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
 		p.State.SendDBSig(p.DBHeight, i)
+	}
+
+	fs := p.State.FactoidState.(*FactoidState)
+	if previous.NextTimestamp != nil {
+		fs.Reset(previous)
 	}
 
 	s := p.State
