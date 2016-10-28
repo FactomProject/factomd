@@ -415,48 +415,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
 
-	hdr := fmt.Sprintf("dddd%x %7s dbnt: %4d", list.State.GetIdentityChainID().Bytes()[4:16], list.State.FactomNodeName, ht)
-	str := fmt.Sprintf("%s  %s\n", hdr, "DBState")
-
-	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "Before we push back")
-	for _, f := range pl.FedServers {
-		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
-	}
-
-	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After we push back")
-	for _, f := range pl.FedServers {
-		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
-	}
-
-	authoritiesString := fmt.Sprintf("%7s (%d) Feds:", list.State.FactomNodeName, ht)
-	for _, fd := range pl.FedServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
-	}
-	authoritiesString += " || Auds :"
-	for _, fd := range pl.AuditServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
-	}
-	// Any updates required to the state as established by the AdminBlock are applied here.
-	list.State.SetAuthoritySetString(authoritiesString)
-
-	fmt.Println("AAADMIN BLOCK FOR", list.State.FactomNodeName, " (", ht, "):", d.AdminBlock.String())
-
 	//
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
-
-	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pl")
-	for _, f := range pl.FedServers {
-		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
-	}
-	str = fmt.Sprintf("%s%s  %s\n", str, hdr, "After Adminblock pln")
-	for _, f := range pln.FedServers {
-		str = fmt.Sprintf("%s%s %x \n", str, hdr, f.GetChainID().Bytes()[4:16])
-	}
-
-	fmt.Println("\n" + str)
 
 	pl.SortAuditServers()
 	pl.SortFedServers()

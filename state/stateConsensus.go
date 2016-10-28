@@ -1277,7 +1277,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		}
 		if fails > len(pl.FedServers)/2 {
-			//s.Reset()
+			s.Reset()
 			return false
 		} else if fails > 0 {
 			return false

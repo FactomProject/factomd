@@ -1206,6 +1206,9 @@ func (p *ProcessList) Reset() bool {
 		fs.Reset(previous)
 	}
 
+	index := p.DBHeight - p.State.DBStates.Base - 1
+	p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
+
 	s := p.State
 	s.Saving = true
 	s.Syncing = false

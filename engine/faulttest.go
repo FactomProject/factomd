@@ -80,7 +80,10 @@ func faultTest(faulting *bool) {
 		goodleaders = 0
 		// How many of the running nodes are leaders
 		for _, f := range fnodes {
-			if f.State.GetNetStateOff() || !f.State.Leader {
+			if f.State.GetNetStateOff() {
+				continue
+			}
+			if !f.State.Leader {
 				continue
 			}
 			if int(f.State.LLeaderHeight) < currentdbht {
@@ -132,7 +135,7 @@ func faultTest(faulting *bool) {
 			return
 		}
 
-		if killsome && len(leaders) > 0 && currentminute < 9 && currentminute > 1 {
+		if killsome && len(leaders) > 0 && goodleaders >= numleaders {
 			killing = false
 			killsome = false
 			// Wait some random amount of time.
