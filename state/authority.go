@@ -183,7 +183,7 @@ func pkEq(a, b []byte) bool {
 func (st *State) GetAuthority(serverID interfaces.IHash) (*Authority, int) {
 	for _, auth := range st.Authorities {
 		if serverID.IsSameAs(auth.AuthorityChainID) {
-			return &auth, auth.Type()
+			return auth, auth.Type()
 		}
 	}
 	return nil, -2
@@ -375,7 +375,7 @@ func (st *State) createAuthority(chainID interfaces.IHash) int {
 	}
 	newAuth.Status = constants.IDENTITY_PENDING_FULL
 
-	st.Authorities = append(st.Authorities, *newAuth)
+	st.Authorities = append(st.Authorities, newAuth)
 	return len(st.Authorities) - 1
 }
 

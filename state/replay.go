@@ -27,6 +27,23 @@ type Replay struct {
 	Center   int // Hour of the current time.
 }
 
+func (r *Replay) Save() *Replay {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	newr := new(Replay)
+	for i, b := range r.Buckets {
+		if b != nil {
+			newr.Buckets[i] = make(map[[32]byte]int, 0)
+			for k := range b {
+				newr.Buckets[i][k] = b[k]
+			}
+		}
+	}
+	newr.Basetime = r.Basetime
+	newr.Center = r.Center
+	return newr
+}
+
 // Remember that Unix time is in seconds since 1970.  This code
 // wants to be handed time in seconds.
 func Minutes(unix int64) int {

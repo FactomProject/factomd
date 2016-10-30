@@ -24,6 +24,8 @@ var _ = log.Print
 type DBState struct {
 	isNew bool
 
+	SaveStruct *SaveState
+
 	DBHash interfaces.IHash
 	ABHash interfaces.IHash
 	FBHash interfaces.IHash
@@ -36,11 +38,6 @@ type DBState struct {
 
 	EntryBlocks []interfaces.IEntryBlock
 	Entries     []interfaces.IEBEntry
-
-	// The Authority Set in place at the time that we Process this DBState.  If this DBState
-	// is then successfully Saved, then this is an authority set we can trust.
-	FedServers   []interfaces.IFctServer
-	AuditServers []interfaces.IFctServer
 
 	Locked      bool
 	ReadyToSave bool
@@ -407,14 +404,21 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
-	if list.State.DebugConsensus {
-		PrintState(list.State)
-	}
-
 	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Bring the current federated servers and audit servers forward to the
 	// next block.
+
+	if list.State.DebugConsensus {
+		PrintState(list.State)
+	}
+
+	if d.SaveStruct == nil {
+		SaveFactomdState(list.State, d)
+	} else {
+		d.SaveStruct.RestoreFactomdState(list.State, d)
+	}
+
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
@@ -427,11 +431,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	pl.SortAuditServers()
 	pl.SortFedServers()
-
-	d.FedServers = d.FedServers[:0]
-	d.FedServers = append(d.FedServers, pl.FedServers...)
-	d.AuditServers = d.AuditServers[:0]
-	d.AuditServers = append(d.AuditServers, pl.AuditServers...)
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()

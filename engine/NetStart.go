@@ -527,7 +527,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Key3 = primitives.NewZeroHash()
 	id.Key4 = primitives.NewZeroHash()
 	id.Status = 1
-	s.Identities = append(s.Identities, id)
+	s.Identities = append(s.Identities, &id)
 
 	var auth state.Authority
 	auth.Status = 1
@@ -535,5 +535,5 @@ func setupFirstAuthority(s *state.State) {
 	auth.MatryoshkaHash = primitives.NewZeroHash()
 	auth.AuthorityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
-	s.Authorities = append(s.Authorities, auth)
+	s.Authorities = append(s.Authorities, &auth)
 }

@@ -80,8 +80,8 @@ type State struct {
 	CustomNetworkID   []byte
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
-	Identities           []Identity       // Identities of all servers in management chain
-	Authorities          []Authority      // Identities of all servers in management chain
+	Identities           []*Identity      // Identities of all servers in management chain
+	Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)

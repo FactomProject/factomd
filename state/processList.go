@@ -1103,9 +1103,8 @@ func (p *ProcessList) String() string {
 	return buf.String()
 }
 
+/*
 func (p *ProcessList) Reset() bool {
-
-	p.State.ResetCnt++
 
 	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
 
@@ -1227,6 +1226,7 @@ func (p *ProcessList) Reset() bool {
 
 	return true
 }
+*/
 
 /************************************************
  * Support

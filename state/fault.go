@@ -729,35 +729,15 @@ func (s *State) Reset() {
 
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
-	ldbs := len(s.DBStates.DBStates)
-	if ldbs == 0 {
-		s.DBStates.Base = 0
-		s.DBStates.DBStates = s.DBStates.DBStates[:0]
-		s.ProcessLists.DBHeightBase = 0
-		s.ProcessLists.Lists = s.ProcessLists.Lists[:0]
-		LoadDatabase(s)
-		return
+	index := len(s.DBStates.DBStates)
+	dbs := s.DBStates.DBStates[index-1]
+	for index > 1 && (!dbs.Saved || !dbs.isNew) {
+		index--
+		dbs = s.DBStates.DBStates[index-1]
 	}
-	dbs := s.DBStates.DBStates[ldbs-1]
-	ht := s.DBStates.Base + uint32(ldbs)
-	for {
-		fmt.Println("dddd ldbs", ldbs)
-		s.DBStates.DBStates = s.DBStates.DBStates[:ldbs-1]
-		pl := s.ProcessLists.Get(ht)
-		if pl != nil {
-			pl.Reset()
-			plht := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists)
-			if plht >= int(ht) {
-				s.ProcessLists.Lists = s.ProcessLists.Lists[:plht-int(ht)]
-			}
-		}
-		if !dbs.Saved || !dbs.isNew || ldbs == 0 {
-			break
-		}
-		ht--
-		ldbs = len(s.DBStates.DBStates)
-		dbs = s.DBStates.DBStates[ldbs-1]
+	if index > 1 {
+		dbs = s.DBStates.DBStates[index-2]
+		s.DBStates.DBStates = s.DBStates.DBStates[:index-1]
+		s.DBStates.ProcessBlocks(s.DBStates.DBStates[index-2])
 	}
-	s.ResetRequest = false
-
 }
