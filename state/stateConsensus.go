@@ -89,6 +89,9 @@ func (s *State) Process() (progress bool) {
 	var vm *VM
 	if s.Leader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+		if vm.Height == 0 {
+			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
+		}
 	}
 
 	s.ReviewHolding()
@@ -719,7 +722,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	dbs := m.(*messages.DirectoryBlockSignature)
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 
-	if pl.VMs[dbs.VMIndex].Height > 0 {
+	if len(pl.VMs[dbs.VMIndex].List) > 0 {
 		return
 	}
 
@@ -1277,7 +1280,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		}
 		if fails > len(pl.FedServers)/2 {
-			s.Reset()
+			//s.DoReset()
 			return false
 		} else if fails > 0 {
 			return false
@@ -1364,7 +1367,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {
-				s.DoReset()
+				vm.Height = ffHt
+				return false
+			} else if rHt < ffHt {
 				return false
 			}
 

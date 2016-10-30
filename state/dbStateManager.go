@@ -407,6 +407,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
+	if list.State.DebugConsensus {
+		PrintState(list.State)
+	}
+
 	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Bring the current federated servers and audit servers forward to the
@@ -634,7 +638,7 @@ searchLoop:
 		cnt++
 	}
 
-	keep := uint32(2) // How many states to keep around; debugging helps with more.
+	keep := uint32(4) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)

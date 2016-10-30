@@ -730,21 +730,29 @@ func (s *State) Reset() {
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
 	ldbs := len(s.DBStates.DBStates)
+	if ldbs == 0 {
+		s.DBStates.Base = 0
+		s.DBStates.DBStates = s.DBStates.DBStates[:0]
+		s.ProcessLists.DBHeightBase = 0
+		s.ProcessLists.Lists = s.ProcessLists.Lists[:0]
+		LoadDatabase(s)
+		return
+	}
 	dbs := s.DBStates.DBStates[ldbs-1]
 	ht := s.DBStates.Base + uint32(ldbs)
-	if !dbs.Saved {
+	for {
+		fmt.Println("dddd ldbs", ldbs)
 		s.DBStates.DBStates = s.DBStates.DBStates[:ldbs-1]
 		pl := s.ProcessLists.Get(ht)
 		if pl != nil {
 			pl.Reset()
 		}
-		ht--
-	}
-	pl := s.ProcessLists.Get(ht)
-	if pl != nil {
-		if !pl.Reset() {
-			panic("Reset wasn't possible")
+		if !dbs.Saved || !dbs.isNew || ldbs == 0 {
+			break
 		}
+		ht--
+		ldbs = len(s.DBStates.DBStates)
+		dbs = s.DBStates.DBStates[ldbs-1]
 	}
 	s.ResetRequest = false
 }

@@ -1,7 +1,9 @@
 /^AAADMIN/ { 
     if ($6 > 5) off = 2
 }
-/^dddd/ { not = 1 }
+
+#/^dddd/ { not = 1 }
+
 /^2/ { not = 1 }
 
 #{ print off, $6, not, $0 }

@@ -1122,10 +1122,8 @@ func (p *ProcessList) Reset() bool {
 	p.FactoidBalancesT = map[[32]byte]int64{}
 	p.ECBalancesT = map[[32]byte]int64{}
 
-	p.FedServers = make([]interfaces.IFctServer, 0)
-	p.AuditServers = make([]interfaces.IFctServer, 0)
-	p.FedServers = append(p.FedServers, previous.FedServers...)
-	p.AuditServers = append(p.AuditServers, previous.AuditServers...)
+	p.FedServers = append(p.FedServers[:0], previous.FedServers...)
+	p.AuditServers = append(p.AuditServers[:0], previous.AuditServers...)
 	for _, auditServer := range p.AuditServers {
 		auditServer.SetOnline(false)
 		if p.State.GetIdentityChainID().IsSameAs(auditServer.GetChainID()) {
@@ -1206,10 +1204,11 @@ func (p *ProcessList) Reset() bool {
 		fs.Reset(previous)
 	}
 
-	index := p.DBHeight - p.State.DBStates.Base - 1
+	index := p.DBHeight - p.State.DBStates.Base
 	p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
 
 	s := p.State
+	s.LLeaderHeight--
 	s.Saving = true
 	s.Syncing = false
 	s.EOM = false

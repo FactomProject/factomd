@@ -201,7 +201,8 @@ func systemFaults(f *FactomNode) string {
 	dbheight := f.State.LLeaderHeight
 	pl := f.State.ProcessLists.Get(dbheight)
 	if len(pl.System.List) == 0 {
-		return ""
+		str := fmt.Sprintf("%5s %13s %6s Length: 0\n", "", "System List", f.State.FactomNodeName)
+		return str
 	}
 	str := fmt.Sprintf("%5s %s\n", "", "System List")
 	for _, ff := range pl.System.List {

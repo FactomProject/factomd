@@ -164,7 +164,7 @@ type State struct {
 	DBSigSys       bool // At least one DBSig has covered the System List
 
 	// By default, this is false, which means DBstates are discarded
-	//when a majority of leaders disagree with the hash we have via DBSigs
+	// when a majority of leaders disagree with the hash we have via DBSigs
 	KeepMismatch bool
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
@@ -203,7 +203,7 @@ type State struct {
 	LastTiebreak    int64
 
 	AuthoritySetString string
-	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
+	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
@@ -241,7 +241,7 @@ type State struct {
 	// Web Services
 	Port int
 
-	//For Replay / journal
+	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
@@ -1496,7 +1496,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
+	str := fmt.Sprintf(" %7s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -1520,7 +1520,7 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:3], s.IdentityChainID.Bytes()[3:6])
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
 
 	s.serverPrt = str
 }
@@ -1608,9 +1608,9 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x] %4s%4s %5d %2d.%01d%% %2d.%03d",
+	str := fmt.Sprintf("%7s[%6x] %4s%4s %5d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:6],
+		s.IdentityChainID.Bytes()[2:5],
 		stype,
 		vmIndex,
 		s.ResetCnt,
