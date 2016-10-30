@@ -308,11 +308,12 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[%x] hash[%x] %s",
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d FF %2d -%1s-Leader[%x] hash[%x] %s",
 		"EOM",
 		m.VMIndex,
 		m.Minute,
 		m.DBHeight,
+		m.SysHeight,
 		f,
 		m.ChainID.Bytes()[:3],
 		m.GetMsgHash().Bytes()[:3],

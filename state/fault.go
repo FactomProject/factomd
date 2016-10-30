@@ -746,6 +746,10 @@ func (s *State) DoReset() {
 		pl := s.ProcessLists.Get(ht)
 		if pl != nil {
 			pl.Reset()
+			plht := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists)
+			if plht >= int(ht) {
+				s.ProcessLists.Lists = s.ProcessLists.Lists[:plht-int(ht)]
+			}
 		}
 		if !dbs.Saved || !dbs.isNew || ldbs == 0 {
 			break
@@ -755,4 +759,5 @@ func (s *State) DoReset() {
 		dbs = s.DBStates.DBStates[ldbs-1]
 	}
 	s.ResetRequest = false
+
 }
