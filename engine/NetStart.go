@@ -195,7 +195,7 @@ func NetStart(s *state.State) {
 			s.SetIdentityChainID(primitives.Sha([]byte(time.Now().String()))) // Make sure this node is NOT a leader
 		}
 	}
-	if leader {
+	if leader && s.GetNetworkID() == 2 {
 		if len(s.Prefix) == 0 {
 			s.SetIdentityChainID(primitives.Sha([]byte(s.Prefix + "FNode0"))) // Make sure this node is a leader
 			s.NodeMode = "SERVER"
@@ -307,6 +307,9 @@ func NetStart(s *state.State) {
 		}
 		s.CustomNetworkID = customNet
 		networkID = p2p.NetworkID(binary.BigEndian.Uint32(customNet))
+		for i := range fnodes {
+			fnodes[i].State.CustomNetworkID = customNet
+		}
 		seedURL = s.LocalSeedURL
 		networkPort = s.LocalNetworkPort
 		specialPeers = s.LocalSpecialPeers

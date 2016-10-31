@@ -1401,13 +1401,13 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
 		return key
 	case constants.NETWORK_TEST:
-		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+		key, _ := primitives.HexToHash("49b6edd274e7d07c94d4831eca2f073c207248bde1bf989d2183a8cebca227b7")
 		return key
 	case constants.NETWORK_LOCAL:
 		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 		return key
 	case constants.NETWORK_CUSTOM:
-		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 		return key
 	}
 	return primitives.NewZeroHash()
@@ -1419,12 +1419,13 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	case constants.NETWORK_MAIN:
 		return primitives.NewZeroHash()
 	case constants.NETWORK_TEST:
-		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
-		return id
+		return primitives.NewZeroHash()
 	case constants.NETWORK_LOCAL:
 		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
 		return id
 	case constants.NETWORK_CUSTOM:
+		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+		return id
 	}
 	return primitives.NewZeroHash()
 }
