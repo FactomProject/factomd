@@ -89,16 +89,15 @@ func TestBootStrappingIdentity(t *testing.T) {
 		t.Errorf("Bootstrap Identity Key Mismatch on MAIN")
 	}
 
-	/* No determined Identity yet
 	state.NetworkNumber = constants.NETWORK_TEST
 	if !state.GetNetworkBootStrapIdentity().IsSameAs(primitives.NewZeroHash()) {
-		t.Errorf("Bootstrap Identity Mismatch")
+		t.Errorf("Bootstrap Identity Mismatch on TEST")
 	}
-	key, _ := primitives.HexToHash("")
+
+	key, _ = primitives.HexToHash("49b6edd274e7d07c94d4831eca2f073c207248bde1bf989d2183a8cebca227b7")
 	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
-		t.Errorf("Bootstrap Identity Key Mismatch")
+		t.Errorf("Bootstrap Identity Key Mismatch on TEST")
 	}
-	*/
 
 	state.NetworkNumber = constants.NETWORK_LOCAL
 	id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
@@ -108,6 +107,16 @@ func TestBootStrappingIdentity(t *testing.T) {
 	key, _ = primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
 		t.Errorf("Bootstrap Identity Key Mismatch on LOCAL")
+	}
+
+	state.NetworkNumber = constants.NETWORK_CUSTOM
+	id, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+	if !state.GetNetworkBootStrapIdentity().IsSameAs(id) {
+		t.Errorf("Bootstrap Identity Mismatch on CUSTOM")
+	}
+	key, _ = primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
+		t.Errorf("Bootstrap Identity Key Mismatch on CUSTOM")
 	}
 
 }
