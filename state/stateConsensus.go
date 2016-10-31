@@ -74,6 +74,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 func (s *State) Process() (progress bool) {
 
 	if s.ResetRequest {
+		s.ResetRequest = false
 		s.DoReset()
 	}
 
@@ -1136,7 +1137,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			if s.Leader {
 				dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
 				dbs := new(messages.DirectoryBlockSignature)
-				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+				db := dbstate.DirectoryBlock
+				dbs.DirectoryBlockHeader = db.GetHeader()
 				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = s.LLeaderHeight
@@ -1298,8 +1300,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		} else {
 			s.DBSigFails++
-			s.DBStates.DBStates = s.DBStates.DBStates[:len(s.DBStates.DBStates)-1]
-
+			s.Reset()
 			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
 
 			if msg != nil {

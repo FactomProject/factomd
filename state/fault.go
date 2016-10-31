@@ -729,15 +729,30 @@ func (s *State) Reset() {
 
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
+	s.ResetTryCnt++
+	fmt.Println("dddd Try a reset", s.FactomNodeName)
 	index := len(s.DBStates.DBStates)
+	if index < 2 {
+		fmt.Println("dddd too short", s.FactomNodeName)
+		return
+	}
 	dbs := s.DBStates.DBStates[index-1]
-	for index > 1 && (!dbs.Saved || !dbs.isNew) {
+	if dbs == nil {
+		fmt.Println("dddd no dbstate")
+		return
+	}
+	for index > 1 && !dbs.Saved {
+		fmt.Println("dddd Backing up", s.FactomNodeName)
 		index--
 		dbs = s.DBStates.DBStates[index-1]
 	}
 	if index > 1 {
+		s.ResetCnt++
+		fmt.Println("dddd RESET", s.FactomNodeName, s.DBStates.Base+uint32(index))
 		dbs = s.DBStates.DBStates[index-2]
 		s.DBStates.DBStates = s.DBStates.DBStates[:index-1]
-		s.DBStates.ProcessBlocks(s.DBStates.DBStates[index-2])
+		s.DBStates.ProcessBlocks(dbs)
+	} else {
+		fmt.Println("dddd Can't toss them all", s.FactomNodeName)
 	}
 }

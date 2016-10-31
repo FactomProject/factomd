@@ -5,6 +5,7 @@
 package state
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -101,7 +102,7 @@ type SaveState struct {
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss = new(SaveState)
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
-	pl := state.ProcessLists.Get(ss.DBHeight + 1)
+	pl := state.ProcessLists.Get(ss.DBHeight)
 
 	ss.Replay = state.Replay.Save()
 
@@ -195,16 +196,19 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 }
 
 func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
-	ss = new(SaveState)
-	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
-
 	// We trim away the ProcessList under construction (and any others) so we can
 	// rebuild afresh.
 	index := int(state.ProcessLists.DBHeightBase) - int(ss.DBHeight+1)
 	if index < 0 {
 		index = 0
+	} else {
+		fmt.Println("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight)
+		fmt.Println(state.ProcessLists.String())
+
+		if len(state.ProcessLists.Lists) > index {
+			state.ProcessLists.Lists = state.ProcessLists.Lists[:index+1]
+		}
 	}
-	state.ProcessLists.Lists = state.ProcessLists.Lists[:index]
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
 	state.Replay = ss.Replay.Save()
