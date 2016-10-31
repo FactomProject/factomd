@@ -7,7 +7,6 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -66,8 +65,7 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
 	return 1
-	authoritativeKey, _ := state.GetNetworkBootStrapKey().Bytes()
-	//authoritativeKey, _ := hex.DecodeString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	authoritativeKey := state.GetNetworkBootStrapKey().Bytes()
 	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
 		// the message was not signed with the proper authoritative signing key (from conf file)
 		// it is therefore considered invalid

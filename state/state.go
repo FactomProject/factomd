@@ -1398,22 +1398,17 @@ func (s *State) GetNetworkID() uint32 {
 func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
-		key, err := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
-		if err == nil {
-			return key
-		}
+		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+		return key
 	case constants.NETWORK_TEST:
-		key, err := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
-		if err == nil {
-			return key
-		}
+		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+		return key
 	case constants.NETWORK_LOCAL:
-		key, err := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
-		if err == nil {
-			return key
-		}
+		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+		return key
 	case constants.NETWORK_CUSTOM:
-		return primitives.NewZeroHash()
+		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+		return key
 	}
 	return primitives.NewZeroHash()
 }
@@ -1424,17 +1419,12 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	case constants.NETWORK_MAIN:
 		return primitives.NewZeroHash()
 	case constants.NETWORK_TEST:
-		id, err := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
-		if err == nil {
-			return id
-		}
+		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+		return id
 	case constants.NETWORK_LOCAL:
-		id, err := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
-		if err == nil {
-			return id
-		}
+		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+		return id
 	case constants.NETWORK_CUSTOM:
-		return primitives.NewZeroHash()
 	}
 	return primitives.NewZeroHash()
 }
