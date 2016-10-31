@@ -71,6 +71,7 @@ func SimControl(listenTo int) {
 					break
 				}
 				s := fnodes[listenTo].State
+				os.Stderr.WriteString("Reset Node: " + s.FactomNodeName + "\n")
 				s.Reset()
 
 			case 'g' == b[0]:

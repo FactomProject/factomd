@@ -85,13 +85,14 @@ type State struct {
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status    int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
-	serverPrt string
-	starttime time.Time
-	transCnt  int
-	lasttime  time.Time
-	tps       float64
-	ResetCnt  int
+	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
+	serverPrt   string
+	starttime   time.Time
+	transCnt    int
+	lasttime    time.Time
+	tps         float64
+	ResetTryCnt int
+	ResetCnt    int
 
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
@@ -1608,11 +1609,12 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%6x] %4s%4s %5d %2d.%01d%% %2d.%03d",
+	str := fmt.Sprintf("%7s[%6x] %4s%4s %2d/%2d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
 		s.IdentityChainID.Bytes()[2:5],
 		stype,
 		vmIndex,
+		s.ResetTryCnt,
 		s.ResetCnt,
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
