@@ -309,6 +309,15 @@ func SimControl(listenTo int) {
 					break
 				}
 
+				// Reset Everything
+				if b[1] == 'r' {
+					os.Stderr.WriteString("Reset all nodes in the simulation!\n")
+					for _, f := range fnodes {
+						f.State.Reset()
+					}
+					break
+				}
+
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 99 {
 					os.Stderr.WriteString("Specifiy a FaultTimeout between 0 and 100\n")
@@ -833,6 +842,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("v             Verbose Fault Debug Output\n")
 				os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
 				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
+				os.Stderr.WriteString("Vreset        Reset all fnodes in the simulation.\n")
 				os.Stderr.WriteString("!             Reset the current node with the focus (i.e. the 'f' by it)\n")
 				os.Stderr.WriteString("Snnn          Set Drop Rate to nnn on everyone\n")
 				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
@@ -875,83 +885,6 @@ func returnStatString(i int) string {
 		stat = "Self Full"
 	}
 	return stat
-}
-
-// Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
-// come back before we are faulted, or we might not.
-func bringback(f *FactomNode) {
-	t := rand.Int() % 120
-	os.Stderr.WriteString(fmt.Sprintf("  Bringing %s back in %d seconds.\n", f.State.FactomNodeName, t))
-	time.Sleep(time.Duration(t) * time.Second)
-	f.State.SetNetStateOff(false) // Bring this node back
-}
-
-func faultTest(faulting *bool) {
-	dbheight := 0
-	lastheight := 0
-	numleaders := 0
-	for *faulting {
-
-		var leaders []*FactomNode
-		var running []*FactomNode
-
-		// How many nodes are running.
-		for _, f := range fnodes {
-			if !f.State.GetNetStateOff() {
-				running = append(running, f)
-			}
-		}
-
-		// How many of the running nodes are leaders
-		for _, f := range running {
-			if f.State.Leader {
-				leaders = append(leaders, f)
-			}
-		}
-
-		// Look at their process lists.  How many leaders do we expect?  What is the dbheight?
-		for _, f := range leaders {
-			if int(f.State.LLeaderHeight) > dbheight {
-				dbheight = int(f.State.LLeaderHeight)
-			}
-			pl := f.State.ProcessLists.Get(f.State.LLeaderHeight)
-			if pl != nil && len(pl.FedServers) > numleaders {
-				numleaders = len(pl.FedServers)
-			}
-		}
-
-		// Can't run this test without at least three leaders.
-		if numleaders < 3 {
-			os.Stderr.WriteString("Not enough leaders to run fault test\n")
-			*faulting = false
-			return
-		}
-
-		if lastheight < dbheight {
-			// Wait some random amount of time.
-			delta := rand.Int() % 20
-			time.Sleep(time.Duration(delta) * time.Second)
-
-			lastheight = dbheight
-			kill := rand.Int() % ((numleaders / 2) - 2)
-			kill++
-			os.Stderr.WriteString(fmt.Sprintf("Killing %d of %d Leaders\n", kill, numleaders))
-			for i := 0; i < kill; {
-				n := rand.Int() % len(leaders)
-				if !leaders[n].State.GetNetStateOff() {
-					fmt.Sprintf("Killing %s", leaders[n].State.FactomNodeName)
-					leaders[n].State.SetNetStateOff(true)
-					go bringback(leaders[n])
-					i++
-				}
-			}
-
-			totalServerFaults += kill
-
-		} else {
-			time.Sleep(20 * time.Second)
-		}
-	}
 }
 
 // Allows us to scatter transactions across all nodes.

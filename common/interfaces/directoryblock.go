@@ -11,6 +11,7 @@ type IDirectoryBlock interface {
 	GetHeader() IDirectoryBlockHeader
 	SetHeader(IDirectoryBlockHeader)
 	GetDBEntries() []IDBEntry
+	GetEBlockDBEntries() []IDBEntry
 	SetDBEntries([]IDBEntry) error
 	AddEntry(chainID IHash, keyMR IHash) error
 	BuildKeyMerkleRoot() (IHash, error)

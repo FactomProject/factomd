@@ -37,6 +37,11 @@ type DBState struct {
 	EntryBlocks []interfaces.IEntryBlock
 	Entries     []interfaces.IEBEntry
 
+	// The Authority Set in place at the time that we Process this DBState.  If this DBState
+	// is then successfully Saved, then this is an authority set we can trust.
+	FedServers   []interfaces.IFctServer
+	AuditServers []interfaces.IFctServer
+
 	Locked      bool
 	ReadyToSave bool
 	Saved       bool
@@ -307,6 +312,9 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
 
+	d.FedServers = append(d.FedServers, currentFeds...)
+	d.AuditServers = append(d.AuditServers, currentAuds...)
+
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
 	if len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures) < majority {
@@ -417,17 +425,34 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
+	dbstate := list.Get(int(ht))
+
+	if len(dbstate.FedServers) == 0 {
+		dbstate.FedServers = append(dbstate.FedServers, pl.FedServers...)
+		dbstate.AuditServers = append(dbstate.AuditServers, pl.AuditServers...)
+	}
+
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
+
 	// Make the current exchange rate whatever we had in the previous block.
-	list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
+	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
+	if list.State.FERChangeHeight == 1 {
+		list.State.FERChangeHeight = 0
+	} else {
+		if list.State.FactoshisPerEC != d.FactoidBlock.GetExchRate() {
+			fmt.Println("setting rate", list.State.FactoshisPerEC, " to ", d.FactoidBlock.GetExchRate(), " - Height ", d.DirectoryBlock.GetHeader().GetDBHeight())
+		}
+		list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
+	}
+
 	fs.ProcessEndOfBlock(list.State)
 
 	// Promote the currently scheduled next FER
-	list.State.ProcessRecentFERChainEntries()
 
+	list.State.ProcessRecentFERChainEntries()
 	// Step my counter of Complete blocks
 	i := d.DirectoryBlock.GetHeader().GetDBHeight() - list.Base
 	if uint32(i) > list.Complete {
@@ -482,6 +507,13 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
+	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
+	// way, not all nodes in a simulation Trim() at the same time.
+	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
+	if v%4 == 0 {
+		list.State.DB.Trim()
+	}
+
 	if !d.Locked || !d.ReadyToSave {
 		return
 	}
@@ -498,13 +530,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
-
-	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
-	// way, not all nodes in a simulation Trim() at the same time.
-	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
-	if v%4 == 0 {
-		list.State.DB.Trim()
-	}
 
 	list.State.DB.StartMultiBatch()
 
@@ -565,20 +590,16 @@ func (list *DBStateList) UpdateState() (progress bool) {
 			return
 		}
 
-		if d.Saved {
-			continue
-		}
-
 		if i > 0 {
 			progress = list.FixupLinks(list.DBStates[i-1], d)
 		}
+
 		progress = list.ProcessBlocks(d) || progress
 
 		progress = list.SaveDBStateToDB(d) || progress
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
-
 	}
 	return
 }

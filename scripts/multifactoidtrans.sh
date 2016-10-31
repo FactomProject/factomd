@@ -29,7 +29,7 @@ factom-cli addtxoutput t1 $fct6 .01
 factom-cli addtxfee t1 $fct1
 factom-cli signtx t1
 factom-cli sendtx t1
-sleep 2s
+sleep 10s
 factom-cli listaddresses
 done
 

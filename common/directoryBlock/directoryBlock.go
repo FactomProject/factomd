@@ -105,6 +105,23 @@ func (c *DirectoryBlock) GetDBEntries() []interfaces.IDBEntry {
 	return c.DBEntries
 }
 
+func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
+	answer := []interfaces.IDBEntry{}
+	for _, v := range c.DBEntries {
+		if v.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000a" {
+			continue
+		}
+		if v.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
+			continue
+		}
+		if v.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
+			continue
+		}
+		answer = append(answer, v)
+	}
+	return answer
+}
+
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
 	keyMR, err := c.BuildKeyMerkleRoot()
 	if err != nil {
