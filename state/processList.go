@@ -372,26 +372,18 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 		return false, 0
 	}
 
+	p.SortFedServers()
+
 	scid := identityChainID.Bytes()
 
-	outoforder1 := false
-	insert := 0
 	for i, fs := range p.FedServers {
 		// Find and remove
 		comp := bytes.Compare(scid, fs.GetChainID().Bytes())
 		if comp == 0 {
-			if outoforder1 {
-				return true, -1
-			}
 			return true, i
 		}
-		if comp < 0 {
-			insert = i
-		}
 	}
-	if outoforder1 {
-		return false, insert
-	}
+
 	return false, len(p.FedServers)
 }
 
@@ -401,6 +393,8 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 	if p == nil {
 		return false, 0
 	}
+
+	p.SortAuditServers()
 
 	scid := identityChainID.Bytes()
 
