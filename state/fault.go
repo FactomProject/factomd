@@ -733,26 +733,30 @@ func (s *State) DoReset() {
 	fmt.Println("dddd Try a reset", s.FactomNodeName)
 	index := len(s.DBStates.DBStates)
 	if index < 2 {
-		fmt.Println("dddd too short", s.FactomNodeName)
+		fmt.Println("dddd too short", s.DBStates.Base+uint32(index), s.FactomNodeName)
 		return
 	}
+
 	dbs := s.DBStates.DBStates[index-1]
-	if dbs == nil {
-		fmt.Println("dddd no dbstate")
-		return
-	}
-	for index > 1 && !dbs.Saved {
-		fmt.Println("dddd Backing up", s.FactomNodeName)
+	for {
+		if dbs == nil {
+			fmt.Println("dddd no dbstate", s.DBStates.Base+uint32(index), s.FactomNodeName)
+			return
+		}
+		if dbs.Saved {
+			break
+		}
+		fmt.Println("dddd Backing up", s.DBStates.Base+uint32(index), s.FactomNodeName)
 		index--
 		dbs = s.DBStates.DBStates[index-1]
 	}
 	if index > 1 {
 		s.ResetCnt++
-		fmt.Println("dddd RESET", s.FactomNodeName, s.DBStates.Base+uint32(index))
+		fmt.Println("dddd RESET", s.DBStates.Base+uint32(index), s.FactomNodeName)
 		dbs = s.DBStates.DBStates[index-2]
 		s.DBStates.DBStates = s.DBStates.DBStates[:index-1]
 		s.DBStates.ProcessBlocks(dbs)
 	} else {
-		fmt.Println("dddd Can't toss them all", s.FactomNodeName)
+		fmt.Println("dddd Can't toss them all", s.DBStates.Base+uint32(index), s.FactomNodeName)
 	}
 }

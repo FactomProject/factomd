@@ -145,6 +145,31 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
 			case 'p' == b[0]:
+				if len(b) > 1 {
+					ht, err := strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString("Dump Process List with pn  where n = blockheight, i.e. 'p10'")
+						break
+					}
+
+					if listenTo < 0 || listenTo > len(fnodes) {
+						os.Stderr.WriteString("Select a node first")
+						break
+					}
+
+					f := fnodes[listenTo]
+
+					pl := f.State.ProcessLists.Get(uint32(ht))
+					if pl == nil {
+						os.Stderr.WriteString("No Process List found")
+					} else {
+						fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
+						fmt.Println(pl.String())
+					}
+
+					break
+				}
+
 				watchPL++
 				if watchPL%2 == 1 {
 					os.Stderr.WriteString("--Print Process Lists On--\n")

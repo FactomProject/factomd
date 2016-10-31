@@ -211,6 +211,9 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	}
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
+	dindex := ss.DBHeight - state.DBStates.Base
+	state.DBStates.DBStates = state.DBStates.DBStates[:dindex+1]
+
 	state.Replay = ss.Replay.Save()
 
 	pl.FedServers = append(pl.FedServers[:0], ss.FedServers...)
