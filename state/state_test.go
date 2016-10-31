@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
@@ -73,4 +75,39 @@ func TestGetDirectoryBlockByHeight(t *testing.T) {
 			continue
 		}
 	}
+}
+
+func TestBootStrappingIdentity(t *testing.T) {
+	state := testHelper.CreateEmptyTestState()
+
+	state.NetworkNumber = constants.NETWORK_MAIN
+	if !state.GetNetworkBootStrapIdentity().IsSameAs(primitives.NewZeroHash()) {
+		t.Errorf("Bootstrap Identity Mismatch on MAIN")
+	}
+	key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
+		t.Errorf("Bootstrap Identity Key Mismatch on MAIN")
+	}
+
+	/* No determined Identity yet
+	state.NetworkNumber = constants.NETWORK_TEST
+	if !state.GetNetworkBootStrapIdentity().IsSameAs(primitives.NewZeroHash()) {
+		t.Errorf("Bootstrap Identity Mismatch")
+	}
+	key, _ := primitives.HexToHash("")
+	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
+		t.Errorf("Bootstrap Identity Key Mismatch")
+	}
+	*/
+
+	state.NetworkNumber = constants.NETWORK_LOCAL
+	id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+	if !state.GetNetworkBootStrapIdentity().IsSameAs(id) {
+		t.Errorf("Bootstrap Identity Mismatch on LOCAL")
+	}
+	key, _ = primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
+		t.Errorf("Bootstrap Identity Key Mismatch on LOCAL")
+	}
+
 }

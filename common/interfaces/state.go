@@ -118,6 +118,10 @@ type IState interface {
 	GetNetworkName() string // Some networks have defined names
 	GetNetworkID() uint32
 
+	// Bootstrap Identity Information is dependent on Network
+	GetNetworkBootStrapKey() IHash
+	GetNetworkBootStrapIdentity() IHash
+
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders

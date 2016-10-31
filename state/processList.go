@@ -1110,7 +1110,8 @@ func (p *ProcessList) Reset() {
 		}
 		p.SortFedServers()
 	} else {
-		p.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+		p.AddFedServer(p.State.GetNetworkBootStrapIdentity()) // Our default fed server, dependent on network type
+		// p.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server on LOCAL network
 	}
 
 	p.OldMsgs = make(map[[32]byte]interfaces.IMsg)
@@ -1236,7 +1237,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		}
 		pl.SortFedServers()
 	} else {
-		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+		pl.AddFedServer(state.GetNetworkBootStrapIdentity()) // Our default fed server, dependent on network type
+		// pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server on LOCAL network
 	}
 
 	// We just make lots of VMs as they have nearly no impact if not used.

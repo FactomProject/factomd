@@ -512,11 +512,17 @@ func startServers(load bool) {
 
 func setupFirstAuthority(s *state.State) {
 	var id state.Identity
-	id.IdentityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
+	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
+		id.IdentityChainID = networkIdentity
+	} else {
+		id.IdentityChainID = primitives.NewZeroHash()
+	}
 	id.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
-	pub := primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
-	data, _ := pub.MarshalBinary()
-	id.SigningKey = primitives.NewHash(data)
+	if pub := s.GetNetworkBootStrapKey(); pub != nil {
+		id.SigningKey = pub
+	} else {
+		id.SigningKey = primitives.NewZeroHash()
+	}
 	id.MatryoshkaHash = primitives.NewZeroHash()
 	id.ManagementCreated = 0
 	id.ManagementRegistered = 0
@@ -531,9 +537,9 @@ func setupFirstAuthority(s *state.State) {
 
 	var auth state.Authority
 	auth.Status = 1
-	auth.SigningKey = primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+	auth.SigningKey = primitives.PubKeyFromString(id.SigningKey.String())
 	auth.MatryoshkaHash = primitives.NewZeroHash()
-	auth.AuthorityChainID, _ = primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") //s.IdentityChainID
+	auth.AuthorityChainID = id.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 	s.Authorities = append(s.Authorities, auth)
 }
