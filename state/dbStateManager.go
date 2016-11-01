@@ -544,16 +544,30 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
 		panic(err.Error())
 	}
-	pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-	if pl != nil {
-		for _, eb := range pl.NewEBlocks {
+
+	if len(d.EntryBlocks) > 0 {
+		for _, eb := range d.EntryBlocks {
 			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
 				panic(err.Error())
 			}
-
-			for _, e := range eb.GetBody().GetEBEntries() {
-				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+		}
+		for _, e := range d.Entries {
+			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
+				panic(err.Error())
+			}
+		}
+	} else {
+		pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
+		if pl != nil {
+			for _, eb := range pl.NewEBlocks {
+				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
 					panic(err.Error())
+				}
+
+				for _, e := range eb.GetBody().GetEBEntries() {
+					if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+						panic(err.Error())
+					}
 				}
 			}
 		}
