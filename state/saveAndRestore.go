@@ -198,7 +198,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	// We trim away the ProcessList under construction (and any others) so we can
 	// rebuild afresh.
-	index := int(state.ProcessLists.DBHeightBase) - int(ss.DBHeight+1)
+	index := int(state.ProcessLists.DBHeightBase) - int(ss.DBHeight)
 	if index < 0 {
 		index = 0
 	} else {
