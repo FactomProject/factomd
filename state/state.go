@@ -615,7 +615,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
-	//kkkkkkkkkkkkkkkkk
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)

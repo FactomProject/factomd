@@ -433,8 +433,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl.SortAuditServers()
 	pl.SortFedServers()
 
-	fmt.Println("PROCBLOCK", list.State.FactomNodeName, ht, d.FactoidBlock.String())
-
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
