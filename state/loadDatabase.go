@@ -39,7 +39,7 @@ func LoadDatabase(s *State) {
 			since := time.Since(t)
 			ss := float64(since.Nanoseconds()) / 1000000000
 			bps := float64(i) / ss
-			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d Blocks per second %8.2f\n", s.FactomNodeName, i, bps))
+			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d / %v. Blocks per second %8.2f\n", s.FactomNodeName, i, blkCnt, bps))
 		}
 		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
