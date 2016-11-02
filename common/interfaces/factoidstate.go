@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type IFactoidState interface {
 
 	// Get the wallet used to help manage the Factoid State in
