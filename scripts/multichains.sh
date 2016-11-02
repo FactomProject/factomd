@@ -104,7 +104,8 @@ echo "---------------------------------"
 factom-cli get allentries ${ChainID[i]}
 echo "Making entries into chain $i" 
 echo "---------------------------------"
-factom-cli addentry -c ${ChainID[i]} ${ec[i]} < ~/go/src/github.com/FactomProject/factomd/scripts/data.txt
+currentdate = date +%s%N
+factom-cli addentry -c ${ChainID[i]} ${currentdate} ${ec[i]} < ~/go/src/github.com/FactomProject/factomd/scripts/data.txt
 echo "---------------------------------"
 echo "Getting all entries after adding the entry $i" 
 factom-cli get allentries ${ChainID[i]}
