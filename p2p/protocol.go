@@ -74,9 +74,9 @@ var (
 
 const (
 	// ProtocolVersion is the latest version this package supports
-	ProtocolVersion uint16 = 06
+	ProtocolVersion uint16 = 07
 	// ProtocolVersionMinimum is the earliest version this package supports
-	ProtocolVersionMinimum uint16 = 06
+	ProtocolVersionMinimum uint16 = 07
 	// Don't think we need this.
 	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
 	// Used in generating message CRC values
