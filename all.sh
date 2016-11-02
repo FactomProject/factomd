@@ -146,8 +146,12 @@ echo "
 ********************************************************
 "
 compileFactomdGitHash factomd || exit 1
-compile factom-cli            || exit 1
 compile factom-walletd        || exit 1
+if [ -d "factom-cli2" ]; then
+  compile factom-cli2           || exit 1
+else
+  compile factom-cli            || exit 1
+fi
 
 echo ""
 echo "
