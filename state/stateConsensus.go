@@ -660,8 +660,8 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	ack := s.NewAck(m).(*messages.Ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
@@ -990,22 +990,28 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 			return
 		}
 		if lvm == vmIndex {
-			dbs := new(messages.DirectoryBlockSignature)
-			dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-			//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-			dbs.ServerIdentityChainID = s.GetIdentityChainID()
-			dbs.DBHeight = dbheight
-			dbs.Timestamp = s.GetTimestamp()
-			dbs.SetVMHash(nil)
-			dbs.SetVMIndex(vmIndex)
-			dbs.SetLocal(true)
-			dbs.Sign(s)
-			err := dbs.Sign(s)
-			if err != nil {
-				panic(err)
+			if !pl.DBSigAlreadySent {
+				dbs := new(messages.DirectoryBlockSignature)
+				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+				dbs.ServerIdentityChainID = s.GetIdentityChainID()
+				dbs.DBHeight = dbheight
+				dbs.Timestamp = s.GetTimestamp()
+				dbs.SetVMHash(nil)
+				dbs.SetVMIndex(vmIndex)
+				dbs.SetLocal(true)
+				dbs.Sign(s)
+				err := dbs.Sign(s)
+				if err != nil {
+					panic(err)
+				}
+
+				dbs.LeaderExecute(s)
+				vm.Signed = true
+				pl.DBSigAlreadySent = true
+			} else {
+				pl.Ask(vmIndex, 0, 0, 5)
 			}
-			dbs.LeaderExecute(s)
-			vm.Signed = true
 		}
 	}
 }

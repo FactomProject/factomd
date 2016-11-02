@@ -113,7 +113,8 @@ type ProcessList struct {
 	ChosenNegotiation [32]byte
 
 	// DB Sigs
-	DBSignatures []DBSig
+	DBSignatures     []DBSig
+	DBSigAlreadySent bool
 
 	Requests map[[32]byte]*Request
 	//Requests map[[20]byte]*Request
@@ -831,7 +832,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 						j,
 						vm.List[j].String())
 					fmt.Printf("dddd Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
-					fmt.Printf("dddd his Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+					fmt.Printf("dddd This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
 					fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
 					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
 					// the SerialHash of this acknowledgment is incorrect
@@ -1188,7 +1189,7 @@ func (p *ProcessList) Reset() bool {
 		p.State.Acks = make(map[[32]byte]interfaces.IMsg, 0)
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
 		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
-		p.State.SendDBSig(p.DBHeight, i)
+		//p.State.SendDBSig(p.DBHeight, i)
 	}
 
 	/*fs := p.State.FactoidState.(*FactoidState)

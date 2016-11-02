@@ -315,7 +315,7 @@ func (m *EOM) String() string {
 		m.DBHeight,
 		m.SysHeight,
 		f,
-		m.ChainID.Bytes()[:3],
+		m.ChainID.Bytes()[:4],
 		m.GetMsgHash().Bytes()[:3],
 		local)
 }
