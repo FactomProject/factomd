@@ -1097,10 +1097,9 @@ func (p *ProcessList) String() string {
 	return buf.String()
 }
 
-/*
 func (p *ProcessList) Reset() bool {
 
-	previous := p.State.DBStates.Get(int(p.DBHeight - 1))
+	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
 
 	if previous == nil {
 		return false
@@ -1192,10 +1191,10 @@ func (p *ProcessList) Reset() bool {
 		p.State.SendDBSig(p.DBHeight, i)
 	}
 
-	fs := p.State.FactoidState.(*FactoidState)
+	/*fs := p.State.FactoidState.(*FactoidState)
 	if previous.NextTimestamp != nil {
 		fs.Reset(previous)
-	}
+	}*/
 
 	index := p.DBHeight - p.State.DBStates.Base
 	p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
@@ -1220,7 +1219,6 @@ func (p *ProcessList) Reset() bool {
 
 	return true
 }
-*/
 
 /************************************************
  * Support
