@@ -137,6 +137,7 @@ type State struct {
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
+	DBFinished      bool
 	RunLeader       bool
 	LLeaderHeight   uint32
 	Leader          bool
