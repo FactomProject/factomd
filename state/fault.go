@@ -755,14 +755,12 @@ func (s *State) DoReset() {
 		fmt.Println("dddd RESET", s.DBStates.Base+uint32(index), s.FactomNodeName)
 		dbs = s.DBStates.DBStates[index-1]
 		s.DBStates.DBStates = s.DBStates.DBStates[:index]
-		//dbs.FactoidBlock = dbs.FactoidBlock.GetNewInstance()
+
 		dbs.AdminBlock = dbs.AdminBlock.New().(interfaces.IAdminBlock)
 		dbs.FactoidBlock = dbs.FactoidBlock.New().(interfaces.IFBlock)
 
 		plToReset := s.ProcessLists.Get(s.DBStates.Base + uint32(index) + 1)
 		plToReset.Reset()
-
-		s.FactoidState.ResetBalances()
 
 		s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 		s.RunLeader = false
