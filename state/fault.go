@@ -753,8 +753,9 @@ func (s *State) DoReset() {
 	if index > 1 {
 		s.ResetCnt++
 		fmt.Println("dddd RESET", s.DBStates.Base+uint32(index), s.FactomNodeName)
-		dbs = s.DBStates.DBStates[index-1]
-		s.DBStates.DBStates = s.DBStates.DBStates[:index]
+		dbs = s.DBStates.DBStates[index-2]
+		s.DBStates.DBStates = s.DBStates.DBStates[:index-1]
+		s.ProcessLists.UpdateState(dbs.DirectoryBlock.GetHeader().GetDBHeight())
 		s.DBStates.ProcessBlocks(dbs)
 	} else {
 		fmt.Println("dddd Can't toss them all", s.DBStates.Base+uint32(index), s.FactomNodeName)

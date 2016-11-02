@@ -35,6 +35,8 @@ type IState interface {
 	LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (IMsg, IMsg, error)
 	SetString()
 	ShortString() string
+	GetStatus() []string
+	AddStatus(status string)
 
 	AddDBSig(dbheight uint32, chainID IHash, sig IFullSignature)
 	AddPrefix(string)

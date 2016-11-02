@@ -62,7 +62,7 @@ type SaveState struct {
 
 	Replay *Replay
 
-	// LeaderTimestamp interfaces.Timestamp
+	LeaderTimestamp interfaces.Timestamp
 
 	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
 	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
@@ -105,6 +105,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
 	ss.Replay = state.Replay.Save()
+	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
 
 	ss.FedServers = append(ss.FedServers, pl.FedServers...)
 	ss.AuditServers = append(ss.AuditServers, pl.AuditServers...)
@@ -205,16 +206,35 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 		fmt.Println("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight)
 		fmt.Println(state.ProcessLists.String())
 
-		if len(state.ProcessLists.Lists) > index {
-			state.ProcessLists.Lists = state.ProcessLists.Lists[:index+1]
+		if len(state.ProcessLists.Lists) > index+1 {
+			state.ProcessLists.Lists = state.ProcessLists.Lists[:index+2]
+			pln := state.ProcessLists.Lists[index+1]
+			for _, vm := range pln.VMs {
+				vm.faultHeight = 0
+				vm.LeaderMinute = 0
+				if vm.Height > 0 {
+					vm.Signed = true
+					vm.Synced = true
+					vm.Height = 1
+					vm.List = vm.List[:1]
+					vm.ListAck = vm.ListAck[:1]
+				} else {
+					vm.Signed = false
+					vm.Synced = false
+					vm.List = vm.List[:0]
+					vm.ListAck = vm.ListAck[:0]
+				}
+			}
 		}
 	}
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
 	dindex := ss.DBHeight - state.DBStates.Base
 	state.DBStates.DBStates = state.DBStates.DBStates[:dindex+1]
+	state.AddStatus(fmt.Sprintf("Cutting DBStates back to %d", ss.DBHeight))
 
 	state.Replay = ss.Replay.Save()
+	state.LeaderTimestamp = ss.LeaderTimestamp
 
 	pl.FedServers = append(pl.FedServers[:0], ss.FedServers...)
 	pl.AuditServers = append(pl.AuditServers[:0], ss.AuditServers...)

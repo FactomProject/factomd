@@ -137,6 +137,33 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
 				}
 			case 's' == b[0]:
+
+				if len(b) > 1 {
+					ht, err := strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString("type snnn where nnn is the number of status messages to print\n")
+						break
+					}
+
+					if listenTo < 0 || listenTo > len(fnodes) {
+						os.Stderr.WriteString("Select a node first\n")
+						break
+					}
+
+					f := fnodes[listenTo]
+
+					fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
+					l := len(f.State.StatusStrs)
+					if l < ht {
+						ht = l
+					}
+					for i := 0; i < ht; i++ {
+						os.Stderr.WriteString(f.State.StatusStrs[l-1] + "\n")
+						l--
+					}
+					break
+				}
+
 				summary++
 				if summary%2 == 1 {
 					os.Stderr.WriteString("--Print Summary On--\n")

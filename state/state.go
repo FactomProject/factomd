@@ -87,6 +87,8 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
+	statusMutex sync.Mutex
+	StatusStrs  []string
 	starttime   time.Time
 	transCnt    int
 	lasttime    time.Time
@@ -1802,4 +1804,43 @@ func (s *State) ProcessInvalidMsgQueue() {
 func (s *State) SetPendingSigningKey(p *primitives.PrivateKey) {
 	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
 	s.serverPendingPubKeys = append(s.serverPendingPubKeys, p.Pub)
+}
+
+func (s *State) AddStatus(status string) {
+
+	// Don't add duplicates.
+	last := s.GetLastStatus()
+	if last == status {
+		return
+	}
+
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+
+	if len(s.StatusStrs) > 100 {
+		copy(s.StatusStrs, s.StatusStrs[1:])
+		s.StatusStrs[len(s.StatusStrs)-1] = status
+	} else {
+		s.StatusStrs = append(s.StatusStrs, status)
+	}
+}
+
+func (s *State) GetStatus() []string {
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+
+	status := make([]string, len(s.StatusStrs))
+	status = append(status, s.StatusStrs...)
+	return status
+}
+
+func (s *State) GetLastStatus() string {
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+
+	if len(s.StatusStrs) == 0 {
+		return ""
+	}
+	str := s.StatusStrs[len(s.StatusStrs)-1]
+	return str
 }

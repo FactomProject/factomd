@@ -404,6 +404,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
+	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
+	if dbht > 1 {
+		pd := list.State.DBStates.Get(int(dbht - 1))
+		if pd != nil && !pd.Saved {
+			return
+		}
+	}
+
 	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Bring the current federated servers and audit servers forward to the

@@ -838,7 +838,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// according to this node's processList
 
 					//fault(p, i, 0, vm, 0, j, 2)
-					p.State.DoReset()
+					p.State.Reset()
 					return
 				}
 			}

@@ -76,6 +76,7 @@ func (s *State) Process() (progress bool) {
 	if s.ResetRequest {
 		s.ResetRequest = false
 		s.DoReset()
+		return false
 	}
 
 	if !s.RunLeader {
@@ -799,6 +800,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
 		return false
 	}
 	return true
@@ -873,6 +875,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	} else {
 		fmt.Println(e)
 	}
+	s.AddStatus("Cannot process Commit Chain")
 
 	return false
 }
@@ -896,6 +899,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	} else {
 		fmt.Println(e)
 	}
+	s.AddStatus("Cannot Process Commit Entry")
+
 	return false
 }
 
@@ -938,6 +943,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	// be a chain somewhere.  If not, we return false.
 	if eb == nil {
 		if eb_db == nil {
+			s.AddStatus("Failed to add to process Reveal Entry because no Entry Block found")
 			return false
 		}
 		eb = entryBlock.NewEBlock()
@@ -1001,6 +1007,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 			dbs.SetLocal(true)
 			dbs.Sign(s)
 			err := dbs.Sign(s)
+			s.AddStatus("Send new DBSig")
 			if err != nil {
 				panic(err)
 			}
@@ -1059,6 +1066,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
+		s.AddStatus("EOM Syncing")
 		return false
 	}
 
@@ -1071,6 +1079,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
+		s.AddStatus("EOM Processed")
 		return false
 	}
 
@@ -1078,6 +1087,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+		s.AddStatus("EOM All Done")
 
 		s.EOMDone = true
 		for _, eb := range pl.NewEBlocks {
