@@ -1242,6 +1242,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
 		if dbs.VMIndex == 0 {
+			fmt.Println("JUSTIN DSZ SLT", s.FactomNodeName, dbs.GetTimestamp().GetTimeMilli())
+
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
 		dbstate := s.GetDBState(dbheight - 1)
