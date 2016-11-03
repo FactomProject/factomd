@@ -11,6 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -365,6 +366,16 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.FactoidBlock.SetDBHeight(currentDBHeight)
 	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
 	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerKeyMR())
+
+	fblock := d.FactoidBlock.(*factoid.FBlock)
+
+	if len(fblock.Transactions) > 0 {
+		coinbaseTx := fblock.Transactions[0]
+		coinbaseTx.SetTimestamp(list.State.GetLeaderTimestamp())
+		fblock.Transactions[0] = coinbaseTx
+	}
+
+	d.FactoidBlock = fblock
 
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
