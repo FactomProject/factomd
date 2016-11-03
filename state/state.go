@@ -1668,30 +1668,13 @@ func (s *State) SetStringQueues() {
 
 func (s *State) ConstructAuthoritySetString() string {
 	pl := s.LeaderPL
-	var prevPL *ProcessList
-	if pl.DBHeight > 0 {
-		prevPL = s.ProcessLists.Get(pl.DBHeight - 1)
-	}
-	dummyString := ""
-	authoritiesString := fmt.Sprintf("%7s (%d) Feds:", s.FactomNodeName, s.LLeaderHeight)
+	authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, s.LLeaderHeight)
 	for _, fd := range pl.FedServers {
-		dummyString = fd.GetChainID().String()[6:10]
-		if prevPL != nil {
-			if existedInLastList, _ := prevPL.GetFedServerIndexHash(fd.GetChainID()); !existedInLastList {
-				dummyString = "[" + fd.GetChainID().String()[6:10] + "]"
-			}
-		}
-		authoritiesString += " " + dummyString
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
 	}
 	authoritiesString += " || Auds :"
 	for _, fd := range pl.AuditServers {
-		dummyString = fd.GetChainID().String()[6:10]
-		if prevPL != nil {
-			if existedInLastList, _ := prevPL.GetAuditServerIndexHash(fd.GetChainID()); !existedInLastList {
-				dummyString = "[" + fd.GetChainID().String()[6:10] + "]"
-			}
-		}
-		authoritiesString += " " + dummyString
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
 	}
 	return authoritiesString
 }
