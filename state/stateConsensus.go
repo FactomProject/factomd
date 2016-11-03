@@ -301,6 +301,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
 	if ack != nil {
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
@@ -390,10 +391,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	} else {
 		dbstate.ReadyToSave = true
 	}
-}
-
-func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
-	fmt.Println("JUSTIN : No more negotiation messages")
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -993,6 +990,13 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 			if !pl.DBSigAlreadySent {
 				dbs := new(messages.DirectoryBlockSignature)
 				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+
+				fmt.Println("JUSTIN", s.FactomNodeName, "SENDDBSIG", dbstate.DirectoryBlock.GetKeyMR().String()[:10])
+				fmt.Println("JUSTIN", s.FactomNodeName, "PREVKM", dbstate.DirectoryBlock.GetHeader().GetPrevKeyMR())
+				abkmr, _ := dbstate.AdminBlock.GetKeyMR()
+				fmt.Println("JUSTIN", s.FactomNodeName, "SDBS ADMINKMR", abkmr.String()[:10], "FBKMR", dbstate.FactoidBlock.GetKeyMR().String()[:10])
+				fmt.Println("JUSTIN", s.FactomNodeName, "SDBS ADMINF", dbstate.AdminBlock.String(), "FBF", dbstate.FactoidBlock.String())
+
 				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = dbheight
@@ -1243,8 +1247,26 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbstate := s.GetDBState(dbheight - 1)
 
 		if dbstate == nil || !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
-			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
-			//fmt.Println(s.FactomNodeName, "FULLDETS", dbstate.String())
+			fmt.Println(".")
+			if dbstate == nil {
+				fmt.Println(s.FactomNodeName, "DBStateNil", dbheight-1)
+			} else {
+				fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10], "(", dbstate.DirectoryBlock.GetDatabaseHeight(), ":", dbheight, ")")
+
+				fmt.Println(s.FactomNodeName, "PrevFullH", dbs.DirectoryBlockHeader.GetPrevKeyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetPrevKeyMR().String()[:10])
+				fmt.Println(s.FactomNodeName, "FULLDDETS", dbstate.String())
+				abkmr, _ := dbstate.AdminBlock.GetKeyMR()
+				abkmrs := abkmr.String()[:10]
+				fbkmr := dbstate.FactoidBlock.GetKeyMR().String()[:10]
+
+				fmt.Println(s.FactomNodeName, "ADMINKMR:", abkmrs, "FBKMR:", fbkmr)
+
+				fmt.Println(s.FactomNodeName, "FBBB:", dbstate.FactoidBlock.String())
+
+				fmt.Println(s.FactomNodeName, "FULLODETS", dbs.String())
+
+			}
+			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
 

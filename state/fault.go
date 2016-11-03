@@ -765,6 +765,7 @@ func (s *State) DoReset() {
 		//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 		//s.RunLeader = false
 		s.CurrentMinute = 0
+		s.SetLeaderTimestamp(dbs.NextTimestamp)
 
 		s.DBStates.ProcessBlocks(dbs)
 	} else {
