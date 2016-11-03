@@ -435,9 +435,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if d.SaveStruct == nil {
 		d.SaveStruct = SaveFactomdState(list.State, d)
 		return list.ProcessBlocks(d)
-	} else {
-		d.SaveStruct.RestoreFactomdState(list.State, d)
-	}
+	} /* FOR TESTING PURPOSES; no longer needed
+	    else {
+			d.SaveStruct.RestoreFactomdState(list.State, d)
+		} */
 
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
