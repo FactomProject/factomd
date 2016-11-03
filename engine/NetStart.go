@@ -505,7 +505,6 @@ func startServers(load bool) {
 			go state.LoadDatabase(fnode.State)
 		}
 		go Timer(fnode.State)
-		//go Negotiate(fnode.State)
 		go fnode.State.ValidatorLoop()
 	}
 }

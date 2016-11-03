@@ -302,6 +302,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
 	if ack != nil {
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
@@ -391,10 +392,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	} else {
 		dbstate.ReadyToSave = true
 	}
-}
-
-func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
-	fmt.Println("JUSTIN : No more negotiation messages")
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -661,8 +658,8 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	ack := s.NewAck(m).(*messages.Ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
@@ -996,23 +993,28 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 			return
 		}
 		if lvm == vmIndex {
-			dbs := new(messages.DirectoryBlockSignature)
-			dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-			//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-			dbs.ServerIdentityChainID = s.GetIdentityChainID()
-			dbs.DBHeight = dbheight
-			dbs.Timestamp = s.GetTimestamp()
-			dbs.SetVMHash(nil)
-			dbs.SetVMIndex(vmIndex)
-			dbs.SetLocal(true)
-			dbs.Sign(s)
-			err := dbs.Sign(s)
-			s.AddStatus("Send new DBSig")
-			if err != nil {
-				panic(err)
+			if !pl.DBSigAlreadySent {
+				dbs := new(messages.DirectoryBlockSignature)
+				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+				dbs.ServerIdentityChainID = s.GetIdentityChainID()
+				dbs.DBHeight = dbheight
+				dbs.Timestamp = s.GetTimestamp()
+				dbs.SetVMHash(nil)
+				dbs.SetVMIndex(vmIndex)
+				dbs.SetLocal(true)
+				dbs.Sign(s)
+				err := dbs.Sign(s)
+				if err != nil {
+					panic(err)
+				}
+
+				dbs.LeaderExecute(s)
+				vm.Signed = true
+				pl.DBSigAlreadySent = true
+			} else {
+				pl.Ask(vmIndex, 0, 0, 5)
 			}
-			dbs.LeaderExecute(s)
-			vm.Signed = true
 		}
 	}
 }
@@ -1247,8 +1249,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbstate := s.GetDBState(dbheight - 1)
 
 		if dbstate == nil || !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
-			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
-			//fmt.Println(s.FactomNodeName, "FULLDETS", dbstate.String())
+			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
 

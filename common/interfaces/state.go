@@ -172,7 +172,6 @@ type IState interface {
 	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
 	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
-	FollowerExecuteNegotiation(IMsg)  // Message to start the negotiation process to replace a faulted server
 	FollowerExecuteDataResponse(IMsg) // Handle Data Response
 	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages
 	FollowerExecuteCommitChain(IMsg)  // CommitChain needs to look for a Reveal Entry
