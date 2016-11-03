@@ -765,7 +765,6 @@ func (s *State) DoReset() {
 		//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 		//s.RunLeader = false
 		s.CurrentMinute = 0
-		fmt.Println("JUSTIN SLT", s.FactomNodeName, dbs.NextTimestamp.GetTimeMilli())
 
 		s.SetLeaderTimestamp(dbs.NextTimestamp)
 

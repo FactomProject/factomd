@@ -990,13 +990,6 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 			if !pl.DBSigAlreadySent {
 				dbs := new(messages.DirectoryBlockSignature)
 				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-
-				fmt.Println("JUSTIN", s.FactomNodeName, "SENDDBSIG", dbstate.DirectoryBlock.GetKeyMR().String()[:10])
-				fmt.Println("JUSTIN", s.FactomNodeName, "PREVKM", dbstate.DirectoryBlock.GetHeader().GetPrevKeyMR())
-				abkmr, _ := dbstate.AdminBlock.GetKeyMR()
-				fmt.Println("JUSTIN", s.FactomNodeName, "SDBS ADMINKMR", abkmr.String()[:10], "FBKMR", dbstate.FactoidBlock.GetKeyMR().String()[:10])
-				fmt.Println("JUSTIN", s.FactomNodeName, "SDBS ADMINF", dbstate.AdminBlock.String(), "FBF", dbstate.FactoidBlock.String())
-
 				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = dbheight
@@ -1242,32 +1235,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
 		if dbs.VMIndex == 0 {
-			fmt.Println("JUSTIN DSZ SLT", s.FactomNodeName, dbs.GetTimestamp().GetTimeMilli())
-
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
 		dbstate := s.GetDBState(dbheight - 1)
 
 		if dbstate == nil || !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
-			fmt.Println(".")
-			if dbstate == nil {
-				fmt.Println(s.FactomNodeName, "DBStateNil", dbheight-1)
-			} else {
-				fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10], "(", dbstate.DirectoryBlock.GetDatabaseHeight(), ":", dbheight, ")")
-
-				fmt.Println(s.FactomNodeName, "PrevFullH", dbs.DirectoryBlockHeader.GetPrevKeyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetPrevKeyMR().String()[:10])
-				fmt.Println(s.FactomNodeName, "FULLDDETS", dbstate.String())
-				abkmr, _ := dbstate.AdminBlock.GetKeyMR()
-				abkmrs := abkmr.String()[:10]
-				fbkmr := dbstate.FactoidBlock.GetKeyMR().String()[:10]
-
-				fmt.Println(s.FactomNodeName, "ADMINKMR:", abkmrs, "FBKMR:", fbkmr)
-
-				fmt.Println(s.FactomNodeName, "FBBB:", dbstate.FactoidBlock.String())
-
-				fmt.Println(s.FactomNodeName, "FULLODETS", dbs.String())
-
-			}
 			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}

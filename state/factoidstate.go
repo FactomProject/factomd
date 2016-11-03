@@ -80,7 +80,6 @@ func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
 		fs.CurrentBlock = factoid.NewFBlock(nil)
 		fs.CurrentBlock.SetExchRate(fs.State.GetFactoshisPerEC())
 		fs.CurrentBlock.SetDBHeight(fs.DBHeight)
-		fmt.Println("JUSTIN FS GCB", fs.State.FactomNodeName, fs.State.GetLeaderTimestamp().GetTimeMilli())
 		t := factoid.GetCoinbase(fs.State.GetLeaderTimestamp())
 		err := fs.CurrentBlock.AddCoinbase(t)
 		if err != nil {
