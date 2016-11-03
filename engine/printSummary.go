@@ -58,9 +58,25 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 			prt = prt + fmt.Sprintf("%3d %1s%1s %s \n", i, in, api, f.State.ShortString())
 		}
 
-		if *listenTo < len(pnodes) {
-			f := pnodes[*listenTo]
+		if *listenTo < len(fnodes) {
+			f := fnodes[*listenTo]
 			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryHeightComplete, totalServerFaults)
+		}
+
+		sumOut := 0
+		sumIn := 0
+		cnt := 0
+		f := fnodes[*listenTo]
+		for _, p := range f.Peers {
+			peer, ok := p.(*SimPeer)
+			if ok && peer != nil {
+				sumOut += peer.BytesOut
+				sumIn += peer.BytesIn
+				cnt++
+			}
+		}
+		if cnt > 0 {
+			prt = prt + fmt.Sprintf(" Out: %d Bps In: %d Bps\n", sumOut/cnt, sumIn/cnt)
 		}
 
 		for _, f := range pnodes {
@@ -70,7 +86,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 
 		totals := fmt.Sprintf("%d/%d/%d", fctSubmits, ecCommits, eCommits)
-		prt = prt + fmt.Sprintf("%145s %20s\n", "", totals)
+		prt = prt + fmt.Sprintf("%147s %20s\n", "", totals)
 
 		fmtstr := "%26s%s\n"
 

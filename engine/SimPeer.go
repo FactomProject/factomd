@@ -32,6 +32,14 @@ type SimPeer struct {
 	Delay int64
 	// Were we hold delayed packets
 	Delayed *SimPacket
+
+	BytesOut int // Bytes sent out
+	BytesIn  int // Bytes recieved
+
+	Last int64 // Last time reset (nano seconds)
+
+	RateOut int // Rate of Bytes output per ms
+	RateIn  int // Rate of Bytes input per ms
 }
 
 var _ interfaces.IPeer = (*SimPeer)(nil)
@@ -67,6 +75,7 @@ func (f *SimPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	f.BroadcastOut = make(chan *SimPacket, 10000)
+	f.Last = time.Now().UnixNano()
 	return f
 }
 
@@ -77,8 +86,24 @@ func (f *SimPeer) GetNameTo() string {
 	return f.ToName
 }
 
+func (f *SimPeer) computeBandwidth() {
+	now := time.Now().UnixNano()
+	delta := (now - f.Last) / 1000000000 // Make delta seconds
+	if delta < 5 {
+		// Wait atleast 5 seconds.
+		return
+	}
+	f.RateIn = int(int64(f.BytesIn) / delta)
+	f.RateOut = int(int64(f.BytesOut) / delta)
+	f.BytesIn = 0
+	f.BytesOut = 0
+	f.Last = now
+}
+
 func (f *SimPeer) Send(msg interfaces.IMsg) error {
 	data, err := msg.MarshalBinary()
+	f.BytesOut += len(data)
+	f.computeBandwidth()
 	if err != nil {
 		fmt.Println("ERROR on Send: ", err)
 		return err
@@ -113,6 +138,9 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 		if err != nil {
 			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], messages.MessageName(data[0]))
 		}
+
+		f.BytesIn += len(data)
+		f.computeBandwidth()
 		return msg, err
 	} else {
 		// fmt.Println("dddd Delay: ", now-f.Delayed.sent)
