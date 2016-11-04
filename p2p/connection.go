@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
@@ -12,6 +13,8 @@ import (
 	"net"
 	"syscall"
 	"time"
+
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
@@ -86,10 +89,27 @@ type ConnectionMetrics struct {
 
 // ConnectionCommand is used to instruct the Connection to carry out some functionality.
 type ConnectionCommand struct {
-	command uint8
-	peer    Peer
-	delta   int32
-	metrics ConnectionMetrics
+	Command uint8
+	Peer    Peer
+	Delta   int32
+	Metrics ConnectionMetrics
+}
+
+func (e *ConnectionCommand) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *ConnectionCommand) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *ConnectionCommand) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *ConnectionCommand) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // These are the commands that connections can send/recieve
@@ -214,7 +234,7 @@ func (c *Connection) runLoop() {
 		case ConnectionShuttingDown:
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
-			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionIsClosed})
+			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
 			return // ending runloop() goroutine
 		default:
 			logfatal(c.peer.PeerIdent(), "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
@@ -356,18 +376,18 @@ func (c *Connection) processSends() {
 }
 
 func (c *Connection) handleCommand(command ConnectionCommand) {
-	switch command.command {
+	switch command.Command {
 	case ConnectionShutdownNow:
 		c.goShutdown()
 	case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
 		debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
-		peer := command.peer
+		peer := command.Peer
 		if peer.QualityScore < c.peer.QualityScore {
 			c.peer.QualityScore = peer.QualityScore
 		}
 	case ConnectionAdjustPeerQuality:
 		debug(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality")
-		delta := command.delta
+		delta := command.Delta
 		c.peer.QualityScore = c.peer.QualityScore + delta
 		if MinumumQualityScore > c.peer.QualityScore {
 			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
@@ -589,7 +609,7 @@ func (c *Connection) pingPeer() {
 func (c *Connection) updatePeer() {
 	verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdatingPeer - Connection State: %s", c.ConnectionState())
 	c.timeLastUpdate = time.Now()
-	BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionUpdatingPeer, peer: c.peer})
+	BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdatingPeer, Peer: c.peer})
 }
 
 func (c *Connection) updateStats() {
@@ -600,7 +620,7 @@ func (c *Connection) updateStats() {
 		c.metrics.ConnectionState = connectionStateStrings[c.state]
 		c.metrics.ConnectionNotes = c.notes
 		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics})
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdateMetrics, Metrics: c.metrics})
 	}
 }
 

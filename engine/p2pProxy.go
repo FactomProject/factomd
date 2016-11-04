@@ -194,11 +194,28 @@ func (p *P2PProxy) stopProxy() {
 }
 
 type messageLog struct {
-	hash     string // string(GetMsgHash().Bytes())
-	received bool   // true if logging a recieved message, false if sending
-	time     int64
-	target   string // the id of the targetted node (value may only have local meaning)
-	mtype    byte   /// message type (types defined in constants.go)
+	Hash     string // string(GetMsgHash().Bytes())
+	Received bool   // true if logging a recieved message, false if sending
+	Time     int64
+	Target   string // the id of the targetted node (value may only have local meaning)
+	Mtype    byte   /// message type (types defined in constants.go)
+}
+
+func (e *messageLog) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *messageLog) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *messageLog) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *messageLog) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
@@ -208,7 +225,7 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 		// }
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 		time := time.Now().Unix()
-		ml := messageLog{hash: hash, received: received, time: time, mtype: msg.Type(), target: msg.GetNetworkOrigin()}
+		ml := messageLog{Hash: hash, Received: received, Time: time, Mtype: msg.Type(), Target: msg.GetNetworkOrigin()}
 		p2p.BlockFreeChannelSend(p.logging, ml)
 	}
 }
@@ -230,7 +247,7 @@ func (p *P2PProxy) ManageLogging() {
 		case messageLog:
 			message := item.(messageLog)
 			elapsedMinutes := int(time.Since(start).Minutes())
-			line := fmt.Sprintf("%d, %s, %t, %d, %s, %d\n", message.mtype, message.hash, message.received, message.time, message.target, elapsedMinutes)
+			line := fmt.Sprintf("%d, %s, %t, %d, %s, %d\n", message.Mtype, message.Hash, message.Received, message.Time, message.Target, elapsedMinutes)
 			_, err := p.logWriter.Write([]byte(line))
 			if nil != err {
 				fmt.Printf("Error writing to logging file. %v", err)

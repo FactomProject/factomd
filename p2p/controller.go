@@ -450,9 +450,9 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 }
 
 func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection Connection) {
-	switch command.command {
+	switch command.Command {
 	case ConnectionUpdateMetrics:
-		c.connectionMetrics[connection.peer.Hash] = command.metrics
+		c.connectionMetrics[connection.peer.Hash] = command.Metrics
 		dot("&&p\n")
 		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics")
 	case ConnectionIsClosed:
@@ -464,9 +464,9 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	case ConnectionUpdatingPeer:
 		dot("&&r\n")
 		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
-		c.discovery.updatePeer(command.peer)
+		c.discovery.updatePeer(command.Peer)
 	default:
-		logfatal("ctrlr", "handleParcelReceive() unknown command.command?: %+v ", command.command)
+		logfatal("ctrlr", "handleParcelReceive() unknown command.command?: %+v ", command.Command)
 	}
 }
 
@@ -517,7 +517,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		peerHash := parameters.peerHash
 		connection, present := c.connections[peerHash]
 		if present {
-			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{command: ConnectionShutdownNow})
+			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 		}
 	default:
 		logfatal("ctrlr", "Unkown p2p.Controller command recieved: %+v", commandType)
@@ -526,7 +526,7 @@ func (c *Controller) handleCommand(command interface{}) {
 func (c *Controller) applicationPeerUpdate(qualityDelta int32, peerHash string) {
 	connection, present := c.connections[peerHash]
 	if present {
-		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{command: ConnectionAdjustPeerQuality, delta: qualityDelta})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionAdjustPeerQuality, Delta: qualityDelta})
 	}
 }
 
@@ -644,7 +644,7 @@ func (c *Controller) shutdown() {
 	debug("ctrlr", "Controller.shutdown() ")
 	// Go thru peer list and shut down connections.
 	for _, connection := range c.connections {
-		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{command: ConnectionShutdownNow})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 	}
 	c.keepRunning = false
 }
