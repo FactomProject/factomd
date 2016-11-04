@@ -15,7 +15,7 @@ sleep 5s
 addentries() {
 	sleep 30s
 	for ((i=0; i<nentries; i++)); do
-    	echo test $i $RANDOM | factom-cli addentry -c $1 -e test -e $i -e $RANDOM $ec1
+    	cat scripts/data.txt | factom-cli addentry  -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
 		sleep .2s
 	done
