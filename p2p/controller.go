@@ -11,12 +11,15 @@ package p2p
 // Other than Init and NetworkStart, all administration is done via the channel.
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Controller manages the peer to peer network.
@@ -94,7 +97,24 @@ type CommandDisconnect struct {
 
 // CommandChangeLogging is used to instruct the Controller to takve various actions.
 type CommandChangeLogging struct {
-	level uint8
+	Level uint8
+}
+
+func (e *CommandChangeLogging) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandChangeLogging) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandChangeLogging) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandChangeLogging) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -170,16 +190,16 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 
 func (c *Controller) StartLogging(level uint8) {
 	note("ctrlr", "StartLogging() Changing log level to %s", LoggingLevels[level])
-	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{level: level})
+	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) StopLogging() {
 	level := Silence
 	note("ctrlr", "StopLogging() Changing log level to %s", LoggingLevels[level])
-	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{level: level})
+	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) ChangeLogLevel(level uint8) {
 	note("ctrlr", "Changing log level to %s", LoggingLevels[level])
-	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{level: level})
+	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
@@ -351,7 +371,7 @@ func (c *Controller) route() {
 			case ConnectionParcel:
 				note(peerHash, "ctrlr.route() ConnectionParcel")
 				msg := message.(ConnectionParcel)
-				parcel := msg.parcel
+				parcel := msg.Parcel
 				parcel.Trace("controller.route().ReceiveChannel.ConnectionParcel", "K")
 				c.handleParcelReceive(message, peerHash, connection)
 			default:
@@ -378,7 +398,7 @@ func (c *Controller) route() {
 			for _, connection := range c.connections {
 				dot("&&k\n")
 				note("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
-				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 			}
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			significant("ctrlr", "Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
@@ -408,7 +428,7 @@ func (c *Controller) doDirectedSend(parcel Parcel) {
 		parcel.Trace("controller.route().Directed Success", "d")
 		significant("ctrlr", "Controller.route() SUCCESS Directed send to %+v", parcel.Header.TargetPeer)
 		dot("&&i\n")
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 	} else {
 		parcel.Trace("controller.route().Directed FAILURE not connected. Dropping message.", "d")
 		significant("ctrlr", "Controller.route() Directed FAILURE not connected. Dropping message. %+v", parcel.Header.TargetPeer)
@@ -419,7 +439,7 @@ func (c *Controller) doDirectedSend(parcel Parcel) {
 func (c *Controller) handleParcelReceive(message interface{}, peerHash string, connection Connection) {
 	TotalMessagesRecieved++
 	parameters := message.(ConnectionParcel)
-	parcel := parameters.parcel
+	parcel := parameters.Parcel
 	note("ctrlr", "Controller.route() got parcel from NETWORK %+v", parcel.MessageType())
 	dot("&&l\n")
 	parcel.Header.TargetPeer = peerHash // Set the connection ID so the application knows which peer the message is from.
@@ -436,7 +456,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
 		response.Header.Type = TypePeerResponse
 		// Send them out to the network - on the connection that requested it!
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: *response})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: *response})
 		note("ctrlr", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
 	case TypePeerResponse:
 		parcel.Trace("Controller.handleParcelReceive()-TypePeerResponse", "L")
@@ -499,8 +519,8 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
-		CurrentLoggingLevel = parameters.level
-		significant("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
+		CurrentLoggingLevel = parameters.Level
+		significant("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.Level])
 	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)
@@ -576,7 +596,7 @@ func (c *Controller) managePeers() {
 			parcel := *parcelp
 			parcel.Header.Type = TypePeerRequest
 			for _, connection := range c.connections {
-				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 			}
 		}
 	}

@@ -68,7 +68,24 @@ var connectionStateStrings = map[uint8]string{
 
 // ConnectionParcel is sent to convey an appication message destined for the network.
 type ConnectionParcel struct {
-	parcel Parcel
+	Parcel Parcel
+}
+
+func (e *ConnectionParcel) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *ConnectionParcel) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *ConnectionParcel) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *ConnectionParcel) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // ConnectionMetrics is used to encapsulate various metrics about the connection.
@@ -333,7 +350,7 @@ func (c *Connection) goOnline() {
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
-	BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *parcel})
+	BlockFreeChannelSend(c.SendChannel, ConnectionParcel{Parcel: *parcel})
 }
 
 func (c *Connection) goOffline() {
@@ -363,8 +380,8 @@ func (c *Connection) processSends() {
 		case ConnectionParcel:
 			verbose(c.peer.PeerIdent(), "processSends() ConnectionParcel")
 			parameters := message.(ConnectionParcel)
-			parameters.parcel.Trace("Connection.processSends()", "e")
-			c.sendParcel(parameters.parcel)
+			parameters.Parcel.Trace("Connection.processSends()", "e")
+			c.sendParcel(parameters.Parcel)
 		case ConnectionCommand:
 			verbose(c.peer.PeerIdent(), "processSends() ConnectionCommand")
 			parameters := message.(ConnectionCommand)
@@ -554,7 +571,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		pong.Header.Type = TypePong
 		debug(c.peer.PeerIdent(), "handleParcelTypes() GOT PING, Sending Pong: %s", pong.String())
 		parcel.Print()
-		BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *pong})
+		BlockFreeChannelSend(c.SendChannel, ConnectionParcel{Parcel: *pong})
 	case TypePong: // all we need is the timestamp which is set already
 		parcel.Trace("Connection.handleParcelTypes()-TypePong", "J")
 
@@ -564,12 +581,12 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerRequest")
 		parcel.Trace("Connection.handleParcelTypes()-TypePeerRequest", "J")
 
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypePeerResponse:
 		parcel.Trace("Connection.handleParcelTypes()-TypePeerResponse", "J")
 
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerResponse")
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypeMessage:
 		parcel.Trace("Connection.handleParcelTypes()-TypeMessage", "J")
 
@@ -577,7 +594,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	default:
 		parcel.Trace("Connection.handleParcelTypes()-unknown", "J")
 
@@ -601,7 +618,7 @@ func (c *Connection) pingPeer() {
 			parcel.Header.Type = TypePing
 			c.timeLastPing = time.Now()
 			c.attempts++
-			BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *parcel})
+			BlockFreeChannelSend(c.SendChannel, ConnectionParcel{Parcel: *parcel})
 		}
 	}
 }
