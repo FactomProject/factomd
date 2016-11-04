@@ -48,11 +48,11 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	//case Negotiation:
 	//	go resend(state, msg, 3, 1)
 	case MissingMsg:
-		go resend(state, msg, 3, 1)
+		go resend(state, msg, 1, 1)
 	case DBStateMissing:
-		go resend(state, msg, 10, 5)
+		go resend(state, msg, 1, 1)
 	default:
-		go resend(state, msg, 2, 1)
+		go resend(state, msg, 1, 1)
 	}
 }
 

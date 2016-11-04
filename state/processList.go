@@ -630,7 +630,7 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 	r.vmheight = uint32(height)
 
 	if p.Requests[r.key()] == nil {
-		r.sent = now + 300
+		r.sent = now + 2000
 		p.Requests[r.key()] = r
 	} else {
 		r = p.Requests[r.key()]

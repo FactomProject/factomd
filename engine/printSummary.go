@@ -65,18 +65,22 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		sumOut := 0
 		sumIn := 0
-		cnt := 0
 		f := fnodes[*listenTo]
+		cnt := len(f.Peers)
 		for _, p := range f.Peers {
 			peer, ok := p.(*SimPeer)
 			if ok && peer != nil {
-				sumOut += peer.BytesOut
-				sumIn += peer.BytesIn
-				cnt++
+				sumOut += peer.BytesOut() * 8
+				sumIn += peer.BytesIn() * 8
 			}
 		}
 		if cnt > 0 {
-			prt = prt + fmt.Sprintf(" Out: %d Bps In: %d Bps\n", sumOut/cnt, sumIn/cnt)
+			prt = prt + fmt.Sprintf(" #Peers: %d            Avg/Total in Kbps:   Out: %d.%03d/%d.%03d     In: %d.%03d/%d.%03d\n",
+				cnt,
+				sumOut/cnt/1000, sumOut/cnt%1000,
+				sumOut/1000, sumOut%1000,
+				sumIn/cnt/1000, sumIn/cnt%1000,
+				sumIn/1000, sumIn%1000)
 		}
 
 		for _, f := range pnodes {
