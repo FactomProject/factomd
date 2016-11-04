@@ -37,6 +37,7 @@ type P2PProxy struct {
 	logWriter bufio.Writer
 	debugMode int
 	logging   chan interface{} // NODE_TALK_FIX
+	NumPeers  int
 }
 
 type factomMessage struct {
@@ -67,7 +68,15 @@ var _ interfaces.IPeer = (*P2PProxy)(nil)
 
 func (f *P2PProxy) Weight() int {
 	// should return the number of connections this peer represents.  For now, just say a lot
-	return 10
+	return f.NumPeers
+}
+
+func (f *P2PProxy) BytesOut() int {
+	return 0
+}
+
+func (f *P2PProxy) BytesIn() int {
+	return 0
 }
 
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {

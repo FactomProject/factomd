@@ -729,20 +729,47 @@ func (s *State) Reset() {
 
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
-	ldbs := len(s.DBStates.DBStates)
-	dbs := s.DBStates.DBStates[ldbs-1]
-	ht := s.DBStates.Base + uint32(ldbs)
-	if !dbs.Saved {
-		s.DBStates.DBStates = s.DBStates.DBStates[:ldbs-1]
-		pl := s.ProcessLists.Get(ht)
-		if pl != nil {
-			pl.Reset()
+	s.ResetTryCnt++
+	fmt.Println("dddd Try a reset", s.FactomNodeName)
+	index := len(s.DBStates.DBStates) - 1
+	if index < 2 {
+		fmt.Println("dddd too short", s.DBStates.Base+uint32(index), s.FactomNodeName)
+		return
+	}
+
+	dbs := s.DBStates.DBStates[index]
+	for {
+		if dbs == nil {
+			fmt.Println("dddd no dbstate", s.DBStates.Base+uint32(index), s.FactomNodeName)
+			return
 		}
-		ht--
+		if dbs.Saved {
+			break
+		}
+		fmt.Println("dddd Backing up", s.DBStates.Base+uint32(index), s.FactomNodeName)
+		index--
+		dbs = s.DBStates.DBStates[index]
 	}
-	pl := s.ProcessLists.Get(ht)
-	if pl != nil {
-		pl.Reset()
+	if index > 1 {
+		s.ResetCnt++
+		fmt.Println("dddd RESET", s.DBStates.Base+uint32(index), s.FactomNodeName)
+		dbs = s.DBStates.DBStates[index-1]
+		s.DBStates.DBStates = s.DBStates.DBStates[:index]
+
+		dbs.AdminBlock = dbs.AdminBlock.New().(interfaces.IAdminBlock)
+		dbs.FactoidBlock = dbs.FactoidBlock.New().(interfaces.IFBlock)
+
+		plToReset := s.ProcessLists.Get(s.DBStates.Base + uint32(index) + 1)
+		plToReset.Reset()
+
+		//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
+		//s.RunLeader = false
+		s.CurrentMinute = 0
+
+		s.SetLeaderTimestamp(dbs.NextTimestamp)
+
+		s.DBStates.ProcessBlocks(dbs)
+	} else {
+		fmt.Println("dddd Can't toss them all", s.DBStates.Base+uint32(index), s.FactomNodeName)
 	}
-	s.ResetRequest = false
 }

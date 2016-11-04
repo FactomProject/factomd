@@ -52,7 +52,6 @@ type IProcessList interface {
 	ContainsDBSig(serverID IHash) bool
 	AddDBSig(serverID IHash, sig IFullSignature)
 	String() string
-	Reset()
 }
 
 type IRequest interface {

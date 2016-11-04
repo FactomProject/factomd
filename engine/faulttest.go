@@ -13,7 +13,7 @@ import (
 )
 
 func waitToKill(k *bool) {
-	t := rand.Int() % 30
+	t := rand.Int()%60 + 60
 	for t > 0 {
 		os.Stderr.WriteString(fmt.Sprintf("     Will kill some servers in about %d seconds\n", t))
 		if t < 30 {
@@ -75,21 +75,28 @@ func faultTest(faulting *bool) {
 
 	for *faulting {
 		var leaders []*FactomNode
-		var running []*FactomNode
 
 		lastgood := goodleaders
 		goodleaders = 0
 		// How many of the running nodes are leaders
 		for _, f := range fnodes {
-			if !f.State.GetNetStateOff() &&
-				int(f.State.LLeaderHeight) >= currentdbht &&
-				int(f.State.CurrentMinute) >= currentminute {
-				running = append(running, f)
-				if f.State.Leader {
-					goodleaders++
-				}
+			if f.State.GetNetStateOff() {
+				continue
 			}
-			pl := f.State.ProcessLists.Get(f.State.LLeaderHeight)
+			if !f.State.Leader {
+				continue
+			}
+			if int(f.State.LLeaderHeight) < currentdbht {
+				continue
+			}
+			if int(f.State.LLeaderHeight) == currentdbht && int(f.State.CurrentMinute) < currentminute {
+				continue
+			}
+
+			goodleaders++
+			leaders = append(leaders, f)
+
+			pl := f.State.LeaderPL
 			if pl != nil && len(pl.FedServers) > numleaders {
 				numleaders = len(pl.FedServers)
 			}
@@ -97,12 +104,6 @@ func faultTest(faulting *bool) {
 
 		if lastgood != goodleaders {
 			os.Stderr.WriteString(fmt.Sprintf("Of %d Leaders, we now have %d in working order.\n", numleaders, goodleaders))
-		}
-
-		for _, f := range running {
-			if f.State.Leader {
-				leaders = append(leaders, f)
-			}
 		}
 
 		nextblk := false
@@ -134,15 +135,21 @@ func faultTest(faulting *bool) {
 			return
 		}
 
-		if killsome && len(leaders) > 0 {
+		if killsome && len(leaders) > 0 && goodleaders >= numleaders {
 			killing = false
 			killsome = false
 			// Wait some random amount of time.
 			delta := rand.Int() % 20
 			time.Sleep(time.Duration(delta) * time.Second)
 
-			kill := rand.Int() % ((numleaders / 2) - 2)
-			kill++
+			kill := 1
+			maxLeadersToKill := (numleaders - 1) / 2
+			if maxLeadersToKill == 0 {
+				maxLeadersToKill = 1
+			} else {
+				kill = rand.Int() % maxLeadersToKill
+				kill++
+			}
 
 			os.Stderr.WriteString(fmt.Sprintf("Killing %3d of %3d Leaders\n", kill, numleaders))
 			for i := 0; i < kill; {
