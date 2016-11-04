@@ -27,6 +27,8 @@ func (e *AddFederatedServer) String() string {
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) error {
 	state.AddFedServer(c.DBHeight, c.IdentityChainID)
+	authorityDeltaString := fmt.Sprintf("AdminBlock (AddFedMsg DBHt: %d) \n ^ %s", c.DBHeight, c.IdentityChainID.String()[5:10])
+	state.AddAuthorityDelta(authorityDeltaString)
 	state.UpdateAuthorityFromABEntry(c)
 	return nil
 }

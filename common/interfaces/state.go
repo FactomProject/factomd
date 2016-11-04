@@ -35,6 +35,8 @@ type IState interface {
 	LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (IMsg, IMsg, error)
 	SetString()
 	ShortString() string
+	GetStatus() []string
+	AddStatus(status string)
 
 	AddDBSig(dbheight uint32, chainID IHash, sig IFullSignature)
 	AddPrefix(string)
@@ -170,7 +172,6 @@ type IState interface {
 	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
 	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
-	FollowerExecuteNegotiation(IMsg)  // Message to start the negotiation process to replace a faulted server
 	FollowerExecuteDataResponse(IMsg) // Handle Data Response
 	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages
 	FollowerExecuteCommitChain(IMsg)  // CommitChain needs to look for a Reveal Entry
@@ -189,6 +190,7 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(IMsg)
 	LeaderExecuteEOM(IMsg)
+	LeaderExecuteDBSig(IMsg)
 	LeaderExecuteRevealEntry(IMsg)
 	LeaderExecuteCommitChain(IMsg)
 	LeaderExecuteCommitEntry(IMsg)
@@ -231,6 +233,8 @@ type IState interface {
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	FastVerifyAuthoritySignature(Message []byte, signature IFullSignature, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+
+	AddAuthorityDelta(changeString string)
 
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32

@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 // The Control Panel needs access to the State, so a deep copy of the elements needed
@@ -32,8 +36,8 @@ type DisplayState struct {
 
 	// Identity Info
 	IdentityChainID interfaces.IHash
-	Identities      []Identity
-	Authorities     []Authority
+	Identities      []*Identity
+	Authorities     []*Authority
 	PublicKey       *primitives.PublicKey
 
 	// Process List
@@ -62,8 +66,8 @@ type EntryTransaction struct {
 
 func NewDisplayState() *DisplayState {
 	d := new(DisplayState)
-	d.Identities = make([]Identity, 0)
-	d.Authorities = make([]Authority, 0)
+	d.Identities = make([]*Identity, 0)
+	d.Authorities = make([]*Authority, 0)
 	d.PublicKey = new(primitives.PublicKey)
 	d.LastDirectoryBlock = nil
 	d.PLEntry = make([]EntryTransaction, 0)

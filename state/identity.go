@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
@@ -255,8 +259,8 @@ func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	if index := st.isIdentityChain(chainID); index != -1 {
 		return index
 	}
-	var idnew []Identity
-	idnew = make([]Identity, len(st.Identities)+1)
+	var idnew []*Identity
+	idnew = make([]*Identity, len(st.Identities)+1)
 
 	var oneID Identity
 
@@ -282,7 +286,7 @@ func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	oneID.MatryoshkaHash = primitives.NewZeroHash()
 	oneID.SigningKey = primitives.NewZeroHash()
 
-	idnew[len(st.Identities)] = oneID
+	idnew[len(st.Identities)] = &oneID
 
 	st.Identities = idnew
 	return len(st.Identities) - 1

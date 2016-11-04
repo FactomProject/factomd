@@ -76,7 +76,7 @@ func (m *CommitEntryMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitEntryMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.CommitEntry.GetSigHash()
 }
 
 func (m *CommitEntryMsg) GetHash() interfaces.IHash {
