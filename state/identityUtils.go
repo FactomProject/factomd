@@ -42,6 +42,10 @@ type Identity struct {
 var _ interfaces.Printable = (*Identity)(nil)
 
 func (id *Identity) FixMissingKeys(s *State) error {
+	// This identity will always have blank keys
+	if id.IdentityChainID.IsSameAs(s.GetNetworkBootStrapIdentity()) {
+		return nil
+	}
 	if !statusIsFedOrAudit(id.Status) {
 		//return
 	}
@@ -179,9 +183,6 @@ func statusIsFedOrAudit(status int) bool {
 }
 
 func (id *Identity) IsFull() bool {
-	if id.IdentityChainID.String() == FIRST_IDENTITY {
-		return true
-	}
 	zero := primitives.NewZeroHash()
 	if id.IdentityChainID.IsSameAs(zero) {
 		return false

@@ -994,6 +994,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
+	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
 	delete(p.State.Acks, ack.GetHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
@@ -1257,7 +1258,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		}
 		pl.SortFedServers()
 	} else {
-		pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server
+		pl.AddFedServer(state.GetNetworkBootStrapIdentity()) // Our default fed server, dependent on network type
+		// pl.AddFedServer(primitives.Sha([]byte("FNode0"))) // Our default for now fed server on LOCAL network
 	}
 
 	// We just make lots of VMs as they have nearly no impact if not used.
