@@ -81,18 +81,69 @@ type CommandShutdown struct {
 
 // CommandAdjustPeerQuality is used to instruct the Controller to reduce a connections quality score
 type CommandAdjustPeerQuality struct {
-	peerHash   string
-	adjustment int32
+	PeerHash   string
+	Adjustment int32
+}
+
+func (e *CommandAdjustPeerQuality) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandAdjustPeerQuality) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandAdjustPeerQuality) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandAdjustPeerQuality) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // CommandBan is used to instruct the Controller to disconnect and ban a peer
 type CommandBan struct {
-	peerHash string
+	PeerHash string
+}
+
+func (e *CommandBan) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandBan) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandBan) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandBan) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // CommandDisconnect is used to instruct the Controller to disconnect from a peer
 type CommandDisconnect struct {
-	peerHash string
+	PeerHash string
+}
+
+func (e *CommandDisconnect) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandDisconnect) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandDisconnect) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandDisconnect) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // CommandChangeLogging is used to instruct the Controller to takve various actions.
@@ -221,17 +272,17 @@ func (c *Controller) NetworkStop() {
 
 func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
 	debug("ctrlr", "AdjustPeerQuality ")
-	BlockFreeChannelSend(c.commandChannel, CommandAdjustPeerQuality{peerHash: peerHash, adjustment: adjustment})
+	BlockFreeChannelSend(c.commandChannel, CommandAdjustPeerQuality{PeerHash: peerHash, Adjustment: adjustment})
 }
 
 func (c *Controller) Ban(peerHash string) {
 	debug("ctrlr", "Ban %s ", peerHash)
-	BlockFreeChannelSend(c.commandChannel, CommandBan{peerHash: peerHash})
+	BlockFreeChannelSend(c.commandChannel, CommandBan{PeerHash: peerHash})
 }
 
 func (c *Controller) Disconnect(peerHash string) {
 	debug("ctrlr", "Ban %s ", peerHash)
-	BlockFreeChannelSend(c.commandChannel, CommandDisconnect{peerHash: peerHash})
+	BlockFreeChannelSend(c.commandChannel, CommandDisconnect{PeerHash: peerHash})
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -524,17 +575,17 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)
-		peerHash := parameters.peerHash
-		c.applicationPeerUpdate(parameters.adjustment, peerHash)
+		peerHash := parameters.PeerHash
+		c.applicationPeerUpdate(parameters.Adjustment, peerHash)
 	case CommandBan:
 		verbose("ctrlr", "handleCommand() Processing command: CommandBan")
 		parameters := command.(CommandBan)
-		peerHash := parameters.peerHash
+		peerHash := parameters.PeerHash
 		c.applicationPeerUpdate(BannedQualityScore, peerHash)
 	case CommandDisconnect:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDisconnect")
 		parameters := command.(CommandDisconnect)
-		peerHash := parameters.peerHash
+		peerHash := parameters.PeerHash
 		connection, present := c.connections[peerHash]
 		if present {
 			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
