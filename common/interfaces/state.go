@@ -103,6 +103,7 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
+	GetPendingEntries() []IEntry
 	NextCommit(hash IHash) IMsg
 	PutCommit(hash IHash, msg IMsg)
 
@@ -162,6 +163,8 @@ type IState interface {
 	SetFactoshisPerEC(factoshisPerEC uint64)
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
+
+	GetPendingTransactions() []ITransaction
 	// MISC
 	// ====
 
