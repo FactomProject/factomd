@@ -189,7 +189,7 @@ func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
 func (m *MissingMsgResponse) String() string {
 	ack, ok := m.AckResponse.(*Ack)
 	if !ok {
-		return "MissingMsg<- INVALID"
+		return fmt.Sprint("MissingMsg (no Ack) <-- ", m.MsgResponse.String())
 	}
 	return fmt.Sprintf("MissingMsg <-- DBHeight:%3d vm=%3d PL Height:%3d msgHash[%x]", ack.DBHeight, ack.VMIndex, ack.Height, m.GetMsgHash().Bytes()[:3])
 }

@@ -24,7 +24,7 @@ type EOM struct {
 
 	DBHeight  uint32
 	SysHeight uint32
-	Syshash   interfaces.IHash
+	SysHash   interfaces.IHash
 	ChainID   interfaces.IHash
 	Signature interfaces.IFullSignature
 	FactoidVM bool
@@ -223,8 +223,8 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.SysHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	m.Syshash = primitives.NewHash(constants.ZERO_HASH)
-	newData, err = m.Syshash.UnmarshalBinaryData(newData)
+	m.SysHash = primitives.NewHash(constants.ZERO_HASH)
+	newData, err = m.SysHash.UnmarshalBinaryData(newData)
 
 	if len(newData) > 0 {
 		sig := new(primitives.Signature)
@@ -279,10 +279,10 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 	binary.Write(&buf, binary.BigEndian, m.SysHeight)
 
-	if m.Syshash == nil {
-		m.Syshash = primitives.NewHash(constants.ZERO_HASH)
+	if m.SysHash == nil {
+		m.SysHash = primitives.NewHash(constants.ZERO_HASH)
 	}
-	if d, err := m.Syshash.MarshalBinary(); err != nil {
+	if d, err := m.SysHash.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
 		buf.Write(d)
@@ -308,13 +308,14 @@ func (m *EOM) String() string {
 	if m.FactoidVM {
 		f = "F"
 	}
-	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d -%1s-Leader[%x] hash[%x] %s",
+	return fmt.Sprintf("%6s-VM%3d: Min:%4d DBHt:%5d FF %2d -%1s-Leader[%x] hash[%x] %s",
 		"EOM",
 		m.VMIndex,
 		m.Minute,
 		m.DBHeight,
+		m.SysHeight,
 		f,
-		m.ChainID.Bytes()[:3],
+		m.ChainID.Bytes()[:4],
 		m.GetMsgHash().Bytes()[:3],
 		local)
 }

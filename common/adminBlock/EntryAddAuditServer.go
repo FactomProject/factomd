@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -26,6 +27,8 @@ func (e *AddAuditServer) String() string {
 
 func (c *AddAuditServer) UpdateState(state interfaces.IState) error {
 	state.AddAuditServer(c.DBHeight, c.IdentityChainID)
+	authorityDeltaString := fmt.Sprintf("AdminBlock (AddAudMsg DBHt: %d) \n v %s", c.DBHeight, c.IdentityChainID.String()[5:10])
+	state.AddAuthorityDelta(authorityDeltaString)
 	state.UpdateAuthorityFromABEntry(c)
 	return nil
 }

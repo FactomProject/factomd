@@ -171,7 +171,7 @@ func log(level uint8, component string, format string, v ...interface{}) {
 	// host, _ := os.Hostname()
 	// fmt.Fprintf(os.Stdout, "%s, %s, %d, %s, (%s), %d/%d, %s \n", now.String(), host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
 
-	now := time.Now().Format("01/02/2006 15:04:05")
+	now := time.Now().Format("2006-01-02 15:04:05")
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
 		fmt.Printf("%s, %s, %s \n", now, component, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)

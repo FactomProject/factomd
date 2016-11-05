@@ -7,7 +7,6 @@ factom-cli  importaddress Es38CboJYYSovciHHtigHiv9kkKf5uzAAQjBst5QYcgt9a4m6ywv
 factom-cli  importaddress Es2aZZDjHdnnLzLWnDmNMRQFxTuRGsBsR7Gx96wBLNAWYQWoTFeH
 factom-cli  importaddress Es3p1AND3WwwTNNNPHLNy6LC8RQTE9YUE2zPYvXHPFLz5siAwT1H
 factom-cli  importaddress Es37igANtD8Z44pdXnNX4M5GJEsNLAk84MVVvrvnWRtBoacYmtdN
-#factom-cli  importaddress Es2Rf7iM6PdsqfYCo3D1tnAR65SkLENyWJG1deUzpRMQmbh9F3eG zeros
 factom-cli  importaddress Es3yR6MB1CcmAqNjdQjrDza4W4bwgksEGRn95Cgqu38SxoXUJFSG
 factom-cli  importaddress Es4Mzp5ULbHw8eF4ZsxCRGFdhk8x2NbBEh1qor8aYoTxBmUP2TM4
 factom-cli  importaddress Es2tsKCLkXNMFVMT5GxiEVQz6KXdConW65cU3YTJokAHxPyYdWpA
@@ -29,7 +28,6 @@ ec[1]=EC1qYbSLcGdLsbEkEMD1X9XqTff89Dc3mB94o6S55eAsahtGBQfK
 ec[2]=EC1zpfdA5BjH6ixoYsu9KmYDrjDkqp1dX17nrgnWQ9Vsckh21Bbo
 ec[3]=EC26nwbLvZk7h2U7C9V6hDKyuAHVz9LB9mwFCKYdaAdCd6zBf6kH
 ec[4]=EC28pzmdcSg82ZyHRRrRukDxbCXAD4E6ftt1EsufmqVXaKTuWpU2
-#ec[5]=EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r zeros
 ec[5]=EC2TjSuu9xVzTrU8gzfieysn4DkuVf2Cd51wGrZUi34kcZuK4Mff
 ec[6]=EC2MAKZyVMuPdFEXEVd3bZMzJvb9xc6e3y5x11wbUczZzxnLNxuz
 ec[7]=EC2N8ACTibRrHWDfp69sgNgtg6QG3GNUnB2HLtYG4iWNEZWrna5a
@@ -57,23 +55,24 @@ factom-cli addtxecoutput t1 ${ec[i]} 10
 factom-cli addtxfee t1 FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb
 factom-cli signtx t1
 factom-cli sendtx t1
-factom-cli listaddresses
-echo remove t1
-factom-cli rmtx t1
-sleep .2s
+#echo remove t1
+#factom-cli rmtx t1
+#sleep .2s
 done
-
+factom-cli listaddresses
 
 #create chain with each of the entry credit address
-for i in $(seq 20); do
+for ((i=0; i < 20; i++)); do
 echo ${ec[i]}
-factom-cli addchain -e testing$i -e factom ${ec[i]} < ~/go/src/github.com/FactomProject/factomd/scripts/data.txt
-sleep .2s
+noise=$(dd if=/dev/urandom bs=9K count=1 2> /dev/null)
+echo "$noise" | factom-cli addchain -e testing$i -e factom ${ec[i]}
+#sleep .2s
 done
 
 
 
 #assign chainid to variables
+ChainID[0]=bdc60c3b24207a7a9dae63bc7d5ec435bc1f3be07b2f50b50da3d29d1904f65d
 ChainID[1]=5132d9a8895a3b07d9ee61b856d860029f95947f8b504a1065c90bfdf5de133d
 ChainID[2]=85d578a3a13999e261f06131235b3549b0d136755d52820e6c8ce14019334900
 ChainID[3]=292024e2ae4c36acfb9650e6b145f6b60486c118322ceb1dad58d851276715d7
@@ -93,28 +92,28 @@ ChainID[16]=33d3f40829af1dccf7798a55f3074855dba20a27a1b780cb32f1df849ef94757
 ChainID[17]=a7576d1b7cae66a083fcd3e2117f35f9b6b217a0c8df6aaa53278215fe70a07f
 ChainID[18]=b4e0ec762c2372e028e0838542a8134f804e09721fd4460315b03a36e8303489
 ChainID[19]=f37f3789fdf3c9c73dabf7687cfdb730532c0cce2cebbb962739231c06cdf93f
-ChainID[20]=bbaa38fbfb0ba18456e631df41b488662d69c84f4f55463f5ad28121a939f678
 
 #factom-cli addentry to each of the chains
 for j in $(seq 1000); do
-for i in $(seq 20); do
+for ((i=0; i < 20; i++)); do
 echo "---------------------------------"
-echo "Getting all entries before adding the entry $i" 
-echo "---------------------------------"
-factom-cli get allentries ${ChainID[i]}
+#echo "Getting all entries before adding the entry $i" 
+#echo "---------------------------------"
+#factom-cli get allentries ${ChainID[i]}
 echo "Making entries into chain $i" 
 echo "---------------------------------"
-currentdate = date +%s%N
-factom-cli addentry -c ${ChainID[i]} ${currentdate} ${ec[i]} < ~/go/src/github.com/FactomProject/factomd/scripts/data.txt
+currentdate=date+%s%N
+noise=$(dd if=/dev/urandom bs=9K count=1 2> /dev/null)
+echo "$noise" | factom-cli addentry -c ${ChainID[i]} -e $currentdate ${ec[i]}
+#echo "---------------------------------"
+#echo "Getting all entries after adding the entry $i" 
+#factom-cli get allentries ${ChainID[i]}
 echo "---------------------------------"
-echo "Getting all entries after adding the entry $i" 
-factom-cli get allentries ${ChainID[i]}
-echo "---------------------------------"
-sleep .1s
+#sleep .1s
 done
-echo "current head details"
-echo "---------------------------------"
-factom-cli get head
+#echo "current head details"
+#echo "---------------------------------"
+#factom-cli get head
 sleep 10s
 done
 

@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"math"
 )
 
 //A placeholder structure for messages
@@ -45,6 +46,23 @@ type SigList struct {
 
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
+
+func (m *FullServerFault) Priority(state interfaces.IState) (priority int64) {
+	now := state.GetTimestamp()
+
+	// After 20 seconds, a negotiation's priority is now zero.
+	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() < 20 {
+		return 0
+	}
+
+	// oldest timestamp is highest priority
+	priority = math.MaxInt64 - m.Timestamp.GetTime().UnixNano()
+	// Mask off lowest byte
+	priority = (priority | 0xFF) ^ 0xFF
+	// Add VMIndex
+	priority = priority + int64(m.VMIndex)
+	return
+}
 
 // Return the serial height for this Full Fault message.  Can return nil if there is
 // no process list at this dbheight, or if we are missing a preceeding Full Fault message.
@@ -366,16 +384,16 @@ func (m *FullServerFault) String() string {
 	if m == nil {
 		return "-nil-"
 	}
-	return fmt.Sprintf("%6s-VM%3d (%v) AuditID: %v PL:%5d DBHt:%5d SysHt:%3d -- hash[:3]=%x\n SigList: %+v",
+	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d -- hash[:3]=%x Sig Cnt: %d",
 		"FullSFault",
 		m.VMIndex,
-		m.ServerID.String()[:10],
-		m.AuditServerID.String()[:10],
 		m.Height,
+		m.ServerID.String()[4:10],
+		m.AuditServerID.String()[4:10],
 		m.DBHeight,
 		m.SystemHeight,
 		m.GetHash().Bytes()[:3],
-		m.SignatureList)
+		len(m.SignatureList.List))
 }
 
 func (m *FullServerFault) GetDBHeight() uint32 {
