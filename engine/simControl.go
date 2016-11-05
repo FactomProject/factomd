@@ -729,13 +729,16 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'q' == b[0]:
-				eHashes := fnodes[listenTo].State.GetPendingEntryHashes()
+				eHashes := fnodes[listenTo].State.GetPendingEntries()
 				os.Stderr.WriteString("Pending Entry Hash\n")
 				os.Stderr.WriteString("------------------\n")
 				for _, eh := range eHashes {
 					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
 				}
+			case 'j' == b[0]:
 
+				fpl := fnodes[listenTo].State.GetPendingTransactions()
+				fmt.Println(fpl)
 			case 'S' == b[0]:
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 999 {
