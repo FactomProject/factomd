@@ -67,18 +67,18 @@ $3 == "f" || $3 == "w" || $3 == "fw" {
 
 node =="FNode0" {
 	totaltrans = 0
-	block 	= $(8 +statusfield)
-	dropped = $(6 +statusfield)
-	delay	= $(7 +statusfield)
-	fct	= $(25+statusfield)	
-	ec	= $(26+statusfield)
-	e 	= $(27+statusfield)		
+	block 	= $(10 +statusfield)
+	dropped = $(8 +statusfield)
+	delay	= $(9 +statusfield)
+	fct	= $(27+statusfield)
+	ec	= $(28+statusfield)
+	e 	= $(29+statusfield)
 }
 
 isFnode {
-	totaltrans	+= $(25+statusfield)	
-	totaltrans	+= $(26+statusfield)
-	totaltrans	+= $(27+statusfield)		
+	totaltrans	+= $(27+statusfield)
+	totaltrans	+= $(28+statusfield)
+	totaltrans	+= $(29+statusfield)
 }
 
 
