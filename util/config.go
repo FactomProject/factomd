@@ -131,7 +131,7 @@ DirectoryBlockInSeconds               = 6
 ExportData                            = false
 ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
-Network                               = LOCAL
+Network                               = TEST
 PeersFile            = "peers.json"
 MainNetworkPort      = 8108
 MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
@@ -150,8 +150,9 @@ ExchangeRate                          = 00100000
 ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
 ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
 
-; These define if the PRC and Control Panel connection to factomd should be encrypted, and if it is, what files
+; These define if the RPC and Control Panel connection to factomd should be encrypted, and if it is, what files
 ; are the secret key and the public certificate.  factom-cli and factom-walletd uses the certificate specified here if TLS is enabled.
+; To use default files and paths leave /full/path/to/... in place.
 FactomdTlsEnabled                     = false
 FactomdTlsPrivateKey                  = "/full/path/to/factomdAPIpriv.key"
 FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
@@ -212,6 +213,7 @@ WalletRpcPass                         = ""
 
 ; These define if the connection to the wallet should be encrypted, and if it is, what files
 ; are the secret key and the public certificate.  factom-cli uses the certificate specified here if TLS is enabled.
+; To use default files and paths leave /full/path/to/... in place.
 WalletTlsEnabled                      = false
 WalletTlsPrivateKey                   = "/full/path/to/walletAPIpriv.key"
 WalletTlsPublicCert                   = "/full/path/to/walletAPIpub.cert"

@@ -571,7 +571,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.DBType = "Map"
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
-		s.Network = "LOCAL"
+		s.Network = "TEST"
 		s.MainNetworkPort = "8108"
 		s.PeersFile = "peers.json"
 		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
