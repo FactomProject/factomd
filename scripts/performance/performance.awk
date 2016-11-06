@@ -125,7 +125,7 @@ END {
 		sTs[here]       +=ts[i]
 		sTotalTps[here] +=totalTps[i]
 		sTotalAllTps[here] +=totalAllTps[i]
-		if (here%1 == 0) {
+		if (here%2 == 0) {
 		    sThisTps[here]=maxtps
 		    sThisAllTps[here]=allmaxtps
 		}else{
