@@ -93,16 +93,16 @@ END {
 	mintps = maxtps
 	for(i=0;i<rec;i++){
 
-	    if maxtps < thisTps[i] {
+	    if (maxtps < thisTps[i]) {
 	    	maxtps = thisTps[i]
 	    }
-	    if mintps > thisTps[i] {
+	    if (mintps > thisTps[i]) {
 	        mintps = thisTps[i]
 	    }
 
         oldhere = here
 		here = int(j)
-		if here != oldhere {
+		if (here != oldhere) {
 		    maxtps = thisTps[i]
 		    mintps = maxtps
 		}
@@ -111,7 +111,7 @@ END {
 		sCnt[here]      +=1
 		sTs[here]       +=ts[i]
 		sTotalTps[here] +=totalTps[i]
-		if here%1 == 0 {
+		if (here%1 == 0) {
 		    sThisTps[here]=maxtps
 		}else{
 		    sThisTps[here]=mintps
