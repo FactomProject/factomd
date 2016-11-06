@@ -88,14 +88,34 @@ END {
 	samples = 500
 	if (rec < samples) samples = rec
 	scale = samples/rec*1.001 # Make sure we get at least our sample count.
-	j = 0	
+	j = 0
+	maxtps = thisTps[0]
+	mintps = maxtps
 	for(i=0;i<rec;i++){
-				
+
+	    if maxtps < thisTps[i] {
+	    	maxtps = thisTps[i]
+	    }
+	    if mintps > thisTps[i] {
+	        mintps = thisTps[i]
+	    }
+
+        oldhere = here
 		here = int(j)
+		if here != oldhere {
+		    maxtps = thisTps[i]
+		    mintps = maxtps
+		}
+
 		j+=scale
 		sCnt[here]      +=1
 		sTs[here]       +=ts[i]
 		sTotalTps[here] +=totalTps[i]
+		if here%1 == 0 {
+		    sThisTps[here]=maxtps
+		}else{
+		    sThisTps[here]=mintps
+		}
 		sThisTps[here]  +=thisTps[i]
 		sTotalAllTps[here] +=totalAllTps[i]
 		sThisAllTps[here] +=thisAllTps[i]		
@@ -103,11 +123,11 @@ END {
 	
 	for(i=0;i<samples;i++){
 		if (sCnt[i]==0) sCnt[i]=1
-		printf("%8d\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t\n", int(sTs[i]/sCnt[i]), sTotalTps[i]/sCnt[i], sThisTps[i]/sCnt[i], sTotalAllTps[i]/sCnt[i], sThisAllTps[i]/sCnt[i])
+		printf("%8d\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t\n", int(sTs[i]/sCnt[i]), sTotalTps[i]/sCnt[i], sThisTps[i], sTotalAllTps[i]/sCnt[i], sThisAllTps[i])
 	}
 	for(j=samples;j<500;j++){
 		i = samples-1
-		printf("%8d\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t\n", int(sTs[i]/sCnt[i]), sTotalTps[i]/sCnt[i], sThisTps[i]/sCnt[i], sTotalAllTps[i]/sCnt[i], sThisAllTps[i]/sCnt[i])
+		printf("%8d\t%8.3f\t%8.3f\t%8.3f\t%8.3f\t\n", int(sTs[i]/sCnt[i]), sTotalTps[i]/sCnt[i], sThisTps[i], sTotalAllTps[i]/sCnt[i], sThisAllTps[i])
 	}
 }
 
