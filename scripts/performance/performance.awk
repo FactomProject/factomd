@@ -91,6 +91,10 @@ END {
 	j = 0
 	maxtps = thisTps[0]
 	mintps = maxtps
+	allmaxtps = thisAllTps[0]
+	allmintps = allmaxtps
+
+
 	for(i=0;i<rec;i++){
 
 	    if (maxtps < thisTps[i]) {
@@ -98,6 +102,13 @@ END {
 	    }
 	    if (mintps > thisTps[i]) {
 	        mintps = thisTps[i]
+	    }
+
+        if (allmaxtps < thisAllTps[i]) {
+	    	allmaxtps = thisAllTps[i]
+	    }
+	    if (allmintps > thisAllTps[i]) {
+	        allmintps = thisAllTps[i]
 	    }
 
         oldhere = here
@@ -114,8 +125,10 @@ END {
 		sTotalAllTps[here] +=totalAllTps[i]
 		if (here%1 == 0) {
 		    sThisTps[here]=maxtps
+		    sThisAllTps[here]=allmaxtps
 		}else{
 		    sThisTps[here]=mintps
+		    sThisAllTps[here]=allmintps
 		}
 	}
 	
