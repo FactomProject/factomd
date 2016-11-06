@@ -283,9 +283,6 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	fs.CurrentBlock = fBlock
 
 	leaderTS := fs.State.GetLeaderTimestamp()
-	if leaderTS.GetTimeMilli() == 0 {
-		fmt.Println("WELL WELL WELLLLL", fs.State.FactomNodeName, fs.State.GetDBHeightComplete())
-	}
 
 	t := factoid.GetCoinbase(leaderTS)
 
