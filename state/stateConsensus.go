@@ -728,7 +728,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	dbs := m.(*messages.DirectoryBlockSignature)
-	pl := s.ProcessLists.Get(s.LLeaderHeight)
+	pl := s.ProcessLists.Get(dbs.DBHeight)
 
 	if len(pl.VMs[dbs.VMIndex].List) > 0 {
 		return
@@ -1034,10 +1034,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	e := msg.(*messages.EOM)
 
 	if s.Syncing && !s.EOM {
+		s.AddStatus(fmt.Sprintf("Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", s.Syncing, s.EOM))
 		return false
 	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
+		s.AddStatus(fmt.Sprintf("Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.EOM, e.Minute, s.EOMMinute))
 		return false
 	}
 
@@ -1051,6 +1053,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && s.EOMSys {
+		s.AddStatus(fmt.Sprintf("Done: s.EOMDone(%v) && s.EOMSys(%v)", s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
 			s.EOM = false
@@ -1065,6 +1068,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
+		s.AddStatus(fmt.Sprintf("Start EOM Processing: !s.EOM(%v) EOM: %s", s.EOM, e.String()))
 		s.EOMSys = false
 		s.Syncing = true
 		s.EOM = true
@@ -1077,12 +1081,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
-		s.AddStatus("EOM Syncing")
 		return false
 	}
 
 	// What I do for each EOM
 	if !e.Processed {
+		s.AddStatus(fmt.Sprintf("Process Once: !e.Processed(%v) EOM: %s", e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
 		e.Processed = true
@@ -1090,7 +1094,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
-		s.AddStatus("EOM Processed")
 		return false
 	}
 
@@ -1098,7 +1101,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
-		s.AddStatus("EOM All Done")
+		s.AddStatus(fmt.Sprintf("EOM Complete: allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
+			allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true
 		for _, eb := range pl.NewEBlocks {
@@ -1215,6 +1219,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
+		s.AddStatus(fmt.Sprintf("Will Not Process: return on s.Syncing(%v) && !s.DBSig(%v)", s.Syncing, s.DBSig))
 		return false
 	}
 
@@ -1227,6 +1232,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// If we are done with DBSigs, and this message is processed, then we are done.  Let everything go!
 	if s.DBSigSys && s.DBSig && s.DBSigDone {
+		s.AddStatus(fmt.Sprintf("Finished with DBSig: s.DBSigSys(%v) && s.DBSig(%v) && s.DBSigDone(%v)", s.DBSigSys, s.DBSig, s.DBSigDone))
 		s.DBSigProcessed--
 		if s.DBSigProcessed <= 0 {
 			s.DBSig = false
@@ -1239,6 +1245,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
+		s.AddStatus(fmt.Sprintf("Start DBSig: s.DBSig(%v) ", s.DBSig))
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
 		s.DBSig = true
@@ -1252,7 +1259,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
+		s.AddStatus(fmt.Sprintf("Process the %d DBSig: %v", s.DBSigProcessed, dbs.String()))
 		if dbs.VMIndex == 0 {
+			s.AddStatus(fmt.Sprintf("Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
 		dbstate := s.GetDBState(dbheight - 1)
@@ -1291,6 +1300,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
 	if allfaults && !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
+		s.AddStatus(fmt.Sprintf("All DBSigs are processed: allfaults(%v), && !s.DBSigDone(%v) && s.DBSigProcessed(%v)>= s.DBSigLimit(%v)",
+			allfaults, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit))
 		fails := 0
 		for i := range pl.FedServers {
 			vm := pl.VMs[i]
@@ -1321,7 +1332,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		} else {
 			s.DBSigFails++
-			s.Reset()
+			s.AddStatus("DBSig Failure")
+			if pl != nil {
+				pl.Reset()
+				s.DBSig = false
+			}
 			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
 
 			if msg != nil {

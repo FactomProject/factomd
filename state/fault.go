@@ -730,29 +730,26 @@ func (s *State) Reset() {
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
 	s.ResetTryCnt++
-	fmt.Println("dddd Try a reset", s.FactomNodeName)
+	s.AddStatus(fmt.Sprintf("Trying to Reset for the %d time", s.ResetTryCnt))
 	index := len(s.DBStates.DBStates) - 1
 	if index < 2 {
-		fmt.Println("dddd too short", s.DBStates.Base+uint32(index), s.FactomNodeName)
 		return
 	}
 
 	dbs := s.DBStates.DBStates[index]
 	for {
 		if dbs == nil {
-			fmt.Println("dddd no dbstate", s.DBStates.Base+uint32(index), s.FactomNodeName)
+			s.AddStatus("Reset Failed")
 			return
 		}
 		if dbs.Saved {
 			break
 		}
-		fmt.Println("dddd Backing up", s.DBStates.Base+uint32(index), s.FactomNodeName)
 		index--
 		dbs = s.DBStates.DBStates[index]
 	}
 	if index > 1 {
 		s.ResetCnt++
-		fmt.Println("dddd RESET", s.DBStates.Base+uint32(index), s.FactomNodeName)
 		dbs = s.DBStates.DBStates[index-1]
 		s.DBStates.DBStates = s.DBStates.DBStates[:index]
 
@@ -770,6 +767,6 @@ func (s *State) DoReset() {
 
 		s.DBStates.ProcessBlocks(dbs)
 	} else {
-		fmt.Println("dddd Can't toss them all", s.DBStates.Base+uint32(index), s.FactomNodeName)
+		s.AddStatus("Can't reset far enough back")
 	}
 }

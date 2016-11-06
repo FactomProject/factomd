@@ -1198,8 +1198,12 @@ func (p *ProcessList) Reset() bool {
 		fs.Reset(previous)
 	}*/
 
-	index := p.DBHeight - p.State.DBStates.Base
-	p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
+	if p.DBHeight > p.State.DBStates.Base {
+		index := p.DBHeight - p.State.DBStates.Base
+		if len(p.State.DBStates.DBStates) >= int(index) {
+			p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
+		}
+	}
 
 	s := p.State
 	s.LLeaderHeight--

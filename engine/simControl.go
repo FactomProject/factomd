@@ -26,6 +26,7 @@ var verboseFaultOutput = false
 var verboseAuthoritySet = false
 var verboseAuthorityDeltas = false
 var totalServerFaults int
+var lastcmd []string
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -53,8 +54,10 @@ func SimControl(listenTo int) {
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(string(l), parseFunc)
 		if 0 == len(cmd) {
-			cmd = []string{"h"}
+			cmd = lastcmd
 		}
+		lastcmd = cmd
+
 		b := string(cmd[0])
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
@@ -152,7 +155,7 @@ func SimControl(listenTo int) {
 
 					f := fnodes[listenTo]
 
-					fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
+					os.Stderr.WriteString("----------------------------- " + f.State.FactomNodeName + " -------------------------------------- " + string(b) + "\n")
 					l := len(f.State.StatusStrs)
 					if l < ht {
 						ht = l

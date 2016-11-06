@@ -352,7 +352,7 @@ func (m *DirectoryBlockSignature) String() string {
 		"DBSig",
 		m.VMIndex,
 		m.DBHeight,
-		m.ServerIdentityChainID.Bytes()[:3],
+		m.ServerIdentityChainID.Bytes()[2:6],
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
