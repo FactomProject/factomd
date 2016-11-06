@@ -116,6 +116,8 @@ END {
 		if (here != oldhere) {
 		    maxtps = thisTps[i]
 		    mintps = maxtps
+		    allmaxtps = thisAllTps[i]
+		    allmintps = allmaxtps
 		}
 
 		j+=scale
