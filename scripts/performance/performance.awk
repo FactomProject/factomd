@@ -111,14 +111,12 @@ END {
 		sCnt[here]      +=1
 		sTs[here]       +=ts[i]
 		sTotalTps[here] +=totalTps[i]
+		sTotalAllTps[here] +=totalAllTps[i]
 		if (here%1 == 0) {
 		    sThisTps[here]=maxtps
 		}else{
 		    sThisTps[here]=mintps
 		}
-		sThisTps[here]  +=thisTps[i]
-		sTotalAllTps[here] +=totalAllTps[i]
-		sThisAllTps[here] +=thisAllTps[i]		
 	}
 	
 	for(i=0;i<samples;i++){
