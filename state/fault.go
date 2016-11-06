@@ -608,7 +608,18 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
+	s.AddStatus(fmt.Sprintf("FULL FAULT FOLLOWER EXECUTE Execute Full Fault:  Replacing %x with %x at height %d leader height %d",
+		fullFault.ServerID.Bytes()[2:6],
+		fullFault.AuditServerID.Bytes()[2:6],
+		fullFault.DBHeight,
+		s.LLeaderHeight))
+
+	if fullFault.DBHeight < s.LLeaderHeight {
+		return
+	}
+
 	if fullFault.ServerID.IsZero() || fullFault.AuditServerID.IsZero() {
+		s.AddStatus("FULL FAULT FOLLOWER EXECUTE Fake Fault.  Ignore")
 		return
 	}
 
@@ -624,6 +635,8 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		// If we don't have any Audit Servers in our Authority set
 		// that match the nominated Audit Server in the FullFault,
 		// we can't really do anything useful with it
+		s.AddStatus("FULL FAULT FOLLOWER EXECUTE Audit Replacement wasn't found.  Ignore the fault. Maybe reprocess later")
+		s.Holding[m.GetHash().Fixed()] = m
 		return
 	}
 
@@ -631,7 +644,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	rHt := vm.Height
 	ffHt := int(fullFault.Height)
 	if false && rHt > ffHt {
-		fmt.Printf("dddd  %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt)
+		s.AddStatus(fmt.Sprintf("FULL FAULT FOLLOWER EXECUTE %20s VM[%d] height %d Full Fault ht: %d \n", s.FactomNodeName, fullFault.VMIndex, rHt, ffHt))
 		vm.Height = ffHt
 		vm.List = vm.List[:ffHt] // Nuke all the extra messages that might annoy us.
 	}
@@ -730,16 +743,17 @@ func (s *State) Reset() {
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
 	s.ResetTryCnt++
-	s.AddStatus(fmt.Sprintf("Trying to Reset for the %d time", s.ResetTryCnt))
+	s.AddStatus(fmt.Sprintf("RESET Trying to Reset for the %d time", s.ResetTryCnt))
 	index := len(s.DBStates.DBStates) - 1
 	if index < 2 {
+		s.AddStatus("RESET Failed to Reset because not enough dbstates")
 		return
 	}
 
 	dbs := s.DBStates.DBStates[index]
 	for {
 		if dbs == nil {
-			s.AddStatus("Reset Failed")
+			s.AddStatus("RESET Reset Failed")
 			return
 		}
 		if dbs.Saved {
@@ -767,6 +781,6 @@ func (s *State) DoReset() {
 
 		s.DBStates.ProcessBlocks(dbs)
 	} else {
-		s.AddStatus("Can't reset far enough back")
+		s.AddStatus("RESET Can't reset far enough back")
 	}
 }

@@ -454,16 +454,19 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	p.SortFedServers()
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
 	// If an audit server, it gets promoted
 	auditFound, _ := p.GetAuditServerIndexHash(identityChainID)
 	if auditFound {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server %x was an audit server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveAuditServerHash(identityChainID)
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	p.MakeMap()
 
@@ -475,16 +478,19 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	found, i := p.GetAuditServerIndexHash(identityChainID)
 	if found {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
 	// If a fed server, demote
 	fedFound, _ := p.GetFedServerIndexHash(identityChainID)
 	if fedFound {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server %x was a fed server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveFedServerHash(identityChainID)
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
 	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	return i
 }

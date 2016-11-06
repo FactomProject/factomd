@@ -33,6 +33,7 @@ func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) error {
 		state.Println(fmt.Sprintf("Removed Federated Server: %x", c.IdentityChainID.Bytes()[:4]))
 	}
 	authorityDeltaString := fmt.Sprintf("AdminBlock (RemoveFedMsg DBHt: %d) \n v %s", c.DBHeight, c.IdentityChainID.String()[5:10])
+	state.AddStatus(authorityDeltaString)
 	state.AddAuthorityDelta(authorityDeltaString)
 	state.UpdateAuthorityFromABEntry(c)
 	return nil
