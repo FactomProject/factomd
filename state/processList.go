@@ -152,7 +152,7 @@ type VM struct {
 }
 
 func (p *ProcessList) Clear() {
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d",p.DBHeight)
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d",p.DBHeight))
 	p.FactoidBalancesTMutex.Lock()
 	defer p.FactoidBalancesTMutex.Unlock()
 	p.FactoidBalancesT = nil
