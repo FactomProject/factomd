@@ -142,7 +142,7 @@ checkout serveridentity $branch $default
 
 echo "
 ********************************************************
-*     Compiling fctwallet, the cli, and factomd
+*     Compiling factom-walletd, the cli, and factomd
 ********************************************************
 "
 compileFactomdGitHash factomd || exit 1
