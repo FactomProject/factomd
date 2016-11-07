@@ -216,6 +216,8 @@ func TopPriorityFaultState(pl *ProcessList) FaultState {
 		if thisPriority > currentMax {
 			currentMax = thisPriority
 			winner = faultID
+		} else {
+			pl.DeleteFaultState(faultID)
 		}
 	}
 	return pl.GetFaultState(winner)
@@ -430,14 +432,19 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 
 	if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 		if !faultState.MyVoteTallied {
-			now := time.Now().Unix()
-			if now-faultState.LastMatch > 3 {
-				if int(now-s.LastTiebreak) > s.FaultTimeout/2 {
-					if faultState.SigTally(s) >= len(pl.FedServers)-1 {
-						s.LastTiebreak = now
+			// Don't fault yourself!
+			if !sf.ServerID.IsSameAs(s.IdentityChainID) {
+				now := time.Now().Unix()
+				if now-faultState.LastMatch > 3 {
+					// Don't send multiple tiebreaker votes for different faults
+					// too quickly back-to-back
+					if int(now-s.LastTiebreak) > s.FaultTimeout/2 {
+						if faultState.SigTally(s) >= len(pl.FedServers)-1 {
+							s.LastTiebreak = now
+						}
+						s.matchFault(sf)
+						faultState.LastMatch = now
 					}
-					s.matchFault(sf)
-					faultState.LastMatch = now
 				}
 			}
 		}
