@@ -141,6 +141,7 @@ type State struct {
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
+	DBFinished      bool
 	RunLeader       bool
 	LLeaderHeight   uint32
 	Leader          bool
@@ -570,7 +571,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.DBType = "Map"
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
-		s.Network = "LOCAL"
+		s.Network = "TEST"
 		s.MainNetworkPort = "8108"
 		s.PeersFile = "peers.json"
 		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
@@ -949,8 +950,10 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 	return msg, ackMsg, nil
 }
 
-func (s *State) GetPendingEntryHashes() []interfaces.IHash {
+func (s *State) GetPendingEntries() []interfaces.IEntry {
+
 	pLists := s.ProcessLists
+
 	if pLists == nil {
 		return nil
 	}
@@ -958,14 +961,27 @@ func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
-	hashResponse := make([]interfaces.IHash, pl.LenNewEntries())
+	hashResponse := make([]interfaces.IEntry, pl.LenNewEntries())
 	keys := pl.GetKeysNewEntries()
 	for _, k := range keys {
 		entry := pl.GetNewEntry(k)
-		hashResponse[hashCount] = entry.GetHash()
+		hashResponse[hashCount] = entry
 		hashCount++
 	}
 	return hashResponse
+}
+
+func (s *State) GetPendingTransactions() []interfaces.ITransaction {
+
+	cb := s.FactoidState.GetCurrentBlock()
+	ct := cb.GetTransactions()
+	ts := make([]interfaces.ITransaction, len(ct))
+
+	for i, tran := range ct {
+		ts[i] = tran
+	}
+
+	return ts
 }
 
 func (s *State) IncFactoidTrans() {

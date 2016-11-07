@@ -82,7 +82,9 @@ func (s *State) Process() (progress bool) {
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
-			s.RunLeader = true
+			if s.DBFinished == true {
+				s.RunLeader = true
+			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
