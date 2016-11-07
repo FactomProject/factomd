@@ -1434,7 +1434,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 					pl.FedServers[listIdx] = theAuditReplacement
 					pl.FedServers[listIdx].SetOnline(true)
-					pl.AddAuditServer(fedServ.GetChainID())
+					audIdx := pl.AddAuditServer(fedServ.GetChainID())
+					pl.AuditServers[audIdx].SetOnline(false)
+
 					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
 					// After executing the FullFault successfully, we want to reset
 					// to the default state (No One At Fault)
