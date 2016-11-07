@@ -373,7 +373,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	case -1:
 		// Kill the previous DBState, because it could be bad.
-		if dbheight > s.DBStates.Base && len(s.DBStates.DBStates) > int(dbheight-s.DBStates.Base) {
+		if dbheight > s.DBStates.Base && len(s.DBStates.DBStates) > int(dbheight)-int(s.DBStates.Base) {
 			s.DBStates.DBStates[dbheight-s.DBStates.Base] = nil
 			s.DBStateFailsCnt++
 			s.networkInvalidMsgQueue <- msg
@@ -1037,6 +1037,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", s.Syncing, s.EOM))
 		return false
 	}
+
+	// Should check dbheight first.
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.EOM, e.Minute, s.EOMMinute))

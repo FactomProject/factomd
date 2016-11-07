@@ -188,9 +188,10 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		prt = prt + faultSummary()
 
+		lastdiff := ""
 		if verboseAuthoritySet {
 			lastdelta := pnodes[0].State.GetAuthoritySetString()
-			for _, f := range pnodes {
+			for i, f := range pnodes {
 				prt = prt + "\n"
 				ad := f.State.GetAuthoritySetString()
 				diff := ""
@@ -210,6 +211,10 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 						diff = diff + " "
 					}
 				}
+				if adiff && i > 0 && lastdiff == diff {
+					adiff = false
+				}
+				lastdiff = diff
 				if adiff {
 					diff = "\n" + diff
 				} else {
