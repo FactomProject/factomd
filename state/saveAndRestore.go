@@ -104,6 +104,8 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
+	state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
+
 	ss.Replay = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
 
@@ -203,7 +205,6 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	if index < 0 {
 		index = 0
 	} else {
-		fmt.Println("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight)
 		fmt.Println(state.ProcessLists.String())
 
 		if len(state.ProcessLists.Lists) > index+1 {
@@ -229,9 +230,11 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	}
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
+	state.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight))
+
 	dindex := ss.DBHeight - state.DBStates.Base
 	state.DBStates.DBStates = state.DBStates.DBStates[:dindex+1]
-	state.AddStatus(fmt.Sprintf("Cutting DBStates back to %d", ss.DBHeight))
+	state.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
 	state.Replay = ss.Replay.Save()
 	state.LeaderTimestamp = ss.LeaderTimestamp

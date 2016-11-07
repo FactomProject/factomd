@@ -419,6 +419,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
 		if pd != nil && !pd.Saved {
+			list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
 			return
 		}
 	}
@@ -432,13 +433,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		PrintState(list.State)
 	}
 
-	if d.SaveStruct == nil {
-		d.SaveStruct = SaveFactomdState(list.State, d)
-		return list.ProcessBlocks(d)
-	} /* FOR TESTING PURPOSES; no longer needed
-	    else {
-			d.SaveStruct.RestoreFactomdState(list.State, d)
-		} */
+	// Saving our state so we can reset it if we need to.
+	d.SaveStruct = SaveFactomdState(list.State, d)
 
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
@@ -447,6 +443,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	//
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
+	list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
@@ -464,7 +461,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		list.State.FERChangeHeight = 0
 	} else {
 		if list.State.FactoshisPerEC != d.FactoidBlock.GetExchRate() {
-			fmt.Println("setting rate", list.State.FactoshisPerEC, " to ", d.FactoidBlock.GetExchRate(), " - Height ", d.DirectoryBlock.GetHeader().GetDBHeight())
+			list.State.AddStatus(fmt.Sprint("PROCESSBLOCKS:  setting rate", list.State.FactoshisPerEC,
+				" to ", d.FactoidBlock.GetExchRate(),
+				" - Height ", d.DirectoryBlock.GetHeader().GetDBHeight()))
 		}
 		list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
 	}

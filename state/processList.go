@@ -152,6 +152,7 @@ type VM struct {
 }
 
 func (p *ProcessList) Clear() {
+	p.State.AddStatus("PROCESSLIST.Clear")
 	p.FactoidBalancesTMutex.Lock()
 	defer p.FactoidBalancesTMutex.Unlock()
 	p.FactoidBalancesT = nil
@@ -469,7 +470,7 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	p.MakeMap()
-
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddFedServer: Adding Server %x", identityChainID.Bytes()[3:8]))
 	return i
 }
 
@@ -490,7 +491,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
 	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
-	p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	return i
 }
@@ -504,6 +505,7 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
 	p.MakeMap()
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveFedServer: Removing Server %x", identityChainID.Bytes()[3:8]))
 }
 
 // Remove the given serverChain from this processlist's Audit Servers
@@ -513,6 +515,7 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 	p.AuditServers = append(p.AuditServers[:i], p.AuditServers[i+1:]...)
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveAuditServer: Removing Audit Server %x", identityChainID.Bytes()[3:8]))
 }
 
 // Given a server index, return the last Ack
@@ -1113,6 +1116,8 @@ func (p *ProcessList) Reset() bool {
 		return false
 	}
 
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Reset(): at dbht %d", p.DBHeight))
+
 	// Make a copy of the previous FedServers
 	p.System.List = p.System.List[:0]
 	p.System.Height = 0
@@ -1240,6 +1245,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
+	state.AddStatus(fmt.Sprintf("PROCESSLISTS.NewProcessList at height %d", dbheight))
 	pl := new(ProcessList)
 
 	pl.State = state.(*State)

@@ -29,7 +29,7 @@ func waitToKill(k *bool) {
 // Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
 // come back before we are faulted, or we might not.
 func bringback(f *FactomNode) {
-	t := rand.Int() % 120
+	t := rand.Int() % 30
 	for t > 0 {
 		if !f.State.GetNetStateOff() {
 			return
@@ -143,7 +143,7 @@ func faultTest(faulting *bool) {
 			time.Sleep(time.Duration(delta) * time.Second)
 
 			kill := 1
-			maxLeadersToKill := (numleaders - 1) / 2
+			maxLeadersToKill := 1 // (numleaders - 1) / 2
 			if maxLeadersToKill == 0 {
 				maxLeadersToKill = 1
 			} else {

@@ -1034,12 +1034,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	e := msg.(*messages.EOM)
 
 	if s.Syncing && !s.EOM {
-		s.AddStatus(fmt.Sprintf("Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", s.Syncing, s.EOM))
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", s.Syncing, s.EOM))
 		return false
 	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
-		s.AddStatus(fmt.Sprintf("Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.EOM, e.Minute, s.EOMMinute))
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.EOM, e.Minute, s.EOMMinute))
 		return false
 	}
 
@@ -1053,7 +1053,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && s.EOMSys {
-		s.AddStatus(fmt.Sprintf("Done: s.EOMDone(%v) && s.EOMSys(%v)", s.EOMDone, s.EOMSys))
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: Done! s.EOMDone(%v) && s.EOMSys(%v)", s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
 			s.EOM = false
@@ -1068,7 +1068,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
-		s.AddStatus(fmt.Sprintf("Start EOM Processing: !s.EOM(%v) EOM: %s", s.EOM, e.String()))
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: Start EOM Processing: !s.EOM(%v) EOM: %s", s.EOM, e.String()))
 		s.EOMSys = false
 		s.Syncing = true
 		s.EOM = true
@@ -1086,7 +1086,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !e.Processed {
-		s.AddStatus(fmt.Sprintf("Process Once: !e.Processed(%v) EOM: %s", e.Processed, e.String()))
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: Process Once: !e.Processed(%v) EOM: %s", e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
 		e.Processed = true
@@ -1101,7 +1101,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
-		s.AddStatus(fmt.Sprintf("EOM Complete: allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: EOM Complete: allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
 			allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true
@@ -1368,13 +1368,19 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 	fullFault, _ := msg.(*messages.FullServerFault)
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
+	s.AddStatus(fmt.Sprintf("PROCESS Full Fault: Replacing %x with %x",
+		fullFault.ServerID.Bytes()[3:8],
+		fullFault.AuditServerID.Bytes()[3:8]))
+
 	if pl.System.Height < int(fullFault.SystemHeight) {
+		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height: %s", fullFault.String()))
 		return false
 	}
 
 	vm := pl.VMs[int(fullFault.VMIndex)]
 
 	if fullFault.Height > uint32(vm.Height) {
+		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right vm height: %s", fullFault.String()))
 		return false
 	}
 
@@ -1387,10 +1393,17 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		}
 	}
 	if theAuditReplacement == nil {
+		for _, fedServer := range s.GetFedServers(fullFault.DBHeight) {
+			if fedServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
+				s.AddStatus(fmt.Sprintf("PROCESS Full Fault Nothing to do, Already a Fed Server! %s", fullFault.String()))
+				return true
+			}
+		}
 		// If we don't have any Audit Servers in our Authority set
 		// that match the nominated Audit Server in the FullFault,
 		// we can't really do anything useful with it
-		return
+		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Audit Server not an audit server. %s", fullFault.String()))
+		return false
 	}
 
 	pl.FaultedVMIndex = int(fullFault.VMIndex)
@@ -1404,9 +1417,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {
+				s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL but reset vm... %s", fullFault.String()))
 				vm.Height = ffHt
 				return false
 			} else if rHt < ffHt {
+				s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL, vm not there yet. %s", fullFault.String()))
 				return false
 			}
 
@@ -1414,7 +1429,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			// being promoted
 			for listIdx, fedServ := range pl.FedServers {
 				if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-					fmt.Println("FULL FAULT X:", s.FactomNodeName, fullFault.ServerID.String()[:10], fullFault.AuditServerID.String()[:10], s.GetTimestamp().GetTimeSeconds())
+
 					pl.FedServers[listIdx] = theAuditReplacement
 					pl.FedServers[listIdx].SetOnline(true)
 					pl.AddAuditServer(fedServ.GetChainID())
@@ -1426,11 +1441,20 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 					authoritiesString := s.ConstructAuthoritySetString()
 					// Any updates required to the state as established by the AdminBlock are applied here.
 					pl.State.SetAuthoritySetString(authoritiesString)
-					authorityDeltaString := fmt.Sprintf("Full Fault (DBHt: %d SysHt: %d) \n ^ %s \n v %s", fullFault.DBHeight, fullFault.SystemHeight, fullFault.AuditServerID.String()[5:10], fullFault.ServerID.String()[5:10])
+					authorityDeltaString := fmt.Sprintf("FULL FAULT DBHt: %d SysHt: %d  AuditServerID %s ServerID %s",
+						fullFault.DBHeight,
+						fullFault.SystemHeight,
+						fullFault.AuditServerID.String()[4:12],
+						fullFault.ServerID.String()[4:12])
 					pl.State.AddAuthorityDelta(authorityDeltaString)
+					s.AddStatus(authorityDeltaString)
 
 					pl.Unfault()
 					haveReplaced = true
+
+					s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
 					break
 				}
 			}
