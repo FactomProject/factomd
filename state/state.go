@@ -1885,7 +1885,7 @@ func (s *State) AddStatus(status string) {
 	s.statusMutex.Lock()
 	defer s.statusMutex.Unlock()
 
-	if len(s.StatusStrs) > 1000 {
+	if len(s.StatusStrs) > 100000 {
 		copy(s.StatusStrs, s.StatusStrs[1:])
 		s.StatusStrs[len(s.StatusStrs)-1] = status
 	} else {

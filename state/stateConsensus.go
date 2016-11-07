@@ -1038,7 +1038,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		return false
 	}
 
-	// Should check dbheight first.
+	if s.EOM && e.DBHeight != dbheight {
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: Invalid EOM s.EOM(%v) && e.DBHeight(%v) != dbheight(%v)", s.EOM, e.DBHeight, dbheight))
+	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", s.EOM, e.Minute, s.EOMMinute))

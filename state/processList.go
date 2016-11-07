@@ -152,7 +152,7 @@ type VM struct {
 }
 
 func (p *ProcessList) Clear() {
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d",p.DBHeight))
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d", p.DBHeight))
 	p.FactoidBalancesTMutex.Lock()
 	defer p.FactoidBalancesTMutex.Unlock()
 	p.FactoidBalancesT = nil
@@ -1046,7 +1046,10 @@ func (p *ProcessList) AddDBSig(serverID interfaces.IHash, sig interfaces.IFullSi
 	dbsig := new(DBSig)
 	dbsig.ChainID = serverID
 	dbsig.Signature = sig
-	found, dbsig.VMIndex = p.GetVirtualServers(9, serverID) //vmIndex
+	found, dbsig.VMIndex = p.GetVirtualServers(0, serverID) //set the vmindex of the dbsig to the vm this server should sign
+	if !found {                                             // Should never happen.
+		return
+	}
 	p.DBSignatures = append(p.DBSignatures, *dbsig)
 	p.SortDBSigs()
 }
