@@ -167,3 +167,4 @@ echo "
 |  factomd   |
 +================+
 "
+go test -short  ./factomd/...
