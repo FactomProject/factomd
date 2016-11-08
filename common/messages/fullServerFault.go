@@ -465,7 +465,7 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 	if err != nil {
 		return 0
 	}
-	for i, fedSig := range m.SignatureList.List {
+	for _, fedSig := range m.SignatureList.List {
 		check, err := state.VerifyAuthoritySignature(cb, fedSig.GetSignature(), m.DBHeight)
 		if err == nil && check == 1 {
 			validSigCount++
