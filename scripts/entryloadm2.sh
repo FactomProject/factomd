@@ -1,7 +1,7 @@
 #!/bin/bash
 
 nchains=5      # number of chains to create
-nentries=50  # number of entries to add to each chain
+nentries=75  # number of entries to add to each chain
 
 fa1=$(factom-cli importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
 
@@ -13,7 +13,9 @@ factom-cli buyec $fa1 $ec1 $buyECs
 sleep 5s
 	
 addentries() {
-	sleep 30s
+	let y=$(shuf -i 300-320 -n 1)
+	echo SLEEP $y  YAWN
+	sleep $y
 	for ((i=0; i<nentries; i++)); do
     	cat scripts/data.txt | factom-cli addentry  -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
