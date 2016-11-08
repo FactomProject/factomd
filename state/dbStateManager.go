@@ -11,6 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
@@ -23,6 +24,8 @@ var _ = log.Print
 
 type DBState struct {
 	isNew bool
+
+	SaveStruct *SaveState
 
 	DBHash interfaces.IHash
 	ABHash interfaces.IHash
@@ -37,14 +40,12 @@ type DBState struct {
 	EntryBlocks []interfaces.IEntryBlock
 	Entries     []interfaces.IEBEntry
 
-	// The Authority Set in place at the time that we Process this DBState.  If this DBState
-	// is then successfully Saved, then this is an authority set we can trust.
-	FedServers   []interfaces.IFctServer
-	AuditServers []interfaces.IFctServer
-
 	Locked      bool
 	ReadyToSave bool
 	Saved       bool
+
+	FinalExchangeRate uint64
+	NextTimestamp     interfaces.Timestamp
 }
 
 type DBStateList struct {
@@ -312,9 +313,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	currentFeds := currentPL.FedServers
 	currentAuds := currentPL.AuditServers
 
-	d.FedServers = append(d.FedServers, currentFeds...)
-	d.AuditServers = append(d.AuditServers, currentAuds...)
-
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
 	if len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures) < majority {
@@ -369,6 +367,16 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
 	d.FactoidBlock.SetPrevLedgerKeyMR(p.FactoidBlock.GetLedgerKeyMR())
 
+	fblock := d.FactoidBlock.(*factoid.FBlock)
+
+	if len(fblock.Transactions) > 0 {
+		coinbaseTx := fblock.Transactions[0]
+		coinbaseTx.SetTimestamp(list.State.GetLeaderTimestamp())
+		fblock.Transactions[0] = coinbaseTx
+	}
+
+	d.FactoidBlock = fblock
+
 	d.DirectoryBlock.GetHeader().SetPrevFullHash(p.DirectoryBlock.GetFullHash())
 	d.DirectoryBlock.GetHeader().SetPrevKeyMR(p.DirectoryBlock.GetKeyMR())
 	d.DirectoryBlock.GetHeader().SetTimestamp(list.State.GetLeaderTimestamp())
@@ -407,30 +415,43 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		return
 	}
 
+	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
+	if dbht > 1 {
+		pd := list.State.DBStates.Get(int(dbht - 1))
+		if pd != nil && !pd.Saved {
+			return
+		}
+	}
+
 	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Bring the current federated servers and audit servers forward to the
 	// next block.
+
+	if list.State.DebugConsensus {
+		PrintState(list.State)
+	}
+
+	if d.SaveStruct == nil {
+		d.SaveStruct = SaveFactomdState(list.State, d)
+		return list.ProcessBlocks(d)
+	} /* FOR TESTING PURPOSES; no longer needed
+	    else {
+			d.SaveStruct.RestoreFactomdState(list.State, d)
+		} */
+
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
 
-	// Reset the pln to the value of the previous pl.
-	pln.FedServers = make([]interfaces.IFctServer, 0)
-	pln.AuditServers = make([]interfaces.IFctServer, 0)
-	pln.FedServers = append(pln.FedServers, pl.FedServers...)
-	pln.AuditServers = append(pln.AuditServers, pl.AuditServers...)
-
-	// Any updates required to the state as established by the AdminBlock are applied here.
+	//
+	// ***** Apply the AdminBlock chainges to the next DBState
+	//
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
-	dbstate := list.Get(int(ht))
-
-	if len(dbstate.FedServers) == 0 {
-		dbstate.FedServers = append(dbstate.FedServers, pl.FedServers...)
-		dbstate.AuditServers = append(dbstate.AuditServers, pl.AuditServers...)
-	}
+	pl.SortAuditServers()
+	pl.SortFedServers()
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
@@ -657,7 +678,7 @@ searchLoop:
 		cnt++
 	}
 
-	keep := uint32(2) // How many states to keep around; debugging helps with more.
+	keep := uint32(5) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)

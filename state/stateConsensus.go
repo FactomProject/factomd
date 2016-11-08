@@ -74,13 +74,17 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 func (s *State) Process() (progress bool) {
 
 	if s.ResetRequest {
+		s.ResetRequest = false
 		s.DoReset()
+		return false
 	}
 
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
-			s.RunLeader = true
+			if s.DBFinished == true {
+				s.RunLeader = true
+			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
@@ -89,6 +93,9 @@ func (s *State) Process() (progress bool) {
 	var vm *VM
 	if s.Leader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+		if vm.Height == 0 {
+			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
+		}
 	}
 
 	s.ReviewHolding()
@@ -187,6 +194,12 @@ func (s *State) ReviewHolding() {
 
 		dbsmsg, ok := s.Holding[k].(*messages.DBStateMsg)
 		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < s.LLeaderHeight-1 {
+			delete(s.Holding, k)
+			continue
+		}
+
+		dbsigmsg, ok := s.Holding[k].(*messages.DirectoryBlockSignature)
+		if ok && dbsigmsg.DBHeight < s.LLeaderHeight-1 {
 			delete(s.Holding, k)
 			continue
 		}
@@ -291,6 +304,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
 	if ack != nil {
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
@@ -389,23 +403,22 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 }
 
-func (s *State) FollowerExecuteNegotiation(m interfaces.IMsg) {
-	fmt.Println("JUSTIN : No more negotiation messages")
-}
-
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
-	sys, ok := mmr.MsgResponse.(*messages.FullServerFault)
-	if ok && sys != nil {
-		switch sys.Validate(s) {
+	fullFault, ok := mmr.MsgResponse.(*messages.FullServerFault)
+	if ok && fullFault != nil {
+		switch fullFault.Validate(s) {
 		case 1:
-			pl := s.ProcessLists.Get(sys.DBHeight)
-			if pl != nil {
-				pl.AddToSystemList(sys)
+			pl := s.ProcessLists.Get(fullFault.DBHeight)
+			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
+				pl.AddToSystemList(fullFault)
+
+			} else {
+				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 			}
 		case 0:
-			s.Holding[sys.GetRepeatHash().Fixed()] = sys
+			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 		default:
 			// Ignore if -1 or anything but 0 and 1
 		}
@@ -519,7 +532,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 					s.MissingEntries = append(s.MissingEntries, v)
 
 					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-					if s.Replay.IsTSValid_(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp(), now) {
+					if s.Replay.IsTSValid_(constants.TIME_TEST, entryhash.Fixed(), db.GetTimestamp(), now) {
 						delete(s.Commits, entryhash.Fixed())
 					}
 
@@ -654,8 +667,8 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	ack := s.NewAck(m).(*messages.Ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
@@ -672,6 +685,16 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom := m.(*messages.EOM)
 	pl := s.ProcessLists.Get(s.LLeaderHeight)
 	vm := pl.VMs[s.LeaderVMIndex]
+
+	// Put the System Height and Serial Hash into the EOM
+	eom.SysHeight = uint32(pl.System.Height)
+	if pl.System.Height > 1 {
+		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+		if ok {
+			eom.SysHash = ff.GetSerialHash()
+		}
+	}
+
 	if s.Syncing && vm.Synced {
 		return
 	} else if !s.Syncing {
@@ -700,6 +723,27 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
+}
+
+func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
+
+	dbs := m.(*messages.DirectoryBlockSignature)
+	pl := s.ProcessLists.Get(s.LLeaderHeight)
+
+	if len(pl.VMs[dbs.VMIndex].List) > 0 {
+		return
+	}
+
+	// Put the System Height and Serial Hash into the EOM
+	dbs.SysHeight = uint32(pl.System.Height)
+	if pl.System.Height > 1 {
+		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
+		if ok {
+			dbs.SysHash = ff.GetSerialHash()
+		}
+	}
+
+	s.LeaderExecute(dbs)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -762,6 +806,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
 		return false
 	}
 	return true
@@ -836,6 +881,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	} else {
 		fmt.Println(e)
 	}
+	s.AddStatus("Cannot process Commit Chain")
 
 	return false
 }
@@ -859,6 +905,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	} else {
 		fmt.Println(e)
 	}
+	s.AddStatus("Cannot Process Commit Entry")
+
 	return false
 }
 
@@ -901,6 +949,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	// be a chain somewhere.  If not, we return false.
 	if eb == nil {
 		if eb_db == nil {
+			s.AddStatus("Failed to add to process Reveal Entry because no Entry Block found")
 			return false
 		}
 		eb = entryBlock.NewEBlock()
@@ -931,39 +980,50 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+
 	ht := s.GetHighestCompletedBlock()
 	if dbheight <= ht || s.EOM {
 		return
 	}
 	pl := s.ProcessLists.Get(dbheight)
 	vm := pl.VMs[vmIndex]
-	if vm.LeaderMinute > 9 {
+	if vm.Height > 0 {
 		return
 	}
 	leader, lvm := pl.GetVirtualServers(vm.LeaderMinute, s.IdentityChainID)
-	if leader && !vm.Signed {
+	if !leader || lvm != vmIndex {
+		return
+	}
+
+	if !vm.Signed {
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 		if dbstate == nil && dbheight > 0 {
 			s.SendDBSig(dbheight-1, vmIndex)
 			return
 		}
 		if lvm == vmIndex {
-			dbs := new(messages.DirectoryBlockSignature)
-			dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
-			//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
-			dbs.ServerIdentityChainID = s.GetIdentityChainID()
-			dbs.DBHeight = dbheight
-			dbs.Timestamp = s.GetTimestamp()
-			dbs.SetVMHash(nil)
-			dbs.SetVMIndex(vmIndex)
-			dbs.SetLocal(true)
-			dbs.Sign(s)
-			err := dbs.Sign(s)
-			if err != nil {
-				panic(err)
+			if !pl.DBSigAlreadySent {
+				dbs := new(messages.DirectoryBlockSignature)
+				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
+				dbs.ServerIdentityChainID = s.GetIdentityChainID()
+				dbs.DBHeight = dbheight
+				dbs.Timestamp = s.GetTimestamp()
+				dbs.SetVMHash(nil)
+				dbs.SetVMIndex(vmIndex)
+				dbs.SetLocal(true)
+				dbs.Sign(s)
+				err := dbs.Sign(s)
+				if err != nil {
+					panic(err)
+				}
+
+				dbs.LeaderExecute(s)
+				vm.Signed = true
+				pl.DBSigAlreadySent = true
+			} else {
+				pl.Ask(vmIndex, 0, 0, 5)
 			}
-			dbs.LeaderExecute(s)
-			vm.Signed = true
 		}
 	}
 }
@@ -984,9 +1044,13 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
+	if uint32(pl.System.Height) >= e.SysHeight {
+		s.EOMSys = true
+	}
+
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
-	if s.EOMDone {
+	if s.EOMDone && s.EOMSys {
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
 			s.EOM = false
@@ -1001,6 +1065,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
+		s.EOMSys = false
 		s.Syncing = true
 		s.EOM = true
 		s.EOMLimit = len(s.LeaderPL.FedServers)
@@ -1012,6 +1077,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
+		s.AddStatus("EOM Syncing")
 		return false
 	}
 
@@ -1024,6 +1090,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
+		s.AddStatus("EOM Processed")
 		return false
 	}
 
@@ -1031,6 +1098,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+		s.AddStatus("EOM All Done")
 
 		s.EOMDone = true
 		for _, eb := range pl.NewEBlocks {
@@ -1090,7 +1158,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			if s.Leader {
 				dbstate := s.DBStates.Get(int(s.LLeaderHeight - 1))
 				dbs := new(messages.DirectoryBlockSignature)
-				dbs.DirectoryBlockHeader = dbstate.DirectoryBlock.GetHeader()
+				db := dbstate.DirectoryBlock
+				dbs.DirectoryBlockHeader = db.GetHeader()
 				//dbs.DirectoryBlockKeyMR = dbstate.DirectoryBlock.GetKeyMR()
 				dbs.ServerIdentityChainID = s.GetIdentityChainID()
 				dbs.DBHeight = s.LLeaderHeight
@@ -1152,8 +1221,12 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
+	if uint32(pl.System.Height) >= dbs.SysHeight {
+		s.DBSigSys = true
+	}
+
 	// If we are done with DBSigs, and this message is processed, then we are done.  Let everything go!
-	if s.DBSig && s.DBSigDone {
+	if s.DBSigSys && s.DBSig && s.DBSigDone {
 		s.DBSigProcessed--
 		if s.DBSigProcessed <= 0 {
 			s.DBSig = false
@@ -1182,8 +1255,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if dbs.VMIndex == 0 {
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR()) {
-			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", s.GetDBState(dbheight - 1).DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
+		dbstate := s.GetDBState(dbheight - 1)
+
+		if dbstate == nil || !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
+			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
 
@@ -1203,6 +1278,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		if allChecks {
+			dbs.Matches = true
 			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
 		}
 
@@ -1215,6 +1291,23 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
 	if allfaults && !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
+		fails := 0
+		for i := range pl.FedServers {
+			vm := pl.VMs[i]
+			tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
+			if !ok || !tdbsig.Matches {
+				fails++
+				vm.List[0] = nil
+				vm.Height = 0
+				s.DBSigProcessed--
+			}
+		}
+		if fails > len(pl.FedServers)/2 {
+			//s.DoReset()
+			return false
+		} else if fails > 0 {
+			return false
+		}
 		dbstate := s.DBStates.Get(int(dbheight - 1))
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
@@ -1228,8 +1321,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		} else {
 			s.DBSigFails++
-			s.DBStates.DBStates = s.DBStates.DBStates[:len(s.DBStates.DBStates)-1]
-
+			s.Reset()
 			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
 
 			if msg != nil {
@@ -1260,6 +1352,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 
 	fullFault, _ := msg.(*messages.FullServerFault)
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
+
+	if pl.System.Height < int(fullFault.SystemHeight) {
+		return false
+	}
+
 	vm := pl.VMs[int(fullFault.VMIndex)]
 
 	if fullFault.Height > uint32(vm.Height) {
@@ -1292,7 +1389,10 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			rHt := vm.Height
 			ffHt := int(fullFault.Height)
 			if rHt > ffHt {
-				pl.Reset()
+				vm.Height = ffHt
+				return false
+			} else if rHt < ffHt {
+				return false
 			}
 
 			// Here is where we actually swap out the Leader with the Audit server
@@ -1307,6 +1407,12 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 					// After executing the FullFault successfully, we want to reset
 					// to the default state (No One At Fault)
 					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+					authoritiesString := s.ConstructAuthoritySetString()
+					// Any updates required to the state as established by the AdminBlock are applied here.
+					pl.State.SetAuthoritySetString(authoritiesString)
+					authorityDeltaString := fmt.Sprintf("Full Fault (DBHt: %d SysHt: %d) \n ^ %s \n v %s", fullFault.DBHeight, fullFault.SystemHeight, fullFault.AuditServerID.String()[5:10], fullFault.ServerID.String()[5:10])
+					pl.State.AddAuthorityDelta(authorityDeltaString)
 
 					pl.Unfault()
 					haveReplaced = true
@@ -1358,7 +1464,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 	now := s.GetTimestamp()
 	for _, entry := range ec.GetEntries() {
 		cc, ok := entry.(*entryCreditBlock.CommitChain)
-		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, cc.GetHash().Fixed(), cc.GetTimestamp(), now) {
+		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, cc.GetSigHash().Fixed(), cc.GetTimestamp(), now) {
 			if s.NoEntryYet(cc.EntryHash, cc.GetTimestamp()) {
 				cmsg := new(messages.CommitChainMsg)
 				cmsg.CommitChain = cc
@@ -1367,7 +1473,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 			continue
 		}
 		ce, ok := entry.(*entryCreditBlock.CommitEntry)
-		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, ce.GetHash().Fixed(), ce.GetTimestamp(), now) {
+		if ok && s.Replay.IsTSValid_(constants.INTERNAL_REPLAY, ce.GetSigHash().Fixed(), ce.GetTimestamp(), now) {
 			if s.NoEntryYet(ce.EntryHash, ce.GetTimestamp()) {
 				emsg := new(messages.CommitEntryMsg)
 				emsg.CommitEntry = ce

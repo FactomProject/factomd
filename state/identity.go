@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
@@ -16,8 +20,6 @@ var (
 	TWELVE_HOURS_S uint64 = 12 * 60 * 60
 	// Time window for identity to require registration: 24hours = 144 blocks
 	TIME_WINDOW uint32 = 144
-	// First Identity
-	FIRST_IDENTITY string = "38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9"
 	// Where all Identities register
 	// e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 	MAIN_FACTOM_IDENTITY_LIST = "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327"
@@ -37,7 +39,7 @@ func (st *State) SelfIsFull() bool {
 }
 
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
-	if cid.String() == FIRST_IDENTITY { // Ignore first assumed identity
+	if cid.String() == st.GetNetworkBootStrapIdentity().String() { // Ignore Bootstrap Identity
 		return nil
 	}
 
@@ -165,9 +167,6 @@ func (st *State) removeIdentity(i int) {
 }
 
 func (st *State) isIdentityChain(cid interfaces.IHash) int {
-	if cid.IsSameAs(primitives.NewZeroHash()) {
-		return -1
-	}
 	// is this an identity chain
 	for i, identityChain := range st.Identities {
 		if identityChain.IdentityChainID.IsSameAs(cid) {
@@ -255,8 +254,8 @@ func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	if index := st.isIdentityChain(chainID); index != -1 {
 		return index
 	}
-	var idnew []Identity
-	idnew = make([]Identity, len(st.Identities)+1)
+	var idnew []*Identity
+	idnew = make([]*Identity, len(st.Identities)+1)
 
 	var oneID Identity
 
@@ -282,7 +281,7 @@ func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	oneID.MatryoshkaHash = primitives.NewZeroHash()
 	oneID.SigningKey = primitives.NewZeroHash()
 
-	idnew[len(st.Identities)] = oneID
+	idnew[len(st.Identities)] = &oneID
 
 	st.Identities = idnew
 	return len(st.Identities) - 1

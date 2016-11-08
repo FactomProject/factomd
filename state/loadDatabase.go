@@ -22,7 +22,13 @@ import (
 
 var _ = fmt.Print
 
+func SetDBFinished(s *State) {
+	s.DBFinished = true
+}
+
 func LoadDatabase(s *State) {
+	defer SetDBFinished(s)
+
 	var blkCnt uint32
 
 	head, err := s.DB.FetchDirectoryBlockHead()
@@ -84,7 +90,11 @@ func GenerateGenesisBlocks(networkID uint32) (interfaces.IDirectoryBlock, interf
 	ecblk := entryCreditBlock.NewECBlock()
 
 	if networkID != constants.MAIN_NETWORK_ID {
-		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
+		if networkID == constants.TEST_NETWORK_ID {
+			ablk.AddFedServer(primitives.NewZeroHash())
+		} else {
+			ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
+		}
 	} else {
 		ecblk.GetBody().AddEntry(entryCreditBlock.NewServerIndexNumber())
 		for i := 1; i < 11; i++ {

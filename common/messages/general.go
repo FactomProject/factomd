@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"errors"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -77,8 +78,6 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		msg = new(ChangeServerKeyMsg)
 	case constants.REMOVESERVER_MSG:
 		msg = new(RemoveServerMsg)
-	case constants.NEGOTIATION_MSG:
-		msg = new(Negotiation)
 	case constants.BOUNCE_MSG:
 		msg = new(Bounce)
 	case constants.BOUNCEREPLY_MSG:
@@ -144,8 +143,6 @@ func MessageName(Type byte) string {
 		return "DBState Missing"
 	case constants.DBSTATE_MSG:
 		return "DBState"
-	case constants.NEGOTIATION_MSG:
-		return "Negotiation"
 	case constants.BOUNCE_MSG:
 		return "Bounce Message"
 	case constants.BOUNCEREPLY_MSG:

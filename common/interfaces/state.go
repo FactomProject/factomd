@@ -35,6 +35,8 @@ type IState interface {
 	LoadSpecificMsgAndAck(dbheight uint32, vm int, plistheight uint32) (IMsg, IMsg, error)
 	SetString()
 	ShortString() string
+	GetStatus() []string
+	AddStatus(status string)
 
 	AddDBSig(dbheight uint32, chainID IHash, sig IFullSignature)
 	AddPrefix(string)
@@ -101,6 +103,7 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
+	GetPendingEntries() []IEntry
 	NextCommit(hash IHash) IMsg
 	PutCommit(hash IHash, msg IMsg)
 
@@ -117,6 +120,10 @@ type IState interface {
 	GetNetworkNumber() int  // Encoded into Directory Blocks
 	GetNetworkName() string // Some networks have defined names
 	GetNetworkID() uint32
+
+	// Bootstrap Identity Information is dependent on Network
+	GetNetworkBootStrapKey() IHash
+	GetNetworkBootStrapIdentity() IHash
 
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
@@ -156,6 +163,8 @@ type IState interface {
 	SetFactoshisPerEC(factoshisPerEC uint64)
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
+
+	GetPendingTransactions() []ITransaction
 	// MISC
 	// ====
 
@@ -170,7 +179,6 @@ type IState interface {
 	FollowerExecuteSFault(IMsg)       // Handling of Server Fault Messages
 	FollowerExecuteFullFault(IMsg)    // Handle Server Full-Fault Messages
 	FollowerExecuteMMR(IMsg)          // Handle Missing Message Responses
-	FollowerExecuteNegotiation(IMsg)  // Message to start the negotiation process to replace a faulted server
 	FollowerExecuteDataResponse(IMsg) // Handle Data Response
 	FollowerExecuteMissingMsg(IMsg)   // Handle requests for missing messages
 	FollowerExecuteCommitChain(IMsg)  // CommitChain needs to look for a Reveal Entry
@@ -189,6 +197,7 @@ type IState interface {
 	// For messages that go into the Process List
 	LeaderExecute(IMsg)
 	LeaderExecuteEOM(IMsg)
+	LeaderExecuteDBSig(IMsg)
 	LeaderExecuteRevealEntry(IMsg)
 	LeaderExecuteCommitChain(IMsg)
 	LeaderExecuteCommitEntry(IMsg)
@@ -231,6 +240,8 @@ type IState interface {
 	VerifyAuthoritySignature(Message []byte, signature *[64]byte, dbheight uint32) (int, error)
 	FastVerifyAuthoritySignature(Message []byte, signature IFullSignature, dbheight uint32) (int, error)
 	UpdateAuthSigningKeys(height uint32)
+
+	AddAuthorityDelta(changeString string)
 
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32
