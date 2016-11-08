@@ -1411,61 +1411,122 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 	}
 
 	pl.FaultedVMIndex = int(fullFault.VMIndex)
+	if int(fullFault.SystemHeight) == pl.System.Height {
+		if fullFault.HasEnoughSigs(s) {
+			if s.pledgedByAudit(fullFault) {
+				// If we are here, this means that the FullFault message is complete
+				// and we can execute it as such (replacing the faulted Leader with
+				// the nominated Audit server)
 
-	if fullFault.HasEnoughSigs(s) {
-		if s.pledgedByAudit(fullFault) {
-			// If we are here, this means that the FullFault message is complete
-			// and we can execute it as such (replacing the faulted Leader with
-			// the nominated Audit server)
+				rHt := vm.Height
+				ffHt := int(fullFault.Height)
+				if rHt > ffHt {
+					s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL but reset vm... %s", fullFault.String()))
+					vm.Height = ffHt
+					return false
+				} else if rHt < ffHt {
+					s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL, vm not there yet. %s", fullFault.String()))
+					return false
+				}
 
-			rHt := vm.Height
-			ffHt := int(fullFault.Height)
-			if rHt > ffHt {
-				s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL but reset vm... %s", fullFault.String()))
-				vm.Height = ffHt
-				return false
-			} else if rHt < ffHt {
-				s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL, vm not there yet. %s", fullFault.String()))
-				return false
+				// Here is where we actually swap out the Leader with the Audit server
+				// being promoted
+				for listIdx, fedServ := range pl.FedServers {
+					if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
+
+						pl.FedServers[listIdx] = theAuditReplacement
+						pl.FedServers[listIdx].SetOnline(true)
+						audIdx := pl.AddAuditServer(fedServ.GetChainID())
+						pl.AuditServers[audIdx].SetOnline(false)
+
+						s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
+						// After executing the FullFault successfully, we want to reset
+						// to the default state (No One At Fault)
+						s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+						authoritiesString := s.ConstructAuthoritySetString()
+						// Any updates required to the state as established by the AdminBlock are applied here.
+						pl.State.SetAuthoritySetString(authoritiesString)
+						authorityDeltaString := fmt.Sprintf("FULL FAULT DBHt: %d SysHt: %d ServerID %s AuditServerID %s",
+							fullFault.DBHeight,
+							fullFault.SystemHeight,
+							fullFault.ServerID.String()[4:12],
+							fullFault.AuditServerID.String()[4:12])
+						pl.State.AddAuthorityDelta(authorityDeltaString)
+						s.AddStatus(authorityDeltaString)
+
+						pl.Unfault()
+						haveReplaced = true
+
+						s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+						s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+
+						break
+					}
+				}
+
 			}
-
-			// Here is where we actually swap out the Leader with the Audit server
-			// being promoted
-			for listIdx, fedServ := range pl.FedServers {
-				if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-
-					pl.FedServers[listIdx] = theAuditReplacement
-					pl.FedServers[listIdx].SetOnline(true)
-					audIdx := pl.AddAuditServer(fedServ.GetChainID())
-					pl.AuditServers[audIdx].SetOnline(false)
-
-					s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
-					// After executing the FullFault successfully, we want to reset
-					// to the default state (No One At Fault)
-					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
-					authoritiesString := s.ConstructAuthoritySetString()
-					// Any updates required to the state as established by the AdminBlock are applied here.
-					pl.State.SetAuthoritySetString(authoritiesString)
-					authorityDeltaString := fmt.Sprintf("FULL FAULT DBHt: %d SysHt: %d ServerID %s AuditServerID %s",
-						fullFault.DBHeight,
-						fullFault.SystemHeight,
-						fullFault.ServerID.String()[4:12],
-						fullFault.AuditServerID.String()[4:12])
-					pl.State.AddAuthorityDelta(authorityDeltaString)
-					s.AddStatus(authorityDeltaString)
-
-					pl.Unfault()
-					haveReplaced = true
-
-					s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-					s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-
-					break
+		} else {
+			mightMatch := false
+			willUpdate := false
+			if s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
+				// We are the nominated auditServer
+				mightMatch = true
+			} else {
+				if vm.whenFaulted != 0 {
+					//I AGREE
+					currentTopPriority := TopPriorityFaultState(pl)
+					var tpts int64
+					if currentTopPriority.IsNil() {
+						tpts = 0
+					} else {
+						tpts = currentTopPriority.FaultCore.Timestamp.GetTimeSeconds()
+					}
+					ffts := fullFault.Timestamp.GetTimeSeconds()
+					if ffts >= tpts {
+						//THIS IS TOP PRIORITY
+						if !currentTopPriority.IsNil() && fullFault.ServerID.IsSameAs(currentTopPriority.FaultCore.ServerID) && ffts > tpts {
+							//IT IS A RENEWAL
+							if int(ffts-tpts) < s.FaultTimeout {
+								//TOO SOON
+								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
+								Fault(pl, newVMI, int(fullFault.Height))
+							} else {
+								if !currentTopPriority.IsNil() && couldIFullFault(pl, int(currentTopPriority.FaultCore.VMIndex)) {
+									//I COULD FAULT BUT HE HASN'T
+									newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
+									Fault(pl, newVMI, int(fullFault.Height))
+								} else {
+									willUpdate = true
+								}
+							}
+						} else {
+							willUpdate = true
+						}
+					}
 				}
 			}
+			if willUpdate {
+				mightMatch = true
+				s.regularFullFaultExecution(fullFault, pl)
+			}
+			if mightMatch {
+				theFaultState := pl.GetFaultState(fullFault.GetCoreHash().Fixed())
+				if !theFaultState.MyVoteTallied {
+					now := time.Now().Unix()
 
+					if now-theFaultState.LastMatch > 5 && int(now-s.LastTiebreak) > s.FaultTimeout/2 {
+						if theFaultState.SigTally(s) >= len(pl.FedServers)-1 {
+							s.LastTiebreak = now
+						}
+						nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex),
+							fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
+						s.matchFault(nsf)
+					}
+				}
+			}
 		}
+
 	}
 	return haveReplaced
 }

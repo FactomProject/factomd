@@ -765,7 +765,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					break systemloop
 				}
 				if !fault.Process(p.DBHeight, p.State) {
-					return false
+					break
 				}
 				p.System.Height++
 				progress = true
@@ -919,7 +919,11 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Something is in our SystemList at this height;
 	// We will prioritize the FullFault with the highest VMIndex
 	existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
-	if int(existingSystemFault.VMIndex) >= int(fullFault.VMIndex) {
+	if int(existingSystemFault.VMIndex) > int(fullFault.VMIndex) {
+		return false
+	}
+
+	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
 		return false
 	}
 
