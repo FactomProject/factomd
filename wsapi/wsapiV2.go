@@ -67,7 +67,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	fmt.Println(j.Method)
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
