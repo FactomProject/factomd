@@ -37,9 +37,8 @@ const (
 	ADDSERVER_MSG        // 22
 	CHANGESERVER_KEY_MSG // 23
 	REMOVESERVER_MSG     // 24
-	NEGOTIATION_MSG      // 25
 
-	BOUNCE_MSG      // 26	test message
+	BOUNCE_MSG      // 25	test message
 	BOUNCEREPLY_MSG // 26	test message
 
 	MISSING_ENTRY_BLOCKS //27

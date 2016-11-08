@@ -257,6 +257,6 @@ func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlist
 	msg.Timestamp = state.GetTimestamp()
 	msg.DBHeight = dbHeight
 	msg.ProcessListHeight = append(msg.ProcessListHeight, processlistHeight)
-
+	msg.SystemHeight = uint32(state.GetSystemHeight(dbHeight))
 	return msg
 }

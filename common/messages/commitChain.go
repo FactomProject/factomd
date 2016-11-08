@@ -72,7 +72,7 @@ func (m *CommitChainMsg) Process(dbheight uint32, state interfaces.IState) bool 
 }
 
 func (m *CommitChainMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.CommitChain.GetSigHash()
 }
 
 func (m *CommitChainMsg) GetHash() interfaces.IHash {

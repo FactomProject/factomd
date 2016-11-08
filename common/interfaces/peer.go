@@ -17,4 +17,6 @@ type IPeer interface {
 	Len() int                           // Returns the number of messages waiting to be read
 	Equals(IPeer) bool                  // Is this connection equal to parm connection
 	Weight() int                        // How many nodes does this peer represent?
+	BytesOut() int                      // Bytes sent out per second from this peer
+	BytesIn() int                       // Bytes recieved per second from this peer
 }

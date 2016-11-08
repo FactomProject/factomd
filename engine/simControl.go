@@ -7,15 +7,12 @@ package engine
 import (
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
-
-	"math/rand"
-
-	"bytes"
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
@@ -26,6 +23,9 @@ import (
 var _ = fmt.Print
 var sortByID bool
 var verboseFaultOutput = false
+var verboseAuthoritySet = false
+var verboseAuthorityDeltas = false
+var totalServerFaults int
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -34,6 +34,7 @@ func SimControl(listenTo int) {
 	var watchMessages int
 	var rotate int
 	var wsapiNode int
+	var faulting bool
 
 	for {
 		l := make([]byte, 100)
@@ -70,6 +71,7 @@ func SimControl(listenTo int) {
 					break
 				}
 				s := fnodes[listenTo].State
+				os.Stderr.WriteString("Reset Node: " + s.FactomNodeName + "\n")
 				s.Reset()
 
 			case 'g' == b[0]:
@@ -135,6 +137,33 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
 				}
 			case 's' == b[0]:
+
+				if len(b) > 1 {
+					ht, err := strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString("type snnn where nnn is the number of status messages to print\n")
+						break
+					}
+
+					if listenTo < 0 || listenTo > len(fnodes) {
+						os.Stderr.WriteString("Select a node first\n")
+						break
+					}
+
+					f := fnodes[listenTo]
+
+					fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
+					l := len(f.State.StatusStrs)
+					if l < ht {
+						ht = l
+					}
+					for i := 0; i < ht; i++ {
+						os.Stderr.WriteString(f.State.StatusStrs[l-1] + "\n")
+						l--
+					}
+					break
+				}
+
 				summary++
 				if summary%2 == 1 {
 					os.Stderr.WriteString("--Print Summary On--\n")
@@ -143,6 +172,31 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
 			case 'p' == b[0]:
+				if len(b) > 1 {
+					ht, err := strconv.Atoi(string(b[1:]))
+					if err != nil {
+						os.Stderr.WriteString("Dump Process List with pn  where n = blockheight, i.e. 'p10'")
+						break
+					}
+
+					if listenTo < 0 || listenTo > len(fnodes) {
+						os.Stderr.WriteString("Select a node first")
+						break
+					}
+
+					f := fnodes[listenTo]
+
+					pl := f.State.ProcessLists.Get(uint32(ht))
+					if pl == nil {
+						os.Stderr.WriteString("No Process List found")
+					} else {
+						fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
+						fmt.Println(pl.String())
+					}
+
+					break
+				}
+
 				watchPL++
 				if watchPL%2 == 1 {
 					os.Stderr.WriteString("--Print Process Lists On--\n")
@@ -290,12 +344,62 @@ func SimControl(listenTo int) {
 			case 'v' == b[0]:
 				if verboseFaultOutput {
 					verboseFaultOutput = false
-					os.Stderr.WriteString("--VerboseFaultOutput Off--\n")
+					os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
 				} else {
 					verboseFaultOutput = true
 					os.Stderr.WriteString("--VerboseFaultOutput On--\n")
 				}
 			case 'V' == b[0]:
+				if len(b) == 1 {
+					os.Stderr.WriteString("Vnnn -- Set the timeout for faulting a server to nnn seconds\n")
+					os.Stderr.WriteString("Vt   -- Start an automated Faulting Test, or stop a running Faulting Test\n")
+					os.Stderr.WriteString("VL   -- Display all the authority sets in the Status update\n")
+					os.Stderr.WriteString("Vr   -- Reset all nodes in the simulation\n")
+					break
+				}
+
+				if b[1] == 't' {
+					faulting = !faulting
+					if faulting {
+						os.Stderr.WriteString("Start Faulting Test\n")
+						go faultTest(&faulting)
+					} else {
+						os.Stderr.WriteString("Stop Faulting Test\n")
+					}
+					break
+				}
+
+				// Reset Everything
+				if b[1] == 'r' {
+					os.Stderr.WriteString("Reset all nodes in the simulation!\n")
+					for _, f := range fnodes {
+						f.State.Reset()
+					}
+					break
+				}
+
+				if b[1] == 'l' || b[1] == 'L' {
+					if verboseAuthoritySet {
+						verboseAuthoritySet = false
+						os.Stderr.WriteString("--VerboseAuthoritySet Off--\n")
+					} else {
+						verboseAuthoritySet = true
+						os.Stderr.WriteString("--VerboseAuthoritySet On--\n")
+					}
+					break
+				}
+
+				if b[1] == 'd' || b[1] == 'D' {
+					if verboseAuthorityDeltas {
+						verboseAuthorityDeltas = false
+						os.Stderr.WriteString("--VerboseAuthorityDeltas Off--\n")
+					} else {
+						verboseAuthorityDeltas = true
+						os.Stderr.WriteString("--VerboseAuthorityDeltas On--\n")
+					}
+					break
+				}
+
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 99 {
 					os.Stderr.WriteString("Specifiy a FaultTimeout between 0 and 100\n")
@@ -305,6 +409,7 @@ func SimControl(listenTo int) {
 					fn.State.FaultTimeout = nnn
 					os.Stderr.WriteString(fmt.Sprintf("Setting FaultTimeout of %10s to %d\n", fn.State.FactomNodeName, nnn))
 				}
+
 			case 'k' == b[0]:
 				mLog.all = false
 				for _, fnode := range fnodes {
@@ -706,13 +811,16 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'q' == b[0]:
-				eHashes := fnodes[listenTo].State.GetPendingEntryHashes()
+				eHashes := fnodes[listenTo].State.GetPendingEntries()
 				os.Stderr.WriteString("Pending Entry Hash\n")
 				os.Stderr.WriteString("------------------\n")
 				for _, eh := range eHashes {
 					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
 				}
+			case 'j' == b[0]:
 
+				fpl := fnodes[listenTo].State.GetPendingTransactions()
+				fmt.Println(fpl)
 			case 'S' == b[0]:
 				nnn, err := strconv.Atoi(string(b[1:]))
 				if err != nil || nnn < 0 || nnn > 999 {
@@ -788,7 +896,10 @@ func SimControl(listenTo int) {
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
-				os.Stderr.WriteString("h or ENTER    Shows this help\n")
+				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
+				os.Stderr.WriteString("nnn           For some number nnn < the number of nodes:  Set focus on that node\n")
+				os.Stderr.WriteString("n             increment (with wrap) the node under focus.  i.e. if on 1, focus is set to 2\n")
+				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
 				os.Stderr.WriteString("aN            Show Admin block    			 N. Indicate node eg:\"a5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("eN            Show Entry Credit Block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("fN            Show Factoid block  			 N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
@@ -813,6 +924,11 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("tN            Attaches Nth identity in pool to current node. Can also just press 't' to grab the next\n")
 				os.Stderr.WriteString("i             Shows the identities being monitored for change.\n")
 				os.Stderr.WriteString("u             Shows the current Authorities (federated or audit servers)\n")
+				os.Stderr.WriteString("v             Verbose Fault Debug Output\n")
+				os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
+				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
+				os.Stderr.WriteString("Vreset        Reset all fnodes in the simulation.\n")
+				os.Stderr.WriteString("!             Reset the current node with the focus (i.e. the 'f' by it)\n")
 				os.Stderr.WriteString("Snnn          Set Drop Rate to nnn on everyone\n")
 				os.Stderr.WriteString("Onnn          Set Drop Rate to nnn on this node\n")
 				os.Stderr.WriteString("Dnnn          Set the Delay on messages from the current node to nnn milliseconds\n")
@@ -865,255 +981,6 @@ func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
 		wsapi.SetState(fnode.State)
 		time.Sleep(3 * time.Second)
 	}
-}
-
-func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
-	out := ""
-
-	if *listenTo < 0 || *listenTo >= len(fnodes) {
-		return
-	}
-
-	for *summary == value {
-		prt := "===SummaryStart===\n\n"
-		prt = fmt.Sprintf("%sTime: %d\n", prt, time.Now().Unix())
-
-		for i, f := range fnodes {
-			f.Index = i
-		}
-
-		var pnodes []*FactomNode
-		pnodes = append(pnodes, fnodes...)
-		if sortByID {
-			for i := 0; i < len(pnodes)-1; i++ {
-				for j := 0; j < len(pnodes)-1-i; j++ {
-					if bytes.Compare(pnodes[j].State.GetIdentityChainID().Bytes(), pnodes[j+1].State.GetIdentityChainID().Bytes()) > 0 {
-						pnodes[j], pnodes[j+1] = pnodes[j+1], pnodes[j]
-					}
-				}
-			}
-		}
-
-		fctSubmits := 0
-		ecCommits := 0
-		eCommits := 0
-
-		for _, f := range pnodes {
-			f.State.Status = 1
-		}
-
-		time.Sleep(time.Second)
-
-		prt = prt + "    " + pnodes[0].State.SummaryHeader()
-
-		for i, f := range pnodes {
-			in := ""
-			api := ""
-			if f.Index == *listenTo {
-				in = "f"
-			}
-			if f.Index == *wsapiNode {
-				api = "w"
-			}
-
-			prt = prt + fmt.Sprintf("%3d %1s%1s %s \n", i, in, api, f.State.ShortString())
-		}
-
-		if *listenTo < len(pnodes) {
-			f := pnodes[*listenTo]
-			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryHeightComplete)
-		}
-
-		for _, f := range pnodes {
-			fctSubmits += f.State.FCTSubmits
-			ecCommits += f.State.ECCommits
-			eCommits += f.State.ECommits
-		}
-
-		totals := fmt.Sprintf("%d/%d/%d", fctSubmits, ecCommits, eCommits)
-		prt = prt + fmt.Sprintf("%145s %20s\n", "", totals)
-
-		fmtstr := "%26s%s\n"
-
-		var list string
-
-		list = ""
-		for i, _ := range pnodes {
-			list = list + fmt.Sprintf(" %3d", i)
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.Commits))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Commits", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", f.State.LeaderPL.LenNewEntries())
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Pending Entries", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.Acks))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Acks", list)
-
-		prt = prt + "\n"
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.MsgQueue()))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "MsgQueue", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.AckQueue()))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "AckQueue", list)
-
-		prt = prt + "\n"
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.TimerMsgQueue()))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "TimerMsgQueue", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
-
-		list = ""
-		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkInvalidMsgQueue()))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
-
-		prt = prt + faultSummary()
-
-		prt = prt + "===SummaryEnd===\n"
-
-		if prt != out {
-			fmt.Println(prt)
-			out = prt
-		}
-
-		time.Sleep(time.Second)
-	}
-}
-
-func faultSummary() string {
-	prt := ""
-	headerTitle := "Faults"
-	headerLabel := "Fed   "
-	currentlyFaulted := "."
-
-	for i, fnode := range fnodes {
-		if verboseFaultOutput || !fnode.State.GetNetStateOff() {
-			b := fnode.State.GetHighestCompletedBlock()
-			pl := fnode.State.ProcessLists.Get(b + 1)
-			if pl == nil {
-				pl = fnode.State.ProcessLists.Get(b)
-			}
-			if pl != nil {
-				if i == 0 {
-					prt = prt + fmt.Sprintf("%s\n", headerTitle)
-					prt = prt + fmt.Sprintf("%7s", headerLabel)
-					for headerNum, _ := range pl.FedServers {
-						prt = prt + fmt.Sprintf(" %3d", headerNum)
-					}
-					prt = prt + fmt.Sprintf("\n")
-				}
-				if fnode.State.Leader {
-					prt = prt + fmt.Sprintf("%7s ", fnode.State.FactomNodeName)
-					for _, fed := range pl.FedServers {
-						currentlyFaulted = "."
-						if !fed.IsOnline() {
-							currentlyFaulted = "F"
-						}
-						prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
-					}
-					if pl.AmINegotiator {
-						lenFaults := pl.LenFaultMap()
-						if lenFaults > 0 {
-							prt = prt + fmt.Sprintf("| Faults:")
-							if lenFaults < 3 {
-								faultIDs := pl.GetKeysFaultMap()
-								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID)
-									if !faultState.IsNil() {
-										prt = prt + fmt.Sprintf(" %x/%x:%d ", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], faultState.SigTally(pl.State))
-
-										pledgeDoneString := "N"
-										if faultState.PledgeDone {
-											pledgeDoneString = "Y"
-										}
-										prt = prt + pledgeDoneString
-									}
-								}
-							} else {
-								//too many, line gets cluttered, just show totals
-								faultIDs := pl.GetKeysFaultMap()
-								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID)
-									if !faultState.IsNil() {
-										//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
-										pledgeDoneString := "N"
-										if faultState.PledgeDone {
-											pledgeDoneString = "Y"
-										}
-										prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
-										//}
-									}
-								}
-							}
-
-							//prt = prt + " |"
-						}
-					}
-
-					prt = prt + fmt.Sprintf("\n")
-				}
-			}
-		}
-	}
-	return prt
 }
 
 func printProcessList(watchPL *int, value int, listenTo *int) {

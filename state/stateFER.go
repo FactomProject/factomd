@@ -1,3 +1,7 @@
+// Copyright 2015 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package state
 
 import (
@@ -44,8 +48,8 @@ func (this *State) ProcessRecentFERChainEntries() {
 	// Check to see if a price change targets the next block
 	if this.FERChangeHeight == (this.GetDBHeightComplete())+1 {
 		this.FactoshisPerEC = this.FERChangePrice
-		this.FERChangePrice = 100000000
-		this.FERChangeHeight = 0
+		this.FERChangePrice = 0
+		this.FERChangeHeight = 1
 	}
 
 	// Check for the need to clear the priority
@@ -59,6 +63,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 
 	// Check last entry block method
 	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-1 {
+
 		entryHashes := entryBlock.GetEntryHashes()
 
 		// this.Println("Found FER entry hashes in a block as: ", entryHashes)
@@ -106,7 +111,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 			ferEntry.SetResidentHeight(this.GetDBHeightComplete())
 
 			if (this.FerEntryIsValid(ferEntry)) && (ferEntry.Priority > this.FERPriority) {
-				fmt.Println(" Processing FER entry : ", string(entryContent))
+				this.Println(" Processing FER entry : ", string(entryContent))
 				this.FERPriority = ferEntry.GetPriority()
 				this.FERPrioritySetHeight = this.GetDBHeightComplete()
 				this.FERChangePrice = ferEntry.GetTargetPrice()
@@ -117,7 +122,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 					this.FERChangeHeight = this.GetDBHeightComplete() + 2
 				}
 			} else {
-				fmt.Println(" Failed FER entry : ", string(entryContent))
+				this.Println(" Failed FER entry : ", string(entryContent))
 			}
 		}
 	}
@@ -171,11 +176,14 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	// fail if expired
 	if passedFEREntry.GetExpirationHeight() < passedFEREntry.GetResidentHeight() {
+		fmt.Println("FER Failed-fail if expired")
 		return false
 	}
 
 	// fail if expired height is too far out
-	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 6) {
+	if passedFEREntry.GetExpirationHeight() > (passedFEREntry.GetResidentHeight() + 12) {
+		fmt.Println("FER Failed-fail if expired height is too far out")
+
 		return false
 	}
 
@@ -184,7 +192,7 @@ func (this *State) FerEntryIsValid(passedFEREntry interfaces.IFEREntry) bool {
 	if (passedFEREntry.GetTargetActivationHeight() > (passedFEREntry.GetExpirationHeight() + 6)) ||
 		((passedFEREntry.GetExpirationHeight() >= 6) &&
 			(passedFEREntry.GetTargetActivationHeight() < (passedFEREntry.GetExpirationHeight() - 6))) {
-
+		fmt.Println("FER Failed-fail if target is out of range of the expire height")
 		return false
 	}
 

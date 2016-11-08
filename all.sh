@@ -59,6 +59,7 @@ checkout() {
     cd $1 $2 > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
+        git fetch -q
         git checkout -q $2 > /dev/null 2>&1
         if [ $? -eq 0 ]; then
             echo -e -n " now on" $2    # checkout did not fail
@@ -141,7 +142,7 @@ checkout serveridentity $branch $default
 
 echo "
 ********************************************************
-*     Compiling fctwallet, the cli, and factomd
+*     Compiling factom-walletd, the cli, and factomd
 ********************************************************
 "
 compileFactomdGitHash factomd || exit 1

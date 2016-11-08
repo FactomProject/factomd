@@ -80,17 +80,21 @@ type State struct {
 	CustomNetworkID   []byte
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
-	Identities           []Identity       // Identities of all servers in management chain
-	Authorities          []Authority      // Identities of all servers in management chain
+	Identities           []*Identity      // Identities of all servers in management chain
+	Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
 	// Just to print (so debugging doesn't drive functionaility)
-	Status    int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
-	serverPrt string
-	starttime time.Time
-	transCnt  int
-	lasttime  time.Time
-	tps       float64
+	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
+	serverPrt   string
+	statusMutex sync.Mutex
+	StatusStrs  []string
+	starttime   time.Time
+	transCnt    int
+	lasttime    time.Time
+	tps         float64
+	ResetTryCnt int
+	ResetCnt    int
 
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
@@ -137,6 +141,7 @@ type State struct {
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
+	DBFinished      bool
 	RunLeader       bool
 	LLeaderHeight   uint32
 	Leader          bool
@@ -154,14 +159,16 @@ type State struct {
 	EOMProcessed int
 	EOMDone      bool
 	EOMMinute    int
+	EOMSys       bool // At least one EOM has covered the System List
 
 	DBSig          bool
 	DBSigLimit     int
 	DBSigProcessed int // Number of DBSignatures received and processed.
 	DBSigDone      bool
+	DBSigSys       bool // At least one DBSig has covered the System List
 
 	// By default, this is false, which means DBstates are discarded
-	//when a majority of leaders disagree with the hash we have via DBSigs
+	// when a majority of leaders disagree with the hash we have via DBSigs
 	KeepMismatch bool
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
@@ -199,7 +206,8 @@ type State struct {
 	LastFaultAction int64
 	LastTiebreak    int64
 
-	//Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
+	AuthoritySetString string
+	// Network MAIN = 0, TEST = 1, LOCAL = 2, CUSTOM = 3
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
@@ -220,8 +228,9 @@ type State struct {
 	//
 	// Process list previous [0], present(@DBHeight) [1], and future (@DBHeight+1) [2]
 
-	ResetRequest bool // Set to true to trigger a reset
-	ProcessLists *ProcessLists
+	ResetRequest    bool // Set to true to trigger a reset
+	ProcessLists    *ProcessLists
+	AuthorityDeltas string
 
 	// Factom State
 	FactoidState    interfaces.IFactoidState
@@ -236,7 +245,7 @@ type State struct {
 	// Web Services
 	Port int
 
-	//For Replay / journal
+	// For Replay / journal
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
@@ -401,6 +410,22 @@ func (s *State) GetDropRate() int {
 
 func (s *State) SetDropRate(droprate int) {
 	s.DropRate = droprate
+}
+
+func (s *State) SetAuthoritySetString(authSet string) {
+	s.AuthoritySetString = authSet
+}
+
+func (s *State) GetAuthoritySetString() string {
+	return s.AuthoritySetString
+}
+
+func (s *State) AddAuthorityDelta(authSet string) {
+	s.AuthorityDeltas += fmt.Sprintf("\n%s", authSet)
+}
+
+func (s *State) GetAuthorityDeltas() string {
+	return s.AuthorityDeltas
 }
 
 func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
@@ -574,7 +599,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.DBType = "Map"
 		s.ExportData = false
 		s.ExportDataSubpath = "data/export"
-		s.Network = "LOCAL"
+		s.Network = "TEST"
 		s.MainNetworkPort = "8108"
 		s.PeersFile = "peers.json"
 		s.MainSeedURL = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
@@ -621,7 +646,6 @@ func (s *State) GetSalt(ts interfaces.Timestamp) uint32 {
 }
 
 func (s *State) Init() {
-
 	if s.Salt == nil {
 		b := make([]byte, 32)
 		_, err := rand.Read(b)
@@ -875,8 +899,9 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	var eBlocks []interfaces.IEntryBlock
 	var entries []interfaces.IEBEntry
 
-	if len(dblk.GetDBEntries()) > 2 {
-		for _, v := range dblk.GetDBEntries()[3:] {
+	ebDBEntries := dblk.GetEBlockDBEntries()
+	if len(ebDBEntries) > 0 {
+		for _, v := range ebDBEntries {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
 				eBlocks = append(eBlocks, eBlock)
@@ -897,6 +922,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	}
 
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
+	msg.(*messages.DBStateMsg).IsInDB = true
 
 	return msg, nil
 }
@@ -954,8 +980,10 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 	return msg, ackMsg, nil
 }
 
-func (s *State) GetPendingEntryHashes() []interfaces.IHash {
+func (s *State) GetPendingEntries() []interfaces.IEntry {
+
 	pLists := s.ProcessLists
+
 	if pLists == nil {
 		return nil
 	}
@@ -963,14 +991,27 @@ func (s *State) GetPendingEntryHashes() []interfaces.IHash {
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
-	hashResponse := make([]interfaces.IHash, pl.LenNewEntries())
+	hashResponse := make([]interfaces.IEntry, pl.LenNewEntries())
 	keys := pl.GetKeysNewEntries()
 	for _, k := range keys {
 		entry := pl.GetNewEntry(k)
-		hashResponse[hashCount] = entry.GetHash()
+		hashResponse[hashCount] = entry
 		hashCount++
 	}
 	return hashResponse
+}
+
+func (s *State) GetPendingTransactions() []interfaces.ITransaction {
+
+	cb := s.FactoidState.GetCurrentBlock()
+	ct := cb.GetTransactions()
+	ts := make([]interfaces.ITransaction, len(ct))
+
+	for i, tran := range ct {
+		ts[i] = tran
+	}
+
+	return ts
 }
 
 func (s *State) IncFactoidTrans() {
@@ -1067,9 +1108,11 @@ func (s *State) UpdateState() (progress bool) {
 	return
 }
 
+// Returns true if this hash exists nowhere in the Replay structures.  Returns False if we
+// have already seen this hash before.  Replay is NOT updated yet.
 func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) bool {
-	_, ok := s.Replay.Valid(constants.REVEAL_REPLAY, entryhash.Fixed(), ts, s.GetTimestamp())
-	return ok
+	unique := s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed())
+	return unique
 }
 
 func (s *State) catchupEBlocks() {
@@ -1124,46 +1167,74 @@ func (s *State) catchupEBlocks() {
 	if len(s.MissingEntryBlocks) < 10 {
 		// While we have less than 20 that we are asking for, look for more to ask for.
 		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
-			db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
-
-			for i, ebKeyMR := range db.GetEntryHashes() {
-				// The first three entries (0,1,2) in every directory block are blocks we already have by
-				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
-				// then this assumption might not hold.  But it does for now.
-				if i <= 2 {
-					continue
+			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
+			doubleCheck := false
+			if dbstate != nil {
+				if len(dbstate.DirectoryBlock.GetEBlockDBEntries()) != len(dbstate.EntryBlocks) {
+					fmt.Printf("Wrong amount of entry blocks\n")
+					doubleCheck = true
 				}
-
-				// Ask for blocks we don't have.
-				if !s.DatabaseContains(ebKeyMR) {
-					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
-						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
-				} else {
-					eblock, _ := s.DB.FetchEBlock(ebKeyMR)
-
-					for _, entryhash := range eblock.GetEntryHashes() {
-						if entryhash.IsMinuteMarker() {
-							continue
-						}
-						e, _ := s.DB.FetchEntry(entryhash)
-						if e == nil {
-							var v struct {
-								ebhash    interfaces.IHash
-								entryhash interfaces.IHash
-								dbheight  uint32
+				if doubleCheck == false {
+					entryCount := 0
+					for _, v := range dbstate.EntryBlocks {
+						for _, w := range v.GetEntryHashes() {
+							if !w.IsMinuteMarker() {
+								entryCount++
 							}
-
-							v.dbheight = eblock.GetHeader().GetDBHeight()
-							v.entryhash = entryhash
-							v.ebhash = ebKeyMR
-
-							s.MissingEntries = append(s.MissingEntries, v)
 						}
-						// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-						if s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
-							s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), now)
-						} else {
-							delete(s.Commits, entryhash.Fixed())
+					}
+					if entryCount != len(dbstate.Entries) {
+						fmt.Printf("Wrong amount of entries - %v vs %v\n", entryCount, len(dbstate.Entries))
+						doubleCheck = true
+					}
+				}
+			} else {
+				doubleCheck = true
+			}
+
+			if doubleCheck {
+				db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
+
+				for i, ebKeyMR := range db.GetEntryHashes() {
+					// The first three entries (0,1,2) in every directory block are blocks we already have by
+					// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
+					// then this assumption might not hold.  But it does for now.
+					if i <= 2 {
+						continue
+					}
+
+					eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
+
+					// Ask for blocks we don't have.
+					if eBlock == nil {
+						fmt.Printf("Could not find block %v\n", ebKeyMR)
+						s.MissingEntryBlocks = append(s.MissingEntryBlocks,
+							MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+					} else {
+						for _, entryhash := range eBlock.GetEntryHashes() {
+							if entryhash.IsMinuteMarker() {
+								continue
+							}
+							e, _ := s.DB.FetchEntry(entryhash)
+							if e == nil {
+								var v struct {
+									ebhash    interfaces.IHash
+									entryhash interfaces.IHash
+									dbheight  uint32
+								}
+
+								v.dbheight = eBlock.GetHeader().GetDBHeight()
+								v.entryhash = entryhash
+								v.ebhash = ebKeyMR
+
+								s.MissingEntries = append(s.MissingEntries, v)
+							}
+							// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+							if s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+								s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), now)
+							} else {
+								delete(s.Commits, entryhash.Fixed())
+							}
 						}
 					}
 				}
@@ -1424,6 +1495,42 @@ func (s *State) GetNetworkID() uint32 {
 	return uint32(0)
 }
 
+// The inital public key that can sign the first block
+func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+		return key
+	case constants.NETWORK_TEST:
+		key, _ := primitives.HexToHash("49b6edd274e7d07c94d4831eca2f073c207248bde1bf989d2183a8cebca227b7")
+		return key
+	case constants.NETWORK_LOCAL:
+		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+		return key
+	case constants.NETWORK_CUSTOM:
+		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+		return key
+	}
+	return primitives.NewZeroHash()
+}
+
+// The inital identity that can sign the first block
+func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_TEST:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_LOCAL:
+		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+		return id
+	case constants.NETWORK_CUSTOM:
+		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+		return id
+	}
+	return primitives.NewZeroHash()
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }
@@ -1499,13 +1606,15 @@ func (s *State) SetString() {
 	}
 
 	s.Status = 0
+
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %7s %12s %12s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
+	str := fmt.Sprintf(" %7s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
+		"Resets",
 		"Drop",
 		"Delay",
 		"DB ",
@@ -1525,7 +1634,7 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:3], s.IdentityChainID.Bytes()[3:6])
+	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
 
 	s.serverPrt = str
 }
@@ -1613,11 +1722,13 @@ func (s *State) SetStringQueues() {
 		s.transCnt = total // transactions accounted for
 	}
 
-	str := fmt.Sprintf("%7s[%12x] %4s%4s %2d.%01d%% %2d.%03d",
+	str := fmt.Sprintf("%7s[%6x] %4s%4s %2d/%2d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[:6],
+		s.IdentityChainID.Bytes()[2:5],
 		stype,
 		vmIndex,
+		s.ResetTryCnt,
+		s.ResetCnt,
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
@@ -1646,16 +1757,38 @@ func (s *State) SetStringQueues() {
 		apis,
 		stps)
 
-	str = str + fmt.Sprintf(" %d", list.System.Height)
+	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
-		ff := list.System.List[list.System.Height].(*messages.FullServerFault)
-		str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
+		ff, ok := list.System.List[list.System.Height].(*messages.FullServerFault)
+		if ok {
+			str = str + fmt.Sprintf(" VM:%d %s", int(ff.VMIndex), ff.AuditServerID.String()[6:10])
+		} else {
+			str = str + fmt.Sprintf(" VM:%s %s", "?", "-nil-")
+		}
 	} else {
 		str = str + " -"
 	}
 
 	s.serverPrt = str
+
+	authoritiesString := s.ConstructAuthoritySetString()
+	// Any updates required to the state as established by the AdminBlock are applied here.
+	list.State.SetAuthoritySetString(authoritiesString)
+
+}
+
+func (s *State) ConstructAuthoritySetString() string {
+	pl := s.LeaderPL
+	authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, s.LLeaderHeight)
+	for _, fd := range pl.FedServers {
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
+	}
+	authoritiesString += " || Auds :"
+	for _, fd := range pl.AuditServers {
+		authoritiesString += " " + fd.GetChainID().String()[6:10]
+	}
+	return authoritiesString
 }
 
 func (s *State) GetTrueLeaderHeight() uint32 {
@@ -1711,6 +1844,27 @@ func (s *State) SetOut(o bool) {
 	s.OutputAllowed = o
 }
 
+func (s *State) GetSystemHeight(dbheight uint32) int {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return -1
+	}
+	return pl.System.Height
+}
+
+// Gets the system message at the given dbheight, and given height in the
+// System list
+func (s *State) GetSystemMsg(dbheight uint32, height uint32) interfaces.IMsg {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return nil
+	}
+	if height >= uint32(len(pl.System.List)) {
+		return nil
+	}
+	return pl.System.List[height]
+}
+
 func (s *State) GetInvalidMsg(hash interfaces.IHash) interfaces.IMsg {
 	if hash == nil {
 		return nil
@@ -1744,4 +1898,43 @@ func (s *State) ProcessInvalidMsgQueue() {
 func (s *State) SetPendingSigningKey(p *primitives.PrivateKey) {
 	s.serverPendingPrivKeys = append(s.serverPendingPrivKeys, p)
 	s.serverPendingPubKeys = append(s.serverPendingPubKeys, p.Pub)
+}
+
+func (s *State) AddStatus(status string) {
+
+	// Don't add duplicates.
+	last := s.GetLastStatus()
+	if last == status {
+		return
+	}
+
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+
+	if len(s.StatusStrs) > 100 {
+		copy(s.StatusStrs, s.StatusStrs[1:])
+		s.StatusStrs[len(s.StatusStrs)-1] = status
+	} else {
+		s.StatusStrs = append(s.StatusStrs, status)
+	}
+}
+
+func (s *State) GetStatus() []string {
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+
+	status := make([]string, len(s.StatusStrs))
+	status = append(status, s.StatusStrs...)
+	return status
+}
+
+func (s *State) GetLastStatus() string {
+	s.statusMutex.Lock()
+	defer s.statusMutex.Unlock()
+
+	if len(s.StatusStrs) == 0 {
+		return ""
+	}
+	str := s.StatusStrs[len(s.StatusStrs)-1]
+	return str
 }
