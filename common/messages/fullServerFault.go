@@ -471,7 +471,6 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 			validSigCount++
 		}
 	}
-	state.AddStatus(fmt.Sprintf("SIGTALLY %d Full Fault: %s", validSigCount, m.String()))
 
 	return validSigCount
 }
