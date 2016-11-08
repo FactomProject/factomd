@@ -315,9 +315,16 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 
 	// DB Sigs
 	majority := (len(currentFeds) / 2) + 1
-	if len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures) < majority {
+	lenDBSigs := len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures)
+	if lenDBSigs < majority {
+		list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: return without processing: lenDBSigs)(%v) < majority(%d)",
+			lenDBSigs,
+			majority))
+
 		return false
 	}
+	list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
+		majority))
 
 	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
 		if i < majority {
@@ -326,6 +333,8 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			break
 		}
 	}
+
+	list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
 
 	// Correcting Server Lists (Caused by Server Faults)
 	for _, cf := range currentFeds {
@@ -411,11 +420,13 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
+	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
+
 	if d.Locked || d.isNew {
+		//	list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
 		return
 	}
 
-	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
 		if pd != nil && !pd.Saved {
@@ -615,6 +626,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 	list.Catchup()
 
+	saved := 0
 	for i, d := range list.DBStates {
 
 		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
@@ -634,6 +646,13 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		// Make sure we move forward the Adminblock state in the process lists
 		list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight() + 1)
+
+		if d.Saved {
+			saved = i
+		}
+		if i-saved > 1 {
+			break
+		}
 	}
 	return
 }

@@ -27,7 +27,12 @@ for ((i=0; i<nchains; i++)); do
 	echo "create chain" $i
 	chainid=$(echo test $i $RANDOM | factom-cli addchain -e test -e $i -e $RANDOM $ec1 | awk '/ChainID/{print $2}')
 	addentries $chainid $i &
-    sleep 20s
+	let y=$(shuf -i 10-30 -n 1)
+	echo SLEEP $y  YAWN
+	sleep $y
 done
 
-sleep 80s
+let y=$(shuf -i 10-50 -n 1)
+echo SLEEP $y  YAWN
+sleep $y
+sleep 50s
