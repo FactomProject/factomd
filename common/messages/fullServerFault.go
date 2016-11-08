@@ -9,11 +9,12 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"math"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math"
 )
 
 //A placeholder structure for messages
@@ -405,6 +406,16 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
+
+	if m.DBHeight < state.GetLLeaderHeight() {
+		return -1
+	}
+
+	if m.ServerID.IsZero() || m.AuditServerID.IsZero() {
+		state.AddStatus("FULL FAULT FOLLOWER EXECUTE Fake Fault.  Ignore")
+		return -1
+	}
+
 	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
@@ -424,29 +435,6 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	if err != nil {
 		return -1
 	}
-
-	/*
-		sht := state.GetSystemHeight(m.DBHeight)
-		if sht < 0 {
-			return 0
-		}
-
-		if sht >= int(m.Height) {
-			return -1
-		}
-
-		if sht < int(m.Height) {
-			return 0
-		}
-
-		if state.GetLLeaderHeight() < m.DBHeight {
-			return 0
-		}
-
-		if state.GetLLeaderHeight() > m.DBHeight {
-			return -1
-		}
-	*/
 
 	return 1
 }
@@ -483,6 +471,7 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 			validSigCount++
 		}
 	}
+
 	return validSigCount
 }
 
