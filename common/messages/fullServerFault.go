@@ -469,13 +469,6 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 		check, err := state.VerifyAuthoritySignature(cb, fedSig.GetSignature(), m.DBHeight)
 		if err == nil && check == 1 {
 			validSigCount++
-		} else {
-			if err != nil {
-				state.AddStatus(fmt.Sprintf("ERR ON SIGT %d : %s Full Fault: %s", i, err, m.String()))
-			} else {
-				state.AddStatus(fmt.Sprintf("CHECK ON SIGT %d : %d Full Fault: %s", i, check, m.String()))
-
-			}
 		}
 	}
 	state.AddStatus(fmt.Sprintf("SIGTALLY %d Full Fault: %s", validSigCount, m.String()))
