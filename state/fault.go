@@ -597,7 +597,6 @@ func (pl *ProcessList) Unfault() {
 		pl.FedServers[i].SetOnline(true)
 	}
 	pl.AmINegotiator = false
-	pl.ChosenNegotiation = [32]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	pl.State.EOMfaultIndex = 0
 }
 

@@ -107,10 +107,6 @@ type ProcessList struct {
 	// that is the assigned negotiator for a particular processList
 	// height
 	AmINegotiator bool
-	// ChosenNegotiation tells a negotiator whether they have already
-	// chosen which FullFault to issue (so that they don't accidentally
-	// issue conflicting FullFaults for the same negotiation)
-	ChosenNegotiation [32]byte
 
 	// DB Sigs
 	DBSignatures     []DBSig
@@ -147,8 +143,9 @@ type VM struct {
 	//faultingEOM           int64             // Faulting for EOM because it is too late
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.
-	faultHeight int
-	whenFaulted int64
+	faultHeight int   // ProcessList height at which the VM was faulted (if it is faulted)
+	whenFaulted int64 // whenFaulted is a timestamp of when this VM was faulted
+	// vm.whenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 }
 
 func (p *ProcessList) Clear() {
