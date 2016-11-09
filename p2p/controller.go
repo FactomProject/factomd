@@ -597,9 +597,9 @@ func (c *Controller) weAreNotAlreadyConnectedTo(peer Peer) bool {
 
 func (c *Controller) fillOutgoingSlots(openSlots int) {
 	c.updateConnectionAddressMap()
-	note("controller", "Connected peers:")
+	significant("controller", "Connected peers:")
 	for _, v := range c.connectionsByAddress {
-		note("controller", "%s : %s", v.peer.Address, v.peer.Port)
+		significant("controller", "%s : %s", v.peer.Address, v.peer.Port)
 	}
 	peers := c.discovery.GetOutgoingPeers()
 
@@ -608,7 +608,7 @@ func (c *Controller) fillOutgoingSlots(openSlots int) {
 	newPeers := 0
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) && newPeers < openSlots {
-			note("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
+			significant("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
 			c.DialPeer(peer, false)
 			newPeers = newPeers + 1
 		}
