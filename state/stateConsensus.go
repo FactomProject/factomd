@@ -1473,7 +1473,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		if !mightMatch {
 			if vm.whenFaulted != 0 {
 				//I AGREE
-				currentTopPriority := TopPriorityFaultState(pl)
+				currentTopPriority := pl.CurrentFault
 				var tpts int64
 				if currentTopPriority.IsNil() {
 					tpts = 0
@@ -1509,7 +1509,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 			s.regularFullFaultExecution(fullFault, pl)
 		}
 		if mightMatch {
-			theFaultState := pl.GetFaultState(fullFault.GetCoreHash().Fixed())
+			theFaultState := pl.CurrentFault
+			// JUSTIN might need to make sure that theFaultState.CoreHash == fullFault.CoreHash here...
 			if !theFaultState.MyVoteTallied {
 				now := time.Now().Unix()
 

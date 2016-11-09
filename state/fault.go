@@ -160,7 +160,7 @@ func eomFault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 	} else {
 		if int(now-vm.whenFaulted) > pl.State.FaultTimeout {
 			if int(now-vm.whenFaulted) > pl.State.FaultTimeout*(1+pl.State.EOMfaultIndex) {
-				if pl.LenFaultMap() < 1 {
+				if pl.CurrentFault.IsNil() {
 					modFaultIndex := pl.State.EOMfaultIndex % len(pl.FedServers)
 					Fault(pl, vmIndex+modFaultIndex, height)
 					pl.State.EOMfaultIndex = pl.State.EOMfaultIndex + 1
@@ -203,28 +203,8 @@ func Fault(pl *ProcessList, vmIndex, height int) {
 
 }
 
-func TopPriorityFaultState(pl *ProcessList) FaultState {
-	if pl.LenFaultMap() < 1 {
-		return *new(FaultState)
-	}
-	var currentMax int64
-	currentMax = 0
-	var winner [32]byte
-	for _, faultID := range pl.GetKeysFaultMap() {
-		fs := pl.GetFaultState(faultID)
-		thisPriority := fs.FaultCore.Timestamp.GetTimeSeconds()
-		if thisPriority > currentMax {
-			currentMax = thisPriority
-			winner = faultID
-		} else {
-			pl.DeleteFaultState(faultID)
-		}
-	}
-	return pl.GetFaultState(winner)
-}
-
 func FaultCheck(pl *ProcessList) {
-	faultState := TopPriorityFaultState(pl)
+	faultState := pl.CurrentFault
 	if !faultState.IsNil() {
 		timeElapsed := time.Now().Unix() - faultState.FaultCore.Timestamp.GetTimeSeconds()
 		if isMyNegotiation(faultState.FaultCore, pl) {
@@ -246,7 +226,7 @@ func FaultCheck(pl *ProcessList) {
 				}
 				CraftAndSubmitFault(pl, int(faultState.FaultCore.VMIndex), int(faultState.FaultCore.Height))
 			} else {
-				CraftAndSubmitFullFault(pl, faultState.FaultCore.GetHash().Fixed())
+				CraftAndSubmitFullFault(pl)
 			}
 		} else {
 			if int(timeElapsed) > pl.State.FaultTimeout*2 {
@@ -268,21 +248,19 @@ func couldIFullFault(pl *ProcessList, vmIndex int) bool {
 	id := pl.FedServers[faultedFed].GetChainID()
 	stringid := id.String()
 
-	if pl.LenFaultMap() < 1 {
+	faultState := pl.CurrentFault
+
+	if faultState.IsNil() {
 		return false
 	}
 
-	faultIDs := pl.GetKeysFaultMap()
-	for _, faultID := range faultIDs {
-		faultState := pl.GetFaultState(faultID)
-		if !faultState.AmINegotiator {
-			faultedServerFromFaultState := faultState.FaultCore.ServerID.String()
-			if faultedServerFromFaultState == stringid {
-				if faultState.PledgeDone && faultState.HasEnoughSigs(pl.State) {
-					// if the above 2 conditions are satisfied, we could issue
-					// a FullFault message (if we were the negotiator for this fault)
-					return true
-				}
+	if !faultState.AmINegotiator {
+		faultedServerFromFaultState := faultState.FaultCore.ServerID.String()
+		if faultedServerFromFaultState == stringid {
+			if faultState.PledgeDone && faultState.HasEnoughSigs(pl.State) {
+				// if the above 2 conditions are satisfied, we could issue
+				// a FullFault message (if we were the negotiator for this fault)
+				return true
 			}
 		}
 	}
@@ -317,13 +295,12 @@ func CraftAndSubmitFault(pl *ProcessList, vmIndex int, height int) {
 			sf.Sign(pl.State.serverPrivKey)
 			//pl.State.NetworkOutMsgQueue() <- sf
 			pl.State.InMsgQueue() <- sf
-			fm := pl.GetFaultState(sf.GetCoreHash().Fixed())
-			if !fm.IsNil() {
-				// If we already have a FaultState saved to our ProcessList's
-				// FaultMap, we update its "LastMatch" value to the current time
+			cf := pl.CurrentFault
+			if !cf.IsNil() && cf.FaultCore.GetHash().IsSameAs(sf.GetCoreHash()) {
+				// Update the CurrentFault's "LastMatch" value to the current time
 				// (LastMatch is merely a throttling mechanism)
-				fm.LastMatch = time.Now().Unix()
-				pl.AddFaultState(sf.GetCoreHash().Fixed(), fm)
+				cf.LastMatch = time.Now().Unix()
+				pl.AddFaultState(cf)
 			}
 		}
 	} else {
@@ -339,8 +316,8 @@ func CraftAndSubmitFault(pl *ProcessList, vmIndex int, height int) {
 // (which fires once every 5 seconds on each server); most of the time
 // these are "incomplete" FullFault messages which serve as status pings
 // for the negotiation in progress
-func CraftAndSubmitFullFault(pl *ProcessList, faultID [32]byte) *messages.FullServerFault {
-	faultState := pl.GetFaultState(faultID)
+func CraftAndSubmitFullFault(pl *ProcessList) *messages.FullServerFault {
+	faultState := pl.CurrentFault
 	fc := faultState.FaultCore
 
 	sf := messages.NewServerFault(fc.ServerID, fc.AuditServerID, int(fc.VMIndex), fc.DBHeight, fc.Height, pl.System.Height, fc.Timestamp)
@@ -379,8 +356,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	s.regularFaultExecution(sf, pl)
 }
 
-// regularFaultExecution will create a FaultState in our FaultMap (if none exists already)
-// and save the signature of this particular ServerFault to that FaultStat's VoteMap
+// regularFaultExecution will update CurrentFault and save the signature
+// of the ServerFault to that FaultState's VoteMap
 func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList) {
 	var issuerID [32]byte
 	rawIssuerID := sf.GetSignature().GetKey()
@@ -390,8 +367,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 	}
 
-	coreHash := sf.GetCoreHash().Fixed()
-	faultState := pl.GetFaultState(coreHash)
+	faultState := pl.CurrentFault
 	if faultState.IsNil() {
 		// We don't have a map entry yet; let's create one
 		fcore := ExtractFaultCore(sf)
@@ -405,7 +381,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		if faultState.VoteMap == nil {
 			faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
 		}
-		pl.AddFaultState(coreHash, faultState)
+		pl.AddFaultState(faultState)
 	}
 
 	lbytes, err := sf.MarshalForSignature()
@@ -452,7 +428,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 
 	// Update the FaultState in our FaultMap with any updates that were applied
 	// during execution of this function
-	pl.AddFaultState(coreHash, faultState)
+	pl.AddFaultState(faultState)
 }
 
 func ExtractFaultCore(sfMsg interfaces.IMsg) FaultCore {
@@ -487,8 +463,6 @@ func isMyNegotiation(sf FaultCore, pl *ProcessList) bool {
 // it will make sure to add every signature from the FullFault to the corresponding
 // FaultState's VoteMap
 func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *ProcessList) {
-	coreHash := sf.GetCoreHash().Fixed()
-
 	for _, signature := range sf.SignatureList.List {
 		var issuerID [32]byte
 		rawIssuerID := signature.GetKey()
@@ -498,7 +472,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 			}
 		}
 
-		faultState := pl.GetFaultState(coreHash)
+		faultState := pl.CurrentFault
 		if !faultState.IsNil() {
 			// We already have a map entry
 		} else {
@@ -514,7 +488,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 			if faultState.VoteMap == nil {
 				faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
 			}
-			pl.AddFaultState(coreHash, faultState)
+			pl.AddFaultState(faultState)
 		}
 
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
@@ -528,7 +502,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 				valid, err := myAuth.VerifySignature(sfbytes, signature.GetSignature())
 				if err == nil && valid {
 					faultState.MyVoteTallied = true
-					pl.AddFaultState(coreHash, faultState)
+					pl.AddFaultState(faultState)
 				}
 			}
 		}
@@ -544,7 +518,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 			if err == nil && valid {
 				isPledge = true
 				faultState.PledgeDone = true
-				pl.AddFaultState(coreHash, faultState)
+				pl.AddFaultState(faultState)
 			}
 		}
 
@@ -552,11 +526,11 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 
 		if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
 			faultState.VoteMap[issuerID] = sf.GetSignature()
-			pl.AddFaultState(coreHash, faultState)
+			pl.AddFaultState(faultState)
 		}
 	}
 
-	faultState := pl.GetFaultState(coreHash)
+	faultState := pl.CurrentFault
 	if !faultState.IsNil() {
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
 			if !faultState.MyVoteTallied {
@@ -587,7 +561,7 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 // Unfault is used to reset to the default state (No One At Fault)
 func (pl *ProcessList) Unfault() {
 	// Delete all entries in FaultMap
-	pl.ClearFaultMap()
+	pl.CurrentFault = *new(FaultState)
 
 	// Reset the fault-state of all VMs
 	for i := 0; i < len(pl.FedServers); i++ {
@@ -598,12 +572,6 @@ func (pl *ProcessList) Unfault() {
 	}
 	pl.AmINegotiator = false
 	pl.State.EOMfaultIndex = 0
-}
-
-func (pl *ProcessList) ClearFaultMap() {
-	pl.FaultMapMutex.Lock()
-	defer pl.FaultMapMutex.Unlock()
-	pl.FaultMap = make(map[[32]byte]FaultState)
 }
 
 // When we execute a FullFault message, it could be complete (includes all

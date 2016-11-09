@@ -295,22 +295,16 @@ func faultSummary() string {
 						prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
 					}
 					if pl.AmINegotiator {
-						lenFaults := pl.LenFaultMap()
-						if lenFaults > 0 {
-							prt = prt + fmt.Sprintf("| Faults:")
-							faultIDs := pl.GetKeysFaultMap()
-							for _, faultID := range faultIDs {
-								faultState := pl.GetFaultState(faultID)
-								if !faultState.IsNil() {
-									//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
-									pledgeDoneString := "N"
-									if faultState.PledgeDone {
-										pledgeDoneString = "Y"
-									}
-									prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
-									//}
-								}
+						prt = prt + fmt.Sprintf("| Current Fault:")
+						faultState := pl.CurrentFault
+						if !faultState.IsNil() {
+							//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
+							pledgeDoneString := "N"
+							if faultState.PledgeDone {
+								pledgeDoneString = "Y"
 							}
+							prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
+							//}
 						}
 					}
 
