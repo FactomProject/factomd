@@ -40,6 +40,7 @@ type Controller struct {
 
 	discovery Discovery // Our discovery structure
 
+	numberOutgoingConnections  int       // In PeerManagmeent we track this to know whent to dial out.
 	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
 	lastPeerManagement         time.Time // Last time we ran peer management.
 	lastDiscoveryRequest       time.Time
@@ -136,14 +137,12 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 
 // StartNetwork configures the network, starts the runloop
 func (c *Controller) StartNetwork() {
-	verbose("ctrlr", "Controller.StartNetwork(%s)", " ")
+	significant("ctrlr", "Controller.StartNetwork(%s)", " ")
 	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
 	// Dial the peers in from configuration
 	c.DialSpecialPeersString(c.specialPeersString)
-	// Dial out to peers
-	c.fillOutgoingSlots(NumberPeersToConnect)
 	// Start the runloop
 	go c.runloop()
 }
@@ -543,23 +542,12 @@ func (c *Controller) managePeers() {
 			c.discovery.DiscoverPeersFromSeed()
 			note("ctrlr", "back from c.discovery.DiscoverPeersFromSeed()")
 		}
-		// If we are low on outgoing onnections, attempt to connect to some more.
-		// If the connection is not online, we don't count it as connected.
-		outgoing := 0
-		c.numberIncommingConnections = 0
-		for _, connection := range c.connections {
-			if connection.IsOutGoing() && connection.IsOnline() {
-				outgoing++
-			} else {
-				c.numberIncommingConnections++
-			}
-		}
-		note("ctrlr", "managePeers() NumberPeersToConnect: %d outgoing: %d", NumberPeersToConnect, outgoing)
+		c.updateConnectionCounts()
+		significant("ctrlr", "managePeers() NumberPeersToConnect: %d outgoing: %d", NumberPeersToConnect, c.numberOutgoingConnections)
 		dot("&&t\n")
-
-		if NumberPeersToConnect > outgoing {
+		if NumberPeersToConnect > c.numberOutgoingConnections {
 			// Get list of peers ordered by quality from discovery
-			c.fillOutgoingSlots(NumberPeersToConnect - outgoing)
+			c.fillOutgoingSlots(NumberPeersToConnect - c.numberOutgoingConnections)
 		}
 		duration := time.Since(c.discovery.lastPeerSave)
 		// Every so often, tell the discovery service to save peers.
@@ -580,6 +568,21 @@ func (c *Controller) managePeers() {
 			}
 		}
 	}
+}
+
+func (c *Controller) updateConnectionCounts() {
+	// If we are low on outgoing onnections, attempt to connect to some more.
+	// If the connection is not online, we don't count it as connected.
+	c.numberOutgoingConnections = 0
+	c.numberIncommingConnections = 0
+	for _, connection := range c.connections {
+		if connection.IsOutGoing() && connection.IsOnline() {
+			c.numberOutgoingConnections++
+		} else {
+			c.numberIncommingConnections++
+		}
+	}
+
 }
 
 // updateConnectionAddressMap() updates the address index map to reflect all current connections
