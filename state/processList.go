@@ -96,21 +96,13 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	FaultMapMutex sync.RWMutex
-	FaultMap      map[[32]byte]FaultState
+	CurrentFault FaultState
 
-	FaultedVMIndex int
-	// This is the index of the VM we are negotiating for, if we are
-	// in fact a Negotiator
 	NegotiatorVMIndex int
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
 	AmINegotiator bool
-	// ChosenNegotiation tells a negotiator whether they have already
-	// chosen which FullFault to issue (so that they don't accidentally
-	// issue conflicting FullFaults for the same negotiation)
-	ChosenNegotiation [32]byte
 
 	// DB Sigs
 	DBSignatures     []DBSig
@@ -147,8 +139,9 @@ type VM struct {
 	//faultingEOM           int64             // Faulting for EOM because it is too late
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.
-	faultHeight int
-	whenFaulted int64
+	faultHeight int   // ProcessList height at which the VM was faulted (if it is faulted)
+	whenFaulted int64 // whenFaulted is a timestamp of when this VM was faulted
+	// vm.whenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 }
 
 func (p *ProcessList) Clear() {
@@ -185,9 +178,7 @@ func (p *ProcessList) Clear() {
 	p.AuditServers = nil
 	p.FedServers = nil
 
-	p.FaultMapMutex.Lock()
-	defer p.FaultMapMutex.Unlock()
-	p.FaultMap = nil
+	p.CurrentFault = *new(FaultState)
 
 	p.DBSignatures = nil
 
@@ -217,34 +208,6 @@ func (p *ProcessList) LenNewEntries() int {
 	p.NewEntriesMutex.RLock()
 	defer p.NewEntriesMutex.RUnlock()
 	return len(p.NewEntries)
-}
-
-func (p *ProcessList) GetKeysFaultMap() (keys [][32]byte) {
-	p.FaultMapMutex.RLock()
-	defer p.FaultMapMutex.RUnlock()
-	if len(p.FaultMap) < 1 {
-		return nil
-	}
-	keys = make([][32]byte, p.LenFaultMap())
-
-	i := 0
-	for k := range p.FaultMap {
-		keys[i] = k
-		i++
-	}
-	return
-}
-
-func (p *ProcessList) LenFaultMap() int {
-	p.FaultMapMutex.RLock()
-	defer p.FaultMapMutex.RUnlock()
-	return len(p.FaultMap)
-}
-
-func (p *ProcessList) GetFaultState(key [32]byte) FaultState {
-	p.FaultMapMutex.RLock()
-	defer p.FaultMapMutex.RUnlock()
-	return p.FaultMap[key]
 }
 
 func (p *ProcessList) Complete() bool {
@@ -591,16 +554,8 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	delete(p.NewEntries, key.Fixed())
 }
 
-func (p *ProcessList) AddFaultState(key [32]byte, value FaultState) {
-	p.FaultMapMutex.Lock()
-	defer p.FaultMapMutex.Unlock()
-	p.FaultMap[key] = value
-}
-
-func (p *ProcessList) DeleteFaultState(key [32]byte) {
-	p.FaultMapMutex.Lock()
-	defer p.FaultMapMutex.Unlock()
-	delete(p.FaultMap, key)
+func (p *ProcessList) AddFaultState(fs FaultState) {
+	p.CurrentFault = fs
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
@@ -1155,7 +1110,7 @@ func (p *ProcessList) Reset() bool {
 	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	p.FaultMap = make(map[[32]byte]FaultState)
+	p.CurrentFault = *new(FaultState)
 
 	p.AmINegotiator = false
 
@@ -1308,7 +1263,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	pl.FaultMap = make(map[[32]byte]FaultState)
+	pl.CurrentFault = *new(FaultState)
 
 	pl.AmINegotiator = false
 
