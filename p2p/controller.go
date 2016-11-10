@@ -661,6 +661,7 @@ func (c *Controller) networkStatusReport() {
 	note("ctrlr", "networkStatusReport() NetworkStatusInterval: %s durationSinceLastReport: %s c.lastStatusReport: %s", NetworkStatusInterval.String(), durationSinceLastReport.String(), c.lastStatusReport.String())
 	if durationSinceLastReport > NetworkStatusInterval {
 		c.lastStatusReport = time.Now()
+		c.updateConnectionCounts()
 		silence("ctrlr", "\n\n\n\n")
 		silence("ctrlr", "###################################")
 		silence("ctrlr", " Network Controller Status Report:")
@@ -668,6 +669,8 @@ func (c *Controller) networkStatusReport() {
 		c.updateConnectionAddressMap()
 		silence("ctrlr", "     # Connections: %d", len(c.connections))
 		silence("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
+		silence("ctrlr", "    In Connections: %d", c.numberIncommingConnections)
+		silence("ctrlr", "   Out Connections: %d", c.numberOutgoingConnections)
 		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
 		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
