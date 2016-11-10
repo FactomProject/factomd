@@ -1388,6 +1388,19 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		return false
 	}
 
+	if int(fullFault.SystemHeight) != pl.System.Height {
+		return false
+	}
+
+	if fullFault.ClearFault {
+		if fullFault.GetVMIndex() < len(pl.VMs) && pl.VMs[fullFault.GetVMIndex()].whenFaulted == 0 {
+			// If we agree that the server doesn't need to be faulted, we will clear our currentFault
+			// but otherwise do nothing (we do not execute the actual demotion/promotion)
+			pl.CurrentFault = *new(FaultState)
+			return true
+		}
+	}
+
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
 	var theAuditReplacement interfaces.IFctServer
 
@@ -1407,12 +1420,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		// that match the nominated Audit Server in the FullFault,
 		// we can't really do anything useful with it
 		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Audit Server not an audit server. %s", fullFault.String()))
-		return false
-	}
-
-	pl.FaultedVMIndex = int(fullFault.VMIndex)
-
-	if int(fullFault.SystemHeight) != pl.System.Height {
 		return false
 	}
 
@@ -1473,24 +1480,23 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		if !mightMatch {
 			if vm.whenFaulted != 0 {
 				//I AGREE
-				currentTopPriority := pl.CurrentFault
 				var tpts int64
-				if currentTopPriority.IsNil() {
+				if pl.CurrentFault.IsNil() {
 					tpts = 0
 				} else {
-					tpts = currentTopPriority.FaultCore.Timestamp.GetTimeSeconds()
+					tpts = pl.CurrentFault.FaultCore.Timestamp.GetTimeSeconds()
 				}
 				ffts := fullFault.Timestamp.GetTimeSeconds()
 				if ffts >= tpts {
 					//THIS IS TOP PRIORITY
-					if !currentTopPriority.IsNil() && fullFault.ServerID.IsSameAs(currentTopPriority.FaultCore.ServerID) && ffts > tpts {
+					if !pl.CurrentFault.IsNil() && fullFault.ServerID.IsSameAs(pl.CurrentFault.FaultCore.ServerID) && ffts > tpts {
 						//IT IS A RENEWAL
 						if int(ffts-tpts) < s.FaultTimeout {
 							//TOO SOON
 							newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
 							Fault(pl, newVMI, int(fullFault.Height))
 						} else {
-							if !currentTopPriority.IsNil() && couldIFullFault(pl, int(currentTopPriority.FaultCore.VMIndex)) {
+							if !pl.CurrentFault.IsNil() && couldIFullFault(pl, int(pl.CurrentFault.FaultCore.VMIndex)) {
 								//I COULD FAULT BUT HE HASN'T
 								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
 								Fault(pl, newVMI, int(fullFault.Height))

@@ -98,9 +98,6 @@ type ProcessList struct {
 
 	CurrentFault FaultState
 
-	FaultedVMIndex int
-	// This is the index of the VM we are negotiating for, if we are
-	// in fact a Negotiator
 	NegotiatorVMIndex int
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList

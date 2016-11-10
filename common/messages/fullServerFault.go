@@ -397,7 +397,7 @@ func (m *FullServerFault) String() string {
 	if m == nil {
 		return "-nil-"
 	}
-	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d -- hash[:3]=%x Sig Cnt: %d",
+	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d Clr:%t -- hash[:3]=%x Sig Cnt: %d",
 		"FullSFault",
 		m.VMIndex,
 		m.Height,
@@ -405,6 +405,7 @@ func (m *FullServerFault) String() string {
 		m.AuditServerID.String()[4:10],
 		m.DBHeight,
 		m.SystemHeight,
+		m.ClearFault,
 		m.GetHash().Bytes()[:3],
 		len(m.SignatureList.List))
 }

@@ -205,6 +205,7 @@ func Fault(pl *ProcessList, vmIndex, height int) {
 
 func FaultCheck(pl *ProcessList) {
 	faultState := pl.CurrentFault
+
 	if !faultState.IsNil() {
 		timeElapsed := time.Now().Unix() - faultState.FaultCore.Timestamp.GetTimeSeconds()
 		if isMyNegotiation(faultState.FaultCore, pl) {
@@ -331,6 +332,11 @@ func CraftAndSubmitFullFault(pl *ProcessList) *messages.FullServerFault {
 		pff = pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
 	}
 	fullFault := messages.NewFullServerFault(pff, sf, listOfSigs, pl.System.Height)
+
+	if pl.VMs[int(fc.VMIndex)].whenFaulted == 0 {
+		fullFault.ClearFault = true
+	}
+
 	//adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
 	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
 	if fullFault != nil {
