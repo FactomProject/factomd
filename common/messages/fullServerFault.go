@@ -39,7 +39,8 @@ type FullServerFault struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
+	alreadyValidated bool
+	hash             interfaces.IHash
 }
 
 type SigList struct {
@@ -419,6 +420,9 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
+	if m.alreadyValidated {
+		return 1
+	}
 
 	if m.DBHeight < state.GetLLeaderHeight() {
 		return -1
@@ -449,6 +453,7 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 
+	m.alreadyValidated = true
 	return 1
 }
 
