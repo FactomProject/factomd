@@ -1344,7 +1344,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	*/
 }
 
-func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (haveReplaced bool) {
+func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) bool {
 	// If we are here, this means that the FullFault message is complete
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
@@ -1448,12 +1448,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 				s.AddStatus(authorityDeltaString)
 
 				pl.Unfault()
-				haveReplaced = true
 
 				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
-				break
+				return true
 			}
 		}
 	} else {
@@ -1514,7 +1513,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 		}
 	}
 
-	return haveReplaced
+	return false
 }
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {

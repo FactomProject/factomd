@@ -709,9 +709,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
-	if len(p.System.List) > 0 {
+	if len(p.System.List) >= p.System.Height {
 	systemloop:
 		for i, f := range p.System.List[p.System.Height:] {
+
+			if f == nil {
+				p.Ask(-1, i, 10, 100)
+				break systemloop
+			}
+
 			fault, ok := f.(*messages.FullServerFault)
 
 			if ok {
@@ -720,13 +726,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					break systemloop
 				}
 				if !fault.Process(p.DBHeight, p.State) {
-					break
+					break systemloop
 				}
 				p.System.Height++
 				progress = true
-			}
-			if fault == nil {
-				p.Ask(-1, i, 10, 100)
 			}
 		}
 	}
@@ -860,9 +863,10 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		return false
 	}
 
-	for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
-		p.System.List = p.System.List[:len(p.System.List)-1]
-	}
+	// Remove nils.
+	//for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
+	//	p.System.List = p.System.List[:len(p.System.List)-1]
+	//}
 
 	// If we are here, fullFault.SystemHeight == p.System.Height
 	if len(p.System.List) <= p.System.Height {
@@ -878,7 +882,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		return false
 	}
 
-	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
+	if existingSystemFault.SigTally(p.State) >= fullFault.SigTally(p.State) {
 		return false
 	}
 
