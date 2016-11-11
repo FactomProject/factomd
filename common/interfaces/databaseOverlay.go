@@ -118,6 +118,7 @@ type DBOverlay interface {
 
 	// FetchECBlockByKeyMR gets an Entry Credit block by hash from the database.
 	FetchECBlockBySecondary(hash IHash) (IEntryCreditBlock, error)
+	FetchECBlockByHeight(blockHeight uint32) (IEntryCreditBlock, error)
 
 	// FetchAllECBlocks gets all of the entry credit blocks
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
@@ -141,6 +142,7 @@ type DBOverlay interface {
 
 	// FetchABlockByKeyMR gets an admin block by keyMR from the database.
 	FetchABlockBySecondary(hash IHash) (IAdminBlock, error)
+	FetchABlockByHeight(blockHeight uint32) (IAdminBlock, error)
 
 	// FetchAllABlocks gets all of the admin blocks
 	FetchAllABlocks() ([]IAdminBlock, error)
@@ -159,12 +161,12 @@ type DBOverlay interface {
 
 	FetchFBlock(IHash) (IFBlock, error)
 
-	// FetchFBlockByHash gets an admin block by hash from the database.
+	// FetchFBlockByHash gets a factoid block by hash from the database.
 	FetchFBlockByPrimary(IHash) (IFBlock, error)
-
 	FetchFBlockBySecondary(IHash) (IFBlock, error)
+	FetchFBlockByHeight(blockHeight uint32) (IFBlock, error)
 
-	// FetchAllFBlocks gets all of the admin blocks
+	// FetchAllFBlocks gets all of the factoid blocks
 	FetchAllFBlocks() ([]IFBlock, error)
 	FetchAllFBlockKeys() ([]IHash, error)
 

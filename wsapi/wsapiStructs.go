@@ -193,10 +193,22 @@ type TransactionResponse struct {
 	IncludedInDirectoryBlockHeight int64 `json:"includedindirectoryblockheight"`
 }
 
+type BlockHeightResponse struct {
+	DBlock  interfaces.IDirectoryBlock   `json:"dblock,omitempty"`
+	ABlock  interfaces.IAdminBlock       `json:"ablock,omitempty"`
+	FBlock  interfaces.IFBlock           `json:"fblock,omitempty"`
+	ECBlock interfaces.IEntryCreditBlock `json:"ecblock,omitempty"`
+	RawData string                       `json:"rawdata,omitempty"`
+}
+
 //Requests
 
 type AddressRequest struct {
 	Address string `json:"address"`
+}
+
+type HeightRequest struct {
+	Height int64 `json:"height"`
 }
 
 type ChainIDRequest struct {

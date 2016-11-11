@@ -152,6 +152,126 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	return jsonResp, nil
 }
 
+func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchDBlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	resp.DBlock = block
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
+}
+
+func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchECBlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	resp.ECBlock = block
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
+}
+
+func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchFBlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	resp.FBlock = block
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
+}
+
+func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchABlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	resp.ABlock = block
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
+}
+
 func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
 	resp := primitives.NewJSON2Response()
 	if j != nil {
@@ -369,13 +489,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidHashError()
 	}
 	if block == nil {
-		block, err = dbase.FetchDBlock(h)
-		if err != nil {
-			return nil, NewInvalidHashError()
-		}
-		if block == nil {
-			return nil, NewBlockNotFoundError()
-		}
+		return nil, NewBlockNotFoundError()
 	}
 
 	d := new(DirectoryBlockResponse)
