@@ -162,7 +162,7 @@ func eomFault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 			if int(now-vm.whenFaulted) > pl.State.FaultTimeout*(1+pl.State.EOMfaultIndex) {
 				if pl.CurrentFault.IsNil() {
 					modFaultIndex := pl.State.EOMfaultIndex % len(pl.FedServers)
-					Fault(pl, vmIndex+modFaultIndex, height)
+					Fault(pl, vmIndex+modFaultIndex, height, 1)
 					pl.State.EOMfaultIndex = pl.State.EOMfaultIndex + 1
 				}
 
@@ -176,7 +176,7 @@ func eomFault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
 	}
 }
 
-func Fault(pl *ProcessList, vmIndex, height int) {
+func Fault(pl *ProcessList, vmIndex, height, tag int) {
 	now := time.Now().Unix()
 	vm := pl.VMs[vmIndex]
 
@@ -205,37 +205,43 @@ func Fault(pl *ProcessList, vmIndex, height int) {
 
 func FaultCheck(pl *ProcessList) {
 	faultState := pl.CurrentFault
+	if faultState.IsNil() {
+		return
+	}
 
-	if !faultState.IsNil() {
-		timeElapsed := time.Now().Unix() - faultState.FaultCore.Timestamp.GetTimeSeconds()
-		if isMyNegotiation(faultState.FaultCore, pl) {
-			if int(timeElapsed) > pl.State.FaultTimeout+1 {
-				// Negotiation has timed out; must issue RENEWAL (new negotiation)
-				if !faultState.PledgeDone {
-					// Now let's set the Audit Server offline (so we don't just re-nominate them over and over)
-					auditServerList := pl.State.GetAuditServers(faultState.FaultCore.DBHeight)
-					var theAuditReplacement interfaces.IFctServer
+	timeElapsed := time.Now().Unix() - faultState.FaultCore.Timestamp.GetTimeSeconds()
 
-					for _, auditServer := range auditServerList {
-						if auditServer.GetChainID().IsSameAs(faultState.FaultCore.AuditServerID) {
-							theAuditReplacement = auditServer
-						}
-					}
-					if theAuditReplacement != nil {
-						theAuditReplacement.SetOnline(false)
-					}
-				}
-				CraftAndSubmitFault(pl, int(faultState.FaultCore.VMIndex), int(faultState.FaultCore.Height))
-			} else {
-				CraftAndSubmitFullFault(pl)
+	if isMyNegotiation(faultState.FaultCore, pl) {
+		if int(timeElapsed) > pl.State.FaultTimeout+1 {
+			// Negotiation has timed out; must issue RENEWAL (new negotiation)
+			if !faultState.PledgeDone {
+				// Now let's set the Audit Server offline (so we don't just re-nominate them over and over)
+				ToggleAuditOffline(pl, faultState.FaultCore)
 			}
+			CraftAndSubmitFault(pl, int(faultState.FaultCore.VMIndex), int(faultState.FaultCore.Height))
 		} else {
-			if int(timeElapsed) > pl.State.FaultTimeout*2 {
-				// The negotiation has expired; time to fault negotiator
-				newVMI := (int(faultState.FaultCore.VMIndex) + 1) % len(pl.FedServers)
-				Fault(pl, newVMI, int(faultState.FaultCore.Height))
-			}
+			CraftAndSubmitFullFault(pl)
 		}
+	} else {
+		if int(timeElapsed) > pl.State.FaultTimeout*2 {
+			// The negotiation has expired; time to fault negotiator
+			newVMI := (int(faultState.FaultCore.VMIndex) + 1) % len(pl.FedServers)
+			Fault(pl, newVMI, int(faultState.FaultCore.Height), 3)
+		}
+	}
+}
+
+func ToggleAuditOffline(pl *ProcessList, fc FaultCore) {
+	auditServerList := pl.State.GetAuditServers(fc.DBHeight)
+	var theAuditReplacement interfaces.IFctServer
+
+	for _, auditServer := range auditServerList {
+		if auditServer.GetChainID().IsSameAs(fc.AuditServerID) {
+			theAuditReplacement = auditServer
+		}
+	}
+	if theAuditReplacement != nil {
+		theAuditReplacement.SetOnline(false)
 	}
 }
 
@@ -334,6 +340,7 @@ func CraftAndSubmitFullFault(pl *ProcessList) *messages.FullServerFault {
 	fullFault := messages.NewFullServerFault(pff, sf, listOfSigs, pl.System.Height)
 
 	if pl.VMs[int(fc.VMIndex)].whenFaulted == 0 {
+		//fmt.Println("JUSTIN ALLCLEAR", pl.State.FactomNodeName)
 		fullFault.ClearFault = true
 	}
 
@@ -374,14 +381,14 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	}
 
 	faultState := pl.CurrentFault
-	if faultState.IsNil() {
+	if faultState.IsNil() || (faultState.FaultCore.ServerID.IsSameAs(sf.ServerID) && faultState.FaultCore.Timestamp.GetTimeSeconds() < sf.Timestamp.GetTimeSeconds()) {
 		// We don't have a map entry yet; let's create one
 		fcore := ExtractFaultCore(sf)
 		faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
 
 		if isMyNegotiation(fcore, pl) {
-			faultState.AmINegotiator = true
-			pl.AmINegotiator = true
+			faultState.SetAmINegotiator(true)
+			pl.SetAmINegotiator(true)
 		}
 
 		if faultState.VoteMap == nil {
@@ -487,8 +494,8 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 			faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
 
 			if isMyNegotiation(fcore, pl) {
-				faultState.AmINegotiator = true
-				pl.AmINegotiator = true
+				faultState.SetAmINegotiator(true)
+				pl.SetAmINegotiator(true)
 			}
 
 			if faultState.VoteMap == nil {
@@ -576,7 +583,7 @@ func (pl *ProcessList) Unfault() {
 		vm.whenFaulted = 0
 		pl.FedServers[i].SetOnline(true)
 	}
-	pl.AmINegotiator = false
+	pl.SetAmINegotiator(false)
 	pl.State.EOMfaultIndex = 0
 }
 

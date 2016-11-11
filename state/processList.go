@@ -755,7 +755,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		if vm.whenFaulted > 0 && vm.Height > vm.faultHeight {
 			if p.AmINegotiator && i == p.NegotiatorVMIndex {
-				p.AmINegotiator = false
+				p.SetAmINegotiator(false)
 			}
 			vm.faultHeight = -1
 			vm.whenFaulted = 0

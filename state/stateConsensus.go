@@ -473,19 +473,15 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 	now := s.GetTimestamp()
 
-	//fmt.Println("JUSTIN", s.FactomNodeName, "FOLLEX DR:", msg.DataType, msg.DataHash.String())
-
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
 		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
 		if !ok {
-			//fmt.Println("JUSTIN", s.FactomNodeName, "EBLOCK NOT OK", msg.DataHash.String())
 			return
 		}
 
 		ebKeyMR, _ := eblock.KeyMR()
 		if ebKeyMR == nil {
-			//fmt.Println("JUSTIN", s.FactomNodeName, "EBKMR NIL", msg.DataHash.String(), ebKeyMR.String())
 			return
 		}
 
@@ -500,11 +496,8 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				return
 			}
 
-			//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND EB", msg.DataHash.String())
 			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
 			s.DB.ProcessEBlockBatch(eblock, true)
-
-			//s.DB.ProcessEBlockBatch(eblock, true)
 
 			for _, entryhash := range eblock.GetEntryHashes() {
 				if entryhash.IsMinuteMarker() {
@@ -512,12 +505,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				}
 				e, _ := s.DB.FetchEntry(entryhash)
 				if e == nil {
-					/*if s.EntryBlockDBHeightComplete >= eblock.GetDatabaseHeight() {
-						s.EntryBlockDBHeightComplete = eblock.GetDatabaseHeight() - 1
-						if s.EntryBlockDBHeightComplete < 0 {
-							s.EntryBlockDBHeightComplete = 0
-						}
-					}*/
 					var v struct {
 						ebhash    interfaces.IHash
 						entryhash interfaces.IHash
@@ -527,7 +514,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 					v.dbheight = eblock.GetHeader().GetDBHeight()
 					v.entryhash = entryhash
 					v.ebhash = eb
-					//fmt.Println("JUSTIN", s.FactomNodeName, "FROM EB APP ", entryhash.String())
 
 					s.MissingEntries = append(s.MissingEntries, v)
 
@@ -547,23 +533,19 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				}
 			}
 			s.EntryBlockDBHeightComplete = mindb - 1
-			//fmt.Println("JUSTIN", s.FactomNodeName, "NOW EBDHBC IS", s.EntryBlockDBHeightComplete)
 			break
 		}
 
 	case 0: // Data is an entry
 		entry, ok := msg.DataObject.(interfaces.IEBEntry)
 		if !ok {
-			//fmt.Println("JUSTIN", s.FactomNodeName, "NOT OK ENTRY", msg.DataHash.String())
 			return
 		}
 
 		for i, missing := range s.MissingEntries {
 			e := missing.entryhash
-			//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND ENT", msg.DataHash.String())
 
 			if e.IsSameAs(entry.GetHash()) {
-				//fmt.Println("JUSTIN", s.FactomNodeName, "FOUND ENT AND MATCH", msg.DataHash.String())
 				s.DB.InsertEntry(entry)
 				s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
 				break
@@ -1494,12 +1476,12 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) (ha
 						if int(ffts-tpts) < s.FaultTimeout {
 							//TOO SOON
 							newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-							Fault(pl, newVMI, int(fullFault.Height))
+							Fault(pl, newVMI, int(fullFault.Height), 2)
 						} else {
 							if !pl.CurrentFault.IsNil() && couldIFullFault(pl, int(pl.CurrentFault.FaultCore.VMIndex)) {
 								//I COULD FAULT BUT HE HASN'T
 								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-								Fault(pl, newVMI, int(fullFault.Height))
+								Fault(pl, newVMI, int(fullFault.Height), 4)
 							} else {
 								willUpdate = true
 							}
