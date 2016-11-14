@@ -603,13 +603,10 @@ func (c *Controller) fillOutgoingSlots() {
 	}
 	peers := c.discovery.GetOutgoingPeers()
 
-	// To avoid dialing "too many" peers, we are keeping a count and only dialing the number of peers we need to add.
-	newPeers := 0
 	for _, peer := range peers {
-		if c.weAreNotAlreadyConnectedTo(peer) && newPeers < NumberPeersToConnect {
+		if c.weAreNotAlreadyConnectedTo(peer) {
 			note("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
 			c.DialPeer(peer, false)
-			newPeers = newPeers + 1
 		}
 	}
 	c.discovery.PrintPeers()
