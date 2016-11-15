@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -74,6 +75,11 @@ func Start(state interfaces.IState) {
 		server.Get("/v1/factoid-get-fee/", HandleGetFee)
 		server.Get("/v1/properties/", HandleProperties)
 		server.Get("/v1/heights/", HandleHeights)
+
+		server.Get("/v1/dblock-by-height/([^/]+)", HandleDBlockByHeight)
+		server.Get("/v1/ecblock-by-height/([^/]+)", HandleECBlockByHeight)
+		server.Get("/v1/fblock-by-height/([^/]+)", HandleFBlockByHeight)
+		server.Get("/v1/ablock-by-height/([^/]+)", HandleABlockByHeight)
 
 		server.Post("/v2", HandleV2)
 		server.Get("/v2", HandleV2)
@@ -148,6 +154,94 @@ func returnV1(ctx *web.Context, jsonResp *primitives.JSON2Response, jsonError *p
 		return
 	}
 	returnMsg(ctx, jsonResp.Result, true)
+}
+
+func HandleDBlockByHeight(ctx *web.Context, height string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
+	h, err := strconv.ParseInt(height, 0, 64)
+	if err != nil {
+		handleV1Error(ctx, NewInvalidParamsError())
+		return
+	}
+	param := HeightRequest{Height: h}
+	req := primitives.NewJSON2Request("dblock-by-height", 1, param)
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
+}
+
+func HandleECBlockByHeight(ctx *web.Context, height string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
+	h, err := strconv.ParseInt(height, 0, 64)
+	if err != nil {
+		handleV1Error(ctx, NewInvalidParamsError())
+		return
+	}
+	param := HeightRequest{Height: h}
+	req := primitives.NewJSON2Request("ecblock-by-height", 1, param)
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
+}
+
+func HandleFBlockByHeight(ctx *web.Context, height string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
+	h, err := strconv.ParseInt(height, 0, 64)
+	if err != nil {
+		handleV1Error(ctx, NewInvalidParamsError())
+		return
+	}
+	param := HeightRequest{Height: h}
+	req := primitives.NewJSON2Request("fblock-by-height", 1, param)
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
+}
+
+func HandleABlockByHeight(ctx *web.Context, height string) {
+	ServersMutex.Lock()
+	defer ServersMutex.Unlock()
+
+	state := ctx.Server.Env["state"].(interfaces.IState)
+
+	if !checkHttpPasswordOkV1(state, ctx) {
+		return
+	}
+
+	h, err := strconv.ParseInt(height, 0, 64)
+	if err != nil {
+		handleV1Error(ctx, NewInvalidParamsError())
+		return
+	}
+	param := HeightRequest{Height: h}
+	req := primitives.NewJSON2Request("ablock-by-height", 1, param)
+
+	jsonResp, jsonError := HandleV2Request(state, req)
+	returnV1(ctx, jsonResp, jsonError)
 }
 
 func HandleCommitChain(ctx *web.Context) {

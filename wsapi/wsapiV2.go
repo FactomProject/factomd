@@ -138,6 +138,18 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "pending-transactions":
 		resp, jsonError = HandleV2GetPendingTransactions(state, params)
 		break
+	case "dblock-by-height":
+		resp, jsonError = HandleV2DBlockByHeight(state, params)
+		break
+	case "ecblock-by-height":
+		resp, jsonError = HandleV2ECBlockByHeight(state, params)
+		break
+	case "fblock-by-height":
+		resp, jsonError = HandleV2FBlockByHeight(state, params)
+		break
+	case "ablock-by-height":
+		resp, jsonError = HandleV2ABlockByHeight(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
