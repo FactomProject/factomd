@@ -6,6 +6,7 @@ package directoryBlock
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -431,4 +432,13 @@ func CheckBlockPairIntegrity(block interfaces.IDirectoryBlock, prev interfaces.I
 	}
 
 	return nil
+}
+
+type ExpandedDBlock DirectoryBlock
+
+func (e DirectoryBlock) MarshalJSON() ([]byte, error) {
+	e.GetKeyMR()
+	e.GetFullHash()
+
+	return json.Marshal(ExpandedDBlock(e))
 }
