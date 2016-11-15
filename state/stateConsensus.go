@@ -365,21 +365,22 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
-	switch pdbstate.ValidNext(s, dbstatemsg.DirectoryBlock) {
+	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
-		k := fmt.Sprint("dbstate", dbheight-1)
-		key := primitives.NewHash([]byte(k))
-		s.Holding[key.Fixed()] = msg
+		s.Holding[msg.GetHash().Fixed()] = msg
 		return
 	case -1:
-		// Kill the previous DBState, because it could be bad.
-		if dbheight > s.DBStates.Base && len(s.DBStates.DBStates) > int(dbheight)-int(s.DBStates.Base) {
-			s.DBStates.DBStates[dbheight-s.DBStates.Base] = nil
-			s.DBStateFailsCnt++
-			s.networkInvalidMsgQueue <- msg
-		}
+		// Do nothing because this dbstate looks to be invalid
 		return
 	}
+
+
+	/**************************
+	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
+		s.ProcessLists.Lists[len(s.ProcessLists.Lists)-1].Clear()
+		s.ProcessLists.Lists = s.ProcessLists.Lists[:len(s.ProcessLists.Lists)-1]
+	}
+	***************************/
 
 	s.DBStates.LastTime = s.GetTimestamp()
 	dbstate := s.AddDBState(false,

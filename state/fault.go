@@ -595,6 +595,11 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
+	if pl == nil {
+		s.Holding[m.GetHash().Fixed()] = m
+		return
+	}
+
 	s.AddStatus(fmt.Sprintf("FULL FAULT FOLLOWER EXECUTE Execute Full Fault:  Replacing %x with %x at height %d leader height %d",
 		fullFault.ServerID.Bytes()[2:6],
 		fullFault.AuditServerID.Bytes()[2:6],

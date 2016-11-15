@@ -65,7 +65,8 @@ type DBStateList struct {
 //
 // Return a -1 on failure.
 //
-func (d *DBState) ValidNext(state interfaces.IState, dirblk interfaces.IDirectoryBlock) int {
+func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
+	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	if dbheight == 0 {
 		// The genesis block is valid by definition.
@@ -75,6 +76,11 @@ func (d *DBState) ValidNext(state interfaces.IState, dirblk interfaces.IDirector
 		// Must be out of order.  Can't make the call if valid or not yet.
 		return 0
 	}
+
+	if state.EntryDBHeightComplete < dbheight-1 {
+		return 0
+	}
+
 	// Get the keymr of the Previous DBState
 	pkeymr := d.DirectoryBlock.GetKeyMR()
 	// Get the Previous KeyMR pointer in the possible new Directory Block
@@ -83,6 +89,23 @@ func (d *DBState) ValidNext(state interfaces.IState, dirblk interfaces.IDirector
 		// If not the same, this is a bad new Directory Block
 		return -1
 	}
+
+	return 1
+
+	admin := next.AdminBlock
+	for _, entry := range admin.GetABEntries() {
+		if addfed, ok := entry.(*adminBlock.AddFederatedServer); ok {
+			if state.isIdentityChain(addfed.IdentityChainID) < 0 {
+				return 0
+			}
+		}
+		if addaudit, ok := entry.(*adminBlock.AddAuditServer); ok {
+			if state.isIdentityChain(addaudit.IdentityChainID) < 0 {
+				return 0
+			}
+		}
+	}
+
 	return 1
 }
 
