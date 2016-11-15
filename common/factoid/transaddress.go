@@ -21,10 +21,10 @@ import (
 )
 
 type TransAddress struct {
-	Amount  uint64
-	Address interfaces.IAddress
+	Amount  uint64              `json:"amount"`
+	Address interfaces.IAddress `json:"address"`
 	// Not marshalled
-	UserAddress string
+	UserAddress string `json:"useraddress"`
 }
 
 var _ interfaces.ITransAddress = (*TransAddress)(nil)

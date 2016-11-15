@@ -19,18 +19,18 @@ var _ = debug.PrintStack
 
 type Transaction struct {
 	// version     uint64         Version of transaction. Hardcoded, naturally.
-	MilliTimestamp uint64
+	MilliTimestamp uint64 `json:"millitimestamp"`
 	// #inputs     uint8          number of inputs
 	// #outputs    uint8          number of outputs
 	// #ecoutputs  uint8          number of outECs (Number of EntryCredits)
-	Inputs    []interfaces.IInAddress
-	Outputs   []interfaces.IOutAddress
-	OutECs    []interfaces.IOutECAddress
-	RCDs      []interfaces.IRCD
-	SigBlocks []interfaces.ISignatureBlock
+	Inputs    []interfaces.IInAddress      `json:"inputs"`
+	Outputs   []interfaces.IOutAddress     `json:"outputs"`
+	OutECs    []interfaces.IOutECAddress   `json:"outecs"`
+	RCDs      []interfaces.IRCD            `json:"rcds"`
+	SigBlocks []interfaces.ISignatureBlock `json:"sigblocks"`
 
 	// Not marshalled
-	BlockHeight uint32
+	BlockHeight uint32 `json:"blockheight"`
 	sigValid    bool
 }
 

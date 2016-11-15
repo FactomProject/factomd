@@ -23,15 +23,15 @@ import (
 //
 type FBlock struct {
 	//  ChainID         interfaces.IHash     // ChainID.  But since this is a constant, we need not actually use space to store it.
-	BodyMR          interfaces.IHash // Merkle root of the Factoid transactions which accompany this block.
-	PrevKeyMR       interfaces.IHash // Key Merkle root of previous block.
-	PrevLedgerKeyMR interfaces.IHash // Sha3 of the previous Factoid Block
-	ExchRate        uint64           // Factoshis per Entry Credit
-	DBHeight        uint32           // Directory Block height
+	BodyMR          interfaces.IHash `json:"bodymr"`          // Merkle root of the Factoid transactions which accompany this block.
+	PrevKeyMR       interfaces.IHash `json:"prevkeymr"`       // Key Merkle root of previous block.
+	PrevLedgerKeyMR interfaces.IHash `json:"prevledgerkeymr"` // Sha3 of the previous Factoid Block
+	ExchRate        uint64           `json:"exchrate"`        // Factoshis per Entry Credit
+	DBHeight        uint32           `json:"dbheight"`        // Directory Block height
 	// Header Expansion Size  varint
 	// Transaction count
 	// body size
-	Transactions []interfaces.ITransaction // List of transactions in this block
+	Transactions []interfaces.ITransaction `json:"transactions"` // List of transactions in this block
 
 	endOfPeriod [10]int // End of Minute transaction heights.  The mark the height of the first entry of
 	// the NEXT period.  This entry may not exist.  The Coinbase transaction is considered
@@ -698,9 +698,9 @@ type ExpandedFBlock FBlock
 func (e FBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ExpandedFBlock
-		ChainID     string
-		KeyMR       string
-		LedgerKeyMR string
+		ChainID     string `json:"chainid"`
+		KeyMR       string `json:"keymr"`
+		LedgerKeyMR string `json:"ledgerkeymr"`
 	}{
 		ExpandedFBlock: ExpandedFBlock(e),
 		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",
