@@ -473,6 +473,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
+	pln2 := list.State.ProcessLists.Get(ht + 2)
 
 	//
 	// ***** Apply the AdminBlock chainges to the next DBState
@@ -483,6 +484,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	pl.SortAuditServers()
 	pl.SortFedServers()
+	pln.SortAuditServers()
+	pln.SortFedServers()
+
+	pln2.FedServers = append(pln2.FedServers[:0], pln.FedServers...)
+	pln2.AuditServers = append(pln2.AuditServers[:0], pln.AuditServers...)
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
@@ -514,9 +520,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
-
-	pln.SortFedServers()
-	pln.SortAuditServers()
 
 	s := list.State
 	// Time out commits every now and again.

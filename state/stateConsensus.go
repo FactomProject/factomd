@@ -374,7 +374,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	}
 
-
 	/**************************
 	for int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) > int(dbheight+1) {
 		s.ProcessLists.Lists[len(s.ProcessLists.Lists)-1].Clear()
