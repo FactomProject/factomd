@@ -473,7 +473,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	ht := d.DirectoryBlock.GetHeader().GetDBHeight()
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
-	pln2 := list.State.ProcessLists.Get(ht + 2)
 
 	//
 	// ***** Apply the AdminBlock chainges to the next DBState
@@ -487,8 +486,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln.SortAuditServers()
 	pln.SortFedServers()
 
+	pln2 := list.State.ProcessLists.Get(ht + 2)
 	pln2.FedServers = append(pln2.FedServers[:0], pln.FedServers...)
 	pln2.AuditServers = append(pln2.AuditServers[:0], pln.AuditServers...)
+	pln2.SortAuditServers()
+	pln2.SortFedServers()
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
