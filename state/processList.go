@@ -738,28 +738,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		vm := p.VMs[i]
 
 		if !p.State.Syncing {
-			//vm.WhenFaulted = 0
 			markNoFault(p, i)
 		} else {
 			if !vm.Synced {
 				if vm.WhenFaulted == 0 {
 					markFault(p, i)
 				}
-				//eomFault(p, vm, i, len(vm.List), 0)
 			} else {
 				markNoFault(p, i)
 			}
 		}
 
-		NegotiationCheck(p)
 		FaultCheck(p)
-		/*
-			now := time.Now().Unix()
-			if int(now-p.State.LastFaultAction) > p.State.FaultWait {
-				//THROTTLE
-				FaultCheck(p)
-				p.State.LastFaultAction = now
-			}*/
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
@@ -770,15 +760,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		if vm.Height == len(vm.List) {
 			p.Ask(i, vm.Height, 20, 2)
 		}
-
-		/*
-			if vm.WhenFaulted > 0 && vm.Height > vm.faultHeight {
-				if p.AmINegotiator && i == p.NegotiatorVMIndex {
-					p.SetAmINegotiator(false)
-				}
-				vm.faultHeight = -1
-				vm.WhenFaulted = 0
-			}*/
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {

@@ -1451,7 +1451,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				s.AddStatus(authorityDeltaString)
 
 				//pl.Unfault()
-				//markNoFault(pl, fullFault.GetVMIndex())
+				markNoFault(pl, fullFault.GetVMIndex())
 				//pl.CurrentFault = *new(FaultState)
 
 				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)

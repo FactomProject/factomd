@@ -294,19 +294,19 @@ func faultSummary() string {
 						}
 						prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
 					}
-					if pl.AmINegotiator {
-						prt = prt + fmt.Sprintf("| Current Fault:")
-						faultState := pl.CurrentFault
-						if !faultState.IsNil() {
-							//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
-							pledgeDoneString := "N"
-							if faultState.PledgeDone {
-								pledgeDoneString = "Y"
-							}
-							prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
-							//}
+
+					prt = prt + fmt.Sprintf("| Current Fault:")
+					faultState := pl.CurrentFault
+					if !faultState.IsNil() {
+						//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
+						pledgeDoneString := "N"
+						if faultState.PledgeDone {
+							pledgeDoneString = "Y"
 						}
+						prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
+						//}
 					}
+
 					prt = prt + fmt.Sprintf("| Watch VM: ")
 					for i := 0; i < len(pl.FedServers); i++ {
 						if pl.VMs[i].WhenFaulted > 0 {

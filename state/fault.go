@@ -217,6 +217,8 @@ func NegotiationCheck(pl *ProcessList) {
 }
 
 func FaultCheck(pl *ProcessList) {
+	NegotiationCheck(pl)
+
 	now := time.Now().Unix()
 	if !pl.State.Leader {
 		return
@@ -324,8 +326,9 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) {
 
 		faultedFed := pl.ServerMap[leaderMin][vmIndex]
 
-		fmt.Println("JUSTINGOGO:", pl.State.FactomNodeName, faultedFed, vmIndex, leaderMin, height)
-
+		if faultedFed >= len(pl.FedServers) {
+			return
+		}
 		pl.FedServers[faultedFed].SetOnline(false)
 		faultedFedID := pl.FedServers[faultedFed].GetChainID()
 
