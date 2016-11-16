@@ -1746,23 +1746,32 @@ func (s *State) SetStringQueues() {
 
 	s.serverPrt = str
 
-	authoritiesString := s.ConstructAuthoritySetString()
+	authoritiesString := ""
+	for _, str := range s.ConstructAuthoritySetString() {
+		if len(authoritiesString) > 0 {
+			authoritiesString += "\n"
+		}
+		authoritiesString += str
+	}
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	list.State.SetAuthoritySetString(authoritiesString)
 
 }
 
-func (s *State) ConstructAuthoritySetString() string {
-	pl := s.LeaderPL
-	authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, s.LLeaderHeight)
-	for _, fd := range pl.FedServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
+func (s *State) ConstructAuthoritySetString() (authSets []string) {
+	base := s.ProcessLists.DBHeightBase
+	for i, pl := range s.ProcessLists.Lists {
+		authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, int(base)+i)
+		for _, fd := range pl.FedServers {
+			authoritiesString += " " + fd.GetChainID().String()[6:10]
+		}
+		authoritiesString += " || Auds :"
+		for _, fd := range pl.AuditServers {
+			authoritiesString += " " + fd.GetChainID().String()[6:10]
+		}
+		authSets = append(authSets, authoritiesString)
 	}
-	authoritiesString += " || Auds :"
-	for _, fd := range pl.AuditServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
-	}
-	return authoritiesString
+	return
 }
 
 func (s *State) GetTrueLeaderHeight() uint32 {

@@ -1436,7 +1436,13 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				// to the default state (No One At Fault)
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
-				authoritiesString := s.ConstructAuthoritySetString()
+				authoritiesString := ""
+				for _, str := range s.ConstructAuthoritySetString() {
+					if len(authoritiesString) > 0 {
+						authoritiesString += "\n"
+					}
+					authoritiesString += str
+				}
 				// Any updates required to the state as established by the AdminBlock are applied here.
 				pl.State.SetAuthoritySetString(authoritiesString)
 				authorityDeltaString := fmt.Sprintf("FULL FAULT DBHt: %d SysHt: %d ServerID %s AuditServerID %s",
