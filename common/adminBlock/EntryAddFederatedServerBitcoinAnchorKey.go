@@ -21,9 +21,9 @@ var _ interfaces.BinaryMarshallable = (*AddFederatedServerBitcoinAnchorKey)(nil)
 
 func (e *AddFederatedServerBitcoinAnchorKey) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8x %12s %8s\n",
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8x %12s %8s",
 		"AddFederatedServerBitcoinAnchorKey",
-		"IdentityChainID", e.IdentityChainID.Bytes()[:4],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
 		"KeyPriority", e.KeyPriority,
 		"KeyType", e.KeyType,
 		"ECDSAPublicKey", e.ECDSAPublicKey.String()[:8]))

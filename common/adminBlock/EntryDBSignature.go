@@ -111,7 +111,11 @@ func (e *DBSignatureEntry) JSONBuffer(b *bytes.Buffer) error {
 
 func (e *DBSignatureEntry) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8s %12s %8x\n", "DB Signature", "IdentityChainID", e.IdentityAdminChainID.Bytes()[:4], "PubKey", e.PrevDBSig.Pub.String()[:8], "Signature", e.PrevDBSig.Sig.String()[:8]))
+	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8s %12s %8x",
+		"DB Signature",
+		"IdentityChainID", e.IdentityAdminChainID.Bytes()[3:5],
+		"PubKey", e.PrevDBSig.Pub.String()[:8],
+		"Signature", e.PrevDBSig.Sig.String()[:8]))
 	return (string)(out.DeepCopyBytes())
 }
 
