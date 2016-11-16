@@ -140,8 +140,8 @@ type VM struct {
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.
 	faultHeight int   // ProcessList height at which the VM was faulted (if it is faulted)
-	whenFaulted int64 // whenFaulted is a timestamp of when this VM was faulted
-	// vm.whenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
+	WhenFaulted int64 // WhenFaulted is a timestamp of when this VM was faulted
+	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 }
 
 func (p *ProcessList) Clear() {
@@ -738,13 +738,28 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		vm := p.VMs[i]
 
 		if !p.State.Syncing {
-			vm.whenFaulted = 0
-			p.Unfault()
+			//vm.WhenFaulted = 0
+			markNoFault(p, i)
 		} else {
 			if !vm.Synced {
-				eomFault(p, vm, i, len(vm.List), 0)
+				if vm.WhenFaulted == 0 {
+					markFault(p, i)
+				}
+				//eomFault(p, vm, i, len(vm.List), 0)
+			} else {
+				markNoFault(p, i)
 			}
 		}
+
+		NegotiationCheck(p)
+		FaultCheck(p)
+		/*
+			now := time.Now().Unix()
+			if int(now-p.State.LastFaultAction) > p.State.FaultWait {
+				//THROTTLE
+				FaultCheck(p)
+				p.State.LastFaultAction = now
+			}*/
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
@@ -756,15 +771,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 20, 2)
 		}
 
-		if vm.whenFaulted > 0 && vm.Height > vm.faultHeight {
-			if p.AmINegotiator && i == p.NegotiatorVMIndex {
-				p.SetAmINegotiator(false)
-			}
-			vm.faultHeight = -1
-			vm.whenFaulted = 0
-
-			p.Unfault()
-		}
+		/*
+			if vm.WhenFaulted > 0 && vm.Height > vm.faultHeight {
+				if p.AmINegotiator && i == p.NegotiatorVMIndex {
+					p.SetAmINegotiator(false)
+				}
+				vm.faultHeight = -1
+				vm.WhenFaulted = 0
+			}*/
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
@@ -882,7 +896,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		return false
 	}
 
-	if existingSystemFault.SigTally(p.State) >= fullFault.SigTally(p.State) {
+	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
 		return false
 	}
 
@@ -1148,7 +1162,7 @@ func (p *ProcessList) Reset() bool {
 		vm.heartBeat = 0
 		vm.Signed = false
 		vm.Synced = false
-		vm.whenFaulted = 0
+		vm.WhenFaulted = 0
 
 		for _, msg := range vm.List {
 			if msg != nil {
@@ -1251,7 +1265,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true
 		pl.VMs[i].faultHeight = -1
-		pl.VMs[i].whenFaulted = 0
+		pl.VMs[i].WhenFaulted = 0
 	}
 
 	pl.DBHeight = dbheight

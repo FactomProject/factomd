@@ -307,6 +307,12 @@ func faultSummary() string {
 							//}
 						}
 					}
+					prt = prt + fmt.Sprintf("| Watch VM: ")
+					for i := 0; i < len(pl.FedServers); i++ {
+						if pl.VMs[i].WhenFaulted > 0 {
+							prt = prt + fmt.Sprintf("%d ", i)
+						}
+					}
 
 					prt = prt + fmt.Sprintf("\n")
 				}

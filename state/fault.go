@@ -148,87 +148,120 @@ func (fc *FaultCore) MarshalCore() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func eomFault(pl *ProcessList, vm *VM, vmIndex, height, tag int) {
-	now := time.Now().Unix()
-
-	if vm.whenFaulted == 0 {
-		// if we did not previously consider this VM faulted
-		// we simply mark it as faulted (by assigning it a nonzero whenFaulted time)
-		// and keep track of the ProcessList height it has faulted at
-		vm.whenFaulted = now
-		vm.faultHeight = height
-	} else {
-		if int(now-vm.whenFaulted) > pl.State.FaultTimeout {
-			if int(now-vm.whenFaulted) > pl.State.FaultTimeout*(1+pl.State.EOMfaultIndex) {
-				if pl.CurrentFault.IsNil() {
-					modFaultIndex := pl.State.EOMfaultIndex % len(pl.FedServers)
-					Fault(pl, vmIndex+modFaultIndex, height, 1)
-					pl.State.EOMfaultIndex = pl.State.EOMfaultIndex + 1
-				}
-
-			}
-		}
-	}
-	if int(now-pl.State.LastFaultAction) > pl.State.FaultWait {
-		//THROTTLE
-		FaultCheck(pl)
-		pl.State.LastFaultAction = now
-	}
-}
-
-func Fault(pl *ProcessList, vmIndex, height, tag int) {
+func markFault(pl *ProcessList, vmIndex int) {
 	now := time.Now().Unix()
 	vm := pl.VMs[vmIndex]
 
-	if vm.whenFaulted == 0 {
+	if vm.WhenFaulted == 0 {
 		// if we did not previously consider this VM faulted
-		// we simply mark it as faulted (by assigning it a nonzero whenFaulted time)
+		// we simply mark it as faulted (by assigning it a nonzero WhenFaulted time)
 		// and keep track of the ProcessList height it has faulted at
-		vm.whenFaulted = now
-		vm.faultHeight = height
+		vm.WhenFaulted = now
+		vm.faultHeight = len(vm.List)
 	}
 
-	fedServerCnt := len(pl.FedServers)
-	responsibleFaulterIdx := (vmIndex + 1) % fedServerCnt
-
-	if pl.State.Leader && pl.State.LeaderVMIndex == responsibleFaulterIdx {
-		CraftAndSubmitFault(pl, vmIndex, height)
-	}
 	c := pl.State.CurrentMinute
 	if c > 9 {
 		c = 9
 	}
 	index := pl.ServerMap[c][vmIndex]
-	pl.FedServers[index].SetOnline(false)
-
+	if index < len(pl.FedServers) {
+		pl.FedServers[index].SetOnline(false)
+	}
 }
 
-func FaultCheck(pl *ProcessList) {
-	faultState := pl.CurrentFault
-	if faultState.IsNil() {
+func markNoFault(pl *ProcessList, vmIndex int) {
+	vm := pl.VMs[vmIndex]
+
+	vm.WhenFaulted = 0
+	vm.faultHeight = -1
+
+	c := pl.State.CurrentMinute
+	if c > 9 {
+		c = 9
+	}
+	index := pl.ServerMap[c][vmIndex]
+	if index < len(pl.FedServers) {
+		pl.FedServers[index].SetOnline(true)
+	}
+}
+
+func NegotiationCheck(pl *ProcessList) {
+	if !pl.State.Leader {
+		//If I'm not a leader, do not attempt to negotiate
+		return
+	}
+	prevIdx := precedingVMIndex(pl)
+	prevVM := pl.VMs[prevIdx]
+
+	if prevVM.WhenFaulted == 0 {
+		//If the VM before me is not faulted, do not attempt
+		//to negotiate
 		return
 	}
 
-	timeElapsed := time.Now().Unix() - faultState.FaultCore.Timestamp.GetTimeSeconds()
+	now := time.Now().Unix()
+	if now-prevVM.WhenFaulted < int64(pl.State.FaultTimeout) {
+		//It hasn't been long enough; wait a little longer
+		//before starting negotiation
+		return
+	}
+
+	if int(now-pl.State.LastFaultAction) > pl.State.FaultWait {
+		//THROTTLE
+		CraftAndSubmitFullFault(pl, prevIdx, len(prevVM.List))
+		pl.State.LastFaultAction = now
+	}
+
+	return
+}
+
+func FaultCheck(pl *ProcessList) {
+	now := time.Now().Unix()
+	if !pl.State.Leader {
+		return
+	}
+
+	faultState := pl.CurrentFault
+	if faultState.IsNil() {
+		//Do not have a current fault
+		for i := 0; i < len(pl.FedServers); i++ {
+			if i == pl.State.LeaderVMIndex {
+				continue
+			}
+			vm := pl.VMs[i]
+			if vm.WhenFaulted > 0 && int(now-vm.WhenFaulted) > pl.State.FaultTimeout*2 {
+				newVMI := (i + 1) % len(pl.FedServers)
+				markFault(pl, newVMI)
+			}
+
+		}
+		return
+
+	}
+
+	//If we are here, we have a non-nil CurrentFault
+
+	timeElapsed := now - faultState.FaultCore.Timestamp.GetTimeSeconds()
 
 	if isMyNegotiation(faultState.FaultCore, pl) {
-		if int(timeElapsed) > pl.State.FaultTimeout+1 {
-			// Negotiation has timed out; must issue RENEWAL (new negotiation)
-			if !faultState.PledgeDone {
-				// Now let's set the Audit Server offline (so we don't just re-nominate them over and over)
-				ToggleAuditOffline(pl, faultState.FaultCore)
-			}
-			CraftAndSubmitFault(pl, int(faultState.FaultCore.VMIndex), int(faultState.FaultCore.Height))
-		} else {
-			CraftAndSubmitFullFault(pl)
-		}
-	} else {
-		if int(timeElapsed) > pl.State.FaultTimeout*2 {
-			// The negotiation has expired; time to fault negotiator
-			newVMI := (int(faultState.FaultCore.VMIndex) + 1) % len(pl.FedServers)
-			Fault(pl, newVMI, int(faultState.FaultCore.Height), 3)
-		}
+		return
 	}
+
+	if int(timeElapsed) > pl.State.FaultTimeout*2 {
+		// The negotiation has expired; time to fault negotiator
+		newVMI := (int(faultState.FaultCore.VMIndex) + 1) % len(pl.FedServers)
+		markFault(pl, newVMI)
+	}
+	return
+}
+
+func precedingVMIndex(pl *ProcessList) int {
+	precedingIndex := pl.State.LeaderVMIndex - 1
+	if precedingIndex < 0 {
+		precedingIndex = len(pl.FedServers) - 1
+	}
+	return precedingIndex
 }
 
 func ToggleAuditOffline(pl *ProcessList, fc FaultCore) {
@@ -275,10 +308,7 @@ func couldIFullFault(pl *ProcessList, vmIndex int) bool {
 	return false
 }
 
-// CraftAndSubmitFault is how we issue ServerFault messages when we have an
-// open choice of which Audit Server we want to vote for (i.e. when we're not
-// just matching someone else's existing Fault message vote)
-func CraftAndSubmitFault(pl *ProcessList, vmIndex int, height int) {
+func CraftFault(pl *ProcessList, vmIndex int, height int) {
 	// TODO: if I am the Leader being faulted, I should respond by sending out
 	// a MissingMsgResponse to everyone for the msg I'm being faulted for
 
@@ -293,6 +323,9 @@ func CraftAndSubmitFault(pl *ProcessList, vmIndex int, height int) {
 		leaderMin := pl.State.CurrentMinute
 
 		faultedFed := pl.ServerMap[leaderMin][vmIndex]
+
+		fmt.Println("JUSTINGOGO:", pl.State.FactomNodeName, faultedFed, vmIndex, leaderMin, height)
+
 		pl.FedServers[faultedFed].SetOnline(false)
 		faultedFedID := pl.FedServers[faultedFed].GetChainID()
 
@@ -323,8 +356,13 @@ func CraftAndSubmitFault(pl *ProcessList, vmIndex int, height int) {
 // (which fires once every 5 seconds on each server); most of the time
 // these are "incomplete" FullFault messages which serve as status pings
 // for the negotiation in progress
-func CraftAndSubmitFullFault(pl *ProcessList) *messages.FullServerFault {
+func CraftAndSubmitFullFault(pl *ProcessList, vmIndex int, height int) *messages.FullServerFault {
 	faultState := pl.CurrentFault
+	if faultState.IsNil() {
+		CraftFault(pl, vmIndex, height)
+		return nil
+	}
+
 	fc := faultState.FaultCore
 
 	sf := messages.NewServerFault(fc.ServerID, fc.AuditServerID, int(fc.VMIndex), fc.DBHeight, fc.Height, pl.System.Height, fc.Timestamp)
@@ -339,8 +377,7 @@ func CraftAndSubmitFullFault(pl *ProcessList) *messages.FullServerFault {
 	}
 	fullFault := messages.NewFullServerFault(pff, sf, listOfSigs, pl.System.Height)
 
-	if pl.VMs[int(fc.VMIndex)].whenFaulted == 0 {
-		//fmt.Println("JUSTIN ALLCLEAR", pl.State.FactomNodeName)
+	if pl.VMs[int(fc.VMIndex)].WhenFaulted == 0 {
 		fullFault.ClearFault = true
 	}
 
@@ -359,7 +396,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 	sf, _ := m.(*messages.ServerFault)
 	pl := s.ProcessLists.Get(sf.DBHeight)
 
-	if pl == nil || pl.VMs[sf.VMIndex].whenFaulted == 0 {
+	if pl == nil || pl.VMs[sf.VMIndex].WhenFaulted == 0 {
 		// If no such ProcessList exists, or if we don't consider
 		// the VM in this ServerFault message to be at fault,
 		// do not proceed with regularFaultExecution
@@ -382,7 +419,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 
 	faultState := pl.CurrentFault
 	if faultState.IsNil() || (faultState.FaultCore.ServerID.IsSameAs(sf.ServerID) && faultState.FaultCore.Timestamp.GetTimeSeconds() < sf.Timestamp.GetTimeSeconds()) {
-		// We don't have a map entry yet; let's create one
+		// We don't have a CurrentFault yet; let's create one
 		fcore := ExtractFaultCore(sf)
 		faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
 
@@ -439,7 +476,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		}
 	}
 
-	// Update the FaultState in our FaultMap with any updates that were applied
+	// Update the CurrentFault with any updates that were applied
 	// during execution of this function
 	pl.AddFaultState(faultState)
 }
@@ -486,9 +523,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 		}
 
 		faultState := pl.CurrentFault
-		if !faultState.IsNil() {
-			// We already have a map entry
-		} else {
+		if faultState.IsNil() {
 			// We don't have a map entry yet; let's create one
 			fcore := ExtractFaultCore(sf)
 			faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
@@ -580,7 +615,7 @@ func (pl *ProcessList) Unfault() {
 	for i := 0; i < len(pl.FedServers); i++ {
 		vm := pl.VMs[i]
 		vm.faultHeight = -1
-		vm.whenFaulted = 0
+		vm.WhenFaulted = 0
 		pl.FedServers[i].SetOnline(true)
 	}
 	pl.SetAmINegotiator(false)
@@ -607,7 +642,6 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		s.LLeaderHeight))
 
 	pl.AddToSystemList(fullFault)
-
 }
 
 // If a FullFault message includes a signature from the Audit server
