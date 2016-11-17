@@ -138,6 +138,10 @@ func (c *Connection) IsOnline() bool {
 	return ConnectionOnline == c.state
 }
 
+func (c *Connection) StatusString() string {
+	return connectionStateStrings[c.state]
+}
+
 func (c *Connection) IsPersistent() bool {
 	return c.isPersistent
 }

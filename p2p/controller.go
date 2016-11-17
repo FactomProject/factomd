@@ -576,11 +576,12 @@ func (c *Controller) updateConnectionCounts() {
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0
 	for _, connection := range c.connections {
-		// metrics, present := c.connectionMetrics[connection.peer.Hash]
-		if connection.IsOutGoing() && connection.IsOnline() {
+		switch {
+		case connection.IsOutGoing() && connection.IsOnline():
 			c.numberOutgoingConnections++
-		} else {
+		case !connection.IsOutGoing() && connection.IsOnline():
 			c.numberIncommingConnections++
+		default: // we don't count offline connections for these purposes.
 		}
 	}
 }
@@ -670,7 +671,7 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "     # Connections: %d", len(c.connections))
 		silence("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
 		silence("ctrlr", "    In Connections: %d", c.numberIncommingConnections)
-		silence("ctrlr", "   Out Connections: %d", c.numberOutgoingConnections)
+		silence("ctrlr", "   Out Connections: %d (only online are counted)", c.numberOutgoingConnections)
 		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
 		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
@@ -678,13 +679,14 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", "\tPeer\t\t\t\tDuration\tStatus\t\tNotes")
 		silence("ctrlr", "-------------------------------------------------------------------------------")
 		for _, v := range c.connections {
-			// silence("ctrlr", "Connection Direct Info (debugging outgoing bug) Outgoing: %t\tOnline: %t", v.IsOutGoing(), v.IsOnline())
 			metrics, present := c.connectionMetrics[v.peer.Hash]
 			if !present {
 				metrics = ConnectionMetrics{MomentConnected: time.Now(), ConnectionState: "No Metrics", ConnectionNotes: "No Metrics"}
 			}
 			silence("ctrlr", "%s\t%s\t%s\t%s", v.peer.PeerFixedIdent(), time.Since(metrics.MomentConnected), metrics.ConnectionState, metrics.ConnectionNotes)
-			silence("ctrlr", "\t\tSent/Recv: %d / %d\t\t Chan Send/Recv: %d / %d", metrics.MessagesSent, metrics.MessagesReceived, len(v.SendChannel), len(v.ReceiveChannel))
+			silence("ctrlr", "IsOutgoing: %t\tIsOnline: %t\tStatus: %s", v.IsOutGoing(), v.IsOnline(), v.StatusString())
+			silence("ctrlr", "Sent/Recv: %d / %d\t\t Chan Send/Recv: %d / %d", metrics.MessagesSent, metrics.MessagesReceived, len(v.SendChannel), len(v.ReceiveChannel))
+			silence("ctrlr", ".")
 		}
 		silence("ctrlr", "\tChannels:")
 		silence("ctrlr", "          commandChannel: %d", len(c.commandChannel))
