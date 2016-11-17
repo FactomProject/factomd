@@ -189,7 +189,11 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	resp := new(BlockHeightResponse)
-	resp.DBlock = block
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.DBlock = b
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
@@ -219,7 +223,11 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 	}
 
 	resp := new(BlockHeightResponse)
-	resp.ECBlock = block
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ECBlock = b
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
@@ -249,7 +257,11 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	resp := new(BlockHeightResponse)
-	resp.FBlock = block
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.FBlock = b
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
@@ -279,7 +291,11 @@ func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	resp := new(BlockHeightResponse)
-	resp.ABlock = block
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ABlock = b
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
@@ -304,6 +320,24 @@ func MapToObject(source interface{}, dst interface{}) error {
 		return err
 	}
 	return json.Unmarshal(b, dst)
+}
+
+type JStruct struct {
+	data []byte
+}
+
+func (e JStruct) MarshalJSON() ([]byte, error) {
+	return e.data, nil
+}
+
+func ObjectToJStruct(source interface{}) (*JStruct, error) {
+	b, err := json.Marshal(source)
+	if err != nil {
+		return nil, err
+	}
+	dst := new(JStruct)
+	dst.data = []byte(strings.ToLower(string(b)))
+	return dst, nil
 }
 
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {

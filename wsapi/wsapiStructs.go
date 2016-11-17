@@ -194,11 +194,11 @@ type TransactionResponse struct {
 }
 
 type BlockHeightResponse struct {
-	DBlock  interfaces.IDirectoryBlock   `json:"dblock,omitempty"`
-	ABlock  interfaces.IAdminBlock       `json:"ablock,omitempty"`
-	FBlock  interfaces.IFBlock           `json:"fblock,omitempty"`
-	ECBlock interfaces.IEntryCreditBlock `json:"ecblock,omitempty"`
-	RawData string                       `json:"rawdata,omitempty"`
+	DBlock  *JStruct `json:"dblock,omitempty"`
+	ABlock  *JStruct `json:"ablock,omitempty"`
+	FBlock  *JStruct `json:"fblock,omitempty"`
+	ECBlock *JStruct `json:"ecblock,omitempty"`
+	RawData string   `json:"rawdata,omitempty"`
 }
 
 //Requests
