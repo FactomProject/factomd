@@ -21,13 +21,18 @@ var _ interfaces.BinaryMarshallable = (*AddFederatedServer)(nil)
 
 func (e *AddFederatedServer) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d\n", "AddFedServer", "IdentityChainID", e.IdentityChainID.Bytes()[:4], "DBHeight", e.DBHeight))
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d",
+		"AddFedServer",
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
+		"DBHeight",
+		e.DBHeight))
 	return (string)(out.DeepCopyBytes())
 }
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) error {
 	state.AddFedServer(c.DBHeight, c.IdentityChainID)
 	authorityDeltaString := fmt.Sprintf("AdminBlock (AddFedMsg DBHt: %d) \n ^ %s", c.DBHeight, c.IdentityChainID.String()[5:10])
+	state.AddStatus(authorityDeltaString)
 	state.AddAuthorityDelta(authorityDeltaString)
 	state.UpdateAuthorityFromABEntry(c)
 	return nil

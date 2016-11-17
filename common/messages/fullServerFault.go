@@ -9,17 +9,20 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"math"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math"
 )
 
 //A placeholder structure for messages
 type FullServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
+
+	ClearFault bool
 
 	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of ServerFault messages
@@ -36,7 +39,8 @@ type FullServerFault struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
+	alreadyValidated bool
+	hash             interfaces.IHash
 }
 
 type SigList struct {
@@ -193,6 +197,12 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 
 	buf.Write([]byte{m.Type()})
 
+	if m.ClearFault {
+		binary.Write(&buf, binary.BigEndian, uint8(1))
+	} else {
+		binary.Write(&buf, binary.BigEndian, uint8(0))
+	}
+
 	if d, err := m.ServerID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -311,6 +321,10 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	}
 	newData = newData[1:]
 
+	m.ClearFault = uint8(newData[0]) == 1
+
+	newData = newData[1:]
+
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
@@ -384,7 +398,7 @@ func (m *FullServerFault) String() string {
 	if m == nil {
 		return "-nil-"
 	}
-	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d -- hash[:3]=%x Sig Cnt: %d",
+	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d Clr:%t -- hash[:3]=%x Sig Cnt: %d",
 		"FullSFault",
 		m.VMIndex,
 		m.Height,
@@ -392,6 +406,7 @@ func (m *FullServerFault) String() string {
 		m.AuditServerID.String()[4:10],
 		m.DBHeight,
 		m.SystemHeight,
+		m.ClearFault,
 		m.GetHash().Bytes()[:3],
 		len(m.SignatureList.List))
 }
@@ -405,6 +420,19 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
+	if m.alreadyValidated {
+		return 1
+	}
+
+	if m.DBHeight < state.GetLLeaderHeight() {
+		return -1
+	}
+
+	if m.ServerID.IsZero() || m.AuditServerID.IsZero() {
+		state.AddStatus("FULL FAULT FOLLOWER EXECUTE Fake Fault.  Ignore")
+		return -1
+	}
+
 	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
@@ -425,29 +453,7 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	/*
-		sht := state.GetSystemHeight(m.DBHeight)
-		if sht < 0 {
-			return 0
-		}
-
-		if sht >= int(m.Height) {
-			return -1
-		}
-
-		if sht < int(m.Height) {
-			return 0
-		}
-
-		if state.GetLLeaderHeight() < m.DBHeight {
-			return 0
-		}
-
-		if state.GetLLeaderHeight() > m.DBHeight {
-			return -1
-		}
-	*/
-
+	m.alreadyValidated = true
 	return 1
 }
 
@@ -483,6 +489,7 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 			validSigCount++
 		}
 	}
+
 	return validSigCount
 }
 
@@ -560,6 +567,7 @@ func (a *FullServerFault) ToAdminBlockEntry() *adminBlock.ServerFault {
 
 func NewFullServerFault(Previous *FullServerFault, faultMessage *ServerFault, sigList []interfaces.IFullSignature, sysHeight int) *FullServerFault {
 	sf := new(FullServerFault)
+	sf.ClearFault = false
 	sf.Timestamp = faultMessage.Timestamp
 	sf.VMIndex = faultMessage.VMIndex
 	sf.DBHeight = faultMessage.DBHeight

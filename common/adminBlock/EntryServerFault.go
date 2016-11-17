@@ -244,13 +244,13 @@ func (e *ServerFault) Hash() interfaces.IHash {
 }
 
 func (e *ServerFault) String() string {
-	str, _ := e.JSONString()
+	str := fmt.Sprintf("    E: %35s -- DBheight %ds ServerID %8x AuditServer %8x, #sigs %d, VMIndex %d",
+		"EntryServerFault",
+		e.DBHeight,
+		e.ServerID.Bytes()[3:5],
+		e.AuditServerID.Bytes()[3:5],
+		len(e.SignatureList.List), e.VMIndex)
 	return str
-	/*
-		var out primitives.Buffer
-		out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d\n", "AddFedServer", "IdentityChainID", e.IdentityChainID.Bytes()[:4], "DBHeight", e.DBHeight))
-		return (string)(out.DeepCopyBytes())
-	*/
 }
 
 func (e *ServerFault) Type() byte {

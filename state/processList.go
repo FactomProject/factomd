@@ -96,21 +96,13 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	FaultMapMutex sync.RWMutex
-	FaultMap      map[[32]byte]FaultState
+	CurrentFault FaultState
 
-	FaultedVMIndex int
-	// This is the index of the VM we are negotiating for, if we are
-	// in fact a Negotiator
 	NegotiatorVMIndex int
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
 	AmINegotiator bool
-	// ChosenNegotiation tells a negotiator whether they have already
-	// chosen which FullFault to issue (so that they don't accidentally
-	// issue conflicting FullFaults for the same negotiation)
-	ChosenNegotiation [32]byte
 
 	// DB Sigs
 	DBSignatures     []DBSig
@@ -147,11 +139,13 @@ type VM struct {
 	//faultingEOM           int64             // Faulting for EOM because it is too late
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.
-	faultHeight int
-	whenFaulted int64
+	faultHeight int   // ProcessList height at which the VM was faulted (if it is faulted)
+	WhenFaulted int64 // WhenFaulted is a timestamp of when this VM was faulted
+	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
 }
 
 func (p *ProcessList) Clear() {
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d", p.DBHeight))
 	p.FactoidBalancesTMutex.Lock()
 	defer p.FactoidBalancesTMutex.Unlock()
 	p.FactoidBalancesT = nil
@@ -184,9 +178,7 @@ func (p *ProcessList) Clear() {
 	p.AuditServers = nil
 	p.FedServers = nil
 
-	p.FaultMapMutex.Lock()
-	defer p.FaultMapMutex.Unlock()
-	p.FaultMap = nil
+	p.CurrentFault = *new(FaultState)
 
 	p.DBSignatures = nil
 
@@ -216,34 +208,6 @@ func (p *ProcessList) LenNewEntries() int {
 	p.NewEntriesMutex.RLock()
 	defer p.NewEntriesMutex.RUnlock()
 	return len(p.NewEntries)
-}
-
-func (p *ProcessList) GetKeysFaultMap() (keys [][32]byte) {
-	p.FaultMapMutex.RLock()
-	defer p.FaultMapMutex.RUnlock()
-	if len(p.FaultMap) < 1 {
-		return nil
-	}
-	keys = make([][32]byte, p.LenFaultMap())
-
-	i := 0
-	for k := range p.FaultMap {
-		keys[i] = k
-		i++
-	}
-	return
-}
-
-func (p *ProcessList) LenFaultMap() int {
-	p.FaultMapMutex.RLock()
-	defer p.FaultMapMutex.RUnlock()
-	return len(p.FaultMap)
-}
-
-func (p *ProcessList) GetFaultState(key [32]byte) FaultState {
-	p.FaultMapMutex.RLock()
-	defer p.FaultMapMutex.RUnlock()
-	return p.FaultMap[key]
 }
 
 func (p *ProcessList) Complete() bool {
@@ -454,19 +418,22 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	p.SortFedServers()
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
 	// If an audit server, it gets promoted
 	auditFound, _ := p.GetAuditServerIndexHash(identityChainID)
 	if auditFound {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server %x was an audit server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveAuditServerHash(identityChainID)
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	p.MakeMap()
-
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddFedServer: Adding Server %x", identityChainID.Bytes()[3:8]))
 	return i
 }
 
@@ -475,16 +442,19 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	found, i := p.GetAuditServerIndexHash(identityChainID)
 	if found {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
 	// If a fed server, demote
 	fedFound, _ := p.GetFedServerIndexHash(identityChainID)
 	if fedFound {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server %x was a fed server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveFedServerHash(identityChainID)
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
 	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	return i
 }
@@ -498,6 +468,7 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
 	p.MakeMap()
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveFedServer: Removing Server %x", identityChainID.Bytes()[3:8]))
 }
 
 // Remove the given serverChain from this processlist's Audit Servers
@@ -507,6 +478,7 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 	p.AuditServers = append(p.AuditServers[:i], p.AuditServers[i+1:]...)
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveAuditServer: Removing Audit Server %x", identityChainID.Bytes()[3:8]))
 }
 
 // Given a server index, return the last Ack
@@ -582,16 +554,8 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	delete(p.NewEntries, key.Fixed())
 }
 
-func (p *ProcessList) AddFaultState(key [32]byte, value FaultState) {
-	p.FaultMapMutex.Lock()
-	defer p.FaultMapMutex.Unlock()
-	p.FaultMap[key] = value
-}
-
-func (p *ProcessList) DeleteFaultState(key [32]byte) {
-	p.FaultMapMutex.Lock()
-	defer p.FaultMapMutex.Unlock()
-	delete(p.FaultMap, key)
+func (p *ProcessList) AddFaultState(fs FaultState) {
+	p.CurrentFault = fs
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
@@ -745,9 +709,15 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
-	if len(p.System.List) > 0 {
+	if len(p.System.List) >= p.System.Height {
 	systemloop:
 		for i, f := range p.System.List[p.System.Height:] {
+
+			if f == nil {
+				p.Ask(-1, i, 10, 100)
+				break systemloop
+			}
+
 			fault, ok := f.(*messages.FullServerFault)
 
 			if ok {
@@ -756,13 +726,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					break systemloop
 				}
 				if !fault.Process(p.DBHeight, p.State) {
-					return false
+					break systemloop
 				}
 				p.System.Height++
 				progress = true
-			}
-			if fault == nil {
-				p.Ask(-1, i, 10, 100)
 			}
 		}
 	}
@@ -771,13 +738,28 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		vm := p.VMs[i]
 
 		if !p.State.Syncing {
-			vm.whenFaulted = 0
-			p.Unfault()
+			//vm.WhenFaulted = 0
+			markNoFault(p, i)
 		} else {
 			if !vm.Synced {
-				eomFault(p, vm, i, len(vm.List), 0)
+				if vm.WhenFaulted == 0 {
+					markFault(p, i)
+				}
+				//eomFault(p, vm, i, len(vm.List), 0)
+			} else {
+				markNoFault(p, i)
 			}
 		}
+
+		NegotiationCheck(p)
+		FaultCheck(p)
+		/*
+			now := time.Now().Unix()
+			if int(now-p.State.LastFaultAction) > p.State.FaultWait {
+				//THROTTLE
+				FaultCheck(p)
+				p.State.LastFaultAction = now
+			}*/
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
@@ -789,15 +771,14 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			p.Ask(i, vm.Height, 20, 2)
 		}
 
-		if vm.whenFaulted > 0 && vm.Height > vm.faultHeight {
-			if p.AmINegotiator && i == p.NegotiatorVMIndex {
-				p.AmINegotiator = false
-			}
-			vm.faultHeight = -1
-			vm.whenFaulted = 0
-
-			p.Unfault()
-		}
+		/*
+			if vm.WhenFaulted > 0 && vm.Height > vm.faultHeight {
+				if p.AmINegotiator && i == p.NegotiatorVMIndex {
+					p.SetAmINegotiator(false)
+				}
+				vm.faultHeight = -1
+				vm.WhenFaulted = 0
+			}*/
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
@@ -896,9 +877,10 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		return false
 	}
 
-	for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
-		p.System.List = p.System.List[:len(p.System.List)-1]
-	}
+	// Remove nils.
+	//for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
+	//	p.System.List = p.System.List[:len(p.System.List)-1]
+	//}
 
 	// If we are here, fullFault.SystemHeight == p.System.Height
 	if len(p.System.List) <= p.System.Height {
@@ -910,7 +892,11 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Something is in our SystemList at this height;
 	// We will prioritize the FullFault with the highest VMIndex
 	existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
-	if int(existingSystemFault.VMIndex) >= int(fullFault.VMIndex) {
+	if int(existingSystemFault.VMIndex) > int(fullFault.VMIndex) {
+		return false
+	}
+
+	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
 		return false
 	}
 
@@ -1037,7 +1023,10 @@ func (p *ProcessList) AddDBSig(serverID interfaces.IHash, sig interfaces.IFullSi
 	dbsig := new(DBSig)
 	dbsig.ChainID = serverID
 	dbsig.Signature = sig
-	found, dbsig.VMIndex = p.GetVirtualServers(9, serverID) //vmIndex
+	found, dbsig.VMIndex = p.GetVirtualServers(0, serverID) //set the vmindex of the dbsig to the vm this server should sign
+	if !found {                                             // Should never happen.
+		return
+	}
 	p.DBSignatures = append(p.DBSignatures, *dbsig)
 	p.SortDBSigs()
 }
@@ -1107,6 +1096,8 @@ func (p *ProcessList) Reset() bool {
 		return false
 	}
 
+	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Reset(): at dbht %d", p.DBHeight))
+
 	// Make a copy of the previous FedServers
 	p.System.List = p.System.List[:0]
 	p.System.Height = 0
@@ -1137,7 +1128,7 @@ func (p *ProcessList) Reset() bool {
 	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	p.FaultMap = make(map[[32]byte]FaultState)
+	p.CurrentFault = *new(FaultState)
 
 	p.AmINegotiator = false
 
@@ -1171,7 +1162,7 @@ func (p *ProcessList) Reset() bool {
 		vm.heartBeat = 0
 		vm.Signed = false
 		vm.Synced = false
-		vm.whenFaulted = 0
+		vm.WhenFaulted = 0
 
 		for _, msg := range vm.List {
 			if msg != nil {
@@ -1198,8 +1189,12 @@ func (p *ProcessList) Reset() bool {
 		fs.Reset(previous)
 	}*/
 
-	index := p.DBHeight - p.State.DBStates.Base
-	p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
+	if p.DBHeight > p.State.DBStates.Base {
+		index := p.DBHeight - p.State.DBStates.Base
+		if len(p.State.DBStates.DBStates) >= int(index) {
+			p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
+		}
+	}
 
 	s := p.State
 	s.LLeaderHeight--
@@ -1230,6 +1225,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	// We default to the number of Servers previous.   That's because we always
 	// allocate the FUTURE directoryblock, not the current or previous...
 
+	state.AddStatus(fmt.Sprintf("PROCESSLISTS.NewProcessList at height %d", dbheight))
 	pl := new(ProcessList)
 
 	pl.State = state.(*State)
@@ -1269,7 +1265,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true
 		pl.VMs[i].faultHeight = -1
-		pl.VMs[i].whenFaulted = 0
+		pl.VMs[i].WhenFaulted = 0
 	}
 
 	pl.DBHeight = dbheight
@@ -1285,7 +1281,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	pl.FaultMap = make(map[[32]byte]FaultState)
+	pl.CurrentFault = *new(FaultState)
 
 	pl.AmINegotiator = false
 

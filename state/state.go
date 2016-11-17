@@ -1223,6 +1223,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
+	s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1231,14 +1232,17 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
+	s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
+	s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
+	s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
@@ -1742,23 +1746,32 @@ func (s *State) SetStringQueues() {
 
 	s.serverPrt = str
 
-	authoritiesString := s.ConstructAuthoritySetString()
+	authoritiesString := ""
+	for _, str := range s.ConstructAuthoritySetString() {
+		if len(authoritiesString) > 0 {
+			authoritiesString += "\n"
+		}
+		authoritiesString += str
+	}
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	list.State.SetAuthoritySetString(authoritiesString)
 
 }
 
-func (s *State) ConstructAuthoritySetString() string {
-	pl := s.LeaderPL
-	authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, s.LLeaderHeight)
-	for _, fd := range pl.FedServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
+func (s *State) ConstructAuthoritySetString() (authSets []string) {
+	base := s.ProcessLists.DBHeightBase
+	for i, pl := range s.ProcessLists.Lists {
+		authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, int(base)+i)
+		for _, fd := range pl.FedServers {
+			authoritiesString += " " + fd.GetChainID().String()[6:10]
+		}
+		authoritiesString += " || Auds :"
+		for _, fd := range pl.AuditServers {
+			authoritiesString += " " + fd.GetChainID().String()[6:10]
+		}
+		authSets = append(authSets, authoritiesString)
 	}
-	authoritiesString += " || Auds :"
-	for _, fd := range pl.AuditServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
-	}
-	return authoritiesString
+	return
 }
 
 func (s *State) GetTrueLeaderHeight() uint32 {
@@ -1881,7 +1894,7 @@ func (s *State) AddStatus(status string) {
 	s.statusMutex.Lock()
 	defer s.statusMutex.Unlock()
 
-	if len(s.StatusStrs) > 100 {
+	if len(s.StatusStrs) > 100000 {
 		copy(s.StatusStrs, s.StatusStrs[1:])
 		s.StatusStrs[len(s.StatusStrs)-1] = status
 	} else {
