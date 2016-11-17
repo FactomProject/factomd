@@ -370,8 +370,8 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 			c.peer.QualityScore = peer.QualityScore
 		}
 	case ConnectionAdjustPeerQuality:
-		debug(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality")
 		delta := command.delta
+		note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
 		c.peer.QualityScore = c.peer.QualityScore + delta
 		if MinumumQualityScore > c.peer.QualityScore {
 			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
@@ -556,7 +556,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
 	case TypeMessage:
 		parcel.Trace("Connection.handleParcelTypes()-TypeMessage", "J")
-
+		c.peer.QualityScore = c.peer.QualityScore + 1
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessage. Message is a: %s", parcel.MessageType())
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
@@ -564,7 +564,6 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
 	default:
 		parcel.Trace("Connection.handleParcelTypes()-unknown", "J")
-
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}
