@@ -242,7 +242,7 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
-	if list.LastTime != nil && now.GetTimeMilli()-list.LastTime.GetTimeMilli() < list.State.StartDelayLimit/2 {
+	if list.LastTime != nil && now.GetTimeMilli()-list.LastTime.GetTimeMilli() < list.State.StartDelayLimit*1000/2 {
 		return
 	}
 

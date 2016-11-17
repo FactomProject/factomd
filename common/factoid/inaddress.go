@@ -38,8 +38,8 @@ func NewInAddress(address interfaces.IAddress, amount uint64) interfaces.IInAddr
 	ta := new(InAddress)
 	ta.Amount = amount
 	ta.Address = address
-		//  at this point we know this address is an EC address.
+	//  at this point we know this address is an EC address.
 	//  so fill useraddress with a factoid formatted human readable address
-	ta.UserAddress=primitives.ConvertFctAddressToUserStr(address)	
+	ta.UserAddress = primitives.ConvertFctAddressToUserStr(address)
 	return ta
 }
