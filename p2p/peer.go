@@ -40,7 +40,7 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 	p.QualityScore = quality
 	p.generatePeerHash()
 	p.Type = peerType
-	p.Location = p.locationFromAddress()
+	p.Location = p.LocationFromAddress()
 	p.Source = map[string]time.Time{}
 	p.Network = CurrentNetwork
 	return p
@@ -78,7 +78,7 @@ func (p *Peer) PeerFixedIdent() string {
 // Problem is we're working wiht string addresses, may never have made a connection.
 // TODO - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
-func (p *Peer) locationFromAddress() (location uint32) {
+func (p *Peer) LocationFromAddress() (location uint32) {
 	location = 0
 	// Split out the port
 	ip_port := strings.Split(p.Address, ":")
