@@ -600,18 +600,3 @@ func NewFullServerFault(Previous *FullServerFault, faultMessage *ServerFault, si
 
 	return sf
 }
-
-func NewAllClear(faultMessage *FullServerFault, sysHeight int) *FullServerFault {
-	sf := new(FullServerFault)
-	sf.ClearFault = true
-	sf.Timestamp = faultMessage.Timestamp
-	sf.VMIndex = faultMessage.VMIndex
-	sf.DBHeight = faultMessage.DBHeight
-	sf.Height = faultMessage.Height
-	sf.ServerID = faultMessage.ServerID
-	sf.AuditServerID = faultMessage.AuditServerID
-	sf.SystemHeight = uint32(sysHeight)
-	sf.SignatureList = faultMessage.SignatureList
-
-	return sf
-}

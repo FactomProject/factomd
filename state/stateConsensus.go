@@ -1077,6 +1077,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		e.Processed = true
 		vm.Synced = true
+		markNoFault(pl, msg.GetVMIndex())
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
@@ -1354,9 +1355,10 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	fullFault, _ := msg.(*messages.FullServerFault)
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
-	s.AddStatus(fmt.Sprintf("PROCESS Full Fault: Replacing %x with %x",
+	s.AddStatus(fmt.Sprintf("PROCESS Full Fault: Replacing %x with %x (%t)",
 		fullFault.ServerID.Bytes()[3:8],
-		fullFault.AuditServerID.Bytes()[3:8]))
+		fullFault.AuditServerID.Bytes()[3:8],
+		fullFault.ClearFault))
 
 	if pl.System.Height < int(fullFault.SystemHeight) {
 		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height: %s", fullFault.String()))
@@ -1375,10 +1377,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	}
 
 	if fullFault.ClearFault {
-		if fullFault.GetVMIndex() < len(pl.VMs) && pl.VMs[fullFault.GetVMIndex()].whenFaulted == 0 {
+		if fullFault.GetVMIndex() < len(pl.VMs) && pl.VMs[fullFault.GetVMIndex()].WhenFaulted == 0 {
 			// If we agree that the server doesn't need to be faulted, we will clear our currentFault
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
 			pl.CurrentFault = *new(FaultState)
+			fmt.Println("JUSTIN CLEARING", pl.State.FactomNodeName)
 			return true
 		}
 	}
@@ -1395,7 +1398,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		for _, fedServer := range s.GetFedServers(fullFault.DBHeight) {
 			if fedServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
 				s.AddStatus(fmt.Sprintf("PROCESS Full Fault Nothing to do, Already a Fed Server! %s", fullFault.String()))
-				return true
+				return false
 			}
 		}
 		// If we don't have any Audit Servers in our Authority set
@@ -1453,7 +1456,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				pl.State.AddAuthorityDelta(authorityDeltaString)
 				s.AddStatus(authorityDeltaString)
 
-				pl.Unfault()
+				//pl.Unfault()
+				//markNoFault(pl, fullFault.GetVMIndex())
+				//pl.CurrentFault = *new(FaultState)
 
 				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
@@ -1465,7 +1470,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		mightMatch := s.IdentityChainID.IsSameAs(fullFault.AuditServerID)
 		willUpdate := false
 		if !mightMatch {
-			if vm.whenFaulted != 0 {
+			if vm.WhenFaulted != 0 {
 				//I AGREE
 				var tpts int64
 				if pl.CurrentFault.IsNil() {
@@ -1481,12 +1486,14 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 						if int(ffts-tpts) < s.FaultTimeout {
 							//TOO SOON
 							newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-							Fault(pl, newVMI, int(fullFault.Height), 2)
+							markFault(pl, newVMI)
+							//Fault(pl, newVMI, int(fullFault.Height), 2)
 						} else {
 							if !pl.CurrentFault.IsNil() && couldIFullFault(pl, int(pl.CurrentFault.FaultCore.VMIndex)) {
 								//I COULD FAULT BUT HE HASN'T
 								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-								Fault(pl, newVMI, int(fullFault.Height), 4)
+								markFault(pl, newVMI)
+								//Fault(pl, newVMI, int(fullFault.Height), 4)
 							} else {
 								willUpdate = true
 							}
