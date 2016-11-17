@@ -67,7 +67,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	fmt.Println(j.Method)
+
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
@@ -129,13 +129,13 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "send-raw-message":
 		resp, jsonError = HandleV2SendRawMessage(state, params)
 		break
-	case "get-transaction":
+	case "transaction":
 		resp, jsonError = HandleV2GetTranasction(state, params)
 		break
-	case "get-pending-entries":
+	case "pending-entries":
 		resp, jsonError = HandleV2GetPendingEntries(state, params)
 		break
-	case "get-pending-transactions":
+	case "pending-transactions":
 		resp, jsonError = HandleV2GetPendingTransactions(state, params)
 		break
 	default:
@@ -765,6 +765,12 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	answer.FactoidTransaction = fTx
 	answer.Entry = e
 
+	if blockHash == nil {
+		// this is a pending transaction.  It is not yet in a transaction or directory block
+		answer.IncludedInDirectoryBlock = ""
+		answer.IncludedInDirectoryBlockHeight = -1
+		return answer, nil
+	}
 	answer.IncludedInTransactionBlock = blockHash.String()
 
 	blockHash, err = dbase.FetchIncludedIn(blockHash)
@@ -784,7 +790,7 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println("HandleV2GetPendingEntries")
+
 	type PendingEntries struct {
 		EntryHash interfaces.IHash
 		ChainID   interfaces.IHash
@@ -800,7 +806,6 @@ func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (int
 }
 
 func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println("HandleV2GetPendingTransactions")
 	type PendingTransactions struct {
 		TransactionID interfaces.IHash
 		Inputs        []interfaces.IInAddress
@@ -812,6 +817,7 @@ func HandleV2GetPendingTransactions(state interfaces.IState, params interface{})
 	var uAddr string
 	var uIAddr interfaces.IAddress
 	for i, tran := range pending {
+
 		resp[i].TransactionID = tran.GetSigHash()
 
 		resp[i].Inputs = tran.GetInputs()

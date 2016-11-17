@@ -81,6 +81,7 @@ func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
 	p.PeerPort = NetworkListenPort // store our listening port
 	return p
 }
+
 func (p *Parcel) Init(header ParcelHeader) *Parcel {
 	p.Header = header
 	return p

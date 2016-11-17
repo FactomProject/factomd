@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
@@ -21,10 +23,12 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 	clen := len(channel)
 	switch {
 	case atCapacity < clen:
-		silence("protocol", "nonBlockingChanSend() - Channel is OVER 99 percent full! \n %d of %d \n last message: %+v", len(channel), StandardChannelSize, message)
+		str, _ := primitives.EncodeJSONString(message)
+		silence("protocol", "nonBlockingChanSend() - Channel is OVER 99 percent full! \n %d of %d \n last message: %+v", len(channel), StandardChannelSize, str)
 		panic("Full channel.")
 	case highWaterMark < clen:
-		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, message)
+		str, _ := primitives.EncodeJSONString(message)
+		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
 		for highWaterMark <= len(channel) { // Clear out some messages
 			<-channel
 		}
