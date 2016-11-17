@@ -11,12 +11,15 @@ package p2p
 // Other than Init and NetworkStart, all administration is done via the channel.
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Controller manages the peer to peer network.
@@ -78,23 +81,91 @@ type CommandShutdown struct {
 
 // CommandAdjustPeerQuality is used to instruct the Controller to reduce a connections quality score
 type CommandAdjustPeerQuality struct {
-	peerHash   string
-	adjustment int32
+	PeerHash   string
+	Adjustment int32
+}
+
+func (e *CommandAdjustPeerQuality) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandAdjustPeerQuality) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandAdjustPeerQuality) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandAdjustPeerQuality) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // CommandBan is used to instruct the Controller to disconnect and ban a peer
 type CommandBan struct {
-	peerHash string
+	PeerHash string
+}
+
+func (e *CommandBan) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandBan) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandBan) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandBan) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // CommandDisconnect is used to instruct the Controller to disconnect from a peer
 type CommandDisconnect struct {
-	peerHash string
+	PeerHash string
+}
+
+func (e *CommandDisconnect) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandDisconnect) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandDisconnect) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandDisconnect) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // CommandChangeLogging is used to instruct the Controller to takve various actions.
 type CommandChangeLogging struct {
-	level uint8
+	Level uint8
+}
+
+func (e *CommandChangeLogging) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *CommandChangeLogging) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *CommandChangeLogging) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *CommandChangeLogging) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -170,16 +241,16 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 
 func (c *Controller) StartLogging(level uint8) {
 	note("ctrlr", "StartLogging() Changing log level to %s", LoggingLevels[level])
-	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{level: level})
+	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) StopLogging() {
 	level := Silence
 	note("ctrlr", "StopLogging() Changing log level to %s", LoggingLevels[level])
-	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{level: level})
+	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) ChangeLogLevel(level uint8) {
 	note("ctrlr", "Changing log level to %s", LoggingLevels[level])
-	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{level: level})
+	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
@@ -201,17 +272,17 @@ func (c *Controller) NetworkStop() {
 
 func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
 	debug("ctrlr", "AdjustPeerQuality ")
-	BlockFreeChannelSend(c.commandChannel, CommandAdjustPeerQuality{peerHash: peerHash, adjustment: adjustment})
+	BlockFreeChannelSend(c.commandChannel, CommandAdjustPeerQuality{PeerHash: peerHash, Adjustment: adjustment})
 }
 
 func (c *Controller) Ban(peerHash string) {
 	debug("ctrlr", "Ban %s ", peerHash)
-	BlockFreeChannelSend(c.commandChannel, CommandBan{peerHash: peerHash})
+	BlockFreeChannelSend(c.commandChannel, CommandBan{PeerHash: peerHash})
 }
 
 func (c *Controller) Disconnect(peerHash string) {
 	debug("ctrlr", "Ban %s ", peerHash)
-	BlockFreeChannelSend(c.commandChannel, CommandDisconnect{peerHash: peerHash})
+	BlockFreeChannelSend(c.commandChannel, CommandDisconnect{PeerHash: peerHash})
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -351,7 +422,7 @@ func (c *Controller) route() {
 			case ConnectionParcel:
 				note(peerHash, "ctrlr.route() ConnectionParcel")
 				msg := message.(ConnectionParcel)
-				parcel := msg.parcel
+				parcel := msg.Parcel
 				parcel.Trace("controller.route().ReceiveChannel.ConnectionParcel", "K")
 				c.handleParcelReceive(message, peerHash, connection)
 			default:
@@ -378,7 +449,7 @@ func (c *Controller) route() {
 			for _, connection := range c.connections {
 				dot("&&k\n")
 				note("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
-				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 			}
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			significant("ctrlr", "Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
@@ -408,7 +479,7 @@ func (c *Controller) doDirectedSend(parcel Parcel) {
 		parcel.Trace("controller.route().Directed Success", "d")
 		significant("ctrlr", "Controller.route() SUCCESS Directed send to %+v", parcel.Header.TargetPeer)
 		dot("&&i\n")
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 	} else {
 		parcel.Trace("controller.route().Directed FAILURE not connected. Dropping message.", "d")
 		significant("ctrlr", "Controller.route() Directed FAILURE not connected. Dropping message. %+v", parcel.Header.TargetPeer)
@@ -419,7 +490,7 @@ func (c *Controller) doDirectedSend(parcel Parcel) {
 func (c *Controller) handleParcelReceive(message interface{}, peerHash string, connection Connection) {
 	TotalMessagesRecieved++
 	parameters := message.(ConnectionParcel)
-	parcel := parameters.parcel
+	parcel := parameters.Parcel
 	note("ctrlr", "Controller.route() got parcel from NETWORK %+v", parcel.MessageType())
 	dot("&&l\n")
 	parcel.Header.TargetPeer = peerHash // Set the connection ID so the application knows which peer the message is from.
@@ -436,7 +507,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
 		response.Header.Type = TypePeerResponse
 		// Send them out to the network - on the connection that requested it!
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: *response})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: *response})
 		note("ctrlr", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
 	case TypePeerResponse:
 		parcel.Trace("Controller.handleParcelReceive()-TypePeerResponse", "L")
@@ -450,9 +521,9 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 }
 
 func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection Connection) {
-	switch command.command {
+	switch command.Command {
 	case ConnectionUpdateMetrics:
-		c.connectionMetrics[connection.peer.Hash] = command.metrics
+		c.connectionMetrics[connection.peer.Hash] = command.Metrics
 		dot("&&p\n")
 		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics")
 	case ConnectionIsClosed:
@@ -464,9 +535,9 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	case ConnectionUpdatingPeer:
 		dot("&&r\n")
 		note("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
-		c.discovery.updatePeer(command.peer)
+		c.discovery.updatePeer(command.Peer)
 	default:
-		logfatal("ctrlr", "handleParcelReceive() unknown command.command?: %+v ", command.command)
+		logfatal("ctrlr", "handleParcelReceive() unknown command.command?: %+v ", command.Command)
 	}
 }
 
@@ -499,25 +570,25 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
-		CurrentLoggingLevel = parameters.level
-		significant("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.level])
+		CurrentLoggingLevel = parameters.Level
+		significant("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.Level])
 	case CommandAdjustPeerQuality:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)
-		peerHash := parameters.peerHash
-		c.applicationPeerUpdate(parameters.adjustment, peerHash)
+		peerHash := parameters.PeerHash
+		c.applicationPeerUpdate(parameters.Adjustment, peerHash)
 	case CommandBan:
 		verbose("ctrlr", "handleCommand() Processing command: CommandBan")
 		parameters := command.(CommandBan)
-		peerHash := parameters.peerHash
+		peerHash := parameters.PeerHash
 		c.applicationPeerUpdate(BannedQualityScore, peerHash)
 	case CommandDisconnect:
 		verbose("ctrlr", "handleCommand() Processing command: CommandDisconnect")
 		parameters := command.(CommandDisconnect)
-		peerHash := parameters.peerHash
+		peerHash := parameters.PeerHash
 		connection, present := c.connections[peerHash]
 		if present {
-			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{command: ConnectionShutdownNow})
+			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 		}
 	default:
 		logfatal("ctrlr", "Unkown p2p.Controller command recieved: %+v", commandType)
@@ -526,7 +597,7 @@ func (c *Controller) handleCommand(command interface{}) {
 func (c *Controller) applicationPeerUpdate(qualityDelta int32, peerHash string) {
 	connection, present := c.connections[peerHash]
 	if present {
-		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{command: ConnectionAdjustPeerQuality, delta: qualityDelta})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionAdjustPeerQuality, Delta: qualityDelta})
 	}
 }
 
@@ -576,7 +647,7 @@ func (c *Controller) managePeers() {
 			parcel := *parcelp
 			parcel.Header.Type = TypePeerRequest
 			for _, connection := range c.connections {
-				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{parcel: parcel})
+				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 			}
 		}
 	}
@@ -644,7 +715,7 @@ func (c *Controller) shutdown() {
 	debug("ctrlr", "Controller.shutdown() ")
 	// Go thru peer list and shut down connections.
 	for _, connection := range c.connections {
-		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{command: ConnectionShutdownNow})
+		BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 	}
 	c.keepRunning = false
 }
