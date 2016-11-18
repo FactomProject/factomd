@@ -330,6 +330,11 @@ func (e JStruct) MarshalJSON() ([]byte, error) {
 	return e.data, nil
 }
 
+func (e JStruct) UnmarshalJSON(b []byte) error {
+	e.data = b
+	return nil
+}
+
 func ObjectToJStruct(source interface{}) (*JStruct, error) {
 	b, err := json.Marshal(source)
 	if err != nil {
