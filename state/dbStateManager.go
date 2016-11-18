@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -265,7 +266,7 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
-	if list.LastTime != nil && now.GetTimeMilli()-list.LastTime.GetTimeMilli() < list.State.StartDelayLimit/2 {
+	if list.LastTime != nil && now.GetTimeMilli()-list.LastTime.GetTimeMilli() < list.State.StartDelayLimit*1000/2 {
 		return
 	}
 
@@ -474,6 +475,24 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
 
+	var out bytes.Buffer
+	out.WriteString("=== AdminBlock.UpdateState() Start ===\n")
+	prt := func(lable string, pl *ProcessList) {
+		out.WriteString(fmt.Sprintf("%19s %20s (%4d)", list.State.FactomNodeName, lable, pl.DBHeight))
+		out.WriteString("Fed: ")
+		for _, f := range pl.FedServers {
+			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:5]))
+		}
+		out.WriteString("---Audit: ")
+		for _, f := range pl.AuditServers {
+			out.WriteString(fmt.Sprintf("%x ", f.GetChainID().Bytes()[3:5]))
+		}
+		out.WriteString("\n")
+	}
+
+	prt("pl 1st", pl)
+	prt("pln 1st", pln)
+
 	//
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
@@ -481,16 +500,29 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
+	prt("pl 2st", pl)
+	prt("pln 2st", pln)
+
+	pln2 := list.State.ProcessLists.Get(ht + 2)
+	pln2.FedServers = append(pln2.FedServers[:0], pln.FedServers...)
+	pln2.AuditServers = append(pln2.AuditServers[:0], pln.AuditServers...)
+
+	prt("pln2 3st", pln2)
+
+	pln2.SortAuditServers()
+	pln2.SortFedServers()
+
 	pl.SortAuditServers()
 	pl.SortFedServers()
 	pln.SortAuditServers()
 	pln.SortFedServers()
 
-	pln2 := list.State.ProcessLists.Get(ht + 2)
-	pln2.FedServers = append(pln2.FedServers[:0], pln.FedServers...)
-	pln2.AuditServers = append(pln2.AuditServers[:0], pln.AuditServers...)
-	pln2.SortAuditServers()
-	pln2.SortFedServers()
+	prt("pl 4th", pl)
+	prt("pln 4th", pln)
+	prt("pln2 4th", pln2)
+
+	out.WriteString("=== AdminBlock.UpdateState() End ===")
+	fmt.Println(out.String())
 
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()

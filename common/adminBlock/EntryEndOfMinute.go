@@ -76,8 +76,9 @@ func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *EndOfMinuteEntry) String() string {
-	str, _ := e.JSONString()
-	return str
+	return fmt.Sprintf("    E: %35s -- %17s %d",
+		"EndOfMinuteEntry",
+		"Minute", e.MinuteNumber)
 }
 
 func (e *EndOfMinuteEntry) IsInterpretable() bool {

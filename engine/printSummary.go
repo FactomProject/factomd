@@ -221,6 +221,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 					diff = ""
 				}
 				lastdelta = ad
+				diff = "\n" /*********************************** replace Diff with new line.*/
 				prt = prt + ad + diff
 			}
 			prt = prt + "\n"
