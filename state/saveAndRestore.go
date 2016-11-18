@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
@@ -211,7 +212,6 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 			state.ProcessLists.Lists = state.ProcessLists.Lists[:index+2]
 			pln := state.ProcessLists.Lists[index+1]
 			for _, vm := range pln.VMs {
-				vm.faultHeight = 0
 				vm.LeaderMinute = 0
 				if vm.Height > 0 {
 					vm.Signed = true
