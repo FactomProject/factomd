@@ -303,7 +303,7 @@ func (f *P2PProxy) ManageInChannel() {
 }
 
 func (p *P2PProxy) trace(appHash string, appType string, location string, sequence string) {
-	if 1 < p.debugMode {
+	if 10 < p.debugMode {
 		time := time.Now().Unix()
 		fmt.Printf("\nParcelTrace, %s, %s, %s, Message, %s, %d \n", appHash, sequence, appType, location, time)
 	}
