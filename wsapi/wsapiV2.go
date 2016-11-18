@@ -326,11 +326,11 @@ type JStruct struct {
 	data []byte
 }
 
-func (e JStruct) MarshalJSON() ([]byte, error) {
+func (e *JStruct) MarshalJSON() ([]byte, error) {
 	return e.data, nil
 }
 
-func (e JStruct) UnmarshalJSON(b []byte) error {
+func (e *JStruct) UnmarshalJSON(b []byte) error {
 	e.data = b
 	return nil
 }
