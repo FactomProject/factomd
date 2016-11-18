@@ -188,6 +188,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.FromNetwork = make(chan interface{}, StandardChannelSize)    // Channel to the app for network data
 	c.ToNetwork = make(chan interface{}, StandardChannelSize)      // Parcels from the app for the network
 	c.connections = make(map[string]*Connection)
+	c.connectionsByAddress = make(map[string]*Connection)
 	c.connectionMetrics = make(map[string]ConnectionMetrics)
 	c.connectionMetricsChannel = ci.ConnectionMetricsChannel
 	c.listenPort = ci.Port
