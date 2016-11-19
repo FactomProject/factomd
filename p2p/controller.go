@@ -448,7 +448,7 @@ func (c *Controller) route() {
 			debug("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
 			for _, connection := range c.connections {
 				dot("&&k\n")
-				note("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
+				debug("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
 				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 			}
 		case RandomPeerFlag: // Find a random peer, send to that peer.
@@ -507,8 +507,8 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
 		response.Header.Type = TypePeerResponse
 		// Send them out to the network - on the connection that requested it!
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: *response})
 		debug("ctrlr", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
+		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: *response})
 	case TypePeerResponse:
 		parcel.Trace("Controller.handleParcelReceive()-TypePeerResponse", "L")
 		dot("&&o\n")
