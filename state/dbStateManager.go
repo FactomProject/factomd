@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
