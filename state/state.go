@@ -683,7 +683,7 @@ func (s *State) Init() {
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 	s.FaultTimeout = 20
-	s.FaultWait = 5
+	s.FaultWait = 3
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0

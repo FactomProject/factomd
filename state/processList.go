@@ -98,7 +98,7 @@ type ProcessList struct {
 
 	CurrentFault FaultState
 
-	NegotiatorVMIndex int
+	NegotiatonTimeout int64
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
@@ -139,9 +139,9 @@ type VM struct {
 	//faultingEOM           int64             // Faulting for EOM because it is too late
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.
-	faultHeight int   // ProcessList height at which the VM was faulted (if it is faulted)
 	WhenFaulted int64 // WhenFaulted is a timestamp of when this VM was faulted
 	// vm.WhenFaulted serves as a bool flag (if > 0, the vm is currently considered faulted)
+	faultedBecauseEOM bool
 }
 
 func (p *ProcessList) Clear() {
@@ -555,6 +555,16 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 }
 
 func (p *ProcessList) AddFaultState(fs FaultState) {
+	cf := p.CurrentFault
+	if !cf.IsNil() {
+		if int(cf.FaultCore.VMIndex) > int(fs.FaultCore.VMIndex) {
+			return
+		}
+		if int(cf.FaultCore.VMIndex) == int(fs.FaultCore.VMIndex) && cf.FaultCore.Timestamp.GetTimeSeconds() > fs.FaultCore.Timestamp.GetTimeSeconds() {
+			return
+		}
+	}
+
 	p.CurrentFault = fs
 }
 
@@ -723,6 +733,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if ok {
 				vm := p.VMs[fault.VMIndex]
 				if vm.Height < int(fault.Height) {
+					p.State.AddStatus(fmt.Sprint("VM HEIGHT IS", vm.Height, "FH IS", fault.Height))
 					break systemloop
 				}
 				if !fault.Process(p.DBHeight, p.State) {
@@ -738,28 +749,20 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		vm := p.VMs[i]
 
 		if !p.State.Syncing {
-			//vm.WhenFaulted = 0
 			markNoFault(p, i)
 		} else {
 			if !vm.Synced {
 				if vm.WhenFaulted == 0 {
-					markFault(p, i)
+					markFault(p, i, true)
 				}
-				//eomFault(p, vm, i, len(vm.List), 0)
 			} else {
-				markNoFault(p, i)
+				if vm.faultedBecauseEOM {
+					markNoFault(p, i)
+				}
 			}
 		}
 
-		NegotiationCheck(p)
 		FaultCheck(p)
-		/*
-			now := time.Now().Unix()
-			if int(now-p.State.LastFaultAction) > p.State.FaultWait {
-				//THROTTLE
-				FaultCheck(p)
-				p.State.LastFaultAction = now
-			}*/
 
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
@@ -770,15 +773,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		if vm.Height == len(vm.List) {
 			p.Ask(i, vm.Height, 20, 2)
 		}
-
-		/*
-			if vm.WhenFaulted > 0 && vm.Height > vm.faultHeight {
-				if p.AmINegotiator && i == p.NegotiatorVMIndex {
-					p.SetAmINegotiator(false)
-				}
-				vm.faultHeight = -1
-				vm.WhenFaulted = 0
-			}*/
 
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
@@ -1158,7 +1152,6 @@ func (p *ProcessList) Reset() bool {
 
 		vm.Height = 0 // Knock all the VMs back
 		vm.LeaderMinute = 0
-		vm.faultHeight = 0
 		vm.heartBeat = 0
 		vm.Signed = false
 		vm.Synced = false
@@ -1264,7 +1257,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 		pl.VMs[i] = new(VM)
 		pl.VMs[i].List = make([]interfaces.IMsg, 0)
 		pl.VMs[i].Synced = true
-		pl.VMs[i].faultHeight = -1
 		pl.VMs[i].WhenFaulted = 0
 	}
 

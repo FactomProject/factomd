@@ -148,7 +148,7 @@ func (fc *FaultCore) MarshalCore() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func markFault(pl *ProcessList, vmIndex int) {
+func markFault(pl *ProcessList, vmIndex int, becauseEOM bool) {
 	now := time.Now().Unix()
 	vm := pl.VMs[vmIndex]
 
@@ -157,7 +157,7 @@ func markFault(pl *ProcessList, vmIndex int) {
 		// we simply mark it as faulted (by assigning it a nonzero WhenFaulted time)
 		// and keep track of the ProcessList height it has faulted at
 		vm.WhenFaulted = now
-		vm.faultHeight = len(vm.List)
+		vm.faultedBecauseEOM = becauseEOM
 	}
 
 	c := pl.State.CurrentMinute
@@ -174,7 +174,6 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 	vm := pl.VMs[vmIndex]
 
 	vm.WhenFaulted = 0
-	vm.faultHeight = -1
 
 	c := pl.State.CurrentMinute
 	if c > 9 {
@@ -183,6 +182,11 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 	index := pl.ServerMap[c][vmIndex]
 	if index < len(pl.FedServers) {
 		pl.FedServers[index].SetOnline(true)
+	}
+
+	cf := pl.CurrentFault
+	if !cf.IsNil() && cf.AmINegotiator && int(time.Now().Unix()-pl.State.LastFaultAction) > pl.State.FaultWait {
+		CraftAndSubmitFullFault(pl, vmIndex, vm.Height)
 	}
 }
 
@@ -207,9 +211,9 @@ func NegotiationCheck(pl *ProcessList) {
 		return
 	}
 
-	if int(now-pl.State.LastFaultAction) > pl.State.FaultWait {
+	if now-pl.State.LastFaultAction > int64(pl.State.FaultWait) {
 		//THROTTLE
-		CraftAndSubmitFullFault(pl, prevIdx, len(prevVM.List))
+		CraftAndSubmitFullFault(pl, prevIdx, prevVM.Height)
 		pl.State.LastFaultAction = now
 	}
 
@@ -217,24 +221,25 @@ func NegotiationCheck(pl *ProcessList) {
 }
 
 func FaultCheck(pl *ProcessList) {
+	NegotiationCheck(pl)
+
 	now := time.Now().Unix()
-	if !pl.State.Leader {
-		return
-	}
 
 	faultState := pl.CurrentFault
 	if faultState.IsNil() {
 		//Do not have a current fault
-		for i := 0; i < len(pl.FedServers); i++ {
-			if i == pl.State.LeaderVMIndex {
-				continue
-			}
-			vm := pl.VMs[i]
-			if vm.WhenFaulted > 0 && int(now-vm.WhenFaulted) > pl.State.FaultTimeout*2 {
-				newVMI := (i + 1) % len(pl.FedServers)
-				markFault(pl, newVMI)
-			}
+		if now-pl.NegotiatonTimeout > int64(pl.State.FaultTimeout)/2 {
+			for i := 0; i < len(pl.FedServers); i++ {
+				if i == pl.State.LeaderVMIndex {
+					continue
+				}
+				vm := pl.VMs[i]
+				if vm.WhenFaulted > 0 && int(now-vm.WhenFaulted) > pl.State.FaultTimeout*2 {
+					newVMI := (i + 1) % len(pl.FedServers)
+					markFault(pl, newVMI, false)
+				}
 
+			}
 		}
 		return
 
@@ -251,7 +256,7 @@ func FaultCheck(pl *ProcessList) {
 	if int(timeElapsed) > pl.State.FaultTimeout*2 {
 		// The negotiation has expired; time to fault negotiator
 		newVMI := (int(faultState.FaultCore.VMIndex) + 1) % len(pl.FedServers)
-		markFault(pl, newVMI)
+		markFault(pl, newVMI, false)
 	}
 	return
 }
@@ -324,8 +329,9 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) {
 
 		faultedFed := pl.ServerMap[leaderMin][vmIndex]
 
-		fmt.Println("JUSTINGOGO:", pl.State.FactomNodeName, faultedFed, vmIndex, leaderMin, height)
-
+		if faultedFed >= len(pl.FedServers) {
+			return
+		}
 		pl.FedServers[faultedFed].SetOnline(false)
 		faultedFedID := pl.FedServers[faultedFed].GetChainID()
 
@@ -614,7 +620,6 @@ func (pl *ProcessList) Unfault() {
 	// Reset the fault-state of all VMs
 	for i := 0; i < len(pl.FedServers); i++ {
 		vm := pl.VMs[i]
-		vm.faultHeight = -1
 		vm.WhenFaulted = 0
 		pl.FedServers[i].SetOnline(true)
 	}

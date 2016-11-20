@@ -1457,8 +1457,10 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				s.AddStatus(authorityDeltaString)
 
 				//pl.Unfault()
+				pl.CurrentFault = *new(FaultState)
+				//pl.State.LastFaultAction = time.Now().Unix()
 				//markNoFault(pl, fullFault.GetVMIndex())
-				//pl.CurrentFault = *new(FaultState)
+				pl.NegotiatonTimeout = time.Now().Unix()
 
 				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
@@ -1486,13 +1488,13 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 						if int(ffts-tpts) < s.FaultTimeout {
 							//TOO SOON
 							newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-							markFault(pl, newVMI)
+							markFault(pl, newVMI, false)
 							//Fault(pl, newVMI, int(fullFault.Height), 2)
 						} else {
 							if !pl.CurrentFault.IsNil() && couldIFullFault(pl, int(pl.CurrentFault.FaultCore.VMIndex)) {
 								//I COULD FAULT BUT HE HASN'T
 								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-								markFault(pl, newVMI)
+								markFault(pl, newVMI, false)
 								//Fault(pl, newVMI, int(fullFault.Height), 4)
 							} else {
 								willUpdate = true
