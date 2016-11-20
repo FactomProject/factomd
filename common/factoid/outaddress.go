@@ -42,6 +42,6 @@ func NewOutAddress(address interfaces.IAddress, amount uint64) interfaces.IOutAd
 	ta := new(OutAddress)
 	ta.Amount = amount
 	ta.Address = address
-	ta.UserAddress=primitives.ConvertFctAddressToUserStr(address)
+	ta.UserAddress = primitives.ConvertFctAddressToUserStr(address)
 	return ta
 }

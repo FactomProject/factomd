@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -266,12 +265,12 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
-	if list.LastTime != nil && now.GetTimeMilli()-list.LastTime.GetTimeMilli() < list.State.StartDelayLimit*1000/2 {
+	if list.LastTime == nil {
+		list.LastTime = now
 		return
 	}
 
-	if list.LastTime == nil {
-		list.LastTime = now
+	if now.GetTimeMilli()-list.LastTime.GetTimeMilli() < 300 {
 		return
 	}
 
@@ -447,7 +446,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	if d.Locked || d.isNew {
-		//	list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
 		return
 	}
 
@@ -554,6 +552,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
+
+	pln.SortFedServers()
+	pln.SortAuditServers()
 
 	s := list.State
 	// Time out commits every now and again.
