@@ -237,7 +237,7 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if plHeight >= dbsHeight && plHeight-dbsHeight > 1 {
+		if plHeight >= dbsHeight && plHeight-dbsHeight > 2 {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
@@ -271,7 +271,7 @@ func (list *DBStateList) Catchup() {
 		return
 	}
 
-	if now.GetTimeMilli()-list.LastTime.GetTimeMilli() < 300 {
+	if now.GetTimeMilli()-list.LastTime.GetTimeMilli() < 1500 {
 		return
 	}
 
