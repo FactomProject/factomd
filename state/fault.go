@@ -228,6 +228,8 @@ func FaultCheck(pl *ProcessList) {
 	faultState := pl.CurrentFault
 	if faultState.IsNil() {
 		//Do not have a current fault
+		pl.SetAmINegotiator(false)
+
 		if now-pl.NegotiatonTimeout > int64(pl.State.FaultTimeout)/2 {
 			for i := 0; i < len(pl.FedServers); i++ {
 				if i == pl.State.LeaderVMIndex {
@@ -250,6 +252,7 @@ func FaultCheck(pl *ProcessList) {
 	timeElapsed := now - faultState.FaultCore.Timestamp.GetTimeSeconds()
 
 	if isMyNegotiation(faultState.FaultCore, pl) {
+		pl.SetAmINegotiator(true)
 		if int(timeElapsed) > pl.State.FaultTimeout+pl.State.FaultTimeout/2 {
 			if !faultState.GetPledgeDone() {
 				ToggleAuditOffline(pl, faultState.FaultCore)
@@ -259,6 +262,8 @@ func FaultCheck(pl *ProcessList) {
 			NegotiationCheck(pl)
 		}
 		return
+	} else {
+		pl.SetAmINegotiator(false)
 	}
 
 	if int(timeElapsed) > pl.State.FaultTimeout*2 {
@@ -439,7 +444,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 
 		if isMyNegotiation(fcore, pl) {
 			faultState.SetAmINegotiator(true)
-			pl.SetAmINegotiator(true)
+			//pl.SetAmINegotiator(true)
 		}
 
 		if faultState.VoteMap == nil {
@@ -544,7 +549,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 
 			if isMyNegotiation(fcore, pl) {
 				faultState.SetAmINegotiator(true)
-				pl.SetAmINegotiator(true)
+				//pl.SetAmINegotiator(true)
 			}
 
 			if faultState.VoteMap == nil {

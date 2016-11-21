@@ -1124,7 +1124,7 @@ func (p *ProcessList) Reset() bool {
 
 	p.CurrentFault = *new(FaultState)
 
-	p.AmINegotiator = false
+	p.SetAmINegotiator(false)
 
 	p.DBSignatures = make([]DBSig, 0)
 
@@ -1274,8 +1274,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
 	pl.CurrentFault = *new(FaultState)
-
-	pl.AmINegotiator = false
 
 	pl.DBSignatures = make([]DBSig, 0)
 
