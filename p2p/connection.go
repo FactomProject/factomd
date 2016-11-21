@@ -175,6 +175,10 @@ func (c *Connection) IsOnline() bool {
 	return ConnectionOnline == c.state
 }
 
+func (c *Connection) StatusString() string {
+	return connectionStateStrings[c.state]
+}
+
 func (c *Connection) IsPersistent() bool {
 	return c.isPersistent
 }
@@ -213,7 +217,7 @@ func (c *Connection) runLoop() {
 		c.updateStats()                   // Update controller with metrics
 		c.connectionStatusReport()
 		// if 2 == rand.Intn(100) {
-		note(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
+		debug(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
 		// }
 		switch c.state {
 		case ConnectionInitialized:
@@ -231,7 +235,7 @@ func (c *Connection) runLoop() {
 			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-					note(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
 			}
@@ -262,7 +266,7 @@ func (c *Connection) runLoop() {
 
 func (c *Connection) setNotes(format string, v ...interface{}) {
 	c.notes = fmt.Sprintf(format, v...)
-	note(c.peer.PeerIdent(), c.notes)
+	significant(c.peer.PeerIdent(), c.notes)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
@@ -403,8 +407,8 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 			c.peer.QualityScore = peer.QualityScore
 		}
 	case ConnectionAdjustPeerQuality:
-		debug(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality")
 		delta := command.Delta
+		note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
 		c.peer.QualityScore = c.peer.QualityScore + delta
 		if MinumumQualityScore > c.peer.QualityScore {
 			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
@@ -449,7 +453,7 @@ func (c *Connection) processReceives() {
 		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
 		switch {
 		case nil == err:
-			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
+			debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.metrics.BytesReceived += message.Header.Length
 			c.metrics.MessagesReceived += 1
 			message.Header.PeerAddress = c.peer.Address
@@ -589,7 +593,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypeMessage:
 		parcel.Trace("Connection.handleParcelTypes()-TypeMessage", "J")
-
+		c.peer.QualityScore = c.peer.QualityScore + 1
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessage. Message is a: %s", parcel.MessageType())
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
@@ -597,7 +601,6 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	default:
 		parcel.Trace("Connection.handleParcelTypes()-unknown", "J")
-
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}

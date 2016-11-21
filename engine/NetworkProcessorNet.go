@@ -172,10 +172,14 @@ func NetworkOutputs(fnode *FactomNode) {
 func InvalidOutputs(fnode *FactomNode) {
 	for {
 		time.Sleep(1 * time.Millisecond)
-		invalidMsg := <-fnode.State.NetworkInvalidMsgQueue()
+		_ = <-fnode.State.NetworkInvalidMsgQueue()
 		//fmt.Println(invalidMsg)
-		if len(invalidMsg.GetNetworkOrigin()) > 0 {
-			p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
-		}
+
+		// The following code was giving a demerit for each instance of a message in the NetworkInvalidMsgQueue.
+		// However the concensus system is not properly limiting the messages going into this queue to be ones
+		//  indicating an attack.  So the demerits are turned off for now.
+		// if len(invalidMsg.GetNetworkOrigin()) > 0 {
+		// 	p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
+		// }
 	}
 }
