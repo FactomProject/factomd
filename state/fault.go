@@ -250,6 +250,14 @@ func FaultCheck(pl *ProcessList) {
 	timeElapsed := now - faultState.FaultCore.Timestamp.GetTimeSeconds()
 
 	if isMyNegotiation(faultState.FaultCore, pl) {
+		if int(timeElapsed) > pl.State.FaultTimeout+pl.State.FaultTimeout/2 {
+			if !faultState.GetPledgeDone() {
+				ToggleAuditOffline(pl, faultState.FaultCore)
+			}
+			pl.CurrentFault = *new(FaultState)
+			pl.State.LastFaultAction = 0
+			NegotiationCheck(pl)
+		}
 		return
 	}
 
