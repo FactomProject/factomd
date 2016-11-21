@@ -214,6 +214,10 @@ func (c *Controller) Disconnect(peerHash string) {
 	BlockFreeChannelSend(c.commandChannel, CommandDisconnect{peerHash: peerHash})
 }
 
+func (c *Controller) GetNumberConnections() int {
+	return len(c.connections)
+}
+
 //////////////////////////////////////////////////////////////////////
 //
 // Private API (unexported)
