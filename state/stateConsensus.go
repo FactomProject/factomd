@@ -1458,7 +1458,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 				//pl.Unfault()
 				pl.CurrentFault = *new(FaultState)
-				//pl.State.LastFaultAction = time.Now().Unix()
+				pl.State.LastFaultAction = time.Now().Unix()
 				//markNoFault(pl, fullFault.GetVMIndex())
 				pl.NegotiatonTimeout = time.Now().Unix()
 
