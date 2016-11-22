@@ -625,21 +625,6 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 	}
 }
 
-// Unfault is used to reset to the default state (No One At Fault)
-func (pl *ProcessList) Unfault() {
-	// Delete all entries in FaultMap
-	pl.CurrentFault = *new(FaultState)
-
-	// Reset the fault-state of all VMs
-	for i := 0; i < len(pl.FedServers); i++ {
-		vm := pl.VMs[i]
-		vm.WhenFaulted = 0
-		pl.FedServers[i].SetOnline(true)
-	}
-	pl.SetAmINegotiator(false)
-	pl.State.EOMfaultIndex = 0
-}
-
 // When we execute a FullFault message, it could be complete (includes all
 // necessary signatures + pledge) or incomplete, in which case it is just
 // a negotiation ping

@@ -1456,7 +1456,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				pl.State.AddAuthorityDelta(authorityDeltaString)
 				s.AddStatus(authorityDeltaString)
 
-				//pl.Unfault()
 				pl.CurrentFault = *new(FaultState)
 				pl.State.LastFaultAction = time.Now().Unix()
 				//markNoFault(pl, fullFault.GetVMIndex())

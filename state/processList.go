@@ -833,8 +833,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 
-					//p.Unfault()
-
 					progress = true
 				} else {
 					break VMListLoop // Don't process further in this list, go to the next.
