@@ -1,0 +1,139 @@
+hash: df12408e546dfca4a8e4bfc466ffa97bda4e3e7799378ded8082a3d28295784a
+updated: 2016-11-20T11:30:04.688196493-05:00
+imports:
+- name: github.com/btcsuitereleases/btcd
+  version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
+  subpackages:
+  - btcec
+  - btcjson
+  - chaincfg
+  - txscript
+  - wire
+- name: github.com/btcsuitereleases/btclog
+  version: 9ccde63ae9b8e0255b8c473f9c831e3f71479c09
+- name: github.com/btcsuitereleases/btcrpcclient
+  version: 30a5dc36b5f1519ae5dd9cae45aaf73ad46a813a
+- name: github.com/btcsuitereleases/btcutil
+  version: f2b1058a82554c0c7c3b8809c5956c38374604d8
+  subpackages:
+  - base58
+- name: github.com/btcsuitereleases/fastsha256
+  version: 302ad4db268b46f9ebda3078f6f7397f96047735
+- name: github.com/btcsuitereleases/go-socks
+  version: cfe8b59e565c1a5bd4e2005d77cd9aa8b2e14524
+  subpackages:
+  - socks
+- name: github.com/btcsuitereleases/golangcrypto
+  version: 05002d6890216a1a6df3acb9c2d6177a5cd28602
+  subpackages:
+  - ripemd160
+- name: github.com/btcsuitereleases/seelog
+  version: 313961b101eb55f65ae0f03ddd4e322731763b6c
+- name: github.com/btcsuitereleases/websocket
+  version: 4f61fd4eb6615fbff1acb8b339a8f4dbe8fc4df8
+- name: github.com/FactomProject/basen
+  version: fe3947df716ebfda9847eb1b9a48f9592e06478c
+- name: github.com/FactomProject/bolt
+  version: 7d662c5bb27d9defa01fa0563959594bb77ee62b
+- name: github.com/FactomProject/btcutil
+  version: 43986820ccd50b2b02b83e575cb3a39c87457482
+  subpackages:
+  - base58
+  - certs
+- name: github.com/FactomProject/btcutilecc
+  version: d3a63a5752ecf3fbc06bd97365da752111c263df
+- name: github.com/FactomProject/cli
+  version: 45b367ff72df176679318c157a56e436cd5e00dc
+- name: github.com/FactomProject/dynrsrc
+  version: b64fbdf4a9b9385ecae4749c6399eae2a604527f
+- name: github.com/FactomProject/ed25519
+  version: 38002c4fe7b609c2fa3144a3cc29b997b756bb4c
+  subpackages:
+  - edwards25519
+- name: github.com/FactomProject/factoid
+  version: 3ee9763f86849036723d1b059216e08a6d34b184
+  subpackages:
+  - block
+  - database
+  - state
+  - state/stateinit
+  - wallet
+- name: github.com/FactomProject/factom
+  version: 9d7c46cfdb3a48f58bc24fc5e1daf21c640e83a2
+  subpackages:
+  - wallet
+  - wallet/wsapi
+- name: github.com/FactomProject/factom-walletd
+  version: 9ab184b598db21692a247e7a0207ac1daa93b25c
+- name: github.com/FactomProject/FactomCode
+  version: fa03af8ca695eb98cef90a71fd0f506cf54ddbe8
+  subpackages:
+  - controlpanel
+- name: github.com/FactomProject/fctwallet
+  version: 6952567ecfc651c60ebbfcea3169d6d6276b3035
+- name: github.com/FactomProject/fsnotify
+  version: 4894fe7efedeeef21891033e1cce3b23b9af7ad2
+- name: github.com/FactomProject/go-bip32
+  version: 58394f75c1d04ee30972d810015f491b9c7bee02
+- name: github.com/FactomProject/go-bip39
+  version: f0f3797c79f21408db076e5ca64f06848c040e04
+- name: github.com/FactomProject/go-bip44
+  version: 37e59441c3e6ca3f61ba530d04330938386f0d57
+- name: github.com/FactomProject/go-simplejson
+  version: aabad6e819789e569bd6aabf444c935aa9ba1e44
+- name: github.com/FactomProject/go-spew
+  version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
+  subpackages:
+  - spew
+- name: github.com/FactomProject/gocoding
+  version: 59666ce39524e0b2ed84fbdbb16e9b38dc92d9df
+- name: github.com/FactomProject/goleveldb
+  version: b882f9c7069c9730b1e7f8dd17250dabcaefa5ba
+  subpackages:
+  - leveldb
+  - leveldb/cache
+  - leveldb/comparer
+  - leveldb/errors
+  - leveldb/filter
+  - leveldb/iterator
+  - leveldb/journal
+  - leveldb/memdb
+  - leveldb/opt
+  - leveldb/storage
+  - leveldb/table
+  - leveldb/util
+- name: github.com/FactomProject/netki-go-partner-client
+  version: 426acb535e66cc2f9e6226ae254555e3572fd142
+- name: github.com/FactomProject/serveridentity
+  version: 0e9733a21ed3680057472584585cbbf02c6658ef
+  subpackages:
+  - identity
+  - utils
+- name: github.com/FactomProject/snappy-go
+  version: fff4c573c694b1e2d5c7a9b2b72dbe947b6a4c8e
+  subpackages:
+  - snappy
+- name: github.com/FactomProject/web
+  version: 78d1a14af38a43842072da2286033da3cc0f5c76
+- name: golang.org/x/crypto
+  version: 5f31782cfb2b6373211f8f9fbf31283fa234b570
+  subpackages:
+  - pbkdf2
+  - ripemd160
+- name: golang.org/x/net
+  version: 4971afdc2f162e82d185353533d3cf16188a9f4e
+  subpackages:
+  - websocket
+- name: golang.org/x/sys
+  version: b699b7032584f0953262cb2788a0ca19bb494703
+  subpackages:
+  - unix
+- name: gopkg.in/gcfg.v1
+  version: 27e4946190b4a327b539185f2b5b1f7c84730728
+  subpackages:
+  - scanner
+  - token
+  - types
+- name: gopkg.in/warnings.v0
+  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
+testImports: []
