@@ -71,6 +71,11 @@ func (f *P2PProxy) Weight() int {
 	return f.NumPeers
 }
 
+func (f *P2PProxy) SetWeight(w int) {
+	// should return the number of connections this peer represents.  For now, just say a lot
+	f.NumPeers = w
+}
+
 func (f *P2PProxy) BytesOut() int {
 	return 0
 }
@@ -315,6 +320,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		time.Sleep(p2p.NetworkStatusInterval)
 		fmt.Println("\n\n\n")
 		fmt.Println("-------------------------------------------------------------------------------")
+		fmt.Println(" Periodic Status Report")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
 			f.State.Status = 1
@@ -339,6 +345,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Printf("      FromNetwork Queue:     %d\n", len(f.FromNetwork))
 		fmt.Printf("      BroadcastOut Queue:    %d\n", len(f.BroadcastOut))
 		fmt.Printf("      BroadcastIn Queue:     %d\n", len(f.BroadcastIn))
+		fmt.Printf("      Weight:                %d\n", f.NumPeers)
 		fmt.Printf("  ======= Identity Information -- Height: %d  =======\n", fnodes[listenTo].State.LLeaderHeight)
 		fmt.Printf("  Identity Full? (Capable of being Elected): %t\n", fnodes[listenTo].State.SelfIsFull())
 		fmt.Println("-------------------------------------------------------------------------------")
