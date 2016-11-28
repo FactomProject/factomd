@@ -40,6 +40,7 @@ type FullServerFault struct {
 
 	//Not marshalled
 	alreadyValidated bool
+	alreadyProcessed bool
 	hash             interfaces.IHash
 }
 
@@ -456,6 +457,14 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 
 	m.alreadyValidated = true
 	return 1
+}
+
+func (m *FullServerFault) SetAlreadyProcessed() {
+	m.alreadyProcessed = true
+}
+
+func (m *FullServerFault) GetAlreadyProcessed() bool {
+	return m.alreadyProcessed
 }
 
 func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) bool {

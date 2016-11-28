@@ -1353,6 +1353,10 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	//fmt.Println("FULL FAULT:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
 
 	fullFault, _ := msg.(*messages.FullServerFault)
+	if fullFault.GetAlreadyProcessed() {
+		return false
+	}
+
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
 	s.AddStatus(fmt.Sprintf("PROCESS Full Fault: Replacing %x with %x (%t)",
@@ -1381,7 +1385,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 			// If we agree that the server doesn't need to be faulted, we will clear our currentFault
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
 			pl.CurrentFault = *new(FaultState)
-			fmt.Println("JUSTIN CLEARING", pl.State.FactomNodeName)
+			s.AddStatus(fmt.Sprintf("CLEARING Fault: %s", fullFault.String()))
+			fullFault.SetAlreadyProcessed()
 			return true
 		}
 	}
@@ -1464,6 +1469,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
+				fullFault.SetAlreadyProcessed()
 				return true
 			}
 		}
