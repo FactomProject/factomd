@@ -149,6 +149,10 @@ func (fc *FaultCore) MarshalCore() (data []byte, err error) {
 }
 
 func markFault(pl *ProcessList, vmIndex int, becauseEOM bool) {
+	if pl.State.Leader && pl.State.LeaderVMIndex == vmIndex {
+		return
+	}
+
 	now := time.Now().Unix()
 	vm := pl.VMs[vmIndex]
 
