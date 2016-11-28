@@ -73,7 +73,7 @@ func (e *IncreaseServerCount) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (e *IncreaseServerCount) String() string {
-	str := fmt.Sprintf("Increase Server Count by %v", e.Amount)
+	str := fmt.Sprintf("    E: %35s -- by %d", "Increase Server Count", e.Amount)
 	return str
 }
 

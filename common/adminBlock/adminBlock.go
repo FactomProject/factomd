@@ -44,7 +44,7 @@ func (c *AdminBlock) String() string {
 	out.WriteString(c.Header.String())
 	out.WriteString("Entries: \n")
 	for _, entry := range c.ABEntries {
-		out.WriteString(entry.String())
+		out.WriteString(entry.String() + "\n")
 	}
 
 	return (string)(out.DeepCopyBytes())
