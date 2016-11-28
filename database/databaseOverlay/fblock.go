@@ -65,6 +65,18 @@ func (db *Overlay) FetchFBlockByPrimary(keyMR interfaces.IHash) (interfaces.IFBl
 	return block.(interfaces.IFBlock), nil
 }
 
+// FetchFBlockByHeight gets a factoid block by height from the database.
+func (db *Overlay) FetchFBlockByHeight(blockHeight uint32) (interfaces.IFBlock, error) {
+	block, err := db.FetchBlockByHeight(FACTOIDBLOCK_NUMBER, FACTOIDBLOCK, blockHeight, new(factoid.FBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IFBlock), nil
+}
+
 func (db *Overlay) FetchAllFBlocks() ([]interfaces.IFBlock, error) {
 	list, err := db.FetchAllBlocksFromBucket(FACTOIDBLOCK, new(factoid.FBlock))
 	if err != nil {

@@ -86,6 +86,18 @@ func (db *Overlay) FetchECBlockByPrimary(hash interfaces.IHash) (interfaces.IEnt
 	return block.(interfaces.IEntryCreditBlock), nil
 }
 
+// FetchECBlockByHeight gets an entry credit block by height from the database.
+func (db *Overlay) FetchECBlockByHeight(blockHeight uint32) (interfaces.IEntryCreditBlock, error) {
+	block, err := db.FetchBlockByHeight(ENTRYCREDITBLOCK_NUMBER, ENTRYCREDITBLOCK, blockHeight, entryCreditBlock.NewECBlock())
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IEntryCreditBlock), nil
+}
+
 // FetchAllECBlocks gets all of the entry credit blocks
 func (db *Overlay) FetchAllECBlocks() ([]interfaces.IEntryCreditBlock, error) {
 	list, err := db.FetchAllBlocksFromBucket(ENTRYCREDITBLOCK, entryCreditBlock.NewECBlock())
