@@ -487,7 +487,7 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 		} else if block, _ = dbase.FetchEntry(h); block != nil {
 			b, _ = block.MarshalBinary()
 		} else {
-			return nil, NewEntryNotFoundError()
+			return nil, NewObjectNotFoundError()
 		}
 	}
 
