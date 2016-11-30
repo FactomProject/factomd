@@ -303,7 +303,7 @@ func faultSummary() string {
 						if faultState.PledgeDone {
 							pledgeDoneString = "Y"
 						}
-						prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
+						prt = prt + fmt.Sprintf(" %x/%x:%d/%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), faultState.SigTally(fnode.State), pledgeDoneString)
 					}
 
 					prt = prt + fmt.Sprintf("| Watch VM: ")
