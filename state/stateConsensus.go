@@ -1384,7 +1384,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		if fullFault.GetVMIndex() < len(pl.VMs) && pl.VMs[fullFault.GetVMIndex()].WhenFaulted == 0 {
 			// If we agree that the server doesn't need to be faulted, we will clear our currentFault
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
-			pl.CurrentFault = *new(FaultState)
+			pl.ResetCurrentFault()
 			s.AddStatus(fmt.Sprintf("CLEARING Fault: %s", fullFault.String()))
 			fullFault.SetAlreadyProcessed()
 			return true
@@ -1461,7 +1461,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				pl.State.AddAuthorityDelta(authorityDeltaString)
 				s.AddStatus(authorityDeltaString)
 
-				pl.CurrentFault = *new(FaultState)
+				pl.ResetCurrentFault()
 				pl.State.LastFaultAction = time.Now().Unix()
 				//markNoFault(pl, fullFault.GetVMIndex())
 				pl.NegotiatonTimeout = time.Now().Unix()

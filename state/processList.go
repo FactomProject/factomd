@@ -178,7 +178,7 @@ func (p *ProcessList) Clear() {
 	p.AuditServers = nil
 	p.FedServers = nil
 
-	p.CurrentFault = *new(FaultState)
+	p.ResetCurrentFault()
 
 	p.DBSignatures = nil
 
@@ -554,7 +554,7 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	delete(p.NewEntries, key.Fixed())
 }
 
-func (p *ProcessList) AddFaultState(fs FaultState) {
+func (p *ProcessList) SetCurrentFault(fs FaultState) {
 	cf := p.CurrentFault
 	if !cf.IsNil() {
 		if int(cf.FaultCore.VMIndex) > int(fs.FaultCore.VMIndex) {
@@ -575,6 +575,10 @@ func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
 		}
 	}
 	return new(primitives.Timestamp)
+}
+
+func (p *ProcessList) ResetCurrentFault() {
+	p.CurrentFault = *new(FaultState)
 }
 
 func (p *ProcessList) ResetDiffSigTally() {
@@ -1121,7 +1125,7 @@ func (p *ProcessList) Reset() bool {
 	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	p.CurrentFault = *new(FaultState)
+	p.ResetCurrentFault()
 
 	p.SetAmINegotiator(false)
 
@@ -1272,7 +1276,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	pl.CurrentFault = *new(FaultState)
+	pl.ResetCurrentFault()
 
 	pl.DBSignatures = make([]DBSig, 0)
 

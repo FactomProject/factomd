@@ -189,9 +189,18 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 	}
 
 	cf := pl.CurrentFault
-	if !cf.IsNil() && cf.AmINegotiator && int(time.Now().Unix()-pl.State.LastFaultAction) > pl.State.FaultWait {
-		CraftAndSubmitFullFault(pl, vmIndex, vm.Height)
+	if !cf.IsNil() {
+		if int(cf.FaultCore.VMIndex) == vmIndex {
+			if index < len(pl.FedServers) && pl.FedServers[index].GetChainID().IsSameAs(cf.FaultCore.ServerID) {
+				pl.ResetCurrentFault()
+				return
+			}
+		}
+		if cf.AmINegotiator && int(time.Now().Unix()-pl.State.LastFaultAction) > pl.State.FaultWait {
+			CraftAndSubmitFullFault(pl, vmIndex, vm.Height)
+		}
 	}
+
 }
 
 func NegotiationCheck(pl *ProcessList) {
@@ -261,7 +270,7 @@ func FaultCheck(pl *ProcessList) {
 			if !faultState.GetPledgeDone() {
 				ToggleAuditOffline(pl, faultState.FaultCore)
 			}
-			pl.CurrentFault = *new(FaultState)
+			pl.ResetCurrentFault()
 			pl.State.LastFaultAction = 0
 			NegotiationCheck(pl)
 		}
@@ -363,7 +372,7 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) {
 				// Update the CurrentFault's "LastMatch" value to the current time
 				// (LastMatch is merely a throttling mechanism)
 				cf.LastMatch = time.Now().Unix()
-				pl.AddFaultState(cf)
+				pl.SetCurrentFault(cf)
 			}
 		}
 	} else {
@@ -454,7 +463,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 		if faultState.VoteMap == nil {
 			faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
 		}
-		pl.AddFaultState(faultState)
+		pl.SetCurrentFault(faultState)
 	}
 
 	lbytes, err := sf.MarshalForSignature()
@@ -501,7 +510,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 
 	// Update the CurrentFault with any updates that were applied
 	// during execution of this function
-	pl.AddFaultState(faultState)
+	pl.SetCurrentFault(faultState)
 }
 
 func ExtractFaultCore(sfMsg interfaces.IMsg) FaultCore {
@@ -559,7 +568,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 			if faultState.VoteMap == nil {
 				faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
 			}
-			pl.AddFaultState(faultState)
+			pl.SetCurrentFault(faultState)
 		}
 
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
@@ -573,7 +582,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 				valid, err := myAuth.VerifySignature(sfbytes, signature.GetSignature())
 				if err == nil && valid {
 					faultState.MyVoteTallied = true
-					pl.AddFaultState(faultState)
+					pl.SetCurrentFault(faultState)
 				}
 			}
 		}
@@ -589,7 +598,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 			if err == nil && valid {
 				isPledge = true
 				faultState.PledgeDone = true
-				pl.AddFaultState(faultState)
+				pl.SetCurrentFault(faultState)
 			}
 		}
 
@@ -597,7 +606,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 
 		if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
 			faultState.VoteMap[issuerID] = sf.GetSignature()
-			pl.AddFaultState(faultState)
+			pl.SetCurrentFault(faultState)
 		}
 	}
 
