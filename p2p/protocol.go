@@ -19,16 +19,11 @@ import (
 
 func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 	highWaterMark := int(float64(StandardChannelSize) * 0.90)
-	atCapacity := int(float64(StandardChannelSize) * 0.99)
 	clen := len(channel)
 	switch {
-	case atCapacity < clen:
-		str, _ := primitives.EncodeJSONString(message)
-		silence("protocol", "nonBlockingChanSend() - Channel is OVER 99 percent full! \n %d of %d \n last message: %+v", len(channel), StandardChannelSize, str)
-		panic("Full channel.")
 	case highWaterMark < clen:
 		str, _ := primitives.EncodeJSONString(message)
-		silence("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
+		significant("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
 		for highWaterMark <= len(channel) { // Clear out some messages
 			<-channel
 		}
