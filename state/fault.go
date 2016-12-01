@@ -148,7 +148,7 @@ func (fc *FaultCore) MarshalCore() (data []byte, err error) {
 	return buf.DeepCopyBytes(), nil
 }
 
-func markFault(pl *ProcessList, vmIndex int, becauseEOM bool) {
+func markFault(pl *ProcessList, vmIndex int, faultReason int) {
 	if pl.State.Leader && pl.State.LeaderVMIndex == vmIndex {
 		return
 	}
@@ -161,7 +161,7 @@ func markFault(pl *ProcessList, vmIndex int, becauseEOM bool) {
 		// we simply mark it as faulted (by assigning it a nonzero WhenFaulted time)
 		// and keep track of the ProcessList height it has faulted at
 		vm.WhenFaulted = now
-		vm.faultedBecauseEOM = becauseEOM
+		vm.FaultFlag = faultReason
 	}
 
 	c := pl.State.CurrentMinute
@@ -178,6 +178,12 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 	vm := pl.VMs[vmIndex]
 
 	vm.WhenFaulted = 0
+	vm.FaultFlag = -1
+
+	nextIndex := (vmIndex + 1) % len(pl.FedServers)
+	if pl.VMs[nextIndex].FaultFlag > 0 {
+		markNoFault(pl, nextIndex)
+	}
 
 	c := pl.State.CurrentMinute
 	if c > 9 {
@@ -251,7 +257,7 @@ func FaultCheck(pl *ProcessList) {
 				vm := pl.VMs[i]
 				if vm.WhenFaulted > 0 && int(now-vm.WhenFaulted) > pl.State.FaultTimeout*2 {
 					newVMI := (i + 1) % len(pl.FedServers)
-					markFault(pl, newVMI, false)
+					markFault(pl, newVMI, 1)
 				}
 
 			}
@@ -282,7 +288,7 @@ func FaultCheck(pl *ProcessList) {
 	if int(timeElapsed) > pl.State.FaultTimeout*2 {
 		// The negotiation has expired; time to fault negotiator
 		newVMI := (int(faultState.FaultCore.VMIndex) + 1) % len(pl.FedServers)
-		markFault(pl, newVMI, false)
+		markFault(pl, newVMI, 1)
 	}
 	return
 }
@@ -452,18 +458,8 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	faultState := pl.CurrentFault
 	if faultState.IsNil() || (faultState.FaultCore.ServerID.IsSameAs(sf.ServerID) && faultState.FaultCore.Timestamp.GetTimeSeconds() < sf.Timestamp.GetTimeSeconds()) {
 		// We don't have a CurrentFault yet; let's create one
-		fcore := ExtractFaultCore(sf)
-		faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
-
-		if isMyNegotiation(fcore, pl) {
-			faultState.SetAmINegotiator(true)
-			//pl.SetAmINegotiator(true)
-		}
-
-		if faultState.VoteMap == nil {
-			faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
-		}
-		pl.SetCurrentFault(faultState)
+		pl.CreateFaultState(sf)
+		faultState = pl.CurrentFault
 	}
 
 	lbytes, err := sf.MarshalForSignature()
@@ -541,6 +537,24 @@ func isMyNegotiation(sf FaultCore, pl *ProcessList) bool {
 	return false
 }
 
+func (pl *ProcessList) CreateFaultState(sf interfaces.IMsg) {
+	fcore := ExtractFaultCore(sf)
+	if pl.State.Leader && pl.State.LeaderVMIndex == int(fcore.VMIndex) {
+		return
+	}
+	faultState := FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
+
+	if isMyNegotiation(fcore, pl) {
+		faultState.SetAmINegotiator(true)
+	}
+
+	if faultState.VoteMap == nil {
+		faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
+	}
+
+	pl.SetCurrentFault(faultState)
+}
+
 // regularFullFaultExecution does the same thing as regularFaultExecution, except
 // it will make sure to add every signature from the FullFault to the corresponding
 // FaultState's VoteMap
@@ -557,18 +571,8 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 		faultState := pl.CurrentFault
 		if faultState.IsNil() {
 			// We don't have a map entry yet; let's create one
-			fcore := ExtractFaultCore(sf)
-			faultState = FaultState{FaultCore: fcore, AmINegotiator: false, MyVoteTallied: false, VoteMap: make(map[[32]byte]interfaces.IFullSignature)}
-
-			if isMyNegotiation(fcore, pl) {
-				faultState.SetAmINegotiator(true)
-				//pl.SetAmINegotiator(true)
-			}
-
-			if faultState.VoteMap == nil {
-				faultState.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
-			}
-			pl.SetCurrentFault(faultState)
+			pl.CreateFaultState(sf)
+			faultState = pl.CurrentFault
 		}
 
 		if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
@@ -656,6 +660,11 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		fullFault.AuditServerID.Bytes()[2:6],
 		fullFault.DBHeight,
 		s.LLeaderHeight))
+
+	nextIndex := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
+	if pl.VMs[nextIndex].FaultFlag > 0 {
+		markNoFault(pl, nextIndex)
+	}
 
 	pl.AddToSystemList(fullFault)
 }

@@ -1292,12 +1292,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		fails := 0
 		for i := range pl.FedServers {
 			vm := pl.VMs[i]
-			tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
-			if !ok || !tdbsig.Matches {
-				fails++
-				vm.List[0] = nil
-				vm.Height = 0
-				s.DBSigProcessed--
+			if len(vm.List) > 0 {
+				tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
+				if !ok || !tdbsig.Matches {
+					fails++
+					vm.List[0] = nil
+					vm.Height = 0
+					s.DBSigProcessed--
+				}
 			}
 		}
 		if fails > len(pl.FedServers)/2 {
@@ -1375,6 +1377,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 	// Double-check that the fault's SystemHeight is proper
 	if int(fullFault.SystemHeight) != pl.System.Height {
+		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height (%d / %d) : %s",
+			int(fullFault.SystemHeight),
+			pl.System.Height,
+			fullFault.String()))
+
 		return false
 	}
 
@@ -1497,12 +1504,12 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 						if int(ffts-tpts) < s.FaultTimeout {
 							//TOO SOON
 							newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-							markFault(pl, newVMI, false)
+							markFault(pl, newVMI, 1)
 						} else {
 							if !pl.CurrentFault.IsNil() && couldIFullFault(pl, int(pl.CurrentFault.FaultCore.VMIndex)) {
 								//I COULD FAULT BUT HE HASN'T
 								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-								markFault(pl, newVMI, false)
+								markFault(pl, newVMI, 1)
 							} else {
 								willUpdate = true
 							}
