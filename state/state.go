@@ -951,37 +951,99 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 }
 
 func (s *State) GetPendingEntries() []interfaces.IEntry {
+	resp := make([]interfaces.IEntry, 0)
+	pls := s.ProcessLists.Lists
 
-	pLists := s.ProcessLists
+	// check all existing processlists
+	for _, pl := range pls {
+		keys := pl.GetKeysNewEntries()
+		for _, k := range keys {
+			entry := pl.GetNewEntry(k)
+			resp = append(resp, entry)
+		}
+	}
 
-	if pLists == nil {
-		return nil
+	// check holding queue
+	q := s.Holding
+	for _, h := range q {
+		if h.Type() == constants.REVEAL_ENTRY_MSG {
+			var rm messages.RevealEntryMsg
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil
+			}
+			err = rm.UnmarshalBinary(enb)
+			if err != nil {
+				return nil
+			}
+
+			tmp := rm.Entry
+			resp = append(resp, tmp)
+		}
 	}
-	ht := pLists.State.GetHighestCompletedBlock()
-	pl := pLists.Get(ht + 1)
-	var hashCount int32
-	hashCount = 0
-	hashResponse := make([]interfaces.IEntry, pl.LenNewEntries())
-	keys := pl.GetKeysNewEntries()
-	for _, k := range keys {
-		entry := pl.GetNewEntry(k)
-		hashResponse[hashCount] = entry
-		hashCount++
-	}
-	return hashResponse
+	return resp
 }
 
-func (s *State) GetPendingTransactions() []interfaces.ITransaction {
+func (s *State) GetPendingTransactions() []interface {
+	
+	type PendingTransactions struct {
+		TransactionID interfaces.IHash
+		Status	string
+	}
+	var tmp PendingTransactions
 
-	cb := s.FactoidState.GetCurrentBlock()
-	ct := cb.GetTransactions()
-	ts := make([]interfaces.ITransaction, len(ct))
+	resp := make(PendingTransactions, 0)
+	pls := s.ProcessLists.Lists
+	for _, pl := range pls {
 
-	for i, tran := range ct {
-		ts[i] = tran
+		fmt.Println("pl.DBHeight:", pl.DBHeight)
+		cb := pl.State.FactoidState.GetCurrentBlock()
+		ct := cb.GetTransactions()
+		for _, tran := range ct {
+
+			hinp := tran.GetInputs()
+			hout := tran.GetOutputs()
+			hec := tran.GetECOutputs()
+			tmp.TransactionID=tran.GetHash()
+			if tran.ValidateSignatures() != nil {
+				tmp.Status="AckStatusDBlockConfirmed"
+			} else {
+				tmp.Status="AckStatusACK"
+			}
+			if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {  
+				// if all len calls == 0, it is an empty transaction that should be ignored
+				resp = append(resp, tmp)
+			}
+
+		}
 	}
 
-	return ts
+	q := s.Holding
+	for _, h := range q {
+		if h.Type() == constants.FACTOID_TRANSACTION_MSG {
+			var rm messages.FactoidTransaction
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil
+			}
+			err = rm.UnmarshalBinary(enb)
+			if err != nil {
+				return nil
+			}
+			tempTran :=rm.GetTransaction()
+			tmp.TransactionID := tempTran.GetHash()
+			tmp.Status="AckStatusNotConfirmed"
+			hinp := tempTran.GetInputs()
+			hout := tempTran.GetOutputs()
+			hec := tempTran.GetECOutputs()
+			if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {  
+				// if all len calls == 0, it is an empty transaction that should be ignored
+				resp = append(resp, tmp)
+			}
+		}
+	}
+
+	return resp
 }
 
 func (s *State) IncFactoidTrans() {

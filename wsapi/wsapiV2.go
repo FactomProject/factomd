@@ -959,6 +959,7 @@ func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (int
 	type PendingEntries struct {
 		EntryHash interfaces.IHash
 		ChainID   interfaces.IHash
+		Status    string
 	}
 
 	eHashes := state.GetPendingEntries()
@@ -971,42 +972,8 @@ func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (int
 }
 
 func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	type PendingTransactions struct {
-		TransactionID interfaces.IHash
-		Inputs        []interfaces.IInAddress
-		Outputs       []interfaces.IOutAddress
-		ECOutputs     []interfaces.IOutECAddress
-	}
+
 	pending := state.GetPendingTransactions()
-	resp := make([]PendingTransactions, len(pending))
-	var uAddr string
-	var uIAddr interfaces.IAddress
-	for i, tran := range pending {
 
-		resp[i].TransactionID = tran.GetSigHash()
-
-		resp[i].Inputs = tran.GetInputs()
-		resp[i].Outputs = tran.GetOutputs()
-		resp[i].ECOutputs = tran.GetECOutputs()
-
-		for k, _ := range resp[i].Inputs {
-			uIAddr = resp[i].Inputs[k].GetAddress()
-			uAddr = primitives.ConvertFctAddressToUserStr(uIAddr)
-			resp[i].Inputs[k].SetUserAddress(uAddr)
-		}
-		for k, _ := range resp[i].Outputs {
-			uIAddr = resp[i].Outputs[k].GetAddress()
-			uAddr = primitives.ConvertFctAddressToUserStr(uIAddr)
-			resp[i].Outputs[k].SetUserAddress(uAddr)
-		}
-
-		for k, _ := range resp[i].ECOutputs {
-			uIAddr = resp[i].ECOutputs[k].GetAddress()
-			uAddr = primitives.ConvertECAddressToUserStr(uIAddr)
-			resp[i].ECOutputs[k].SetUserAddress(uAddr)
-
-		}
-
-	}
-	return resp, nil
+	return pending, nil
 }
