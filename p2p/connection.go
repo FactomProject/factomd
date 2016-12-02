@@ -256,6 +256,7 @@ func (c *Connection) runLoop() {
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
 			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
+			fmt.Println(fmt.Sprintf("Connection(%s) has shut down.", c.peer.Address))
 			return // ending runloop() goroutine
 		default:
 			logfatal(c.peer.PeerIdent(), "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
@@ -334,6 +335,7 @@ func (c *Connection) dial() bool {
 	}
 	c.conn = conn
 	c.setNotes(fmt.Sprintf("Connection.dial(%s) was successful.", address))
+	fmt.Println(fmt.Sprintf("Connection.dial(%s) was successful.", address))
 	return true
 }
 
