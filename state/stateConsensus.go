@@ -360,7 +360,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if s.GetHighestCompletedBlock() > dbheight {
+	if s.GetHighestSavedBlock() > dbheight {
+		s.AddStatus(fmt.Sprintf("DBState too high GetHighestSaved %v > DBHeight %v", s.GetHighestSavedBlock(), dbheight))
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
