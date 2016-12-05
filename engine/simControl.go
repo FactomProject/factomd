@@ -802,7 +802,9 @@ func SimControl(listenTo int) {
 					case 6:
 						stat = "Pending Full"
 					case 7:
-						stat = "Pending"
+						stat = "Self"
+					case 8:
+						stat = "Self Full"
 					}
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
