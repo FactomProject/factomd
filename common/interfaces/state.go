@@ -164,7 +164,7 @@ type IState interface {
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
 
-	GetPendingTransactions() []ITransaction
+	GetPendingTransactions() string
 	// MISC
 	// ====
 

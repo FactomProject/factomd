@@ -971,7 +971,7 @@ func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (int
 	return resp, nil
 }
 
-func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (string, *primitives.JSONError) {
 
 	pending := state.GetPendingTransactions()
 

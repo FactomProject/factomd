@@ -7,6 +7,7 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -984,15 +985,14 @@ func (s *State) GetPendingEntries() []interfaces.IEntry {
 	return resp
 }
 
-func (s *State) GetPendingTransactions() []interface {
-	
-	type PendingTransactions struct {
-		TransactionID interfaces.IHash
-		Status	string
-	}
-	var tmp PendingTransactions
+func (s *State) GetPendingTransactions() string {
 
-	resp := make(PendingTransactions, 0)
+	type PendingTransaction struct {
+		TransactionID interfaces.IHash
+		Status        string
+	}
+
+	resp := make([]PendingTransaction, 0)
 	pls := s.ProcessLists.Lists
 	for _, pl := range pls {
 
@@ -1004,13 +1004,14 @@ func (s *State) GetPendingTransactions() []interface {
 			hinp := tran.GetInputs()
 			hout := tran.GetOutputs()
 			hec := tran.GetECOutputs()
-			tmp.TransactionID=tran.GetHash()
+			var tmp PendingTransaction
+			tmp.TransactionID = tran.GetHash()
 			if tran.ValidateSignatures() != nil {
-				tmp.Status="AckStatusDBlockConfirmed"
+				tmp.Status = "AckStatusDBlockConfirmed"
 			} else {
-				tmp.Status="AckStatusACK"
+				tmp.Status = "AckStatusACK"
 			}
-			if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {  
+			if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {
 				// if all len calls == 0, it is an empty transaction that should be ignored
 				resp = append(resp, tmp)
 			}
@@ -1024,26 +1025,28 @@ func (s *State) GetPendingTransactions() []interface {
 			var rm messages.FactoidTransaction
 			enb, err := h.MarshalBinary()
 			if err != nil {
-				return nil
+				return ""
 			}
 			err = rm.UnmarshalBinary(enb)
 			if err != nil {
-				return nil
+				return ""
 			}
-			tempTran :=rm.GetTransaction()
-			tmp.TransactionID := tempTran.GetHash()
-			tmp.Status="AckStatusNotConfirmed"
+			tempTran := rm.GetTransaction()
+			var tmp PendingTransaction
+			tmp.TransactionID = tempTran.GetHash()
+			tmp.Status = "AckStatusNotConfirmed"
 			hinp := tempTran.GetInputs()
 			hout := tempTran.GetOutputs()
 			hec := tempTran.GetECOutputs()
-			if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {  
+			if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {
 				// if all len calls == 0, it is an empty transaction that should be ignored
 				resp = append(resp, tmp)
 			}
 		}
 	}
-
-	return resp
+	var b []byte
+	json.Unmarshal(b, &resp)
+	return string(b)
 }
 
 func (s *State) IncFactoidTrans() {
