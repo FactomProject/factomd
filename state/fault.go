@@ -65,6 +65,14 @@ func (fs *FaultState) IsNil() bool {
 	return false
 }
 
+func (fs *FaultState) AddFaultVote(issuerID [32]byte, sig interfaces.IFullSignature) {
+	if fs.VoteMap == nil {
+		fs.VoteMap = make(map[[32]byte]interfaces.IFullSignature)
+	}
+
+	fs.VoteMap[issuerID] = sig
+}
+
 func (fs *FaultState) SigTally(state interfaces.IState) int {
 	validSigCount := 0
 	cb, err := fs.FaultCore.MarshalCore()
@@ -232,7 +240,8 @@ func NegotiationCheck(pl *ProcessList) {
 
 	if now-pl.State.LastFaultAction > int64(pl.State.FaultWait) {
 		//THROTTLE
-		CraftAndSubmitFullFault(pl, prevIdx, prevVM.Height)
+		ff := CraftAndSubmitFullFault(pl, prevIdx, prevVM.Height)
+		pl.State.AddStatus(fmt.Sprintf("Sending Negotiation message (because %d): %s", prevVM.FaultFlag, ff.String()))
 		pl.State.LastFaultAction = now
 	}
 
@@ -481,7 +490,7 @@ func (s *State) regularFaultExecution(sf *messages.ServerFault, pl *ProcessList)
 	sfSigned, err := s.FastVerifyAuthoritySignature(lbytes, sf.Signature, sf.DBHeight)
 
 	if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
-		faultState.VoteMap[issuerID] = sf.GetSignature()
+		faultState.AddFaultVote(issuerID, sf.GetSignature())
 	}
 
 	if s.Leader || s.IdentityChainID.IsSameAs(sf.AuditServerID) {
@@ -609,7 +618,7 @@ func (s *State) regularFullFaultExecution(sf *messages.FullServerFault, pl *Proc
 		sfSigned, err := s.FastVerifyAuthoritySignature(lbytes, signature, sf.DBHeight)
 
 		if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
-			faultState.VoteMap[issuerID] = sf.GetSignature()
+			faultState.AddFaultVote(issuerID, sf.GetSignature())
 			pl.SetCurrentFault(faultState)
 		}
 	}

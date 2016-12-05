@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"bytes"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -366,8 +367,10 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			// Promote to federated
 			index := list.State.isIdentityChain(cf.GetChainID())
 			if index == -1 || !(list.State.Identities[index].Status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
-				list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) {
+				list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER ||
+				list.State.Identities[index].Status == constants.IDENTITY_AUDIT_SERVER) {
 				addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
+				list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding delta to the Admin Block: %s", addEntry.String()))
 				d.AdminBlock.AddFirstABEntry(addEntry)
 			}
 		}
@@ -496,7 +499,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
 	list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
-	d.AdminBlock.UpdateState(list.State)
+	err := d.AdminBlock.UpdateState(list.State)
+	if err != nil {
+		fmt.Printf("EEEEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRRRRR:  Processing Admin Block at dbht: %d : %s\n", d.AdminBlock.GetDBHeight(), err.Error())
+		list.State.AddStatus(fmt.Sprintf("EEEEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRRRRR:  Processing Admin Block at dbht: %d : %s", d.AdminBlock.GetDBHeight(), err.Error()))
+	}
 	d.EntryCreditBlock.UpdateState(list.State)
 
 	prt("pl 2st", pl)

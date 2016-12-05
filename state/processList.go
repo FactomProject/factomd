@@ -463,7 +463,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if !found {
-		p.RemoveAuditServerHash(identityChainID)
+		//p.RemoveAuditServerHash(identityChainID)
 		return
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
@@ -906,6 +906,14 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Something is in our SystemList at this height;
 	// We will prioritize the FullFault with the highest VMIndex
 	existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
+	if existingSystemFault.GetHash().IsSameAs(fullFault.GetHash()) {
+		if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
+			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (already have) : %s",
+				fullFault.String()))
+			return false
+		}
+	}
+
 	if int(existingSystemFault.VMIndex) > int(fullFault.VMIndex) {
 		if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
 			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (VMIndex lower than existingFault's) (%d > %d) : %s",
@@ -942,11 +950,13 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 
 	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
 		if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
-			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
-				existingSystemFault.SigTally(p.State),
-				fullFault.SigTally(p.State),
-				fullFault.String()))
-			return false
+			if p.State.GetTimestamp().GetTimeSeconds()-fullFault.GetTimestamp().GetTimeSeconds() < int64(p.State.FaultTimeout) {
+				p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
+					existingSystemFault.SigTally(p.State),
+					fullFault.SigTally(p.State),
+					fullFault.String()))
+				return false
+			}
 		}
 	}
 
@@ -970,8 +980,8 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	p.System.List[p.System.Height] = fullFault
 	p.CreateFaultState(fullFault)
 
-	p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (create) : %s",
-		fullFault.String()))
+	p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (create) : %s sigs:%d",
+		fullFault.String(), fullFault.SigTally(p.State)))
 
 	return true
 
