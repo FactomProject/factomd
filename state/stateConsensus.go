@@ -87,7 +87,11 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		if s.CurrentMinute > 9 {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+		} else {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
 	}
 
 	var vm *VM
@@ -383,6 +387,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	***************************/
 
 	s.DBStates.LastTime = s.GetTimestamp()
+	
 	dbstate := s.AddDBState(false,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -1293,12 +1298,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		fails := 0
 		for i := range pl.FedServers {
 			vm := pl.VMs[i]
-			tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
-			if !ok || !tdbsig.Matches {
-				fails++
-				vm.List[0] = nil
-				vm.Height = 0
-				s.DBSigProcessed--
+			if vm == nil {
+				tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
+				if !ok || !tdbsig.Matches {
+					fails++
+					vm.List[0] = nil
+					vm.Height = 0
+					s.DBSigProcessed--
+				}
 			}
 		}
 		if fails > len(pl.FedServers)/2 {
