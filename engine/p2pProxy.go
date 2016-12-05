@@ -71,6 +71,11 @@ func (f *P2PProxy) Weight() int {
 	return f.NumPeers
 }
 
+func (f *P2PProxy) SetWeight(w int) {
+	// should return the number of connections this peer represents.  For now, just say a lot
+	f.NumPeers = w
+}
+
 func (f *P2PProxy) BytesOut() int {
 	return 0
 }
@@ -315,6 +320,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		time.Sleep(p2p.NetworkStatusInterval)
 		fmt.Println("\n\n\n")
 		fmt.Println("-------------------------------------------------------------------------------")
+		fmt.Println(" Periodic Status Report")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
 			f.State.Status = 1
@@ -339,49 +345,10 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Printf("      FromNetwork Queue:     %d\n", len(f.FromNetwork))
 		fmt.Printf("      BroadcastOut Queue:    %d\n", len(f.BroadcastOut))
 		fmt.Printf("      BroadcastIn Queue:     %d\n", len(f.BroadcastIn))
+		fmt.Printf("      Weight:                %d\n", f.NumPeers)
 		fmt.Printf("  ======= Identity Information -- Height: %d  =======\n", fnodes[listenTo].State.LLeaderHeight)
 		fmt.Printf("  Identity Full? (Capable of being Elected): %t\n", fnodes[listenTo].State.SelfIsFull())
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 	}
 }
-
-// const (
-// 	EOM_MSG                       byte = iota // 0
-// 	ACK_MSG                                   // 1
-// 	FED_SERVER_FAULT_MSG                      // 2
-// 	AUDIT_SERVER_FAULT_MSG                    // 3
-// 	FULL_SERVER_FAULT_MSG                     // 4
-// 	COMMIT_CHAIN_MSG                          // 5
-// 	COMMIT_ENTRY_MSG                          // 6
-// 	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
-// 	EOM_TIMEOUT_MSG                           // 8
-// 	FACTOID_TRANSACTION_MSG                   // 9
-// 	HEARTBEAT_MSG                             // 10
-// 	INVALID_ACK_MSG                           // 11
-// 	INVALID_DIRECTORY_BLOCK_MSG               // 12
-
-// 	REVEAL_ENTRY_MSG      // 13
-// 	REQUEST_BLOCK_MSG     // 14
-// 	SIGNATURE_TIMEOUT_MSG // 15
-// 	MISSING_MSG           // 16
-// 	MISSING_DATA          // 17
-// 	DATA_RESPONSE         // 18
-// 	MISSING_MSG_RESPONSE  //19
-
-// 	DBSTATE_MSG          // 20
-// 	DBSTATE_MISSING_MSG  // 21
-// 	ADDSERVER_MSG        // 22
-// 	CHANGESERVER_KEY_MSG // 23
-// 	REMOVESERVER_MSG     // 24
-// )
-
-// var LoggingLevels = map[uint8]string{
-// 	Silence:     "Silence",     // Say nothing. A log output with level "Silence" is ALWAYS printed.
-// 	Significant: "Significant", // Significant things that should be printed, but aren't necessary errors.
-// 	Fatal:       "Fatal",       // Log only fatal errors (fatal errors are always logged even on "Silence")
-// 	Errors:      "Errors",      // Log all errors (many errors may be expected)
-// 	Notes:       "Notes",       // Log notifications, usually significant events
-// 	Debugging:   "Debugging",   // Log diagnostic info, pretty low level
-// 	Verbose:     "Verbose",     // Log everything
-// }

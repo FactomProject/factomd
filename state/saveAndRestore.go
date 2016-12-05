@@ -155,16 +155,16 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.Syncing = state.Syncing
 
 	ss.Holding = make(map[[32]byte]interfaces.IMsg)
-	for k := range state.Holding {
-		ss.Holding[k] = state.Holding[k]
-	}
+	//for k := range state.Holding {
+	//ss.Holding[k] = state.Holding[k]
+	//}
 
 	ss.XReview = append(ss.XReview, state.XReview...)
 
 	ss.Acks = make(map[[32]byte]interfaces.IMsg)
-	for k := range state.Acks {
-		ss.Acks[k] = state.Acks[k]
-	}
+	//for k := range state.Acks {
+	//	ss.Acks[k] = state.Acks[k]
+	//}
 
 	ss.Commits = make(map[[32]byte][]interfaces.IMsg)
 	for k := range state.Commits {
@@ -216,9 +216,9 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 				if vm.Height > 0 {
 					vm.Signed = true
 					vm.Synced = true
-					vm.Height = 1
-					vm.List = vm.List[:1]
-					vm.ListAck = vm.ListAck[:1]
+					vm.Height = 0
+					vm.List = vm.List[:0]
+					vm.ListAck = vm.ListAck[:0]
 				} else {
 					vm.Signed = false
 					vm.Synced = false
@@ -233,7 +233,7 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight))
 
 	dindex := ss.DBHeight - state.DBStates.Base
-	state.DBStates.DBStates = state.DBStates.DBStates[:dindex+1]
+	state.DBStates.DBStates = state.DBStates.DBStates[:dindex]
 	state.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
 	state.Replay = ss.Replay.Save()

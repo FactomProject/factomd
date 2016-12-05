@@ -285,6 +285,10 @@ func (c *Controller) Disconnect(peerHash string) {
 	BlockFreeChannelSend(c.commandChannel, CommandDisconnect{PeerHash: peerHash})
 }
 
+func (c *Controller) GetNumberConnections() int {
+	return len(c.connections)
+}
+
 //////////////////////////////////////////////////////////////////////
 //
 // Private API (unexported)
@@ -396,7 +400,6 @@ func (c *Controller) runloop() {
 		c.updateMetrics()
 		dot("@@11\n")
 	}
-	silence("ctrlr", "Controller.runloop() has exited. Shutdown command recieved?")
 	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
 }
 
@@ -566,7 +569,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
-		silence("ctrlr", "handleCommand() Processing command: CommandShutdown")
+		significant("ctrlr", "handleCommand() Processing command: CommandShutdown")
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)

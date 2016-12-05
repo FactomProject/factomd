@@ -1761,6 +1761,9 @@ func (s *State) SetStringQueues() {
 func (s *State) ConstructAuthoritySetString() (authSets []string) {
 	base := s.ProcessLists.DBHeightBase
 	for i, pl := range s.ProcessLists.Lists {
+		if i > 8 {
+			break
+		}
 		authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, int(base)+i)
 		for _, fd := range pl.FedServers {
 			authoritiesString += " " + fd.GetChainID().String()[6:10]
@@ -1894,7 +1897,7 @@ func (s *State) AddStatus(status string) {
 	s.statusMutex.Lock()
 	defer s.statusMutex.Unlock()
 
-	if len(s.StatusStrs) > 100000 {
+	if len(s.StatusStrs) > 1000 {
 		copy(s.StatusStrs, s.StatusStrs[1:])
 		s.StatusStrs[len(s.StatusStrs)-1] = status
 	} else {
