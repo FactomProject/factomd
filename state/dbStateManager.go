@@ -499,11 +499,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
 	list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
-	err := d.AdminBlock.UpdateState(list.State)
-	if err != nil {
-		fmt.Printf("EEEEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRRRRR:  Processing Admin Block at dbht: %d : %s\n", d.AdminBlock.GetDBHeight(), err.Error())
-		list.State.AddStatus(fmt.Sprintf("EEEEEEEEEEEERRRRRRRRRRRRRRRRRRRRRRRRRRR:  Processing Admin Block at dbht: %d : %s", d.AdminBlock.GetDBHeight(), err.Error()))
-	}
+	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
 	prt("pl 2st", pl)
