@@ -7,6 +7,7 @@ package state
 import (
 	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -374,7 +375,8 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) {
 	auditServerList := pl.State.GetOnlineAuditServers(pl.DBHeight)
 	if len(auditServerList) > 0 {
 		// Nominate the top candidate from the list of Online Audit Servers
-		replacementServer := auditServerList[0]
+		audIdx := rand.Int() % len(auditServerList)
+		replacementServer := auditServerList[audIdx]
 		leaderMin := pl.State.CurrentMinute
 
 		faultedFed := pl.ServerMap[leaderMin][vmIndex]
