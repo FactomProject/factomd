@@ -87,7 +87,11 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		if s.CurrentMinute > 9 {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+		} else {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
 	}
 
 	var vm *VM
@@ -381,8 +385,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.ProcessLists.Lists = s.ProcessLists.Lists[:len(s.ProcessLists.Lists)-1]
 	}
 	***************************/
+	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
+		dbs := s.DBStates.Get(int(dbheight))
+		if dbs != nil {
+			dbs.SaveStruct.RestoreFactomdState(s, dbs)
+		}
+	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
+
 	dbstate := s.AddDBState(false,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -1247,6 +1258,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
+		if s.LLeaderHeight > 0 && s.GetHighestSavedBlock()+1 < s.LLeaderHeight {
+
+			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
+			if !pl.Complete() {
+				return false
+			}
+		}
+
 		s.AddStatus(fmt.Sprintf("Process the %d DBSig: %v", s.DBSigProcessed, dbs.String()))
 		if dbs.VMIndex == 0 {
 			s.AddStatus(fmt.Sprintf("Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
@@ -1349,10 +1368,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 }
 
 func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) bool {
+	// If we are here, this means that the FullFault message is complete
+	// and we can execute it as such (replacing the faulted Leader with
+	// the nominated Audit server)
+
+	//fmt.Println("FULL FAULT:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
+
 	fullFault, _ := msg.(*messages.FullServerFault)
 	if fullFault.GetAlreadyProcessed() {
 		return false
 	}
+
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
 	// First we will update our status to include our fault process attempt
@@ -1448,6 +1474,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				pl.AuditServers[audIdx].SetOnline(false)
 
 				s.RemoveAuditServer(fullFault.DBHeight, theAuditReplacement.GetChainID())
+				// After executing the FullFault successfully, we want to reset
+				// to the default state (No One At Fault)
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
 				authoritiesString := ""

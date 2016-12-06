@@ -1246,21 +1246,6 @@ func (p *ProcessList) Reset() bool {
 		vm.Synced = false
 		vm.WhenFaulted = 0
 
-		for _, msg := range vm.List {
-			if msg != nil {
-				p.State.Replay.Clear(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed())
-				p.State.Replay.Clear(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed())
-				p.State.Replay.Clear(constants.REVEAL_REPLAY, msg.GetRepeatHash().Fixed())
-				if dbsig, ok := msg.(*messages.DirectoryBlockSignature); ok {
-					dbsig.Processed = false
-				}
-				if eom, ok := msg.(*messages.EOM); ok {
-					eom.Processed = false
-				}
-			}
-		}
-
-		p.State.Acks = make(map[[32]byte]interfaces.IMsg, 0)
 		p.VMs[i].List = p.VMs[i].List[:0]       // Knock all the lists back.
 		p.VMs[i].ListAck = p.VMs[i].ListAck[:0] // Knock all the lists back.
 		//p.State.SendDBSig(p.DBHeight, i)
@@ -1270,13 +1255,6 @@ func (p *ProcessList) Reset() bool {
 	if previous.NextTimestamp != nil {
 		fs.Reset(previous)
 	}*/
-
-	if p.DBHeight > p.State.DBStates.Base {
-		index := p.DBHeight - p.State.DBStates.Base
-		if len(p.State.DBStates.DBStates) >= int(index) {
-			p.State.DBStates.DBStates = p.State.DBStates.DBStates[:index]
-		}
-	}
 
 	s := p.State
 	s.LLeaderHeight--
