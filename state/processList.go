@@ -914,9 +914,9 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		}
 	}
 
-	if len(p.System.List) > 0 {
-		prevIdx := int(fullFault.SystemHeight) - 1
-		if len(p.System.List) > prevIdx && prevIdx > 0 {
+	if len(p.System.List) > 0 { // Have something in the system list
+		prevIdx := int(fullFault.SystemHeight) - 1        // Top of the System List
+		if len(p.System.List) > prevIdx && prevIdx >= 0 { // There is something on the System List
 			if !fullFault.GetSerialHash().IsSameAs(p.System.List[prevIdx].GetHash()) {
 				if p.System.List[prevIdx].(*messages.FullServerFault).ClearFault {
 					p.System.List[prevIdx] = nil

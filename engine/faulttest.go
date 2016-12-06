@@ -161,11 +161,10 @@ func faultTest(faulting *bool) {
 					leaders[n].State.SetNetStateOff(true)
 					go bringback(leaders[n])
 					i++
-					time.Sleep(40 * time.Second)
+					time.Sleep(time.Duration(rand.Int()%40) * time.Second)
+					totalServerFaults++
 				}
 			}
-
-			totalServerFaults += kill
 
 		} else {
 			time.Sleep(1 * time.Second)
