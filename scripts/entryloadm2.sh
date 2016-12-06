@@ -13,11 +13,11 @@ factom-cli buyec $fa1 $ec1 $buyECs
 sleep 5s
 	
 addentries() {
-	let y=$(shuf -i 300-320 -n 1)
-	echo SLEEP $y  YAWN
+	let y=$(shuf -i 30-120 -n 1)
+	echo "sleep"  $y  " seconds before writing entries"
 	sleep $y
 	for ((i=0; i<nentries; i++)); do
-    	cat scripts/data.txt | factom-cli addentry  -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
+    		cat scripts/data.txt | factom-cli addentry  -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
 		sleep .4s
 	done
@@ -35,6 +35,6 @@ for ((i=0; i<nchains; i++)); do
 done
 
 let y=$(shuf -i 10-50 -n 1)
-echo SLEEP $y  YAWN
+echo SLEEP $y "seconds before doing another set of chains."
 sleep $y
 sleep 50s
