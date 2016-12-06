@@ -386,9 +386,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 	***************************/
 	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
-		dbs := s.DBStates.Get(int(dbheight))
-		if dbs != nil {
-			dbs.SaveStruct.RestoreFactomdState(s, dbs)
+		dbs := s.DBStates.Get(int(dbheight) - 1)
+		if dbs != nil && dbs.SaveStruct != nil {
+			dbs.SaveStruct.TrimBack(s, dbs)
 		}
 	}
 
