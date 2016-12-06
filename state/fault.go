@@ -66,6 +66,9 @@ func (fs *FaultState) IsNil() bool {
 	if fs.VoteMap == nil {
 		return true
 	}
+	if (FaultCore{}) == fs.FaultCore {
+		return true
+	}
 	if fs.FaultCore.ServerID.IsZero() {
 		return true
 	}
