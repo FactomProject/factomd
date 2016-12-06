@@ -59,7 +59,16 @@ func (fs *FaultState) SetLastMatch(b int64) {
 }
 
 func (fs *FaultState) IsNil() bool {
-	if fs.VoteMap == nil || fs.FaultCore.ServerID.IsZero() || fs.FaultCore.AuditServerID.IsZero() {
+	if fs == nil {
+		return true
+	}
+	if fs.VoteMap == nil {
+		return true
+	}
+	if fs.FaultCore.ServerID.IsZero() {
+		return true
+	}
+	if fs.FaultCore.AuditServerID.IsZero() {
 		return true
 	}
 	return false
