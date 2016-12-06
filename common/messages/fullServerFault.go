@@ -417,7 +417,8 @@ func (m *FullServerFault) StringWithSigCnt(s interfaces.IState) string {
 	if m == nil {
 		return "-nil-"
 	}
-	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d Clr:%t -- hash[:3]=%x Valid Sigs: %d TS:%d",
+	return fmt.Sprintf(
+		"%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d Clr:%t -- hash[:3]=%x Valid Sigs: %d TS:%d",
 		"FullSFault",
 		m.VMIndex,
 		m.Height,
