@@ -385,9 +385,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.ProcessLists.Lists = s.ProcessLists.Lists[:len(s.ProcessLists.Lists)-1]
 	}
 	***************************/
+	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
+		dbs := s.DBStates.Get(int(dbheight))
+		if dbs != nil {
+			dbs.SaveStruct.RestoreFactomdState(s, dbs)
+		}
+	}
 
 	s.DBStates.LastTime = s.GetTimestamp()
-	
+
 	dbstate := s.AddDBState(false,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
