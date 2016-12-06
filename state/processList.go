@@ -921,11 +921,10 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 				if p.System.List[prevIdx].(*messages.FullServerFault).ClearFault {
 					p.System.List[prevIdx] = nil
 					p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
-					p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList nilling prevIdx (%d) because SerialHash %x != %x",
-						prevIdx,
-						fullFault.GetSerialHash().Bytes()[:4],
-						p.System.List[prevIdx].GetHash().Bytes()[:4]))
-
+					//		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList nilling prevIdx (%d) because SerialHash %x != %x",
+					//			prevIdx,
+					//			fullFault.GetSerialHash().Bytes()[:4],
+					//			p.System.List[prevIdx].GetHash().Bytes()[:4]))  <<< You just set p.System.List[prevIdx] to nil
 				}
 				return false
 			}

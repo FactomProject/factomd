@@ -150,7 +150,6 @@ func faultTest(faulting *bool) {
 				kill = rand.Int() % maxLeadersToKill
 				kill++
 			}
-			kill = 1
 
 			os.Stderr.WriteString(fmt.Sprintf("Killing %3d of %3d Leaders\n", kill, numleaders))
 			for i := 0; i < kill; {
