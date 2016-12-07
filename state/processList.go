@@ -921,8 +921,12 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 				p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 				return false
 			}
-			if !fullFault.GetSerialHash().IsSameAs(p.System.List[prevIdx].GetHash()) {
-				if p.System.List[prevIdx].(*messages.FullServerFault).ClearFault {
+			prevFault := p.System.List[prevIdx].(*messages.FullServerFault)
+
+			newHashShouldBe, err := primitives.CreateHash(prevFault.GetSerialHash(), fullFault.GetCoreHash())
+
+			if err != nil || !fullFault.GetSerialHash().IsSameAs(newHashShouldBe) {
+				if prevFault.ClearFault {
 					p.System.List[prevIdx] = nil
 					p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 				}
