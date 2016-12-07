@@ -917,14 +917,14 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	if len(p.System.List) > 0 { // Have something in the system list
 		prevIdx := int(fullFault.SystemHeight) - 1       // Top of the System List
 		if len(p.System.List) > prevIdx && prevIdx > 0 { // There is something on the System List
+			if p.System.List[prevIdx] == nil {
+				p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
+				return false
+			}
 			if !fullFault.GetSerialHash().IsSameAs(p.System.List[prevIdx].GetHash()) {
 				if p.System.List[prevIdx].(*messages.FullServerFault).ClearFault {
 					p.System.List[prevIdx] = nil
 					p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
-					//		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList nilling prevIdx (%d) because SerialHash %x != %x",
-					//			prevIdx,
-					//			fullFault.GetSerialHash().Bytes()[:4],
-					//			p.System.List[prevIdx].GetHash().Bytes()[:4]))  <<< You just set p.System.List[prevIdx] to nil
 				}
 				return false
 			}
