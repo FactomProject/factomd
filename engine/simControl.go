@@ -506,8 +506,7 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
 			case 'M' == b[0]:
-				watchMessages++
-				if watchMessages%2 == 1 {
+				if !fnodes[listenTo].State.MessageTally {
 					os.Stderr.WriteString("--Print Message Tallies On--\n")
 					fnodes[listenTo].State.MessageTally = true
 				} else {
