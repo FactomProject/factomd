@@ -268,6 +268,12 @@ type State struct {
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries []MissingEntry
 
+	// MessageTally causes the node to keep track of (and display) running totals of each
+	// type of message received during the tally interval
+	MessageTally           bool
+	MessageTalliesReceived [constants.NUM_MESSAGES]int
+	MessageTalliesSent     [constants.NUM_MESSAGES]int
+
 	LastPrint    string
 	LastPrintCnt int
 
@@ -1314,6 +1320,22 @@ func (s *State) GetServerPublicKey() *primitives.PublicKey {
 
 func (s *State) GetAnchor() interfaces.IAnchor {
 	return s.Anchor
+}
+
+func (s *State) TallySent(msgType int) {
+	s.MessageTalliesSent[msgType]++
+}
+
+func (s *State) TallyReceived(msgType int) {
+	s.MessageTalliesReceived[msgType]++
+}
+
+func (s *State) GetMessageTalliesSent(i int) int {
+	return s.MessageTalliesSent[i]
+}
+
+func (s *State) GetMessageTalliesReceived(i int) int {
+	return s.MessageTalliesReceived[i]
 }
 
 func (s *State) GetFactomdVersion() int {
