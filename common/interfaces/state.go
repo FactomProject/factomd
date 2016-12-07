@@ -103,7 +103,7 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
-	GetPendingEntries() []IEntry
+	GetPendingEntries(interface{}) string
 	NextCommit(hash IHash) IMsg
 	PutCommit(hash IHash, msg IMsg)
 
@@ -164,7 +164,7 @@ type IState interface {
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
 
-	GetPendingTransactions() string
+	GetPendingTransactions(interface{}) string
 	// MISC
 	// ====
 

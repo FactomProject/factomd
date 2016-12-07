@@ -954,26 +954,20 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	return answer, nil
 }
 
-func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (string, *primitives.JSONError) {
 
-	type PendingEntries struct {
-		EntryHash interfaces.IHash
-		ChainID   interfaces.IHash
-		Status    string
-	}
+	pending := state.GetPendingEntries(params)
 
-	eHashes := state.GetPendingEntries()
-	resp := make([]PendingEntries, len(eHashes))
-	for i, ent := range eHashes {
-		resp[i].EntryHash = ent.GetHash()
-		resp[i].ChainID = ent.GetChainID()
+	fmt.Println("eHashes", pending)
+	if params.(string) == "" {
+		fmt.Println("params-nil")
 	}
-	return resp, nil
+	return pending, nil
 }
 
 func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (string, *primitives.JSONError) {
 
-	pending := state.GetPendingTransactions()
+	pending := state.GetPendingTransactions(params)
 
 	return pending, nil
 }
