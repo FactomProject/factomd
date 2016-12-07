@@ -34,7 +34,6 @@ type IProcessList interface {
 	DeleteEBlocks(key IHash)
 	AddNewEntry(key IHash, value IEntry)
 	DeleteNewEntry(key IHash)
-	//AddFaultState(key [32]byte, value IFaultState)
 	GetLeaderTimestamp() Timestamp
 	ResetDiffSigTally()
 	IncrementDiffSigTally()

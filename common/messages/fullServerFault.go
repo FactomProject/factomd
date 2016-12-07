@@ -413,6 +413,25 @@ func (m *FullServerFault) String() string {
 		m.Timestamp.GetTimeSeconds())
 }
 
+func (m *FullServerFault) StringWithSigCnt(s interfaces.IState) string {
+	if m == nil {
+		return "-nil-"
+	}
+	return fmt.Sprintf(
+		"%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d Clr:%t -- hash[:3]=%x Valid Sigs: %d TS:%d",
+		"FullSFault",
+		m.VMIndex,
+		m.Height,
+		m.ServerID.String()[4:10],
+		m.AuditServerID.String()[4:10],
+		m.DBHeight,
+		m.SystemHeight,
+		m.ClearFault,
+		m.GetHash().Bytes()[:3],
+		m.SigTally(s),
+		m.Timestamp.GetTimeSeconds())
+}
+
 func (m *FullServerFault) GetDBHeight() uint32 {
 	return m.DBHeight
 }

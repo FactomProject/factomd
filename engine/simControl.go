@@ -345,12 +345,24 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'v' == b[0]:
-				if verboseFaultOutput {
-					verboseFaultOutput = false
-					os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
+				if len(b) > 1 {
+					nnn, err := strconv.Atoi(string(b[1:]))
+					if err != nil || nnn < 0 || nnn > 99 {
+						os.Stderr.WriteString("Specifiy a FaultWait between 0 and 100\n")
+						break
+					}
+					for _, fn := range fnodes {
+						fn.State.SetFaultWait(nnn)
+						os.Stderr.WriteString(fmt.Sprintf("Setting FaultWait of %10s to %d\n", fn.State.FactomNodeName, nnn))
+					}
 				} else {
-					verboseFaultOutput = true
-					os.Stderr.WriteString("--VerboseFaultOutput On--\n")
+					if verboseFaultOutput {
+						verboseFaultOutput = false
+						os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
+					} else {
+						verboseFaultOutput = true
+						os.Stderr.WriteString("--VerboseFaultOutput On--\n")
+					}
 				}
 			case 'V' == b[0]:
 				if len(b) == 1 {
@@ -802,7 +814,9 @@ func SimControl(listenTo int) {
 					case 6:
 						stat = "Pending Full"
 					case 7:
-						stat = "Pending"
+						stat = "Self"
+					case 8:
+						stat = "Self Full"
 					}
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))

@@ -13,7 +13,7 @@ import (
 )
 
 func waitToKill(k *bool) {
-	t := rand.Int()%120 + 5
+	t := rand.Int()%120 + 60
 	for t > 0 {
 		os.Stderr.WriteString(fmt.Sprintf("     Will kill some servers in about %d seconds\n", t))
 		if t < 30 {
@@ -161,11 +161,10 @@ func faultTest(faulting *bool) {
 					leaders[n].State.SetNetStateOff(true)
 					go bringback(leaders[n])
 					i++
-					time.Sleep(40 * time.Second)
+					time.Sleep(time.Duration(rand.Int()%40) * time.Second)
+					totalServerFaults++
 				}
 			}
-
-			totalServerFaults += kill
 
 		} else {
 			time.Sleep(1 * time.Second)

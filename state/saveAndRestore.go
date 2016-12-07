@@ -199,6 +199,137 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	return
 }
 
+func (ss *SaveState) TrimBack(state *State, d *DBState) {
+	pdbstate := d
+	d = state.DBStates.Get(int(ss.DBHeight + 1))
+	if pdbstate == nil {
+		return
+	}
+	pss := pdbstate.SaveStruct
+	if pss == nil {
+		return
+	}
+	ppl := state.ProcessLists.Get(ss.DBHeight)
+	if ppl == nil {
+		return
+	}
+	pl := state.ProcessLists.Get(ss.DBHeight + 1)
+	if pl == nil {
+		return
+	}
+
+	for _, vm := range pl.VMs {
+		vm.LeaderMinute = 0
+		if vm.Height > 0 {
+			vm.Signed = true
+			vm.Synced = true
+			vm.Height = 0
+			vm.List = vm.List[:0]
+			vm.ListAck = vm.ListAck[:0]
+		} else {
+			vm.Signed = false
+			vm.Synced = false
+			vm.List = vm.List[:0]
+			vm.ListAck = vm.ListAck[:0]
+		}
+	}
+
+	ss.EOMsyncing = state.EOMsyncing
+
+	state.EOM = pss.EOM
+	state.EOMLimit = pss.EOMLimit
+	state.EOMProcessed = pss.EOMProcessed
+	state.EOMDone = pss.EOMDone
+	state.EOMMinute = pss.EOMMinute
+	state.EOMSys = pss.EOMSys
+	state.DBSig = pss.DBSig
+	state.DBSigLimit = pss.DBSigLimit
+	state.DBSigProcessed = pss.DBSigProcessed
+	state.DBSigDone = pss.DBSigDone
+	state.DBSigSys = pss.DBSigSys
+	state.Newblk = pss.Newblk
+	state.Saving = pss.Saving
+	state.Syncing = pss.Syncing
+
+	state.Replay = pss.Replay.Save()
+
+	return
+	pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
+	pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)
+
+	//state.Identities = append(state.Identities[:0], pss.Identities...)
+	//state.Authorities = append(state.Authorities[:0], pss.Authorities...)
+	//state.AuthorityServerCount = pss.AuthorityServerCount
+
+	state.Holding = make(map[[32]byte]interfaces.IMsg)
+	for k := range ss.Holding {
+		state.Holding[k] = pss.Holding[k]
+	}
+	state.XReview = append(state.XReview[:0], pss.XReview...)
+
+	/**
+	ss.EOMsyncing = state.EOMsyncing
+
+	state.EOM = pss.EOM
+	state.EOMLimit = pss.EOMLimit
+	state.EOMProcessed = pss.EOMProcessed
+	state.EOMDone = pss.EOMDone
+	state.EOMMinute = pss.EOMMinute
+	state.EOMSys = pss.EOMSys
+	state.DBSig = pss.DBSig
+	state.DBSigLimit = pss.DBSigLimit
+	state.DBSigProcessed = pss.DBSigProcessed
+	state.DBSigDone = pss.DBSigDone
+	state.DBSigSys = pss.DBSigSys
+	state.Newblk = pss.Newblk
+	state.Saving = pss.Saving
+	state.Syncing = pss.Syncing
+
+	state.Holding = make(map[[32]byte]interfaces.IMsg)
+	for k := range ss.Holding {
+		state.Holding[k] = pss.Holding[k]
+	}
+	state.XReview = append(state.XReview[:0], pss.XReview...)
+
+	state.Acks = make(map[[32]byte]interfaces.IMsg)
+	for k := range pss.Acks {
+		state.Acks[k] = pss.Acks[k]
+	}
+
+	state.Commits = make(map[[32]byte][]interfaces.IMsg)
+	for k := range pss.Commits {
+		var c []interfaces.IMsg
+		state.Commits[k] = append(c, pss.Commits[k]...)
+	}
+
+	state.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
+	for k := range pss.InvalidMessages {
+		state.InvalidMessages[k] = pss.InvalidMessages[k]
+	}
+
+	// DBlock Height at which node has a complete set of eblocks+entries
+	state.EntryBlockDBHeightComplete = pss.EntryBlockDBHeightComplete
+	state.EntryBlockDBHeightProcessing = pss.EntryBlockDBHeightProcessing
+	state.MissingEntryBlocks = append(state.MissingEntryBlocks[:0], pss.MissingEntryBlocks...)
+
+	state.EntryBlockDBHeightComplete = pss.EntryDBHeightComplete
+	state.EntryDBHeightComplete = pss.EntryDBHeightComplete
+	state.EntryHeightComplete = pss.EntryHeightComplete
+	state.EntryDBHeightProcessing = pss.EntryBlockDBHeightProcessing
+	state.MissingEntries = append(state.MissingEntries[:0], pss.MissingEntries...)
+
+	state.FactoshisPerEC = pss.FactoshisPerEC
+	state.FERChainId = pss.FERChainId
+	state.ExchangeRateAuthorityAddress = pss.ExchangeRateAuthorityAddress
+
+	state.FERChangeHeight = pss.FERChangeHeight
+	state.FERChangePrice = pss.FERChangePrice
+	state.FERPriority = pss.FERPriority
+	state.FERPrioritySetHeight = pss.FERPrioritySetHeight
+
+	**/
+}
+
 func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	// We trim away the ProcessList under construction (and any others) so we can
 	// rebuild afresh.
