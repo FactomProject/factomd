@@ -56,7 +56,7 @@ func (m *FullServerFault) Priority(state interfaces.IState) (priority int64) {
 	now := state.GetTimestamp()
 
 	// After 20 seconds, a negotiation's priority is now zero.
-	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() < 20 {
+	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() > 20 {
 		return 0
 	}
 
