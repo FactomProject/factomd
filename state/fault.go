@@ -224,7 +224,12 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 			}
 		}
 		if cf.AmINegotiator && int(time.Now().Unix()-pl.State.LastFaultAction) > pl.State.FaultWait {
-			CraftAndSubmitFullFault(pl, vmIndex, vm.Height)
+			ff := CraftFullFault(pl, vmIndex, vm.Height)
+			if ff != nil {
+				ff.Sign(pl.State.serverPrivKey)
+				ff.SendOut(pl.State, ff)
+				ff.FollowerExecute(pl.State)
+			}
 		}
 	}
 
@@ -253,7 +258,12 @@ func NegotiationCheck(pl *ProcessList) {
 
 	if now-pl.State.LastFaultAction > int64(pl.State.FaultWait) {
 		//THROTTLE
-		ff := CraftAndSubmitFullFault(pl, prevIdx, prevVM.Height)
+		ff := CraftFullFault(pl, prevIdx, prevVM.Height)
+		if ff != nil {
+			ff.Sign(pl.State.serverPrivKey)
+			ff.SendOut(pl.State, ff)
+			ff.FollowerExecute(pl.State)
+		}
 		pl.State.AddStatus(fmt.Sprintf("Sending Negotiation message (because %d): %s", prevVM.FaultFlag, ff.String()))
 		pl.State.LastFaultAction = now
 	}
@@ -372,7 +382,7 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) {
 	// a MissingMsgResponse to everyone for the msg I'm being faulted for
 
 	// Only consider Online Audit servers as candidates for promotion (this
-	// allows us to cycle through Audits on successive calls to CraftAndSubmitFault,
+	// allows us to cycle through Audits on successive calls to CraftFullFault,
 	// so that we make sure to (eventually) find one that is ready and able to
 	// accept the promotion)
 	auditServerList := pl.State.GetOnlineAuditServers(pl.DBHeight)
@@ -413,11 +423,11 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) {
 	}
 }
 
-// CraftAndSubmitFullFault is called from the Negotiate goroutine
+// CraftFullFault is called from the Negotiate goroutine
 // (which fires once every 5 seconds on each server); most of the time
 // these are "incomplete" FullFault messages which serve as status pings
 // for the negotiation in progress
-func CraftAndSubmitFullFault(pl *ProcessList, vmIndex int, height int) *messages.FullServerFault {
+func CraftFullFault(pl *ProcessList, vmIndex int, height int) *messages.FullServerFault {
 	faultState := pl.CurrentFault
 	if faultState.IsNil() {
 		CraftFault(pl, vmIndex, height)
@@ -444,11 +454,6 @@ func CraftAndSubmitFullFault(pl *ProcessList, vmIndex int, height int) *messages
 
 	//adminBlockEntryForFault := fullFault.ToAdminBlockEntry()
 	//pl.State.LeaderPL.AdminBlock.AddServerFault(adminBlockEntryForFault)
-	if fullFault != nil {
-		fullFault.Sign(pl.State.serverPrivKey)
-		fullFault.SendOut(pl.State, fullFault)
-		fullFault.FollowerExecute(pl.State)
-	}
 
 	return fullFault
 }
