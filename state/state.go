@@ -1047,6 +1047,7 @@ func (s *State) GetPendingEntries(params interface{}) string {
 		}
 	}
 	b, _ := json.Marshal(resp)
+
 	return string(b)
 }
 

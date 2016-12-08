@@ -828,7 +828,7 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'q' == b[0]:
-				var eHashes string
+				var eHashes interface{}
 				if len(b) > 1 {
 					eHashes = fnodes[listenTo].State.GetPendingEntries(b[1])
 				} else {

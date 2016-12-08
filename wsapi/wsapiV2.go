@@ -956,9 +956,13 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	return answer, nil
 }
 
-func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (string, *primitives.JSONError) {
-
-	pending := state.GetPendingEntries(params)
+func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	chainid := new(ChainIDRequest)
+	err := MapToObject(params, chainid)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	pending := state.GetPendingEntries(chainid.ChainID)
 
 	fmt.Println("eHashes", pending)
 	if params.(string) == "" {
@@ -967,9 +971,14 @@ func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (str
 	return pending, nil
 }
 
-func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (string, *primitives.JSONError) {
+func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fadr := new(AddressRequest)
+	err := MapToObject(params, fadr)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
 
-	pending := state.GetPendingTransactions(params)
+	pending := state.GetPendingTransactions(fadr.Address)
 
 	return pending, nil
 }
