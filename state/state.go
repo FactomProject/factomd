@@ -992,7 +992,7 @@ func (s *State) fillHoldingMap() {
 
 }
 
-func (s *State) GetPendingEntries(params interface{}) string {
+func (s *State) GetPendingEntries(params interface{}) []interface{} {
 
 	type PendingEntries struct {
 		EntryHash interfaces.IHash
@@ -1032,11 +1032,11 @@ func (s *State) GetPendingEntries(params interface{}) string {
 			var tmp PendingEntries
 			enb, err := h.MarshalBinary()
 			if err != nil {
-				return ""
+				return nil
 			}
 			err = rm.UnmarshalBinary(enb)
 			if err != nil {
-				return ""
+				return nil
 			}
 
 			tmp.EntryHash = rm.Entry.GetHash()
@@ -1047,8 +1047,14 @@ func (s *State) GetPendingEntries(params interface{}) string {
 		}
 	}
 	b, _ := json.Marshal(resp)
-
-	return string(b)
+	fmt.Println(b)
+	fmt.Println(string(b))
+	var f []interface{}
+	err := json.Unmarshal(b, &f)
+	if err != nil {
+		return nil
+	}
+	return f
 }
 
 func (s *State) GetPendingTransactions(params interface{}) string {
@@ -1058,6 +1064,7 @@ func (s *State) GetPendingTransactions(params interface{}) string {
 		Status        string
 	}
 	var flgFound bool
+
 	var currentHeightComplete = s.GetDBHeightComplete()
 	resp := make([]PendingTransaction, 0)
 	pls := s.ProcessLists.Lists
@@ -1067,35 +1074,30 @@ func (s *State) GetPendingTransactions(params interface{}) string {
 			cb := pl.State.FactoidState.GetCurrentBlock()
 			ct := cb.GetTransactions()
 			for _, tran := range ct {
-				hinp := tran.GetInputs()
-				hout := tran.GetOutputs()
-				hec := tran.GetECOutputs()
 				var tmp PendingTransaction
 				tmp.TransactionID = tran.GetSigHash()
-
-				if tran.ValidateSignatures() != nil {
+				if tran.GetBlockHeight() > 0 {
 					tmp.Status = "AckStatusDBlockConfirmed"
 				} else {
 					tmp.Status = "AckStatusACK"
 				}
-				if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {
-					// if all len calls == 0, it is an empty transaction that should be ignored
-
+				if params.(string) == "" {
+					flgFound = true
+				} else {
+					flgFound = tran.HasUserAddress(params.(string))
+				}
+				if flgFound == true {
 					//working through multiple process lists.  Is this transaction already in the list?
-					flgFound = false
 					for _, pt := range resp {
 						if pt.TransactionID.String() == tmp.TransactionID.String() {
-							flgFound = true
-						} else {
-							fmt.Println(pt.TransactionID, tmp.TransactionID)
+							flgFound = false
 						}
 					}
-					if flgFound == false {
+					//  flag was true to be added to the list and not already in the list
+					if flgFound == true {
 						resp = append(resp, tmp)
 					}
-
 				}
-
 			}
 		}
 	}
@@ -1116,22 +1118,17 @@ func (s *State) GetPendingTransactions(params interface{}) string {
 			var tmp PendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
 			tmp.Status = "AckStatusNotConfirmed"
-			hinp := tempTran.GetInputs()
-			hout := tempTran.GetOutputs()
-			hec := tempTran.GetECOutputs()
-			if len(hinp) > 0 || len(hout) > 0 || len(hec) > 0 {
-				// if all len calls == 0, it is an empty transaction that should be ignored
+			flgFound = tempTran.HasUserAddress(params.(string))
 
+			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
-				flgFound = false
 				for _, pt := range resp {
 					if pt.TransactionID.String() == tmp.TransactionID.String() {
-						flgFound = true
-					} else {
-						fmt.Println(pt.TransactionID, tmp.TransactionID)
+						flgFound = false
 					}
 				}
-				if !flgFound {
+				//  flag was true to be added to the list and not already in the list
+				if flgFound == true {
 					resp = append(resp, tmp)
 				}
 			}

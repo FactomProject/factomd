@@ -78,4 +78,7 @@ type ITransaction interface {
 	// transaction.  DOES NO VALIDATION.  Not the job of construction.
 	// That's why we have a validation call.
 	AddAuthorization(auth IRCD)
+
+	// is this user address associated with the inputs and outputs of this transaction
+	HasUserAddress(userAddr string) bool
 }

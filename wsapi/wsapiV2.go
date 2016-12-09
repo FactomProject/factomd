@@ -67,7 +67,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-
+	fmt.Println(params)
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
@@ -105,14 +105,14 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "heights":
 		resp, jsonError = HandleV2Heights(state, params)
 		break
+	case "properties":
+		resp, jsonError = HandleV2Properties(state, params)
+		break
 	case "raw-data":
 		resp, jsonError = HandleV2RawData(state, params)
 		break
 	case "receipt":
 		resp, jsonError = HandleV2Receipt(state, params)
-		break
-	case "properties":
-		resp, jsonError = HandleV2Properties(state, params)
 		break
 	case "reveal-chain":
 		resp, jsonError = HandleV2RevealChain(state, params)
@@ -126,17 +126,17 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "entry-ack":
 		resp, jsonError = HandleV2EntryACK(state, params)
 		break
-	case "send-raw-message":
-		resp, jsonError = HandleV2SendRawMessage(state, params)
-		break
-	case "transaction":
-		resp, jsonError = HandleV2GetTranasction(state, params)
-		break
 	case "pending-entries":
 		resp, jsonError = HandleV2GetPendingEntries(state, params)
 		break
 	case "pending-transactions":
 		resp, jsonError = HandleV2GetPendingTransactions(state, params)
+		break
+	case "send-raw-message":
+		resp, jsonError = HandleV2SendRawMessage(state, params)
+		break
+	case "transaction":
+		resp, jsonError = HandleV2GetTranasction(state, params)
 		break
 	case "dblock-by-height":
 		resp, jsonError = HandleV2DBlockByHeight(state, params)
@@ -824,6 +824,29 @@ func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, 
 	return h, nil
 }
 
+func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	chainid := new(ChainIDRequest)
+	err := MapToObject(params, chainid)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	pending := state.GetPendingEntries(chainid.ChainID)
+
+	return pending, nil
+}
+
+func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fadr := new(AddressRequest)
+	err := MapToObject(params, fadr)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	pending := state.GetPendingTransactions(fadr.Address)
+
+	return pending, nil
+}
+
 func HandleV2Properties(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	vtos := func(f int) string {
 		v0 := f / 1000000000
@@ -954,31 +977,4 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	answer.IncludedInDirectoryBlockHeight = int64(dBlock.GetDatabaseHeight())
 
 	return answer, nil
-}
-
-func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	chainid := new(ChainIDRequest)
-	err := MapToObject(params, chainid)
-	if err != nil {
-		return nil, NewInvalidParamsError()
-	}
-	pending := state.GetPendingEntries(chainid.ChainID)
-
-	fmt.Println("eHashes", pending)
-	if params.(string) == "" {
-		fmt.Println("params-nil")
-	}
-	return pending, nil
-}
-
-func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fadr := new(AddressRequest)
-	err := MapToObject(params, fadr)
-	if err != nil {
-		return nil, NewInvalidParamsError()
-	}
-
-	pending := state.GetPendingTransactions(fadr.Address)
-
-	return pending, nil
 }

@@ -103,7 +103,7 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
-	GetPendingEntries(interface{}) string
+	GetPendingEntries(interface{}) []interface{}
 	NextCommit(hash IHash) IMsg
 	PutCommit(hash IHash, msg IMsg)
 
