@@ -62,7 +62,7 @@ done
 #create chain with each of the entry credit address
 for i in $(seq 20); do
 echo ${ec[i]}
-echo "hello world" $RANDOM | factom-cli addchain -e testing$i -e factom ${ec[i]}
+echo "hello world" $RANDOM | factom-cli addchain -n testing$i -n factom ${ec[i]}
 sleep 1s
 done
 

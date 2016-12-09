@@ -47,18 +47,27 @@ func SimControl(listenTo int) {
 			continue
 		}
 
-		// This splits up the command at anycodepoint that is not a letter, number of punctuation, so usually by spaces.
+		// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
 		parseFunc := func(c rune) bool {
 			return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(string(l), parseFunc)
-		if 0 == len(cmd) {
-			cmd = lastcmd
-		}
-		lastcmd = cmd
+		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
+		switch {
+		case 0 < len(cmd):
+			lastcmd = cmd
+		default:
+			switch {
+			case 0 < len(lastcmd):
+				cmd = lastcmd
+			default: // no last commands
+				cmd = []string{"?"}
+			}
+		}
 		b := string(cmd[0])
+
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
 			listenTo = v
@@ -67,7 +76,6 @@ func SimControl(listenTo int) {
 			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 			go controlPanel.ServeControlPanel(fnodes[listenTo].State.ControlPanelChannel, fnodes[listenTo].State, connectionMetricsChannel, p2pNetwork, Build)
 		} else {
-			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
 			case '!' == b[0]:
 				if listenTo < 0 || listenTo > len(fnodes) {
