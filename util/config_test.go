@@ -103,8 +103,7 @@ FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
 ; Specifying when to stop or start ACKs for switching leader servers
-StopAcksHeight					      = 123
-StartAcksHeight						  = 456
+ChangeAcksHeight					  = 123
 
 [anchor]
 ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
@@ -206,12 +205,8 @@ WalletdLocation                       = "localhost:8089"
 		t.Errorf("Wrong variable read - %v", cfg.App.DataStorePath)
 	}
 
-	if cfg.App.StopAcksHeight != 123 {
-		t.Errorf("Wrong variable read - %v", cfg.App.StopAcksHeight)
-	}
-
-	if cfg.App.StartAcksHeight != 456 {
-		t.Errorf("Wrong variable read - %v", cfg.App.StartAcksHeight)
+	if cfg.App.ChangeAcksHeight != 123 {
+		t.Errorf("Wrong variable read - %v", cfg.App.ChangeAcksHeight)
 	}
 
 }

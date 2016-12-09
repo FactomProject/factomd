@@ -54,8 +54,7 @@ type FactomdConfig struct {
 		FactomdRpcUser       string
 		FactomdRpcPass       string
 
-		StopAcksHeight  uint32
-		StartAcksHeight uint32
+		ChangeAcksHeight uint32
 	}
 	Peer struct {
 		AddPeers     []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
@@ -165,9 +164,8 @@ FactomdTlsPublicCert                  = "/full/path/to/factomdAPIpub.cert"
 FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
-; Specifying when to stop or start ACKs for switching leader servers
-StopAcksHeight					      = 0
-StartAcksHeight						  = 0
+; Specifying when to change ACKs for switching leader servers
+ChangeAcksHeight					  = 0
 
 [anchor]
 ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
@@ -274,8 +272,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
-	out.WriteString(fmt.Sprintf("\n    StopAcksHeight          %v", s.App.StopAcksHeight))
-	out.WriteString(fmt.Sprintf("\n    StartAcksHeight         %v", s.App.StartAcksHeight))
+	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
 
 	out.WriteString(fmt.Sprintf("\n  Anchor"))
 	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
@@ -332,7 +329,7 @@ func GetConfigFilename(dir string) string {
 	return GetHomeDir() + "/.factom/" + dir + "/factomd.conf"
 }
 
-func GetAckStartStop(filename string) (start uint32, stop uint32, err error) {
+func GetChangeAcksHeight(filename string) (change uint32, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error getting acks - %v\n", r)
@@ -341,7 +338,7 @@ func GetAckStartStop(filename string) (start uint32, stop uint32, err error) {
 
 	config := ReadConfig(filename)
 
-	return config.App.StartAcksHeight, config.App.StopAcksHeight, nil
+	return config.App.ChangeAcksHeight, nil
 }
 
 func ReadConfig(filename string) *FactomdConfig {

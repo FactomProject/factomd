@@ -1146,6 +1146,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.CurrentMinute = 0
 			s.LLeaderHeight++
 
+			s.GetAckChange()
 			s.CheckForIDChange()
 
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -1212,13 +1213,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 func (s *State) CheckForIDChange() {
 	var reloadIdentity bool = false
-	if s.AckStart > 0 {
-		if s.LLeaderHeight >= s.AckStart {
-			reloadIdentity = true
-		}
-	}
-	if s.AckStop > 0 {
-		if s.LLeaderHeight >= s.AckStop {
+	if s.AckChange > 0 {
+		if s.LLeaderHeight >= s.AckChange {
 			reloadIdentity = true
 		}
 	}
