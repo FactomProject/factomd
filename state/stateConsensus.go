@@ -1226,6 +1226,7 @@ func (s *State) CheckForIDChange() {
 			panic(err)
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
+		fmt.Printf("Updated Local Server Identity to %s", s.LocalServerPrivKey)
 		s.initServerKeys()
 	}
 }
