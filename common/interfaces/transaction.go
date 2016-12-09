@@ -4,8 +4,6 @@
 
 package interfaces
 
-import ()
-
 type ITransaction interface {
 	IBlock
 	// Marshals the parts of the transaction that are signed to
@@ -81,4 +79,9 @@ type ITransaction interface {
 
 	// is this user address associated with the inputs and outputs of this transaction
 	HasUserAddress(userAddr string) bool
+}
+
+type IPendingTransaction struct {
+	TransactionID IHash
+	Status        string
 }

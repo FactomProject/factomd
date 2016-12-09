@@ -7,7 +7,6 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -998,15 +997,9 @@ func (s *State) fillHoldingMap() {
 
 }
 
-func (s *State) GetPendingEntries(params interface{}) []interface{} {
+func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
 
-	type PendingEntries struct {
-		EntryHash interfaces.IHash
-		ChainID   interfaces.IHash
-		Status    string
-	}
-
-	resp := make([]PendingEntries, 0)
+	resp := make([]interfaces.IPendingEntry, 0)
 	pls := s.ProcessLists.Lists
 
 	// check all existing processlists
@@ -1014,7 +1007,7 @@ func (s *State) GetPendingEntries(params interface{}) []interface{} {
 
 		keys := pl.GetKeysNewEntries()
 		for _, k := range keys {
-			var tmp PendingEntries
+			var tmp interfaces.IPendingEntry
 			entry := pl.GetNewEntry(k)
 			// should I filter for chain id
 			if params.(string) == "" || params.(string) == entry.GetChainID().String() {
@@ -1035,7 +1028,7 @@ func (s *State) GetPendingEntries(params interface{}) []interface{} {
 	for _, h := range q {
 		if h.Type() == constants.REVEAL_ENTRY_MSG {
 			var rm messages.RevealEntryMsg
-			var tmp PendingEntries
+			var tmp interfaces.IPendingEntry
 			enb, err := h.MarshalBinary()
 			if err != nil {
 				return nil
@@ -1052,27 +1045,24 @@ func (s *State) GetPendingEntries(params interface{}) []interface{} {
 			resp = append(resp, tmp)
 		}
 	}
-	b, _ := json.Marshal(resp)
-	fmt.Println(b)
-	fmt.Println(string(b))
-	var f []interface{}
-	err := json.Unmarshal(b, &f)
-	if err != nil {
-		return nil
-	}
-	return f
+	/*	b, _ := json.Marshal(resp)
+		fmt.Println(b)
+		fmt.Println(string(b))
+		var f []interface{}
+		err := json.Unmarshal(b, &f)
+		if err != nil {
+			return nil
+		}
+	*/
+	return resp
 }
 
-func (s *State) GetPendingTransactions(params interface{}) string {
+func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
 
-	type PendingTransaction struct {
-		TransactionID interfaces.IHash
-		Status        string
-	}
 	var flgFound bool
 
 	var currentHeightComplete = s.GetDBHeightComplete()
-	resp := make([]PendingTransaction, 0)
+	resp := make([]interfaces.IPendingTransaction, 0)
 	pls := s.ProcessLists.Lists
 	for _, pl := range pls {
 		// ignore old process lists
@@ -1080,7 +1070,7 @@ func (s *State) GetPendingTransactions(params interface{}) string {
 			cb := pl.State.FactoidState.GetCurrentBlock()
 			ct := cb.GetTransactions()
 			for _, tran := range ct {
-				var tmp PendingTransaction
+				var tmp interfaces.IPendingTransaction
 				tmp.TransactionID = tran.GetSigHash()
 				if tran.GetBlockHeight() > 0 {
 					tmp.Status = "AckStatusDBlockConfirmed"
@@ -1114,14 +1104,14 @@ func (s *State) GetPendingTransactions(params interface{}) string {
 			var rm messages.FactoidTransaction
 			enb, err := h.MarshalBinary()
 			if err != nil {
-				return ""
+				return nil
 			}
 			err = rm.UnmarshalBinary(enb)
 			if err != nil {
-				return ""
+				return nil
 			}
 			tempTran := rm.GetTransaction()
-			var tmp PendingTransaction
+			var tmp interfaces.IPendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
 			tmp.Status = "AckStatusNotConfirmed"
 			flgFound = tempTran.HasUserAddress(params.(string))
@@ -1141,8 +1131,8 @@ func (s *State) GetPendingTransactions(params interface{}) string {
 		}
 	}
 
-	b, _ := json.Marshal(resp)
-	return string(b)
+	//b, _ := json.Marshal(resp)
+	return resp
 }
 
 func (s *State) IncFactoidTrans() {

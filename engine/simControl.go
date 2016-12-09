@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
@@ -856,7 +857,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString(fmt.Sprint(eHashes, "\n"))
 				//}
 			case 'j' == b[0]:
-				var fpl string
+				var fpl []interfaces.IPendingTransaction
 				if len(b) > 1 {
 					fpl = fnodes[listenTo].State.GetPendingTransactions(b[1])
 				} else {

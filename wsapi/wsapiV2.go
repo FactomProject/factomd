@@ -162,8 +162,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
+	fmt.Println("resp:", resp)
 	jsonResp.Result = resp
-
+	fmt.Println("jsonResp:", jsonResp)
 	return jsonResp, nil
 }
 
