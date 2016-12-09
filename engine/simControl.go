@@ -505,6 +505,14 @@ func SimControl(listenTo int) {
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
 				}
+			case 'M' == b[0]:
+				if !fnodes[listenTo].State.MessageTally {
+					os.Stderr.WriteString("--Print Message Tallies On--\n")
+					fnodes[listenTo].State.MessageTally = true
+				} else {
+					os.Stderr.WriteString("--Print Message Tallies Off--\n")
+					fnodes[listenTo].State.MessageTally = false
+				}
 			case 'z' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if len(b) > 1 && b[1] == 'a' {
 					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 1)

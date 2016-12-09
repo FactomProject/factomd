@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
@@ -184,6 +186,22 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
 
+		if f.State.MessageTally {
+			prt = prt + "\nType:"
+			for i := 0; i < constants.NUM_MESSAGES; i++ {
+				prt = prt + fmt.Sprintf("%5d ", i)
+			}
+			prt = prt + "\nRecd:"
+
+			for i := 0; i < constants.NUM_MESSAGES; i++ {
+				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
+			}
+			prt = prt + "\nSent:"
+			for i := 0; i < constants.NUM_MESSAGES; i++ {
+				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
+			}
+
+		}
 		prt = prt + "\n" + systemFaults(fnodes[*listenTo])
 
 		prt = prt + faultSummary()

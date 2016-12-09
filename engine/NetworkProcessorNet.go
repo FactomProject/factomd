@@ -71,6 +71,10 @@ func Peers(fnode *FactomNode) {
 
 				cnt++
 
+				if fnode.State.MessageTally {
+					fnode.State.TallyReceived(int(msg.Type()))
+				}
+
 				if err != nil {
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
 					break
@@ -145,6 +149,9 @@ func NetworkOutputs(fnode *FactomNode) {
 						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 						if !fnode.State.GetNetStateOff() {
 							fnode.Peers[p].Send(msg)
+							if fnode.State.MessageTally {
+								fnode.State.TallySent(int(msg.Type()))
+							}
 						}
 					}
 				} else {
@@ -159,6 +166,9 @@ func NetworkOutputs(fnode *FactomNode) {
 							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							if !fnode.State.GetNetStateOff() {
 								peer.Send(msg)
+								if fnode.State.MessageTally {
+									fnode.State.TallySent(int(msg.Type()))
+								}
 							}
 						}
 					}

@@ -45,6 +45,8 @@ const (
 	ENTRY_BLOCK_RESPONSE //28
 )
 
+const NUM_MESSAGES = 29
+
 const (
 	// Replay
 	INTERNAL_REPLAY = 1
