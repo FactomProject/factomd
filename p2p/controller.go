@@ -686,7 +686,8 @@ func (c *Controller) fillOutgoingSlots(openSlots int) {
 	newPeers := 0
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) && newPeers < openSlots {
-			note("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
+			note("controller", "newPeers: %d < openSlots: %d We think we are not already connected to: %s so dialing.", newPeers, openSlots, peer.AddressPort())
+			newPeers = newPeers + 1
 			c.DialPeer(peer, false)
 		}
 	}
