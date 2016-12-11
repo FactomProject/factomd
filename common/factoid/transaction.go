@@ -754,7 +754,7 @@ func (e *Transaction) HasUserAddress(userAddr string) bool {
 		}
 
 		//check output addresses
-		outputs := e.GetInputs()
+		outputs := e.GetOutputs()
 		for _, addLine := range outputs {
 			if addLine.GetUserAddress() == "" {
 				matchString = primitives.ConvertFctAddressToUserStr(addLine.GetAddress())
