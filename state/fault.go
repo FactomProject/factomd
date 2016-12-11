@@ -219,7 +219,6 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 	if !cf.IsNil() {
 		if int(cf.FaultCore.VMIndex) == vmIndex {
 			if index < len(pl.FedServers) && pl.FedServers[index].GetChainID().IsSameAs(cf.FaultCore.ServerID) {
-				pl.ResetCurrentFault()
 				return
 			}
 		}
@@ -308,7 +307,6 @@ func FaultCheck(pl *ProcessList) {
 			if !faultState.GetPledgeDone() {
 				ToggleAuditOffline(pl, faultState.FaultCore)
 			}
-			pl.ResetCurrentFault()
 			pl.State.LastFaultAction = 0
 			NegotiationCheck(pl)
 		}

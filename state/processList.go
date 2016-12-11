@@ -178,8 +178,6 @@ func (p *ProcessList) Clear() {
 	p.AuditServers = nil
 	p.FedServers = nil
 
-	p.ResetCurrentFault()
-
 	p.DBSignatures = nil
 
 	p.Requests = nil
@@ -575,10 +573,6 @@ func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
 		}
 	}
 	return new(primitives.Timestamp)
-}
-
-func (p *ProcessList) ResetCurrentFault() {
-	p.CurrentFault = *new(FaultState)
 }
 
 func (p *ProcessList) ResetDiffSigTally() {
@@ -1214,8 +1208,6 @@ func (p *ProcessList) Reset() bool {
 	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	p.ResetCurrentFault()
-
 	p.SetAmINegotiator(false)
 
 	p.DBSignatures = make([]DBSig, 0)
@@ -1342,8 +1334,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
-
-	pl.ResetCurrentFault()
 
 	pl.DBSignatures = make([]DBSig, 0)
 
