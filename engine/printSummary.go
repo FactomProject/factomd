@@ -315,13 +315,13 @@ func faultSummary() string {
 					}
 
 					prt = prt + fmt.Sprintf("| Current Fault:")
-					faultState := pl.CurrentFault
+					faultState := pl.CurrentFault()
 					if !faultState.IsNil() {
 						pledgeDoneString := "N"
 						if faultState.PledgeDone {
 							pledgeDoneString = "Y"
 						}
-						prt = prt + fmt.Sprintf(" %x/%x:%d/%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), faultState.SigTally(fnode.State), pledgeDoneString)
+						prt = prt + fmt.Sprintf(" %x/%x:%d/%d(%s)", faultState.ServerID.Bytes()[2:5], faultState.AuditServerID.Bytes()[2:5], len(faultState.LocalVoteMap), faultState.SigTally(fnode.State), pledgeDoneString)
 					}
 
 					prt = prt + fmt.Sprintf("| Watch VM: ")

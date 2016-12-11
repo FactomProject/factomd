@@ -96,8 +96,6 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	CurrentFault FaultState
-
 	NegotiatonTimeout int64
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
@@ -552,18 +550,8 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	delete(p.NewEntries, key.Fixed())
 }
 
-func (p *ProcessList) SetCurrentFault(fs FaultState) {
-	cf := p.CurrentFault
-	if !cf.IsNil() {
-		/*if int(cf.FaultCore.VMIndex) > int(fs.FaultCore.VMIndex) {
-			return
-		}*/
-		if int(cf.FaultCore.VMIndex) == int(fs.FaultCore.VMIndex) && cf.FaultCore.Timestamp.GetTimeSeconds() > fs.FaultCore.Timestamp.GetTimeSeconds() {
-			return
-		}
-	}
-
-	p.CurrentFault = fs
+func (p *ProcessList) CurrentFault() *messages.FullServerFault {
+	return p.System.List[p.System.Height].(*messages.FullServerFault)
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
