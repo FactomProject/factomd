@@ -42,6 +42,12 @@ type FullServerFault struct {
 	alreadyValidated bool
 	alreadyProcessed bool
 	hash             interfaces.IHash
+	//Local FaultState information (not marshalled)
+	AmINegotiator bool
+	MyVoteTallied bool
+	LocalVoteMap  map[[32]byte]interfaces.IFullSignature
+	PledgeDone    bool
+	LastMatch     int64
 }
 
 type SigList struct {
@@ -51,6 +57,59 @@ type SigList struct {
 
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
+
+func (m *FullServerFault) GetAmINegotiator() bool {
+	return m.AmINegotiator
+}
+
+func (m *FullServerFault) SetAmINegotiator(b bool) {
+	m.AmINegotiator = b
+}
+
+func (m *FullServerFault) GetMyVoteTallied() bool {
+	return m.MyVoteTallied
+}
+
+func (m *FullServerFault) SetMyVoteTallied(b bool) {
+	m.MyVoteTallied = b
+}
+
+func (m *FullServerFault) GetPledgeDone() bool {
+	return m.PledgeDone
+}
+
+func (m *FullServerFault) SetPledgeDone(b bool) {
+	m.PledgeDone = b
+}
+
+func (m *FullServerFault) GetLastMatch() int64 {
+	return m.LastMatch
+}
+
+func (m *FullServerFault) SetLastMatch(b int64) {
+	m.LastMatch = b
+}
+
+func (m *FullServerFault) IsNil() bool {
+	if m == nil {
+		return true
+	}
+	if m.ServerID.IsZero() {
+		return true
+	}
+	if m.AuditServerID == nil || m.AuditServerID.IsZero() {
+		return true
+	}
+	return false
+}
+
+func (m *FullServerFault) AddFaultVote(issuerID [32]byte, sig interfaces.IFullSignature) {
+	if m.LocalVoteMap == nil {
+		m.LocalVoteMap = make(map[[32]byte]interfaces.IFullSignature)
+	}
+
+	m.LocalVoteMap[issuerID] = sig
+}
 
 func (m *FullServerFault) Priority(state interfaces.IState) (priority int64) {
 	now := state.GetTimestamp()

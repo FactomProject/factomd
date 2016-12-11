@@ -7,7 +7,6 @@ type IProcessList interface {
 	GetKeysNewEntries() (keys [][32]byte)
 	GetNewEntry(key [32]byte) IEntry
 	LenNewEntries() int
-	//GetFaultState(key [32]byte) IFaultState
 	Complete() bool
 	VMIndexFor(hash []byte) int
 	SortFedServers()
