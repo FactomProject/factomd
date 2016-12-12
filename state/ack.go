@@ -13,7 +13,8 @@ import (
 )
 
 func (s *State) IsStateFullySynced() bool {
-	return s.ProcessLists.DBHeightBase == uint32(len(s.ProcessLists.Lists))
+	ll := s.ProcessLists.LastList()
+	return s.ProcessLists.DBHeightBase < ll.DBHeight
 }
 
 //returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
@@ -23,7 +24,6 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 	if m != nil || pl.DirectoryBlock == nil {
 		return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
 	}
-
 	ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
 
 	keys := pl.GetKeysNewEntries()
@@ -47,17 +47,14 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 			return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
 		}
 	}
-
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
 		return constants.AckStatusInvalid, hash, nil, nil, nil
 	}
-
 	in, err := s.DB.FetchIncludedIn(hash)
 	if err != nil {
 		return 0, hash, nil, nil, err
 	}
-
 	if in == nil {
 		if s.IsStateFullySynced() {
 			return constants.AckStatusNotConfirmed, hash, nil, nil, nil
@@ -65,7 +62,6 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 			return constants.AckStatusUnknown, hash, nil, nil, nil
 		}
 	}
-
 	in2, err := s.DB.FetchIncludedIn(in)
 	if err != nil {
 		return 0, hash, nil, nil, err

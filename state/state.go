@@ -102,6 +102,12 @@ type State struct {
 	HoldingFlag  bool
 	HoldingMap   map[[32]byte]interfaces.IMsg
 
+	//  pending entry/transaction api calls for the ack queue do not have proper scope
+	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand
+	AcksMutex sync.Mutex
+	AcksFlag  bool
+	AcksMap   map[[32]byte]interfaces.IMsg
+
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
 	DBStateReplyCnt int
@@ -963,6 +969,7 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 }
 
 func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
+	fmt.Println("LoadHoldingMap")
 	// request holding queue from state from outside state scope
 	s.HoldingMutex.Lock()
 	defer s.HoldingMutex.Unlock()
@@ -974,17 +981,20 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 	for s.HoldingFlag == true {
 		if timeout > 50 {
 			s.HoldingFlag = false
+			fmt.Println("GIVING UP ON HOLDING LIST")
 		} // only wait 5 seconds for the holding queue before giving up
 		time.Sleep(100 * time.Millisecond)
 		timeout++
 	}
 	lHold := s.HoldingMap
-	// done with the holdingmap
+	// done with the holdingmap. clear it
 	s.HoldingMap = make(map[[32]byte]interfaces.IMsg, 0)
 	return lHold
 
 }
 
+// this is executed in the state maintenance processes where the holding queue is in scope and can be queried
+//  This is what fills the HoldingMap requested in LoadHoldingMap
 func (s *State) fillHoldingMap() {
 
 	if s.HoldingFlag == true {
@@ -997,8 +1007,47 @@ func (s *State) fillHoldingMap() {
 
 }
 
-func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
+func (s *State) LoadAcksMap() map[[32]byte]interfaces.IMsg {
+	fmt.Println("LoadAcksMap")
+	// request Acks queue from state from outside state scope
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
 
+	s.AcksFlag = true
+
+	// wait for state to fill the AcksMap and set flag to false
+	timeout := 0
+	for s.AcksFlag == true {
+		if timeout > 50 {
+			s.AcksFlag = false
+			fmt.Println("GIVING UP ON Acks LIST")
+		} // only wait 5 seconds for the Acks queue before giving up
+		time.Sleep(100 * time.Millisecond)
+		timeout++
+	}
+	lHold := s.AcksMap
+	// done with the Acksmap. clear it
+	s.AcksMap = make(map[[32]byte]interfaces.IMsg, 0)
+	return lHold
+
+}
+
+// this is executed in the state maintenance processes where the Acks queue is in scope and can be queried
+//  This is what fills the AcksMap requested in LoadAcksMap
+func (s *State) fillAcksMap() {
+
+	if s.AcksFlag == true {
+		s.AcksMap = make(map[[32]byte]interfaces.IMsg, len(s.Acks))
+		for i, msg := range s.Acks {
+			s.AcksMap[i] = msg
+		}
+		s.AcksFlag = false
+	}
+
+}
+
+func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
+	fmt.Println("pendingparams:", params)
 	resp := make([]interfaces.IPendingEntry, 0)
 	pls := s.ProcessLists.Lists
 
@@ -1009,6 +1058,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 		for _, k := range keys {
 			var tmp interfaces.IPendingEntry
 			entry := pl.GetNewEntry(k)
+			fmt.Println("Pending:", entry.GetHash())
 			// should I filter for chain id
 			if params.(string) == "" || params.(string) == entry.GetChainID().String() {
 				tmp.ChainID = entry.GetChainID()
@@ -1039,6 +1089,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 			}
 
 			tmp.EntryHash = rm.Entry.GetHash()
+			fmt.Println("Pending:", tmp.EntryHash)
 			tmp.ChainID = rm.Entry.GetChainID()
 			tmp.Status = "AckStatusNotConfirmed"
 
@@ -1228,6 +1279,7 @@ func (s *State) UpdateState() (progress bool) {
 
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
+	s.fillAcksMap()
 
 	return
 }
