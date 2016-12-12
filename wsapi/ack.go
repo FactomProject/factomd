@@ -392,7 +392,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			break
 		}
 	}
-	fmt.Println("ANSWER:", answer)
+
 	return answer, nil
 }
 
