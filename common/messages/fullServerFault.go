@@ -104,7 +104,15 @@ func (m *FullServerFault) IsNil() bool {
 }
 
 func (m *FullServerFault) AddFaultVote(issuerID [32]byte, sig interfaces.IFullSignature) {
-	if m.LocalVoteMap == nil {
+	fmt.Println("wtf")
+	fmt.Println("ay")
+	fmt.Println(m.IsNil())
+	if m.IsNil() {
+		return
+	}
+	fmt.Println(m.ClearFault)
+	fmt.Println(m.GetAmINegotiator())
+	if m.LocalVoteMap == nil || len(m.LocalVoteMap) == 0 {
 		m.LocalVoteMap = make(map[[32]byte]interfaces.IFullSignature)
 	}
 
@@ -509,7 +517,7 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	}
 
 	if m.ServerID.IsZero() || m.AuditServerID.IsZero() {
-		state.AddStatus("FULL FAULT FOLLOWER EXECUTE Fake Fault.  Ignore")
+		state.AddStatus("FULL FAULT Validate Fake Fault.  Ignore")
 		return -1
 	}
 
@@ -546,7 +554,9 @@ func (m *FullServerFault) GetAlreadyProcessed() bool {
 }
 
 func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) bool {
-	if m.SigTally(state) > len(state.GetFedServers(m.DBHeight))/2 {
+	sigTally := m.SigTally(state)
+	fmt.Println("SIGTAL:", sigTally, state.GetFactomNodeName(), "/", len(state.GetFedServers(m.DBHeight))/2)
+	if sigTally > len(state.GetFedServers(m.DBHeight))/2 {
 		return true
 	}
 	return false

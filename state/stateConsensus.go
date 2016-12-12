@@ -1420,6 +1420,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
 			s.AddStatus(fmt.Sprintf("CLEARING Fault: %s", fullFault.StringWithSigCnt(s)))
 			fullFault.SetAlreadyProcessed()
+			fmt.Printf("%s CLEARING Fault: %s\n", s.FactomNodeName, fullFault.StringWithSigCnt(s))
+
 			return true
 		}
 	}
@@ -1494,8 +1496,15 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				pl.State.AddAuthorityDelta(authorityDeltaString)
 				s.AddStatus(authorityDeltaString)
 
+				fmt.Printf("%s prrroc %s\n", s.FactomNodeName, authorityDeltaString)
+
 				pl.State.LastFaultAction = time.Now().Unix()
-				//markNoFault(pl, fullFault.GetVMIndex())
+				markNoFault(pl, fullFault.GetVMIndex())
+				nextIndex := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
+				if pl.VMs[nextIndex].FaultFlag > 0 {
+					markNoFault(pl, nextIndex)
+				}
+
 				pl.NegotiatonTimeout = time.Now().Unix()
 
 				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -1564,6 +1573,8 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex),
 						fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
 					s.AddStatus(fmt.Sprintf("Match FullFault: %s", nsf.String()))
+					fmt.Printf("%s Match FullFault: %s\n", s.FactomNodeName, nsf.String())
+
 					s.matchFault(nsf)
 				}
 			}
