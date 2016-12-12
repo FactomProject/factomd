@@ -147,16 +147,14 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			}
 
 			// havent found entry or chain transaction.  check all of the Process Lists
-			fmt.Println("eTxID3:", eTxID)
-			fmt.Println("ecTxID3:", ecTxID)
+
 			pend := state.GetPendingEntries(params)
-			fmt.Println("PendingEntries:", pend)
 
 			// still havent found them.  Check the Acks queue
 			aQue := state.LoadAcksMap()
-			fmt.Println("aQue:", aQue)
+
 			for _, a := range aQue {
-				fmt.Println(a)
+
 				if a.Type() == constants.REVEAL_ENTRY_MSG {
 					var rm messages.RevealEntryMsg
 					enb, err := a.MarshalBinary()
@@ -195,18 +193,11 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 					eTxID = rm.CommitChain.GetEntryHash().String()
 				}
 			}
-			fmt.Println("eTxID4:", eTxID)
-			fmt.Println("ecTxID4:", ecTxID)
+
 			// still havent found them.  Check the holding queue
 			hQue := state.LoadHoldingMap()
-			fmt.Println("hQue:", hQue)
+
 			for _, h := range hQue {
-				fmt.Println(h.Type())
-				fmt.Println("GetFullMsgHash", h.GetFullMsgHash())
-				fmt.Println("GetHash", h.GetHash())
-				fmt.Println("GetLeaderChainID", h.GetLeaderChainID())
-				fmt.Println("GetMsgHash", h.GetMsgHash())
-				fmt.Println("GetRepeatHash", h.GetRepeatHash())
 
 				if h.Type() == constants.REVEAL_ENTRY_MSG {
 					var rm messages.RevealEntryMsg
@@ -218,7 +209,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 					if err != nil {
 						return nil, NewInternalError()
 					}
-					fmt.Println("Found REVEAL_ENTRY_MSG in Holding Queue")
+
 					eTxID = rm.Entry.GetHash().String()
 					ecTxID = rm.Entry.GetChainIDHash().String()
 				} else if h.Type() == constants.COMMIT_ENTRY_MSG {
@@ -231,14 +222,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 					if err != nil {
 						return nil, NewInternalError()
 					}
-					fmt.Println("Holding queue commit entry")
-					fmt.Println("CommitMsg", rm.CommitEntry.CommitMsg)
-					fmt.Println("ECID", rm.CommitEntry.ECID)
-					fmt.Println("EntryHash", rm.CommitEntry.EntryHash)
-					fmt.Println("GetEntryHash", rm.CommitEntry.GetEntryHash().String())
-					fmt.Println("GetSigHash", rm.CommitEntry.GetSigHash().String())
-					fmt.Println("GetTimestamp", rm.CommitEntry.GetTimestamp().String())
-					fmt.Println("Found COMMIT_ENTRY_MSG in Holding Queue")
+
 					eTxID = rm.CommitEntry.GetSigHash().String()
 					ecTxID = rm.CommitEntry.GetEntryHash().String()
 				} else if h.Type() == constants.COMMIT_CHAIN_MSG {
@@ -253,7 +237,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 					}
 					ecTxID = rm.CommitChain.ChainIDHash.String()
 					eTxID = rm.CommitChain.GetEntryHash().String()
-					fmt.Println("Found COMMIT_CHAIN_MSG in Holding Queue")
+
 				} else {
 					fmt.Println("I DONT KNOW THIS Holding Message TYPE:", h.Type())
 				}
@@ -261,8 +245,6 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 
 		}
 	}
-	fmt.Println("eTxID10:", eTxID)
-	fmt.Println("ecTxID10:", ecTxID)
 
 	answer := new(EntryStatus)
 	answer.CommitTxID = ecTxID
