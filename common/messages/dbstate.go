@@ -141,18 +141,23 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
+		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Doesn't have all the blocks ht: %d", m.DirectoryBlock.GetHeader().GetDBHeight()))
 		//We need the basic block types
-		return -1
-	}
-
-	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
-		//Wrong network ID
 		return -1
 	}
 
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if dbheight != state.GetHighestCompletedBlock()+1 && dbheight != 0 {
+	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
+		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() ht: %d Expecting NetworkID %x and found %x",
+			dbheight, state.GetNetworkID(), m.DirectoryBlock.GetHeader().GetNetworkID()))
+		//Wrong network ID
+		return -1
+	}
+
+	if int(dbheight) != int(state.GetHighestCompletedBlock()+1) && dbheight > 1 {
+		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() ht: %d Highest Completed %d",
+			dbheight, state.GetHighestCompletedBlock()))
 		//We only expect the next height
 		return -1
 	}
@@ -161,6 +166,8 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		key := constants.CheckPoints[dbheight]
 		if key != "" {
 			if key != m.DirectoryBlock.DatabasePrimaryIndex().String() {
+				state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() ht: %d checkpoint failure. Had %s Expected %s",
+					dbheight, m.DirectoryBlock.DatabasePrimaryIndex().String(), key))
 				//Key does not match checkpoint
 				return -1
 			}

@@ -365,26 +365,24 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	if s.GetHighestSavedBlock() > dbheight && dbheight > 0 {
-		s.AddStatus(fmt.Sprintf("DBState too high GetHighestSaved %v > DBHeight %v", s.GetHighestSavedBlock(), dbheight))
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
+			s.GetHighestSavedBlock(), dbheight))
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
 	if dbheight > 0 && pdbstate == nil {
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Previous dbstate is nil DBHeight %v", dbheight))
 		return
 	}
 
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
-		if s.GetHighestSavedBlock()+1 == dbheight {
-			s.AddStatus(fmt.Sprintf("DBState might be valid %d", dbheight))
-		}
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
 		s.Holding[msg.GetHash().Fixed()] = msg
 		return
 	case -1:
-		if s.GetHighestSavedBlock()+1 == dbheight {
-			s.AddStatus(fmt.Sprintf("DBState is invalid at ht %d", dbheight))
-		}
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		return
 	}
@@ -396,9 +394,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 	***************************/
 	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
-		dbs := s.DBStates.Get(int(dbheight))
+		//dbs := s.DBStates.Get(int(dbheight))
 		if pdbstate.SaveStruct != nil {
-			pdbstate.SaveStruct.TrimBack(s, dbs)
+			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Reset to previous state before applying at ht %d", dbheight))
+			pdbstate.SaveStruct.TrimBack(s, pdbstate)
 		}
 	}
 
@@ -412,12 +411,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.EBlocks,
 		dbstatemsg.Entries)
 	if dbstate == nil {
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
 		s.DBStateFailsCnt++
 	} else {
 		if dbstatemsg.IsInDB == false {
+			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
 			dbstate.ReadyToSave = true
 			dbstate.Locked = false
 		} else {
+			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 			dbstate.Saved = true
 			dbstate.isNew = false
 			dbstate.Locked = false
