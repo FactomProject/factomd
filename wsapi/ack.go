@@ -148,9 +148,8 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 
 			// havent found entry or chain transaction.  check all of the Process Lists
 
-			pend := state.GetPendingEntries(params)
-
-			// still havent found them.  Check the Acks queue
+			//pend := state.GetPendingEntries(params)
+			/// still havent found them.  Check the Acks queue
 			aQue := state.LoadAcksMap()
 
 			for _, a := range aQue {

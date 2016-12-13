@@ -14,6 +14,7 @@ import (
 
 func (s *State) IsStateFullySynced() bool {
 	ll := s.ProcessLists.LastList()
+	fmt.Println(s.ProcessLists.DBHeightBase, ll.DBHeight)
 	return s.ProcessLists.DBHeightBase < ll.DBHeight
 }
 
