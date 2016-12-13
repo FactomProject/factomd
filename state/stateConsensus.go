@@ -1232,7 +1232,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
-		s.AddStatus(fmt.Sprintf("Will Not Process: return on s.Syncing(%v) && !s.DBSig(%v)", s.Syncing, s.DBSig))
+		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)",
+			dbs.DBHeight, s.Syncing, s.DBSig))
 		return false
 	}
 
@@ -1245,7 +1246,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// If we are done with DBSigs, and this message is processed, then we are done.  Let everything go!
 	if s.DBSigSys && s.DBSig && s.DBSigDone {
-		s.AddStatus(fmt.Sprintf("Finished with DBSig: s.DBSigSys(%v) && s.DBSig(%v) && s.DBSigDone(%v)", s.DBSigSys, s.DBSig, s.DBSigDone))
+		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Finished with DBSig: s.DBSigSys(%v) && s.DBSig(%v) && s.DBSigDone(%v)", s.DBSigSys, s.DBSig, s.DBSigDone))
 		s.DBSigProcessed--
 		if s.DBSigProcessed <= 0 {
 			s.EOMDone = false
@@ -1261,7 +1262,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
-		s.AddStatus(fmt.Sprintf("Start DBSig: s.DBSig(%v) ", s.DBSig))
+		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Start DBSig: s.DBSig(%v) ", s.DBSig))
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
 		s.DBSig = true
@@ -1283,9 +1284,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		}
 
-		s.AddStatus(fmt.Sprintf("Process the %d DBSig: %v", s.DBSigProcessed, dbs.String()))
+		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Process the %d DBSig: %v", s.DBSigProcessed, dbs.String()))
 		if dbs.VMIndex == 0 {
-			s.AddStatus(fmt.Sprintf("Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
+			s.AddStatus(fmt.Sprintf("ProcessDBSig(): Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
 		dbstate := s.GetDBState(dbheight - 1)
@@ -1299,10 +1300,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		allChecks := false
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
 		if err != nil {
-			fmt.Println("Debug: DBSig Signature Error, Marshal binary errored")
+			s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Marshal binary errored"))
 		} else {
 			if !dbs.DBSignature.Verify(data) {
-				fmt.Println("Debug: DBSig Signature Error, Verify errored")
+				s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Verify errored"))
 			} else {
 				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
 					allChecks = true
