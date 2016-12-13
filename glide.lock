@@ -1,5 +1,5 @@
-hash: df12408e546dfca4a8e4bfc466ffa97bda4e3e7799378ded8082a3d28295784a
-updated: 2016-12-01T08:45:33.939375546-06:00
+hash: 0ae845529f65fa5a6b957f3617734f6e5ec1592109468c4bff7af11b28abccc7
+updated: 2016-12-12T18:18:43.46666996-06:00
 imports:
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
@@ -59,12 +59,12 @@ imports:
   - state/stateinit
   - wallet
 - name: github.com/FactomProject/factom
-  version: 09107ce96c055afe465dee7915c2cb5016c2457c
+  version: 06c4467f4ad65bbe51ca9d44194c49c808421cac
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-walletd
-  version: f3b3402ce7849e0105c33777211660cc6d54e7ce
+  version: 80a6c1468bef7fd9737a88b26d4794dfe96f0061
 - name: github.com/FactomProject/FactomCode
   version: fa03af8ca695eb98cef90a71fd0f506cf54ddbe8
   subpackages:
@@ -74,11 +74,11 @@ imports:
 - name: github.com/FactomProject/fsnotify
   version: 4894fe7efedeeef21891033e1cce3b23b9af7ad2
 - name: github.com/FactomProject/go-bip32
-  version: 58394f75c1d04ee30972d810015f491b9c7bee02
+  version: 3b593af1c415abc1017648e4eb24a88c32fee0f3
 - name: github.com/FactomProject/go-bip39
-  version: 013ef263dadc6f772e2fff99ca19530f1db33a78
+  version: b26bf5b8a88111792f0c215417dac76dd5d79e7c
 - name: github.com/FactomProject/go-bip44
-  version: 16882256c7583834d58c3996e63142a7af1bfac5
+  version: fd672f46ddc35bb381f497f7b64c9cf34f9e0703
 - name: github.com/FactomProject/go-simplejson
   version: aabad6e819789e569bd6aabf444c935aa9ba1e44
 - name: github.com/FactomProject/go-spew
@@ -116,16 +116,16 @@ imports:
 - name: github.com/FactomProject/web
   version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
 - name: golang.org/x/crypto
-  version: 21853a76e0cca35cf785c34dceee499a3d5a7168
+  version: 9a6f0a01987842989747adff311d80750ba25530
   subpackages:
   - pbkdf2
   - ripemd160
 - name: golang.org/x/net
-  version: 4971afdc2f162e82d185353533d3cf16188a9f4e
+  version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
   subpackages:
   - websocket
 - name: golang.org/x/sys
-  version: d5645953809d8b4752afb2c3224b1f1ad73dfa70
+  version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
   subpackages:
   - unix
 - name: gopkg.in/gcfg.v1
