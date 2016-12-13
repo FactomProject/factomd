@@ -106,7 +106,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	ds.CurrentNodeHeight = s.GetHighestCompletedBlock()
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
 	ds.CurrentEBDBHeight = s.EntryBlockDBHeightProcessing
-	ds.ProcessListHeight = s.GetTrueLeaderHeight()
+	ds.ProcessListHeight = s.GetTrueLeaderHeight() - 2 // 2 ahead of actual. CurrentNodeHeight will be reported if it is higher
 	dir := s.GetDirectoryBlockByHeight(s.GetLeaderHeight())
 	if dir == nil {
 		dir = s.GetDirectoryBlockByHeight(s.GetLeaderHeight() - 1)
