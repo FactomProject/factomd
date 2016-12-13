@@ -31,7 +31,7 @@ type DisplayState struct {
 	CurrentNodeHeight   uint32
 	CurrentLeaderHeight uint32
 	CurrentEBDBHeight   uint32
-	ProcessListHeight   uint32
+	LeaderHeight        uint32
 	LastDirectoryBlock  interfaces.IDirectoryBlock
 
 	// Identity Info
@@ -106,7 +106,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	ds.CurrentNodeHeight = s.GetHighestCompletedBlock()
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
 	ds.CurrentEBDBHeight = s.EntryBlockDBHeightProcessing
-	ds.ProcessListHeight = s.GetTrueLeaderHeight()
+	ds.LeaderHeight = s.GetTrueLeaderHeight()
 	dir := s.GetDirectoryBlockByHeight(s.GetLeaderHeight())
 	if dir == nil {
 		dir = s.GetDirectoryBlockByHeight(s.GetLeaderHeight() - 1)
@@ -232,7 +232,7 @@ func (d *DisplayState) Clone() *DisplayState {
 	ds.CurrentNodeHeight = d.CurrentNodeHeight
 	ds.CurrentLeaderHeight = d.CurrentLeaderHeight
 	ds.CurrentEBDBHeight = d.CurrentEBDBHeight
-	ds.ProcessListHeight = d.ProcessListHeight
+	ds.LeaderHeight = d.LeaderHeight
 
 	// Identities
 	ds.IdentityChainID = d.IdentityChainID.Copy()
