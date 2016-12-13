@@ -1725,7 +1725,7 @@ func (s *State) SetStringQueues() {
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
-	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, s.GetTrueLeaderHeight())
+	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, (s.GetTrueLeaderHeight() + 2))
 
 	str = str + fmt.Sprintf(" %5d[%6x] %-11s ",
 		dHeight,
@@ -1796,8 +1796,14 @@ func (s *State) ConstructAuthoritySetString() (authSets []string) {
 	return
 }
 
+// returns what finished block height this node thinks the leader is at, assuming that the
+// local node has the process list the leader is working on plus an extra empty one on top of it.
 func (s *State) GetTrueLeaderHeight() uint32 {
-	return uint32(int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1)
+	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
+	if h < 0 {
+		h = 0
+	}
+	return uint32(h)
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
