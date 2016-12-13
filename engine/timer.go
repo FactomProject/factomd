@@ -64,6 +64,9 @@ func Timer(state interfaces.IState) {
 
 			state.TickerQueue() <- i
 
+			period = int64(state.GetDirectoryBlockInSeconds()) * billion
+			tenthPeriod = period / 10
+
 		}
 	}
 }
