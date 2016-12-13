@@ -686,7 +686,8 @@ func (c *Controller) fillOutgoingSlots(openSlots int) {
 	newPeers := 0
 	for _, peer := range peers {
 		if c.weAreNotAlreadyConnectedTo(peer) && newPeers < openSlots {
-			note("controller", "We think we are not already connected to: %s so dialing.", peer.AddressPort())
+			note("controller", "newPeers: %d < openSlots: %d We think we are not already connected to: %s so dialing.", newPeers, openSlots, peer.AddressPort())
+			newPeers = newPeers + 1
 			c.DialPeer(peer, false)
 		}
 	}
@@ -756,6 +757,7 @@ func (c *Controller) networkStatusReport() {
 			if !present {
 				metrics = ConnectionMetrics{MomentConnected: time.Now(), ConnectionState: "No Metrics", ConnectionNotes: "No Metrics"}
 			}
+			silence("ctrlr", "Location: %d", v.peer.Location)
 			silence("ctrlr", "%s\t%s\t%s\t%s", v.peer.PeerFixedIdent(), time.Since(metrics.MomentConnected), metrics.ConnectionState, metrics.ConnectionNotes)
 			silence("ctrlr", "IsOutgoing: %t\tIsOnline: %t\tStatus: %s Quality: %d", v.IsOutGoing(), v.IsOnline(), v.StatusString(), metrics.PeerQuality)
 			silence("ctrlr", "Sent/Recv: %d / %d\t\t Chan Send/Recv: %d / %d", metrics.MessagesSent, metrics.MessagesReceived, len(v.SendChannel), len(v.ReceiveChannel))

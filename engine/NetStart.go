@@ -120,7 +120,7 @@ func NetStart(s *state.State) {
 		s.SetPort(portOverride)
 	}
 
-	if blkTime != 0 {
+	if blkTime > 0 {
 		s.DirectoryBlockInSeconds = blkTime
 	} else {
 		blkTime = s.DirectoryBlockInSeconds

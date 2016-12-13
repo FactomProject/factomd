@@ -40,7 +40,7 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 	p.QualityScore = quality
 	p.generatePeerHash()
 	p.Type = peerType
-	p.Location = p.locationFromAddress()
+	p.Location = p.LocationFromAddress()
 	p.Source = map[string]time.Time{}
 	p.Network = CurrentNetwork
 	return p
@@ -78,25 +78,23 @@ func (p *Peer) PeerFixedIdent() string {
 // Problem is we're working wiht string addresses, may never have made a connection.
 // TODO - we might have a DNS address, not iP address and need to resolve it!
 // locationFromAddress converts the peers address into a uint32 "location" numeric
-func (p *Peer) locationFromAddress() (location uint32) {
+func (p *Peer) LocationFromAddress() (location uint32) {
 	location = 0
-	// Split out the port
-	ip_port := strings.Split(p.Address, ":")
-	if 2 == len(ip_port) {
-		// Split the IPv4 octets
-		octets := strings.Split(ip_port[0], ".")
-		if 4 == len(octets) {
-			// Turn into uint32
-			b0, _ := strconv.Atoi(octets[0])
-			b1, _ := strconv.Atoi(octets[1])
-			b2, _ := strconv.Atoi(octets[2])
-			b3, _ := strconv.Atoi(octets[3])
-			location += uint32(b0) << 24
-			location += uint32(b1) << 16
-			location += uint32(b2) << 8
-			location += uint32(b3)
-			verbose("peer", "Peer: %s with ip_port: %+v and octets: %+v has Location: %d", p.Hash, ip_port, octets, location)
-		}
+	// Split the IPv4 octets
+	octets := strings.Split(p.Address, ".")
+	if 4 == len(octets) {
+		// Turn into uint32
+		b0, _ := strconv.Atoi(octets[0])
+		b1, _ := strconv.Atoi(octets[1])
+		b2, _ := strconv.Atoi(octets[2])
+		b3, _ := strconv.Atoi(octets[3])
+		location += uint32(b0) << 24
+		location += uint32(b1) << 16
+		location += uint32(b2) << 8
+		location += uint32(b3)
+		verbose("peer", "Peer: %s with octets: %+v has Location: %d", p.Hash, octets, location)
+	} else {
+		silence("peer", "len(octets) != 4 \n Invalid Peer Address: %v", octets)
 	}
 	return location
 }
