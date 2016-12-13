@@ -117,7 +117,7 @@ func UnmarshalAnchorRecord(data []byte) (*AnchorRecord, error) {
 	return ar, nil
 }
 
-func UnmarshalAndValidateAnchorRecord(data []byte, publicKey interfaces.Verifier) (*AnchorRecord, bool, error) {
+func UnmarshalAndValidateAnchorRecord(data []byte, publicKeys []interfaces.Verifier) (*AnchorRecord, bool, error) {
 	if len(data) == 0 {
 		return nil, false, fmt.Errorf("Invalid data passed")
 	}
@@ -136,7 +136,13 @@ func UnmarshalAndValidateAnchorRecord(data []byte, publicKey interfaces.Verifier
 		return nil, false, err
 	}
 
-	valid := publicKey.Verify([]byte(anchorStr), &fixed)
+	valid := false
+	for _, publicKey := range publicKeys {
+		valid = publicKey.Verify([]byte(anchorStr), &fixed)
+		if valid == true {
+			break
+		}
+	}
 	if valid == false {
 		return nil, false, nil
 	}
@@ -149,7 +155,7 @@ func UnmarshalAndValidateAnchorRecord(data []byte, publicKey interfaces.Verifier
 	return ar, true, nil
 }
 
-func UnmarshalAndValidateAnchorRecordV2(data []byte, extIDs [][]byte, publicKey interfaces.Verifier) (*AnchorRecord, bool, error) {
+func UnmarshalAndValidateAnchorRecordV2(data []byte, extIDs [][]byte, publicKeys []interfaces.Verifier) (*AnchorRecord, bool, error) {
 	if len(data) == 0 {
 		return nil, false, fmt.Errorf("Invalid data passed")
 	}
@@ -164,7 +170,13 @@ func UnmarshalAndValidateAnchorRecordV2(data []byte, extIDs [][]byte, publicKey 
 		return nil, false, err
 	}
 
-	valid := publicKey.Verify(data, &fixed)
+	valid := false
+	for _, publicKey := range publicKeys {
+		valid = publicKey.Verify(data, &fixed)
+		if valid == true {
+			break
+		}
+	}
 	if valid == false {
 		return nil, false, nil
 	}
