@@ -37,7 +37,7 @@ import:
 - package: github.com/FactomProject/fsnotify
   version: master
 - package: github.com/FactomProject/go-bip32
-  version: master
+  version: develop
 - package: github.com/FactomProject/go-bip39
   version: develop
 - package: github.com/FactomProject/go-simplejson
