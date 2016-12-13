@@ -364,17 +364,27 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if s.GetHighestSavedBlock() > dbheight {
+	if s.GetHighestSavedBlock() > dbheight && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("DBState too high GetHighestSaved %v > DBHeight %v", s.GetHighestSavedBlock(), dbheight))
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
+	if dbheight > 0 && pdbstate == nil {
+		return
+	}
+
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
+		if s.GetHighestSavedBlock()+1 == dbheight {
+			s.AddStatus(fmt.Sprintf("DBState might be valid %d", dbheight))
+		}
 		s.Holding[msg.GetHash().Fixed()] = msg
 		return
 	case -1:
+		if s.GetHighestSavedBlock()+1 == dbheight {
+			s.AddStatus(fmt.Sprintf("DBState is invalid at ht %d", dbheight))
+		}
 		// Do nothing because this dbstate looks to be invalid
 		return
 	}
@@ -386,9 +396,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	}
 	***************************/
 	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
-		dbs := s.DBStates.Get(int(dbheight) - 1)
-		if dbs != nil && dbs.SaveStruct != nil {
-			dbs.SaveStruct.TrimBack(s, dbs)
+		dbs := s.DBStates.Get(int(dbheight))
+		if pdbstate.SaveStruct != nil {
+			pdbstate.SaveStruct.TrimBack(s, dbs)
 		}
 	}
 
@@ -1088,6 +1098,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Process Once: !e.Processed(%v) EOM: %s", e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
+		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d EOMProcessed++ (%2d)", e.VMIndex, s.EOMProcessed))
 		e.Processed = true
 		vm.Synced = true
 		markNoFault(pl, msg.GetVMIndex())
@@ -1235,6 +1246,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.AddStatus(fmt.Sprintf("Finished with DBSig: s.DBSigSys(%v) && s.DBSig(%v) && s.DBSigDone(%v)", s.DBSigSys, s.DBSig, s.DBSigDone))
 		s.DBSigProcessed--
 		if s.DBSigProcessed <= 0 {
+			s.EOMDone = false
+			s.EOMSys = false
+			s.EOM = false
 			s.DBSig = false
 			s.Syncing = false
 		}
@@ -1301,6 +1315,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		dbs.Processed = true
 		s.DBSigProcessed++
+		s.AddStatus(fmt.Sprintf("Process DBSig vm %2v DBSigProcessed++ (%2d)", dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
 	}
 

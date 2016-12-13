@@ -826,6 +826,18 @@ func (list *DBStateList) NewDBState(isNew bool,
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {
 		return dbState
+	} else {
+		ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+		if ht == list.State.GetHighestSavedBlock() {
+			index := int(ht) - int(list.State.DBStates.Base)
+			if index > 0 {
+				list.State.DBStates.DBStates[index] = dbState
+				pdbs := list.State.DBStates.Get(int(ht - 1))
+				if pdbs != nil {
+					pdbs.SaveStruct.TrimBack(list.State, dbState)
+				}
+			}
+		}
 	}
 
 	// Failed, so return nil

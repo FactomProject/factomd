@@ -881,14 +881,13 @@ func SimControl(listenTo int) {
 
 			case 'T' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))
-				nnn := int64(nn)
-				if err != nil || nnn < 5 || nnn > 600 {
+				if err != nil || nn < 5 || nn > 800 {
 					os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
 					break
 				}
 				os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
 				for _, f := range fnodes {
-					f.State.DirectoryBlockInSeconds = nn
+					f.State.SetDirectoryBlockInSeconds(nn)
 				}
 			case 'F' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))
