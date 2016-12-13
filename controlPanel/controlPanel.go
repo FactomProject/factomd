@@ -328,9 +328,8 @@ func factomdQuery(item string, value string) []byte {
 		return HeightToJsonStruct(h)
 	case "leaderHeight":
 		DisplayStateMutex.RLock()
-		// Process list is usually 2 ahead
-		h := DisplayState.ProcessListHeight
-		if DisplayState.CurrentNodeHeight > DisplayState.ProcessListHeight {
+		h := DisplayState.LeaderHeight
+		if DisplayState.CurrentNodeHeight > DisplayState.LeaderHeight {
 			h = DisplayState.CurrentNodeHeight
 		}
 		DisplayStateMutex.RUnlock()
