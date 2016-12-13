@@ -1906,7 +1906,6 @@ func (s *State) SetPendingSigningKey(p *primitives.PrivateKey) {
 }
 
 func (s *State) AddStatus(status string) {
-
 	// Don't add duplicates.
 	last := s.GetLastStatus()
 	if last == status {

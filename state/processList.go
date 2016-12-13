@@ -96,7 +96,6 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	NegotiatonTimeout int64
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
@@ -551,13 +550,7 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 }
 
 func (p *ProcessList) CurrentFault() *messages.FullServerFault {
-	fmt.Println("CF", p.State.FactomNodeName)
-	if len(p.System.List) < 1 {
-		fmt.Println("CF nil", p.State.FactomNodeName)
-		return nil
-	}
-	fmt.Println("CF #", p.System.Height, p.State.FactomNodeName)
-	if len(p.System.List) <= p.System.Height {
+	if len(p.System.List) < 1 || len(p.System.List) <= p.System.Height {
 		return nil
 	}
 	return p.System.List[p.System.Height].(*messages.FullServerFault)
@@ -855,38 +848,24 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		return false // Should never happen;  Don't pass junk to be added to the System List
 	}
 
-	p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Attempt: %s",
-		fullFault.String()))
-
 	// If we have already processed past this fault, just ignore.
 	if p.System.Height > int(fullFault.SystemHeight) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (p.System.Height > int(fullFault.SystemHeight)) (%d > %d) : Replacing %x with %x at height %d leader height %d",
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (System.Height > fullFault.SystemHeight) (%d > %d) : %s",
 			p.System.Height,
 			int(fullFault.SystemHeight),
-			fullFault.ServerID.Bytes()[2:6],
-			fullFault.AuditServerID.Bytes()[2:6],
-			fullFault.DBHeight,
-			p.State.LLeaderHeight))
+			fullFault.String()))
 		return false
 	}
 
 	// If the fault is in the future, hold it.
 	if p.System.Height < int(fullFault.SystemHeight) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Holding (p.System.Height < int(fullFault.SystemHeight)) (%d > %d) : Replacing %x with %x at height %d leader height %d",
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Holding (System.Height(%d) < fullFault.SystemHeight(%d)) : %s",
 			p.System.Height,
 			int(fullFault.SystemHeight),
-			fullFault.ServerID.Bytes()[2:6],
-			fullFault.AuditServerID.Bytes()[2:6],
-			fullFault.DBHeight,
-			p.State.LLeaderHeight))
+			fullFault.String()))
 		p.State.Holding[m.GetRepeatHash().Fixed()] = m
 		return false
 	}
-
-	// Remove nils.
-	//for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
-	//	p.System.List = p.System.List[:len(p.System.List)-1]
-	//}
 
 	// If we are here, fullFault.SystemHeight == p.System.Height
 	if len(p.System.List) <= p.System.Height {
@@ -931,7 +910,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		}
 	*/
 	if existingSystemFault.HasEnoughSigs(p.State) && p.State.pledgedByAudit(existingSystemFault) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault has enough sigs) : %s",
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault is complete) : %s",
 			existingSystemFault.String()))
 		return false
 	}
@@ -977,7 +956,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		}
 	*/
 	if fullFault.Priority(p.State) < existingSystemFault.Priority(p.State) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (lower priority %d < %d) :: Exist: %s New: %s",
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (priority %d < %d) :: Exist: %s /// New: %s",
 			fullFault.Priority(p.State),
 			existingSystemFault.Priority(p.State),
 			existingSystemFault.String(),
@@ -986,8 +965,8 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	}
 
 	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
-		if fullFault.GetTimestamp().GetTimeMilli() <= existingSystemFault.GetTimestamp().GetTimeMilli() {
-			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's at same time) (%d > %d) : %s",
+		if fullFault.GetCoreHash().IsSameAs(existingSystemFault.GetCoreHash()) {
+			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
 				existingSystemFault.SigTally(p.State),
 				fullFault.SigTally(p.State),
 				fullFault.String()))

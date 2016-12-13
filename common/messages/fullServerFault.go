@@ -104,14 +104,9 @@ func (m *FullServerFault) IsNil() bool {
 }
 
 func (m *FullServerFault) AddFaultVote(issuerID [32]byte, sig interfaces.IFullSignature) {
-	fmt.Println("wtf")
-	fmt.Println("ay")
-	fmt.Println(m.IsNil())
 	if m.IsNil() {
 		return
 	}
-	fmt.Println(m.ClearFault)
-	fmt.Println(m.GetAmINegotiator())
 	if m.LocalVoteMap == nil || len(m.LocalVoteMap) == 0 {
 		m.LocalVoteMap = make(map[[32]byte]interfaces.IFullSignature)
 	}
@@ -555,7 +550,6 @@ func (m *FullServerFault) GetAlreadyProcessed() bool {
 
 func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) bool {
 	sigTally := m.SigTally(state)
-	fmt.Println("SIGTAL:", sigTally, state.GetFactomNodeName(), "/", len(state.GetFedServers(m.DBHeight))/2)
 	if sigTally > len(state.GetFedServers(m.DBHeight))/2 {
 		return true
 	}
