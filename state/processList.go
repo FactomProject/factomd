@@ -888,74 +888,12 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		}
 	}
 
-	/*
-		if len(p.System.List) > 0 { // Have something in the system list
-			prevIdx := int(fullFault.SystemHeight) - 1       // Top of the System List
-			if len(p.System.List) > prevIdx && prevIdx > 0 { // There is something on the System List
-				if p.System.List[prevIdx] == nil {
-					p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
-					return false
-				}
-				prevFault := p.System.List[prevIdx].(*messages.FullServerFault)
-
-				newHashShouldBe, err := primitives.CreateHash(prevFault.GetSerialHash(), fullFault.GetCoreHash())
-
-				if err != nil || !fullFault.GetSerialHash().IsSameAs(newHashShouldBe) {
-					if prevFault.ClearFault {
-						p.System.List[prevIdx] = nil
-						p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
-					}
-					return false
-				}
-			}
-		}
-	*/
 	if existingSystemFault.HasEnoughSigs(p.State) && p.State.pledgedByAudit(existingSystemFault) {
 		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault is complete) : %s",
 			existingSystemFault.String()))
 		return false
 	}
 
-	/*
-		if !(fullFault.HasEnoughSigs(p.State) && p.State.pledgedByAudit(fullFault)) {
-			if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
-				if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
-					if p.State.GetTimestamp().GetTimeSeconds()-fullFault.GetTimestamp().GetTimeSeconds() < int64(p.State.FaultTimeout) {
-						p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
-							existingSystemFault.SigTally(p.State),
-							fullFault.SigTally(p.State),
-							fullFault.String()))
-						return false
-					}
-				}
-			}
-
-			if int(existingSystemFault.VMIndex) > int(fullFault.VMIndex) {
-				if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
-					p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (VMIndex lower than existingFault's) (%d > %d) : %s",
-						int(existingSystemFault.VMIndex),
-						int(fullFault.VMIndex),
-						fullFault.String()))
-					return false
-				}
-			}
-
-			if existingSystemFault.ServerID.IsSameAs(fullFault.ServerID) {
-				if existingSystemFault.Timestamp.GetTimeMilli() > fullFault.Timestamp.GetTimeMilli() {
-					p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault has higher timestamp) :: Exist: %s New: %s",
-						existingSystemFault.String(),
-						fullFault.String()))
-					return false
-				}
-				if existingSystemFault.ClearFault && !fullFault.ClearFault {
-					p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (not replacing Clear with noClear) :: Exist: %s New: %s",
-						existingSystemFault.String(),
-						fullFault.String()))
-					return false
-				}
-			}
-		}
-	*/
 	if fullFault.Priority(p.State) < existingSystemFault.Priority(p.State) {
 		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (priority %d < %d) :: Exist: %s /// New: %s",
 			fullFault.Priority(p.State),

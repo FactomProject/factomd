@@ -118,12 +118,7 @@ func markNoFault(pl *ProcessList, vmIndex int) {
 
 	cf := pl.CurrentFault()
 	if !cf.IsNil() {
-		/*if int(cf.VMIndex) == vmIndex {
-			if index < len(pl.FedServers) && pl.FedServers[index].GetChainID().IsSameAs(cf.ServerID) {
-				return
-			}
-		}*/
-		if cf.AmINegotiator { //&& int(time.Now().Unix()-pl.State.LastFaultAction) > pl.State.FaultWait {
+		if cf.AmINegotiator {
 			ff := CraftFullFault(pl, vmIndex, vm.Height)
 			if ff != nil {
 				ff.Sign(pl.State.serverPrivKey)
@@ -300,16 +295,6 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) *messages.ServerFault 
 		if sf != nil {
 			sf.Sign(pl.State.serverPrivKey)
 			return sf
-			//fsf := messages.NewFullServerFault(nil, sf, pl.System.Height)
-			//pl.State.NetworkOutMsgQueue() <- sf
-			/*pl.State.InMsgQueue() <- sf
-			cf := pl.CurrentFault()
-			if !cf.IsNil() && cf.GetCoreHash().IsSameAs(sf.GetCoreHash()) {
-				// Update the CurrentFault's "LastMatch" value to the current time
-				// (LastMatch is merely a throttling mechanism)
-				cf.LastMatch = time.Now().Unix()
-				return sf
-			}*/
 		}
 	} else {
 		// If we don't see any Audit servers as Online, we reset all of
@@ -321,7 +306,7 @@ func CraftFault(pl *ProcessList, vmIndex int, height int) *messages.ServerFault 
 	return nil
 }
 
-// CraftFullFault is called from the Negotiate goroutine
+// CraftFullFault is called from the Negotiate check from the process list
 // (which fires once every 5 seconds on each server); most of the time
 // these are "incomplete" FullFault messages which serve as status pings
 // for the negotiation in progress
@@ -371,6 +356,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		// If no such ProcessList exists, or if we don't consider
 		// the VM in this ServerFault message to be at fault,
 		// do not proceed with regularFaultExecution
+		s.Holding[m.GetRepeatHash().Fixed()] = m
 		return
 	}
 
@@ -443,74 +429,6 @@ func isMyNegotiation(sf FaultCore, pl *ProcessList) bool {
 		return true
 	}
 	return false
-}
-
-// regularFullFaultExecution will make sure to add every signature from the FullFault
-// to the corresponding FaultState's VoteMap
-func (s *State) regularFullFaultExecution(ff *messages.FullServerFault, pl *ProcessList) {
-	faultState := pl.CurrentFault()
-	if faultState.IsNil() {
-		return
-	}
-
-	for _, signature := range ff.SignatureList.List {
-		var issuerID [32]byte
-		rawIssuerID := signature.GetKey()
-		for i := 0; i < 32; i++ {
-			if i < len(rawIssuerID) {
-				issuerID[i] = rawIssuerID[i]
-			}
-		}
-
-		if s.Leader || s.IdentityChainID.IsSameAs(ff.AuditServerID) {
-			if !faultState.MyVoteTallied {
-				nsf := messages.NewServerFault(ff.ServerID, ff.AuditServerID, int(ff.VMIndex), ff.DBHeight, ff.Height, int(ff.SystemHeight), ff.Timestamp)
-				sfbytes, err := nsf.MarshalForSignature()
-				myAuth, _ := s.GetAuthority(s.IdentityChainID)
-				if myAuth == nil || err != nil {
-					return
-				}
-				valid, err := myAuth.VerifySignature(sfbytes, signature.GetSignature())
-				if err == nil && valid {
-					faultState.SetMyVoteTallied(true)
-				}
-			}
-		}
-
-		lbytes := ff.GetCoreHash().Bytes()
-
-		isPledge := false
-		auth, _ := s.GetAuthority(ff.AuditServerID)
-		if auth == nil {
-			isPledge = false
-		} else {
-			valid, err := auth.VerifySignature(lbytes, signature.GetSignature())
-			if err == nil && valid {
-				isPledge = true
-				faultState.SetPledgeDone(true)
-			}
-		}
-
-		sfSigned, err := s.FastVerifyAuthoritySignature(lbytes, signature, ff.DBHeight)
-
-		if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
-			faultState.AddFaultVote(issuerID, ff.GetSignature())
-		}
-	}
-
-	if s.Leader || s.IdentityChainID.IsSameAs(ff.AuditServerID) {
-		if !faultState.GetMyVoteTallied() {
-			now := time.Now().Unix()
-			if int(now-s.LastTiebreak) > s.FaultTimeout/2 {
-				if faultState.SigTally(s) >= len(pl.FedServers)-1 {
-					s.LastTiebreak = now
-				}
-
-				nsf := messages.NewServerFault(ff.ServerID, ff.AuditServerID, int(ff.VMIndex), ff.DBHeight, ff.Height, int(ff.SystemHeight), ff.Timestamp)
-				s.matchFault(nsf)
-			}
-		}
-	}
 }
 
 // matchFault does what it sounds like; given a particular ServerFault
