@@ -148,7 +148,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 
 			// havent found entry or chain transaction.  check all of the Process Lists
 
-			//pend := state.GetPendingEntries(params)
+			//pend := state.GetPendingEntries(params)  // covered elsewhere
 			/// still havent found them.  Check the Acks queue
 			aQue := state.LoadAcksMap()
 
@@ -194,54 +194,55 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			}
 
 			// still havent found them.  Check the holding queue
-			hQue := state.LoadHoldingMap()
+			if ecTxID == "" && eTxID == "" {
+				hQue := state.LoadHoldingMap()
 
-			for _, h := range hQue {
+				for _, h := range hQue {
 
-				if h.Type() == constants.REVEAL_ENTRY_MSG {
-					var rm messages.RevealEntryMsg
-					enb, err := h.MarshalBinary()
-					if err != nil {
-						return nil, NewInternalError()
-					}
-					err = rm.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, NewInternalError()
-					}
+					if h.Type() == constants.REVEAL_ENTRY_MSG {
+						var rm messages.RevealEntryMsg
+						enb, err := h.MarshalBinary()
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						err = rm.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, NewInternalError()
+						}
 
-					eTxID = rm.Entry.GetHash().String()
-					ecTxID = rm.Entry.GetChainIDHash().String()
-				} else if h.Type() == constants.COMMIT_ENTRY_MSG {
-					var rm messages.CommitEntryMsg
-					enb, err := h.MarshalBinary()
-					if err != nil {
-						return nil, NewInternalError()
-					}
-					err = rm.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, NewInternalError()
-					}
+						eTxID = rm.Entry.GetHash().String()
+						ecTxID = rm.Entry.GetChainIDHash().String()
+					} else if h.Type() == constants.COMMIT_ENTRY_MSG {
+						var rm messages.CommitEntryMsg
+						enb, err := h.MarshalBinary()
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						err = rm.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, NewInternalError()
+						}
 
-					eTxID = rm.CommitEntry.GetSigHash().String()
-					ecTxID = rm.CommitEntry.GetEntryHash().String()
-				} else if h.Type() == constants.COMMIT_CHAIN_MSG {
-					var rm messages.CommitChainMsg
-					enb, err := h.MarshalBinary()
-					if err != nil {
-						return nil, NewInternalError()
-					}
-					err = rm.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, NewInternalError()
-					}
-					ecTxID = rm.CommitChain.ChainIDHash.String()
-					eTxID = rm.CommitChain.GetEntryHash().String()
+						eTxID = rm.CommitEntry.GetSigHash().String()
+						ecTxID = rm.CommitEntry.GetEntryHash().String()
+					} else if h.Type() == constants.COMMIT_CHAIN_MSG {
+						var rm messages.CommitChainMsg
+						enb, err := h.MarshalBinary()
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						err = rm.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						ecTxID = rm.CommitChain.ChainIDHash.String()
+						eTxID = rm.CommitChain.GetEntryHash().String()
 
-				} else {
-					fmt.Println("I DONT KNOW THIS Holding Message TYPE:", h.Type())
+					} else {
+						fmt.Println("I DONT KNOW THIS Holding Message TYPE:", h.Type())
+					}
 				}
 			}
-
 		}
 	}
 
