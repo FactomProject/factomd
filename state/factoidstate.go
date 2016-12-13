@@ -230,8 +230,6 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 	case entryCreditBlock.ECIDBalanceIncrease:
 		t := trans.(*entryCreditBlock.IncreaseBalance)
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())+int64(t.NumEC))
-		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
-		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.NumTransactions++
 
 	default:
