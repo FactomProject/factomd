@@ -121,7 +121,7 @@ func TestServerFaultUpdateState(t *testing.T) {
 		s.Authorities[index].SigningKey = *testHelper.NewPrimitivesPrivateKey(uint64(i + sigs)).Pub
 		s.Authorities[index].Status = 0
 
-		s.AddFedServer(s.GetLeaderHeight(), testHelper.NewRepeatingHash(byte(i+sigs)))
+		s.AddAuditServer(s.GetLeaderHeight(), testHelper.NewRepeatingHash(byte(i+sigs)))
 	}
 
 	err = sf.UpdateState(s)
