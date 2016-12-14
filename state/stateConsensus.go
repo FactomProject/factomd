@@ -1549,22 +1549,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				}
 			}
 
-			if s.Leader || s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
-				if !fullFault.GetMyVoteTallied() {
-					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex), fullFault.DBHeight,
-						fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
-					sfbytes, err := nsf.MarshalForSignature()
-					myAuth, _ := s.GetAuthority(s.IdentityChainID)
-					if myAuth == nil || err != nil {
-						continue
-					}
-					valid, err := myAuth.VerifySignature(sfbytes, signature.GetSignature())
-					if err == nil && valid {
-						fullFault.SetMyVoteTallied(true)
-					}
-				}
-			}
-
 			lbytes := fullFault.GetCoreHash().Bytes()
 
 			isPledge := false
@@ -1583,6 +1567,22 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 			if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
 				fullFault.AddFaultVote(issuerID, fullFault.GetSignature())
+			}
+
+			if s.Leader || s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
+				if !fullFault.GetMyVoteTallied() {
+					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex), fullFault.DBHeight,
+						fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
+					sfbytes, err := nsf.MarshalForSignature()
+					myAuth, _ := s.GetAuthority(s.IdentityChainID)
+					if myAuth == nil || err != nil {
+						continue
+					}
+					valid, err := myAuth.VerifySignature(sfbytes, signature.GetSignature())
+					if err == nil && valid {
+						fullFault.SetMyVoteTallied(true)
+					}
+				}
 			}
 		}
 
