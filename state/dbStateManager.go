@@ -525,7 +525,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln2.SortFedServers()
 
 	pl.SortAuditServers()
-	pl.SortAuditServers()
 	pl.SortFedServers()
 	pln.SortAuditServers()
 	pln.SortFedServers()
