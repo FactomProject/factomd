@@ -96,9 +96,6 @@ type ProcessList struct {
 	AuditServers []interfaces.IFctServer // List of Audit Servers
 	FedServers   []interfaces.IFctServer // List of Federated Servers
 
-	CurrentFault FaultState
-
-	NegotiatonTimeout int64
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
 	// height
@@ -178,8 +175,6 @@ func (p *ProcessList) Clear() {
 	p.Matryoshka = nil
 	p.AuditServers = nil
 	p.FedServers = nil
-
-	p.ResetCurrentFault()
 
 	p.DBSignatures = nil
 
@@ -555,18 +550,11 @@ func (p *ProcessList) DeleteNewEntry(key interfaces.IHash) {
 	delete(p.NewEntries, key.Fixed())
 }
 
-func (p *ProcessList) SetCurrentFault(fs FaultState) {
-	cf := p.CurrentFault
-	if !cf.IsNil() {
-		/*if int(cf.FaultCore.VMIndex) > int(fs.FaultCore.VMIndex) {
-			return
-		}*/
-		if int(cf.FaultCore.VMIndex) == int(fs.FaultCore.VMIndex) && cf.FaultCore.Timestamp.GetTimeSeconds() > fs.FaultCore.Timestamp.GetTimeSeconds() {
-			return
-		}
+func (p *ProcessList) CurrentFault() *messages.FullServerFault {
+	if len(p.System.List) < 1 || len(p.System.List) <= p.System.Height {
+		return nil
 	}
-
-	p.CurrentFault = fs
+	return p.System.List[p.System.Height].(*messages.FullServerFault)
 }
 
 func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
@@ -576,10 +564,6 @@ func (p *ProcessList) GetLeaderTimestamp() interfaces.Timestamp {
 		}
 	}
 	return new(primitives.Timestamp)
-}
-
-func (p *ProcessList) ResetCurrentFault() {
-	p.CurrentFault = *new(FaultState)
 }
 
 func (p *ProcessList) ResetDiffSigTally() {
@@ -867,33 +851,22 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 
 	// If we have already processed past this fault, just ignore.
 	if p.System.Height > int(fullFault.SystemHeight) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (p.System.Height > int(fullFault.SystemHeight)) (%d > %d) : Replacing %x with %x at height %d leader height %d",
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (System.Height > fullFault.SystemHeight) (%d > %d) : %s",
 			p.System.Height,
 			int(fullFault.SystemHeight),
-			fullFault.ServerID.Bytes()[2:6],
-			fullFault.AuditServerID.Bytes()[2:6],
-			fullFault.DBHeight,
-			p.State.LLeaderHeight))
+			fullFault.String()))
 		return false
 	}
 
 	// If the fault is in the future, hold it.
 	if p.System.Height < int(fullFault.SystemHeight) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Holding (p.System.Height < int(fullFault.SystemHeight)) (%d > %d) : Replacing %x with %x at height %d leader height %d",
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Holding (System.Height(%d) < fullFault.SystemHeight(%d)) : %s",
 			p.System.Height,
 			int(fullFault.SystemHeight),
-			fullFault.ServerID.Bytes()[2:6],
-			fullFault.AuditServerID.Bytes()[2:6],
-			fullFault.DBHeight,
-			p.State.LLeaderHeight))
+			fullFault.String()))
 		p.State.Holding[m.GetRepeatHash().Fixed()] = m
 		return false
 	}
-
-	// Remove nils.
-	//for len(p.System.List) > 0 && p.System.List[len(p.System.List)-1] == nil {
-	//	p.System.List = p.System.List[:len(p.System.List)-1]
-	//}
 
 	// If we are here, fullFault.SystemHeight == p.System.Height
 	if len(p.System.List) <= p.System.Height {
@@ -915,76 +888,33 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		}
 	}
 
-	if len(p.System.List) > 0 { // Have something in the system list
-		prevIdx := int(fullFault.SystemHeight) - 1       // Top of the System List
-		if len(p.System.List) > prevIdx && prevIdx > 0 { // There is something on the System List
-			if p.System.List[prevIdx] == nil {
-				p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
-				return false
-			}
-			prevFault := p.System.List[prevIdx].(*messages.FullServerFault)
-
-			newHashShouldBe, err := primitives.CreateHash(prevFault.GetSerialHash(), fullFault.GetCoreHash())
-
-			if err != nil || !fullFault.GetSerialHash().IsSameAs(newHashShouldBe) {
-				if prevFault.ClearFault {
-					p.System.List[prevIdx] = nil
-					p.State.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
-				}
-				return false
-			}
-		}
-	}
-
 	if existingSystemFault.HasEnoughSigs(p.State) && p.State.pledgedByAudit(existingSystemFault) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault has enough sigs) : %s",
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault is complete) : %s",
 			existingSystemFault.String()))
 		return false
 	}
 
-	if !(fullFault.HasEnoughSigs(p.State) && p.State.pledgedByAudit(fullFault)) {
-		if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
-			if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
-				if p.State.GetTimestamp().GetTimeSeconds()-fullFault.GetTimestamp().GetTimeSeconds() < int64(p.State.FaultTimeout) {
-					p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
-						existingSystemFault.SigTally(p.State),
-						fullFault.SigTally(p.State),
-						fullFault.String()))
-					return false
-				}
-			}
-		}
-
-		if int(existingSystemFault.VMIndex) > int(fullFault.VMIndex) {
-			if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
-				p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (VMIndex lower than existingFault's) (%d > %d) : %s",
-					int(existingSystemFault.VMIndex),
-					int(fullFault.VMIndex),
-					fullFault.String()))
-				return false
-			}
-		}
-
-		if existingSystemFault.ServerID.IsSameAs(fullFault.ServerID) {
-			if existingSystemFault.Timestamp.GetTimeMilli() > fullFault.Timestamp.GetTimeMilli() {
-				p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault has higher timestamp) :: Exist: %s New: %s",
-					existingSystemFault.String(),
-					fullFault.String()))
-				return false
-			}
-			if existingSystemFault.ClearFault && !fullFault.ClearFault {
-				p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (not replacing Clear with noClear) :: Exist: %s New: %s",
-					existingSystemFault.String(),
-					fullFault.String()))
-				return false
-			}
-		}
+	if fullFault.Priority(p.State) < existingSystemFault.Priority(p.State) {
+		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (priority %d < %d) :: Exist: %s /// New: %s",
+			fullFault.Priority(p.State),
+			existingSystemFault.Priority(p.State),
+			existingSystemFault.String(),
+			fullFault.String()))
+		return false
 	}
 
+	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
+		if fullFault.GetCoreHash().IsSameAs(existingSystemFault.GetCoreHash()) {
+			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
+				existingSystemFault.SigTally(p.State),
+				fullFault.SigTally(p.State),
+				fullFault.String()))
+			return false
+		}
+	}
 	//p.State.regularFullFaultExecution(fullFault, p)
 
 	p.System.List[p.System.Height] = fullFault
-	p.CreateFaultState(fullFault)
 
 	p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (create) : %s sigs:%d",
 		fullFault.String(), fullFault.SigTally(p.State)))
@@ -1215,8 +1145,6 @@ func (p *ProcessList) Reset() bool {
 	p.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	p.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
-	p.ResetCurrentFault()
-
 	p.SetAmINegotiator(false)
 
 	p.DBSignatures = make([]DBSig, 0)
@@ -1343,8 +1271,6 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
 	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
-
-	pl.ResetCurrentFault()
 
 	pl.DBSignatures = make([]DBSig, 0)
 

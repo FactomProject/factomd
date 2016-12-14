@@ -42,6 +42,12 @@ type FullServerFault struct {
 	alreadyValidated bool
 	alreadyProcessed bool
 	hash             interfaces.IHash
+	//Local FaultState information (not marshalled)
+	AmINegotiator bool
+	MyVoteTallied bool
+	LocalVoteMap  map[[32]byte]interfaces.IFullSignature
+	PledgeDone    bool
+	LastMatch     int64
 }
 
 type SigList struct {
@@ -52,11 +58,67 @@ type SigList struct {
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
 
+func (m *FullServerFault) GetAmINegotiator() bool {
+	return m.AmINegotiator
+}
+
+func (m *FullServerFault) SetAmINegotiator(b bool) {
+	m.AmINegotiator = b
+}
+
+func (m *FullServerFault) GetMyVoteTallied() bool {
+	return m.MyVoteTallied
+}
+
+func (m *FullServerFault) SetMyVoteTallied(b bool) {
+	m.MyVoteTallied = b
+}
+
+func (m *FullServerFault) GetPledgeDone() bool {
+	return m.PledgeDone
+}
+
+func (m *FullServerFault) SetPledgeDone(b bool) {
+	m.PledgeDone = b
+}
+
+func (m *FullServerFault) GetLastMatch() int64 {
+	return m.LastMatch
+}
+
+func (m *FullServerFault) SetLastMatch(b int64) {
+	m.LastMatch = b
+}
+
+func (m *FullServerFault) IsNil() bool {
+	if m == nil {
+		return true
+	}
+	if m.ServerID.IsZero() {
+		return true
+	}
+	if m.AuditServerID == nil || m.AuditServerID.IsZero() {
+		return true
+	}
+	return false
+}
+
+func (m *FullServerFault) AddFaultVote(issuerID [32]byte, sig interfaces.IFullSignature) {
+	if m.IsNil() {
+		return
+	}
+	if m.LocalVoteMap == nil || len(m.LocalVoteMap) == 0 {
+		m.LocalVoteMap = make(map[[32]byte]interfaces.IFullSignature)
+	}
+
+	m.LocalVoteMap[issuerID] = sig
+}
+
 func (m *FullServerFault) Priority(state interfaces.IState) (priority int64) {
 	now := state.GetTimestamp()
 
 	// After 20 seconds, a negotiation's priority is now zero.
-	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() < 20 {
+	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() > 20 {
 		return 0
 	}
 
@@ -450,7 +512,7 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 	}
 
 	if m.ServerID.IsZero() || m.AuditServerID.IsZero() {
-		state.AddStatus("FULL FAULT FOLLOWER EXECUTE Fake Fault.  Ignore")
+		state.AddStatus("FULL FAULT Validate Fake Fault.  Ignore")
 		return -1
 	}
 
@@ -487,7 +549,8 @@ func (m *FullServerFault) GetAlreadyProcessed() bool {
 }
 
 func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) bool {
-	if m.SigTally(state) > len(state.GetFedServers(m.DBHeight))/2 {
+	sigTally := m.SigTally(state)
+	if sigTally > len(state.GetFedServers(m.DBHeight))/2 {
 		return true
 	}
 	return false

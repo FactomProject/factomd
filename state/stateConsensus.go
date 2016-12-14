@@ -1391,20 +1391,22 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	// and we can execute it as such (replacing the faulted Leader with
 	// the nominated Audit server)
 
-	//fmt.Println("FULL FAULT:", s.FactomNodeName, s.GetTimestamp().GetTimeSeconds())
-
-	fullFault, _ := msg.(*messages.FullServerFault)
+	fullFault, ok := msg.(*messages.FullServerFault)
+	if !ok {
+		return false
+	}
 	if fullFault.GetAlreadyProcessed() {
 		return false
 	}
 
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
+	if pl == nil {
+		return false
+	}
 
 	// First we will update our status to include our fault process attempt
-	s.AddStatus(fmt.Sprintf("PROCESS Full Fault: Replacing %x with %x (%t)",
-		fullFault.ServerID.Bytes()[3:8],
-		fullFault.AuditServerID.Bytes()[3:8],
-		fullFault.ClearFault))
+	s.AddStatus(fmt.Sprintf("PROCESS Full Fault: %s",
+		fullFault.StringWithSigCnt(s)))
 
 	// If we're not caught up in our SystemList enough to process the fault,
 	// processing must fail
@@ -1417,13 +1419,16 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 	// Do not process the fault until the VM height is caught up to it
 	if fullFault.Height > uint32(vm.Height) {
-		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right vm height: %s", fullFault.StringWithSigCnt(s)))
+		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right vm height: (FF:%d vm:%d) %s",
+			fullFault.Height,
+			uint32(vm.Height),
+			fullFault.StringWithSigCnt(s)))
 		return false
 	}
 
 	// Double-check that the fault's SystemHeight is proper
 	if int(fullFault.SystemHeight) != pl.System.Height {
-		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height (%d / %d) : %s",
+		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height (FF:%d sys:%d) : %s",
 			int(fullFault.SystemHeight),
 			pl.System.Height,
 			fullFault.StringWithSigCnt(s)))
@@ -1437,8 +1442,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		if fullFault.GetVMIndex() < len(pl.VMs) && pl.VMs[fullFault.GetVMIndex()].WhenFaulted == 0 {
 			// If we agree that the server doesn't need to be faulted, we will clear our currentFault
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
-			pl.ResetCurrentFault()
-			s.AddStatus(fmt.Sprintf("CLEARING Fault: %s", fullFault.StringWithSigCnt(s)))
+			s.AddStatus(fmt.Sprintf("PROCESS Full Fault CLEARING: %s", fullFault.StringWithSigCnt(s)))
 			fullFault.SetAlreadyProcessed()
 			return true
 		}
@@ -1514,10 +1518,12 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				pl.State.AddAuthorityDelta(authorityDeltaString)
 				s.AddStatus(authorityDeltaString)
 
-				pl.ResetCurrentFault()
 				pl.State.LastFaultAction = time.Now().Unix()
-				//markNoFault(pl, fullFault.GetVMIndex())
-				pl.NegotiatonTimeout = time.Now().Unix()
+				markNoFault(pl, fullFault.GetVMIndex())
+				nextIndex := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
+				if pl.VMs[nextIndex].FaultFlag > 0 {
+					markNoFault(pl, nextIndex)
+				}
 
 				s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
@@ -1533,58 +1539,65 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 		// We need to see whether our signature is included, and match the fault if not
 		// (assuming we agree with the basic premise of the fault)
-		mightMatch := s.IdentityChainID.IsSameAs(fullFault.AuditServerID)
-		willUpdate := false
-		if !mightMatch {
-			if vm.WhenFaulted != 0 {
-				//I AGREE
-				var tpts int64
-				if pl.CurrentFault.IsNil() {
-					tpts = 0
-				} else {
-					tpts = pl.CurrentFault.FaultCore.Timestamp.GetTimeSeconds()
+
+		for _, signature := range fullFault.SignatureList.List {
+			var issuerID [32]byte
+			rawIssuerID := signature.GetKey()
+			for i := 0; i < 32; i++ {
+				if i < len(rawIssuerID) {
+					issuerID[i] = rawIssuerID[i]
 				}
-				ffts := fullFault.Timestamp.GetTimeSeconds()
-				if ffts >= tpts {
-					//THIS IS TOP PRIORITY
-					if !pl.CurrentFault.IsNil() && fullFault.ServerID.IsSameAs(pl.CurrentFault.FaultCore.ServerID) && ffts > tpts {
-						//IT IS A RENEWAL
-						if int(ffts-tpts) < s.FaultTimeout {
-							//TOO SOON
-							newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-							markFault(pl, newVMI, 1)
-						} else {
-							if !pl.CurrentFault.IsNil() && couldIFullFault(pl, int(pl.CurrentFault.FaultCore.VMIndex)) {
-								//I COULD FAULT BUT HE HASN'T
-								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-								markFault(pl, newVMI, 1)
-							} else {
-								willUpdate = true
-							}
-						}
-					} else {
-						willUpdate = true
+			}
+
+			if s.Leader || s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
+				if !fullFault.GetMyVoteTallied() {
+					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex), fullFault.DBHeight,
+						fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
+					sfbytes, err := nsf.MarshalForSignature()
+					myAuth, _ := s.GetAuthority(s.IdentityChainID)
+					if myAuth == nil || err != nil {
+						continue
+					}
+					valid, err := myAuth.VerifySignature(sfbytes, signature.GetSignature())
+					if err == nil && valid {
+						fullFault.SetMyVoteTallied(true)
 					}
 				}
 			}
-		}
-		if willUpdate {
-			mightMatch = true
-			s.regularFullFaultExecution(fullFault, pl)
-		}
-		if mightMatch {
-			theFaultState := pl.CurrentFault
-			// JUSTIN might need to make sure that theFaultState.CoreHash == fullFault.CoreHash here...
-			if !theFaultState.MyVoteTallied {
-				now := time.Now().Unix()
 
-				if now-theFaultState.LastMatch > 5 && int(now-s.LastTiebreak) > s.FaultTimeout/2 {
-					if theFaultState.SigTally(s) >= len(pl.FedServers)-1 {
+			lbytes := fullFault.GetCoreHash().Bytes()
+
+			isPledge := false
+			auth, _ := s.GetAuthority(fullFault.AuditServerID)
+			if auth == nil {
+				isPledge = false
+			} else {
+				valid, err := auth.VerifySignature(lbytes, signature.GetSignature())
+				if err == nil && valid {
+					isPledge = true
+					fullFault.SetPledgeDone(true)
+				}
+			}
+
+			sfSigned, err := s.FastVerifyAuthoritySignature(lbytes, signature, fullFault.DBHeight)
+
+			if err == nil && (sfSigned > 0 || (sfSigned == 0 && isPledge)) {
+				fullFault.AddFaultVote(issuerID, fullFault.GetSignature())
+			}
+		}
+
+		if s.Leader || s.IdentityChainID.IsSameAs(fullFault.AuditServerID) {
+			if !fullFault.GetMyVoteTallied() {
+				now := time.Now().Unix()
+				if now-fullFault.LastMatch > 5 && int(now-s.LastTiebreak) > s.FaultTimeout/2 {
+					if fullFault.SigTally(s) >= len(pl.FedServers)-1 {
 						s.LastTiebreak = now
 					}
+
 					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex),
 						fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
 					s.AddStatus(fmt.Sprintf("Match FullFault: %s", nsf.String()))
+
 					s.matchFault(nsf)
 				}
 			}
