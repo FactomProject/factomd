@@ -1,7 +1,6 @@
 package entryCreditBlock_test
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -33,8 +32,6 @@ func TestIncreaseBalanceMarshalUnmarshal(t *testing.T) {
 }
 
 func TestInvalidIncreaseBalanceUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestInvalidIncreaseBalanceUnmarshal\n---\n")
-
 	ib := NewIncreaseBalance()
 	_, err := ib.UnmarshalBinaryData(nil)
 	if err == nil {

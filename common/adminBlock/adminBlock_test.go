@@ -3,7 +3,6 @@ package adminBlock_test
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -15,8 +14,6 @@ import (
 )
 
 func TestAdminBlockPreviousHash(t *testing.T) {
-	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
-
 	block := new(AdminBlock)
 	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	_, err := block.UnmarshalBinaryData(data)
@@ -113,8 +110,6 @@ func TestAdminBlockHash(t *testing.T) {
 }
 
 func TestAdminBlockMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestAdminBlockMarshalUnmarshal\n---\n")
-
 	blocks := []interfaces.IAdminBlock{}
 	blocks = append(blocks, createSmallTestAdminBlock())
 	blocks = append(blocks, createTestAdminBlock())
@@ -161,8 +156,6 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 }
 
 func TestABlockHeaderMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestABlockHeaderMarshalUnmarshal\n---\n")
-
 	header := createTestAdminHeader()
 
 	binary, err := header.MarshalBinary()
@@ -242,8 +235,6 @@ func CatchPanic() {
 }
 
 func TestInvalidABlockHeaderUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestInvalidABlockHeaderUnmarshal\n---\n")
-
 	WeDidPanic = false
 	defer CatchPanic()
 
@@ -289,8 +280,6 @@ func TestInvalidABlockHeaderUnmarshal(t *testing.T) {
 }
 
 func TestInvalidAdminBlockUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestInvalidAdminBlockUnmarshal\n---\n")
-
 	WeDidPanic = false
 	defer CatchPanic()
 

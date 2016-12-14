@@ -18,8 +18,6 @@ var (
 )
 
 func TestCommitEntryMarshal(t *testing.T) {
-	fmt.Printf("---\nTestCommitEntryMarshal\n---\n")
-
 	ce := NewCommitEntry()
 
 	// test MarshalBinary on a zeroed CommitEntry
