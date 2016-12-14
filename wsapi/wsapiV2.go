@@ -67,7 +67,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	fmt.Println(params)
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
@@ -125,7 +124,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	case "entry-ack":
 		resp, jsonError = HandleV2EntryACK(state, params)
-		fmt.Println(resp)
 		break
 	case "pending-entries":
 		resp, jsonError = HandleV2GetPendingEntries(state, params)
@@ -163,9 +161,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
-	fmt.Println("resp:", resp)
 	jsonResp.Result = resp
-	fmt.Println("jsonResp:", jsonResp)
 	return jsonResp, nil
 }
 
