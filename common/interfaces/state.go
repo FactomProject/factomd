@@ -227,6 +227,7 @@ type IState interface {
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 	FetchEntryByHash(IHash) (IEBEntry, error)
+	FetchEntryHashFromProcessListsByTxID(string) (IHash, error)
 
 	// FER section
 	ProcessRecentFERChainEntries()

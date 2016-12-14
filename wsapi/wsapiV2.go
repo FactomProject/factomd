@@ -125,6 +125,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	case "entry-ack":
 		resp, jsonError = HandleV2EntryACK(state, params)
+		fmt.Println(resp)
 		break
 	case "pending-entries":
 		resp, jsonError = HandleV2GetPendingEntries(state, params)

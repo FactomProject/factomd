@@ -1047,28 +1047,74 @@ func (s *State) fillAcksMap() {
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
-	fmt.Println("pendingparams:", params)
 	resp := make([]interfaces.IPendingEntry, 0)
 	pls := s.ProcessLists.Lists
+	var cc messages.CommitChainMsg
+	var ce messages.CommitEntryMsg
+	var re messages.RevealEntryMsg
+	var tmp interfaces.IPendingEntry
+	// check all existing processlists/VMs
+	for pli, pl := range pls {
+		for vi, v := range pl.VMs {
+			for mi, plmsg := range v.List {
+				fmt.Println(pli, vi, mi, plmsg.Type())
+				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = cc.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = cc.CommitChain.EntryHash
+					fmt.Println("Pending Chain Commit:", tmp.EntryHash)
+					tmp.ChainID = cc.CommitChain.ChainIDHash
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
 
-	// check all existing processlists
-	for _, pl := range pls {
+					resp = append(resp, tmp)
+				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = ce.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = ce.CommitEntry.EntryHash
+					fmt.Println("Pending Entry Commit:", tmp.EntryHash)
+					tmp.ChainID = ce.CommitEntry.Hash()
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
 
-		keys := pl.GetKeysNewEntries()
-		for _, k := range keys {
-			var tmp interfaces.IPendingEntry
-			entry := pl.GetNewEntry(k)
-			fmt.Println("Pending:", entry.GetHash())
-			// should I filter for chain id
-			if params.(string) == "" || params.(string) == entry.GetChainID().String() {
-				tmp.ChainID = entry.GetChainID()
-				tmp.EntryHash = entry.GetHash()
-				if entry.GetDatabaseHeight() > 0 {
-					tmp.Status = "AckStatusDBlockConfirmed"
-				} else {
-					tmp.Status = "AckStatusACK"
+					resp = append(resp, tmp)
+				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = re.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = re.Entry.GetHash()
+					tmp.ChainID = re.Entry.GetChainID()
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
+
+					resp = append(resp, tmp)
 				}
-				resp = append(resp, tmp)
 			}
 		}
 	}
@@ -1076,21 +1122,19 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	// check holding queue
 	q := s.LoadHoldingMap()
 	for _, h := range q {
+		fmt.Println("q:htype:", h.Type())
 		if h.Type() == constants.REVEAL_ENTRY_MSG {
-			var rm messages.RevealEntryMsg
-			var tmp interfaces.IPendingEntry
 			enb, err := h.MarshalBinary()
 			if err != nil {
 				return nil
 			}
-			err = rm.UnmarshalBinary(enb)
+			err = re.UnmarshalBinary(enb)
 			if err != nil {
 				return nil
 			}
-
-			tmp.EntryHash = rm.Entry.GetHash()
+			tmp.EntryHash = re.Entry.GetHash()
 			fmt.Println("Pending:", tmp.EntryHash)
-			tmp.ChainID = rm.Entry.GetChainID()
+			tmp.ChainID = re.Entry.GetChainID()
 			tmp.Status = "AckStatusNotConfirmed"
 
 			resp = append(resp, tmp)
@@ -1184,6 +1228,66 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 
 	//b, _ := json.Marshal(resp)
 	return resp
+}
+
+// might want to make this search the database at some point to be more generic
+func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IHash, error) {
+	fmt.Println("FetchEntryHashFromProcessListsByTxID")
+	pls := s.ProcessLists.Lists
+	var cc messages.CommitChainMsg
+	var ce messages.CommitEntryMsg
+	var re messages.RevealEntryMsg
+
+	// check all existing processlists (last complete block +1 and greater)
+	for pi, pl := range pls {
+
+		for vi, v := range pl.VMs {
+
+			// check chain commits
+			for li, plmsg := range v.List {
+				fmt.Println(pi, vi, li, "plmsg.Type():", plmsg.Type())
+				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = cc.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+					return cc.CommitChain.EntryHash, nil
+				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+					fmt.Println("COMMIT_ENTRY_MSG")
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = ce.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+					fmt.Println("ce.CommitEntry.GetHash", ce.CommitEntry.GetHash(), txID)
+					fmt.Println("ce.CommitEntry.ECID", ce.CommitEntry.ECID, txID)
+					fmt.Println("ce.CommitEntry.GetSigHash", ce.CommitEntry.GetSigHash())
+
+					return ce.CommitEntry.EntryHash, nil
+				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = re.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+					return re.Entry.GetHash(), nil
+				} else {
+
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("%s", "Transaction not found")
 }
 
 func (s *State) IncFactoidTrans() {
