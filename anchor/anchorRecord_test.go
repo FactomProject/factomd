@@ -2,9 +2,11 @@ package anchor_test
 
 import (
 	"encoding/hex"
-	. "github.com/FactomProject/factomd/anchor"
-	"github.com/FactomProject/factomd/common/primitives"
 	"testing"
+
+	. "github.com/FactomProject/factomd/anchor"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestMarshalUnmarshalAnchorRecord(t *testing.T) {
@@ -45,7 +47,7 @@ func TestMarshalUnmarshalAnchorRecordV2(t *testing.T) {
 		t.Errorf("Anchors are not equal\n%s\nvs\n%s", record, string(data))
 	}
 
-	ar, valid, err := UnmarshalAndValidateAnchorRecordV2(data, [][]byte{sig}, pk1.Pub)
+	ar, valid, err := UnmarshalAndValidateAnchorRecordV2(data, [][]byte{sig}, []interfaces.Verifier{pk1.Pub})
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +67,7 @@ func TestValidateAnchorRecord(t *testing.T) {
 	}
 	signedRecord := `{"AnchorRecordVer":1,"DBHeight":46226,"KeyMR":"831287d96f9955ff438836b26219b8c937e01e668295e8334a5d140cdaacd2fd","RecordHeight":46226,"Bitcoin":{"Address":"1K2SXgApmo9uZoyahvsbSanpVWbzZWVVMF","TXID":"9a47f131677e135645cebe74085cd980044eda2abbb05ac09ee79ba8640f368d","BlockHeight":421417,"BlockHash":"000000000000000003781bf1b36dbaa1a71f94e23b4b9dc13024379aaf244d89","Offset":599}}e5d40b8673fbeba9e4e5a4322a514ec28989acef55b6fcdf49eae400b6d302852c2cf6659dc1f3298ffae60f6605666efbcef3ac4947333515084e1269ec0807`
 
-	ar, valid, err := UnmarshalAndValidateAnchorRecord([]byte(signedRecord), pub)
+	ar, valid, err := UnmarshalAndValidateAnchorRecord([]byte(signedRecord), []interfaces.Verifier{pub})
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +80,7 @@ func TestValidateAnchorRecord(t *testing.T) {
 
 	invalidRecord := `{"AnchorRecordVer":1,"DBHeight":46226,"KeyMR":"831287d96f9955ff438836b26219b8c937e01e668295e8334a5d140cdaacd2fd","RecordHeight":46226,"Bitcoin":{"Address":"1K2SXgApmo9uZoyahvsbSanpVWbzZWVVMF","TXID":"9a47f131677e135645cebe74085cd980044eda2abbb05ac09ee79ba8640f368d","BlockHeight":421417,"BlockHash":"000000000000000003781bf1b36dbaa1a71f94e23b4b9dc13024379aaf244d89","Offset":599}}e5d40b8673fbeba9e4e5a4322a514ec28989acef55b6fcdf49eae400b6d302852c2cf6659dc1f3298ffae60f6605666efbcef3ac4947333515084e1269ec0806`
 
-	ar, valid, err = UnmarshalAndValidateAnchorRecord([]byte(invalidRecord), pub)
+	ar, valid, err = UnmarshalAndValidateAnchorRecord([]byte(invalidRecord), []interfaces.Verifier{pub})
 	if err != nil {
 		t.Error(err)
 	}
@@ -102,7 +104,7 @@ func TestValidateAnchorRecordV2(t *testing.T) {
 		t.Error(err)
 	}
 
-	ar, valid, err := UnmarshalAndValidateAnchorRecordV2([]byte(signedRecord), [][]byte{sig}, pub)
+	ar, valid, err := UnmarshalAndValidateAnchorRecordV2([]byte(signedRecord), [][]byte{sig}, []interfaces.Verifier{pub})
 	if err != nil {
 		t.Error(err)
 	}
@@ -116,7 +118,7 @@ func TestValidateAnchorRecordV2(t *testing.T) {
 	invalidRecord := `{"AnchorRecordVer":1,"DBHeight":46226,"KeyMR":"831287d96f9955ff438836b26219b8c937e01e668295e8334a5d140cdaacd2fd","RecordHeight":46226,"Bitcoin":{"Address":"1K2SXgApmo9uZoyahvsbSanpVWbzZWVVMF","TXID":"9a47f131677e135645cebe74085cd980044eda2abbb05ac09ee79ba8640f368d","BlockHeight":421417,"BlockHash":"000000000000000003781bf1b36dbaa1a71f94e23b4b9dc13024379aaf244d89","Offset":599}}`
 	invalidSig, err := hex.DecodeString("e5d40b8673fbeba9e4e5a4322a514ec28989acef55b6fcdf49eae400b6d302852c2cf6659dc1f3298ffae60f6605666efbcef3ac4947333515084e1269ec0806")
 
-	ar, valid, err = UnmarshalAndValidateAnchorRecordV2([]byte(invalidRecord), [][]byte{invalidSig}, pub)
+	ar, valid, err = UnmarshalAndValidateAnchorRecordV2([]byte(invalidRecord), [][]byte{invalidSig}, []interfaces.Verifier{pub})
 	if err != nil {
 		t.Error(err)
 	}
