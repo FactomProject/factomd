@@ -1540,44 +1540,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		// We need to see whether our signature is included, and match the fault if not
 		// (assuming we agree with the basic premise of the fault)
 
-		/*
-			iAmAudit := s.IdentityChainID.IsSameAs(fullFault.AuditServerID)
-			willUpdate := false
-			if !iAmAudit {
-				if vm.WhenFaulted != 0 {
-					//I AGREE
-					var tpts int64
-					if pl.CurrentFault().IsNil() {
-						tpts = 0
-					} else {
-						tpts = pl.CurrentFault().Timestamp.GetTimeSeconds()
-					}
-					ffts := fullFault.Timestamp.GetTimeSeconds()
-					if ffts >= tpts {
-						//THIS IS TOP PRIORITY
-						if !pl.CurrentFault().IsNil() && fullFault.ServerID.IsSameAs(pl.CurrentFault().ServerID) && ffts > tpts {
-							//IT IS A RENEWAL
-							if int(ffts-tpts) < s.FaultTimeout {
-								//TOO SOON
-								newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-								markFault(pl, newVMI, 1)
-							} else {
-								if !pl.CurrentFault().IsNil() && couldIFullFault(pl, int(pl.CurrentFault().VMIndex)) {
-									//I COULD FAULT BUT HE HASN'T
-									newVMI := (int(fullFault.VMIndex) + 1) % len(pl.FedServers)
-									markFault(pl, newVMI, 1)
-								} else {
-									willUpdate = true
-								}
-							}
-						} else {
-							willUpdate = true
-						}
-					}
-				}
-			}
-			if iAmAudit || willUpdate { */
-
 		for _, signature := range fullFault.SignatureList.List {
 			var issuerID [32]byte
 			rawIssuerID := signature.GetKey()

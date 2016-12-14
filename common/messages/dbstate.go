@@ -162,7 +162,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbht: %d Highest Completed %d diff %d",
 				dbheight, state.GetHighestCompletedBlock(), diff))
 		}
-		if diff < 0 {
+		if diff > 0 {
 			return 0
 		} else {
 			return -1
