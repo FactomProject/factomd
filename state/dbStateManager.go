@@ -70,15 +70,18 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 	if dbheight == 0 {
+		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
 		return 1
 	}
 	if d == nil || !d.Saved {
+		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
 		return 0
 	}
 
-	if state.EntryDBHeightComplete < dbheight-1 {
+	if int(state.EntryBlockDBHeightComplete) < int(dbheight-1) {
+		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0s Don't have all the Entries we want dbht: %d", dbheight))
 		return 0
 	}
 
@@ -87,6 +90,8 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	// Get the Previous KeyMR pointer in the possible new Directory Block
 	prevkeymr := dirblk.GetHeader().GetPrevKeyMR()
 	if !pkeymr.IsSameAs(prevkeymr) {
+		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x ",
+			dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3]))
 		// If not the same, this is a bad new Directory Block
 		return -1
 	}
@@ -97,11 +102,15 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	for _, entry := range admin.GetABEntries() {
 		if addfed, ok := entry.(*adminBlock.AddFederatedServer); ok {
 			if state.isIdentityChain(addfed.IdentityChainID) < 0 {
+				state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 Adding a Fed server in admin block without identity dbht: %d fed server: %x ",
+					dbheight, addfed.IdentityChainID.Bytes()[:3]))
 				return 0
 			}
 		}
 		if addaudit, ok := entry.(*adminBlock.AddAuditServer); ok {
 			if state.isIdentityChain(addaudit.IdentityChainID) < 0 {
+				state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 Adding a Audit server in admin block without identity dbht: %d fed server: %x ",
+					dbheight, addaudit.IdentityChainID.Bytes()[:3]))
 				return 0
 			}
 		}
@@ -826,6 +835,18 @@ func (list *DBStateList) NewDBState(isNew bool,
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {
 		return dbState
+	} else {
+		ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
+		if ht == list.State.GetHighestSavedBlock() {
+			index := int(ht) - int(list.State.DBStates.Base)
+			if index > 0 {
+				list.State.DBStates.DBStates[index] = dbState
+				pdbs := list.State.DBStates.Get(int(ht - 1))
+				if pdbs != nil {
+					pdbs.SaveStruct.TrimBack(list.State, dbState)
+				}
+			}
+		}
 	}
 
 	// Failed, so return nil

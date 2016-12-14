@@ -889,6 +889,16 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.DropRate = nnn
 				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[listenTo].State.FactomNodeName, nnn/10, nnn%10))
 
+			case 'T' == b[0]:
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil || nn < 5 || nn > 800 {
+					os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
+					break
+				}
+				os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
+				for _, f := range fnodes {
+					f.State.SetDirectoryBlockInSeconds(nn)
+				}
 			case 'F' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))
 				nnn := int64(nn)
@@ -939,6 +949,7 @@ func SimControl(listenTo int) {
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+				os.Stderr.WriteString("<enter>       Running Enter with nothing repeats the previous command.\n\n")
 				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
 				os.Stderr.WriteString("nnn           For some number nnn < the number of nodes:  Set focus on that node\n")
 				os.Stderr.WriteString("n             increment (with wrap) the node under focus.  i.e. if on 1, focus is set to 2\n")
@@ -951,6 +962,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("                 So K3.6 gets the directory block at height 3, and prints the entry at index 6.\n")
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
+				os.Stderr.WriteString("Tnnn          Set the block time to the given number of seconds.\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
 				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
