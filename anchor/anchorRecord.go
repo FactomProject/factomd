@@ -189,6 +189,15 @@ func UnmarshalAndValidateAnchorRecordV2(data []byte, extIDs [][]byte, publicKeys
 	return ar, true, nil
 }
 
+func UnmarshalAndValidateAnchorEntryAnyVersion(entry interfaces.IEBEntry, publicKeys []interfaces.Verifier) (*AnchorRecord, bool, error) {
+	ar, valid, err := UnmarshalAndValidateAnchorRecord(entry.GetContent(), publicKeys)
+	if ar == nil {
+		ar, valid, err = UnmarshalAndValidateAnchorRecordV2(entry.GetContent(), entry.ExternalIDs(), publicKeys)
+		return ar, valid, err
+	}
+	return ar, valid, err
+}
+
 func CreateAnchorRecordFromDBlock(dBlock interfaces.IDirectoryBlock) *AnchorRecord {
 	ar := new(AnchorRecord)
 	ar.AnchorRecordVer = 1
