@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 func (s *State) IsStateFullySynced() bool {
@@ -137,6 +138,42 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 			return tx, nil
 		}
 	}
+	// not in FactoidSate lists.  try process listsholding queue
+	// check holding queue
+
+	var currentHeightComplete = s.GetDBHeightComplete()
+	pls := s.ProcessLists.Lists
+	for _, pl := range pls {
+		// ignore old process lists
+		if pl.DBHeight > currentHeightComplete {
+			cb := pl.State.FactoidState.GetCurrentBlock()
+			ct := cb.GetTransactions()
+			for _, tx := range ct {
+				if tx.GetHash() == hash {
+					return tx, nil
+				}
+			}
+		}
+	}
+
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+		if h.Type() == constants.FACTOID_TRANSACTION_MSG {
+			var rm messages.FactoidTransaction
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			err = rm.UnmarshalBinary(enb)
+			if err != nil {
+				return nil, err
+			}
+			tx := rm.GetTransaction()
+			if tx.GetHash() == hash {
+				return tx, nil
+			}
+		}
+	}
 
 	dbase := s.GetAndLockDB()
 	defer s.UnlockDB()
@@ -179,12 +216,35 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 		return nil, nil
 	}
 
-	pl := s.ProcessLists.LastList()
-	keys := pl.GetKeysNewEntries()
+	//pl := s.ProcessLists.LastList()
+	for _, pl := range s.ProcessLists.Lists {
+		keys := pl.GetKeysNewEntries()
 
-	for _, key := range keys {
-		tx := pl.GetNewEntry(key)
-		if hash.IsSameAs(tx.GetHash()) {
+		for _, key := range keys {
+			tx := pl.GetNewEntry(key)
+			if hash.IsSameAs(tx.GetHash()) {
+				return tx, nil
+			}
+		}
+	}
+
+	// not in process lists.  try holding queue
+	// check holding queue
+
+	q := s.LoadHoldingMap()
+	var re messages.RevealEntryMsg
+	for _, h := range q {
+
+		if h.Type() == constants.REVEAL_ENTRY_MSG {
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			err = re.UnmarshalBinary(enb)
+			if err != nil {
+				return nil, err
+			}
+			tx := re.Entry
 			return tx, nil
 		}
 	}
