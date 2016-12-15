@@ -807,11 +807,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 			// to disk.  Then we can insist on having the entry blocks.
 			diff := p.DBHeight - state.EntryBlockDBHeightComplete
-			_, dbsig := vm.List[j].(*messages.DirectoryBlockSignature)
+			
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the signatures are processed, we will be 2 behind.
-			if (dbsig && diff <= 2) || diff <= 2 {
+			if diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1
 				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry

@@ -567,7 +567,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
-	d.Locked = true
 
 	pln.SortFedServers()
 	pln.SortAuditServers()
