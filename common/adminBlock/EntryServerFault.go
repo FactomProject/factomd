@@ -91,7 +91,7 @@ func (e *ServerFault) UpdateState(state interfaces.IState) error {
 
 	//50% threshold
 	if verifiedSignatures <= len(feds)/2 {
-		return fmt.Errorf("Quorum not reached for ServerFault")
+		return fmt.Errorf(fmt.Sprintf("Quorum not reached for ServerFault.  Have %d sigs out of %d feds", verifiedSignatures, len(feds)))
 	}
 
 	//TODO: do

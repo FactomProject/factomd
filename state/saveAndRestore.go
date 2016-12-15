@@ -150,7 +150,6 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.DBSigProcessed = state.DBSigProcessed
 	ss.DBSigDone = state.DBSigDone
 	ss.DBSigSys = state.DBSigSys
-	ss.Newblk = state.Newblk
 	ss.Saving = state.Saving
 	ss.Syncing = state.Syncing
 
@@ -247,7 +246,6 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	state.DBSigProcessed = pss.DBSigProcessed
 	state.DBSigDone = pss.DBSigDone
 	state.DBSigSys = pss.DBSigSys
-	state.Newblk = pss.Newblk
 	state.Saving = pss.Saving
 	state.Syncing = pss.Syncing
 
@@ -410,7 +408,6 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.DBSigProcessed = ss.DBSigProcessed
 	state.DBSigDone = ss.DBSigDone
 	state.DBSigSys = ss.DBSigSys
-	state.Newblk = ss.Newblk
 	state.Saving = ss.Saving
 	state.Syncing = ss.Syncing
 

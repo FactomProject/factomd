@@ -319,7 +319,9 @@ func CraftFullFault(pl *ProcessList, vmIndex int, height int) *messages.FullServ
 		prevFF = pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
 	}
 
-	if faultState.IsNil() {
+	now := time.Now().Unix()
+
+	if faultState.IsNil() || (now-faultState.GetTimestamp().GetTimeSeconds() > int64(pl.State.FaultTimeout)) && !(faultState.HasEnoughSigs(pl.State) && faultState.GetPledgeDone()) {
 		sf = CraftFault(pl, vmIndex, height)
 		if sf == nil {
 			return nil
@@ -329,6 +331,9 @@ func CraftFullFault(pl *ProcessList, vmIndex int, height int) *messages.FullServ
 		fc := ExtractFaultCore(faultState)
 		sf = messages.NewServerFault(fc.ServerID, fc.AuditServerID, int(fc.VMIndex), fc.DBHeight, fc.Height, pl.System.Height, fc.Timestamp)
 		for _, sig := range faultState.LocalVoteMap {
+			listOfSigs = append(listOfSigs, sig)
+		}
+		for _, sig := range faultState.SignatureList.List {
 			listOfSigs = append(listOfSigs, sig)
 		}
 

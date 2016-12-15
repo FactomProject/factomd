@@ -173,7 +173,6 @@ type State struct {
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
-	Newblk  bool // True if we are starting a new block, and a dbsig is needed.
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
@@ -963,7 +962,7 @@ func (s *State) GetPendingEntries() []interfaces.IEntry {
 	if pLists == nil {
 		return nil
 	}
-	ht := pLists.State.GetHighestCompletedBlock()
+	ht := pLists.State.GetHighestSavedBlock()
 	pl := pLists.Get(ht + 1)
 	var hashCount int32
 	hashCount = 0
@@ -1058,7 +1057,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 
 func (s *State) UpdateState() (progress bool) {
 
-	dbheight := s.GetHighestCompletedBlock()
+	dbheight := s.GetHighestSavedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
 		dbheight++
@@ -1142,7 +1141,7 @@ func (s *State) catchupEBlocks() {
 	// If we still have 10 that we are asking for, then let's not add to the list.
 	if len(s.MissingEntryBlocks) < 10 {
 		// While we have less than 20 that we are asking for, look for more to ask for.
-		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestSavedBlock() && len(s.MissingEntryBlocks) < 20 {
 			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
 			doubleCheck := false
 			if dbstate != nil {
@@ -1699,7 +1698,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Get(int(s.GetHighestSavedBlock())).DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestCompletedBlock())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}

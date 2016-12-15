@@ -258,6 +258,9 @@ func (bs *ByteSliceSig) UnmarshalBinaryData(data []byte) (newData []byte, err er
 }
 
 func (bs *ByteSliceSig) UnmarshalBinary(data []byte) (err error) {
+	if len(data) < ed25519.SignatureSize {
+		return fmt.Errorf("Byte slice too short to unmarshal")
+	}
 	copy(bs[:], data[:ed25519.SignatureSize])
 	return
 }

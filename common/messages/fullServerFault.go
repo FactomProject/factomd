@@ -107,7 +107,7 @@ func (m *FullServerFault) AddFaultVote(issuerID [32]byte, sig interfaces.IFullSi
 	if m.IsNil() {
 		return
 	}
-	if m.LocalVoteMap == nil || len(m.LocalVoteMap) == 0 {
+	if m.LocalVoteMap == nil {
 		m.LocalVoteMap = make(map[[32]byte]interfaces.IFullSignature)
 	}
 
