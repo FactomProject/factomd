@@ -274,7 +274,6 @@ func (s *State) AddDBState(isNew bool,
 		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 		s.RunLeader = false
-		s.Newblk = true
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 		{
@@ -414,16 +413,16 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
 		s.DBStateFailsCnt++
 	} else {
-		if dbstatemsg.IsInDB == false {
-			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
-			dbstate.ReadyToSave = true
-			dbstate.Locked = false
-		} else {
+		if dbstatemsg.IsInDB {
 			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 			dbstate.Saved = true
 			dbstate.isNew = false
-			dbstate.Locked = false
+		} else {
+			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
+			dbstate.ReadyToSave = true
 		}
+		dbstate.Locked = false
+		dbstate.Locked2 = false
 	}
 }
 
@@ -1046,6 +1045,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	if s.EOM && e.DBHeight != dbheight {
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Invalid EOM s.EOM(%v) && e.DBHeight(%v) != dbheight(%v)", e.VMIndex, s.EOM, e.DBHeight, dbheight))
+		return false
 	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
@@ -1071,6 +1071,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.ReviewHolding()
 			s.Syncing = false
 			s.EOMProcessed = 0
+			if e.Minute == 1 {
+				pdbs := s.DBStates.Get(int(e.DBHeight - 1))
+				if pdbs != nil && !pdbs.Saved {
+					pdbs.Locked2 = true
+				}
+			}
 		}
 		s.SendHeartBeat()
 
@@ -1087,7 +1093,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMMinute = int(e.Minute)
 		s.EOMsyncing = true
 		s.EOMProcessed = 0
-		s.Newblk = false
 
 		for _, vm := range pl.VMs {
 			vm.Synced = false

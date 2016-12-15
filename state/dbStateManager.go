@@ -41,7 +41,8 @@ type DBState struct {
 	EntryBlocks []interfaces.IEntryBlock
 	Entries     []interfaces.IEBEntry
 
-	Locked      bool
+	Locked      bool // Means all the DBSigs have matched.
+	Locked2     bool // Means one minute period has passed since the DBSigs matched.  Now can save this dbstate
 	ReadyToSave bool
 	Saved       bool
 
@@ -566,6 +567,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
+	d.Locked = true
 
 	pln.SortFedServers()
 	pln.SortAuditServers()
@@ -620,7 +622,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.Trim()
 	}
 
-	if !d.Locked || !d.ReadyToSave {
+	if !d.Locked || !d.Locked2 || !d.ReadyToSave {
 		return
 	}
 

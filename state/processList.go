@@ -699,11 +699,6 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
-	dbht := state.GetHighestCompletedBlock()
-	if dbht >= p.DBHeight {
-		return true
-	}
-
 	state.PLProcessHeight = p.DBHeight
 
 	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
@@ -816,7 +811,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the signatures are processed, we will be 2 behind.
-			if (dbsig && diff <= 2) || diff <= 1 {
+			if (dbsig && diff <= 2) || diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1
 				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
@@ -825,6 +820,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 					progress = true
 				} else {
+					p.State.AddStatus("Could not process entry")
 					break VMListLoop // Don't process further in this list, go to the next.
 				}
 			} else {
@@ -1199,7 +1195,6 @@ func (p *ProcessList) Reset() bool {
 	s.DBSigProcessed = 0
 	s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	s.RunLeader = false
-	s.Newblk = true
 
 	s.LLeaderHeight = s.GetHighestCompletedBlock() + 1
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
