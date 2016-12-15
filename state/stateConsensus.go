@@ -1167,6 +1167,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			s.CurrentMinute = 0
 			s.LLeaderHeight++
+
+			s.GetAckChange()
+			s.CheckForIDChange()
+
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
@@ -1227,6 +1231,26 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	return false
+}
+
+func (s *State) CheckForIDChange() {
+	var reloadIdentity bool = false
+	if s.AckChange > 0 {
+		if s.LLeaderHeight >= s.AckChange {
+			reloadIdentity = true
+		}
+	}
+	if reloadIdentity {
+		config := util.ReadConfig(s.filename)
+		var err error
+		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
+		if err != nil {
+			panic(err)
+		}
+		s.LocalServerPrivKey = config.App.LocalServerPrivKey
+		fmt.Printf("Updated Local Server Identity to %s", s.LocalServerPrivKey)
+		s.initServerKeys()
+	}
 }
 
 // When we process the directory Signature, and we are the leader for said signature, it

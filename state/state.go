@@ -285,6 +285,8 @@ type State struct {
 	FERChangePrice       uint64
 	FERPriority          uint32
 	FERPrioritySetHeight uint32
+
+	AckChange uint32
 }
 
 type MissingEntryBlock struct {
@@ -480,6 +482,15 @@ func (s *State) IncECCommits() {
 
 func (s *State) IncECommits() {
 	s.ECommits++
+}
+
+func (s *State) GetAckChange() error {
+	change, err := util.GetChangeAcksHeight(s.filename)
+	if err != nil {
+		return err
+	}
+	s.AckChange = change
+	return nil
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
