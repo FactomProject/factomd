@@ -214,6 +214,12 @@ func (m *MissingMsg) ListHeight() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *MissingMsg) Validate(state interfaces.IState) int {
+	if m.Asking == nil {
+		return -1
+	}
+	if m.Asking.IsZero() {
+		return -1
+	}
 	return 1
 }
 
