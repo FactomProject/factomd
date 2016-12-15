@@ -1532,7 +1532,7 @@ func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 	case constants.NETWORK_TEST:
 		return primitives.NewZeroHash()
 	case constants.NETWORK_LOCAL:
-		id, _ := primitives.HexToHash("888888a5b59731c10c1867474ce26935336ca0269f75a43a903fa4cfeb1aaa98")
+		id, _ := primitives.HexToHash("88888847f6cd639255df8f6f9e4f015058c93bc02e72f8e1287d7ff0d3fc184b")
 		return id
 	case constants.NETWORK_CUSTOM:
 		return primitives.NewZeroHash()
