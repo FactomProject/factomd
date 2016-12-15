@@ -814,26 +814,7 @@ func SimControl(listenTo int) {
 				for _, i := range fnodes[listenTo].State.Authorities {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
-					switch i.Status {
-					case 0:
-						stat = "Unassigned"
-					case 1:
-						stat = "Federated Server"
-					case 2:
-						stat = "Audit Server"
-					case 3:
-						stat = "Full"
-					case 4:
-						stat = "Pending Federated Server"
-					case 5:
-						stat = "Pending Audit Server"
-					case 6:
-						stat = "Pending Full"
-					case 7:
-						stat = "Self"
-					case 8:
-						stat = "Self Full"
-					}
+					stat = returnStatString(i.Status)
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
@@ -1010,9 +991,7 @@ func returnStatString(i int) string {
 	case 6:
 		stat = "Pending Full"
 	case 7:
-		stat = "Self Not Full"
-	case 8:
-		stat = "Self Full"
+		stat = "Skeleton Identity"
 	}
 	return stat
 }

@@ -1524,6 +1524,22 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	return primitives.NewZeroHash()
 }
 
+// The identity for validating messages
+func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_TEST:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_LOCAL:
+		id, _ := primitives.HexToHash("888888a5b59731c10c1867474ce26935336ca0269f75a43a903fa4cfeb1aaa98")
+		return id
+	case constants.NETWORK_CUSTOM:
+		return primitives.NewZeroHash()
+	}
+	return primitives.NewZeroHash()
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }

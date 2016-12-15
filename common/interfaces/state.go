@@ -125,6 +125,11 @@ type IState interface {
 	GetNetworkBootStrapKey() IHash
 	GetNetworkBootStrapIdentity() IHash
 
+	// Skeleton Identity Information.
+	GetNetworkSkeletonIdentity() IHash
+	GetNetworkSkeletonKey() IHash
+	IntiateNetworkSkeletonIdentity() error
+
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders

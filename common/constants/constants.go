@@ -184,8 +184,7 @@ const (
 	IDENTITY_PENDING_FEDERATED_SERVER            // 4
 	IDENTITY_PENDING_AUDIT_SERVER                // 5
 	IDENTITY_PENDING_FULL                        // 6
-	IDENTITY_SELF                                // 7
-	IDENTITY_SELF_FULL                           // 8
+	IDENTITY_SKELETON                            // 7 - Skeleton Identity
 )
 
 //---------------------------------------------------------------------
