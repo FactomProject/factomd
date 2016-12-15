@@ -69,16 +69,16 @@ func TestDBStateMsgValidate(t *testing.T) {
 	}
 
 	msg = newDBStateMsg()
-	msg.DirectoryBlock.GetHeader().SetDBHeight(state.GetHighestCompletedBlock() + 1)
-	constants.CheckPoints[state.GetHighestCompletedBlock()+1] = "123"
+	msg.DirectoryBlock.GetHeader().SetDBHeight(state.GetHighestSavedBlock() + 1)
+	constants.CheckPoints[state.GetHighestSavedBlock()+1] = "123"
 	if msg.Validate(state) >= 0 {
 		t.Errorf("Wrong checkpoint validated")
 	}
 
-	delete(constants.CheckPoints, state.GetHighestCompletedBlock()+1)
+	delete(constants.CheckPoints, state.GetHighestSavedBlock()+1)
 
 	msg = newDBStateMsg()
-	msg.DirectoryBlock.GetHeader().SetDBHeight(state.GetHighestCompletedBlock() + 1)
+	msg.DirectoryBlock.GetHeader().SetDBHeight(state.GetHighestSavedBlock() + 1)
 	if msg.Validate(state) <= 0 {
 		t.Errorf("Proper block not validated!")
 	}

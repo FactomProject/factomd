@@ -207,7 +207,7 @@ func (p *ProcessList) LenNewEntries() int {
 }
 
 func (p *ProcessList) Complete() bool {
-	if p.DBHeight <= p.State.GetHighestCompletedBlock() {
+	if p.DBHeight <= p.State.GetHighestSavedBlock() {
 		return true
 	}
 	for i := 0; i < len(p.FedServers); i++ {
@@ -807,7 +807,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 			// to disk.  Then we can insist on having the entry blocks.
 			diff := p.DBHeight - state.EntryBlockDBHeightComplete
-			
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the signatures are processed, we will be 2 behind.
@@ -1050,13 +1049,20 @@ func (p *ProcessList) String() string {
 		buf.WriteString("-- <nil>\n")
 	} else {
 		buf.WriteString("===ProcessListStart===\n")
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v\n",
+
+		pdbs := p.State.DBStates.Get(int(p.DBHeight - 1))
+		saved := "n"
+		if pdbs != nil && pdbs.Saved {
+			saved = "y"
+		}
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate.Saved = %s\n",
 			p.State.GetFactomNodeName(),
 			len(p.FedServers),
 			p.Complete(),
 			p.DBHeight,
 			p.State.DBSig,
-			p.State.EOM))
+			p.State.EOM,
+			saved))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
@@ -1196,7 +1202,7 @@ func (p *ProcessList) Reset() bool {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	s.RunLeader = false
 
-	s.LLeaderHeight = s.GetHighestCompletedBlock() + 1
+	s.LLeaderHeight = s.GetHighestSavedBlock() + 1
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
