@@ -207,6 +207,12 @@ func (m *MissingMsgResponse) ListHeight() int {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *MissingMsgResponse) Validate(state interfaces.IState) int {
+	if m.AckResponse == nil {
+		return -1
+	}
+	if m.MsgResponse == nil {
+		return -1
+	}
 	return 1
 }
 
