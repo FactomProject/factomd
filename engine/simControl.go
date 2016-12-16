@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
@@ -844,15 +845,24 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'q' == b[0]:
-				eHashes := fnodes[listenTo].State.GetPendingEntries()
+				var eHashes interface{}
+				if len(b) > 1 {
+					eHashes = fnodes[listenTo].State.GetPendingEntries(b[1])
+				} else {
+					eHashes = fnodes[listenTo].State.GetPendingEntries("")
+				}
 				os.Stderr.WriteString("Pending Entry Hash\n")
 				os.Stderr.WriteString("------------------\n")
-				for _, eh := range eHashes {
-					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
-				}
+				//for _, eh := range eHashes {
+				os.Stderr.WriteString(fmt.Sprint(eHashes, "\n"))
+				//}
 			case 'j' == b[0]:
-
-				fpl := fnodes[listenTo].State.GetPendingTransactions()
+				var fpl []interfaces.IPendingTransaction
+				if len(b) > 1 {
+					fpl = fnodes[listenTo].State.GetPendingTransactions(b[1])
+				} else {
+					fpl = fnodes[listenTo].State.GetPendingTransactions("")
+				}
 				fmt.Println(fpl)
 			case 'S' == b[0]:
 				nnn, err := strconv.Atoi(string(b[1:]))
@@ -916,26 +926,19 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString("No Factom Node selected\n")
 					break
 				}
-				nn, err := strconv.Atoi(string(b[1:]))
-				nnn := int64(nn)
-				if err != nil || nnn < 0 || nnn > 99999 {
-					os.Stderr.WriteString("Specifiy a delay amount in milliseconds less than 100 seconds\n")
-					break
-				}
-
-				for _, f := range fnodes {
-					for _, p := range f.Peers {
-						sim, ok := p.(*SimPeer)
-						if ok {
-							if sim.FromName == fnodes[listenTo].State.FactomNodeName {
-								sim.Delay = nnn
-							}
-						}
+				s := fnodes[listenTo].State
+				for i, dbs := range s.DBStates.DBStates {
+					if dbs == nil {
+						os.Stderr.WriteString(fmt.Sprintf("%2d DBState            nil\n", i))
+					} else {
+						os.Stderr.WriteString(fmt.Sprintf("%2d DBState                          IsNew[%5v] Locked [%5v] ReadyToSave [%5v] Saved [%5v]\n%v", i,
+							dbs.IsNew,
+							dbs.Locked,
+							dbs.ReadyToSave,
+							dbs.Saved,
+							dbs.String()))
 					}
 				}
-
-				fnodes[listenTo].State.Delay = nnn
-				os.Stderr.WriteString(fmt.Sprintf("Setting Delay on communications from %10s to %2d.%03d Seconds\n", fnodes[listenTo].State.FactomNodeName, nnn/1000, nnn%1000))
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
@@ -948,6 +951,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("eN            Show Entry Credit Block   N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("fN            Show Factoid block  			 N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("dN            Show Directory block			 N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
+				os.Stderr.WriteString("D             Print a Directory Block for blocks in DBStates.\n")
 				os.Stderr.WriteString("kN.M          Show Entry Block and Chain Head.  N is the directory block, and M is the Entry in that block.\n")
 				os.Stderr.WriteString("                 So K3.6 gets the directory block at height 3, and prints the entry at index 6.\n")
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
@@ -955,6 +959,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("Tnnn          Set the block time to the given number of seconds.\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
+				os.Stderr.WriteString("Snnn          Print the last nnn status messages from the current node.\n")
 				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")
 				os.Stderr.WriteString("n             Change the focus to the next node.\n")
 				os.Stderr.WriteString("l             Make focused node the Leader.\n")
@@ -1033,7 +1038,7 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 	for *watchPL == value {
 		fnode := fnodes[*listenTo]
 		nprt := fnode.State.DBStates.String()
-		b := fnode.State.GetHighestSavedBlock()
+		b := fnode.State.GetHighestCompletedBlock()
 		fnode.State.ProcessLists.SetString = true
 		nprt = nprt + fnode.State.ProcessLists.Str
 		pl := fnode.State.ProcessLists.Get(b)

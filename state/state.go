@@ -96,6 +96,18 @@ type State struct {
 	ResetTryCnt int
 	ResetCnt    int
 
+	//  pending entry/transaction api calls for the holding queue do not have proper scope
+	//  This is used to create a temporary, correctly scoped holdingqueue snapshot for the calls on demand
+	HoldingMutex sync.Mutex
+	HoldingFlag  bool
+	HoldingMap   map[[32]byte]interfaces.IMsg
+
+	//  pending entry/transaction api calls for the ack queue do not have proper scope
+	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand
+	AcksMutex sync.Mutex
+	AcksFlag  bool
+	AcksMap   map[[32]byte]interfaces.IMsg
+
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
 	DBStateReplyCnt int
@@ -285,6 +297,8 @@ type State struct {
 	FERChangePrice       uint64
 	FERPriority          uint32
 	FERPrioritySetHeight uint32
+
+	AckChange uint32
 }
 
 type MissingEntryBlock struct {
@@ -480,6 +494,15 @@ func (s *State) IncECCommits() {
 
 func (s *State) IncECommits() {
 	s.ECommits++
+}
+
+func (s *State) GetAckChange() error {
+	change, err := util.GetChangeAcksHeight(s.filename)
+	if err != nil {
+		return err
+	}
+	s.AckChange = change
+	return nil
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
@@ -955,38 +978,319 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 	return msg, ackMsg, nil
 }
 
-func (s *State) GetPendingEntries() []interfaces.IEntry {
+func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 
-	pLists := s.ProcessLists
+	// request holding queue from state from outside state scope
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
 
-	if pLists == nil {
-		return nil
+	s.HoldingFlag = true
+
+	// wait for state to fill the holdingMap and set flag to false
+	timeout := 0
+	for s.HoldingFlag == true {
+		if timeout > 50 {
+			s.HoldingFlag = false
+
+		} // only wait 5 seconds for the holding queue before giving up
+		time.Sleep(100 * time.Millisecond)
+		timeout++
 	}
-	ht := pLists.State.GetHighestSavedBlock()
-	pl := pLists.Get(ht + 1)
-	var hashCount int32
-	hashCount = 0
-	hashResponse := make([]interfaces.IEntry, pl.LenNewEntries())
-	keys := pl.GetKeysNewEntries()
-	for _, k := range keys {
-		entry := pl.GetNewEntry(k)
-		hashResponse[hashCount] = entry
-		hashCount++
-	}
-	return hashResponse
+	lHold := s.HoldingMap
+	// done with the holdingmap. clear it
+	s.HoldingMap = make(map[[32]byte]interfaces.IMsg, 0)
+	return lHold
+
 }
 
-func (s *State) GetPendingTransactions() []interfaces.ITransaction {
+// this is executed in the state maintenance processes where the holding queue is in scope and can be queried
+//  This is what fills the HoldingMap requested in LoadHoldingMap
+func (s *State) fillHoldingMap() {
 
-	cb := s.FactoidState.GetCurrentBlock()
-	ct := cb.GetTransactions()
-	ts := make([]interfaces.ITransaction, len(ct))
-
-	for i, tran := range ct {
-		ts[i] = tran
+	if s.HoldingFlag == true {
+		s.HoldingMap = make(map[[32]byte]interfaces.IMsg, len(s.Holding))
+		for i, msg := range s.Holding {
+			s.HoldingMap[i] = msg
+		}
+		s.HoldingFlag = false
 	}
 
-	return ts
+}
+
+func (s *State) LoadAcksMap() map[[32]byte]interfaces.IMsg {
+
+	// request Acks queue from state from outside state scope
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+
+	s.AcksFlag = true
+
+	// wait for state to fill the AcksMap and set flag to false
+	timeout := 0
+	for s.AcksFlag == true {
+		if timeout > 50 {
+			s.AcksFlag = false
+
+		} // only wait 5 seconds for the Acks queue before giving up
+		time.Sleep(100 * time.Millisecond)
+		timeout++
+	}
+	lHold := s.AcksMap
+	// done with the Acksmap. clear it
+	s.AcksMap = make(map[[32]byte]interfaces.IMsg, 0)
+	return lHold
+
+}
+
+// this is executed in the state maintenance processes where the Acks queue is in scope and can be queried
+//  This is what fills the AcksMap requested in LoadAcksMap
+func (s *State) fillAcksMap() {
+
+	if s.AcksFlag == true {
+		s.AcksMap = make(map[[32]byte]interfaces.IMsg, len(s.Acks))
+		for i, msg := range s.Acks {
+			s.AcksMap[i] = msg
+		}
+		s.AcksFlag = false
+	}
+
+}
+
+func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
+	resp := make([]interfaces.IPendingEntry, 0)
+	pls := s.ProcessLists.Lists
+	var cc messages.CommitChainMsg
+	var ce messages.CommitEntryMsg
+	var re messages.RevealEntryMsg
+	var tmp interfaces.IPendingEntry
+	// check all existing processlists/VMs
+	for _, pl := range pls {
+		for _, v := range pl.VMs {
+			for _, plmsg := range v.List {
+				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = cc.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = cc.CommitChain.EntryHash
+
+					tmp.ChainID = cc.CommitChain.ChainIDHash
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
+
+					resp = append(resp, tmp)
+				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = ce.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = ce.CommitEntry.EntryHash
+
+					tmp.ChainID = ce.CommitEntry.Hash()
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
+
+					resp = append(resp, tmp)
+				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = re.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = re.Entry.GetHash()
+					tmp.ChainID = re.Entry.GetChainID()
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
+
+					resp = append(resp, tmp)
+				}
+			}
+		}
+	}
+
+	// check holding queue
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+
+		if h.Type() == constants.REVEAL_ENTRY_MSG {
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil
+			}
+			err = re.UnmarshalBinary(enb)
+			if err != nil {
+				return nil
+			}
+			tmp.EntryHash = re.Entry.GetHash()
+
+			tmp.ChainID = re.Entry.GetChainID()
+			tmp.Status = "AckStatusNotConfirmed"
+
+			resp = append(resp, tmp)
+		}
+	}
+
+	return resp
+}
+
+func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
+
+	var flgFound bool
+
+	var currentHeightComplete = s.GetDBHeightComplete()
+	resp := make([]interfaces.IPendingTransaction, 0)
+	pls := s.ProcessLists.Lists
+	for _, pl := range pls {
+		// ignore old process lists
+		if pl.DBHeight > currentHeightComplete {
+			cb := pl.State.FactoidState.GetCurrentBlock()
+			ct := cb.GetTransactions()
+			for _, tran := range ct {
+				var tmp interfaces.IPendingTransaction
+				tmp.TransactionID = tran.GetSigHash()
+				if tran.GetBlockHeight() > 0 {
+					tmp.Status = "AckStatusDBlockConfirmed"
+				} else {
+					tmp.Status = "AckStatusACK"
+				}
+				if params.(string) == "" {
+					flgFound = true
+				} else {
+					flgFound = tran.HasUserAddress(params.(string))
+				}
+				if flgFound == true {
+					//working through multiple process lists.  Is this transaction already in the list?
+					for _, pt := range resp {
+						if pt.TransactionID.String() == tmp.TransactionID.String() {
+							flgFound = false
+						}
+					}
+					//  flag was true to be added to the list and not already in the list
+					if flgFound == true {
+						resp = append(resp, tmp)
+					}
+				}
+			}
+		}
+	}
+
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+		if h.Type() == constants.FACTOID_TRANSACTION_MSG {
+			var rm messages.FactoidTransaction
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil
+			}
+			err = rm.UnmarshalBinary(enb)
+			if err != nil {
+				return nil
+			}
+			tempTran := rm.GetTransaction()
+			var tmp interfaces.IPendingTransaction
+			tmp.TransactionID = tempTran.GetSigHash()
+			tmp.Status = "AckStatusNotConfirmed"
+			flgFound = tempTran.HasUserAddress(params.(string))
+
+			if flgFound == true {
+				//working through multiple process lists.  Is this transaction already in the list?
+				for _, pt := range resp {
+					if pt.TransactionID.String() == tmp.TransactionID.String() {
+						flgFound = false
+					}
+				}
+				//  flag was true to be added to the list and not already in the list
+				if flgFound == true {
+					resp = append(resp, tmp)
+				}
+			}
+		}
+	}
+
+	//b, _ := json.Marshal(resp)
+	return resp
+}
+
+// might want to make this search the database at some point to be more generic
+func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IHash, error) {
+	pls := s.ProcessLists.Lists
+	var cc messages.CommitChainMsg
+	var ce messages.CommitEntryMsg
+	var re messages.RevealEntryMsg
+
+	// check all existing processlists (last complete block +1 and greater)
+	for _, pl := range pls {
+
+		for _, v := range pl.VMs {
+
+			// check chain commits
+			for _, plmsg := range v.List {
+				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = cc.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+					if cc.CommitChain.GetSigHash().String() == txID {
+						return cc.CommitChain.EntryHash, nil
+					}
+				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = ce.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+
+					if ce.CommitEntry.GetSigHash().String() == txID {
+						return ce.CommitEntry.EntryHash, nil
+					}
+
+				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = re.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+					if re.Entry.GetHash().String() == txID {
+						return re.Entry.GetHash(), nil
+					}
+				} else {
+
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("%s", "Transaction not found")
 }
 
 func (s *State) IncFactoidTrans() {
@@ -1056,8 +1360,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-
-	dbheight := s.GetHighestSavedBlock()
+	dbheight := s.GetHighestCompletedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
 		dbheight++
@@ -1065,9 +1368,16 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight > 1 {
 		dbheight--
 	}
-	if plbase <= dbheight {
+
+	ProcessLists := s.ProcessLists
+	if ProcessLists.SetString {
+		ProcessLists.SetString = false
+		ProcessLists.Str = ProcessLists.String()
+	}
+
+	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to messages
 		if !s.Leader || s.RunLeader {
-			progress = s.ProcessLists.UpdateState(dbheight)
+			progress = ProcessLists.UpdateState(dbheight)
 		}
 	}
 
@@ -1080,6 +1390,11 @@ func (s *State) UpdateState() (progress bool) {
 	if s.ControlPanelDataRequest {
 		s.CopyStateToControlPanel()
 	}
+
+	// check to see ig a holding queue list request has been made
+	s.fillHoldingMap()
+	s.fillAcksMap()
+
 	return
 }
 
@@ -1089,6 +1404,10 @@ func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) 
 	unique := s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed())
 	return unique
 }
+
+// This routine walks through the directory blocks, looking for missing entry blocks and entries.
+// Once it finds something missing, it keeps that as a mark, and starts there the next time it is
+// called.
 
 func (s *State) catchupEBlocks() {
 	now := s.GetTimestamp()
@@ -1122,12 +1441,6 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryRepeat = now
 
-			fmt.Printf("dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
-				s.FactomNodeName,
-				len(s.MissingEntries),
-				s.EntryDBHeightProcessing,
-				s.EntryDBHeightComplete)
-
 			for i, eb := range s.MissingEntries {
 				if i > 200 {
 					// Only send out 200 requests at a time.
@@ -1140,34 +1453,17 @@ func (s *State) catchupEBlocks() {
 	}
 	// If we still have 10 that we are asking for, then let's not add to the list.
 	if len(s.MissingEntryBlocks) < 10 {
-		// While we have less than 20 that we are asking for, look for more to ask for.
-		for s.EntryBlockDBHeightProcessing < s.GetHighestSavedBlock() && len(s.MissingEntryBlocks) < 20 {
-			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
-			doubleCheck := false
-			if dbstate != nil {
-				if len(dbstate.DirectoryBlock.GetEBlockDBEntries()) != len(dbstate.EntryBlocks) {
-					fmt.Printf("Wrong amount of entry blocks\n")
-					doubleCheck = true
-				}
-				if doubleCheck == false {
-					entryCount := 0
-					for _, v := range dbstate.EntryBlocks {
-						for _, w := range v.GetEntryHashes() {
-							if !w.IsMinuteMarker() {
-								entryCount++
-							}
-						}
-					}
-					if entryCount != len(dbstate.Entries) {
-						fmt.Printf("Wrong amount of entries - %v vs %v\n", entryCount, len(dbstate.Entries))
-						doubleCheck = true
-					}
-				}
-			} else {
-				doubleCheck = true
-			}
 
-			if doubleCheck {
+		// While we have less than 20 that we are asking for, look for more to ask for.
+
+		// All done is true, and as long as it says true, we walk our bookmark forward.  Once we find something
+		// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
+		// review the directory block over again the next time.
+		alldone := true
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
+			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
+
+			if dbstate != nil {
 				db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
 				for i, ebKeyMR := range db.GetEntryHashes() {
@@ -1182,9 +1478,12 @@ func (s *State) catchupEBlocks() {
 
 					// Ask for blocks we don't have.
 					if eBlock == nil {
-						fmt.Printf("Could not find block %v\n", ebKeyMR)
+						s.AddStatus(fmt.Sprintf("Could not find block %x in state.catchupEBlocks()\n", ebKeyMR.Bytes()[:4]))
 						s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 							MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+
+						// Something missing, stop moving the bookmark.
+						alldone = false
 					} else {
 						for _, entryhash := range eBlock.GetEntryHashes() {
 							if entryhash.IsMinuteMarker() {
@@ -1203,18 +1502,26 @@ func (s *State) catchupEBlocks() {
 								v.ebhash = ebKeyMR
 
 								s.MissingEntries = append(s.MissingEntries, v)
+
+								// Something missing. stop moving the bookmark.
+								alldone = false
 							}
 							// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
 							s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
-							delete(s.Commits, entryhash.Fixed())
+							// If the save worked, then remove any commit that might be around.
+							if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+								delete(s.Commits, entryhash.Fixed())
+							}
 						}
 					}
 				}
 			}
-			if len(s.MissingEntries) == 0 && s.EntryBlockDBHeightComplete == s.EntryBlockDBHeightProcessing {
+			if alldone {
+				// we had three bookmarks.  Now they are all in lockstep. TODO: get rid of extra bookmarks.
 				s.EntryBlockDBHeightComplete++
+				s.EntryDBHeightComplete++
+				s.EntryBlockDBHeightProcessing++
 			}
-			s.EntryBlockDBHeightProcessing++
 		}
 	}
 
@@ -1698,7 +2005,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Get(int(s.GetHighestCompletedBlock())).DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestSavedBlock())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}

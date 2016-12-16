@@ -6,6 +6,7 @@ package wsapi
 
 import (
 	"encoding/hex"
+	"fmt"
 	//"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -13,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -97,7 +99,9 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 
 func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	ackReq := new(AckRequest)
+
 	err := MapToObject(params, ackReq)
+
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
@@ -116,11 +120,9 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 		}
 	}
 
-	//TODO: fetch entries, ec TXs from state as well
-
 	//We didn't receive a full transaction, but a transaction hash
 	//We have to figure out which transaction hash we got
-	if ecTxID == "" && eTxID == "" {
+	if eTxID == "" {
 		h, err := primitives.NewShaHashFromStr(ackReq.TxID)
 		if err != nil {
 			return nil, NewInvalidParamsError()
@@ -137,10 +139,131 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 				return nil, NewInternalError()
 			}
 
-			//fmt.Printf("ec - %v\n", ec)
 			if ec != nil {
-				ecTxID = ackReq.TxID
+				//	ecTxID = ackReq.TxID
 				eTxID = ec.GetEntryHash().String()
+			}
+
+			// havent found entry or chain transaction.  check all of the Process Lists
+			if eTxID == "" {
+				eHash, err := state.FetchEntryHashFromProcessListsByTxID(ackReq.TxID)
+				if err != nil {
+					fmt.Println("FetchEntryHashFromProcessListsByTxID:", err)
+				} else {
+					eTxID = eHash.String()
+				}
+			}
+
+			//pend := state.GetPendingEntries(params)  // covered elsewhere
+			/// still havent found them.  Check the Acks queue
+			aQue := state.LoadAcksMap()
+
+			for _, a := range aQue {
+
+				if a.Type() == constants.REVEAL_ENTRY_MSG {
+					var rm messages.RevealEntryMsg
+					enb, err := a.MarshalBinary()
+					if err != nil {
+						return nil, NewInternalError()
+					}
+					err = rm.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, NewInternalError()
+					}
+					if rm.Entry.GetHash().String() == ackReq.TxID {
+						eTxID = rm.Entry.GetHash().String()
+					}
+					//	ecTxID = rm.Entry. GetChainIDHash().String()
+				} else if a.Type() == constants.COMMIT_ENTRY_MSG {
+					var rm messages.CommitEntryMsg
+					enb, err := a.MarshalBinary()
+					if err != nil {
+						return nil, NewInternalError()
+					}
+					err = rm.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, NewInternalError()
+					}
+
+					if rm.CommitEntry.GetSigHash().String() == ackReq.TxID {
+						eTxID = rm.CommitEntry.GetEntryHash().String()
+
+					}
+					//	ecTxID = rm.CommitEntry.GetEntryHash().String()
+				} else if a.Type() == constants.COMMIT_CHAIN_MSG {
+					var rm messages.CommitChainMsg
+					enb, err := a.MarshalBinary()
+					if err != nil {
+						return nil, NewInternalError()
+					}
+					err = rm.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, NewInternalError()
+					}
+					//	ecTxID = rm.CommitChain.ChainIDHash.String()
+					if rm.CommitChain.GetSigHash().String() == ackReq.TxID {
+						eTxID = rm.CommitChain.GetSigHash().String()
+					}
+				}
+			}
+
+			// still havent found them.  Check the holding queue
+			if ecTxID == "" && eTxID == "" {
+				hQue := state.LoadHoldingMap()
+
+				for _, h := range hQue {
+
+					if h.Type() == constants.REVEAL_ENTRY_MSG {
+						var rm messages.RevealEntryMsg
+						enb, err := h.MarshalBinary()
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						err = rm.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						if rm.Entry.GetHash().String() == ackReq.TxID {
+							eTxID = rm.Entry.GetHash().String()
+							//		ecTxID = ackReq.TxID
+						}
+					} else if h.Type() == constants.COMMIT_ENTRY_MSG {
+						var rm messages.CommitEntryMsg
+						enb, err := h.MarshalBinary()
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						err = rm.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, NewInternalError()
+						}
+
+						if rm.CommitEntry.GetSigHash().String() == ackReq.TxID {
+							eTxID = rm.CommitEntry.GetEntryHash().String()
+							//		ecTxID = ackReq.TxID
+
+						}
+
+					} else if h.Type() == constants.COMMIT_CHAIN_MSG {
+						var rm messages.CommitChainMsg
+						enb, err := h.MarshalBinary()
+						if err != nil {
+							return nil, NewInternalError()
+						}
+						err = rm.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, NewInternalError()
+						}
+
+						if rm.CommitChain.GetSigHash().String() == ackReq.TxID {
+							eTxID = rm.CommitChain.GetSigHash().String()
+							//		ecTxID = ackReq.TxID
+						}
+
+					} else {
+						//	fmt.Println("I DONT KNOW THIS Holding Message TYPE:", h.Type())
+					}
+				}
 			}
 		}
 	}
@@ -148,7 +271,9 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	answer := new(EntryStatus)
 	answer.CommitTxID = ecTxID
 	answer.EntryHash = eTxID
-
+	//	answer.CommitData.Status = AckStatusACK
+	//	answer.EntryData.Status = AckStatusACK
+	//	return answer, nil
 	if answer.CommitTxID == "" && answer.EntryHash == "" {
 		//We know nothing about the transaction, so we return unknown status
 		answer.CommitData.Status = AckStatusUnknown
@@ -172,11 +297,14 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 	}
 
 	if answer.CommitTxID == "" {
+
 		h, err := primitives.NewShaHashFromStr(answer.EntryHash)
 		if err != nil {
 			return nil, NewInvalidParamsError()
 		}
+
 		ec, err := state.FetchPaidFor(h)
+
 		if err != nil {
 			return nil, NewInternalError()
 		}
@@ -266,7 +394,6 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 				answer.EntryData.BlockDateString = blockTime.String()
 			}
 		}
-
 		switch status {
 		case constants.AckStatusInvalid:
 			answer.EntryData.Status = AckStatusInvalid
@@ -305,27 +432,21 @@ func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID str
 	cc := new(entryCreditBlock.CommitChain)
 	rest, err := cc.UnmarshalBinaryData(b)
 	if err != nil || len(rest) > 0 {
-		//fmt.Printf("err - %v\n", err)
 		ec := new(entryCreditBlock.CommitEntry)
 		rest, err = ec.UnmarshalBinaryData(b)
 		if err != nil || len(rest) > 0 {
-			//fmt.Printf("err - %v\n", err)
 			e := new(entryBlock.Entry)
 			rest, err = e.UnmarshalBinaryData(b)
 			if err != nil || len(rest) > 0 {
-				//fmt.Printf("err - %v\n", err)
 				return
 			} else {
-				//fmt.Println("e")
 				eTxID = e.GetHash().String()
 			}
 		} else {
-			//fmt.Println("ec")
 			eTxID = ec.GetEntryHash().String()
 			ecTxID = ec.GetHash().String()
 		}
 	} else {
-		//fmt.Println("cc")
 		eTxID = cc.GetEntryHash().String()
 		ecTxID = cc.GetHash().String()
 	}
