@@ -504,8 +504,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		return
 	}
 
-	now := s.GetTimestamp()
-
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
 		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
@@ -532,40 +530,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
 			s.DB.ProcessEBlockBatch(eblock, true)
 
-			for _, entryhash := range eblock.GetEntryHashes() {
-				if entryhash.IsMinuteMarker() {
-					continue
-				}
-				e, _ := s.DB.FetchEntry(entryhash)
-				if e == nil {
-					var v struct {
-						ebhash    interfaces.IHash
-						entryhash interfaces.IHash
-						dbheight  uint32
-					}
-
-					v.dbheight = eblock.GetHeader().GetDBHeight()
-					v.entryhash = entryhash
-					v.ebhash = eb
-
-					s.MissingEntries = append(s.MissingEntries, v)
-
-					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-					if s.Replay.IsTSValid_(constants.TIME_TEST, entryhash.Fixed(), db.GetTimestamp(), now) {
-						delete(s.Commits, entryhash.Fixed())
-					}
-
-				}
-
-			}
-
-			mindb := s.GetDBHeightComplete() + 1
-			for _, missingleft := range s.MissingEntryBlocks {
-				if missingleft.dbheight <= mindb {
-					mindb = missingleft.dbheight
-				}
-			}
-			s.EntryBlockDBHeightComplete = mindb - 1
 			break
 		}
 
