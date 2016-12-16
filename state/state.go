@@ -155,6 +155,11 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+
+	// Ignore missing messages for a period to allow rebooting a network where your
+	// own messages from the previously executing network can confuse you.
+	IgnoreMissing bool
+
 	LLeaderHeight   uint32
 	Leader          bool
 	LeaderVMIndex   int
@@ -1988,6 +1993,8 @@ func (s *State) SetStringQueues() {
 	}
 	if !s.RunLeader && found {
 		W = "W"
+	} else if s.IgnoreMissing {
+		W = "I"
 	}
 
 	stype := fmt.Sprintf("%1s%1s%1s%1s", L, X, W, N)
