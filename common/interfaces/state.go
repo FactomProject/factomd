@@ -103,7 +103,7 @@ type IState interface {
 	PutNewEBlocks(dbheight uint32, hash IHash, eb IEntryBlock)
 	PutNewEntries(dbheight uint32, hash IHash, eb IEntry)
 
-	GetPendingEntries() []IEntry
+	GetPendingEntries(interface{}) []IPendingEntry
 	NextCommit(hash IHash) IMsg
 	PutCommit(hash IHash, msg IMsg)
 
@@ -164,7 +164,7 @@ type IState interface {
 	IncFactoidTrans()
 	IncDBStateAnswerCnt()
 
-	GetPendingTransactions() []ITransaction
+	GetPendingTransactions(interface{}) []IPendingTransaction
 	// MISC
 	// ====
 
@@ -227,6 +227,7 @@ type IState interface {
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
 	FetchEntryByHash(IHash) (IEBEntry, error)
+	FetchEntryHashFromProcessListsByTxID(string) (IHash, error)
 
 	// FER section
 	ProcessRecentFERChainEntries()
@@ -249,4 +250,8 @@ type IState interface {
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
 	GetCurrentMinute() int
+
+	// Access to Holding Queue
+	LoadHoldingMap() map[[32]byte]IMsg
+	LoadAcksMap() map[[32]byte]IMsg
 }

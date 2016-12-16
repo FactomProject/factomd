@@ -235,6 +235,17 @@ type MessageRequest struct {
 	Message string `json:"message"`
 }
 
+type PendingEntry struct {
+	EntryHash interfaces.IHash `json:"entryhash"`
+	ChainID   interfaces.IHash `json:"chainid"`
+	Status    string           `json:"status"`
+}
+
+type PendingTransaction struct {
+	TransactionID interfaces.IHash `json:"transactionid"`
+	Status        string           `json:"status"`
+}
+
 type TransactionRequest struct {
 	Transaction string `json:"transaction"`
 }
