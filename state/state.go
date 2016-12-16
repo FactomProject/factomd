@@ -185,7 +185,6 @@ type State struct {
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
-	Newblk  bool // True if we are starting a new block, and a dbsig is needed.
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
@@ -298,6 +297,8 @@ type State struct {
 	FERChangePrice       uint64
 	FERPriority          uint32
 	FERPrioritySetHeight uint32
+
+	AckChange uint32
 }
 
 type MissingEntryBlock struct {
@@ -493,6 +494,15 @@ func (s *State) IncECCommits() {
 
 func (s *State) IncECommits() {
 	s.ECommits++
+}
+
+func (s *State) GetAckChange() error {
+	change, err := util.GetChangeAcksHeight(s.filename)
+	if err != nil {
+		return err
+	}
+	s.AckChange = change
+	return nil
 }
 
 func (s *State) LoadConfig(filename string, networkFlag string) {
@@ -1360,9 +1370,16 @@ func (s *State) UpdateState() (progress bool) {
 	if dbheight > 1 {
 		dbheight--
 	}
-	if plbase <= dbheight {
+
+	ProcessLists := s.ProcessLists
+	if ProcessLists.SetString {
+		ProcessLists.SetString = false
+		ProcessLists.Str = ProcessLists.String()
+	}
+
+	if plbase <= dbheight { // TODO: This is where we have to fix the fact that syncing with dbstates can fail to transition to messages
 		if !s.Leader || s.RunLeader {
-			progress = s.ProcessLists.UpdateState(dbheight)
+			progress = ProcessLists.UpdateState(dbheight)
 		}
 	}
 
@@ -1389,6 +1406,10 @@ func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) 
 	unique := s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed())
 	return unique
 }
+
+// This routine walks through the directory blocks, looking for missing entry blocks and entries.
+// Once it finds something missing, it keeps that as a mark, and starts there the next time it is
+// called.
 
 func (s *State) catchupEBlocks() {
 	now := s.GetTimestamp()
@@ -1422,12 +1443,6 @@ func (s *State) catchupEBlocks() {
 		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
 			s.MissingEntryRepeat = now
 
-			fmt.Printf("dddd Missing Entry %10s #missing %d Processing %d Complete %d\n",
-				s.FactomNodeName,
-				len(s.MissingEntries),
-				s.EntryDBHeightProcessing,
-				s.EntryDBHeightComplete)
-
 			for i, eb := range s.MissingEntries {
 				if i > 200 {
 					// Only send out 200 requests at a time.
@@ -1440,34 +1455,17 @@ func (s *State) catchupEBlocks() {
 	}
 	// If we still have 10 that we are asking for, then let's not add to the list.
 	if len(s.MissingEntryBlocks) < 10 {
+
 		// While we have less than 20 that we are asking for, look for more to ask for.
+
+		// All done is true, and as long as it says true, we walk our bookmark forward.  Once we find something
+		// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
+		// review the directory block over again the next time.
+		alldone := true
 		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
 			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
-			doubleCheck := false
-			if dbstate != nil {
-				if len(dbstate.DirectoryBlock.GetEBlockDBEntries()) != len(dbstate.EntryBlocks) {
-					fmt.Printf("Wrong amount of entry blocks\n")
-					doubleCheck = true
-				}
-				if doubleCheck == false {
-					entryCount := 0
-					for _, v := range dbstate.EntryBlocks {
-						for _, w := range v.GetEntryHashes() {
-							if !w.IsMinuteMarker() {
-								entryCount++
-							}
-						}
-					}
-					if entryCount != len(dbstate.Entries) {
-						fmt.Printf("Wrong amount of entries - %v vs %v\n", entryCount, len(dbstate.Entries))
-						doubleCheck = true
-					}
-				}
-			} else {
-				doubleCheck = true
-			}
 
-			if doubleCheck {
+			if dbstate != nil {
 				db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
 				for i, ebKeyMR := range db.GetEntryHashes() {
@@ -1482,9 +1480,12 @@ func (s *State) catchupEBlocks() {
 
 					// Ask for blocks we don't have.
 					if eBlock == nil {
-						fmt.Printf("Could not find block %v\n", ebKeyMR)
+						s.AddStatus(fmt.Sprintf("Could not find block %x in state.catchupEBlocks()\n", ebKeyMR.Bytes()[:4]))
 						s.MissingEntryBlocks = append(s.MissingEntryBlocks,
 							MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+
+						// Something missing, stop moving the bookmark.
+						alldone = false
 					} else {
 						for _, entryhash := range eBlock.GetEntryHashes() {
 							if entryhash.IsMinuteMarker() {
@@ -1503,18 +1504,26 @@ func (s *State) catchupEBlocks() {
 								v.ebhash = ebKeyMR
 
 								s.MissingEntries = append(s.MissingEntries, v)
+
+								// Something missing. stop moving the bookmark.
+								alldone = false
 							}
 							// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
 							s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
-							delete(s.Commits, entryhash.Fixed())
+							// If the save worked, then remove any commit that might be around.
+							if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+								delete(s.Commits, entryhash.Fixed())
+							}
 						}
 					}
 				}
 			}
-			if len(s.MissingEntries) == 0 && s.EntryBlockDBHeightComplete == s.EntryBlockDBHeightProcessing {
+			if alldone {
+				// we had three bookmarks.  Now they are all in lockstep. TODO: get rid of extra bookmarks.
 				s.EntryBlockDBHeightComplete++
+				s.EntryDBHeightComplete++
+				s.EntryBlockDBHeightProcessing++
 			}
-			s.EntryBlockDBHeightProcessing++
 		}
 	}
 

@@ -252,6 +252,7 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
+		s.AddStatus(fmt.Sprintf("AddDBState(): Fail dbstate is nil at dbht: %d", directoryBlock.GetHeader().GetDBHeight()))
 		return nil
 	}
 
@@ -274,7 +275,6 @@ func (s *State) AddDBState(isNew bool,
 		s.DBSigProcessed = 0
 		s.StartDelay = s.GetTimestamp().GetTimeMilli()
 		s.RunLeader = false
-		s.Newblk = true
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 		{
@@ -413,18 +413,27 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	if dbstate == nil {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
 		s.DBStateFailsCnt++
-	} else {
-		if dbstatemsg.IsInDB == false {
-			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
-			dbstate.ReadyToSave = true
-			dbstate.Locked = false
-		} else {
-			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
-			dbstate.Saved = true
-			dbstate.isNew = false
-			dbstate.Locked = false
-		}
+		return
 	}
+
+	if dbstatemsg.IsInDB == false {
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
+		dbstate.ReadyToSave = true
+		dbstate.Locked = false
+	} else {
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
+		dbstate.Saved = true
+		dbstate.IsNew = false
+		dbstate.Locked = false
+	}
+
+	s.EOM = false
+	s.EOMDone = false
+	s.DBSig = false
+	s.DBSigDone = false
+	s.Saving = true
+	s.Syncing = false
+
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -495,8 +504,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		return
 	}
 
-	now := s.GetTimestamp()
-
 	switch msg.DataType {
 	case 1: // Data is an entryBlock
 		eblock, ok := msg.DataObject.(interfaces.IEntryBlock)
@@ -523,40 +530,6 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
 			s.DB.ProcessEBlockBatch(eblock, true)
 
-			for _, entryhash := range eblock.GetEntryHashes() {
-				if entryhash.IsMinuteMarker() {
-					continue
-				}
-				e, _ := s.DB.FetchEntry(entryhash)
-				if e == nil {
-					var v struct {
-						ebhash    interfaces.IHash
-						entryhash interfaces.IHash
-						dbheight  uint32
-					}
-
-					v.dbheight = eblock.GetHeader().GetDBHeight()
-					v.entryhash = entryhash
-					v.ebhash = eb
-
-					s.MissingEntries = append(s.MissingEntries, v)
-
-					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-					if s.Replay.IsTSValid_(constants.TIME_TEST, entryhash.Fixed(), db.GetTimestamp(), now) {
-						delete(s.Commits, entryhash.Fixed())
-					}
-
-				}
-
-			}
-
-			mindb := s.GetDBHeightComplete() + 1
-			for _, missingleft := range s.MissingEntryBlocks {
-				if missingleft.dbheight <= mindb {
-					mindb = missingleft.dbheight
-				}
-			}
-			s.EntryBlockDBHeightComplete = mindb - 1
 			break
 		}
 
@@ -1087,7 +1060,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMMinute = int(e.Minute)
 		s.EOMsyncing = true
 		s.EOMProcessed = 0
-		s.Newblk = false
 
 		for _, vm := range pl.VMs {
 			vm.Synced = false
@@ -1162,6 +1134,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 			s.CurrentMinute = 0
 			s.LLeaderHeight++
+
+			s.GetAckChange()
+			s.CheckForIDChange()
+
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(0, s.IdentityChainID)
 
@@ -1222,6 +1198,26 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	return false
+}
+
+func (s *State) CheckForIDChange() {
+	var reloadIdentity bool = false
+	if s.AckChange > 0 {
+		if s.LLeaderHeight >= s.AckChange {
+			reloadIdentity = true
+		}
+	}
+	if reloadIdentity {
+		config := util.ReadConfig(s.filename)
+		var err error
+		s.IdentityChainID, err = primitives.NewShaHashFromStr(config.App.IdentityChainID)
+		if err != nil {
+			panic(err)
+		}
+		s.LocalServerPrivKey = config.App.LocalServerPrivKey
+		fmt.Printf("Updated Local Server Identity to %s", s.LocalServerPrivKey)
+		s.initServerKeys()
+	}
 }
 
 // When we process the directory Signature, and we are the leader for said signature, it
@@ -1291,7 +1287,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 		dbstate := s.GetDBState(dbheight - 1)
 
-		if dbstate == nil || !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
+		if dbstate == nil {
+			return false
+		}
+
+		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
 			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}

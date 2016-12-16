@@ -1,36 +1,19 @@
 hash: 0ae845529f65fa5a6b957f3617734f6e5ec1592109468c4bff7af11b28abccc7
-updated: 2016-12-12T18:18:43.46666996-06:00
+updated: 2016-12-15T09:21:55.170855512-06:00
 imports:
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
   subpackages:
-  - btcec
   - btcjson
   - chaincfg
   - txscript
   - wire
-- name: github.com/btcsuitereleases/btclog
-  version: 9ccde63ae9b8e0255b8c473f9c831e3f71479c09
 - name: github.com/btcsuitereleases/btcrpcclient
   version: 30a5dc36b5f1519ae5dd9cae45aaf73ad46a813a
 - name: github.com/btcsuitereleases/btcutil
   version: f2b1058a82554c0c7c3b8809c5956c38374604d8
   subpackages:
   - base58
-- name: github.com/btcsuitereleases/fastsha256
-  version: 302ad4db268b46f9ebda3078f6f7397f96047735
-- name: github.com/btcsuitereleases/go-socks
-  version: cfe8b59e565c1a5bd4e2005d77cd9aa8b2e14524
-  subpackages:
-  - socks
-- name: github.com/btcsuitereleases/golangcrypto
-  version: 05002d6890216a1a6df3acb9c2d6177a5cd28602
-  subpackages:
-  - ripemd160
-- name: github.com/btcsuitereleases/seelog
-  version: 313961b101eb55f65ae0f03ddd4e322731763b6c
-- name: github.com/btcsuitereleases/websocket
-  version: 4f61fd4eb6615fbff1acb8b339a8f4dbe8fc4df8
 - name: github.com/FactomProject/basen
   version: fe3947df716ebfda9847eb1b9a48f9592e06478c
 - name: github.com/FactomProject/bolt
@@ -59,7 +42,7 @@ imports:
   - state/stateinit
   - wallet
 - name: github.com/FactomProject/factom
-  version: 06c4467f4ad65bbe51ca9d44194c49c808421cac
+  version: 1079565fd8208c09a7b08a4ce4085170662e08e6
   subpackages:
   - wallet
   - wallet/wsapi
@@ -121,11 +104,11 @@ imports:
   - pbkdf2
   - ripemd160
 - name: golang.org/x/net
-  version: b1a2d6e8c8b5fc8f601ead62536f02a8e1b6217d
+  version: 468bac874d80e6ca892ecbb9bf09c72519b5b751
   subpackages:
   - websocket
 - name: golang.org/x/sys
-  version: 478fcf54317e52ab69f40bb4c7a1520288d7f7ea
+  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
   subpackages:
   - unix
 - name: gopkg.in/gcfg.v1

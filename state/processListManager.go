@@ -31,11 +31,6 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
-	if lists.SetString {
-		lists.SetString = false
-		lists.Str = lists.String()
-	}
-
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
 	if diff > 1 && len(lists.Lists) > 1 {
@@ -97,15 +92,12 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 }
 
 func (lists *ProcessLists) String() string {
-	str := "Process Lists"
-	if len(lists.Lists) > 0 {
-		if len(lists.Lists) > 1 {
-			pl := lists.Lists[len(lists.Lists)-2]
-			str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
-			str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
-		}
 
-		pl := lists.Lists[len(lists.Lists)-1]
+	str := "Process Lists"
+	for i, pl := range lists.Lists {
+		if len(lists.Lists)-i > 3 {
+			continue
+		}
 		str = fmt.Sprintf("%s  DBBase: %d\n", str, lists.DBHeightBase)
 		str = fmt.Sprintf("%s ht: %d pl: %s\n", str, pl.DBHeight, pl.String())
 	}

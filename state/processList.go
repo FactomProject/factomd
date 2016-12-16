@@ -825,6 +825,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 					progress = true
 				} else {
+					p.State.AddStatus("Could not process entry")
 					break VMListLoop // Don't process further in this list, go to the next.
 				}
 			} else {
@@ -1054,13 +1055,20 @@ func (p *ProcessList) String() string {
 		buf.WriteString("-- <nil>\n")
 	} else {
 		buf.WriteString("===ProcessListStart===\n")
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v\n",
+
+		pdbs := p.State.DBStates.Get(int(p.DBHeight - 1))
+		saved := "n"
+		if pdbs != nil && pdbs.Saved {
+			saved = "y"
+		}
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate.Saved = %s\n",
 			p.State.GetFactomNodeName(),
 			len(p.FedServers),
 			p.Complete(),
 			p.DBHeight,
 			p.State.DBSig,
-			p.State.EOM))
+			p.State.EOM,
+			saved))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
@@ -1193,13 +1201,14 @@ func (p *ProcessList) Reset() bool {
 	s.Saving = true
 	s.Syncing = false
 	s.EOM = false
+	s.EOMDone = false
 	s.DBSig = false
+	s.DBSigDone = false
 	s.CurrentMinute = 0
 	s.EOMProcessed = 0
 	s.DBSigProcessed = 0
 	s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	s.RunLeader = false
-	s.Newblk = true
 
 	s.LLeaderHeight = s.GetHighestCompletedBlock() + 1
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)

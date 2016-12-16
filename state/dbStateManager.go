@@ -24,7 +24,7 @@ var _ = time.Now()
 var _ = log.Print
 
 type DBState struct {
-	isNew bool
+	IsNew bool
 
 	SaveStruct *SaveState
 
@@ -315,7 +315,7 @@ func containsServer(haystack []interfaces.IFctServer, needle interfaces.IFctServ
 // p is previous, d is current
 func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	// If this block is new, then make sure all hashes are fully computed.
-	if !d.isNew || p == nil {
+	if !d.IsNew || p == nil {
 		return
 	}
 
@@ -452,14 +452,14 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	d.DirectoryBlock.MarshalBinary()
 
 	progress = true
-	d.isNew = false
+	d.IsNew = false
 	return
 }
 
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if d.Locked || d.isNew {
+	if d.Locked || d.IsNew {
 		return
 	}
 
@@ -490,6 +490,9 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	var out bytes.Buffer
 	out.WriteString("=== AdminBlock.UpdateState() Start ===\n")
 	prt := func(lable string, pl *ProcessList) {
+		if !list.State.DebugConsensus {
+			return
+		}
 		out.WriteString(fmt.Sprintf("%19s %20s (%4d)", list.State.FactomNodeName, lable, pl.DBHeight))
 		out.WriteString("Fed: ")
 		for _, f := range pl.FedServers {
@@ -533,9 +536,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	prt("pln 4th", pln)
 	prt("pln2 4th", pln2)
 
-	out.WriteString("=== AdminBlock.UpdateState() End ===")
-	fmt.Println(out.String())
-
+	if list.State.DebugConsensus {
+		out.WriteString("=== AdminBlock.UpdateState() End ===")
+		fmt.Println(out.String())
+	}
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
@@ -824,7 +828,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.FBHash = factoidBlock.DatabasePrimaryIndex()
 	dbState.ECHash = entryCreditBlock.DatabasePrimaryIndex()
 
-	dbState.isNew = isNew
+	dbState.IsNew = isNew
 	dbState.DirectoryBlock = directoryBlock
 	dbState.AdminBlock = adminBlock
 	dbState.FactoidBlock = factoidBlock

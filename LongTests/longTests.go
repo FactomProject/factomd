@@ -107,7 +107,7 @@ func TopupFAddress() {
 		panic(fmt.Sprintf("Balance is too low - %v vs %v", fBalance/100000000.0, fBalanceThreshold/100000000.0))
 	}
 
-	tx, err := factom.SendFactoid(FaucetAddress, FAddressStr, fBalanceThreshold)
+	tx, err := factom.SendFactoid(FaucetAddress, FAddressStr, fBalanceThreshold, true)
 	if err != nil {
 		panic(err)
 	}
@@ -155,8 +155,8 @@ func TopupECAddress() {
 	//fmt.Printf("TopupECAddress - %v, %v\n", FAddressStr, ECAddressStr)
 	const ecBalanceThreshold uint64 = 10
 
-	tx, err := factom.BuyExactEC(FAddressStr, ECAddressStr, uint64(ecBalanceThreshold))
-	//tx, err := factom.BuyExactEC(FaucetAddress, ECAddressStr, uint64(ecBalanceThreshold))
+	tx, err := factom.BuyExactEC(FAddressStr, ECAddressStr, uint64(ecBalanceThreshold), true)
+	//tx, err := factom.BuyExactEC(FaucetAddress, ECAddressStr, uint64(ecBalanceThreshold), true)
 	if err != nil {
 		panic(err)
 	}
