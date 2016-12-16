@@ -7,9 +7,6 @@ type IProcessList interface {
 	GetKeysNewEntries() (keys [][32]byte)
 	GetNewEntry(key [32]byte) IEntry
 	LenNewEntries() int
-	GetKeysFaultMap() (keys [][32]byte)
-	LenFaultMap() int
-	//GetFaultState(key [32]byte) IFaultState
 	Complete() bool
 	VMIndexFor(hash []byte) int
 	SortFedServers()
@@ -36,8 +33,6 @@ type IProcessList interface {
 	DeleteEBlocks(key IHash)
 	AddNewEntry(key IHash, value IEntry)
 	DeleteNewEntry(key IHash)
-	//AddFaultState(key [32]byte, value IFaultState)
-	DeleteFaultState(key [32]byte)
 	GetLeaderTimestamp() Timestamp
 	ResetDiffSigTally()
 	IncrementDiffSigTally()

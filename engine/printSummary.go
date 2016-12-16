@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
@@ -184,13 +186,30 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
 
+		if f.State.MessageTally {
+			prt = prt + "\nType:"
+			for i := 0; i < constants.NUM_MESSAGES; i++ {
+				prt = prt + fmt.Sprintf("%5d ", i)
+			}
+			prt = prt + "\nRecd:"
+
+			for i := 0; i < constants.NUM_MESSAGES; i++ {
+				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
+			}
+			prt = prt + "\nSent:"
+			for i := 0; i < constants.NUM_MESSAGES; i++ {
+				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
+			}
+
+		}
 		prt = prt + "\n" + systemFaults(fnodes[*listenTo])
 
 		prt = prt + faultSummary()
 
+		lastdiff := ""
 		if verboseAuthoritySet {
 			lastdelta := pnodes[0].State.GetAuthoritySetString()
-			for _, f := range pnodes {
+			for i, f := range pnodes {
 				prt = prt + "\n"
 				ad := f.State.GetAuthoritySetString()
 				diff := ""
@@ -210,12 +229,17 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 						diff = diff + " "
 					}
 				}
+				if adiff && i > 0 && lastdiff == diff {
+					adiff = false
+				}
+				lastdiff = diff
 				if adiff {
 					diff = "\n" + diff
 				} else {
 					diff = ""
 				}
 				lastdelta = ad
+				diff = "\n" /*********************************** replace Diff with new line.*/
 				prt = prt + ad + diff
 			}
 			prt = prt + "\n"
@@ -289,42 +313,27 @@ func faultSummary() string {
 						}
 						prt = prt + fmt.Sprintf("%3s ", currentlyFaulted)
 					}
-					if pl.AmINegotiator {
-						lenFaults := pl.LenFaultMap()
-						if lenFaults > 0 {
-							prt = prt + fmt.Sprintf("| Faults:")
-							if lenFaults < 3 {
-								faultIDs := pl.GetKeysFaultMap()
-								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID)
-									if !faultState.IsNil() {
-										prt = prt + fmt.Sprintf(" %x/%x:%d ", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], faultState.SigTally(pl.State))
 
-										pledgeDoneString := "N"
-										if faultState.PledgeDone {
-											pledgeDoneString = "Y"
-										}
-										prt = prt + pledgeDoneString
-									}
-								}
-							} else {
-								//too many, line gets cluttered, just show totals
-								faultIDs := pl.GetKeysFaultMap()
-								for _, faultID := range faultIDs {
-									faultState := pl.GetFaultState(faultID)
-									if !faultState.IsNil() {
-										//if int(faultState.FaultCore.VMIndex) == pl.NegotiatorVMIndex {
-										pledgeDoneString := "N"
-										if faultState.PledgeDone {
-											pledgeDoneString = "Y"
-										}
-										prt = prt + fmt.Sprintf(" %x/%x:%d(%s)", faultState.FaultCore.ServerID.Bytes()[2:5], faultState.FaultCore.AuditServerID.Bytes()[2:5], len(faultState.VoteMap), pledgeDoneString)
-										//}
-									}
-								}
-							}
+					prt = prt + fmt.Sprintf("| Current Fault:")
+					ff := pl.CurrentFault()
+					if !ff.IsNil() {
+						pledgeDoneString := "N"
+						if ff.PledgeDone {
+							pledgeDoneString = "Y"
+						}
+						prt = prt + fmt.Sprintf(" %x/%x:%d/%d/%d(%s)", ff.ServerID.Bytes()[2:5], ff.AuditServerID.Bytes()[2:5], len(ff.LocalVoteMap), ff.SignatureList.Length, ff.SigTally(fnode.State), pledgeDoneString)
+					}
 
-							//prt = prt + " |"
+					prt = prt + fmt.Sprintf("| Watch VM: ")
+					for i := 0; i < len(pl.FedServers); i++ {
+						if pl.VMs[i].WhenFaulted > 0 {
+							prt = prt + fmt.Sprintf("%d ", i)
+						}
+					}
+					prt = prt + " "
+					for i := 0; i < len(pl.FedServers); i++ {
+						if pl.VMs[i].WhenFaulted > 0 {
+							prt = prt + fmt.Sprintf("(%d) ", pl.VMs[i].FaultFlag)
 						}
 					}
 

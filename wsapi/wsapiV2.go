@@ -67,7 +67,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
-	fmt.Println(j.Method)
 	switch j.Method {
 	case "chain-head":
 		resp, jsonError = HandleV2ChainHead(state, params)
@@ -105,14 +104,14 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "heights":
 		resp, jsonError = HandleV2Heights(state, params)
 		break
+	case "properties":
+		resp, jsonError = HandleV2Properties(state, params)
+		break
 	case "raw-data":
 		resp, jsonError = HandleV2RawData(state, params)
 		break
 	case "receipt":
 		resp, jsonError = HandleV2Receipt(state, params)
-		break
-	case "properties":
-		resp, jsonError = HandleV2Properties(state, params)
 		break
 	case "reveal-chain":
 		resp, jsonError = HandleV2RevealChain(state, params)
@@ -126,17 +125,29 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "entry-ack":
 		resp, jsonError = HandleV2EntryACK(state, params)
 		break
+	case "pending-entries":
+		resp, jsonError = HandleV2GetPendingEntries(state, params)
+		break
+	case "pending-transactions":
+		resp, jsonError = HandleV2GetPendingTransactions(state, params)
+		break
 	case "send-raw-message":
 		resp, jsonError = HandleV2SendRawMessage(state, params)
 		break
-	case "get-transaction":
+	case "transaction":
 		resp, jsonError = HandleV2GetTranasction(state, params)
 		break
-	case "get-pending-entries":
-		resp, jsonError = HandleV2GetPendingEntries(state, params)
+	case "dblock-by-height":
+		resp, jsonError = HandleV2DBlockByHeight(state, params)
 		break
-	case "get-pending-transactions":
-		resp, jsonError = HandleV2GetPendingTransactions(state, params)
+	case "ecblock-by-height":
+		resp, jsonError = HandleV2ECBlockByHeight(state, params)
+		break
+	case "fblock-by-height":
+		resp, jsonError = HandleV2FBlockByHeight(state, params)
+		break
+	case "ablock-by-height":
+		resp, jsonError = HandleV2ABlockByHeight(state, params)
 		break
 	default:
 		jsonError = NewMethodNotFoundError()
@@ -146,11 +157,148 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		return nil, jsonError
 	}
 
+	fmt.Printf("API V2 method: <%v>  paramaters: %v\n", j.Method, params)
+
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
-
 	return jsonResp, nil
+}
+
+func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchDBlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.DBlock = b
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
+}
+
+func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchECBlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ECBlock = b
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
+}
+
+func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchFBlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.FBlock = b
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
+}
+
+func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	heightRequest := new(HeightRequest)
+	err := MapToObject(params, heightRequest)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchABlockByHeight(uint32(heightRequest.Height))
+	if err != nil {
+		return nil, NewInternalDatabaseError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	raw, err := block.MarshalBinary()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+
+	resp := new(BlockHeightResponse)
+	b, err := ObjectToJStruct(block)
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ABlock = b
+	resp.RawData = hex.EncodeToString(raw)
+
+	return resp, nil
 }
 
 func HandleV2Error(ctx *web.Context, j *primitives.JSON2Request, err *primitives.JSONError) {
@@ -172,6 +320,29 @@ func MapToObject(source interface{}, dst interface{}) error {
 		return err
 	}
 	return json.Unmarshal(b, dst)
+}
+
+type JStruct struct {
+	data []byte
+}
+
+func (e *JStruct) MarshalJSON() ([]byte, error) {
+	return e.data, nil
+}
+
+func (e *JStruct) UnmarshalJSON(b []byte) error {
+	e.data = b
+	return nil
+}
+
+func ObjectToJStruct(source interface{}) (*JStruct, error) {
+	b, err := json.Marshal(source)
+	if err != nil {
+		return nil, err
+	}
+	dst := new(JStruct)
+	dst.data = []byte(strings.ToLower(string(b)))
+	return dst, nil
 }
 
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -316,7 +487,7 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 		} else if block, _ = dbase.FetchEntry(h); block != nil {
 			b, _ = block.MarshalBinary()
 		} else {
-			return nil, NewEntryNotFoundError()
+			return nil, NewObjectNotFoundError()
 		}
 	}
 
@@ -370,13 +541,7 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidHashError()
 	}
 	if block == nil {
-		block, err = dbase.FetchDBlock(h)
-		if err != nil {
-			return nil, NewInvalidHashError()
-		}
-		if block == nil {
-			return nil, NewBlockNotFoundError()
-		}
+		return nil, NewBlockNotFoundError()
 	}
 
 	d := new(DirectoryBlockResponse)
@@ -657,6 +822,29 @@ func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, 
 	return h, nil
 }
 
+func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	chainid := new(ChainIDRequest)
+	err := MapToObject(params, chainid)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	pending := state.GetPendingEntries(chainid.ChainID)
+
+	return pending, nil
+}
+
+func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	fadr := new(AddressRequest)
+	err := MapToObject(params, fadr)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	pending := state.GetPendingTransactions(fadr.Address)
+
+	return pending, nil
+}
+
 func HandleV2Properties(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	vtos := func(f int) string {
 		v0 := f / 1000000000
@@ -765,6 +953,12 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	answer.FactoidTransaction = fTx
 	answer.Entry = e
 
+	if blockHash == nil {
+		// this is a pending transaction.  It is not yet in a transaction or directory block
+		answer.IncludedInDirectoryBlock = ""
+		answer.IncludedInDirectoryBlockHeight = -1
+		return answer, nil
+	}
 	answer.IncludedInTransactionBlock = blockHash.String()
 
 	blockHash, err = dbase.FetchIncludedIn(blockHash)
@@ -781,61 +975,4 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	answer.IncludedInDirectoryBlockHeight = int64(dBlock.GetDatabaseHeight())
 
 	return answer, nil
-}
-
-func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println("HandleV2GetPendingEntries")
-	type PendingEntries struct {
-		EntryHash interfaces.IHash
-		ChainID   interfaces.IHash
-	}
-
-	eHashes := state.GetPendingEntries()
-	resp := make([]PendingEntries, len(eHashes))
-	for i, ent := range eHashes {
-		resp[i].EntryHash = ent.GetHash()
-		resp[i].ChainID = ent.GetChainID()
-	}
-	return resp, nil
-}
-
-func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	fmt.Println("HandleV2GetPendingTransactions")
-	type PendingTransactions struct {
-		TransactionID interfaces.IHash
-		Inputs        []interfaces.IInAddress
-		Outputs       []interfaces.IOutAddress
-		ECOutputs     []interfaces.IOutECAddress
-	}
-	pending := state.GetPendingTransactions()
-	resp := make([]PendingTransactions, len(pending))
-	var uAddr string
-	var uIAddr interfaces.IAddress
-	for i, tran := range pending {
-		resp[i].TransactionID = tran.GetSigHash()
-
-		resp[i].Inputs = tran.GetInputs()
-		resp[i].Outputs = tran.GetOutputs()
-		resp[i].ECOutputs = tran.GetECOutputs()
-
-		for k, _ := range resp[i].Inputs {
-			uIAddr = resp[i].Inputs[k].GetAddress()
-			uAddr = primitives.ConvertFctAddressToUserStr(uIAddr)
-			resp[i].Inputs[k].SetUserAddress(uAddr)
-		}
-		for k, _ := range resp[i].Outputs {
-			uIAddr = resp[i].Outputs[k].GetAddress()
-			uAddr = primitives.ConvertFctAddressToUserStr(uIAddr)
-			resp[i].Outputs[k].SetUserAddress(uAddr)
-		}
-
-		for k, _ := range resp[i].ECOutputs {
-			uIAddr = resp[i].ECOutputs[k].GetAddress()
-			uAddr = primitives.ConvertECAddressToUserStr(uIAddr)
-			resp[i].ECOutputs[k].SetUserAddress(uAddr)
-
-		}
-
-	}
-	return resp, nil
 }

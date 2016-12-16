@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
@@ -12,6 +13,8 @@ import (
 	"net"
 	"syscall"
 	"time"
+
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
@@ -65,7 +68,24 @@ var connectionStateStrings = map[uint8]string{
 
 // ConnectionParcel is sent to convey an appication message destined for the network.
 type ConnectionParcel struct {
-	parcel Parcel
+	Parcel Parcel
+}
+
+func (e *ConnectionParcel) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *ConnectionParcel) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *ConnectionParcel) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *ConnectionParcel) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // ConnectionMetrics is used to encapsulate various metrics about the connection.
@@ -86,10 +106,27 @@ type ConnectionMetrics struct {
 
 // ConnectionCommand is used to instruct the Connection to carry out some functionality.
 type ConnectionCommand struct {
-	command uint8
-	peer    Peer
-	delta   int32
-	metrics ConnectionMetrics
+	Command uint8
+	Peer    Peer
+	Delta   int32
+	Metrics ConnectionMetrics
+}
+
+func (e *ConnectionCommand) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *ConnectionCommand) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *ConnectionCommand) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *ConnectionCommand) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 // These are the commands that connections can send/recieve
@@ -138,6 +175,10 @@ func (c *Connection) IsOnline() bool {
 	return ConnectionOnline == c.state
 }
 
+func (c *Connection) StatusString() string {
+	return connectionStateStrings[c.state]
+}
+
 func (c *Connection) IsPersistent() bool {
 	return c.isPersistent
 }
@@ -176,7 +217,7 @@ func (c *Connection) runLoop() {
 		c.updateStats()                   // Update controller with metrics
 		c.connectionStatusReport()
 		// if 2 == rand.Intn(100) {
-		note(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
+		debug(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
 		// }
 		switch c.state {
 		case ConnectionInitialized:
@@ -194,7 +235,7 @@ func (c *Connection) runLoop() {
 			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-					note(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
 			}
@@ -214,7 +255,8 @@ func (c *Connection) runLoop() {
 		case ConnectionShuttingDown:
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
-			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionIsClosed})
+			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
+			fmt.Println(fmt.Sprintf("Connection(%s) has shut down.", c.peer.Address))
 			return // ending runloop() goroutine
 		default:
 			logfatal(c.peer.PeerIdent(), "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
@@ -225,7 +267,7 @@ func (c *Connection) runLoop() {
 
 func (c *Connection) setNotes(format string, v ...interface{}) {
 	c.notes = fmt.Sprintf(format, v...)
-	note(c.peer.PeerIdent(), c.notes)
+	significant(c.peer.PeerIdent(), c.notes)
 }
 
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
@@ -293,6 +335,7 @@ func (c *Connection) dial() bool {
 	}
 	c.conn = conn
 	c.setNotes(fmt.Sprintf("Connection.dial(%s) was successful.", address))
+	fmt.Println(fmt.Sprintf("Connection.dial(%s) was successful.", address))
 	return true
 }
 
@@ -313,7 +356,7 @@ func (c *Connection) goOnline() {
 	// Now ask the other side for the peers they know about.
 	parcel := NewParcel(CurrentNetwork, []byte("Peer Request"))
 	parcel.Header.Type = TypePeerRequest
-	BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *parcel})
+	BlockFreeChannelSend(c.SendChannel, ConnectionParcel{Parcel: *parcel})
 }
 
 func (c *Connection) goOffline() {
@@ -343,8 +386,8 @@ func (c *Connection) processSends() {
 		case ConnectionParcel:
 			verbose(c.peer.PeerIdent(), "processSends() ConnectionParcel")
 			parameters := message.(ConnectionParcel)
-			parameters.parcel.Trace("Connection.processSends()", "e")
-			c.sendParcel(parameters.parcel)
+			parameters.Parcel.Trace("Connection.processSends()", "e")
+			c.sendParcel(parameters.Parcel)
 		case ConnectionCommand:
 			verbose(c.peer.PeerIdent(), "processSends() ConnectionCommand")
 			parameters := message.(ConnectionCommand)
@@ -356,18 +399,18 @@ func (c *Connection) processSends() {
 }
 
 func (c *Connection) handleCommand(command ConnectionCommand) {
-	switch command.command {
+	switch command.Command {
 	case ConnectionShutdownNow:
 		c.goShutdown()
 	case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
 		debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
-		peer := command.peer
+		peer := command.Peer
 		if peer.QualityScore < c.peer.QualityScore {
 			c.peer.QualityScore = peer.QualityScore
 		}
 	case ConnectionAdjustPeerQuality:
-		debug(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality")
-		delta := command.delta
+		delta := command.Delta
+		note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
 		c.peer.QualityScore = c.peer.QualityScore + delta
 		if MinumumQualityScore > c.peer.QualityScore {
 			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
@@ -412,7 +455,7 @@ func (c *Connection) processReceives() {
 		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
 		switch {
 		case nil == err:
-			note(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
+			debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.metrics.BytesReceived += message.Header.Length
 			c.metrics.MessagesReceived += 1
 			message.Header.PeerAddress = c.peer.Address
@@ -534,7 +577,7 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		pong.Header.Type = TypePong
 		debug(c.peer.PeerIdent(), "handleParcelTypes() GOT PING, Sending Pong: %s", pong.String())
 		parcel.Print()
-		BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *pong})
+		BlockFreeChannelSend(c.SendChannel, ConnectionParcel{Parcel: *pong})
 	case TypePong: // all we need is the timestamp which is set already
 		parcel.Trace("Connection.handleParcelTypes()-TypePong", "J")
 
@@ -544,23 +587,22 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerRequest")
 		parcel.Trace("Connection.handleParcelTypes()-TypePeerRequest", "J")
 
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypePeerResponse:
 		parcel.Trace("Connection.handleParcelTypes()-TypePeerResponse", "J")
 
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerResponse")
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypeMessage:
 		parcel.Trace("Connection.handleParcelTypes()-TypeMessage", "J")
-
+		c.peer.QualityScore = c.peer.QualityScore + 1
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessage. Message is a: %s", parcel.MessageType())
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{parcel: parcel}) // Controller handles these.
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	default:
 		parcel.Trace("Connection.handleParcelTypes()-unknown", "J")
-
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}
@@ -581,7 +623,7 @@ func (c *Connection) pingPeer() {
 			parcel.Header.Type = TypePing
 			c.timeLastPing = time.Now()
 			c.attempts++
-			BlockFreeChannelSend(c.SendChannel, ConnectionParcel{parcel: *parcel})
+			BlockFreeChannelSend(c.SendChannel, ConnectionParcel{Parcel: *parcel})
 		}
 	}
 }
@@ -589,7 +631,7 @@ func (c *Connection) pingPeer() {
 func (c *Connection) updatePeer() {
 	verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdatingPeer - Connection State: %s", c.ConnectionState())
 	c.timeLastUpdate = time.Now()
-	BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionUpdatingPeer, peer: c.peer})
+	BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdatingPeer, Peer: c.peer})
 }
 
 func (c *Connection) updateStats() {
@@ -600,7 +642,7 @@ func (c *Connection) updateStats() {
 		c.metrics.ConnectionState = connectionStateStrings[c.state]
 		c.metrics.ConnectionNotes = c.notes
 		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{command: ConnectionUpdateMetrics, metrics: c.metrics})
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdateMetrics, Metrics: c.metrics})
 	}
 }
 

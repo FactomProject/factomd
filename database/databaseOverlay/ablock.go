@@ -56,6 +56,18 @@ func (db *Overlay) FetchABlockByPrimary(hash interfaces.IHash) (interfaces.IAdmi
 	return block.(interfaces.IAdminBlock), nil
 }
 
+// FetchABlockByHeight gets an admin block by height from the database.
+func (db *Overlay) FetchABlockByHeight(blockHeight uint32) (interfaces.IAdminBlock, error) {
+	block, err := db.FetchBlockByHeight(ADMINBLOCK_NUMBER, ADMINBLOCK, blockHeight, new(adminBlock.AdminBlock))
+	if err != nil {
+		return nil, err
+	}
+	if block == nil {
+		return nil, nil
+	}
+	return block.(interfaces.IAdminBlock), nil
+}
+
 // FetchAllABlocks gets all of the admin blocks
 func (db *Overlay) FetchAllABlocks() ([]interfaces.IAdminBlock, error) {
 	list, err := db.FetchAllBlocksFromBucket(ADMINBLOCK, new(adminBlock.AdminBlock))

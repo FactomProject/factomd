@@ -9,17 +9,20 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"math"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math"
 )
 
 //A placeholder structure for messages
 type FullServerFault struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
+
+	ClearFault bool
 
 	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of ServerFault messages
@@ -36,7 +39,15 @@ type FullServerFault struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
+	alreadyValidated bool
+	alreadyProcessed bool
+	hash             interfaces.IHash
+	//Local FaultState information (not marshalled)
+	AmINegotiator bool
+	MyVoteTallied bool
+	LocalVoteMap  map[[32]byte]interfaces.IFullSignature
+	PledgeDone    bool
+	LastMatch     int64
 }
 
 type SigList struct {
@@ -47,11 +58,67 @@ type SigList struct {
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
 
+func (m *FullServerFault) GetAmINegotiator() bool {
+	return m.AmINegotiator
+}
+
+func (m *FullServerFault) SetAmINegotiator(b bool) {
+	m.AmINegotiator = b
+}
+
+func (m *FullServerFault) GetMyVoteTallied() bool {
+	return m.MyVoteTallied
+}
+
+func (m *FullServerFault) SetMyVoteTallied(b bool) {
+	m.MyVoteTallied = b
+}
+
+func (m *FullServerFault) GetPledgeDone() bool {
+	return m.PledgeDone
+}
+
+func (m *FullServerFault) SetPledgeDone(b bool) {
+	m.PledgeDone = b
+}
+
+func (m *FullServerFault) GetLastMatch() int64 {
+	return m.LastMatch
+}
+
+func (m *FullServerFault) SetLastMatch(b int64) {
+	m.LastMatch = b
+}
+
+func (m *FullServerFault) IsNil() bool {
+	if m == nil {
+		return true
+	}
+	if m.ServerID.IsZero() {
+		return true
+	}
+	if m.AuditServerID == nil || m.AuditServerID.IsZero() {
+		return true
+	}
+	return false
+}
+
+func (m *FullServerFault) AddFaultVote(issuerID [32]byte, sig interfaces.IFullSignature) {
+	if m.IsNil() {
+		return
+	}
+	if m.LocalVoteMap == nil {
+		m.LocalVoteMap = make(map[[32]byte]interfaces.IFullSignature)
+	}
+
+	m.LocalVoteMap[issuerID] = sig
+}
+
 func (m *FullServerFault) Priority(state interfaces.IState) (priority int64) {
 	now := state.GetTimestamp()
 
 	// After 20 seconds, a negotiation's priority is now zero.
-	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() < 20 {
+	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() > 20 {
 		return 0
 	}
 
@@ -193,6 +260,12 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 
 	buf.Write([]byte{m.Type()})
 
+	if m.ClearFault {
+		binary.Write(&buf, binary.BigEndian, uint8(1))
+	} else {
+		binary.Write(&buf, binary.BigEndian, uint8(0))
+	}
+
 	if d, err := m.ServerID.MarshalBinary(); err != nil {
 		return nil, err
 	} else {
@@ -311,6 +384,10 @@ func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err 
 	}
 	newData = newData[1:]
 
+	m.ClearFault = uint8(newData[0]) == 1
+
+	newData = newData[1:]
+
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
@@ -384,7 +461,7 @@ func (m *FullServerFault) String() string {
 	if m == nil {
 		return "-nil-"
 	}
-	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d -- hash[:3]=%x Sig Cnt: %d",
+	return fmt.Sprintf("%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d Clr:%t -- hash[:3]=%x Sig Cnt: %d TS:%d",
 		"FullSFault",
 		m.VMIndex,
 		m.Height,
@@ -392,8 +469,29 @@ func (m *FullServerFault) String() string {
 		m.AuditServerID.String()[4:10],
 		m.DBHeight,
 		m.SystemHeight,
+		m.ClearFault,
 		m.GetHash().Bytes()[:3],
-		len(m.SignatureList.List))
+		len(m.SignatureList.List),
+		m.Timestamp.GetTimeSeconds())
+}
+
+func (m *FullServerFault) StringWithSigCnt(s interfaces.IState) string {
+	if m == nil {
+		return "-nil-"
+	}
+	return fmt.Sprintf(
+		"%6s-vm%02d[%d] (%v) AuditID: %v DBHt:%5d SysHt:%3d Clr:%t -- hash[:3]=%x Valid Sigs: %d TS:%d",
+		"FullSFault",
+		m.VMIndex,
+		m.Height,
+		m.ServerID.String()[4:10],
+		m.AuditServerID.String()[4:10],
+		m.DBHeight,
+		m.SystemHeight,
+		m.ClearFault,
+		m.GetHash().Bytes()[:3],
+		m.SigTally(s),
+		m.Timestamp.GetTimeSeconds())
 }
 
 func (m *FullServerFault) GetDBHeight() uint32 {
@@ -405,6 +503,19 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
+	if m.alreadyValidated {
+		return 1
+	}
+
+	if m.DBHeight < state.GetLLeaderHeight() {
+		return -1
+	}
+
+	if m.ServerID.IsZero() || m.AuditServerID.IsZero() {
+		state.AddStatus("FULL FAULT Validate Fake Fault.  Ignore")
+		return -1
+	}
+
 	// Check main signature
 	bytes, err := m.MarshalForSignature()
 	if err != nil {
@@ -425,34 +536,21 @@ func (m *FullServerFault) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	/*
-		sht := state.GetSystemHeight(m.DBHeight)
-		if sht < 0 {
-			return 0
-		}
-
-		if sht >= int(m.Height) {
-			return -1
-		}
-
-		if sht < int(m.Height) {
-			return 0
-		}
-
-		if state.GetLLeaderHeight() < m.DBHeight {
-			return 0
-		}
-
-		if state.GetLLeaderHeight() > m.DBHeight {
-			return -1
-		}
-	*/
-
+	m.alreadyValidated = true
 	return 1
 }
 
+func (m *FullServerFault) SetAlreadyProcessed() {
+	m.alreadyProcessed = true
+}
+
+func (m *FullServerFault) GetAlreadyProcessed() bool {
+	return m.alreadyProcessed
+}
+
 func (m *FullServerFault) HasEnoughSigs(state interfaces.IState) bool {
-	if m.SigTally(state) > len(state.GetFedServers(m.DBHeight))/2 {
+	sigTally := m.SigTally(state)
+	if sigTally > len(state.GetFedServers(m.DBHeight))/2 {
 		return true
 	}
 	return false
@@ -483,6 +581,7 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 			validSigCount++
 		}
 	}
+
 	return validSigCount
 }
 
@@ -560,6 +659,7 @@ func (a *FullServerFault) ToAdminBlockEntry() *adminBlock.ServerFault {
 
 func NewFullServerFault(Previous *FullServerFault, faultMessage *ServerFault, sigList []interfaces.IFullSignature, sysHeight int) *FullServerFault {
 	sf := new(FullServerFault)
+	sf.ClearFault = false
 	sf.Timestamp = faultMessage.Timestamp
 	sf.VMIndex = faultMessage.VMIndex
 	sf.DBHeight = faultMessage.DBHeight

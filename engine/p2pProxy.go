@@ -6,6 +6,7 @@ package engine
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"time"
@@ -13,6 +14,7 @@ import (
 	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 )
 
@@ -39,10 +41,27 @@ type P2PProxy struct {
 }
 
 type factomMessage struct {
-	message  []byte
-	peerHash string
-	appHash  string
-	appType  string
+	Message  []byte
+	PeerHash string
+	AppHash  string
+	AppType  string
+}
+
+func (e *factomMessage) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *factomMessage) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *factomMessage) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *factomMessage) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
@@ -50,6 +69,11 @@ var _ interfaces.IPeer = (*P2PProxy)(nil)
 func (f *P2PProxy) Weight() int {
 	// should return the number of connections this peer represents.  For now, just say a lot
 	return f.NumPeers
+}
+
+func (f *P2PProxy) SetWeight(w int) {
+	// should return the number of connections this peer represents.  For now, just say a lot
+	f.NumPeers = w
 }
 
 func (f *P2PProxy) BytesOut() int {
@@ -89,19 +113,19 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	}
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 	appType := fmt.Sprintf("%d", msg.Type())
-	message := factomMessage{message: data, peerHash: msg.GetNetworkOrigin(), appHash: hash, appType: appType}
+	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 	switch {
 	case !msg.IsPeer2Peer():
-		message.peerHash = p2p.BroadcastFlag
-		f.trace(message.appHash, message.appType, "P2PProxy.Send() - BroadcastFlag", "a")
-	case msg.IsPeer2Peer() && 0 == len(message.peerHash): // directed, with no direction of who to send it to
-		message.peerHash = p2p.RandomPeerFlag
-		f.trace(message.appHash, message.appType, "P2PProxy.Send() - RandomPeerFlag", "a")
+		message.PeerHash = p2p.BroadcastFlag
+		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
+	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
+		message.PeerHash = p2p.RandomPeerFlag
+		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - RandomPeerFlag", "a")
 	default:
-		f.trace(message.appHash, message.appType, "P2PProxy.Send() - Addressed by hash", "a")
+		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
 	}
 	if msg.IsPeer2Peer() && 1 < f.debugMode {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.peerHash, msg.String())
+		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	return nil
@@ -115,10 +139,10 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)
-				f.trace(fmessage.appHash, fmessage.appType, "P2PProxy.Recieve()", "N")
-				msg, err := messages.UnmarshalMessage(fmessage.message)
+				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
+				msg, err := messages.UnmarshalMessage(fmessage.Message)
 				if nil == err {
-					msg.SetNetworkOrigin(fmessage.peerHash)
+					msg.SetNetworkOrigin(fmessage.PeerHash)
 				}
 				if 1 < f.debugMode {
 					f.logMessage(msg, true) // NODE_TALK_FIX
@@ -175,11 +199,28 @@ func (p *P2PProxy) stopProxy() {
 }
 
 type messageLog struct {
-	hash     string // string(GetMsgHash().Bytes())
-	received bool   // true if logging a recieved message, false if sending
-	time     int64
-	target   string // the id of the targetted node (value may only have local meaning)
-	mtype    byte   /// message type (types defined in constants.go)
+	Hash     string // string(GetMsgHash().Bytes())
+	Received bool   // true if logging a recieved message, false if sending
+	Time     int64
+	Target   string // the id of the targetted node (value may only have local meaning)
+	Mtype    byte   /// message type (types defined in constants.go)
+}
+
+func (e *messageLog) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *messageLog) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func (e *messageLog) JSONBuffer(b *bytes.Buffer) error {
+	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *messageLog) String() string {
+	str, _ := e.JSONString()
+	return str
 }
 
 func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
@@ -189,7 +230,7 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 		// }
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 		time := time.Now().Unix()
-		ml := messageLog{hash: hash, received: received, time: time, mtype: msg.Type(), target: msg.GetNetworkOrigin()}
+		ml := messageLog{Hash: hash, Received: received, Time: time, Mtype: msg.Type(), Target: msg.GetNetworkOrigin()}
 		p2p.BlockFreeChannelSend(p.logging, ml)
 	}
 }
@@ -211,7 +252,7 @@ func (p *P2PProxy) ManageLogging() {
 		case messageLog:
 			message := item.(messageLog)
 			elapsedMinutes := int(time.Since(start).Minutes())
-			line := fmt.Sprintf("%d, %s, %t, %d, %s, %d\n", message.mtype, message.hash, message.received, message.time, message.target, elapsedMinutes)
+			line := fmt.Sprintf("%d, %s, %t, %d, %s, %d\n", message.Mtype, message.Hash, message.Received, message.Time, message.Target, elapsedMinutes)
 			_, err := p.logWriter.Write([]byte(line))
 			if nil != err {
 				fmt.Printf("Error writing to logging file. %v", err)
@@ -238,11 +279,11 @@ func (f *P2PProxy) ManageOutChannel() {
 		case factomMessage:
 			fmessage := data.(factomMessage)
 			// Wrap it in a parcel and send it out channel ToNetwork.
-			parcel := p2p.NewParcel(p2p.CurrentNetwork, fmessage.message)
+			parcel := p2p.NewParcel(p2p.CurrentNetwork, fmessage.Message)
 			parcel.Header.Type = p2p.TypeMessage
-			parcel.Header.TargetPeer = fmessage.peerHash
-			parcel.Header.AppHash = fmessage.appHash
-			parcel.Header.AppType = fmessage.appType
+			parcel.Header.TargetPeer = fmessage.PeerHash
+			parcel.Header.AppHash = fmessage.AppHash
+			parcel.Header.AppType = fmessage.AppType
 			parcel.Trace("P2PProxy.ManageOutChannel()", "b")
 			p2p.BlockFreeChannelSend(f.ToNetwork, *parcel)
 		default:
@@ -258,7 +299,7 @@ func (f *P2PProxy) ManageInChannel() {
 		case p2p.Parcel:
 			parcel := data.(p2p.Parcel)
 			f.trace(parcel.Header.AppHash, parcel.Header.AppType, "P2PProxy.ManageInChannel()", "M")
-			message := factomMessage{message: parcel.Payload, peerHash: parcel.Header.TargetPeer, appHash: parcel.Header.AppHash, appType: parcel.Header.AppType}
+			message := factomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
 			p2p.BlockFreeChannelSend(f.BroadcastIn, message)
 		default:
 			fmt.Printf("Garbage on f.FromNetwork. %+v", data)
@@ -267,7 +308,7 @@ func (f *P2PProxy) ManageInChannel() {
 }
 
 func (p *P2PProxy) trace(appHash string, appType string, location string, sequence string) {
-	if 1 < p.debugMode {
+	if 10 < p.debugMode {
 		time := time.Now().Unix()
 		fmt.Printf("\nParcelTrace, %s, %s, %s, Message, %s, %d \n", appHash, sequence, appType, location, time)
 	}
@@ -279,6 +320,7 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		time.Sleep(p2p.NetworkStatusInterval)
 		fmt.Println("\n\n\n")
 		fmt.Println("-------------------------------------------------------------------------------")
+		fmt.Println(" Periodic Status Report")
 		fmt.Println("-------------------------------------------------------------------------------")
 		for _, f := range fnodes {
 			f.State.Status = 1
@@ -303,50 +345,10 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Printf("      FromNetwork Queue:     %d\n", len(f.FromNetwork))
 		fmt.Printf("      BroadcastOut Queue:    %d\n", len(f.BroadcastOut))
 		fmt.Printf("      BroadcastIn Queue:     %d\n", len(f.BroadcastIn))
+		fmt.Printf("      Weight:                %d\n", f.NumPeers)
 		fmt.Printf("  ======= Identity Information -- Height: %d  =======\n", fnodes[listenTo].State.LLeaderHeight)
 		fmt.Printf("  Identity Full? (Capable of being Elected): %t\n", fnodes[listenTo].State.SelfIsFull())
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 	}
 }
-
-// const (
-// 	EOM_MSG                       byte = iota // 0
-// 	ACK_MSG                                   // 1
-// 	FED_SERVER_FAULT_MSG                      // 2
-// 	AUDIT_SERVER_FAULT_MSG                    // 3
-// 	FULL_SERVER_FAULT_MSG                     // 4
-// 	COMMIT_CHAIN_MSG                          // 5
-// 	COMMIT_ENTRY_MSG                          // 6
-// 	DIRECTORY_BLOCK_SIGNATURE_MSG             // 7
-// 	EOM_TIMEOUT_MSG                           // 8
-// 	FACTOID_TRANSACTION_MSG                   // 9
-// 	HEARTBEAT_MSG                             // 10
-// 	INVALID_ACK_MSG                           // 11
-// 	INVALID_DIRECTORY_BLOCK_MSG               // 12
-
-// 	REVEAL_ENTRY_MSG      // 13
-// 	REQUEST_BLOCK_MSG     // 14
-// 	SIGNATURE_TIMEOUT_MSG // 15
-// 	MISSING_MSG           // 16
-// 	MISSING_DATA          // 17
-// 	DATA_RESPONSE         // 18
-// 	MISSING_MSG_RESPONSE  //19
-
-// 	DBSTATE_MSG          // 20
-// 	DBSTATE_MISSING_MSG  // 21
-// 	ADDSERVER_MSG        // 22
-// 	CHANGESERVER_KEY_MSG // 23
-// 	REMOVESERVER_MSG     // 24
-// 	NEGOTIATION_MSG      // 25
-// )
-
-// var LoggingLevels = map[uint8]string{
-// 	Silence:     "Silence",     // Say nothing. A log output with level "Silence" is ALWAYS printed.
-// 	Significant: "Significant", // Significant things that should be printed, but aren't necessary errors.
-// 	Fatal:       "Fatal",       // Log only fatal errors (fatal errors are always logged even on "Silence")
-// 	Errors:      "Errors",      // Log all errors (many errors may be expected)
-// 	Notes:       "Notes",       // Log notifications, usually significant events
-// 	Debugging:   "Debugging",   // Log diagnostic info, pretty low level
-// 	Verbose:     "Verbose",     // Log everything
-// }

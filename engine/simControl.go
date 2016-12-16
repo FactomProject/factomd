@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
@@ -26,6 +27,7 @@ var verboseFaultOutput = false
 var verboseAuthoritySet = false
 var verboseAuthorityDeltas = false
 var totalServerFaults int
+var lastcmd []string
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -46,16 +48,27 @@ func SimControl(listenTo int) {
 			continue
 		}
 
-		// This splits up the command at anycodepoint that is not a letter, number of punctuation, so usually by spaces.
+		// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
 		parseFunc := func(c rune) bool {
 			return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
 		cmd := strings.FieldsFunc(string(l), parseFunc)
-		if 0 == len(cmd) {
-			cmd = []string{"h"}
+		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
+
+		switch {
+		case 0 < len(cmd):
+			lastcmd = cmd
+		default:
+			switch {
+			case 0 < len(lastcmd):
+				cmd = lastcmd
+			default: // no last commands
+				cmd = []string{"?"}
+			}
 		}
 		b := string(cmd[0])
+
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[listenTo].State != nil {
 			listenTo = v
@@ -64,7 +77,6 @@ func SimControl(listenTo int) {
 			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 			go controlPanel.ServeControlPanel(fnodes[listenTo].State.ControlPanelChannel, fnodes[listenTo].State, connectionMetricsChannel, p2pNetwork, Build)
 		} else {
-			// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 			switch {
 			case '!' == b[0]:
 				if listenTo < 0 || listenTo > len(fnodes) {
@@ -152,7 +164,7 @@ func SimControl(listenTo int) {
 
 					f := fnodes[listenTo]
 
-					fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b))
+					os.Stderr.WriteString("----------------------------- " + f.State.FactomNodeName + " -------------------------------------- " + string(b) + "\n")
 					l := len(f.State.StatusStrs)
 					if l < ht {
 						ht = l
@@ -342,12 +354,24 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'v' == b[0]:
-				if verboseFaultOutput {
-					verboseFaultOutput = false
-					os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
+				if len(b) > 1 {
+					nnn, err := strconv.Atoi(string(b[1:]))
+					if err != nil || nnn < 0 || nnn > 99 {
+						os.Stderr.WriteString("Specifiy a FaultWait between 0 and 100\n")
+						break
+					}
+					for _, fn := range fnodes {
+						fn.State.SetFaultWait(nnn)
+						os.Stderr.WriteString(fmt.Sprintf("Setting FaultWait of %10s to %d\n", fn.State.FactomNodeName, nnn))
+					}
 				} else {
-					verboseFaultOutput = true
-					os.Stderr.WriteString("--VerboseFaultOutput On--\n")
+					if verboseFaultOutput {
+						verboseFaultOutput = false
+						os.Stderr.WriteString("Vnnn          Set full fault timeout to the given number of seconds. Helps debugging.\n")
+					} else {
+						verboseFaultOutput = true
+						os.Stderr.WriteString("--VerboseFaultOutput On--\n")
+					}
 				}
 			case 'V' == b[0]:
 				if len(b) == 1 {
@@ -489,6 +513,14 @@ func SimControl(listenTo int) {
 					go printMessages(&watchMessages, watchMessages, &listenTo)
 				} else {
 					os.Stderr.WriteString("--Print Messages Off--\n")
+				}
+			case 'M' == b[0]:
+				if !fnodes[listenTo].State.MessageTally {
+					os.Stderr.WriteString("--Print Message Tallies On--\n")
+					fnodes[listenTo].State.MessageTally = true
+				} else {
+					os.Stderr.WriteString("--Print Message Tallies Off--\n")
+					fnodes[listenTo].State.MessageTally = false
 				}
 			case 'z' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
 				if len(b) > 1 && b[1] == 'a' {
@@ -799,7 +831,9 @@ func SimControl(listenTo int) {
 					case 6:
 						stat = "Pending Full"
 					case 7:
-						stat = "Pending"
+						stat = "Self"
+					case 8:
+						stat = "Self Full"
 					}
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
@@ -811,15 +845,24 @@ func SimControl(listenTo int) {
 					}
 				}
 			case 'q' == b[0]:
-				eHashes := fnodes[listenTo].State.GetPendingEntries()
+				var eHashes interface{}
+				if len(b) > 1 {
+					eHashes = fnodes[listenTo].State.GetPendingEntries(b[1])
+				} else {
+					eHashes = fnodes[listenTo].State.GetPendingEntries("")
+				}
 				os.Stderr.WriteString("Pending Entry Hash\n")
 				os.Stderr.WriteString("------------------\n")
-				for _, eh := range eHashes {
-					os.Stderr.WriteString(fmt.Sprint(eh.String(), "\n"))
-				}
+				//for _, eh := range eHashes {
+				os.Stderr.WriteString(fmt.Sprint(eHashes, "\n"))
+				//}
 			case 'j' == b[0]:
-
-				fpl := fnodes[listenTo].State.GetPendingTransactions()
+				var fpl []interfaces.IPendingTransaction
+				if len(b) > 1 {
+					fpl = fnodes[listenTo].State.GetPendingTransactions(b[1])
+				} else {
+					fpl = fnodes[listenTo].State.GetPendingTransactions("")
+				}
 				fmt.Println(fpl)
 			case 'S' == b[0]:
 				nnn, err := strconv.Atoi(string(b[1:]))
@@ -846,6 +889,16 @@ func SimControl(listenTo int) {
 				fnodes[listenTo].State.DropRate = nnn
 				os.Stderr.WriteString(fmt.Sprintf("Setting drop rate of %10s to %2d.%01d percent\n", fnodes[listenTo].State.FactomNodeName, nnn/10, nnn%10))
 
+			case 'T' == b[0]:
+				nn, err := strconv.Atoi(string(b[1:]))
+				if err != nil || nn < 5 || nn > 800 {
+					os.Stderr.WriteString("Specify a block time between 5 and 600 seconds\n")
+					break
+				}
+				os.Stderr.WriteString(fmt.Sprint("Setting the block time for all nodes to ", nn, "\n"))
+				for _, f := range fnodes {
+					f.State.SetDirectoryBlockInSeconds(nn)
+				}
 			case 'F' == b[0]:
 				nn, err := strconv.Atoi(string(b[1:]))
 				nnn := int64(nn)
@@ -896,6 +949,7 @@ func SimControl(listenTo int) {
 
 			case 'h' == b[0]:
 				os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
+				os.Stderr.WriteString("<enter>       Running Enter with nothing repeats the previous command.\n\n")
 				os.Stderr.WriteString("Vtest         Run the fault test.  Faults 1 to n/2-1 servers. Waits for next block + 60 sec. Repeats.\n")
 				os.Stderr.WriteString("nnn           For some number nnn < the number of nodes:  Set focus on that node\n")
 				os.Stderr.WriteString("n             increment (with wrap) the node under focus.  i.e. if on 1, focus is set to 2\n")
@@ -908,6 +962,7 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("                 So K3.6 gets the directory block at height 3, and prints the entry at index 6.\n")
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
 				os.Stderr.WriteString("m             Show Messages as they are passed through the simulator.\n")
+				os.Stderr.WriteString("Tnnn          Set the block time to the given number of seconds.\n")
 				os.Stderr.WriteString("c             Trace the Consensus Process\n")
 				os.Stderr.WriteString("s             Show the state of all nodes as their state changes in the simulator.\n")
 				os.Stderr.WriteString("p             Show the process lists and directory block states as they change.\n")

@@ -20,9 +20,9 @@ var _ interfaces.IABEntry = (*AddReplaceMatryoshkaHash)(nil)
 
 func (e *AddReplaceMatryoshkaHash) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8s\n",
+	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8s",
 		"AddReplaceMatryoshkaHash",
-		"IdentityChainID", e.IdentityChainID.Bytes()[:4],
+		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],
 		"MHash", e.MHash.String()[:8]))
 	return (string)(out.DeepCopyBytes())
 }

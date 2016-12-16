@@ -87,6 +87,7 @@ func (d *Discovery) LoadPeers() {
 	// since this is run at startup, reset quality scores.
 	for _, peer := range d.knownPeers {
 		peer.QualityScore = 0
+		peer.Location = peer.LocationFromAddress()
 		d.knownPeers[peer.Address] = peer
 	}
 	UpdateKnownPeers.Unlock()

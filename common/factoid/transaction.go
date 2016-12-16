@@ -8,29 +8,30 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"runtime/debug"
+	"time"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"runtime/debug"
-	"time"
 )
 
 var _ = debug.PrintStack
 
 type Transaction struct {
 	// version     uint64         Version of transaction. Hardcoded, naturally.
-	MilliTimestamp uint64
+	MilliTimestamp uint64 `json:"millitimestamp"`
 	// #inputs     uint8          number of inputs
 	// #outputs    uint8          number of outputs
 	// #ecoutputs  uint8          number of outECs (Number of EntryCredits)
-	Inputs    []interfaces.IInAddress
-	Outputs   []interfaces.IOutAddress
-	OutECs    []interfaces.IOutECAddress
-	RCDs      []interfaces.IRCD
-	SigBlocks []interfaces.ISignatureBlock
+	Inputs    []interfaces.IInAddress      `json:"inputs"`
+	Outputs   []interfaces.IOutAddress     `json:"outputs"`
+	OutECs    []interfaces.IOutECAddress   `json:"outecs"`
+	RCDs      []interfaces.IRCD            `json:"rcds"`
+	SigBlocks []interfaces.ISignatureBlock `json:"sigblocks"`
 
 	// Not marshalled
-	BlockHeight uint32
+	BlockHeight uint32 `json:"blockheight"`
 	sigValid    bool
 }
 
@@ -711,4 +712,60 @@ func (e *Transaction) JSONString() (string, error) {
 
 func (e *Transaction) JSONBuffer(b *bytes.Buffer) error {
 	return primitives.EncodeJSONToBuffer(e, b)
+}
+
+func (e *Transaction) HasUserAddress(userAddr string) bool {
+	//  do any of the inputs or outputs of this transaction belong to the inputed user address
+	// Other than a minimal length check, this does not address validation of the requested user address
+	// in some cases, the useraddress is not being filled in the address struct.  if it is blank, convert the address (hash)
+	var matchString string
+
+	//  I am filtering for this because I do not want to bother checking for an "EC" start if it is too short
+	if len(userAddr) < 2 {
+		return false
+	}
+	// if this address starts with EC it can only be an EC output address.  No need to check any others.
+
+	if userAddr[0:2] == "EC" {
+		ecoutputs := e.GetECOutputs()
+		for _, addLine := range ecoutputs {
+			if addLine.GetUserAddress() == "" {
+				matchString = primitives.ConvertECAddressToUserStr(addLine.GetAddress())
+			} else {
+				matchString = addLine.GetUserAddress()
+			}
+			if matchString == userAddr {
+				return true
+			}
+		}
+	} else {
+		// if it is NOT an ec address, it can't be a factoid address, so don't check those.
+		// check input addresses
+		inputs := e.GetInputs()
+		for _, addLine := range inputs {
+			if addLine.GetUserAddress() == "" {
+				matchString = primitives.ConvertFctAddressToUserStr(addLine.GetAddress())
+			} else {
+				matchString = addLine.GetUserAddress()
+			}
+			if matchString == userAddr {
+				return true
+			}
+		}
+
+		//check output addresses
+		outputs := e.GetOutputs()
+		for _, addLine := range outputs {
+			if addLine.GetUserAddress() == "" {
+				matchString = primitives.ConvertFctAddressToUserStr(addLine.GetAddress())
+			} else {
+				matchString = addLine.GetUserAddress()
+			}
+			if matchString == userAddr {
+				return true
+			}
+		}
+	}
+	// if it was found, it would have already returned
+	return false
 }

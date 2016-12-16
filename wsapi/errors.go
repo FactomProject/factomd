@@ -83,7 +83,10 @@ func NewBlockNotFoundError() *primitives.JSONError {
 	return primitives.NewJSONError(-32008, "Block not found", nil)
 }
 func NewEntryNotFoundError() *primitives.JSONError {
-	return primitives.NewJSONError(-32009, "Entry not found", nil)
+	return primitives.NewJSONError(-32008, "Entry not found", nil)
+}
+func NewObjectNotFoundError() *primitives.JSONError {
+	return primitives.NewJSONError(-32008, "Object not found", nil)
 }
 func NewMissingChainHeadError() *primitives.JSONError {
 	return primitives.NewJSONError(-32009, "Missing Chain Head", nil)

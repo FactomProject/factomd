@@ -13,7 +13,7 @@ import (
 )
 
 func waitToKill(k *bool) {
-	t := rand.Int()%60 + 60
+	t := rand.Int()%120 + 60
 	for t > 0 {
 		os.Stderr.WriteString(fmt.Sprintf("     Will kill some servers in about %d seconds\n", t))
 		if t < 30 {
@@ -29,7 +29,7 @@ func waitToKill(k *bool) {
 // Wait some random amount of time between 0 and 2 minutes, and bring the node back.  We might
 // come back before we are faulted, or we might not.
 func bringback(f *FactomNode) {
-	t := rand.Int() % 120
+	t := rand.Int()%120 + 60
 	for t > 0 {
 		if !f.State.GetNetStateOff() {
 			return
@@ -143,13 +143,14 @@ func faultTest(faulting *bool) {
 			time.Sleep(time.Duration(delta) * time.Second)
 
 			kill := 1
-			maxLeadersToKill := (numleaders - 1) / 2
+			maxLeadersToKill := numleaders / 2
 			if maxLeadersToKill == 0 {
 				maxLeadersToKill = 1
 			} else {
 				kill = rand.Int() % maxLeadersToKill
 				kill++
 			}
+			kill = 1
 
 			os.Stderr.WriteString(fmt.Sprintf("Killing %3d of %3d Leaders\n", kill, numleaders))
 			for i := 0; i < kill; {
@@ -161,10 +162,10 @@ func faultTest(faulting *bool) {
 					leaders[n].State.SetNetStateOff(true)
 					go bringback(leaders[n])
 					i++
+					time.Sleep(time.Duration(rand.Int()%40) * time.Second)
+					totalServerFaults++
 				}
 			}
-
-			totalServerFaults += kill
 
 		} else {
 			time.Sleep(1 * time.Second)

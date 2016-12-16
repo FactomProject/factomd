@@ -96,6 +96,18 @@ type State struct {
 	ResetTryCnt int
 	ResetCnt    int
 
+	//  pending entry/transaction api calls for the holding queue do not have proper scope
+	//  This is used to create a temporary, correctly scoped holdingqueue snapshot for the calls on demand
+	HoldingMutex sync.Mutex
+	HoldingFlag  bool
+	HoldingMap   map[[32]byte]interfaces.IMsg
+
+	//  pending entry/transaction api calls for the ack queue do not have proper scope
+	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand
+	AcksMutex sync.Mutex
+	AcksFlag  bool
+	AcksMap   map[[32]byte]interfaces.IMsg
+
 	DBStateAskCnt   int
 	DBStateAnsCnt   int
 	DBStateReplyCnt int
@@ -267,6 +279,12 @@ type State struct {
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries []MissingEntry
+
+	// MessageTally causes the node to keep track of (and display) running totals of each
+	// type of message received during the tally interval
+	MessageTally           bool
+	MessageTalliesReceived [constants.NUM_MESSAGES]int
+	MessageTalliesSent     [constants.NUM_MESSAGES]int
 
 	LastPrint    string
 	LastPrintCnt int
@@ -683,7 +701,7 @@ func (s *State) Init() {
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
 	s.FaultTimeout = 20
-	s.FaultWait = 5
+	s.FaultWait = 3
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
@@ -950,38 +968,319 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 	return msg, ackMsg, nil
 }
 
-func (s *State) GetPendingEntries() []interfaces.IEntry {
+func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 
-	pLists := s.ProcessLists
+	// request holding queue from state from outside state scope
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
 
-	if pLists == nil {
-		return nil
+	s.HoldingFlag = true
+
+	// wait for state to fill the holdingMap and set flag to false
+	timeout := 0
+	for s.HoldingFlag == true {
+		if timeout > 50 {
+			s.HoldingFlag = false
+
+		} // only wait 5 seconds for the holding queue before giving up
+		time.Sleep(100 * time.Millisecond)
+		timeout++
 	}
-	ht := pLists.State.GetHighestCompletedBlock()
-	pl := pLists.Get(ht + 1)
-	var hashCount int32
-	hashCount = 0
-	hashResponse := make([]interfaces.IEntry, pl.LenNewEntries())
-	keys := pl.GetKeysNewEntries()
-	for _, k := range keys {
-		entry := pl.GetNewEntry(k)
-		hashResponse[hashCount] = entry
-		hashCount++
-	}
-	return hashResponse
+	lHold := s.HoldingMap
+	// done with the holdingmap. clear it
+	s.HoldingMap = make(map[[32]byte]interfaces.IMsg, 0)
+	return lHold
+
 }
 
-func (s *State) GetPendingTransactions() []interfaces.ITransaction {
+// this is executed in the state maintenance processes where the holding queue is in scope and can be queried
+//  This is what fills the HoldingMap requested in LoadHoldingMap
+func (s *State) fillHoldingMap() {
 
-	cb := s.FactoidState.GetCurrentBlock()
-	ct := cb.GetTransactions()
-	ts := make([]interfaces.ITransaction, len(ct))
-
-	for i, tran := range ct {
-		ts[i] = tran
+	if s.HoldingFlag == true {
+		s.HoldingMap = make(map[[32]byte]interfaces.IMsg, len(s.Holding))
+		for i, msg := range s.Holding {
+			s.HoldingMap[i] = msg
+		}
+		s.HoldingFlag = false
 	}
 
-	return ts
+}
+
+func (s *State) LoadAcksMap() map[[32]byte]interfaces.IMsg {
+
+	// request Acks queue from state from outside state scope
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+
+	s.AcksFlag = true
+
+	// wait for state to fill the AcksMap and set flag to false
+	timeout := 0
+	for s.AcksFlag == true {
+		if timeout > 50 {
+			s.AcksFlag = false
+
+		} // only wait 5 seconds for the Acks queue before giving up
+		time.Sleep(100 * time.Millisecond)
+		timeout++
+	}
+	lHold := s.AcksMap
+	// done with the Acksmap. clear it
+	s.AcksMap = make(map[[32]byte]interfaces.IMsg, 0)
+	return lHold
+
+}
+
+// this is executed in the state maintenance processes where the Acks queue is in scope and can be queried
+//  This is what fills the AcksMap requested in LoadAcksMap
+func (s *State) fillAcksMap() {
+
+	if s.AcksFlag == true {
+		s.AcksMap = make(map[[32]byte]interfaces.IMsg, len(s.Acks))
+		for i, msg := range s.Acks {
+			s.AcksMap[i] = msg
+		}
+		s.AcksFlag = false
+	}
+
+}
+
+func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
+	resp := make([]interfaces.IPendingEntry, 0)
+	pls := s.ProcessLists.Lists
+	var cc messages.CommitChainMsg
+	var ce messages.CommitEntryMsg
+	var re messages.RevealEntryMsg
+	var tmp interfaces.IPendingEntry
+	// check all existing processlists/VMs
+	for _, pl := range pls {
+		for _, v := range pl.VMs {
+			for _, plmsg := range v.List {
+				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = cc.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = cc.CommitChain.EntryHash
+
+					tmp.ChainID = cc.CommitChain.ChainIDHash
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
+
+					resp = append(resp, tmp)
+				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = ce.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = ce.CommitEntry.EntryHash
+
+					tmp.ChainID = ce.CommitEntry.Hash()
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
+
+					resp = append(resp, tmp)
+				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil
+					}
+					err = re.UnmarshalBinary(enb)
+					if err != nil {
+						return nil
+					}
+					tmp.EntryHash = re.Entry.GetHash()
+					tmp.ChainID = re.Entry.GetChainID()
+					if pl.DBHeight > s.GetDBHeightComplete() {
+						tmp.Status = "AckStatusACK"
+					} else {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					}
+
+					resp = append(resp, tmp)
+				}
+			}
+		}
+	}
+
+	// check holding queue
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+
+		if h.Type() == constants.REVEAL_ENTRY_MSG {
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil
+			}
+			err = re.UnmarshalBinary(enb)
+			if err != nil {
+				return nil
+			}
+			tmp.EntryHash = re.Entry.GetHash()
+
+			tmp.ChainID = re.Entry.GetChainID()
+			tmp.Status = "AckStatusNotConfirmed"
+
+			resp = append(resp, tmp)
+		}
+	}
+
+	return resp
+}
+
+func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
+
+	var flgFound bool
+
+	var currentHeightComplete = s.GetDBHeightComplete()
+	resp := make([]interfaces.IPendingTransaction, 0)
+	pls := s.ProcessLists.Lists
+	for _, pl := range pls {
+		// ignore old process lists
+		if pl.DBHeight > currentHeightComplete {
+			cb := pl.State.FactoidState.GetCurrentBlock()
+			ct := cb.GetTransactions()
+			for _, tran := range ct {
+				var tmp interfaces.IPendingTransaction
+				tmp.TransactionID = tran.GetSigHash()
+				if tran.GetBlockHeight() > 0 {
+					tmp.Status = "AckStatusDBlockConfirmed"
+				} else {
+					tmp.Status = "AckStatusACK"
+				}
+				if params.(string) == "" {
+					flgFound = true
+				} else {
+					flgFound = tran.HasUserAddress(params.(string))
+				}
+				if flgFound == true {
+					//working through multiple process lists.  Is this transaction already in the list?
+					for _, pt := range resp {
+						if pt.TransactionID.String() == tmp.TransactionID.String() {
+							flgFound = false
+						}
+					}
+					//  flag was true to be added to the list and not already in the list
+					if flgFound == true {
+						resp = append(resp, tmp)
+					}
+				}
+			}
+		}
+	}
+
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+		if h.Type() == constants.FACTOID_TRANSACTION_MSG {
+			var rm messages.FactoidTransaction
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil
+			}
+			err = rm.UnmarshalBinary(enb)
+			if err != nil {
+				return nil
+			}
+			tempTran := rm.GetTransaction()
+			var tmp interfaces.IPendingTransaction
+			tmp.TransactionID = tempTran.GetSigHash()
+			tmp.Status = "AckStatusNotConfirmed"
+			flgFound = tempTran.HasUserAddress(params.(string))
+
+			if flgFound == true {
+				//working through multiple process lists.  Is this transaction already in the list?
+				for _, pt := range resp {
+					if pt.TransactionID.String() == tmp.TransactionID.String() {
+						flgFound = false
+					}
+				}
+				//  flag was true to be added to the list and not already in the list
+				if flgFound == true {
+					resp = append(resp, tmp)
+				}
+			}
+		}
+	}
+
+	//b, _ := json.Marshal(resp)
+	return resp
+}
+
+// might want to make this search the database at some point to be more generic
+func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IHash, error) {
+	pls := s.ProcessLists.Lists
+	var cc messages.CommitChainMsg
+	var ce messages.CommitEntryMsg
+	var re messages.RevealEntryMsg
+
+	// check all existing processlists (last complete block +1 and greater)
+	for _, pl := range pls {
+
+		for _, v := range pl.VMs {
+
+			// check chain commits
+			for _, plmsg := range v.List {
+				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = cc.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+					if cc.CommitChain.GetSigHash().String() == txID {
+						return cc.CommitChain.EntryHash, nil
+					}
+				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = ce.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+
+					if ce.CommitEntry.GetSigHash().String() == txID {
+						return ce.CommitEntry.EntryHash, nil
+					}
+
+				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+					enb, err := plmsg.MarshalBinary()
+					if err != nil {
+						return nil, err
+					}
+					err = re.UnmarshalBinary(enb)
+					if err != nil {
+						return nil, err
+					}
+					if re.Entry.GetHash().String() == txID {
+						return re.Entry.GetHash(), nil
+					}
+				} else {
+
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("%s", "Transaction not found")
 }
 
 func (s *State) IncFactoidTrans() {
@@ -1051,7 +1350,6 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-
 	dbheight := s.GetHighestCompletedBlock()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
@@ -1075,6 +1373,11 @@ func (s *State) UpdateState() (progress bool) {
 	if s.ControlPanelDataRequest {
 		s.CopyStateToControlPanel()
 	}
+
+	// check to see ig a holding queue list request has been made
+	s.fillHoldingMap()
+	s.fillAcksMap()
+
 	return
 }
 
@@ -1200,11 +1503,8 @@ func (s *State) catchupEBlocks() {
 								s.MissingEntries = append(s.MissingEntries, v)
 							}
 							// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-							if s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
-								s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), now)
-							} else {
-								delete(s.Commits, entryhash.Fixed())
-							}
+							s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
+							delete(s.Commits, entryhash.Fixed())
 						}
 					}
 				}
@@ -1223,6 +1523,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
+	s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1231,14 +1532,17 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
+	s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
+	s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
+	s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
@@ -1313,6 +1617,22 @@ func (s *State) GetServerPublicKey() *primitives.PublicKey {
 
 func (s *State) GetAnchor() interfaces.IAnchor {
 	return s.Anchor
+}
+
+func (s *State) TallySent(msgType int) {
+	s.MessageTalliesSent[msgType]++
+}
+
+func (s *State) TallyReceived(msgType int) {
+	s.MessageTalliesReceived[msgType]++
+}
+
+func (s *State) GetMessageTalliesSent(i int) int {
+	return s.MessageTalliesSent[i]
+}
+
+func (s *State) GetMessageTalliesReceived(i int) int {
+	return s.MessageTalliesReceived[i]
 }
 
 func (s *State) GetFactomdVersion() int {
@@ -1702,7 +2022,7 @@ func (s *State) SetStringQueues() {
 		s.DropRate/10, s.DropRate%10,
 		s.Delay/1000, s.Delay%1000)
 
-	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, s.GetTrueLeaderHeight())
+	pls := fmt.Sprintf("%d/%d/%d", s.ProcessLists.DBHeightBase, s.PLProcessHeight, (s.GetTrueLeaderHeight() + 2))
 
 	str = str + fmt.Sprintf(" %5d[%6x] %-11s ",
 		dHeight,
@@ -1742,27 +2062,45 @@ func (s *State) SetStringQueues() {
 
 	s.serverPrt = str
 
-	authoritiesString := s.ConstructAuthoritySetString()
+	authoritiesString := ""
+	for _, str := range s.ConstructAuthoritySetString() {
+		if len(authoritiesString) > 0 {
+			authoritiesString += "\n"
+		}
+		authoritiesString += str
+	}
 	// Any updates required to the state as established by the AdminBlock are applied here.
 	list.State.SetAuthoritySetString(authoritiesString)
 
 }
 
-func (s *State) ConstructAuthoritySetString() string {
-	pl := s.LeaderPL
-	authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, s.LLeaderHeight)
-	for _, fd := range pl.FedServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
+func (s *State) ConstructAuthoritySetString() (authSets []string) {
+	base := s.ProcessLists.DBHeightBase
+	for i, pl := range s.ProcessLists.Lists {
+		if i > 8 {
+			break
+		}
+		authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, int(base)+i)
+		for _, fd := range pl.FedServers {
+			authoritiesString += " " + fd.GetChainID().String()[6:10]
+		}
+		authoritiesString += " || Auds :"
+		for _, fd := range pl.AuditServers {
+			authoritiesString += " " + fd.GetChainID().String()[6:10]
+		}
+		authSets = append(authSets, authoritiesString)
 	}
-	authoritiesString += " || Auds :"
-	for _, fd := range pl.AuditServers {
-		authoritiesString += " " + fd.GetChainID().String()[6:10]
-	}
-	return authoritiesString
+	return
 }
 
+// returns what finished block height this node thinks the leader is at, assuming that the
+// local node has the process list the leader is working on plus an extra empty one on top of it.
 func (s *State) GetTrueLeaderHeight() uint32 {
-	return uint32(int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 1)
+	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
+	if h < 0 {
+		h = 0
+	}
+	return uint32(h)
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
@@ -1881,7 +2219,7 @@ func (s *State) AddStatus(status string) {
 	s.statusMutex.Lock()
 	defer s.statusMutex.Unlock()
 
-	if len(s.StatusStrs) > 100 {
+	if len(s.StatusStrs) > 1000 {
 		copy(s.StatusStrs, s.StatusStrs[1:])
 		s.StatusStrs[len(s.StatusStrs)-1] = status
 	} else {

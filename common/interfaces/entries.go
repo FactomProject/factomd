@@ -20,3 +20,10 @@ type IEntry interface {
 	IEBEntry
 	KSize() int
 }
+
+type IPendingEntry struct {
+	EntryHash IHash 
+	ChainID   IHash 
+	Status    string         
+}
+

@@ -81,6 +81,7 @@ func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
 	p.PeerPort = NetworkListenPort // store our listening port
 	return p
 }
+
 func (p *Parcel) Init(header ParcelHeader) *Parcel {
 	p.Header = header
 	return p
@@ -92,7 +93,7 @@ func (p *Parcel) UpdateHeader() {
 }
 
 func (p *Parcel) Trace(location string, sequence string) {
-	if 1 < CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
+	if 10 < CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
 		time := time.Now().Unix()
 		fmt.Printf("\nParcelTrace, %s, %s, %s, %s, %s, %d \n", p.Header.AppHash, sequence, p.Header.AppType, CommandStrings[p.Header.Type], location, time)
 	}

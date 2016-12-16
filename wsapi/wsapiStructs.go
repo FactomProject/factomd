@@ -193,10 +193,22 @@ type TransactionResponse struct {
 	IncludedInDirectoryBlockHeight int64 `json:"includedindirectoryblockheight"`
 }
 
+type BlockHeightResponse struct {
+	DBlock  *JStruct `json:"dblock,omitempty"`
+	ABlock  *JStruct `json:"ablock,omitempty"`
+	FBlock  *JStruct `json:"fblock,omitempty"`
+	ECBlock *JStruct `json:"ecblock,omitempty"`
+	RawData string   `json:"rawdata,omitempty"`
+}
+
 //Requests
 
 type AddressRequest struct {
 	Address string `json:"address"`
+}
+
+type HeightRequest struct {
+	Height int64 `json:"height"`
 }
 
 type ChainIDRequest struct {
@@ -221,6 +233,17 @@ type KeyRequest struct {
 
 type MessageRequest struct {
 	Message string `json:"message"`
+}
+
+type PendingEntry struct {
+	EntryHash interfaces.IHash `json:"entryhash"`
+	ChainID   interfaces.IHash `json:"chainid"`
+	Status    string           `json:"status"`
+}
+
+type PendingTransaction struct {
+	TransactionID interfaces.IHash `json:"transactionid"`
+	Status        string           `json:"status"`
 }
 
 type TransactionRequest struct {

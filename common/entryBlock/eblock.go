@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-// EBlock is the Entry Block. It holds the hashes of the Entries and its Merkel
+// EBlock is the Entry Block. It holds the hashes of the Entries and its Merkle
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
 type EBlock struct {

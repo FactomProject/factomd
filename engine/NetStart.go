@@ -120,7 +120,7 @@ func NetStart(s *state.State) {
 		s.SetPort(portOverride)
 	}
 
-	if blkTime != 0 {
+	if blkTime > 0 {
 		s.DirectoryBlockInSeconds = blkTime
 	} else {
 		blkTime = s.DirectoryBlockInSeconds
@@ -345,6 +345,7 @@ func NetStart(s *state.State) {
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
 		p2pNetwork.DialSpecialPeersString(peers)
+		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
 	switch net {
@@ -538,4 +539,11 @@ func setupFirstAuthority(s *state.State) {
 	auth.AuthorityChainID = id.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 	s.Authorities = append(s.Authorities, &auth)
+}
+
+func networkHousekeeping() {
+	for {
+		time.Sleep(1 * time.Second)
+		p2pProxy.SetWeight(p2pNetwork.GetNumberConnections())
+	}
 }

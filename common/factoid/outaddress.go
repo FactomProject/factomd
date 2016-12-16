@@ -9,6 +9,7 @@ package factoid
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type OutAddress struct {
@@ -41,5 +42,6 @@ func NewOutAddress(address interfaces.IAddress, amount uint64) interfaces.IOutAd
 	ta := new(OutAddress)
 	ta.Amount = amount
 	ta.Address = address
+	ta.UserAddress = primitives.ConvertFctAddressToUserStr(address)
 	return ta
 }

@@ -1,3 +1,5 @@
+# Executable
+factomd
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
 *.a
@@ -47,3 +49,6 @@ _testmain.go
 *.out
 .idea/
 ----*
+
+# Vendoring
+vendor/

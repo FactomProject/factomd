@@ -65,7 +65,7 @@ factom-cli listaddresses
 for ((i=0; i < 20; i++)); do
 echo ${ec[i]}
 noise=$(dd if=/dev/urandom bs=9K count=1 2> /dev/null)
-echo "$noise" | factom-cli addchain -e testing$i -e factom ${ec[i]}
+echo "$noise" | factom-cli addchain -n testing$i -n factom ${ec[i]}
 #sleep .2s
 done
 
