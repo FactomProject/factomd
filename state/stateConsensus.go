@@ -79,11 +79,16 @@ func (s *State) Process() (progress bool) {
 		return false
 	}
 
+	// If we are not running the leader, then look to see if we have waited long enough to
+	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
+	// is so we don't conflict with past version of the network if we have to reboot the network.
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			if s.DBFinished == true {
 				s.RunLeader = true
+				s.StartDelay = now // Reset StartDelay for Ignore Missing
+				s.IgnoreMissing = true
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -91,6 +96,11 @@ func (s *State) Process() (progress bool) {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
 		} else {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
+	} else if s.IgnoreMissing {
+		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+		if now-s.StartDelay > s.StartDelayLimit {
+			s.IgnoreMissing = false
 		}
 	}
 
@@ -437,6 +447,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+
+	// Just ignore missing messages for a period after going off line or starting up.
+	if s.IgnoreMissing {
+		return
+	}
+
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
 	fullFault, ok := mmr.MsgResponse.(*messages.FullServerFault)

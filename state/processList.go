@@ -930,9 +930,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
-	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
-	// the past.
+	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
+	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
+		now := p.State.GetTimestamp()
+		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+			// Us and too old?  Just ignore.
+			return
+		}
 		num := p.State.GetSalt(ack.Timestamp)
 		if num != ack.SaltNumber {
 			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
