@@ -185,7 +185,7 @@ func (ds *DBState) String() string {
 	return str
 }
 
-func (list *DBStateList) GetHighestSavedBlock() uint32 {
+func (list *DBStateList) GetHighestCompletedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
 		if dbstate != nil && dbstate.Locked {
@@ -199,7 +199,7 @@ func (list *DBStateList) GetHighestSavedBlock() uint32 {
 	return ht
 }
 
-func (list *DBStateList) GetHighestCompletedBlock() uint32 {
+func (list *DBStateList) GetHighestSavedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
 		if dbstate != nil && dbstate.Saved {
@@ -218,7 +218,7 @@ func (list *DBStateList) Catchup() {
 
 	now := list.State.GetTimestamp()
 
-	dbsHeight := list.GetHighestCompletedBlock()
+	dbsHeight := list.GetHighestSavedBlk()
 
 	// We only check if we need updates once every so often.
 
@@ -841,7 +841,7 @@ func (list *DBStateList) NewDBState(isNew bool,
 		return dbState
 	} else {
 		ht := dbState.DirectoryBlock.GetHeader().GetDBHeight()
-		if ht == list.State.GetHighestSavedBlock() {
+		if ht == list.State.GetHighestCompletedBlk() {
 			index := int(ht) - int(list.State.DBStates.Base)
 			if index > 0 {
 				list.State.DBStates.DBStates[index] = dbState

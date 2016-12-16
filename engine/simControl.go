@@ -1038,7 +1038,7 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 	for *watchPL == value {
 		fnode := fnodes[*listenTo]
 		nprt := fnode.State.DBStates.String()
-		b := fnode.State.GetHighestCompletedBlock()
+		b := fnode.State.GetHighestSavedBlk()
 		fnode.State.ProcessLists.SetString = true
 		nprt = nprt + fnode.State.ProcessLists.Str
 		pl := fnode.State.ProcessLists.Get(b)
