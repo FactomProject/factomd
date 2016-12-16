@@ -21,6 +21,7 @@ func (s *State) IsStateFullySynced() bool {
 
 //returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
+	fmt.Println("GetACKStatus")
 	for _, pl := range s.ProcessLists.Lists {
 		//pl := s.ProcessLists.LastList()
 		m := pl.GetOldMsgs(hash)
@@ -52,31 +53,52 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 			}
 		}
 	}
+	fmt.Println("NOT FOUND IN PROCESS LISTS")
+
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
 		return constants.AckStatusInvalid, hash, nil, nil, nil
 	}
+	fmt.Println("NOT FOUND IN INVALID MESSAGE")
 	in, err := s.DB.FetchIncludedIn(hash)
 	if err != nil {
 		return 0, hash, nil, nil, err
 	}
+
 	if in == nil {
+
+		// havent found it yet.  check the holding queue
+		status, _, msg, _ := s.FetchHoldingMessageByHash(hash)
+		fmt.Println("Message from Holding:", msg)
+		fmt.Println(status, hash)
+		if status != constants.AckStatusUnknown {
+			fmt.Println("returning holding status of:", status, "constants.unknown=", constants.AckStatusUnknown)
+			//	return status, hash, nil, nil, nil
+		}
+	}
+
+	fmt.Println("NOT FOUND IN DB FETCH INCLUDED IN")
+	if in == nil {
+		//	 We are now looking into the holding queue.  it should have been found by now if it is going to be
+		//	  if included has not been found, but we have no information, it should be unknown not unconfirmed.
+
 		if s.IsStateFullySynced() {
 			return constants.AckStatusNotConfirmed, hash, nil, nil, nil
 		} else {
 			return constants.AckStatusUnknown, hash, nil, nil, nil
 		}
 	}
+	fmt.Println("NOT FOUND TRY THE SYNCED")
 	in2, err := s.DB.FetchIncludedIn(in)
 	if err != nil {
 		return 0, hash, nil, nil, err
 	}
-
+	fmt.Println("NOT FOUND TRY THE DBLOCK")
 	dBlock, err := s.DB.FetchDBlock(in2)
 	if err != nil {
 		return 0, hash, nil, nil, err
 	}
-
+	fmt.Println("NOT FOUND TRY THEFBLOCK")
 	fBlock, err := s.DB.FetchFBlock(in)
 	if err != nil {
 		return 0, hash, nil, nil, err
@@ -86,9 +108,9 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		if tx == nil {
 			return 0, hash, nil, nil, fmt.Errorf("Transaction not found in a block we were expecting")
 		}
-		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
+		return constants.AckStatusUnknown, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
 	}
-
+	fmt.Println("NOT FOUND TRY THE ECBLOCK")
 	ecBlock, err := s.DB.FetchECBlock(in)
 	if err != nil {
 		return 0, hash, nil, nil, err
@@ -98,14 +120,80 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		if tx == nil {
 			return 0, hash, nil, nil, fmt.Errorf("Transaction not found in a block we were expecting")
 		}
-		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
+		return constants.AckStatusUnknown, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
 	}
+
+	fmt.Println("NOT FOUND TRY THE HOLDING QUEUE")
 
 	//entries have no timestamp of their own, so return nil
 
 	return constants.AckStatusDBlockConfirmed, hash, nil, dBlock.GetHeader().GetTimestamp(), nil
 
 }
+
+func (s *State) FetchHoldingMessageByHash(hash interfaces.IHash) (int, byte, interfaces.IMsg, error) {
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+		switch {
+		//	case h.Type() == constants.EOM_MSG :
+		//	case h.Type() == constants.ACK_MSG :
+		//	case h.Type() == constants.FED_SERVER_FAULT_MSG :
+		//	case h.Type() == constants.AUDIT_SERVER_FAULT_MSG :
+		//	case h.Type() == constants.FULL_SERVER_FAULT_MSG :
+		case h.Type() == constants.COMMIT_CHAIN_MSG:
+			var rm messages.CommitChainMsg
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.CommitChain.GetSigHash()) {
+				return constants.AckStatusNotConfirmed, constants.REVEAL_ENTRY_MSG, h, err
+			}
+		case h.Type() == constants.COMMIT_ENTRY_MSG:
+			var rm messages.CommitEntryMsg
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.CommitEntry.GetSigHash()) {
+				return constants.AckStatusNotConfirmed, constants.REVEAL_ENTRY_MSG, h, err
+			}
+			//	case h.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG :
+			//	case h.Type() == constants.EOM_TIMEOUT_MSG :
+		case h.Type() == constants.FACTOID_TRANSACTION_MSG:
+			var rm messages.FactoidTransaction
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.Transaction.GetSigHash()) {
+				return constants.AckStatusNotConfirmed, constants.FACTOID_TRANSACTION_MSG, h, err
+			}
+			//	case h.Type() == constants.HEARTBEAT_MSG :
+			//	case h.Type() == constants.INVALID_ACK_MSG :
+			//	case h.Type() == constants.INVALID_DIRECTORY_BLOCK_MSG :
+		case h.Type() == constants.REVEAL_ENTRY_MSG:
+			var rm messages.RevealEntryMsg
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.Entry.GetHash()) {
+				return constants.AckStatusNotConfirmed, constants.REVEAL_ENTRY_MSG, h, err
+			}
+			//	case  h.Type() == constants.REQUEST_BLOCK_MSG :
+			//	case h.Type() == constants.SIGNATURE_TIMEOUT_MSG:
+			//	case h.Type() == constants.MISSING_MSG :
+			//	case h.Type() == constants.MISSING_DATA :
+			//	case h.Type() == constants.DATA_RESPONSE :
+			//	case h.Type() == constants.MISSING_MSG_RESPONSE:
+			//	case h.Type() == constants.DBSTATE_MSG :
+			//	case h.Type() == constants.DBSTATE_MISSING_MSG:
+			//	case h.Type() == constants.ADDSERVER_MSG:
+			//	case h.Type() == constants.CHANGESERVER_KEY_MSG:
+			//	case h.Type() == constants.REMOVESERVER_MSG:
+			//	case h.Type() == constants.BOUNCE_MSG:
+			//	case h.Type() == constants.BOUNCEREPLY_MSG:
+			//	case h.Type() == constants.MISSING_ENTRY_BLOCKS:
+			//	case h.Type() == constants.ENTRY_BLOCK_RESPONSE :
+
+		}
+	}
+	return constants.AckStatusUnknown, byte(0), nil, fmt.Errorf("Not Found")
+}
+
 func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECBlockEntry, error) {
 	//TODO: expand to search data from outside database
 	if hash == nil {

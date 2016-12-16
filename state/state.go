@@ -1235,6 +1235,7 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 
 			// check chain commits
 			for _, plmsg := range v.List {
+				//	if plmsg.Type() != nil {
 				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
 					enb, err := plmsg.MarshalBinary()
 					if err != nil {
@@ -1274,9 +1275,10 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 					if re.Entry.GetHash().String() == txID {
 						return re.Entry.GetHash(), nil
 					}
-				} else {
-
 				}
+				//	} else {
+				//		return nil, fmt.Errorf("%s", "Invalid Message in Holding Queue")
+				//	}
 			}
 		}
 	}
