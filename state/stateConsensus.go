@@ -252,6 +252,7 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
+		s.AddStatus(fmt.Sprintf("AddDBState(): Fail dbstate is nil at dbht: %d", directoryBlock.GetHeader().GetDBHeight()))
 		return nil
 	}
 
@@ -363,9 +364,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if s.GetHighestCompletedBlock() > dbheight && dbheight > 0 {
+	if s.GetHighestSavedBlock() > dbheight && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
-			s.GetHighestCompletedBlock(), dbheight))
+			s.GetHighestSavedBlock(), dbheight))
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
@@ -412,18 +413,27 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	if dbstate == nil {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
 		s.DBStateFailsCnt++
-	} else {
-		if dbstatemsg.IsInDB {
-			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
-			dbstate.Saved = true
-			dbstate.isNew = false
-		} else {
-			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
-			dbstate.ReadyToSave = true
-		}
-		dbstate.Locked = false
-		dbstate.Locked2 = false
+		return
 	}
+
+	if dbstatemsg.IsInDB == false {
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
+		dbstate.ReadyToSave = true
+		dbstate.Locked = false
+	} else {
+		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
+		dbstate.Saved = true
+		dbstate.IsNew = false
+		dbstate.Locked = false
+	}
+
+	s.EOM = false
+	s.EOMDone = false
+	s.DBSig = false
+	s.DBSigDone = false
+	s.Saving = true
+	s.Syncing = false
+
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -986,7 +996,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
-	ht := s.GetHighestSavedBlock()
+	ht := s.GetHighestCompletedBlock()
 	if dbheight <= ht || s.EOM {
 		return
 	}
@@ -1045,7 +1055,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	if s.EOM && e.DBHeight != dbheight {
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Invalid EOM s.EOM(%v) && e.DBHeight(%v) != dbheight(%v)", e.VMIndex, s.EOM, e.DBHeight, dbheight))
-		return false
 	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
@@ -1071,12 +1080,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.ReviewHolding()
 			s.Syncing = false
 			s.EOMProcessed = 0
-			if e.Minute == 0 {
-				pdbs := s.DBStates.Get(int(e.DBHeight - 1))
-				if pdbs != nil && !pdbs.Saved {
-					pdbs.Locked2 = true
-				}
-			}
 		}
 		s.SendHeartBeat()
 
@@ -1305,7 +1308,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
-		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlock()+1 < s.LLeaderHeight {
+		if s.LLeaderHeight > 0 && s.GetHighestSavedBlock()+1 < s.LLeaderHeight {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
@@ -1320,7 +1323,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 		dbstate := s.GetDBState(dbheight - 1)
 
-		if dbstate == nil || !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
+		if dbstate == nil {
+			return false
+		}
+
+		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
 			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
 		}
@@ -1751,13 +1758,13 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 }
 
 // This is the highest block signed off, but not necessarily validted.
-func (s *State) GetHighestSavedBlock() uint32 {
-	return s.DBStates.GetHighestSavedBlk()
+func (s *State) GetHighestCompletedBlock() uint32 {
+	return s.DBStates.GetHighestCompletedBlock()
 }
 
 // This is the highest block signed off and recorded in the Database.
-func (s *State) GetHighestCompletedBlock() uint32 {
-	return s.DBStates.GetHighestLockedBlock()
+func (s *State) GetHighestSavedBlock() uint32 {
+	return s.DBStates.GetHighestSavedBlock()
 }
 
 // This is lowest block currently under construction under the "leader".
@@ -1782,7 +1789,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1802,7 +1809,7 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1819,7 +1826,7 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
@@ -1838,7 +1845,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
