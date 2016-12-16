@@ -276,7 +276,9 @@ func systemFaults(f *FactomNode) string {
 	}
 	str := fmt.Sprintf("%5s %s\n", "", "System List")
 	for _, ff := range pl.System.List {
-		str = fmt.Sprintf("%s%8s%s\n", str, "", ff.String())
+		if ff != nil {
+			str = fmt.Sprintf("%s%8s%s\n", str, "", ff.String())
+		}
 	}
 	str = str + "\n"
 	return str
