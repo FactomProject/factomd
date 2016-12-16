@@ -207,7 +207,7 @@ func (p *ProcessList) LenNewEntries() int {
 }
 
 func (p *ProcessList) Complete() bool {
-	if p.DBHeight <= p.State.GetHighestCompletedBlock() {
+	if p.DBHeight <= p.State.GetHighestSavedBlk() {
 		return true
 	}
 	for i := 0; i < len(p.FedServers); i++ {
@@ -699,7 +699,7 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
-	dbht := state.GetHighestCompletedBlock()
+	dbht := state.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
 		return true
 	}
@@ -1215,7 +1215,7 @@ func (p *ProcessList) Reset() bool {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	s.RunLeader = false
 
-	s.LLeaderHeight = s.GetHighestCompletedBlock() + 1
+	s.LLeaderHeight = s.GetHighestSavedBlk() + 1
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)

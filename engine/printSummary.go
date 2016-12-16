@@ -292,7 +292,7 @@ func faultSummary() string {
 
 	for i, fnode := range fnodes {
 		if verboseFaultOutput || !fnode.State.GetNetStateOff() {
-			b := fnode.State.GetHighestCompletedBlock()
+			b := fnode.State.GetHighestSavedBlk()
 			pl := fnode.State.ProcessLists.Get(b + 1)
 			if pl == nil {
 				pl = fnode.State.ProcessLists.Get(b)

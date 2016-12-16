@@ -87,8 +87,11 @@ func (s *State) Process() (progress bool) {
 		if now-s.StartDelay > s.StartDelayLimit {
 			if s.DBFinished == true {
 				s.RunLeader = true
-				s.StartDelay = now // Reset StartDelay for Ignore Missing
-				s.IgnoreMissing = true
+				if !s.IgnoreDone {
+					s.StartDelay = now // Reset StartDelay for Ignore Missing
+					s.IgnoreMissing = true
+					s.IgnoreDone = true
+				}
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -374,9 +377,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if s.GetHighestSavedBlock() > dbheight && dbheight > 0 {
+	if s.GetHighestCompletedBlk() > dbheight && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
-			s.GetHighestSavedBlock(), dbheight))
+			s.GetHighestCompletedBlk(), dbheight))
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
@@ -976,7 +979,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
-	ht := s.GetHighestCompletedBlock()
+	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
 		return
 	}
@@ -1288,7 +1291,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
-		if s.LLeaderHeight > 0 && s.GetHighestSavedBlock()+1 < s.LLeaderHeight {
+		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
@@ -1737,14 +1740,14 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
-// This is the highest block signed off, but not necessarily validted.
-func (s *State) GetHighestCompletedBlock() uint32 {
-	return s.DBStates.GetHighestCompletedBlock()
+// This is the highest block signed off and recorded in the Database.
+func (s *State) GetHighestSavedBlk() uint32 {
+	return s.DBStates.GetHighestSavedBlk()
 }
 
-// This is the highest block signed off and recorded in the Database.
-func (s *State) GetHighestSavedBlock() uint32 {
-	return s.DBStates.GetHighestSavedBlock()
+// This is the highest block signed off, but not necessarily validted.
+func (s *State) GetHighestCompletedBlk() uint32 {
+	return s.DBStates.GetHighestCompletedBlk()
 }
 
 // This is lowest block currently under construction under the "leader".
@@ -1769,7 +1772,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1789,7 +1792,7 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1806,7 +1809,7 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
@@ -1825,7 +1828,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()

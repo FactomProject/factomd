@@ -41,7 +41,7 @@ func TestSecretCode(t *testing.T) {
 
 func TestDirBlockHead(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	height := state.GetHighestCompletedBlock()
+	height := state.GetHighestSavedBlk()
 	if height != 9 {
 		t.Errorf("Invalid DBLock Height - got %v, expected 10", height+1)
 	}
