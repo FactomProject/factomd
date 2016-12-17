@@ -41,8 +41,9 @@ type DBState struct {
 	EntryBlocks []interfaces.IEntryBlock
 	Entries     []interfaces.IEBEntry
 
-	Locked      bool
 	ReadyToSave bool
+	Locked      bool
+	Signed      bool
 	Saved       bool
 
 	FinalExchangeRate uint64
@@ -199,6 +200,20 @@ func (list *DBStateList) GetHighestCompletedBlk() uint32 {
 	return ht
 }
 
+func (list *DBStateList) GetHighestSignedBlk() uint32 {
+	ht := list.Base
+	for i, dbstate := range list.DBStates {
+		if dbstate != nil && dbstate.Signed {
+			ht = list.Base + uint32(i)
+		} else {
+			if dbstate == nil {
+				return ht
+			}
+		}
+	}
+	return ht
+}
+
 func (list *DBStateList) GetHighestSavedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
@@ -218,7 +233,7 @@ func (list *DBStateList) Catchup() {
 
 	now := list.State.GetTimestamp()
 
-	dbsHeight := list.GetHighestSavedBlk()
+	dbsHeight := list.GetHighestCompletedBlk()
 
 	// We only check if we need updates once every so often.
 
@@ -616,27 +631,56 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	return
 }
 
+// We don't really do the signing here, but just check that we have all the signatures.
+// If we do, we count that as progress.
+func (list *DBStateList) SignDB(d *DBState) (process bool) {
+
+	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
+
+	// If we have the next dbstate in the list, then all the signatures for this dbstate
+	// have been checked, so we can consider this guy signed.
+	if dbheight == 0 || list.Get(int(dbheight+1)) != nil {
+		d.Signed = true
+		return true
+	}
+
+	pl := list.State.ProcessLists.Get(dbheight)
+	if pl == nil || !pl.Complete() {
+		return
+	}
+
+	// If we don't have the next dbstate yet, see if we have all the signatures.
+	pl = list.State.ProcessLists.Get(dbheight + 1)
+	if pl == nil {
+		return
+	}
+	for _, vm := range pl.VMs[:len(pl.FedServers)] {
+		if vm.LeaderMinute < 1 {
+			return
+		}
+	}
+
+	d.Signed = true
+	return true
+}
+
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
-	if v%4 == 0 {
+	if v%16 == 0 {
 		list.State.DB.Trim()
 	}
 
-	if !d.Locked || !d.ReadyToSave {
+	if !d.Signed || !d.ReadyToSave {
 		return
 	}
 
 	if d.Saved {
 		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
-		if dblk == nil {
-			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
-				list.State.FactomNodeName,
-				d.DirectoryBlock.GetHeader().GetDBHeight(),
-				d.DirectoryBlock.GetKeyMR().Bytes()))
+		if dblk != nil {
+			return
 		}
-		return
 	}
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
@@ -720,7 +764,7 @@ func (list *DBStateList) UpdateState() (progress bool) {
 		}
 
 		progress = list.ProcessBlocks(d) || progress
-
+		progress = list.SignDB(d) || progress
 		progress = list.SaveDBStateToDB(d) || progress
 
 		// Make sure we move forward the Adminblock state in the process lists
