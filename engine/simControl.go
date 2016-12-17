@@ -231,29 +231,29 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
-					fmt.Println("Select a node first")
+					os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Adminblock block with an  where n = blockheight, i.e. 'a10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Adminblock block with an  where n = blockheight, i.e. 'a10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						ABlock := dsmsg.AdminBlock
-						fmt.Println(ABlock.String())
+						os.Stderr.WriteString(fmt.Sprintln(ABlock.String()))
 					} else {
 						pl := f.State.ProcessLists.Get(uint32(ht))
 						if pl == nil || pl.AdminBlock == nil {
-							fmt.Println("Could not find this Admin block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this Admin block"))
 						} else {
-							fmt.Printf(pl.AdminBlock.String())
+							os.Stderr.WriteString(fmt.Sprintln(pl.AdminBlock.String()))
 						}
 					}
 				}
@@ -263,29 +263,29 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
-					fmt.Println("Select a node first")
+					os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Entry Credit block with fn  where n = blockheight, i.e. 'e10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Entry Credit block with fn  where n = blockheight, i.e. 'e10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						ECBlock := dsmsg.EntryCreditBlock
-						fmt.Printf(ECBlock.String())
+						os.Stderr.WriteString(fmt.Sprint(ECBlock.String()))
 					} else {
 						pl := f.State.ProcessLists.Get(uint32(ht))
 						if pl == nil || pl.EntryCreditBlock == nil {
-							fmt.Println("Could not find this Entry Credit Block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this Entry Credit Block"))
 						} else {
-							fmt.Printf(pl.EntryCreditBlock.String())
+							os.Stderr.WriteString(fmt.Sprintln(pl.EntryCreditBlock.String()))
 						}
 					}
 				}
@@ -295,29 +295,29 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
-					fmt.Println("Select a node first")
+					os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Factoid block with fn  where n = blockheight, i.e. 'f10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Factoid block with fn  where n = blockheight, i.e. 'f10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						FBlock := dsmsg.FactoidBlock
-						fmt.Printf(FBlock.String())
+						os.Stderr.WriteString(fmt.Sprint(FBlock.String()))
 					} else {
 						dbstate := f.State.DBStates.Get(ht)
 						if dbstate == nil || dbstate.FactoidBlock == nil {
-							fmt.Println("Could not find this Factoid block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this Factoid block"))
 						} else {
-							fmt.Printf(dbstate.FactoidBlock.String())
+							os.Stderr.WriteString(fmt.Sprint(dbstate.FactoidBlock.String()))
 						}
 					}
 				}
@@ -331,25 +331,25 @@ func SimControl(listenTo int) {
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Directory block with dn  where n = blockheight, i.e. 'd10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Directory block with dn  where n = blockheight, i.e. 'd10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						DBlock := dsmsg.DirectoryBlock
-						fmt.Printf(DBlock.String())
+						os.Stderr.WriteString(fmt.Sprint(DBlock.String()))
 					} else {
 						pl := f.State.ProcessLists.Get(uint32(ht))
 						if pl == nil || pl.DirectoryBlock == nil {
-							fmt.Println("Could not find this directory block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this directory block"))
 						} else {
-							fmt.Printf(pl.DirectoryBlock.String())
+							os.Stderr.WriteString(fmt.Sprintln(pl.DirectoryBlock.String()))
 						}
 					}
 				}
@@ -502,7 +502,12 @@ func SimControl(listenTo int) {
 					f := fnodes[listenTo]
 					fmt.Println("Holding:")
 					for k := range f.State.Holding {
-						fmt.Println(f.State.Holding[k].String())
+						v := f.State.Holding[k]
+						if v != nil {
+							os.Stderr.WriteString((v.String()) + "\n")
+						} else {
+							os.Stderr.WriteString("<nul>\n")
+						}
 					}
 				}
 
