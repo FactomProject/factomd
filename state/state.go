@@ -1466,7 +1466,7 @@ func (s *State) catchupEBlocks() {
 		// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 		// review the directory block over again the next time.
 		alldone := true
-		for s.EntryBlockDBHeightProcessing < s.GetHighestSavedBlk() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 20 {
 			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
 
 			if dbstate != nil {

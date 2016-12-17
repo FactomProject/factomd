@@ -1372,7 +1372,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
 		if s.KeepMismatch || pl.CheckDiffSigTally() {
-			if !dbstate.Signed {
+			if !dbstate.Saved {
 				dbstate.ReadyToSave = true
 				s.DBStates.SaveDBStateToDB(dbstate)
 				//s.LeaderPL.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
