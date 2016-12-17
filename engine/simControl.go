@@ -502,7 +502,10 @@ func SimControl(listenTo int) {
 					f := fnodes[listenTo]
 					fmt.Println("Holding:")
 					for k := range f.State.Holding {
-						fmt.Println(f.State.Holding[k].String())
+						v := f.State.Holding[k]
+						if v != nil {
+							os.Stderr.WriteString((v.String())+"\n")
+						}
 					}
 				}
 
