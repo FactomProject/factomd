@@ -1063,66 +1063,69 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	var ce messages.CommitEntryMsg
 	var re messages.RevealEntryMsg
 	var tmp interfaces.IPendingEntry
+	LastComplete := s.GetDBHeightComplete()
 	// check all existing processlists/VMs
 	for _, pl := range pls {
-		for _, v := range pl.VMs {
-			for _, plmsg := range v.List {
-				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = cc.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = cc.CommitChain.EntryHash
+		if pl.DBHeight > LastComplete {
+			for _, v := range pl.VMs {
+				for _, plmsg := range v.List {
+					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = cc.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = cc.CommitChain.EntryHash
 
-					tmp.ChainID = cc.CommitChain.ChainIDHash
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						tmp.ChainID = cc.CommitChain.ChainIDHash
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
-				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = ce.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = ce.CommitEntry.EntryHash
+						resp = append(resp, tmp)
+					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = ce.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = ce.CommitEntry.EntryHash
 
-					tmp.ChainID = ce.CommitEntry.Hash()
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						tmp.ChainID = ce.CommitEntry.Hash()
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
-				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = re.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = re.Entry.GetHash()
-					tmp.ChainID = re.Entry.GetChainID()
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						resp = append(resp, tmp)
+					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = re.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = re.Entry.GetHash()
+						tmp.ChainID = re.Entry.GetChainID()
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
+						resp = append(resp, tmp)
+					}
 				}
 			}
 		}

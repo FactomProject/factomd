@@ -22,10 +22,12 @@ func (s *State) IsStateFullySynced() bool {
 //returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
 	fmt.Println("GetACKStatus")
+	fmt.Println("Holding Flag =", s.HoldingFlag)
 	for _, pl := range s.ProcessLists.Lists {
 		//pl := s.ProcessLists.LastList()
 		m := pl.GetOldMsgs(hash)
 		if m != nil || pl.DirectoryBlock == nil {
+			fmt.Println("Returning Ack on Old-Messages")
 			return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
 		}
 		ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
@@ -34,6 +36,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		for _, k := range keys {
 			tx := pl.GetNewEntry(k)
 			if hash.IsSameAs(tx.GetHash()) {
+				fmt.Println("Returning Ack on GetKeysNewEntries")
 				return constants.AckStatusACK, hash, nil, ts, nil
 			}
 		}
@@ -41,6 +44,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		if ecBlock != nil {
 			tx := ecBlock.GetEntryByHash(hash)
 			if tx != nil {
+				fmt.Println("Returning Ack on EntryCreditBlock")
 				return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
 			}
 		}
@@ -49,6 +53,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		if fBlock != nil {
 			tx := fBlock.GetTransactionByHash(hash)
 			if tx != nil {
+				fmt.Println("Returning Ack on GetCurrentBlock")
 				return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
 			}
 		}
@@ -65,7 +70,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		return 0, hash, nil, nil, err
 	}
 
-	if in == nil {
+	/*if in == nil {
 
 		// havent found it yet.  check the holding queue
 		status, _, msg, _ := s.FetchHoldingMessageByHash(hash)
@@ -73,17 +78,24 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		fmt.Println(status, hash)
 		if status != constants.AckStatusUnknown {
 			fmt.Println("returning holding status of:", status, "constants.unknown=", constants.AckStatusUnknown)
-			//	return status, hash, nil, nil, nil
+			return status, hash, nil, nil, nil
 		}
 	}
-
+	*/
 	fmt.Println("NOT FOUND IN DB FETCH INCLUDED IN")
 	if in == nil {
 		//	 We are now looking into the holding queue.  it should have been found by now if it is going to be
 		//	  if included has not been found, but we have no information, it should be unknown not unconfirmed.
 
 		if s.IsStateFullySynced() {
-			return constants.AckStatusNotConfirmed, hash, nil, nil, nil
+			status, _, msg, _ := s.FetchHoldingMessageByHash(hash)
+			fmt.Println("Message from Holding:", msg)
+			fmt.Println(status, hash)
+			//	if status != constants.AckStatusUnknown {
+			fmt.Println("returning holding status of:", status, "constants.unknown=", constants.AckStatusUnknown)
+			return status, hash, nil, nil, nil
+			//}
+			//	return constants.AckStatusNotConfirmed, hash, nil, nil, nil
 		} else {
 			return constants.AckStatusUnknown, hash, nil, nil, nil
 		}
@@ -108,7 +120,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		if tx == nil {
 			return 0, hash, nil, nil, fmt.Errorf("Transaction not found in a block we were expecting")
 		}
-		return constants.AckStatusUnknown, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
+		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
 	}
 	fmt.Println("NOT FOUND TRY THE ECBLOCK")
 	ecBlock, err := s.DB.FetchECBlock(in)
@@ -120,7 +132,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		if tx == nil {
 			return 0, hash, nil, nil, fmt.Errorf("Transaction not found in a block we were expecting")
 		}
-		return constants.AckStatusUnknown, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
+		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
 	}
 
 	fmt.Println("NOT FOUND TRY THE HOLDING QUEUE")
@@ -311,6 +323,7 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 		for _, key := range keys {
 			tx := pl.GetNewEntry(key)
 			if hash.IsSameAs(tx.GetHash()) {
+				fmt.Println("returningProcesslist hash")
 				return tx, nil
 			}
 		}
