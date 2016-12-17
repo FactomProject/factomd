@@ -75,14 +75,16 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		// The genesis block is valid by definition.
 		return 1
 	}
-	if d == nil || !d.Saved {
+	if d == nil {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
 		return 0
 	}
 
 	if int(state.EntryBlockDBHeightComplete) < int(dbheight-1) {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0s Don't have all the Entries we want dbht: %d", dbheight))
+		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0s Don't have all the Entries (ht: %d) we want dbht: %d",
+			state.EntryBlockDBHeightComplete,
+			dbheight))
 		return 0
 	}
 
@@ -233,7 +235,7 @@ func (list *DBStateList) Catchup() {
 
 	now := list.State.GetTimestamp()
 
-	dbsHeight := list.GetHighestCompletedBlk()
+	dbsHeight := list.GetHighestSavedBlk()
 
 	// We only check if we need updates once every so often.
 
@@ -668,7 +670,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
-	if v%16 == 0 {
+	if v%4 == 0 {
 		list.State.DB.Trim()
 	}
 
@@ -678,9 +680,13 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if d.Saved {
 		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
-		if dblk != nil {
-			return
+		if dblk == nil {
+			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
+				list.State.FactomNodeName,
+				d.DirectoryBlock.GetHeader().GetDBHeight(),
+				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
+		return
 	}
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
