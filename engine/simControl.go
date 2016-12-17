@@ -504,8 +504,8 @@ func SimControl(listenTo int) {
 					for k := range f.State.Holding {
 						v := f.State.Holding[k]
 						if v != nil {
-							os.Stderr.WriteString((v.String())+"\n")
-						}else{
+							os.Stderr.WriteString((v.String()) + "\n")
+						} else {
 							os.Stderr.WriteString("<nul>\n")
 						}
 					}
