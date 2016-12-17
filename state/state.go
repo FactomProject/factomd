@@ -155,6 +155,12 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+
+	// Ignore missing messages for a period to allow rebooting a network where your
+	// own messages from the previously executing network can confuse you.
+	IgnoreDone    bool
+	IgnoreMissing bool
+
 	LLeaderHeight   uint32
 	Leader          bool
 	LeaderVMIndex   int
@@ -1365,7 +1371,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-	dbheight := s.GetHighestCompletedBlock()
+	dbheight := s.GetHighestSavedBlk()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
 		dbheight++
@@ -1465,7 +1471,7 @@ func (s *State) catchupEBlocks() {
 		// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 		// review the directory block over again the next time.
 		alldone := true
-		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 20 {
 			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
 
 			if dbstate != nil {
@@ -1993,6 +1999,8 @@ func (s *State) SetStringQueues() {
 	}
 	if !s.RunLeader && found {
 		W = "W"
+	} else if s.IgnoreMissing {
+		W = "I"
 	}
 
 	stype := fmt.Sprintf("%1s%1s%1s%1s", L, X, W, N)
@@ -2010,7 +2018,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Get(int(s.GetHighestSavedBlock())).DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestCompletedBlk())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}

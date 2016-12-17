@@ -207,7 +207,7 @@ func (p *ProcessList) LenNewEntries() int {
 }
 
 func (p *ProcessList) Complete() bool {
-	if p.DBHeight <= p.State.GetHighestCompletedBlock() {
+	if p.DBHeight <= p.State.GetHighestSavedBlk() {
 		return true
 	}
 	for i := 0; i < len(p.FedServers); i++ {
@@ -699,7 +699,7 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
 
-	dbht := state.GetHighestCompletedBlock()
+	dbht := state.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
 		return true
 	}
@@ -812,11 +812,10 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 			// to disk.  Then we can insist on having the entry blocks.
 			diff := p.DBHeight - state.EntryBlockDBHeightComplete
-			_, dbsig := vm.List[j].(*messages.DirectoryBlockSignature)
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the signatures are processed, we will be 2 behind.
-			if (dbsig && diff <= 2) || diff <= 1 {
+			if diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1
 				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
@@ -930,9 +929,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
-	// We don't check the SaltNumber if this isn't an actual message, i.e. a response from
-	// the past.
+	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
+	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
+		now := p.State.GetTimestamp()
+		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+			// Us and too old?  Just ignore.
+			return
+		}
 		num := p.State.GetSalt(ack.Timestamp)
 		if num != ack.SaltNumber {
 			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
@@ -1057,11 +1061,17 @@ func (p *ProcessList) String() string {
 		buf.WriteString("===ProcessListStart===\n")
 
 		pdbs := p.State.DBStates.Get(int(p.DBHeight - 1))
-		saved := "n"
-		if pdbs != nil && pdbs.Saved {
-			saved = "y"
+		saved := ""
+		if pdbs == nil {
+			saved = "nil"
+		} else if pdbs.Signed {
+			saved = "signed"
+		} else if pdbs.Saved {
+			saved = "saved"
+		} else {
+			saved = "constructing"
 		}
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate.Saved = %s\n",
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate = %s\n",
 			p.State.GetFactomNodeName(),
 			len(p.FedServers),
 			p.Complete(),
@@ -1210,7 +1220,7 @@ func (p *ProcessList) Reset() bool {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli()
 	s.RunLeader = false
 
-	s.LLeaderHeight = s.GetHighestCompletedBlock() + 1
+	s.LLeaderHeight = s.GetHighestSavedBlk() + 1
 	s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 
 	s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)

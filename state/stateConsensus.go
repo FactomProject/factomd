@@ -79,11 +79,19 @@ func (s *State) Process() (progress bool) {
 		return false
 	}
 
+	// If we are not running the leader, then look to see if we have waited long enough to
+	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
+	// is so we don't conflict with past version of the network if we have to reboot the network.
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			if s.DBFinished == true {
 				s.RunLeader = true
+				if !s.IgnoreDone {
+					s.StartDelay = now // Reset StartDelay for Ignore Missing
+					s.IgnoreMissing = true
+					s.IgnoreDone = true
+				}
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
@@ -91,6 +99,11 @@ func (s *State) Process() (progress bool) {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
 		} else {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
+	} else if s.IgnoreMissing {
+		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
+		if now-s.StartDelay > s.StartDelayLimit {
+			s.IgnoreMissing = false
 		}
 	}
 
@@ -364,9 +377,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if s.GetHighestSavedBlock() > dbheight && dbheight > 0 {
+	if s.GetHighestCompletedBlk() > dbheight && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
-			s.GetHighestSavedBlock(), dbheight))
+			s.GetHighestCompletedBlk(), dbheight))
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
@@ -437,6 +450,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+
+	// Just ignore missing messages for a period after going off line or starting up.
+	if s.IgnoreMissing {
+		return
+	}
+
 	mmr, _ := m.(*messages.MissingMsgResponse)
 
 	fullFault, ok := mmr.MsgResponse.(*messages.FullServerFault)
@@ -960,7 +979,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
-	ht := s.GetHighestCompletedBlock()
+	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
 		return
 	}
@@ -1272,7 +1291,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
-		if s.LLeaderHeight > 0 && s.GetHighestSavedBlock()+1 < s.LLeaderHeight {
+		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
@@ -1721,14 +1740,14 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
-// This is the highest block signed off, but not necessarily validted.
-func (s *State) GetHighestCompletedBlock() uint32 {
-	return s.DBStates.GetHighestCompletedBlock()
+// This is the highest block signed off and recorded in the Database.
+func (s *State) GetHighestSavedBlk() uint32 {
+	return s.DBStates.GetHighestSavedBlk()
 }
 
-// This is the highest block signed off and recorded in the Database.
-func (s *State) GetHighestSavedBlock() uint32 {
-	return s.DBStates.GetHighestSavedBlock()
+// This is the highest block signed off, but not necessarily validted.
+func (s *State) GetHighestCompletedBlk() uint32 {
+	return s.DBStates.GetHighestCompletedBlk()
 }
 
 // This is lowest block currently under construction under the "leader".
@@ -1753,7 +1772,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1773,7 +1792,7 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1790,7 +1809,7 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 	var ok bool
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
@@ -1809,7 +1828,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestCompletedBlock() + 1)
+		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
