@@ -7,17 +7,17 @@ fa1=$(factom-cli importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9
 
 ec1=$(factom-cli importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
-buyECs=$(expr $nentries \* $nchains \* 2 )
+buyECs=$(expr $nentries \* $nchains \* 10 )
 echo "Buying" $buyECs $fa1 $ec1
 factom-cli buyec $fa1 $ec1 $buyECs
 sleep 5s
 	
 addentries() {
 
-	let len=$(shuf -i 100-9900 -n 1)
-    let datafile=$(mktemp)
-    base64 /dev/urandom | head -c $len > $datafile
-	cat $datafile
+	datalen=$(shuf -i 100-9900 -n 1)
+	datafile=$(mktemp)
+	base64 /dev/urandom | head -c $datalen > $datafile
+	echo "Entry Length " $datalen " bytes, file name: " $datafile
 
 	let y=$(shuf -i 30-120 -n 1)
 	echo "sleep"  $y  " seconds before writing entries"
