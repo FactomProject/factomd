@@ -180,7 +180,6 @@ func (m *DirectoryBlockSignature) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *DirectoryBlockSignature) FollowerExecute(state interfaces.IState) {
-	m.SendOut(state, m)
 	state.FollowerExecuteMsg(m)
 }
 
