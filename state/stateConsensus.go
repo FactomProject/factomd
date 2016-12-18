@@ -522,11 +522,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	s.Acks[ack.GetHash().Fixed()] = ack
 
 	if okr {
-		ack.FollowerExecute(s)
+		s.XReview = append(s.XReview,ack)
 	}
 	if okm {
-		msg.FollowerExecute(s)
+		s.XReview = append(s.XReview,msg)
 	}
+
+	// If I've seen both, put them in the process list.
 	if !okr && !okm {
 		pl.AddToProcessList(ack, msg)
 	}
