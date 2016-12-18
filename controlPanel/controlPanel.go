@@ -25,6 +25,12 @@ import (
 
 // Initiates control panel variables and controls the http requests
 
+//Sends gitbuild and version to frontend
+type GitBuildAndVersion struct {
+	GitBuild string
+	Version  string
+}
+
 var (
 	UpdateTimeValue int = 5 // in seconds. How long to update the state and recent transactions
 
@@ -38,7 +44,7 @@ var (
 	DisplayState state.DisplayState
 	StatePointer *state.State
 	Controller   *p2p.Controller // Used for Disconnect
-	GitBuild     string
+	GitAndVer    *GitBuildAndVersion
 
 	LastRequest     time.Time
 	TimeRequestHold float64 = 3 // Amount of time in seconds before can request data again
@@ -104,7 +110,17 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	go DisplayStateDrain(displayStateChannel)
 
-	GitBuild = gitBuild
+	GitAndVer = new(GitBuildAndVersion)
+	GitAndVer.GitBuild = gitBuild
+	vtos := func(f int) string {
+		v0 := f / 1000000000
+		v1 := (f % 1000000000) / 1000000
+		v2 := (f % 1000000) / 1000
+		v3 := f % 1000
+
+		return fmt.Sprintf("%d.%d.%d.%d", v0, v1, v2, v3)
+	}
+	GitAndVer.Version = vtos(statePointer.GetFactomdVersion())
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
 	TemplateMutex.Lock()
@@ -183,10 +199,10 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	//templates.ParseGlob(FILES_PATH + "templates/index/*.html")
 	files.CustomParseGlob(templates, "templates/index/*.html")
-	if len(GitBuild) == 0 {
-		GitBuild = "Unknown (Must install with script)"
+	if len(GitAndVer.GitBuild) == 0 {
+		GitAndVer.GitBuild = "Unknown (Must install with script)"
 	}
-	err := templates.ExecuteTemplate(w, "indexPage", GitBuild)
+	err := templates.ExecuteTemplate(w, "indexPage", GitAndVer)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
