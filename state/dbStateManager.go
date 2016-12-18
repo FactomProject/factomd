@@ -233,8 +233,6 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup() {
 
-	now := list.State.GetTimestamp()
-
 	dbsHeight := list.GetHighestSavedBlk()
 
 	// We only check if we need updates once every so often.
@@ -263,7 +261,7 @@ func (list *DBStateList) Catchup() {
 			return
 		}
 
-		if plHeight >= dbsHeight && plHeight-dbsHeight > 2 {
+		if plHeight >= dbsHeight && plHeight-dbsHeight > 1 {
 			begin = int(dbsHeight + 1)
 			end = int(plHeight - 1)
 		} else {
@@ -292,12 +290,14 @@ func (list *DBStateList) Catchup() {
 		end2 = end
 	}
 
+	now := list.State.GetTimestamp()
+
 	if list.LastTime == nil {
 		list.LastTime = now
 		return
 	}
 
-	if now.GetTimeMilli()-list.LastTime.GetTimeMilli() < 1500 {
+	if now.GetTimeMilli()-list.LastTime.GetTimeMilli() < 5000 {
 		return
 	}
 
@@ -591,6 +591,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pln.SortFedServers()
 	pln.SortAuditServers()
 
+	///////////////////////////////
+	// Cleanup Tasks
+	///////////////////////////////
+
 	s := list.State
 	// Time out commits every now and again.
 	now := s.GetTimestamp()
@@ -656,6 +660,12 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	if pl == nil {
 		return
 	}
+
+	// Don't sign while negotiationg the EOM
+	if list.State.EOM {
+		return
+	}
+
 	for _, vm := range pl.VMs[:len(pl.FedServers)] {
 		if vm.LeaderMinute < 1 {
 			return

@@ -501,17 +501,17 @@ func (s *State) Reset() {
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
 	s.ResetTryCnt++
-	s.AddStatus(fmt.Sprintf("RESET Trying to Reset for the %d time", s.ResetTryCnt))
+	s.AddStatus(fmt.Sprintf("RESET: Trying to Reset for the %d time", s.ResetTryCnt))
 	index := len(s.DBStates.DBStates) - 1
 	if index < 2 {
-		s.AddStatus("RESET Failed to Reset because not enough dbstates")
+		s.AddStatus("RESET: Failed to Reset because not enough dbstates")
 		return
 	}
 
 	dbs := s.DBStates.DBStates[index]
 	for {
 		if dbs == nil {
-			s.AddStatus("RESET Reset Failed")
+			s.AddStatus(fmt.Sprintf("RESET: Reset Failed, no dbstate at %d", index))
 			return
 		}
 		if dbs.Saved {
@@ -520,25 +520,26 @@ func (s *State) DoReset() {
 		index--
 		dbs = s.DBStates.DBStates[index]
 	}
-	if index > 1 {
-		s.ResetCnt++
-		dbs = s.DBStates.DBStates[index-1]
-		s.DBStates.DBStates = s.DBStates.DBStates[:index]
-
-		dbs.AdminBlock = dbs.AdminBlock.New().(interfaces.IAdminBlock)
-		dbs.FactoidBlock = dbs.FactoidBlock.New().(interfaces.IFBlock)
-
-		plToReset := s.ProcessLists.Get(s.DBStates.Base + uint32(index) + 1)
-		plToReset.Reset()
-
-		//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
-		//s.RunLeader = false
-		s.CurrentMinute = 0
-
-		s.SetLeaderTimestamp(dbs.NextTimestamp)
-
-		s.DBStates.ProcessBlocks(dbs)
-	} else {
-		s.AddStatus("RESET Can't reset far enough back")
+	if index < 0 {
+		s.AddStatus("RESET: Can't reset far enough back")
+		return
 	}
+	s.ResetCnt++
+	dbs = s.DBStates.DBStates[index-1]
+	s.DBStates.DBStates = s.DBStates.DBStates[:index]
+
+	dbs.AdminBlock = dbs.AdminBlock.New().(interfaces.IAdminBlock)
+	dbs.FactoidBlock = dbs.FactoidBlock.New().(interfaces.IFBlock)
+
+	plToReset := s.ProcessLists.Get(s.DBStates.Base + uint32(index) + 1)
+	plToReset.Reset()
+
+	//s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
+	//s.RunLeader = false
+	s.CurrentMinute = 0
+
+	s.SetLeaderTimestamp(dbs.NextTimestamp)
+
+	s.DBStates.ProcessBlocks(dbs)
+	s.AddStatus("RESET: Complete")
 }

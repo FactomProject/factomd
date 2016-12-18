@@ -789,17 +789,19 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				// compare the SerialHash of this acknowledgement with the
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-					fmt.Printf("dddd %20s %10s --- %10s %10x %10s %10x \n", "Conflict", p.State.FactomNodeName, "expected", expectedSerialHash.Bytes()[:3], "This", thisAck.Bytes()[:3])
-					fmt.Printf("dddd Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
-						state.GetFactomNodeName(),
-						i,
-						p.FedServers[i].GetChainID().Bytes()[:3],
-						j,
-						vm.List[j].String())
-					fmt.Printf("dddd Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
-					fmt.Printf("dddd This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
-					fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
-					fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
+					p.State.AddStatus(fmt.Sprintf("processList.Process(): SerialHash fail: dbht: %d vm %d msg %s", p.DBHeight, i, vm.List[j]))
+
+					//fmt.Printf("dddd %20s %10s --- %10s %10x %10s %10x \n", "Conflict", p.State.FactomNodeName, "expected", expectedSerialHash.Bytes()[:3], "This", thisAck.Bytes()[:3])
+					//fmt.Printf("dddd Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
+					//	state.GetFactomNodeName(),
+					//	i,
+					//	p.FedServers[i].GetChainID().Bytes()[:3],
+					//	j,
+					//	vm.List[j].String())
+					//fmt.Printf("dddd Last Ack: %6x  Last Serial: %6x\n", last.GetHash().Bytes()[:3], last.SerialHash.Bytes()[:3])
+					//fmt.Printf("dddd This Ack: %6x  This Serial: %6x\n", thisAck.GetHash().Bytes()[:3], thisAck.SerialHash.Bytes()[:3])
+					//fmt.Printf("dddd Expected: %6x\n", expectedSerialHash.Bytes()[:3])
+					//fmt.Printf("dddd The message that didn't work: %s\n\n", vm.List[j].String())
 					// the SerialHash of this acknowledgment is incorrect
 					// according to this node's processList
 
@@ -815,16 +817,17 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the signatures are processed, we will be 2 behind.
-			if diff <= 2 {
+			if (vm.LeaderMinute < 1 && diff <= 2) || diff <= 1 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1
-				if vm.List[j].Process(p.DBHeight, state) { // Try and Process this entry
+				msg := vm.List[j]
+				if msg.Process(p.DBHeight, state) { // Try and Process this entry
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 
 					progress = true
 				} else {
-					p.State.AddStatus("Could not process entry")
+					p.State.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
 					break VMListLoop // Don't process further in this list, go to the next.
 				}
 			} else {
@@ -1082,8 +1085,8 @@ func (p *ProcessList) String() string {
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
-			buf.WriteString(fmt.Sprintf("  VM %d  vMin %d vHeight %v len(List)%d Syncing %v Synced %v EOMProcessed %d DBSigProcessed %d NextHt: %d\n",
-				i, vm.LeaderMinute, vm.Height, len(vm.List), p.State.Syncing, vm.Synced, p.State.EOMProcessed, p.State.DBSigProcessed, p.NextHeightToProcess[i]))
+			buf.WriteString(fmt.Sprintf("  VM %d  vMin %d vHeight %v len(List)%d Syncing %v Synced %v EOMProcessed %d DBSigProcessed %d\n",
+				i, vm.LeaderMinute, vm.Height, len(vm.List), p.State.Syncing, vm.Synced, p.State.EOMProcessed, p.State.DBSigProcessed))
 			for j, msg := range vm.List {
 				buf.WriteString(fmt.Sprintf("   %3d", j))
 				if j < vm.Height {

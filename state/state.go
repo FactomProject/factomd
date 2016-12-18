@@ -87,7 +87,7 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
-	statusMutex sync.Mutex
+	StatusMutex sync.Mutex
 	StatusStrs  []string
 	starttime   time.Time
 	transCnt    int
@@ -2012,7 +2012,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Get(int(s.GetHighestCompletedBlk())).DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestSavedBlk())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}
@@ -2232,8 +2232,8 @@ func (s *State) AddStatus(status string) {
 		return
 	}
 
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	if len(s.StatusStrs) > 1000 {
 		copy(s.StatusStrs, s.StatusStrs[1:])
@@ -2244,8 +2244,8 @@ func (s *State) AddStatus(status string) {
 }
 
 func (s *State) GetStatus() []string {
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	status := make([]string, len(s.StatusStrs))
 	status = append(status, s.StatusStrs...)
@@ -2253,8 +2253,8 @@ func (s *State) GetStatus() []string {
 }
 
 func (s *State) GetLastStatus() string {
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	if len(s.StatusStrs) == 0 {
 		return ""
