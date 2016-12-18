@@ -323,36 +323,26 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	if len(m.EBlocks) < 200 {
-		eBlockCount := uint32(len(m.EBlocks))
-		binary.Write(&buf, binary.BigEndian, eBlockCount)
-
-		for _, eb := range m.EBlocks {
-			bin, err := eb.MarshalBinary()
-			if err != nil {
-				return nil, err
-			}
-			buf.Write(bin)
+	eBlockCount := uint32(len(m.EBlocks))
+	binary.Write(&buf, binary.BigEndian, eBlockCount)
+	for _, eb := range m.EBlocks {
+		bin, err := eb.MarshalBinary()
+		if err != nil {
+			return nil, err
 		}
-	} else {
-		binary.Write(&buf, binary.BigEndian, 0)
+		buf.Write(bin)
 	}
 
-	if len(m.Entries) < 200 {
-		entryCount := uint32(len(m.Entries))
-		binary.Write(&buf, binary.BigEndian, entryCount)
-
-		for _, e := range m.Entries {
-			bin, err := e.MarshalBinary()
-			if err != nil || bin == nil || len(bin) == 0 {
-				return nil, err
-			}
-			entrySize := uint32(len(bin))
-			binary.Write(&buf, binary.BigEndian, entrySize)
-			buf.Write(bin)
+	entryCount := uint32(len(m.Entries))
+	binary.Write(&buf, binary.BigEndian, entryCount)
+	for _, e := range m.Entries {
+		bin, err := e.MarshalBinary()
+		if err != nil || bin == nil || len(bin) == 0 {
+			return nil, err
 		}
-	} else {
-		binary.Write(&buf, binary.BigEndian, 0)
+		entrySize := uint32(len(bin))
+		binary.Write(&buf, binary.BigEndian, entrySize)
+		buf.Write(bin)
 	}
 
 	return buf.DeepCopyBytes(), nil
