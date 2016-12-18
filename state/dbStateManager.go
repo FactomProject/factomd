@@ -179,7 +179,7 @@ func (ds *DBState) String() string {
 		str = "  Directory Block = <nil>\n"
 	} else {
 
-		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v",str,  ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
+		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v", str, ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
 		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
@@ -785,9 +785,6 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		if i > 0 {
 			progress = list.FixupLinks(list.DBStates[i-1], d)
-		}
-
-		if i > 0 && !list.DBStates[i-1].Saved {
 		}
 
 		progress = list.ProcessBlocks(d) || progress
