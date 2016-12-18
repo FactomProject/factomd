@@ -328,6 +328,10 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
+	
+	if len(m.EBlocks) > 200 {
+		m.EBlocks = m.EBlocks[:200]
+	}
 	eBlockCount := uint32(len(m.EBlocks))
 	binary.Write(&buf, binary.BigEndian, eBlockCount)
 	for _, eb := range m.EBlocks {
@@ -338,6 +342,9 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 		buf.Write(bin)
 	}
 
+	if len(m.Entries) > 200 {
+		m.Entries = m.Entries[:200]
+	}
 	entryCount := uint32(len(m.Entries))
 	binary.Write(&buf, binary.BigEndian, entryCount)
 	for _, e := range m.Entries {
