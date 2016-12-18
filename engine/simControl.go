@@ -163,7 +163,7 @@ func SimControl(listenTo int) {
 					}
 
 					f := fnodes[listenTo]
-
+					f.State.StatusMutex.Lock()
 					os.Stderr.WriteString("----------------------------- " + f.State.FactomNodeName + " -------------------------------------- " + string(b) + "\n")
 					l := len(f.State.StatusStrs)
 					if l < ht {
@@ -173,6 +173,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(f.State.StatusStrs[l-1] + "\n")
 						l--
 					}
+					f.State.StatusMutex.Unlock()
 					break
 				}
 
