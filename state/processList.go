@@ -816,8 +816,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			diff := p.DBHeight - state.EntryBlockDBHeightComplete
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
-			// Until the signatures are processed, we will be 2 behind.
-			if (vm.LeaderMinute < 1 && diff <= 2) || diff <= 1 {
+			// Until the first couple signatures are processed, we will be 2 behind.
+			if (vm.LeaderMinute < 2 && diff <= 2) || diff <= 1 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1
 				msg := vm.List[j]

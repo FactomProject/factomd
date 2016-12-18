@@ -460,8 +460,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	s.EOM = false
 	s.EOMDone = false
+	s.EOMSys = false
 	s.DBSig = false
 	s.DBSigDone = false
+	s.DBSigSys = false
 	s.Saving = true
 	s.Syncing = false
 

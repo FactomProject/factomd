@@ -179,6 +179,7 @@ func (ds *DBState) String() string {
 		str = "  Directory Block = <nil>\n"
 	} else {
 
+		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v",str,  ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
 		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
@@ -297,7 +298,14 @@ func (list *DBStateList) Catchup() {
 		return
 	}
 
-	if now.GetTimeMilli()-list.LastTime.GetTimeMilli() < 5000 {
+	// Default wait 5 seconds.  These calls are expensive, so give our friends plenty of time to answer.
+	wait := 5000
+	if begin+1 >= int(list.State.LLeaderHeight) { // If looking for the block we are working on, wait a long time.
+		wait = list.State.DirectoryBlockInSeconds*1000 + wait
+	}
+
+	// Ten seconds before you give up and ask for a DBState...
+	if int(now.GetTimeMilli()-list.LastTime.GetTimeMilli()) < wait {
 		return
 	}
 
@@ -777,6 +785,9 @@ func (list *DBStateList) UpdateState() (progress bool) {
 
 		if i > 0 {
 			progress = list.FixupLinks(list.DBStates[i-1], d)
+		}
+
+		if i > 0 && !list.DBStates[i-1].Saved {
 		}
 
 		progress = list.ProcessBlocks(d) || progress
