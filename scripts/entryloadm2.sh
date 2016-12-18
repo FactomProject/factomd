@@ -13,11 +13,17 @@ factom-cli buyec $fa1 $ec1 $buyECs
 sleep 5s
 	
 addentries() {
+
+	let len=$(shuf -i 100-9900 -n 1)
+    let datafile=$(mktemp)
+    base64 /dev/urandom | head -c $len > $datafile
+	cat $datafile
+
 	let y=$(shuf -i 30-120 -n 1)
 	echo "sleep"  $y  " seconds before writing entries"
 	sleep $y
 	for ((i=0; i<nentries; i++)); do
-    		cat scripts/data.txt | factom-cli addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
+    		cat $datafile | factom-cli addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
 		sleep .4s
 	done

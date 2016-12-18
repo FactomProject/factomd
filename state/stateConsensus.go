@@ -520,7 +520,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	s.Acks[ack.GetHash().Fixed()] = ack
-	
+
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
 		ack.FollowerExecute(s)
@@ -567,7 +567,9 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				return
 			}
 
-			missing = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
+			var missing []MissingEntryBlock
+			missing = append(missing, s.MissingEntryBlocks[:i]...)
+			missing = append(missing, s.MissingEntryBlocks[i+1:]...)
 			s.MissingEntryBlocks = missing
 
 			s.DB.ProcessEBlockBatch(eblock, true)
@@ -586,7 +588,9 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 			if e.IsSameAs(entry.GetHash()) {
 				s.DB.InsertEntry(entry)
-				missing = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
+				var missing []MissingEntry
+				missing = append(missing, s.MissingEntries[:i]...)
+				missing = append(missing, s.MissingEntries[i+1:]...)
 				s.MissingEntries = missing
 				break
 			}
