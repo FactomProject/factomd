@@ -523,11 +523,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		ack.FollowerExecute(s)
+		s.XReview = append(s.XReview,ack)
 	}
 	if okm {
-		msg.FollowerExecute(s)
+		s.XReview = append(s.XReview,msg)
 	}
+
+	// If I've seen both, put them in the process list.
 	if !okr && !okm {
 		pl.AddToProcessList(ack, msg)
 	}
