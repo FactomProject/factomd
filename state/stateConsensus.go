@@ -484,15 +484,21 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 1:
 			pl := s.ProcessLists.Get(fullFault.DBHeight)
 			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-				pl.AddToSystemList(fullFault)
+				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
+
+				if okff {
+					s.XReview = append(s.XReview,okff)
+				}else {
+					pl.AddToSystemList(fullFault)
+				}
+
+				s.MissingResponseAppliedCnt++
 
 			} else {
 				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 			}
-		case 0:
-			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 		default:
-			// Ignore if -1 or anything but 0 and 1
+			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
 		}
 		return
 	}
