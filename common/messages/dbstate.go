@@ -35,7 +35,7 @@ type DBStateMsg struct {
 	EBlocks []interfaces.IEntryBlock
 	Entries []interfaces.IEBEntry
 
-	//Not signed!
+	SignatureList SigList
 
 	//Not marshalled
 	IsInDB bool
@@ -284,6 +284,11 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		m.Entries = append(m.Entries, entry)
 	}
 
+	newData, err = m.SignatureList.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
 	return
 }
 
@@ -350,6 +355,12 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 		buf.Write(bin)
 	}
 
+	if d, err := m.SignatureList.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -375,7 +386,8 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	f interfaces.IFBlock,
 	e interfaces.IEntryCreditBlock,
 	eBlocks []interfaces.IEntryBlock,
-	entries []interfaces.IEBEntry) interfaces.IMsg {
+	entries []interfaces.IEBEntry,
+	sigList []interfaces.IFullSignature) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
@@ -390,6 +402,12 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 
 	msg.EBlocks = eBlocks
 	msg.Entries = entries
+
+	sl := new(SigList)
+	sl.Length = uint32(len(sigList))
+	sl.List = sigList
+
+	msg.SignatureList = *sl
 
 	return msg
 }
