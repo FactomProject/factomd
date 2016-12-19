@@ -487,8 +487,8 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
 				if okff {
-					s.XReview = append(s.XReview,okff)
-				}else {
+					s.XReview = append(s.XReview, fullFault)
+				} else {
 					pl.AddToSystemList(fullFault)
 				}
 
@@ -529,10 +529,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.XReview = append(s.XReview,ack)
+		s.XReview = append(s.XReview, ack)
 	}
 	if okm {
-		s.XReview = append(s.XReview,msg)
+		s.XReview = append(s.XReview, msg)
 	}
 
 	// If I've seen both, put them in the process list.
@@ -540,9 +540,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, msg)
 	}
 
-	if s.Acks[ack.GetHash().Fixed()] == nil {
-		s.MissingResponseAppliedCnt++
-	}
+	s.MissingResponseAppliedCnt++
 
 }
 
