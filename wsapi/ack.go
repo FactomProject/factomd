@@ -53,7 +53,6 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 	if err != nil {
 		return nil, NewInternalError()
 	}
-
 	answer := new(FactoidTxStatus)
 	answer.TxID = h.String()
 
@@ -69,7 +68,6 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 			answer.BlockDateString = blockTime.String()
 		}
 	}
-
 	switch status {
 	case constants.AckStatusInvalid:
 		answer.Status = AckStatusInvalid

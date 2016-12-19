@@ -16,6 +16,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
@@ -28,6 +29,9 @@ var verboseAuthoritySet = false
 var verboseAuthorityDeltas = false
 var totalServerFaults int
 var lastcmd []string
+
+// Used for signing messages
+var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -163,7 +167,7 @@ func SimControl(listenTo int) {
 					}
 
 					f := fnodes[listenTo]
-
+					f.State.StatusMutex.Lock()
 					os.Stderr.WriteString("----------------------------- " + f.State.FactomNodeName + " -------------------------------------- " + string(b) + "\n")
 					l := len(f.State.StatusStrs)
 					if l < ht {
@@ -173,6 +177,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(f.State.StatusStrs[l-1] + "\n")
 						l--
 					}
+					f.State.StatusMutex.Unlock()
 					break
 				}
 
@@ -231,29 +236,29 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
-					fmt.Println("Select a node first")
+					os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Adminblock block with an  where n = blockheight, i.e. 'a10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Adminblock block with an  where n = blockheight, i.e. 'a10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						ABlock := dsmsg.AdminBlock
-						fmt.Println(ABlock.String())
+						os.Stderr.WriteString(fmt.Sprintln(ABlock.String()))
 					} else {
 						pl := f.State.ProcessLists.Get(uint32(ht))
 						if pl == nil || pl.AdminBlock == nil {
-							fmt.Println("Could not find this Admin block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this Admin block"))
 						} else {
-							fmt.Printf(pl.AdminBlock.String())
+							os.Stderr.WriteString(fmt.Sprintln(pl.AdminBlock.String()))
 						}
 					}
 				}
@@ -263,29 +268,29 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
-					fmt.Println("Select a node first")
+					os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Entry Credit block with fn  where n = blockheight, i.e. 'e10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Entry Credit block with fn  where n = blockheight, i.e. 'e10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						ECBlock := dsmsg.EntryCreditBlock
-						fmt.Printf(ECBlock.String())
+						os.Stderr.WriteString(fmt.Sprint(ECBlock.String()))
 					} else {
 						pl := f.State.ProcessLists.Get(uint32(ht))
 						if pl == nil || pl.EntryCreditBlock == nil {
-							fmt.Println("Could not find this Entry Credit Block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this Entry Credit Block"))
 						} else {
-							fmt.Printf(pl.EntryCreditBlock.String())
+							os.Stderr.WriteString(fmt.Sprintln(pl.EntryCreditBlock.String()))
 						}
 					}
 				}
@@ -295,29 +300,29 @@ func SimControl(listenTo int) {
 					fnode.State.SetOut(false)
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
-					fmt.Println("Select a node first")
+					os.Stderr.WriteString(fmt.Sprintln("Select a node first"))
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Factoid block with fn  where n = blockheight, i.e. 'f10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Factoid block with fn  where n = blockheight, i.e. 'f10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						FBlock := dsmsg.FactoidBlock
-						fmt.Printf(FBlock.String())
+						os.Stderr.WriteString(fmt.Sprint(FBlock.String()))
 					} else {
 						dbstate := f.State.DBStates.Get(ht)
 						if dbstate == nil || dbstate.FactoidBlock == nil {
-							fmt.Println("Could not find this Factoid block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this Factoid block"))
 						} else {
-							fmt.Printf(dbstate.FactoidBlock.String())
+							os.Stderr.WriteString(fmt.Sprint(dbstate.FactoidBlock.String()))
 						}
 					}
 				}
@@ -331,25 +336,25 @@ func SimControl(listenTo int) {
 					break
 				}
 				f := fnodes[listenTo]
-				fmt.Println("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)]))
+				os.Stderr.WriteString(fmt.Sprintln("-----------------------------", f.State.FactomNodeName, "--------------------------------------", string(b[:len(b)])))
 				if len(b) < 2 {
 					break
 				}
 				ht, err := strconv.Atoi(string(b[1:]))
 				if err != nil {
-					fmt.Println(err, "Dump Directory block with dn  where n = blockheight, i.e. 'd10'")
+					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Directory block with dn  where n = blockheight, i.e. 'd10'"))
 				} else {
 					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						DBlock := dsmsg.DirectoryBlock
-						fmt.Printf(DBlock.String())
+						os.Stderr.WriteString(fmt.Sprint(DBlock.String()))
 					} else {
 						pl := f.State.ProcessLists.Get(uint32(ht))
 						if pl == nil || pl.DirectoryBlock == nil {
-							fmt.Println("Could not find this directory block")
+							os.Stderr.WriteString(fmt.Sprintln("Could not find this directory block"))
 						} else {
-							fmt.Printf(pl.DirectoryBlock.String())
+							os.Stderr.WriteString(fmt.Sprintln(pl.DirectoryBlock.String()))
 						}
 					}
 				}
@@ -502,7 +507,12 @@ func SimControl(listenTo int) {
 					f := fnodes[listenTo]
 					fmt.Println("Holding:")
 					for k := range f.State.Holding {
-						fmt.Println(f.State.Holding[k].String())
+						v := f.State.Holding[k]
+						if v != nil {
+							os.Stderr.WriteString((v.String()) + "\n")
+						} else {
+							os.Stderr.WriteString("<nul>\n")
+						}
 					}
 				}
 
@@ -523,15 +533,27 @@ func SimControl(listenTo int) {
 					fnodes[listenTo].State.MessageTally = false
 				}
 			case 'z' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
+				var msg interfaces.IMsg
 				if len(b) > 1 && b[1] == 'a' {
-					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 1)
-					fnodes[listenTo].State.InMsgQueue() <- msg
-					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+					msg = messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 1)
 				} else {
-					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 0)
-					fnodes[listenTo].State.InMsgQueue() <- msg
-					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+					msg = messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 0)
 				}
+
+				priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
+					break
+				}
+				err = msg.(*messages.RemoveServerMsg).Sign(priv)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
+					break
+				}
+
+				fnodes[listenTo].State.InMsgQueue() <- msg
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+
 				fallthrough
 			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'o' { // (Don't do anything if just passing along the remove server)
@@ -552,6 +574,16 @@ func SimControl(listenTo int) {
 					}
 
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
+					priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
+						break
+					}
+					err = msg.(*messages.AddServerMsg).Sign(priv)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
+						break
+					}
 					fnodes[listenTo].State.InMsgQueue() <- msg
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
 				}
@@ -586,6 +618,16 @@ func SimControl(listenTo int) {
 					}
 
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
+					priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
+						break
+					}
+					err = msg.(*messages.AddServerMsg).Sign(priv)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
+						break
+					}
 					fnodes[listenTo].State.InMsgQueue() <- msg
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 				}
@@ -815,26 +857,7 @@ func SimControl(listenTo int) {
 				for _, i := range fnodes[listenTo].State.Authorities {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
-					switch i.Status {
-					case 0:
-						stat = "Unassigned"
-					case 1:
-						stat = "Federated Server"
-					case 2:
-						stat = "Audit Server"
-					case 3:
-						stat = "Full"
-					case 4:
-						stat = "Pending Federated Server"
-					case 5:
-						stat = "Pending Audit Server"
-					case 6:
-						stat = "Pending Full"
-					case 7:
-						stat = "Self"
-					case 8:
-						stat = "Self Full"
-					}
+					stat = returnStatString(i.Status)
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
@@ -931,10 +954,11 @@ func SimControl(listenTo int) {
 					if dbs == nil {
 						os.Stderr.WriteString(fmt.Sprintf("%2d DBState            nil\n", i))
 					} else {
-						os.Stderr.WriteString(fmt.Sprintf("%2d DBState                          IsNew[%5v] Locked [%5v] ReadyToSave [%5v] Saved [%5v]\n%v", i,
+						os.Stderr.WriteString(fmt.Sprintf("%2d DBState                          IsNew[%5v]  ReadyToSave [%5v] Locked [%5v] Signed [%5v] Saved [%5v]\n%v", i,
 							dbs.IsNew,
-							dbs.Locked,
 							dbs.ReadyToSave,
+							dbs.Locked,
+							dbs.Signed,
 							dbs.Saved,
 							dbs.String()))
 					}
@@ -1015,9 +1039,7 @@ func returnStatString(i int) string {
 	case 6:
 		stat = "Pending Full"
 	case 7:
-		stat = "Self Not Full"
-	case 8:
-		stat = "Self Full"
+		stat = "Skeleton Identity"
 	}
 	return stat
 }
@@ -1038,7 +1060,7 @@ func printProcessList(watchPL *int, value int, listenTo *int) {
 	for *watchPL == value {
 		fnode := fnodes[*listenTo]
 		nprt := fnode.State.DBStates.String()
-		b := fnode.State.GetHighestCompletedBlock()
+		b := fnode.State.GetHighestSavedBlk()
 		fnode.State.ProcessLists.SetString = true
 		nprt = nprt + fnode.State.ProcessLists.Str
 		pl := fnode.State.ProcessLists.Get(b)

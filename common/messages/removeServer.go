@@ -70,7 +70,21 @@ func (m *RemoveServerMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	// TODO: Check valid signatures
+	authoritativeKey := state.GetNetworkSkeletonKey().Bytes()
+	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
+		// the message was not signed with the proper authoritative signing key (from conf file)
+		// it is therefore considered invalid
+		return -1
+	}
+
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
+		return -1
+	}
+
 	return 1
 }
 

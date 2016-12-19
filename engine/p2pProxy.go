@@ -346,8 +346,6 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		fmt.Printf("      BroadcastOut Queue:    %d\n", len(f.BroadcastOut))
 		fmt.Printf("      BroadcastIn Queue:     %d\n", len(f.BroadcastIn))
 		fmt.Printf("      Weight:                %d\n", f.NumPeers)
-		fmt.Printf("  ======= Identity Information -- Height: %d  =======\n", fnodes[listenTo].State.LLeaderHeight)
-		fmt.Printf("  Identity Full? (Capable of being Elected): %t\n", fnodes[listenTo].State.SelfIsFull())
 		fmt.Println("-------------------------------------------------------------------------------")
 		fmt.Println("-------------------------------------------------------------------------------")
 	}

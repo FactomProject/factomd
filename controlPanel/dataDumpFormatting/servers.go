@@ -86,9 +86,7 @@ func returnStatString(i int) string {
 	case 6:
 		stat = "Pending Full"
 	case 7:
-		stat = "Self"
-	case 8:
-		stat = "Self Full"
+		stat = "Skeleton Identity"
 	}
 	return stat
 }

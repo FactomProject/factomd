@@ -113,9 +113,13 @@ func (d *Discovery) SavePeers() {
 		switch {
 		case SpecialPeer == peer.Type: // always save special peers, even if we haven't talked in awhile.
 			qualityPeers[peer.AddressPort()] = peer
+			note("discovery", "SavePeers() saved peer in peers.json: %+v", peer)
+
 		case time.Since(peer.LastContact) > time.Hour*168:
+			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. Last Contact greater than 168 hours. Peer: %+v", peer)
 			break
 		case MinumumQualityScore > peer.QualityScore:
+			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. MinumumQualityScore: %d > Peer quality score.  Peer: %+v", MinumumQualityScore, peer)
 			break
 		default:
 			qualityPeers[peer.AddressPort()] = peer
@@ -318,6 +322,7 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 		if 2 == len(ipAndPort) {
 			peerp := new(Peer).Init(ipAndPort[0], ipAndPort[1], 0, RegularPeer, 0)
 			peer := *peerp
+			peer.LastContact = time.Now()
 			d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
 		}
 	}
