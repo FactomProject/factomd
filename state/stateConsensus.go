@@ -412,6 +412,16 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
+	now := s.GetTimestamp()
+
+	{
+		dbstate := s.DBStates.Get(int(dbheight))
+
+		if dbstate != nil && now.GetTimeSeconds()-dbstate.Added.GetTimeSeconds() < 5 {
+			return
+		}
+	}
+
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
 	if dbheight <= saved && dbheight > 0 {
@@ -432,6 +442,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
+		s.Holding[dbstatemsg.GetRepeatHash().Fixed()] = dbstatemsg
 		cntFail()
 		return
 	case -1:
@@ -469,6 +480,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		cntFail()
 		return
 	}
+
+	dbstate.Added = now
 
 	if dbstatemsg.IsInDB == false {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
