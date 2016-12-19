@@ -328,10 +328,6 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	// limit size of dbstate messages to 200 EBlocks
-	if len(m.EBlocks) > 200 {
-		m.EBlocks = m.EBlocks[:200]
-	}
 	eBlockCount := uint32(len(m.EBlocks))
 	binary.Write(&buf, binary.BigEndian, eBlockCount)
 	for _, eb := range m.EBlocks {
@@ -342,10 +338,6 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 		buf.Write(bin)
 	}
 
-	// limit size of entries in dbstate messages to 20 messages
-	if len(m.Entries) > 20 {
-		m.Entries = m.Entries[:20]
-	}
 	entryCount := uint32(len(m.Entries))
 	binary.Write(&buf, binary.BigEndian, entryCount)
 	for _, e := range m.Entries {

@@ -382,7 +382,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	if ack.DBHeight > s.HighestKnown {
 		s.HighestKnown = ack.DBHeight
 	}
-	
+
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
 		return

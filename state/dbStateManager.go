@@ -239,10 +239,10 @@ func (list *DBStateList) Catchup() {
 	begin := -1
 	end := -1
 
-	begin = int(list.State.GetHighestSavedBlk()) - 1
+	begin = int(list.State.GetHighestSavedBlk()) + 1
 	end = int(list.State.GetHighestKnownBlock())
 
-	if begin < 2 || end-begin <= 2 {
+	if begin <= 0 || end-begin <= 2 {
 		return
 	}
 
@@ -256,12 +256,15 @@ func (list *DBStateList) Catchup() {
 
 	if list.LastTime == nil {
 		list.LastTime = now
+		if end-begin > 2 {
+			list.LastTime.SetTime(uint64(now.GetTimeMilli() - 3000))
+		}
 		return
 	}
 
 	// Default wait 5 seconds.  These calls are expensive, so give our friends plenty of time to answer.
 	wait := 5000
-	if begin+2 >= int(list.State.LLeaderHeight) { // If looking for the block we are working on, wait a long time.
+	if begin == int(list.State.LLeaderHeight) { // If looking for the block we are working on, wait a long time.
 		wait = list.State.DirectoryBlockInSeconds*1000 + wait
 	}
 
@@ -278,7 +281,7 @@ func (list *DBStateList) Catchup() {
 		//		list.State.RunLeader = false
 		//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		msg.SendOut(list.State, msg)
-		list.LastTime = now
+		list.LastTime = nil
 		list.State.DBStateAskCnt++
 	}
 
@@ -791,7 +794,7 @@ func (list *DBStateList) Put(dbState *DBState) bool {
 	cnt := 0
 searchLoop:
 	for i, v := range list.DBStates {
-		if v == nil || v.DirectoryBlock == nil || !v.Saved {
+		if dbheight > 0 && (v == nil || v.DirectoryBlock == nil || !v.Saved) {
 			list.DBStates[i] = nil
 			break searchLoop
 		}
