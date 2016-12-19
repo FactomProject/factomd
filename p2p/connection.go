@@ -256,7 +256,7 @@ func (c *Connection) runLoop() {
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
 			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
-			fmt.Println(fmt.Sprintf("Connection(%s) has shut down.", c.peer.Address))
+			fmt.Println(fmt.Sprintf("Connection(%s) has shut down. \nNotes: %s\n\n", c.peer.Address, c.notes))
 			return // ending runloop() goroutine
 		default:
 			logfatal(c.peer.PeerIdent(), "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
@@ -295,7 +295,7 @@ func (c *Connection) dialLoop() {
 					c.setNotes("Connection.dialLoop() Persistent connection - Sleeping until next redial.")
 					time.Sleep(TimeBetweenRedials)
 				case !c.isOutGoing: // incomming connection we redial once, then give up.
-					c.setNotes("Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down.Last note was: %s", c.notes)
+					c.setNotes("Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down. Last note was: %s", c.notes)
 					c.goShutdown()
 					return
 				case ConnectionInitialized == c.state:
@@ -401,6 +401,7 @@ func (c *Connection) processSends() {
 func (c *Connection) handleCommand(command ConnectionCommand) {
 	switch command.Command {
 	case ConnectionShutdownNow:
+		c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort()))
 		c.goShutdown()
 	case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
 		debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
@@ -415,6 +416,7 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 		if MinumumQualityScore > c.peer.QualityScore {
 			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 			c.updatePeer()
+			c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinumumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinumumQualityScore))
 			c.goShutdown()
 		}
 	case ConnectionGoOffline:
@@ -501,6 +503,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		parcel.Trace("Connection.handleParcel()-InvalidDisconnectPeer", "I")
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() Disconnecting peer: %s", c.peer.PeerIdent())
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
+		c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes))
 		c.goShutdown()
 		return
 	case InvalidPeerDemerit:
@@ -540,16 +543,16 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 	switch {
 	case parcel.Header.NodeID == NodeID: // We are talking to ourselves!
 		parcel.Trace("Connection.isValidParcel()-loopback", "H")
-		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header)
+		c.setNotes(fmt.Sprintf("Connection.isValidParcel(), failed due to loopback!: %+v", parcel.Header))
 		c.peer.QualityScore = MinumumQualityScore - 50 // Ban ourselves for a week
 		return InvalidDisconnectPeer
 	case parcel.Header.Network != CurrentNetwork:
 		parcel.Trace("Connection.isValidParcel()-network", "H")
-		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork)
+		c.setNotes(fmt.Sprintf("Connection.isValidParcel(), failed due to wrong network. Remote: %0x Us: %0x", parcel.Header.Network, CurrentNetwork))
 		return InvalidDisconnectPeer
 	case parcel.Header.Version < ProtocolVersionMinimum:
 		parcel.Trace("Connection.isValidParcel()-version", "H")
-		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header)
+		c.setNotes(fmt.Sprintf("Connection.isValidParcel(), failed due to wrong version: %+v", parcel.Header))
 		return InvalidDisconnectPeer
 	case parcel.Header.Length != uint32(len(parcel.Payload)):
 		parcel.Trace("Connection.isValidParcel()-length", "H")
@@ -613,12 +616,12 @@ func (c *Connection) pingPeer() {
 	durationLastPing := time.Since(c.timeLastPing)
 	if PingInterval < durationLastContact && PingInterval < durationLastPing {
 		if MaxNumberOfRedialAttempts < c.attempts {
-			debug(c.peer.PeerIdent(), "pingPeer() GOING OFFLINE - No response to pings. Attempts: %d Ti  since last contact: %s and time since last ping: %s", PingInterval.String(), durationLastContact.String(), durationLastPing.String())
+			note(c.peer.PeerIdent(), "pingPeer() GOING OFFLINE - No response to pings. Attempts: %d Ti  since last contact: %s and time since last ping: %s", PingInterval.String(), durationLastContact.String(), durationLastPing.String())
 			c.goOffline()
 			return
 		} else {
 			verbose(c.peer.PeerIdent(), "pingPeer() Connection State: %s", c.ConnectionState())
-			debug(c.peer.PeerIdent(), "pingPeer() Ping interval %s is less than duration since last contact: %s and time since last ping: %s", PingInterval.String(), durationLastContact.String(), durationLastPing.String())
+			note(c.peer.PeerIdent(), "pingPeer() Ping interval %s is less than duration since last contact: %s and time since last ping: %s", PingInterval.String(), durationLastContact.String(), durationLastPing.String())
 			parcel := NewParcel(CurrentNetwork, []byte("Ping"))
 			parcel.Header.Type = TypePing
 			c.timeLastPing = time.Now()

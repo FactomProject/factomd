@@ -87,7 +87,7 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
-	statusMutex sync.Mutex
+	StatusMutex sync.Mutex
 	StatusStrs  []string
 	starttime   time.Time
 	transCnt    int
@@ -108,12 +108,12 @@ type State struct {
 	AcksFlag  bool
 	AcksMap   map[[32]byte]interfaces.IMsg
 
-	DBStateAskCnt   int
-	DBStateAnsCnt   int
-	DBStateReplyCnt int
-	DBStateFailsCnt int
+	DBStateAskCnt     int
+	DBStateReplyCnt   int
+	DBStateIgnoreCnt  int
+	DBStateAppliedCnt int
 
-	MissingRequestSendCnt     int
+	MissingRequestAskCnt      int
 	MissingRequestReplyCnt    int
 	MissingRequestIgnoreCnt   int
 	MissingResponseAppliedCnt int
@@ -155,6 +155,12 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+
+	// Ignore missing messages for a period to allow rebooting a network where your
+	// own messages from the previously executing network can confuse you.
+	IgnoreDone    bool
+	IgnoreMissing bool
+
 	LLeaderHeight   uint32
 	Leader          bool
 	LeaderVMIndex   int
@@ -241,6 +247,7 @@ type State struct {
 
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
+	HighestKnown    uint32
 	AuthorityDeltas string
 
 	// Factom State
@@ -481,7 +488,7 @@ func (s *State) GetCurrentMinute() int {
 }
 
 func (s *State) IncDBStateAnswerCnt() {
-	s.DBStateAnsCnt++
+	s.DBStateAppliedCnt++
 }
 
 func (s *State) IncFCTSubmits() {
@@ -710,7 +717,7 @@ func (s *State) Init() {
 
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
-	s.FaultTimeout = 20
+	s.FaultTimeout = 60
 	s.FaultWait = 3
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
@@ -1063,66 +1070,69 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	var ce messages.CommitEntryMsg
 	var re messages.RevealEntryMsg
 	var tmp interfaces.IPendingEntry
+	LastComplete := s.GetDBHeightComplete()
 	// check all existing processlists/VMs
 	for _, pl := range pls {
-		for _, v := range pl.VMs {
-			for _, plmsg := range v.List {
-				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = cc.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = cc.CommitChain.EntryHash
+		if pl.DBHeight > LastComplete {
+			for _, v := range pl.VMs {
+				for _, plmsg := range v.List {
+					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = cc.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = cc.CommitChain.EntryHash
 
-					tmp.ChainID = cc.CommitChain.ChainIDHash
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						tmp.ChainID = cc.CommitChain.ChainIDHash
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
-				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = ce.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = ce.CommitEntry.EntryHash
+						resp = append(resp, tmp)
+					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = ce.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = ce.CommitEntry.EntryHash
 
-					tmp.ChainID = ce.CommitEntry.Hash()
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						tmp.ChainID = ce.CommitEntry.Hash()
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
-				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = re.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = re.Entry.GetHash()
-					tmp.ChainID = re.Entry.GetChainID()
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						resp = append(resp, tmp)
+					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = re.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = re.Entry.GetHash()
+						tmp.ChainID = re.Entry.GetChainID()
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
+						resp = append(resp, tmp)
+					}
 				}
 			}
 		}
@@ -1245,48 +1255,53 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 
 			// check chain commits
 			for _, plmsg := range v.List {
-				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = cc.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
-					if cc.CommitChain.GetSigHash().String() == txID {
-						return cc.CommitChain.EntryHash, nil
-					}
-				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+				if plmsg != nil {
 
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = ce.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
+					//	if plmsg.Type() != nil {
+					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = cc.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
+						if cc.CommitChain.GetSigHash().String() == txID {
+							return cc.CommitChain.EntryHash, nil
+						}
+					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 
-					if ce.CommitEntry.GetSigHash().String() == txID {
-						return ce.CommitEntry.EntryHash, nil
-					}
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = ce.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
 
-				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = re.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
-					if re.Entry.GetHash().String() == txID {
-						return re.Entry.GetHash(), nil
-					}
-				} else {
+						if ce.CommitEntry.GetSigHash().String() == txID {
+							return ce.CommitEntry.EntryHash, nil
+						}
 
+					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = re.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
+						if re.Entry.GetHash().String() == txID {
+							return re.Entry.GetHash(), nil
+						}
+					}
 				}
+				//	} else {
+				//		return nil, fmt.Errorf("%s", "Invalid Message in Holding Queue")
+				//	}
 			}
 		}
 	}
@@ -1360,7 +1375,7 @@ func (s *State) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBl
 }
 
 func (s *State) UpdateState() (progress bool) {
-	dbheight := s.GetHighestCompletedBlock()
+	dbheight := s.GetHighestSavedBlk()
 	plbase := s.ProcessLists.DBHeightBase
 	if dbheight == 0 {
 		dbheight++
@@ -1452,15 +1467,15 @@ func (s *State) catchupEBlocks() {
 		}
 	}
 	// If we still have 10 that we are asking for, then let's not add to the list.
-	if len(s.MissingEntryBlocks) < 10 {
-
+	if len(s.MissingEntryBlocks) < 5 {
+		s.DB.Trim()
 		// While we have less than 20 that we are asking for, look for more to ask for.
 
 		// All done is true, and as long as it says true, we walk our bookmark forward.  Once we find something
 		// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 		// review the directory block over again the next time.
 		alldone := true
-		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlock() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 10 {
 			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
 
 			if dbstate != nil {
@@ -1655,7 +1670,6 @@ func (s *State) initServerKeys() {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
 	s.serverPubKey = s.serverPrivKey.Pub
-	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 func (s *State) LogInfo(args ...interface{}) {
@@ -1830,6 +1844,22 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	return primitives.NewZeroHash()
 }
 
+// The identity for validating messages
+func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_TEST:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_LOCAL:
+		id, _ := primitives.HexToHash("88888847f6cd639255df8f6f9e4f015058c93bc02e72f8e1287d7ff0d3fc184b")
+		return id
+	case constants.NETWORK_CUSTOM:
+		return primitives.NewZeroHash()
+	}
+	return primitives.NewZeroHash()
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }
@@ -1988,6 +2018,8 @@ func (s *State) SetStringQueues() {
 	}
 	if !s.RunLeader && found {
 		W = "W"
+	} else if s.IgnoreMissing {
+		W = "I"
 	}
 
 	stype := fmt.Sprintf("%1s%1s%1s%1s", L, X, W, N)
@@ -2005,7 +2037,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Get(int(s.GetHighestSavedBlock())).DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestSavedBlk())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}
@@ -2038,8 +2070,8 @@ func (s *State) SetStringQueues() {
 		keyMR[:3],
 		pls)
 
-	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
-	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestSendCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
+	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateReplyCnt, s.DBStateIgnoreCnt, s.DBStateAppliedCnt)
+	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestAskCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
 	str = str + fmt.Sprintf(" %2s/%2d %15s %26s ",
 		lmin,
 		s.CurrentMinute,
@@ -2225,8 +2257,8 @@ func (s *State) AddStatus(status string) {
 		return
 	}
 
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	if len(s.StatusStrs) > 1000 {
 		copy(s.StatusStrs, s.StatusStrs[1:])
@@ -2237,8 +2269,8 @@ func (s *State) AddStatus(status string) {
 }
 
 func (s *State) GetStatus() []string {
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	status := make([]string, len(s.StatusStrs))
 	status = append(status, s.StatusStrs...)
@@ -2246,8 +2278,8 @@ func (s *State) GetStatus() []string {
 }
 
 func (s *State) GetLastStatus() string {
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	if len(s.StatusStrs) == 0 {
 		return ""

@@ -41,8 +41,8 @@ func TestSecretCode(t *testing.T) {
 
 func TestDirBlockHead(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	height := state.GetHighestCompletedBlock()
-	if height != 9 {
+	height := state.GetHighestSavedBlk()
+	if height != 1 {
 		t.Errorf("Invalid DBLock Height - got %v, expected 10", height+1)
 	}
 	d := state.GetDirectoryBlockByHeight(height)
@@ -56,8 +56,8 @@ func TestDirBlockHead(t *testing.T) {
 	//fmt.Printf("network id %x\n", d.GetHeader().GetNetworkID())
 	//fmt.Printf("network id %x\n", d.GetHeader.GetBodyMR)
 
-	if d.GetKeyMR().String() != "12d6c012e3598ca1c10dbf60ac12af9fa8904b8fd98968e86f4c66c14884c225" {
-		t.Errorf("Invalid DBLock KeyMR - got %v, expected 12d6c012e3598ca1c10dbf60ac12af9fa8904b8fd98968e86f4c66c14884c225", d.GetKeyMR().String())
+	if d.GetKeyMR().String() != "3bafce89724fab70d40e1c4bd534b15250987198715ce360bff38e73424e13f0" {
+		t.Errorf("Invalid DBLock KeyMR - got %v, expected 3bafce89724fab70d40e1c4bd534b15250987198715ce360bff38e73424e13f0", d.GetKeyMR().String())
 	}
 }
 

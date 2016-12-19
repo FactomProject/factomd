@@ -276,7 +276,9 @@ func systemFaults(f *FactomNode) string {
 	}
 	str := fmt.Sprintf("%5s %s\n", "", "System List")
 	for _, ff := range pl.System.List {
-		str = fmt.Sprintf("%s%8s%s\n", str, "", ff.String())
+		if ff != nil {
+			str = fmt.Sprintf("%s%8s%s\n", str, "", ff.String())
+		}
 	}
 	str = str + "\n"
 	return str
@@ -290,7 +292,7 @@ func faultSummary() string {
 
 	for i, fnode := range fnodes {
 		if verboseFaultOutput || !fnode.State.GetNetStateOff() {
-			b := fnode.State.GetHighestCompletedBlock()
+			b := fnode.State.GetHighestSavedBlk()
 			pl := fnode.State.ProcessLists.Get(b + 1)
 			if pl == nil {
 				pl = fnode.State.ProcessLists.Get(b)

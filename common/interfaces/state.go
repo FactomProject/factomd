@@ -62,10 +62,10 @@ type IState interface {
 	// is a follower's state, but it is also critical to validation; we cannot
 	// validate transactions where the HighestRecordedBlock+1 != block holding said
 	// transaction.
-	GetHighestCompletedBlock() uint32
+	GetHighestSavedBlk() uint32
 	// This is the highest block saved in the Database. A block is completed, then validated
 	// then saved.
-	GetHighestSavedBlock() uint32
+	GetHighestCompletedBlk() uint32
 	// This is the Leader's view of the Height. It must be == HighestRecordedBlock+1.  Since
 	// Recording a block can take time, messages must be queued until the previous block is
 	// recorded (either by processing messages, or timing out and Leaders signing off the block)
@@ -124,6 +124,11 @@ type IState interface {
 	// Bootstrap Identity Information is dependent on Network
 	GetNetworkBootStrapKey() IHash
 	GetNetworkBootStrapIdentity() IHash
+
+	// Skeleton Identity Information.
+	GetNetworkSkeletonIdentity() IHash
+	GetNetworkSkeletonKey() IHash
+	IntiateNetworkSkeletonIdentity() error
 
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 

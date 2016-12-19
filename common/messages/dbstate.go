@@ -155,16 +155,21 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	diff := int(dbheight) - (int(state.GetHighestCompletedBlock()) + 1) // Difference from the working height (completed+1)
+	diff := int(dbheight) - (int(state.GetHighestSavedBlk()) + 1) // Difference from the working height (completed+1)
 
-	if (diff < -2 || diff > 2) && dbheight > 1 {
+	// Allow looking at more than just the current dbstate
+	if (diff < -2 || diff > 2) && dbheight > 2 {
 		if diff > -3 && diff < 3 {
 			state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbht: %d Highest Completed %d diff %d",
-				dbheight, state.GetHighestCompletedBlock(), diff))
+				dbheight, state.GetHighestSavedBlk(), diff))
 		}
 		if diff > 0 {
+			state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() ??? dbht: %d Highest Completed %d diff %d",
+				dbheight, state.GetHighestSavedBlk(), diff))
 			return 0
 		} else {
+			state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbht: %d Highest Completed %d diff %d",
+				dbheight, state.GetHighestSavedBlk(), diff))
 			return -1
 		}
 	}

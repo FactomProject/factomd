@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 func (s *State) IsStateFullySynced() bool {
@@ -51,17 +52,37 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 			}
 		}
 	}
+
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
 		return constants.AckStatusInvalid, hash, nil, nil, nil
 	}
+
 	in, err := s.DB.FetchIncludedIn(hash)
 	if err != nil {
 		return 0, hash, nil, nil, err
 	}
+
+	/*if in == nil {
+
+		// havent found it yet.  check the holding queue
+		status, _, msg, _ := s.FetchHoldingMessageByHash(hash)
+		fmt.Println("Message from Holding:", msg)
+		fmt.Println(status, hash)
+		if status != constants.AckStatusUnknown {
+			fmt.Println("returning holding status of:", status, "constants.unknown=", constants.AckStatusUnknown)
+			return status, hash, nil, nil, nil
+		}
+	}
+	*/
 	if in == nil {
+		//	 We are now looking into the holding queue.  it should have been found by now if it is going to be
+		//	  if included has not been found, but we have no information, it should be unknown not unconfirmed.
+
 		if s.IsStateFullySynced() {
-			return constants.AckStatusNotConfirmed, hash, nil, nil, nil
+			status, _, _, _ := s.FetchHoldingMessageByHash(hash)
+			return status, hash, nil, nil, nil
+
 		} else {
 			return constants.AckStatusUnknown, hash, nil, nil, nil
 		}
@@ -70,12 +91,10 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 	if err != nil {
 		return 0, hash, nil, nil, err
 	}
-
 	dBlock, err := s.DB.FetchDBlock(in2)
 	if err != nil {
 		return 0, hash, nil, nil, err
 	}
-
 	fBlock, err := s.DB.FetchFBlock(in)
 	if err != nil {
 		return 0, hash, nil, nil, err
@@ -87,7 +106,6 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		}
 		return constants.AckStatusDBlockConfirmed, tx.GetSigHash(), tx.GetTimestamp(), dBlock.GetHeader().GetTimestamp(), nil
 	}
-
 	ecBlock, err := s.DB.FetchECBlock(in)
 	if err != nil {
 		return 0, hash, nil, nil, err
@@ -105,6 +123,70 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 	return constants.AckStatusDBlockConfirmed, hash, nil, dBlock.GetHeader().GetTimestamp(), nil
 
 }
+
+func (s *State) FetchHoldingMessageByHash(hash interfaces.IHash) (int, byte, interfaces.IMsg, error) {
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+		switch {
+		//	case h.Type() == constants.EOM_MSG :
+		//	case h.Type() == constants.ACK_MSG :
+		//	case h.Type() == constants.FED_SERVER_FAULT_MSG :
+		//	case h.Type() == constants.AUDIT_SERVER_FAULT_MSG :
+		//	case h.Type() == constants.FULL_SERVER_FAULT_MSG :
+		case h.Type() == constants.COMMIT_CHAIN_MSG:
+			var rm messages.CommitChainMsg
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.CommitChain.GetSigHash()) {
+				return constants.AckStatusNotConfirmed, constants.REVEAL_ENTRY_MSG, h, err
+			}
+		case h.Type() == constants.COMMIT_ENTRY_MSG:
+			var rm messages.CommitEntryMsg
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.CommitEntry.GetSigHash()) {
+				return constants.AckStatusNotConfirmed, constants.REVEAL_ENTRY_MSG, h, err
+			}
+			//	case h.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG :
+			//	case h.Type() == constants.EOM_TIMEOUT_MSG :
+		case h.Type() == constants.FACTOID_TRANSACTION_MSG:
+			var rm messages.FactoidTransaction
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.Transaction.GetSigHash()) {
+				return constants.AckStatusNotConfirmed, constants.FACTOID_TRANSACTION_MSG, h, err
+			}
+			//	case h.Type() == constants.HEARTBEAT_MSG :
+			//	case h.Type() == constants.INVALID_ACK_MSG :
+			//	case h.Type() == constants.INVALID_DIRECTORY_BLOCK_MSG :
+		case h.Type() == constants.REVEAL_ENTRY_MSG:
+			var rm messages.RevealEntryMsg
+			enb, err := h.MarshalBinary()
+			err = rm.UnmarshalBinary(enb)
+			if hash.IsSameAs(rm.Entry.GetHash()) {
+				return constants.AckStatusNotConfirmed, constants.REVEAL_ENTRY_MSG, h, err
+			}
+			//	case  h.Type() == constants.REQUEST_BLOCK_MSG :
+			//	case h.Type() == constants.SIGNATURE_TIMEOUT_MSG:
+			//	case h.Type() == constants.MISSING_MSG :
+			//	case h.Type() == constants.MISSING_DATA :
+			//	case h.Type() == constants.DATA_RESPONSE :
+			//	case h.Type() == constants.MISSING_MSG_RESPONSE:
+			//	case h.Type() == constants.DBSTATE_MSG :
+			//	case h.Type() == constants.DBSTATE_MISSING_MSG:
+			//	case h.Type() == constants.ADDSERVER_MSG:
+			//	case h.Type() == constants.CHANGESERVER_KEY_MSG:
+			//	case h.Type() == constants.REMOVESERVER_MSG:
+			//	case h.Type() == constants.BOUNCE_MSG:
+			//	case h.Type() == constants.BOUNCEREPLY_MSG:
+			//	case h.Type() == constants.MISSING_ENTRY_BLOCKS:
+			//	case h.Type() == constants.ENTRY_BLOCK_RESPONSE :
+
+		}
+	}
+	return constants.AckStatusUnknown, byte(0), nil, fmt.Errorf("Not Found")
+}
+
 func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECBlockEntry, error) {
 	//TODO: expand to search data from outside database
 	if hash == nil {
@@ -135,6 +217,42 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 		tx := fBlock.GetTransactionByHash(hash)
 		if tx != nil {
 			return tx, nil
+		}
+	}
+	// not in FactoidSate lists.  try process listsholding queue
+	// check holding queue
+
+	var currentHeightComplete = s.GetDBHeightComplete()
+	pls := s.ProcessLists.Lists
+	for _, pl := range pls {
+		// ignore old process lists
+		if pl.DBHeight > currentHeightComplete {
+			cb := pl.State.FactoidState.GetCurrentBlock()
+			ct := cb.GetTransactions()
+			for _, tx := range ct {
+				if tx.GetHash() == hash {
+					return tx, nil
+				}
+			}
+		}
+	}
+
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+		if h.Type() == constants.FACTOID_TRANSACTION_MSG {
+			var rm messages.FactoidTransaction
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			err = rm.UnmarshalBinary(enb)
+			if err != nil {
+				return nil, err
+			}
+			tx := rm.GetTransaction()
+			if tx.GetHash() == hash {
+				return tx, nil
+			}
 		}
 	}
 
@@ -179,12 +297,36 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 		return nil, nil
 	}
 
-	pl := s.ProcessLists.LastList()
-	keys := pl.GetKeysNewEntries()
+	//pl := s.ProcessLists.LastList()
+	for _, pl := range s.ProcessLists.Lists {
+		keys := pl.GetKeysNewEntries()
 
-	for _, key := range keys {
-		tx := pl.GetNewEntry(key)
-		if hash.IsSameAs(tx.GetHash()) {
+		for _, key := range keys {
+			tx := pl.GetNewEntry(key)
+			if hash.IsSameAs(tx.GetHash()) {
+				fmt.Println("returningProcesslist hash")
+				return tx, nil
+			}
+		}
+	}
+
+	// not in process lists.  try holding queue
+	// check holding queue
+
+	q := s.LoadHoldingMap()
+	var re messages.RevealEntryMsg
+	for _, h := range q {
+
+		if h.Type() == constants.REVEAL_ENTRY_MSG {
+			enb, err := h.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			err = re.UnmarshalBinary(enb)
+			if err != nil {
+				return nil, err
+			}
+			tx := re.Entry
 			return tx, nil
 		}
 	}

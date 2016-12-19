@@ -67,14 +67,13 @@ func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
-	return 1
 	// Check to see if identity exists and is audit or fed server
 	if !state.VerifyIsAuthority(m.IdentityChainID) {
 		fmt.Println("ChangeServerKey Error. Server is not an authority")
 		return -1
 	}
 
-	// Should only be 20 bytes in the hash
+	// Should only be 20 bytes in the hash if btc key add
 	if m.AdminBlockChange == constants.TYPE_ADD_BTC_ANCHOR_KEY {
 		for _, b := range m.Key.Bytes()[21:] {
 			if b != 0 {
@@ -86,26 +85,23 @@ func (m *ChangeServerKeyMsg) Validate(state interfaces.IState) int {
 
 	// Check signatures
 	bytes, err := m.MarshalForSignature()
-	if err != nil {
-		fmt.Println("ChangeServerKey Error: Err is not nil, err: ", err.Error())
-		return -1
-	}
-	if m.Signature == nil {
-		fmt.Println("ChangeServerKey Error: No signiture on ChangeServerKeyMessage")
+	if err != nil || m.Signature == nil {
 		return -1
 	}
 	sig := m.Signature.GetSignature()
 	authSigned, err := state.VerifyAuthoritySignature(bytes, sig, state.GetLeaderHeight())
+	if err != nil || authSigned != 1 { // authSigned = 1 for fed signed
+		return -1
+	}
 
-	//ackSigned, err := m.VerifySignature()
-	if err != nil {
-		fmt.Println("ChangeServerKey Error: Err is not nil, err: ", err.Error())
+	isVer, err := m.VerifySignature()
+	if err != nil || !isVer {
+		// if there is an error during signature verification
+		// or if the signature is invalid
+		// the message is considered invalid
 		return -1
 	}
-	if authSigned < 1 {
-		fmt.Println("ChangeServerKey Error: Message not signed by an authority")
-		return -1
-	}
+
 	return 1
 }
 
