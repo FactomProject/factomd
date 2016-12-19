@@ -1458,15 +1458,15 @@ func (s *State) catchupEBlocks() {
 		}
 	}
 	// If we still have 10 that we are asking for, then let's not add to the list.
-	if len(s.MissingEntryBlocks) < 10 {
-
+	if len(s.MissingEntryBlocks) < 5 {
+		s.DB.Trim()
 		// While we have less than 20 that we are asking for, look for more to ask for.
 
 		// All done is true, and as long as it says true, we walk our bookmark forward.  Once we find something
 		// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 		// review the directory block over again the next time.
 		alldone := true
-		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 10 {
 			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
 
 			if dbstate != nil {

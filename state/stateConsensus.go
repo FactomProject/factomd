@@ -484,7 +484,15 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 1:
 			pl := s.ProcessLists.Get(fullFault.DBHeight)
 			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-				pl.AddToSystemList(fullFault)
+				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
+
+				if okff {
+					s.XReview = append(s.XReview, fullFault)
+				} else {
+					pl.AddToSystemList(fullFault)
+				}
+
+				s.MissingResponseAppliedCnt++
 
 			} else {
 				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
@@ -492,7 +500,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 0:
 			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 		default:
-			// Ignore if -1 or anything but 0 and 1
+			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
 		}
 		return
 	}
@@ -521,11 +529,12 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	s.Acks[ack.GetHash().Fixed()] = ack
 
+	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.XReview = append(s.XReview,ack)
+		s.XReview = append(s.XReview, ack)
 	}
 	if okm {
-		s.XReview = append(s.XReview,msg)
+		s.XReview = append(s.XReview, msg)
 	}
 
 	// If I've seen both, put them in the process list.
@@ -533,9 +542,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, msg)
 	}
 
-	if s.Acks[ack.GetHash().Fixed()] == nil {
-		s.MissingResponseAppliedCnt++
-	}
+	s.MissingResponseAppliedCnt++
 
 }
 
@@ -568,7 +575,11 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				return
 			}
 
-			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
+			var missing []MissingEntryBlock
+			missing = append(missing, s.MissingEntryBlocks[:i]...)
+			missing = append(missing, s.MissingEntryBlocks[i+1:]...)
+			s.MissingEntryBlocks = missing
+
 			s.DB.ProcessEBlockBatch(eblock, true)
 
 			break
@@ -585,7 +596,10 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 			if e.IsSameAs(entry.GetHash()) {
 				s.DB.InsertEntry(entry)
-				s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
+				var missing []MissingEntry
+				missing = append(missing, s.MissingEntries[:i]...)
+				missing = append(missing, s.MissingEntries[i+1:]...)
+				s.MissingEntries = missing
 				break
 			}
 		}
