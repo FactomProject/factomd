@@ -344,7 +344,7 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 
 	// limit size of entries in dbstate messages to 20 messages
 	if len(m.Entries) > 20 {
-		m.Entries = m.Entries[:200]
+		m.Entries = m.Entries[:20]
 	}
 	entryCount := uint32(len(m.Entries))
 	binary.Write(&buf, binary.BigEndian, entryCount)
