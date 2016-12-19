@@ -14,9 +14,11 @@ sleep 5s
 	
 addentries() {
 
+    # create a random datafile
 	datalen=$(shuf -i 100-9900 -n 1)
 	datafile=$(mktemp)
 	base64 /dev/urandom | head -c $datalen > $datafile
+
 	echo "Entry Length " $datalen " bytes, file name: " $datafile
 
 	let y=$(shuf -i 30-120 -n 1)
@@ -27,6 +29,9 @@ addentries() {
 		echo "write entry Chain:"  $2 $i
 		sleep .4s
 	done
+
+    # get rid of the random datafile
+	rm $datafile
 }
 
 echo "Start"
