@@ -379,6 +379,10 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 
+	if ack.DBHeight > s.HighestKnown {
+		s.HighestKnown = ack.DBHeight
+	}
+	
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
 		return
@@ -1817,12 +1821,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
-	plh := s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists)-1)
-	dbsh := s.DBStates.Base + uint32(len(s.DBStates.DBStates))
-	if dbsh > plh {
-		return dbsh
-	}
-	return plh
+	return s.HighestKnown
 }
 
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
