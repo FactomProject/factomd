@@ -328,7 +328,6 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	
 	if len(m.EBlocks) > 200 {
 		m.EBlocks = m.EBlocks[:200]
 	}
