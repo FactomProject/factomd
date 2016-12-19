@@ -387,7 +387,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
-	if saved > dbheight && dbheight > 0 {
+	if saved >= dbheight && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
 			s.GetHighestSavedBlk(), dbheight))
 		return
@@ -445,6 +445,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStates.ProcessBlocks(dbstate)
 		dbstate.Signed = true
 		dbstate.ReadyToSave = true
+		s.DBStates.SaveDBStateToDB(dbstate)
 	} else {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true

@@ -130,9 +130,6 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 		}
 	}
 
-	state.GetAndLockDB().Trim()
-	state.UnlockDB()
-
 	return
 }
 

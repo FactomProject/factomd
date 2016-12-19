@@ -78,10 +78,10 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	if d == nil {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
-		return -1
+		return 0
 	}
 
-	if dbheight > 1 && int(state.EntryBlockDBHeightComplete) < int(dbheight-1) {
+	if int(state.EntryBlockDBHeightComplete) < int(dbheight-1) {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0s Don't have all the Entries (ht: %d) we want dbht: %d",
 			state.EntryBlockDBHeightComplete,
 			dbheight))
