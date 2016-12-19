@@ -1494,9 +1494,19 @@ func (s *State) catchupEBlocks() {
 					// Ask for blocks we don't have.
 					if eBlock == nil {
 						s.AddStatus(fmt.Sprintf("Could not find block %x in state.catchupEBlocks()\n", ebKeyMR.Bytes()[:4]))
-						s.MissingEntryBlocks = append(s.MissingEntryBlocks,
-							MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 
+						addit := true
+						for _, eb := range s.MissingEntryBlocks {
+							if eb.ebhash.Fixed() == ebKeyMR.Fixed() {
+								addit = false
+								break
+							}
+						}
+
+						if addit {
+							s.MissingEntryBlocks = append(s.MissingEntryBlocks,
+								MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+						}
 						// Something missing, stop moving the bookmark.
 						alldone = false
 					} else {
@@ -1506,18 +1516,23 @@ func (s *State) catchupEBlocks() {
 							}
 							e, _ := s.DB.FetchEntry(entryhash)
 							if e == nil {
-								var v struct {
-									ebhash    interfaces.IHash
-									entryhash interfaces.IHash
-									dbheight  uint32
+								addit := false
+								for _, e := range s.MissingEntries {
+									if e.ebhash.Fixed() == entryhash.Fixed() {
+										addit = false
+									}
+									break
 								}
 
-								v.dbheight = eBlock.GetHeader().GetDBHeight()
-								v.entryhash = entryhash
-								v.ebhash = ebKeyMR
+								if addit {
+									var v MissingEntry
 
-								s.MissingEntries = append(s.MissingEntries, v)
+									v.dbheight = eBlock.GetHeader().GetDBHeight()
+									v.entryhash = entryhash
+									v.ebhash = ebKeyMR
 
+									s.MissingEntries = append(s.MissingEntries, v)
+								}
 								// Something missing. stop moving the bookmark.
 								alldone = false
 							}
