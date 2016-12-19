@@ -108,12 +108,12 @@ type State struct {
 	AcksFlag  bool
 	AcksMap   map[[32]byte]interfaces.IMsg
 
-	DBStateAskCnt   int
-	DBStateAnsCnt   int
-	DBStateReplyCnt int
-	DBStateFailsCnt int
+	DBStateAskCnt     int
+	DBStateReplyCnt   int
+	DBStateIgnoreCnt  int
+	DBStateAppliedCnt int
 
-	MissingRequestSendCnt     int
+	MissingRequestAskCnt      int
 	MissingRequestReplyCnt    int
 	MissingRequestIgnoreCnt   int
 	MissingResponseAppliedCnt int
@@ -247,6 +247,7 @@ type State struct {
 
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
+	HighestKnown    uint32
 	AuthorityDeltas string
 
 	// Factom State
@@ -487,7 +488,7 @@ func (s *State) GetCurrentMinute() int {
 }
 
 func (s *State) IncDBStateAnswerCnt() {
-	s.DBStateAnsCnt++
+	s.DBStateAppliedCnt++
 }
 
 func (s *State) IncFCTSubmits() {
@@ -1069,66 +1070,69 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	var ce messages.CommitEntryMsg
 	var re messages.RevealEntryMsg
 	var tmp interfaces.IPendingEntry
+	LastComplete := s.GetDBHeightComplete()
 	// check all existing processlists/VMs
 	for _, pl := range pls {
-		for _, v := range pl.VMs {
-			for _, plmsg := range v.List {
-				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = cc.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = cc.CommitChain.EntryHash
+		if pl.DBHeight > LastComplete {
+			for _, v := range pl.VMs {
+				for _, plmsg := range v.List {
+					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = cc.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = cc.CommitChain.EntryHash
 
-					tmp.ChainID = cc.CommitChain.ChainIDHash
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						tmp.ChainID = cc.CommitChain.ChainIDHash
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
-				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = ce.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = ce.CommitEntry.EntryHash
+						resp = append(resp, tmp)
+					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = ce.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = ce.CommitEntry.EntryHash
 
-					tmp.ChainID = ce.CommitEntry.Hash()
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						tmp.ChainID = ce.CommitEntry.Hash()
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
-				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil
-					}
-					err = re.UnmarshalBinary(enb)
-					if err != nil {
-						return nil
-					}
-					tmp.EntryHash = re.Entry.GetHash()
-					tmp.ChainID = re.Entry.GetChainID()
-					if pl.DBHeight > s.GetDBHeightComplete() {
-						tmp.Status = "AckStatusACK"
-					} else {
-						tmp.Status = "AckStatusDBlockConfirmed"
-					}
+						resp = append(resp, tmp)
+					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil
+						}
+						err = re.UnmarshalBinary(enb)
+						if err != nil {
+							return nil
+						}
+						tmp.EntryHash = re.Entry.GetHash()
+						tmp.ChainID = re.Entry.GetChainID()
+						if pl.DBHeight > s.GetDBHeightComplete() {
+							tmp.Status = "AckStatusACK"
+						} else {
+							tmp.Status = "AckStatusDBlockConfirmed"
+						}
 
-					resp = append(resp, tmp)
+						resp = append(resp, tmp)
+					}
 				}
 			}
 		}
@@ -1251,48 +1255,53 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 
 			// check chain commits
 			for _, plmsg := range v.List {
-				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = cc.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
-					if cc.CommitChain.GetSigHash().String() == txID {
-						return cc.CommitChain.EntryHash, nil
-					}
-				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+				if plmsg != nil {
 
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = ce.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
+					//	if plmsg.Type() != nil {
+					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = cc.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
+						if cc.CommitChain.GetSigHash().String() == txID {
+							return cc.CommitChain.EntryHash, nil
+						}
+					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 
-					if ce.CommitEntry.GetSigHash().String() == txID {
-						return ce.CommitEntry.EntryHash, nil
-					}
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = ce.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
 
-				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = re.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
-					if re.Entry.GetHash().String() == txID {
-						return re.Entry.GetHash(), nil
-					}
-				} else {
+						if ce.CommitEntry.GetSigHash().String() == txID {
+							return ce.CommitEntry.EntryHash, nil
+						}
 
+					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = re.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
+						if re.Entry.GetHash().String() == txID {
+							return re.Entry.GetHash(), nil
+						}
+					}
 				}
+				//	} else {
+				//		return nil, fmt.Errorf("%s", "Invalid Message in Holding Queue")
+				//	}
 			}
 		}
 	}
@@ -1835,6 +1844,22 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	return primitives.NewZeroHash()
 }
 
+// The identity for validating messages
+func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_TEST:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_LOCAL:
+		id, _ := primitives.HexToHash("88888847f6cd639255df8f6f9e4f015058c93bc02e72f8e1287d7ff0d3fc184b")
+		return id
+	case constants.NETWORK_CUSTOM:
+		return primitives.NewZeroHash()
+	}
+	return primitives.NewZeroHash()
+}
+
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {
 	return nil
 }
@@ -2045,8 +2070,8 @@ func (s *State) SetStringQueues() {
 		keyMR[:3],
 		pls)
 
-	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
-	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestSendCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
+	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateReplyCnt, s.DBStateIgnoreCnt, s.DBStateAppliedCnt)
+	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestAskCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
 	str = str + fmt.Sprintf(" %2s/%2d %15s %26s ",
 		lmin,
 		s.CurrentMinute,

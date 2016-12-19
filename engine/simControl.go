@@ -16,6 +16,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
@@ -28,6 +29,9 @@ var verboseAuthoritySet = false
 var verboseAuthorityDeltas = false
 var totalServerFaults int
 var lastcmd []string
+
+// Used for signing messages
+var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
 func SimControl(listenTo int) {
 	var _ = time.Sleep
@@ -529,15 +533,27 @@ func SimControl(listenTo int) {
 					fnodes[listenTo].State.MessageTally = false
 				}
 			case 'z' == b[0]: // Add Audit server, Remove server, and Add Leader fall through to 'n', switch to next node.
+				var msg interfaces.IMsg
 				if len(b) > 1 && b[1] == 'a' {
-					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 1)
-					fnodes[listenTo].State.InMsgQueue() <- msg
-					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+					msg = messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 1)
 				} else {
-					msg := messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 0)
-					fnodes[listenTo].State.InMsgQueue() <- msg
-					os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+					msg = messages.NewRemoveServerMsg(fnodes[listenTo].State, fnodes[listenTo].State.IdentityChainID, 0)
 				}
+
+				priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
+					break
+				}
+				err = msg.(*messages.RemoveServerMsg).Sign(priv)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintln("Could not remove server,", err.Error()))
+					break
+				}
+
+				fnodes[listenTo].State.InMsgQueue() <- msg
+				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
+
 				fallthrough
 			case 'o' == b[0]: // Add Audit server and Add Leader fall through to 'n', switch to next node.
 				if b[0] == 'o' { // (Don't do anything if just passing along the remove server)
@@ -558,6 +574,16 @@ func SimControl(listenTo int) {
 					}
 
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 1)
+					priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make an audit server,", err.Error()))
+						break
+					}
+					err = msg.(*messages.AddServerMsg).Sign(priv)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
+						break
+					}
 					fnodes[listenTo].State.InMsgQueue() <- msg
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
 				}
@@ -592,6 +618,16 @@ func SimControl(listenTo int) {
 					}
 
 					msg := messages.NewAddServerMsg(fnodes[listenTo].State, 0)
+					priv, err := primitives.NewPrivateKeyFromHex(LOCAL_NET_PRIV_KEY)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
+						break
+					}
+					err = msg.(*messages.AddServerMsg).Sign(priv)
+					if err != nil {
+						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
+						break
+					}
 					fnodes[listenTo].State.InMsgQueue() <- msg
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 				}
@@ -821,26 +857,7 @@ func SimControl(listenTo int) {
 				for _, i := range fnodes[listenTo].State.Authorities {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
-					switch i.Status {
-					case 0:
-						stat = "Unassigned"
-					case 1:
-						stat = "Federated Server"
-					case 2:
-						stat = "Audit Server"
-					case 3:
-						stat = "Full"
-					case 4:
-						stat = "Pending Federated Server"
-					case 5:
-						stat = "Pending Audit Server"
-					case 6:
-						stat = "Pending Full"
-					case 7:
-						stat = "Self"
-					case 8:
-						stat = "Self Full"
-					}
+					stat = returnStatString(i.Status)
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
@@ -1022,9 +1039,7 @@ func returnStatString(i int) string {
 	case 6:
 		stat = "Pending Full"
 	case 7:
-		stat = "Self Not Full"
-	case 8:
-		stat = "Self Full"
+		stat = "Skeleton Identity"
 	}
 	return stat
 }

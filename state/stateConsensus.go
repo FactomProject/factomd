@@ -203,26 +203,43 @@ func (s *State) ReviewHolding() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 
-		mm, ok := v.(*messages.MissingMsg)
-		if ok && mm.DBHeight < s.LLeaderHeight {
+		saved := s.GetHighestSavedBlk()
+
+		mm, ok := v.(*messages.MissingMsgResponse)
+		if ok {
+			ff, ok := mm.MsgResponse.(*messages.FullServerFault)
+			if ok && ff.DBHeight < saved {
+				delete(s.Holding, k)
+			}
+			continue
+		}
+
+		sf, ok := v.(*messages.ServerFault)
+		if ok && sf.DBHeight < saved {
+			delete(s.Holding, k)
+			continue
+		}
+
+		ff, ok := v.(*messages.FullServerFault)
+		if ok && ff.DBHeight < saved {
 			delete(s.Holding, k)
 			continue
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && eom.DBHeight < s.LLeaderHeight-1 {
+		if ok && eom.DBHeight < saved-1 {
 			delete(s.Holding, k)
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
-		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < s.LLeaderHeight-1 {
+		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 {
 			delete(s.Holding, k)
 			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && dbsigmsg.DBHeight < s.LLeaderHeight-1 {
+		if ok && dbsigmsg.DBHeight < saved-1 {
 			delete(s.Holding, k)
 			continue
 		}
@@ -387,7 +404,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
-	if saved >= dbheight && dbheight > 0 {
+	if dbheight > 1 && dbheight <= saved {
+		return
+	}
+
+	if s.GetHighestSavedBlk() > dbheight && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
 			s.GetHighestSavedBlk(), dbheight))
 		return
@@ -402,6 +423,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
+		s.Holding[msg.GetHash().Fixed()] = msg
 		return
 	case -1:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
@@ -479,21 +501,15 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 1:
 			pl := s.ProcessLists.Get(fullFault.DBHeight)
 			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
-
-				if okff {
-					s.XReview = append(s.XReview, fullFault)
-				} else {
-					pl.AddToSystemList(fullFault)
-				}
-
-				s.MissingResponseAppliedCnt++
+				pl.AddToSystemList(fullFault)
 
 			} else {
 				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 			}
+		case 0:
+			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 		default:
-			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
+			// Ignore if -1 or anything but 0 and 1
 		}
 		return
 	}
@@ -524,10 +540,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.XReview = append(s.XReview, ack)
+		s.XReview = append(s.XReview,ack)
 	}
 	if okm {
-		s.XReview = append(s.XReview, msg)
+		s.XReview = append(s.XReview,msg)
 	}
 
 	// If I've seen both, put them in the process list.
@@ -535,7 +551,9 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, msg)
 	}
 
-	s.MissingResponseAppliedCnt++
+	if s.Acks[ack.GetHash().Fixed()] == nil {
+		s.MissingResponseAppliedCnt++
+	}
 
 }
 
