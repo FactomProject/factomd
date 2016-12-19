@@ -480,9 +480,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		cntFail()
 		return
 	}
-
-	dbstate.Added = now
-
+	
 	if dbstatemsg.IsInDB == false {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
 		dbstate.ReadyToSave = true
