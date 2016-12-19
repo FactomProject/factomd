@@ -1254,45 +1254,48 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 
 			// check chain commits
 			for _, plmsg := range v.List {
-				//	if plmsg.Type() != nil {
-				if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = cc.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
-					if cc.CommitChain.GetSigHash().String() == txID {
-						return cc.CommitChain.EntryHash, nil
-					}
-				} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+				if plmsg != nil {
 
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = ce.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
+					//	if plmsg.Type() != nil {
+					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = cc.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
+						if cc.CommitChain.GetSigHash().String() == txID {
+							return cc.CommitChain.EntryHash, nil
+						}
+					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 
-					if ce.CommitEntry.GetSigHash().String() == txID {
-						return ce.CommitEntry.EntryHash, nil
-					}
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = ce.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
 
-				} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-					enb, err := plmsg.MarshalBinary()
-					if err != nil {
-						return nil, err
-					}
-					err = re.UnmarshalBinary(enb)
-					if err != nil {
-						return nil, err
-					}
-					if re.Entry.GetHash().String() == txID {
-						return re.Entry.GetHash(), nil
+						if ce.CommitEntry.GetSigHash().String() == txID {
+							return ce.CommitEntry.EntryHash, nil
+						}
+
+					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+						enb, err := plmsg.MarshalBinary()
+						if err != nil {
+							return nil, err
+						}
+						err = re.UnmarshalBinary(enb)
+						if err != nil {
+							return nil, err
+						}
+						if re.Entry.GetHash().String() == txID {
+							return re.Entry.GetHash(), nil
+						}
 					}
 				}
 				//	} else {
