@@ -234,73 +234,37 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup() {
 
-	dbsHeight := list.GetHighestSavedBlk()
-
 	// We only check if we need updates once every so often.
 
 	begin := -1
 	end := -1
 
-	// Find the first range of blocks that we don't have.
-	for i, v := range list.DBStates {
-		if (v == nil || v.DirectoryBlock == nil) && begin < 0 {
-			begin = i
-		}
-		if v == nil {
-			end = i
-		}
+	begin = int(list.State.GetHighestSavedBlk()) + 1
+	end = int(list.State.GetHighestKnownBlock())
+
+	if begin <= 0 || end-begin <= 2 {
+		return
 	}
-
-	if begin > 0 {
-		begin += int(list.Base)
-		end += int(list.Base)
-	} else {
-		plHeight := list.State.GetHighestKnownBlock()
-		// Don't worry about the block initialization case.
-		if plHeight < 1 {
-			list.LastTime = nil
-			return
-		}
-
-		if plHeight >= dbsHeight && plHeight-dbsHeight > 1 {
-			begin = int(dbsHeight + 1)
-			end = int(plHeight - 1)
-		} else {
-			list.LastTime = nil
-			return
-		}
-
-		for list.State.ProcessLists.Get(uint32(begin)) != nil && list.State.ProcessLists.Get(uint32(begin)).Complete() {
-			begin++
-			if uint32(begin) >= plHeight || begin > end {
-				list.LastTime = nil
-				return
-			}
-		}
-	}
-
-	if begin > 0 {
-		begin--
-	}
-	end++ // ask for one more, just in case.
 
 	list.Lastreq = begin
 
-	end2 := begin + 400
-	if end < end2 {
-		end2 = end
+	if end-begin > 400 {
+		end = begin + 400
 	}
 
 	now := list.State.GetTimestamp()
 
 	if list.LastTime == nil {
 		list.LastTime = now
+		if end-begin > 2 {
+			list.LastTime.SetTime(uint64(now.GetTimeMilli() - 3000))
+		}
 		return
 	}
 
 	// Default wait 5 seconds.  These calls are expensive, so give our friends plenty of time to answer.
 	wait := 5000
-	if begin+1 >= int(list.State.LLeaderHeight) { // If looking for the block we are working on, wait a long time.
+	if begin == int(list.State.LLeaderHeight) { // If looking for the block we are working on, wait a long time.
 		wait = list.State.DirectoryBlockInSeconds*1000 + wait
 	}
 
@@ -309,19 +273,15 @@ func (list *DBStateList) Catchup() {
 		return
 	}
 
-	list.State.RunLeader = false
-
 	list.LastTime = now
 
-	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end2))
+	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
 
 	if msg != nil {
 		//		list.State.RunLeader = false
 		//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		msg.SendOut(list.State, msg)
-		msg.SendOut(list.State, msg)
-		msg.SendOut(list.State, msg)
-		list.LastTime = now
+		list.LastTime = nil
 		list.State.DBStateAskCnt++
 	}
 
@@ -834,7 +794,7 @@ func (list *DBStateList) Put(dbState *DBState) bool {
 	cnt := 0
 searchLoop:
 	for i, v := range list.DBStates {
-		if v == nil || v.DirectoryBlock == nil || !v.Saved {
+		if dbheight > 0 && (v == nil || v.DirectoryBlock == nil || !v.Saved) {
 			list.DBStates[i] = nil
 			break searchLoop
 		}
