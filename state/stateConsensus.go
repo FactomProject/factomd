@@ -379,6 +379,10 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 
+	if ack.DBHeight > s.HighestKnown {
+		s.HighestKnown = ack.DBHeight
+	}
+
 	pl := s.ProcessLists.Get(ack.DBHeight)
 	if pl == nil {
 		return
@@ -398,36 +402,42 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
+	cntFail := func() {
+		if !dbstatemsg.IsInDB {
+			s.DBStateIgnoreCnt++
+		}
+	}
+
 	saved := s.GetHighestSavedBlk()
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
-	if dbheight > 1 && dbheight <= saved {
-		return
-	}
-
-	if s.GetHighestSavedBlk() > dbheight && dbheight > 0 {
+	if dbheight <= saved && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
 			s.GetHighestSavedBlk(), dbheight))
+		cntFail()
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
-	if dbheight > 0 && pdbstate == nil {
+	if dbheight > 0 && (pdbstate == nil) {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Previous dbstate is nil DBHeight %v", dbheight))
+
+		cntFail()
 		return
 	}
 
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
-		s.Holding[msg.GetHash().Fixed()] = msg
+		cntFail()
 		return
 	case -1:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
+		cntFail()
 		return
 	}
 
@@ -456,7 +466,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.Entries)
 	if dbstate == nil {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
-		s.DBStateFailsCnt++
+		cntFail()
 		return
 	}
 
@@ -468,6 +478,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstate.Signed = true
 		dbstate.ReadyToSave = true
 		s.DBStates.SaveDBStateToDB(dbstate)
+		s.DBStateAppliedCnt++
 	} else {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true
@@ -501,15 +512,21 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 1:
 			pl := s.ProcessLists.Get(fullFault.DBHeight)
 			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-				pl.AddToSystemList(fullFault)
+				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
-			} else {
-				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
+				if okff {
+					s.XReview = append(s.XReview, fullFault)
+				} else {
+					pl.AddToSystemList(fullFault)
+				}
+				s.MissingResponseAppliedCnt++
+			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
+				s.XReview = append(s.XReview, fullFault)
+				s.MissingResponseAppliedCnt++
 			}
-		case 0:
-			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
+
 		default:
-			// Ignore if -1 or anything but 0 and 1
+			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
 		}
 		return
 	}
@@ -540,10 +557,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.XReview = append(s.XReview,ack)
+		s.XReview = append(s.XReview, ack)
 	}
 	if okm {
-		s.XReview = append(s.XReview,msg)
+		s.XReview = append(s.XReview, msg)
 	}
 
 	// If I've seen both, put them in the process list.
@@ -551,9 +568,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, msg)
 	}
 
-	if s.Acks[ack.GetHash().Fixed()] == nil {
-		s.MissingResponseAppliedCnt++
-	}
+	s.MissingResponseAppliedCnt++
 
 }
 
@@ -1806,12 +1821,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
-	plh := s.ProcessLists.DBHeightBase + uint32(len(s.ProcessLists.Lists)-1)
-	dbsh := s.DBStates.Base + uint32(len(s.DBStates.DBStates))
-	if dbsh > plh {
-		return dbsh
-	}
-	return plh
+	return s.HighestKnown
 }
 
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
