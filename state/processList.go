@@ -664,7 +664,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		}
 
 		missingMsgRequest.SendOut(p.State, missingMsgRequest)
-		p.State.MissingRequestSendCnt++
+		p.State.MissingRequestAskCnt++
 
 		r.sent = now
 		r.requestCnt++

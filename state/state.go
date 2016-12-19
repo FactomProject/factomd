@@ -108,12 +108,12 @@ type State struct {
 	AcksFlag  bool
 	AcksMap   map[[32]byte]interfaces.IMsg
 
-	DBStateAskCnt   int
-	DBStateAnsCnt   int
-	DBStateReplyCnt int
-	DBStateFailsCnt int
+	DBStateAskCnt     int
+	DBStateReplyCnt   int
+	DBStateIgnoreCnt  int
+	DBStateAppliedCnt int
 
-	MissingRequestSendCnt     int
+	MissingRequestAskCnt      int
 	MissingRequestReplyCnt    int
 	MissingRequestIgnoreCnt   int
 	MissingResponseAppliedCnt int
@@ -487,7 +487,7 @@ func (s *State) GetCurrentMinute() int {
 }
 
 func (s *State) IncDBStateAnswerCnt() {
-	s.DBStateAnsCnt++
+	s.DBStateAppliedCnt++
 }
 
 func (s *State) IncFCTSubmits() {
@@ -2045,8 +2045,8 @@ func (s *State) SetStringQueues() {
 		keyMR[:3],
 		pls)
 
-	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateAnsCnt, s.DBStateReplyCnt, s.DBStateFailsCnt)
-	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestSendCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
+	dbstate := fmt.Sprintf("%d/%d/%d/%d", s.DBStateAskCnt, s.DBStateReplyCnt, s.DBStateIgnoreCnt, s.DBStateAppliedCnt)
+	missing := fmt.Sprintf("%d/%d/%d/%d", s.MissingRequestAskCnt, s.MissingRequestReplyCnt, s.MissingRequestIgnoreCnt, s.MissingResponseAppliedCnt)
 	str = str + fmt.Sprintf(" %2s/%2d %15s %26s ",
 		lmin,
 		s.CurrentMinute,
