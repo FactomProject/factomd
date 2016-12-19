@@ -203,26 +203,43 @@ func (s *State) ReviewHolding() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 
-		mm, ok := v.(*messages.MissingMsg)
-		if ok && mm.DBHeight < s.LLeaderHeight {
+		saved := s.GetHighestSavedBlk()
+
+		mm, ok := v.(*messages.MissingMsgResponse)
+		if ok {
+			ff, ok := mm.MsgResponse.(*messages.FullServerFault)
+			if ok && ff.DBHeight < saved {
+				delete(s.Holding, k)
+			}
+			continue
+		}
+
+		sf, ok := v.(*messages.ServerFault)
+		if ok && sf.DBHeight < saved {
+			delete(s.Holding, k)
+			continue
+		}
+
+		ff, ok := v.(*messages.FullServerFault)
+		if ok && ff.DBHeight < saved {
 			delete(s.Holding, k)
 			continue
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && eom.DBHeight < s.LLeaderHeight-1 {
+		if ok && eom.DBHeight < saved-1 {
 			delete(s.Holding, k)
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
-		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < s.LLeaderHeight-1 {
+		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 {
 			delete(s.Holding, k)
 			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && dbsigmsg.DBHeight < s.LLeaderHeight-1 {
+		if ok && dbsigmsg.DBHeight < saved-1 {
 			delete(s.Holding, k)
 			continue
 		}
@@ -381,36 +398,42 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
+	cntFail := func() {
+		if !dbstatemsg.IsInDB {
+			s.DBStateIgnoreCnt++
+		}
+	}
+
 	saved := s.GetHighestSavedBlk()
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
-	if dbheight > 1 && dbheight <= saved {
-		return
-	}
-
-	if s.GetHighestSavedBlk() > dbheight && dbheight > 0 {
+	if dbheight <= saved && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
 			s.GetHighestSavedBlk(), dbheight))
+		cntFail()
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
-	if dbheight > 0 && pdbstate == nil {
+	if dbheight > 0 && (pdbstate == nil) {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Previous dbstate is nil DBHeight %v", dbheight))
+
+		cntFail()
 		return
 	}
 
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
-		s.Holding[msg.GetHash().Fixed()] = msg
+		cntFail()
 		return
 	case -1:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
+		cntFail()
 		return
 	}
 
@@ -439,7 +462,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.Entries)
 	if dbstate == nil {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
-		s.DBStateFailsCnt++
+		cntFail()
 		return
 	}
 
@@ -451,6 +474,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstate.Signed = true
 		dbstate.ReadyToSave = true
 		s.DBStates.SaveDBStateToDB(dbstate)
+		s.DBStateAppliedCnt++
 	} else {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true
@@ -491,14 +515,12 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
-
 				s.MissingResponseAppliedCnt++
-
-			} else {
-				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
+			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
+				s.XReview = append(s.XReview, fullFault)
+				s.MissingResponseAppliedCnt++
 			}
-		case 0:
-			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
+
 		default:
 			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
 		}

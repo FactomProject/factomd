@@ -834,10 +834,8 @@ func (list *DBStateList) Put(dbState *DBState) bool {
 	cnt := 0
 searchLoop:
 	for i, v := range list.DBStates {
-		if v == nil || v.DirectoryBlock == nil || !v.Locked {
-			if v != nil && v.DirectoryBlock == nil {
-				list.DBStates[i] = nil
-			}
+		if v == nil || v.DirectoryBlock == nil || !v.Saved {
+			list.DBStates[i] = nil
 			break searchLoop
 		}
 		cnt++
