@@ -87,7 +87,7 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionaility)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
-	statusMutex sync.Mutex
+	StatusMutex sync.Mutex
 	StatusStrs  []string
 	starttime   time.Time
 	transCnt    int
@@ -716,7 +716,7 @@ func (s *State) Init() {
 
 	// Allocate the original set of Process Lists
 	s.ProcessLists = NewProcessLists(s)
-	s.FaultTimeout = 20
+	s.FaultTimeout = 60
 	s.FaultWait = 3
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
@@ -1466,15 +1466,15 @@ func (s *State) catchupEBlocks() {
 		}
 	}
 	// If we still have 10 that we are asking for, then let's not add to the list.
-	if len(s.MissingEntryBlocks) < 10 {
-
+	if len(s.MissingEntryBlocks) < 5 {
+		s.DB.Trim()
 		// While we have less than 20 that we are asking for, look for more to ask for.
 
 		// All done is true, and as long as it says true, we walk our bookmark forward.  Once we find something
 		// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 		// review the directory block over again the next time.
 		alldone := true
-		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 20 {
+		for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 10 {
 			dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
 
 			if dbstate != nil {
@@ -1669,7 +1669,6 @@ func (s *State) initServerKeys() {
 		//panic("Cannot parse Server Private Key from configuration file: " + err.Error())
 	}
 	s.serverPubKey = s.serverPrivKey.Pub
-	//s.serverPubKey = primitives.PubKeyFromString(constants.SERVER_PUB_KEY)
 }
 
 func (s *State) LogInfo(args ...interface{}) {
@@ -2021,7 +2020,7 @@ func (s *State) SetStringQueues() {
 	case s.DBStates.Last().DirectoryBlock == nil:
 
 	default:
-		d = s.DBStates.Get(int(s.GetHighestCompletedBlk())).DirectoryBlock
+		d = s.DBStates.Get(int(s.GetHighestSavedBlk())).DirectoryBlock
 		keyMR = d.GetKeyMR().Bytes()
 		dHeight = d.GetHeader().GetDBHeight()
 	}
@@ -2241,8 +2240,8 @@ func (s *State) AddStatus(status string) {
 		return
 	}
 
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	if len(s.StatusStrs) > 1000 {
 		copy(s.StatusStrs, s.StatusStrs[1:])
@@ -2253,8 +2252,8 @@ func (s *State) AddStatus(status string) {
 }
 
 func (s *State) GetStatus() []string {
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	status := make([]string, len(s.StatusStrs))
 	status = append(status, s.StatusStrs...)
@@ -2262,8 +2261,8 @@ func (s *State) GetStatus() []string {
 }
 
 func (s *State) GetLastStatus() string {
-	s.statusMutex.Lock()
-	defer s.statusMutex.Unlock()
+	s.StatusMutex.Lock()
+	defer s.StatusMutex.Unlock()
 
 	if len(s.StatusStrs) == 0 {
 		return ""

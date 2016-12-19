@@ -102,36 +102,14 @@ const (
 	TEST_NETWORK_ID  uint32 = 0xFA92E5A3
 	LOCAL_NETWORK_ID uint32 = 0xFA92E5A4
 	MaxBlocksPerMsg         = 500
-
-	// NETWORKS:
 )
+
 const (
+	// NETWORKS:
 	NETWORK_MAIN   int = iota // 0
 	NETWORK_TEST              // 1
 	NETWORK_LOCAL             // 2
 	NETWORK_CUSTOM            // 3
-
-	//For Factom TestNet
-	//==================
-	//0x0
-
-	// Server Info
-	//==================
-	//Server running mode
-
-)
-
-const (
-	// 0
-	// 1
-	// 2
-
-	//Server public key for milestone 1
-	SERVER_PUB_KEY = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
-	//Genesis directory block timestamp in RFC3339 format
-
-	//Genesis directory block hash
-
 )
 
 // Slices and arrays that should not ever be modified:

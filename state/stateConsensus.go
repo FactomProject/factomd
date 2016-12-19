@@ -203,19 +203,25 @@ func (s *State) ReviewHolding() {
 	for k := range s.Holding {
 		v := s.Holding[k]
 
-		eom, ok := s.Holding[k].(*messages.EOM)
+		mm, ok := v.(*messages.MissingMsg)
+		if ok && mm.DBHeight < s.LLeaderHeight {
+			delete(s.Holding, k)
+			continue
+		}
+
+		eom, ok := v.(*messages.EOM)
 		if ok && eom.DBHeight < s.LLeaderHeight-1 {
 			delete(s.Holding, k)
 			continue
 		}
 
-		dbsmsg, ok := s.Holding[k].(*messages.DBStateMsg)
+		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < s.LLeaderHeight-1 {
 			delete(s.Holding, k)
 			continue
 		}
 
-		dbsigmsg, ok := s.Holding[k].(*messages.DirectoryBlockSignature)
+		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && dbsigmsg.DBHeight < s.LLeaderHeight-1 {
 			delete(s.Holding, k)
 			continue
@@ -375,11 +381,19 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
+	saved := s.GetHighestSavedBlk()
+
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if s.GetHighestCompletedBlk() > dbheight && dbheight > 0 {
+	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
+
+	if dbheight > 1 && dbheight <= saved {
+		return
+	}
+
+	if s.GetHighestSavedBlk() > dbheight && dbheight > 0 {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
-			s.GetHighestCompletedBlk(), dbheight))
+			s.GetHighestSavedBlk(), dbheight))
 		return
 	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
@@ -433,6 +447,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
 		dbstate.ReadyToSave = true
 		dbstate.Locked = false
+		s.DBStates.ProcessBlocks(dbstate)
+		dbstate.Signed = true
+		dbstate.ReadyToSave = true
+		s.DBStates.SaveDBStateToDB(dbstate)
 	} else {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true
@@ -442,8 +460,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	s.EOM = false
 	s.EOMDone = false
+	s.EOMSys = false
 	s.DBSig = false
 	s.DBSigDone = false
+	s.DBSigSys = false
 	s.Saving = true
 	s.Syncing = false
 
@@ -464,7 +484,15 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 1:
 			pl := s.ProcessLists.Get(fullFault.DBHeight)
 			if pl != nil && fullFault.HasEnoughSigs(s) && s.pledgedByAudit(fullFault) {
-				pl.AddToSystemList(fullFault)
+				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
+
+				if okff {
+					s.XReview = append(s.XReview, fullFault)
+				} else {
+					pl.AddToSystemList(fullFault)
+				}
+
+				s.MissingResponseAppliedCnt++
 
 			} else {
 				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
@@ -472,7 +500,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		case 0:
 			s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 		default:
-			// Ignore if -1 or anything but 0 and 1
+			// Ignore if 0 or -1 or anything. If 0, I can ask for it again if I need it.
 		}
 		return
 	}
@@ -501,19 +529,20 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	s.Acks[ack.GetHash().Fixed()] = ack
 
+	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		ack.FollowerExecute(s)
+		s.XReview = append(s.XReview, ack)
 	}
 	if okm {
-		msg.FollowerExecute(s)
+		s.XReview = append(s.XReview, msg)
 	}
+
+	// If I've seen both, put them in the process list.
 	if !okr && !okm {
 		pl.AddToProcessList(ack, msg)
 	}
 
-	if s.Acks[ack.GetHash().Fixed()] == nil {
-		s.MissingResponseAppliedCnt++
-	}
+	s.MissingResponseAppliedCnt++
 
 }
 
@@ -546,7 +575,11 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 				return
 			}
 
-			s.MissingEntryBlocks = append(s.MissingEntryBlocks[:i], s.MissingEntryBlocks[i+1:]...)
+			var missing []MissingEntryBlock
+			missing = append(missing, s.MissingEntryBlocks[:i]...)
+			missing = append(missing, s.MissingEntryBlocks[i+1:]...)
+			s.MissingEntryBlocks = missing
+
 			s.DB.ProcessEBlockBatch(eblock, true)
 
 			break
@@ -563,7 +596,10 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 			if e.IsSameAs(entry.GetHash()) {
 				s.DB.InsertEntry(entry)
-				s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[i+1:]...)
+				var missing []MissingEntry
+				missing = append(missing, s.MissingEntries[:i]...)
+				missing = append(missing, s.MissingEntries[i+1:]...)
+				s.MissingEntries = missing
 				break
 			}
 		}
@@ -1277,7 +1313,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
-		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Start DBSig: s.DBSig(%v) ", s.DBSig))
+		s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
 		s.DBSig = true
@@ -1360,10 +1396,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 			}
 		}
-		if fails > len(pl.FedServers)/2 {
-			//s.DoReset()
-			return false
-		} else if fails > 0 {
+		if fails > 0 {
+			s.AddStatus("DBSig Fails Detected")
 			return false
 		}
 		dbstate := s.DBStates.Get(int(dbheight - 1))
@@ -1379,7 +1413,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		} else {
 			s.DBSigFails++
-			s.AddStatus("DBSig Failure")
+			s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v DiffSigTally %v", s.KeepMismatch, pl.CheckDiffSigTally()))
 			if pl != nil {
 				pl.Reset()
 				s.DBSig = false
