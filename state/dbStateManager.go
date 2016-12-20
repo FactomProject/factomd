@@ -46,6 +46,8 @@ type DBState struct {
 	Signed      bool
 	Saved       bool
 
+	Added interfaces.Timestamp
+
 	FinalExchangeRate uint64
 	NextTimestamp     interfaces.Timestamp
 }
@@ -236,6 +238,10 @@ func (list *DBStateList) Catchup() {
 
 	// We only check if we need updates once every so often.
 
+	if len(list.State.inMsgQueue) > 20 {
+		return
+	}
+
 	begin := -1
 	end := -1
 
@@ -257,23 +263,20 @@ func (list *DBStateList) Catchup() {
 	if list.LastTime == nil {
 		list.LastTime = now
 		if end-begin > 2 {
-			list.LastTime.SetTime(uint64(now.GetTimeMilli() - 3000))
+			list.LastTime.SetTime(uint64(now.GetTimeMilli() + 1000))
+		} else {
+			list.LastTime.SetTime(uint64(list.State.DirectoryBlockInSeconds * 1000))
 		}
 		return
 	}
 
-	// Default wait 5 seconds.  These calls are expensive, so give our friends plenty of time to answer.
-	wait := 5000
-	if begin == int(list.State.LLeaderHeight) { // If looking for the block we are working on, wait a long time.
-		wait = list.State.DirectoryBlockInSeconds*1000 + wait
-	}
-
 	// Ten seconds before you give up and ask for a DBState...
-	if int(now.GetTimeMilli()-list.LastTime.GetTimeMilli()) < wait {
+	if now.GetTime().Before(list.LastTime.GetTime()) {
+		time.Sleep(20 * time.Millisecond)
 		return
 	}
 
-	list.LastTime = now
+	list.LastTime = nil
 
 	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
 
@@ -281,7 +284,6 @@ func (list *DBStateList) Catchup() {
 		//		list.State.RunLeader = false
 		//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 		msg.SendOut(list.State, msg)
-		list.LastTime = nil
 		list.State.DBStateAskCnt++
 	}
 
