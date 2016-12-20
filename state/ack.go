@@ -218,7 +218,7 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 			cb := pl.State.FactoidState.GetCurrentBlock()
 			ct := cb.GetTransactions()
 			for _, tx := range ct {
-				if tx.GetHash().IsEqual(hash) {
+				if tx.GetHash().IsSameAs(hash) {
 					return tx, nil
 				}
 			}
