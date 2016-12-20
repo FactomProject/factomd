@@ -3,7 +3,6 @@ package entryCreditBlock_test
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"testing"
 
 	ed "github.com/FactomProject/ed25519"
@@ -12,8 +11,6 @@ import (
 )
 
 func TestCommitChainMarshalUnmarshal(t *testing.T) {
-	fmt.Printf("---\nTestCommitChainMarshalUnmarshal\n---\n")
-
 	cc := NewCommitChain()
 
 	// test MarshalBinary on a zeroed CommitChain
@@ -83,8 +80,6 @@ func TestCommitChainMarshalUnmarshalStatic(t *testing.T) {
 }
 
 func TestCommitChainMarshalUnmarshalEmpty(t *testing.T) {
-	fmt.Printf("---\nTestCommitChainMarshalUnmarshalEmpty\n---\n")
-
 	cc := NewCommitChain()
 
 	// marshal and unmarshal the commit and see if it matches

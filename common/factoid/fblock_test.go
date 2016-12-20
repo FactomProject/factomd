@@ -136,7 +136,8 @@ func TestExpandedDBlockHeader(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000f"`) {
+	if !strings.Contains(j, `"chainid":"000000000000000000000000000000000000000000000000000000000000000f"`) {
 		t.Error("Header does not contain ChainID")
+		t.Logf("%v", j)
 	}
 }

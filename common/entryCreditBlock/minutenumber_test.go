@@ -1,7 +1,6 @@
 package entryCreditBlock_test
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -46,7 +45,6 @@ func TestMinuteNumberMarshalUnmarshal(t *testing.T) {
 }
 
 func TestInvalidMinuteNumberUnmarshal(t *testing.T) {
-	fmt.Printf("\n---\nTestInvalidMinuteNumberUnmarshal\n---\n")
 	mn := new(MinuteNumber)
 	_, err := mn.UnmarshalBinaryData(nil)
 	if err == nil {

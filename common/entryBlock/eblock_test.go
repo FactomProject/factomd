@@ -9,8 +9,6 @@ import (
 )
 
 func TestEBlockMarshal(t *testing.T) {
-	t.Logf("\n---\nTestEBlockMarshal\n---\n")
-
 	eb := newTestingEntryBlock()
 
 	t.Log(eb)

@@ -174,7 +174,7 @@ func TestV2HandleEntryCreditBalance(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	var expectedAmount int64 = 2000
+	var expectedAmount int64 = 400
 
 	if resp.(*EntryCreditBalanceResponse).Balance != expectedAmount {
 		t.Errorf("Invalid balance returned - %v vs %v", resp.(*EntryCreditBalanceResponse).Balance, expectedAmount)
@@ -205,7 +205,7 @@ func TestV2HandleFactoidBalance(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	var expectedAmount int64 = 999889000
+	var expectedAmount int64 = 199977800
 
 	if resp.(*FactoidBalanceResponse).Balance != expectedAmount {
 		t.Errorf("Invalid balance returned - %v vs %v", resp.(*FactoidBalanceResponse).Balance, expectedAmount)
