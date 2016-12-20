@@ -63,18 +63,6 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		return 0, hash, nil, nil, err
 	}
 
-	/*if in == nil {
-
-		// havent found it yet.  check the holding queue
-		status, _, msg, _ := s.FetchHoldingMessageByHash(hash)
-		fmt.Println("Message from Holding:", msg)
-		fmt.Println(status, hash)
-		if status != constants.AckStatusUnknown {
-			fmt.Println("returning holding status of:", status, "constants.unknown=", constants.AckStatusUnknown)
-			return status, hash, nil, nil, nil
-		}
-	}
-	*/
 	if in == nil {
 		//	 We are now looking into the holding queue.  it should have been found by now if it is going to be
 		//	  if included has not been found, but we have no information, it should be unknown not unconfirmed.
@@ -230,7 +218,7 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 			cb := pl.State.FactoidState.GetCurrentBlock()
 			ct := cb.GetTransactions()
 			for _, tx := range ct {
-				if tx.GetHash() == hash {
+				if tx.GetHash().IsEqual(hash) {
 					return tx, nil
 				}
 			}
@@ -250,7 +238,7 @@ func (s *State) FetchFactoidTransactionByHash(hash interfaces.IHash) (interfaces
 				return nil, err
 			}
 			tx := rm.GetTransaction()
-			if tx.GetHash() == hash {
+			if tx.GetHash().IsSameAs(hash) {
 				return tx, nil
 			}
 		}
@@ -327,7 +315,9 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 				return nil, err
 			}
 			tx := re.Entry
-			return tx, nil
+			if hash.IsSameAs(tx.GetHash()) {
+				return tx, nil
+			}
 		}
 	}
 
