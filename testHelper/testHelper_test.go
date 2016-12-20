@@ -62,11 +62,11 @@ func Test_DB_With_Ten_Blks(t *testing.T) {
 
 func TestCreateFullTestBlockSet(t *testing.T) {
 	set := CreateFullTestBlockSet()
-	if set[BlockCount-1].DBlock.DatabasePrimaryIndex().String() != "51f0eea256c00cf26c2e2695622c7bb0d4126ebad88bc72bc2fe2244e0be7836" {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].DBlock.DatabasePrimaryIndex().String(), "51f0eea256c00cf26c2e2695622c7bb0d4126ebad88bc72bc2fe2244e0be7836")
+	if set[BlockCount-1].DBlock.DatabasePrimaryIndex().String() != "21e5655a7063bb289c09a4569b887dff25c3b43ba156ee9acc8b3b52e6679c04" {
+		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].DBlock.DatabasePrimaryIndex().String(), "21e5655a7063bb289c09a4569b887dff25c3b43ba156ee9acc8b3b52e6679c04")
 	}
-	if set[BlockCount-1].DBlock.DatabaseSecondaryIndex().String() != "f74db20e66b171aa63c2fe42186e487df41ca70dfa7d1e8d4b2df54380d6f7da" {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].DBlock.DatabaseSecondaryIndex().String(), "f74db20e66b171aa63c2fe42186e487df41ca70dfa7d1e8d4b2df54380d6f7da")
+	if set[BlockCount-1].DBlock.DatabaseSecondaryIndex().String() != "1fc0de1370083dcee9d6e7d929d6bcb0efac46ec02ac6f45a5a8c42ece0848d0" {
+		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].DBlock.DatabaseSecondaryIndex().String(), "1fc0de1370083dcee9d6e7d929d6bcb0efac46ec02ac6f45a5a8c42ece0848d0")
 	}
 
 	if set[BlockCount-1].ABlock.DatabasePrimaryIndex().String() != "956c41312070f58c628ca8027297e0af0aaaa7b8af7f84283fc5ad21a49cc00a" {
@@ -76,11 +76,11 @@ func TestCreateFullTestBlockSet(t *testing.T) {
 		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ABlock.DatabaseSecondaryIndex().String(), "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562")
 	}
 
-	if set[BlockCount-1].ECBlock.DatabasePrimaryIndex().String() != "76ed07306180f73ce49be4afe579d62c991c3066e024895ead69b0b24823255d" {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ECBlock.DatabasePrimaryIndex().String(), "76ed07306180f73ce49be4afe579d62c991c3066e024895ead69b0b24823255d")
+	if set[BlockCount-1].ECBlock.DatabasePrimaryIndex().String() != "99b912e8c705889d3a7295b3583e3675e0bb75c2a47ad7726ac8121b42499831" {
+		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ECBlock.DatabasePrimaryIndex().String(), "99b912e8c705889d3a7295b3583e3675e0bb75c2a47ad7726ac8121b42499831")
 	}
-	if set[BlockCount-1].ECBlock.DatabaseSecondaryIndex().String() != "dee5c9b8fbac50f01b3637d189673f64b53572d653303060b54c12d5d0d09bb8" {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ECBlock.DatabaseSecondaryIndex().String(), "dee5c9b8fbac50f01b3637d189673f64b53572d653303060b54c12d5d0d09bb8")
+	if set[BlockCount-1].ECBlock.DatabaseSecondaryIndex().String() != "5f1da0d95478e989ed19e7f703cb017bc60d4a4e8952db0be6d1864cfc39bc50" {
+		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ECBlock.DatabaseSecondaryIndex().String(), "5f1da0d95478e989ed19e7f703cb017bc60d4a4e8952db0be6d1864cfc39bc50")
 	}
 
 	if set[BlockCount-1].FBlock.DatabasePrimaryIndex().String() != "c6cd2ab21d75af1e8589e1eb441411838a508d0674eb294bac4efdc591c3fef4" {
@@ -100,8 +100,8 @@ func TestCreateFullTestBlockSet(t *testing.T) {
 	if set[BlockCount-1].AnchorEBlock.GetChainID().String() != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].AnchorEBlock.GetChainID().String(), "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
 	}
-	if set[BlockCount-1].AnchorEBlock.DatabasePrimaryIndex().String() != "e948cc645346c0eb0701e0490a82fa363c4db913a2340558b74c74008c34cfb6" {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].AnchorEBlock.DatabasePrimaryIndex().String(), "e948cc645346c0eb0701e0490a82fa363c4db913a2340558b74c74008c34cfb6")
+	if set[BlockCount-1].AnchorEBlock.DatabasePrimaryIndex().String() != "b5dfa5186e7d0f3d5be7de2eeeed1137daba08c64cf1b074aabf73648242304e" {
+		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].AnchorEBlock.DatabasePrimaryIndex().String(), "b5dfa5186e7d0f3d5be7de2eeeed1137daba08c64cf1b074aabf73648242304e")
 	}
 }
 
