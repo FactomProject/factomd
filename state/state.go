@@ -932,9 +932,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
 	if err != nil || nextABlock == nil {
-		if dbheight < s.ProcessLists.DBHeightBase || int(dbheight) > int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) {
-			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
-		}
 		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
 			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
