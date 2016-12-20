@@ -21,37 +21,6 @@ func (s *State) IsStateFullySynced() bool {
 
 //returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
-	for _, pl := range s.ProcessLists.Lists {
-		//pl := s.ProcessLists.LastList()
-		m := pl.GetOldMsgs(hash)
-		if m != nil || pl.DirectoryBlock == nil {
-			return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
-		}
-		ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
-
-		keys := pl.GetKeysNewEntries()
-		for _, k := range keys {
-			tx := pl.GetNewEntry(k)
-			if hash.IsSameAs(tx.GetHash()) {
-				return constants.AckStatusACK, hash, nil, ts, nil
-			}
-		}
-		ecBlock := pl.EntryCreditBlock
-		if ecBlock != nil {
-			tx := ecBlock.GetEntryByHash(hash)
-			if tx != nil {
-				return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
-			}
-		}
-
-		fBlock := s.FactoidState.GetCurrentBlock()
-		if fBlock != nil {
-			tx := fBlock.GetTransactionByHash(hash)
-			if tx != nil {
-				return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
-			}
-		}
-	}
 
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
@@ -63,19 +32,41 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 		return 0, hash, nil, nil, err
 	}
 
-	/*if in == nil {
-
-		// havent found it yet.  check the holding queue
-		status, _, msg, _ := s.FetchHoldingMessageByHash(hash)
-		fmt.Println("Message from Holding:", msg)
-		fmt.Println(status, hash)
-		if status != constants.AckStatusUnknown {
-			fmt.Println("returning holding status of:", status, "constants.unknown=", constants.AckStatusUnknown)
-			return status, hash, nil, nil, nil
-		}
-	}
-	*/
 	if in == nil {
+
+		// Not in database.  Check Process Lists
+
+		for _, pl := range s.ProcessLists.Lists {
+			//pl := s.ProcessLists.LastList()
+			m := pl.GetOldMsgs(hash)
+			if m != nil || pl.DirectoryBlock == nil {
+				return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
+			}
+			ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
+
+			keys := pl.GetKeysNewEntries()
+			for _, k := range keys {
+				tx := pl.GetNewEntry(k)
+				if hash.IsSameAs(tx.GetHash()) {
+					return constants.AckStatusACK, hash, nil, ts, nil
+				}
+			}
+			ecBlock := pl.EntryCreditBlock
+			if ecBlock != nil {
+				tx := ecBlock.GetEntryByHash(hash)
+				if tx != nil {
+					return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
+				}
+			}
+
+			fBlock := s.FactoidState.GetCurrentBlock()
+			if fBlock != nil {
+				tx := fBlock.GetTransactionByHash(hash)
+				if tx != nil {
+					return constants.AckStatusACK, tx.GetSigHash(), tx.GetTimestamp(), ts, nil
+				}
+			}
+		}
 		//	 We are now looking into the holding queue.  it should have been found by now if it is going to be
 		//	  if included has not been found, but we have no information, it should be unknown not unconfirmed.
 
@@ -87,6 +78,7 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 			return constants.AckStatusUnknown, hash, nil, nil, nil
 		}
 	}
+
 	in2, err := s.DB.FetchIncludedIn(in)
 	if err != nil {
 		return 0, hash, nil, nil, err
