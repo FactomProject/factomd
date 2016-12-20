@@ -930,7 +930,11 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	blockSig := new(primitives.Signature)
 	var allSigs []interfaces.IFullSignature
 
-	abEntries := ablk.GetABEntries()
+	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
+	if err != nil || nextABlock == nil {
+		return nil, err
+	}
+	abEntries := nextABlock.GetABEntries()
 	for _, adminEntry := range abEntries {
 		data, err := adminEntry.MarshalBinary()
 		if err != nil {
@@ -943,7 +947,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 			if err != nil {
 				continue
 			}
-			fmt.Println(string(r.PrevDBSig.Bytes()))
 			blockSig.SetSignature(r.PrevDBSig.Bytes())
 			blockSig.SetPub(r.IdentityAdminChainID.Bytes())
 			allSigs = append(allSigs, blockSig)

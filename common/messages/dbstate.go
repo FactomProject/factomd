@@ -185,7 +185,34 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			}
 		}
 	}
+
+	//Check to make sure the DBState message was signed by enough authorities (either fed servers or audits)
+	if dbheight > 0 && m.SigTally(state) < len(state.GetFedServers(dbheight)) {
+		return -1
+	}
+
 	return 1
+}
+
+func (m *DBStateMsg) SigTally(state interfaces.IState) int {
+	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
+
+	validSigCount := 0
+
+	data, err := m.DirectoryBlock.GetHeader().MarshalBinary()
+	if err != nil {
+		state.AddStatus(fmt.Sprint("Debug: DBState Signature Error, Marshal binary errored"))
+		return validSigCount
+	}
+
+	for _, sig := range m.SignatureList.List {
+		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
+		if err == nil && check >= 0 {
+			validSigCount++
+		}
+	}
+
+	return validSigCount
 }
 
 func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
