@@ -932,27 +932,36 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
 	if err != nil || nextABlock == nil {
-		return nil, err
-	}
-	abEntries := nextABlock.GetABEntries()
-	for _, adminEntry := range abEntries {
-		data, err := adminEntry.MarshalBinary()
-		if err != nil {
-			return nil, err
+		if dbheight < s.ProcessLists.DBHeightBase || int(dbheight) > int(s.ProcessLists.DBHeightBase)+len(s.ProcessLists.Lists) {
+			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
 		}
-		switch adminEntry.Type() {
-		case constants.TYPE_DB_SIGNATURE:
-			r := new(adminBlock.DBSignatureEntry)
-			err := r.UnmarshalBinary(data)
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
+		}
+		for _, dbsig := range pl.DBSignatures {
+			allSigs = append(allSigs, dbsig.Signature)
+		}
+	} else {
+		abEntries := nextABlock.GetABEntries()
+		for _, adminEntry := range abEntries {
+			data, err := adminEntry.MarshalBinary()
 			if err != nil {
-				continue
+				return nil, err
 			}
-			blockSig.SetSignature(r.PrevDBSig.Bytes())
-			blockSig.SetPub(r.IdentityAdminChainID.Bytes())
-			allSigs = append(allSigs, blockSig)
+			switch adminEntry.Type() {
+			case constants.TYPE_DB_SIGNATURE:
+				r := new(adminBlock.DBSignatureEntry)
+				err := r.UnmarshalBinary(data)
+				if err != nil {
+					continue
+				}
+				blockSig.SetSignature(r.PrevDBSig.Bytes())
+				blockSig.SetPub(r.IdentityAdminChainID.Bytes())
+				allSigs = append(allSigs, blockSig)
+			}
 		}
 	}
-
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries, allSigs)
 	msg.(*messages.DBStateMsg).IsInDB = true
 
