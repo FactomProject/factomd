@@ -193,11 +193,19 @@ func (s *State) FetchECTransactionByHash(hash interfaces.IHash) (interfaces.IECB
 		return nil, nil
 	}
 
-	ecBlock := s.ProcessLists.LastList().EntryCreditBlock
-	if ecBlock != nil {
-		tx := ecBlock.GetEntryByHash(hash)
-		if tx != nil {
-			return tx, nil
+	var currentHeightComplete = s.GetDBHeightComplete()
+	pls := s.ProcessLists.Lists
+	for _, pl := range pls {
+		if pl != nil {
+			if pl.DBHeight > currentHeightComplete {
+				ecBlock := pl.EntryCreditBlock
+				if ecBlock != nil {
+					tx := ecBlock.GetEntryByHash(hash)
+					if tx != nil {
+						return tx, nil
+					}
+				}
+			}
 		}
 	}
 
