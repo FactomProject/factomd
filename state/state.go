@@ -17,6 +17,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -926,7 +927,39 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
+	blockSig := new(primitives.Signature)
+	var allSigs []interfaces.IFullSignature
+
+	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
+	if err != nil || nextABlock == nil {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
+		}
+		for _, dbsig := range pl.DBSignatures {
+			allSigs = append(allSigs, dbsig.Signature)
+		}
+	} else {
+		abEntries := nextABlock.GetABEntries()
+		for _, adminEntry := range abEntries {
+			data, err := adminEntry.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			switch adminEntry.Type() {
+			case constants.TYPE_DB_SIGNATURE:
+				r := new(adminBlock.DBSignatureEntry)
+				err := r.UnmarshalBinary(data)
+				if err != nil {
+					continue
+				}
+				blockSig.SetSignature(r.PrevDBSig.Bytes())
+				blockSig.SetPub(r.IdentityAdminChainID.Bytes())
+				allSigs = append(allSigs, blockSig)
+			}
+		}
+	}
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries, allSigs)
 	msg.(*messages.DBStateMsg).IsInDB = true
 
 	return msg, nil
