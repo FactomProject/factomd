@@ -368,6 +368,29 @@ func (db *Overlay) ProcessBlockBatchWithoutHead(blockBucket, numberBucket, secon
 	return nil
 }
 
+func (db *Overlay) ProcessBlockMultiBatchWithoutHead(blockBucket, numberBucket, secondaryIndexBucket []byte, block interfaces.DatabaseBatchable) error {
+	if block == nil {
+		return nil
+	}
+
+	batch := []interfaces.Record{}
+	batch = append(batch, interfaces.Record{blockBucket, block.DatabasePrimaryIndex().Bytes(), block})
+
+	if numberBucket != nil {
+		bytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(bytes, block.GetDatabaseHeight())
+		batch = append(batch, interfaces.Record{numberBucket, bytes, block.DatabasePrimaryIndex()})
+	}
+
+	if secondaryIndexBucket != nil {
+		batch = append(batch, interfaces.Record{secondaryIndexBucket, block.DatabaseSecondaryIndex().Bytes(), block.DatabasePrimaryIndex()})
+	}
+
+	db.PutInMultiBatch(batch)
+
+	return nil
+}
+
 // FetchHeadMRByChainID gets an index of the highest block from the database.
 func (db *Overlay) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error) {
 	if chainID == nil {

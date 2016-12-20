@@ -8,11 +8,28 @@ import (
 	//"fmt"
 	"github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"sort"
 )
 
 var AnchorBlockID string = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
+var AnchorSigKeys []string = []string{
+	"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a",
+	"547d837160766b9ca47e689e52ed55fdc05cb3430ad2328dcc431083db083ee6", //Testing
+}
+var AnchorSigPublicKeys []interfaces.Verifier
+
+func init() {
+	for _, v := range AnchorSigKeys {
+		pubKey := new(primitives.PublicKey)
+		err := pubKey.UnmarshalText([]byte(v))
+		if err != nil {
+			panic(err)
+		}
+		AnchorSigPublicKeys = append(AnchorSigPublicKeys, pubKey)
+	}
+}
 
 func (dbo *Overlay) RebuildDirBlockInfo() error {
 	ars, err := dbo.FetchAllAnchorInfo()
@@ -25,6 +42,48 @@ func (dbo *Overlay) RebuildDirBlockInfo() error {
 	}
 
 	return nil
+}
+
+func (dbo *Overlay) SaveAnchorInfoFromEntry(entry interfaces.IEBEntry) error {
+	if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
+		return nil
+	}
+	ar, ok, err := anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, AnchorSigPublicKeys)
+	if err != nil {
+		return err
+	}
+	if ok == false {
+		return nil
+	}
+	if ar == nil {
+		return nil
+	}
+	dbi, err := AnchorRecordToDirBlockInfo(ar)
+	if err != nil {
+		return err
+	}
+	return dbo.ProcessDirBlockInfoBatch(dbi)
+}
+
+func (dbo *Overlay) SaveAnchorInfoFromEntryMultiBatch(entry interfaces.IEBEntry) error {
+	if entry.DatabasePrimaryIndex().String() == "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
+		return nil
+	}
+	ar, ok, err := anchor.UnmarshalAndValidateAnchorEntryAnyVersion(entry, AnchorSigPublicKeys)
+	if err != nil {
+		return err
+	}
+	if ok == false {
+		return nil
+	}
+	if ar == nil {
+		return nil
+	}
+	dbi, err := AnchorRecordToDirBlockInfo(ar)
+	if err != nil {
+		return err
+	}
+	return dbo.ProcessDirBlockInfoMultiBatch(dbi)
 }
 
 func (dbo *Overlay) FetchAllAnchorInfo() ([]*anchor.AnchorRecord, error) {

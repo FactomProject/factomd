@@ -20,7 +20,14 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 	batch = append(batch, interfaces.Record{entry.GetChainID().Bytes(), entry.DatabasePrimaryIndex().Bytes(), entry})
 	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
-	return db.PutInBatch(batch)
+	err := db.PutInBatch(batch)
+	if err != nil {
+		return err
+	}
+	if entry.GetHash().String() == AnchorBlockID {
+		db.SaveAnchorInfoFromEntry(entry)
+	}
+	return nil
 }
 
 func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
@@ -37,7 +44,9 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	db.PutInMultiBatch(batch)
-
+	if entry.GetHash().String() == AnchorBlockID {
+		db.SaveAnchorInfoFromEntryMultiBatch(entry)
+	}
 	return nil
 }
 
