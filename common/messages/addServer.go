@@ -64,8 +64,8 @@ func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *AddServerMsg) Validate(state interfaces.IState) int {
-	return 1
-	authoritativeKey := state.GetNetworkBootStrapKey().Bytes()
+	//return 1
+	authoritativeKey := state.GetNetworkSkeletonKey().Bytes()
 	if m.GetSignature() == nil || bytes.Compare(m.GetSignature().GetKey(), authoritativeKey) != 0 {
 		// the message was not signed with the proper authoritative signing key (from conf file)
 		// it is therefore considered invalid

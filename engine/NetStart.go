@@ -227,6 +227,7 @@ func NetStart(s *state.State) {
 
 	setupFirstAuthority(s)
 
+	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", enableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
@@ -272,8 +273,9 @@ func NetStart(s *state.State) {
 		modifyLoadIdentities() // We clone s to make all of our servers
 	}
 
+	// Setup the Skeleton Identity
 	for i := range fnodes {
-		fnodes[i].State.CreateBlankFactomIdentity(fnodes[i].State.IdentityChainID)
+		fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	}
 
 	// Start the P2P netowork

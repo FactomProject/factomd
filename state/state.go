@@ -1225,7 +1225,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
 				for _, pt := range resp {
-					if pt.TransactionID.String() == tmp.TransactionID.String() {
+					if pt.TransactionID.IsSameAs(tmp.TransactionID) {
 						flgFound = false
 					}
 				}
@@ -1840,6 +1840,22 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	case constants.NETWORK_CUSTOM:
 		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
 		return id
+	}
+	return primitives.NewZeroHash()
+}
+
+// The identity for validating messages
+func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_TEST:
+		return primitives.NewZeroHash()
+	case constants.NETWORK_LOCAL:
+		id, _ := primitives.HexToHash("88888847f6cd639255df8f6f9e4f015058c93bc02e72f8e1287d7ff0d3fc184b")
+		return id
+	case constants.NETWORK_CUSTOM:
+		return primitives.NewZeroHash()
 	}
 	return primitives.NewZeroHash()
 }

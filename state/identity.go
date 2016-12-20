@@ -20,26 +20,42 @@ var (
 	TWELVE_HOURS_S uint64 = 12 * 60 * 60
 	// Time window for identity to require registration: 24hours = 144 blocks
 	TIME_WINDOW uint32 = 144
+
 	// Where all Identities register
-	// e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 	MAIN_FACTOM_IDENTITY_LIST = "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327"
 )
 
-// Returns if this state has all of its keys to be elected. Will also return true if already an authority
-func (st *State) SelfIsFull() bool {
-	if index := st.isIdentityChain(st.IdentityChainID); index != -1 {
-		status := st.Identities[index].Status
-		if status == constants.IDENTITY_SELF {
-			return false
-		} else if statusIsFedOrAudit(status) || status == constants.IDENTITY_SELF_FULL {
-			return true
-		}
+func (st *State) GetNetworkSkeletonKey() interfaces.IHash {
+	i := st.isIdentityChain(st.GetNetworkSkeletonIdentity())
+	if i == -1 { // There should always be a skeleton identity. It cannot be removed
+		return nil
 	}
-	return false
+
+	key := st.Identities[i].SigningKey
+	// If the key is all 0s, use the bootstrap key
+	if key.IsSameAs(primitives.NewZeroHash()) {
+		return st.GetNetworkBootStrapKey()
+	} else {
+		return key
+	}
+}
+
+// Add the skeleton identity and try to build it
+func (st *State) IntiateNetworkSkeletonIdentity() error {
+	skel := st.GetNetworkSkeletonIdentity()
+	// This adds the status
+	st.CreateBlankFactomIdentity(skel)
+	// This populates the identity with keys found
+	err := st.AddIdentityFromChainID(skel)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
-	if cid.String() == st.GetNetworkBootStrapIdentity().String() { // Ignore Bootstrap Identity
+	if cid.String() == st.GetNetworkBootStrapIdentity().String() { // Ignore Bootstrap Identity, as it is invalid
 		return nil
 	}
 
@@ -153,15 +169,12 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 
 func (st *State) RemoveIdentity(chainID interfaces.IHash) {
 	index := st.isIdentityChain(chainID)
-	if st.Identities[index].Status == constants.IDENTITY_SELF || st.Identities[index].Status == constants.IDENTITY_SELF_FULL {
-		return // Do not remove self
-	}
 	st.removeIdentity(index)
 }
 
 func (st *State) removeIdentity(i int) {
-	if st.Identities[i].Status == constants.IDENTITY_SELF || st.Identities[i].Status == constants.IDENTITY_SELF_FULL {
-		return // Do not remove self
+	if st.Identities[i].Status == constants.IDENTITY_SKELETON {
+		return // Do not remove skeleton identity
 	}
 	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
 }
@@ -265,8 +278,8 @@ func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	oneID.IdentityChainID = chainID
 
 	oneID.Status = constants.IDENTITY_UNASSIGNED
-	if chainID.IsSameAs(st.IdentityChainID) {
-		oneID.Status = constants.IDENTITY_SELF
+	if chainID.IsSameAs(st.GetNetworkSkeletonIdentity()) {
+		oneID.Status = constants.IDENTITY_SKELETON
 	}
 	oneID.IdentityRegistered = 0
 	oneID.IdentityCreated = 0
@@ -352,14 +365,13 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 	return nil
 }
 
+// This is used when adding an identity. If it is not full, the identity is not added, unless it
+// is a federated or audit server. Returning an err makes the identity be removed, so return nil
+// if we don't want it removed
 func checkIdentityForFull(identityIndex int, st *State) error {
 	status := st.Identities[identityIndex].Status
-	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || (status == constants.IDENTITY_SELF_FULL || status == constants.IDENTITY_PENDING_FULL) {
+	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || status == constants.IDENTITY_PENDING_FULL || status == constants.IDENTITY_SKELETON {
 		return nil // If already full, we don't need to check. If it is fed or audit, we do not need to check
-	}
-
-	if status != constants.IDENTITY_SELF {
-		st.Identities[identityIndex].Status = constants.IDENTITY_PENDING_FULL
 	}
 
 	id := st.Identities[identityIndex]
@@ -390,11 +402,6 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 	}
 	if id.Key1 == nil || id.Key2 == nil || id.Key3 == nil || id.Key4 == nil {
 		return errors.New("Identity Error: Missing an identity key")
-	}
-	if st.Identities[identityIndex].Status != constants.IDENTITY_SELF {
-		st.Identities[identityIndex].Status = constants.IDENTITY_FULL
-	} else {
-		st.Identities[identityIndex].Status = constants.IDENTITY_SELF_FULL
 	}
 	return nil
 }
@@ -503,7 +510,10 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 			}
 
 			st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
-			// Add to admin block
+			// Add to admin block if the following:
+			//		Not the initial load
+			//		A Federated or Audit server
+			//		This node is charge of admin block
 			status := st.Identities[IdentityIndex].Status
 			if !initial && statusIsFedOrAudit(status) && st.GetLeaderVM() == st.ComputeVMIndex(entry.GetChainID().Bytes()) {
 				key := primitives.NewHash(extIDs[3])
