@@ -78,7 +78,7 @@ func (ar *AnchorRecord) MarshalAndSign(priv interfaces.Signer) ([]byte, error) {
 		return nil, err
 	}
 	sig := priv.Sign(data)
-	return append(data, sig.Bytes()...), nil
+	return append(data, []byte(fmt.Sprintf("%x", sig.Bytes()))...), nil
 }
 
 func (ar *AnchorRecord) MarshalAndSignV2(priv interfaces.Signer) ([]byte, []byte, error) {
@@ -130,7 +130,10 @@ func UnmarshalAndValidateAnchorRecord(data []byte, publicKeys []interfaces.Verif
 	signatureStr := str[end+2:]
 
 	sig := new(primitives.ByteSliceSig)
-	sig.UnmarshalText([]byte(signatureStr))
+	err := sig.UnmarshalText([]byte(signatureStr))
+	if err != nil {
+		return nil, false, err
+	}
 	fixed, err := sig.GetFixed()
 	if err != nil {
 		return nil, false, err

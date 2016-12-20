@@ -44,7 +44,7 @@ func (db *Overlay) InsertEntryMultiBatch(entry interfaces.IEBEntry) error {
 	batch = append(batch, interfaces.Record{ENTRY, entry.DatabasePrimaryIndex().Bytes(), entry.GetChainIDHash()})
 
 	db.PutInMultiBatch(batch)
-	if entry.GetHash().String() == AnchorBlockID {
+	if entry.GetChainID().String() == AnchorBlockID {
 		db.SaveAnchorInfoFromEntryMultiBatch(entry)
 	}
 	return nil

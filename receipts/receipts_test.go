@@ -11,6 +11,28 @@ import (
 	"testing"
 )
 
+func TestAnchoringIntoBitcoin(t *testing.T) {
+	dbo := CreateAndPopulateTestDatabaseOverlay()
+	hash, err := primitives.NewShaHashFromStr("be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	receipt, err := CreateFullReceipt(dbo, hash)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if receipt == nil {
+		t.Errorf("Receipt is nil!")
+	}
+
+	if receipt.BitcoinBlockHash.String() == "" {
+		t.Errorf("No Bitcoin Block Hash in receipt!")
+	}
+	if receipt.BitcoinTransactionHash.String() == "" {
+		t.Errorf("No Bitcoin Transaction Hash in receipt!")
+	}
+}
+
 func TestCreateFullReceipt(t *testing.T) {
 	dbo := CreateAndPopulateTestDatabaseOverlay()
 	hash, err := primitives.NewShaHashFromStr("be5fb8c3ba92c0436269fab394ff7277c67e9b2de4431b723ce5d89799c0b93a")
