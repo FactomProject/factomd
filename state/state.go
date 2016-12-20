@@ -725,7 +725,6 @@ func (s *State) Init() {
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
-	s.DBStates.LastTime = s.GetTimestamp()
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
@@ -1495,6 +1494,7 @@ func (s *State) catchupEBlocks() {
 					if eBlock == nil {
 						s.AddStatus(fmt.Sprintf("Could not find block %x in state.catchupEBlocks()\n", ebKeyMR.Bytes()[:4]))
 
+						// Check lists and not add if already there.
 						addit := true
 						for _, eb := range s.MissingEntryBlocks {
 							if eb.ebhash.Fixed() == ebKeyMR.Fixed() {
@@ -1516,6 +1516,7 @@ func (s *State) catchupEBlocks() {
 							}
 							e, _ := s.DB.FetchEntry(entryhash)
 							if e == nil {
+								Check lists and not add if already there.
 								addit := false
 								for _, e := range s.MissingEntries {
 									if e.ebhash.Fixed() == entryhash.Fixed() {
