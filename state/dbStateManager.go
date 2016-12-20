@@ -287,7 +287,7 @@ func (list *DBStateList) Catchup() {
 
 	// Progress?  Wait!
 	if begin > list.LastBegin {
-		list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 1000))
+		list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 3000))
 		list.LastBegin = begin
 		return
 	}

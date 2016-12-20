@@ -1516,7 +1516,7 @@ func (s *State) catchupEBlocks() {
 							}
 							e, _ := s.DB.FetchEntry(entryhash)
 							if e == nil {
-								Check lists and not add if already there.
+								//Check lists and not add if already there.
 								addit := false
 								for _, e := range s.MissingEntries {
 									if e.ebhash.Fixed() == entryhash.Fixed() {

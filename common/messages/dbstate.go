@@ -100,7 +100,7 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 }
 
 func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.DirectoryBlock.GetHash()
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
