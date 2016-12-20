@@ -1270,7 +1270,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
 				for _, pt := range resp {
-					if pt.TransactionID.String() == tmp.TransactionID.String() {
+					if pt.TransactionID.IsSameAs(tmp.TransactionID) {
 						flgFound = false
 					}
 				}
