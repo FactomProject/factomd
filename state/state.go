@@ -1107,7 +1107,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	LastComplete := s.GetDBHeightComplete()
 	// check all existing processlists/VMs
 	for _, pl := range pls {
-		if pls != nil {
+		if pl != nil {
 			if pl.DBHeight > LastComplete {
 				for _, v := range pl.VMs {
 					for _, plmsg := range v.List {
