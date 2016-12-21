@@ -954,7 +954,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 					continue
 				}
 				blockSig.SetSignature(r.PrevDBSig.Bytes())
-				blockSig.SetPub(r.IdentityAdminChainID.Bytes())
+				blockSig.SetPub(r.PrevDBSig.GetKey())
 				allSigs = append(allSigs, blockSig)
 			}
 		}
