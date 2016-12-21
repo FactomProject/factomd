@@ -19,6 +19,7 @@ Nodes can be set up to only dial out to a limited set of peers, called "special 
 ## Operations
 
 #### Command line options
+```
   -customnet string
     	This string specifies a custom blockchain network ID.
   -netdebug int
@@ -30,6 +31,7 @@ Nodes can be set up to only dial out to a limited set of peers, called "special 
   -peers string
     	Array of peer addresses. 
       These peers are considered "special"
+```
 #### Config file
 
 An example of the config file is below.  Network determines which network we are participating in.  Main is the production blockchain.  TEST is the Testnet.
