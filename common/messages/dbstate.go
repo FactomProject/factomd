@@ -206,6 +206,16 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	}
 
 	for _, sig := range m.SignatureList.List {
+		//Check signature against the Skeleton key
+		authoritativeKey := state.GetNetworkBootStrapKey()
+		if authoritativeKey != nil {
+			if bytes.Compare(sig.GetKey(), authoritativeKey.Bytes()) == 0 {
+				if sig.Verify(data) {
+					validSigCount++
+				}
+			}
+		}
+
 		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
 		if err == nil && check >= 0 {
 			validSigCount++

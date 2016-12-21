@@ -67,17 +67,25 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
 }
 
-func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
+func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
+	var i int
 
-	i := int(dbheight) - int(lists.DBHeightBase)
+	getindex := func() bool {
+		i = int(dbheight) - int(lists.DBHeightBase)
 
-	if i < 0 {
-		return nil
+		if i < 0 {
+			return false
+		}
+		for len(lists.Lists) <= i {
+			lists.Lists = append(lists.Lists, nil)
+		}
+		return true
 	}
-	for len(lists.Lists) <= i {
-		lists.Lists = append(lists.Lists, nil)
+
+	if !getindex() {
+		return
 	}
-	pl := lists.Lists[i]
+	pl = lists.Lists[i]
 
 	var prev *ProcessList
 
@@ -86,6 +94,9 @@ func (lists *ProcessLists) Get(dbheight uint32) *ProcessList {
 	}
 	if pl == nil {
 		pl = NewProcessList(lists.State, prev, dbheight)
+		if !getindex() {
+			return
+		}
 		lists.Lists[i] = pl
 	}
 	return pl
