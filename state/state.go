@@ -17,6 +17,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -297,9 +298,9 @@ type State struct {
 	LastPrintCnt int
 
 	// FER section
-	FactoshisPerEC               uint64
-	FERChainId                   string
-	ExchangeRateAuthorityAddress string
+	FactoshisPerEC                 uint64
+	FERChainId                     string
+	ExchangeRateAuthorityPublicKey string
 
 	FERChangeHeight      uint32
 	FERChangePrice       uint64
@@ -598,7 +599,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 			s.ControlPanelSetting = 1
 		}
 		s.FERChainId = cfg.App.ExchangeRateChainId
-		s.ExchangeRateAuthorityAddress = cfg.App.ExchangeRateAuthorityAddress
+		s.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKey
 		identity, err := primitives.HexToHash(cfg.App.IdentityChainID)
 		if err != nil {
 			s.IdentityChainID = primitives.Sha([]byte(s.FactomNodeName))
@@ -630,7 +631,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.LocalServerPrivKey = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 		s.FactoshisPerEC = 006666
 		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
-		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+		s.ExchangeRateAuthorityPublicKey = "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29"
 		s.DirectoryBlockInSeconds = 6
 		s.PortNumber = 8088
 		s.ControlPanelPort = 8090
@@ -789,7 +790,7 @@ func (s *State) Init() {
 
 	s.Println("\nRunning on the ", s.Network, "Network")
 	s.Println("\nExchange rate chain id set to ", s.FERChainId)
-	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityAddress)
+	s.Println("\nExchange rate Authority Public Key set to ", s.ExchangeRateAuthorityPublicKey)
 
 	s.AuditHeartBeats = make([]interfaces.IMsg, 0)
 
@@ -802,8 +803,8 @@ func (s *State) Init() {
 	if s.FERChainId == "" {
 		s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	}
-	if s.ExchangeRateAuthorityAddress == "" {
-		s.ExchangeRateAuthorityAddress = "EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r"
+	if s.ExchangeRateAuthorityPublicKey == "" {
+		s.ExchangeRateAuthorityPublicKey = "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29"
 	}
 	// end of FER removal
 	s.starttime = time.Now()
@@ -934,7 +935,39 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
 	}
 
-	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries)
+	blockSig := new(primitives.Signature)
+	var allSigs []interfaces.IFullSignature
+
+	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
+	if err != nil || nextABlock == nil {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
+		}
+		for _, dbsig := range pl.DBSignatures {
+			allSigs = append(allSigs, dbsig.Signature)
+		}
+	} else {
+		abEntries := nextABlock.GetABEntries()
+		for _, adminEntry := range abEntries {
+			data, err := adminEntry.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			switch adminEntry.Type() {
+			case constants.TYPE_DB_SIGNATURE:
+				r := new(adminBlock.DBSignatureEntry)
+				err := r.UnmarshalBinary(data)
+				if err != nil {
+					continue
+				}
+				blockSig.SetSignature(r.PrevDBSig.Bytes())
+				blockSig.SetPub(r.PrevDBSig.GetKey())
+				allSigs = append(allSigs, blockSig)
+			}
+		}
+	}
+	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries, allSigs)
 	msg.(*messages.DBStateMsg).IsInDB = true
 
 	return msg, nil
@@ -1072,6 +1105,7 @@ func (s *State) fillAcksMap() {
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
+	fmt.Println("GetPendingEntries")
 	resp := make([]interfaces.IPendingEntry, 0)
 	pls := s.ProcessLists.Lists
 	var cc messages.CommitChainMsg
@@ -1081,65 +1115,73 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 	LastComplete := s.GetDBHeightComplete()
 	// check all existing processlists/VMs
 	for _, pl := range pls {
-		if pl.DBHeight > LastComplete {
-			for _, v := range pl.VMs {
-				for _, plmsg := range v.List {
-					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
-						enb, err := plmsg.MarshalBinary()
-						if err != nil {
-							return nil
-						}
-						err = cc.UnmarshalBinary(enb)
-						if err != nil {
-							return nil
-						}
-						tmp.EntryHash = cc.CommitChain.EntryHash
+		if pl != nil {
+			if pl.DBHeight > LastComplete {
+				for _, v := range pl.VMs {
+					for _, plmsg := range v.List {
+						if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5
+							enb, err := plmsg.MarshalBinary()
+							if err != nil {
+								return nil
+							}
+							err = cc.UnmarshalBinary(enb)
+							if err != nil {
+								return nil
+							}
+							tmp.EntryHash = cc.CommitChain.EntryHash
 
-						tmp.ChainID = cc.CommitChain.ChainIDHash
-						if pl.DBHeight > s.GetDBHeightComplete() {
-							tmp.Status = "AckStatusACK"
-						} else {
-							tmp.Status = "AckStatusDBlockConfirmed"
-						}
+							tmp.ChainID = cc.CommitChain.ChainIDHash
+							if pl.DBHeight > s.GetDBHeightComplete() {
+								tmp.Status = "AckStatusACK"
+							} else {
+								tmp.Status = "AckStatusDBlockConfirmed"
+							}
 
-						resp = append(resp, tmp)
-					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
-						enb, err := plmsg.MarshalBinary()
-						if err != nil {
-							return nil
-						}
-						err = ce.UnmarshalBinary(enb)
-						if err != nil {
-							return nil
-						}
-						tmp.EntryHash = ce.CommitEntry.EntryHash
+							if util.IsInPendingEntryList(resp, tmp) {
+								resp = append(resp, tmp)
+							}
+						} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+							enb, err := plmsg.MarshalBinary()
+							if err != nil {
+								return nil
+							}
+							err = ce.UnmarshalBinary(enb)
+							if err != nil {
+								return nil
+							}
+							tmp.EntryHash = ce.CommitEntry.EntryHash
 
-						tmp.ChainID = ce.CommitEntry.Hash()
-						if pl.DBHeight > s.GetDBHeightComplete() {
-							tmp.Status = "AckStatusACK"
-						} else {
-							tmp.Status = "AckStatusDBlockConfirmed"
-						}
+							tmp.ChainID = nil
+							if pl.DBHeight > s.GetDBHeightComplete() {
+								tmp.Status = "AckStatusACK"
+							} else {
+								tmp.Status = "AckStatusDBlockConfirmed"
+							}
 
-						resp = append(resp, tmp)
-					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-						enb, err := plmsg.MarshalBinary()
-						if err != nil {
-							return nil
-						}
-						err = re.UnmarshalBinary(enb)
-						if err != nil {
-							return nil
-						}
-						tmp.EntryHash = re.Entry.GetHash()
-						tmp.ChainID = re.Entry.GetChainID()
-						if pl.DBHeight > s.GetDBHeightComplete() {
-							tmp.Status = "AckStatusACK"
-						} else {
-							tmp.Status = "AckStatusDBlockConfirmed"
-						}
+							if !util.IsInPendingEntryList(resp, tmp) {
+								resp = append(resp, tmp)
+							}
+						} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+							enb, err := plmsg.MarshalBinary()
+							if err != nil {
+								return nil
+							}
+							err = re.UnmarshalBinary(enb)
+							if err != nil {
+								return nil
+							}
+							tmp.EntryHash = re.Entry.GetHash()
+							tmp.ChainID = re.Entry.GetChainID()
+							if pl.DBHeight > s.GetDBHeightComplete() {
+								tmp.Status = "AckStatusACK"
+							} else {
+								tmp.Status = "AckStatusDBlockConfirmed"
+							}
 
-						resp = append(resp, tmp)
+							if !util.IsInPendingEntryList(resp, tmp) {
+								resp = append(resp, tmp)
+							}
+						}
 					}
 				}
 			}
@@ -1163,8 +1205,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 			tmp.ChainID = re.Entry.GetChainID()
 			tmp.Status = "AckStatusNotConfirmed"
-
-			resp = append(resp, tmp)
+			if !util.IsInPendingEntryList(resp, tmp) {
+				resp = append(resp, tmp)
+			}
 		}
 	}
 
@@ -1179,33 +1222,35 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 	resp := make([]interfaces.IPendingTransaction, 0)
 	pls := s.ProcessLists.Lists
 	for _, pl := range pls {
-		// ignore old process lists
-		if pl.DBHeight > currentHeightComplete {
-			cb := pl.State.FactoidState.GetCurrentBlock()
-			ct := cb.GetTransactions()
-			for _, tran := range ct {
-				var tmp interfaces.IPendingTransaction
-				tmp.TransactionID = tran.GetSigHash()
-				if tran.GetBlockHeight() > 0 {
-					tmp.Status = "AckStatusDBlockConfirmed"
-				} else {
-					tmp.Status = "AckStatusACK"
-				}
-				if params.(string) == "" {
-					flgFound = true
-				} else {
-					flgFound = tran.HasUserAddress(params.(string))
-				}
-				if flgFound == true {
-					//working through multiple process lists.  Is this transaction already in the list?
-					for _, pt := range resp {
-						if pt.TransactionID.String() == tmp.TransactionID.String() {
-							flgFound = false
-						}
+		if pl != nil {
+			// ignore old process lists
+			if pl.DBHeight > currentHeightComplete {
+				cb := pl.State.FactoidState.GetCurrentBlock()
+				ct := cb.GetTransactions()
+				for _, tran := range ct {
+					var tmp interfaces.IPendingTransaction
+					tmp.TransactionID = tran.GetSigHash()
+					if tran.GetBlockHeight() > 0 {
+						tmp.Status = "AckStatusDBlockConfirmed"
+					} else {
+						tmp.Status = "AckStatusACK"
 					}
-					//  flag was true to be added to the list and not already in the list
+					if params.(string) == "" {
+						flgFound = true
+					} else {
+						flgFound = tran.HasUserAddress(params.(string))
+					}
 					if flgFound == true {
-						resp = append(resp, tmp)
+						//working through multiple process lists.  Is this transaction already in the list?
+						for _, pt := range resp {
+							if pt.TransactionID.String() == tmp.TransactionID.String() {
+								flgFound = false
+							}
+						}
+						//  flag was true to be added to the list and not already in the list
+						if flgFound == true {
+							resp = append(resp, tmp)
+						}
 					}
 				}
 			}
@@ -1233,7 +1278,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
 				for _, pt := range resp {
-					if pt.TransactionID.String() == tmp.TransactionID.String() {
+					if pt.TransactionID.IsSameAs(tmp.TransactionID) {
 						flgFound = false
 					}
 				}
@@ -1258,58 +1303,60 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 
 	// check all existing processlists (last complete block +1 and greater)
 	for _, pl := range pls {
+		if pl != nil {
+			for _, v := range pl.VMs {
+				if v != nil {
+					// check chain commits
+					for _, plmsg := range v.List {
+						if plmsg != nil {
 
-		for _, v := range pl.VMs {
+							//	if plmsg.Type() != nil {
+							if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
+								enb, err := plmsg.MarshalBinary()
+								if err != nil {
+									return nil, err
+								}
+								err = cc.UnmarshalBinary(enb)
+								if err != nil {
+									return nil, err
+								}
+								if cc.CommitChain.GetSigHash().String() == txID {
+									return cc.CommitChain.EntryHash, nil
+								}
+							} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 
-			// check chain commits
-			for _, plmsg := range v.List {
-				if plmsg != nil {
+								enb, err := plmsg.MarshalBinary()
+								if err != nil {
+									return nil, err
+								}
+								err = ce.UnmarshalBinary(enb)
+								if err != nil {
+									return nil, err
+								}
 
-					//	if plmsg.Type() != nil {
-					if plmsg.Type() == constants.COMMIT_CHAIN_MSG { //5 other types could be in this VM
-						enb, err := plmsg.MarshalBinary()
-						if err != nil {
-							return nil, err
-						}
-						err = cc.UnmarshalBinary(enb)
-						if err != nil {
-							return nil, err
-						}
-						if cc.CommitChain.GetSigHash().String() == txID {
-							return cc.CommitChain.EntryHash, nil
-						}
-					} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
+								if ce.CommitEntry.GetSigHash().String() == txID {
+									return ce.CommitEntry.EntryHash, nil
+								}
 
-						enb, err := plmsg.MarshalBinary()
-						if err != nil {
-							return nil, err
+							} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
+								enb, err := plmsg.MarshalBinary()
+								if err != nil {
+									return nil, err
+								}
+								err = re.UnmarshalBinary(enb)
+								if err != nil {
+									return nil, err
+								}
+								if re.Entry.GetHash().String() == txID {
+									return re.Entry.GetHash(), nil
+								}
+							}
 						}
-						err = ce.UnmarshalBinary(enb)
-						if err != nil {
-							return nil, err
-						}
-
-						if ce.CommitEntry.GetSigHash().String() == txID {
-							return ce.CommitEntry.EntryHash, nil
-						}
-
-					} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
-						enb, err := plmsg.MarshalBinary()
-						if err != nil {
-							return nil, err
-						}
-						err = re.UnmarshalBinary(enb)
-						if err != nil {
-							return nil, err
-						}
-						if re.Entry.GetHash().String() == txID {
-							return re.Entry.GetHash(), nil
-						}
+						//	} else {
+						//		return nil, fmt.Errorf("%s", "Invalid Message in Holding Queue")
+						//	}
 					}
 				}
-				//	} else {
-				//		return nil, fmt.Errorf("%s", "Invalid Message in Holding Queue")
-				//	}
 			}
 		}
 	}
@@ -1873,16 +1920,20 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
-		return primitives.NewZeroHash()
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		return id
 	case constants.NETWORK_TEST:
-		return primitives.NewZeroHash()
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		return id
 	case constants.NETWORK_LOCAL:
-		id, _ := primitives.HexToHash("88888847f6cd639255df8f6f9e4f015058c93bc02e72f8e1287d7ff0d3fc184b")
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
 		return id
 	case constants.NETWORK_CUSTOM:
-		return primitives.NewZeroHash()
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		return id
 	}
-	return primitives.NewZeroHash()
+	id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+	return id
 }
 
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {

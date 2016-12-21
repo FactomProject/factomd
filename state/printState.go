@@ -190,7 +190,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrintCnt", state.LastPrintCnt)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FactoshisPerEC", state.FactoshisPerEC)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FERChainId", state.FERChainId)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "ExchangeRateAuthorityAddress", state.ExchangeRateAuthorityAddress)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "ExchangeRateAuthorityPublicKey", state.ExchangeRateAuthorityPublicKey)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FERChangeHeight", state.FERChangeHeight)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FERChangePrice", state.FERChangePrice)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FERPriority", state.FERPriority)

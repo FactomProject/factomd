@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -19,8 +18,6 @@ import (
 )
 
 func TestMarshalUnmarshalDirectoryBlockHeader(t *testing.T) {
-	fmt.Println("\n---\nTestMarshalUnmarshalDirectoryBlockHeader\n---\n")
-
 	header := createTestDirectoryBlockHeader()
 
 	bytes1, err := header.MarshalBinary()
@@ -42,8 +39,6 @@ func TestMarshalUnmarshalDirectoryBlockHeader(t *testing.T) {
 }
 
 func TestMarshalUnmarshalDirectoryBlock(t *testing.T) {
-	fmt.Println("\n---\nTestMarshalUnmarshalDirectoryBlock\n---\n")
-
 	dblock := createTestDirectoryBlock()
 
 	bytes1, err := dblock.MarshalBinary()
@@ -72,8 +67,6 @@ func CatchPanic() {
 }
 
 func TestInvalidUnmarshalDirectoryBlockHeader(t *testing.T) {
-	fmt.Println("\n---\nTestInvalidUnmarshalDirectoryBlockHeader\n---\n")
-
 	header := createTestDirectoryBlockHeader()
 
 	bytes1, err := header.MarshalBinary()
@@ -119,7 +112,6 @@ func TestInvalidUnmarshalDirectoryBlockHeader(t *testing.T) {
 }
 
 func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
-	fmt.Println("\n---\nTestInvalidUnmarshalDirectoryBlock\n---\n")
 	dblock := createTestDirectoryBlock()
 
 	bytes1, err := dblock.MarshalBinary()
@@ -165,7 +157,6 @@ func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 }
 
 func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
-	fmt.Println("\n---\nTestMakeSureBlockCountIsNotDuplicates\n---\n")
 	block := createTestDirectoryBlock()
 	err := block.SetDBEntries([]interfaces.IDBEntry{})
 	if err != nil {

@@ -35,7 +35,7 @@ type DBStateMsg struct {
 	EBlocks []interfaces.IEntryBlock
 	Entries []interfaces.IEBEntry
 
-	//Not signed!
+	SignatureList SigList
 
 	//Not marshalled
 	Sent   interfaces.Timestamp
@@ -186,7 +186,44 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			}
 		}
 	}
+
+	//Check to make sure the DBState message was signed by enough authorities (either fed servers or audits)
+	if dbheight > 0 && m.SigTally(state) < len(state.GetFedServers(dbheight)) {
+		return -1
+	}
+
 	return 1
+}
+
+func (m *DBStateMsg) SigTally(state interfaces.IState) int {
+	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
+
+	validSigCount := 0
+
+	data, err := m.DirectoryBlock.GetHeader().MarshalBinary()
+	if err != nil {
+		state.AddStatus(fmt.Sprint("Debug: DBState Signature Error, Marshal binary errored"))
+		return validSigCount
+	}
+
+	for _, sig := range m.SignatureList.List {
+		//Check signature against the Skeleton key
+		authoritativeKey := state.GetNetworkBootStrapKey()
+		if authoritativeKey != nil {
+			if bytes.Compare(sig.GetKey(), authoritativeKey.Bytes()) == 0 {
+				if sig.Verify(data) {
+					validSigCount++
+				}
+			}
+		}
+
+		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
+		if err == nil && check >= 0 {
+			validSigCount++
+		}
+	}
+
+	return validSigCount
 }
 
 func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
@@ -285,6 +322,11 @@ func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		m.Entries = append(m.Entries, entry)
 	}
 
+	newData, err = m.SignatureList.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
 	return
 }
 
@@ -351,6 +393,12 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 		buf.Write(bin)
 	}
 
+	if d, err := m.SignatureList.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
@@ -376,7 +424,8 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	f interfaces.IFBlock,
 	e interfaces.IEntryCreditBlock,
 	eBlocks []interfaces.IEntryBlock,
-	entries []interfaces.IEBEntry) interfaces.IMsg {
+	entries []interfaces.IEBEntry,
+	sigList []interfaces.IFullSignature) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
 
@@ -391,6 +440,12 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 
 	msg.EBlocks = eBlocks
 	msg.Entries = entries
+
+	sl := new(SigList)
+	sl.Length = uint32(len(sigList))
+	sl.List = sigList
+
+	msg.SignatureList = *sl
 
 	return msg
 }

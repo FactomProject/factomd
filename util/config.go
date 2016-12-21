@@ -16,25 +16,28 @@ var _ = fmt.Print
 
 type FactomdConfig struct {
 	App struct {
-		PortNumber                   int
-		HomeDir                      string
-		ControlPanelPort             int
-		ControlPanelFilesPath        string
-		ControlPanelSetting          string
-		DBType                       string
-		LdbPath                      string
-		BoltDBPath                   string
-		DataStorePath                string
-		DirectoryBlockInSeconds      int
-		ExportData                   bool
-		ExportDataSubpath            string
-		NodeMode                     string
-		IdentityChainID              string
-		LocalServerPrivKey           string
-		LocalServerPublicKey         string
-		ExchangeRate                 uint64
-		ExchangeRateChainId          string
-		ExchangeRateAuthorityAddress string
+		PortNumber                             int
+		HomeDir                                string
+		ControlPanelPort                       int
+		ControlPanelFilesPath                  string
+		ControlPanelSetting                    string
+		DBType                                 string
+		LdbPath                                string
+		BoltDBPath                             string
+		DataStorePath                          string
+		DirectoryBlockInSeconds                int
+		ExportData                             bool
+		ExportDataSubpath                      string
+		NodeMode                               string
+		IdentityChainID                        string
+		LocalServerPrivKey                     string
+		LocalServerPublicKey                   string
+		ExchangeRate                           uint64
+		ExchangeRateChainId                    string
+		ExchangeRateAuthorityPublicKey         string
+		ExchangeRateAuthorityPublicKeyMainNet  string
+		ExchangeRateAuthorityPublicKeyTestNet  string
+		ExchangeRateAuthorityPublicKeyLocalNet string
 
 		// Network Configuration
 		Network              string
@@ -145,12 +148,15 @@ LocalNetworkPort     = 8110
 LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 LocalSpecialPeers    = ""
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
-NodeMode                              = FULL
-LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
-LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
-ExchangeRate                          = 00100000
-ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
-ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
+NodeMode                                = FULL
+LocalServerPrivKey                      = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
+LocalServerPublicKey                    = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
+ExchangeRate                            = 00100000
+ExchangeRateChainId                     = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
+ExchangeRateAuthorityPublicKeyMainNet   = daf5815c2de603dbfa3e1e64f88a5cf06083307cf40da4a9b539c41832135b4a
+ExchangeRateAuthorityPublicKeyTestNet   = 1d75de249c2fc0384fb6701b30dc86b39dc72e5a47ba4f79ef250d39e21e7a4f
+; Private key all zeroes:
+ExchangeRateAuthorityPublicKeyLocalNet  = 3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29
 
 ; These define if the RPC and Control Panel connection to factomd should be encrypted, and if it is, what files
 ; are the secret key and the public certificate.  factom-cli and factom-walletd uses the certificate specified here if TLS is enabled.
@@ -266,7 +272,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    LocalServerPublicKey    %v", s.App.LocalServerPublicKey))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRate            %v", s.App.ExchangeRate))
 	out.WriteString(fmt.Sprintf("\n    ExchangeRateChainId     %v", s.App.ExchangeRateChainId))
-	out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityAddress   %v", s.App.ExchangeRateAuthorityAddress))
+	out.WriteString(fmt.Sprintf("\n    ExchangeRateAuthorityPublicKey   %v", s.App.ExchangeRateAuthorityPublicKey))
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsEnabled        %v", s.App.FactomdTlsEnabled))
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsPrivateKey     %v", s.App.FactomdTlsPrivateKey))
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
@@ -368,6 +374,21 @@ func ReadConfig(filename string) *FactomdConfig {
 	} else {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
 	}
+
+	switch cfg.App.Network {
+	case "MAIN":
+		cfg.App.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKeyMainNet
+		break
+	case "TEST":
+		cfg.App.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKeyTestNet
+		break
+	case "LOCAL":
+		cfg.App.ExchangeRateAuthorityPublicKey = cfg.App.ExchangeRateAuthorityPublicKeyLocalNet
+		break
+	}
+
+	fmt.Printf("%v\n", cfg.App.ExchangeRateAuthorityPublicKey)
+
 	return cfg
 }
 
