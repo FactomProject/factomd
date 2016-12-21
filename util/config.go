@@ -68,23 +68,6 @@ type FactomdConfig struct {
 		TestNet      bool          `long:"testnet" description:"Use the test network"`
 		SimNet       bool          `long:"simnet" description:"Use the simulation test network"`
 	}
-	Btc struct {
-		BTCPubAddr         string
-		SendToBTCinSeconds int
-		WalletPassphrase   string
-		CertHomePath       string
-		RpcClientHost      string
-		RpcClientEndpoint  string
-		RpcClientUser      string
-		RpcClientPass      string
-		BtcTransFee        float64
-		CertHomePathBtcd   string
-		RpcBtcdHost        string
-	}
-	Wsapi struct {
-		PortNumber      int
-		ApplicationName string
-	}
 	Log struct {
 		LogPath         string
 		LogLevel        string
@@ -141,7 +124,7 @@ TestSpecialPeers     = ""
 LocalNetworkPort     = 8110
 LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 LocalSpecialPeers    = ""
-; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
+; --------------- NodeMode: FULL | SERVER ----------------
 NodeMode                                = FULL
 LocalServerPrivKey                      = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 LocalServerPublicKey                    = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
@@ -165,22 +148,7 @@ FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
 ; Specifying when to change ACKs for switching leader servers
-ChangeAcksHeight					  = 0
-
-[btc]
-WalletPassphrase                      = "lindasilva"
-CertHomePath                          = "btcwallet"
-RpcClientHost                         = "localhost:18332"
-RpcClientEndpoint                     = "ws"
-RpcClientUser                         = "testuser"
-RpcClientPass                         = "notarychain"
-BtcTransFee                           = 0.000001
-CertHomePathBtcd                      = "btcd"
-RpcBtcdHost                           = "localhost:18334"
-
-[wsapi]
-ApplicationName                       = "Factom/wsapi"
-PortNumber                            = 8088
+ChangeAcksHeight                      = 0
 
 ; ------------------------------------------------------------------------------
 ; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
@@ -190,16 +158,6 @@ PortNumber                            = 8088
 logLevel                              = error
 LogPath                               = "database/Log"
 ConsoleLogLevel                       = standard
-
-; ------------------------------------------------------------------------------
-; Configurations for fctwallet
-; ------------------------------------------------------------------------------
-[Wallet]
-Address                               = localhost
-Port                                  = 8089
-DataFile                              = fctwallet.dat
-RefreshInSeconds                      = 6
-BoltDBPath                            = ""
 
 ; ------------------------------------------------------------------------------
 ; Configurations for factom-walletd
@@ -268,34 +226,10 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
 
-	out.WriteString(fmt.Sprintf("\n  Btc"))
-	out.WriteString(fmt.Sprintf("\n    BTCPubAddr              %v", s.Btc.BTCPubAddr))
-	out.WriteString(fmt.Sprintf("\n    SendToBTCinSeconds      %v", s.Btc.SendToBTCinSeconds))
-	out.WriteString(fmt.Sprintf("\n    WalletPassphrase        %v", s.Btc.WalletPassphrase))
-	out.WriteString(fmt.Sprintf("\n    CertHomePath            %v", s.Btc.CertHomePath))
-	out.WriteString(fmt.Sprintf("\n    RpcClientHost           %v", s.Btc.RpcClientHost))
-	out.WriteString(fmt.Sprintf("\n    RpcClientEndpoint       %v", s.Btc.RpcClientEndpoint))
-	out.WriteString(fmt.Sprintf("\n    RpcClientUser           %v", s.Btc.RpcClientUser))
-	out.WriteString(fmt.Sprintf("\n    RpcClientPass           %v", s.Btc.RpcClientPass))
-	out.WriteString(fmt.Sprintf("\n    BtcTransFee             %v", s.Btc.BtcTransFee))
-	out.WriteString(fmt.Sprintf("\n    CertHomePathBtcd        %v", s.Btc.CertHomePathBtcd))
-	out.WriteString(fmt.Sprintf("\n    RpcBtcdHost             %v", s.Btc.RpcBtcdHost))
-
-	out.WriteString(fmt.Sprintf("\n  Wsapi"))
-	out.WriteString(fmt.Sprintf("\n    PortNumber              %v", s.Wsapi.PortNumber))
-	out.WriteString(fmt.Sprintf("\n    ApplicationName         %v", s.Wsapi.ApplicationName))
-
 	out.WriteString(fmt.Sprintf("\n  Log"))
 	out.WriteString(fmt.Sprintf("\n    LogPath                 %v", s.Log.LogPath))
 	out.WriteString(fmt.Sprintf("\n    LogLevel                %v", s.Log.LogLevel))
 	out.WriteString(fmt.Sprintf("\n    ConsoleLogLevel         %v", s.Log.ConsoleLogLevel))
-
-	out.WriteString(fmt.Sprintf("\n  Wallet"))
-	out.WriteString(fmt.Sprintf("\n    Address                 %v", s.Wallet.Address))
-	out.WriteString(fmt.Sprintf("\n    Port                    %v", s.Wallet.Port))
-	out.WriteString(fmt.Sprintf("\n    DataFile                %v", s.Wallet.DataFile))
-	out.WriteString(fmt.Sprintf("\n    RefreshInSeconds        %v", s.Wallet.RefreshInSeconds))
-	out.WriteString(fmt.Sprintf("\n    BoltDBPath              %v", s.Wallet.BoltDBPath))
 
 	out.WriteString(fmt.Sprintf("\n  Walletd"))
 	out.WriteString(fmt.Sprintf("\n    WalletRpcUser           %v", s.Walletd.WalletRpcUser))
