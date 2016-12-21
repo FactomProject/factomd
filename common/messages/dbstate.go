@@ -38,6 +38,7 @@ type DBStateMsg struct {
 	//Not signed!
 
 	//Not marshalled
+	Sent   interfaces.Timestamp
 	IsInDB bool
 }
 

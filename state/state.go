@@ -53,6 +53,7 @@ type State struct {
 	ExportData        bool
 	ExportDataSubpath string
 
+	DBStatesSent            []*interfaces.DBStateSent
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -425,6 +426,14 @@ func (s *State) AddPrefix(prefix string) {
 
 func (s *State) GetFactomNodeName() string {
 	return s.FactomNodeName
+}
+
+func (s *State) GetDBStatesSent() []*interfaces.DBStateSent {
+	return s.DBStatesSent
+}
+
+func (s *State) SetDBStatesSent(sents []*interfaces.DBStateSent) {
+	s.DBStatesSent = sents
 }
 
 func (s *State) GetDropRate() int {
