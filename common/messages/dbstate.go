@@ -188,7 +188,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
 	//Check to make sure the DBState message was signed by enough authorities (either fed servers or audits)
 	if dbheight > 0 && m.SigTally(state) < len(state.GetFedServers(dbheight)) {
-		return -1
+		//return -1
 	}
 
 	return 1
