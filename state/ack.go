@@ -34,7 +34,6 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 
 	if in == nil {
 
-    
 		// Not in database.  Check Process Lists
 
 		for _, pl := range s.ProcessLists.Lists {
@@ -69,7 +68,6 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 			}
 		}
 
-    
 		//	 We are now looking into the holding queue.  it should have been found by now if it is going to be
 		//	  if included has not been found, but we have no information, it should be unknown not unconfirmed.
 
