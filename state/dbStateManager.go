@@ -864,6 +864,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.EntryBlocks = eBlocks
 	dbState.Entries = entries
 
+	dbState.Added = list.State.GetTimestamp()
+
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {
 		return dbState
