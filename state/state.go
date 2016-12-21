@@ -566,6 +566,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.TestNetworkPort = cfg.App.TestNetworkPort
 		s.TestSeedURL = cfg.App.TestSeedURL
 		s.TestSpecialPeers = cfg.App.TestSpecialPeers
+		s.CustomBootstrapIdentity = cfg.App.CustomBootstrapIdentity
+		s.CustomBootstrapKey = cfg.App.CustomBootstrapKey
 		s.LocalNetworkPort = cfg.App.LocalNetworkPort
 		s.LocalSeedURL = cfg.App.LocalSeedURL
 		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
@@ -1894,8 +1896,10 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 		return key
 	case constants.NETWORK_CUSTOM:
-		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a") // main net
-		//key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a") // same as local
+		key, err := primitives.HexToHash(s.CustomBootstrapKey)
+		if err != nil {
+			panic(fmt.Sprintf("Cannot use a CUSTOM network without a CustomBootstrapKey specified in the factomd.conf file. Err: %s", err.Error()))
+		}
 		return key
 	}
 	return primitives.NewZeroHash()
@@ -1912,8 +1916,10 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
 		return id
 	case constants.NETWORK_CUSTOM:
-		id, _ := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000000")	// production
-		//id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") // same as local
+		id, err := primitives.HexToHash(s.CustomBootstrapIdentity)
+		if err != nil {
+			panic(fmt.Sprintf("Cannot use a CUSTOM network without a CustomBootstrapIdentity specified in the factomd.conf file. Err: %s", err.Error()))
+		}
 		return id
 	}
 	return primitives.NewZeroHash()
