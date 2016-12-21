@@ -302,8 +302,6 @@ func ReadConfig(filename string) *FactomdConfig {
 		break
 	}
 
-	fmt.Printf("%v\n", cfg.App.ExchangeRateAuthorityPublicKey)
-
 	return cfg
 }
 
