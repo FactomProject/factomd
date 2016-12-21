@@ -54,6 +54,7 @@ type State struct {
 	ExportData        bool
 	ExportDataSubpath string
 
+	DBStatesSent            []*interfaces.DBStateSent
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -428,6 +429,14 @@ func (s *State) GetFactomNodeName() string {
 	return s.FactomNodeName
 }
 
+func (s *State) GetDBStatesSent() []*interfaces.DBStateSent {
+	return s.DBStatesSent
+}
+
+func (s *State) SetDBStatesSent(sents []*interfaces.DBStateSent) {
+	s.DBStatesSent = sents
+}
+
 func (s *State) GetDropRate() int {
 	return s.DropRate
 }
@@ -725,7 +734,6 @@ func (s *State) Init() {
 	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
-	s.DBStates.LastTime = s.GetTimestamp()
 	s.DBStates.State = s
 	s.DBStates.DBStates = make([]*DBState, 0)
 
@@ -1540,9 +1548,20 @@ func (s *State) catchupEBlocks() {
 					// Ask for blocks we don't have.
 					if eBlock == nil {
 						s.AddStatus(fmt.Sprintf("Could not find block %x in state.catchupEBlocks()\n", ebKeyMR.Bytes()[:4]))
-						s.MissingEntryBlocks = append(s.MissingEntryBlocks,
-							MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
 
+						// Check lists and not add if already there.
+						addit := true
+						for _, eb := range s.MissingEntryBlocks {
+							if eb.ebhash.Fixed() == ebKeyMR.Fixed() {
+								addit = false
+								break
+							}
+						}
+
+						if addit {
+							s.MissingEntryBlocks = append(s.MissingEntryBlocks,
+								MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+						}
 						// Something missing, stop moving the bookmark.
 						alldone = false
 					} else {
@@ -1552,18 +1571,24 @@ func (s *State) catchupEBlocks() {
 							}
 							e, _ := s.DB.FetchEntry(entryhash)
 							if e == nil {
-								var v struct {
-									ebhash    interfaces.IHash
-									entryhash interfaces.IHash
-									dbheight  uint32
+								//Check lists and not add if already there.
+								addit := false
+								for _, e := range s.MissingEntries {
+									if e.ebhash.Fixed() == entryhash.Fixed() {
+										addit = false
+									}
+									break
 								}
 
-								v.dbheight = eBlock.GetHeader().GetDBHeight()
-								v.entryhash = entryhash
-								v.ebhash = ebKeyMR
+								if addit {
+									var v MissingEntry
 
-								s.MissingEntries = append(s.MissingEntries, v)
+									v.dbheight = eBlock.GetHeader().GetDBHeight()
+									v.entryhash = entryhash
+									v.ebhash = ebKeyMR
 
+									s.MissingEntries = append(s.MissingEntries, v)
+								}
 								// Something missing. stop moving the bookmark.
 								alldone = false
 							}
@@ -1867,7 +1892,8 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
 		return key
 	case constants.NETWORK_CUSTOM:
-		key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+		key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a") // main net
+		//key, _ := primitives.HexToHash("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a") // same as local
 		return key
 	}
 	return primitives.NewZeroHash()
@@ -1884,7 +1910,8 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
 		return id
 	case constants.NETWORK_CUSTOM:
-		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+		id, _ := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000000")	// production
+		//id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") // same as local
 		return id
 	}
 	return primitives.NewZeroHash()

@@ -4,6 +4,11 @@
 
 package interfaces
 
+type DBStateSent struct {
+	DBHeight uint32
+	Sent     Timestamp
+}
+
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -22,6 +27,10 @@ type IState interface {
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
+
+	GetDBStatesSent() []*DBStateSent
+	SetDBStatesSent([]*DBStateSent)
+
 	GetDirectoryBlockInSeconds() int
 	SetDirectoryBlockInSeconds(int)
 	GetFactomdVersion() int

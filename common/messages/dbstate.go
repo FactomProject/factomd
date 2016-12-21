@@ -38,6 +38,7 @@ type DBStateMsg struct {
 	SignatureList SigList
 
 	//Not marshalled
+	Sent   interfaces.Timestamp
 	IsInDB bool
 }
 
@@ -100,7 +101,7 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 }
 
 func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.DirectoryBlock.GetHash()
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
