@@ -128,7 +128,6 @@ LocalSpecialPeers    = ""
 NodeMode                                = FULL
 LocalServerPrivKey                      = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 LocalServerPublicKey                    = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
-ExchangeRate                            = 00100000
 ExchangeRateChainId                     = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
 ExchangeRateAuthorityPublicKeyMainNet   = daf5815c2de603dbfa3e1e64f88a5cf06083307cf40da4a9b539c41832135b4a
 ExchangeRateAuthorityPublicKeyTestNet   = 1d75de249c2fc0384fb6701b30dc86b39dc72e5a47ba4f79ef250d39e21e7a4f
