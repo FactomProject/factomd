@@ -2,11 +2,13 @@ package anchor_test
 
 import (
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	. "github.com/FactomProject/factomd/anchor"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/testHelper"
 )
 
 func TestMarshalUnmarshalAnchorRecord(t *testing.T) {
@@ -127,5 +129,65 @@ func TestValidateAnchorRecordV2(t *testing.T) {
 	}
 	if ar != nil {
 		t.Errorf("Anchor record returned when it shouldn't be!")
+	}
+}
+
+func TestCreateAndValidateAnchorRecordV1(t *testing.T) {
+	dBlock := CreateTestDirectoryBlock(nil)
+	height := dBlock.GetHeader().GetDBHeight()
+
+	ar := CreateAnchorRecordFromDBlock(dBlock)
+	ar.Bitcoin = new(BitcoinStruct)
+	ar.Bitcoin.Address = "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
+	ar.Bitcoin.TXID = fmt.Sprintf("%x", IntToByteSlice(int(height)))
+	ar.Bitcoin.BlockHeight = int32(height)
+	ar.Bitcoin.BlockHash = fmt.Sprintf("%x", IntToByteSlice(255-int(height)))
+	ar.Bitcoin.Offset = int32(height % 10)
+
+	hex, err := ar.MarshalAndSign(NewPrimitivesPrivateKey(0))
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	pubs := []interfaces.Verifier{NewPrimitivesPrivateKey(0).Pub}
+	ar2, ok, err := UnmarshalAndValidateAnchorRecord(hex, pubs)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if ok == false {
+		t.Errorf("Invalid anchor signatures")
+	}
+	if ar2 == nil {
+		t.Errorf("No anchor record unmarshalled.")
+	}
+}
+
+func TestCreateAndValidateAnchorRecordV2(t *testing.T) {
+	dBlock := CreateTestDirectoryBlock(nil)
+	height := dBlock.GetHeader().GetDBHeight()
+
+	ar := CreateAnchorRecordFromDBlock(dBlock)
+	ar.Bitcoin = new(BitcoinStruct)
+	ar.Bitcoin.Address = "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
+	ar.Bitcoin.TXID = fmt.Sprintf("%x", IntToByteSlice(int(height)))
+	ar.Bitcoin.BlockHeight = int32(height)
+	ar.Bitcoin.BlockHash = fmt.Sprintf("%x", IntToByteSlice(255-int(height)))
+	ar.Bitcoin.Offset = int32(height % 10)
+
+	hex, exIDs, err := ar.MarshalAndSignV2(NewPrimitivesPrivateKey(0))
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	pubs := []interfaces.Verifier{NewPrimitivesPrivateKey(0).Pub}
+	ar2, ok, err := UnmarshalAndValidateAnchorRecordV2(hex, [][]byte{exIDs}, pubs)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if ok == false {
+		t.Errorf("Invalid anchor signatures")
+	}
+	if ar2 == nil {
+		t.Errorf("No anchor record unmarshalled.")
 	}
 }

@@ -10,13 +10,25 @@ import (
 // ProcessDirBlockInfoBatch inserts the dirblock info block
 func (db *Overlay) ProcessDirBlockInfoBatch(block interfaces.IDirBlockInfo) error {
 	if block.GetBTCConfirmed() == true {
-		err := db.Delete(DIRBLOCKINFO, block.DatabasePrimaryIndex().Bytes())
+		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
 		if err != nil {
 			return err
 		}
 		return db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	} else {
 		return db.ProcessBlockBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+	}
+}
+
+func (db *Overlay) ProcessDirBlockInfoMultiBatch(block interfaces.IDirBlockInfo) error {
+	if block.GetBTCConfirmed() == true {
+		err := db.Delete(DIRBLOCKINFO_UNCONFIRMED, block.DatabasePrimaryIndex().Bytes())
+		if err != nil {
+			return err
+		}
+		return db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
+	} else {
+		return db.ProcessBlockMultiBatchWithoutHead(DIRBLOCKINFO_UNCONFIRMED, DIRBLOCKINFO_NUMBER, DIRBLOCKINFO_SECONDARYINDEX, block)
 	}
 }
 

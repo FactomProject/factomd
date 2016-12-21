@@ -87,7 +87,6 @@ LocalSpecialPeers    = ""
 NodeMode                              = FULL
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
 LocalServerPublicKey                  = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
-ExchangeRate                          = 00100000
 ExchangeRateChainId                   = 111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03
 ExchangeRateAuthorityAddress          = EC2DKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r
 
@@ -103,28 +102,7 @@ FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
 ; Specifying when to stop or start ACKs for switching leader servers
-ChangeAcksHeight					  = 123
-
-[anchor]
-ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
-ServerECPublicKey                     = 06ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
-AnchorChainID                         = df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
-ConfirmationsNeeded                   = 20
-
-[btc]
-WalletPassphrase                      = "lindasilva"
-CertHomePath                          = "btcwallet"
-RpcClientHost                         = "localhost:18332"
-RpcClientEndpoint                     = "ws"
-RpcClientUser                         = "testuser"
-RpcClientPass                         = "notarychain"
-BtcTransFee                           = 0.000001
-CertHomePathBtcd                      = "btcd"
-RpcBtcdHost                           = "localhost:18334"
-
-[wsapi]
-ApplicationName                       = "Factom/wsapi"
-PortNumber                            = 8088
+ChangeAcksHeight                      = 123
 
 ; ------------------------------------------------------------------------------
 ; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
@@ -134,16 +112,6 @@ PortNumber                            = 8088
 logLevel                              = error
 LogPath                               = "database/Log"
 ConsoleLogLevel                       = standard
-
-; ------------------------------------------------------------------------------
-; Configurations for fctwallet
-; ------------------------------------------------------------------------------
-[Wallet]
-Address                               = localhost
-Port                                  = 8089
-DataFile                              = fctwallet.dat
-RefreshInSeconds                      = 6
-BoltDBPath                            = ""
 
 ; ------------------------------------------------------------------------------
 ; Configurations for factom-walletd

@@ -192,12 +192,27 @@ func CreateTestAnchorEnry(dBlock *directoryBlock.DirectoryBlock) *entryBlock.Ent
 	ar.Bitcoin.BlockHash = fmt.Sprintf("%x", IntToByteSlice(255-int(height)))
 	ar.Bitcoin.Offset = int32(height % 10)
 
-	hex, err := ar.MarshalAndSign(NewPrimitivesPrivateKey(0))
-	if err != nil {
-		panic(err)
-	}
+	if height%2 == 0 {
+		hex, err := ar.MarshalAndSign(NewPrimitivesPrivateKey(0))
+		if err != nil {
+			panic(err)
+		}
 
-	answer.Content = primitives.ByteSlice{Bytes: hex}
+		answer.Content = primitives.ByteSlice{Bytes: hex}
+	} else {
+		hex, eIDs, err := ar.MarshalAndSignV2(NewPrimitivesPrivateKey(0))
+		if err != nil {
+			panic(err)
+		}
+
+		answer.Content = primitives.ByteSlice{Bytes: hex}
+		bs := primitives.ByteSlice{}
+		err = bs.UnmarshalBinary(eIDs)
+		if err != nil {
+			panic(err)
+		}
+		answer.ExtIDs = []primitives.ByteSlice{bs}
+	}
 
 	return answer
 }

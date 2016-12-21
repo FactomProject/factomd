@@ -1,5 +1,5 @@
 hash: 0ae845529f65fa5a6b957f3617734f6e5ec1592109468c4bff7af11b28abccc7
-updated: 2016-12-18T02:15:36.017825569-06:00
+updated: 2016-12-21T18:17:44.457606213+01:00
 imports:
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
@@ -35,14 +35,8 @@ imports:
   - edwards25519
 - name: github.com/FactomProject/factoid
   version: 3ee9763f86849036723d1b059216e08a6d34b184
-  subpackages:
-  - block
-  - database
-  - state
-  - state/stateinit
-  - wallet
 - name: github.com/FactomProject/factom
-  version: 7ce0f37fd22ef4358f9c47786b52ce3875ef60e2
+  version: 77e5c961ae757c663ed3de50b8d53cea66b41823
   subpackages:
   - wallet
   - wallet/wsapi
@@ -50,8 +44,6 @@ imports:
   version: 090bba75b03d7e68b3e64bf44592206abe8103e9
 - name: github.com/FactomProject/FactomCode
   version: fa03af8ca695eb98cef90a71fd0f506cf54ddbe8
-  subpackages:
-  - controlpanel
 - name: github.com/FactomProject/fctwallet
   version: 6952567ecfc651c60ebbfcea3169d6d6276b3035
 - name: github.com/FactomProject/fsnotify
@@ -88,7 +80,7 @@ imports:
 - name: github.com/FactomProject/netki-go-partner-client
   version: 426acb535e66cc2f9e6226ae254555e3572fd142
 - name: github.com/FactomProject/serveridentity
-  version: 0e9733a21ed3680057472584585cbbf02c6658ef
+  version: cc2dd975de3b156d6ff5160c5fbbedc25f6fe2a3
   subpackages:
   - identity
   - utils
@@ -99,7 +91,7 @@ imports:
 - name: github.com/FactomProject/web
   version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
 - name: golang.org/x/crypto
-  version: 9b1a210a06ea1176ec1f0a1ddf83ad7463b8ea3e
+  version: f5719d24587163700c5f7fa625ef3e05d9b372e7
   subpackages:
   - pbkdf2
   - ripemd160
