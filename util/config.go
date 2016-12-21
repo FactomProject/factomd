@@ -40,22 +40,24 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityPublicKeyLocalNet string
 
 		// Network Configuration
-		Network              string
-		MainNetworkPort      string
-		PeersFile            string
-		MainSeedURL          string
-		MainSpecialPeers     string
-		TestNetworkPort      string
-		TestSeedURL          string
-		TestSpecialPeers     string
-		LocalNetworkPort     string
-		LocalSeedURL         string
-		LocalSpecialPeers    string
-		FactomdTlsEnabled    bool
-		FactomdTlsPrivateKey string
-		FactomdTlsPublicCert string
-		FactomdRpcUser       string
-		FactomdRpcPass       string
+		Network                 string
+		MainNetworkPort         string
+		PeersFile               string
+		MainSeedURL             string
+		MainSpecialPeers        string
+		TestNetworkPort         string
+		TestSeedURL             string
+		TestSpecialPeers        string
+		LocalNetworkPort        string
+		LocalSeedURL            string
+		LocalSpecialPeers       string
+		CustomBootstrapIdentity string
+		CustomBootstrapKey      string
+		FactomdTlsEnabled       bool
+		FactomdTlsPrivateKey    string
+		FactomdTlsPublicCert    string
+		FactomdRpcUser          string
+		FactomdRpcPass          string
 
 		ChangeAcksHeight uint32
 	}

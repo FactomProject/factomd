@@ -67,18 +67,20 @@ type State struct {
 	ControlPanelDataRequest bool // If true, update Display state
 
 	// Network Configuration
-	Network           string
-	MainNetworkPort   string
-	PeersFile         string
-	MainSeedURL       string
-	MainSpecialPeers  string
-	TestNetworkPort   string
-	TestSeedURL       string
-	TestSpecialPeers  string
-	LocalNetworkPort  string
-	LocalSeedURL      string
-	LocalSpecialPeers string
-	CustomNetworkID   []byte
+	Network                 string
+	MainNetworkPort         string
+	PeersFile               string
+	MainSeedURL             string
+	MainSpecialPeers        string
+	TestNetworkPort         string
+	TestSeedURL             string
+	TestSpecialPeers        string
+	LocalNetworkPort        string
+	LocalSeedURL            string
+	LocalSpecialPeers       string
+	CustomNetworkID         []byte
+	CustomBootstrapIdentity string
+	CustomBootstrapKey      string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []*Identity      // Identities of all servers in management chain
