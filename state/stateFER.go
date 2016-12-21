@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/btcutil/base58"
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/entryBlock/specialEntries"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -139,9 +140,12 @@ func (this *State) ProcessRecentFERChainEntries() {
 }
 
 func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
-
+	pubStr, err := factoid.PublicKeyStringToECAddressString(this.ExchangeRateAuthorityPublicKey)
+	if err != nil {
+		return false
+	}
 	// convert the conf quthority address into a
-	authorityAddress := base58.Decode(this.ExchangeRateAuthorityAddress)
+	authorityAddress := base58.Decode(pubStr)
 	ecPubPrefix := []byte{0x59, 0x2a}
 
 	if !bytes.Equal(authorityAddress[:2], ecPubPrefix) {
@@ -153,7 +157,7 @@ func (this *State) ExchangeRateAuthorityIsValid(e interfaces.IEBEntry) bool {
 	copy(pub[:], authorityAddress[2:34])
 
 	// in case verify can't handle empty public key
-	if this.ExchangeRateAuthorityAddress == "" {
+	if this.ExchangeRateAuthorityPublicKey == "" {
 		return false
 	}
 	sig := new([64]byte)

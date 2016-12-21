@@ -90,9 +90,9 @@ type SaveState struct {
 	MissingEntries []MissingEntry
 
 	// FER section
-	FactoshisPerEC               uint64
-	FERChainId                   string
-	ExchangeRateAuthorityAddress string
+	FactoshisPerEC                 uint64
+	FERChainId                     string
+	ExchangeRateAuthorityPublicKey string
 
 	FERChangeHeight      uint32
 	FERChangePrice       uint64
@@ -193,7 +193,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.FactoshisPerEC = state.FactoshisPerEC
 	ss.FERChainId = state.FERChainId
-	ss.ExchangeRateAuthorityAddress = state.ExchangeRateAuthorityAddress
+	ss.ExchangeRateAuthorityPublicKey = state.ExchangeRateAuthorityPublicKey
 
 	ss.FERChangeHeight = state.FERChangeHeight
 	ss.FERChangePrice = state.FERChangePrice
@@ -450,7 +450,7 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 
 	state.FactoshisPerEC = ss.FactoshisPerEC
 	state.FERChainId = ss.FERChainId
-	state.ExchangeRateAuthorityAddress = ss.ExchangeRateAuthorityAddress
+	state.ExchangeRateAuthorityPublicKey = ss.ExchangeRateAuthorityPublicKey
 
 	state.FERChangeHeight = ss.FERChangeHeight
 	state.FERChangePrice = ss.FERChangePrice
