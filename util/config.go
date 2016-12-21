@@ -113,7 +113,7 @@ DirectoryBlockInSeconds               = 6
 ExportData                            = false
 ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
-Network                               = TEST
+Network                               = MAIN
 PeersFile            = "peers.json"
 MainNetworkPort      = 8108
 MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
