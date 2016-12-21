@@ -103,22 +103,7 @@ FactomdRpcUser                        = ""
 FactomdRpcPass                        = ""
 
 ; Specifying when to stop or start ACKs for switching leader servers
-ChangeAcksHeight					  = 123
-
-[btc]
-WalletPassphrase                      = "lindasilva"
-CertHomePath                          = "btcwallet"
-RpcClientHost                         = "localhost:18332"
-RpcClientEndpoint                     = "ws"
-RpcClientUser                         = "testuser"
-RpcClientPass                         = "notarychain"
-BtcTransFee                           = 0.000001
-CertHomePathBtcd                      = "btcd"
-RpcBtcdHost                           = "localhost:18334"
-
-[wsapi]
-ApplicationName                       = "Factom/wsapi"
-PortNumber                            = 8088
+ChangeAcksHeight                      = 123
 
 ; ------------------------------------------------------------------------------
 ; logLevel - allowed values are: debug, info, notice, warning, error, critical, alert, emergency and none
@@ -128,16 +113,6 @@ PortNumber                            = 8088
 logLevel                              = error
 LogPath                               = "database/Log"
 ConsoleLogLevel                       = standard
-
-; ------------------------------------------------------------------------------
-; Configurations for fctwallet
-; ------------------------------------------------------------------------------
-[Wallet]
-Address                               = localhost
-Port                                  = 8089
-DataFile                              = fctwallet.dat
-RefreshInSeconds                      = 6
-BoltDBPath                            = ""
 
 ; ------------------------------------------------------------------------------
 ; Configurations for factom-walletd

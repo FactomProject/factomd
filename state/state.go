@@ -535,7 +535,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		cfg.App.BoltDBPath = cfg.App.HomeDir + networkName + cfg.App.BoltDBPath
 		cfg.App.DataStorePath = cfg.App.HomeDir + networkName + cfg.App.DataStorePath
 		cfg.Log.LogPath = cfg.App.HomeDir + networkName + cfg.Log.LogPath
-		cfg.Wallet.BoltDBPath = cfg.App.HomeDir + networkName + cfg.Wallet.BoltDBPath
 		cfg.App.ExportDataSubpath = cfg.App.HomeDir + networkName + cfg.App.ExportDataSubpath
 		cfg.App.PeersFile = cfg.App.HomeDir + networkName + cfg.App.PeersFile
 		cfg.App.ControlPanelFilesPath = cfg.App.HomeDir + cfg.App.ControlPanelFilesPath
@@ -562,7 +561,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
-		s.PortNumber = cfg.Wsapi.PortNumber
+		s.PortNumber = cfg.App.PortNumber
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
