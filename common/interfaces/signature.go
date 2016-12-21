@@ -15,6 +15,7 @@ package interfaces
 // Verifier objects can Verify signed messages
 type Verifier interface {
 	Verify(msg []byte, sig *[64]byte) bool
+	String() string
 }
 
 // Signer object can Sign msg

@@ -68,12 +68,6 @@ type FactomdConfig struct {
 		TestNet      bool          `long:"testnet" description:"Use the test network"`
 		SimNet       bool          `long:"simnet" description:"Use the simulation test network"`
 	}
-	Anchor struct {
-		ServerECPrivKey     string
-		ServerECPublicKey   string
-		AnchorChainID       string
-		ConfirmationsNeeded int
-	}
 	Btc struct {
 		BTCPubAddr         string
 		SendToBTCinSeconds int
@@ -172,12 +166,6 @@ FactomdRpcPass                        = ""
 
 ; Specifying when to change ACKs for switching leader servers
 ChangeAcksHeight					  = 0
-
-[anchor]
-ServerECPrivKey                       = 397c49e182caa97737c6b394591c614156fbe7998d7bf5d76273961e9fa1edd4
-ServerECPublicKey                     = 06ed9e69bfdf85db8aa69820f348d096985bc0b11cc9fc9dcee3b8c68b41dfd5
-AnchorChainID                         = df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
-ConfirmationsNeeded                   = 20
 
 [btc]
 WalletPassphrase                      = "lindasilva"
@@ -279,12 +267,6 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
-
-	out.WriteString(fmt.Sprintf("\n  Anchor"))
-	out.WriteString(fmt.Sprintf("\n    ServerECPrivKey         %v", s.Anchor.ServerECPrivKey))
-	out.WriteString(fmt.Sprintf("\n    ServerECPublicKey       %v", s.Anchor.ServerECPublicKey))
-	out.WriteString(fmt.Sprintf("\n    AnchorChainID           %v", s.Anchor.AnchorChainID))
-	out.WriteString(fmt.Sprintf("\n    ConfirmationsNeeded     %v", s.Anchor.ConfirmationsNeeded))
 
 	out.WriteString(fmt.Sprintf("\n  Btc"))
 	out.WriteString(fmt.Sprintf("\n    BTCPubAddr              %v", s.Btc.BTCPubAddr))
