@@ -1895,16 +1895,20 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
-		return primitives.NewZeroHash()
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		return id
 	case constants.NETWORK_TEST:
-		return primitives.NewZeroHash()
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		return id
 	case constants.NETWORK_LOCAL:
-		id, _ := primitives.HexToHash("88888847f6cd639255df8f6f9e4f015058c93bc02e72f8e1287d7ff0d3fc184b")
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
 		return id
 	case constants.NETWORK_CUSTOM:
-		return primitives.NewZeroHash()
+		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		return id
 	}
-	return primitives.NewZeroHash()
+	id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+	return id
 }
 
 func (s *State) GetMatryoshka(dbheight uint32) interfaces.IHash {

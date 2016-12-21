@@ -33,7 +33,7 @@ func (st *State) GetNetworkSkeletonKey() interfaces.IHash {
 
 	key := st.Identities[i].SigningKey
 	// If the key is all 0s, use the bootstrap key
-	if key.IsSameAs(primitives.NewZeroHash()) {
+	if key.IsSameAs(primitives.NewZeroHash()) || key == nil {
 		return st.GetNetworkBootStrapKey()
 	} else {
 		return key
