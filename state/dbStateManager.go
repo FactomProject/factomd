@@ -53,14 +53,16 @@ type DBState struct {
 }
 
 type DBStateList struct {
-	SrcNetwork          bool // True if I got this block from the network.
-	LastTime            interfaces.Timestamp
-	SecondsBetweenTests int
-	Lastreq             int
-	State               *State
-	Base                uint32
-	Complete            uint32
-	DBStates            []*DBState
+	SrcNetwork bool // True if I got this block from the network.
+
+	LastEnd   int
+	LastBegin int
+	TimeToAsk interfaces.Timestamp
+
+	State    *State
+	Base     uint32
+	Complete uint32
+	DBStates []*DBState
 }
 
 // Validate this directory block given the next Directory Block.  Need to check the
@@ -128,8 +130,8 @@ func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
 	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
 	ts := "-nil-"
-	if list.LastTime != nil {
-		ts = list.LastTime.String()
+	if list.TimeToAsk != nil {
+		ts = list.TimeToAsk.String()
 	}
 	str = fmt.Sprintf("dddd %s  timestamp = %s\n", str, ts)
 	str = fmt.Sprintf("dddd %s  Complete  = %d\n", str, list.Complete)
@@ -242,49 +244,57 @@ func (list *DBStateList) Catchup() {
 		return
 	}
 
-	begin := -1
-	end := -1
-
-	begin = int(list.State.GetHighestSavedBlk()) + 1
-	end = int(list.State.GetHighestKnownBlock())
-
-	if begin <= 0 || end-begin <= 2 {
-		return
-	}
-
-	list.Lastreq = begin
-
-	if end-begin > 400 {
-		end = begin + 400
-	}
-
 	now := list.State.GetTimestamp()
 
-	if list.LastTime == nil {
-		list.LastTime = now
-		if end-begin > 2 {
-			list.LastTime.SetTime(uint64(now.GetTimeMilli() + 1000))
-		} else {
-			list.LastTime.SetTime(uint64(list.State.DirectoryBlockInSeconds * 1000))
+	begin := int(list.State.GetHighestSavedBlk()) + 1
+	end := int(list.State.GetHighestKnownBlock())
+
+	ask := func() {
+		if now.GetTime().After(list.TimeToAsk.GetTime()) {
+			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
+
+			if msg != nil {
+				//		list.State.RunLeader = false
+				//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
+				msg.SendOut(list.State, msg)
+				list.State.DBStateAskCnt++
+				list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 3000))
+				list.LastBegin = begin
+				list.LastEnd = end
+			}
 		}
+	}
+
+	if end-begin > 200 {
+		end = begin + 200
+	}
+
+	// return if we are caught up, and clear our timer
+	if begin <= 0 || end-begin <= 2 {
+		list.TimeToAsk = nil
 		return
 	}
 
-	// Ten seconds before you give up and ask for a DBState...
-	if now.GetTime().Before(list.LastTime.GetTime()) {
-		time.Sleep(20 * time.Millisecond)
+	// First Ask.  Because the timer is nil!
+	if list.TimeToAsk == nil {
+		// Okay, have nothing in play, so wait a bit just in case.
+		list.TimeToAsk = list.State.GetTimestamp()
+		list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 10000))
+		list.LastBegin = begin
+		list.LastEnd = end
 		return
 	}
 
-	list.LastTime = nil
+	// Progress?  Wait!
+	if begin > list.LastBegin {
+		list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 3000))
+		list.LastBegin = begin
+		return
+	}
 
-	msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
-
-	if msg != nil {
-		//		list.State.RunLeader = false
-		//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
-		msg.SendOut(list.State, msg)
-		list.State.DBStateAskCnt++
+	if list.TimeToAsk.GetTime().Before(now.GetTime()) {
+		ask()
+		return
 	}
 
 }
@@ -457,8 +467,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 			return
 		}
 	}
-
-	list.LastTime = list.State.GetTimestamp() // If I saved or processed stuff, I'm good for a while
 
 	// Bring the current federated servers and audit servers forward to the
 	// next block.
@@ -863,6 +871,8 @@ func (list *DBStateList) NewDBState(isNew bool,
 	dbState.EntryCreditBlock = entryCreditBlock
 	dbState.EntryBlocks = eBlocks
 	dbState.Entries = entries
+
+	dbState.Added = list.State.GetTimestamp()
 
 	// If we actually add this to the list, return the dbstate.
 	if list.Put(dbState) {

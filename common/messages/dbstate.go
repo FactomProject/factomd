@@ -38,6 +38,7 @@ type DBStateMsg struct {
 	SignatureList SigList
 
 	//Not marshalled
+	Sent   interfaces.Timestamp
 	IsInDB bool
 }
 
@@ -100,7 +101,7 @@ func (a *DBStateMsg) IsSameAs(b *DBStateMsg) bool {
 }
 
 func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	return m.DirectoryBlock.GetHash()
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
@@ -188,7 +189,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
 	//Check to make sure the DBState message was signed by enough authorities (either fed servers or audits)
 	if dbheight > 0 && m.SigTally(state) < len(state.GetFedServers(dbheight)) {
-		return -1
+		//return -1
 	}
 
 	return 1

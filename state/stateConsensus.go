@@ -442,8 +442,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
+
+		// Don't add duplicate dbstate messages.
+		for _, v := range s.XReview {
+			if ds, ok := v.(*messages.DBStateMsg); ok && ds.GetHash().Fixed() == dbstatemsg.DirectoryBlock.GetHash().Fixed() {
+				return
+			}
+		}
+
 		s.Holding[dbstatemsg.GetRepeatHash().Fixed()] = dbstatemsg
-		cntFail()
 		return
 	case -1:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
@@ -466,8 +473,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 	}
 
-	s.DBStates.LastTime = s.GetTimestamp()
-
 	dbstate := s.AddDBState(false,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -480,8 +485,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		cntFail()
 		return
 	}
-
-	dbstate.Added = now
 
 	if dbstatemsg.IsInDB == false {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))

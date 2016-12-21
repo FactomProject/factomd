@@ -101,6 +101,39 @@ func (m *DBStateMissing) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
+// Only send the same block again after 15 seconds.
+func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
+
+	send := true
+
+	now := state.GetTimestamp()
+	sents := state.GetDBStatesSent()
+	var keeps []*interfaces.DBStateSent
+
+	for _, v := range sents {
+		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 15 {
+			if v.DBHeight == dbheight {
+				send = false
+			}
+			keeps = append(keeps, v)
+		}
+	}
+	if send {
+		msg, err := state.LoadDBState(dbheight)
+		if msg != nil && err == nil {
+			msg.SetOrigin(m.GetOrigin())
+			msg.SetNetworkOrigin(m.GetNetworkOrigin())
+			msg.SendOut(state, msg)
+			state.IncDBStateAnswerCnt()
+			v := new(interfaces.DBStateSent)
+			v.DBHeight = dbheight
+			v.Sent = now
+			keeps = append(keeps, v)
+		}
+		state.SetDBStatesSent(keeps)
+	}
+}
+
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if len(state.NetworkOutMsgQueue()) > 1000 {
 		return
@@ -114,13 +147,7 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 		end = start + 200
 	}
 	for dbs := start; dbs <= end; dbs++ {
-		msg, err := state.LoadDBState(dbs)
-		if msg != nil && err == nil {
-			msg.SetOrigin(m.GetOrigin())
-			msg.SetNetworkOrigin(m.GetNetworkOrigin())
-			msg.SendOut(state, msg)
-			state.IncDBStateAnswerCnt()
-		}
+		m.send(dbs, state)
 	}
 
 	return
