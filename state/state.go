@@ -1910,7 +1910,7 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 		id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
 		return id
 	case constants.NETWORK_CUSTOM:
-		id, _ := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000000")	// production
+		id, _ := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000000") // production
 		//id, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9") // same as local
 		return id
 	}
