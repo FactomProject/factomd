@@ -681,7 +681,8 @@ func (s *State) Init() {
 
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
-
+	s.IgnoreMissing = true
+	
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
 	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")

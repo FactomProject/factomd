@@ -96,7 +96,6 @@ func (s *State) Process() (progress bool) {
 				s.RunLeader = true
 				if !s.IgnoreDone {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
-					s.IgnoreMissing = true
 					s.IgnoreDone = true
 				}
 			}
