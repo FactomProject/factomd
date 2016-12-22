@@ -40,7 +40,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	if s.IgnoreMissing {
 		now := s.GetTimestamp().GetTimeSeconds()
-		if now-msg.GetTimestamp().GetTimeSeconds() > 60 {
+		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			return
 		}
 	}
