@@ -5,7 +5,6 @@
 package engine
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -15,6 +14,5 @@ import (
 // `go tool pprof http://localhost:6060/debug/pprof/profile`
 // https://golang.org/pkg/net/http/pprof/
 func StartProfiler() {
-
-	log.Println(http.ListenAndServe(fmt.Sprintf("localhost:%s", logPort), nil))
+	log.Println(http.ListenAndServe("localhost:6060", nil))
 }

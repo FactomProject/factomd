@@ -141,24 +141,13 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
-
-	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks ht: %d", m.DirectoryBlock.GetHeader().GetDBHeight()))
 		//We need the basic block types
 		return -1
 	}
 
-	if m.IsInDB {
-		return 1
-	}
-
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
-
-	// Just accept the genesis block
-	if dbheight == 0 {
-		return 1
-	}
 
 	if state.GetNetworkID() != m.DirectoryBlock.GetHeader().GetNetworkID() {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d Expecting NetworkID %x and found %x",
@@ -167,13 +156,23 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	diff := int(dbheight) - (int(state.GetHighestSavedBlk())) // Difference from the working height (completed+1)
+	diff := int(dbheight) - (int(state.GetHighestSavedBlk()) + 1) // Difference from the working height (completed+1)
 
-	// Look at saved heights if not too far from what we have saved.
-	if diff < -1 {
-		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
-			dbheight, state.GetHighestSavedBlk(), diff))
-		return -1
+	// Allow looking at more than just the current dbstate
+	if (diff < -2 || diff > 2) && dbheight > 2 {
+		if diff > -3 && diff < 3 {
+			state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbht: %d Highest Completed %d diff %d",
+				dbheight, state.GetHighestSavedBlk(), diff))
+		}
+		if diff > 0 {
+			state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() ??? dbht: %d Highest Completed %d diff %d",
+				dbheight, state.GetHighestSavedBlk(), diff))
+			return 0
+		} else {
+			state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbht: %d Highest Completed %d diff %d",
+				dbheight, state.GetHighestSavedBlk(), diff))
+			return -1
+		}
 	}
 
 	if m.DirectoryBlock.GetHeader().GetNetworkID() == constants.MAIN_NETWORK_ID {
@@ -186,6 +185,11 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 				return -1
 			}
 		}
+	}
+
+	//Check to make sure the DBState message was signed by enough authorities (either fed servers or audits)
+	if dbheight > 0 && m.SigTally(state) < len(state.GetFedServers(dbheight)) {
+		//return -1
 	}
 
 	return 1
