@@ -40,22 +40,24 @@ type FactomdConfig struct {
 		ExchangeRateAuthorityPublicKeyLocalNet string
 
 		// Network Configuration
-		Network              string
-		MainNetworkPort      string
-		PeersFile            string
-		MainSeedURL          string
-		MainSpecialPeers     string
-		TestNetworkPort      string
-		TestSeedURL          string
-		TestSpecialPeers     string
-		LocalNetworkPort     string
-		LocalSeedURL         string
-		LocalSpecialPeers    string
-		FactomdTlsEnabled    bool
-		FactomdTlsPrivateKey string
-		FactomdTlsPublicCert string
-		FactomdRpcUser       string
-		FactomdRpcPass       string
+		Network                 string
+		MainNetworkPort         string
+		PeersFile               string
+		MainSeedURL             string
+		MainSpecialPeers        string
+		TestNetworkPort         string
+		TestSeedURL             string
+		TestSpecialPeers        string
+		LocalNetworkPort        string
+		LocalSeedURL            string
+		LocalSpecialPeers       string
+		CustomBootstrapIdentity string
+		CustomBootstrapKey      string
+		FactomdTlsEnabled       bool
+		FactomdTlsPrivateKey    string
+		FactomdTlsPublicCert    string
+		FactomdRpcUser          string
+		FactomdRpcPass          string
 
 		ChangeAcksHeight uint32
 	}
@@ -114,16 +116,18 @@ ExportData                            = false
 ExportDataSubpath                     = "database/export/"
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = TEST
-PeersFile            = "peers.json"
-MainNetworkPort      = 8108
-MainSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
-MainSpecialPeers     = ""
-TestNetworkPort      = 8109
-TestSeedURL          = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
-TestSpecialPeers     = ""
-LocalNetworkPort     = 8110
-LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
-LocalSpecialPeers    = ""
+PeersFile                   = "peers.json"
+MainNetworkPort             = 8108
+MainSeedURL                 = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/mainseed.txt"
+MainSpecialPeers            = ""
+TestNetworkPort             = 8109
+TestSeedURL                 = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/testseed.txt"
+TestSpecialPeers            = ""
+LocalNetworkPort            = 8110
+LocalSeedURL                = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
+LocalSpecialPeers           = ""
+CustomBootstrapIdentity     = 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
+CustomBootstrapKey          = 0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a
 ; --------------- NodeMode: FULL | SERVER ----------------
 NodeMode                                = FULL
 LocalServerPrivKey                      = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
@@ -211,6 +215,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    LocalNetworkPort        %v", s.App.LocalNetworkPort))
 	out.WriteString(fmt.Sprintf("\n    LocalSeedURL            %v", s.App.LocalSeedURL))
 	out.WriteString(fmt.Sprintf("\n    LocalSpecialPeers       %v", s.App.LocalSpecialPeers))
+	out.WriteString(fmt.Sprintf("\n    CustomBootstrapIdentity %v", s.App.CustomBootstrapIdentity))
+	out.WriteString(fmt.Sprintf("\n    CustomBootstrapKey      %v", s.App.CustomBootstrapKey))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))
 	out.WriteString(fmt.Sprintf("\n    IdentityChainID         %v", s.App.IdentityChainID))
 	out.WriteString(fmt.Sprintf("\n    LocalServerPrivKey      %v", s.App.LocalServerPrivKey))
