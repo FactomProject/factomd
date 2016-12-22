@@ -15,7 +15,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//A placeholder structure for messages
 type DirectoryBlockSignature struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
@@ -129,7 +128,6 @@ func (m *DirectoryBlockSignature) Bytes() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-
 	if m.DBHeight < state.GetLLeaderHeight() {
 		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbht: %v %s", state.GetLLeaderHeight(), m.String()))
 		return -1
@@ -154,15 +152,20 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return 1
 	}
 
-	// *********************************  NEEDS FIXED **************
-	// Need to check the signature for real. TODO:
-
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
 		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s", state.GetLLeaderHeight(), m.String()))
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
+		return -1
+	}
+
+	marshalledMsg, _ := m.MarshalForSignature()
+	authorityLevel, err := state.VerifyAuthoritySignature(marshalledMsg, m.Signature.GetSignature(), m.DBHeight)
+	if err != nil || authorityLevel < 1 {
+		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
+		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
 		return -1
 	}
 
