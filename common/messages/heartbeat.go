@@ -135,7 +135,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	}
 
 	m.SecretNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]),newData[4:]
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	hash := new(primitives.Hash)
 
