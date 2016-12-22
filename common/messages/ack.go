@@ -82,8 +82,9 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
 
-	if m.authvalid {
-		return 1
+	// If too old, it isn't valid.
+	if m.DBHeight <= state.GetHighestSavedBlk() {
+		return -1
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
@@ -92,22 +93,24 @@ func (m *Ack) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	// Check signature
-	bytes, err := m.MarshalForSignature()
-	if err != nil {
-		//fmt.Println("Err is not nil on Ack sig check: ", err)
-		return -1
-	}
-	sig := m.Signature.GetSignature()
-	ackSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
+	if !m.authvalid {
+		// Check signature
+		bytes, err := m.MarshalForSignature()
+		if err != nil {
+			//fmt.Println("Err is not nil on Ack sig check: ", err)
+			return -1
+		}
+		sig := m.Signature.GetSignature()
+		ackSigned, err := state.VerifyAuthoritySignature(bytes, sig, m.DBHeight)
 
-	//ackSigned, err := m.VerifySignature()
-	if err != nil {
-		//fmt.Println("Err is not nil on Ack sig check: ", err)
-		return -1
-	}
-	if ackSigned < 1 {
-		return -1
+		//ackSigned, err := m.VerifySignature()
+		if err != nil {
+			//fmt.Println("Err is not nil on Ack sig check: ", err)
+			return -1
+		}
+		if ackSigned < 1 {
+			return -1
+		}
 	}
 	m.authvalid = true
 	return 1

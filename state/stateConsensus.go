@@ -1741,6 +1741,7 @@ func (s *State) SendHeartBeat() {
 	for _, auditServer := range s.GetAuditServers(s.LLeaderHeight) {
 		if auditServer.GetChainID().IsSameAs(s.IdentityChainID) {
 			hb := new(messages.Heartbeat)
+			hb.DBHeight = s.LLeaderHeight
 			hb.Timestamp = primitives.NewTimestampNow()
 			hb.SecretNumber = s.GetSalt(hb.Timestamp)
 			hb.DBlockHash = dbstate.DBHash

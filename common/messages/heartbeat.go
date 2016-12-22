@@ -19,6 +19,7 @@ type Heartbeat struct {
 	MessageBase
 	Timestamp       interfaces.Timestamp
 	SecretNumber    uint32
+	DBHeight        uint32
 	DBlockHash      interfaces.IHash //Hash of last Directory Block
 	IdentityChainID interfaces.IHash //Identity Chain ID
 
@@ -134,6 +135,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 	}
 
 	m.SecretNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]),newData[4:]
 
 	hash := new(primitives.Hash)
 
@@ -181,6 +183,7 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 	}
 
 	binary.Write(&buf, binary.BigEndian, m.SecretNumber)
+	binary.Write(&buf, binary.BigEndian, m.DBHeight)
 
 	if d, err := m.DBlockHash.MarshalBinary(); err != nil {
 		return nil, err
@@ -217,10 +220,6 @@ func (m *Heartbeat) String() string {
 	return fmt.Sprintf("HeartBeat ID[%x] ts %d.%03d", m.IdentityChainID.Bytes()[:8], m.Timestamp.GetTimeMilli()/1000, m.Timestamp.GetTimeMilli()%1000)
 }
 
-func (m *Heartbeat) DBHeight() int {
-	return 0
-}
-
 func (m *Heartbeat) ChainID() []byte {
 	return nil
 }
@@ -240,6 +239,11 @@ func (m *Heartbeat) SerialHash() []byte {
 func (m *Heartbeat) Validate(state interfaces.IState) int {
 	if m.GetSignature() == nil {
 		// the message has no signature (and so is invalid)
+		return -1
+	}
+
+	// Ignore old heartbeats
+	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1
 	}
 
