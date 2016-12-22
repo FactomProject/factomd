@@ -132,7 +132,14 @@ ackLoop:
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
 			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
-				ack.FollowerExecute(s)
+				if s.IgnoreMissing {
+					now := s.GetTimestamp().GetTimeSeconds()
+					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+						ack.FollowerExecute(s)
+					}
+				}else{
+					ack.FollowerExecute(s)
+				}
 			}
 			progress = true
 		default:
