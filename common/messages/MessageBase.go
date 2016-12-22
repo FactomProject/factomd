@@ -20,7 +20,7 @@ type MessageBase struct {
 	LocalOnly     bool   // This message is only a local message, is not broadcasted and may skip verification
 
 	LeaderChainID interfaces.IHash
-	MsgHash       interfaces.IHash // Cash of the hash of a message
+	MsgHash       interfaces.IHash // Cache of the hash of a message
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte

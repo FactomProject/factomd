@@ -126,6 +126,11 @@ func (m *EOM) Validate(state interfaces.IState) int {
 		return 1
 	}
 
+	// Ignore old EOM
+	if m.DBHeight <= state.GetHighestSavedBlk() {
+		return -1
+	}
+
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
