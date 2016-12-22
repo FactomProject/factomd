@@ -38,6 +38,13 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
+	if s.IgnoreMissing {
+		now := s.GetTimestamp().GetTimeSeconds()
+		if now-msg.GetTimestamp().GetTimeSeconds() > 60 {
+			return
+		}
+	}
+
 	switch msg.Validate(s) {
 	case 1:
 		if s.RunLeader &&
