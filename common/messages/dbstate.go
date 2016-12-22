@@ -255,11 +255,12 @@ func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	//defer func() {
-	//	if r := recover(); r != nil {
-	//		err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
-	//	}
-	//}()
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
+		}
+	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
