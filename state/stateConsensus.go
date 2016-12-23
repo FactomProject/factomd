@@ -38,6 +38,13 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	s.SetString()
 	msg.ComputeVMIndex(s)
 
+	if s.IgnoreMissing {
+		now := s.GetTimestamp().GetTimeSeconds()
+		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+			return
+		}
+	}
+
 	switch msg.Validate(s) {
 	case 1:
 		if s.RunLeader &&
@@ -89,7 +96,6 @@ func (s *State) Process() (progress bool) {
 				s.RunLeader = true
 				if !s.IgnoreDone {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
-					s.IgnoreMissing = true
 					s.IgnoreDone = true
 				}
 			}
@@ -125,7 +131,14 @@ ackLoop:
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
 			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
-				ack.FollowerExecute(s)
+				if s.IgnoreMissing {
+					now := s.GetTimestamp().GetTimeSeconds()
+					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+						ack.FollowerExecute(s)
+					}
+				} else {
+					ack.FollowerExecute(s)
+				}
 			}
 			progress = true
 		default:
