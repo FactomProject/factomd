@@ -1,13 +1,13 @@
 #!/bin/bash
 
-nchains=10   # number of chains to create
-nentries=50  # number of entries to add to each chain
+nchains=1   # number of chains to create
+nentries=2050  # number of entries to add to each chain
 
 fa1=$(factom-cli importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
 
 ec1=$(factom-cli importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
-buyECs=$(expr $nentries \* $nchains \* 10 )
+buyECs=$(expr $nentries \* 1 \* 1 )
 echo "Buying" $buyECs $fa1 $ec1
 factom-cli buyec $fa1 $ec1 $buyECs
 sleep 5s

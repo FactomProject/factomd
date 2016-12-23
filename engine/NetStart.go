@@ -38,6 +38,7 @@ var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
+var logPort string
 
 func NetStart(s *state.State) {
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
@@ -55,6 +56,7 @@ func NetStart(s *state.State) {
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
+	logportPtr := flag.String("logPort", "6060", "Port for profile logging")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
@@ -90,6 +92,7 @@ func NetStart(s *state.State) {
 	peers := *peersPtr
 	networkName := *networkNamePtr
 	networkPortOverride := *networkPortOverridePtr
+	logPort = *logportPtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
 	netdebug := *netdebugPtr
