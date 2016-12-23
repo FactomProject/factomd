@@ -113,8 +113,9 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	m.validsig = true
 
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
-	if int(m.CommitChain.Credits) > int(ebal) {
-		return 0
+	v := int(ebal) - int(m.CommitChain.Credits)
+	if v < 0 {
+		return -1
 	}
 
 	return 1

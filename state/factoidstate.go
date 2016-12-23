@@ -217,21 +217,18 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 	case entryCreditBlock.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())-int64(t.Credits))
+		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())-int64(t.Credits))
+		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
+		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
 		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, t.GetSigHash(), t.GetTimestamp())
-	case entryCreditBlock.ECIDBalanceIncrease:
-		t := trans.(*entryCreditBlock.IncreaseBalance)
-		fs.State.PutE(rt, t.ECPubKey.Fixed(), fs.State.GetE(rt, t.ECPubKey.Fixed())+int64(t.NumEC))
-		fs.State.NumTransactions++
-
 	default:
 		return fmt.Errorf("Unknown EC Transaction")
 	}

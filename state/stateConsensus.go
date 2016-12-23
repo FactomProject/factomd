@@ -960,8 +960,8 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		// save the Commit to match agains the Reveal later
 		h := c.CommitChain.EntryHash
 		s.PutCommit(h, c)
-		if s.Holding[h.Fixed()] != nil {
-			entry := s.Holding[h.Fixed()]
+		entry := s.Holding[h.Fixed()]
+		if entry != nil {
 			entry.SendOut(s, entry)
 			s.XReview = append(s.XReview, entry)
 			delete(s.Holding, h.Fixed())
@@ -984,8 +984,8 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		// save the Commit to match agains the Reveal later
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
-		if s.Holding[h.Fixed()] != nil {
-			entry := s.Holding[h.Fixed()]
+		entry := s.Holding[h.Fixed()]
+		if entry != nil {
 			entry.SendOut(s, entry)
 			s.XReview = append(s.XReview, entry)
 			delete(s.Holding, h.Fixed())
@@ -1855,9 +1855,9 @@ func (s *State) GetHighestKnownBlock() uint32 {
 }
 
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
-	var ok bool
+	ok := false
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
+		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1877,7 +1877,7 @@ func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
+		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.FactoidBalancesTMutex.Lock()
 			defer pl.FactoidBalancesTMutex.Unlock()
@@ -1892,9 +1892,9 @@ func (s *State) PutF(rt bool, adr [32]byte, v int64) {
 }
 
 func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
-	var ok bool
+	ok := false
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
+		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
@@ -1913,7 +1913,7 @@ func (s *State) GetE(rt bool, adr [32]byte) (v int64) {
 // If rt == true, update the Temp balances.  Otherwise update the Permenent balances.
 func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 	if rt {
-		pl := s.ProcessLists.Get(s.GetHighestSavedBlk() + 1)
+		pl := s.ProcessLists.Get(s.LLeaderHeight)
 		if pl != nil {
 			pl.ECBalancesTMutex.Lock()
 			defer pl.ECBalancesTMutex.Unlock()
