@@ -379,14 +379,14 @@ func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
-	commitEntryMsg := new(MessageRequest)
+	commitEntryMsg := new(EntryRequest)
 	err := MapToObject(params, commitEntryMsg)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
 
 	commit := entryCreditBlock.NewCommitEntry()
-	if p, err := hex.DecodeString(commitEntryMsg.Message); err != nil {
+	if p, err := hex.DecodeString(commitEntryMsg.Entry); err != nil {
 		return nil, NewInvalidCommitEntryError()
 	} else {
 		_, err := commit.UnmarshalBinaryData(p)

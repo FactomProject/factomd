@@ -93,9 +93,9 @@ func copyOver(st *state.State) {
 		eNew.Content = e.GetContent()
 
 		paramsRev := new(wsapi.EntryRequest)
-		paramsCom := new(wsapi.MessageRequest)
+		paramsCom := new(wsapi.EntryRequest)
 		com, rev := getMessageStringEntry(eNew, ec)
-		paramsCom.Message = com
+		paramsCom.Entry = com
 		paramsRev.Entry = rev
 		jCommit := primitives.NewJSON2Request("commit-entry", i, paramsCom)
 		jRev := primitives.NewJSON2Request("reveal-entry", i, paramsRev)
@@ -319,10 +319,10 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 				continue
 			}
 			paramsRev := new(wsapi.EntryRequest)
-			paramsCom := new(wsapi.MessageRequest)
+			paramsCom := new(wsapi.EntryRequest)
 
 			com, rev := getMessageStringEntry(entry, ec)
-			paramsCom.Message = com
+			paramsCom.Entry = com
 			paramsRev.Entry = rev
 			jCommit := primitives.NewJSON2Request("commit-entry", i, paramsCom)
 			jRev := primitives.NewJSON2Request("reveal-entry", i, paramsRev)
@@ -350,41 +350,41 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 
 		com, rev, key, _ := makeBlockKey(ele, ec, false)
 		ele.NewBlockKey = key
-		mc := new(wsapi.MessageRequest)
-		mc.Message = com
-		j := primitives.NewJSON2Request("commit-entry", 0, mc)
+		m := new(wsapi.EntryRequest)
+		m.Entry = com
+		j := primitives.NewJSON2Request("commit-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
-		mr := new(wsapi.EntryRequest)
-		mr.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, mr)
+		m = new(wsapi.EntryRequest)
+		m.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
 		com, rev, _ = makeMHash(ele, ec)
-		mc = new(wsapi.MessageRequest)
-		mc.Message = com
-		j = primitives.NewJSON2Request("commit-entry", 0, mc)
+		m = new(wsapi.EntryRequest)
+		m.Entry = com
+		j = primitives.NewJSON2Request("commit-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
-		mr = new(wsapi.EntryRequest)
-		mr.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, mr)
+		m = new(wsapi.EntryRequest)
+		m.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
 		com, rev, _ = makeBTCKey(ele, ec)
-		mc = new(wsapi.MessageRequest)
-		mc.Message = com
-		j = primitives.NewJSON2Request("commit-entry", 0, mc)
+		m = new(wsapi.EntryRequest)
+		m.Entry = com
+		j = primitives.NewJSON2Request("commit-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
-		mr = new(wsapi.EntryRequest)
-		mr.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, mr)
+		m = new(wsapi.EntryRequest)
+		m.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, m)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
@@ -486,17 +486,17 @@ func changeSigningKey(auth interfaces.IHash, st *state.State) (*primitives.Priva
 		if auth.IsSameAs(ele.ChainID) {
 			com, rev, newKey, _ := makeBlockKey(ele, ec, true)
 			ele.NewBlockKey = newKey
-			mc := new(wsapi.MessageRequest)
-			mc.Message = com
-			j := primitives.NewJSON2Request("commit-entry", 0, mc)
+			m := new(wsapi.EntryRequest)
+			m.Entry = com
+			j := primitives.NewJSON2Request("commit-entry", 0, m)
 			_, err := v2Request(j, st.GetPort())
 			//wsapi.HandleV2Request(st, j)
 			if err != nil {
 				return nil, err
 			}
-			mr := new(wsapi.EntryRequest)
-			mr.Entry = rev
-			j = primitives.NewJSON2Request("reveal-entry", 0, mr)
+			m = new(wsapi.EntryRequest)
+			m.Entry = rev
+			j = primitives.NewJSON2Request("reveal-entry", 0, m)
 			//wsapi.HandleV2Request(st, j)
 			_, err = v2Request(j, st.GetPort())
 			if err != nil {
