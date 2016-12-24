@@ -1,5 +1,5 @@
-hash: 0ae845529f65fa5a6b957f3617734f6e5ec1592109468c4bff7af11b28abccc7
-updated: 2016-12-22T17:07:34.548550387-06:00
+hash: f2ff8694ba5fe01c2caa352bf870c367d4a4f05d191a97a1bdbffa481a524a01
+updated: 2016-12-23T19:27:55.12888291-06:00
 imports:
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
@@ -36,7 +36,7 @@ imports:
 - name: github.com/FactomProject/factoid
   version: 3ee9763f86849036723d1b059216e08a6d34b184
 - name: github.com/FactomProject/factom
-  version: f641223f2d5e74d1bfaa6473dd920564646bbbc1
+  version: 77e5c961ae757c663ed3de50b8d53cea66b41823
   subpackages:
   - wallet
   - wallet/wsapi
@@ -57,7 +57,7 @@ imports:
 - name: github.com/FactomProject/go-simplejson
   version: aabad6e819789e569bd6aabf444c935aa9ba1e44
 - name: github.com/FactomProject/go-spew
-  version: ddfaec9b42f58fc8172b0cbb03b21c6668dd0a46
+  version: 2df174808ee097f90d259e432cc04442cf60be21
   subpackages:
   - spew
 - name: github.com/FactomProject/gocoding
@@ -89,7 +89,7 @@ imports:
   subpackages:
   - snappy
 - name: github.com/FactomProject/web
-  version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
+  version: 78d1a14af38a43842072da2286033da3cc0f5c76
 - name: golang.org/x/crypto
   version: f6b343c37ca80bfa8ea539da67a0b621f84fab1d
   subpackages:
