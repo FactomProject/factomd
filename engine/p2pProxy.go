@@ -38,6 +38,8 @@ type P2PProxy struct {
 	debugMode int
 	logging   chan interface{} // NODE_TALK_FIX
 	NumPeers  int
+	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
+	bytesIn   int // bandwidth recieved by application from network
 }
 
 type factomMessage struct {
@@ -77,11 +79,11 @@ func (f *P2PProxy) SetWeight(w int) {
 }
 
 func (f *P2PProxy) BytesOut() int {
-	return 0
+	return f.bytesOut
 }
 
 func (f *P2PProxy) BytesIn() int {
-	return 0
+	return f.bytesIn
 }
 
 func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
@@ -111,6 +113,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Println("ERROR on Send: ", err)
 		return err
 	}
+	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 	appType := fmt.Sprintf("%d", msg.Type())
 	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
@@ -148,6 +151,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 					f.logMessage(msg, true) // NODE_TALK_FIX
 					fmt.Printf(".")
 				}
+				f.bytesIn += len(fmessage.Message)
 				return msg, err
 			default:
 				fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
