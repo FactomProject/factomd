@@ -319,10 +319,10 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 				continue
 			}
 			paramsRev := new(wsapi.EntryRequest)
-			paramsCom := new(wsapi.EntryRequest)
+			paramsCom := new(wsapi.MessageRequest)
 
 			com, rev := getMessageStringEntry(entry, ec)
-			paramsCom.Entry = com
+			paramsCom.Message = com
 			paramsRev.Entry = rev
 			jCommit := primitives.NewJSON2Request("commit-entry", i, paramsCom)
 			jRev := primitives.NewJSON2Request("reveal-entry", i, paramsRev)
@@ -350,41 +350,41 @@ func authorityToBlockchain(total int, st *state.State) ([]hardCodedAuthority, in
 
 		com, rev, key, _ := makeBlockKey(ele, ec, false)
 		ele.NewBlockKey = key
-		m := new(wsapi.EntryRequest)
-		m.Entry = com
-		j := primitives.NewJSON2Request("commit-entry", 0, m)
+		mC := new(wsapi.MessageRequest)
+		mC.Message = com
+		j := primitives.NewJSON2Request("commit-entry", 0, mC)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
-		m = new(wsapi.EntryRequest)
-		m.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, m)
+		mR := new(wsapi.EntryRequest)
+		mR.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, mR)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
 		com, rev, _ = makeMHash(ele, ec)
-		m = new(wsapi.EntryRequest)
-		m.Entry = com
-		j = primitives.NewJSON2Request("commit-entry", 0, m)
+		mC = new(wsapi.MessageRequest)
+		mC.Message = com
+		j = primitives.NewJSON2Request("commit-entry", 0, mC)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
-		m = new(wsapi.EntryRequest)
-		m.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, m)
+		mR = new(wsapi.EntryRequest)
+		mR.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, mR)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
 		com, rev, _ = makeBTCKey(ele, ec)
-		m = new(wsapi.EntryRequest)
-		m.Entry = com
-		j = primitives.NewJSON2Request("commit-entry", 0, m)
+		mC = new(wsapi.MessageRequest)
+		mC.Message = com
+		j = primitives.NewJSON2Request("commit-entry", 0, mC)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
-		m = new(wsapi.EntryRequest)
-		m.Entry = rev
-		j = primitives.NewJSON2Request("reveal-entry", 0, m)
+		mR = new(wsapi.EntryRequest)
+		mR.Entry = rev
+		j = primitives.NewJSON2Request("reveal-entry", 0, mR)
 		_, _ = v2Request(j, st.GetPort())
 		//_, _ = wsapi.HandleV2Request(st, j)
 
@@ -435,7 +435,7 @@ func getMessageStringEntry(e *factom.Entry, ec *factom.ECAddress) (string, strin
 	if err != nil {
 		return "", ""
 	}
-	tC := new(identity.Reveal)
+	tC := new(identity.Commit)
 	err = identity.MapToObject(j, tC)
 	if err != nil {
 		return "", ""
