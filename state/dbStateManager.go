@@ -105,25 +105,6 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
 	return 1
 
-	admin := next.AdminBlock
-	for _, entry := range admin.GetABEntries() {
-		if addfed, ok := entry.(*adminBlock.AddFederatedServer); ok {
-			if state.isIdentityChain(addfed.IdentityChainID) < 0 {
-				state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 Adding a Fed server in admin block without identity dbht: %d fed server: %x ",
-					dbheight, addfed.IdentityChainID.Bytes()[:3]))
-				return 0
-			}
-		}
-		if addaudit, ok := entry.(*adminBlock.AddAuditServer); ok {
-			if state.isIdentityChain(addaudit.IdentityChainID) < 0 {
-				state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 Adding a Audit server in admin block without identity dbht: %d fed server: %x ",
-					dbheight, addaudit.IdentityChainID.Bytes()[:3]))
-				return 0
-			}
-		}
-	}
-
-	return 1
 }
 
 func (list *DBStateList) String() string {
@@ -246,31 +227,33 @@ func (list *DBStateList) Catchup() {
 
 	now := list.State.GetTimestamp()
 
-	begin := int(list.State.GetHighestSavedBlk()) + 1
-	end := int(list.State.GetHighestKnownBlock())
+	hs := int(list.State.GetHighestSavedBlk())
+	hk := int(list.State.GetHighestKnownBlock())
+	begin := hs
+	end := hk
 
 	ask := func() {
-		if now.GetTime().After(list.TimeToAsk.GetTime()) {
-			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
+		if hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
+			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+10))
 
 			if msg != nil {
 				//		list.State.RunLeader = false
 				//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 				msg.SendOut(list.State, msg)
 				list.State.DBStateAskCnt++
-				list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 3000))
+				list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
 				list.LastBegin = begin
 				list.LastEnd = end
 			}
 		}
 	}
 
-	if end-begin > 200 {
-		end = begin + 200
+	if end-begin > 100 {
+		end = begin + 100
 	}
 
 	// return if we are caught up, and clear our timer
-	if begin <= 0 || end-begin <= 2 {
+	if end-begin <= 3 {
 		list.TimeToAsk = nil
 		return
 	}
@@ -279,7 +262,7 @@ func (list *DBStateList) Catchup() {
 	if list.TimeToAsk == nil {
 		// Okay, have nothing in play, so wait a bit just in case.
 		list.TimeToAsk = list.State.GetTimestamp()
-		list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 10000))
+		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 5)
 		list.LastBegin = begin
 		list.LastEnd = end
 		return
@@ -287,7 +270,7 @@ func (list *DBStateList) Catchup() {
 
 	// Progress?  Wait!
 	if begin > list.LastBegin {
-		list.TimeToAsk.SetTime(uint64(now.GetTimeMilli() + 3000))
+		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
 		list.LastBegin = begin
 		return
 	}

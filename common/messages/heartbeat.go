@@ -26,7 +26,8 @@ type Heartbeat struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash interfaces.IHash
+	hash     interfaces.IHash
+	sigvalid bool
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
@@ -217,7 +218,7 @@ func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *Heartbeat) String() string {
-	return fmt.Sprintf("HeartBeat ID[%x] ts %d.%03d", m.IdentityChainID.Bytes()[:8], m.Timestamp.GetTimeMilli()/1000, m.Timestamp.GetTimeMilli()%1000)
+	return fmt.Sprintf("HeartBeat ID[%x] dbht %d ts %d", m.IdentityChainID.Bytes()[3:5], m.DBHeight, m.Timestamp.GetTimeSeconds())
 }
 
 func (m *Heartbeat) ChainID() []byte {
@@ -237,6 +238,12 @@ func (m *Heartbeat) SerialHash() []byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Heartbeat) Validate(state interfaces.IState) int {
+	now := state.GetTimestamp()
+
+	if now.GetTimeSeconds()-m.Timestamp.GetTimeSeconds() > 60 {
+		return -1
+	}
+
 	if m.GetSignature() == nil {
 		// the message has no signature (and so is invalid)
 		return -1
@@ -247,12 +254,15 @@ func (m *Heartbeat) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	isVer, err := m.VerifySignature()
-	if err != nil || !isVer {
-		// if there is an error during signature verification
-		// or if the signature is invalid
-		// the message is considered invalid
-		return -1
+	if !m.sigvalid {
+		isVer, err := m.VerifySignature()
+		if err != nil || !isVer {
+			// if there is an error during signature verification
+			// or if the signature is invalid
+			// the message is considered invalid
+			return -1
+		}
+		m.sigvalid = true
 	}
 
 	return 1

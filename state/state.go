@@ -500,7 +500,7 @@ func (s *State) GetCurrentMinute() int {
 }
 
 func (s *State) IncDBStateAnswerCnt() {
-	s.DBStateAppliedCnt++
+	s.DBStateReplyCnt++
 }
 
 func (s *State) IncFCTSubmits() {

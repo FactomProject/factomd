@@ -166,7 +166,7 @@ emptyLoop:
 	for i := 0; i < 30 && len(s.XReview) > 0; i++ {
 		l := len(s.XReview) - 1
 		msg := s.XReview[l]
-		progress = s.executeMsg(vm, msg)
+		progress = s.executeMsg(vm, msg) || progress
 		s.XReview = s.XReview[:l]
 	}
 	if !more {
@@ -213,6 +213,8 @@ func (s *State) ReviewHolding() {
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
+	highest := s.GetHighestKnownBlock()
+
 	for k := range s.Holding {
 		v := s.Holding[k]
 
@@ -240,7 +242,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && eom.DBHeight < saved-1 {
+		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3) {
 			delete(s.Holding, k)
 			continue
 		}
@@ -252,7 +254,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && dbsigmsg.DBHeight < saved-1 {
+		if ok && (dbsigmsg.DBHeight < saved-1 || dbsigmsg.DBHeight < highest-3) {
 			delete(s.Holding, k)
 			continue
 		}
@@ -275,6 +277,12 @@ func (s *State) ReviewHolding() {
 				v.SendOut(s, v)
 			}
 		}
+
+		if v.Validate(s) < 0 {
+			delete(s.Holding, k)
+			continue
+		}
+
 		// Pointless to review a Reveal Entry;  it will be pulled into play when its commit
 		// comes around.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
@@ -425,32 +433,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	now := s.GetTimestamp()
-
-	{
-		dbstate := s.DBStates.Get(int(dbheight))
-
-		if dbstate != nil && now.GetTimeSeconds()-dbstate.Added.GetTimeSeconds() < 5 {
-			return
-		}
-	}
-
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
-	if dbheight <= saved && dbheight > 0 {
-		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState too high GetHighestSaved %v > DBHeight %v",
-			s.GetHighestSavedBlk(), dbheight))
-		cntFail()
-		return
-	}
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
-
-	if dbheight > 0 && (pdbstate == nil) {
-		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Previous dbstate is nil DBHeight %v", dbheight))
-
-		cntFail()
-		return
-	}
 
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
