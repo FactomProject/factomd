@@ -492,7 +492,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstate.Signed = true
 		dbstate.ReadyToSave = true
 		s.DBStates.SaveDBStateToDB(dbstate)
-		s.DBStateReplyCnt++
+		s.DBStateAppliedCnt++
 	} else {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true
