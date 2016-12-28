@@ -279,7 +279,7 @@ func ReadConfig(filename string) *FactomdConfig {
 		panic(err)
 	}
 
-	err = gcfg.ReadFileInto(cfg, filename)
+	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
 	if err != nil {
 		log.Printfln("Reading from '%s'", filename)
 		log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
