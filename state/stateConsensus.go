@@ -710,18 +710,20 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
-		m.SendOut(s, m)
-		ack.SendOut(s, ack)
+
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 
-		msg := m.(*messages.RevealEntryMsg)
-		delete(s.Commits, msg.Entry.GetHash().Fixed())
-		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+		// If we added the ack, then it will be cleared from the ack map.
+		if s.Acks[m.GetMsgHash().Fixed()] == nil {
+			msg := m.(*messages.RevealEntryMsg)
+			delete(s.Commits, msg.Entry.GetHash().Fixed())
+			// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
+			s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+		}
 
 	}
 
