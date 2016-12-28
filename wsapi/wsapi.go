@@ -311,7 +311,9 @@ func HandleCommitEntry(ctx *web.Context) {
 		}
 	}
 
-	param := EntryRequest{Entry: c.CommitEntryMsg}
+	//  v2 wants a MessageRequest instead of an EntryRequest
+	//	param := EntryRequest{Entry: c.CommitEntryMsg}
+	param := MessageRequest{Message: c.CommitEntryMsg}
 	req := primitives.NewJSON2Request("commit-entry", 1, param)
 
 	_, jsonError := HandleV2Request(state, req)
