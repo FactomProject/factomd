@@ -81,7 +81,7 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 && len(s.NetworkOutMsgQueue()) < 1000 {
+	if now-m.resend > 10000 && len(s.NetworkOutMsgQueue()) < 1000 { // Resend every second
 		m.resend = now
 		return true
 	}
