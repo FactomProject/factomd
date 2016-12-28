@@ -31,13 +31,9 @@ import:
   - wallet
   - wallet/wsapi
 - package: github.com/FactomProject/factom-walletd
-<<<<<<< HEAD
   version: develop
 - package: github.com/FactomProject/factom-cli
   version: develop
-=======
-  version: 8d94b321b13c140be2d29347a025d73f3fc21689
->>>>>>> develop
 - package: github.com/FactomProject/fctwallet
   version: 6952567ecfc651c60ebbfcea3169d6d6276b3035
 - package: github.com/FactomProject/fsnotify

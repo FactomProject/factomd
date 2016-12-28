@@ -1,12 +1,7 @@
 #!/bin/bash
 
-<<<<<<< HEAD
 nchains=20   # number of chains to create
 nentries=500  # number of entries to add to each chain
-=======
-nchains=1   # number of chains to create
-nentries=2050  # number of entries to add to each chain
->>>>>>> develop
 
 fa1=$(factom-cli importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
 
