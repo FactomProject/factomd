@@ -98,7 +98,8 @@ compile() {
     current=`pwd`
     cd $1
     echo "Compiling: " $1
-    go clean
+		glide install    
+		go clean
     go install || cerr=1
     cd $current
     return $cerr
@@ -109,6 +110,7 @@ compileFactomdGitHash() {
     current=`pwd`
     cd $1
     echo "Compiling: " $1
+		glide install
     go clean
     #rm $GOPATH/bin/$1
     go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`" || cerr=1
@@ -119,55 +121,22 @@ compileFactomdGitHash() {
 
 checkout factomd      $branch $default
 checkout factom       $branch $default
-checkout web          $branch $default
-checkout go-spew      $branch $default
-checkout go-bip39     $branch $default
-checkout go-bip32     $branch $default
-checkout go-bip44     $branch $default
-checkout bolt         $branch $default
-checkout Testing      $branch $default
-checkout btcutil      $branch $default
-checkout goleveldb    $branch $default
-checkout FactomDocs   $branch $default
-checkout gocoding     $branch $default
-checkout btclog       $branch $default
-checkout dynrsrc      $branch $default
-checkout ed25519      $branch $default
-checkout fastsha256   $branch $default
-checkout go-flags     $branch $default
-checkout go-socks     $branch $default
-checkout seelog       $branch $default
-checkout snappy-go    $branch $default
-checkout websocket    $branch $default
 checkout factom-cli   $branch $default
 checkout factom-walletd $branch $default
 checkout serveridentity $branch $default
+checkout addservermessage $branch $default
+checkout addToBlockchainNetwork $branch $default
 
 echo "
 ********************************************************
 *     Compiling factom-walletd, the cli, and factomd
 ********************************************************
 "
-compileFactomdGitHash factomd || exit 1
-compile factom-cli            || exit 1
-compile factom-walletd        || exit 1
+compileFactomdGitHash factomd  || exit 1
+compile factom-cli             || exit 1
+compile factom-walletd         || exit 1
+#compile serveridentity         || exit 1
+compile addservermessage       || exit 1
+compile addToBlockchainNetwork || exit 1
 
-echo ""
-echo "
-*******************************************************
-*     Running Unit Tests    Now safe to Ctrl+C
-*
-*  YOU MUST KILL factomd FOR TESTS TO RUN PROPERLY!
-*
-*  Please run and pass all unit tests before pushing
-*  to development or master!  Protect your code with
-*  unit tests!  If you can!
-*
-*******************************************************
-"
-echo "
-+================+
-|  factomd   |
-+================+
-"
-go test -short  ./factomd/...
+
