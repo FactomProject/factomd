@@ -56,14 +56,7 @@ func (m *RevealEntryMsg) GetHash() interfaces.IHash {
 }
 
 func (m *RevealEntryMsg) GetMsgHash() interfaces.IHash {
-	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.MsgHash = primitives.Sha(data)
-	}
-	return m.MsgHash
+	return m.Entry.GetHash()
 }
 
 func (m *RevealEntryMsg) GetChainIDHash() interfaces.IHash {
