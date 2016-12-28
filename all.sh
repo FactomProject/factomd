@@ -61,7 +61,8 @@ checkout() {
         echo $1 | awk "{printf(\"%15s\",\"$1\")}"
         git fetch -q
         git checkout -q $2 > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
+    		if [ $? -eq 0 ]; then
+	          git rev-parse HEAD | awk "{printf(\" %s \",\$1)}"
             echo -e -n " now on" $2    # checkout did not fail
         else
             git checkout -q $3 > /dev/null 2>&1
@@ -70,13 +71,15 @@ checkout() {
                 if [ $? -ne 0 ]; then
                    echo -e -n " ****checkout failed!!!"
                 else
+    			         git rev-parse HEAD | awk "{printf(\" %s \",\$1)}"
                    echo -n " defaulting to master"
                 fi
             else
+				        git rev-parse HEAD | awk "{printf(\" %s \",\$1)}"    
                 echo -n " defaulting to" $3
             fi
         fi
-        git status | awk '/^Your branch is [ab]/ {$1="";$2="";FS=" ";printf(" and%s",$0)}; /Your branch and/{printf("\n\t\t%s",$0)}'
+				git status | awk '/^Your branch is [ab]/ {$1="";$2="";FS=" ";printf(" and%s",$0)}; /Your branch and/{printf("\n\t\t%s",$0)}'
         echo
         git pull 2>&1 | awk '$1=="error:" {print "\t\t"$0};/\|/{print("\t\t"$0)}'
         git status | awk '/:/ {if(!a[$0]){print"\t\t"$0}; a[$0]=1}'

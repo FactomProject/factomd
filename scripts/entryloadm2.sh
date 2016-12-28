@@ -7,7 +7,7 @@ fa1=$(factom-cli importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9
 
 ec1=$(factom-cli importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
-buyECs=$(expr $nentries \* 1 \* 1 )
+buyECs=$(expr $nentries \* $nchains \* 11 )
 echo "Buying" $buyECs $fa1 $ec1
 factom-cli buyec $fa1 $ec1 $buyECs
 sleep 5s
@@ -21,14 +21,14 @@ addentries() {
 
 	echo "Entry Length " $datalen " bytes, file name: " $datafile
 
-	let y=$(shuf -i 30-120 -n 1)
-	echo "sleep"  $y  " seconds before writing entries"
-	sleep $y
 	for ((i=0; i<nentries; i++)); do
     		cat $datafile | factom-cli addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
 		sleep .8s
 	done
+	let y=$(shuf -i 30-120 -n 1)
+	echo "sleep"  $y  " seconds before writing entries"
+	sleep $y
 
     # get rid of the random datafile
 	rm $datafile
@@ -45,7 +45,7 @@ for ((i=0; i<nchains; i++)); do
 	sleep $y
 done
 
-let y=$(shuf -i 60-100 -n 1)
+let y=$(shuf -i 100-130 -n 1)
 echo SLEEP $y "seconds before doing another set of chains."
 sleep $y
 

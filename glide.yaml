@@ -6,27 +6,21 @@ owners:
   email: mahesh@factom.com
   homepage: https://factom.com
 import:
-- package: github.com/FactomProject/FactomCode
-  version: fa03af8ca695eb98cef90a71fd0f506cf54ddbe8
 - package: github.com/FactomProject/basen
-  version: fe3947df716ebfda9847eb1b9a48f9592e06478c
+  version: master
 - package: github.com/FactomProject/bolt
-  version: 7d662c5bb27d9defa01fa0563959594bb77ee62b
+  version: master
 - package: github.com/FactomProject/btcutil
-  version: 43986820ccd50b2b02b83e575cb3a39c87457482
+  version: develop
   subpackages:
   - base58
   - certs
-- package: github.com/FactomProject/cli
-  version: 45b367ff72df176679318c157a56e436cd5e00dc
 - package: github.com/FactomProject/dynrsrc
-  version: b64fbdf4a9b9385ecae4749c6399eae2a604527f
+  version: master
 - package: github.com/FactomProject/ed25519
-  version: 38002c4fe7b609c2fa3144a3cc29b997b756bb4c
-- package: github.com/FactomProject/factoid
-  version: 3ee9763f86849036723d1b059216e08a6d34b184
+  version: master
 - package: github.com/FactomProject/factom
-  version: 77e5c961ae757c663ed3de50b8d53cea66b41823
+  version: develop
   subpackages:
   - wallet
   - wallet/wsapi
@@ -35,39 +29,41 @@ import:
 - package: github.com/FactomProject/factom-cli
   version: develop
 - package: github.com/FactomProject/fctwallet
-  version: 6952567ecfc651c60ebbfcea3169d6d6276b3035
+  version: develop
 - package: github.com/FactomProject/fsnotify
-  version: 4894fe7efedeeef21891033e1cce3b23b9af7ad2
+  version: master
 - package: github.com/FactomProject/go-bip32
-  version: 3b593af1c415abc1017648e4eb24a88c32fee0f3
+  version: develop
 - package: github.com/FactomProject/go-bip39
-  version: d1007fb78d9a7ec65314dad412973e63caf4c527
+  version: develop
 - package: github.com/FactomProject/go-simplejson
-  version: aabad6e819789e569bd6aabf444c935aa9ba1e44
+  version: master
 - package: github.com/FactomProject/go-spew
-  version: 2df174808ee097f90d259e432cc04442cf60be21
+  version: master
   subpackages:
   - spew
 - package: github.com/FactomProject/gocoding
-  version: 59666ce39524e0b2ed84fbdbb16e9b38dc92d9df
+  version: master
 - package: github.com/FactomProject/goleveldb
-  version: b882f9c7069c9730b1e7f8dd17250dabcaefa5ba
+  version: master
   subpackages:
   - leveldb
   - leveldb/opt
   - leveldb/util
 - package: github.com/FactomProject/serveridentity
-  version: cc2dd975de3b156d6ff5160c5fbbedc25f6fe2a3
+  version: master
   subpackages:
   - identity
 - package: github.com/FactomProject/snappy-go
-  version: fff4c573c694b1e2d5c7a9b2b72dbe947b6a4c8e
+  version: master
 - package: github.com/FactomProject/web
-  version: 78d1a14af38a43842072da2286033da3cc0f5c76
+  version: develop
 - package: github.com/btcsuitereleases/btcd
+  version: master
   subpackages:
   - btcjson
   - chaincfg
   - txscript
   - wire
 - package: github.com/btcsuitereleases/btcrpcclient
+  version: master
