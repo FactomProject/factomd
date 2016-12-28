@@ -26,6 +26,8 @@ import:
   - wallet/wsapi
 - package: github.com/FactomProject/factom-walletd
   version: develop
+- package: github.com/FactomProject/factom-cli
+  version: develop
 - package: github.com/FactomProject/fctwallet
   version: develop
 - package: github.com/FactomProject/fsnotify
