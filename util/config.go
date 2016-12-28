@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 
 	"gopkg.in/gcfg.v1"
 )
@@ -279,14 +278,9 @@ func ReadConfig(filename string) *FactomdConfig {
 		panic(err)
 	}
 
-	err = gcfg.FatalOnly(gcfg.ReadFileInto(cfg, filename))
+	err = gcfg.ReadFileInto(cfg, filename)
 	if err != nil {
-		log.Printfln("Reading from '%s'", filename)
-		log.Printfln("Cannot open custom config file,\nStarting with default settings.\n%v\n", err)
-		err = gcfg.ReadStringInto(cfg, defaultConfig)
-		if err != nil {
-			panic(err)
-		}
+		panic(err)
 	}
 
 	// Default to home directory if not set
