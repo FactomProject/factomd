@@ -217,11 +217,17 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 }
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
-func (list *DBStateList) Catchup() {
+func (list *DBStateList) Catchup(justDoIt bool) {
 
 	// We only check if we need updates once every so often.
 
 	if len(list.State.inMsgQueue) > 20 {
+		// If we are behind the curve in processing messages, dump all the dbstates from holding.
+		for k := range list.State.Holding {
+			if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
+				delete(list.State.Holding, k)
+			}
+		}
 		return
 	}
 
@@ -229,7 +235,7 @@ func (list *DBStateList) Catchup() {
 
 	hs := int(list.State.GetHighestSavedBlk())
 	hk := int(list.State.GetHighestKnownBlock())
-	begin := hs
+	begin := hs + 1
 	end := hk
 
 	ask := func() {
@@ -252,6 +258,11 @@ func (list *DBStateList) Catchup() {
 		end = begin + 100
 	}
 
+	if end+3 > begin && justDoIt {
+		ask()
+		return
+	}
+
 	// return if we are caught up, and clear our timer
 	if end-begin <= 3 {
 		list.TimeToAsk = nil
@@ -265,13 +276,6 @@ func (list *DBStateList) Catchup() {
 		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 5)
 		list.LastBegin = begin
 		list.LastEnd = end
-		return
-	}
-
-	// Progress?  Wait!
-	if begin > list.LastBegin {
-		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
-		list.LastBegin = begin
 		return
 	}
 
@@ -728,7 +732,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 func (list *DBStateList) UpdateState() (progress bool) {
 
-	list.Catchup()
+	list.Catchup(false)
 
 	saved := 0
 	for i, d := range list.DBStates {

@@ -400,18 +400,18 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DBStateMsg) String() string {
-	size := "Error Marshalling"
+	size := "Error"
 	data, err := m.MarshalBinary()
 	if err == nil && data != nil {
 		size = fmt.Sprintf("%8d", len(data))
 	}
-	return fmt.Sprintf("DBState: ht:%3d dblock %6x admin %6x fb %6x ec %6x size %s hash %6x",
+	return fmt.Sprintf("DBState: dbht:%3d [size: %s] dblock %6x admin %6x fb %6x ec %6x hash %6x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
+		size,
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
-		size,
 		m.GetHash().Bytes()[:3])
 }
 
@@ -425,6 +425,7 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	sigList []interfaces.IFullSignature) interfaces.IMsg {
 
 	msg := new(DBStateMsg)
+	msg.NoResend = true
 
 	msg.Peer2Peer = true
 

@@ -92,7 +92,8 @@ func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
 	if dbheight > 0 {
 		prev = lists.Get(dbheight - 1)
 	}
-	if pl == nil {
+	// Only allocate a pl I have a hope of using.  If too high, ignore.
+	if pl == nil && dbheight < lists.State.GetHighestCompletedBlk()+10 {
 		pl = NewProcessList(lists.State, prev, dbheight)
 		if !getindex() {
 			return

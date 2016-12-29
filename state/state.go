@@ -2204,7 +2204,8 @@ func (s *State) SetStringQueues() {
 func (s *State) ConstructAuthoritySetString() (authSets []string) {
 	base := s.ProcessLists.DBHeightBase
 	for i, pl := range s.ProcessLists.Lists {
-		if i > 8 {
+		// If we don't really have a process list at this height, then say no more.
+		if i > 8 || pl == nil {
 			break
 		}
 		authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, int(base)+i)

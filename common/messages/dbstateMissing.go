@@ -123,6 +123,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 		if msg != nil && err == nil {
 			msg.SetOrigin(m.GetOrigin())
 			msg.SetNetworkOrigin(m.GetNetworkOrigin())
+			msg.SetNoResend(false)
 			msg.SendOut(state, msg)
 			state.IncDBStateAnswerCnt()
 			v := new(interfaces.DBStateSent)
