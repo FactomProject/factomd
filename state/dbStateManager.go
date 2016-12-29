@@ -235,7 +235,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	hs := int(list.State.GetHighestSavedBlk())
 	hk := int(list.State.GetHighestKnownBlock())
-	begin := hs + 1
+	begin := hs
 	end := hk
 
 	ask := func() {
@@ -254,8 +254,8 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 		}
 	}
 
-	if end-begin > 100 {
-		end = begin + 100
+	if end-begin > 200 {
+		end = begin + 200
 	}
 
 	if end+3 > begin && justDoIt {
