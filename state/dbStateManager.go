@@ -465,6 +465,10 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	pl := list.State.ProcessLists.Get(ht)
 	pln := list.State.ProcessLists.Get(ht + 1)
 
+	if pl == nil {
+		return
+	}
+
 	var out bytes.Buffer
 	out.WriteString("=== AdminBlock.UpdateState() Start ===\n")
 	prt := func(lable string, pl *ProcessList) {
