@@ -56,6 +56,7 @@ func NetStart(s *state.State) {
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
+	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Address for control panel webserver to listen on.")
 	logportPtr := flag.String("logPort", "6060", "Port for profile logging")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
@@ -92,6 +93,7 @@ func NetStart(s *state.State) {
 	peers := *peersPtr
 	networkName := *networkNamePtr
 	networkPortOverride := *networkPortOverridePtr
+	ControlPanelPortOverride := *ControlPanelPortOverridePtr
 	logPort = *logportPtr
 	blkTime := *blkTimePtr
 	runtimeLog := *runtimeLogPtr
@@ -121,6 +123,9 @@ func NetStart(s *state.State) {
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
+	}
+	if 999 < ControlPanelPortOverride { // The command line flag exists and seems reasonable.
+		s.ControlPanelPort = ControlPanelPortOverride
 	}
 
 	if blkTime > 0 {
