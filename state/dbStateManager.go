@@ -667,7 +667,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	// Only trim when we are really saving.
-	v := dbheight + int(list.State.IdentityChainID.Bytes()[0])
+	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
 	if v%4 == 0 {
 		list.State.DB.Trim()
 	}
