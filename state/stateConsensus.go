@@ -283,12 +283,18 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		// Only reprocess up to 200 Entry Reveals per round.  Keeps entry reveals from hiding all the good stuff like
+		// EOM messages, DBSigs, Missing data messages, etc.  You know, the stuff we have to do BEFORE we can deal
+		// with Entry Reveal messages.  Note we are adding them to the end anyway, so this is more about not blocking
+		// the next round of processing.
+		entryCnt := 0
 		// Pointless to review a Reveal Entry;  it will be pulled into play when its commit
 		// comes around.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
-			if s.Commits[re.Entry.GetHash().Fixed()] != nil {
+			if s.Commits[re.Entry.GetHash().Fixed()] != nil && entryCnt < 200 {
 				s.XReview = append(s.XReview, v)
 				delete(s.Holding, k)
+				entryCnt++
 			}
 		} else {
 			s.XReview = append(s.XReview, v)
@@ -433,6 +439,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
+	// ignore if we didn't ask for it, or if it is at least something with our range of asking for.
+	if !dbstatemsg.IsInDB && (s.DBStates.LastBegin-1 > int(dbheight) || s.DBStates.LastEnd+20 < int(dbheight)) {
+		return
+	}
+
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
@@ -509,6 +520,14 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
+	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
+	if s.DBStates.LastEnd < int(dbheight) {
+		s.DBStates.Catchup(true)
+	}
+	if s.DBStates.LastBegin < int(dbheight)+1 {
+		s.DBStates.LastBegin = int(dbheight)
+	}
+	s.DBStates.TimeToAsk = nil
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {

@@ -90,7 +90,8 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
 	msg, err := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
 	if err != nil || msg != nil {
-		return -1
+		// we are going to claim this is valid, so it will set our highest known block index
+		return 1
 	}
 
 	if !m.authvalid {
