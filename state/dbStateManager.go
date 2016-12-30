@@ -164,7 +164,7 @@ func (ds *DBState) String() string {
 		str = "  Directory Block = <nil>\n"
 	} else {
 
-		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v", str, ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
+		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v\n", str, ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
 		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
@@ -646,12 +646,10 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
+	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
-	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
-	if v%4 == 0 {
-		list.State.DB.Trim()
-	}
+
 
 	if !d.Signed || !d.ReadyToSave {
 		return
@@ -666,6 +664,12 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
 		return
+	}
+
+	// Only trim when we are really saving.
+	v := dbheight + int(list.State.IdentityChainID.Bytes()[0])
+	if v%4 == 0 {
+		list.State.DB.Trim()
 	}
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()

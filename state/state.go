@@ -1505,6 +1505,7 @@ func (s *State) catchupEBlocks() {
 	if len(s.MissingEntries) == 0 {
 		s.MissingEntryRepeat = nil
 		s.EntryDBHeightComplete = s.EntryBlockDBHeightComplete
+		s.EntryHeightComplete = s.EntryHeightComplete
 	} else {
 		if s.MissingEntryRepeat == nil {
 			s.MissingEntryRepeat = now
@@ -1552,7 +1553,6 @@ func (s *State) catchupEBlocks() {
 
 					// Ask for blocks we don't have.
 					if eBlock == nil {
-						s.AddStatus(fmt.Sprintf("Could not find block %x in state.catchupEBlocks()\n", ebKeyMR.Bytes()[:4]))
 
 						// Check lists and not add if already there.
 						addit := true
@@ -1611,6 +1611,7 @@ func (s *State) catchupEBlocks() {
 				// we had three bookmarks.  Now they are all in lockstep. TODO: get rid of extra bookmarks.
 				s.EntryBlockDBHeightComplete++
 				s.EntryDBHeightComplete++
+				s.EntryHeightComplete++
 				s.EntryBlockDBHeightProcessing++
 			}
 		}
