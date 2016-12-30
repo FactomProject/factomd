@@ -125,7 +125,7 @@ func (st *State) AddIdentityFromChainID(cid interfaces.IHash) error {
 					if len(ent.ExternalIDs()[2]) == 32 {
 						idChain := primitives.NewHash(ent.ExternalIDs()[2][:32])
 						if string(ent.ExternalIDs()[1]) == "Register Factom Identity" && cid.IsSameAs(idChain) {
-							registerFactomIdentity(ent, cid, height, st)
+							RegisterFactomIdentity(ent, cid, height, st)
 							break // Found the registration
 						}
 					}
@@ -241,21 +241,21 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 				registerIdentityAsServer(ent, height, st)
 			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
 				if len(ent.ExternalIDs()) == 7 {
-					registerBlockSigningKey(ent, initial, height, st)
+					RegisterBlockSigningKey(ent, initial, height, st)
 				}
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 				if len(ent.ExternalIDs()) == 9 {
-					registerAnchorSigningKey(ent, initial, height, st, "BTC")
+					RegisterAnchorSigningKey(ent, initial, height, st, "BTC")
 				}
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 				if len(ent.ExternalIDs()) == 7 {
-					updateMatryoshkaHash(ent, initial, height, st)
+					UpdateMatryoshkaHash(ent, initial, height, st)
 				}
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 				addIdentity(ent, height, st)
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
 				if len(ent.ExternalIDs()) == 4 {
-					updateManagementKey(ent, height, st)
+					UpdateManagementKey(ent, height, st)
 				}
 			}
 		}
@@ -300,7 +300,7 @@ func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	return len(st.Identities) - 1
 }
 
-func registerFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash, height uint32, st *State) error {
+func RegisterFactomIdentity(entry interfaces.IEBEntry, chainID interfaces.IHash, height uint32, st *State) error {
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) == 0 {
 		return errors.New("Identity Error Register Identity: Invalid external ID length")
@@ -406,7 +406,7 @@ func checkIdentityForFull(identityIndex int, st *State) error {
 	return nil
 }
 
-func updateManagementKey(entry interfaces.IEBEntry, height uint32, st *State) error {
+func UpdateManagementKey(entry interfaces.IEBEntry, height uint32, st *State) error {
 	extIDs := entry.ExternalIDs()
 	// This check is here to prevent possible index out of bounds with extIDs[:3]
 	if len(extIDs) != 4 {
@@ -460,7 +460,7 @@ func registerIdentityAsServer(entry interfaces.IEBEntry, height uint32, st *Stat
 	return nil
 }
 
-func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uint32, st *State) error {
+func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uint32, st *State) error {
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) == 0 {
 		return errors.New("Identity Error Block Signing Key: Invalid external ID length")
@@ -531,7 +531,7 @@ func registerBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 	return nil
 }
 
-func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32, st *State) error {
+func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32, st *State) error {
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) == 0 {
 		return errors.New("Identity Error MHash: Invalid external ID length")
@@ -602,7 +602,7 @@ func updateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 	return nil
 }
 
-func registerAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height uint32, st *State, BlockChain string) error {
+func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height uint32, st *State, BlockChain string) error {
 	extIDs := entry.ExternalIDs()
 	if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 ||
 		!CheckExternalIDsLength(extIDs, []int{1, 15, 32, 1, 1, 20, 8, 33, 64}) {
