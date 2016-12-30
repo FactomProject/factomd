@@ -164,7 +164,7 @@ func (ds *DBState) String() string {
 		str = "  Directory Block = <nil>\n"
 	} else {
 
-		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v", str, ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
+		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v\n", str, ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
 		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
 		str = fmt.Sprintf("%s      ABlock        = %x \n", str, ds.AdminBlock.GetHash().Bytes()[:5])
@@ -217,11 +217,17 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 }
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
-func (list *DBStateList) Catchup() {
+func (list *DBStateList) Catchup(justDoIt bool) {
 
 	// We only check if we need updates once every so often.
 
 	if len(list.State.inMsgQueue) > 20 {
+		// If we are behind the curve in processing messages, dump all the dbstates from holding.
+		for k := range list.State.Holding {
+			if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
+				delete(list.State.Holding, k)
+			}
+		}
 		return
 	}
 
@@ -248,8 +254,13 @@ func (list *DBStateList) Catchup() {
 		}
 	}
 
-	if end-begin > 100 {
-		end = begin + 100
+	if end-begin > 200 {
+		end = begin + 200
+	}
+
+	if end+3 > begin && justDoIt {
+		ask()
+		return
 	}
 
 	// return if we are caught up, and clear our timer
@@ -265,13 +276,6 @@ func (list *DBStateList) Catchup() {
 		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 5)
 		list.LastBegin = begin
 		list.LastEnd = end
-		return
-	}
-
-	// Progress?  Wait!
-	if begin > list.LastBegin {
-		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
-		list.LastBegin = begin
 		return
 	}
 
@@ -642,12 +646,10 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 }
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
+	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
-	v := int(d.DirectoryBlock.GetHeader().GetDBHeight()) + int(list.State.IdentityChainID.Bytes()[0])
-	if v%4 == 0 {
-		list.State.DB.Trim()
-	}
+
 
 	if !d.Signed || !d.ReadyToSave {
 		return
@@ -662,6 +664,12 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
 		return
+	}
+
+	// Only trim when we are really saving.
+	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
+	if v%4 == 0 {
+		list.State.DB.Trim()
 	}
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
@@ -728,7 +736,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 func (list *DBStateList) UpdateState() (progress bool) {
 
-	list.Catchup()
+	list.Catchup(false)
 
 	saved := 0
 	for i, d := range list.DBStates {

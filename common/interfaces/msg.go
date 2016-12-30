@@ -78,6 +78,11 @@ type IMsg interface {
 	// to allow easier debugging and simulation.
 	SendOut(IState, IMsg)
 
+	// Some messages (DBState messages, missing data messages) must be explicitly sent.
+	// We won't resend them or pass them on.
+	GetNoResend() bool
+	SetNoResend(bool)
+
 	// Process.  When we get a sequence of acknowledgements that we trust, we process.
 	// A message will only be processed once, and in order, guaranteed.
 	// Returns true if able to process, false if process is waiting on something.

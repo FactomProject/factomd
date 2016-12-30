@@ -19,6 +19,8 @@ type MessageBase struct {
 	Peer2Peer     bool   // The nature of this message type, not marshaled with the message
 	LocalOnly     bool   // This message is only a local message, is not broadcasted and may skip verification
 
+	NoResend bool // Don't resend this message if true.
+
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cache of the hash of a message
 	VMIndex       int              // The Index of the VM responsible for this message.
@@ -40,6 +42,11 @@ func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
+
+	if m.NoResend {
+		return
+	}
+
 	switch msg.(interface{}).(type) {
 	//case ServerFault:
 	//	go resend(state, msg, 20, 1)
@@ -54,6 +61,14 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	default:
 		go resend(state, msg, 1, 1)
 	}
+}
+
+func (m *MessageBase) GetNoResend() bool {
+	return m.NoResend
+}
+
+func (m *MessageBase) SetNoResend(v bool) {
+	m.NoResend = v
 }
 
 func (m *MessageBase) IsValid() bool {

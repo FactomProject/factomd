@@ -1505,6 +1505,7 @@ func (s *State) catchupEBlocks() {
 	if len(s.MissingEntries) == 0 {
 		s.MissingEntryRepeat = nil
 		s.EntryDBHeightComplete = s.EntryBlockDBHeightComplete
+		s.EntryHeightComplete = s.EntryHeightComplete
 	} else {
 		if s.MissingEntryRepeat == nil {
 			s.MissingEntryRepeat = now
@@ -1552,7 +1553,6 @@ func (s *State) catchupEBlocks() {
 
 					// Ask for blocks we don't have.
 					if eBlock == nil {
-						s.AddStatus(fmt.Sprintf("Could not find block %x in state.catchupEBlocks()\n", ebKeyMR.Bytes()[:4]))
 
 						// Check lists and not add if already there.
 						addit := true
@@ -1611,6 +1611,7 @@ func (s *State) catchupEBlocks() {
 				// we had three bookmarks.  Now they are all in lockstep. TODO: get rid of extra bookmarks.
 				s.EntryBlockDBHeightComplete++
 				s.EntryDBHeightComplete++
+				s.EntryHeightComplete++
 				s.EntryBlockDBHeightProcessing++
 			}
 		}
@@ -2204,7 +2205,8 @@ func (s *State) SetStringQueues() {
 func (s *State) ConstructAuthoritySetString() (authSets []string) {
 	base := s.ProcessLists.DBHeightBase
 	for i, pl := range s.ProcessLists.Lists {
-		if i > 8 {
+		// If we don't really have a process list at this height, then say no more.
+		if i > 8 || pl == nil {
 			break
 		}
 		authoritiesString := fmt.Sprintf("%7s (%4d) Feds:", s.FactomNodeName, int(base)+i)
