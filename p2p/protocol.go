@@ -49,6 +49,8 @@ var (
 	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                     = false
 	NetworkDeadline                      = time.Duration(25000) * time.Millisecond
+	NetworkReadBufferSize                = (1024 * 10) // 10kB, size of the read buffer for data sent over the network
+	NetworkWriteBufferSize               = (1024 * 10) // 10kB, size of the write buffer for data sent over the network
 	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
