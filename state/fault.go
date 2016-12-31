@@ -509,6 +509,8 @@ func (s *State) DoReset() {
 	}
 
 	dbs := s.DBStates.DBStates[index]
-	dbs.SaveStruct.RestoreFactomdState(s, s.DBStates.DBStates[index-1])
+	if s.DBStates.DBStates[index-1] != nil {
+		dbs.SaveStruct.RestoreFactomdState(s, s.DBStates.DBStates[index-1])
+	}
 	s.AddStatus("RESET: Complete")
 }

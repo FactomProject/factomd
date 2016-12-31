@@ -949,7 +949,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		for _, dbsig := range pl.DBSignatures {
 			allSigs = append(allSigs, dbsig.Signature)
 		}
-	} else {
+	} else if false {
 		abEntries := nextABlock.GetABEntries()
 		for _, adminEntry := range abEntries {
 			data, err := adminEntry.MarshalBinary()
