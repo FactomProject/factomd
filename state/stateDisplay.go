@@ -105,7 +105,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	// DB Info
 	ds.CurrentNodeHeight = s.GetHighestSavedBlk()
 	ds.CurrentLeaderHeight = s.GetLeaderHeight()
-	ds.CurrentEBDBHeight = s.EntryBlockDBHeightProcessing
+	ds.CurrentEBDBHeight = s.EntryDBHeightComplete
 	ds.LeaderHeight = s.GetTrueLeaderHeight()
 	dir := s.GetDirectoryBlockByHeight(s.GetLeaderHeight())
 	if dir == nil {
