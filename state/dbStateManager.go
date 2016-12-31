@@ -643,6 +643,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 
+	if dbheight > 1 && list.State.EntryDBHeightComplete < uint32(dbheight)-1 {
+		return
+	}
+
 	if !d.Signed || !d.ReadyToSave {
 		return
 	}
@@ -680,6 +684,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
+	pl := list.State.ProcessLists.Get(uint32(dbheight))
+
 	if len(d.EntryBlocks) > 0 {
 		for _, eb := range d.EntryBlocks {
 			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
@@ -691,22 +697,26 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(err.Error())
 			}
 		}
-	} else {
-		pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-		if pl != nil {
-			for _, eb := range pl.NewEBlocks {
-				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-					panic(err.Error())
-				}
+	}
 
-				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
-						panic(err.Error())
-					}
+	if pl != nil {
+		for _, eb := range pl.NewEBlocks {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+				panic(err.Error())
+			}
+
+			for _, e := range eb.GetBody().GetEBEntries() {
+				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+					panic(err.Error())
 				}
 			}
 		}
+		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+		pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	}
+
+	d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
+	d.Entries = make([]interfaces.IEBEntry, 0)
 
 	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 		panic(err.Error())
