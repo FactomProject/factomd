@@ -105,8 +105,12 @@ func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
-	data, _ := m.MarshalBinary()
-	return primitives.Sha(data)
+
+	//	data, _ := m.MarshalBinary()
+	//	return primitives.Sha(data)
+
+	// These two calls do the same thing.  It should be standardized.
+	return m.GetMsgHash()
 }
 
 func (m *DBStateMsg) GetMsgHash() interfaces.IHash {
