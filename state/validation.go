@@ -13,24 +13,8 @@ import (
 
 func (state *State) ValidatorLoop() {
 	timeStruct := new(Timer)
+	for {
 
-	var msg interfaces.IMsg
-
-	// Sort the messages.
-	sortMsg := func() {
-		if msg != nil {
-			if state.IsReplaying == true {
-				state.ReplayTimestamp = msg.GetTimestamp()
-			}
-			if _, ok := msg.(*messages.Ack); ok {
-				state.ackQueue <- msg
-			} else {
-				state.msgQueue <- msg
-			}
-		}
-	}
-
-	checkCtrlC := func() {
 		// Check if we should shut down.
 		select {
 		case <-state.ShutdownChan:
@@ -40,39 +24,53 @@ func (state *State) ValidatorLoop() {
 			return
 		default:
 		}
-	}
 
-	for {
+		// Look for pending messages, and get one if there is one.
+		var msg interfaces.IMsg
+	loop:
+		for i := 0; i < 10; i++ {
 
-		checkCtrlC()
-		// Process any messages we might have queued up.
-		for i := 0; i < 5; i++ {
-			p, b := state.Process(), state.UpdateState()
-			if !p && !b {
-				break
+			// Process any messages we might have queued up.
+			for i = 0; i < 10; i++ {
+				p, b := state.Process(), state.UpdateState()
+				if !p && !b {
+					break
+				}
+				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Validation", state.FactomNodeName, "Process", p, "Update", b)
 			}
-			checkCtrlC()
+
+			select {
+			case min := <-state.tickerQueue:
+				timeStruct.timer(state, min)
+			default:
+			}
+
+			select {
+			case msg = <-state.TimerMsgQueue():
+				state.JournalMessage(msg)
+				break loop
+			default:
+			}
+
+			select {
+			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
+				state.JournalMessage(msg)
+				break loop
+			default: // No messages? Sleep for a bit
+				time.Sleep(10 * time.Millisecond)
+			}
 		}
 
-		select {
-		case min := <-state.tickerQueue:
-			timeStruct.timer(state, min)
-		default:
-		}
-
-		select {
-		case msg = <-state.TimerMsgQueue():
-			state.JournalMessage(msg)
-			sortMsg()
-		default:
-		}
-
-		select {
-		case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
-			state.JournalMessage(msg)
-			sortMsg()
-		default: // No messages? Sleep for a bit
-			time.Sleep(10 * time.Millisecond)
+		// Sort the messages.
+		if msg != nil {
+			if state.IsReplaying == true {
+				state.ReplayTimestamp = msg.GetTimestamp()
+			}
+			if _, ok := msg.(*messages.Ack); ok {
+				state.ackQueue <- msg
+			} else {
+				state.msgQueue <- msg
+			}
 		}
 	}
 }
