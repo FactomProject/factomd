@@ -574,7 +574,6 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 		parcel.Trace("Connection.isValidParcel()-ParcelValid", "H")
 		return ParcelValid
 	}
-	return ParcelValid
 }
 func (c *Connection) handleParcelTypes(parcel Parcel) {
 	switch parcel.Header.Type {
