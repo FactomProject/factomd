@@ -214,7 +214,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	// We only check if we need updates once every so often.
 
-	if len(list.State.inMsgQueue) > 20 {
+	if len(list.State.inMsgQueue) > 1000 {
 		// If we are behind the curve in processing messages, dump all the dbstates from holding.
 		for k := range list.State.Holding {
 			if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
@@ -247,8 +247,8 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 		}
 	}
 
-	if end-begin > 200 {
-		end = begin + 200
+	if end-begin > 50 {
+		end = begin + 50
 	}
 
 	if end+3 > begin && justDoIt {

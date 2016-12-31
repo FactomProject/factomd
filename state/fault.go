@@ -509,6 +509,9 @@ func (s *State) DoReset() {
 	}
 
 	dbs := s.DBStates.DBStates[index]
+	if dbs == nil {
+		return
+	}
 	for {
 		if dbs == nil || dbs.DirectoryBlock == nil || dbs.AdminBlock == nil || dbs.FactoidBlock == nil || dbs.EntryCreditBlock == nil {
 			s.AddStatus(fmt.Sprintf("RESET: Reset Failed, no dbstate at %d", index))
