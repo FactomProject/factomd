@@ -206,7 +206,7 @@ func (s *State) ReviewHolding() {
 	if s.resendHolding == nil {
 		s.resendHolding = now
 	}
-	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 100 {
+	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
 		return
 	}
 	s.resendHolding = now
