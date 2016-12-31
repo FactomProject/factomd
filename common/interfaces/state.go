@@ -83,7 +83,7 @@ type IState interface {
 	// Follower's understanding of the Height, and reflects what block
 	// is receiving messages.
 	GetHighestKnownBlock() uint32
-	SetHighestKnownBlock(uint32)
+
 	// Find a Directory Block by height
 	GetDirectoryBlockByHeight(dbheight uint32) IDirectoryBlock
 	// Channels

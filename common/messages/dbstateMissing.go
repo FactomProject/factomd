@@ -104,7 +104,7 @@ func (m *DBStateMissing) LeaderExecute(state interfaces.IState) {
 // Only send the same block again after 15 seconds.
 func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 
-	send_response := true
+	send := true
 
 	now := state.GetTimestamp()
 	sents := state.GetDBStatesSent()
@@ -113,12 +113,12 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 	for _, v := range sents {
 		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 15 {
 			if v.DBHeight == dbheight {
-				send_response = false
+				send = false
 			}
 			keeps = append(keeps, v)
 		}
 	}
-	if send_response {
+	if send {
 		msg, err := state.LoadDBState(dbheight)
 		if msg != nil && err == nil {
 			msg.SetOrigin(m.GetOrigin())
@@ -147,11 +147,6 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if end-start > 200 {
 		end = start + 200
 	}
-
-	if end > state.GetHighestKnownBlock() {
-
-	}
-
 	for dbs := start; dbs <= end; dbs++ {
 		m.send(dbs, state)
 	}

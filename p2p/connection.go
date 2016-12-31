@@ -460,7 +460,7 @@ func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
 		var message Parcel
 		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
-		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline).Add(NetworkDeadline))
+		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 		err := c.decoder.Decode(&message)
 		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
 		switch {

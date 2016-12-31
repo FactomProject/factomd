@@ -1859,10 +1859,6 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	return s.HighestKnown
 }
 
-func (s *State) SetHighestKnownBlock(ht uint32){
-	s.HighestKnown = ht
-}
-
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {
 	ok := false
 	if rt {
