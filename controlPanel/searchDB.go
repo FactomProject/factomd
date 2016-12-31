@@ -7,7 +7,7 @@ import (
 	"github.com/FactomProject/btcutil/base58"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/wsapi"
+	//"github.com/FactomProject/factomd/wsapi"
 )
 
 type foundItemInterface interface {
@@ -154,25 +154,27 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 
 		st.UnlockDB()
 
+		// This search takes too long to make it worth it
 		// Search for Entry Transaction
-		ackReq := new(wsapi.AckRequest)
+		/*ackReq := new(wsapi.AckRequest)
 		ackReq.TxID = hash.String()
 		if entryAck, err := wsapi.HandleV2EntryACK(&st, ackReq); err == nil && entryAck != nil && len(entryAck.(*wsapi.EntryStatus).EntryHash) == 64 {
 			resp := newSearchResponse("entryack", nil)
 			if len(resp) > 1 {
 				return true, resp
 			}
-		}
+		}*/
 
+		// This search takes too long to make it worth it
 		// Search for Factoid Transaction
-		ackReq = new(wsapi.AckRequest)
+		/*ackReq = new(wsapi.AckRequest)
 		ackReq.TxID = hash.String()
 		if factoidAck, err := wsapi.HandleV2FactoidACK(&st, ackReq); err == nil && factoidAck != nil && factoidAck.(*wsapi.FactoidTxStatus).BlockDate > 0 {
 			resp := newSearchResponse("factoidack", nil)
 			if len(resp) > 1 {
 				return true, resp
 			}
-		}
+		}*/
 
 	}
 
