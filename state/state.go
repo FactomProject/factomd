@@ -1789,7 +1789,7 @@ func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
-		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		id, _ := primitives.HexToHash("8888882690706d0d45d49538e64e7c76571d9a9b331256b5b69d9fd2d7f1f14a")
 		return id
 	case constants.NETWORK_TEST:
 		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
@@ -1798,7 +1798,7 @@ func (s *State) GetNetworkSkeletonIdentity() interfaces.IHash {
 		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
 		return id
 	case constants.NETWORK_CUSTOM:
-		id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
+		id, _ := primitives.HexToHash("88888816d408cd0d7b1b28760f3371a40e98dc2e985c28410e781935954afdf3")
 		return id
 	}
 	id, _ := primitives.HexToHash("8888888888888888888888888888888888888888888888888888888888888888")
