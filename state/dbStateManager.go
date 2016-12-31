@@ -643,10 +643,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 
-	if dbheight > 1 && list.State.EntryDBHeightComplete < uint32(dbheight)-1 {
-		return
-	}
-
 	if !d.Signed || !d.ReadyToSave {
 		return
 	}
