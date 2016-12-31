@@ -479,9 +479,9 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	***************************/
 	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
 		dbs := s.DBStates.Get(int(dbheight))
-		if dbs != nil && dbs.SaveStruct != nil {
+		if pdbstate.SaveStruct != nil {
 			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Reset to previous state before applying at ht %d", dbheight))
-			dbs.SaveStruct.TrimBack(s, dbs)
+			pdbstate.SaveStruct.TrimBack(s, dbs)
 		}
 	}
 
