@@ -232,7 +232,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	end := hk
 
 	ask := func() {
-		if hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
+		if list.TimeToAsk != nil && hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
 			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+10))
 
 			if msg != nil {
