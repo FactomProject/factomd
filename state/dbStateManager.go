@@ -85,13 +85,6 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if int(state.EntryBlockDBHeightComplete) < int(dbheight-1) {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0s Don't have all the Entries (ht: %d) we want dbht: %d",
-			state.EntryBlockDBHeightComplete,
-			dbheight))
-		return 0
-	}
-
 	// Get the keymr of the Previous DBState
 	pkeymr := d.DirectoryBlock.GetKeyMR()
 	// Get the Previous KeyMR pointer in the possible new Directory Block
@@ -221,7 +214,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	// We only check if we need updates once every so often.
 
-	if len(list.State.inMsgQueue) > 20 {
+	if len(list.State.inMsgQueue) > 1000 {
 		// If we are behind the curve in processing messages, dump all the dbstates from holding.
 		for k := range list.State.Holding {
 			if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
@@ -239,7 +232,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	end := hk
 
 	ask := func() {
-		if hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
+		if list.TimeToAsk != nil && hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
 			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+10))
 
 			if msg != nil {
@@ -254,8 +247,8 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 		}
 	}
 
-	if end-begin > 200 {
-		end = begin + 200
+	if end-begin > 50 {
+		end = begin + 50
 	}
 
 	if end+3 > begin && justDoIt {
@@ -650,7 +643,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 
-
 	if !d.Signed || !d.ReadyToSave {
 		return
 	}
@@ -688,6 +680,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
+	pl := list.State.ProcessLists.Get(uint32(dbheight))
+
 	if len(d.EntryBlocks) > 0 {
 		for _, eb := range d.EntryBlocks {
 			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
@@ -699,22 +693,26 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(err.Error())
 			}
 		}
-	} else {
-		pl := list.State.ProcessLists.Get(d.DirectoryBlock.GetHeader().GetDBHeight())
-		if pl != nil {
-			for _, eb := range pl.NewEBlocks {
-				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-					panic(err.Error())
-				}
+	}
 
-				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
-						panic(err.Error())
-					}
+	if pl != nil {
+		for _, eb := range pl.NewEBlocks {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+				panic(err.Error())
+			}
+
+			for _, e := range eb.GetBody().GetEBEntries() {
+				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+					panic(err.Error())
 				}
 			}
 		}
+		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+		pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 	}
+
+	d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
+	d.Entries = make([]interfaces.IEBEntry, 0)
 
 	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
 		panic(err.Error())

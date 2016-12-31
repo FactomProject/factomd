@@ -187,7 +187,6 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	ss.EntryBlockDBHeightComplete = state.EntryDBHeightComplete
 	ss.EntryDBHeightComplete = state.EntryDBHeightComplete
-	ss.EntryHeightComplete = state.EntryHeightComplete
 	ss.EntryDBHeightProcessing = state.EntryBlockDBHeightProcessing
 	ss.MissingEntries = append(ss.MissingEntries, state.MissingEntries...)
 
@@ -444,7 +443,6 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 
 	state.EntryBlockDBHeightComplete = ss.EntryDBHeightComplete
 	state.EntryDBHeightComplete = ss.EntryDBHeightComplete
-	state.EntryHeightComplete = ss.EntryHeightComplete
 	state.EntryDBHeightProcessing = ss.EntryBlockDBHeightProcessing
 	state.MissingEntries = append(state.MissingEntries[:0], ss.MissingEntries...)
 
