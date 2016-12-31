@@ -432,6 +432,14 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	verbose(c.peer.PeerIdent(), "sendParcel() Sanity check. State: %s Encoder: %+v, Parcel: %s", c.ConnectionState(), c.encoder, parcel.MessageType())
 	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
+
+	//deadline := time.Now().Add(NetworkDeadline)
+	//if len(parcel.Payload) > 1000*10 {
+	//	ms := (len(parcel.Payload) * NetworkDeadline.Seconds())/1000
+	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
+	//}
+	//c.conn.SetWriteDeadline(deadline)
+
 	parcel.Trace("Connection.sendParcel().encoder.Encode(parcel)", "f")
 	err := c.encoder.Encode(parcel)
 	switch {
@@ -452,7 +460,7 @@ func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
 		var message Parcel
 		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
-		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
+		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline).Add(NetworkDeadline))
 		err := c.decoder.Decode(&message)
 		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
 		switch {
