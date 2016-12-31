@@ -955,7 +955,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintf("%2d DBState            nil\n", i))
 					} else {
 						os.Stderr.WriteString(fmt.Sprintf("%2d DBState                          Eht: [%5d] IsNew[%5v]  ReadyToSave [%5v] Locked [%5v] Signed [%5v] Saved [%5v]\n%v", i,
-							s.EntryHeightComplete,
+							s.EntryDBHeightComplete,
 							dbs.IsNew,
 							dbs.ReadyToSave,
 							dbs.Locked,

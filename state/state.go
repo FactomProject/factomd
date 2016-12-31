@@ -282,8 +282,6 @@ type State struct {
 	MissingEntryRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryDBHeightComplete uint32
-	// Height in the DBlock where we have all the entries
-	EntryHeightComplete int
 	// DBlock Height at which we have started asking for or have all entries
 	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have

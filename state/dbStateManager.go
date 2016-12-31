@@ -85,13 +85,6 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if int(state.EntryBlockDBHeightComplete) < int(dbheight-1) {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0s Don't have all the Entries (ht: %d) we want dbht: %d",
-			state.EntryBlockDBHeightComplete,
-			dbheight))
-		return 0
-	}
-
 	// Get the keymr of the Previous DBState
 	pkeymr := d.DirectoryBlock.GetKeyMR()
 	// Get the Previous KeyMR pointer in the possible new Directory Block
