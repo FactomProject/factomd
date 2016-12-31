@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/gob"
 	"fmt"
@@ -25,8 +26,6 @@ type Connection struct {
 	SendChannel    chan interface{} // Send means "towards the network" Channel sends Parcels and ConnectionCommands
 	ReceiveChannel chan interface{} // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
 	// and as "address" for sending messages to specific nodes.
-	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
-	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int               // reconnection attempts
 	timeLastAttempt time.Time         // time of last attempt to connect via dial
@@ -344,8 +343,6 @@ func (c *Connection) goOnline() {
 	debug(c.peer.PeerIdent(), "Connection.goOnline() called.")
 	c.state = ConnectionOnline
 	now := time.Now()
-	c.encoder = gob.NewEncoder(c.conn)
-	c.decoder = gob.NewDecoder(c.conn)
 	c.attempts = 0
 	c.timeLastPing = now
 	c.timeLastAttempt = now
@@ -372,8 +369,6 @@ func (c *Connection) goShutdown() {
 	if nil != c.conn {
 		defer c.conn.Close()
 	}
-	c.decoder = nil
-	c.encoder = nil
 	c.state = ConnectionShuttingDown
 }
 
@@ -430,25 +425,45 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 func (c *Connection) sendParcel(parcel Parcel) {
 	debug(c.peer.PeerIdent(), "sendParcel() sending message to network of type: %s", parcel.MessageType())
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-	verbose(c.peer.PeerIdent(), "sendParcel() Sanity check. State: %s Encoder: %+v, Parcel: %s", c.ConnectionState(), c.encoder, parcel.MessageType())
+	verbose(c.peer.PeerIdent(), "sendParcel() Sanity check. State: %s Parcel: %s", c.ConnectionState(), parcel.MessageType())
 	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
 
-	//deadline := time.Now().Add(NetworkDeadline)
-	//if len(parcel.Payload) > 1000*10 {
-	//	ms := (len(parcel.Payload) * NetworkDeadline.Seconds())/1000
-	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
-	//}
-	//c.conn.SetWriteDeadline(deadline)
+	// encode the full parcel to a temporary buffer
+	var encoded bytes.Buffer
+	encoder := gob.NewEncoder(&encoded)
+	err := encoder.Encode(parcel)
 
-	parcel.Trace("Connection.sendParcel().encoder.Encode(parcel)", "f")
-	err := c.encoder.Encode(parcel)
-	switch {
-	case nil == err:
-		c.metrics.BytesSent += parcel.Header.Length
-		c.metrics.MessagesSent += 1
-	default:
-		c.handleNetErrors(err)
+	if nil != err {
+		significant(c.peer.PeerIdent(), "sendParcel() State: %s Error when encoding a parcel: %+v", c.ConnectionState(), err)
+		c.setNotes(fmt.Sprintf("sendParcel() Unhandled error: %+v", err))
+		c.goOffline()
+		return
 	}
+
+	// sent the buffer contents to the socket in chunks, setting the
+	// write deadline on each chunk
+	bytesToSend := encoded.Bytes()
+	for start := 0; start < len(bytesToSend); start += NetworkWriteBufferSize {
+		end := min(start+NetworkWriteBufferSize, len(bytesToSend))
+
+		c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
+		_, err = c.conn.Write(bytesToSend[start:end])
+
+		if nil != err {
+			c.handleWriteErrors(err)
+			return
+		}
+	}
+
+	c.metrics.BytesSent += parcel.Header.Length
+	c.metrics.MessagesSent += 1
+}
+
+func min(x, y int) int {
+	if x > y {
+		return y
+	}
+	return x
 }
 
 // processReceives is called as part of runloop. This is essentially an infinite loop that exits
@@ -460,30 +475,59 @@ func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
 		var message Parcel
 		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
+
+		var bufReader = bufio.NewReaderSize(c.conn, NetworkReadBufferSize)
+		decoder := gob.NewDecoder(bufReader)
+
 		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
-		err := c.decoder.Decode(&message)
-		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
-		switch {
-		case nil == err:
-			debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
-			c.metrics.BytesReceived += message.Header.Length
-			c.metrics.MessagesReceived += 1
-			message.Header.PeerAddress = c.peer.Address
-			c.handleParcel(message)
-		default:
-			c.handleNetErrors(err)
+		err := decoder.Decode(&message)
+
+		if err != nil {
+			c.handleReadErrors(err)
 			return
 		}
+
+		debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
+		c.metrics.BytesReceived += message.Header.Length
+		c.metrics.MessagesReceived += 1
+		message.Header.PeerAddress = c.peer.Address
+		c.handleParcel(message)
 	}
 }
 
-//handleNetErrors Reacts to errors we get from encoder or decoder
-func (c *Connection) handleNetErrors(err error) {
+func (c *Connection) handleReadErrors(err error) {
+	if err == io.EOF {
+		note(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s ignoring EOF: %+v", c.ConnectionState(), err)
+		return
+	}
+	err = c.handleNetErrors(err)
+	if err == nil {
+		return
+	}
+
+	// an error here might indicate that there were some bad data on the connection
+	// log the error and continue
+	note(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got error when reading from connection: %+v", c.ConnectionState(), err)
+}
+
+func (c *Connection) handleWriteErrors(err error) {
+	if c.handleNetErrors(err) == nil {
+		return
+	}
+
+	significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
+	c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
+	c.goOffline()
+}
+
+// handleNetErrors Reacts to errors we get from encoder or decoder
+// if error is unknown, returns it
+func (c *Connection) handleNetErrors(err error) error {
 	nerr, isNetError := err.(net.Error)
 	verbose(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got error: %+v", c.ConnectionState(), err)
 	switch {
 	case isNetError && nerr.Timeout(): /// buffer empty
-		return
+		return nil
 	case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
 		c.setNotes(fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr))
 		c.goOffline()
@@ -494,11 +538,9 @@ func (c *Connection) handleNetErrors(err error) {
 		c.setNotes(fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err))
 		c.goOffline()
 	default:
-		significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
-		c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
-		c.goOffline()
+		return err
 	}
-
+	return nil
 }
 
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
