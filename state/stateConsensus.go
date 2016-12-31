@@ -209,6 +209,9 @@ func (s *State) ReviewHolding() {
 	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
 		return
 	}
+
+	s.DB.Trim()
+
 	s.resendHolding = now
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
