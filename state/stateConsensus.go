@@ -1264,10 +1264,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
 			if s.Leader {
-				dbstate2 := s.DBStates.Get(int(s.LLeaderHeight - 1))
-				if dbstate2 != nil {
-					dbstate = dbstate2
-				}
+				// dbstate is already set.
 				dbs := new(messages.DirectoryBlockSignature)
 				db := dbstate.DirectoryBlock
 				dbs.DirectoryBlockHeader = db.GetHeader()
