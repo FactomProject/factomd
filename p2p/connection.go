@@ -638,6 +638,9 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 
 func (c *Connection) tryReassemblingParcelParts() {
 	// check if we have all the parts
+	if c.parts == nil {
+		return
+	}
 	for _, part := range c.parts {
 		if part == nil {
 			return

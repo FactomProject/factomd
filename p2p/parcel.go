@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"bytes"
 	"fmt"
 	"hash/crc32"
 	"strconv"
@@ -77,8 +78,14 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 }
 
 func ReassembleParcel(parcels []*Parcel) *Parcel {
-	// TODO
-	return nil
+	var payload bytes.Buffer
+
+	for _, parcel := range parcels {
+		payload.Write(parcel.Payload)
+	}
+
+	network := parcels[0].Header.Network
+	return NewParcel(network, payload.Bytes())
 }
 
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
