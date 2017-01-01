@@ -177,15 +177,15 @@ func (p *Parcel) PrintMessageType() {
 func (p *Parcel) String() string {
 	var output string
 	s := strconv.Quote(string(p.Payload))
-	fmt.Sprintf(output, "%s\t Network:\t%+v\n", output, p.Header.Network.String())
-	fmt.Sprintf(output, "%s\t Version:\t%+v\n", output, p.Header.Version)
-	fmt.Sprintf(output, "%s\t Type:   \t%+v\n", output, CommandStrings[p.Header.Type])
-	fmt.Sprintf(output, "%s\t Length:\t%d\n", output, p.Header.Length)
-	fmt.Sprintf(output, "%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
-	fmt.Sprintf(output, "%s\t CRC32:\t%d\n", output, p.Header.Crc32)
-	fmt.Sprintf(output, "%s\t PartNo:\t%d\n", output, p.Header.PartNo)
-	fmt.Sprintf(output, "%s\t PartsTotal:\t%d\n", output, p.Header.PartsTotal)
-	fmt.Sprintf(output, "%s\t NodeID:\t%d\n", output, p.Header.NodeID)
-	fmt.Sprintf(output, "%s\t Payload: %s\n", output, s)
+	output = fmt.Sprintf("%s\t Network:\t%+v\n", output, p.Header.Network.String())
+	output = fmt.Sprintf("%s\t Version:\t%+v\n", output, p.Header.Version)
+	output = fmt.Sprintf("%s\t Type:   \t%+v\n", output, CommandStrings[p.Header.Type])
+	output = fmt.Sprintf("%s\t Length:\t%d\n", output, p.Header.Length)
+	output = fmt.Sprintf("%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
+	output = fmt.Sprintf("%s\t CRC32:\t%d\n", output, p.Header.Crc32)
+	output = fmt.Sprintf("%s\t PartNo:\t%d\n", output, p.Header.PartNo)
+	output = fmt.Sprintf("%s\t PartsTotal:\t%d\n", output, p.Header.PartsTotal)
+	output = fmt.Sprintf("%s\t NodeID:\t%d\n", output, p.Header.NodeID)
+	output = fmt.Sprintf("%s\t Payload: %s\n", output, s)
 	return output
 }
