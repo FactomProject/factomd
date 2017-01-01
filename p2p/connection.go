@@ -39,6 +39,7 @@ type Connection struct {
 	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
+	parts           []Parcel          // If we are in the middle of receiving a multipart parcel, partial data will be stored here
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -612,6 +613,16 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
+	case TypeMessagePart:
+		parcel.Trace("Connection.handleParcelTypes()-TypeMessagePart", "J")
+		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessagePart. Message is a: %s", parcel.MessageType())
+		parcel.Header.TargetPeer = c.peer.Hash
+		parcel.Header.NodeID = NodeID
+		if len(c.parts) == 0 {
+			c.parts = make([]Parcel, parcel.Header.PartsTotal)
+		}
+		c.parts[parcel.Header.PartNo] = parcel
+		// c.tryReassemblingParcelParts()
 	default:
 		parcel.Trace("Connection.handleParcelTypes()-unknown", "J")
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
