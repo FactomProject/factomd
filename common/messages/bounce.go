@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"strings"
 	"time"
+	"math/rand"
 )
 
 type Bounce struct {
@@ -23,10 +24,18 @@ type Bounce struct {
 	Number    int32
 	Timestamp interfaces.Timestamp
 	Stamps    []interfaces.Timestamp
+	Data      [] byte
 	size      int
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
+
+func (m *Bounce) AddData(dataSize int){
+	m.Data = make([]byte,dataSize)
+	for i,_ := range m.Data {
+		m.Data[i] = byte(rand.Int())
+	}
+}
 
 func (m *Bounce) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -146,6 +155,13 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 		m.Stamps = append(m.Stamps, ts)
 	}
+
+	lenData, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	m.Data = make([]byte,lenData)
+	copy(m.Data,newData)
+	newData = newData[lenData:]
+
 	return
 }
 
@@ -182,6 +198,9 @@ func (m *Bounce) MarshalForSignature() ([]byte, error) {
 		}
 		buf.Write(data)
 	}
+
+	binary.Write(&buf, binary.BigEndian, int32(len(m.Data)))
+	buf.Write(m.Data)
 
 	return buf.DeepCopyBytes(), nil
 }

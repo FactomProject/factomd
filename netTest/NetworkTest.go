@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"os"
 )
 
 var p2pProxy *engine.P2PProxy
@@ -35,6 +36,7 @@ var name string
 var isp2p bool
 var numStamps int
 var numReplies int
+var size int
 
 func InitNetwork() {
 
@@ -49,6 +51,8 @@ func InitNetwork() {
 	p2pPtr := flag.Bool("p2p", false, "Test p2p messages (default to false)")
 	numStampsPtr := flag.Int("numstamps", 1, "Number of timestamps per reply on p2p test. (makes messages big)")
 	numReplysPtr := flag.Int("numreplies", 1, "Number of replies to any request")
+	sizePtr := flag.Int("size", 0, "size.  We will add a payload of random data of this many K.")
+
 	flag.Parse()
 
 	numReplies = *numReplysPtr
@@ -60,6 +64,24 @@ func InitNetwork() {
 	exclusive := *exclusivePtr
 	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
 	isp2p = *p2pPtr
+	size = *sizePtr*1024
+
+
+	os.Stderr.WriteString("\nnetTest is a standalone program that generates factomd messages (bounce and bounceResponse)\n ")
+	os.Stderr.WriteString("        and sends them to other nodes on the network.  This allows testing of the network\n ")
+	os.Stderr.WriteString("        without running all of factomd.  Note you can control the size of messages and other\n ")
+	os.Stderr.WriteString("        variables like the deadline used in the network, and p2p testing.\n\n")
+
+	os.Stderr.WriteString("Settings\n")
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n","name",name))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n","networkPort",port))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n","peers",peers))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %d\n","netdebug",netdebug))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n","exclusive",exclusive))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %d\n","deadline",p2p.NetworkDeadline.Seconds()))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n","p2p",isp2p))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n","size", size))
+
 
 	old = make(map[[32]byte]interfaces.IMsg, 0)
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
@@ -194,6 +216,7 @@ func main() {
 		bounce.Number = cntreq
 		cntreq++
 		bounce.Name = name
+		bounce.AddData(size)
 		bounce.Timestamp = primitives.NewTimestampNow()
 		bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
 		if isp2p {
