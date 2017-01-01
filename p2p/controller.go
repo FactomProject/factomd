@@ -507,11 +507,13 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		parcel.Trace("Controller.handleParcelReceive()-TypePeerRequest", "L")
 		dot("&&n\n")
 		// Get selection of peers from discovery
-		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
-		response.Header.Type = TypePeerResponse
-		// Send them out to the network - on the connection that requested it!
-		debug("ctrlr", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
-		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: *response})
+		parcels := ParcelsForPayload(CurrentNetwork, c.discovery.SharePeers())
+		for _, parcel := range parcels {
+			parcel.Header.Type = TypePeerResponse
+			// Send them out to the network - on the connection that requested it!
+			debug("ctrlr", "Controller.route() sent the SharePeers response: %+v", parcel.MessageType())
+			BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+		}
 	case TypePeerResponse:
 		parcel.Trace("Controller.handleParcelReceive()-TypePeerResponse", "L")
 		dot("&&o\n")

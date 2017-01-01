@@ -68,6 +68,10 @@ var CommandStrings = map[ParcelCommandType]string{
 const MaxPayloadSize = (1024 * 512) // 512KB
 
 func NewParcel(network NetworkID, payload []byte) *Parcel {
+	if len(payload) > MaxPayloadSize {
+		panic(fmt.Sprintf("Parcel size %d exceeded max payload size %d", len(payload), MaxPayloadSize))
+	}
+
 	header := new(ParcelHeader).Init(network)
 	header.AppHash = "NetworkMessage"
 	header.AppType = "Network"
@@ -75,6 +79,26 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	parcel.Payload = payload
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
+}
+
+func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
+	parcelCount := (len(payload) / MaxPayloadSize) + 1
+	parcels := make([]Parcel, parcelCount)
+
+	for i := 0; i < parcelCount; i++ {
+		start := i * MaxPayloadSize
+		next := (i + 1) * MaxPayloadSize
+		var end int
+		if next < len(payload) {
+			end = next
+		} else {
+			end = len(payload)
+		}
+		parcel := NewParcel(network, payload[start:end])
+		parcels[i] = *parcel
+	}
+
+	return parcels
 }
 
 func ReassembleParcel(parcels []*Parcel) *Parcel {
