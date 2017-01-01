@@ -65,7 +65,7 @@ var CommandStrings = map[ParcelCommandType]string{
 }
 
 // MaxPayloadSize is the maximum bytes a message can be at the networking level.
-const MaxPayloadSize = (1024 * 512) // 512KB
+const MaxPayloadSize = 1024
 
 func NewParcel(network NetworkID, payload []byte) *Parcel {
 	if len(payload) > MaxPayloadSize {
