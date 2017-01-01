@@ -76,6 +76,11 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	return parcel
 }
 
+func ReassembleParcel(parcels []*Parcel) *Parcel {
+	// TODO
+	return nil
+}
+
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
 	p.Network = network
 	p.Version = ProtocolVersion
