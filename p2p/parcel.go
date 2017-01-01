@@ -19,7 +19,7 @@ type Parcel struct {
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
-const ParcelHeaderSize = 28
+const ParcelHeaderSize = 32
 
 type ParcelHeader struct {
 	Network     NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
@@ -28,12 +28,13 @@ type ParcelHeader struct {
 	Length      uint32            // 4 bytes - length of the payload (that follows this header) in bytes
 	TargetPeer  string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
 	Crc32       uint32            // 4 bytes - data integrity hash (of the payload itself.)
+	PartNo      uint16            // 2 bytes - in case of multipart parcels, indicates which part this corresponds to, otherwise should be 0
+	PartsTotal  uint16            // 2 bytes - in case of multipart parcels, indicates the total number of parts that the receiver should expect
 	NodeID      uint64
 	PeerAddress string // address of the peer set by connection to know who sent message (for tracking source of other peers)
 	PeerPort    string // port of the peer , or we are listening on
 	AppHash     string // Application specific message hash, for tracing
 	AppType     string // Application specific message type, for tracing
-
 }
 
 type ParcelCommandType uint16
@@ -47,6 +48,7 @@ const ( // iota is reset to 0
 	TypePeerResponse                          // "Here's some peers I know about."
 	TypeAlert                                 // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage                               // Application level message
+	TypeMessagePart                           // Application level message that was split into multiple parts
 )
 
 // CommandStrings is a Map of command ids to strings for easy printing of network comands
@@ -58,6 +60,7 @@ var CommandStrings = map[ParcelCommandType]string{
 	TypePeerResponse: "Peer-Response", // "Here's some peers I know about."
 	TypeAlert:        "Alert",         // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage:      "Message",       // Application level message
+	TypeMessagePart:  "MessagePart",   // Application level message that was split into multiple parts
 }
 
 // MaxPayloadSize is the maximum bytes a message can be at the networking level.
@@ -134,6 +137,8 @@ func (p *Parcel) String() string {
 	fmt.Sprintf(output, "%s\t Length:\t%d\n", output, p.Header.Length)
 	fmt.Sprintf(output, "%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
 	fmt.Sprintf(output, "%s\t CRC32:\t%d\n", output, p.Header.Crc32)
+	fmt.Sprintf(output, "%s\t PartNo:\t%d\n", output, p.Header.PartNo)
+	fmt.Sprintf(output, "%s\t PartsTotal:\t%d\n", output, p.Header.PartsTotal)
 	fmt.Sprintf(output, "%s\t NodeID:\t%d\n", output, p.Header.NodeID)
 	fmt.Sprintf(output, "%s\t Payload: %s\n", output, s)
 	return output
