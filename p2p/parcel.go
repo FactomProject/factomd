@@ -99,18 +99,27 @@ func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
 		parcels[i] = *parcel
 	}
 
+	for parcelIdx, parcelChunk := range parcels {
+		fmt.Printf("PARCEL (OUT) (%d): %s\n", parcelIdx, parcelChunk.String())
+	}
+
 	return parcels
 }
 
 func ReassembleParcel(parcels []*Parcel) *Parcel {
 	var payload bytes.Buffer
 
-	for _, parcel := range parcels {
+	for parcelIdx, parcel := range parcels {
 		payload.Write(parcel.Payload)
+		fmt.Printf("PARCEL (IN) (%d): %s\n", parcelIdx, parcel.String())
 	}
 
 	network := parcels[0].Header.Network
-	return NewParcel(network, payload.Bytes())
+	result := NewParcel(network, payload.Bytes())
+
+	fmt.Printf("PARCEL (REASSEMBLED): %s\n", result.String())
+
+	return result
 }
 
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
