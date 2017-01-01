@@ -15,8 +15,8 @@ import (
 
 var AnchorBlockID string = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
 var AnchorSigKeys []string = []string{
-	"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a",
-	"547d837160766b9ca47e689e52ed55fdc05cb3430ad2328dcc431083db083ee6", //Testing
+	"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a", //m1 key
+	"d569419348ed7056ec2ba54f0ecd9eea02648b260b26e0474f8c07fe9ac6bf83", //m2 key
 }
 var AnchorSigPublicKeys []interfaces.Verifier
 
