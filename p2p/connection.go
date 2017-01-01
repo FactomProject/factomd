@@ -443,8 +443,12 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	// sent the buffer contents to the socket in chunks, setting the
 	// write deadline on each chunk
 	bytesToSend := encoded.Bytes()
+
+	significant(c.peer.PeerIdent(), "bytesToSend %x", bytesToSend)
+
 	for start := 0; start < len(bytesToSend); start += NetworkWriteBufferSize {
 		end := min(start+NetworkWriteBufferSize, len(bytesToSend))
+		significant(c.peer.PeerIdent(), "sending bytes from %d to %d %x", start, end, bytesToSend[start:end])
 
 		c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
 		_, err = c.conn.Write(bytesToSend[start:end])
@@ -477,6 +481,10 @@ func (c *Connection) processReceives() {
 		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
 
 		var bufReader = bufio.NewReaderSize(c.conn, NetworkReadBufferSize)
+
+		b, _ := bufReader.Peek(2048)
+		significant(c.peer.PeerIdent(), "processReceives() received data, first 2kB: %x", b)
+
 		decoder := gob.NewDecoder(bufReader)
 
 		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
