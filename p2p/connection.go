@@ -509,9 +509,6 @@ func (c *Connection) handleNetErrors(err error) {
 func (c *Connection) handleParcel(parcel Parcel) {
 	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
-	if parcel.Header.Type == TypeMessagePart {
-		fmt.Printf("PARCEL REC'D WITH VALIDITY: %d\n PARC: %s\n", validity, parcel.String())
-	}
 	switch validity {
 	case InvalidDisconnectPeer:
 		parcel.Trace("Connection.handleParcel()-InvalidDisconnectPeer", "I")
@@ -640,7 +637,6 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 }
 
 func (c *Connection) tryReassemblingParcelParts() {
-	fmt.Printf("TRY REASSEMBLING PARCEL PARTS\n")
 	// check if we have all the parts
 	if c.parts == nil {
 		return
@@ -650,8 +646,6 @@ func (c *Connection) tryReassemblingParcelParts() {
 			return
 		}
 	}
-
-	fmt.Printf("TRY REASSEMBLING PARCEL PARTS (ALL RECEIVED)\n")
 
 	// create a single parcel from the parts
 	parcel := ReassembleParcel(c.parts)
