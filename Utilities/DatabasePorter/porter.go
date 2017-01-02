@@ -371,6 +371,9 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 	HashMap = map[string]string{}
 
 	for {
+		if prevD.GetDatabaseHeight()%1000 == 0 {
+			fmt.Printf(" Checking block %v\n", prevD.GetDatabaseHeight())
+		}
 		CheckDBlockEntries(prevD, dbo)
 		HashMap[prevD.DatabasePrimaryIndex().String()] = "OK"
 
@@ -403,6 +406,9 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		if prevEC.GetDatabaseHeight()%1000 == 0 {
+			fmt.Printf(" Checking block %v\n", prevEC.GetDatabaseHeight())
+		}
 		HashMap[prevEC.DatabasePrimaryIndex().String()] = "OK"
 		if prevEC.GetHeader().GetPrevHeaderHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
@@ -433,6 +439,9 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		if prevF.GetDatabaseHeight()%1000 == 0 {
+			fmt.Printf(" Checking block %v\n", prevF.GetDatabaseHeight())
+		}
 		HashMap[prevF.DatabasePrimaryIndex().String()] = "OK"
 		if prevF.GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
@@ -463,6 +472,9 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 		panic(err)
 	}
 	for {
+		if prevA.GetDatabaseHeight()%1000 == 0 {
+			fmt.Printf(" Checking block %v\n", prevA.GetDatabaseHeight())
+		}
 		HashMap[prevA.DatabasePrimaryIndex().String()] = "OK"
 		if prevA.GetHeader().GetPrevBackRefHash().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 			break
