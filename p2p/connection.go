@@ -509,6 +509,9 @@ func (c *Connection) handleNetErrors(err error) {
 func (c *Connection) handleParcel(parcel Parcel) {
 	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
+	if parcel.Header.Type == TypeMessagePart {
+		fmt.Printf("PARCEL REC'D WITH VALIDITY: %d\n PARC: %s\n", validity, parcel.String())
+	}
 	switch validity {
 	case InvalidDisconnectPeer:
 		parcel.Trace("Connection.handleParcel()-InvalidDisconnectPeer", "I")

@@ -503,6 +503,11 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		dot("&&m\n")
 		ApplicationMessagesRecieved++
 		BlockFreeChannelSend(c.FromNetwork, parcel)
+	case TypeMessagePart: // Application message, send it on.
+		parcel.Trace("Controller.handleParcelReceive()-TypeMessage", "L")
+		dot("&&m\n")
+		ApplicationMessagesRecieved++
+		BlockFreeChannelSend(c.FromNetwork, parcel)
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
 		parcel.Trace("Controller.handleParcelReceive()-TypePeerRequest", "L")
 		dot("&&n\n")
