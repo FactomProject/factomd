@@ -285,7 +285,9 @@ func (f *P2PProxy) ManageOutChannel() {
 			// Wrap it in a parcel and send it out channel ToNetwork.
 			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
 			for _, parcel := range parcels {
-				parcel.Header.Type = p2p.TypeMessage
+				if parcel.Header.Type != p2p.TypeMessagePart {
+					parcel.Header.Type = p2p.TypeMessage
+				}
 				parcel.Header.TargetPeer = fmessage.PeerHash
 				parcel.Header.AppHash = fmessage.AppHash
 				parcel.Header.AppType = fmessage.AppType
