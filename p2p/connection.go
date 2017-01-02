@@ -39,6 +39,7 @@ type Connection struct {
 	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
+	parts           []*Parcel         // If we are in the middle of receiving a multipart parcel, partial data will be stored here
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -363,6 +364,7 @@ func (c *Connection) goOffline() {
 	debug(c.peer.PeerIdent(), "Connection.goOffline()")
 	c.state = ConnectionOffline
 	c.attempts = 0
+	c.parts = nil
 	c.peer.demerit()
 }
 
@@ -374,6 +376,7 @@ func (c *Connection) goShutdown() {
 	}
 	c.decoder = nil
 	c.encoder = nil
+	c.parts = nil
 	c.state = ConnectionShuttingDown
 }
 
@@ -570,11 +573,15 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 		parcel.Trace("Connection.isValidParcel()-checksum", "H")
 		significant(c.peer.PeerIdent(), "Connection.isValidParcel(), failed due to bad checksum: %+v", parcel.Header)
 		return InvalidPeerDemerit
+	case parcel.Header.Type != TypeMessagePart && len(c.parts) != 0:
+		parcel.Trace("Connection.isValidParcel()-expected_next_part", "H")
+		note(c.peer.PeerIdent(), "Connection.isValidParcel(), expected next part, dropping existing parts, got: %+v", parcel.Header)
+		c.parts = nil
+		return ParcelValid
 	default:
 		parcel.Trace("Connection.isValidParcel()-ParcelValid", "H")
 		return ParcelValid
 	}
-	return ParcelValid
 }
 func (c *Connection) handleParcelTypes(parcel Parcel) {
 	switch parcel.Header.Type {
@@ -612,11 +619,37 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
+	case TypeMessagePart:
+		parcel.Trace("Connection.handleParcelTypes()-TypeMessagePart", "J")
+		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessagePart. Message is a: %s", parcel.MessageType())
+		parcel.Header.TargetPeer = c.peer.Hash
+		parcel.Header.NodeID = NodeID
+		if len(c.parts) == 0 {
+			c.parts = make([]*Parcel, parcel.Header.PartsTotal)
+		}
+		c.parts[parcel.Header.PartNo] = &parcel
+		c.tryReassemblingParcelParts()
 	default:
 		parcel.Trace("Connection.handleParcelTypes()-unknown", "J")
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
 		parcel.Print()
 	}
+}
+
+func (c *Connection) tryReassemblingParcelParts() {
+	// check if we have all the parts
+	if c.parts == nil {
+		return
+	}
+	for _, part := range c.parts {
+		if part == nil {
+			return
+		}
+	}
+
+	// create a single parcel from the parts
+	parcel := ReassembleParcel(c.parts)
+	c.handleParcel(*parcel)
 }
 
 func (c *Connection) pingPeer() {

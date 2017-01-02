@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"bytes"
 	"fmt"
 	"hash/crc32"
 	"strconv"
@@ -19,7 +20,7 @@ type Parcel struct {
 }
 
 // ParcelHeaderSize is the number of bytes in a parcel header
-const ParcelHeaderSize = 28
+const ParcelHeaderSize = 32
 
 type ParcelHeader struct {
 	Network     NetworkID         // 4 bytes - the network we are on (eg testnet, main net, etc.)
@@ -28,12 +29,13 @@ type ParcelHeader struct {
 	Length      uint32            // 4 bytes - length of the payload (that follows this header) in bytes
 	TargetPeer  string            // ? bytes - "" or nil for broadcast, otherwise the destination peer's hash.
 	Crc32       uint32            // 4 bytes - data integrity hash (of the payload itself.)
+	PartNo      uint16            // 2 bytes - in case of multipart parcels, indicates which part this corresponds to, otherwise should be 0
+	PartsTotal  uint16            // 2 bytes - in case of multipart parcels, indicates the total number of parts that the receiver should expect
 	NodeID      uint64
 	PeerAddress string // address of the peer set by connection to know who sent message (for tracking source of other peers)
 	PeerPort    string // port of the peer , or we are listening on
 	AppHash     string // Application specific message hash, for tracing
 	AppType     string // Application specific message type, for tracing
-
 }
 
 type ParcelCommandType uint16
@@ -47,6 +49,7 @@ const ( // iota is reset to 0
 	TypePeerResponse                          // "Here's some peers I know about."
 	TypeAlert                                 // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage                               // Application level message
+	TypeMessagePart                           // Application level message that was split into multiple parts
 )
 
 // CommandStrings is a Map of command ids to strings for easy printing of network comands
@@ -58,10 +61,11 @@ var CommandStrings = map[ParcelCommandType]string{
 	TypePeerResponse: "Peer-Response", // "Here's some peers I know about."
 	TypeAlert:        "Alert",         // network wide alerts (used in bitcoin to indicate criticalities)
 	TypeMessage:      "Message",       // Application level message
+	TypeMessagePart:  "MessagePart",   // Application level message that was split into multiple parts
 }
 
 // MaxPayloadSize is the maximum bytes a message can be at the networking level.
-const MaxPayloadSize = (1024 * 512) // 512KB
+const MaxPayloadSize = 1024
 
 func NewParcel(network NetworkID, payload []byte) *Parcel {
 	header := new(ParcelHeader).Init(network)
@@ -71,6 +75,42 @@ func NewParcel(network NetworkID, payload []byte) *Parcel {
 	parcel.Payload = payload
 	parcel.UpdateHeader() // Updates the header with info about payload.
 	return parcel
+}
+
+func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
+	parcelCount := (len(payload) / MaxPayloadSize) + 1
+	parcels := make([]Parcel, parcelCount)
+
+	for i := 0; i < parcelCount; i++ {
+		start := i * MaxPayloadSize
+		next := (i + 1) * MaxPayloadSize
+		var end int
+		if next < len(payload) {
+			end = next
+		} else {
+			end = len(payload)
+		}
+		parcel := NewParcel(network, payload[start:end])
+		parcel.Header.Type = TypeMessagePart
+		parcel.Header.PartNo = uint16(i)
+		parcel.Header.PartsTotal = uint16(parcelCount)
+		parcels[i] = *parcel
+	}
+
+	return parcels
+}
+
+func ReassembleParcel(parcels []*Parcel) *Parcel {
+	var payload bytes.Buffer
+
+	for _, parcel := range parcels {
+		payload.Write(parcel.Payload)
+	}
+
+	network := parcels[0].Header.Network
+	result := NewParcel(network, payload.Bytes())
+
+	return result
 }
 
 func (p *ParcelHeader) Init(network NetworkID) *ParcelHeader {
@@ -128,13 +168,15 @@ func (p *Parcel) PrintMessageType() {
 func (p *Parcel) String() string {
 	var output string
 	s := strconv.Quote(string(p.Payload))
-	fmt.Sprintf(output, "%s\t Network:\t%+v\n", output, p.Header.Network.String())
-	fmt.Sprintf(output, "%s\t Version:\t%+v\n", output, p.Header.Version)
-	fmt.Sprintf(output, "%s\t Type:   \t%+v\n", output, CommandStrings[p.Header.Type])
-	fmt.Sprintf(output, "%s\t Length:\t%d\n", output, p.Header.Length)
-	fmt.Sprintf(output, "%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
-	fmt.Sprintf(output, "%s\t CRC32:\t%d\n", output, p.Header.Crc32)
-	fmt.Sprintf(output, "%s\t NodeID:\t%d\n", output, p.Header.NodeID)
-	fmt.Sprintf(output, "%s\t Payload: %s\n", output, s)
+	output = fmt.Sprintf("%s\t Network:\t%+v\n", output, p.Header.Network.String())
+	output = fmt.Sprintf("%s\t Version:\t%+v\n", output, p.Header.Version)
+	output = fmt.Sprintf("%s\t Type:   \t%+v\n", output, CommandStrings[p.Header.Type])
+	output = fmt.Sprintf("%s\t Length:\t%d\n", output, p.Header.Length)
+	output = fmt.Sprintf("%s\t TargetPeer:\t%s\n", output, p.Header.TargetPeer)
+	output = fmt.Sprintf("%s\t CRC32:\t%d\n", output, p.Header.Crc32)
+	output = fmt.Sprintf("%s\t PartNo:\t%d\n", output, p.Header.PartNo)
+	output = fmt.Sprintf("%s\t PartsTotal:\t%d\n", output, p.Header.PartsTotal)
+	output = fmt.Sprintf("%s\t NodeID:\t%d\n", output, p.Header.NodeID)
+	output = fmt.Sprintf("%s\t Payload: %s\n", output, s)
 	return output
 }
