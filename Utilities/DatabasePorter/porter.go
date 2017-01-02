@@ -55,7 +55,7 @@ func main() {
 	if !(*fast) {
 		fmt.Println("DatabasePorter")
 	} else {
-		fmt.Printf("DatabasePorter running in 'fast' mode. Will only check 1/%d entries below block %d for faster performance.\n", sampleRate, completedBlock)
+		fmt.Printf("DatabasePorter running in 'fast' mode. Will only check 1/%d entries below block %d for faster performance.\n", *sampleRate, *completedBlock)
 	}
 
 	cfg = util.ReadConfig("")
