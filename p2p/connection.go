@@ -623,7 +623,6 @@ func (c *Connection) handleParcelTypes(parcel Parcel) {
 		parcel.Trace("Connection.handleParcelTypes()-TypeMessagePart", "J")
 		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessagePart. Message is a: %s", parcel.MessageType())
 		parcel.Header.TargetPeer = c.peer.Hash
-		parcel.Header.NodeID = NodeID
 		if len(c.parts) == 0 {
 			c.parts = make([]*Parcel, parcel.Header.PartsTotal)
 		}
@@ -649,10 +648,10 @@ func (c *Connection) tryReassemblingParcelParts() {
 
 	// create a single parcel from the parts
 	parcel := ReassembleParcel(c.parts)
-	
+
 	// nuke the old parcel's parts
 	c.parts = nil
-	
+
 	c.handleParcel(*parcel)
 }
 
