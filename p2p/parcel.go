@@ -96,6 +96,7 @@ func ParcelsForPayload(network NetworkID, payload []byte) []Parcel {
 		}
 		parcel := NewParcel(network, payload[start:end])
 		parcel.Header.Type = TypeMessagePart
+		parcel.Header.PartNo = uint16(i)
 		parcels[i] = *parcel
 	}
 
