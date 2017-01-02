@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"sync"
 	"time"
@@ -43,7 +44,19 @@ func PrintoutLoop() {
 }
 
 func main() {
-	fmt.Println("DatabasePorter")
+	var (
+		fast           = flag.Bool("fast", false, "Do a random sampling for all blocks below the designated 'checkedUpTo' block")
+		completedBlock = flag.Int("completed", 0, "Will only do a random sampling of entries below 'completed' block if 'fast' enabled")
+
+		sampleRate = flag.Int("sampleRate", 10000, "Will sample 1/sampleRate entries below completedblock if fast enabled")
+	)
+	flag.Parse()
+
+	if !(*fast) {
+		fmt.Println("DatabasePorter")
+	} else {
+		fmt.Printf("DatabasePorter running in 'fast' mode. Will only check 1/%d entries below block %d for faster performance.\n", sampleRate, completedBlock)
+	}
 
 	cfg = util.ReadConfig("")
 
@@ -160,7 +173,7 @@ func main() {
 		break
 	}
 
-	CheckDatabaseForMissingEntries(dbo)
+	CheckDatabaseForMissingEntries(dbo, *fast, *completedBlock, *sampleRate)
 
 	if dbo != nil {
 		dbo.Close()
@@ -360,7 +373,7 @@ func SaveToDBLoop(input chan []BlockSet, done chan int) {
 
 var HashMap map[string]string
 
-func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
+func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay, fast bool, completed int, sampleRate int) {
 	fmt.Printf("\t\tIterating over DBlocks\n")
 
 	prevD, err := dbo.FetchDBlockHead()
@@ -371,10 +384,16 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 	HashMap = map[string]string{}
 
 	for {
+		if fast && prevD.GetDatabaseHeight() < uint32(completed) {
+			// Do random sampling of entries
+			CheckDBlockEntries(prevD, dbo, fast, sampleRate)
+		} else {
+			// Do full check (All entries)
+			CheckDBlockEntries(prevD, dbo, false, sampleRate)
+		}
 		if prevD.GetDatabaseHeight()%1000 == 0 {
 			fmt.Printf(" Checking block %v\n", prevD.GetDatabaseHeight())
 		}
-		CheckDBlockEntries(prevD, dbo)
 		HashMap[prevD.DatabasePrimaryIndex().String()] = "OK"
 
 		if prevD.GetHeader().GetPrevKeyMR().String() == "0000000000000000000000000000000000000000000000000000000000000000" {
@@ -546,7 +565,7 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay) {
 	}
 }
 
-func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOverlay) {
+func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOverlay, fast bool, sampleRate int) {
 	entries := dBlock.GetDBEntries()
 	for {
 		missing := 0
@@ -631,8 +650,16 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				}
 
 				eBlockEntries := eBlock.GetEntryHashes()
+				// Used to determine random sampling if fast==true
+				entryCount := 0
+				// Not going to use the loop counter, as it also includes minute markes. We
+				// Do not want to include those in our random sampling
 				for _, eHash := range eBlockEntries {
 					if eHash.IsMinuteMarker() == true {
+						continue
+					}
+					entryCount++ // Not a minute marker, AKA an entry
+					if fast && entryCount%sampleRate != 0 {
 						continue
 					}
 					entry, err := dbo.FetchEntry(eHash)
