@@ -649,6 +649,10 @@ func (c *Connection) tryReassemblingParcelParts() {
 
 	// create a single parcel from the parts
 	parcel := ReassembleParcel(c.parts)
+	
+	// nuke the old parcel's parts
+	c.parts = nil
+	
 	c.handleParcel(*parcel)
 }
 
