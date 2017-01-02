@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/gob"
 	"fmt"
@@ -27,6 +28,8 @@ type Connection struct {
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
+	reader          *bufio.Reader     // A reader for buffering data read from the connection
+	writer          *bufio.Writer     // A writer for buffering data written to the connection
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int               // reconnection attempts
 	timeLastAttempt time.Time         // time of last attempt to connect via dial
@@ -345,8 +348,10 @@ func (c *Connection) goOnline() {
 	debug(c.peer.PeerIdent(), "Connection.goOnline() called.")
 	c.state = ConnectionOnline
 	now := time.Now()
-	c.encoder = gob.NewEncoder(c.conn)
-	c.decoder = gob.NewDecoder(c.conn)
+	c.reader = bufio.NewReaderSize(c.conn, NetworkReadBufferSize)
+	c.writer = bufio.NewWriterSize(c.conn, NetworkWriteBufferSize)
+	c.encoder = gob.NewEncoder(c.writer)
+	c.decoder = gob.NewDecoder(c.reader)
 	c.attempts = 0
 	c.timeLastPing = now
 	c.timeLastAttempt = now
@@ -374,6 +379,8 @@ func (c *Connection) goShutdown() {
 	if nil != c.conn {
 		defer c.conn.Close()
 	}
+	c.writer = nil
+	c.reader = nil
 	c.decoder = nil
 	c.encoder = nil
 	c.parts = nil
@@ -444,14 +451,19 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	//c.conn.SetWriteDeadline(deadline)
 
 	parcel.Trace("Connection.sendParcel().encoder.Encode(parcel)", "f")
+	c.writer.Reset(c.conn) // make sure the write buffer is cleaned up after previous errors
 	err := c.encoder.Encode(parcel)
-	switch {
-	case nil == err:
-		c.metrics.BytesSent += parcel.Header.Length
-		c.metrics.MessagesSent += 1
-	default:
+	if nil != err {
 		c.handleNetErrors(err)
+		return
 	}
+	err = c.writer.Flush()
+	if nil != err {
+		c.handleNetErrors(err)
+		return
+	}
+	c.metrics.BytesSent += parcel.Header.Length
+	c.metrics.MessagesSent += 1
 }
 
 // processReceives is called as part of runloop. This is essentially an infinite loop that exits
