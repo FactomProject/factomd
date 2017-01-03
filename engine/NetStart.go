@@ -60,6 +60,7 @@ func NetStart(s *state.State) {
 	logportPtr := flag.String("logPort", "6060", "Port for profile logging")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
+	faultTimeoutPtr := flag.Int("faulttimeout", 60, "Seconds before considering Federated servers at-fault. Default is 60.")
 	runtimeLogPtr := flag.Bool("runtimeLog", false, "If true, maintain runtime logs of messages passed.")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
@@ -96,6 +97,7 @@ func NetStart(s *state.State) {
 	ControlPanelPortOverride := *ControlPanelPortOverridePtr
 	logPort = *logportPtr
 	blkTime := *blkTimePtr
+	faultTimeout := *faultTimeoutPtr
 	runtimeLog := *runtimeLogPtr
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
@@ -133,6 +135,8 @@ func NetStart(s *state.State) {
 	} else {
 		blkTime = s.DirectoryBlockInSeconds
 	}
+
+	s.FaultTimeout = faultTimeout
 
 	if follower {
 		leader = false
@@ -251,6 +255,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", faultTimeout))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", timeOffset))
