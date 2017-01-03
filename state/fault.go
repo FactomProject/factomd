@@ -71,6 +71,12 @@ func (fc *FaultCore) MarshalCore() (data []byte, err error) {
 }
 
 func markFault(pl *ProcessList, vmIndex int, faultReason int) {
+	// We can use the "IgnoreMissing" boolean to track if enough time has elapsed
+	// since bootup to start faulting servers on the network
+	if pl.State.IgnoreMissing {
+		return
+	}
+
 	if pl.State.Leader && pl.State.LeaderVMIndex == vmIndex {
 		return
 	}
