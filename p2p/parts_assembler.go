@@ -23,8 +23,9 @@ type PartsAssembler struct {
 }
 
 // Initializes the assembler
-func (assembler *PartsAssembler) init() {
+func (assembler *PartsAssembler) Init() *PartsAssembler {
 	assembler.messages = make(map[uint64]*PartialMessage)
+	return assembler
 }
 
 // Handles a single message part, returns either a fully assembled message or nil
