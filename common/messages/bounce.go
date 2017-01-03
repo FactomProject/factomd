@@ -222,13 +222,23 @@ func (m *Bounce) String() string {
 	mill = mill / 60
 	hrs := mill % 24
 	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs, mins, secs, mills)
-	str := fmt.Sprintf("Origin: %12s  %30s-%03d-%03d Bounce Start: %12s Hops: %5d Size: %5d ",
+
+	b := m.SizeOf()%1000
+	kb := (m.SizeOf()/1000)%1000
+	mb := (m.SizeOf()/1000/1000)
+	sz := fmt.Sprintf("%d,%03d",kb,b)
+	if mb > 0 {
+		sz = fmt.Sprintf("%d,%03d,%03d",mb,kb,b)
+	}
+
+	str := fmt.Sprintf("Origin: %12s  %30s-%03d-%03d Bounce Start: %12s Hops: %5d [Size: %12s] ",
 		t,
 		strings.TrimSpace(m.Name),
 		m.Number,
 		len(m.Stamps),
 		t2,
-		len(m.Stamps), m.SizeOf())
+		len(m.Stamps),
+		sz)
 	var sum int64
 	for i := 0; i < len(m.Stamps)-1; i++ {
 		sum += m.Stamps[i+1].GetTimeMilli() - m.Stamps[i].GetTimeMilli()

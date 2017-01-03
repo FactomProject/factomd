@@ -51,7 +51,7 @@ func InitNetwork() {
 	p2pPtr := flag.Bool("p2p", false, "Test p2p messages (default to false)")
 	numStampsPtr := flag.Int("numstamps", 1, "Number of timestamps per reply on p2p test. (makes messages big)")
 	numReplysPtr := flag.Int("numreplies", 1, "Number of replies to any request")
-	sizePtr := flag.Int("size", 0, "size.  We will add a payload of random data of this many K.")
+	sizePtr := flag.Int("size", 0, "size.  We will add a payload of random data of size in K +/- 1K ")
 
 	flag.Parse()
 
@@ -79,7 +79,7 @@ func InitNetwork() {
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "exclusive", exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "deadline", p2p.NetworkDeadline.Seconds()))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "p2p", isp2p))
-	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n", "size", size))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n", "size", size/1024))
 
 	old = make(map[[32]byte]interfaces.IMsg, 0)
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
@@ -214,7 +214,7 @@ func main() {
 		bounce.Number = cntreq
 		cntreq++
 		bounce.Name = name
-		bounce.AddData(size)
+		bounce.AddData(size+rand.Int()%1024)
 		bounce.Timestamp = primitives.NewTimestampNow()
 		bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
 		if isp2p {
