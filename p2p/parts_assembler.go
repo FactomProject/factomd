@@ -41,12 +41,14 @@ func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
 	partial.parts[parcel.Header.PartNo] = &parcel
 	partial.mostRecentPartReceived = time.Now()
 
+	// get an assembled parcel or nil if not yet ready
 	fullParcel := tryReassemblingMessage(partial)
 	if fullParcel != nil {
 		delete(assembler.messages, parcel.Header.AppHash)
 		debug("PartsAssembler", "Fully assembled %d", parcel.Header.AppHash)
 	}
 
+	// go through all partial messages and removes the old ones
 	assembler.cleanupOldPartialMessages()
 
 	return fullParcel
