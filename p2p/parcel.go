@@ -31,6 +31,7 @@ type ParcelHeader struct {
 	Crc32       uint32            // 4 bytes - data integrity hash (of the payload itself.)
 	PartNo      uint16            // 2 bytes - in case of multipart parcels, indicates which part this corresponds to, otherwise should be 0
 	PartsTotal  uint16            // 2 bytes - in case of multipart parcels, indicates the total number of parts that the receiver should expect
+	MessageID   uint64            // 8 bytes - unique ID of the message, in case of multipart messages, all parts will have the same ID
 	NodeID      uint64
 	PeerAddress string // address of the peer set by connection to know who sent message (for tracking source of other peers)
 	PeerPort    string // port of the peer , or we are listening on
