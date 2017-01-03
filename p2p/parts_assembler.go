@@ -19,23 +19,23 @@ type PartialMessage struct {
 
 // PartsAssembler is responsible for assembling message parts into full messages
 type PartsAssembler struct {
-	messages map[uint64]*PartialMessage // a map of full message IDs to
+	messages map[string]*PartialMessage // a map of app hashes to partial messages
 }
 
 // Initializes the assembler
 func (assembler *PartsAssembler) Init() *PartsAssembler {
-	assembler.messages = make(map[uint64]*PartialMessage)
+	assembler.messages = make(map[string]*PartialMessage)
 	return assembler
 }
 
 // Handles a single message part, returns either a fully assembled message or nil
 func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
-	debug("PartsAssembler", "Handling message part %d %d/%d", parcel.Header.MessageID, parcel.Header.PartNo, parcel.Header.PartsTotal)
-	partial, exists := assembler.messages[parcel.Header.MessageID]
+	debug("PartsAssembler", "Handling message part %d %d/%d", parcel.Header.AppHash, parcel.Header.PartNo, parcel.Header.PartsTotal)
+	partial, exists := assembler.messages[parcel.Header.AppHash]
 
 	if !exists {
 		partial = createNewPartialMessage(parcel)
-		assembler.messages[parcel.Header.MessageID] = partial
+		assembler.messages[parcel.Header.AppHash] = partial
 	}
 
 	partial.parts[parcel.Header.PartNo] = &parcel
@@ -43,8 +43,8 @@ func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
 
 	fullParcel := tryReassemblingMessage(partial)
 	if fullParcel != nil {
-		delete(assembler.messages, parcel.Header.MessageID)
-		debug("PartsAssembler", "Fully assembled %d", parcel.Header.MessageID)
+		delete(assembler.messages, parcel.Header.AppHash)
+		debug("PartsAssembler", "Fully assembled %d", parcel.Header.AppHash)
 	}
 
 	assembler.cleanupOldPartialMessages()
@@ -55,13 +55,13 @@ func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
 // Checks existing partial messages and if there is anything older than MaxTimeWaitingForReassembly,
 // drops the partial message
 func (assembler *PartsAssembler) cleanupOldPartialMessages() {
-	for messageID, partial := range assembler.messages {
+	for appHash, partial := range assembler.messages {
 		timeWaiting := time.Since(partial.mostRecentPartReceived)
 		timeSinceFirst := time.Since(partial.firstPartReceived)
 		if timeWaiting > MaxTimeWaitingForReassembly {
-			delete(assembler.messages, messageID)
+			delete(assembler.messages, appHash)
 			note("PartsAssembler", "Dropping message %d after %s secs, time since first part: %s secs",
-				messageID, timeWaiting/time.Second, timeSinceFirst/time.Second)
+				appHash, timeWaiting/time.Second, timeSinceFirst/time.Second)
 		}
 	}
 }
