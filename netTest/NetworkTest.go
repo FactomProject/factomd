@@ -20,7 +20,7 @@ import (
 
 var p2pProxy *engine.P2PProxy
 
-var old map[[32]byte]interfaces.IMsg
+var old []map[[32]byte]interfaces.IMsg
 var oldsync sync.Mutex
 
 var oldcnt int
@@ -81,7 +81,6 @@ func InitNetwork() {
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "p2p", isp2p))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n", "size", size/1024))
 
-	old = make(map[[32]byte]interfaces.IMsg, 0)
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     port,
@@ -117,13 +116,31 @@ var cntreply int32
 func MsgIsNew(msg interfaces.IMsg) bool {
 	oldsync.Lock()
 	defer oldsync.Unlock()
-	return old[msg.GetHash().Fixed()] == nil
+	for _, m := range old {
+		if m[msg.GetHash().Fixed()] == nil {
+			return true
+		}
+	}
+	return false
 }
+
+var lastTime *time.Time
 
 func SetMsg(msg interfaces.IMsg) {
 	oldsync.Lock()
-	old[msg.GetHash().Fixed()] = msg
-	oldsync.Unlock()
+	defer oldsync.Unlock()
+	now := time.Now()
+	if len(old) == 0 || now.After(lastTime.Add(10*time.Second)) {
+		var nmap []map[[32]byte]interfaces.IMsg
+		nmap = append(nmap, make(map[[32]byte]interfaces.IMsg))
+		i := len(old)
+		if i > 9 {
+			i = 9
+		}
+		old = append(nmap, old[:i]...)
+		lastTime = &now
+	}
+	old[0][msg.GetHash().Fixed()] = msg
 }
 
 func listen() {
@@ -214,7 +231,7 @@ func main() {
 		bounce.Number = cntreq
 		cntreq++
 		bounce.Name = name
-		bounce.AddData(size+rand.Int()%1024)
+		bounce.AddData(size + rand.Int()%1024)
 		bounce.Timestamp = primitives.NewTimestampNow()
 		bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
 		if isp2p {

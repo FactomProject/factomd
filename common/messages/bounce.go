@@ -231,11 +231,10 @@ func (m *Bounce) String() string {
 		sz = fmt.Sprintf("%d,%03d,%03d",mb,kb,b)
 	}
 
-	str := fmt.Sprintf("Origin: %12s  %30s-%03d-%03d Bounce Start: %12s Hops: %5d [Size: %12s] ",
+	str := fmt.Sprintf("Origin: %12s %30s-%04d Bounce Start: %12s Hops: %5d [Size: %12s] ",
 		t,
 		strings.TrimSpace(m.Name),
 		m.Number,
-		len(m.Stamps),
 		t2,
 		len(m.Stamps),
 		sz)
