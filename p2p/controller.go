@@ -49,8 +49,9 @@ type Controller struct {
 	lastDiscoveryRequest       time.Time
 	NodeID                     uint64
 	lastStatusReport           time.Time
-	lastPeerRequest            time.Time // Last time we asked peers about the peers they know about.
-	specialPeersString         string    // configuration set special peers
+	lastPeerRequest            time.Time       // Last time we asked peers about the peers they know about.
+	specialPeersString         string          // configuration set special peers
+	partsAssembler             *PartsAssembler // a data structure that assembles full messages from received message parts
 }
 
 type ControllerInit struct {
@@ -200,6 +201,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.specialPeersString = ci.SpecialPeers
 	c.lastDiscoveryRequest = time.Now() // Discovery does its own on startup.
 	c.lastConnectionMetricsUpdate = time.Now()
+	c.partsAssembler = new(PartsAssembler).Init()
 	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
 	c.discovery = *discovery
 	// Set this to the past so we will do peer management almost right away after starting up.
@@ -503,6 +505,13 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 		dot("&&m\n")
 		ApplicationMessagesRecieved++
 		BlockFreeChannelSend(c.FromNetwork, parcel)
+	case TypeMessagePart: // A part of the application message, handle by assembler and if we have the full message, send it on.
+		parcel.Trace("Controller.handleParcelReceive()-TypeMessagePart", "L")
+		assembled := c.partsAssembler.handlePart(parcel)
+		if assembled != nil {
+			ApplicationMessagesRecieved++
+			BlockFreeChannelSend(c.FromNetwork, *assembled)
+		}
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
 		parcel.Trace("Controller.handleParcelReceive()-TypePeerRequest", "L")
 		dot("&&n\n")
