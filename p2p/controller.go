@@ -186,7 +186,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
 	c.commandChannel = make(chan interface{}, StandardChannelSize) // Commands from App
-	c.FromNetwork = make(chan interface{}, IncomingChannelSize)    // Channel to the app for network data
+	c.FromNetwork = make(chan interface{}, StandardChannelSize)    // Channel to the app for network data
 	c.ToNetwork = make(chan interface{}, StandardChannelSize)      // Parcels from the app for the network
 	c.connections = make(map[string]*Connection)
 	c.connectionsByAddress = make(map[string]*Connection)
