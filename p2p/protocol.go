@@ -48,11 +48,11 @@ var (
 	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
 	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                     = false
-	NetworkDeadline                      = time.Duration(10) * time.Second
+	NetworkDeadline                      = time.Duration(30) * time.Second
 	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
-	StandardChannelSize                  = 10000
+	StandardChannelSize                  = 100000
 	NetworkStatusInterval                = time.Second * 9
 	ConnectionStatusInterval             = time.Second * 122
 	PingInterval                         = time.Second * 15

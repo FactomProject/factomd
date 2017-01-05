@@ -13,9 +13,9 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"math/rand"
 	"strings"
 	"time"
-	"math/rand"
 )
 
 type Bounce struct {
@@ -24,15 +24,15 @@ type Bounce struct {
 	Number    int32
 	Timestamp interfaces.Timestamp
 	Stamps    []interfaces.Timestamp
-	Data      [] byte
+	Data      []byte
 	size      int
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
 
-func (m *Bounce) AddData(dataSize int){
-	m.Data = make([]byte,dataSize)
-	for i,_ := range m.Data {
+func (m *Bounce) AddData(dataSize int) {
+	m.Data = make([]byte, dataSize)
+	for i, _ := range m.Data {
 		m.Data[i] = byte(rand.Int())
 	}
 }
@@ -158,8 +158,8 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	lenData, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	m.Data = make([]byte,lenData)
-	copy(m.Data,newData)
+	m.Data = make([]byte, lenData)
+	copy(m.Data, newData)
 	newData = newData[lenData:]
 
 	return
@@ -222,13 +222,22 @@ func (m *Bounce) String() string {
 	mill = mill / 60
 	hrs := mill % 24
 	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs, mins, secs, mills)
-	str := fmt.Sprintf("Origin: %12s  %30s-%03d-%03d Bounce Start: %12s Hops: %5d Size: %5d ",
+
+	b := m.SizeOf()%1000
+	kb := (m.SizeOf()/1000)%1000
+	mb := (m.SizeOf()/1000/1000)
+	sz := fmt.Sprintf("%d,%03d",kb,b)
+	if mb > 0 {
+		sz = fmt.Sprintf("%d,%03d,%03d",mb,kb,b)
+	}
+
+	str := fmt.Sprintf("Origin: %12s %30s-%04d Bounce Start: %12s Hops: %5d [Size: %12s] ",
 		t,
 		strings.TrimSpace(m.Name),
 		m.Number,
-		len(m.Stamps),
 		t2,
-		len(m.Stamps), m.SizeOf())
+		len(m.Stamps),
+		sz)
 	var sum int64
 	for i := 0; i < len(m.Stamps)-1; i++ {
 		sum += m.Stamps[i+1].GetTimeMilli() - m.Stamps[i].GetTimeMilli()
