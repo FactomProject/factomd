@@ -504,6 +504,12 @@ func (c *Connection) handleNetErrors(err error) {
 // handleParcel checks the parcel command type, and either generates a response, or passes it along.
 // return value:  Indicate whether we got a good message or not and thus whether we should keep reading from network
 func (c *Connection) handleParcel(parcel Parcel) {
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+	}()
+
 	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
 	switch validity {
