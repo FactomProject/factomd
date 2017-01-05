@@ -11,6 +11,7 @@ import (
 	"hash/crc32"
 	"io"
 	"net"
+	"os"
 	"syscall"
 	"time"
 
@@ -506,6 +507,8 @@ func (c *Connection) handleNetErrors(err error) {
 func (c *Connection) handleParcel(parcel Parcel) {
 	defer func() {
 		if r := recover(); r != nil {
+			c.peer.demerit() /// so someone DDoS or just incompatible will eventually be cut off after 200+ panics
+			fmt.Fprintf(os.Stdout, "Caught Exception in connection %s: %v\n", c.peer.PeerFixedIdent(), r)
 			return
 		}
 	}()
