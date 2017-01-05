@@ -30,8 +30,14 @@ func (assembler *PartsAssembler) Init() *PartsAssembler {
 
 // Handles a single message part, returns either a fully assembled message or nil
 func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
-	debug("PartsAssembler", "Handling message part %d %d/%d", parcel.Header.AppHash, parcel.Header.PartNo, parcel.Header.PartsTotal)
+	debug("PartsAssembler", "Handling message part %s %d/%d", parcel.Header.AppHash, parcel.Header.PartNo, parcel.Header.PartsTotal)
 	partial, exists := assembler.messages[parcel.Header.AppHash]
+
+	valid, err := validateParcelPart(parcel, partial)
+	if !valid {
+		significant("PartsAssembler", "Detected invalid parcel: %s, dropping", err)
+		return nil
+	}
 
 	if !exists {
 		partial = createNewPartialMessage(parcel)
@@ -45,13 +51,34 @@ func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
 	fullParcel := tryReassemblingMessage(partial)
 	if fullParcel != nil {
 		delete(assembler.messages, parcel.Header.AppHash)
-		debug("PartsAssembler", "Fully assembled %d", parcel.Header.AppHash)
+		debug("PartsAssembler", "Fully assembled %s", parcel.Header.AppHash)
 	}
 
 	// go through all partial messages and removes the old ones
 	assembler.cleanupOldPartialMessages()
 
 	return fullParcel
+}
+
+// checks if part is valid for assembler to process
+func validateParcelPart(parcel Parcel, partial *PartialMessage) (bool, string) {
+	if parcel.Header.PartsTotal <= 0 {
+		return false, "PartsTotal less or equal 0"
+	}
+
+	if parcel.Header.PartNo < 0 {
+		return false, "PartNo less than 0"
+	}
+
+	if parcel.Header.PartNo >= parcel.Header.PartsTotal {
+		return false, "PartNo outside of PartsTotal range"
+	}
+
+	if partial != nil && parcel.Header.PartsTotal != uint16(len(partial.parts)) {
+		return false, "PartsTotal does not match allocated array of parts"
+	}
+
+	return true, "" // valid
 }
 
 // Checks existing partial messages and if there is anything older than MaxTimeWaitingForReassembly,
