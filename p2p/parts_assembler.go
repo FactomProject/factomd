@@ -5,6 +5,7 @@
 package p2p
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -35,7 +36,7 @@ func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
 
 	valid, err := validateParcelPart(parcel, partial)
 	if !valid {
-		significant("PartsAssembler", "Detected invalid parcel: %s, dropping", err)
+		significant("PartsAssembler", "Detected invalid parcel: %s, dropping", err.Error())
 		return nil
 	}
 
@@ -61,24 +62,36 @@ func (assembler *PartsAssembler) handlePart(parcel Parcel) *Parcel {
 }
 
 // checks if part is valid for assembler to process
-func validateParcelPart(parcel Parcel, partial *PartialMessage) (bool, string) {
+func validateParcelPart(parcel Parcel, partial *PartialMessage) (isValid bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error in validateParcelPart")
+			return
+		}
+	}()
+
 	if parcel.Header.PartsTotal <= 0 {
-		return false, "PartsTotal less or equal 0"
+		err = fmt.Errorf("PartsTotal less or equal 0")
+		return
 	}
 
 	if parcel.Header.PartNo < 0 {
-		return false, "PartNo less than 0"
+		err = fmt.Errorf("PartNo less than 0")
+		return
 	}
 
 	if parcel.Header.PartNo >= parcel.Header.PartsTotal {
-		return false, "PartNo outside of PartsTotal range"
+		err = fmt.Errorf("PartNo outside of PartsTotal range")
+		return
 	}
 
 	if partial != nil && parcel.Header.PartsTotal != uint16(len(partial.parts)) {
-		return false, "PartsTotal does not match allocated array of parts"
+		err = fmt.Errorf("PartsTotal does not match allocated array of parts")
+		return
 	}
 
-	return true, "" // valid
+	isValid = true
+	return // valid
 }
 
 // Checks existing partial messages and if there is anything older than MaxTimeWaitingForReassembly,
