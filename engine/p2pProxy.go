@@ -167,7 +167,7 @@ func (f *P2PProxy) update() {
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)
-				fmt.Printf("Hash: %x NumParts %5d PartNum %d\n",fmessage.Hash[:6],fmessage.NumParts, fmessage.PartNum)
+				//fmt.Printf("Hash: %x NumParts %5d PartNum %d\n",fmessage.Hash[:6],fmessage.NumParts, fmessage.PartNum)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 				if nil == err && msg != nil {

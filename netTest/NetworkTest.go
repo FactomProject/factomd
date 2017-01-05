@@ -16,11 +16,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"net/http"
 )
 
 var p2pProxy *engine.P2PProxy
 
-var old []map[[32]byte]interfaces.IMsg
+var old []map[[32]byte]int
 var oldsync sync.Mutex
 
 var oldcnt int
@@ -37,13 +38,15 @@ var isp2p bool
 var numStamps int
 var numReplies int
 var size int
+var logPort string
 
 func InitNetwork() {
 
-	go engine.StartProfiler()
+	go http.ListenAndServe(fmt.Sprintf("localhost:%s", logPort),nil)
 
 	namePtr := flag.String("name", fmt.Sprintf("%d", rand.Int()), "Name for this node")
 	networkPortOverridePtr := flag.String("networkPort", "8108", "Address for p2p network to listen on.")
+	logportPtr := flag.String("logPort","6060","Port for the profiler")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
@@ -62,6 +65,7 @@ func InitNetwork() {
 	peers := *peersPtr
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
+	logPort = *logportPtr
 	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
 	isp2p = *p2pPtr
 	size = *sizePtr * 1024
@@ -117,7 +121,7 @@ func MsgIsNew(msg interfaces.IMsg) bool {
 	oldsync.Lock()
 	defer oldsync.Unlock()
 	for _, m := range old {
-		if m[msg.GetHash().Fixed()] == nil {
+		if m[msg.GetHash().Fixed()] == 0 {
 			return true
 		}
 	}
@@ -131,8 +135,8 @@ func SetMsg(msg interfaces.IMsg) {
 	defer oldsync.Unlock()
 	now := time.Now()
 	if len(old) == 0 || now.After(lastTime.Add(10*time.Second)) {
-		var nmap []map[[32]byte]interfaces.IMsg
-		nmap = append(nmap, make(map[[32]byte]interfaces.IMsg))
+		var nmap []map[[32]byte]int
+		nmap = append(nmap, make(map[[32]byte]int))
 		i := len(old)
 		if i > 9 {
 			i = 9
@@ -140,7 +144,7 @@ func SetMsg(msg interfaces.IMsg) {
 		old = append(nmap, old[:i]...)
 		lastTime = &now
 	}
-	old[0][msg.GetHash().Fixed()] = msg
+	old[0][msg.GetHash().Fixed()] = 1
 }
 
 func listen() {
