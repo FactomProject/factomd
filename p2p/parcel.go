@@ -107,11 +107,17 @@ func ReassembleParcel(parcels []*Parcel) *Parcel {
 		payload.Write(parcel.Payload)
 	}
 
-	network := parcels[0].Header.Network
-	assembledParcel := NewParcel(network, payload.Bytes())
+	// create a new message parcel from the reassembled payload, but
+	// copy all the relevant header fields from one of the original
+	// messages
+	origHeader := parcels[0].Header
 
-	// Get the NodeID from the sub-parcels, to prevent QualityScore issues
-	assembledParcel.Header.NodeID = parcels[0].Header.NodeID
+	assembledParcel := NewParcel(origHeader.Network, payload.Bytes())
+	assembledParcel.Header.NodeID = origHeader.NodeID
+	assembledParcel.Header.Type = TypeMessage
+	assembledParcel.Header.TargetPeer = origHeader.TargetPeer
+	assembledParcel.Header.PeerAddress = origHeader.PeerAddress
+	assembledParcel.Header.PeerPort = origHeader.PeerPort
 
 	return assembledParcel
 }
