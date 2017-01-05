@@ -41,6 +41,7 @@ type P2PProxy struct {
 	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
 	bytesIn   int // bandwidth recieved by application from network
 
+	MPs       []map[[32]byte]*MP
 	MsgIn     chan interfaces.IMsg
 }
 
@@ -52,6 +53,13 @@ type factomMessage struct {
 	NumParts int
 	PartNum  int
 	Hash     [32]byte
+}
+
+// multipart message
+type MP struct {
+	Hash    	[32]byte
+	NumParts 	int
+	Parts     []*factomMessage
 }
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
@@ -110,30 +118,28 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
-		fmt.Println("ERROR on Send: ", err)
 		return err
 	}
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 	appType := fmt.Sprintf("%d", msg.Type())
-	message := factomMessage{PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+	message := factomMessage{
+		PeerHash: msg.GetNetworkOrigin(),
+		AppHash: hash,
+		AppType: appType,
+	}
 	switch {
 	case !msg.IsPeer2Peer():
 		message.PeerHash = p2p.BroadcastFlag
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
 	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
 		message.PeerHash = p2p.RandomPeerFlag
 	default:
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
 	}
-	if msg.IsPeer2Peer() && 1 < f.debugMode {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
-	}
-
 
 	message.Message = data
 	message.NumParts = 1
 	message.PartNum = 0
+	message.Hash = msg.GetRepeatHash().Fixed()
 
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 
@@ -161,6 +167,7 @@ func (f *P2PProxy) update() {
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)
+				fmt.Printf("Hash: %x NumParts %5d PartNum %d\n",fmessage.Hash[:6],fmessage.NumParts, fmessage.PartNum)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 				if nil == err && msg != nil {
