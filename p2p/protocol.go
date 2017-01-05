@@ -52,8 +52,7 @@ var (
 	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 15
-	StandardChannelSize                  = 10000
-	IncomingChannelSize                  = 100000 // size of the Network -> app channel
+	StandardChannelSize                  = 100000
 	NetworkStatusInterval                = time.Second * 9
 	ConnectionStatusInterval             = time.Second * 122
 	PingInterval                         = time.Second * 15
