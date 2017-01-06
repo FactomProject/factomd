@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/p2p"
 	"math/rand"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -20,7 +21,7 @@ import (
 
 var p2pProxy *engine.P2PProxy
 
-var old map[[32]byte]interfaces.IMsg
+var old []map[[32]byte]int
 var oldsync sync.Mutex
 
 var oldcnt int
@@ -37,13 +38,15 @@ var isp2p bool
 var numStamps int
 var numReplies int
 var size int
+var logPort string
 
 func InitNetwork() {
 
-	go engine.StartProfiler()
+	go http.ListenAndServe(fmt.Sprintf("localhost:%s", logPort), nil)
 
 	namePtr := flag.String("name", fmt.Sprintf("%d", rand.Int()), "Name for this node")
 	networkPortOverridePtr := flag.String("networkPort", "8108", "Address for p2p network to listen on.")
+	logportPtr := flag.String("logPort", "6060", "Port for the profiler")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	netdebugPtr := flag.Int("netdebug", 0, "0-5: 0 = quiet, >0 = increasing levels of logging")
 	exclusivePtr := flag.Bool("exclusive", false, "If true, we only dial out to special/trusted peers.")
@@ -51,7 +54,7 @@ func InitNetwork() {
 	p2pPtr := flag.Bool("p2p", false, "Test p2p messages (default to false)")
 	numStampsPtr := flag.Int("numstamps", 1, "Number of timestamps per reply on p2p test. (makes messages big)")
 	numReplysPtr := flag.Int("numreplies", 1, "Number of replies to any request")
-	sizePtr := flag.Int("size", 0, "size.  We will add a payload of random data of this many K.")
+	sizePtr := flag.Int("size", 0, "size.  We will add a payload of random data of size in K +/- 1K ")
 
 	flag.Parse()
 
@@ -62,6 +65,7 @@ func InitNetwork() {
 	peers := *peersPtr
 	netdebug := *netdebugPtr
 	exclusive := *exclusivePtr
+	logPort = *logportPtr
 	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
 	isp2p = *p2pPtr
 	size = *sizePtr * 1024
@@ -77,11 +81,10 @@ func InitNetwork() {
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %s\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %d\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "exclusive", exclusive))
-	os.Stderr.WriteString(fmt.Sprintf("%20s -- %d\n", "deadline", p2p.NetworkDeadline.Seconds()))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "deadline", p2p.NetworkDeadline.Seconds()))
 	os.Stderr.WriteString(fmt.Sprintf("%20s -- %v\n", "p2p", isp2p))
-	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n", "size", size))
+	os.Stderr.WriteString(fmt.Sprintf("%20s -- %dk\n\n", "size", size/1024))
 
-	old = make(map[[32]byte]interfaces.IMsg, 0)
 	connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
 	ci := p2p.ControllerInit{
 		Port:                     port,
@@ -117,13 +120,31 @@ var cntreply int32
 func MsgIsNew(msg interfaces.IMsg) bool {
 	oldsync.Lock()
 	defer oldsync.Unlock()
-	return old[msg.GetHash().Fixed()] == nil
+	for _, m := range old {
+		if m[msg.GetHash().Fixed()] != 0 {
+			return false
+		}
+	}
+	return true
 }
+
+var lastTime *time.Time
 
 func SetMsg(msg interfaces.IMsg) {
 	oldsync.Lock()
-	old[msg.GetHash().Fixed()] = msg
-	oldsync.Unlock()
+	defer oldsync.Unlock()
+	now := time.Now()
+	if len(old) == 0 || now.After(lastTime.Add(10*time.Second)) {
+		var nmap []map[[32]byte]int
+		nmap = append(nmap, make(map[[32]byte]int))
+		i := len(old)
+		if i > 9 {
+			i = 9
+		}
+		old = append(nmap, old[:i]...)
+		lastTime = &now
+	}
+	old[0][msg.GetHash().Fixed()] = 1
 }
 
 func listen() {
@@ -214,7 +235,7 @@ func main() {
 		bounce.Number = cntreq
 		cntreq++
 		bounce.Name = name
-		bounce.AddData(size)
+		bounce.AddData(size + rand.Int()%1024)
 		bounce.Timestamp = primitives.NewTimestampNow()
 		bounce.Stamps = append(bounce.Stamps, primitives.NewTimestampNow())
 		if isp2p {
