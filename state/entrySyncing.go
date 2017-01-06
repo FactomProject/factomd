@@ -67,13 +67,10 @@ func (s *State) syncEntryBlocks() {
 		}
 		db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
-		for i, ebKeyMR := range db.GetEntryHashes() {
+		for _, ebKeyMR := range db.GetEntryHashes()[3:] {
 			// The first three entries (0,1,2) in every directory block are blocks we already have by
 			// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
 			// then this assumption might not hold.  But it does for now.
-			if i <= 2 {
-				continue
-			}
 
 			eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
 
@@ -95,43 +92,8 @@ func (s *State) syncEntryBlocks() {
 				}
 				// Something missing, stop moving the bookmark.
 				alldone = false
-			} else {
-				for _, entryhash := range eBlock.GetEntryHashes() {
-					if entryhash.IsMinuteMarker() {
-						continue
-					}
-					e, _ := s.DB.FetchEntry(entryhash)
-					if e == nil {
-						//Check lists and not add if already there.
-						addit := false
-						for _, e := range s.MissingEntries {
-							if e.ebhash.Fixed() == entryhash.Fixed() {
-								addit = false
-							}
-							break
-						}
-
-						if addit {
-							var v MissingEntry
-
-							v.dbheight = eBlock.GetHeader().GetDBHeight()
-							v.entryhash = entryhash
-							v.ebhash = ebKeyMR
-
-							s.MissingEntries = append(s.MissingEntries, v)
-						}
-						// Something missing. stop moving the bookmark.
-						alldone = false
-					}
-					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-					s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
-					// If the save worked, then remove any commit that might be around.
-					if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
-						delete(s.Commits, entryhash.Fixed())
-					}
-				}
+				continue
 			}
-
 		}
 		if alldone {
 			// we had three bookmarks.  Now they are all in lockstep. TODO: get rid of extra bookmarks.
@@ -143,28 +105,27 @@ func (s *State) syncEntryBlocks() {
 
 func (s *State) syncEntries(eights bool) {
 
-	alldone := true
-	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 10 {
-		dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
+	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntries) < 10 {
+		dbstate := s.DBStates.Get(int(s.EntryDBHeightProcessing))
 
 		if dbstate == nil {
 			return
 		}
-		db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
+		db := s.GetDirectoryBlockByHeight(s.EntryDBHeightProcessing)
 
-		for i, ebKeyMR := range db.GetEntryHashes() {
+		alldone := true
+
+		for _, ebKeyMR := range db.GetEntryHashes()[3:] {
 			// The first three entries (0,1,2) in every directory block are blocks we already have by
 			// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
 			// then this assumption might not hold.  But it does for now.
-			if i <= 2 {
-				continue
-			}
 
 			eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
 
-			// Ask for blocks we don't have.
+			// Dont have an eBlock?  Huh. We can go on, but we can't advance
 			if eBlock == nil {
-				return
+				alldone = false
+				continue
 			}
 
 			for _, entryhash := range eBlock.GetEntryHashes() {
@@ -178,8 +139,8 @@ func (s *State) syncEntries(eights bool) {
 					for _, e := range s.MissingEntries {
 						if e.ebhash.Fixed() == entryhash.Fixed() {
 							addit = false
+							break
 						}
-						break
 					}
 
 					if addit {
@@ -202,13 +163,15 @@ func (s *State) syncEntries(eights bool) {
 				}
 			}
 		}
-
+		if alldone {
+			s.EntryDBHeightComplete++
+			s.EntryDBHeightProcessing++
+			s.EntryBlockDBHeightComplete = s.EntryDBHeightComplete
+			s.EntryBlockDBHeightProcessing = s.EntryDBHeightProcessing
+		} else {
+			return
+		}
 	}
-	if alldone {
-		s.EntryDBHeightComplete++
-		s.EntryDBHeightProcessing++
-	}
-
 }
 
 // This routine walks through the directory blocks, looking for missing entry blocks and entries.
@@ -225,5 +188,6 @@ func (s *State) catchupEBlocks() {
 	}
 
 	s.syncEntryBlocks()
+	s.syncEntries(false)
 
 }
