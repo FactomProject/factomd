@@ -13,9 +13,9 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"math/rand"
 	"strings"
 	"time"
-	"math/rand"
 )
 
 type Bounce struct {
@@ -24,15 +24,15 @@ type Bounce struct {
 	Number    int32
 	Timestamp interfaces.Timestamp
 	Stamps    []interfaces.Timestamp
-	Data      [] byte
+	Data      []byte
 	size      int
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
 
-func (m *Bounce) AddData(dataSize int){
-	m.Data = make([]byte,dataSize)
-	for i,_ := range m.Data {
+func (m *Bounce) AddData(dataSize int) {
+	m.Data = make([]byte, dataSize)
+	for i, _ := range m.Data {
 		m.Data[i] = byte(rand.Int())
 	}
 }
@@ -158,8 +158,8 @@ func (m *Bounce) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 
 	lenData, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	m.Data = make([]byte,lenData)
-	copy(m.Data,newData)
+	m.Data = make([]byte, lenData)
+	copy(m.Data, newData)
 	newData = newData[lenData:]
 
 	return

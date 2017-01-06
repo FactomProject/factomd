@@ -404,14 +404,10 @@ func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DBStateMsg) String() string {
-	size := "Error"
-	data, err := m.MarshalBinary()
-	if err == nil && data != nil {
-		size = fmt.Sprintf("%8d", len(data))
-	}
-	return fmt.Sprintf("DBState: dbht:%3d [size: %s] dblock %6x admin %6x fb %6x ec %6x hash %6x",
+	data, _ := m.MarshalBinary()
+	return fmt.Sprintf("DBState: dbht:%3d [size: %11s] dblock %6x admin %6x fb %6x ec %6x hash %6x",
 		m.DirectoryBlock.GetHeader().GetDBHeight(),
-		size,
+		primitives.AddCommas(int64(len(data))),
 		m.DirectoryBlock.GetKeyMR().Bytes()[:3],
 		m.AdminBlock.GetHash().Bytes()[:3],
 		m.FactoidBlock.GetHash().Bytes()[:3],
