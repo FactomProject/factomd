@@ -223,12 +223,12 @@ func (m *Bounce) String() string {
 	hrs := mill % 24
 	t2 := fmt.Sprintf("%2d:%2d:%2d.%03d", hrs, mins, secs, mills)
 
-	b := m.SizeOf()%1000
-	kb := (m.SizeOf()/1000)%1000
-	mb := (m.SizeOf()/1000/1000)
-	sz := fmt.Sprintf("%d,%03d",kb,b)
+	b := m.SizeOf() % 1000
+	kb := (m.SizeOf() / 1000) % 1000
+	mb := (m.SizeOf() / 1000 / 1000)
+	sz := fmt.Sprintf("%d,%03d", kb, b)
 	if mb > 0 {
-		sz = fmt.Sprintf("%d,%03d,%03d",mb,kb,b)
+		sz = fmt.Sprintf("%d,%03d,%03d", mb, kb, b)
 	}
 
 	str := fmt.Sprintf("Origin: %12s %30s-%04d Bounce Start: %12s Hops: %5d [Size: %12s] ",
