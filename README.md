@@ -74,7 +74,7 @@ To get the current list of flags, type the command:
 
 Which will get you something like:
 	
-    //////////////////////// Copyright 2015 Factom Foundation
+    //////////////////////// Copyright 2017 Factom Foundation
     //////////////////////// Use of this source code is governed by the MIT
     //////////////////////// license that can be found in the LICENSE file.
     Go compiler version: go1.6.2

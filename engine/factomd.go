@@ -1,4 +1,4 @@
-// Copyright 2015 Factom Foundation
+// Copyright 2017 Factom Foundation
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -30,7 +30,7 @@ var Build string
 
 func Factomd() {
 
-	log.Print("//////////////////////// Copyright 2016 Factom Foundation")
+	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")
 	log.Printf("Go compiler version: %s\n", runtime.Version())
