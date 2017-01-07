@@ -28,7 +28,9 @@ var DefaultCoinbaseAmount uint64 = 100000000
 func CreateEmptyTestState() *state.State {
 	s := new(state.State)
 	s.LoadConfig("", "")
+	s.Network = "LOCAL"
 	s.Init()
+	s.Network = "LOCAL"
 	state.LoadDatabase(s)
 	return s
 }
@@ -41,7 +43,7 @@ func CreateAndPopulateTestState() *state.State {
 
 	s.DirectoryBlockInSeconds = 20
 
-	s.Network = "MAIN"
+	s.Network = "LOCAL"
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", false))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", s.DBType))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", s.CloneDBType))
@@ -50,6 +52,7 @@ func CreateAndPopulateTestState() *state.State {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 
 	s.Init()
+	s.Network = "LOCAL"
 	/*err := s.RecalculateBalances()
 	if err != nil {
 		panic(err)
@@ -338,7 +341,7 @@ func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *d
 
 	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
 	header.SetBlockCount(0)
-	header.SetNetworkID(constants.MAIN_NETWORK_ID)
+	header.SetNetworkID(constants.LOCAL_NETWORK_ID)
 
 	if prevBlock == nil {
 		header.SetDBHeight(0)
