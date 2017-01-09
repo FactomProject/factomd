@@ -184,6 +184,9 @@ func (p *ProcessList) Clear() {
 func (p *ProcessList) GetKeysNewEntries() (keys [][32]byte) {
 	keys = make([][32]byte, p.LenNewEntries())
 
+	if p == nil {
+		return
+	}
 	p.NewEntriesMutex.RLock()
 	defer p.NewEntriesMutex.RUnlock()
 	i := 0
@@ -201,6 +204,9 @@ func (p *ProcessList) GetNewEntry(key [32]byte) interfaces.IEntry {
 }
 
 func (p *ProcessList) LenNewEntries() int {
+	if p == nil {
+		return 0
+	}
 	p.NewEntriesMutex.RLock()
 	defer p.NewEntriesMutex.RUnlock()
 	return len(p.NewEntries)
