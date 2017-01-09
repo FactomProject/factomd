@@ -7,7 +7,7 @@ function queryState(item, value, func) {
       func(req.response)
     }
   }
-  req.open("GET", "/factomd?item=" + item + "&value=" + value, true)
+  req.open("GET", "./factomd?item=" + item + "&value=" + value, true)
   req.send()
 }
 
@@ -20,7 +20,7 @@ function batchQueryState(item, func) {
       func(req.response)
     }
   }
-  req.open("GET", "/factomdBatch?batch=" + item, true)
+  req.open("GET", "./factomdBatch?batch=" + item, true)
   req.send()
 }
 
@@ -60,7 +60,7 @@ function searchBarSubmit() {
   formData.append("method", "search")
   formData.append("search", $("#factom-search").val())
 
-  x.open("POST", "/post")
+  x.open("POST", "./post")
   x.send(formData)
 }
 
@@ -91,7 +91,7 @@ $("body").on('mouseup',"section #factom-search-link",function(e) {
   formDataLink.append("search", hash)
   formDataLink.append("known", type)
 
-  x.open("POST", "/post")
+  x.open("POST", "./post")
   x.send(formDataLink)
 })
 

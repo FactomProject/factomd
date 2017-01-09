@@ -16,7 +16,7 @@ $(window).load(
 );
 
 function updateHTML() {
-  $.ajax('/', {
+  $.ajax('./', {
     success: function(){
       serverOnline = true
     },
