@@ -4,6 +4,7 @@
 
 package state_test
 
+/*
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -21,3 +22,4 @@ func TestFedServer(t *testing.T) {
 	pl.AddFedServer(primitives.NewHash([]byte("two")))
 	pl.AddFedServer(primitives.NewHash([]byte("three")))
 }
+*/

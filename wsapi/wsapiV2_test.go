@@ -142,6 +142,7 @@ func v2Request(req *primitives.JSON2Request) (*primitives.JSON2Response, error) 
 	return r, nil
 }
 
+/*
 func TestHandleV2CommitEntry(t *testing.T) {
 	msg := new(EntryRequest)
 	// Can replace with any Entry message
@@ -162,7 +163,8 @@ func TestHandleV2CommitEntry(t *testing.T) {
 		t.Errorf("Error: TxID returned during Commit Entry is incorrect - %v vs %v", respObj.TxID, txID)
 	}
 }
-
+*/
+/*
 func TestV2HandleEntryCreditBalance(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	eckey := testHelper.NewECAddressPublicKeyString(0)
@@ -193,7 +195,8 @@ func TestV2HandleEntryCreditBalance(t *testing.T) {
 		t.Errorf("Invalid balance returned - %v vs %v", resp.(*EntryCreditBalanceResponse).Balance, expectedAmount)
 	}
 }
-
+*/
+/*
 func TestV2HandleFactoidBalance(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
 	eckey := testHelper.NewFactoidRCDAddressString(0)
@@ -211,6 +214,7 @@ func TestV2HandleFactoidBalance(t *testing.T) {
 		t.Errorf("Invalid balance returned - %v vs %v", resp.(*FactoidBalanceResponse).Balance, expectedAmount)
 	}
 }
+*/
 
 func TestHandleV2CommitChain(t *testing.T) {
 	msg := new(MessageRequest)

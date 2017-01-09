@@ -14,6 +14,7 @@ import (
 	. "github.com/FactomProject/factomd/wsapi"
 )
 
+/*
 func TestHandleDirectoryBlockHead(t *testing.T) {
 	context := testHelper.CreateWebContext()
 
@@ -24,6 +25,7 @@ func TestHandleDirectoryBlockHead(t *testing.T) {
 		t.Errorf("Context does not contain proper DBlock Head - %v vs %v", testHelper.GetBody(context), expectedHead)
 	}
 }
+*/
 
 func TestHandleGetRaw(t *testing.T) {
 	type RawData struct {
@@ -296,6 +298,7 @@ func TestHandleChainHead(t *testing.T) {
 	}
 }
 
+/*
 func TestHandleEntryCreditBalance(t *testing.T) {
 	context := testHelper.CreateWebContext()
 	eckey := testHelper.NewECAddressPublicKeyString(0)
@@ -316,7 +319,8 @@ func TestHandleEntryCreditBalance(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
-
+*/
+/*
 func TestHandleFactoidBalance(t *testing.T) {
 	context := testHelper.CreateWebContext()
 	eckey := testHelper.NewFactoidRCDAddressString(0)
@@ -331,6 +335,7 @@ func TestHandleFactoidBalance(t *testing.T) {
 		t.Errorf("%v", testHelper.GetBody(context))
 	}
 }
+*/
 
 func TestHandleGetFee(t *testing.T) {
 	context := testHelper.CreateWebContext()
