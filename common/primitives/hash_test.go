@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -133,7 +134,7 @@ func TestSha512Half(t *testing.T) {
 	}
 }
 
-func TestStrings(t *testing.T) {
+func TestHashStrings(t *testing.T) {
 	base := "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
 	hash, err := HexToHash(base)
 	if err != nil {
@@ -141,6 +142,43 @@ func TestStrings(t *testing.T) {
 	}
 	if hash.String() != base {
 		t.Error("Invalid conversion to string")
+	}
+
+	text, err := hash.CustomMarshalText()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(text) != base {
+		t.Errorf("CustomMarshalText failed - %v vs %v", string(text), base)
+	}
+
+	text, err = hash.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(text) != fmt.Sprintf("\"%v\"", base) {
+		t.Errorf("JSONByte failed - %v vs %v", string(text), base)
+	}
+
+	str, err := hash.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if str != fmt.Sprintf("\"%v\"", base) {
+		t.Errorf("JSONString failed - %v vs %v", string(text), base)
+	}
+
+	b := new(bytes.Buffer)
+	err = hash.JSONBuffer(b)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(b.Bytes()) != fmt.Sprintf("\"%v\"", base) {
+		t.Errorf("JSONString failed - %v vs %v", string(text), base)
 	}
 }
 
@@ -388,5 +426,42 @@ func TestStringUnmarshaller(t *testing.T) {
 	}
 	if hash.IsSameAs(h3) == false {
 		t.Errorf("Hash from json.Unmarshal is incorrect - %v vs %v", hash, h3)
+	}
+}
+
+func TestDoubleSha(t *testing.T) {
+	testVector := map[string]string{}
+	testVector["abc"] = "4f8b42c22dd3729b519ba6f68d2da7cc5b2d606d05daed5ad5128cc03e6c6358"
+	testVector[""] = "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456"
+	testVector["abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"] = "0cffe17f68954dac3a84fb1458bd5ec99209449749b2b308b7cb55812f9563af"
+	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "accd7bd1cb0fcbd85cf0ba5ba96945127776373a7d47891eb43ed6b1e2ee60fe"
+
+	for k, v := range testVector {
+		b := DoubleSha([]byte(k))
+		h, err := NewShaHash(b)
+		if err != nil {
+			t.Error(err)
+		}
+		if h.String() != v {
+			t.Errorf("DoubleSha failed %v != %v", h.String(), v)
+		}
+	}
+}
+
+func TestNewShaHashFromStruct(t *testing.T) {
+	testVector := map[string]string{}
+	testVector["abc"] = "c127d30fe315d2d3f2dfeae6b9d57c6aa6322c73fb3fd868963660d6cdcd471f"
+	testVector[""] = "e2854aa639f07056d58cc02ab52d169c48af8b418fcb0df7842f22a1b2ab3ac2"
+	testVector["abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"] = "c226baeb2cad51713659f5e111aaaa6a5a4cfffe7d874c3974c212f4c77fe9d7"
+	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "cdc9eb98889856282bf26c78ffde24c46cbeed70442acf25577fd1aef48a5951"
+
+	for k, v := range testVector {
+		h, err := NewShaHashFromStruct(k)
+		if err != nil {
+			t.Error(err)
+		}
+		if h.String() != v {
+			t.Errorf("NewShaHashFromStruct failed %v != %v", h.String(), v)
+		}
 	}
 }

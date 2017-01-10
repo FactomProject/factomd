@@ -119,11 +119,6 @@ func (t Hash) IsEqual(hash interfaces.IBlock) []interfaces.IBlock {
 	return nil
 }
 
-func (h Hash) NewBlock() interfaces.IBlock {
-	h2 := new(Hash)
-	return h2
-}
-
 // Make a copy of the hash in this hash.  Changes to the return value WILL NOT be
 // reflected in the source hash.  You have to do a SetBytes to change the source
 // value.
@@ -184,17 +179,6 @@ func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 	v, err := hex.DecodeString(hexStr)
 	err = h.SetBytes(v)
 	return h, err
-}
-
-// String returns the ShaHash in the standard bitcoin big-endian form.
-func (h *Hash) BTCString() string {
-	hashstr := ""
-	hash := ([constants.HASH_LENGTH]byte)(*h)
-	for i := range hash {
-		hashstr += fmt.Sprintf("%02x", hash[constants.HASH_LENGTH-1-i])
-	}
-
-	return hashstr
 }
 
 // Compare two Hashes
