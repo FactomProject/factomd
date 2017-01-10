@@ -8,15 +8,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"math/rand"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/primitives"
-	"math/rand"
-	"testing"
 )
 
-var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
@@ -53,8 +52,6 @@ func Test_HashEquals(test *testing.T) {
 //Test vectors: http://www.di-mgt.com.au/sha_testvectors.html
 
 func TestHash(t *testing.T) {
-	fmt.Println("\nTest hash===========================================================================")
-
 	h := new(Hash)
 	err := h.SetBytes(constants.EC_CHAINID)
 	if err != nil {

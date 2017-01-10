@@ -4,9 +4,7 @@
 
 package primitives
 
-import (
-//"bytes"
-)
+import ()
 
 func VarIntLength(v uint64) uint64 {
 	buf := new(Buffer)

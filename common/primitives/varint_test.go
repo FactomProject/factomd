@@ -5,7 +5,6 @@
 package primitives_test
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 
@@ -87,7 +86,6 @@ func TestVarIntLength(t *testing.T) {
 func TestVarInt(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		var out Buffer
-
 		v := make([]uint64, 10)
 
 		for j := 0; j < len(v); j++ {
@@ -110,18 +108,13 @@ func TestVarInt(t *testing.T) {
 		for j := 0; j < len(v); j++ { // Encode our entire array of numbers
 			err := EncodeVarInt(&out, v[j])
 			if err != nil {
-				fmt.Println(err)
-				t.Fail()
-				return
+				t.Errorf("%v", err)
+				t.FailNow()
 			}
-			//              fmt.Printf("%x ",v[j])
 		}
-		//          fmt.Println( "Length: ",out.Len())
 
 		data := out.Bytes()
 
-		//          PrtData(data)
-		//          fmt.Println()
 		sdata := data // Decode our entire array of numbers, and
 		var dv uint64 // check we got them back correctly.
 		for k := 0; k < 1000; k++ {
@@ -129,9 +122,8 @@ func TestVarInt(t *testing.T) {
 			for j := 0; j < len(v); j++ {
 				dv, data = DecodeVarInt(data)
 				if dv != v[j] {
-					fmt.Printf("Values don't match: decode:%x expected:%x (%d)\n", dv, v[j], j)
-					t.Fail()
-					return
+					t.Errorf("Values don't match: decode:%x expected:%x (%d)\n", dv, v[j], j)
+					t.FailNow()
 				}
 			}
 		}
