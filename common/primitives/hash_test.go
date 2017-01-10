@@ -79,6 +79,10 @@ func TestHash(t *testing.T) {
 	if bytes.Compare(bytes1, bytes2) != 0 {
 		t.Errorf("Invalid output")
 	}
+
+	if h2.GetHash() != nil {
+		t.Errorf("Hash GetHashed returned something other than nil")
+	}
 }
 
 func TestSha(t *testing.T) {
@@ -349,6 +353,14 @@ func TestIsMinuteMarker(t *testing.T) {
 		}
 		if hash.IsMinuteMarker() == true {
 			t.Errorf("Entry %v is a minute marker!", str)
+		}
+
+		text, err := hash.MarshalText()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if string(text) != str {
+			t.Errorf("Invalid marshalled text")
 		}
 	}
 }

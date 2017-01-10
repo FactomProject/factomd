@@ -75,10 +75,6 @@ func (Hash) GetHash() interfaces.IHash {
 	return nil
 }
 
-func (h *Hash) CreateHash(entities ...interfaces.BinaryMarshallable) (interfaces.IHash, error) {
-	return CreateHash(entities...)
-}
-
 func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, err error) {
 	sha := sha256.New()
 	h = new(Hash)
