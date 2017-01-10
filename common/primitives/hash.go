@@ -183,10 +183,6 @@ func (h *Hash) ByteString() string {
 	return string(h[:])
 }
 
-func (h *Hash) HexToHash(hexStr string) (interfaces.IHash, error) {
-	return HexToHash(hexStr)
-}
-
 func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 	h = new(Hash)
 	v, err := hex.DecodeString(hexStr)
@@ -288,11 +284,8 @@ func DoubleSha(data []byte) []byte {
 func NewShaHashFromStruct(DataStruct interface{}) (interfaces.IHash, error) {
 	jsonbytes, err := json.Marshal(DataStruct)
 	if err != nil {
-		//fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)
 		return nil, err
 	}
-
-	//fmt.Println("NewShaHashFromStruct =", jsonbytes)
 
 	return NewShaHash(DoubleSha(jsonbytes))
 }

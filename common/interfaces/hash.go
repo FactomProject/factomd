@@ -15,7 +15,6 @@ type IHash interface {
 	SetBytes([]byte) error                             // Set the bytes
 	IsSameAs(IHash) bool                               // Compare two Hashes
 	CreateHash(a ...BinaryMarshallable) (IHash, error) // Create a serial Hash from arguments
-	HexToHash(hexStr string) (IHash, error)            // Convert a Hex string to a Hash
 	IsMinuteMarker() bool
 	UnmarshalText(b []byte) error
 	IsZero() bool

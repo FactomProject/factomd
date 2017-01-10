@@ -8,44 +8,43 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"math/rand"
 	"testing"
 
-	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ = ed25519.Sign
-var _ = rand.New
+func TestHashIsEqual(t *testing.T) {
+	// A hash
+	var hash = [constants.ADDRESS_LENGTH]byte{
+		0x61, 0xe3, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
+		0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
 
-// A hash
-var hash = [constants.ADDRESS_LENGTH]byte{
-	0x61, 0xe3, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
-	0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
-}
-
-func Test_HashEquals(test *testing.T) {
 	h1 := new(Hash)
 	h2 := new(Hash)
 
 	if h1.IsEqual(h2) != nil { // Out of the box, hashes should be equal
-		PrtStk()
-		test.Fail()
+		t.Errorf("Hashes are not equal")
 	}
 
 	h1.SetBytes(hash[:])
 
 	if h1.IsEqual(h2) == nil { // Now they should not be equal
-		PrtStk()
-		test.Fail()
+		t.Errorf("Hashes are equal")
 	}
 
 	h2.SetBytes(hash[:])
 
 	if h1.IsEqual(h2) != nil { // Back to equality!
-		PrtStk()
-		test.Fail()
+		t.Errorf("Hashes are not equal")
+	}
+
+	hash2 := h1.Fixed()
+	for i := range hash {
+		if hash[i] != hash2[i] {
+			t.Errorf("Hashes are not equal")
+		}
 	}
 }
 
@@ -158,6 +157,11 @@ func TestIsSameAs(t *testing.T) {
 	if hash.IsSameAs(hash2) == false {
 		t.Error("Identical hashes not recognized as such")
 	}
+
+	hash3 := hash.Copy()
+	if hash.IsSameAs(hash3) == false {
+		t.Errorf("Copied hash is not identical")
+	}
 }
 
 func TestHashMisc(t *testing.T) {
@@ -208,6 +212,43 @@ func TestHashMisc(t *testing.T) {
 	if hash.String() != "0000000000000000000000000000000000000000000000000000000000000000" {
 		t.Error("Error in NewZeroHash")
 	}
+}
+
+func TestHashIsZero(t *testing.T) {
+	strs := []string{
+		"0000000000000000000000000000000000000000000000000000000000000001",
+		"0000000000000000000000000000000000000000000000000000000000000002",
+		"0000000000000000000000000000000000000000000000000000000000000003",
+		"0000000000000000000000000000000000000000000000000000000000000004",
+		"0000000000000000000000000000000000000000000000000000000000000005",
+		"0000000000000000000000000000000000000000000000000000000000000006",
+		"0000000000000000000000000000000000000000000000000000000000000007",
+		"0000000000000000000000000000000000000000000000000000000000000008",
+		"0000000000000000000000000000000000000000000000000000000000000009",
+		"000000000000000000000000000000000000000000000000000000000000000a",
+		"000000000000000000000000000000000000000000000000000000000000000b",
+		"000000000000000000000000000000000000000000000000000000000000000c",
+		"000000000000000000000000000000000000000000000000000000000000000d",
+		"000000000000000000000000000000000000000000000000000000000000000e",
+		"000000000000000000000000000000000000000000000000000000000000000f"}
+	for _, str := range strs {
+		h, err := NewShaHashFromStr(str)
+		if err != nil {
+			t.Error(err)
+		}
+		if h.IsZero() == true {
+			t.Errorf("Non-zero hash is zero")
+		}
+	}
+
+	h, err := NewShaHashFromStr("0000000000000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		t.Error(err)
+	}
+	if h.IsZero() == false {
+		t.Errorf("Zero hash is non-zero")
+	}
+
 }
 
 func TestIsMinuteMarker(t *testing.T) {
