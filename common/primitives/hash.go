@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -21,6 +22,7 @@ type Hash [constants.HASH_LENGTH]byte
 var _ interfaces.Printable = (*Hash)(nil)
 var _ interfaces.IHash = (*Hash)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
+var _ encoding.TextMarshaler = (*Hash)(nil)
 
 func (c *Hash) Copy() interfaces.IHash {
 	h := new(Hash)
