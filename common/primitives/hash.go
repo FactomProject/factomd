@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -21,6 +22,7 @@ type Hash [constants.HASH_LENGTH]byte
 var _ interfaces.Printable = (*Hash)(nil)
 var _ interfaces.IHash = (*Hash)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
+var _ encoding.TextMarshaler = (*Hash)(nil)
 
 func (c *Hash) Copy() interfaces.IHash {
 	h := new(Hash)
@@ -75,10 +77,6 @@ func (Hash) GetHash() interfaces.IHash {
 	return nil
 }
 
-func (h *Hash) CreateHash(entities ...interfaces.BinaryMarshallable) (interfaces.IHash, error) {
-	return CreateHash(entities...)
-}
-
 func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, err error) {
 	sha := sha256.New()
 	h = new(Hash)
@@ -121,11 +119,6 @@ func (t Hash) IsEqual(hash interfaces.IBlock) []interfaces.IBlock {
 	}
 
 	return nil
-}
-
-func (h Hash) NewBlock() interfaces.IBlock {
-	h2 := new(Hash)
-	return h2
 }
 
 // Make a copy of the hash in this hash.  Changes to the return value WILL NOT be
@@ -183,26 +176,11 @@ func (h *Hash) ByteString() string {
 	return string(h[:])
 }
 
-func (h *Hash) HexToHash(hexStr string) (interfaces.IHash, error) {
-	return HexToHash(hexStr)
-}
-
 func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 	h = new(Hash)
 	v, err := hex.DecodeString(hexStr)
 	err = h.SetBytes(v)
 	return h, err
-}
-
-// String returns the ShaHash in the standard bitcoin big-endian form.
-func (h *Hash) BTCString() string {
-	hashstr := ""
-	hash := ([constants.HASH_LENGTH]byte)(*h)
-	for i := range hash {
-		hashstr += fmt.Sprintf("%02x", hash[constants.HASH_LENGTH-1-i])
-	}
-
-	return hashstr
 }
 
 // Compare two Hashes
@@ -288,11 +266,8 @@ func DoubleSha(data []byte) []byte {
 func NewShaHashFromStruct(DataStruct interface{}) (interfaces.IHash, error) {
 	jsonbytes, err := json.Marshal(DataStruct)
 	if err != nil {
-		//fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)
 		return nil, err
 	}
-
-	//fmt.Println("NewShaHashFromStruct =", jsonbytes)
 
 	return NewShaHash(DoubleSha(jsonbytes))
 }
