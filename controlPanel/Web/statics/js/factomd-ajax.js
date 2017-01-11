@@ -1,1 +1,114 @@
-function queryState(a,b,c){var d=new XMLHttpRequest;d.onreadystatechange=function(){4==d.readyState&&c(d.response)},d.open("GET","/factomd?item="+a+"&value="+b,!0),d.send()}function batchQueryState(a,b){var c=new XMLHttpRequest;c.onreadystatechange=function(){4==c.readyState&&b(c.response)},c.open("GET","/factomdBatch?batch="+a,!0),c.send()}function searchBarSubmit(){var a=new XMLHttpRequest;a.onreadystatechange=function(){4==a.readyState&&(console.log(a.response),obj=JSON.parse(a.response),"dblockHeight"==obj.Type?window.location="search?input="+obj.item+"&type=dblock":"None"!=obj.Type?window.location="search?input="+$("#factom-search").val()+"&type="+obj.Type:($(".factom-search-error").slideDown(300),console.log(a.response)))};var b=new FormData;b.append("method","search"),b.append("search",$("#factom-search").val()),a.open("POST","/post"),a.send(b)}function redirect(a,b,c){var d=$("<input>").attr("type","hidden").val(c).attr("name","content"),e=$("<form>",{method:b,action:a});e.append(d),e.submit()}function nextNode(){resp=queryState("nextNode","",function(a){$("#current-node-number").text(a)})}$("#factom-search").click(function(){$(".factom-search-error").slideUp(300)}),$("#factom-search-submit").click(function(){searchBarSubmit()}),$(".factom-search-container").keypress(function(a){var b=a.which||a.keyCode;13==b&&searchBarSubmit()}),$("body").on("mouseup","section #factom-search-link",function(a){type=jQuery(this).attr("type"),hash=jQuery(this).text();var b=new XMLHttpRequest;b.onreadystatechange=function(){4==b.readyState&&(obj=JSON.parse(b.response),"None"!=obj.Type?1==a.which?window.location="search?input="+hash+"&type="+type:2==a.which&&window.open("/search?input="+hash+"&type="+type):"special-action-fack"==obj.Type?window.location="search?input="+hash+"&type="+type:$(".factom-search-error").slideDown(300))};var c=new FormData;c.append("method","search"),c.append("search",hash),c.append("known",type),b.open("POST","/post"),b.send(c)});
+function queryState(item, value, func) {
+  var req = new XMLHttpRequest()
+
+  req.onreadystatechange = function() {
+    if(req.readyState == 4) {
+      //console.log(item + " - " + req.response)
+      func(req.response)
+    }
+  }
+  req.open("GET", "./factomd?item=" + item + "&value=" + value, true)
+  req.send()
+}
+
+function batchQueryState(item, func) {
+  var req = new XMLHttpRequest()
+
+  req.onreadystatechange = function() {
+    if(req.readyState == 4) {
+      //console.log(item + " - " + req.response)
+      func(req.response)
+    }
+  }
+  req.open("GET", "./factomdBatch?batch=" + item, true)
+  req.send()
+}
+
+$("#factom-search").click(function() {
+  $(".factom-search-error").slideUp( 300 )
+})
+
+$("#factom-search-submit").click(function() {
+  searchBarSubmit()
+})
+$(".factom-search-container").keypress(function(e) {
+  var key = e.which || e.keyCode;
+  if (!(key == 13)) {
+    return
+  }
+  searchBarSubmit()
+})
+
+function searchBarSubmit() {
+  var x = new XMLHttpRequest()
+  x.onreadystatechange = function() {
+    if(x.readyState == 4) {
+      console.log(x.response)
+      obj = JSON.parse(x.response)
+      if (obj.Type == "dblockHeight") {
+        window.location = "search?input=" + obj.item + "&type=dblock"
+      } else if (obj.Type != "None") {
+        window.location = "search?input=" + $("#factom-search").val() + "&type=" + obj.Type
+       //redirect("search?input=" + $("#factom-search").val() + "&type=" + obj.Type, "post", x.response) // Something found
+      } else {
+        $(".factom-search-error").slideDown(300)
+        console.log(x.response)
+      }
+    }
+  }
+  var formData = new FormData();
+  formData.append("method", "search")
+  formData.append("search", $("#factom-search").val())
+
+  x.open("POST", "./post")
+  x.send(formData)
+}
+
+$("body").on('mouseup',"section #factom-search-link",function(e) {
+  type = jQuery(this).attr("type")
+  hash = jQuery(this).text()
+  var x = new XMLHttpRequest()
+  x.onreadystatechange = function() {
+    if(x.readyState == 4) {
+      obj = JSON.parse(x.response)
+      if (obj.Type != "None") {
+        if(e.which == 1){
+          window.location = "search?input=" + hash + "&type=" + type
+        } else if(e.which == 2) {
+          window.open("/search?input=" + hash + "&type=" + type);
+        }
+        //redirect("search?input=" + hash + "&type=" + type, "post", x.response) // Something found
+      } else if(obj.Type == "special-action-fack"){
+        window.location = "search?input=" + hash + "&type=" + type
+      } else {
+        $(".factom-search-error").slideDown(300)
+        //console.log(x.response)
+      }
+    }
+  }
+  var formDataLink = new FormData();
+  formDataLink.append("method", "search")
+  formDataLink.append("search", hash)
+  formDataLink.append("known", type)
+
+  x.open("POST", "./post")
+  x.send(formDataLink)
+})
+
+// Redirect with post content
+function redirect(url, method, content) {
+  var input = $("<input>").attr("type", "hidden").val(content).attr("name", "content")
+  var x = $('<form>', {
+      method: method,
+      action: url
+  })
+  x.append(input)
+  x.submit();
+};
+
+
+function nextNode() {
+  resp = queryState("nextNode","",function(resp){
+    $("#current-node-number").text(resp)
+  })
+}

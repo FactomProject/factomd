@@ -17,12 +17,12 @@ var _ = fmt.Sprintf("")
 var LongTest bool = false
 
 func TestControlPanel(t *testing.T) {
-	var i uint32
-	connections := make(chan interface{})
-	emptyState := CreateAndPopulateTestState()
-
-	gitBuild := "Test Is Running"
 	if LongTest {
+		var i uint32
+		connections := make(chan interface{})
+		emptyState := CreateAndPopulateTestState()
+
+		gitBuild := "Test Is Running"
 		go ServeControlPanel(emptyState.ControlPanelChannel, emptyState, connections, nil, gitBuild)
 		emptyState.CopyStateToControlPanel()
 		for count := 0; count < 1000; count++ {
