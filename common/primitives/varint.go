@@ -4,7 +4,13 @@
 
 package primitives
 
-import ()
+import (
+	"github.com/FactomProject/factomd/common/primitives/random"
+)
+
+func RandomVarInt() uint64 {
+	return random.RandUInt64()
+}
 
 func VarIntLength(v uint64) uint64 {
 	buf := new(Buffer)
