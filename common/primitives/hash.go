@@ -15,6 +15,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 type Hash [constants.HASH_LENGTH]byte
@@ -23,6 +24,13 @@ var _ interfaces.Printable = (*Hash)(nil)
 var _ interfaces.IHash = (*Hash)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
 var _ encoding.TextMarshaler = (*Hash)(nil)
+
+func RandomHash() interfaces.IHash {
+	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
+	answer := new(Hash)
+	answer.SetBytes(h)
+	return answer
+}
 
 func (c *Hash) Copy() interfaces.IHash {
 	h := new(Hash)
@@ -66,7 +74,7 @@ func (h *Hash) UnmarshalText(b []byte) error {
 	return nil
 }
 
-func (h Hash) Fixed() [32]byte {
+func (h Hash) Fixed() [constants.HASH_LENGTH]byte {
 	return h
 }
 func (h *Hash) Bytes() []byte {
@@ -159,7 +167,7 @@ func Sha512Half(p []byte) (h *Hash) {
 	sha.Write(p)
 
 	h = new(Hash)
-	copy(h[:], sha.Sum(nil)[:32])
+	copy(h[:], sha.Sum(nil)[:constants.HASH_LENGTH])
 	return h
 }
 
@@ -198,7 +206,7 @@ func (a Hash) IsSameAs(b interfaces.IHash) bool {
 
 // Is the hash a minute marker (the last byte indicates the minute number)
 func (h *Hash) IsMinuteMarker() bool {
-	if bytes.Equal(h[:31], constants.ZERO_HASH[:31]) {
+	if bytes.Equal(h[:constants.HASH_LENGTH-1], constants.ZERO_HASH[:constants.HASH_LENGTH-1]) {
 		return true
 	}
 

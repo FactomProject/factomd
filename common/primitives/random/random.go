@@ -32,3 +32,15 @@ func RandByteSlice() []byte {
 	}
 	return answer
 }
+
+func RandByteSliceOfLen(l int) []byte {
+	if l <= 0 {
+		return nil
+	}
+	answer := make([]byte, l)
+	_, err := rand.Read(answer)
+	if err != nil {
+		return nil
+	}
+	return answer
+}

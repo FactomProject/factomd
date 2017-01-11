@@ -14,85 +14,70 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
-func TestHashIsEqual(t *testing.T) {
-	// A hash
-	var hash = [constants.ADDRESS_LENGTH]byte{
-		0x61, 0xe3, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72, 0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
-		0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
-	}
+func TestHashCopyAndIsEqual(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
 
-	h1 := new(Hash)
-	h2 := new(Hash)
+		h1 := new(Hash)
+		h2 := new(Hash)
 
-	if h1.IsEqual(h2) != nil { // Out of the box, hashes should be equal
-		t.Errorf("Hashes are not equal")
-	}
-
-	h1.SetBytes(hash[:])
-
-	if h1.IsEqual(h2) == nil { // Now they should not be equal
-		t.Errorf("Hashes are equal")
-	}
-
-	h2.SetBytes(hash[:])
-
-	if h1.IsEqual(h2) != nil { // Back to equality!
-		t.Errorf("Hashes are not equal")
-	}
-
-	hash2 := h1.Fixed()
-	for i := range hash {
-		if hash[i] != hash2[i] {
+		if h1.IsEqual(h2) != nil { // Out of the box, hashes should be equal
 			t.Errorf("Hashes are not equal")
+		}
+
+		h1.SetBytes(h[:])
+
+		if h1.IsEqual(h2) == nil { // Now they should not be equal
+			t.Errorf("Hashes are equal")
+		}
+
+		h2.SetBytes(h[:])
+
+		if h1.IsEqual(h2) != nil { // Back to equality!
+			t.Errorf("Hashes are not equal")
+		}
+
+		hash2 := h1.Fixed()
+		for i := range h {
+			if h[i] != hash2[i] {
+				t.Errorf("Hashes are not equal")
+			}
+		}
+	}
+}
+
+func TestHashMarshalUnmarshal(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		h1 := RandomHash()
+
+		b, err := h1.MarshalBinary()
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+
+		h2 := new(Hash)
+		err = h2.UnmarshalBinary(b)
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+
+		if h1.String() != h2.String() {
+			t.Errorf("Hashes are not equal - %v vs %v", h1.String(), h2.String())
 		}
 	}
 }
 
 //Test vectors: http://www.di-mgt.com.au/sha_testvectors.html
-
-func TestHash(t *testing.T) {
-	h := new(Hash)
-	err := h.SetBytes(constants.EC_CHAINID)
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
-
-	bytes1, err := h.MarshalBinary()
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
-	t.Logf("bytes1: %v\n", bytes1)
-
-	h2 := new(Hash)
-	err = h2.UnmarshalBinary(bytes1)
-	t.Logf("h2.bytes: %v\n", h2.Bytes)
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
-
-	bytes2, err := h2.MarshalBinary()
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
-	t.Logf("bytes2: %v\n", bytes2)
-
-	if bytes.Compare(bytes1, bytes2) != 0 {
-		t.Errorf("Invalid output")
-	}
-
-	if h2.GetHash() != nil {
-		t.Errorf("Hash GetHashed returned something other than nil")
-	}
-}
-
 func TestSha(t *testing.T) {
-	testVector := map[string]string{}
-	testVector["abc"] = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-	testVector[""] = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-	testVector["abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"] = "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
-	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"
+	testVector := map[string]string{
+		"abc": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+		"":    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq":                                                         "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
+		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu": "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1",
+	}
 
 	for k, v := range testVector {
 		answer, err := DecodeBinary(v)
@@ -112,11 +97,12 @@ func TestSha(t *testing.T) {
 }
 
 func TestSha512Half(t *testing.T) {
-	testVector := map[string]string{}
-	testVector["abc"] = "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
-	testVector[""] = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce"
-	testVector["abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"] = "204a8fc6dda82f0a0ced7beb8e08a41657c16ef468b228a8279be331a703c335"
-	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018"
+	testVector := map[string]string{
+		"abc": "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a",
+		"":    "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce",
+		"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq":                                                         "204a8fc6dda82f0a0ced7beb8e08a41657c16ef468b228a8279be331a703c335",
+		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu": "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018",
+	}
 
 	for k, v := range testVector {
 		answer, err := DecodeBinary(v)
@@ -405,37 +391,41 @@ func TestIsMinuteMarker(t *testing.T) {
 }
 
 func TestStringUnmarshaller(t *testing.T) {
-	base := "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
-	hash, err := HexToHash(base)
-	if err != nil {
-		t.Error(err)
-	}
+	for i := 0; i < 1000; i++ {
+		base := RandomHash().String()
 
-	h2 := new(Hash)
-	err = h2.UnmarshalText([]byte(base))
-	if err != nil {
-		t.Error(err)
-	}
-	if hash.IsSameAs(h2) == false {
-		t.Errorf("Hash from UnmarshalText is incorrect - %v vs %v", hash, h2)
-	}
+		hash, err := HexToHash(base)
+		if err != nil {
+			t.Error(err)
+		}
 
-	h3 := new(Hash)
-	err = json.Unmarshal([]byte("\""+base+"\""), h3)
-	if err != nil {
-		t.Error(err)
-	}
-	if hash.IsSameAs(h3) == false {
-		t.Errorf("Hash from json.Unmarshal is incorrect - %v vs %v", hash, h3)
+		h2 := new(Hash)
+		err = h2.UnmarshalText([]byte(base))
+		if err != nil {
+			t.Error(err)
+		}
+		if hash.IsSameAs(h2) == false {
+			t.Errorf("Hash from UnmarshalText is incorrect - %v vs %v", hash, h2)
+		}
+
+		h3 := new(Hash)
+		err = json.Unmarshal([]byte("\""+base+"\""), h3)
+		if err != nil {
+			t.Error(err)
+		}
+		if hash.IsSameAs(h3) == false {
+			t.Errorf("Hash from json.Unmarshal is incorrect - %v vs %v", hash, h3)
+		}
 	}
 }
 
 func TestDoubleSha(t *testing.T) {
-	testVector := map[string]string{}
-	testVector["abc"] = "4f8b42c22dd3729b519ba6f68d2da7cc5b2d606d05daed5ad5128cc03e6c6358"
-	testVector[""] = "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456"
-	testVector["abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"] = "0cffe17f68954dac3a84fb1458bd5ec99209449749b2b308b7cb55812f9563af"
-	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "accd7bd1cb0fcbd85cf0ba5ba96945127776373a7d47891eb43ed6b1e2ee60fe"
+	testVector := map[string]string{
+		"abc": "4f8b42c22dd3729b519ba6f68d2da7cc5b2d606d05daed5ad5128cc03e6c6358",
+		"":    "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456",
+		"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq":                                                         "0cffe17f68954dac3a84fb1458bd5ec99209449749b2b308b7cb55812f9563af",
+		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu": "accd7bd1cb0fcbd85cf0ba5ba96945127776373a7d47891eb43ed6b1e2ee60fe",
+	}
 
 	for k, v := range testVector {
 		b := DoubleSha([]byte(k))
@@ -450,11 +440,12 @@ func TestDoubleSha(t *testing.T) {
 }
 
 func TestNewShaHashFromStruct(t *testing.T) {
-	testVector := map[string]string{}
-	testVector["abc"] = "c127d30fe315d2d3f2dfeae6b9d57c6aa6322c73fb3fd868963660d6cdcd471f"
-	testVector[""] = "e2854aa639f07056d58cc02ab52d169c48af8b418fcb0df7842f22a1b2ab3ac2"
-	testVector["abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"] = "c226baeb2cad51713659f5e111aaaa6a5a4cfffe7d874c3974c212f4c77fe9d7"
-	testVector["abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"] = "cdc9eb98889856282bf26c78ffde24c46cbeed70442acf25577fd1aef48a5951"
+	testVector := map[string]string{
+		"abc": "c127d30fe315d2d3f2dfeae6b9d57c6aa6322c73fb3fd868963660d6cdcd471f",
+		"":    "e2854aa639f07056d58cc02ab52d169c48af8b418fcb0df7842f22a1b2ab3ac2",
+		"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq":                                                         "c226baeb2cad51713659f5e111aaaa6a5a4cfffe7d874c3974c212f4c77fe9d7",
+		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu": "cdc9eb98889856282bf26c78ffde24c46cbeed70442acf25577fd1aef48a5951",
+	}
 
 	for k, v := range testVector {
 		h, err := NewShaHashFromStruct(k)
