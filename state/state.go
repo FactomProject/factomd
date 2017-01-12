@@ -918,6 +918,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	fer := []byte{0x11, 0x11, 0x11}
 
 	needed := func(eb interfaces.IEntryBlock) bool {
+		return true
 		cid := eb.GetChainID().Bytes()
 		if bytes.Compare(id[:3], cid) == 0 {
 			return true
@@ -938,7 +939,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 					entry, err := s.DB.FetchEntry(e)
 					if err == nil && entry != nil {
 						if needed(eBlock) {
-						//	entries = append(entries, entry)
+							entries = append(entries, entry)
 						}
 					}
 				}
