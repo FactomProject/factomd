@@ -923,7 +923,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 				for _, e := range eBlock.GetEntryHashes() {
 					entry, err := s.DB.FetchEntry(e)
 					if err == nil && entry != nil {
-						entries = append(entries, entry)
+						// entries = append(entries, entry)
 					}
 				}
 			}
