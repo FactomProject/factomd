@@ -5,6 +5,7 @@
 package primitives_test
 
 import (
+	"math"
 	"math/rand"
 	"testing"
 
@@ -34,6 +35,7 @@ func TestVarIntLength(t *testing.T) {
 		0x100000000000000:  9,
 		0x7FFFFFFFFFFFFFFF: 9,
 		0x8000000000000000: 10,
+		math.MaxUint64:     10,
 	}
 	for k, v := range vector {
 		if VarIntLength(k) != uint64(v) {

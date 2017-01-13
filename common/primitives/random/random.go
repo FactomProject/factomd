@@ -48,6 +48,10 @@ func RandInt() int {
 	return int(RandInt64())
 }
 
+func RandIntBetween(min, max int) int {
+	return int(RandInt64Between(int64(min), int64(max)))
+}
+
 func RandByteSlice() []byte {
 	l := RandInt() % 64
 	answer := make([]byte, l)
