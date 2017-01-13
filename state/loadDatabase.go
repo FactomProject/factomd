@@ -26,7 +26,7 @@ func SetDBFinished(s *State) {
 	s.DBFinished = true
 }
 
-func LoadDatabase(s *State) {
+func LoadDatabase(loading bool, s *State) {
 	defer SetDBFinished(s)
 
 	var blkCnt uint32
@@ -47,7 +47,7 @@ func LoadDatabase(s *State) {
 			bps := float64(i) / ss
 			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d / %v. Blocks per second %8.2f\n", s.FactomNodeName, i, blkCnt, bps))
 		}
-		msg, err := s.LoadDBState(uint32(i))
+		msg, err := s.LoadDBState(loading, uint32(i))
 		if err != nil {
 			s.Println(err.Error())
 			os.Stderr.WriteString(fmt.Sprintf("%20s Error reading database at block %d: %s\n", s.FactomNodeName, i, err.Error()))
@@ -57,7 +57,7 @@ func LoadDatabase(s *State) {
 				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
 				if len(s.InMsgQueue()) > 300 {
-					for len(s.InMsgQueue()) > 100 {
+					for len(s.InMsgQueue()) > 200 {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}

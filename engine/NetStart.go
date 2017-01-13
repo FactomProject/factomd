@@ -515,7 +515,7 @@ func startServers(load bool) {
 		}
 		go NetworkProcessorNet(fnode)
 		if load {
-			go state.LoadDatabase(fnode.State)
+			go state.LoadDatabase(true, fnode.State)
 		}
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()

@@ -877,7 +877,7 @@ func (s *State) GetAndLockDB() interfaces.DBOverlay {
 func (s *State) UnlockDB() {
 }
 
-func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+func (s *State) LoadDBState(loading bool, dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -933,7 +933,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	var _ = needed
 
 	ebDBEntries := dblk.GetEBlockDBEntries()
-	if len(ebDBEntries) > 0 {
+	if len(ebDBEntries) > 0 && !loading {
 		for _, v := range ebDBEntries {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
