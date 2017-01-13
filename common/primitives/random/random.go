@@ -1,3 +1,7 @@
+// Copyright 2017 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 package random
 
 import (
@@ -7,15 +11,36 @@ import (
 )
 
 func RandUInt64() uint64 {
+	return RandUInt64Between(0, math.MaxUint64)
+}
+
+func RandUInt64Between(min, max uint64) uint64 {
+	if min >= max {
+		return 0
+	}
 	uint64max := big.NewInt(0)
-	uint64max.SetUint64(math.MaxUint64)
+	uint64max.SetUint64(max - min)
 	randnum, _ := rand.Int(rand.Reader, uint64max)
+	m := big.NewInt(0)
+	m.SetUint64(min)
+	randnum = randnum.Add(randnum, m)
 	return randnum.Uint64()
 }
 
 func RandInt64() int64 {
 	int64max := big.NewInt(math.MaxInt64)
 	randnum, _ := rand.Int(rand.Reader, int64max)
+	return randnum.Int64()
+}
+
+func RandInt64Between(min, max int64) int64 {
+	if min >= max {
+		return 0
+	}
+	int64max := big.NewInt(max - min)
+	randnum, _ := rand.Int(rand.Reader, int64max)
+	m := big.NewInt(min)
+	randnum = randnum.Add(randnum, m)
 	return randnum.Int64()
 }
 
