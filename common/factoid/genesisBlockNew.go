@@ -2,6 +2,7 @@ package factoid
 
 import (
 	"encoding/hex"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )

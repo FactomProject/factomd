@@ -13,12 +13,10 @@ package factoid
 
 import (
 	"encoding/hex"
-	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = fmt.Println
 
 type Address struct {
 	primitives.Hash // Since Hash implements interfaces.IHash, and interfaces.IAddress is just a

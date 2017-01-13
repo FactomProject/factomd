@@ -5,12 +5,8 @@
 package factoid
 
 import (
-	"fmt"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 )
-
-var _ = fmt.Println
 
 var adrs []interfaces.IAddress
 var amount uint64 = 5000000000 // One Factoid (remember, fixed point math!
