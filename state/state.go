@@ -918,6 +918,9 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	fer := []byte{0x11, 0x11, 0x11}
 
 	needed := func(eb interfaces.IEntryBlock) bool {
+		if eb.GetDatabaseHeight() < 2 {
+			return true
+		}
 		cid := eb.GetChainID().Bytes()
 		if bytes.Compare(id[:3], cid) == 0 {
 			return true
@@ -927,6 +930,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		}
 		return false
 	}
+	var _ = needed
 
 	ebDBEntries := dblk.GetEBlockDBEntries()
 	if len(ebDBEntries) > 0 {
@@ -934,10 +938,10 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
 				eBlocks = append(eBlocks, eBlock)
-				for _, e := range eBlock.GetEntryHashes() {
-					entry, err := s.DB.FetchEntry(e)
-					if err == nil && entry != nil {
-						if needed(eBlock) {
+				if needed(eBlock) {
+					for _, e := range eBlock.GetEntryHashes() {
+						entry, err := s.DB.FetchEntry(e)
+						if err == nil && entry != nil {
 							entries = append(entries, entry)
 						}
 					}
