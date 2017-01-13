@@ -32,7 +32,7 @@ var address2 = [constants.ADDRESS_LENGTH]byte{
 	0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
 }
 
-func Test_AddressEquals(test *testing.T) {
+func Test_AddressEquals(t *testing.T) {
 	a1 := new(Address)
 	a2 := new(Address)
 
@@ -40,22 +40,19 @@ func Test_AddressEquals(test *testing.T) {
 	a2.SetBytes(address1[:])
 
 	if a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are not equal")
 	}
 
 	a1.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) == nil { // Now they should not be equal
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are equal")
 	}
 
 	a2.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) != nil { // Back to equality!
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are not equal")
 	}
 }
 

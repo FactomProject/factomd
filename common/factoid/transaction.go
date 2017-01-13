@@ -271,7 +271,6 @@ func (t Transaction) Validate(index int) error {
 		}
 	} else {
 		if index == 0 {
-			primitives.PrtStk()
 			fmt.Println(index, t)
 			return fmt.Errorf("Coinbase transactions cannot have inputs.")
 		}

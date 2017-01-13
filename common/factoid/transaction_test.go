@@ -14,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Random first "address".  It isn't a real one, but one we are using for now.
@@ -116,43 +115,37 @@ func TestTransaction(test *testing.T) {
 	fmt.Println("\n---------------------------------------------------------------------")
 }
 
-func Test_Address_MarshalUnMarshal(test *testing.T) {
+func Test_Address_MarshalUnMarshal(t *testing.T) {
 	a := nextAddress()
 	adr, err := a.MarshalBinary()
 	if err != nil {
-		primitives.Prtln(err)
-		test.Fail()
+		t.Errorf("%v", err)
 	}
 	_, err = a.UnmarshalBinaryData(adr)
 	if err != nil {
-		primitives.Prtln(err)
-		test.Fail()
+		t.Errorf("%v", err)
 	}
 }
 
-func Test_Multisig_MarshalUnMarshal(test *testing.T) {
+func Test_Multisig_MarshalUnMarshal(t *testing.T) {
 	rcd := nextAuth2()
 	auth2, err := rcd.MarshalBinary()
 	if err != nil {
-		primitives.Prtln(err)
-		test.Fail()
+		t.Errorf("%v", err)
 	}
 
 	_, err = rcd.UnmarshalBinaryData(auth2)
 
 	if err != nil {
-		primitives.Prtln(err)
-		test.Fail()
+		t.Errorf("%v", err)
 	}
 }
 
-func Test_Transaction_MarshalUnMarshal(test *testing.T) {
-
+func Test_Transaction_MarshalUnMarshal(t *testing.T) {
 	getSignedTrans()                // Make sure we have a signed transaction
 	data, err := nb.MarshalBinary() // Marshal our signed transaction
 	if err != nil {                 // If we have an error, print our stack
-		primitives.Prtln(err) //   and fail our test
-		test.Fail()
+		t.Errorf("%v", err)
 	}
 
 	xb := new(Transaction)
@@ -160,9 +153,8 @@ func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 	err = xb.UnmarshalBinary(data) // Now Unmarshal
 
 	if err != nil {
-		primitives.Prtln(err)
-		test.Fail()
-		return
+		t.Errorf("%v", err)
+		t.FailNow()
 	}
 
 	//     txt1,_ := xb.CustomMarshalText()
@@ -171,8 +163,7 @@ func Test_Transaction_MarshalUnMarshal(test *testing.T) {
 	//     primitives.Prtln(string(txt2))
 
 	if xb.IsEqual(nb) != nil {
-		primitives.Prtln("Trans\n", nb, "Unmarshal Trans\n", xb)
-		test.Fail()
+		t.Errorf("Trans\n", nb, "Unmarshal Trans\n", xb)
 	}
 
 }

@@ -6,33 +6,30 @@ package factoid_test
 
 import (
 	"fmt"
+	"math/rand"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
-	"math/rand"
-	"testing"
 )
 
 var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
-func Test_Auth2_Equals(test *testing.T) {
-
+func Test_Auth2_Equals(t *testing.T) {
 	a1 := nextAuth2_rcd()
 	a2 := a1
 
 	if a1.IsEqual(a2) != nil {
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are not equal")
 	}
 
 	a1 = nextAuth2_rcd()
 
 	if a1.IsEqual(a2) == nil {
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are equal")
 	}
 }
 
