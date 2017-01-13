@@ -6,17 +6,16 @@ package factoid_test
 
 import (
 	"bytes"
-	"fmt"
+	"math/rand"
+	"strings"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math/rand"
-	"strings"
-	"testing"
 )
 
-var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
@@ -56,8 +55,7 @@ func TestAddressEquals(t *testing.T) {
 	}
 }
 
-func TestFactoid_Addresses(t *testing.T) {
-
+func TestFactoidAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
 	uaddr := primitives.ConvertFctAddressToUserStr(addr)
@@ -88,22 +86,19 @@ func TestFactoid_Addresses(t *testing.T) {
 	}
 }
 
-func TestEntry_Credit_Addresses(t *testing.T) {
-
+func TestEntryCreditAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
 	uaddr := primitives.ConvertECAddressToUserStr(addr)
 
 	if !primitives.ValidateECUserStr(uaddr) {
-		fmt.Printf("1")
-		t.Fail()
+		t.Errorf("1")
 	}
 
 	addrBack := primitives.ConvertUserStrToAddress(uaddr)
 
 	if bytes.Compare(addrBack, addr.Bytes()) != 0 {
-		fmt.Printf("2")
-		t.Fail()
+		t.Errorf("2")
 	}
 
 	buaddr := []byte(uaddr)
@@ -111,15 +106,13 @@ func TestEntry_Credit_Addresses(t *testing.T) {
 	for i, v := range buaddr {
 		for j := uint(0); j < 8; j++ {
 			if !primitives.ValidateECUserStr(string(buaddr)) {
-				fmt.Printf("3")
-				t.Fail()
-				return
+				t.Errorf("3")
+				t.FailNow()
 			}
 			buaddr[i] = v ^ (01 << j)
 			if primitives.ValidateECUserStr(string(buaddr)) {
-				fmt.Printf("4")
-				t.Fail()
-				return
+				t.Errorf("4")
+				t.FailNow()
 			}
 			buaddr[i] = v
 		}

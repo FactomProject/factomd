@@ -1,8 +1,9 @@
 package factoid_test
 
 import (
-	. "github.com/FactomProject/factomd/common/factoid"
 	"testing"
+
+	. "github.com/FactomProject/factomd/common/factoid"
 )
 
 /*

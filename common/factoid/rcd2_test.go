@@ -5,10 +5,11 @@
 package factoid_test
 
 import (
-	. "github.com/FactomProject/factomd/common/factoid"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"math/rand"
 	"testing"
+
+	. "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 func TestRCD2MarshalUnmarshal(t *testing.T) {

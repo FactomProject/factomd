@@ -40,7 +40,6 @@ func (zeroReader) Read(buf []byte) (int, error) {
 }
 
 func nextAddress() interfaces.IAddress {
-
 	public, _, _ := ed25519.GenerateKey(zero)
 
 	addr := new(Address)
@@ -73,7 +72,6 @@ func nextAuth2() interfaces.IRCD {
 var nb interfaces.IBlock
 
 func getSignedTrans() interfaces.IBlock {
-
 	if nb != nil {
 		return nb
 	}
@@ -99,7 +97,6 @@ func getSignedTrans() interfaces.IBlock {
 	}
 
 	for i := 0; i < 2; i++ {
-
 		t.AddAuthorization(nextAuth2())
 	}
 
@@ -156,11 +153,6 @@ func TestTransaction_MarshalUnMarshal(t *testing.T) {
 		t.Errorf("%v", err)
 		t.FailNow()
 	}
-
-	//     txt1,_ := xb.CustomMarshalText()
-	//     txt2,_ := nb.CustomMarshalText()
-	//     primitives.Prtln(string(txt1))
-	//     primitives.Prtln(string(txt2))
 
 	if xb.IsEqual(nb) != nil {
 		t.Errorf("Trans\n", nb, "Unmarshal Trans\n", xb)

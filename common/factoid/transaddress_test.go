@@ -6,13 +6,14 @@ package factoid_test
 
 import (
 	"fmt"
+	"math/rand"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math/rand"
-	"testing"
 )
 
 var _ = fmt.Printf

@@ -5,17 +5,16 @@
 package factoid_test
 
 import (
-	"fmt"
+	"math/rand"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
-	"math/rand"
-	"testing"
 )
 
-var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
@@ -39,11 +38,6 @@ func TestSetup_Signature(t *testing.T) {
 	s1.SetSignature(sig1[:])
 	s2 = new(FactoidSignature)
 	s2.SetSignature(sig2[:])
-
-	//    txt1,_:=s1.CustomMarshalText()
-	//    txt2,_:=s2.CustomMarshalText()
-	//    Prtln(string(txt1))
-	//    Prtln(string(txt2))
 }
 
 func TestNewED25519Signature(t *testing.T) {
