@@ -18,7 +18,7 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
-func Test_Auth2_Equals(t *testing.T) {
+func TestAuth2_Equals(t *testing.T) {
 	a1 := nextAuth2_rcd()
 	a2 := a1
 

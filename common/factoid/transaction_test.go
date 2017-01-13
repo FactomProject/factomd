@@ -108,14 +108,14 @@ func getSignedTrans() interfaces.IBlock {
 
 // This test prints bunches of stuff that must be visually checked.
 // Mostly we keep it commented out.
-func TestTransaction(test *testing.T) {
+func TestTransaction(t *testing.T) {
 	nb = getSignedTrans()
 	bytes, _ := nb.CustomMarshalText()
 	fmt.Printf("Transaction:\n%slen: %d\n", string(bytes), len(bytes))
 	fmt.Println("\n---------------------------------------------------------------------")
 }
 
-func Test_Address_MarshalUnMarshal(t *testing.T) {
+func TestAddress_MarshalUnMarshal(t *testing.T) {
 	a := nextAddress()
 	adr, err := a.MarshalBinary()
 	if err != nil {
@@ -127,7 +127,7 @@ func Test_Address_MarshalUnMarshal(t *testing.T) {
 	}
 }
 
-func Test_Multisig_MarshalUnMarshal(t *testing.T) {
+func TestMultisig_MarshalUnMarshal(t *testing.T) {
 	rcd := nextAuth2()
 	auth2, err := rcd.MarshalBinary()
 	if err != nil {
@@ -141,7 +141,7 @@ func Test_Multisig_MarshalUnMarshal(t *testing.T) {
 	}
 }
 
-func Test_Transaction_MarshalUnMarshal(t *testing.T) {
+func TestTransaction_MarshalUnMarshal(t *testing.T) {
 	getSignedTrans()                // Make sure we have a signed transaction
 	data, err := nb.MarshalBinary() // Marshal our signed transaction
 	if err != nil {                 // If we have an error, print our stack
@@ -168,23 +168,23 @@ func Test_Transaction_MarshalUnMarshal(t *testing.T) {
 
 }
 
-func Test_ValidateAmounts(test *testing.T) {
+func TestValidateAmounts(t *testing.T) {
 	var zero uint64
 	_, err := ValidateAmounts(zero - 1)
 	if err != nil {
-		test.Failed()
+		t.Failed()
 	}
 	_, err = ValidateAmounts(1, 2, 3, 4, 5, zero-1)
 	if err != nil {
-		test.Failed()
+		t.Failed()
 	}
 	_, err = ValidateAmounts(0x6FFFFFFFFFFFFFFF, 1)
 	if err != nil {
-		test.Failed()
+		t.Failed()
 	}
 	_, err = ValidateAmounts(1, 0x6FFFFFFFFFFFFFFF, 1)
 	if err != nil {
-		test.Failed()
+		t.Failed()
 	}
 }
 

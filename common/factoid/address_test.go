@@ -32,7 +32,7 @@ var address2 = [constants.ADDRESS_LENGTH]byte{
 	0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
 }
 
-func Test_AddressEquals(t *testing.T) {
+func TestAddressEquals(t *testing.T) {
 	a1 := new(Address)
 	a2 := new(Address)
 
@@ -56,20 +56,20 @@ func Test_AddressEquals(t *testing.T) {
 	}
 }
 
-func Test_Factoid_Addresses(test *testing.T) {
+func TestFactoid_Addresses(t *testing.T) {
 
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
 	uaddr := primitives.ConvertFctAddressToUserStr(addr)
 
 	if !primitives.ValidateFUserStr(uaddr) {
-		test.Fail()
+		t.Fail()
 	}
 
 	addrBack := primitives.ConvertUserStrToAddress(uaddr)
 
 	if bytes.Compare(addrBack, addr.Bytes()) != 0 {
-		test.Fail()
+		t.Fail()
 	}
 
 	buaddr := []byte(uaddr)
@@ -77,18 +77,18 @@ func Test_Factoid_Addresses(test *testing.T) {
 	for i, v := range buaddr {
 		for j := uint(0); j < 8; j++ {
 			if !primitives.ValidateFUserStr(string(buaddr)) {
-				test.Fail()
+				t.Fail()
 			}
 			buaddr[i] = v ^ (01 << j)
 			if primitives.ValidateFUserStr(string(buaddr)) {
-				test.Fail()
+				t.Fail()
 			}
 			buaddr[i] = v
 		}
 	}
 }
 
-func Test_Entry_Credit_Addresses(test *testing.T) {
+func TestEntry_Credit_Addresses(t *testing.T) {
 
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
@@ -96,14 +96,14 @@ func Test_Entry_Credit_Addresses(test *testing.T) {
 
 	if !primitives.ValidateECUserStr(uaddr) {
 		fmt.Printf("1")
-		test.Fail()
+		t.Fail()
 	}
 
 	addrBack := primitives.ConvertUserStrToAddress(uaddr)
 
 	if bytes.Compare(addrBack, addr.Bytes()) != 0 {
 		fmt.Printf("2")
-		test.Fail()
+		t.Fail()
 	}
 
 	buaddr := []byte(uaddr)
@@ -112,13 +112,13 @@ func Test_Entry_Credit_Addresses(test *testing.T) {
 		for j := uint(0); j < 8; j++ {
 			if !primitives.ValidateECUserStr(string(buaddr)) {
 				fmt.Printf("3")
-				test.Fail()
+				t.Fail()
 				return
 			}
 			buaddr[i] = v ^ (01 << j)
 			if primitives.ValidateECUserStr(string(buaddr)) {
 				fmt.Printf("4")
-				test.Fail()
+				t.Fail()
 				return
 			}
 			buaddr[i] = v

@@ -32,7 +32,7 @@ func newFakeAddr() sc.IAddress {
 	return fakeAddr
 }
 
-func Test_create_block(test *testing.T) {
+func Testcreate_block(t *testing.T) {
 	w := new(wallet.SCWallet) // make me a wallet
 	w.Init()
 	w.NewSeed([]byte("slfkjasdlfjasflajsfl"))
@@ -44,32 +44,32 @@ func Test_create_block(test *testing.T) {
 		h0, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-0"), 1, 1)
 		if err != nil {
 			sc.Prtln("Error 1")
-			test.Fail()
+			t.Fail()
 		}
 		h1, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-1"), 1, 1)
 		if err != nil {
 			sc.Prtln("Error 2")
-			test.Fail()
+			t.Fail()
 		}
 		h2, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-2"), 1, 1)
 		if err != nil {
 			sc.Prtln("Error 3")
-			test.Fail()
+			t.Fail()
 		}
 		h3, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-3"), 1, 1)
 		if err != nil {
 			sc.Prtln("Error 4")
-			test.Fail()
+			t.Fail()
 		}
 		h4, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-4"), 1, 1)
 		if err != nil {
 			sc.Prtln("Error 5")
-			test.Fail()
+			t.Fail()
 		}
 		h5, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(i)+"-5"), 1, 1)
 		if err != nil {
 			sc.Prtln("Error 6")
-			test.Fail()
+			t.Fail()
 		}
 
 		t := w.CreateTransaction(uint64(time.Now().UnixNano() / 1000000))
@@ -86,19 +86,19 @@ func Test_create_block(test *testing.T) {
 		signed, err := w.SignInputs(t)
 		if err != nil {
 			sc.Prtln("Error found: ", err)
-			test.Fail()
+			t.Fail()
 			return
 		}
 		if !signed {
 			sc.Prtln("Not valid")
-			test.Fail()
+			t.Fail()
 			return
 		}
 
 		err = scb.AddTransaction(t)
 		if err != nil {
 			sc.Prtln("Error found: ", err)
-			test.Fail()
+			t.Fail()
 			return
 		}
 
@@ -125,7 +125,7 @@ func Test_create_block(test *testing.T) {
 	data, err := scb.MarshalBinary()
 	if err != nil {
 		fmt.Println(err)
-		test.Fail()
+		t.Fail()
 		return
 	}
 	scb2 := new(block.FBlock)
@@ -134,7 +134,7 @@ func Test_create_block(test *testing.T) {
 	data2, err2 := scb.MarshalBinary()
 	if err2 != nil {
 		fmt.Println(err2)
-		test.Fail()
+		t.Fail()
 		return
 	}
 
@@ -149,7 +149,7 @@ func Test_create_block(test *testing.T) {
 	data3, err3 := scb3.MarshalBinary()
 	if err3 != nil {
 		fmt.Println(err3)
-		test.Fail()
+		t.Fail()
 		return
 	}
 
@@ -161,7 +161,7 @@ func Test_create_block(test *testing.T) {
 
 	if err != nil {
 		fmt.Println(err)
-		test.Fail()
+		t.Fail()
 		return
 	}
 	//sc.Prtln("FIRST\n", scb, "SECOND\n", scb2)
@@ -171,19 +171,19 @@ func Test_create_block(test *testing.T) {
 		//fmt.Println()
 		//fmt.Println()
 		//fmt.Println("scb2: ", scb)
-		test.Fail()
+		t.Fail()
 		return
 	}
 
 	if scb3.IsEqual(scb2) != nil {
 		fmt.Println("NOT EQUAL: scb3.IsEqual(scb2)")
-		test.Fail()
+		t.Fail()
 		return
 	}
 
 }
 
-func Test_gen_block(test *testing.T) {
+func Testgen_block(t *testing.T) {
 	scb := block.GetGenesisFBlock()
 
 	fmt.Println("SCB Period marks: ", scb.GetEndOfPeriod())
@@ -191,7 +191,7 @@ func Test_gen_block(test *testing.T) {
 	data, err := scb.MarshalBinary()
 	if err != nil {
 		fmt.Println(err)
-		test.Fail()
+		t.Fail()
 		return
 	}
 	scb2 := new(block.FBlock)
@@ -200,7 +200,7 @@ func Test_gen_block(test *testing.T) {
 	data2, err2 := scb.MarshalBinary()
 	if err2 != nil {
 		fmt.Println(err2)
-		test.Fail()
+		t.Fail()
 		return
 	}
 
@@ -215,7 +215,7 @@ func Test_gen_block(test *testing.T) {
 	data3, err3 := scb3.MarshalBinary()
 	if err3 != nil {
 		fmt.Println(err3)
-		test.Fail()
+		t.Fail()
 		return
 	}
 
@@ -227,7 +227,7 @@ func Test_gen_block(test *testing.T) {
 
 	if err != nil {
 		fmt.Println(err)
-		test.Fail()
+		t.Fail()
 		return
 	}
 	//sc.Prtln("FIRST\n", scb, "SECOND\n", scb2)
@@ -237,19 +237,19 @@ func Test_gen_block(test *testing.T) {
 		//fmt.Println()
 		//fmt.Println()
 		//fmt.Println("scb2: ", scb)
-		test.Fail()
+		t.Fail()
 		return
 	}
 
 	if scb3.IsEqual(scb2) != nil {
 		fmt.Println("NOT EQUAL: scb3.IsEqual(scb2)")
-		test.Fail()
+		t.Fail()
 		return
 	}
 
 }
 
-func Test_alot_block(test *testing.T) {
+func Testalot_block(t *testing.T) {
 	w := new(wallet.SCWallet) // make me a wallet
 	w.Init()
 	w.NewSeed([]byte("slfkjasdlfjasflajsfl"))
@@ -257,32 +257,32 @@ func Test_alot_block(test *testing.T) {
 	h0, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(1)+"-1"), 1, 1)
 	if err != nil {
 		sc.Prtln("Error 1")
-		test.Fail()
+		t.Fail()
 	}
 	h1, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(2)+"-1"), 1, 1)
 	if err != nil {
 		sc.Prtln("Error 2")
-		test.Fail()
+		t.Fail()
 	}
 	h2, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(3)+"-2"), 1, 1)
 	if err != nil {
 		sc.Prtln("Error 3")
-		test.Fail()
+		t.Fail()
 	}
 	h3, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(4)+"-3"), 1, 1)
 	if err != nil {
 		sc.Prtln("Error 4")
-		test.Fail()
+		t.Fail()
 	}
 	h4, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(5)+"-4"), 1, 1)
 	if err != nil {
 		sc.Prtln("Error 5")
-		test.Fail()
+		t.Fail()
 	}
 	h5, err := w.GenerateFctAddress([]byte("test "+cv.Itoa(6)+"-5"), 1, 1)
 	if err != nil {
 		sc.Prtln("Error 6")
-		test.Fail()
+		t.Fail()
 	}
 
 	for bcnt := 0; bcnt < 500; bcnt++ {
@@ -318,24 +318,24 @@ func Test_alot_block(test *testing.T) {
 				signed, err := w.SignInputs(t)
 				if err != nil {
 					sc.Prtln("Error found: ", err)
-					test.Fail()
+					t.Fail()
 					return
 				}
 				if !signed {
 					sc.Prtln("Not valid")
-					test.Fail()
+					t.Fail()
 					return
 				}
 
 				err = scb.AddTransaction(t)
 				if err != nil {
 					sc.Prtln("Error found: ", err)
-					test.Fail()
+					t.Fail()
 					return
 				}
 				if err != nil {
 					sc.Prtln("Error 1")
-					test.Fail()
+					t.Fail()
 					return
 				}
 			}
@@ -343,7 +343,7 @@ func Test_alot_block(test *testing.T) {
 			// Note:  All incomplete blocks have at least one period with 
 			// a zero value.
 			if scb.GetEndOfPeriod()[9]!= 0 {
-				test.Fail()
+				t.Fail()
 				return
 			}
 			
@@ -355,7 +355,7 @@ func Test_alot_block(test *testing.T) {
 		data, err := scb.MarshalBinary()
 		if err != nil {
 			fmt.Println(err)
-			test.Fail()
+			t.Fail()
 			return
 		}
 		
@@ -365,14 +365,14 @@ func Test_alot_block(test *testing.T) {
 		data2, err2 := scb.MarshalBinary()
 		if err2 != nil {
 			fmt.Println(err2)
-			test.Fail()
+			t.Fail()
 			return
 		}
 
 		result := bytes.Compare(data, data2)
 		if result != 0 {
 			fmt.Println("Failure at ",bcnt,".  Data does not compare")
-			test.Fail()
+			t.Fail()
 			return
 		}
 		
@@ -382,33 +382,33 @@ func Test_alot_block(test *testing.T) {
 		data3, err3 := scb3.MarshalBinary()
 		if err3 != nil {
 			fmt.Println(err3)
-			test.Fail()
+			t.Fail()
 			return
 		}
 		
 		result = bytes.Compare(data2, data3)
 		if result != 0 {
 			fmt.Println("Failure at ",bcnt,".  Data does not compare")
-			test.Fail()
+			t.Fail()
 			return
 		}
 			
 
 		if err != nil {
 			fmt.Println(err)
-			test.Fail()
+			t.Fail()
 			return
 		}
 		//sc.Prtln("FIRST\n", scb, "SECOND\n", scb2)
 		if scb.IsEqual(scb2) != nil {
 			fmt.Println("NOT EQUAL: scb.IsEqual(scb2)")
-			test.Fail()
+			t.Fail()
 			return
 		}
 
 		if scb3.IsEqual(scb2) != nil {
 			fmt.Println("NOT EQUAL: scb3.IsEqual(scb2)")
-			test.Fail()
+			t.Fail()
 			return
 		}
 		
@@ -418,7 +418,7 @@ func Test_alot_block(test *testing.T) {
 		
 		if scbStr != scb2Str || scbStr != scb3Str {
 			fmt.Println("String prints don't match")
-			test.Fail()
+			t.Fail()
 			return
 		}
 		
