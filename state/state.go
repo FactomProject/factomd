@@ -918,7 +918,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	fer := []byte{0x11, 0x11, 0x11}
 
 	needed := func(eb interfaces.IEntryBlock) bool {
-		return true
 		cid := eb.GetChainID().Bytes()
 		if bytes.Compare(id[:3], cid) == 0 {
 			return true
