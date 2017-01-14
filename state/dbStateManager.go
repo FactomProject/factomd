@@ -233,7 +233,19 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	ask := func() {
 		if list.TimeToAsk != nil && hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
-			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+10))
+
+			// Don't ask for more than we already have.
+			for i,v := range list.State.DBStatesReceived {
+				ix := i+list.State.DBStatesReceivedBase
+				if v != nil && ix < end {
+					end = ix-1
+				}
+				if begin > end {
+					return
+				}
+			}
+
+			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
 
 			if msg != nil {
 				//		list.State.RunLeader = false

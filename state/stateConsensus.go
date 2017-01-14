@@ -86,6 +86,28 @@ func (s *State) Process() (progress bool) {
 		return false
 	}
 
+	var vm *VM
+	if s.Leader {
+		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
+		if vm.Height == 0 {
+			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
+		}
+	}
+
+	for i:=0; i < 50 && len(s.DBStatesReceived) > 0; i++ {
+		ht := s.GetHighestSavedBlk()
+		msg := s.DBStatesReceived[0]
+		if msg != nil {
+			s.executeMsg(vm, msg)
+			s.DBStatesReceived[0]=nil
+			if ht == s.GetHighestSavedBlk() {
+				return true
+			}
+		}else{
+			break
+		}
+	}
+
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
@@ -113,13 +135,7 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	var vm *VM
-	if s.Leader {
-		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		if vm.Height == 0 {
-			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
-		}
-	}
+
 
 	s.ReviewHolding()
 
@@ -443,6 +459,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
+	// ignore if too old.
+	if dbheight < s.GetHighestSavedBlk() {
+		return
+	}
+
 	// ignore if we didn't ask for it, or if it is at least something with our range of asking for.
 	if !dbstatemsg.IsInDB && (s.DBStates.LastBegin-1 > int(dbheight) || s.DBStates.LastEnd+20 < int(dbheight)) {
 		return
@@ -457,13 +478,18 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
 
 		// Don't add duplicate dbstate messages.
-		for _, v := range s.XReview {
-			if ds, ok := v.(*messages.DBStateMsg); ok && ds.GetHash().Fixed() == dbstatemsg.DirectoryBlock.GetHash().Fixed() {
-				return
+		if s.DBStatesReceivedBase < int(s.GetHighestSavedBlk())-1 {
+			cut := int(s.GetHighestSavedBlk())-s.DBStatesReceivedBase-1
+			if len(s.DBStatesReceived)>=cut {
+				s.DBStatesReceived = append(make([]*messages.DBStateMsg, 0), s.DBStatesReceived[cut:]...)
 			}
+			s.DBStatesReceivedBase += cut
 		}
-
-		s.Holding[dbstatemsg.GetRepeatHash().Fixed()] = dbstatemsg
+		ix := int(dbheight) - s.DBStatesReceivedBase
+		for len(s.DBStatesReceived) <= ix {
+			s.DBStatesReceived = append(s.DBStatesReceived,nil)
+		}
+		s.DBStatesReceived[ix]=dbstatemsg
 		return
 	case -1:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
@@ -657,7 +683,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		for i, missing := range s.MissingEntries {
 			e := missing.entryhash
 
-			if e.IsSameAs(entry.GetHash()) {
+			if e.Fixed() == entry.GetHash().Fixed() {
 				s.DB.InsertEntry(entry)
 				var missing []MissingEntry
 				missing = append(missing, s.MissingEntries[:i]...)

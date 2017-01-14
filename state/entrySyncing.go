@@ -8,6 +8,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 //	"fmt"
+	"fmt"
 )
 
 func (s *State) setTimersMakeRequests() {
@@ -93,7 +94,7 @@ func (s *State) syncEntryBlocks() {
 				}
 				// Something missing, stop moving the bookmark.
 				alldone = false
-				//fmt.Printf("==== Can't find Entry Block: %x dbht: %d\n",ebKeyMR.Bytes(),eBlock.GetDatabaseHeight())
+				fmt.Printf("==== Cannot find Entry Block: %x dbht: %d\n",ebKeyMR.Bytes(),eBlock.GetDatabaseHeight())
 				continue
 			}
 		}
@@ -159,7 +160,7 @@ func (s *State) syncEntries(eights bool) {
 
 						s.MissingEntries = append(s.MissingEntries, v)
 					}
-					// fmt.Printf("===== Can't find Entry Block: %x Entry %x dbht %d\n",ebKeyMR.Bytes(),entryhash.Bytes(),eBlock.GetDatabaseHeight())
+					fmt.Printf("===== Cannot find Entry Block: %x Entry %x dbht %d\n",ebKeyMR.Bytes(),entryhash.Bytes(),eBlock.GetDatabaseHeight())
 					// Something missing. stop moving the bookmark.
 					alldone = false
 				}

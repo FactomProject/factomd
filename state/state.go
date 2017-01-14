@@ -55,6 +55,8 @@ type State struct {
 	ExportDataSubpath string
 
 	DBStatesSent            []*interfaces.DBStateSent
+	DBStatesReceivedBase    int
+	DBStatesReceived        []*messages.DBStateMsg
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
