@@ -61,6 +61,10 @@ func LoadDatabase(loading bool, s *State) {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
+				s.EntryDBHeightComplete = i
+				s.EntryDBHeightProcessing = i
+				s.EntryBlockDBHeightComplete = s.EntryDBHeightComplete
+				s.EntryBlockDBHeightProcessing = s.EntryDBHeightProcessing
 			} else {
 				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break

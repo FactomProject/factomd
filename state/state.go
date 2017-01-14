@@ -877,6 +877,25 @@ func (s *State) GetAndLockDB() interfaces.DBOverlay {
 func (s *State) UnlockDB() {
 }
 
+// Checks ChainIDs to determine if we need their entries to process entries and transactions.
+func (s *State) Needed (eb interfaces.IEntryBlock) bool {
+	id := []byte{0x88, 0x88, 0x88}
+	fer := []byte{0x11, 0x11, 0x11}
+
+	if eb.GetDatabaseHeight() < 2 {
+		return true
+	}
+	cid := eb.GetChainID().Bytes()
+	if bytes.Compare(id[:3], cid) == 0 {
+		return true
+	}
+	if bytes.Compare(id[:3], fer) == 0 {
+		return true
+	}
+	return false
+}
+
+
 func (s *State) LoadDBState(loading bool, dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
@@ -914,31 +933,13 @@ func (s *State) LoadDBState(loading bool, dbheight uint32) (interfaces.IMsg, err
 	var eBlocks []interfaces.IEntryBlock
 	var entries []interfaces.IEBEntry
 
-	id := []byte{0x88, 0x88, 0x88}
-	fer := []byte{0x11, 0x11, 0x11}
-
-	needed := func(eb interfaces.IEntryBlock) bool {
-		if eb.GetDatabaseHeight() < 2 {
-			return true
-		}
-		cid := eb.GetChainID().Bytes()
-		if bytes.Compare(id[:3], cid) == 0 {
-			return true
-		}
-		if bytes.Compare(id[:3], fer) == 0 {
-			return true
-		}
-		return false
-	}
-	var _ = needed
-
 	ebDBEntries := dblk.GetEBlockDBEntries()
 	if len(ebDBEntries) > 0 && !loading {
 		for _, v := range ebDBEntries {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
 				eBlocks = append(eBlocks, eBlock)
-				if needed(eBlock) {
+				if s.Needed(eBlock) {
 					for _, e := range eBlock.GetEntryHashes() {
 						entry, err := s.DB.FetchEntry(e)
 						if err == nil && entry != nil {
