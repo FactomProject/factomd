@@ -7,6 +7,7 @@ package state
 import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
+//	"fmt"
 )
 
 func (s *State) setTimersMakeRequests() {
@@ -92,7 +93,7 @@ func (s *State) syncEntryBlocks() {
 				}
 				// Something missing, stop moving the bookmark.
 				alldone = false
-				//fmt.Printf("==== Can't find Entry Block: %x dbht: %d\n",ebKeyMR.Bytes()[:5],eBlock.GetDatabaseHeight())
+				//fmt.Printf("==== Can't find Entry Block: %x dbht: %d\n",ebKeyMR.Bytes(),eBlock.GetDatabaseHeight())
 				continue
 			}
 		}
@@ -140,15 +141,16 @@ func (s *State) syncEntries(eights bool) {
 				e, _ := s.DB.FetchEntry(entryhash)
 				if e == nil {
 					//Check lists and not add if already there.
-					addit := true
-					for _, e := range s.MissingEntries {
-						if e.ebhash.Fixed() == entryhash.Fixed() {
-							addit = false
-							break
+					addit := func () bool {
+						for _, e := range s.MissingEntries {
+							if e.entryhash.Fixed() == entryhash.Fixed() {
+								return false
+							}
 						}
+						return true
 					}
 
-					if addit {
+					if addit() {
 						var v MissingEntry
 
 						v.dbheight = eBlock.GetHeader().GetDBHeight()
@@ -157,7 +159,7 @@ func (s *State) syncEntries(eights bool) {
 
 						s.MissingEntries = append(s.MissingEntries, v)
 					}
-					//fmt.Printf("===== Can't find Entry Block: %x Entry %x dbht %x\n",ebKeyMR.Bytes()[:5],entryhash.Bytes()[:5],eBlock.GetDatabaseHeight())
+					// fmt.Printf("===== Can't find Entry Block: %x Entry %x dbht %d\n",ebKeyMR.Bytes(),entryhash.Bytes(),eBlock.GetDatabaseHeight())
 					// Something missing. stop moving the bookmark.
 					alldone = false
 				}

@@ -61,8 +61,8 @@ func LoadDatabase(loading bool, s *State) {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
-				s.EntryDBHeightComplete = i
-				s.EntryDBHeightProcessing = i
+				s.EntryDBHeightComplete = uint32(i)
+				s.EntryDBHeightProcessing = uint32(i)
 				s.EntryBlockDBHeightComplete = s.EntryDBHeightComplete
 				s.EntryBlockDBHeightProcessing = s.EntryDBHeightProcessing
 			} else {
