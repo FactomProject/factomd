@@ -8,12 +8,14 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 type Hash [constants.HASH_LENGTH]byte
@@ -21,6 +23,14 @@ type Hash [constants.HASH_LENGTH]byte
 var _ interfaces.Printable = (*Hash)(nil)
 var _ interfaces.IHash = (*Hash)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Hash)(nil)
+var _ encoding.TextMarshaler = (*Hash)(nil)
+
+func RandomHash() interfaces.IHash {
+	h := random.RandByteSliceOfLen(constants.HASH_LENGTH)
+	answer := new(Hash)
+	answer.SetBytes(h)
+	return answer
+}
 
 func (c *Hash) Copy() interfaces.IHash {
 	h := new(Hash)
@@ -64,7 +74,7 @@ func (h *Hash) UnmarshalText(b []byte) error {
 	return nil
 }
 
-func (h Hash) Fixed() [32]byte {
+func (h Hash) Fixed() [constants.HASH_LENGTH]byte {
 	return h
 }
 func (h *Hash) Bytes() []byte {
@@ -73,10 +83,6 @@ func (h *Hash) Bytes() []byte {
 
 func (Hash) GetHash() interfaces.IHash {
 	return nil
-}
-
-func (h *Hash) CreateHash(entities ...interfaces.BinaryMarshallable) (interfaces.IHash, error) {
-	return CreateHash(entities...)
 }
 
 func CreateHash(entities ...interfaces.BinaryMarshallable) (h interfaces.IHash, err error) {
@@ -123,11 +129,6 @@ func (t Hash) IsEqual(hash interfaces.IBlock) []interfaces.IBlock {
 	return nil
 }
 
-func (h Hash) NewBlock() interfaces.IBlock {
-	h2 := new(Hash)
-	return h2
-}
-
 // Make a copy of the hash in this hash.  Changes to the return value WILL NOT be
 // reflected in the source hash.  You have to do a SetBytes to change the source
 // value.
@@ -166,7 +167,7 @@ func Sha512Half(p []byte) (h *Hash) {
 	sha.Write(p)
 
 	h = new(Hash)
-	copy(h[:], sha.Sum(nil)[:32])
+	copy(h[:], sha.Sum(nil)[:constants.HASH_LENGTH])
 	return h
 }
 
@@ -183,26 +184,11 @@ func (h *Hash) ByteString() string {
 	return string(h[:])
 }
 
-func (h *Hash) HexToHash(hexStr string) (interfaces.IHash, error) {
-	return HexToHash(hexStr)
-}
-
 func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 	h = new(Hash)
 	v, err := hex.DecodeString(hexStr)
 	err = h.SetBytes(v)
 	return h, err
-}
-
-// String returns the ShaHash in the standard bitcoin big-endian form.
-func (h *Hash) BTCString() string {
-	hashstr := ""
-	hash := ([constants.HASH_LENGTH]byte)(*h)
-	for i := range hash {
-		hashstr += fmt.Sprintf("%02x", hash[constants.HASH_LENGTH-1-i])
-	}
-
-	return hashstr
 }
 
 // Compare two Hashes
@@ -220,7 +206,7 @@ func (a Hash) IsSameAs(b interfaces.IHash) bool {
 
 // Is the hash a minute marker (the last byte indicates the minute number)
 func (h *Hash) IsMinuteMarker() bool {
-	if bytes.Equal(h[:31], constants.ZERO_HASH[:31]) {
+	if bytes.Equal(h[:constants.HASH_LENGTH-1], constants.ZERO_HASH[:constants.HASH_LENGTH-1]) {
 		return true
 	}
 
@@ -288,11 +274,8 @@ func DoubleSha(data []byte) []byte {
 func NewShaHashFromStruct(DataStruct interface{}) (interfaces.IHash, error) {
 	jsonbytes, err := json.Marshal(DataStruct)
 	if err != nil {
-		//fmt.Printf("NewShaHash Json Marshal Error: %s\n", err)
 		return nil, err
 	}
-
-	//fmt.Println("NewShaHashFromStruct =", jsonbytes)
 
 	return NewShaHash(DoubleSha(jsonbytes))
 }
