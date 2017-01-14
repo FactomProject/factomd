@@ -73,3 +73,14 @@ func RandByteSliceOfLen(l int) []byte {
 	}
 	return answer
 }
+
+const StringAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+
+func RandomString() string {
+	l := RandIntBetween(0, 128)
+	answer := []byte{}
+	for i := 0; i < l; i++ {
+		answer = append(answer, StringAlphabet[RandIntBetween(0, len(StringAlphabet)-1)])
+	}
+	return string(answer)
+}

@@ -25,6 +25,11 @@ type Address struct {
 
 var _ interfaces.IAddress = (*Address)(nil)
 
+func RandomAddress() interfaces.IAddress {
+	h := primitives.RandomHash()
+	return CreateAddress(h)
+}
+
 /*
 func (b *Address) String() string {
 	txt, err := b.CustomMarshalText()
