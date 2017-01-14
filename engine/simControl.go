@@ -248,7 +248,7 @@ func SimControl(listenTo int) {
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Adminblock block with an  where n = blockheight, i.e. 'a10'"))
 				} else {
-					msg, err := f.State.LoadDBState(true, uint32(ht))
+					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						ABlock := dsmsg.AdminBlock
@@ -280,7 +280,7 @@ func SimControl(listenTo int) {
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Entry Credit block with fn  where n = blockheight, i.e. 'e10'"))
 				} else {
-					msg, err := f.State.LoadDBState(true, uint32(ht))
+					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						ECBlock := dsmsg.EntryCreditBlock
@@ -312,7 +312,7 @@ func SimControl(listenTo int) {
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Factoid block with fn  where n = blockheight, i.e. 'f10'"))
 				} else {
-					msg, err := f.State.LoadDBState(true, uint32(ht))
+					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						FBlock := dsmsg.FactoidBlock
@@ -344,7 +344,7 @@ func SimControl(listenTo int) {
 				if err != nil {
 					os.Stderr.WriteString(fmt.Sprintln(err, "Dump Directory block with dn  where n = blockheight, i.e. 'd10'"))
 				} else {
-					msg, err := f.State.LoadDBState(true, uint32(ht))
+					msg, err := f.State.LoadDBState(uint32(ht))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						DBlock := dsmsg.DirectoryBlock
@@ -464,7 +464,7 @@ func SimControl(listenTo int) {
 				if err1 != nil || err2 != nil {
 					os.Stderr.WriteString("Bad Parameters")
 				} else {
-					msg, err := f.State.LoadDBState(false, uint32(db))
+					msg, err := f.State.LoadDBState(uint32(db))
 					if err == nil && msg != nil {
 						dsmsg := msg.(*messages.DBStateMsg)
 						DBlock := dsmsg.DirectoryBlock

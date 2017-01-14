@@ -896,7 +896,7 @@ func (s *State) Needed (eb interfaces.IEntryBlock) bool {
 }
 
 
-func (s *State) LoadDBState(loading bool, dbheight uint32) (interfaces.IMsg, error) {
+func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
@@ -934,7 +934,7 @@ func (s *State) LoadDBState(loading bool, dbheight uint32) (interfaces.IMsg, err
 	var entries []interfaces.IEBEntry
 
 	ebDBEntries := dblk.GetEBlockDBEntries()
-	if len(ebDBEntries) > 0 && !loading {
+	if len(ebDBEntries) > 0 {
 		for _, v := range ebDBEntries {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {

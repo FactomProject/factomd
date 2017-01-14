@@ -119,7 +119,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 		}
 	}
 	if send {
-		msg, err := state.LoadDBState(false, dbheight)
+		msg, err := state.LoadDBState(dbheight)
 		if msg != nil && err == nil {
 			msg.SetOrigin(m.GetOrigin())
 			msg.SetNetworkOrigin(m.GetNetworkOrigin())
