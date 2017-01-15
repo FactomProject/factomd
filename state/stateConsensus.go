@@ -94,18 +94,18 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	for i:=0; i < 50 && len(s.DBStatesReceived) > 0; i++ {
-		ht := s.GetHighestSavedBlk()
-		msg := s.DBStatesReceived[0]
-		if msg != nil {
-			s.executeMsg(vm, msg)
-			s.DBStatesReceived[0]=nil
-			if ht == s.GetHighestSavedBlk() {
-				return true
-			}
-		}else{
+	for i := 0; i < 50; i++ {
+		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
+		if ix < 0 || ix >= len(s.DBStatesReceived) {
 			break
 		}
+		msg := s.DBStatesReceived[ix]
+		if msg == nil {
+			break
+		}
+
+		s.executeMsg(vm, msg)
+
 	}
 
 	// If we are not running the leader, then look to see if we have waited long enough to
@@ -134,8 +134,6 @@ func (s *State) Process() (progress bool) {
 			s.IgnoreMissing = false
 		}
 	}
-
-
 
 	s.ReviewHolding()
 
@@ -478,18 +476,21 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
 
 		// Don't add duplicate dbstate messages.
-		if s.DBStatesReceivedBase < int(s.GetHighestSavedBlk())-1 {
-			cut := int(s.GetHighestSavedBlk())-s.DBStatesReceivedBase-1
-			if len(s.DBStatesReceived)>=cut {
+		if s.DBStatesReceivedBase < int(s.GetHighestSavedBlk()) {
+			cut := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase
+			if len(s.DBStatesReceived) > cut {
 				s.DBStatesReceived = append(make([]*messages.DBStateMsg, 0), s.DBStatesReceived[cut:]...)
 			}
 			s.DBStatesReceivedBase += cut
 		}
 		ix := int(dbheight) - s.DBStatesReceivedBase
-		for len(s.DBStatesReceived) <= ix {
-			s.DBStatesReceived = append(s.DBStatesReceived,nil)
+		if ix < 0 {
+			return
 		}
-		s.DBStatesReceived[ix]=dbstatemsg
+		for len(s.DBStatesReceived) <= ix {
+			s.DBStatesReceived = append(s.DBStatesReceived, nil)
+		}
+		s.DBStatesReceived[ix] = dbstatemsg
 		return
 	case -1:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
@@ -851,6 +852,10 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	dbs := m.(*messages.DirectoryBlockSignature)
 	pl := s.ProcessLists.Get(dbs.DBHeight)
 
+	if dbs.DBHeight != s.LLeaderHeight {
+		m.FollowerExecute(s)
+		return
+	}
 	if len(pl.VMs[dbs.VMIndex].List) > 0 {
 		return
 	}

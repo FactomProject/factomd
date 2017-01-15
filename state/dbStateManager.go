@@ -235,17 +235,21 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 		if list.TimeToAsk != nil && hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
 
 			// Don't ask for more than we already have.
-			for i,v := range list.State.DBStatesReceived {
-				ix := i+list.State.DBStatesReceivedBase
-				if v != nil && ix < end {
-					end = ix-1
+			for i, v := range list.State.DBStatesReceived {
+				if i <= hs-list.State.DBStatesReceivedBase {
+					continue
 				}
-				if begin > end {
-					return
+				ix := i + list.State.DBStatesReceivedBase
+				if v != nil && ix < end {
+					end = ix + 1
+					if begin > end {
+						return
+					}
+					break
 				}
 			}
 
-			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end))
+			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+3))
 
 			if msg != nil {
 				//		list.State.RunLeader = false
@@ -254,7 +258,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 				list.State.DBStateAskCnt++
 				list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
 				list.LastBegin = begin
-				list.LastEnd = end
+				list.LastEnd = end + 3
 			}
 		}
 	}
@@ -269,7 +273,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	}
 
 	// return if we are caught up, and clear our timer
-	if end-begin <= 3 {
+	if end-begin <= 1 {
 		list.TimeToAsk = nil
 		return
 	}

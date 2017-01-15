@@ -880,7 +880,7 @@ func (s *State) UnlockDB() {
 }
 
 // Checks ChainIDs to determine if we need their entries to process entries and transactions.
-func (s *State) Needed (eb interfaces.IEntryBlock) bool {
+func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 	id := []byte{0x88, 0x88, 0x88}
 	fer := []byte{0x11, 0x11, 0x11}
 
@@ -896,7 +896,6 @@ func (s *State) Needed (eb interfaces.IEntryBlock) bool {
 	}
 	return false
 }
-
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
@@ -966,7 +965,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if err != nil || nextABlock == nil {
 		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
-			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
+			return nil, fmt.Errorf("Do not have signatures at height %d to validate DBStateMsg", dbheight)
 		}
 		for _, dbsig := range pl.DBSignatures {
 			allSigs = append(allSigs, dbsig.Signature)
