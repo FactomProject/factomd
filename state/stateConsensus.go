@@ -458,10 +458,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	ix := int(dbheight) - s.DBStatesReceivedBase
-	if ix >=0 && ix < len(s.DBStatesReceived) {
+	if ix >= 0 && ix < len(s.DBStatesReceived) {
 		s.DBStatesReceived[ix] = nil
 	}
-	
+
 	// ignore if too old.
 	if dbheight < s.GetHighestSavedBlk() {
 		return
