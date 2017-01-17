@@ -92,6 +92,7 @@ func (s *State) syncEntryBlocks() {
 				}
 				// Something missing, stop moving the bookmark.
 				alldone = false
+				//fmt.Printf("==== Can't find Entry Block: %x dbht: %d\n",ebKeyMR.Bytes()[:5],eBlock.GetDatabaseHeight())
 				continue
 			}
 		}
@@ -105,7 +106,7 @@ func (s *State) syncEntryBlocks() {
 
 func (s *State) syncEntries(eights bool) {
 
-	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntries) < 10 {
+	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntries) < 500 {
 		dbstate := s.DBStates.Get(int(s.EntryDBHeightProcessing))
 
 		if dbstate == nil {
@@ -125,6 +126,10 @@ func (s *State) syncEntries(eights bool) {
 			// Dont have an eBlock?  Huh. We can go on, but we can't advance
 			if eBlock == nil {
 				alldone = false
+				continue
+			}
+
+			if eights && !s.Needed(eBlock) {
 				continue
 			}
 
@@ -152,6 +157,7 @@ func (s *State) syncEntries(eights bool) {
 
 						s.MissingEntries = append(s.MissingEntries, v)
 					}
+					//fmt.Printf("===== Can't find Entry Block: %x Entry %x dbht %x\n",ebKeyMR.Bytes()[:5],entryhash.Bytes()[:5],eBlock.GetDatabaseHeight())
 					// Something missing. stop moving the bookmark.
 					alldone = false
 				}
@@ -183,7 +189,7 @@ func (s *State) catchupEBlocks() {
 	s.setTimersMakeRequests()
 
 	// If we still have blocks that we are asking for, then let's not add to the list.
-	if len(s.MissingEntryBlocks) > 5 {
+	if len(s.MissingEntryBlocks) > 100 {
 		return
 	}
 
