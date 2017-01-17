@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 func TestMarshalUnmarshalSignature(t *testing.T) {
@@ -98,6 +99,42 @@ func TestSignatureMisc(t *testing.T) {
 	for i := range pub {
 		if pub[i] != pub2[i] {
 			t.Error("Pub keys are not identical")
+		}
+	}
+
+	if sig1.IsSameAs(sig2) == false {
+		t.Errorf("Signatures are not identical")
+	}
+}
+
+func TestSignature(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		priv1 := new(PrivateKey)
+
+		err := priv1.GenerateKey()
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		data := random.RandByteSlice()
+
+		sig := Sign(priv1.Key[:], data)
+
+		pub, err := priv1.Pub.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		err = VerifySignature(data, pub, sig)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		sig = Sign(priv1.Key[:32], data)
+
+		err = VerifySignature(data, pub, sig)
+		if err != nil {
+			t.Errorf("%v", err)
 		}
 	}
 }
