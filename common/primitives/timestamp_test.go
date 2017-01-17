@@ -137,3 +137,40 @@ func TestTimestamp3(t *testing.T) {
 		t.Errorf("Timestamps don't match up - %d vs %d", *ts, *ts2)
 	}
 }
+
+func TestTimestampMisc(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		ts := NewTimestampNow()
+		ts2 := NewTimestampFromMilliseconds(ts.GetTimeMilliUInt64())
+		ts3 := NewTimestampFromSeconds(uint32(ts.GetTimeSeconds()))
+		ts4 := NewTimestampFromMinutes(ts.GetTimeMinutesUInt32())
+		ts5 := NewTimestampFromMilliseconds(0)
+		ts5.SetTimestamp(ts)
+
+		if ts.String() != ts2.String() {
+			t.Errorf("Timestamps are not identical")
+		}
+		if ts.String() != ts3.String() {
+			t.Errorf("Timestamps are not identical")
+		}
+		if ts.String() != ts5.String() {
+			t.Errorf("Timestamps are not identical")
+		}
+
+		if ts.GetTimeMilliUInt64() != ts2.GetTimeMilliUInt64() {
+			t.Errorf("Timestamps are not identical")
+		}
+		if ts.GetTimeSeconds() != ts3.GetTimeSeconds() {
+			t.Errorf("Timestamps are not identical")
+		}
+		if ts.GetTimeSecondsUInt32() != ts3.GetTimeSecondsUInt32() {
+			t.Errorf("Timestamps are not identical")
+		}
+		if ts.GetTimeMinutesUInt32() != ts4.GetTimeMinutesUInt32() {
+			t.Errorf("Timestamps are not identical")
+		}
+		if ts.GetTimeMilliUInt64() != ts5.GetTimeMilliUInt64() {
+			t.Errorf("Timestamps are not identical")
+		}
+	}
+}
