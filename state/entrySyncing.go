@@ -7,6 +7,7 @@ package state
 import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
+//	"fmt"
 )
 
 func (s *State) setTimersMakeRequests() {
@@ -92,6 +93,7 @@ func (s *State) syncEntryBlocks() {
 				}
 				// Something missing, stop moving the bookmark.
 				alldone = false
+				//fmt.Printf("==== Can't find Entry Block: %x dbht: %d\n",ebKeyMR.Bytes(),eBlock.GetDatabaseHeight())
 				continue
 			}
 		}
@@ -105,7 +107,7 @@ func (s *State) syncEntryBlocks() {
 
 func (s *State) syncEntries(eights bool) {
 
-	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntries) < 10 {
+	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntries) < 500 {
 		dbstate := s.DBStates.Get(int(s.EntryDBHeightProcessing))
 
 		if dbstate == nil {
@@ -128,6 +130,10 @@ func (s *State) syncEntries(eights bool) {
 				continue
 			}
 
+			if eights && !s.Needed(eBlock) {
+				continue
+			}
+
 			for _, entryhash := range eBlock.GetEntryHashes() {
 				if entryhash.IsMinuteMarker() {
 					continue
@@ -135,15 +141,16 @@ func (s *State) syncEntries(eights bool) {
 				e, _ := s.DB.FetchEntry(entryhash)
 				if e == nil {
 					//Check lists and not add if already there.
-					addit := true
-					for _, e := range s.MissingEntries {
-						if e.ebhash.Fixed() == entryhash.Fixed() {
-							addit = false
-							break
+					addit := func () bool {
+						for _, e := range s.MissingEntries {
+							if e.entryhash.Fixed() == entryhash.Fixed() {
+								return false
+							}
 						}
+						return true
 					}
 
-					if addit {
+					if addit() {
 						var v MissingEntry
 
 						v.dbheight = eBlock.GetHeader().GetDBHeight()
@@ -152,6 +159,7 @@ func (s *State) syncEntries(eights bool) {
 
 						s.MissingEntries = append(s.MissingEntries, v)
 					}
+					// fmt.Printf("===== Can't find Entry Block: %x Entry %x dbht %d\n",ebKeyMR.Bytes(),entryhash.Bytes(),eBlock.GetDatabaseHeight())
 					// Something missing. stop moving the bookmark.
 					alldone = false
 				}
@@ -183,7 +191,7 @@ func (s *State) catchupEBlocks() {
 	s.setTimersMakeRequests()
 
 	// If we still have blocks that we are asking for, then let's not add to the list.
-	if len(s.MissingEntryBlocks) > 5 {
+	if len(s.MissingEntryBlocks) > 100 {
 		return
 	}
 

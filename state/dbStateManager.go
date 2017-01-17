@@ -247,8 +247,8 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 		}
 	}
 
-	if end-begin > 50 {
-		end = begin + 50
+	if end-begin > 200 {
+		end = begin + 200
 	}
 
 	if end+3 > begin && justDoIt {

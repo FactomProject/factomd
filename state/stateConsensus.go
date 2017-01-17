@@ -155,6 +155,7 @@ emptyLoop:
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
+			progress = true
 		default:
 			more = true
 			break emptyLoop
