@@ -5,10 +5,11 @@
 package factoid_test
 
 import (
-	"github.com/FactomProject/ed25519"
-	. "github.com/FactomProject/factomd/common/factoid"
 	"math/rand"
 	//"testing"
+
+	"github.com/FactomProject/ed25519"
+	. "github.com/FactomProject/factomd/common/factoid"
 )
 
 type zeroReader1 struct{}

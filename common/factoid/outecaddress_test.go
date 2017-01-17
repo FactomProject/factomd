@@ -1,11 +1,12 @@
 package factoid_test
 
 import (
+	"strings"
+	"testing"
+
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"strings"
-	"testing"
 )
 
 func TestOutECAddress(t *testing.T) {

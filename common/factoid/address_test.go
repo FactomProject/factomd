@@ -6,17 +6,16 @@ package factoid_test
 
 import (
 	"bytes"
-	"fmt"
+	"math/rand"
+	"strings"
+	"testing"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/primitives"
-	"math/rand"
-	"strings"
-	"testing"
 )
 
-var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
@@ -32,7 +31,7 @@ var address2 = [constants.ADDRESS_LENGTH]byte{
 	0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c, 0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00,
 }
 
-func Test_AddressEquals(test *testing.T) {
+func TestAddressEquals(t *testing.T) {
 	a1 := new(Address)
 	a2 := new(Address)
 
@@ -40,39 +39,35 @@ func Test_AddressEquals(test *testing.T) {
 	a2.SetBytes(address1[:])
 
 	if a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are not equal")
 	}
 
 	a1.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) == nil { // Now they should not be equal
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are equal")
 	}
 
 	a2.SetBytes(address2[:])
 
 	if a1.IsEqual(a2) != nil { // Back to equality!
-		primitives.PrtStk()
-		test.Fail()
+		t.Errorf("Addresses are not equal")
 	}
 }
 
-func Test_Factoid_Addresses(test *testing.T) {
-
+func TestFactoidAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
 	uaddr := primitives.ConvertFctAddressToUserStr(addr)
 
 	if !primitives.ValidateFUserStr(uaddr) {
-		test.Fail()
+		t.Fail()
 	}
 
 	addrBack := primitives.ConvertUserStrToAddress(uaddr)
 
 	if bytes.Compare(addrBack, addr.Bytes()) != 0 {
-		test.Fail()
+		t.Fail()
 	}
 
 	buaddr := []byte(uaddr)
@@ -80,33 +75,30 @@ func Test_Factoid_Addresses(test *testing.T) {
 	for i, v := range buaddr {
 		for j := uint(0); j < 8; j++ {
 			if !primitives.ValidateFUserStr(string(buaddr)) {
-				test.Fail()
+				t.Fail()
 			}
 			buaddr[i] = v ^ (01 << j)
 			if primitives.ValidateFUserStr(string(buaddr)) {
-				test.Fail()
+				t.Fail()
 			}
 			buaddr[i] = v
 		}
 	}
 }
 
-func Test_Entry_Credit_Addresses(test *testing.T) {
-
+func TestEntryCreditAddresses(t *testing.T) {
 	addr := NewAddress(primitives.Sha([]byte("A fake address")).Bytes())
 
 	uaddr := primitives.ConvertECAddressToUserStr(addr)
 
 	if !primitives.ValidateECUserStr(uaddr) {
-		fmt.Printf("1")
-		test.Fail()
+		t.Errorf("1")
 	}
 
 	addrBack := primitives.ConvertUserStrToAddress(uaddr)
 
 	if bytes.Compare(addrBack, addr.Bytes()) != 0 {
-		fmt.Printf("2")
-		test.Fail()
+		t.Errorf("2")
 	}
 
 	buaddr := []byte(uaddr)
@@ -114,15 +106,13 @@ func Test_Entry_Credit_Addresses(test *testing.T) {
 	for i, v := range buaddr {
 		for j := uint(0); j < 8; j++ {
 			if !primitives.ValidateECUserStr(string(buaddr)) {
-				fmt.Printf("3")
-				test.Fail()
-				return
+				t.Errorf("3")
+				t.FailNow()
 			}
 			buaddr[i] = v ^ (01 << j)
 			if primitives.ValidateECUserStr(string(buaddr)) {
-				fmt.Printf("4")
-				test.Fail()
-				return
+				t.Errorf("4")
+				t.FailNow()
 			}
 			buaddr[i] = v
 		}

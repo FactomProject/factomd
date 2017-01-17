@@ -18,6 +18,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 type TransAddress struct {
@@ -28,6 +29,14 @@ type TransAddress struct {
 }
 
 var _ interfaces.ITransAddress = (*TransAddress)(nil)
+
+func RandomTransAddress() interfaces.ITransAddress {
+	ta := new(TransAddress)
+	ta.Address = RandomAddress()
+	ta.Amount = random.RandUInt64()
+	ta.UserAddress = random.RandomString()
+	return ta
+}
 
 func (t *TransAddress) SetUserAddress(v string) {
 	t.UserAddress = v
