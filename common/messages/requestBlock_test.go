@@ -12,6 +12,25 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+func TestUnmarshalNilRequestBlock(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(RequestBlock)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestMarshalUnmarshalRequestBlock(t *testing.T) {
 	msg := newRequestBlock()
 

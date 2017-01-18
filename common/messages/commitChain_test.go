@@ -16,6 +16,25 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+func TestUnmarshalNilCommitChainMsg(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(CommitChainMsg)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestMarshalUnmarshalCommitChain(t *testing.T) {
 	cc := newCommitChain()
 	hex, err := cc.MarshalBinary()

@@ -219,6 +219,11 @@ func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling: %v", r)
+		}
+	}()
 
 	newData = data
 	if newData[0] != m.Type() {
