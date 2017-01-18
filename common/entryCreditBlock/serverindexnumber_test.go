@@ -5,9 +5,29 @@
 package entryCreditBlock_test
 
 import (
-	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"testing"
+
+	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 )
+
+func TestUnmarshalNilServerIndexNumber(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(ServerIndexNumber)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
 
 func TestServerIndexMarshalUnmarshal(t *testing.T) {
 	si1 := NewServerIndexNumber()

@@ -15,6 +15,25 @@ import (
 
 var _ = fmt.Sprint("testing")
 
+func TestUnmarshalNilECBlock(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(ECBlock)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestStaticECBlockUnmarshal(t *testing.T) {
 	ecb := NewECBlock()
 	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000cbb3ff38bbb90032de6965587f46dcf37551ac26e15819303057c88999b2910b4f87cfc073df0e82cdc2ed0bb992d7ea956fd32b435b099fc35f4b0696948507a66fb49a15b68a2a0ce2382e6aa6970c835497c6074bec9794ccf84bb331ad1350000000100000000000000000b0000000000000058000001020103010401050106010701080417ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7dc3d09d10693eb867e2bd0a503746df370403c9451ae91a363046f2a68529c2fd00822c0109010a")
