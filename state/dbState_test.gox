@@ -41,7 +41,6 @@ func Test_DBState1(t *testing.T) {
 
 	var i uint32
 	for i = 0; i < 10; i++ {
-
 		// p ends up with the DirectoryBlock or nil.  All's good.
 		p, _ := prev.(*directoryBlock.DirectoryBlock)
 		if i > 0 && p == nil {

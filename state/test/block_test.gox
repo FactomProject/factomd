@@ -78,7 +78,6 @@ func Test_setup_FactoidState(test *testing.T) {
 }
 
 func Test_create_genesis_FactoidState(test *testing.T) {
-
 	fmt.Print("\nDoing Short Tests\n")
 	numBlocks := 5
 	numTransactions := 20
@@ -119,7 +118,6 @@ func Test_create_genesis_FactoidState(test *testing.T) {
 	min = 100000
 	// Create a number of blocks (i)
 	for i := 0; i < numBlocks; i++ {
-
 		trange := numTransactions / 10 / 20 // 5%
 		if trange == 0 {
 			trange = 1
@@ -292,5 +290,4 @@ func Test_create_genesis_FactoidState(test *testing.T) {
 }
 
 func Test_build_blocks_FactoidState(test *testing.T) {
-
 }

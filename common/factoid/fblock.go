@@ -140,11 +140,9 @@ func (b *FBlock) MarshalTrans() ([]byte, error) {
 	// 	}
 
 	for i, trans = range b.Transactions {
-
 		for periodMark < len(b.endOfPeriod) &&
 			b.endOfPeriod[periodMark] > 0 && // Ignore if markers are not set
 			i == b.endOfPeriod[periodMark] {
-
 			out.WriteByte(constants.MARKER)
 			periodMark++
 		}
@@ -329,7 +327,6 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
 func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
-
 	b2, ok := block.(*FBlock)
 
 	if !ok || // Not the right kind of interfaces.IBlock
@@ -431,7 +428,6 @@ func (b *FBlock) GetLedgerMR() interfaces.IHash {
 }
 
 func (b *FBlock) GetBodyMR() interfaces.IHash {
-
 	hashes := make([]interfaces.IHash, 0, len(b.Transactions))
 	marker := 0
 	for i, trans := range b.Transactions {

@@ -79,7 +79,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
-
 	if s.ResetRequest {
 		s.ResetRequest = false
 		s.DoReset()
@@ -314,7 +313,6 @@ func (s *State) AddDBState(isNew bool,
 	entryCreditBlock interfaces.IEntryCreditBlock,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
-
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
@@ -371,7 +369,6 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
-
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
@@ -389,7 +386,6 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
-
 	if m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
@@ -534,7 +530,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
-
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing {
 		return
@@ -750,7 +745,6 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
-
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		delete(s.Holding, m.GetRepeatHash().Fixed())
@@ -766,7 +760,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
-
 	if !m.IsLocal() {
 		s.FollowerExecuteEOM(m)
 		return
@@ -820,7 +813,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
-
 	dbs := m.(*messages.DirectoryBlockSignature)
 	pl := s.ProcessLists.Get(dbs.DBHeight)
 
@@ -1005,7 +997,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 }
 
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
-
 	msg := m.(*messages.RevealEntryMsg)
 	myhash := msg.Entry.GetHash()
 
@@ -1074,7 +1065,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
-
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
 		return
@@ -1124,7 +1114,6 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
-
 	e := msg.(*messages.EOM)
 
 	if s.Syncing && !s.EOM {
@@ -1339,7 +1328,6 @@ func (s *State) CheckForIDChange() {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
@@ -1388,7 +1376,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
-
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
 				return false
@@ -1603,7 +1590,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		// being promoted
 		for listIdx, fedServ := range pl.FedServers {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
-
 				pl.FedServers[listIdx] = theAuditReplacement
 				pl.FedServers[listIdx].SetOnline(true)
 				audIdx := pl.AddAuditServer(fedServ.GetChainID())
@@ -1721,7 +1707,6 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 }
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
-
 	pl := s.ProcessLists.Get(uint32(dbheight))
 	if pl == nil {
 		return nil, errors.New("No Process List")
@@ -1964,7 +1949,6 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
 func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
-
 	vmIndex := msg.GetVMIndex()
 
 	msg.SetLeaderChainID(s.IdentityChainID)

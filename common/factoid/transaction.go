@@ -139,7 +139,6 @@ func (t *Transaction) AddRCD(rcd interfaces.IRCD) {
 //    all full nodes. A fee of 10 EC equivalent must be paid for each
 //    signature included.
 func (t Transaction) CalculateFee(factoshisPerEC uint64) (uint64, error) {
-
 	// First look at the size of the transaction, and make sure
 	// everything is inbounds.
 	data, err := t.MarshalBinary()
@@ -243,7 +242,6 @@ func (t Transaction) TotalECs() (sum uint64, err error) {
 // be used to identify the transaction. Otherwise it simply must be > 0
 // to indicate it isn't a coinbase transaction.
 func (t Transaction) Validate(index int) error {
-
 	// Inputs, outputs, and ecoutputs, must be valid,
 	tInputs, err := t.TotalInputs()
 	if err != nil {
@@ -324,7 +322,6 @@ func (t Transaction) ValidateSignatures() error {
 // in order of the structures.  Largely used to test and debug, but
 // generally useful.
 func (t1 *Transaction) IsEqual(trans interfaces.IBlock) []interfaces.IBlock {
-
 	t2, ok := trans.(interfaces.ITransaction)
 
 	if !ok || // Not the right kind of interfaces.IBlock
@@ -444,7 +441,6 @@ func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
 func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
 	// To catch memory errors, I capture the panic and turn it into
 	// a reported error.
 	defer func() {
@@ -574,7 +570,6 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 	out.Write(data)
 
 	for i, rcd := range t.RCDs {
-
 		// Write the RCD
 		data, err := rcd.MarshalBinary()
 		if err != nil {

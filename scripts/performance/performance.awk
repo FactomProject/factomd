@@ -96,7 +96,6 @@ END {
 
 
 	for(i=0;i<rec;i++){
-
 	    if (maxtps < thisTps[i]) {
 	    	maxtps = thisTps[i]
 	    }

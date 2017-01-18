@@ -46,7 +46,6 @@ func (m *FactoidTransaction) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *FactoidTransaction) GetHash() interfaces.IHash {
-
 	if m.hash == nil {
 		m.SetFullMsgHash(m.Transaction.GetFullHash())
 
@@ -166,7 +165,6 @@ func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, e
 }
 
 func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
 	newData = data
 
 	defer func() {

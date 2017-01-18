@@ -232,7 +232,6 @@ func (m *ServerFault) Sign(key interfaces.Signer) error {
 }
 
 func (m *ServerFault) String() string {
-
 	var sig [3]byte
 
 	if m.Signature != nil {
@@ -275,7 +274,6 @@ func (m *ServerFault) Validate(state interfaces.IState) int {
 }
 
 func (m *ServerFault) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message

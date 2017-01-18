@@ -345,7 +345,6 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
-
 	var sig interfaces.IFullSignature
 	resp, err := m.MarshalForSignature()
 	if err == nil {

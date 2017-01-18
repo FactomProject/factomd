@@ -126,7 +126,6 @@ func (a1 *RCD_1) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 }
 
 func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
 	typ := int8(data[0])
 	data = data[1:]
 

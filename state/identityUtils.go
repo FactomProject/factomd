@@ -67,7 +67,6 @@ func (id *Identity) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH
 		copy(pub[:], tmp)
 		valid := ed.VerifyCanonical(&pub, msg, sig)
 		if !valid {
-
 		} else {
 			return true, nil
 		}

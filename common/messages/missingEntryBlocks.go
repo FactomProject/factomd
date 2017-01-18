@@ -92,7 +92,6 @@ func (m *MissingEntryBlocks) Validate(state interfaces.IState) int {
 }
 
 func (m *MissingEntryBlocks) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message

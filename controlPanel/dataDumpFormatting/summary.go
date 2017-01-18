@@ -48,7 +48,6 @@ func ShortSummary(fnodes []*state.State) string {
 		dblock := st.GetDirectoryBlockByHeight(height)
 		heightHash := "0000000000"
 		if dblock == nil {
-
 		} else {
 			heightHash = dblock.GetFullHash().String()
 		}

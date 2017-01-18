@@ -69,7 +69,6 @@ func TestNewED25519Signature(t *testing.T) {
 
 /*
 func TestIsEqual_Signature(t *testing.T) {
-
 	if s1.IsEqual(s2) == nil {
 		primitives.PrtStk()
 		t.Fail()

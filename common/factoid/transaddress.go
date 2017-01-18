@@ -92,7 +92,6 @@ func (t *TransAddress) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 }
 
 func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
 	if len(data) < 36 {
 		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
 	}

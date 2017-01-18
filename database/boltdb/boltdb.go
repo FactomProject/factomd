@@ -85,7 +85,6 @@ func (db *BoltDB) Delete(bucket []byte, key []byte) error {
 
 // Can't trim a real database
 func (db *BoltDB) Trim() {
-
 }
 
 func (db *BoltDB) Close() error {

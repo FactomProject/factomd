@@ -21,7 +21,6 @@ func (s *State) IsStateFullySynced() bool {
 
 //returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
-
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
 		return constants.AckStatusInvalid, hash, nil, nil, nil
@@ -33,7 +32,6 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 	}
 
 	if in == nil {
-
 		// Not in database.  Check Process Lists
 
 		for _, pl := range s.ProcessLists.Lists {
@@ -320,7 +318,6 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 	q := s.LoadHoldingMap()
 	var re messages.RevealEntryMsg
 	for _, h := range q {
-
 		if h.Type() == constants.REVEAL_ENTRY_MSG {
 			enb, err := h.MarshalBinary()
 			if err != nil {

@@ -224,7 +224,6 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 }
 
 func (m *MissingMsg) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 func (m *MissingMsg) LeaderExecute(state interfaces.IState) {
@@ -254,7 +253,6 @@ func (e *MissingMsg) AddHeight(h uint32) {
 
 // NewMissingMsg: Build a missing Message request, and add the first Height
 func NewMissingMsg(state interfaces.IState, vm int, dbHeight uint32, processlistHeight uint32) *MissingMsg {
-
 	msg := new(MissingMsg)
 
 	msg.Asking = state.GetIdentityChainID()

@@ -86,7 +86,6 @@ func (m *Bounce) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *Bounce) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message
@@ -255,6 +254,5 @@ func (m *Bounce) String() string {
 }
 
 func (a *Bounce) IsSameAs(b *Bounce) bool {
-
 	return true
 }

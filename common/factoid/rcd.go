@@ -21,7 +21,6 @@ import (
  ***********************/
 
 func UnmarshalBinaryAuth(data []byte) (a interfaces.IRCD, newData []byte, err error) {
-
 	t := data[0]
 
 	var auth interfaces.IRCD

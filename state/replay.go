@@ -53,7 +53,6 @@ func Minutes(unix int64) int {
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
 func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
-
 	now := Minutes(systemtime.GetTimeSeconds())
 	t := Minutes(timestamp.GetTimeSeconds())
 
@@ -123,7 +122,6 @@ func (r *Replay) IsTSValid(mask int, hash interfaces.IHash, timestamp interfaces
 // as a parameter.  This way, the test code can manipulate the clock
 // at will.
 func (r *Replay) IsTSValid_(mask int, hash [32]byte, timestamp interfaces.Timestamp, now interfaces.Timestamp) bool {
-
 	if index, ok := r.Valid(mask, hash, timestamp, now); ok {
 		r.Mutex.Lock()
 		defer r.Mutex.Unlock()
@@ -152,7 +150,6 @@ func (r *Replay) IsHashUnique(mask int, hash [32]byte) bool {
 }
 
 func (r *Replay) SetHashNow(mask int, hash [32]byte, now interfaces.Timestamp) {
-
 	if r.IsHashUnique(mask, hash) {
 		index := Minutes(now.GetTimeSeconds()) - r.Basetime
 		if index < 0 || index >= len(r.Buckets) {

@@ -714,7 +714,6 @@ func SimControl(listenTo int) {
 						stat := returnStatString(i.Status)
 						if show == 5 {
 							if c != amt {
-
 							} else {
 								os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", amt, "---------------------------------------\n"))
 							}

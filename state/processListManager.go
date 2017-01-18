@@ -30,7 +30,6 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
-
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
 	if diff > 1 && len(lists.Lists) > 1 {
@@ -108,7 +107,6 @@ func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
 }
 
 func (lists *ProcessLists) String() string {
-
 	str := "Process Lists"
 	for i, pl := range lists.Lists {
 		if len(lists.Lists)-i > 3 {
@@ -125,7 +123,6 @@ func (lists *ProcessLists) String() string {
  ************************************************/
 
 func NewProcessLists(state interfaces.IState) *ProcessLists {
-
 	pls := new(ProcessLists)
 
 	s, ok := state.(*State)

@@ -30,7 +30,6 @@ func NewRevealMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.
 }
 
 func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) error {
-
 	return nil
 }
 

@@ -133,7 +133,6 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 		ds.Authorities = append(ds.Authorities, auth)
 	}
 	if pubkey, err := s.GetServerPublicKey().Copy(); err != nil {
-
 	} else {
 		ds.PublicKey = pubkey
 	}
@@ -243,7 +242,6 @@ func (d *DisplayState) Clone() *DisplayState {
 		ds.Authorities = append(ds.Authorities, auth)
 	}
 	if pubkey, err := d.PublicKey.Copy(); err != nil {
-
 	} else {
 		ds.PublicKey = pubkey
 	}

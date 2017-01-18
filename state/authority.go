@@ -152,7 +152,6 @@ func (st *State) FastVerifyAuthoritySignature(msg []byte, sig interfaces.IFullSi
 }
 
 func pkEq(a, b []byte) bool {
-
 	if a == nil && b == nil {
 		return true
 	}
