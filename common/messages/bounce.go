@@ -4,18 +4,18 @@
 
 package messages
 
-import ()
 import (
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type Bounce struct {

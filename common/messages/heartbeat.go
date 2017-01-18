@@ -6,9 +6,9 @@ package messages
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 
-	"encoding/binary"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"

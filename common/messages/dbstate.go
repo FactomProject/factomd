@@ -6,7 +6,6 @@ package messages
 
 import (
 	"bytes"
-	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
 

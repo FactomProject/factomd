@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
 	"math"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
