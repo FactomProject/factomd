@@ -249,7 +249,6 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) (newdata []byte, err error) {
 	// To catch memory errors, we capture the panic and turn it into
 	// a reported error.
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling transaction: %v", r)
 		}

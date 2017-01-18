@@ -18,6 +18,24 @@ var _ = fmt.Printf
 var _ = ed25519.Sign
 var _ = rand.New
 
+func TestUnmarshalNilBinaryAuth(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	_, _, err := UnmarshalBinaryAuth(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	_, _, err = UnmarshalBinaryAuth([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestAuth2_Equals(t *testing.T) {
 	a1 := nextAuth2_rcd()
 	a2 := a1

@@ -12,6 +12,25 @@ import (
 	"testing"
 )
 
+func TestUnmarshalNilSignatureBlock(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(SignatureBlock)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestSignatureBlock(t *testing.T) {
 	priv := testHelper.NewPrivKey(0)
 	testData, err := hex.DecodeString("00112233445566778899")
