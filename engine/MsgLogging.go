@@ -52,7 +52,6 @@ func (m *MsgLog) init(enable bool, nodecnt int) {
 }
 
 func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
-
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp()
@@ -110,7 +109,6 @@ func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 
 	for _, e := range m.MsgList {
 		if e.valid {
-
 			dirstr := "->"
 			if !e.out {
 				dirstr = "<-"

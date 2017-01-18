@@ -29,7 +29,6 @@ var _ = fmt.Print
 var Build string
 
 func Factomd() {
-
 	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")

@@ -42,7 +42,6 @@ func Peers(fnode *FactomNode) {
 				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
-
 					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 					if len(fnode.State.InMsgQueue()) < 9000 {
 						fnode.State.InMsgQueue() <- msg
@@ -56,7 +55,6 @@ func Peers(fnode *FactomNode) {
 		// Put any broadcasts from our peers into our BroadcastIn queue
 		for i, peer := range fnode.Peers {
 			for j := 0; j < 100; j++ {
-
 				var msg interfaces.IMsg
 				var err error
 

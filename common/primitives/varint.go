@@ -58,6 +58,9 @@ func EncodeVarInt(out *Buffer, v uint64) error {
 // Decode a varaible integer from the given data buffer.
 // We use the algorithm used by Go, only BigEndian.
 func DecodeVarIntGo(data []byte) (uint64, []byte) {
+	if data == nil || len(data) < 1 {
+		return 0, data
+	}
 	var v uint64
 	var cnt int
 	var b byte

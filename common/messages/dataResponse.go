@@ -289,7 +289,6 @@ func (m *DataResponse) String() string {
 func NewDataResponse(state interfaces.IState, dataObject interfaces.BinaryMarshallable,
 	dataType int,
 	dataHash interfaces.IHash) interfaces.IMsg {
-
 	msg := new(DataResponse)
 
 	msg.Peer2Peer = true

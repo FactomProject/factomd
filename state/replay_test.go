@@ -31,7 +31,6 @@ var speed int64 = 1000 // Speed in milliseconds (max) that we will move the cloc
 var _ = pprof.Cmdline
 
 func Test_Replay(test *testing.T) {
-
 	type mh struct {
 		hash [32]byte
 		time interfaces.Timestamp
@@ -49,9 +48,7 @@ func Test_Replay(test *testing.T) {
 	now := primitives.NewTimestampNow()
 
 	for i := 0; i < XTrans; i++ {
-
 		if (i+1)%1000 == 0 {
-
 			buckets := len(r.Buckets)
 			bcnt := 0
 			for _, b := range r.Buckets {

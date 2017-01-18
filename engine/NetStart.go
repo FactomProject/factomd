@@ -330,7 +330,6 @@ func NetStart(s *state.State) {
 	p2p.NetworkDeadline = time.Duration(deadline) * time.Millisecond
 
 	if enableNet {
-
 		if 0 < networkPortOverride {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
@@ -508,7 +507,6 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(load bool) {
-
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()

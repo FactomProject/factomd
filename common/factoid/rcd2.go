@@ -114,7 +114,9 @@ func (a1 *RCD_2) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
 }
 
 func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
+	if data == nil || len(data) < 5 {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	typ := int8(data[0])
 	data = data[1:]
 	if typ != 2 {

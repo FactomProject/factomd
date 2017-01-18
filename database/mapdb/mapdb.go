@@ -43,7 +43,6 @@ func (db *MapDB) ListAllBuckets() ([][]byte, error) {
 
 // Don't do anything here.
 func (db *MapDB) Trim() {
-
 }
 
 func (db *MapDB) createCache(bucket []byte) {

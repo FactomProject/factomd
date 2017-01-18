@@ -6,7 +6,6 @@ package messages
 
 import (
 	"bytes"
-	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
 
@@ -105,7 +104,6 @@ func (m *DBStateMsg) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *DBStateMsg) GetHash() interfaces.IHash {
-
 	//	data, _ := m.MarshalBinary()
 	//	return primitives.Sha(data)
 
@@ -145,7 +143,6 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
-
 	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks ht: %d", m.DirectoryBlock.GetHeader().GetDBHeight()))
@@ -423,7 +420,6 @@ func NewDBStateMsg(timestamp interfaces.Timestamp,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry,
 	sigList []interfaces.IFullSignature) interfaces.IMsg {
-
 	msg := new(DBStateMsg)
 	msg.NoResend = true
 

@@ -73,7 +73,6 @@ func (m *middle) Receive() (p *Parcel, err error) {
 }
 
 func (m *middle) Write(b []byte) (int, error) {
-
 	i, e := m.conn.Write(b)
 
 	Writes += i
@@ -90,7 +89,6 @@ func (m *middle) Write(b []byte) (int, error) {
 }
 
 func (m *middle) Read(b []byte) (int, error) {
-
 	i, e := m.conn.Read(b)
 
 	if i > 0 {

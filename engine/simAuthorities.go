@@ -176,7 +176,6 @@ func setUpAuthorites(st *state.State, buildMain bool) []hardCodedAuthority {
 		blank, _ := primitives.HexToHash("888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327")
 		exists, err := st.DB.FetchHeadIndexByChainID(blank)
 		if exists != nil && err == nil {
-
 		} else {
 			buildMainChain(st.GetPort())
 		}

@@ -22,7 +22,6 @@ func (m *EndOfMinuteEntry) Type() byte {
 }
 
 func (c *EndOfMinuteEntry) UpdateState(state interfaces.IState) error {
-
 	return nil
 }
 

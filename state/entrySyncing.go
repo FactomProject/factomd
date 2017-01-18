@@ -76,7 +76,6 @@ func (s *State) syncEntryBlocks() {
 
 			// Ask for blocks we don't have.
 			if eBlock == nil {
-
 				// Check lists and not add if already there.
 				addit := true
 				for _, eb := range s.MissingEntryBlocks {
@@ -104,7 +103,6 @@ func (s *State) syncEntryBlocks() {
 }
 
 func (s *State) syncEntries(eights bool) {
-
 	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntries) < 10 {
 		dbstate := s.DBStates.Get(int(s.EntryDBHeightProcessing))
 
@@ -179,7 +177,6 @@ func (s *State) syncEntries(eights bool) {
 // called.
 
 func (s *State) catchupEBlocks() {
-
 	s.setTimersMakeRequests()
 
 	// If we still have blocks that we are asking for, then let's not add to the list.

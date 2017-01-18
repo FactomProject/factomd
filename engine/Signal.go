@@ -25,7 +25,6 @@ var addHandlerChannel = make(chan func())
 // interruptChannel and invokes the registered interruptCallbacks accordingly.
 // It also listens for callback registration.  It must be run as a goroutine.
 func mainInterruptHandler() {
-
 	// interruptCallbacks is a list of callbacks to invoke when a
 	// SIGINT (Ctrl+C) is received.
 	var interruptCallbacks []func()
@@ -69,7 +68,6 @@ func mainInterruptHandler() {
 // AddInterruptHandler adds a handler to call when a SIGINT (Ctrl+C) is
 // received.
 func AddInterruptHandler(handler func()) {
-
 	// Create the channel and start the main interrupt handler which invokes
 	// all other callbacks and exits if not already done.
 	if interruptChannel == nil {

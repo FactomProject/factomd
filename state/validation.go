@@ -14,7 +14,6 @@ import (
 func (state *State) ValidatorLoop() {
 	timeStruct := new(Timer)
 	for {
-
 		// Check if we should shut down.
 		select {
 		case <-state.ShutdownChan:
@@ -29,7 +28,6 @@ func (state *State) ValidatorLoop() {
 		var msg interfaces.IMsg
 	loop:
 		for i := 0; i < 10; i++ {
-
 			// Process any messages we might have queued up.
 			for i = 0; i < 10; i++ {
 				p, b := state.Process(), state.UpdateState()
@@ -81,7 +79,6 @@ type Timer struct {
 }
 
 func (t *Timer) timer(state *State, min int) {
-
 	t.lastMin = min
 
 	eom := new(messages.EOM)

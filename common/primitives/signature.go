@@ -92,6 +92,9 @@ func (s *Signature) MarshalBinary() ([]byte, error) {
 }
 
 func (sig *Signature) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	if data == nil || len(data) < ed25519.SignatureSize+ed25519.PublicKeySize {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	sig.Sig = new(ByteSliceSig)
 	var err error
 	sig.Pub = new(PublicKey)

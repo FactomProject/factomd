@@ -10,11 +10,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"strings"
-	"time"
 )
 
 type BounceReply struct {
@@ -77,7 +78,6 @@ func (m *BounceReply) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *BounceReply) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message
@@ -231,6 +231,5 @@ func (m *BounceReply) String() string {
 }
 
 func (a *BounceReply) IsSameAs(b *BounceReply) bool {
-
 	return true
 }

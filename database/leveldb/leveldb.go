@@ -54,7 +54,6 @@ func (db *LevelDB) ListAllBuckets() ([][]byte, error) {
 
 // Can't trim a real database
 func (db *LevelDB) Trim() {
-
 }
 
 func (db *LevelDB) Delete(bucket []byte, key []byte) error {

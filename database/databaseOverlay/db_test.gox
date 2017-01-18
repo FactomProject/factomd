@@ -10,7 +10,6 @@ import (
 var db database.Db // database
 
 func TestSimpleOperations(t *testing.T) {
-
 	initDB()
 
 	chain := new(common.EChain)

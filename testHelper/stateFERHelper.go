@@ -30,7 +30,6 @@ type FEREntryWithHeight struct {
 
 func MakeFEREntryWithHeightFromContent(passedResidentHeight uint32, passedTargetActivationHeight uint32,
 	passedTargetPrice uint64, passedExpirationHeight uint32, passedPriority uint32) *FEREntryWithHeight {
-
 	// Create and format the signing private key
 	var signingPrivateKey [64]byte
 	SigningPrivateKey := "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"

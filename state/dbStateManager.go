@@ -156,7 +156,6 @@ func (ds *DBState) String() string {
 	} else if ds.DirectoryBlock == nil {
 		str = "  Directory Block = <nil>\n"
 	} else {
-
 		str = fmt.Sprintf("%s      State: IsNew %5v ReadyToSave %5v Locked %5v Signed %5v Saved %5v\n", str, ds.IsNew, ds.ReadyToSave, ds.Locked, ds.Signed, ds.Saved)
 		str = fmt.Sprintf("%s      DBlk Height   = %v \n", str, ds.DirectoryBlock.GetHeader().GetDBHeight())
 		str = fmt.Sprintf("%s      DBlock        = %x \n", str, ds.DirectoryBlock.GetHash().Bytes()[:5])
@@ -211,7 +210,6 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup(justDoIt bool) {
-
 	// We only check if we need updates once every so often.
 
 	if len(list.State.inMsgQueue) > 1000 {
@@ -602,7 +600,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 // We don't really do the signing here, but just check that we have all the signatures.
 // If we do, we count that as progress.
 func (list *DBStateList) SignDB(d *DBState) (process bool) {
-
 	dbheight := d.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
@@ -733,12 +730,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
-
 	list.Catchup(false)
 
 	saved := 0
 	for i, d := range list.DBStates {
-
 		//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v \n", "DBStateList Update", list.State.FactomNodeName, "Looking at", i, "DBHeight", list.Base+uint32(i))
 
 		// Must process blocks in sequence.  Missing a block says we must stop.
@@ -788,7 +783,6 @@ func (list *DBStateList) Highest() uint32 {
 
 // Return true if we actually added the dbstate to the list
 func (list *DBStateList) Put(dbState *DBState) bool {
-
 	dblk := dbState.DirectoryBlock
 	dbheight := dblk.GetHeader().GetDBHeight()
 
@@ -849,7 +843,6 @@ func (list *DBStateList) NewDBState(isNew bool,
 	entryCreditBlock interfaces.IEntryCreditBlock,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
-
 	dbState := new(DBState)
 
 	dbState.DBHash = directoryBlock.DatabasePrimaryIndex()

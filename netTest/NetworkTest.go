@@ -41,7 +41,6 @@ var size int
 var logPort string
 
 func InitNetwork() {
-
 	go http.ListenAndServe(fmt.Sprintf("localhost:%s", logPort), nil)
 
 	namePtr := flag.String("name", fmt.Sprintf("%d", rand.Int()), "Name for this node")
@@ -148,7 +147,6 @@ func SetMsg(msg interfaces.IMsg) {
 }
 
 func listen() {
-
 	for {
 		msg, err := p2pProxy.Recieve()
 		if err != nil || msg == nil {

@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -207,7 +208,6 @@ func (m *InvalidDirectoryBlock) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *InvalidDirectoryBlock) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message

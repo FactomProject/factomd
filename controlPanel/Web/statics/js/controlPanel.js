@@ -70,7 +70,6 @@ $("#dump-container #fullscreen-option").click( function(){
 // Top tabs on index
 $("#indexnav-main > a").click(function() {
   if (jQuery(this).hasClass("is-active")) {
-
   } else {
     $("#transactions").removeClass("hide")
     $("#local").removeClass("hide")
@@ -80,7 +79,6 @@ $("#indexnav-main > a").click(function() {
 
 $("#indexnav-more > a").click(function() {
   if (jQuery(this).hasClass("is-active")) {
-
   } else {
     $("#transactions").addClass("hide")
     $("#local").addClass("hide")
@@ -122,7 +120,6 @@ function updateTransactions() {
         obj.FactoidTransactions.forEach(function(trans) {
           if(trans.TotalInput > 0.0001) {
             if($("#panFactoids > #traxList > tbody #" + trans.TxID).length > 0) {
-
             } else {
               $("#panFactoids > #traxList > tbody").prepend("\
               <tr id='" + trans.TxID + "'>\

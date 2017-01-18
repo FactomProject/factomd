@@ -14,7 +14,6 @@ factom-cli buyec $fa1 $ec1 100
 sleep 5s
 
 addentries() {
-
     # create a random datafile
 	datalen=$(shuf -i 100-9900 -n 1)
 	datafile=$(mktemp)

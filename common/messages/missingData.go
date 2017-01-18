@@ -194,7 +194,6 @@ func (e *MissingData) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) interfaces.IMsg {
-
 	msg := new(MissingData)
 
 	msg.Peer2Peer = true // Always a peer2peer request.

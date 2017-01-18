@@ -21,7 +21,9 @@ import (
  ***********************/
 
 func UnmarshalBinaryAuth(data []byte) (a interfaces.IRCD, newData []byte, err error) {
-
+	if data == nil || len(data) < 1 {
+		return nil, nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	t := data[0]
 
 	var auth interfaces.IRCD

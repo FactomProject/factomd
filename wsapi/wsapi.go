@@ -17,9 +17,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
-
 	"sync"
+	"time"
 
 	"github.com/FactomProject/btcutil/certs"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -465,7 +464,6 @@ func HandleDirectoryBlock(ctx *web.Context, hashkey string) {
 	// conflict if I use local structs.  using a string replace on the structs that would be pointer handled (*DirectoryBlockResponse)
 	bResp, err := json.Marshal(d)
 	if err != nil {
-
 		returnMsg(ctx, d, true)
 	}
 	resp := string(bResp)
@@ -809,7 +807,6 @@ func returnMsg(ctx *web.Context, msg interface{}, success bool) {
 }
 
 func returnV1Msg(ctx *web.Context, msg string, success bool) {
-
 	/* V1 requires call specific case changes that can't be handled with
 	interfaces for example.  Block Height needs to return  height as the json item name
 	in golang, lower case names are private so won't be returned.
@@ -865,7 +862,6 @@ func checkAuthHeader(state interfaces.IState, r *http.Request) error {
 }
 
 func checkHttpPasswordOkV1(state interfaces.IState, ctx *web.Context) bool {
-
 	if err := checkAuthHeader(state, ctx.Request); err != nil {
 		remoteIP := ""
 		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]

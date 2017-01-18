@@ -81,7 +81,6 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
-
 	// If too old, it isn't valid.
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1
@@ -120,7 +119,6 @@ func (m *Ack) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *Ack) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message

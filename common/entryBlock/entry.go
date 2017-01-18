@@ -10,6 +10,7 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -102,7 +103,6 @@ func (e *Entry) ExternalIDs() [][]byte {
 }
 
 func (e *Entry) IsValid() bool {
-
 	//double check the version
 	if e.Version != 0 {
 		return false

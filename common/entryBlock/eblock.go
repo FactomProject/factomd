@@ -227,6 +227,10 @@ func UnmarshalEBlockData(data []byte) (interfaces.IEntryBlock, []byte, error) {
 func (e *EBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	newData = data
 
+	if e.Header == nil {
+		e.Header = new(EBlockHeader)
+	}
+
 	newData, err = e.Header.UnmarshalBinaryData(newData)
 	if err != nil {
 		return

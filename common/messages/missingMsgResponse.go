@@ -217,7 +217,6 @@ func (m *MissingMsgResponse) Validate(state interfaces.IState) int {
 }
 
 func (m *MissingMsgResponse) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 func (m *MissingMsgResponse) LeaderExecute(state interfaces.IState) {
@@ -225,7 +224,6 @@ func (m *MissingMsgResponse) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingMsgResponse) FollowerExecute(state interfaces.IState) {
-
 	state.FollowerExecuteMMR(m)
 
 	return
@@ -244,7 +242,6 @@ func (e *MissingMsgResponse) JSONBuffer(b *bytes.Buffer) error {
 }
 
 func NewMissingMsgResponse(state interfaces.IState, msgResponse interfaces.IMsg, ackResponse interfaces.IMsg) interfaces.IMsg {
-
 	msg := new(MissingMsgResponse)
 
 	msg.Peer2Peer = true // Always a peer2peer request.

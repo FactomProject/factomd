@@ -134,7 +134,6 @@ func (m *AddServerMsg) VerifySignature() (bool, error) {
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
 		}

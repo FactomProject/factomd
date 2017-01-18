@@ -24,7 +24,6 @@ func NewIncreaseSererCount(num byte) (e *IncreaseServerCount) {
 }
 
 func (c *IncreaseServerCount) UpdateState(state interfaces.IState) error {
-
 	return nil
 }
 

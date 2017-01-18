@@ -230,7 +230,6 @@ func (p *ProcessList) Complete() bool {
 
 // Returns the Virtual Server index for this hash for the given minute
 func (p *ProcessList) VMIndexFor(hash []byte) int {
-
 	if p.State.OneLeader {
 		return 0
 	}
@@ -334,7 +333,6 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 
 // Returns true and the index of this server, or false and the insertion point for this server
 func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-
 	if p == nil {
 		return false, 0
 	}
@@ -356,7 +354,6 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 
 // Returns true and the index of this server, or false and the insertion point for this server
 func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) (bool, int) {
-
 	if p == nil {
 		return false, 0
 	}
@@ -394,7 +391,6 @@ func (p *ProcessList) MakeMap() {
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
 // but for now, we are just going to make it a function of the dbheight.
 func (p *ProcessList) PrintMap() string {
-
 	n := len(p.FedServers)
 	prt := fmt.Sprintf("===PrintMapStart=== %d\n", p.DBHeight)
 	prt = prt + fmt.Sprintf("dddd %s minute map:  s.LeaderVMIndex %d pl.dbht %d  s.dbht %d s.EOM %v\ndddd     ",
@@ -498,7 +494,6 @@ func (p *ProcessList) GetAckAt(vmIndex int, height int) *messages.Ack {
 }
 
 func (p ProcessList) HasMessage() bool {
-
 	for i := 0; i < len(p.FedServers); i++ {
 		if len(p.VMs[i].List) > 0 {
 			return true
@@ -592,7 +587,6 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 }
 
 func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds int64) *Request {
-
 	r := new(Request)
 	r.wait = waitSeconds
 	r.vmIndex = vmIndex
@@ -704,7 +698,6 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 
 // Process messages and update our state.
 func (p *ProcessList) Process(state *State) (progress bool) {
-
 	dbht := state.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
 		return true
@@ -717,7 +710,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	if len(p.System.List) >= p.System.Height {
 	systemloop:
 		for i, f := range p.System.List[p.System.Height:] {
-
 			if f == nil {
 				p.Ask(-1, i, 10, 100)
 				break systemloop
@@ -933,7 +925,6 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-
 	if p == nil {
 		return
 	}
@@ -988,7 +979,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
-
 		if vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
 			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate   ", p.State.GetFactomNodeName(), m.String())
 			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate   ", p.State.GetFactomNodeName(), ack.String())
@@ -1133,7 +1123,6 @@ func (p *ProcessList) String() string {
 }
 
 func (p *ProcessList) Reset() bool {
-
 	previous := p.State.ProcessLists.Get(p.DBHeight - 1)
 
 	if previous == nil {

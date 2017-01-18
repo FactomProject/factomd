@@ -13,6 +13,30 @@ import (
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
+func TestUnmarshalNilVarInt(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a, rest := DecodeVarInt(nil)
+	if rest != nil {
+		t.Errorf("Returned extra data")
+	}
+	if a != 0 {
+		t.Errorf("Wrong value returned")
+	}
+
+	a, rest = DecodeVarInt([]byte{})
+	if len(rest) != 0 {
+		t.Errorf("Returned extra data")
+	}
+	if a != 0 {
+		t.Errorf("Wrong value returned")
+	}
+}
+
 func TestVarIntLength(t *testing.T) {
 	var vector map[uint64]int = map[uint64]int{
 		0x00:               1,

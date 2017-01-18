@@ -110,13 +110,16 @@ func (bs *ByteSlice32) UnmarshalBinaryData(data []byte) (newData []byte, err err
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	if data == nil || len(data) < 32 {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	copy(bs[:], data[:32])
 	newData = data[32:]
 	return
 }
 
 func (bs *ByteSlice32) UnmarshalBinary(data []byte) (err error) {
-	copy(bs[:], data[:32])
+	_, err = bs.UnmarshalBinaryData(data)
 	return
 }
 
@@ -155,13 +158,16 @@ func (bs *ByteSlice64) UnmarshalBinaryData(data []byte) (newData []byte, err err
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	if data == nil || len(data) < 64 {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	copy(bs[:], data[:64])
 	newData = data[64:]
 	return
 }
 
 func (bs *ByteSlice64) UnmarshalBinary(data []byte) (err error) {
-	copy(bs[:], data[:64])
+	_, err = bs.UnmarshalBinaryData(data)
 	return
 }
 
@@ -200,13 +206,16 @@ func (bs *ByteSlice6) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	if data == nil || len(data) < 6 {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	copy(bs[:], data[:6])
 	newData = data[6:]
 	return
 }
 
 func (bs *ByteSlice6) UnmarshalBinary(data []byte) (err error) {
-	copy(bs[:], data[:6])
+	_, err = bs.UnmarshalBinaryData(data)
 	return
 }
 
@@ -252,6 +261,9 @@ func (bs *ByteSliceSig) UnmarshalBinaryData(data []byte) (newData []byte, err er
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	if data == nil || len(data) < ed25519.SignatureSize {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	copy(bs[:], data[:ed25519.SignatureSize])
 	newData = data[ed25519.SignatureSize:]
 	return
@@ -315,13 +327,16 @@ func (bs *ByteSlice20) UnmarshalBinaryData(data []byte) (newData []byte, err err
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	if data == nil || len(data) < 20 {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	copy(bs[:], data[:20])
 	newData = data[20:]
 	return
 }
 
 func (bs *ByteSlice20) UnmarshalBinary(data []byte) (err error) {
-	copy(bs[:], data[:20])
+	_, err = bs.UnmarshalBinaryData(data)
 	return
 }
 
@@ -386,8 +401,7 @@ func (bs *ByteSlice) UnmarshalBinaryData(data []byte) (newData []byte, err error
 }
 
 func (bs *ByteSlice) UnmarshalBinary(data []byte) (err error) {
-	bs.Bytes = make([]byte, len(data))
-	copy(bs.Bytes[:], data)
+	_, err = bs.UnmarshalBinaryData(data)
 	return
 }
 

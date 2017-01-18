@@ -6,7 +6,6 @@ package messages
 
 import (
 	"bytes"
-	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
 
@@ -110,7 +109,6 @@ func (m *EntryBlockResponse) Validate(state interfaces.IState) int {
 }
 
 func (m *EntryBlockResponse) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message

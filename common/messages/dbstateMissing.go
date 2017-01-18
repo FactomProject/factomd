@@ -6,7 +6,6 @@ package messages
 
 import (
 	"bytes"
-	//	"encoding/binary"
 	"encoding/binary"
 	"fmt"
 
@@ -93,7 +92,6 @@ func (m *DBStateMissing) Validate(state interfaces.IState) int {
 }
 
 func (m *DBStateMissing) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message
@@ -103,7 +101,6 @@ func (m *DBStateMissing) LeaderExecute(state interfaces.IState) {
 
 // Only send the same block again after 15 seconds.
 func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
-
 	send := true
 
 	now := state.GetTimestamp()

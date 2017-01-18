@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -78,7 +79,6 @@ func (m *AuditServerFault) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *AuditServerFault) GetHash() interfaces.IHash {
-
 	return nil
 }
 
@@ -203,12 +203,10 @@ func (m *AuditServerFault) Validate(state interfaces.IState) int {
 // Returns true if this is a message for this server to execute as
 // a leader.
 func (m *AuditServerFault) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message
 func (m *AuditServerFault) LeaderExecute(state interfaces.IState) {
-
 }
 
 func (m *AuditServerFault) FollowerExecute(interfaces.IState) {

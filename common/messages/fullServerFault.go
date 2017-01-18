@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
 	"math"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -320,7 +319,6 @@ func (sl *SigList) MarshalBinary() (data []byte, err error) {
 }
 
 func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
@@ -503,7 +501,6 @@ func (m *FullServerFault) GetDBHeight() uint32 {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *FullServerFault) Validate(state interfaces.IState) int {
-
 	// Ignore old faults
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1
@@ -592,7 +589,6 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 }
 
 func (m *FullServerFault) ComputeVMIndex(state interfaces.IState) {
-
 }
 
 // Execute the leader functions of the given message

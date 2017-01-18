@@ -127,7 +127,6 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 
 // Non-blocking return value from channel.
 func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
-
 	if f.Delayed == nil {
 		select {
 		case packet, ok := <-f.BroadcastIn:

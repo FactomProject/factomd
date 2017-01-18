@@ -64,7 +64,6 @@ func (this *State) ProcessRecentFERChainEntries() {
 
 	// Check last entry block method
 	if entryBlock.GetHeader().GetDBHeight() == this.GetDBHeightComplete()-1 {
-
 		entryHashes := entryBlock.GetEntryHashes()
 
 		// this.Println("Found FER entry hashes in a block as: ", entryHashes)

@@ -7,6 +7,7 @@ package primitives
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -77,6 +78,9 @@ func (t *Timestamp) GetTime() time.Time {
 }
 
 func (t *Timestamp) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	if data == nil || len(data) < 6 {
+		return nil, fmt.Errorf("Not enough data to unmarshal")
+	}
 	hd, data := binary.BigEndian.Uint32(data[:]), data[4:]
 	ld, data := binary.BigEndian.Uint16(data[:]), data[2:]
 	*t = Timestamp((uint64(hd) << 16) + uint64(ld))

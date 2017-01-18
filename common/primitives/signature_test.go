@@ -9,7 +9,27 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
+
+func TestUnmarshalNilSignature(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(Signature)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
 
 func TestMarshalUnmarshalSignature(t *testing.T) {
 	sigS := "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a83efbcbed19b5842e5aa06e66c41d8b61826d95d50c1cbc8bd5373f986c370547133462a9ffa0dcff025a6ad26747c95f1bdd88e2596fc8c6eaa8a2993c72c050002"
@@ -98,6 +118,42 @@ func TestSignatureMisc(t *testing.T) {
 	for i := range pub {
 		if pub[i] != pub2[i] {
 			t.Error("Pub keys are not identical")
+		}
+	}
+
+	if sig1.IsSameAs(sig2) == false {
+		t.Errorf("Signatures are not identical")
+	}
+}
+
+func TestSignature(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		priv1 := new(PrivateKey)
+
+		err := priv1.GenerateKey()
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		data := random.RandByteSlice()
+
+		sig := Sign(priv1.Key[:], data)
+
+		pub, err := priv1.Pub.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		err = VerifySignature(data, pub, sig)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		sig = Sign(priv1.Key[:32], data)
+
+		err = VerifySignature(data, pub, sig)
+		if err != nil {
+			t.Errorf("%v", err)
 		}
 	}
 }
