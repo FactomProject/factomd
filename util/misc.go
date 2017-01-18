@@ -63,7 +63,7 @@ func IsInPendingEntryList(list []interfaces.IPendingEntry, entry interfaces.IPen
 		return false
 	}
 	for _, ent := range list {
-		if ent.EntryHash != nil {
+		if entry.ChainID != nil && entry.EntryHash != nil {
 			if entry.EntryHash.IsSameAs(ent.EntryHash) {
 				if entry.ChainID.IsSameAs(ent.ChainID) {
 					return true
