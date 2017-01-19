@@ -97,14 +97,6 @@ func (m *AuditServerFault) Type() byte {
 	return constants.AUDIT_SERVER_FAULT_MSG
 }
 
-func (m *AuditServerFault) Int() int {
-	return -1
-}
-
-func (m *AuditServerFault) Bytes() []byte {
-	return nil
-}
-
 func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

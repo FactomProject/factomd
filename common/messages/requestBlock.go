@@ -75,14 +75,6 @@ func (m *RequestBlock) Type() byte {
 	return constants.REQUEST_BLOCK_MSG
 }
 
-func (m *RequestBlock) Int() int {
-	return -1
-}
-
-func (m *RequestBlock) Bytes() []byte {
-	return nil
-}
-
 func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

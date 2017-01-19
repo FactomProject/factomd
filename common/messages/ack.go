@@ -60,14 +60,6 @@ func (m *Ack) Type() byte {
 	return constants.ACK_MSG
 }
 
-func (m *Ack) Int() int {
-	return -1
-}
-
-func (m *Ack) Bytes() []byte {
-	return m.MessageHash.Bytes()
-}
-
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

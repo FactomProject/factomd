@@ -92,14 +92,6 @@ func (m *DataResponse) Type() byte {
 	return constants.DATA_RESPONSE
 }
 
-func (m *DataResponse) Int() int {
-	return -1
-}
-
-func (m *DataResponse) Bytes() []byte {
-	return nil
-}
-
 func (m *DataResponse) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

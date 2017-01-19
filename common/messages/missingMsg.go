@@ -98,14 +98,6 @@ func (m *MissingMsg) Type() byte {
 	return constants.MISSING_MSG
 }
 
-func (m *MissingMsg) Int() int {
-	return -1
-}
-
-func (m *MissingMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

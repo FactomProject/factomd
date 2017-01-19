@@ -94,14 +94,6 @@ func (m *EOMTimeout) Type() byte {
 	return constants.EOM_TIMEOUT_MSG
 }
 
-func (m *EOMTimeout) Int() int {
-	return -1
-}
-
-func (m *EOMTimeout) Bytes() []byte {
-	return nil
-}
-
 func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

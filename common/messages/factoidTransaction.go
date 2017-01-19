@@ -141,14 +141,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 
 }
 
-func (m *FactoidTransaction) Int() int {
-	return -1
-}
-
-func (m *FactoidTransaction) Bytes() []byte {
-	return nil
-}
-
 func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, err error) {
 	newData = datax
 	defer func() {

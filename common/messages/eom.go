@@ -104,15 +104,6 @@ func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *EOM) Int() int {
-	return int(m.Minute)
-}
-
-func (m *EOM) Bytes() []byte {
-	var ret []byte
-	return append(ret, m.Minute)
-}
-
 func (m *EOM) Type() byte {
 	return constants.EOM_MSG
 }

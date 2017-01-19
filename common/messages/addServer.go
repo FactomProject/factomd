@@ -51,14 +51,6 @@ func (m *AddServerMsg) Type() byte {
 	return constants.ADDSERVER_MSG
 }
 
-func (m *AddServerMsg) Int() int {
-	return -1
-}
-
-func (m *AddServerMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *AddServerMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

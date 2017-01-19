@@ -54,14 +54,6 @@ func (m *ChangeServerKeyMsg) Type() byte {
 	return constants.CHANGESERVER_KEY_MSG
 }
 
-func (m *ChangeServerKeyMsg) Int() int {
-	return -1
-}
-
-func (m *ChangeServerKeyMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

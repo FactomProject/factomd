@@ -95,14 +95,6 @@ func (m *CommitChainMsg) Type() byte {
 	return constants.COMMIT_CHAIN_MSG
 }
 
-func (m *CommitChainMsg) Int() int {
-	return -1
-}
-
-func (m *CommitChainMsg) Bytes() []byte {
-	return nil
-}
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid

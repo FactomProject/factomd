@@ -109,14 +109,6 @@ func (m *Heartbeat) Type() byte {
 	return constants.HEARTBEAT_MSG
 }
 
-func (m *Heartbeat) Int() int {
-	return -1
-}
-
-func (m *Heartbeat) Bytes() []byte {
-	return nil
-}
-
 func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

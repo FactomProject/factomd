@@ -81,14 +81,6 @@ func (m *EntryBlockResponse) Type() byte {
 	return constants.ENTRY_BLOCK_RESPONSE
 }
 
-func (m *EntryBlockResponse) Int() int {
-	return -1
-}
-
-func (m *EntryBlockResponse) Bytes() []byte {
-	return nil
-}
-
 func (m *EntryBlockResponse) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

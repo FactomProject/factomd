@@ -126,14 +126,6 @@ func (m *DBStateMsg) Type() byte {
 	return constants.DBSTATE_MSG
 }
 
-func (m *DBStateMsg) Int() int {
-	return -1
-}
-
-func (m *DBStateMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

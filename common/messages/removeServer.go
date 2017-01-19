@@ -51,14 +51,6 @@ func (m *RemoveServerMsg) Type() byte {
 	return constants.REMOVESERVER_MSG
 }
 
-func (m *RemoveServerMsg) Int() int {
-	return -1
-}
-
-func (m *RemoveServerMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

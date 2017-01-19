@@ -99,14 +99,6 @@ func (m *CommitEntryMsg) Type() byte {
 	return constants.COMMIT_ENTRY_MSG
 }
 
-func (m *CommitEntryMsg) Int() int {
-	return -1
-}
-
-func (m *CommitEntryMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *CommitEntryMsg) Sign(key interfaces.Signer) error {
 	signature, err := SignSignable(m, key)
 	if err != nil {

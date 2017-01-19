@@ -102,14 +102,6 @@ func (m *InvalidDirectoryBlock) Type() byte {
 	return constants.INVALID_DIRECTORY_BLOCK_MSG
 }
 
-func (m *InvalidDirectoryBlock) Int() int {
-	return -1
-}
-
-func (m *InvalidDirectoryBlock) Bytes() []byte {
-	return nil
-}
-
 func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

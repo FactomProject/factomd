@@ -68,14 +68,6 @@ func (m *DBStateMissing) Type() byte {
 	return constants.DBSTATE_MISSING_MSG
 }
 
-func (m *DBStateMissing) Int() int {
-	return -1
-}
-
-func (m *DBStateMissing) Bytes() []byte {
-	return nil
-}
-
 func (m *DBStateMissing) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }

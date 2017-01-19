@@ -84,14 +84,6 @@ func (m *SignatureTimeout) Type() byte {
 	return constants.SIGNATURE_TIMEOUT_MSG
 }
 
-func (m *SignatureTimeout) Int() int {
-	return -1
-}
-
-func (m *SignatureTimeout) Bytes() []byte {
-	return nil
-}
-
 func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

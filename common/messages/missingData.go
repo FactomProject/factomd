@@ -76,14 +76,6 @@ func (m *MissingData) Type() byte {
 	return constants.MISSING_DATA
 }
 
-func (m *MissingData) Int() int {
-	return -1
-}
-
-func (m *MissingData) Bytes() []byte {
-	return nil
-}
-
 func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

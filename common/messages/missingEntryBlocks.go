@@ -68,14 +68,6 @@ func (m *MissingEntryBlocks) Type() byte {
 	return constants.MISSING_ENTRY_BLOCKS
 }
 
-func (m *MissingEntryBlocks) Int() int {
-	return -1
-}
-
-func (m *MissingEntryBlocks) Bytes() []byte {
-	return nil
-}
-
 func (m *MissingEntryBlocks) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
