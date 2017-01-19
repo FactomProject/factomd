@@ -48,11 +48,11 @@ func (db *Overlay) SaveIncludedInMultiMultiBatch(entries []interfaces.IHash, blo
 			continue
 		}
 		if checkForDuplicateEntries == true {
-			loaded, err := db.Get(INCLUDED_IN, entry.Bytes(), primitives.NewZeroHash())
+			exists, err := db.DoesKeyExist(INCLUDED_IN, entry.Bytes())
 			if err != nil {
 				return err
 			}
-			if loaded != nil {
+			if exists == true {
 				continue
 			}
 		}
@@ -72,11 +72,11 @@ func (db *Overlay) SaveIncludedInMulti(entries []interfaces.IHash, block interfa
 
 	for _, entry := range entries {
 		if checkForDuplicateEntries == true {
-			loaded, err := db.Get(INCLUDED_IN, entry.Bytes(), primitives.NewZeroHash())
+			exists, err := db.DoesKeyExist(INCLUDED_IN, entry.Bytes())
 			if err != nil {
 				return err
 			}
-			if loaded != nil {
+			if exists == true {
 				continue
 			}
 		}
