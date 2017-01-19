@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -95,14 +94,6 @@ func (m *AuditServerFault) GetMsgHash() interfaces.IHash {
 
 func (m *AuditServerFault) Type() byte {
 	return constants.AUDIT_SERVER_FAULT_MSG
-}
-
-func (m *AuditServerFault) Int() int {
-	return -1
-}
-
-func (m *AuditServerFault) Bytes() []byte {
-	return nil
 }
 
 func (m *AuditServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -218,8 +209,4 @@ func (e *AuditServerFault) JSONByte() ([]byte, error) {
 
 func (e *AuditServerFault) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *AuditServerFault) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

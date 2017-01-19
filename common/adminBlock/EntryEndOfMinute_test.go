@@ -7,6 +7,25 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 )
 
+func TestUnmarshalNilEndOfMinuteEntry(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(EndOfMinuteEntry)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestEOMMisc(t *testing.T) {
 	eom := new(EndOfMinuteEntry)
 	if eom.IsInterpretable() != true {

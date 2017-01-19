@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -87,14 +86,6 @@ func (m *MissingMsgResponse) GetTimestamp() interfaces.Timestamp {
 
 func (m *MissingMsgResponse) Type() byte {
 	return constants.MISSING_MSG_RESPONSE
-}
-
-func (m *MissingMsgResponse) Int() int {
-	return -1
-}
-
-func (m *MissingMsgResponse) Bytes() []byte {
-	return nil
 }
 
 func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -235,10 +226,6 @@ func (e *MissingMsgResponse) JSONByte() ([]byte, error) {
 
 func (e *MissingMsgResponse) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *MissingMsgResponse) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func NewMissingMsgResponse(state interfaces.IState, msgResponse interfaces.IMsg, ackResponse interfaces.IMsg) interfaces.IMsg {

@@ -1,7 +1,6 @@
 package adminBlock
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -80,10 +79,6 @@ func (e *RevealMatryoshkaHash) JSONByte() ([]byte, error) {
 
 func (e *RevealMatryoshkaHash) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *RevealMatryoshkaHash) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *RevealMatryoshkaHash) String() string {

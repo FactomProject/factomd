@@ -126,14 +126,6 @@ func (m *DBStateMsg) Type() byte {
 	return constants.DBSTATE_MSG
 }
 
-func (m *DBStateMsg) Int() int {
-	return -1
-}
-
-func (m *DBStateMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
@@ -245,10 +237,6 @@ func (e *DBStateMsg) JSONByte() ([]byte, error) {
 
 func (e *DBStateMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

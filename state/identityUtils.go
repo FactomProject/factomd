@@ -5,7 +5,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 
@@ -80,10 +79,6 @@ func (e *Identity) JSONByte() ([]byte, error) {
 
 func (e *Identity) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *Identity) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *Identity) String() string {

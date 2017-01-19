@@ -5,7 +5,6 @@
 package entryBlock
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -41,10 +40,6 @@ func (e *EBlockBody) JSONByte() ([]byte, error) {
 
 func (e *EBlockBody) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *EBlockBody) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *EBlockBody) String() string {

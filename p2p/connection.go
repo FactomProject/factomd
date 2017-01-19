@@ -5,7 +5,6 @@
 package p2p
 
 import (
-	"bytes"
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
@@ -80,10 +79,6 @@ func (e *ConnectionParcel) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *ConnectionParcel) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (e *ConnectionParcel) String() string {
 	str, _ := e.JSONString()
 	return str
@@ -119,10 +114,6 @@ func (e *ConnectionCommand) JSONByte() ([]byte, error) {
 
 func (e *ConnectionCommand) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *ConnectionCommand) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ConnectionCommand) String() string {

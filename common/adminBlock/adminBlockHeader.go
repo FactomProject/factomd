@@ -5,7 +5,6 @@
 package adminBlock
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -157,10 +156,6 @@ func (e *ABlockHeader) JSONByte() ([]byte, error) {
 
 func (e *ABlockHeader) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *ABlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 type ExpandedABlockHeader ABlockHeader

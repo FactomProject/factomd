@@ -184,10 +184,6 @@ func (e *DirectoryBlock) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *DirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (e *DirectoryBlock) String() string {
 	var out primitives.Buffer
 

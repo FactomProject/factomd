@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -95,14 +94,6 @@ func (m *CommitChainMsg) Type() byte {
 	return constants.COMMIT_CHAIN_MSG
 }
 
-func (m *CommitChainMsg) Int() int {
-	return -1
-}
-
-func (m *CommitChainMsg) Bytes() []byte {
-	return nil
-}
-
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -147,10 +138,6 @@ func (e *CommitChainMsg) JSONByte() ([]byte, error) {
 
 func (e *CommitChainMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommitChainMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *CommitChainMsg) Sign(key interfaces.Signer) error {

@@ -5,7 +5,6 @@
 package adminBlock
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -350,10 +349,6 @@ func (e *AdminBlock) JSONByte() ([]byte, error) {
 
 func (e *AdminBlock) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *AdminBlock) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 type ExpandedABlock AdminBlock

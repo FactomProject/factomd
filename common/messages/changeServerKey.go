@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -52,14 +51,6 @@ func (m *ChangeServerKeyMsg) GetMsgHash() interfaces.IHash {
 
 func (m *ChangeServerKeyMsg) Type() byte {
 	return constants.CHANGESERVER_KEY_MSG
-}
-
-func (m *ChangeServerKeyMsg) Int() int {
-	return -1
-}
-
-func (m *ChangeServerKeyMsg) Bytes() []byte {
-	return nil
 }
 
 func (m *ChangeServerKeyMsg) GetTimestamp() interfaces.Timestamp {
@@ -131,10 +122,6 @@ func (e *ChangeServerKeyMsg) JSONByte() ([]byte, error) {
 
 func (e *ChangeServerKeyMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *ChangeServerKeyMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *ChangeServerKeyMsg) Sign(key interfaces.Signer) error {

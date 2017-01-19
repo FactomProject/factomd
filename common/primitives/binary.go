@@ -131,10 +131,6 @@ func (e *ByteSlice32) JSONString() (string, error) {
 	return EncodeJSONString(e)
 }
 
-func (e *ByteSlice32) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
-}
-
 func (bs *ByteSlice32) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -179,10 +175,6 @@ func (e *ByteSlice64) JSONString() (string, error) {
 	return EncodeJSONString(e)
 }
 
-func (e *ByteSlice64) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
-}
-
 func (bs *ByteSlice64) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -225,10 +217,6 @@ func (e *ByteSlice6) JSONByte() ([]byte, error) {
 
 func (e *ByteSlice6) JSONString() (string, error) {
 	return EncodeJSONString(e)
-}
-
-func (e *ByteSlice6) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
 }
 
 func (bs *ByteSlice6) String() string {
@@ -283,10 +271,6 @@ func (e *ByteSliceSig) JSONByte() ([]byte, error) {
 
 func (e *ByteSliceSig) JSONString() (string, error) {
 	return EncodeJSONString(e)
-}
-
-func (e *ByteSliceSig) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
 }
 
 func (bs *ByteSliceSig) String() string {
@@ -348,10 +332,6 @@ func (e *ByteSlice20) JSONString() (string, error) {
 	return EncodeJSONString(e)
 }
 
-func (e *ByteSlice20) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
-}
-
 func (bs *ByteSlice20) String() string {
 	return fmt.Sprintf("%x", bs[:])
 }
@@ -411,10 +391,6 @@ func (e *ByteSlice) JSONByte() ([]byte, error) {
 
 func (e *ByteSlice) JSONString() (string, error) {
 	return EncodeJSONString(e)
-}
-
-func (e *ByteSlice) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
 }
 
 func (bs *ByteSlice) String() string {

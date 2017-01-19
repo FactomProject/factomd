@@ -8,7 +8,6 @@
 package anchor
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -53,10 +52,6 @@ func (e *AnchorRecord) JSONByte() ([]byte, error) {
 
 func (e *AnchorRecord) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *AnchorRecord) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *AnchorRecord) String() string {

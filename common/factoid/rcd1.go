@@ -5,7 +5,6 @@
 package factoid
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -51,10 +50,6 @@ func (e *RCD_1) JSONByte() ([]byte, error) {
 
 func (e *RCD_1) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *RCD_1) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (b RCD_1) String() string {

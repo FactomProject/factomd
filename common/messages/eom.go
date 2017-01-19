@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -104,15 +103,6 @@ func (m *EOM) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
 
-func (m *EOM) Int() int {
-	return int(m.Minute)
-}
-
-func (m *EOM) Bytes() []byte {
-	var ret []byte
-	return append(ret, m.Minute)
-}
-
 func (m *EOM) Type() byte {
 	return constants.EOM_MSG
 }
@@ -167,10 +157,6 @@ func (e *EOM) JSONByte() ([]byte, error) {
 
 func (e *EOM) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *EOM) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *EOM) Sign(key interfaces.Signer) error {

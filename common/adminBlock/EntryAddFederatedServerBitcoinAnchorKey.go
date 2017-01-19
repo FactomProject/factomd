@@ -1,8 +1,8 @@
 package adminBlock
 
 import (
-	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -116,10 +116,6 @@ func (e *AddFederatedServerBitcoinAnchorKey) JSONByte() ([]byte, error) {
 
 func (e *AddFederatedServerBitcoinAnchorKey) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *AddFederatedServerBitcoinAnchorKey) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *AddFederatedServerBitcoinAnchorKey) IsInterpretable() bool {

@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -66,14 +65,6 @@ func (m *MissingEntryBlocks) GetMsgHash() interfaces.IHash {
 
 func (m *MissingEntryBlocks) Type() byte {
 	return constants.MISSING_ENTRY_BLOCKS
-}
-
-func (m *MissingEntryBlocks) Int() int {
-	return -1
-}
-
-func (m *MissingEntryBlocks) Bytes() []byte {
-	return nil
 }
 
 func (m *MissingEntryBlocks) GetTimestamp() interfaces.Timestamp {
@@ -159,10 +150,6 @@ func (e *MissingEntryBlocks) JSONByte() ([]byte, error) {
 
 func (e *MissingEntryBlocks) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *MissingEntryBlocks) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *MissingEntryBlocks) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

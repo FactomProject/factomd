@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -107,10 +106,6 @@ func (e *Bounce) JSONByte() ([]byte, error) {
 
 func (e *Bounce) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *Bounce) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *Bounce) Sign(key interfaces.Signer) error {

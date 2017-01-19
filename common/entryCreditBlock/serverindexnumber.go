@@ -5,8 +5,8 @@
 package entryCreditBlock
 
 import (
-	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -108,10 +108,6 @@ func (e *ServerIndexNumber) JSONByte() ([]byte, error) {
 
 func (e *ServerIndexNumber) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *ServerIndexNumber) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ServerIndexNumber) GetTimestamp() interfaces.Timestamp {

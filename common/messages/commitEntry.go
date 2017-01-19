@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -97,14 +96,6 @@ func (m *CommitEntryMsg) GetTimestamp() interfaces.Timestamp {
 
 func (m *CommitEntryMsg) Type() byte {
 	return constants.COMMIT_ENTRY_MSG
-}
-
-func (m *CommitEntryMsg) Int() int {
-	return -1
-}
-
-func (m *CommitEntryMsg) Bytes() []byte {
-	return nil
 }
 
 func (m *CommitEntryMsg) Sign(key interfaces.Signer) error {
@@ -244,10 +235,6 @@ func (e *CommitEntryMsg) JSONByte() ([]byte, error) {
 
 func (e *CommitEntryMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommitEntryMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func NewCommitEntryMsg() *CommitEntryMsg {

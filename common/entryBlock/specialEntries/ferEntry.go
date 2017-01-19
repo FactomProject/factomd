@@ -1,7 +1,6 @@
 package specialEntries
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -96,10 +95,6 @@ func (e *FEREntry) JSONByte() ([]byte, error) {
 
 func (e *FEREntry) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *FEREntry) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *FEREntry) String() string {

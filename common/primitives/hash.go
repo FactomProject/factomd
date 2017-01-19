@@ -228,10 +228,6 @@ func (e *Hash) JSONString() (string, error) {
 	return EncodeJSONString(e)
 }
 
-func (e *Hash) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
-}
-
 /**********************
  * Support functions
  **********************/

@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -82,14 +81,6 @@ func (m *SignatureTimeout) GetTimestamp() interfaces.Timestamp {
 
 func (m *SignatureTimeout) Type() byte {
 	return constants.SIGNATURE_TIMEOUT_MSG
-}
-
-func (m *SignatureTimeout) Int() int {
-	return -1
-}
-
-func (m *SignatureTimeout) Bytes() []byte {
-	return nil
 }
 
 func (m *SignatureTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -216,8 +207,4 @@ func (e *SignatureTimeout) JSONByte() ([]byte, error) {
 
 func (e *SignatureTimeout) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *SignatureTimeout) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

@@ -51,14 +51,6 @@ func (m *RemoveServerMsg) Type() byte {
 	return constants.REMOVESERVER_MSG
 }
 
-func (m *RemoveServerMsg) Int() int {
-	return -1
-}
-
-func (m *RemoveServerMsg) Bytes() []byte {
-	return nil
-}
-
 func (m *RemoveServerMsg) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
@@ -114,10 +106,6 @@ func (e *RemoveServerMsg) JSONByte() ([]byte, error) {
 
 func (e *RemoveServerMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *RemoveServerMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *RemoveServerMsg) Sign(key interfaces.Signer) error {

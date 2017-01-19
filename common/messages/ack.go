@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -58,14 +57,6 @@ func (m *Ack) GetMsgHash() interfaces.IHash {
 
 func (m *Ack) Type() byte {
 	return constants.ACK_MSG
-}
-
-func (m *Ack) Int() int {
-	return -1
-}
-
-func (m *Ack) Bytes() []byte {
-	return m.MessageHash.Bytes()
 }
 
 func (m *Ack) GetTimestamp() interfaces.Timestamp {
@@ -142,10 +133,6 @@ func (e *Ack) JSONByte() ([]byte, error) {
 
 func (e *Ack) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *Ack) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *Ack) Sign(key interfaces.Signer) error {

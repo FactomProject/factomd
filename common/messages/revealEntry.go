@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -164,10 +163,6 @@ func (e *RevealEntryMsg) JSONByte() ([]byte, error) {
 
 func (e *RevealEntryMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *RevealEntryMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func NewRevealEntryMsg() *RevealEntryMsg {

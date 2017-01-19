@@ -5,7 +5,6 @@
 package factoid
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -49,10 +48,6 @@ func (s *FactoidSignature) JSONByte() ([]byte, error) {
 
 func (s *FactoidSignature) JSONString() (string, error) {
 	return primitives.EncodeJSONString(s)
-}
-
-func (s *FactoidSignature) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(s, b)
 }
 
 func (s FactoidSignature) String() string {

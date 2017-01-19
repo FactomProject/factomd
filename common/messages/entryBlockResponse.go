@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -81,14 +80,6 @@ func (m *EntryBlockResponse) Type() byte {
 	return constants.ENTRY_BLOCK_RESPONSE
 }
 
-func (m *EntryBlockResponse) Int() int {
-	return -1
-}
-
-func (m *EntryBlockResponse) Bytes() []byte {
-	return nil
-}
-
 func (m *EntryBlockResponse) GetTimestamp() interfaces.Timestamp {
 	return m.Timestamp
 }
@@ -145,10 +136,6 @@ func (e *EntryBlockResponse) JSONByte() ([]byte, error) {
 
 func (e *EntryBlockResponse) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *EntryBlockResponse) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *EntryBlockResponse) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

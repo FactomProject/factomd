@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -74,14 +73,6 @@ func (m *MissingData) GetTimestamp() interfaces.Timestamp {
 
 func (m *MissingData) Type() byte {
 	return constants.MISSING_DATA
-}
-
-func (m *MissingData) Int() int {
-	return -1
-}
-
-func (m *MissingData) Bytes() []byte {
-	return nil
 }
 
 func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -187,10 +178,6 @@ func (e *MissingData) JSONByte() ([]byte, error) {
 
 func (e *MissingData) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *MissingData) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) interfaces.IMsg {

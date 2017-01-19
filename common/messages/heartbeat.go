@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -107,14 +106,6 @@ func (m *Heartbeat) GetTimestamp() interfaces.Timestamp {
 
 func (m *Heartbeat) Type() byte {
 	return constants.HEARTBEAT_MSG
-}
-
-func (m *Heartbeat) Int() int {
-	return -1
-}
-
-func (m *Heartbeat) Bytes() []byte {
-	return nil
 }
 
 func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -297,10 +288,6 @@ func (e *Heartbeat) JSONByte() ([]byte, error) {
 
 func (e *Heartbeat) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *Heartbeat) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *Heartbeat) Sign(key interfaces.Signer) error {

@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -113,14 +112,6 @@ func (m *DirectoryBlockSignature) GetTimestamp() interfaces.Timestamp {
 
 func (m *DirectoryBlockSignature) Type() byte {
 	return constants.DIRECTORY_BLOCK_SIGNATURE_MSG
-}
-
-func (m *DirectoryBlockSignature) Int() int {
-	return -1
-}
-
-func (m *DirectoryBlockSignature) Bytes() []byte {
-	return nil
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -378,8 +369,4 @@ func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {
 
 func (e *DirectoryBlockSignature) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

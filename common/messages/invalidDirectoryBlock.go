@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -100,14 +99,6 @@ func (m *InvalidDirectoryBlock) GetTimestamp() interfaces.Timestamp {
 
 func (m *InvalidDirectoryBlock) Type() byte {
 	return constants.INVALID_DIRECTORY_BLOCK_MSG
-}
-
-func (m *InvalidDirectoryBlock) Int() int {
-	return -1
-}
-
-func (m *InvalidDirectoryBlock) Bytes() []byte {
-	return nil
 }
 
 func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -223,8 +214,4 @@ func (e *InvalidDirectoryBlock) JSONByte() ([]byte, error) {
 
 func (e *InvalidDirectoryBlock) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *InvalidDirectoryBlock) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

@@ -1,7 +1,6 @@
 package entryBlock
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -40,10 +39,6 @@ func (e *EBlockHeader) JSONByte() ([]byte, error) {
 
 func (e *EBlockHeader) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *EBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *EBlockHeader) String() string {

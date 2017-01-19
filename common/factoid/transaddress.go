@@ -11,7 +11,6 @@
 package factoid
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -66,10 +65,6 @@ func (e *TransAddress) JSONByte() ([]byte, error) {
 
 func (e *TransAddress) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *TransAddress) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (t *TransAddress) String() string {

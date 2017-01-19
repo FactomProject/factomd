@@ -5,7 +5,6 @@
 package directoryBlock
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -103,10 +102,6 @@ func (e *DBlockHeader) JSONByte() ([]byte, error) {
 
 func (e *DBlockHeader) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *DBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DBlockHeader) String() string {

@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -141,14 +140,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 
 }
 
-func (m *FactoidTransaction) Int() int {
-	return -1
-}
-
-func (m *FactoidTransaction) Bytes() []byte {
-	return nil
-}
-
 func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, err error) {
 	newData = datax
 	defer func() {
@@ -213,8 +204,4 @@ func (e *FactoidTransaction) JSONByte() ([]byte, error) {
 
 func (e *FactoidTransaction) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *FactoidTransaction) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

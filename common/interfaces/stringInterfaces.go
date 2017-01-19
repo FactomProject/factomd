@@ -4,15 +4,12 @@
 
 package interfaces
 
-import (
-	"bytes"
-)
+import ()
 
 //Interface for printing structures into JSON
 type JSONable interface {
 	JSONByte() ([]byte, error)
 	JSONString() (string, error)
-	JSONBuffer(b *bytes.Buffer) error
 }
 
 //Interface for both JSON and Spew

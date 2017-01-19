@@ -5,7 +5,6 @@
 package primitives
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -23,10 +22,6 @@ func (e *JSON2Request) JSONByte() ([]byte, error) {
 
 func (e *JSON2Request) JSONString() (string, error) {
 	return EncodeJSONString(e)
-}
-
-func (e *JSON2Request) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
 }
 
 func (e *JSON2Request) String() string {
@@ -74,10 +69,6 @@ func (e *JSON2Response) JSONByte() ([]byte, error) {
 
 func (e *JSON2Response) JSONString() (string, error) {
 	return EncodeJSONString(e)
-}
-
-func (e *JSON2Response) JSONBuffer(b *bytes.Buffer) error {
-	return EncodeJSONToBuffer(e, b)
 }
 
 func (e *JSON2Response) String() string {
