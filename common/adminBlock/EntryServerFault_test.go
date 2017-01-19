@@ -4,11 +4,28 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	//"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	//"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
+
+func TestUnmarshalNilServerFault(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(ServerFault)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
 
 func TestServerFaultMarshalUnmarshal(t *testing.T) {
 	sf := new(ServerFault)

@@ -8,6 +8,25 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestUnmarshalNilAddFederatedServer(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(AddFederatedServer)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestAddFederatedServerMarshalUnmarshal(t *testing.T) {
 	identity := testHelper.NewRepeatingHash(0xAB)
 	var dbHeight uint32 = 0xAABBCCDD

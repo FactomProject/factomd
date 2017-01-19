@@ -13,6 +13,25 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestUnmarshalNilAdminBlock(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(AdminBlock)
+	err := a.UnmarshalBinary(nil)
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+
+	err = a.UnmarshalBinary([]byte{})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
+}
+
 func TestAdminBlockPreviousHash(t *testing.T) {
 	block := new(AdminBlock)
 	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
