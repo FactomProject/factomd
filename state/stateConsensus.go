@@ -85,6 +85,9 @@ func (s *State) Process() (progress bool) {
 		return false
 	}
 
+	process := make(chan IMsg,10000)
+	room := func() bool { return len(process)<10000}
+	
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
@@ -169,7 +172,7 @@ emptyLoop:
 		s.XReview = s.XReview[:l]
 	}
 	if !more {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 	}
 
 	return
