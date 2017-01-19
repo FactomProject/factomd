@@ -11,7 +11,6 @@ package p2p
 // Other than Init and NetworkStart, all administration is done via the channel.
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"net"
@@ -95,10 +94,6 @@ func (e *CommandAdjustPeerQuality) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *CommandAdjustPeerQuality) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (e *CommandAdjustPeerQuality) String() string {
 	str, _ := e.JSONString()
 	return str
@@ -115,10 +110,6 @@ func (e *CommandBan) JSONByte() ([]byte, error) {
 
 func (e *CommandBan) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommandBan) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *CommandBan) String() string {
@@ -139,10 +130,6 @@ func (e *CommandDisconnect) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *CommandDisconnect) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (e *CommandDisconnect) String() string {
 	str, _ := e.JSONString()
 	return str
@@ -159,10 +146,6 @@ func (e *CommandChangeLogging) JSONByte() ([]byte, error) {
 
 func (e *CommandChangeLogging) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommandChangeLogging) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *CommandChangeLogging) String() string {

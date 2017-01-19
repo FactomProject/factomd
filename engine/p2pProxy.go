@@ -6,7 +6,6 @@ package engine
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"time"
@@ -55,10 +54,6 @@ func (e *factomMessage) JSONByte() ([]byte, error) {
 
 func (e *factomMessage) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *factomMessage) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *factomMessage) String() string {
@@ -216,10 +211,6 @@ func (e *messageLog) JSONByte() ([]byte, error) {
 
 func (e *messageLog) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *messageLog) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *messageLog) String() string {

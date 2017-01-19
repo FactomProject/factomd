@@ -5,7 +5,6 @@
 package factoid
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"runtime/debug"
@@ -702,10 +701,6 @@ func (e *Transaction) JSONByte() ([]byte, error) {
 
 func (e *Transaction) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *Transaction) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *Transaction) HasUserAddress(userAddr string) bool {

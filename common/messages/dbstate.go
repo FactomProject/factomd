@@ -239,10 +239,6 @@ func (e *DBStateMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *DBStateMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -123,10 +122,6 @@ func (e *ChangeServerKeyMsg) JSONByte() ([]byte, error) {
 
 func (e *ChangeServerKeyMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *ChangeServerKeyMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *ChangeServerKeyMsg) Sign(key interfaces.Signer) error {

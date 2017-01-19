@@ -5,7 +5,6 @@
 package entryCreditBlock
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -366,8 +365,4 @@ func (e *CommitChain) JSONByte() ([]byte, error) {
 
 func (e *CommitChain) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommitChain) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

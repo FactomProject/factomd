@@ -5,9 +5,9 @@
 package receipts
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/directoryBlock/dbInfo"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -213,10 +213,6 @@ func (e *Receipt) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *Receipt) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (e *Receipt) CustomMarshalString() string {
 	str, _ := e.JSONString()
 	return str
@@ -252,10 +248,6 @@ func (e *JSON) JSONByte() ([]byte, error) {
 
 func (e *JSON) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *JSON) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *JSON) String() string {

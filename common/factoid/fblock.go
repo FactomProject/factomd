@@ -684,10 +684,6 @@ func (e *FBlock) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *FBlock) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 type ExpandedFBlock FBlock
 
 func (e FBlock) MarshalJSON() ([]byte, error) {

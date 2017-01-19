@@ -4,9 +4,7 @@
 
 package messages
 
-import ()
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -99,10 +97,6 @@ func (e *BounceReply) JSONByte() ([]byte, error) {
 
 func (e *BounceReply) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *BounceReply) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *BounceReply) Sign(key interfaces.Signer) error {

@@ -5,7 +5,6 @@
 package entryBlock
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/binary"
@@ -268,10 +267,6 @@ func (e *Entry) JSONByte() ([]byte, error) {
 
 func (e *Entry) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *Entry) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *Entry) String() string {

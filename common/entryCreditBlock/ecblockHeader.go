@@ -5,7 +5,6 @@
 package entryCreditBlock
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -119,10 +118,6 @@ func (e *ECBlockHeader) JSONByte() ([]byte, error) {
 
 func (e *ECBlockHeader) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *ECBlockHeader) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {

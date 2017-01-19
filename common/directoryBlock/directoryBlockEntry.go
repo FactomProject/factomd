@@ -5,7 +5,6 @@
 package directoryBlock
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -100,10 +99,6 @@ func (e *DBEntry) JSONByte() ([]byte, error) {
 
 func (e *DBEntry) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *DBEntry) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *DBEntry) String() string {

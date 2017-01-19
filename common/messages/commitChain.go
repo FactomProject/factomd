@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -139,10 +138,6 @@ func (e *CommitChainMsg) JSONByte() ([]byte, error) {
 
 func (e *CommitChainMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommitChainMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *CommitChainMsg) Sign(key interfaces.Signer) error {

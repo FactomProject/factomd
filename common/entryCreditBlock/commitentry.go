@@ -5,16 +5,15 @@
 package entryCreditBlock
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 	"io"
 	"time"
 
 	ed "github.com/FactomProject/ed25519"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 const (
@@ -348,8 +347,4 @@ func (e *CommitEntry) JSONByte() ([]byte, error) {
 
 func (e *CommitEntry) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommitEntry) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

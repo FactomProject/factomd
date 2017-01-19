@@ -1,8 +1,8 @@
 package dbInfo
 
 import (
-	"bytes"
 	"encoding/gob"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -52,10 +52,6 @@ func (e *DirBlockInfo) JSONByte() ([]byte, error) {
 
 func (e *DirBlockInfo) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *DirBlockInfo) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (c *DirBlockInfo) New() interfaces.BinaryMarshallableAndCopyable {

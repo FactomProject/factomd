@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -179,10 +178,6 @@ func (e *MissingData) JSONByte() ([]byte, error) {
 
 func (e *MissingData) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *MissingData) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) interfaces.IMsg {

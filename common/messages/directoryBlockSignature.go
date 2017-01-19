@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -370,8 +369,4 @@ func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {
 
 func (e *DirectoryBlockSignature) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *DirectoryBlockSignature) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -158,10 +157,6 @@ func (e *EOM) JSONByte() ([]byte, error) {
 
 func (e *EOM) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *EOM) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *EOM) Sign(key interfaces.Signer) error {

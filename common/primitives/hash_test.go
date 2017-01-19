@@ -176,16 +176,6 @@ func TestHashStrings(t *testing.T) {
 	if str != fmt.Sprintf("\"%v\"", base) {
 		t.Errorf("JSONString failed - %v vs %v", string(text), base)
 	}
-
-	b := new(bytes.Buffer)
-	err = hash.JSONBuffer(b)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if string(b.Bytes()) != fmt.Sprintf("\"%v\"", base) {
-		t.Errorf("JSONString failed - %v vs %v", string(text), base)
-	}
 }
 
 func TestIsSameAs(t *testing.T) {

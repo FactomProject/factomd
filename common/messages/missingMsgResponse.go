@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -227,10 +226,6 @@ func (e *MissingMsgResponse) JSONByte() ([]byte, error) {
 
 func (e *MissingMsgResponse) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *MissingMsgResponse) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func NewMissingMsgResponse(state interfaces.IState, msgResponse interfaces.IMsg, ackResponse interfaces.IMsg) interfaces.IMsg {

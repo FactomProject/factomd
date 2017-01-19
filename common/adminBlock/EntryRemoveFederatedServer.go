@@ -1,7 +1,6 @@
 package adminBlock
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -105,10 +104,6 @@ func (e *RemoveFederatedServer) JSONByte() ([]byte, error) {
 
 func (e *RemoveFederatedServer) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *RemoveFederatedServer) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *RemoveFederatedServer) IsInterpretable() bool {

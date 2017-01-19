@@ -108,10 +108,6 @@ func (e *RemoveServerMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *RemoveServerMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (m *RemoveServerMsg) Sign(key interfaces.Signer) error {
 	signature, err := SignSignable(m, key)
 	if err != nil {

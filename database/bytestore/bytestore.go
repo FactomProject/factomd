@@ -96,7 +96,3 @@ func (e ByteStore) JSONByte() ([]byte, error) {
 func (e ByteStore) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
-
-func (e ByteStore) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}

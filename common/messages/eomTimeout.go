@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -205,8 +204,4 @@ func (e *EOMTimeout) JSONByte() ([]byte, error) {
 
 func (e *EOMTimeout) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *EOMTimeout) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }

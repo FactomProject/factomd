@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -236,10 +235,6 @@ func (e *CommitEntryMsg) JSONByte() ([]byte, error) {
 
 func (e *CommitEntryMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *CommitEntryMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func NewCommitEntryMsg() *CommitEntryMsg {

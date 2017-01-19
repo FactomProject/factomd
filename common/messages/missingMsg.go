@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -232,10 +231,6 @@ func (e *MissingMsg) JSONByte() ([]byte, error) {
 
 func (e *MissingMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *MissingMsg) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 // AddHeight: Add a Missing Message Height to the request

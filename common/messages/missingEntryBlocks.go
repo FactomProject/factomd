@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -151,10 +150,6 @@ func (e *MissingEntryBlocks) JSONByte() ([]byte, error) {
 
 func (e *MissingEntryBlocks) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *MissingEntryBlocks) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (m *MissingEntryBlocks) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

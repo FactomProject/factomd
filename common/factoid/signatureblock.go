@@ -44,10 +44,6 @@ func (e *SignatureBlock) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *SignatureBlock) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
-}
-
 func (b SignatureBlock) String() string {
 	txt, err := b.CustomMarshalText()
 	if err != nil {

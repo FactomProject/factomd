@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -291,10 +290,6 @@ func (e *ServerFault) JSONByte() ([]byte, error) {
 
 func (e *ServerFault) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *ServerFault) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (a *ServerFault) IsSameAs(b *ServerFault) bool {

@@ -1,8 +1,8 @@
 package adminBlock
 
 import (
-	"bytes"
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -65,10 +65,6 @@ func (e *IncreaseServerCount) JSONByte() ([]byte, error) {
 
 func (e *IncreaseServerCount) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *IncreaseServerCount) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *IncreaseServerCount) String() string {

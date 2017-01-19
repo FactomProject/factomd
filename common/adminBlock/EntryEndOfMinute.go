@@ -1,7 +1,6 @@
 package adminBlock
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -68,10 +67,6 @@ func (e *EndOfMinuteEntry) JSONByte() ([]byte, error) {
 
 func (e *EndOfMinuteEntry) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (e *EndOfMinuteEntry) JSONBuffer(b *bytes.Buffer) error {
-	return primitives.EncodeJSONToBuffer(e, b)
 }
 
 func (e *EndOfMinuteEntry) String() string {
