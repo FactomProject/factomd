@@ -56,11 +56,15 @@ func LoadDatabase(s *State) {
 			if msg != nil {
 				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 20 {
-					for len(s.InMsgQueue()) > 10 {
+				if len(s.InMsgQueue()) > 500 {
+					for len(s.InMsgQueue()) > 100 {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
+				s.EntryDBHeightComplete = uint32(i)
+				s.EntryDBHeightProcessing = uint32(i)
+				s.EntryBlockDBHeightComplete = s.EntryDBHeightComplete
+				s.EntryBlockDBHeightProcessing = s.EntryDBHeightProcessing
 			} else {
 				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break
