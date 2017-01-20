@@ -21,8 +21,9 @@ type BlockchainState struct {
 	DBlockHeight uint32
 	BlockHeads   map[string]interfaces.IHash
 
-	ECBalances map[string]uint64
-	FBalances  map[string]uint64
+	ECBalances   map[string]uint64
+	FBalances    map[string]uint64
+	ExchangeRate uint64
 
 	PendingCommits map[string]uint32 //entry hash: current DBlock height
 }
@@ -97,6 +98,7 @@ func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 			bs.ECBalances[w.GetAddress().String()] = bs.ECBalances[w.GetAddress().String()] + w.GetAmount()
 		}
 	}
+	bs.ExchangeRate = fBlock.GetExchRate()
 	return nil
 }
 
