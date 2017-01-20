@@ -14,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+const EBLOCKEXPIRATION uint32 = 1000000 //TODO: set properly
+
 type BlockchainState struct {
 	DBlockHead   interfaces.IHash
 	DBlockHeight uint32
@@ -21,6 +23,8 @@ type BlockchainState struct {
 
 	ECBalances map[string]uint64
 	FBalances  map[string]uint64
+
+	PendingCommits map[string]uint32 //entry hash: current DBlock height
 }
 
 func (bs *BlockchainState) Init() {
@@ -33,9 +37,13 @@ func (bs *BlockchainState) Init() {
 	if bs.FBalances == nil {
 		bs.FBalances = map[string]uint64{}
 	}
+	if bs.PendingCommits == nil {
+		bs.PendingCommits = map[string]uint32{}
+	}
 }
 
-func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock) error {
+func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock,
+	eBlocks []interfaces.IEntryBlock) error {
 	bs.Init()
 	err := bs.ProcessDBlock(dBlock)
 	if err != nil {
@@ -46,6 +54,10 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, fB
 		return err
 	}
 	err = bs.ProcessECBlock(ecBlock)
+	if err != nil {
+		return err
+	}
+	err = bs.ProcessEBlocks(eBlocks)
 	if err != nil {
 		return err
 	}
@@ -103,6 +115,7 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 				return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			}
 			bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
+			bs.PendingCommits[e.GetEntryHash().String()] = bs.DBlockHeight
 			break
 		case entryCreditBlock.ECIDChainCommit:
 			e := v.(*entryCreditBlock.CommitChain)
@@ -110,10 +123,44 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 				return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			}
 			bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
+			bs.PendingCommits[e.GetEntryHash().String()] = bs.DBlockHeight
 			break
 		default:
 			break
 		}
+	}
+	return nil
+}
+
+func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock) error {
+	bs.Init()
+	for _, v := range eBlocks {
+		err := bs.ProcessEBlock(v)
+		if err != nil {
+			return err
+		}
+	}
+	return bs.ClearExpiredCommits()
+}
+
+func (bs *BlockchainState) ClearExpiredCommits() error {
+	for k, v := range bs.PendingCommits {
+		if v+EBLOCKEXPIRATION > bs.DBlockHeight {
+			delete(bs.PendingCommits, k)
+		}
+	}
+	return nil
+}
+
+func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock) error {
+	bs.Init()
+	eHashes := eBlock.GetEntryHashes()
+	for _, v := range eHashes {
+		_, ok := bs.PendingCommits[v.String()]
+		if ok == false {
+			return fmt.Errorf("Non-committed entry found in an eBlock - %v", v.String())
+		}
+		delete(bs.PendingCommits, v.String())
 	}
 	return nil
 }
