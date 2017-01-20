@@ -199,7 +199,7 @@ emptyLoop:
 		}
 		s.UpdateState()
 	}
-	fmt.Println(s.FactomNodeName)
+
 	return
 }
 
