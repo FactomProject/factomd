@@ -813,6 +813,8 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.starttime = time.Now()
+
+	go s.DBStates.Catchup()
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
