@@ -54,9 +54,6 @@ type State struct {
 	ExportData        bool
 	ExportDataSubpath string
 
-	DBStatesSent            []*interfaces.DBStateSent
-	DBStatesReceivedBase    int
-	DBStatesReceived        []*messages.DBStateMsg
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -239,7 +236,13 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
+	DBStateMutex         sync.Mutex
+	DBStatesSent         []*interfaces.DBStateSent
+	DBStatesReceivedBase int
+	DBStatesReceived     []*messages.DBStateMsg
+
 	DBStates *DBStateList // Holds all DBStates not yet processed.
+	JustDoIt bool
 
 	// Having all the state for a particular directory block stored in one structure
 	// makes creating the next state, updating the various states, and setting up the next

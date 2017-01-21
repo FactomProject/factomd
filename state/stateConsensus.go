@@ -127,12 +127,15 @@ func (s *State) Process() (progress bool) {
 	/** Process all the DBStates  that might be pending **/
 
 	for room() {
+		s.DBStateMutex.Lock()
 		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
 		if ix < 0 || ix >= len(s.DBStatesReceived) {
+			s.DBStateMutex.Unlock()
 			break
 		}
 		msg := s.DBStatesReceived[ix]
 		if msg == nil {
+			s.DBStateMutex.Unlock()
 			break
 		}
 		process <- msg
@@ -565,7 +568,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
 	if s.DBStates.LastEnd < int(dbheight) {
-		s.DBStates.Catchup(true)
+		s.JustDoIt = true
 	}
 	if s.DBStates.LastBegin < int(dbheight)+1 {
 		s.DBStates.LastBegin = int(dbheight)
