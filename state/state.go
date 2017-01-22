@@ -257,6 +257,7 @@ type State struct {
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
 	HighestKnown    uint32
+	HighestSaved    uint32
 	AuthorityDeltas string
 
 	// Factom State

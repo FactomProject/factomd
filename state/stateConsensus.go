@@ -140,6 +140,7 @@ func (s *State) Process() (progress bool) {
 		}
 		process <- msg
 		s.DBStatesReceived[ix] = nil
+		s.DBStateMutex.Unlock()
 	}
 
 	s.ReviewHolding()
@@ -528,6 +529,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 	}
 
+	if msg.IsLocal() && s.HighestSaved > dbheight {
+		s.HighestSaved = dbheight
+	}
+
 	dbstate := s.AddDBState(false,
 		dbstatemsg.DirectoryBlock,
 		dbstatemsg.AdminBlock,
@@ -566,14 +571,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
-	if s.DBStates.LastEnd < int(dbheight) {
-		s.JustDoIt = true
-	}
-	if s.DBStates.LastBegin < int(dbheight)+1 {
-		s.DBStates.LastBegin = int(dbheight)
-	}
-	s.DBStates.TimeToAsk = nil
+
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {

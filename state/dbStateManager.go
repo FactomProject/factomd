@@ -57,7 +57,6 @@ type DBStateList struct {
 
 	LastEnd   int
 	LastBegin int
-	TimeToAsk interfaces.Timestamp
 
 	State    *State
 	Base     uint32
@@ -122,9 +121,6 @@ func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
 	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
 	ts := "-nil-"
-	if list.TimeToAsk != nil {
-		ts = list.TimeToAsk.String()
-	}
 	str = fmt.Sprintf("dddd %s  timestamp = %s\n", str, ts)
 	str = fmt.Sprintf("dddd %s  Complete  = %d\n", str, list.Complete)
 	rec := "M"
@@ -219,10 +215,13 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
-				return ht
+				break
 			}
 		}
 	}
+
+	list.State.HighestSaved = ht
+
 	return ht
 }
 
@@ -594,6 +593,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	if d.Saved {
+		if dbheight > int(list.State.HighestSaved) {
+			list.State.HighestSaved = uint32(dbheight)
+		}
 		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
 			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
@@ -670,6 +672,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
 		list.State.DB.SaveDirectoryBlockHead(head)
+	}
+
+	if dbheight > int(list.State.HighestSaved) {
+		list.State.HighestSaved = uint32(dbheight)
 	}
 
 	progress = true

@@ -1,47 +1,47 @@
 package state
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/messages"
 	"time"
 )
 
+var _ = fmt.Print
+
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
 func (list *DBStateList) Catchup() {
 
-	list.State.DBStateMutex.Lock()
+	timeToAsk := list.State.GetTimestamp()
 
+	list.State.DBStateMutex.Lock()
 theMainLoop:
 	for {
 
+		// So we yeild so we don't lock up the system.
 		list.State.DBStateMutex.Unlock()
-
-		// Let some others work on stuff.
-		time.Sleep(50 * time.Millisecond)
-
+		time.Sleep(100 * time.Millisecond)
 		list.State.DBStateMutex.Lock()
 
+		// While ignoring, don't ask for dbstates
+		if list.State.IgnoreMissing {
+			continue theMainLoop
+		}
+
 		// We only check if we need updates once every so often.
-
 		if len(list.State.inMsgQueue) > 1000 {
-			// If we are behind the curve in processing messages, dump all the dbstates from holding.
-			for k := range list.State.Holding {
-				if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
-					delete(list.State.Holding, k)
-				}
-			}
-
 			continue theMainLoop
 		}
 
 		now := list.State.GetTimestamp()
 
-		hs := int(list.State.GetHighestSavedBlk())
-		hk := int(list.State.GetHighestKnownBlock())
+		hs := int(list.State.HighestSaved)
+		hk := int(list.State.HighestKnown)
+
 		begin := hs
 		end := hk
 
 		ask := func() {
-			if list.TimeToAsk != nil && hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
+			if timeToAsk != nil && hk-hs > 4 && now.GetTime().After(timeToAsk.GetTime()) {
 
 				// Don't ask for more than we already have.
 				for i, v := range list.State.DBStatesReceived {
@@ -65,7 +65,7 @@ theMainLoop:
 					//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 					msg.SendOut(list.State, msg)
 					list.State.DBStateAskCnt++
-					list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
+					timeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
 					list.LastBegin = begin
 					list.LastEnd = end + 3
 				}
@@ -84,21 +84,21 @@ theMainLoop:
 
 		// return if we are caught up, and clear our timer
 		if end-begin <= 1 {
-			list.TimeToAsk = nil
+			timeToAsk = nil
 			continue theMainLoop
 		}
 
 		// First Ask.  Because the timer is nil!
-		if list.TimeToAsk == nil {
+		if timeToAsk == nil {
 			// Okay, have nothing in play, so wait a bit just in case.
-			list.TimeToAsk = list.State.GetTimestamp()
-			list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 5)
+			timeToAsk = list.State.GetTimestamp()
+			timeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 5)
 			list.LastBegin = begin
 			list.LastEnd = end
 			continue theMainLoop
 		}
 
-		if list.TimeToAsk.GetTime().Before(now.GetTime()) {
+		if timeToAsk.GetTime().Before(now.GetTime()) {
 			ask()
 			continue theMainLoop
 		}
