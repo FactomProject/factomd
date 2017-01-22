@@ -571,7 +571,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {

@@ -256,8 +256,9 @@ type State struct {
 
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
-	HighestKnown    uint32
-	HighestSaved    uint32
+	HighestKnown    uint32 // Highest block height we believe exists
+	HighestSaved    uint32 // Highest block height on disk that we have validated
+	HighestDisk     uint32 // Highest block height saved to disk
 	AuthorityDeltas string
 
 	// Factom State

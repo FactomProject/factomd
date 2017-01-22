@@ -36,6 +36,8 @@ func LoadDatabase(s *State) {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
 
+	s.HighestDisk = blkCnt
+
 	t := time.Now()
 
 	//msg, err := s.LoadDBState(blkCnt)
