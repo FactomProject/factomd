@@ -23,7 +23,7 @@ func (bs *BalanceLedger) Init() {
 	}
 }
 
-func (bs *BalanceLedger) MarshalBinary() ([]byte, error) {
+func (bs *BalanceLedger) MarshalBinaryData() ([]byte, error) {
 	b := bytes.NewBuffer(nil)
 	enc := gob.NewEncoder(b)
 	err := enc.Encode(bs)

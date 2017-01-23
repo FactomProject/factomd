@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const EBLOCKEXPIRATION uint32 = 1000000 //TODO: set properly
+const EBLOCKEXPIRATION uint32 = 18 //TODO: set properly
 
 type BlockchainState struct {
 	DBlockHead   interfaces.IHash
@@ -185,7 +185,12 @@ func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock) error {
 }
 
 func (bs *BlockchainState) ProcessEntryHash(v interfaces.IHash) error {
+	return nil
+
 	bs.Init()
+	if v.IsMinuteMarker() {
+		return nil
+	}
 	_, ok := bs.PendingCommits[v.String()]
 	if ok == false {
 		return fmt.Errorf("Non-committed entry found in an eBlock - %v", v.String())
@@ -195,7 +200,7 @@ func (bs *BlockchainState) ProcessEntryHash(v interfaces.IHash) error {
 }
 
 func (bs *BlockchainState) Clone() (*BlockchainState, error) {
-	data, err := bs.MarshalBinary()
+	data, err := bs.MarshalBinaryData()
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +212,7 @@ func (bs *BlockchainState) Clone() (*BlockchainState, error) {
 	return b, nil
 }
 
-func (bs *BlockchainState) MarshalBinary() ([]byte, error) {
+func (bs *BlockchainState) MarshalBinaryData() ([]byte, error) {
 	b := bytes.NewBuffer(nil)
 	enc := gob.NewEncoder(b)
 	err := enc.Encode(bs)
