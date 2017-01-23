@@ -164,7 +164,7 @@ func (list *DBStateList) Catchup() {
 	for {
 		// So we yeild so we don't lock up the system.
 		state.DBStateMutex.Unlock()
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		state.DBStateMutex.Lock()
 
 		Step(list.State, histories)

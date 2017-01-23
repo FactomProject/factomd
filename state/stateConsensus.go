@@ -113,8 +113,8 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
-	process := make(chan interfaces.IMsg, 10000)
-	room := func() bool { return len(process) < 9995 }
+	process := make(chan interfaces.IMsg, 100000)
+	room := func() bool { return len(process) < 99950 }
 
 	var vm *VM
 	if s.Leader {
@@ -527,10 +527,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Reset to previous state before applying at ht %d", dbheight))
 			pdbstate.SaveStruct.TrimBack(s, dbs)
 		}
-	}
-
-	if msg.IsLocal() && s.HighestSaved > dbheight {
-		s.HighestSaved = dbheight
 	}
 
 	dbstate := s.AddDBState(false,

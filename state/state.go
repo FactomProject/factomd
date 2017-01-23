@@ -242,7 +242,6 @@ type State struct {
 	DBStatesReceived     []*messages.DBStateMsg
 
 	DBStates *DBStateList // Holds all DBStates not yet processed.
-	JustDoIt bool
 
 	// Having all the state for a particular directory block stored in one structure
 	// makes creating the next state, updating the various states, and setting up the next
