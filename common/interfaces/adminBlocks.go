@@ -31,7 +31,7 @@ type IAdminBlock interface {
 	AddDBSig(serverIdentity IHash, sig IFullSignature) error
 	AddFedServer(IHash) error
 	AddFederatedServerBitcoinAnchorKey(IHash, byte, byte, *[20]byte) error
-	AddFederatedServerSigningKey(IHash, *[32]byte) error
+	AddFederatedServerSigningKey(IHash, [32]byte) error
 	AddFirstABEntry(e IABEntry) error
 	AddMatryoshkaHash(IHash, IHash) error
 	AddServerFault(IABEntry) error

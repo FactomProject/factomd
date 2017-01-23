@@ -59,7 +59,7 @@ func TestNilFunctions(t *testing.T) {
 	if a.AddMatryoshkaHash(nil, nil) == nil {
 		t.Errorf("No error returned")
 	}
-	if a.AddFederatedServerSigningKey(nil, nil) == nil {
+	if a.AddFederatedServerSigningKey(nil, [32]byte{}) == nil {
 		t.Errorf("No error returned")
 	}
 	if a.AddFederatedServerBitcoinAnchorKey(nil, 0, 0, nil) == nil {
@@ -167,6 +167,57 @@ func TestRemoveFederatedServer(t *testing.T) {
 		}
 		if ab.ABEntries[i].(*RemoveFederatedServer).DBHeight != uint32(i+1) {
 			t.Errorf("Invalid DBHeight")
+		}
+	}
+}
+
+func TestAddMatryoshkaHash(t *testing.T) {
+	testVector := []*AddReplaceMatryoshkaHash{}
+	for i := 0; i < 1000; i++ {
+		se := new(AddReplaceMatryoshkaHash)
+		se.IdentityChainID = primitives.RandomHash()
+		se.MHash = primitives.RandomHash()
+		testVector = append(testVector, se)
+	}
+	ab := new(AdminBlock)
+	for _, v := range testVector {
+		err := ab.AddMatryoshkaHash(v.IdentityChainID, v.MHash)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	for i := range testVector {
+		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+			t.Errorf("Invalid IdentityChainID")
+		}
+		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).MHash.String() != testVector[i].MHash.String() {
+			t.Errorf("Invalid MHash")
+		}
+	}
+}
+
+func TestAddFederatedServerSigningKey(t *testing.T) {
+	testVector := []*AddFederatedServerSigningKey{}
+	for i := 0; i < 1000; i++ {
+		se := new(AddFederatedServerSigningKey)
+		se.IdentityChainID = primitives.RandomHash()
+		priv := primitives.RandomPrivateKey()
+		se.PublicKey = *priv.(*primitives.PrivateKey).Pub
+		testVector = append(testVector, se)
+	}
+	ab := new(AdminBlock)
+	for _, v := range testVector {
+		err := ab.AddFederatedServerSigningKey(v.IdentityChainID, v.PublicKey.Fixed())
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	for i := range testVector {
+		if ab.ABEntries[i].(*AddFederatedServerSigningKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+			t.Errorf("Invalid IdentityChainID")
+		}
+		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerSigningKey).PublicKey[:], testVector[i].PublicKey[:]) == false {
+			t.Errorf("Invalid PublicKey")
 		}
 	}
 }

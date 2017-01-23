@@ -131,6 +131,10 @@ func (c *PublicKey) Copy() (*PublicKey, error) {
 	return h, nil
 }
 
+func (a PublicKey) Fixed() [ed25519.PublicKeySize]byte {
+	return a
+}
+
 func (a *PublicKey) IsSameAs(b *PublicKey) bool {
 	if b == nil {
 		return false

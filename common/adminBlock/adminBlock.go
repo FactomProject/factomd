@@ -143,13 +143,10 @@ func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash i
 	return c.AddEntry(entry)
 }
 
-func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey *[32]byte) error {
+func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey [32]byte) error {
 	c.SetHeaderIfNotPresent()
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
-	}
-	if publicKey == nil {
-		return fmt.Errorf("No publicKey provided")
 	}
 
 	p := new(primitives.PublicKey)
