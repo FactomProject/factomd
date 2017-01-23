@@ -159,12 +159,9 @@ func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHa
 	return nil
 }
 
-func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey *[20]byte) error {
+func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey [20]byte) error {
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
-	}
-	if ecdsaPublicKey == nil {
-		return fmt.Errorf("No ecdsaPublicKey provided")
 	}
 
 	b := new(primitives.ByteSlice20)

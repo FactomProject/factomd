@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
@@ -62,7 +63,7 @@ func TestNilFunctions(t *testing.T) {
 	if a.AddFederatedServerSigningKey(nil, [32]byte{}) == nil {
 		t.Errorf("No error returned")
 	}
-	if a.AddFederatedServerBitcoinAnchorKey(nil, 0, 0, nil) == nil {
+	if a.AddFederatedServerBitcoinAnchorKey(nil, 0, 0, [20]byte{}) == nil {
 		t.Errorf("No error returned")
 	}
 	if a.AddEntry(nil) == nil {
@@ -218,6 +219,43 @@ func TestAddFederatedServerSigningKey(t *testing.T) {
 		}
 		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerSigningKey).PublicKey[:], testVector[i].PublicKey[:]) == false {
 			t.Errorf("Invalid PublicKey")
+		}
+	}
+}
+
+func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
+	testVector := []*AddFederatedServerBitcoinAnchorKey{}
+	for i := 0; i < 1000; i++ {
+		se := new(AddFederatedServerBitcoinAnchorKey)
+		se.IdentityChainID = primitives.RandomHash()
+		b := [20]byte{}
+		copy(b[:], random.RandByteSliceOfLen(20))
+		testVector = append(testVector, se)
+	}
+	ab := new(AdminBlock)
+	for i, v := range testVector {
+		fixed, err := v.ECDSAPublicKey.GetFixed()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		err = ab.AddFederatedServerBitcoinAnchorKey(v.IdentityChainID, byte(i%256), byte(256-i%256), fixed)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	for i := range testVector {
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
+			t.Errorf("Invalid IdentityChainID")
+		}
+		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).ECDSAPublicKey[:], testVector[i].ECDSAPublicKey[:]) == false {
+			t.Errorf("Invalid ECDSAPublicKey")
+		}
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyPriority != byte(i%256) {
+			t.Errorf("Invalid KeyPriority")
+		}
+		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType != byte(256-i%256) {
+			t.Errorf("Invalid KeyType")
 		}
 	}
 }

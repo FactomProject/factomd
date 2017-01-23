@@ -30,7 +30,7 @@ type IAdminBlock interface {
 	AddAuditServer(IHash) error
 	AddDBSig(serverIdentity IHash, sig IFullSignature) error
 	AddFedServer(IHash) error
-	AddFederatedServerBitcoinAnchorKey(IHash, byte, byte, *[20]byte) error
+	AddFederatedServerBitcoinAnchorKey(IHash, byte, byte, [20]byte) error
 	AddFederatedServerSigningKey(IHash, [32]byte) error
 	AddFirstABEntry(e IABEntry) error
 	AddMatryoshkaHash(IHash, IHash) error
