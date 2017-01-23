@@ -50,6 +50,10 @@ func (c *AdminBlock) String() string {
 }
 
 func (c *AdminBlock) UpdateState(state interfaces.IState) error {
+	if state == nil {
+		return fmt.Errorf("No State provided")
+	}
+
 	dbSigs := []*DBSignatureEntry{}
 	for _, entry := range c.ABEntries {
 		if entry.Type() == constants.TYPE_DB_SIGNATURE {
@@ -73,82 +77,132 @@ func (c *AdminBlock) UpdateState(state interfaces.IState) error {
 }
 
 func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IFullSignature) error {
+	if serverIdentity == nil {
+		return fmt.Errorf("No serverIdentity provided")
+	}
+	if sig == nil {
+		return fmt.Errorf("No sig provided")
+	}
+
 	entry, err := NewDBSignatureEntry(serverIdentity, sig)
 	if err != nil {
 		return err
 	}
-	c.AddEntry(entry)
-	return nil
+	return c.AddEntry(entry)
 }
 
-func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) {
+func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) error {
+	if identityChainID == nil {
+		return fmt.Errorf("No identityChainID provided")
+	}
+
 	entry := NewAddFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.AddEntry(entry)
+	return c.AddEntry(entry)
 }
 
-func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) {
+func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) error {
+	if identityChainID == nil {
+		return fmt.Errorf("No identityChainID provided")
+	}
+
 	entry := NewAddAuditServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.AddEntry(entry)
+	return c.AddEntry(entry)
 }
 
-func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) {
+func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) error {
+	if identityChainID == nil {
+		return fmt.Errorf("No identityChainID provided")
+	}
+
 	entry := NewRemoveFederatedServer(identityChainID, c.Header.GetDBHeight()+1) // Goes in the NEXT block
-	c.AddEntry(entry)
+	return c.AddEntry(entry)
 }
 
-func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) {
+func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.IHash) error {
+	if identityChainID == nil {
+		return fmt.Errorf("No identityChainID provided")
+	}
+	if mHash == nil {
+		return fmt.Errorf("No mHash provided")
+	}
+
 	entry := NewAddReplaceMatryoshkaHash(identityChainID, mHash)
-	c.AddEntry(entry)
+	return c.AddEntry(entry)
 }
 
 func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey *[32]byte) error {
+	if identityChainID == nil {
+		return fmt.Errorf("No identityChainID provided")
+	}
+	if publicKey == nil {
+		return fmt.Errorf("No publicKey provided")
+	}
+
 	p := new(primitives.PublicKey)
 	err := p.UnmarshalBinary(publicKey[:])
 	if err != nil {
 		return err
 	}
 	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p, c.Header.GetDBHeight()+1)
-	c.AddEntry(entry)
+	return c.AddEntry(entry)
 	return nil
 }
 
 func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey *[20]byte) error {
+	if identityChainID == nil {
+		return fmt.Errorf("No identityChainID provided")
+	}
+	if ecdsaPublicKey == nil {
+		return fmt.Errorf("No ecdsaPublicKey provided")
+	}
+
 	b := new(primitives.ByteSlice20)
 	err := b.UnmarshalBinary(ecdsaPublicKey[:])
 	if err != nil {
 		return err
 	} else {
 		entry := NewAddFederatedServerBitcoinAnchorKey(identityChainID, keyPriority, keyType, *b)
-		c.AddEntry(entry)
+		return c.AddEntry(entry)
 		return nil
 	}
+	return nil
 }
 
-func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) {
+func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) error {
+	if entry == nil {
+		return fmt.Errorf("No entry provided")
+	}
+
 	for i := range c.ABEntries {
 		if c.ABEntries[i].Type() == constants.TYPE_SERVER_FAULT {
 			c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{entry}, c.ABEntries[i:]...)...)
-			return
+			return nil
 		}
 	}
 	c.ABEntries = append(c.ABEntries, entry)
+	return nil
 }
 
-func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) {
+func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) error {
+	if serverFault == nil {
+		return fmt.Errorf("No serverFault provided")
+	}
+
 	sf, ok := serverFault.(*ServerFault)
 	if ok == false {
-		return
+		return fmt.Errorf("Entry is not serverFault")
 	}
 
 	for i := range c.ABEntries {
 		if c.ABEntries[i].Type() == sf.Type() {
 			if c.ABEntries[i].(*ServerFault).Compare(sf) > 0 {
 				c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{sf}, c.ABEntries[i:]...)...)
-				return
+				return nil
 			}
 		}
 	}
 	c.ABEntries = append(c.ABEntries, sf)
+	return nil
 }
 
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
