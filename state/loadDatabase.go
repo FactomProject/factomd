@@ -58,9 +58,9 @@ func LoadDatabase(s *State) {
 			if msg != nil {
 				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 500 {
-					for len(s.InMsgQueue()) > 100 {
-						time.Sleep(10 * time.Millisecond)
+				if len(s.InMsgQueue()) > 8000 {
+					for len(s.InMsgQueue()) > 1000 {
+						time.Sleep(1 * time.Millisecond)
 					}
 				}
 				s.EntryDBHeightComplete = uint32(i)
