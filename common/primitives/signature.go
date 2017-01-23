@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 /*
@@ -25,6 +26,14 @@ type Signature struct {
 
 var _ interfaces.BinaryMarshallable = (*Signature)(nil)
 var _ interfaces.IFullSignature = (*Signature)(nil)
+
+func RandomSignatureSet() ([]byte, interfaces.Signer, interfaces.IFullSignature) {
+	priv := RandomPrivateKey()
+	data := random.RandNonEmptyByteSlice()
+	sig := priv.Sign(data)
+
+	return data, priv, sig
+}
 
 func (a *Signature) IsSameAs(b interfaces.IFullSignature) bool {
 	if b == nil {

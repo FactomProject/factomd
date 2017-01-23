@@ -30,7 +30,16 @@ var _ interfaces.Printable = (*AdminBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*AdminBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*AdminBlock)(nil)
 
+func (c *AdminBlock) SetHeaderIfNotPresent() {
+	if c.Header == nil {
+		h := new(ABlockHeader)
+		h.PrevBackRefHash = primitives.NewZeroHash()
+		c.Header = h
+	}
+}
+
 func (c *AdminBlock) String() string {
+	c.SetHeaderIfNotPresent()
 	var out primitives.Buffer
 
 	fh, _ := c.BackReferenceHash()
@@ -50,6 +59,7 @@ func (c *AdminBlock) String() string {
 }
 
 func (c *AdminBlock) UpdateState(state interfaces.IState) error {
+	c.SetHeaderIfNotPresent()
 	if state == nil {
 		return fmt.Errorf("No State provided")
 	}
@@ -92,6 +102,7 @@ func (c *AdminBlock) AddDBSig(serverIdentity interfaces.IHash, sig interfaces.IF
 }
 
 func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) error {
+	c.SetHeaderIfNotPresent()
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
 	}
@@ -101,6 +112,7 @@ func (c *AdminBlock) AddFedServer(identityChainID interfaces.IHash) error {
 }
 
 func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) error {
+	c.SetHeaderIfNotPresent()
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
 	}
@@ -110,6 +122,7 @@ func (c *AdminBlock) AddAuditServer(identityChainID interfaces.IHash) error {
 }
 
 func (c *AdminBlock) RemoveFederatedServer(identityChainID interfaces.IHash) error {
+	c.SetHeaderIfNotPresent()
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
 	}
@@ -131,6 +144,7 @@ func (c *AdminBlock) AddMatryoshkaHash(identityChainID interfaces.IHash, mHash i
 }
 
 func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHash, publicKey *[32]byte) error {
+	c.SetHeaderIfNotPresent()
 	if identityChainID == nil {
 		return fmt.Errorf("No identityChainID provided")
 	}
@@ -206,6 +220,7 @@ func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) error {
 }
 
 func (c *AdminBlock) GetHeader() interfaces.IABlockHeader {
+	c.SetHeaderIfNotPresent()
 	return c.Header
 }
 
@@ -218,6 +233,7 @@ func (c *AdminBlock) GetABEntries() []interfaces.IABEntry {
 }
 
 func (c *AdminBlock) GetDBHeight() uint32 {
+	c.SetHeaderIfNotPresent()
 	return c.Header.GetDBHeight()
 }
 
@@ -230,10 +246,12 @@ func (c *AdminBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (c *AdminBlock) GetDatabaseHeight() uint32 {
+	c.SetHeaderIfNotPresent()
 	return c.Header.GetDBHeight()
 }
 
 func (c *AdminBlock) GetChainID() interfaces.IHash {
+	c.SetHeaderIfNotPresent()
 	return c.Header.GetAdminChainID()
 }
 
@@ -292,6 +310,7 @@ func (b *AdminBlock) AddFirstABEntry(e interfaces.IABEntry) (err error) {
 
 // Write out the AdminBlock to binary.
 func (b *AdminBlock) MarshalBinary() ([]byte, error) {
+	b.SetHeaderIfNotPresent()
 	// Marshal all the entries into their own thing (need the size)
 	var buf2 primitives.Buffer
 	for _, v := range b.ABEntries {
@@ -388,6 +407,7 @@ func (b *AdminBlock) UnmarshalBinary(data []byte) (err error) {
 
 // Read in the binary into the Admin block.
 func (b *AdminBlock) GetDBSignature() interfaces.IABEntry {
+	b.SetHeaderIfNotPresent()
 	for i := uint32(0); i < b.Header.GetMessageCount(); i++ {
 		if b.ABEntries[i].Type() == constants.TYPE_DB_SIGNATURE {
 			return b.ABEntries[i]
@@ -435,7 +455,7 @@ func (e AdminBlock) MarshalJSON() ([]byte, error) {
 
 func NewAdminBlock(prev interfaces.IAdminBlock) interfaces.IAdminBlock {
 	block := new(AdminBlock)
-	block.Header = new(ABlockHeader)
+	block.SetHeaderIfNotPresent()
 	if prev != nil {
 		block.Header.SetPrevBackRefHash(primitives.NewZeroHash())
 		block.Header.SetDBHeight(prev.GetDBHeight() + 1)

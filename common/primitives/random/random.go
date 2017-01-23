@@ -62,6 +62,16 @@ func RandByteSlice() []byte {
 	return answer
 }
 
+func RandNonEmptyByteSlice() []byte {
+	l := RandInt()%63 + 1
+	answer := make([]byte, l)
+	_, err := rand.Read(answer)
+	if err != nil {
+		return nil
+	}
+	return answer
+}
+
 func RandByteSliceOfLen(l int) []byte {
 	if l <= 0 {
 		return nil

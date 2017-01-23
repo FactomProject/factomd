@@ -32,6 +32,145 @@ func TestUnmarshalNilAdminBlock(t *testing.T) {
 	}
 }
 
+func TestNilFunctions(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := new(AdminBlock)
+
+	if a.UpdateState(nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddDBSig(nil, nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddFedServer(nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddAuditServer(nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.RemoveFederatedServer(nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddMatryoshkaHash(nil, nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddFederatedServerSigningKey(nil, nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddFederatedServerBitcoinAnchorKey(nil, 0, 0, nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddEntry(nil) == nil {
+		t.Errorf("No error returned")
+	}
+	if a.AddServerFault(nil) == nil {
+		t.Errorf("No error returned")
+	}
+}
+
+func TestAddDBSig(t *testing.T) {
+	testVector := []*DBSignatureEntry{}
+	for i := 0; i < 1000; i++ {
+		se := new(DBSignatureEntry)
+		se.IdentityAdminChainID = primitives.RandomHash()
+		_, _, sig := primitives.RandomSignatureSet()
+		se.PrevDBSig = *sig.(*primitives.Signature)
+		testVector = append(testVector, se)
+	}
+	ab := new(AdminBlock)
+	for _, v := range testVector {
+		err := ab.AddDBSig(v.IdentityAdminChainID, &v.PrevDBSig)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	for i := range testVector {
+		if ab.ABEntries[i].(*DBSignatureEntry).IdentityAdminChainID.String() != testVector[i].IdentityAdminChainID.String() {
+			t.Errorf("Invalid IdentityAdminChainID")
+		}
+		if ab.ABEntries[i].(*DBSignatureEntry).PrevDBSig.IsSameAs(&testVector[i].PrevDBSig) == false {
+			t.Errorf("Invalid PrevDBSig")
+		}
+	}
+}
+
+func TestAddFedServer(t *testing.T) {
+	testVector := []interfaces.IHash{}
+	for i := 0; i < 1000; i++ {
+		testVector = append(testVector, primitives.RandomHash())
+	}
+	ab := new(AdminBlock)
+	ab.SetHeaderIfNotPresent()
+	for i, v := range testVector {
+		ab.Header.SetDBHeight(uint32(i))
+		err := ab.AddFedServer(v)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	for i := range testVector {
+		if ab.ABEntries[i].(*AddFederatedServer).IdentityChainID.String() != testVector[i].String() {
+			t.Errorf("Invalid IdentityChainID")
+		}
+		if ab.ABEntries[i].(*AddFederatedServer).DBHeight != uint32(i+1) {
+			t.Errorf("Invalid DBHeight")
+		}
+	}
+}
+
+func TestAddAuditServer(t *testing.T) {
+	testVector := []interfaces.IHash{}
+	for i := 0; i < 1000; i++ {
+		testVector = append(testVector, primitives.RandomHash())
+	}
+	ab := new(AdminBlock)
+	ab.SetHeaderIfNotPresent()
+	for i, v := range testVector {
+		ab.Header.SetDBHeight(uint32(i))
+		err := ab.AddAuditServer(v)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	for i := range testVector {
+		if ab.ABEntries[i].(*AddAuditServer).IdentityChainID.String() != testVector[i].String() {
+			t.Errorf("Invalid IdentityChainID")
+		}
+		if ab.ABEntries[i].(*AddAuditServer).DBHeight != uint32(i+1) {
+			t.Errorf("Invalid DBHeight")
+		}
+	}
+}
+
+func TestRemoveFederatedServer(t *testing.T) {
+	testVector := []interfaces.IHash{}
+	for i := 0; i < 1000; i++ {
+		testVector = append(testVector, primitives.RandomHash())
+	}
+	ab := new(AdminBlock)
+	ab.SetHeaderIfNotPresent()
+	for i, v := range testVector {
+		ab.Header.SetDBHeight(uint32(i))
+		err := ab.RemoveFederatedServer(v)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+	for i := range testVector {
+		if ab.ABEntries[i].(*RemoveFederatedServer).IdentityChainID.String() != testVector[i].String() {
+			t.Errorf("Invalid IdentityChainID")
+		}
+		if ab.ABEntries[i].(*RemoveFederatedServer).DBHeight != uint32(i+1) {
+			t.Errorf("Invalid DBHeight")
+		}
+	}
+}
+
 func TestAdminBlockPreviousHash(t *testing.T) {
 	block := new(AdminBlock)
 	data, _ := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
