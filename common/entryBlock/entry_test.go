@@ -109,6 +109,17 @@ func TestEntry(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error:%v", err)
 	}
+
+	entry3, err := UnmarshalEntry(bytes1)
+	if err != nil {
+		t.Errorf("Error:%v", err)
+	}
+	bytes3, _ := entry3.MarshalBinary()
+	t.Logf("bytes3:%v\n", bytes3)
+
+	if bytes.Compare(bytes1, bytes3) != 0 {
+		t.Errorf("Invalid output")
+	}
 }
 
 func TestEntryMisc(t *testing.T) {
@@ -128,6 +139,26 @@ func TestEntryMisc(t *testing.T) {
 	}
 	if NewChainID(e).String() != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
 		t.Fail()
+	}
+
+	if e.GetDatabaseHeight() != 0 {
+		t.Errorf("Returned wrong height")
+	}
+
+	if e.GetWeldHash().String() != "c255e5da4dd6202448db0ed8e938d0c6a2a0f370c527c27f96efb602935e9c9f" {
+		t.Errorf("Returned wrong WeldHash - %v", e.GetWeldHash().String())
+	}
+
+	if e.GetChainID().String() != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
+		t.Errorf("Returned wrong ChainID - %v", e.GetChainID().String())
+	}
+
+	if e.DatabasePrimaryIndex().String() != "24674e6bc3094eb773297de955ee095a05830e431da13a37382dcdc89d73c7d7" {
+		t.Errorf("Returned wrong DatabasePrimaryIndex - %v", e.DatabasePrimaryIndex().String())
+	}
+
+	if e.DatabaseSecondaryIndex() != nil {
+		t.Errorf("Returned wrong DatabaseSecondaryIndex")
 	}
 }
 

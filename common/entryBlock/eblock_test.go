@@ -88,7 +88,7 @@ func TestEntryBlockMisc(t *testing.T) {
 		t.Error(err)
 	}
 	if hash.String() != "1ec4c9a52ede96e57f855efc8cb1475e4a449773bad7a5b9a8b9abf4c683a1da" {
-		t.Fail()
+		t.Errorf("Returned wrong Hash")
 	}
 	hash, err = e.KeyMR()
 
@@ -96,7 +96,7 @@ func TestEntryBlockMisc(t *testing.T) {
 		t.Error(err)
 	}
 	if hash.String() != "a9fc0b656430d8bf71d180760b0b352c08f45a55a8cf157383613484587b4d21" {
-		t.Fail()
+		t.Errorf("Returned wrong KeyMR")
 	}
 }
 
