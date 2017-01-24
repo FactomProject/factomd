@@ -16,6 +16,28 @@ func TestIncreaseServerCountGetHash(t *testing.T) {
 	}
 }
 
+func TestIncreaseServerCountTypeIDCheck(t *testing.T) {
+	a := new(IncreaseServerCount)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(IncreaseServerCount)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilIncreaseServerCount(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

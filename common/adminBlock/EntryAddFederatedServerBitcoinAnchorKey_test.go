@@ -18,6 +18,28 @@ func TestAddFederatedServerBitcoinAnchorKeyGetHash(t *testing.T) {
 	}
 }
 
+func TestAddFederatedServerBitcoinAnchorKeyTypeIDCheck(t *testing.T) {
+	a := new(AddFederatedServerBitcoinAnchorKey)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(AddFederatedServerBitcoinAnchorKey)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

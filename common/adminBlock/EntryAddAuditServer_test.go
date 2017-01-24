@@ -17,6 +17,28 @@ func TestAddAuditServerGetHash(t *testing.T) {
 	}
 }
 
+func TestAddAuditServerTypeIDCheck(t *testing.T) {
+	a := new(AddAuditServer)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(AddAuditServer)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilAddAuditServer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

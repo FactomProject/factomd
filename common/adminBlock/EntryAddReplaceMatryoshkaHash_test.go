@@ -17,6 +17,28 @@ func TestAddReplaceMatryoshkaHashGetHash(t *testing.T) {
 	}
 }
 
+func TestAddReplaceMatryoshkaHashTypeIDCheck(t *testing.T) {
+	a := new(AddReplaceMatryoshkaHash)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(AddReplaceMatryoshkaHash)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilAddReplaceMatryoshkaHash(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
