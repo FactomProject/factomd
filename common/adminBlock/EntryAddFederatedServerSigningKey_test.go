@@ -8,6 +8,15 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestAddFederatedServerSigningKeyGetHash(t *testing.T) {
+	a := new(AddFederatedServerSigningKey)
+	h := a.Hash()
+	expected := "45147ca74abd1327e991c6e313470b1e6e3355f0e53418565ac67ab2553c25bf"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
 func TestUnmarshalNilAddFederatedServerSigningKey(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

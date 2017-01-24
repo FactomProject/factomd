@@ -14,6 +14,15 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestAdminBlockGetHash(t *testing.T) {
+	a := new(AdminBlock)
+	h := a.GetHash()
+	expected := "0a9aa1efbe7d0e8d9c1d460d1c78e3e7b50f984e65a3f3ee7b73100a94189dbf"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
 func TestUnmarshalNilAdminBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

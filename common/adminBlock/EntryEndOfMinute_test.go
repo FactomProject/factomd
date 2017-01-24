@@ -7,6 +7,15 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 )
 
+func TestEndOfMinuteEntryGetHash(t *testing.T) {
+	a := new(EndOfMinuteEntry)
+	h := a.Hash()
+	expected := "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
 func TestUnmarshalNilEndOfMinuteEntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

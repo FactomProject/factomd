@@ -7,6 +7,15 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 )
 
+func TestIncreaseServerCountGetHash(t *testing.T) {
+	a := new(IncreaseServerCount)
+	h := a.Hash()
+	expected := "c0ba8a33ac67f44abff5984dfbb6f56c46b880ac2b86e1f23e7fa9c402c53ae7"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
 func TestUnmarshalNilIncreaseServerCount(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

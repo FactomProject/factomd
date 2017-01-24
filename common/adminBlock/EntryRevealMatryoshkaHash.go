@@ -17,6 +17,15 @@ var _ interfaces.Printable = (*RevealMatryoshkaHash)(nil)
 var _ interfaces.BinaryMarshallable = (*RevealMatryoshkaHash)(nil)
 var _ interfaces.IABEntry = (*RevealMatryoshkaHash)(nil)
 
+func (e *RevealMatryoshkaHash) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+	if e.MHash == nil {
+		e.MHash = primitives.NewZeroHash()
+	}
+}
+
 func (m *RevealMatryoshkaHash) Type() byte {
 	return constants.TYPE_REVEAL_MATRYOSHKA
 }
@@ -29,10 +38,12 @@ func NewRevealMatryoshkaHash(identityChainID interfaces.IHash, mHash interfaces.
 }
 
 func (c *RevealMatryoshkaHash) UpdateState(state interfaces.IState) error {
+	c.Init()
 	return nil
 }
 
 func (e *RevealMatryoshkaHash) MarshalBinary() (data []byte, err error) {
+	e.Init()
 	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
@@ -82,6 +93,7 @@ func (e *RevealMatryoshkaHash) JSONString() (string, error) {
 }
 
 func (e *RevealMatryoshkaHash) String() string {
+	e.Init()
 	str := fmt.Sprintf("    E: %35s -- %17s %8x %12s %x",
 		"RevealMatryoshkaHash",
 		"IdentityChainID", e.IdentityChainID.Bytes()[3:5],

@@ -8,6 +8,15 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestAddAuditServerGetHash(t *testing.T) {
+	a := new(AddAuditServer)
+	h := a.Hash()
+	expected := "66ebadcc066975ff37a185310398477d898431014074d1c1f2c84b8076e98f02"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
 func TestUnmarshalNilAddAuditServer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

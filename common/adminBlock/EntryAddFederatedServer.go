@@ -18,7 +18,14 @@ type AddFederatedServer struct {
 var _ interfaces.IABEntry = (*AddFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServer)(nil)
 
+func (e *AddFederatedServer) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+}
+
 func (e *AddFederatedServer) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d",
 		"AddFedServer",
@@ -29,6 +36,7 @@ func (e *AddFederatedServer) String() string {
 }
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) error {
+	c.Init()
 	state.AddFedServer(c.DBHeight, c.IdentityChainID)
 	authorityDeltaString := fmt.Sprintf("AdminBlock (AddFedMsg DBHt: %d) \n ^ %s", c.DBHeight, c.IdentityChainID.String()[5:10])
 	state.AddStatus(authorityDeltaString)
@@ -39,6 +47,9 @@ func (c *AddFederatedServer) UpdateState(state interfaces.IState) error {
 
 // Create a new DB Signature Entry
 func NewAddFederatedServer(identityChainID interfaces.IHash, dbheight uint32) (e *AddFederatedServer) {
+	if identityChainID == nil {
+		return nil
+	}
 	e = new(AddFederatedServer)
 	e.DBHeight = dbheight
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
@@ -50,6 +61,7 @@ func (e *AddFederatedServer) Type() byte {
 }
 
 func (e *AddFederatedServer) MarshalBinary() (data []byte, err error) {
+	e.Init()
 	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})

@@ -18,7 +18,14 @@ type AddAuditServer struct {
 var _ interfaces.IABEntry = (*AddAuditServer)(nil)
 var _ interfaces.BinaryMarshallable = (*AddAuditServer)(nil)
 
+func (e *AddAuditServer) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+}
+
 func (e *AddAuditServer) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8d",
 		"AddAuditServer",
@@ -28,6 +35,7 @@ func (e *AddAuditServer) String() string {
 }
 
 func (c *AddAuditServer) UpdateState(state interfaces.IState) error {
+	c.Init()
 	state.AddAuditServer(c.DBHeight, c.IdentityChainID)
 	authorityDeltaString := fmt.Sprintf("AdminBlock (AddAudMsg DBHt: %d) \n v %s", c.DBHeight, c.IdentityChainID.String()[5:10])
 	state.AddStatus(authorityDeltaString)
@@ -38,6 +46,9 @@ func (c *AddAuditServer) UpdateState(state interfaces.IState) error {
 
 // Create a new DB Signature Entry
 func NewAddAuditServer(identityChainID interfaces.IHash, dbheight uint32) (e *AddAuditServer) {
+	if identityChainID == nil {
+		return nil
+	}
 	e = new(AddAuditServer)
 	e.DBHeight = dbheight
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
@@ -49,6 +60,7 @@ func (e *AddAuditServer) Type() byte {
 }
 
 func (e *AddAuditServer) MarshalBinary() (data []byte, err error) {
+	e.Init()
 	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})

@@ -23,6 +23,15 @@ type PrivateKey struct {
 
 var _ interfaces.Signer = (*PrivateKey)(nil)
 
+func (e *PrivateKey) Init() {
+	if e.Key == nil {
+		e.Key = new([ed25519.PrivateKeySize]byte)
+	}
+	if e.Pub == nil {
+		e.Pub = new(PublicKey)
+	}
+}
+
 func RandomPrivateKey() interfaces.Signer {
 	return NewPrivateKeyFromHexBytes(random.RandByteSliceOfLen(ed25519.PrivateKeySize))
 }

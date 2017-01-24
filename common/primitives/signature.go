@@ -27,6 +27,25 @@ type Signature struct {
 var _ interfaces.BinaryMarshallable = (*Signature)(nil)
 var _ interfaces.IFullSignature = (*Signature)(nil)
 
+func (e *Signature) Init() {
+	if e.Pub == nil {
+		e.Pub = new(PublicKey)
+	}
+	if e.Sig == nil {
+		e.Sig = new(ByteSliceSig)
+	}
+}
+
+func (sig *Signature) GetPubBytes() []byte {
+	sig.Init()
+	return sig.Pub[:]
+}
+
+func (sig *Signature) GetSigBytes() []byte {
+	sig.Init()
+	return sig.Sig[:]
+}
+
 func RandomSignatureSet() ([]byte, interfaces.Signer, interfaces.IFullSignature) {
 	priv := RandomPrivateKey()
 	data := random.RandNonEmptyByteSlice()
@@ -61,6 +80,7 @@ func (a *Signature) IsSameAs(b interfaces.IFullSignature) bool {
 }
 
 func (sig *Signature) CustomMarshalText() ([]byte, error) {
+	sig.Init()
 	return ([]byte)(sig.Pub.String() + hex.EncodeToString(sig.Sig[:])), nil
 }
 
@@ -77,6 +97,7 @@ func (sig *Signature) SetPub(publicKey []byte) {
 }
 
 func (sig *Signature) GetKey() []byte {
+	sig.Init()
 	return sig.Pub[:]
 }
 
@@ -90,6 +111,7 @@ func (sig *Signature) SetSignature(signature []byte) error {
 }
 
 func (sig *Signature) GetSignature() *[ed25519.SignatureSize]byte {
+	sig.Init()
 	return (*[ed25519.SignatureSize]byte)(sig.Sig)
 }
 
@@ -97,6 +119,7 @@ func (s *Signature) MarshalBinary() ([]byte, error) {
 	if s.Sig == nil {
 		return nil, fmt.Errorf("Signature not complete")
 	}
+	s.Init()
 	return append(s.Pub[:], s.Sig[:]...), nil
 }
 
@@ -132,6 +155,7 @@ func (ds *DetachedSignature) String() string {
 
 // Verify returns true iff sig is a valid signature of msg by PublicKey.
 func (sig *Signature) Verify(msg []byte) bool {
+	sig.Init()
 	return ed25519.VerifyCanonical((*[32]byte)(sig.Pub), msg, (*[ed25519.SignatureSize]byte)(sig.Sig))
 }
 

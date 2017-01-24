@@ -8,6 +8,15 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestRemoveFederatedServerGetHash(t *testing.T) {
+	a := new(RemoveFederatedServer)
+	h := a.Hash()
+	expected := "c5ca81ef33f2130f84a6c939cd31ddd665a194ca7df2620cd8387a31e245e6c7"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
 func TestUnmarshalNilRemoveFederatedServer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

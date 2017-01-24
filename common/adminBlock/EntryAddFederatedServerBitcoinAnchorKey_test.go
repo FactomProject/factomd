@@ -9,6 +9,15 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestAddFederatedServerBitcoinAnchorKeyGetHash(t *testing.T) {
+	a := new(AddFederatedServerBitcoinAnchorKey)
+	h := a.Hash()
+	expected := "251e97a4cd360b93ae13a641ac39603e14f0e75325864c40d19718002be5a8f1"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
 func TestUnmarshalNilAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
