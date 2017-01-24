@@ -179,7 +179,13 @@ func (c *AdminBlock) AddEntry(entry interfaces.IABEntry) error {
 		return fmt.Errorf("No entry provided")
 	}
 
+	if entry.Type() == constants.TYPE_SERVER_FAULT {
+		//Server Faults needs to be ordered in a specific way
+		return c.AddServerFault(entry)
+	}
+
 	for i := range c.ABEntries {
+		//Server Faults are always the last entry in an AdminBlock
 		if c.ABEntries[i].Type() == constants.TYPE_SERVER_FAULT {
 			c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{entry}, c.ABEntries[i:]...)...)
 			return nil
@@ -200,7 +206,8 @@ func (c *AdminBlock) AddServerFault(serverFault interfaces.IABEntry) error {
 	}
 
 	for i := range c.ABEntries {
-		if c.ABEntries[i].Type() == sf.Type() {
+		if c.ABEntries[i].Type() == constants.TYPE_SERVER_FAULT {
+			//Server Faults need to follow a deterministic order
 			if c.ABEntries[i].(*ServerFault).Compare(sf) > 0 {
 				c.ABEntries = append(c.ABEntries[:i], append([]interfaces.IABEntry{sf}, c.ABEntries[i:]...)...)
 				return nil
