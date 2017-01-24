@@ -193,6 +193,9 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}()
 	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Entry type")
+	}
 	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)

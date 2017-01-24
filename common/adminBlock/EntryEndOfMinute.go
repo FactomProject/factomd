@@ -49,8 +49,8 @@ func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err
 	if newData[0] != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
-
 	newData = newData[1:]
+
 	e.MinuteNumber, newData = newData[0], newData[1:]
 
 	return

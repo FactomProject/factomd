@@ -63,8 +63,8 @@ func (e *RevealMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte,
 	if newData[0] != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
-
 	newData = newData[1:]
+
 	e.IdentityChainID = new(primitives.Hash)
 	newData, err = e.IdentityChainID.UnmarshalBinaryData(newData)
 	if err != nil {

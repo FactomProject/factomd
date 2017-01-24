@@ -48,7 +48,11 @@ func (e *IncreaseServerCount) UnmarshalBinaryData(data []byte) (newData []byte, 
 	}()
 
 	newData = data
+	if newData[0] != e.Type() {
+		return nil, fmt.Errorf("Invalid Entry type")
+	}
 	newData = newData[1:]
+
 	e.Amount, newData = newData[0], newData[1:]
 
 	return

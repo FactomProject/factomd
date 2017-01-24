@@ -85,6 +85,9 @@ func (e *AddFederatedServer) UnmarshalBinaryData(data []byte) (newData []byte, e
 	}()
 
 	newData = data
+	if newData[0] != e.Type() {
+		return nil, fmt.Errorf("Invalid Entry type")
+	}
 	newData = newData[1:]
 
 	e.IdentityChainID = new(primitives.Hash)

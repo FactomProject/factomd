@@ -11,7 +11,7 @@ import (
 func TestServerFaultGetHash(t *testing.T) {
 	a := new(ServerFault)
 	h := a.Hash()
-	expected := "0080a9f7727726783617077919407ceec77865f5ae67d908b87ab0b42ef55fc9"
+	expected := "5039b1b0a2a8420f89bfc5527c2c8b596a3f7c49d05eb70a53d821668523c9b8"
 	if h.String() != expected {
 		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
 	}
