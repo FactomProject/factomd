@@ -14,6 +14,50 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestAdminBlockUnmarshalComplexBlock(t *testing.T) {
+	a := NewAdminBlock(nil)
+
+	testVector := []interfaces.IABEntry{}
+
+	testVector = append(testVector, new(EndOfMinuteEntry))
+	testVector = append(testVector, new(DBSignatureEntry))
+	testVector = append(testVector, new(RevealMatryoshkaHash))
+	testVector = append(testVector, new(AddReplaceMatryoshkaHash))
+	testVector = append(testVector, new(IncreaseServerCount))
+	testVector = append(testVector, new(AddFederatedServer))
+	testVector = append(testVector, new(AddAuditServer))
+	testVector = append(testVector, new(RemoveFederatedServer))
+	testVector = append(testVector, new(AddFederatedServerSigningKey))
+	testVector = append(testVector, new(AddFederatedServerBitcoinAnchorKey))
+	testVector = append(testVector, new(ServerFault))
+
+	for _, v := range testVector {
+		err := a.AddABEntry(v)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+	}
+
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	a2 := new(AdminBlock)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	entries := a2.GetABEntries()
+
+	for i, v := range testVector {
+		if entries[i].Type() != v.Type() {
+			t.Errorf("Invalid type for index %v - %v vs %v", i, entries[i].Type(), v.Type())
+		}
+	}
+}
+
 func TestAdminBlockGetHash(t *testing.T) {
 	a := new(AdminBlock)
 	h := a.GetHash()

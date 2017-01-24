@@ -156,7 +156,6 @@ func (c *AdminBlock) AddFederatedServerSigningKey(identityChainID interfaces.IHa
 	}
 	entry := NewAddFederatedServerSigningKey(identityChainID, byte(0), *p, c.Header.GetDBHeight()+1)
 	return c.AddEntry(entry)
-	return nil
 }
 
 func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfaces.IHash, keyPriority byte, keyType byte, ecdsaPublicKey [20]byte) error {
@@ -171,7 +170,6 @@ func (c *AdminBlock) AddFederatedServerBitcoinAnchorKey(identityChainID interfac
 	} else {
 		entry := NewAddFederatedServerBitcoinAnchorKey(identityChainID, keyPriority, keyType, *b)
 		return c.AddEntry(entry)
-		return nil
 	}
 	return nil
 }
@@ -289,9 +287,8 @@ func (b *AdminBlock) LookupHash() (interfaces.IHash, error) {
 }
 
 // Add an Admin Block entry to the block
-func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) (err error) {
-	b.AddEntry(e)
-	return
+func (b *AdminBlock) AddABEntry(e interfaces.IABEntry) error {
+	return b.AddEntry(e)
 }
 
 // Add an Admin Block entry to the start of the block entries
