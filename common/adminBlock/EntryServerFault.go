@@ -154,6 +154,7 @@ func (m *ServerFault) MarshalBinary() (data []byte, err error) {
 	}()
 
 	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
 
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
@@ -192,6 +193,7 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}()
 	newData = data
+	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
