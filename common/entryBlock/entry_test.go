@@ -3,6 +3,7 @@ package entryBlock_test
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -159,6 +160,14 @@ func TestEntryMisc(t *testing.T) {
 
 	if e.DatabaseSecondaryIndex() != nil {
 		t.Errorf("Returned wrong DatabaseSecondaryIndex")
+	}
+
+	if e.GetChainID().String() != "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604" {
+		t.Errorf("Returned wrong GetChainID - %v", e.GetChainID().String())
+	}
+
+	if fmt.Sprintf("%x", e.GetContent()) != "546869732069732074686520466163746f6d20616e63686f7220636861696e2c207768696368207265636f7264732074686520616e63686f727320466163746f6d2070757473206f6e20426974636f696e20616e64206f74686572206e6574776f726b732e0a" {
+		t.Errorf("Returned wrong GetChainID - %x", e.GetContent())
 	}
 }
 
