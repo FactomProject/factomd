@@ -23,9 +23,9 @@ type Transaction struct {
 	// #inputs     uint8          number of inputs
 	// #outputs    uint8          number of outputs
 	// #ecoutputs  uint8          number of outECs (Number of EntryCredits)
-	Inputs    []interfaces.IInAddress      `json:"inputs"`
-	Outputs   []interfaces.IOutAddress     `json:"outputs"`
-	OutECs    []interfaces.IOutECAddress   `json:"outecs"`
+	Inputs    []interfaces.ITransAddress   `json:"inputs"`
+	Outputs   []interfaces.ITransAddress   `json:"outputs"`
+	OutECs    []interfaces.ITransAddress   `json:"outecs"`
 	RCDs      []interfaces.IRCD            `json:"rcds"`
 	SigBlocks []interfaces.ISignatureBlock `json:"sigblocks"`
 
@@ -390,9 +390,9 @@ func (t1 *Transaction) IsEqual(trans interfaces.IBlock) []interfaces.IBlock {
 	return nil
 }
 
-func (t Transaction) GetInputs() []interfaces.IInAddress       { return t.Inputs }
-func (t Transaction) GetOutputs() []interfaces.IOutAddress     { return t.Outputs }
-func (t Transaction) GetECOutputs() []interfaces.IOutECAddress { return t.OutECs }
+func (t Transaction) GetInputs() []interfaces.ITransAddress    { return t.Inputs }
+func (t Transaction) GetOutputs() []interfaces.ITransAddress   { return t.Outputs }
+func (t Transaction) GetECOutputs() []interfaces.ITransAddress { return t.OutECs }
 func (t Transaction) GetRCDs() []interfaces.IRCD               { return t.RCDs }
 
 func (t *Transaction) GetSignatureBlocks() []interfaces.ISignatureBlock {
@@ -409,21 +409,21 @@ func (t *Transaction) GetSignatureBlocks() []interfaces.ISignatureBlock {
 	return t.SigBlocks
 }
 
-func (t *Transaction) GetInput(i int) (interfaces.IInAddress, error) {
+func (t *Transaction) GetInput(i int) (interfaces.ITransAddress, error) {
 	if i > len(t.Inputs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}
 	return t.Inputs[i], nil
 }
 
-func (t *Transaction) GetOutput(i int) (interfaces.IOutAddress, error) {
+func (t *Transaction) GetOutput(i int) (interfaces.ITransAddress, error) {
 	if i > len(t.Outputs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}
 	return t.Outputs[i], nil
 }
 
-func (t *Transaction) GetECOutput(i int) (interfaces.IOutECAddress, error) {
+func (t *Transaction) GetECOutput(i int) (interfaces.ITransAddress, error) {
 	if i > len(t.OutECs) {
 		return nil, fmt.Errorf("Index out of Range")
 	}
@@ -463,26 +463,26 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	numOutECs := int(data[0])
 	data = data[1:]
 
-	t.Inputs = make([]interfaces.IInAddress, numInputs, numInputs)
-	t.Outputs = make([]interfaces.IOutAddress, numOutputs, numOutputs)
-	t.OutECs = make([]interfaces.IOutECAddress, numOutECs, numOutECs)
+	t.Inputs = make([]interfaces.ITransAddress, numInputs, numInputs)
+	t.Outputs = make([]interfaces.ITransAddress, numOutputs, numOutputs)
+	t.OutECs = make([]interfaces.ITransAddress, numOutECs, numOutECs)
 
 	for i, _ := range t.Inputs {
-		t.Inputs[i] = new(InAddress)
+		t.Inputs[i] = new(TransAddress)
 		data, err = t.Inputs[i].UnmarshalBinaryData(data)
 		if err != nil || t.Inputs[i] == nil {
 			return nil, err
 		}
 	}
 	for i, _ := range t.Outputs {
-		t.Outputs[i] = new(OutAddress)
+		t.Outputs[i] = new(TransAddress)
 		data, err = t.Outputs[i].UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, err
 		}
 	}
 	for i, _ := range t.OutECs {
-		t.OutECs[i] = new(OutECAddress)
+		t.OutECs[i] = new(TransAddress)
 		data, err = t.OutECs[i].UnmarshalBinaryData(data)
 		if err != nil {
 			return nil, err
@@ -600,7 +600,7 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 // past that if needed.
 func (t *Transaction) AddInput(input interfaces.IAddress, amount uint64) {
 	if t.Inputs == nil {
-		t.Inputs = make([]interfaces.IInAddress, 0, 5)
+		t.Inputs = make([]interfaces.ITransAddress, 0, 5)
 	}
 	out := NewInAddress(input, amount)
 	t.Inputs = append(t.Inputs, out)
@@ -613,7 +613,7 @@ func (t *Transaction) AddInput(input interfaces.IAddress, amount uint64) {
 // past that if needed.
 func (t *Transaction) AddOutput(output interfaces.IAddress, amount uint64) {
 	if t.Outputs == nil {
-		t.Outputs = make([]interfaces.IOutAddress, 0, 5)
+		t.Outputs = make([]interfaces.ITransAddress, 0, 5)
 	}
 	out := NewOutAddress(output, amount)
 	t.Outputs = append(t.Outputs, out)
@@ -625,7 +625,7 @@ func (t *Transaction) AddOutput(output interfaces.IAddress, amount uint64) {
 // credits are being added to the specified Entry Credit address.
 func (t *Transaction) AddECOutput(ecoutput interfaces.IAddress, amount uint64) {
 	if t.OutECs == nil {
-		t.OutECs = make([]interfaces.IOutECAddress, 0, 5)
+		t.OutECs = make([]interfaces.ITransAddress, 0, 5)
 	}
 	out := NewOutECAddress(ecoutput, amount)
 	t.OutECs = append(t.OutECs, out)
@@ -654,15 +654,15 @@ func (t *Transaction) CustomMarshalText() (text []byte, err error) {
 	primitives.WriteNumber16(&out, uint16(len(t.OutECs)))
 	out.WriteString("\n")
 	for _, address := range t.Inputs {
-		text, _ := address.CustomMarshalText()
+		text, _ := address.CustomMarshalTextInput()
 		out.Write(text)
 	}
 	for _, address := range t.Outputs {
-		text, _ := address.CustomMarshalText()
+		text, _ := address.CustomMarshalTextOutput()
 		out.Write(text)
 	}
 	for _, ecaddress := range t.OutECs {
-		text, _ := ecaddress.CustomMarshalText()
+		text, _ := ecaddress.CustomMarshalTextECOutput()
 		out.Write(text)
 	}
 	for i, rcd := range t.RCDs {
