@@ -32,6 +32,14 @@ var _ interfaces.IDirectoryBlock = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBatchable = (*DirectoryBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*DirectoryBlock)(nil)
 
+func (c *DirectoryBlock) Init() {
+	if c.Header == nil {
+		h := new(DBlockHeader)
+		h.Init()
+		c.Header = h
+	}
+}
+
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
 	if len(c.DBEntries) < index {
 		ent := make([]interfaces.IDBEntry, index)
@@ -135,6 +143,7 @@ func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
 }
 
 func (c *DirectoryBlock) GetHeader() interfaces.IDirectoryBlockHeader {
+	c.Init()
 	return c.Header
 }
 
@@ -161,6 +170,7 @@ func (c *DirectoryBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (c *DirectoryBlock) GetDatabaseHeight() uint32 {
+	c.Init()
 	return c.GetHeader().GetDBHeight()
 }
 
@@ -185,6 +195,7 @@ func (e *DirectoryBlock) JSONString() (string, error) {
 }
 
 func (e *DirectoryBlock) String() string {
+	e.Init()
 	var out primitives.Buffer
 
 	kmr := e.GetKeyMR()
@@ -207,6 +218,7 @@ func (e *DirectoryBlock) String() string {
 }
 
 func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
+	b.Init()
 	var buf primitives.Buffer
 
 	b.Sort()
