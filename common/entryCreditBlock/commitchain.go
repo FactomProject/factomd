@@ -38,7 +38,32 @@ var _ interfaces.ShortInterpretable = (*CommitChain)(nil)
 var _ interfaces.IECBlockEntry = (*CommitChain)(nil)
 var _ interfaces.ISignable = (*CommitChain)(nil)
 
+func (e *CommitChain) Init() {
+	if e.MilliTime == nil {
+		e.MilliTime = new(primitives.ByteSlice6)
+	}
+	if e.ChainIDHash == nil {
+		e.ChainIDHash = primitives.NewZeroHash()
+	}
+	if e.Weld == nil {
+		e.Weld = primitives.NewZeroHash()
+	}
+	if e.EntryHash == nil {
+		e.EntryHash = primitives.NewZeroHash()
+	}
+	if e.ECPubKey == nil {
+		e.ECPubKey = new(primitives.ByteSlice32)
+	}
+	if e.Sig == nil {
+		e.Sig = new(primitives.ByteSlice64)
+	}
+	if e.SigHash == nil {
+		e.SigHash = primitives.NewZeroHash()
+	}
+}
+
 func (e *CommitChain) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitChain"))
 	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
@@ -113,6 +138,7 @@ func (c *CommitChain) CommitMsg() []byte {
 
 // Return the timestamp
 func (c *CommitChain) GetTimestamp() interfaces.Timestamp {
+	c.Init()
 	a := make([]byte, 2, 8)
 	a = append(a, c.MilliTime[:]...)
 	milli := uint64(binary.BigEndian.Uint64(a))
@@ -120,6 +146,7 @@ func (c *CommitChain) GetTimestamp() interfaces.Timestamp {
 }
 
 func (c *CommitChain) IsValid() bool {
+	c.Init()
 	//double check the credits in the commit
 	if c.Credits < 10 || c.Version != 0 {
 		return false
@@ -134,14 +161,13 @@ func (c *CommitChain) GetHash() interfaces.IHash {
 }
 
 func (c *CommitChain) GetSigHash() interfaces.IHash {
-	if c.SigHash == nil {
-		data := c.CommitMsg()
-		c.SigHash = primitives.Sha(data)
-	}
+	data := c.CommitMsg()
+	c.SigHash = primitives.Sha(data)
 	return c.SigHash
 }
 
 func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
+	c.Init()
 	buf := new(primitives.Buffer)
 
 	// 1 byte Version
@@ -171,6 +197,7 @@ func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
 
 // Transaction hash of chain commit. (version through pub key hashed)
 func (c *CommitChain) MarshalBinaryTransaction() ([]byte, error) {
+	c.Init()
 	buf := new(primitives.Buffer)
 
 	b, err := c.MarshalBinarySig()
@@ -188,6 +215,7 @@ func (c *CommitChain) MarshalBinaryTransaction() ([]byte, error) {
 }
 
 func (c *CommitChain) MarshalBinary() ([]byte, error) {
+	c.Init()
 	buf := new(primitives.Buffer)
 
 	b, err := c.MarshalBinaryTransaction()
@@ -207,6 +235,7 @@ func (c *CommitChain) MarshalBinary() ([]byte, error) {
 }
 
 func (c *CommitChain) Sign(privateKey []byte) error {
+	c.Init()
 	sig, err := primitives.SignSignable(privateKey, c)
 	if err != nil {
 		return err
