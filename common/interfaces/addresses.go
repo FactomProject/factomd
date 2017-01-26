@@ -16,7 +16,14 @@ type ITransAddress interface {
 	SetAmount(uint64)
 	GetAddress() IAddress
 	SetAddress(IAddress)
-	CustomMarshalText2(string) ([]byte, error)
+
+	CustomMarshalTextInput() ([]byte, error)
+	CustomMarshalTextOutput() ([]byte, error)
+	CustomMarshalTextECOutput() ([]byte, error)
+
+	StringInput() string
+	StringOutput() string
+	StringECOutput() string
 
 	GetUserAddress() string
 	SetUserAddress(string)
