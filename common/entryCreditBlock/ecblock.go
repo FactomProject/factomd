@@ -55,14 +55,14 @@ func (c *ECBlock) UpdateState(state interfaces.IState) error {
 }
 
 func (c *ECBlock) String() string {
-	str := c.Header.String()
-	str = str + c.Body.String()
+	str := c.GetHeader().String()
+	str = str + c.GetBody().String()
 	return str
 }
 
 func (c *ECBlock) GetEntries() []interfaces.IECBlockEntry {
 	c.Init()
-	return c.Body.GetEntries()
+	return c.GetBody().GetEntries()
 }
 
 func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry {
@@ -83,8 +83,7 @@ func (c *ECBlock) GetEntryByHash(hash interfaces.IHash) interfaces.IECBlockEntry
 }
 
 func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
-	c.Init()
-	entries := c.Body.GetEntries()
+	entries := c.GetBody().GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
 		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
@@ -95,8 +94,7 @@ func (c *ECBlock) GetEntryHashes() []interfaces.IHash {
 }
 
 func (c *ECBlock) GetEntrySigHashes() []interfaces.IHash {
-	c.Init()
-	entries := c.Body.GetEntries()
+	entries := c.GetBody().GetEntries()
 	answer := make([]interfaces.IHash, 0, len(entries))
 	for _, entry := range entries {
 		if entry.ECID() == ECIDBalanceIncrease || entry.ECID() == ECIDChainCommit || entry.ECID() == ECIDEntryCommit {
@@ -125,13 +123,11 @@ func (c *ECBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (c *ECBlock) GetDatabaseHeight() uint32 {
-	c.Init()
-	return c.Header.GetDBHeight()
+	return c.GetHeader().GetDBHeight()
 }
 
 func (c *ECBlock) GetChainID() interfaces.IHash {
-	c.Init()
-	return c.Header.GetECChainID()
+	return c.GetHeader().GetECChainID()
 }
 
 func (c *ECBlock) DatabasePrimaryIndex() interfaces.IHash {
@@ -206,7 +202,7 @@ func (e *ECBlock) BuildHeader() error {
 		return err
 	}
 
-	header := e.Header.(*ECBlockHeader)
+	header := e.GetHeader().(*ECBlockHeader)
 	header.BodyHash = primitives.Sha(p)
 	header.ObjectCount = uint64(len(e.GetBody().GetEntries()))
 	header.BodySize = uint64(len(p))
@@ -280,7 +276,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 		}
 	}()
 
-	for i := uint64(0); i < e.Header.GetObjectCount(); i++ {
+	for i := uint64(0); i < e.GetHeader().GetObjectCount(); i++ {
 		var id byte
 		id, err = buf.ReadByte()
 		if err != nil {
@@ -297,7 +293,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.Body.SetEntries(append(e.Body.GetEntries(), s))
+			e.GetBody().AddEntry(s)
 		case ECIDMinuteNumber:
 			m := NewMinuteNumber(0)
 			if buf.Len() < MinuteNumberSize {
@@ -308,7 +304,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.Body.SetEntries(append(e.Body.GetEntries(), m))
+			e.GetBody().AddEntry(m)
 		case ECIDChainCommit:
 			if buf.Len() < CommitChainSize {
 				err = io.EOF
@@ -319,7 +315,7 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.Body.SetEntries(append(e.Body.GetEntries(), c))
+			e.GetBody().AddEntry(c)
 		case ECIDEntryCommit:
 			if buf.Len() < CommitEntrySize {
 				err = io.EOF
@@ -330,14 +326,14 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.Body.SetEntries(append(e.Body.GetEntries(), c))
+			e.GetBody().AddEntry(c)
 		case ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
 			tmp, err := c.UnmarshalBinaryData(buf.DeepCopyBytes())
 			if err != nil {
 				return nil, err
 			}
-			e.Body.SetEntries(append(e.Body.GetEntries(), c))
+			e.GetBody().AddEntry(c)
 			buf = primitives.NewBuffer(tmp)
 		default:
 			err = fmt.Errorf("Unsupported ECID: %x\n", id)
