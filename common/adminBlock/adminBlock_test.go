@@ -159,7 +159,7 @@ func TestAddFedServer(t *testing.T) {
 		testVector = append(testVector, primitives.RandomHash())
 	}
 	ab := new(AdminBlock)
-	ab.SetHeaderIfNotPresent()
+	ab.Init()
 	for i, v := range testVector {
 		ab.Header.SetDBHeight(uint32(i))
 		err := ab.AddFedServer(v)
@@ -183,7 +183,7 @@ func TestAddAuditServer(t *testing.T) {
 		testVector = append(testVector, primitives.RandomHash())
 	}
 	ab := new(AdminBlock)
-	ab.SetHeaderIfNotPresent()
+	ab.Init()
 	for i, v := range testVector {
 		ab.Header.SetDBHeight(uint32(i))
 		err := ab.AddAuditServer(v)
@@ -207,7 +207,7 @@ func TestRemoveFederatedServer(t *testing.T) {
 		testVector = append(testVector, primitives.RandomHash())
 	}
 	ab := new(AdminBlock)
-	ab.SetHeaderIfNotPresent()
+	ab.Init()
 	for i, v := range testVector {
 		ab.Header.SetDBHeight(uint32(i))
 		err := ab.RemoveFederatedServer(v)
