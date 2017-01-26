@@ -42,6 +42,7 @@ type IEntryBlock interface {
 }
 
 type IEntryBlockHeader interface {
+	Printable
 	BinaryMarshallable
 
 	GetChainID() IHash
@@ -59,9 +60,11 @@ type IEntryBlockHeader interface {
 	SetDBHeight(uint32)
 	GetEntryCount() uint32
 	SetEntryCount(uint32)
-	String() string
 }
 
 type IEBlockBody interface {
+	Printable
+
 	GetEBEntries() []IHash
+	AddEBEntry(IEBEntry)
 }

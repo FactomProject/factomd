@@ -53,3 +53,9 @@ func (e *EBlockBody) String() string {
 func (e *EBlockBody) GetEBEntries() []interfaces.IHash {
 	return e.EBEntries[:]
 }
+
+// AddEBEntry creates a new Entry Block Entry from the provided Factom Entry
+// and adds it to the Entry Block Body.
+func (e *EBlockBody) AddEBEntry(entry interfaces.IEBEntry) {
+	e.EBEntries = append(e.EBEntries, entry.GetHash())
+}

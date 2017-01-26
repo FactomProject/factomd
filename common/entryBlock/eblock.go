@@ -27,7 +27,19 @@ var _ interfaces.DatabaseBatchable = (*EBlock)(nil)
 var _ interfaces.IEntryBlock = (*EBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*EBlock)(nil)
 
+func (c *EBlock) Init() {
+	if c.Header == nil {
+		h := new(EBlockHeader)
+		h.Init()
+		c.Header = h
+	}
+	if c.Body == nil {
+		c.Body = new(EBlockBody)
+	}
+}
+
 func (c *EBlock) GetEntryHashes() []interfaces.IHash {
+	c.Init()
 	return c.Body.EBEntries[:]
 }
 
@@ -40,6 +52,7 @@ func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 }
 
 func (e *EBlock) GetWelds() [][]byte {
+	e.Init()
 	var answer [][]byte
 	for _, entry := range e.Body.EBEntries {
 		answer = append(answer, primitives.DoubleSha(append(entry.Bytes(), e.GetChainID().Bytes()...)))
@@ -58,11 +71,11 @@ func (e *EBlock) GetWeldHashes() []interfaces.IHash {
 }
 
 func (c *EBlock) GetDatabaseHeight() uint32 {
-	return c.Header.GetDBHeight()
+	return c.GetHeader().GetDBHeight()
 }
 
 func (c *EBlock) GetChainID() interfaces.IHash {
-	return c.Header.GetChainID()
+	return c.GetHeader().GetChainID()
 }
 
 func (c *EBlock) GetHashOfChainID() []byte {
@@ -86,17 +99,20 @@ func (c *EBlock) DatabaseSecondaryIndex() interfaces.IHash {
 }
 
 func (c *EBlock) GetHeader() interfaces.IEntryBlockHeader {
+	c.Init()
 	return c.Header
 }
 
 func (c *EBlock) GetBody() interfaces.IEBlockBody {
+	c.Init()
 	return c.Body
 }
 
 // AddEBEntry creates a new Entry Block Entry from the provided Factom Entry
 // and adds it to the Entry Block Body.
 func (e *EBlock) AddEBEntry(entry interfaces.IEBEntry) error {
-	e.Body.EBEntries = append(e.Body.EBEntries, entry.GetHash())
+	e.Init()
+	e.GetBody().AddEBEntry(entry)
 	if err := e.BuildHeader(); err != nil {
 		return err
 	}
@@ -107,6 +123,7 @@ func (e *EBlock) AddEBEntry(entry interfaces.IEBEntry) error {
 // Minut byte becomes the last byte in a 32 byte slice that is added to the
 // Entry Block Body as an Entry Block Entry.
 func (e *EBlock) AddEndOfMinuteMarker(m byte) {
+	e.Init()
 	// create a map of possible minute markers that may be found in the
 	// EBlock Body
 	mins := make(map[string]uint8)
@@ -134,8 +151,8 @@ func (e *EBlock) AddEndOfMinuteMarker(m byte) {
 // Entry Block Body. BuildHeader should be run after the Entry Block Body has
 // included all of its EntryEntries.
 func (e *EBlock) BuildHeader() error {
-	e.Header.SetBodyMR(e.Body.MR())
-	e.Header.SetEntryCount(uint32(len(e.Body.EBEntries)))
+	e.GetHeader().SetBodyMR(e.Body.MR())
+	e.GetHeader().SetEntryCount(uint32(len(e.Body.EBEntries)))
 	return nil
 }
 
@@ -156,7 +173,7 @@ func (e *EBlock) Hash() (interfaces.IHash, error) {
 
 func (e *EBlock) HeaderHash() (interfaces.IHash, error) {
 	e.BuildHeader()
-	header, err := e.Header.MarshalBinary()
+	header, err := e.GetHeader().MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +183,7 @@ func (e *EBlock) HeaderHash() (interfaces.IHash, error) {
 
 func (e *EBlock) BodyKeyMR() interfaces.IHash {
 	e.BuildHeader()
-	return e.Header.GetBodyMR()
+	return e.GetHeader().GetBodyMR()
 }
 
 // KeyMR returns the hash of the hash of the Entry Block Header concatinated
@@ -180,11 +197,12 @@ func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 	if err != nil {
 		return nil, err
 	}
-	return primitives.Sha(append(h.Bytes(), e.Header.GetBodyMR().Bytes()...)), nil
+	return primitives.Sha(append(h.Bytes(), e.GetHeader().GetBodyMR().Bytes()...)), nil
 }
 
 // MarshalBinary returns the serialized binary form of the Entry Block.
 func (e *EBlock) MarshalBinary() ([]byte, error) {
+	e.Init()
 	buf := new(primitives.Buffer)
 
 	if err := e.BuildHeader(); err != nil {
@@ -250,6 +268,7 @@ func (e *EBlock) UnmarshalBinary(data []byte) (err error) {
 
 // marshalBodyBinary returns a serialized binary Entry Block Body
 func (e *EBlock) marshalBodyBinary() ([]byte, error) {
+	e.Init()
 	buf := new(primitives.Buffer)
 
 	for _, v := range e.Body.EBEntries {
@@ -266,11 +285,12 @@ func (e *EBlock) unmarshalBodyBinaryData(data []byte) (newData []byte, err error
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+	e.Init()
 
 	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 
-	for i := uint32(0); i < e.Header.GetEntryCount(); i++ {
+	for i := uint32(0); i < e.GetHeader().GetEntryCount(); i++ {
 		if _, err := buf.Read(hash); err != nil {
 			return nil, err
 		}
@@ -298,8 +318,9 @@ func (e *EBlock) JSONString() (string, error) {
 }
 
 func (e *EBlock) String() string {
-	str := e.Header.String()
-	str = str + e.Body.String()
+	e.Init()
+	str := e.GetHeader().String()
+	str = str + e.GetBody().String()
 	return str
 }
 
