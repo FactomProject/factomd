@@ -451,6 +451,10 @@ func (db *Overlay) FetchBlockIndexesInHeightRange(numberBucket []byte, startHeig
 	return shalist, nil
 }
 
+func (db *Overlay) DoesKeyExist(bucket, key []byte) (bool, error) {
+	return db.DB.DoesKeyExist(bucket, key)
+}
+
 func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error) {
 	if hash == nil {
 		return nil, nil
