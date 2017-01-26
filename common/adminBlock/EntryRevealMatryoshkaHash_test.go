@@ -8,6 +8,37 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestRevealMatryoshkaHashGetHash(t *testing.T) {
+	a := new(RevealMatryoshkaHash)
+	h := a.Hash()
+	expected := "977c6d24ff2b851777af4dce0615e547112c6c0128a37338b3a1db9d055fff09"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
+func TestRevealMatryoshkaHashTypeIDCheck(t *testing.T) {
+	a := new(RevealMatryoshkaHash)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(RevealMatryoshkaHash)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilRevealMatryoshkaHash(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

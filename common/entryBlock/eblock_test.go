@@ -30,25 +30,40 @@ func TestUnmarshalNilEBlock(t *testing.T) {
 func TestEBlockMarshal(t *testing.T) {
 	eb := newTestingEntryBlock()
 
-	t.Log(eb)
 	p, err := eb.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 
 	eb2 := NewEBlock()
-	if err := eb2.UnmarshalBinary(p); err != nil {
+	err = eb2.UnmarshalBinary(p)
+	if err != nil {
 		t.Error(err)
 	}
-	t.Log(eb2)
+
 	p2, err := eb2.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if string(p) != string(p2) {
+	if primitives.AreBytesEqual(p, p2) == false {
 		t.Logf("eb1 = %x\n", p)
 		t.Logf("eb2 = %x\n", p2)
+		t.Fail()
+	}
+
+	eb3, err := UnmarshalEBlock(p)
+	if err != nil {
+		t.Error(err)
+	}
+	p3, err := eb3.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if primitives.AreBytesEqual(p, p3) == false {
+		t.Logf("eb1 = %x\n", p)
+		t.Logf("eb3 = %x\n", p3)
 		t.Fail()
 	}
 }
@@ -59,7 +74,7 @@ func TestAddEBEntry(t *testing.T) {
 	if err := eb.AddEBEntry(e); err != nil {
 		t.Error(err)
 	}
-	t.Log(eb)
+
 	p, err := eb.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -69,7 +84,6 @@ func TestAddEBEntry(t *testing.T) {
 	if err := eb2.UnmarshalBinary(p); err != nil {
 		t.Error(err)
 	}
-	t.Log(eb2)
 }
 
 func byteof(b byte) []byte {
@@ -88,7 +102,7 @@ func TestEntryBlockMisc(t *testing.T) {
 		t.Error(err)
 	}
 	if hash.String() != "1ec4c9a52ede96e57f855efc8cb1475e4a449773bad7a5b9a8b9abf4c683a1da" {
-		t.Fail()
+		t.Errorf("Returned wrong Hash")
 	}
 	hash, err = e.KeyMR()
 
@@ -96,7 +110,33 @@ func TestEntryBlockMisc(t *testing.T) {
 		t.Error(err)
 	}
 	if hash.String() != "a9fc0b656430d8bf71d180760b0b352c08f45a55a8cf157383613484587b4d21" {
-		t.Fail()
+		t.Errorf("Returned wrong KeyMR")
+	}
+
+	if e.GetEntrySigHashes() != nil {
+		t.Errorf("Invalid GetEntrySigHashes")
+	}
+
+	if e.GetDatabaseHeight() != 6920 {
+		t.Errorf("Invalid GetDatabaseHeight - %v", e.GetDatabaseHeight())
+	}
+	if e.GetChainID().String() != "4bf71c177e71504032ab84023d8afc16e302de970e6be110dac20adbf9a19746" {
+		t.Errorf("Invalid GetChainID - %v", e.GetChainID())
+	}
+	if e.GetHashOfChainIDHash().String() != "ca8c59c692b660b3e10cc94c7bb1dd893752f496effc867d6f04791a3f364bdd" {
+		t.Errorf("Invalid GetHashOfChainIDHash - %v", e.GetHashOfChainIDHash())
+	}
+	if e.DatabasePrimaryIndex().String() != "a9fc0b656430d8bf71d180760b0b352c08f45a55a8cf157383613484587b4d21" {
+		t.Errorf("Invalid DatabasePrimaryIndex - %v", e.DatabasePrimaryIndex())
+	}
+	if e.DatabaseSecondaryIndex().String() != "1ec4c9a52ede96e57f855efc8cb1475e4a449773bad7a5b9a8b9abf4c683a1da" {
+		t.Errorf("Invalid DatabaseSecondaryIndex - %v", e.DatabaseSecondaryIndex())
+	}
+	if e.GetHash().String() != "1ec4c9a52ede96e57f855efc8cb1475e4a449773bad7a5b9a8b9abf4c683a1da" {
+		t.Errorf("Invalid GetHash - %v", e.GetHash())
+	}
+	if e.BodyKeyMR().String() != "25f25d9375533b44505964af993212ef7c13314736b2c76a37c73571d89d8b21" {
+		t.Errorf("Invalid BodyKeyMR - %v", e.BodyKeyMR())
 	}
 }
 

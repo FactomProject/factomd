@@ -77,7 +77,7 @@ func NewFactoidRCDAddress(n uint64) interfaces.IRCD {
 
 func NewECAddress(n uint64) interfaces.IAddress {
 	_, pub, _ := NewFactoidAddressStrings(n)
-	add, err := factoid.PublicKeyStringToFactoidAddress(pub)
+	add, err := factoid.PublicKeyStringToECAddress(pub)
 	if err != nil {
 		panic(err)
 	}

@@ -28,7 +28,14 @@ type ABlockHeader struct {
 var _ interfaces.Printable = (*ABlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
+func (e *ABlockHeader) Init() {
+	if e.PrevBackRefHash == nil {
+		e.PrevBackRefHash = primitives.NewZeroHash()
+	}
+}
+
 func (e *ABlockHeader) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString("  Admin Block Header\n")
 	out.WriteString(fmt.Sprintf("    %20s: %10v\n", "PrevBackRefHash", e.PrevBackRefHash.String()))
@@ -73,6 +80,7 @@ func (b *ABlockHeader) GetHeaderExpansionSize() uint64 {
 }
 
 func (b *ABlockHeader) GetPrevBackRefHash() interfaces.IHash {
+	b.Init()
 	return b.PrevBackRefHash
 }
 
@@ -90,6 +98,7 @@ func (b *ABlockHeader) SetPrevBackRefHash(BackRefHash interfaces.IHash) {
 
 // Write out the ABlockHeader to binary.
 func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
+	b.Init()
 	var buf primitives.Buffer
 
 	data, err = b.GetAdminChainID().MarshalBinary()

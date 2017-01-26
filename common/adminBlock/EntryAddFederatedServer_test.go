@@ -8,6 +8,37 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestAddFederatedServerGetHash(t *testing.T) {
+	a := new(AddFederatedServer)
+	h := a.Hash()
+	expected := "2b5ab2a07af807fdeaf12f2b2bfbe9b9db084af3e06f6c29f779e3a490c8f0a6"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
+func TestAddFederatedServerTypeIDCheck(t *testing.T) {
+	a := new(AddFederatedServer)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(AddFederatedServer)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilAddFederatedServer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
