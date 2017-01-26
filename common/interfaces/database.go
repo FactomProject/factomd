@@ -17,6 +17,7 @@ type IDatabase interface {
 	PutInBatch(records []Record) error
 	ListAllBuckets() ([][]byte, error)
 	Trim()
+	DoesKeyExist(bucket, key []byte) (bool, error)
 }
 
 type Record struct {

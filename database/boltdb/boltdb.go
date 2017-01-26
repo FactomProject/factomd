@@ -267,3 +267,26 @@ func (db *BoltDB) Init(bucketList [][]byte, filename string) {
 		})
 	}
 }
+
+func (db *BoltDB) DoesKeyExist(bucket, key []byte) (bool, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+
+	var v []byte
+	db.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucket)
+		if b == nil {
+			return nil
+		}
+		v = b.Get(key)
+		if v == nil {
+			return nil
+		}
+		return nil
+	})
+	if v == nil { // If the value is undefined, return nil
+		return false, nil
+	}
+
+	return true, nil
+}
