@@ -20,12 +20,20 @@ type AddFederatedServerSigningKey struct {
 var _ interfaces.IABEntry = (*AddFederatedServerSigningKey)(nil)
 var _ interfaces.BinaryMarshallable = (*AddFederatedServerSigningKey)(nil)
 
+func (e *AddFederatedServerSigningKey) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+}
+
 func (c *AddFederatedServerSigningKey) UpdateState(state interfaces.IState) error {
+	c.Init()
 	state.UpdateAuthorityFromABEntry(c)
 	return nil
 }
 
 func (e *AddFederatedServerSigningKey) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8x %12s %8s %12s %d",
 		"AddFederatedServerSigningKey",
@@ -51,6 +59,7 @@ func (e *AddFederatedServerSigningKey) Type() byte {
 }
 
 func (e *AddFederatedServerSigningKey) MarshalBinary() ([]byte, error) {
+	e.Init()
 	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})

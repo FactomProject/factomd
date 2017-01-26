@@ -17,7 +17,17 @@ var _ interfaces.Printable = (*AddReplaceMatryoshkaHash)(nil)
 var _ interfaces.BinaryMarshallable = (*AddReplaceMatryoshkaHash)(nil)
 var _ interfaces.IABEntry = (*AddReplaceMatryoshkaHash)(nil)
 
+func (e *AddReplaceMatryoshkaHash) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+	if e.MHash == nil {
+		e.MHash = primitives.NewZeroHash()
+	}
+}
+
 func (e *AddReplaceMatryoshkaHash) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8s",
 		"AddReplaceMatryoshkaHash",
@@ -31,6 +41,7 @@ func (m *AddReplaceMatryoshkaHash) Type() byte {
 }
 
 func (c *AddReplaceMatryoshkaHash) UpdateState(state interfaces.IState) error {
+	c.Init()
 	state.UpdateAuthorityFromABEntry(c)
 	return nil
 }
@@ -43,6 +54,7 @@ func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfa
 }
 
 func (e *AddReplaceMatryoshkaHash) MarshalBinary() (data []byte, err error) {
+	e.Init()
 	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
@@ -62,8 +74,8 @@ func (e *AddReplaceMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []b
 	if newData[0] != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
-
 	newData = newData[1:]
+
 	e.IdentityChainID = new(primitives.Hash)
 	newData, err = e.IdentityChainID.UnmarshalBinaryData(newData)
 	if err != nil {

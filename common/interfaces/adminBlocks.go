@@ -13,26 +13,28 @@ package interfaces
 type IAdminBlock interface {
 	Printable
 	DatabaseBatchable
-	GetHeader() IABlockHeader
-	SetHeader(IABlockHeader)
-	GetABEntries() []IABEntry
-	SetABEntries([]IABEntry)
-	GetDBHeight() uint32
-	GetKeyMR() (IHash, error)
-	GetHash() IHash
+
 	BackReferenceHash() (IHash, error)
-	LookupHash() (IHash, error)
-	AddABEntry(e IABEntry) (err error)
-	AddFirstABEntry(e IABEntry) (err error)
-	AddDBSig(serverIdentity IHash, sig IFullSignature) error
+	GetABEntries() []IABEntry
+	GetDBHeight() uint32
 	GetDBSignature() IABEntry
-	AddFedServer(IHash)
-	RemoveFederatedServer(IHash)
-	AddMatryoshkaHash(IHash, IHash)
-	AddFederatedServerBitcoinAnchorKey(IHash, byte, byte, *[20]byte) (err error)
-	AddFederatedServerSigningKey(IHash, *[32]byte) (err error)
-	AddServerFault(IABEntry)
-	AddAuditServer(IHash)
+	GetHash() IHash
+	GetHeader() IABlockHeader
+	GetKeyMR() (IHash, error)
+	LookupHash() (IHash, error)
+	RemoveFederatedServer(IHash) error
+	SetABEntries([]IABEntry)
+	SetHeader(IABlockHeader)
+
+	AddABEntry(e IABEntry) error
+	AddAuditServer(IHash) error
+	AddDBSig(serverIdentity IHash, sig IFullSignature) error
+	AddFedServer(IHash) error
+	AddFederatedServerBitcoinAnchorKey(IHash, byte, byte, [20]byte) error
+	AddFederatedServerSigningKey(IHash, [32]byte) error
+	AddFirstABEntry(e IABEntry) error
+	AddMatryoshkaHash(IHash, IHash) error
+	AddServerFault(IABEntry) error
 	UpdateState(IState) error
 }
 
@@ -42,18 +44,18 @@ type IABlockHeader interface {
 	BinaryMarshallable
 
 	GetAdminChainID() IHash
-	GetPrevBackRefHash() IHash
-	SetPrevBackRefHash(IHash)
 	GetDBHeight() uint32
+	GetPrevBackRefHash() IHash
 	SetDBHeight(uint32)
+	SetPrevBackRefHash(IHash)
 
 	GetHeaderExpansionArea() []byte
 	SetHeaderExpansionArea([]byte)
 
-	GetMessageCount() uint32
-	SetMessageCount(uint32)
 	GetBodySize() uint32
+	GetMessageCount() uint32
 	SetBodySize(uint32)
+	SetMessageCount(uint32)
 }
 
 type IABEntry interface {

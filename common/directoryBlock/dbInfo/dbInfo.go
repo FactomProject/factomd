@@ -32,6 +32,21 @@ var _ interfaces.BinaryMarshallableAndCopyable = (*DirBlockInfo)(nil)
 var _ interfaces.DatabaseBatchable = (*DirBlockInfo)(nil)
 var _ interfaces.IDirBlockInfo = (*DirBlockInfo)(nil)
 
+func (e *DirBlockInfo) Init() {
+	if e.DBHash == nil {
+		e.DBHash = primitives.NewZeroHash()
+	}
+	if e.BTCTxHash == nil {
+		e.BTCTxHash = primitives.NewZeroHash()
+	}
+	if e.BTCBlockHash == nil {
+		e.BTCBlockHash = primitives.NewZeroHash()
+	}
+	if e.DBMerkleRoot == nil {
+		e.DBMerkleRoot = primitives.NewZeroHash()
+	}
+}
+
 func NewDirBlockInfo() *DirBlockInfo {
 	dbi := new(DirBlockInfo)
 	dbi.DBHash = primitives.NewZeroHash()
@@ -77,18 +92,22 @@ func (c *DirBlockInfo) GetChainID() interfaces.IHash {
 }
 
 func (c *DirBlockInfo) DatabasePrimaryIndex() interfaces.IHash {
+	c.Init()
 	return c.DBMerkleRoot
 }
 
 func (c *DirBlockInfo) DatabaseSecondaryIndex() interfaces.IHash {
+	c.Init()
 	return c.DBHash
 }
 
 func (e *DirBlockInfo) GetDBMerkleRoot() interfaces.IHash {
+	e.Init()
 	return e.DBMerkleRoot
 }
 
 func (e *DirBlockInfo) GetBTCTxHash() interfaces.IHash {
+	e.Init()
 	return e.BTCTxHash
 }
 
@@ -101,6 +120,7 @@ func (e *DirBlockInfo) GetBTCBlockHeight() int32 {
 }
 
 func (e *DirBlockInfo) MarshalBinary() ([]byte, error) {
+	e.Init()
 	var data primitives.Buffer
 
 	enc := gob.NewEncoder(&data)

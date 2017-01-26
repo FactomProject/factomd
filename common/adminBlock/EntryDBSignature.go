@@ -17,6 +17,13 @@ type DBSignatureEntry struct {
 var _ interfaces.IABEntry = (*DBSignatureEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBSignatureEntry)(nil)
 
+func (e *DBSignatureEntry) Init() {
+	if e.IdentityAdminChainID == nil {
+		e.IdentityAdminChainID = primitives.NewZeroHash()
+	}
+	e.PrevDBSig.Init()
+}
+
 func (c *DBSignatureEntry) UpdateState(state interfaces.IState) error {
 	return fmt.Errorf("Should not be called alone!")
 	//return nil
@@ -24,6 +31,12 @@ func (c *DBSignatureEntry) UpdateState(state interfaces.IState) error {
 
 // Create a new DB Signature Entry
 func NewDBSignatureEntry(identityAdminChainID interfaces.IHash, sig interfaces.IFullSignature) (*DBSignatureEntry, error) {
+	if identityAdminChainID == nil {
+		return nil, fmt.Errorf("No identityAdminChainID provided")
+	}
+	if sig == nil {
+		return nil, fmt.Errorf("No sig provided")
+	}
 	e := new(DBSignatureEntry)
 	e.IdentityAdminChainID = identityAdminChainID
 	bytes, err := sig.MarshalBinary()
@@ -45,6 +58,7 @@ func (e *DBSignatureEntry) Type() byte {
 }
 
 func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
+	e.Init()
 	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})
@@ -55,12 +69,12 @@ func (e *DBSignatureEntry) MarshalBinary() (data []byte, err error) {
 	}
 	buf.Write(data)
 
-	_, err = buf.Write(e.PrevDBSig.Pub[:])
+	_, err = buf.Write(e.PrevDBSig.GetPubBytes())
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = buf.Write(e.PrevDBSig.Sig[:])
+	_, err = buf.Write(e.PrevDBSig.GetSigBytes())
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +119,7 @@ func (e *DBSignatureEntry) JSONString() (string, error) {
 }
 
 func (e *DBSignatureEntry) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %20s -- %17s %8x %12s %8s %12s %8x",
 		"DB Signature",

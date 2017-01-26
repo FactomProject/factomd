@@ -32,6 +32,18 @@ var _ interfaces.Printable = (*DBlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*DBlockHeader)(nil)
 var _ interfaces.IDirectoryBlockHeader = (*DBlockHeader)(nil)
 
+func (h *DBlockHeader) Init() {
+	if h.BodyMR == nil {
+		h.BodyMR = primitives.NewZeroHash()
+	}
+	if h.PrevKeyMR == nil {
+		h.PrevKeyMR = primitives.NewZeroHash()
+	}
+	if h.PrevFullHash == nil {
+		h.PrevFullHash = primitives.NewZeroHash()
+	}
+}
+
 func (h *DBlockHeader) GetVersion() byte {
 	return h.Version
 }
@@ -105,6 +117,7 @@ func (e *DBlockHeader) JSONString() (string, error) {
 }
 
 func (e *DBlockHeader) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("  Version:         %v\n", e.Version))
 	out.WriteString(fmt.Sprintf("  NetworkID:       %x\n", e.NetworkID))
@@ -120,6 +133,7 @@ func (e *DBlockHeader) String() string {
 }
 
 func (b *DBlockHeader) MarshalBinary() ([]byte, error) {
+	b.Init()
 	var buf primitives.Buffer
 
 	buf.WriteByte(b.Version)
@@ -221,6 +235,7 @@ func (e DBlockHeader) MarshalJSON() ([]byte, error) {
 
 func NewDBlockHeader() *DBlockHeader {
 	d := new(DBlockHeader)
+
 	d.BodyMR = primitives.NewZeroHash()
 	d.PrevKeyMR = primitives.NewZeroHash()
 	d.PrevFullHash = primitives.NewZeroHash()

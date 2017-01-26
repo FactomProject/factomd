@@ -77,6 +77,7 @@ func (h *Hash) UnmarshalText(b []byte) error {
 func (h Hash) Fixed() [constants.HASH_LENGTH]byte {
 	return h
 }
+
 func (h *Hash) Bytes() []byte {
 	return h.GetBytes()
 }
