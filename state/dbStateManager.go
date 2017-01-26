@@ -57,7 +57,6 @@ type DBStateList struct {
 
 	LastEnd   int
 	LastBegin int
-	TimeToAsk interfaces.Timestamp
 
 	State    *State
 	Base     uint32
@@ -74,6 +73,12 @@ type DBStateList struct {
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
+
+	// If we don't have the previous blocks processed yet, then let's wait on this one.
+	if dbheight > state.GetHighestSavedBlk()+1 {
+		return 0
+	}
+
 	if dbheight == 0 {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
@@ -90,8 +95,20 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	// Get the Previous KeyMR pointer in the possible new Directory Block
 	prevkeymr := dirblk.GetHeader().GetPrevKeyMR()
 	if !pkeymr.IsSameAs(prevkeymr) {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x ",
-			dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3]))
+
+		pdir, err := state.DB.FetchDBlockByHeight(dbheight - 1)
+		if err != nil {
+			return -1
+		}
+
+		if pkeymr.Fixed() == pdir.GetKeyMR().Fixed() {
+			state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match at first. dbht: %d dbstate had prev %x but we expected %x But on disk %x",
+				dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
+			return 1
+		}
+
+		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x on disk %x",
+			dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
 		// If not the same, this is a bad new Directory Block
 		return -1
 	}
@@ -104,9 +121,6 @@ func (list *DBStateList) String() string {
 	str := "\n========DBStates Start=======\nddddd DBStates\n"
 	str = fmt.Sprintf("dddd %s  Base      = %d\n", str, list.Base)
 	ts := "-nil-"
-	if list.TimeToAsk != nil {
-		ts = list.TimeToAsk.String()
-	}
 	str = fmt.Sprintf("dddd %s  timestamp = %s\n", str, ts)
 	str = fmt.Sprintf("dddd %s  Complete  = %d\n", str, list.Complete)
 	rec := "M"
@@ -201,80 +215,14 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
-				return ht
+				break
 			}
 		}
 	}
+
+	list.State.HighestSaved = ht
+
 	return ht
-}
-
-// Once a second at most, we check to see if we need to pull down some blocks to catch up.
-func (list *DBStateList) Catchup(justDoIt bool) {
-	// We only check if we need updates once every so often.
-
-	if len(list.State.inMsgQueue) > 1000 {
-		// If we are behind the curve in processing messages, dump all the dbstates from holding.
-		for k := range list.State.Holding {
-			if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
-				delete(list.State.Holding, k)
-			}
-		}
-		return
-	}
-
-	now := list.State.GetTimestamp()
-
-	hs := int(list.State.GetHighestSavedBlk())
-	hk := int(list.State.GetHighestKnownBlock())
-	begin := hs
-	end := hk
-
-	ask := func() {
-		if list.TimeToAsk != nil && hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
-			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+10))
-
-			if msg != nil {
-				//		list.State.RunLeader = false
-				//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
-				msg.SendOut(list.State, msg)
-				list.State.DBStateAskCnt++
-				list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
-				list.LastBegin = begin
-				list.LastEnd = end
-			}
-		}
-	}
-
-	if end-begin > 50 {
-		end = begin + 50
-	}
-
-	if end+3 > begin && justDoIt {
-		ask()
-		return
-	}
-
-	// return if we are caught up, and clear our timer
-	if end-begin <= 3 {
-		list.TimeToAsk = nil
-		return
-	}
-
-	// First Ask.  Because the timer is nil!
-	if list.TimeToAsk == nil {
-		// Okay, have nothing in play, so wait a bit just in case.
-		list.TimeToAsk = list.State.GetTimestamp()
-		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 5)
-		list.LastBegin = begin
-		list.LastEnd = end
-		return
-	}
-
-	if list.TimeToAsk.GetTime().Before(now.GetTime()) {
-		ask()
-		return
-	}
-
 }
 
 // a contains b, returns true
@@ -645,6 +593,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	if d.Saved {
+		if dbheight > int(list.State.HighestSaved) {
+			list.State.HighestSaved = uint32(dbheight)
+		}
 		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
 		if dblk == nil {
 			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
@@ -723,6 +674,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.SaveDirectoryBlockHead(head)
 	}
 
+	if dbheight > int(list.State.HighestSaved) {
+		list.State.HighestSaved = uint32(dbheight)
+	}
+
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
@@ -730,7 +685,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 }
 
 func (list *DBStateList) UpdateState() (progress bool) {
-	list.Catchup(false)
 
 	saved := 0
 	for i, d := range list.DBStates {

@@ -54,7 +54,6 @@ type State struct {
 	ExportData        bool
 	ExportDataSubpath string
 
-	DBStatesSent            []*interfaces.DBStateSent
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -237,6 +236,11 @@ type State struct {
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
+	DBStateMutex         sync.Mutex
+	DBStatesSent         []*interfaces.DBStateSent
+	DBStatesReceivedBase int
+	DBStatesReceived     []*messages.DBStateMsg
+
 	DBStates *DBStateList // Holds all DBStates not yet processed.
 
 	// Having all the state for a particular directory block stored in one structure
@@ -251,7 +255,9 @@ type State struct {
 
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
-	HighestKnown    uint32
+	HighestKnown    uint32 // Highest block height we believe exists
+	HighestSaved    uint32 // Highest block height on disk that we have validated
+	HighestDisk     uint32 // Highest block height saved to disk
 	AuthorityDeltas string
 
 	// Factom State
@@ -808,6 +814,8 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.starttime = time.Now()
+
+	go s.DBStates.Catchup()
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
@@ -876,6 +884,24 @@ func (s *State) GetAndLockDB() interfaces.DBOverlay {
 func (s *State) UnlockDB() {
 }
 
+// Checks ChainIDs to determine if we need their entries to process entries and transactions.
+func (s *State) Needed(eb interfaces.IEntryBlock) bool {
+	id := []byte{0x88, 0x88, 0x88}
+	fer := []byte{0x11, 0x11, 0x11}
+
+	if eb.GetDatabaseHeight() < 2 {
+		return true
+	}
+	cid := eb.GetChainID().Bytes()
+	if bytes.Compare(id[:3], cid) == 0 {
+		return true
+	}
+	if bytes.Compare(id[:3], fer) == 0 {
+		return true
+	}
+	return false
+}
+
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
@@ -919,10 +945,12 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
 				eBlocks = append(eBlocks, eBlock)
-				for _, e := range eBlock.GetEntryHashes() {
-					entry, err := s.DB.FetchEntry(e)
-					if err == nil && entry != nil {
-						entries = append(entries, entry)
+				if s.Needed(eBlock) {
+					for _, e := range eBlock.GetEntryHashes() {
+						entry, err := s.DB.FetchEntry(e)
+						if err == nil && entry != nil {
+							entries = append(entries, entry)
+						}
 					}
 				}
 			}
@@ -942,7 +970,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if err != nil || nextABlock == nil {
 		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
-			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
+			return nil, fmt.Errorf("Do not have signatures at height %d to validate DBStateMsg", dbheight)
 		}
 		for _, dbsig := range pl.DBSignatures {
 			allSigs = append(allSigs, dbsig.Signature)

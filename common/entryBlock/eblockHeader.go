@@ -23,13 +23,25 @@ type EBlockHeader struct {
 var _ interfaces.Printable = (*EBlockHeader)(nil)
 var _ interfaces.IEntryBlockHeader = (*EBlockHeader)(nil)
 
+func (e *EBlockHeader) Init() {
+	if e.ChainID == nil {
+		e.ChainID = primitives.NewZeroHash()
+	}
+	if e.BodyMR == nil {
+		e.BodyMR = primitives.NewZeroHash()
+	}
+	if e.PrevKeyMR == nil {
+		e.PrevKeyMR = primitives.NewZeroHash()
+	}
+	if e.PrevFullHash == nil {
+		e.PrevFullHash = primitives.NewZeroHash()
+	}
+}
+
 // NewEBlockHeader initializes a new empty Entry Block Header.
 func NewEBlockHeader() *EBlockHeader {
 	e := new(EBlockHeader)
-	e.ChainID = primitives.NewZeroHash()
-	e.BodyMR = primitives.NewZeroHash()
-	e.PrevKeyMR = primitives.NewZeroHash()
-	e.PrevFullHash = primitives.NewZeroHash()
+	e.Init()
 	return e
 }
 
@@ -42,6 +54,7 @@ func (e *EBlockHeader) JSONString() (string, error) {
 }
 
 func (e *EBlockHeader) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString("  Entry Block Header\n")
 	out.WriteString(fmt.Sprintf("    %20s: %x\n", "ChainID", e.ChainID.Bytes()[:3]))
@@ -112,18 +125,12 @@ func (c *EBlockHeader) SetEntryCount(entryCount uint32) {
 
 // marshalHeaderBinary returns a serialized binary Entry Block Header
 func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
+	e.Init()
 	buf := new(primitives.Buffer)
 
-	// 32 byte ChainID
 	buf.Write(e.ChainID.Bytes())
-
-	// 32 byte Body MR
 	buf.Write(e.BodyMR.Bytes())
-
-	// 32 byte Previous Key MR
 	buf.Write(e.PrevKeyMR.Bytes())
-
-	// 32 byte Previous Full Hash
 	buf.Write(e.PrevFullHash.Bytes())
 
 	if err := binary.Write(buf, binary.BigEndian, e.EBSequence); err != nil {
@@ -143,6 +150,7 @@ func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 
 // unmarshalHeaderBinary builds the Entry Block Header from the serialized binary.
 func (e *EBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	e.Init()
 	buf := primitives.NewBuffer(data)
 	hash := make([]byte, 32)
 	newData = data

@@ -11,13 +11,15 @@ package databaseOverlay_test
 import (
 	"bytes"
 	"encoding/gob"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/testHelper"
-	"testing"
 )
 
 /*
@@ -543,4 +545,42 @@ func (d1 *DBTestObject) IsEqual(d2 *DBTestObject) bool {
 func CopyZeroHash() []byte {
 	answer := make([]byte, len(constants.ZERO_HASH))
 	return answer
+}
+
+func TestDoesKeyExist(t *testing.T) {
+	m := createOverlay()
+	defer m.Close()
+
+	for i := 0; i < 1000; i++ {
+		key := random.RandNonEmptyByteSlice()
+		bucket := random.RandNonEmptyByteSlice()
+
+		test := NewDBTestObject()
+
+		err := m.Put(bucket, key, test)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		exists, err := m.DoesKeyExist(bucket, key)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if exists == false {
+			t.Errorf("Key does not exist")
+		}
+
+		key = random.RandNonEmptyByteSlice()
+		bucket = random.RandNonEmptyByteSlice()
+
+		exists, err = m.DoesKeyExist(bucket, key)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if exists == true {
+			t.Errorf("Key does exist while it shouldn't")
+		}
+	}
 }

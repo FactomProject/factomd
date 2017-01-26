@@ -79,6 +79,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
+
 	if s.ResetRequest {
 		s.ResetRequest = false
 		s.DoReset()
@@ -112,6 +113,9 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
+	process := make(chan interfaces.IMsg, 100000)
+	room := func() bool { return len(process) < 99950 }
+
 	var vm *VM
 	if s.Leader {
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
@@ -120,12 +124,30 @@ func (s *State) Process() (progress bool) {
 		}
 	}
 
+	/** Process all the DBStates  that might be pending **/
+
+	for room() {
+		s.DBStateMutex.Lock()
+		ix := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase + 1
+		if ix < 0 || ix >= len(s.DBStatesReceived) {
+			s.DBStateMutex.Unlock()
+			break
+		}
+		msg := s.DBStatesReceived[ix]
+		if msg == nil {
+			s.DBStateMutex.Unlock()
+			break
+		}
+		process <- msg
+		s.DBStatesReceived[ix] = nil
+		s.DBStateMutex.Unlock()
+	}
+
 	s.ReviewHolding()
 
-	more := false
 	// Process acknowledgements if we have some.
 ackLoop:
-	for i := 0; i < 55; i++ {
+	for room() {
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
@@ -133,43 +155,53 @@ ackLoop:
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
-						ack.FollowerExecute(s)
+						s.executeMsg(vm, ack)
 					}
 				} else {
-					ack.FollowerExecute(s)
+					s.executeMsg(vm, ack)
 				}
 			}
 			progress = true
 		default:
-			more = true
 			break ackLoop
 		}
 	}
 
 	// Process inbound messages
 emptyLoop:
-	for i := 0; i < 55; i++ {
+	for room() {
 		select {
 		case msg := <-s.msgQueue:
+			process <- msg
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
 		default:
-			more = true
 			break emptyLoop
 		}
 	}
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-	for i := 0; i < 30 && len(s.XReview) > 0; i++ {
-		l := len(s.XReview) - 1
-		msg := s.XReview[l]
+	for _, msg := range s.XReview {
+		if !room() {
+			break
+		}
+		if msg == nil {
+			continue
+		}
+		process <- msg
 		progress = s.executeMsg(vm, msg) || progress
-		s.XReview = s.XReview[:l]
 	}
-	if !more {
-		time.Sleep(10 * time.Millisecond)
+	s.XReview = s.XReview[:0]
+
+	for len(process) > 0 {
+		msg := <-process
+		s.executeMsg(vm, msg)
+		if !msg.IsPeer2Peer() {
+			msg.SendOut(s, msg)
+		}
+		s.UpdateState()
 	}
 
 	return
@@ -313,6 +345,7 @@ func (s *State) AddDBState(isNew bool,
 	entryCreditBlock interfaces.IEntryCreditBlock,
 	eBlocks []interfaces.IEntryBlock,
 	entries []interfaces.IEBEntry) *DBState {
+
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
@@ -369,6 +402,7 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
+
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
@@ -386,6 +420,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
+
 	if m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
@@ -438,6 +473,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
+	// ignore if too old.
+	if dbheight < s.GetHighestSavedBlk() {
+		return
+	}
+
 	// ignore if we didn't ask for it, or if it is at least something with our range of asking for.
 	if !dbstatemsg.IsInDB && (s.DBStates.LastBegin-1 > int(dbheight) || s.DBStates.LastEnd+20 < int(dbheight)) {
 		return
@@ -452,13 +492,21 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
 
 		// Don't add duplicate dbstate messages.
-		for _, v := range s.XReview {
-			if ds, ok := v.(*messages.DBStateMsg); ok && ds.GetHash().Fixed() == dbstatemsg.DirectoryBlock.GetHash().Fixed() {
-				return
+		if s.DBStatesReceivedBase < int(s.GetHighestSavedBlk()) {
+			cut := int(s.GetHighestSavedBlk()) - s.DBStatesReceivedBase
+			if len(s.DBStatesReceived) > cut {
+				s.DBStatesReceived = append(make([]*messages.DBStateMsg, 0), s.DBStatesReceived[cut:]...)
 			}
+			s.DBStatesReceivedBase += cut
 		}
-
-		s.Holding[dbstatemsg.GetRepeatHash().Fixed()] = dbstatemsg
+		ix := int(dbheight) - s.DBStatesReceivedBase
+		if ix < 0 {
+			return
+		}
+		for len(s.DBStatesReceived) <= ix {
+			s.DBStatesReceived = append(s.DBStatesReceived, nil)
+		}
+		s.DBStatesReceived[ix] = dbstatemsg
 		return
 	case -1:
 		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
@@ -519,17 +567,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.Saving = true
 	s.Syncing = false
 
-	// Hurry up our next ask.  When we get to where we have the data we aksed for, then go ahead and ask for the next set.
-	if s.DBStates.LastEnd < int(dbheight) {
-		s.DBStates.Catchup(true)
-	}
-	if s.DBStates.LastBegin < int(dbheight)+1 {
-		s.DBStates.LastBegin = int(dbheight)
-	}
-	s.DBStates.TimeToAsk = nil
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing {
 		return
@@ -651,7 +692,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		for i, missing := range s.MissingEntries {
 			e := missing.entryhash
 
-			if e.IsSameAs(entry.GetHash()) {
+			if e.Fixed() == entry.GetHash().Fixed() {
 				s.DB.InsertEntry(entry)
 				var missing []MissingEntry
 				missing = append(missing, s.MissingEntries[:i]...)
@@ -745,6 +786,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecute(m interfaces.IMsg) {
+
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		delete(s.Holding, m.GetRepeatHash().Fixed())
@@ -760,6 +802,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
+
 	if !m.IsLocal() {
 		s.FollowerExecuteEOM(m)
 		return
@@ -813,9 +856,14 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
+
 	dbs := m.(*messages.DirectoryBlockSignature)
 	pl := s.ProcessLists.Get(dbs.DBHeight)
 
+	if dbs.DBHeight != s.LLeaderHeight {
+		m.FollowerExecute(s)
+		return
+	}
 	if len(pl.VMs[dbs.VMIndex].List) > 0 {
 		return
 	}
@@ -938,10 +986,10 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		var btcKey [20]byte
 		copy(btcKey[:], ask.Key.Bytes()[:20])
-		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, &btcKey)
+		s.LeaderPL.AdminBlock.AddFederatedServerBitcoinAnchorKey(ask.IdentityChainID, ask.KeyPriority, ask.KeyType, btcKey)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
 		pub := ask.Key.Fixed()
-		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, &pub)
+		s.LeaderPL.AdminBlock.AddFederatedServerSigningKey(ask.IdentityChainID, pub)
 	case constants.TYPE_ADD_MATRYOSHKA:
 		s.LeaderPL.AdminBlock.AddMatryoshkaHash(ask.IdentityChainID, ask.Key)
 	}
@@ -997,6 +1045,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 }
 
 func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
+
 	msg := m.(*messages.RevealEntryMsg)
 	myhash := msg.Entry.GetHash()
 
@@ -1065,6 +1114,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
 		return
@@ -1114,6 +1164,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
+
 	e := msg.(*messages.EOM)
 
 	if s.Syncing && !s.EOM {
@@ -1328,6 +1379,7 @@ func (s *State) CheckForIDChange() {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
+
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
@@ -1376,6 +1428,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
+
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
 				return false
@@ -1590,6 +1643,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		// being promoted
 		for listIdx, fedServ := range pl.FedServers {
 			if fedServ.GetChainID().IsSameAs(fullFault.ServerID) {
+
 				pl.FedServers[listIdx] = theAuditReplacement
 				pl.FedServers[listIdx].SetOnline(true)
 				audIdx := pl.AddAuditServer(fedServ.GetChainID())
@@ -1707,6 +1761,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 }
 
 func (s *State) GetMsg(vmIndex int, dbheight int, height int) (interfaces.IMsg, error) {
+
 	pl := s.ProcessLists.Get(uint32(dbheight))
 	if pl == nil {
 		return nil, errors.New("No Process List")
@@ -1949,6 +2004,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
 func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
+
 	vmIndex := msg.GetVMIndex()
 
 	msg.SetLeaderChainID(s.IdentityChainID)

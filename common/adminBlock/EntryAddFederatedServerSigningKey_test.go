@@ -8,6 +8,37 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+func TestAddFederatedServerSigningKeyGetHash(t *testing.T) {
+	a := new(AddFederatedServerSigningKey)
+	h := a.Hash()
+	expected := "45147ca74abd1327e991c6e313470b1e6e3355f0e53418565ac67ab2553c25bf"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
+func TestAddFederatedServerSigningKeyTypeIDCheck(t *testing.T) {
+	a := new(AddFederatedServerSigningKey)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(AddFederatedServerSigningKey)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilAddFederatedServerSigningKey(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

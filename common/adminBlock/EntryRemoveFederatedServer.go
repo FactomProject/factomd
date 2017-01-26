@@ -18,7 +18,14 @@ type RemoveFederatedServer struct {
 var _ interfaces.IABEntry = (*RemoveFederatedServer)(nil)
 var _ interfaces.BinaryMarshallable = (*RemoveFederatedServer)(nil)
 
+func (e *RemoveFederatedServer) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+}
+
 func (e *RemoveFederatedServer) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("    E: %35s -- %17s %8x %12s %8d",
 		"Remove Federated Server",
@@ -30,6 +37,7 @@ func (e *RemoveFederatedServer) String() string {
 }
 
 func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) error {
+	c.Init()
 	if len(state.GetFedServers(c.DBHeight)) != 0 {
 		state.RemoveFedServer(c.DBHeight, c.IdentityChainID)
 	}
@@ -45,6 +53,9 @@ func (c *RemoveFederatedServer) UpdateState(state interfaces.IState) error {
 
 // Create a new DB Signature Entry
 func NewRemoveFederatedServer(identityChainID interfaces.IHash, dbheight uint32) (e *RemoveFederatedServer) {
+	if identityChainID == nil {
+		return nil
+	}
 	e = new(RemoveFederatedServer)
 	e.IdentityChainID = primitives.NewHash(identityChainID.Bytes())
 	e.DBHeight = dbheight
@@ -56,6 +67,7 @@ func (e *RemoveFederatedServer) Type() byte {
 }
 
 func (e *RemoveFederatedServer) MarshalBinary() (data []byte, err error) {
+	e.Init()
 	var buf primitives.Buffer
 
 	buf.Write([]byte{e.Type()})

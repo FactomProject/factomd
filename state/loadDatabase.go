@@ -36,6 +36,8 @@ func LoadDatabase(s *State) {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
 
+	s.HighestDisk = blkCnt
+
 	t := time.Now()
 
 	//msg, err := s.LoadDBState(blkCnt)
@@ -56,11 +58,15 @@ func LoadDatabase(s *State) {
 			if msg != nil {
 				s.InMsgQueue() <- msg
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 20 {
-					for len(s.InMsgQueue()) > 10 {
-						time.Sleep(10 * time.Millisecond)
+				if len(s.InMsgQueue()) > 8000 {
+					for len(s.InMsgQueue()) > 1000 {
+						time.Sleep(1 * time.Millisecond)
 					}
 				}
+				s.EntryDBHeightComplete = uint32(i)
+				s.EntryDBHeightProcessing = uint32(i)
+				s.EntryBlockDBHeightComplete = s.EntryDBHeightComplete
+				s.EntryBlockDBHeightProcessing = s.EntryDBHeightProcessing
 			} else {
 				// os.Stderr.WriteString(fmt.Sprintf("%20s Last Block in database: %d\n", s.FactomNodeName, i))
 				break
