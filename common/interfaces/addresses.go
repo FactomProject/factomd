@@ -13,8 +13,6 @@ type IAddress interface {
 type ITransAddress interface {
 	BinaryMarshallable
 
-	// /IBlock
-	GetHash() IHash
 	GetAmount() uint64
 	SetAmount(uint64)
 	GetAddress() IAddress

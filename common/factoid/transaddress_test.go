@@ -109,29 +109,6 @@ func TestTransAddressMarshalUnmarshal(t *testing.T) {
 	}
 }
 
-func TestTransAddressMisc(t *testing.T) {
-	ta := new(TransAddress)
-	ta.SetAmount(12345678)
-	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
-	if err != nil {
-		t.Error(err)
-	}
-	add := h.(interfaces.IAddress)
-	ta.SetAddress(add)
-
-	text, err := ta.CustomMarshalText()
-	if err != nil {
-		t.Error(err)
-	}
-	if text != nil {
-		t.Error("Text isn't nil when it should be")
-	}
-	str := ta.String()
-	if str != "" {
-		t.Error("Str isn't empty when it should be")
-	}
-}
-
 func TestOutECAddress(t *testing.T) {
 	h, err := primitives.HexToHash("ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973")
 	if err != nil {

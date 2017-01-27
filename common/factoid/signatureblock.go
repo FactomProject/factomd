@@ -126,7 +126,6 @@ func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	s.Signatures[0] = new(FactoidSignature)
 	data, err = s.Signatures[0].UnmarshalBinaryData(data)
 	if err != nil {
-		fmt.Println("error")
 		return nil, fmt.Errorf("Failure to unmarshal Signature")
 	}
 

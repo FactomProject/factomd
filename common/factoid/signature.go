@@ -38,10 +38,6 @@ func (s *FactoidSignature) GetKey() []byte {
 	return s.Signature[32:]
 }
 
-func (s *FactoidSignature) GetHash() interfaces.IHash {
-	return nil
-}
-
 func (h *FactoidSignature) MarshalText() ([]byte, error) {
 	return []byte(hex.EncodeToString(h.Signature[:])), nil
 }

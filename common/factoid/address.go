@@ -44,5 +44,8 @@ func NewAddress(b []byte) interfaces.IAddress {
 }
 
 func CreateAddress(hash interfaces.IHash) interfaces.IAddress {
+	if hash == nil {
+		return NewAddress(nil)
+	}
 	return NewAddress(hash.Bytes())
 }

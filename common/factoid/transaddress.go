@@ -45,18 +45,9 @@ func (t *TransAddress) GetUserAddress() string {
 	return t.UserAddress
 }
 
-// Not useful on TransAddress objects
-func (t *TransAddress) GetHash() interfaces.IHash {
-	return nil
-}
-
 func (t *TransAddress) UnmarshalBinary(data []byte) error {
 	_, err := t.UnmarshalBinaryData(data)
 	return err
-}
-
-func (t *TransAddress) CustomMarshalText() ([]byte, error) {
-	return nil, nil
 }
 
 func (e *TransAddress) JSONByte() ([]byte, error) {
@@ -68,8 +59,8 @@ func (e *TransAddress) JSONString() (string, error) {
 }
 
 func (t *TransAddress) String() string {
-	txt, _ := t.CustomMarshalText()
-	return (string(txt))
+	str, _ := t.JSONString()
+	return str
 }
 
 func (t *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {

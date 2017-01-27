@@ -6,7 +6,7 @@ package factoid_test
 
 import (
 	"encoding/hex"
-	"fmt"
+	//"fmt"
 	"math/rand"
 	"testing"
 
@@ -122,6 +122,7 @@ func getSignedTrans() interfaces.ITransaction {
 	return nb
 }
 
+/*
 // This test prints bunches of stuff that must be visually checked.
 // Mostly we keep it commented out.
 func TestTransaction(t *testing.T) {
@@ -130,6 +131,7 @@ func TestTransaction(t *testing.T) {
 	fmt.Printf("Transaction:\n%slen: %d\n", string(bytes), len(bytes))
 	fmt.Println("\n---------------------------------------------------------------------")
 }
+*/
 
 func TestAddress_MarshalUnMarshal(t *testing.T) {
 	a := nextAddress()
