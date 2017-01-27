@@ -19,9 +19,8 @@ import (
 )
 
 type Address struct {
-	primitives.Hash // Since Hash implements interfaces.IHash, and interfaces.IAddress is just a
-} // alais for interfaces.IHash, then I don't have to (nor can I) make
-// Address implement interfaces.IAddress... Weird, but that's the way it is.
+	primitives.Hash
+}
 
 var _ interfaces.IAddress = (*Address)(nil)
 
@@ -29,15 +28,6 @@ func RandomAddress() interfaces.IAddress {
 	h := primitives.RandomHash()
 	return CreateAddress(h)
 }
-
-/*
-func (b *Address) String() string {
-	txt, err := b.CustomMarshalText()
-	if err != nil {
-		return "<error>"
-	}
-	return string(txt)
-}*/
 
 func (a *Address) CustomMarshalText() (text []byte, err error) {
 	var out primitives.Buffer
