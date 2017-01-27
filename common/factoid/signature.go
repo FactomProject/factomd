@@ -21,6 +21,10 @@ type FactoidSignature struct {
 
 var _ interfaces.ISignature = (*FactoidSignature)(nil)
 
+func (s *FactoidSignature) IsSameAs(sig interfaces.ISignature) bool {
+	return primitives.AreBytesEqual(s.Bytes(), sig.Bytes())
+}
+
 func (s *FactoidSignature) Verify([]byte) bool {
 	fmt.Println("Verify is Broken")
 	return true
@@ -56,17 +60,6 @@ func (s FactoidSignature) String() string {
 		return "<error>"
 	}
 	return string(txt)
-}
-
-// Checks that the FactoidSignatures are the same.
-func (s1 *FactoidSignature) IsEqual(sig interfaces.IBlock) []interfaces.IBlock {
-	s2, ok := sig.(*FactoidSignature)
-	if !ok || // Not the right kind of interfaces.IBlock
-		s1.Signature != s2.Signature { // Not the right rcd
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, s1)
-	}
-	return nil
 }
 
 // Index is ignored.  We only have one FactoidSignature

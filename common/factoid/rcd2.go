@@ -40,10 +40,6 @@ func (b RCD_2) GetAddress() (interfaces.IAddress, error) {
 	return nil, nil
 }
 
-func (b RCD_2) GetHash() interfaces.IHash {
-	return nil
-}
-
 func (b RCD_2) NumberOfSignatures() int {
 	return 1
 }
@@ -51,6 +47,10 @@ func (b RCD_2) NumberOfSignatures() int {
 /***************************************
  *       Methods
  ***************************************/
+
+func (b RCD_2) IsSameAs(rcd interfaces.IRCD) bool {
+	return b.String() == rcd.String()
+}
 
 func (b RCD_2) UnmarshalBinary(data []byte) error {
 	_, err := b.UnmarshalBinaryData(data)
@@ -86,26 +86,6 @@ func (w RCD_2) Clone() interfaces.IRCD {
 		c.N_Addresses[i] = CreateAddress(address)
 	}
 	return c
-}
-
-func (a1 *RCD_2) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
-	a2, ok := addr.(*RCD_2)
-	if !ok || // Not the right kind of interfaces.IBlock
-		a1.N != a2.N || // Size of sig has to match
-		a1.M != a2.M || // Size of sig has to match
-		len(a1.N_Addresses) != len(a2.N_Addresses) { // Size of arrays has to match
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, a1)
-	}
-
-	for i, addr := range a1.N_Addresses {
-		r := addr.IsEqual(a2.N_Addresses[i])
-		if r != nil {
-			return append(r, a1)
-		}
-	}
-
-	return nil
 }
 
 func (t *RCD_2) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

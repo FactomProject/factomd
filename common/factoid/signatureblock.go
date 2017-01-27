@@ -5,7 +5,6 @@
 package factoid
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -27,9 +26,24 @@ type SignatureBlock struct {
 }
 
 var _ interfaces.ISignatureBlock = (*SignatureBlock)(nil)
-var _ interfaces.IBlock = (*SignatureBlock)(nil)
 
-func (b SignatureBlock) GetHash() interfaces.IHash { return nil }
+func (b *SignatureBlock) IsSameAs(s interfaces.ISignatureBlock) bool {
+	if s == nil {
+		return b == nil
+	}
+
+	sigs := s.GetSignatures()
+	if len(b.Signatures) != len(sigs) {
+		return false
+	}
+	for i := range b.Signatures {
+		if b.Signatures[i].IsSameAs(sigs[i]) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (b SignatureBlock) UnmarshalBinary(data []byte) error {
 	_, err := b.UnmarshalBinaryData(data)
@@ -50,32 +64,6 @@ func (b SignatureBlock) String() string {
 		return "<error>"
 	}
 	return string(txt)
-}
-
-func (s *SignatureBlock) IsEqual(signatureBlock interfaces.IBlock) []interfaces.IBlock {
-	sb, ok := signatureBlock.(interfaces.ISignatureBlock)
-
-	if !ok {
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, s)
-	}
-
-	sigs1 := s.GetSignatures()
-	sigs2 := sb.GetSignatures()
-	if len(sigs1) != len(sigs2) {
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, s)
-	}
-	for i, sig := range sigs1 {
-		a, err1 := sig.MarshalBinary()
-		b, err2 := sigs2[i].MarshalBinary()
-		if err1 != nil || err2 != nil || !bytes.Equal(a, b) {
-			r := make([]interfaces.IBlock, 0, 5)
-			return append(r, s)
-		}
-	}
-
-	return nil
 }
 
 func (s *SignatureBlock) AddSignature(sig interfaces.ISignature) {

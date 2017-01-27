@@ -5,7 +5,10 @@
 package interfaces
 
 type ITransaction interface {
-	IBlock
+	BinaryMarshallable
+	Printable
+	CustomMarshalText() ([]byte, error)
+
 	// Marshals the parts of the transaction that are signed to
 	// validate the transaction.  This includes the transaction header,
 	// the locktime, the inputs, outputs, and outputs to EntryCredits.  It
@@ -31,6 +34,7 @@ type ITransaction interface {
 	// This is the TxID of a factoid transaction
 	GetSigHash() IHash
 
+	GetHash() IHash
 	// Get the full hash of the transaction (including signatures)
 	GetFullHash() IHash
 

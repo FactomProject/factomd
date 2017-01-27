@@ -72,18 +72,14 @@ func (t *TransAddress) String() string {
 	return (string(txt))
 }
 
-func (t *TransAddress) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
-	a, ok := addr.(interfaces.ITransAddress)
-	if !ok || // Not the right kind of interfaces.IBlock
-		a.GetAmount() != t.GetAmount() {
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, t)
-	} // Amount is different
-	r := a.GetAddress().IsEqual(t.GetAddress()) // Address is different
-	if r != nil {
-		return append(r, t)
+func (t *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {
+	if t.GetAmount() != add.GetAmount() {
+		return false
 	}
-	return nil
+	if t.GetAddress().IsSameAs(add.GetAddress()) == false {
+		return false
+	}
+	return true
 }
 
 func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

@@ -88,9 +88,9 @@ func nextAuth2() interfaces.IRCD {
 	return rcd
 }
 
-var nb interfaces.IBlock
+var nb interfaces.ITransaction
 
-func getSignedTrans() interfaces.IBlock {
+func getSignedTrans() interfaces.ITransaction {
 	if nb != nil {
 		return nb
 	}
@@ -173,10 +173,9 @@ func TestTransaction_MarshalUnMarshal(t *testing.T) {
 		t.FailNow()
 	}
 
-	if xb.IsEqual(nb) != nil {
+	if xb.IsSameAs(nb) == false {
 		t.Errorf("Trans\n", nb, "Unmarshal Trans\n", xb)
 	}
-
 }
 
 func TestValidateAmounts(t *testing.T) {

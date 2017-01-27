@@ -25,14 +25,22 @@ type Signer interface {
 
 type ISignature interface {
 	BinaryMarshallable
+
 	SetSignature(sig []byte) error // Set or update the signature
 	GetSignature() *[64]byte
 	CustomMarshalText() ([]byte, error)
 	Bytes() []byte
+	IsSameAs(ISignature) bool
 }
 
 type IFullSignature interface {
-	ISignature
+	BinaryMarshallable
+
+	SetSignature(sig []byte) error // Set or update the signature
+	GetSignature() *[64]byte
+	CustomMarshalText() ([]byte, error)
+	Bytes() []byte
+
 	SetPub(publicKey []byte)
 	// Get the public key
 	GetKey() []byte
@@ -51,10 +59,14 @@ type IFullSignature interface {
  * how to apply the signatures to the addresses in the RCD.
  **************************************/
 type ISignatureBlock interface {
-	IBlock
-	GetSignatures() []ISignature
+	BinaryMarshallable
+	Printable
+
 	AddSignature(sig ISignature)
+	CustomMarshalText() ([]byte, error)
 	GetSignature(int) ISignature
+	GetSignatures() []ISignature
+	IsSameAs(ISignatureBlock) bool
 }
 
 type ISignable interface {

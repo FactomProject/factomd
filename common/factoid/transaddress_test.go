@@ -37,23 +37,23 @@ func TestTAddressEquals(t *testing.T) {
 		a1 := RandomTransAddress()
 		a2 := new(TransAddress)
 
-		if a1.IsEqual(a2) == nil {
+		if a1.IsSameAs(a2) == true {
 			t.Errorf("Addresses are equal while they shouldn't be")
 		}
 
 		a2.SetAddress(a1.GetAddress())
 		a2.SetAmount(a1.GetAmount())
-		if a1.IsEqual(a2) != nil {
+		if a1.IsSameAs(a2) == false {
 			t.Errorf("Addresses are not equal while they should be")
 		}
 
 		a2.Amount = a1.GetAmount() - 1
-		if a1.IsEqual(a2) == nil {
+		if a1.IsSameAs(a2) == true {
 			t.Errorf("Addresses are equal while they shouldn't be")
 		}
 
 		a2 = new(TransAddress)
-		if a1.IsEqual(a2) == nil {
+		if a1.IsSameAs(a2) == true {
 			t.Errorf("Addresses are equal while they shouldn't be")
 		}
 
@@ -66,11 +66,11 @@ func TestTAddressEquals(t *testing.T) {
 			t.Errorf("%v", err)
 		}
 
-		if a1.IsEqual(a2) != nil {
+		if a1.IsSameAs(a2) == false {
 			t.Errorf("Addresses are not equal while they should be")
 		}
 		a2.Address = RandomAddress()
-		if a1.IsEqual(a2) == nil {
+		if a1.IsSameAs(a2) == true {
 			t.Errorf("Addresses are equal while they shouldn't be")
 		}
 

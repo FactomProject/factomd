@@ -13,11 +13,15 @@ import ()
  **************************/
 
 type IRCD interface {
-	IBlock
-	GetAddress() (IAddress, error)
-	Clone() IRCD
-	NumberOfSignatures() int
+	BinaryMarshallable
+	Printable
+
 	CheckSig(trans ITransaction, sigblk ISignatureBlock) bool
+	Clone() IRCD
+	CustomMarshalText() ([]byte, error)
+	GetAddress() (IAddress, error)
+	NumberOfSignatures() int
+	IsSameAs(IRCD) bool
 }
 
 type IRCD_1 interface {

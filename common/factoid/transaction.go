@@ -38,6 +38,65 @@ var _ interfaces.ITransaction = (*Transaction)(nil)
 var _ interfaces.Printable = (*Transaction)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*Transaction)(nil)
 
+func (t *Transaction) IsSameAs(trans interfaces.ITransaction) bool {
+	if trans == nil {
+		if t == nil {
+			return true
+		}
+		return false
+	}
+	if t.GetTimestamp().GetTimeMilliUInt64() != trans.GetTimestamp().GetTimeMilliUInt64() {
+		return false
+	}
+	ins := trans.GetInputs()
+	if len(t.Inputs) != len(ins) {
+		return false
+	}
+	outs := trans.GetOutputs()
+	if len(t.Outputs) != len(outs) {
+		return false
+	}
+	outECs := trans.GetECOutputs()
+	if len(t.OutECs) != len(outECs) {
+		return false
+	}
+	rcds := trans.GetRCDs()
+	if len(t.RCDs) != len(ins) {
+		return false
+	}
+	sigs := trans.GetSignatureBlocks()
+	if len(t.SigBlocks) != len(ins) {
+		return false
+	}
+
+	for i := range t.Inputs {
+		if t.Inputs[i].IsSameAs(ins[i]) == false {
+			return false
+		}
+	}
+	for i := range t.Outputs {
+		if t.Outputs[i].IsSameAs(outs[i]) == false {
+			return false
+		}
+	}
+	for i := range t.OutECs {
+		if t.OutECs[i].IsSameAs(outECs[i]) == false {
+			return false
+		}
+	}
+	for i := range t.RCDs {
+		if t.RCDs[i].IsSameAs(rcds[i]) == false {
+			return false
+		}
+	}
+	for i := range t.SigBlocks {
+		if t.SigBlocks[i].IsSameAs(sigs[i]) == false {
+			return false
+		}
+	}
+	return true
+}
+
 func (w *Transaction) New() interfaces.BinaryMarshallableAndCopyable {
 	return new(Transaction)
 }
@@ -289,7 +348,7 @@ func (t Transaction) Validate(index int) error {
 		}
 		// If the Address (which is really a hash) isn't equal to the hash of
 		// the RCD, this transaction is bogus.
-		if t.Inputs[i].GetAddress().IsEqual(address) != nil {
+		if t.Inputs[i].GetAddress().IsSameAs(address) == false {
 			return fmt.Errorf("The %d Input does not match the %d RCD", i, i)
 		}
 	}
@@ -314,79 +373,6 @@ func (t Transaction) ValidateSignatures() error {
 		}
 		t.sigValid = true
 	}
-	return nil
-}
-
-// Tests if the transaction is equal in all of its structures, and
-// in order of the structures.  Largely used to test and debug, but
-// generally useful.
-func (t1 *Transaction) IsEqual(trans interfaces.IBlock) []interfaces.IBlock {
-	t2, ok := trans.(interfaces.ITransaction)
-
-	if !ok || // Not the right kind of interfaces.IBlock
-		len(t1.Inputs) != len(t2.GetInputs()) || // Size of arrays has to match
-		len(t1.Outputs) != len(t2.GetOutputs()) || // Size of arrays has to match
-		len(t1.OutECs) != len(t2.GetECOutputs()) { // Size of arrays has to match
-
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, t1)
-	}
-
-	for i, input := range t1.GetInputs() {
-		adr, err := t2.GetInput(i)
-		if err != nil {
-			r := make([]interfaces.IBlock, 0, 5)
-			return append(r, t1)
-		}
-		r := input.IsEqual(adr)
-		if r != nil {
-			return append(r, t1)
-		}
-
-	}
-	for i, output := range t1.GetOutputs() {
-		adr, err := t2.GetOutput(i)
-		if err != nil {
-			r := make([]interfaces.IBlock, 0, 5)
-			return append(r, t1)
-		}
-		r := output.IsEqual(adr)
-		if r != nil {
-			return append(r, t1)
-		}
-
-	}
-	for i, outEC := range t1.GetECOutputs() {
-		adr, err := t2.GetECOutput(i)
-		if err != nil {
-			r := make([]interfaces.IBlock, 0, 5)
-			return append(r, t1)
-		}
-		r := outEC.IsEqual(adr)
-		if r != nil {
-			return append(r, t1)
-		}
-
-	}
-	for i, a := range t1.RCDs {
-		adr, err := t2.GetRCD(i)
-		if err != nil {
-			r := make([]interfaces.IBlock, 0, 5)
-			return append(r, t1)
-		}
-		r := a.IsEqual(adr)
-		if r != nil {
-			return append(r, t1)
-		}
-
-	}
-	for i, s := range t1.SigBlocks {
-		r := s.IsEqual(t2.GetSignatureBlock(i))
-		if r != nil {
-			return append(r, t1)
-		}
-	}
-
 	return nil
 }
 
