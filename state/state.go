@@ -964,10 +964,14 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if err != nil || nextABlock == nil {
 		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
-			return nil, fmt.Errorf("Do not have signatures at height %d to validate DBStateMsg", dbheight)
-		}
-		for _, dbsig := range pl.DBSignatures {
-			allSigs = append(allSigs, dbsig.Signature)
+			dbkl, err := s.DB.FetchDBlockByHeight(dbheight)
+			if err != nil || dbkl == nil {
+				return nil, fmt.Errorf("Do not have signatures at height %d to validate DBStateMsg", dbheight)
+			}
+		} else {
+			for _, dbsig := range pl.DBSignatures {
+				allSigs = append(allSigs, dbsig.Signature)
+			}
 		}
 	} else {
 		abEntries := nextABlock.GetABEntries()
