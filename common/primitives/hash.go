@@ -77,6 +77,7 @@ func (h *Hash) UnmarshalText(b []byte) error {
 func (h Hash) Fixed() [constants.HASH_LENGTH]byte {
 	return h
 }
+
 func (h *Hash) Bytes() []byte {
 	return h.GetBytes()
 }
@@ -117,16 +118,6 @@ func (h *Hash) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 func (h *Hash) UnmarshalBinary(p []byte) (err error) {
 	_, err = h.UnmarshalBinaryData(p)
 	return
-}
-
-func (t Hash) IsEqual(hash interfaces.IBlock) []interfaces.IBlock {
-	h, ok := hash.(interfaces.IHash)
-	if !ok || !h.IsSameAs(&t) {
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, &t)
-	}
-
-	return nil
 }
 
 // Make a copy of the hash in this hash.  Changes to the return value WILL NOT be
@@ -211,13 +202,6 @@ func (h *Hash) IsMinuteMarker() bool {
 	}
 
 	return false
-}
-
-func (a Hash) CustomMarshalText() (text []byte, err error) {
-	var out Buffer
-	hash := hex.EncodeToString(a[:])
-	out.WriteString(hash)
-	return out.DeepCopyBytes(), nil
 }
 
 func (e *Hash) JSONByte() ([]byte, error) {

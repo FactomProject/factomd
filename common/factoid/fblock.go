@@ -322,52 +322,6 @@ func (b *FBlock) UnmarshalBinary(data []byte) (err error) {
 	return err
 }
 
-// Tests if the transaction is equal in all of its structures, and
-// in order of the structures.  Largely used to test and debug, but
-// generally useful.
-func (b1 *FBlock) IsEqual(block interfaces.IBlock) []interfaces.IBlock {
-	b2, ok := block.(*FBlock)
-
-	if !ok || // Not the right kind of interfaces.IBlock
-		b1.ExchRate != b2.ExchRate ||
-		b1.DBHeight != b2.DBHeight {
-		r := make([]interfaces.IBlock, 0, 3)
-		return append(r, b1)
-	}
-
-	r := b1.BodyMR.IsEqual(b2.BodyMR)
-	if r != nil {
-		return append(r, b1)
-	}
-	r = b1.PrevKeyMR.IsEqual(b2.PrevKeyMR)
-	if r != nil {
-		return append(r, b1)
-	}
-	r = b1.PrevLedgerKeyMR.IsEqual(b2.PrevLedgerKeyMR)
-	if r != nil {
-		return append(r, b1)
-	}
-
-	if b1.endOfPeriod != b2.endOfPeriod {
-		return append(r, b1)
-	}
-
-	for i, mm := range b1.endOfPeriod {
-		if b2.endOfPeriod[i] != mm {
-			return append(r, b1)
-		}
-	}
-
-	for i, trans := range b1.Transactions {
-		r := trans.IsEqual(b2.Transactions[i])
-		if r != nil {
-			return append(r, b1)
-		}
-	}
-
-	return nil
-}
-
 func (b *FBlock) GetChainID() interfaces.IHash {
 	return primitives.NewHash(constants.FACTOID_CHAINID)
 }

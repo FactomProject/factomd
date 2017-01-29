@@ -173,3 +173,13 @@ func (db *HybridDB) Clear(bucket []byte) error {
 	}
 	return nil
 }
+
+func (db *HybridDB) DoesKeyExist(bucket, key []byte) (bool, error) {
+	db.Sem.RLock()
+	defer db.Sem.RUnlock()
+	exist, err := db.temporaryStorage.DoesKeyExist(bucket, key)
+	if err != nil || exist == false {
+		return db.persistentStorage.DoesKeyExist(bucket, key)
+	}
+	return exist, nil
+}

@@ -38,19 +38,19 @@ func TestAddressEquals(t *testing.T) {
 	a1.SetBytes(address1[:])
 	a2.SetBytes(address1[:])
 
-	if a1.IsEqual(a2) != nil { // Out of the box, hashes should be equal
+	if a1.IsSameAs(a2) == false { // Out of the box, hashes should be equal
 		t.Errorf("Addresses are not equal")
 	}
 
 	a1.SetBytes(address2[:])
 
-	if a1.IsEqual(a2) == nil { // Now they should not be equal
+	if a1.IsSameAs(a2) == true { // Now they should not be equal
 		t.Errorf("Addresses are equal")
 	}
 
 	a2.SetBytes(address2[:])
 
-	if a1.IsEqual(a2) != nil { // Back to equality!
+	if a1.IsSameAs(a2) == false { // Back to equality!
 		t.Errorf("Addresses are not equal")
 	}
 }

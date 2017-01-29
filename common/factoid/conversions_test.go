@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/factoid"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 /*
@@ -52,6 +53,26 @@ func TestCombined(t *testing.T) {
 	}
 	if add != "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB" {
 		t.Error("Wrong address returned")
+	}
+}
+
+func TestPublicKeyStringToFactoidAddress(t *testing.T) {
+	add, err := PublicKeyStringToFactoidAddress("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if primitives.ConvertFctAddressToUserStr(add) != "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB" {
+		t.Error("Wrong address returned - %v", primitives.ConvertFctAddressToUserStr(add))
+	}
+}
+
+func TestPublicKeyStringToECAddress(t *testing.T) {
+	add, err := PublicKeyStringToECAddress("8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if primitives.ConvertECAddressToUserStr(add) != "EC2pn759osDzgF4BH5GsXw4NkgTMTrY6jQ7nhhvqkMoBmzjB4Soq" {
+		t.Error("Wrong address returned - %v", primitives.ConvertECAddressToUserStr(add))
 	}
 }
 

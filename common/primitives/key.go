@@ -12,6 +12,7 @@ import (
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 // PrivateKey contains Public/Private key pair
@@ -21,6 +22,19 @@ type PrivateKey struct {
 }
 
 var _ interfaces.Signer = (*PrivateKey)(nil)
+
+func (e *PrivateKey) Init() {
+	if e.Key == nil {
+		e.Key = new([ed25519.PrivateKeySize]byte)
+	}
+	if e.Pub == nil {
+		e.Pub = new(PublicKey)
+	}
+}
+
+func RandomPrivateKey() interfaces.Signer {
+	return NewPrivateKeyFromHexBytes(random.RandByteSliceOfLen(ed25519.PrivateKeySize))
+}
 
 func (pk *PrivateKey) CustomMarshalText2(string) ([]byte, error) {
 	return ([]byte)(hex.EncodeToString(pk.Key[:]) + pk.Pub.String()), nil
@@ -124,6 +138,10 @@ func (c *PublicKey) Copy() (*PublicKey, error) {
 		return nil, err
 	}
 	return h, nil
+}
+
+func (a PublicKey) Fixed() [ed25519.PublicKeySize]byte {
+	return a
 }
 
 func (a *PublicKey) IsSameAs(b *PublicKey) bool {

@@ -61,7 +61,7 @@ func TestRCD2MarshalUnmarshal(t *testing.T) {
 		}
 	}
 
-	if len(rcd.IsEqual(rcd2)) != 0 {
+	if rcd.IsSameAs(rcd2) == false {
 		t.Error("RCDs are not equal")
 	}
 }
@@ -89,7 +89,7 @@ func TestRCD2Clone(t *testing.T) {
 		}
 	}
 
-	if len(rcd.IsEqual(rcd2)) != 0 {
+	if rcd.IsSameAs(rcd2) == false {
 		t.Error("RCDs are not equal")
 	}
 }

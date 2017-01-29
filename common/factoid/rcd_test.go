@@ -40,13 +40,13 @@ func TestAuth2_Equals(t *testing.T) {
 	a1 := nextAuth2_rcd()
 	a2 := a1
 
-	if a1.IsEqual(a2) != nil {
+	if a1.IsSameAs(a2) == false {
 		t.Errorf("Addresses are not equal")
 	}
 
 	a1 = nextAuth2_rcd()
 
-	if a1.IsEqual(a2) == nil {
+	if a1.IsSameAs(a2) == true {
 		t.Errorf("Addresses are equal")
 	}
 }

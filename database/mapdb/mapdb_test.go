@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/database/mapdb"
 )
 
@@ -180,4 +181,41 @@ func RandomHex(length int) []byte {
 		return nil
 	}
 	return answer
+}
+
+func TestDoesKeyExist(t *testing.T) {
+	m := new(MapDB)
+	for i := 0; i < 1000; i++ {
+		key := random.RandNonEmptyByteSlice()
+		bucket := random.RandNonEmptyByteSlice()
+
+		test := new(TestData)
+		test.Str = "testtest"
+
+		err := m.Put(bucket, key, test)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		exists, err := m.DoesKeyExist(bucket, key)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if exists == false {
+			t.Errorf("Key does not exist")
+		}
+
+		key = random.RandNonEmptyByteSlice()
+		bucket = random.RandNonEmptyByteSlice()
+
+		exists, err = m.DoesKeyExist(bucket, key)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if exists == true {
+			t.Errorf("Key does exist while it shouldn't")
+		}
+	}
 }

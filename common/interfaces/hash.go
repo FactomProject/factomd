@@ -7,7 +7,8 @@ package interfaces
 import ()
 
 type IHash interface {
-	IBlock // Implements IBlock
+	BinaryMarshallable
+	Printable
 
 	Copy() IHash
 	Fixed() [32]byte       // Returns the fixed array for use in maps

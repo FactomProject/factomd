@@ -55,7 +55,7 @@ func (state *State) ValidatorLoop() {
 				state.JournalMessage(msg)
 				break loop
 			default: // No messages? Sleep for a bit
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(20 * time.Millisecond)
 			}
 		}
 

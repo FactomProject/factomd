@@ -99,7 +99,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 	var keeps []*interfaces.DBStateSent
 
 	for _, v := range sents {
-		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 15 {
+		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 1 {
 			if v.DBHeight == dbheight {
 				send = false
 			}
