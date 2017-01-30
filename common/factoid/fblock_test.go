@@ -74,6 +74,9 @@ func TestGetEntryHashes(t *testing.T) {
 	hashes := f.GetEntryHashes()
 	txs := f.Transactions
 
+	if len(txs) == 0 {
+		t.Errorf("No transactions found")
+	}
 	if len(hashes) != len(txs) {
 		t.Errorf("Returned wrong amount of hashes")
 		t.FailNow()
@@ -90,6 +93,9 @@ func TestGetEntrySigHashes(t *testing.T) {
 	f := GetDeterministicFBlock(t)
 	hashes := f.GetEntrySigHashes()
 	txs := f.Transactions
+	if len(txs) == 0 {
+		t.Errorf("No transactions found")
+	}
 
 	if len(hashes) != len(txs) {
 		t.Errorf("Returned wrong amount of hashes")
@@ -106,6 +112,10 @@ func TestGetEntrySigHashes(t *testing.T) {
 func TestGetTransactionByHash(t *testing.T) {
 	f := GetDeterministicFBlock(t)
 	txs := f.Transactions
+
+	if len(txs) == 0 {
+		t.Errorf("No transactions found")
+	}
 
 	for _, v := range txs {
 		tx := f.GetTransactionByHash(v.GetHash())
@@ -126,15 +136,11 @@ func GetDeterministicFBlock(t *testing.T) *FBlock {
 		t.Errorf("%v", err)
 	}
 
-	f := new(FBlock)
-	rest, err := f.UnmarshalBinaryData(raw)
+	f, err := UnmarshalFBlock(raw)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	if len(rest) > 0 {
-		t.Errorf("Returned too much data - %x", rest)
-	}
-	return f
+	return f.(*FBlock)
 }
 
 func TestMerkleTrees(t *testing.T) {
