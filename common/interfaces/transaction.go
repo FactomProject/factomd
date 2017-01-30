@@ -83,6 +83,8 @@ type ITransaction interface {
 
 	// is this user address associated with the inputs and outputs of this transaction
 	HasUserAddress(userAddr string) bool
+
+	IsSameAs(ITransaction) bool
 }
 
 type IPendingTransaction struct {
