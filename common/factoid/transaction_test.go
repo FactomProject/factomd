@@ -282,22 +282,14 @@ func TestHasUserAddress(t *testing.T) {
 	t.Logf("%v", tx.String())
 
 	for i := 0; i < 5; i++ {
-		add := testHelper.NewFactoidAddress(uint64(i))
-		str, err := PublicKeyStringToFactoidAddressString(add.String())
-		if err != nil {
-			t.Errorf("Error converting - %v", err)
-		}
+		_, _, str := testHelper.NewFactoidAddressStrings(uint64(i))
 		if tx.HasUserAddress(str) == false {
 			t.Errorf("Did not found user address %v", str)
 		}
 	}
 
 	for i := 0; i < 3; i++ {
-		add := testHelper.NewFactoidAddress(uint64(i + 5))
-		str, err := PublicKeyStringToFactoidAddressString(add.String())
-		if err != nil {
-			t.Errorf("Error converting - %v", err)
-		}
+		_, _, str := testHelper.NewFactoidAddressStrings(uint64(i))
 		if tx.HasUserAddress(str) == false {
 			t.Errorf("Did not found user address %v", str)
 		}
