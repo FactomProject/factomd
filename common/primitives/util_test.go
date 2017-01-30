@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
@@ -182,4 +183,86 @@ func TestValidateUserStr(t *testing.T) {
 			t.Errorf("Valid address not validating - %v", v)
 		}
 	}
+}
+
+func TestAddressConversions(t *testing.T) {
+	pub := "8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4"
+	user := "FA3Y1tBWnFpyoZUPr9ZH51R1gSC8r5x5kqvkXL3wy4uRvzFnuWLB"
+
+	h, err := NewShaHashFromStr(pub)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add := factoid.CreateAddress(h)
+
+	converted := ConvertFctAddressToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	pub = "8bee2930cbe4772ae5454c4801d4ef366276f6e4cc65bac18be03607c00288c4"
+	user = "EC2pn759osDzgF4BH5GsXw4NkgTMTrY6jQ7nhhvqkMoBmzjB4Soq"
+
+	h, err = NewShaHashFromStr(pub)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+
+	converted = ConvertECAddressToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	priv := "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973"
+	user = "Fs37iVGnZ7jShPudsXuB98qURxk35eLrmh9cgPuPpTXHAJEBkUTh"
+	h, err = NewShaHashFromStr(priv)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+	converted = ConvertFctPrivateToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	priv = "ec9f1cefa00406b80d46135a53504f1f4182d4c0f3fed6cca9281bc020eff973"
+	user = "Es4DsJ8KJshQv8gHjD5QX44EhhQem271vPR6SLmNxjsiEaMG1tpE"
+	h, err = NewShaHashFromStr(priv)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+	converted = ConvertECPrivateToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	//Es4DsJ8KJshQv8gHjD5QX44EhhQem271vPR6SLmNxjsiEaMG1tpE
+
+	/*
+	   // Convert Factoid Addresses
+	   func ConvertFctAddressToUserStr(addr interfaces.IAddress) string {
+	   	userd := ConvertAddressToUser(FactoidPrefix, addr)
+	   	return base58.Encode(userd)
+	   }
+
+	   // Convert Factoid Private Key
+	   func ConvertFctPrivateToUserStr(addr interfaces.IAddress) string {
+	   	userd := ConvertAddressToUser(FactoidPrivatePrefix, addr)
+	   	return base58.Encode(userd)
+	   }
+
+	   // Convert Entry Credits
+	   func ConvertECAddressToUserStr(addr interfaces.IAddress) string {
+	   	userd := ConvertAddressToUser(EntryCreditPrefix, addr)
+	   	return base58.Encode(userd)
+	   }
+
+	   // Convert Entry Credit Private key
+	   func ConvertECPrivateToUserStr(addr interfaces.IAddress) string {
+	   	userd := ConvertAddressToUser(EntryCreditPrivatePrefix, addr)
+	   	return base58.Encode(userd)
+	   }
+	*/
 }
