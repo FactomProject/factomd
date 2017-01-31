@@ -238,31 +238,59 @@ func TestAddressConversions(t *testing.T) {
 		t.Errorf("Wrong conversion - %v vs %v", converted, user)
 	}
 
-	//Es4DsJ8KJshQv8gHjD5QX44EhhQem271vPR6SLmNxjsiEaMG1tpE
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-address
+	pub = "0000000000000000000000000000000000000000000000000000000000000000"
+	user = "FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu"
 
-	/*
-	   // Convert Factoid Addresses
-	   func ConvertFctAddressToUserStr(addr interfaces.IAddress) string {
-	   	userd := ConvertAddressToUser(FactoidPrefix, addr)
-	   	return base58.Encode(userd)
-	   }
+	h, err = NewShaHashFromStr(pub)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
 
-	   // Convert Factoid Private Key
-	   func ConvertFctPrivateToUserStr(addr interfaces.IAddress) string {
-	   	userd := ConvertAddressToUser(FactoidPrivatePrefix, addr)
-	   	return base58.Encode(userd)
-	   }
+	converted = ConvertFctAddressToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
 
-	   // Convert Entry Credits
-	   func ConvertECAddressToUserStr(addr interfaces.IAddress) string {
-	   	userd := ConvertAddressToUser(EntryCreditPrefix, addr)
-	   	return base58.Encode(userd)
-	   }
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry-credit-address
+	pub = "0000000000000000000000000000000000000000000000000000000000000000"
+	user = "EC1m9mouvUQeEidmqpUYpYtXg8fvTYi6GNHaKg8KMLbdMBrFfmUa"
 
-	   // Convert Entry Credit Private key
-	   func ConvertECPrivateToUserStr(addr interfaces.IAddress) string {
-	   	userd := ConvertAddressToUser(EntryCreditPrivatePrefix, addr)
-	   	return base58.Encode(userd)
-	   }
-	*/
+	h, err = NewShaHashFromStr(pub)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+
+	converted = ConvertECAddressToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-private-keys
+	priv = "0000000000000000000000000000000000000000000000000000000000000000"
+	user = "Fs1KWJrpLdfucvmYwN2nWrwepLn8ercpMbzXshd1g8zyhKXLVLWj"
+	h, err = NewShaHashFromStr(priv)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+	converted = ConvertFctPrivateToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry-credit-private-keys
+	priv = "0000000000000000000000000000000000000000000000000000000000000000"
+	user = "Es2Rf7iM6PdsqfYCo3D1tnAR65SkLENyWJG1deUzpRMQmbh9F3eG"
+	h, err = NewShaHashFromStr(priv)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+	converted = ConvertECPrivateToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
 }
