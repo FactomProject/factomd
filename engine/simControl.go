@@ -707,11 +707,11 @@ func SimControl(listenTo int) {
 					} else {
 						os.Stderr.WriteString(fmt.Sprintf("=== Identity List === Total: %d Displaying: %d\n", len(fnodes[listenTo].State.Identities), amt))
 					}
-					for c, i := range fnodes[listenTo].State.Identities {
-						if amt != -1 && c == amt+1 {
+					for c, ident := range fnodes[listenTo].State.Identities {
+						if amt != -1 && c == amt {
 							break
 						}
-						stat := returnStatString(i.Status)
+						stat := returnStatString(ident.Status)
 						if show == 5 {
 							if c != amt {
 							} else {
@@ -720,41 +720,29 @@ func SimControl(listenTo int) {
 						} else {
 							os.Stderr.WriteString(fmt.Sprint("-----------------------------------Identity: ", c, "---------------------------------------\n"))
 						}
+						os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
+						os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", ident.IdentityChainID, "\n"))
 						if show == 0 || show == 5 {
 							if show == 0 || c == amt {
-								os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 1: ", i.Key1, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 2: ", i.Key2, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 3: ", i.Key3, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Key 4: ", i.Key4, "\n"))
-								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
-								for _, a := range i.AnchorKeys {
+								os.Stderr.WriteString(fmt.Sprint("Management Chain: ", ident.ManagementChainID, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", ident.MatryoshkaHash, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 1: ", ident.Key1, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 2: ", ident.Key2, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 3: ", ident.Key3, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Key4, "\n"))
+								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
+								for _, a := range ident.AnchorKeys {
 									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 								}
 							}
 						} else if show == 1 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Management Chain: ", ident.ManagementChainID, "\n"))
 						} else if show == 2 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Server Status:   ", stat, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Identity Chain:  ", i.IdentityChainID, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", ident.MatryoshkaHash, "\n"))
 						} else if show == 3 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey, "\n"))
+							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
 						} else if show == 4 {
-							os.Stderr.WriteString(fmt.Sprint("Server Salt:     ", fnodes[c].State.Salt.String()[:16], "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
-							os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n"))
-							for _, a := range i.AnchorKeys {
+							for _, a := range ident.AnchorKeys {
 								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 							}
 						}
