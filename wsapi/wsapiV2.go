@@ -152,14 +152,17 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		
 	// STATUS calls
 
+	case "audit-servers":
+		resp, jsonError = HandleAuditServers(state, params)
+		break
 	case "holding-queue":
 		resp, jsonError = HandleHoldingQueue(state, params)
 		break
-	case "node-status":
-		resp, jsonError = HandleNodeStatus(state, params)
-		break
 	case "network-info":
 		resp, jsonError = HandleNetworkInfo(state, params)
+		break
+	case "node-status":
+		resp, jsonError = HandleNodeStatus(state, params)
 		break
 	case "predictive-fer":
 		resp, jsonError = HandlePredictiveFER(state, params)

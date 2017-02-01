@@ -82,3 +82,19 @@ func HandlePredictiveFER(
 	r.PredictiveFER = state.GetPredictiveFER()
 	return r, nil
 }
+
+func HandleAuditServers(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		AuditServers []interfaces.IFctServer
+	}
+	r := new(ret)
+
+	r.AuditServers = state.GetAuditServers(state.GetLeaderHeight())
+	return r, nil
+}
