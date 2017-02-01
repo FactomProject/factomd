@@ -19,7 +19,8 @@ type MessageBase struct {
 	Peer2Peer     bool   // The nature of this message type, not marshaled with the message
 	LocalOnly     bool   // This message is only a local message, is not broadcasted and may skip verification
 
-	NoResend bool // Don't resend this message if true.
+	NoResend  bool // Don't resend this message if true.
+	ResendCnt int  // Put a limit on resends
 
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cache of the hash of a message
@@ -42,17 +43,27 @@ func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
+
+	// Dont' resend if we are behind
+	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
+		return
+	}
 	if m.NoResend {
 		return
 	}
+
+	if m.ResendCnt > 4 {
+		return
+	}
+	m.ResendCnt++
 
 	switch msg.(interface{}).(type) {
 	//case ServerFault:
 	//	go resend(state, msg, 20, 1)
 	case FullServerFault:
-		go resend(state, msg, 10, 2)
+		go resend(state, msg, 2, 5)
 	case ServerFault:
-		go resend(state, msg, 10, 2)
+		go resend(state, msg, 2, 5)
 	case MissingMsg:
 		go resend(state, msg, 1, 1)
 	case DBStateMissing:
