@@ -67,3 +67,18 @@ func HandleNetworkInfo(
 	r.NetworkID = state.GetNetworkID()
 	return r, nil
 }
+
+func HandlePredictiveFER(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		PredictiveFER uint64
+	}
+	r := new(ret)
+	r.PredictiveFER = state.GetPredictiveFER()
+	return r, nil
+}

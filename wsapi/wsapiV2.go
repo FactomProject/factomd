@@ -161,6 +161,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "network-info":
 		resp, jsonError = HandleNetworkInfo(state, params)
 		break
+	case "predictive-fer":
+		resp, jsonError = HandlePredictiveFER(state, params)
+		break
 	
 	// END STATUS calls
 		
