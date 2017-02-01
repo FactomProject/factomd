@@ -17,6 +17,7 @@ import (
 const EBLOCKEXPIRATION uint32 = 1000 //TODO: set properly
 
 var Expired int = 0
+var LatestReveal int = 0
 var TotalEntries int = 0
 
 type BlockchainState struct {
@@ -44,7 +45,7 @@ func (bs *BlockchainState) PopCommit(h interfaces.IHash) error {
 	if ok == false {
 		return fmt.Errorf("No commits found")
 	}
-	return pc.PopCommit()
+	return pc.PopCommit(bs.DBlockHeight)
 }
 
 func (bs *BlockchainState) PushCommit(entryHash interfaces.IHash, commitTxID interfaces.IHash) {
@@ -75,9 +76,12 @@ func (pc *PendingCommit) HasFreeCommit() bool {
 	return false
 }
 
-func (pc *PendingCommit) PopCommit() error {
+func (pc *PendingCommit) PopCommit(dblockHeight uint32) error {
 	if len(pc.Commits) == 0 {
 		return fmt.Errorf("No commits found")
+	}
+	if int(dblockHeight-pc.Commits[0].DBlockHeight) > LatestReveal {
+		LatestReveal = int(dblockHeight - pc.Commits[0].DBlockHeight)
 	}
 	pc.Commits = pc.Commits[1:]
 	return nil
@@ -92,7 +96,7 @@ func (pc *PendingCommit) ClearExpiredCommits(dblockHeight uint32) {
 		if len(pc.Commits) == 0 {
 			return
 		}
-		if pc.Commits[0].DBlockHeight+EBLOCKEXPIRATION > dblockHeight {
+		if pc.Commits[0].DBlockHeight+EBLOCKEXPIRATION < dblockHeight {
 			pc.Commits = pc.Commits[1:]
 			Expired++
 		} else {
@@ -262,9 +266,14 @@ func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 	if bs.HasFreeCommit(v) == true {
 
 	} else {
-		fmt.Printf("Non-committed entry found in an eBlock - %v, %v, %v\n", bs.DBlockHeight, block.String(), v.String())
+		fmt.Printf("Non-committed entry found in an eBlock - %v, %v, %v, %v\n", bs.DBlockHead.String(), bs.DBlockHeight, block.String(), v.String())
 	}
-	return bs.PopCommit(v)
+	err := bs.PopCommit(v)
+	if err != nil {
+		fmt.Printf("Error - %v\n", err)
+		//panic("")
+	}
+	return nil
 }
 
 func (bs *BlockchainState) Clone() (*BlockchainState, error) {

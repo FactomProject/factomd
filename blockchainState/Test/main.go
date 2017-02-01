@@ -71,7 +71,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 
 	max := int(dBlock.GetDatabaseHeight())
 	if max > 10000 {
-		max = 10000
+		//max = 10000
 	}
 
 	//for i := 0; i < int(dlock.GetDatabaseHeight()); i++ {
@@ -106,6 +106,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 	fmt.Printf("BL size - %v\n", len(b))
 
 	fmt.Printf("Expired - %v\n", Expired)
+	fmt.Printf("LatestReveal - %v\n", LatestReveal)
 	fmt.Printf("TotalEntries - %v\n", TotalEntries)
 }
 
