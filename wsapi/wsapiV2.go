@@ -158,6 +158,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "node-status":
 		resp, jsonError = HandleNodeStatus(state, params)
 		break
+	case "network-info":
+		resp, jsonError = HandleNetworkInfo(state, params)
+		break
 	
 	// END STATUS calls
 		

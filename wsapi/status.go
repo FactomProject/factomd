@@ -7,9 +7,9 @@ package wsapi
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	
-	"fmt" // DEBUG
+
 	"encoding/json" // DEBUG
+	"fmt"           // DEBUG
 )
 
 var _ = fmt.Sprintln("DEBUG")
@@ -26,7 +26,7 @@ func HandleHoldingQueue(
 		Messages []interfaces.IMsg
 	}
 	r := new(ret)
-	
+
 	for _, v := range state.LoadHoldingMap() {
 		r.Messages = append(r.Messages, v)
 	}
@@ -45,6 +45,25 @@ func HandleNodeStatus(
 	}
 	r := new(ret)
 	r.Status = state.GetStatus()
-	
+
+	return r, nil
+}
+
+func HandleNetworkInfo(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		NetworkNumber int
+		NetworkName   string
+		NetworkID     uint32
+	}
+	r := new(ret)
+	r.NetworkNumber = state.GetNetworkNumber()
+	r.NetworkName = state.GetNetworkName()
+	r.NetworkID = state.GetNetworkID()
 	return r, nil
 }
