@@ -149,6 +149,18 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "ablock-by-height":
 		resp, jsonError = HandleV2ABlockByHeight(state, params)
 		break
+		
+	// STATUS calls
+
+	case "holding-queue":
+		resp, jsonError = HandleHoldingQueue(state, params)
+		break
+	case "node-status":
+		resp, jsonError = HandleNodeStatus(state, params)
+		break
+	
+	// END STATUS calls
+		
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
