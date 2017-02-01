@@ -7,13 +7,7 @@ package wsapi
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	"encoding/json" // DEBUG
-	"fmt"           // DEBUG
 )
-
-var _ = fmt.Sprintln("DEBUG")
-var _ = json.Marshal // "DEBUG"
 
 func HandleHoldingQueue(
 	state interfaces.IState,
