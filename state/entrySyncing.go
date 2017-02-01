@@ -125,7 +125,7 @@ func (s *State) syncEntries(eights bool) {
 			// Dont have an eBlock?  Huh. We can go on, but we can't advance
 			if eBlock == nil {
 				alldone = false
-				continue
+				break
 			}
 
 			for _, entryhash := range eBlock.GetEntryHashes() {
