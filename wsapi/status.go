@@ -9,6 +9,38 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+func HandleAuditServers(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		AuditServers []interfaces.IFctServer
+	}
+	r := new(ret)
+
+	r.AuditServers = state.GetAuditServers(state.GetLeaderHeight())
+	return r, nil
+}
+
+func HandleFedServers(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		FederatedServers []interfaces.IFctServer
+	}
+	r := new(ret)
+
+	r.FederatedServers = state.GetFedServers(state.GetLeaderHeight())
+	return r, nil
+}
+
 func HandleHoldingQueue(
 	state interfaces.IState,
 	params interface{},
@@ -24,22 +56,6 @@ func HandleHoldingQueue(
 	for _, v := range state.LoadHoldingMap() {
 		r.Messages = append(r.Messages, v)
 	}
-	return r, nil
-}
-
-func HandleNodeStatus(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
-	type ret struct {
-		Status []string
-	}
-	r := new(ret)
-	r.Status = state.GetStatus()
-
 	return r, nil
 }
 
@@ -62,6 +78,22 @@ func HandleNetworkInfo(
 	return r, nil
 }
 
+func HandleNodeStatus(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		Status []string
+	}
+	r := new(ret)
+	r.Status = state.GetStatus()
+
+	return r, nil
+}
+
 func HandlePredictiveFER(
 	state interfaces.IState,
 	params interface{},
@@ -77,18 +109,3 @@ func HandlePredictiveFER(
 	return r, nil
 }
 
-func HandleAuditServers(
-	state interfaces.IState,
-	params interface{},
-) (
-	interface{},
-	*primitives.JSONError,
-) {
-	type ret struct {
-		AuditServers []interfaces.IFctServer
-	}
-	r := new(ret)
-
-	r.AuditServers = state.GetAuditServers(state.GetLeaderHeight())
-	return r, nil
-}
