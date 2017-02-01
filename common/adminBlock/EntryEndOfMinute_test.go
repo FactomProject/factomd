@@ -7,6 +7,37 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 )
 
+func TestEndOfMinuteEntryGetHash(t *testing.T) {
+	a := new(EndOfMinuteEntry)
+	h := a.Hash()
+	expected := "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7"
+	if h.String() != expected {
+		t.Errorf("Wrong hash returned - %v vs %v", h.String(), expected)
+	}
+}
+
+func TestEndOfMinuteEntryTypeIDCheck(t *testing.T) {
+	a := new(EndOfMinuteEntry)
+	b, err := a.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if b[0] != a.Type() {
+		t.Errorf("Invalid byte marshalled")
+	}
+	a2 := new(EndOfMinuteEntry)
+	err = a2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	b[0] = (b[0] + 1) % 255
+	err = a2.UnmarshalBinary(b)
+	if err == nil {
+		t.Errorf("No error caught")
+	}
+}
+
 func TestUnmarshalNilEndOfMinuteEntry(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {

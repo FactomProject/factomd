@@ -27,17 +27,13 @@ type RCD_1 struct {
 
 var _ interfaces.IRCD = (*RCD_1)(nil)
 
-/*************************************
- *       Stubs
- *************************************/
-
-func (b RCD_1) GetHash() interfaces.IHash {
-	return nil
-}
-
 /***************************************
  *       Methods
  ***************************************/
+
+func (b RCD_1) IsSameAs(rcd interfaces.IRCD) bool {
+	return b.String() == rcd.String()
+}
 
 func (b RCD_1) UnmarshalBinary(data []byte) error {
 	_, err := b.UnmarshalBinaryData(data)
@@ -107,17 +103,6 @@ func (a RCD_1) GetPublicKey() []byte {
 
 func (w1 RCD_1) NumberOfSignatures() int {
 	return 1
-}
-
-func (a1 *RCD_1) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
-	a2, ok := addr.(*RCD_1)
-
-	if !ok || a1.PublicKey != a2.PublicKey { // Not the right object or sigature
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, a1)
-	}
-
-	return nil
 }
 
 func (t *RCD_1) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

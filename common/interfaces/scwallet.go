@@ -82,7 +82,9 @@ type ISCWallet interface {
 }
 
 type IWalletEntry interface {
-	IBlock
+	BinaryMarshallable
+	Printable
+
 	// Set the RCD for this entry.  USE WITH CAUTION!  You change
 	// the hash and thus the address returned by the wallet entry!
 	SetRCD(IRCD)

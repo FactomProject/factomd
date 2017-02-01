@@ -24,7 +24,17 @@ var _ interfaces.BinaryMarshallable = (*IncreaseBalance)(nil)
 var _ interfaces.ShortInterpretable = (*IncreaseBalance)(nil)
 var _ interfaces.IECBlockEntry = (*IncreaseBalance)(nil)
 
+func (e *IncreaseBalance) Init() {
+	if e.ECPubKey == nil {
+		e.ECPubKey = new(primitives.ByteSlice32)
+	}
+	if e.TXID == nil {
+		e.TXID = primitives.NewZeroHash()
+	}
+}
+
 func (e *IncreaseBalance) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf(" %-20s\n", "IncreaseBalance"))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
@@ -37,7 +47,7 @@ func (e *IncreaseBalance) String() string {
 
 func NewIncreaseBalance() *IncreaseBalance {
 	r := new(IncreaseBalance)
-	r.TXID = primitives.NewZeroHash()
+	r.Init()
 	return r
 }
 
@@ -74,6 +84,7 @@ func (b *IncreaseBalance) Interpret() string {
 }
 
 func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
+	b.Init()
 	buf := new(primitives.Buffer)
 
 	buf.Write(b.ECPubKey[:])

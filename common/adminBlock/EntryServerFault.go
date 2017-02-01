@@ -22,6 +22,18 @@ type ServerFault struct {
 	SignatureList SigList
 }
 
+func (e *ServerFault) Init() {
+	if e.Timestamp == nil {
+		e.Timestamp = primitives.NewTimestampFromMilliseconds(0)
+	}
+	if e.ServerID == nil {
+		e.ServerID = primitives.NewZeroHash()
+	}
+	if e.AuditServerID == nil {
+		e.AuditServerID = primitives.NewZeroHash()
+	}
+}
+
 type SigList struct {
 	Length uint32
 	List   []interfaces.IFullSignature
@@ -36,6 +48,9 @@ func (sl *SigList) MarshalBinary() (data []byte, err error) {
 	binary.Write(&buf, binary.BigEndian, uint32(sl.Length))
 
 	for _, individualSig := range sl.List {
+		if individualSig == nil {
+			return nil, fmt.Errorf("Nil signature present")
+		}
 		if d, err := individualSig.MarshalBinary(); err != nil {
 			return nil, err
 		} else {
@@ -67,6 +82,7 @@ func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) 
 }
 
 func (e *ServerFault) UpdateState(state interfaces.IState) error {
+	e.Init()
 	core, err := e.MarshalCore()
 	if err != nil {
 		return err
@@ -102,6 +118,7 @@ func (e *ServerFault) UpdateState(state interfaces.IState) error {
 }
 
 func (m *ServerFault) MarshalCore() (data []byte, err error) {
+	m.Init()
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
@@ -129,6 +146,7 @@ func (m *ServerFault) MarshalCore() (data []byte, err error) {
 }
 
 func (m *ServerFault) MarshalBinary() (data []byte, err error) {
+	m.Init()
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error marshalling Invalid Server Fault: %v", r)
@@ -136,6 +154,7 @@ func (m *ServerFault) MarshalBinary() (data []byte, err error) {
 	}()
 
 	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
 
 	if d, err := m.Timestamp.MarshalBinary(); err != nil {
 		return nil, err
@@ -174,6 +193,10 @@ func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		}
 	}()
 	newData = data
+	if newData[0] != m.Type() {
+		return nil, fmt.Errorf("Invalid Entry type")
+	}
+	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
@@ -239,6 +262,7 @@ func (e *ServerFault) Hash() interfaces.IHash {
 }
 
 func (e *ServerFault) String() string {
+	e.Init()
 	str := fmt.Sprintf("    E: %35s -- DBheight %ds ServerID %8x AuditServer %8x, #sigs %d, VMIndex %d",
 		"EntryServerFault",
 		e.DBHeight,

@@ -45,18 +45,9 @@ func (t *TransAddress) GetUserAddress() string {
 	return t.UserAddress
 }
 
-// Not useful on TransAddress objects
-func (t *TransAddress) GetHash() interfaces.IHash {
-	return nil
-}
-
 func (t *TransAddress) UnmarshalBinary(data []byte) error {
 	_, err := t.UnmarshalBinaryData(data)
 	return err
-}
-
-func (t *TransAddress) CustomMarshalText() ([]byte, error) {
-	return nil, nil
 }
 
 func (e *TransAddress) JSONByte() ([]byte, error) {
@@ -68,22 +59,18 @@ func (e *TransAddress) JSONString() (string, error) {
 }
 
 func (t *TransAddress) String() string {
-	txt, _ := t.CustomMarshalText()
-	return (string(txt))
+	str, _ := t.JSONString()
+	return str
 }
 
-func (t *TransAddress) IsEqual(addr interfaces.IBlock) []interfaces.IBlock {
-	a, ok := addr.(interfaces.ITransAddress)
-	if !ok || // Not the right kind of interfaces.IBlock
-		a.GetAmount() != t.GetAmount() {
-		r := make([]interfaces.IBlock, 0, 5)
-		return append(r, t)
-	} // Amount is different
-	r := a.GetAddress().IsEqual(t.GetAddress()) // Address is different
-	if r != nil {
-		return append(r, t)
+func (t *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {
+	if t.GetAmount() != add.GetAmount() {
+		return false
 	}
-	return nil
+	if t.GetAddress().IsSameAs(add.GetAddress()) == false {
+		return false
+	}
+	return true
 }
 
 func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
@@ -166,4 +153,61 @@ func (ta TransAddress) CustomMarshalText2(label string) ([]byte, error) {
 
 func (ta TransAddress) CustomMarshalTextEC2(label string) ([]byte, error) {
 	return ta.CustomMarshalTextAll(false, label)
+}
+
+func (ta TransAddress) CustomMarshalTextInput() ([]byte, error) {
+	return ta.CustomMarshalText2("input")
+}
+
+func (ta TransAddress) StringInput() string {
+	b, _ := ta.CustomMarshalTextInput()
+	return string(b)
+}
+
+func (ta TransAddress) CustomMarshalTextOutput() ([]byte, error) {
+	return ta.CustomMarshalText2("output")
+}
+
+func (ta TransAddress) StringOutput() string {
+	b, _ := ta.CustomMarshalTextOutput()
+	return string(b)
+}
+
+func (ta TransAddress) CustomMarshalTextECOutput() ([]byte, error) {
+	return ta.CustomMarshalTextEC2("ecoutput")
+}
+
+func (ta TransAddress) StringECOutput() string {
+	b, _ := ta.CustomMarshalTextECOutput()
+	return string(b)
+}
+
+/******************************
+ * Helper functions
+ ******************************/
+
+func NewOutECAddress(address interfaces.IAddress, amount uint64) interfaces.ITransAddress {
+	ta := new(TransAddress)
+	ta.Amount = amount
+	ta.Address = address
+	ta.UserAddress = primitives.ConvertECAddressToUserStr(address)
+	return ta
+}
+
+func NewOutAddress(address interfaces.IAddress, amount uint64) interfaces.ITransAddress {
+	ta := new(TransAddress)
+	ta.Amount = amount
+	ta.Address = address
+	ta.UserAddress = primitives.ConvertFctAddressToUserStr(address)
+	return ta
+}
+
+func NewInAddress(address interfaces.IAddress, amount uint64) interfaces.ITransAddress {
+	ta := new(TransAddress)
+	ta.Amount = amount
+	ta.Address = address
+	//  at this point we know this address is an EC address.
+	//  so fill useraddress with a factoid formatted human readable address
+	ta.UserAddress = primitives.ConvertFctAddressToUserStr(address)
+	return ta
 }

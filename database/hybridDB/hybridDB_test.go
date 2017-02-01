@@ -2,10 +2,12 @@ package hybridDB_test
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/database/hybridDB"
 	"os"
 	"testing"
+
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
+	. "github.com/FactomProject/factomd/database/hybridDB"
 )
 
 type TestData struct {
@@ -254,5 +256,44 @@ func CleanupTest(t *testing.T, b *HybridDB) {
 	err = os.RemoveAll(dbFilename)
 	if err != nil {
 		t.Errorf("%v", err)
+	}
+}
+
+func TestDoesKeyExist(t *testing.T) {
+	m := NewBoltMapHybridDB(nil, dbFilename)
+	defer CleanupTest(t, m)
+
+	for i := 0; i < 1000; i++ {
+		key := random.RandNonEmptyByteSlice()
+		bucket := random.RandNonEmptyByteSlice()
+
+		test := new(TestData)
+		test.Str = "testtest"
+
+		err := m.Put(bucket, key, test)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		exists, err := m.DoesKeyExist(bucket, key)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if exists == false {
+			t.Errorf("Key does not exist")
+		}
+
+		key = random.RandNonEmptyByteSlice()
+		bucket = random.RandNonEmptyByteSlice()
+
+		exists, err = m.DoesKeyExist(bucket, key)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if exists == true {
+			t.Errorf("Key does exist while it shouldn't")
+		}
 	}
 }

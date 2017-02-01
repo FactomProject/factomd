@@ -27,7 +27,23 @@ type ECBlockHeader struct {
 var _ = fmt.Print
 var _ interfaces.Printable = (*ECBlockHeader)(nil)
 
+func (c *ECBlockHeader) Init() {
+	if c.BodyHash == nil {
+		c.BodyHash = primitives.NewZeroHash()
+	}
+	if c.PrevHeaderHash == nil {
+		c.PrevHeaderHash = primitives.NewZeroHash()
+	}
+	if c.PrevFullHash == nil {
+		c.PrevFullHash = primitives.NewZeroHash()
+	}
+	if c.HeaderExpansionArea == nil {
+		c.HeaderExpansionArea = make([]byte, 0)
+	}
+}
+
 func (e *ECBlockHeader) String() string {
+	e.Init()
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECChainID", e.GetECChainID().Bytes()[:3]))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "BodyHash", e.BodyHash.Bytes()[:3]))
@@ -105,10 +121,7 @@ func (e *ECBlockHeader) GetDBHeight() (height uint32) {
 
 func NewECBlockHeader() *ECBlockHeader {
 	h := new(ECBlockHeader)
-	h.BodyHash = primitives.NewZeroHash()
-	h.PrevHeaderHash = primitives.NewZeroHash()
-	h.PrevFullHash = primitives.NewZeroHash()
-	h.HeaderExpansionArea = make([]byte, 0)
+	h.Init()
 	return h
 }
 
@@ -121,6 +134,7 @@ func (e *ECBlockHeader) JSONString() (string, error) {
 }
 
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
+	e.Init()
 	buf := new(primitives.Buffer)
 
 	// 32 byte ECChainID

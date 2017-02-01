@@ -11,25 +11,22 @@ type IAddress interface {
 }
 
 type ITransAddress interface {
-	IBlock
+	BinaryMarshallable
+
 	GetAmount() uint64
 	SetAmount(uint64)
 	GetAddress() IAddress
 	SetAddress(IAddress)
-	CustomMarshalText2(string) ([]byte, error)
+	IsSameAs(ITransAddress) bool
+
+	CustomMarshalTextInput() ([]byte, error)
+	CustomMarshalTextOutput() ([]byte, error)
+	CustomMarshalTextECOutput() ([]byte, error)
+
+	StringInput() string
+	StringOutput() string
+	StringECOutput() string
 
 	GetUserAddress() string
 	SetUserAddress(string)
-}
-
-type IInAddress interface {
-	ITransAddress
-}
-
-type IOutAddress interface {
-	ITransAddress
-}
-
-type IOutECAddress interface {
-	ITransAddress
 }

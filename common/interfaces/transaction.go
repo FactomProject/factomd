@@ -5,7 +5,10 @@
 package interfaces
 
 type ITransaction interface {
-	IBlock
+	BinaryMarshallable
+	Printable
+	CustomMarshalText() ([]byte, error)
+
 	// Marshals the parts of the transaction that are signed to
 	// validate the transaction.  This includes the transaction header,
 	// the locktime, the inputs, outputs, and outputs to EntryCredits.  It
@@ -31,18 +34,19 @@ type ITransaction interface {
 	// This is the TxID of a factoid transaction
 	GetSigHash() IHash
 
+	GetHash() IHash
 	// Get the full hash of the transaction (including signatures)
 	GetFullHash() IHash
 
 	// Accessors the inputs, outputs, and Entry Credit outputs (ecoutputs)
 	// to this transaction.
-	GetInput(int) (IInAddress, error)
-	GetOutput(int) (IOutAddress, error)
-	GetECOutput(int) (IOutECAddress, error)
+	GetInput(int) (ITransAddress, error)
+	GetOutput(int) (ITransAddress, error)
+	GetECOutput(int) (ITransAddress, error)
 	GetRCD(int) (IRCD, error)
-	GetInputs() []IInAddress
-	GetOutputs() []IOutAddress
-	GetECOutputs() []IOutECAddress
+	GetInputs() []ITransAddress
+	GetOutputs() []ITransAddress
+	GetECOutputs() []ITransAddress
 	GetRCDs() []IRCD
 
 	GetVersion() uint64

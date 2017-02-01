@@ -43,19 +43,19 @@ func TestHashCopyAndIsEqual(t *testing.T) {
 		h1 := new(Hash)
 		h2 := new(Hash)
 
-		if h1.IsEqual(h2) != nil { // Out of the box, hashes should be equal
+		if h1.IsSameAs(h2) == false { // Out of the box, hashes should be equal
 			t.Errorf("Hashes are not equal")
 		}
 
 		h1.SetBytes(h[:])
 
-		if h1.IsEqual(h2) == nil { // Now they should not be equal
+		if h1.IsSameAs(h2) == true { // Now they should not be equal
 			t.Errorf("Hashes are equal")
 		}
 
 		h2.SetBytes(h[:])
 
-		if h1.IsEqual(h2) != nil { // Back to equality!
+		if h1.IsSameAs(h2) == false { // Back to equality!
 			t.Errorf("Hashes are not equal")
 		}
 
@@ -150,16 +150,7 @@ func TestHashStrings(t *testing.T) {
 		t.Error("Invalid conversion to string")
 	}
 
-	text, err := hash.CustomMarshalText()
-	if err != nil {
-		t.Error(err)
-	}
-
-	if string(text) != base {
-		t.Errorf("CustomMarshalText failed - %v vs %v", string(text), base)
-	}
-
-	text, err = hash.JSONByte()
+	text, err := hash.JSONByte()
 	if err != nil {
 		t.Error(err)
 	}

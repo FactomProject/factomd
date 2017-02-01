@@ -18,7 +18,7 @@ type IEntryBlock interface {
 	// AddEndOfMinuteMarker adds the End of Minute to the Entry Block. The End of
 	// Minut byte becomes the last byte in a 32 byte slice that is added to the
 	// Entry Block Body as an Entry Block Entry.
-	AddEndOfMinuteMarker(m byte)
+	AddEndOfMinuteMarker(m byte) error
 	// BuildHeader updates the Entry Block Header to include information about the
 	// Entry Block Body. BuildHeader should be run after the Entry Block Body has
 	// included all of its EntryEntries.
@@ -34,34 +34,39 @@ type IEntryBlock interface {
 
 	GetBody() IEBlockBody
 
+	BodyKeyMR() IHash
 	GetEntryHashes() []IHash
 	GetEntrySigHashes() []IHash
-	HeaderHash() (IHash, error)
 	GetHash() IHash
-	BodyKeyMR() IHash
+	HeaderHash() (IHash, error)
 }
 
 type IEntryBlockHeader interface {
+	Printable
 	BinaryMarshallable
 
-	GetChainID() IHash
-	SetChainID(IHash)
-	GetPrevKeyMR() IHash
-	SetPrevKeyMR(IHash)
-	GetPrevFullHash() IHash
-	SetPrevFullHash(IHash)
 	GetBodyMR() IHash
+	GetChainID() IHash
+	GetPrevFullHash() IHash
+	GetPrevKeyMR() IHash
 	SetBodyMR(bodyMR IHash)
+	SetChainID(IHash)
+	SetPrevFullHash(IHash)
+	SetPrevKeyMR(IHash)
 
-	GetEBSequence() uint32
-	SetEBSequence(uint32)
 	GetDBHeight() uint32
-	SetDBHeight(uint32)
+	GetEBSequence() uint32
 	GetEntryCount() uint32
+	SetDBHeight(uint32)
+	SetEBSequence(uint32)
 	SetEntryCount(uint32)
-	String() string
 }
 
 type IEBlockBody interface {
+	Printable
+
+	AddEBEntry(IHash)
+	AddEndOfMinuteMarker(m byte)
 	GetEBEntries() []IHash
+	MR() IHash
 }

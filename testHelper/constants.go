@@ -1,21 +1,21 @@
 package testHelper
 
 const (
-	DBlockHeadPrimaryIndex   = "eb222f3c8fc097edd39acce8a38f01580947a5e8e24e3a9a90a75f8eaafd4dc2"
-	DBlockHeadSecondaryIndex = "d852ca5c299b15ad155db7015377b70a1dca008d2192f3ba84f3669298c79f3d"
+	DBlockHeadPrimaryIndex   = "d2adb33448ab640d6220a7298b4500859d10197997a5bc121ab491659d8fc734"
+	DBlockHeadSecondaryIndex = "85d9650a05265d8671171e9aaf086acc1cfacad3e978c0f6874904d16ad33c1f"
 
 	ABlockHeadPrimaryIndex   = "956c41312070f58c628ca8027297e0af0aaaa7b8af7f84283fc5ad21a49cc00a"
 	ABlockHeadSecondaryIndex = "b07a252e7ff13ef3ae6b18356949af34f535eca0383a03f71f5f4c526c58b562"
 
-	ECBlockHeadPrimaryIndex   = "69bd749e7697642c218ac33ebb4283e477de540b6dfd00033a7301d8f4cc3ac6"
-	ECBlockHeadSecondaryIndex = "10ab25c2420ad107ec3056f964687ceece50a1d752cd13ac2fbf44241bae9d55"
+	ECBlockHeadPrimaryIndex   = "ef5ddb929ac3e46ba56a39caf84cd36a0dd79686824f6621009e05bfb4e4f0a5"
+	ECBlockHeadSecondaryIndex = "99d9e802a0d3e76265b50c24f6f5dc3d435a6fd1ac7de584a9bff733ba37f757"
 
-	FBlockHeadPrimaryIndex   = "c6cd2ab21d75af1e8589e1eb441411838a508d0674eb294bac4efdc591c3fef4"
-	FBlockHeadSecondaryIndex = "e6e8b0a9808bf9ffb53d04acff0dcafc2d5fc7139ef850ab1a5fc94dfd87931e"
+	FBlockHeadPrimaryIndex   = "84c8ac94c639117ef1b80d00c48f03c4a14bd74f17d86d56a8d8a4a73e6f91a8"
+	FBlockHeadSecondaryIndex = "5f4d14e8b4bf5d8545d7ccaccccc99d2757b6ef5eaf5ffac03705457bb9d65ac"
 
 	EBlockHeadPrimaryIndex   = "6e7e64ac45ff57edbf8537a0c99fba2e9ee351ef3d3f4abd93af9f01107e592c"
 	EBlockHeadSecondaryIndex = "1127ed78303976572f25dfba2a058e475234c079ea0d0f645280d03caff08347"
 
 	AnchorBlockHeadPrimaryIndex   = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604"
-	AnchorBlockHeadSecondaryIndex = "03897216bbdfb49f7fa17f6e86e9e1044499c94a49cfe1c3ddd02a2ca00521da"
+	AnchorBlockHeadSecondaryIndex = "5a7c8a0eec2f9b094a5319d542f81cc435e200967e6fb1bd9bf9f23a4f096fce"
 )

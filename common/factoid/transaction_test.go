@@ -6,7 +6,7 @@ package factoid_test
 
 import (
 	"encoding/hex"
-	"fmt"
+	//"fmt"
 	"math/rand"
 	"testing"
 
@@ -88,9 +88,9 @@ func nextAuth2() interfaces.IRCD {
 	return rcd
 }
 
-var nb interfaces.IBlock
+var nb interfaces.ITransaction
 
-func getSignedTrans() interfaces.IBlock {
+func getSignedTrans() interfaces.ITransaction {
 	if nb != nil {
 		return nb
 	}
@@ -122,6 +122,7 @@ func getSignedTrans() interfaces.IBlock {
 	return nb
 }
 
+/*
 // This test prints bunches of stuff that must be visually checked.
 // Mostly we keep it commented out.
 func TestTransaction(t *testing.T) {
@@ -130,6 +131,7 @@ func TestTransaction(t *testing.T) {
 	fmt.Printf("Transaction:\n%slen: %d\n", string(bytes), len(bytes))
 	fmt.Println("\n---------------------------------------------------------------------")
 }
+*/
 
 func TestAddress_MarshalUnMarshal(t *testing.T) {
 	a := nextAddress()
@@ -173,10 +175,9 @@ func TestTransaction_MarshalUnMarshal(t *testing.T) {
 		t.FailNow()
 	}
 
-	if xb.IsEqual(nb) != nil {
+	if xb.IsSameAs(nb) == false {
 		t.Errorf("Trans\n", nb, "Unmarshal Trans\n", xb)
 	}
-
 }
 
 func TestValidateAmounts(t *testing.T) {

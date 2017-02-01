@@ -55,6 +55,8 @@ type State struct {
 	ExportDataSubpath string
 
 	DBStatesSent            []*interfaces.DBStateSent
+	DBStatesReceivedBase    int
+	DBStatesReceived        []*messages.DBStateMsg
 	LocalServerPrivKey      string
 	DirectoryBlockInSeconds int
 	PortNumber              int
@@ -876,6 +878,24 @@ func (s *State) GetAndLockDB() interfaces.DBOverlay {
 func (s *State) UnlockDB() {
 }
 
+// Checks ChainIDs to determine if we need their entries to process entries and transactions.
+func (s *State) Needed(eb interfaces.IEntryBlock) bool {
+	id := []byte{0x88, 0x88, 0x88}
+	fer := []byte{0x11, 0x11, 0x11}
+
+	if eb.GetDatabaseHeight() < 2 {
+		return true
+	}
+	cid := eb.GetChainID().Bytes()
+	if bytes.Compare(id[:3], cid) == 0 {
+		return true
+	}
+	if bytes.Compare(id[:3], fer) == 0 {
+		return true
+	}
+	return false
+}
+
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
@@ -919,10 +939,12 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 			eBlock, err := s.DB.FetchEBlock(v.GetKeyMR())
 			if err == nil && eBlock != nil {
 				eBlocks = append(eBlocks, eBlock)
-				for _, e := range eBlock.GetEntryHashes() {
-					entry, err := s.DB.FetchEntry(e)
-					if err == nil && entry != nil {
-						entries = append(entries, entry)
+				if s.Needed(eBlock) {
+					for _, e := range eBlock.GetEntryHashes() {
+						entry, err := s.DB.FetchEntry(e)
+						if err == nil && entry != nil {
+							entries = append(entries, entry)
+						}
 					}
 				}
 			}
@@ -942,10 +964,14 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if err != nil || nextABlock == nil {
 		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
-			return nil, fmt.Errorf("Do not have signatures at height %d to create DBStateMsg with", dbheight)
-		}
-		for _, dbsig := range pl.DBSignatures {
-			allSigs = append(allSigs, dbsig.Signature)
+			dbkl, err := s.DB.FetchDBlockByHeight(dbheight)
+			if err != nil || dbkl == nil {
+				return nil, fmt.Errorf("Do not have signatures at height %d to validate DBStateMsg", dbheight)
+			}
+		} else {
+			for _, dbsig := range pl.DBSignatures {
+				allSigs = append(allSigs, dbsig.Signature)
+			}
 		}
 	} else {
 		abEntries := nextABlock.GetABEntries()

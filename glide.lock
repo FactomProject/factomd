@@ -1,5 +1,5 @@
 hash: 8dc34ac6836e01df2d658234329fc55b6d65f2572c77a522039088a970cf44c5
-updated: 2016-12-28T16:47:10.110440216-06:00
+updated: 2017-01-29T01:18:33.402408863-06:00
 imports:
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
@@ -32,14 +32,14 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: f641223f2d5e74d1bfaa6473dd920564646bbbc1
+  version: 1468a74125c1f969f60565aa960cb80b6389c7bf
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-cli
-  version: 8a472877a797be2e8a7c70a08f20116bd80b0691
+  version: a1d47422f6628afb2377093c04a615d4cc2777e6
 - name: github.com/FactomProject/factom-walletd
-  version: f130c64b8a02801e84244a914c3cd740425db483
+  version: e265af8e2a21f0dea6426ca434f1bef9bd123ae1
 - name: github.com/FactomProject/fctwallet
   version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
 - name: github.com/FactomProject/fsnotify
@@ -76,7 +76,7 @@ imports:
 - name: github.com/FactomProject/netki-go-partner-client
   version: 426acb535e66cc2f9e6226ae254555e3572fd142
 - name: github.com/FactomProject/serveridentity
-  version: cc2dd975de3b156d6ff5160c5fbbedc25f6fe2a3
+  version: e085562080f86875a7c6aa82031560e259617479
   subpackages:
   - identity
   - utils
