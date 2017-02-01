@@ -69,8 +69,13 @@ func CheckDatabase(db interfaces.IDatabase) {
 
 	fmt.Printf("\tStarting\n")
 
-	for i := 0; i < int(dBlock.GetDatabaseHeight()); i++ {
+	max := int(dBlock.GetDatabaseHeight())
+	if max > 10000 {
+		max = 10000
+	}
 
+	//for i := 0; i < int(dlock.GetDatabaseHeight()); i++ {
+	for i := 0; i < max; i++ {
 		set := FetchBlockSet(dbo, i)
 		if i%1000 == 0 {
 			fmt.Printf("\"%v\", //%v\n", set.DBlock.DatabasePrimaryIndex(), set.DBlock.GetDatabaseHeight())
@@ -99,6 +104,9 @@ func CheckDatabase(db interfaces.IDatabase) {
 		panic(err)
 	}
 	fmt.Printf("BL size - %v\n", len(b))
+
+	fmt.Printf("Expired - %v\n", Expired)
+	fmt.Printf("TotalEntries - %v\n", TotalEntries)
 }
 
 type BlockSet struct {

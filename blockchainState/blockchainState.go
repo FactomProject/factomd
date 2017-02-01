@@ -14,7 +14,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const EBLOCKEXPIRATION uint32 = 18 //TODO: set properly
+const EBLOCKEXPIRATION uint32 = 1000 //TODO: set properly
+
+var Expired int = 0
+var TotalEntries int = 0
 
 type BlockchainState struct {
 	DBlockHead   interfaces.IHash
@@ -25,7 +28,82 @@ type BlockchainState struct {
 	FBalances    map[string]uint64
 	ExchangeRate uint64
 
-	PendingCommits map[string]uint32 //entry hash: current DBlock height
+	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
+}
+
+func (bs *BlockchainState) HasFreeCommit(h interfaces.IHash) bool {
+	pc, ok := bs.PendingCommits[h.String()]
+	if ok == false {
+		return false
+	}
+	return pc.HasFreeCommit()
+}
+
+func (bs *BlockchainState) PopCommit(h interfaces.IHash) error {
+	pc, ok := bs.PendingCommits[h.String()]
+	if ok == false {
+		return fmt.Errorf("No commits found")
+	}
+	return pc.PopCommit()
+}
+
+func (bs *BlockchainState) PushCommit(entryHash interfaces.IHash, commitTxID interfaces.IHash) {
+	if bs.PendingCommits[entryHash.String()] == nil {
+		bs.PendingCommits[entryHash.String()] = new(PendingCommit)
+	}
+	bs.PendingCommits[entryHash.String()].PushCommit(commitTxID, bs.DBlockHeight)
+}
+
+func (bs *BlockchainState) ClearExpiredCommits() error {
+	for k, v := range bs.PendingCommits {
+		v.ClearExpiredCommits(bs.DBlockHeight)
+		if v.HasFreeCommit() == false {
+			delete(bs.PendingCommits, k)
+		}
+	}
+	return nil
+}
+
+type PendingCommit struct {
+	Commits []SingleCommit
+}
+
+func (pc *PendingCommit) HasFreeCommit() bool {
+	if len(pc.Commits) > 0 {
+		return true
+	}
+	return false
+}
+
+func (pc *PendingCommit) PopCommit() error {
+	if len(pc.Commits) == 0 {
+		return fmt.Errorf("No commits found")
+	}
+	pc.Commits = pc.Commits[1:]
+	return nil
+}
+
+func (pc *PendingCommit) PushCommit(commitTxID interfaces.IHash, dblockHeight uint32) {
+	pc.Commits = append(pc.Commits, SingleCommit{DBlockHeight: dblockHeight, CommitTxID: commitTxID.String()})
+}
+
+func (pc *PendingCommit) ClearExpiredCommits(dblockHeight uint32) {
+	for {
+		if len(pc.Commits) == 0 {
+			return
+		}
+		if pc.Commits[0].DBlockHeight+EBLOCKEXPIRATION > dblockHeight {
+			pc.Commits = pc.Commits[1:]
+			Expired++
+		} else {
+			return
+		}
+	}
+}
+
+type SingleCommit struct {
+	DBlockHeight uint32
+	CommitTxID   string
 }
 
 func (bs *BlockchainState) Init() {
@@ -39,7 +117,7 @@ func (bs *BlockchainState) Init() {
 		bs.FBalances = map[string]uint64{}
 	}
 	if bs.PendingCommits == nil {
-		bs.PendingCommits = map[string]uint32{}
+		bs.PendingCommits = map[string]*PendingCommit{}
 	}
 }
 
@@ -136,7 +214,7 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 			return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 		}
 		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
-		bs.PendingCommits[e.GetEntryHash().String()] = bs.DBlockHeight
+		bs.PushCommit(e.GetEntryHash(), v.Hash())
 		break
 	case entryCreditBlock.ECIDChainCommit:
 		e := v.(*entryCreditBlock.CommitChain)
@@ -144,7 +222,7 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 			return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 		}
 		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
-		bs.PendingCommits[e.GetEntryHash().String()] = bs.DBlockHeight
+		bs.PushCommit(e.GetEntryHash(), v.Hash())
 		break
 	default:
 		break
@@ -163,20 +241,11 @@ func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock) erro
 	return bs.ClearExpiredCommits()
 }
 
-func (bs *BlockchainState) ClearExpiredCommits() error {
-	for k, v := range bs.PendingCommits {
-		if v+EBLOCKEXPIRATION > bs.DBlockHeight {
-			delete(bs.PendingCommits, k)
-		}
-	}
-	return nil
-}
-
 func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock) error {
 	bs.Init()
 	eHashes := eBlock.GetEntryHashes()
 	for _, v := range eHashes {
-		err := bs.ProcessEntryHash(v)
+		err := bs.ProcessEntryHash(v, eBlock.GetHash())
 		if err != nil {
 			return err
 		}
@@ -184,19 +253,18 @@ func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock) error {
 	return nil
 }
 
-func (bs *BlockchainState) ProcessEntryHash(v interfaces.IHash) error {
-	return nil
-
+func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 	bs.Init()
 	if v.IsMinuteMarker() {
 		return nil
 	}
-	_, ok := bs.PendingCommits[v.String()]
-	if ok == false {
-		return fmt.Errorf("Non-committed entry found in an eBlock - %v", v.String())
+	TotalEntries++
+	if bs.HasFreeCommit(v) == true {
+
+	} else {
+		fmt.Printf("Non-committed entry found in an eBlock - %v, %v, %v\n", bs.DBlockHeight, block.String(), v.String())
 	}
-	delete(bs.PendingCommits, v.String())
-	return nil
+	return bs.PopCommit(v)
 }
 
 func (bs *BlockchainState) Clone() (*BlockchainState, error) {
