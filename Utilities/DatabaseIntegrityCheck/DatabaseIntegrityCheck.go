@@ -49,15 +49,15 @@ func main() {
 		}
 	}
 
-	CheckDatabase(dbase)
+	dbo := databaseOverlay.NewOverlay(dbase)
+	CheckDatabase(dbo)
+	//CheckMinuteNumbers(dbo)
 }
 
-func CheckDatabase(db interfaces.IDatabase) {
-	if db == nil {
+func CheckDatabase(dbo interfaces.DBOverlay) {
+	if dbo == nil {
 		return
 	}
-
-	dbo := databaseOverlay.NewOverlay(db)
 
 	dBlock, err := dbo.FetchDBlockHead()
 	if err != nil {
@@ -170,6 +170,36 @@ func CheckDatabase(db interfaces.IDatabase) {
 	}
 
 	fmt.Printf("\tFinished looking for free-floating blocks\n")
+
+	//CheckMinuteNumbers(dbo)
+}
+
+func CheckMinuteNumbers(dbo interfaces.DBOverlay) {
+	fmt.Printf("\tChecking Minute Numbers\n")
+
+	ecBlocks, err := dbo.FetchAllECBlocks()
+	if err != nil {
+		panic(err)
+	}
+	for _, v := range ecBlocks {
+		entries := v.GetEntries()
+		found := 0
+		lastNumber := 0
+		for _, e := range entries {
+			if e.ECID() == entryCreditBlock.ECIDMinuteNumber {
+				number := int(e.(*entryCreditBlock.MinuteNumber).Number)
+				if number != lastNumber+1 {
+					fmt.Printf("Block #%v %v, Minute Number %v is not last minute plus 1\n", v.GetDatabaseHeight(), v.GetHash().String(), number)
+				}
+				lastNumber = number
+				found++
+			}
+		}
+		if found != 10 {
+			fmt.Printf("Block #%v %v only contains %v minute numbers\n", v.GetDatabaseHeight(), v.GetHash().String(), found)
+		}
+	}
+	fmt.Printf("\tFinished checking Minute Numbers\n")
 }
 
 type BlockSet struct {
