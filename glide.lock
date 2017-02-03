@@ -81,7 +81,7 @@ imports:
   - identity
   - utils
 - name: github.com/FactomProject/snappy-go
-  version: 9d147f2b8f767adca2a29f9728658681081b03a8
+  version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
   subpackages:
   - snappy
 - name: github.com/FactomProject/web
