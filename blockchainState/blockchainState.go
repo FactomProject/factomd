@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const EBLOCKEXPIRATION uint32 = 1000 //TODO: set properly
+const EBLOCKEXPIRATION uint32 = 20 //TODO: set properly
 
 var Expired int = 0
 var LatestReveal int = 0
@@ -23,7 +23,12 @@ var TotalEntries int = 0
 type BlockchainState struct {
 	DBlockHead   interfaces.IHash
 	DBlockHeight uint32
-	BlockHeads   map[string]interfaces.IHash
+
+	ECBlockHead interfaces.IHash
+	FBlockHead  interfaces.IHash
+	ABlockHead  interfaces.IHash
+
+	BlockHeads map[string]interfaces.IHash
 
 	ECBalances   map[string]uint64
 	FBalances    map[string]uint64
@@ -44,6 +49,7 @@ func (bs *BlockchainState) PopCommit(h interfaces.IHash) error {
 	pc, ok := bs.PendingCommits[h.String()]
 	if ok == false {
 		return fmt.Errorf("No commits found")
+		//return nil
 	}
 	return pc.PopCommit(bs.DBlockHeight)
 }
@@ -123,12 +129,29 @@ func (bs *BlockchainState) Init() {
 	if bs.PendingCommits == nil {
 		bs.PendingCommits = map[string]*PendingCommit{}
 	}
+
+	if bs.DBlockHead == nil {
+		bs.DBlockHead = primitives.NewZeroHash()
+	}
+	if bs.FBlockHead == nil {
+		bs.FBlockHead = primitives.NewZeroHash()
+	}
+	if bs.ECBlockHead == nil {
+		bs.ECBlockHead = primitives.NewZeroHash()
+	}
+	if bs.ABlockHead == nil {
+		bs.ABlockHead = primitives.NewZeroHash()
+	}
 }
 
-func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock,
+func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aBlock interfaces.IAdminBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock,
 	eBlocks []interfaces.IEntryBlock) error {
 	bs.Init()
 	err := bs.ProcessDBlock(dBlock)
+	if err != nil {
+		return err
+	}
+	err = bs.ProcessABlock(aBlock)
 	if err != nil {
 		return err
 	}
@@ -149,6 +172,11 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, fB
 
 func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) error {
 	bs.Init()
+
+	if bs.DBlockHead.String() != dBlock.GetHeader().GetPrevKeyMR().String() {
+		fmt.Printf("Invalid DBlock %v previous hash - expected %v, got %v\n", dBlock.DatabasePrimaryIndex().String(), bs.DBlockHead.String(), dBlock.GetHeader().GetPrevKeyMR().String())
+	}
+
 	bs.DBlockHead = dBlock.DatabasePrimaryIndex()
 	bs.DBlockHeight = dBlock.GetDatabaseHeight()
 
@@ -160,8 +188,18 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 	return nil
 }
 
+func (bs *BlockchainState) ProcessABlock(aBlock interfaces.IAdminBlock) error {
+	return nil
+}
+
 func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 	bs.Init()
+
+	if bs.FBlockHead.String() != fBlock.GetPrevKeyMR().String() {
+		fmt.Printf("Invalid FBlock %v previous hash - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHead.String(), fBlock.GetPrevKeyMR().String())
+	}
+	bs.FBlockHead = fBlock.DatabasePrimaryIndex()
+
 	transactions := fBlock.GetTransactions()
 	for _, v := range transactions {
 		err := bs.ProcessFactoidTransaction(v)
@@ -195,6 +233,12 @@ func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction)
 
 func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) error {
 	bs.Init()
+
+	if bs.ECBlockHead.String() != ecBlock.GetHeader().GetPrevHeaderHash().String() {
+		fmt.Printf("Invalid ECBlock %v previous hash - expected %v, got %v\n", ecBlock.DatabasePrimaryIndex().String(), bs.ECBlockHead.String(), ecBlock.GetHeader().GetPrevHeaderHash().String())
+	}
+	bs.ECBlockHead = ecBlock.DatabasePrimaryIndex()
+
 	entries := ecBlock.GetEntries()
 	for _, v := range entries {
 		err := bs.ProcessECEntries(v)

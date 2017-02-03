@@ -74,22 +74,35 @@ func CheckDatabase(db interfaces.IDatabase) {
 		//max = 10000
 	}
 
+	specialBlocks := []int{22880, 22882, 22938, 22946, 22972, 22973, 23261, 31451, 49225, 50145, 54339, 57198, 62763, 67791, 69064, 70411}
+	nextSpacial := specialBlocks[0]
+	specialBlocks = specialBlocks[1:]
+
 	//for i := 0; i < int(dlock.GetDatabaseHeight()); i++ {
 	for i := 0; i < max; i++ {
 		set := FetchBlockSet(dbo, i)
 		if i%1000 == 0 {
 			fmt.Printf("\"%v\", //%v\n", set.DBlock.DatabasePrimaryIndex(), set.DBlock.GetDatabaseHeight())
 		}
+		if i == nextSpacial {
+			if len(specialBlocks) > 0 {
+				nextSpacial = specialBlocks[0]
+				specialBlocks = specialBlocks[1:]
+			}
+			//ec := FetchFloatingBlockBefore(dbo, i)
+			//bs.ProcessECBlock(ec)
+		}
 
-		err := bs.ProcessBlockSet(set.DBlock, set.FBlock, set.ECBlock, set.EBlocks)
+		err := bs.ProcessBlockSet(set.DBlock, set.ABlock, set.FBlock, set.ECBlock, set.EBlocks)
 		if err != nil {
 			panic(err)
 		}
-
-		err = bl.ProcessFBlock(set.FBlock)
-		if err != nil {
-			panic(err)
-		}
+		/*
+			err = bl.ProcessFBlock(set.FBlock)
+			if err != nil {
+				panic(err)
+			}
+		*/
 	}
 	fmt.Printf("\tFinished!\n")
 
@@ -116,6 +129,23 @@ type BlockSet struct {
 	FBlock  interfaces.IFBlock
 	DBlock  interfaces.IDirectoryBlock
 	EBlocks []interfaces.IEntryBlock
+}
+
+func FetchFloatingBlockBefore(dbo interfaces.DBOverlay, index int) interfaces.IEntryCreditBlock {
+	dBlock, err := dbo.FetchDBlockByHeight(uint32(index))
+	if err != nil {
+		panic(err)
+	}
+	ec := dBlock.GetDBEntries()[1] //EC Block
+	ecBlock, err := dbo.FetchECBlock(ec.GetKeyMR())
+	if err != nil {
+		panic(err)
+	}
+	ecBlock, err = dbo.FetchECBlock(ecBlock.GetHeader().GetPrevHeaderHash())
+	if err != nil {
+		panic(err)
+	}
+	return ecBlock
 }
 
 func FetchBlockSet(dbo interfaces.DBOverlay, index int) *BlockSet {
