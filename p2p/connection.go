@@ -440,6 +440,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 		c.metrics.BytesSent += parcel.Header.Length
 		c.metrics.MessagesSent += 1
 	default:
+		fmt.Println("****",err)
 		c.handleNetErrors(err)
 	}
 }
