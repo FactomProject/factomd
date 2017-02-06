@@ -39,6 +39,7 @@ type Connection struct {
 	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
+	fails						int								// How many fails have we detected
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -423,7 +424,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	debug(c.peer.PeerIdent(), "sendParcel() sending message to network of type: %s", parcel.MessageType())
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	verbose(c.peer.PeerIdent(), "sendParcel() Sanity check. State: %s Encoder: %+v, Parcel: %s", c.ConnectionState(), c.encoder, parcel.MessageType())
-	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline))
+	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline*2))
 
 	//deadline := time.Now().Add(NetworkDeadline)
 	//if len(parcel.Payload) > 1000*10 {
@@ -463,6 +464,7 @@ func (c *Connection) processReceives() {
 			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
+			fmt.Println("****",err)
 			c.handleNetErrors(err)
 			return
 		}
