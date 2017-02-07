@@ -25,6 +25,16 @@ func HandleAuditServers(
 	return r, nil
 }
 
+func HandleConfig(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	return state.GetCfg(), nil
+}
+
 func HandleFedServers(
 	state interfaces.IState,
 	params interface{},

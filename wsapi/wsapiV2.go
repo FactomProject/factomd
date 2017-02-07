@@ -155,6 +155,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "audit-servers":
 		resp, jsonError = HandleAuditServers(state, params)
 		break
+	case "configuration":
+		resp, jsonError = HandleConfig(state, params)
+		break
 	case "federated-servers":
 		resp, jsonError = HandleFedServers(state, params)
 		break
