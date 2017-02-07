@@ -310,6 +310,10 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+
+	// Plugins
+	useDBStateManager bool
+	DBStateManager    interfaces.IManagerController
 }
 
 type MissingEntryBlock struct {

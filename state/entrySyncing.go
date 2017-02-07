@@ -179,8 +179,11 @@ func (s *State) syncEntries(eights bool) {
 // called.
 
 func (s *State) catchupEBlocks() {
-
-	s.setTimersMakeRequests()
+	// If we are using torrents, then we don't use missing data messages, we just wait for the torrents
+	// to complete
+	if !s.UsingTorrent() {
+		s.setTimersMakeRequests()
+	}
 
 	// If we still have blocks that we are asking for, then let's not add to the list.
 

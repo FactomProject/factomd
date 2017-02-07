@@ -76,6 +76,9 @@ func NetStart(s *state.State) {
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 
+	// Plugins
+	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
+
 	flag.Parse()
 
 	enableNet := *enablenetPtr
@@ -473,6 +476,19 @@ func NetStart(s *state.State) {
 		startServers(false)
 	} else {
 		startServers(true)
+	}
+
+	// Initate dbstate plugin if enabled. Only does so for first node,
+	// any more nodes on sim control will use default method
+	if *tormanager {
+		manager, err := LaunchTorrentDBStateManagePlugin(fnodes[0].State.InMsgQueue(), fnodes[0].State.GetServerPrivateKey())
+		if err != nil {
+			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
+		}
+		fnodes[0].State.DBStateManager = manager
+		fnodes[0].State.SetUseTorrent(true)
+	} else {
+		fnodes[0].State.SetUseTorrent(false)
 	}
 
 	// Start the webserver
