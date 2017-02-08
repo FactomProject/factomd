@@ -41,7 +41,7 @@ func LaunchTorrentDBStateManagePlugin(inQueue chan interfaces.IMsg, sigKey *prim
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: managerHandshakeConfig,
 		Plugins:         pluginMap,
-		Cmd:             exec.Command("tormanage", "plugin"),
+		Cmd:             exec.Command("factomd-torrent", "plugin"),
 	})
 
 	stop := make(chan int, 10)
