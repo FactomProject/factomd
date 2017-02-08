@@ -14,11 +14,79 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-const EBLOCKEXPIRATION uint32 = 20 //TODO: set properly
+const EBLOCKEXPIRATION uint32 = 1000 //TODO: set properly
 
 var Expired int = 0
 var LatestReveal int = 0
 var TotalEntries int = 0
+
+var MES *MissingEntries
+
+func init() {
+	MES = new(MissingEntries)
+	MES.missing = map[string]*Entry{}
+	MES.found = map[string]*Entry{}
+}
+
+type MissingEntries struct {
+	missing map[string]*Entry
+	found   map[string]*Entry
+}
+
+func (me *MissingEntries) IsEntryMissing(h string) bool {
+	if me.missing[h] != nil {
+		return true
+	}
+	return false
+}
+
+func (me *MissingEntries) NewMissing(entryID, dBlock string, height uint32) {
+	fmt.Printf("New missing - %v\n", entryID)
+	if me.missing[entryID] != nil {
+		panic("Duplicate missing entry " + entryID)
+	}
+	e := new(Entry)
+	e.EntryID = entryID
+	e.EntryDBlock = dBlock
+	e.EntryDBlockHeight = height
+
+	me.missing[entryID] = e
+}
+
+func (me *MissingEntries) FoundMissing(entryID, commitID, dBlock string, height uint32) {
+	fmt.Printf("Found missing - %v\n", entryID)
+	e := me.missing[entryID]
+	if e == nil {
+		panic("Found non-missing entry! " + entryID)
+	}
+	e.CommitID = commitID
+	e.CommitDBlock = dBlock
+	e.CommitHeight = height
+
+	me.found[entryID] = e
+	delete(me.missing, entryID)
+}
+
+func (me *MissingEntries) Print() {
+	fmt.Printf("Missing:\n")
+	for _, v := range me.missing {
+		fmt.Printf("%v\t%v\t%v\n", v.EntryID, v.EntryDBlock, v.EntryDBlockHeight)
+	}
+	fmt.Printf("Found:\n")
+	for _, v := range me.found {
+		fmt.Printf("%v\t%v\t%v\t%v\t%v\t%v\n", v.EntryID, v.EntryDBlock, v.EntryDBlockHeight, v.CommitID, v.CommitDBlock, v.CommitHeight)
+	}
+}
+
+type Entry struct {
+	EntryID           string
+	EntryDBlock       string
+	EntryDBlockHeight uint32
+
+	CommitID     string
+	CommitDBlock string
+	CommitHeight uint32
+}
 
 type BlockchainState struct {
 	DBlockHeadKeyMR interfaces.IHash
@@ -52,6 +120,7 @@ func (bs *BlockchainState) HasFreeCommit(h interfaces.IHash) bool {
 		fmt.Printf("Missing commit - %v\n", pc.String())
 		break
 	}
+
 	return pc.HasFreeCommit()
 }
 
@@ -67,6 +136,10 @@ func (bs *BlockchainState) PopCommit(h interfaces.IHash) error {
 func (bs *BlockchainState) PushCommit(entryHash interfaces.IHash, commitTxID interfaces.IHash) {
 	if bs.PendingCommits[entryHash.String()] == nil {
 		bs.PendingCommits[entryHash.String()] = new(PendingCommit)
+	}
+	if MES.IsEntryMissing(entryHash.String()) {
+		MES.FoundMissing(entryHash.String(), commitTxID.String(), bs.DBlockHeadKeyMR.String(), bs.DBlockHeight)
+		return
 	}
 	bs.PendingCommits[entryHash.String()].PushCommit(commitTxID, bs.DBlockHeight)
 }
@@ -481,10 +554,11 @@ func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 
 	} else {
 		fmt.Printf("Non-committed entry found in an eBlock - %v, %v, %v, %v\n", bs.DBlockHeadKeyMR.String(), bs.DBlockHeight, block.String(), v.String())
+		MES.NewMissing(v.String(), bs.DBlockHeadKeyMR.String(), bs.DBlockHeight)
 	}
 	err := bs.PopCommit(v)
 	if err != nil {
-		fmt.Printf("Error - %v\n", err)
+		//fmt.Printf("Error - %v\n", err)
 		//panic("")
 	}
 	return nil

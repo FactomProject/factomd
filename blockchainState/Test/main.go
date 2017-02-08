@@ -70,8 +70,8 @@ func CheckDatabase(db interfaces.IDatabase) {
 	fmt.Printf("\tStarting\n")
 
 	max := int(dBlock.GetDatabaseHeight())
-	if max > 30000 {
-		max = 30000
+	if max > 40000 {
+		//max = 40000
 	}
 
 	for i := 0; i < max; i++ {
@@ -108,6 +108,8 @@ func CheckDatabase(db interfaces.IDatabase) {
 	fmt.Printf("Expired - %v\n", Expired)
 	fmt.Printf("LatestReveal - %v\n", LatestReveal)
 	fmt.Printf("TotalEntries - %v\n", TotalEntries)
+
+	MES.Print()
 }
 
 type BlockSet struct {
