@@ -144,7 +144,7 @@ func TestPrints(t *testing.T) {
   Timestamp Str:   `
 
     //1969-12-31 18:00:00
-    epoch := time.Date(1969, 12, 31, 18, 00, 00, 0, time.Local)
+    epoch := time.Date(1969, 12, 31, 18, 00, 00, 0, time.UTC)
 	expectedString2 := epoch.Format("2006-01-02 15:04:05")
 
 	expectedString3 := `
