@@ -325,8 +325,7 @@ func (wb *WholeBlock) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	}
 	newData = newData[4:]
 	wb.SigList = make([]interfaces.IFullSignature, u)
-
-	for i := range wb.Entries {
+	for i := range wb.SigList {
 		s := new(primitives.Signature)
 		newData, err = unmarshalHelper(s, newData)
 		if err != nil {
