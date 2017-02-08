@@ -257,7 +257,6 @@ func NewLevelDB(filename string, create bool) (interfaces.IDatabase, error) {
 	}
 
 	opts := &opt.Options{
-		Compression: opt.NoCompression,
 	}
 
 	tlDB, err = leveldb.OpenFile(filename, opts)
