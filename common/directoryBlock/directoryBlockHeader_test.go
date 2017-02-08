@@ -9,6 +9,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	"testing"
+    "time"
 )
 
 func TestUnmarshalNilDBlockHeader(t *testing.T) {
@@ -134,16 +135,24 @@ func TestPrints(t *testing.T) {
 
 	returnVal := dbh.String()
 
-	expectedString := `  Version:         0
+	expectedString1 := `  Version:         0
   NetworkID:       0
   BodyMR:          0000000000000000000000000000000000000000000000000000000000000000
   PrevKeyMR:       0000000000000000000000000000000000000000000000000000000000000000
   PrevFullHash:    0000000000000000000000000000000000000000000000000000000000000000
   Timestamp:       0
-  Timestamp Str:   1969-12-31 18:00:00
+  Timestamp Str:   `
+
+    //1969-12-31 18:00:00
+    epoch := time.Date(1969, 12, 31, 18, 00, 00, 0, time.Local)
+	expectedString2 := epoch.Format("2006-01-02 15:04:05")
+
+	expectedString3 := `
   DBHeight:        0
   BlockCount:      0
 `
+
+    expectedString := expectedString1 + expectedString2 + expectedString3
 
 	if returnVal != expectedString {
 		fmt.Println(returnVal)
