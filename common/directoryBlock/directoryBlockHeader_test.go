@@ -9,7 +9,7 @@ import (
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	"testing"
-    "time"
+	"time"
 )
 
 func TestUnmarshalNilDBlockHeader(t *testing.T) {
@@ -143,8 +143,8 @@ func TestPrints(t *testing.T) {
   Timestamp:       0
   Timestamp Str:   `
 
-    //1969-12-31 18:00:00
-    epoch := time.Unix(0, 0)
+	//1969-12-31 18:00:00
+	epoch := time.Unix(0, 0)
 	expectedString2 := epoch.Format("2006-01-02 15:04:05")
 
 	expectedString3 := `
@@ -152,7 +152,7 @@ func TestPrints(t *testing.T) {
   BlockCount:      0
 `
 
-    expectedString := expectedString1 + expectedString2 + expectedString3
+	expectedString := expectedString1 + expectedString2 + expectedString3
 
 	if returnVal != expectedString {
 		fmt.Println(returnVal)
