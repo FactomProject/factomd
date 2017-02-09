@@ -47,8 +47,10 @@ func (s *State) setTimersMakeRequests() {
 					// Only send out 200 requests at a time.
 					break
 				}
-				entryRequest := messages.NewMissingData(s, eb.entryhash)
-				s.NetworkOutMsgQueue() <- entryRequest
+				if !s.UsingTorrent() {
+					entryRequest := messages.NewMissingData(s, eb.entryhash)
+					s.NetworkOutMsgQueue() <- entryRequest
+				}
 			}
 		}
 	}
@@ -179,11 +181,7 @@ func (s *State) syncEntries(eights bool) {
 // called.
 
 func (s *State) catchupEBlocks() {
-	// If we are using torrents, then we don't use missing data messages, we just wait for the torrents
-	// to complete
-	if !s.UsingTorrent() {
-		s.setTimersMakeRequests()
-	}
+	s.setTimersMakeRequests()
 
 	// If we still have blocks that we are asking for, then let's not add to the list.
 

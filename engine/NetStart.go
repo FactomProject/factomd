@@ -472,12 +472,6 @@ func NetStart(s *state.State) {
 		}
 
 	}
-	if journal != "" {
-		go LoadJournal(s, journal)
-		startServers(false)
-	} else {
-		startServers(true)
-	}
 
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
@@ -490,6 +484,13 @@ func NetStart(s *state.State) {
 		fnodes[0].State.SetUseTorrent(true)
 	} else {
 		fnodes[0].State.SetUseTorrent(false)
+	}
+
+	if journal != "" {
+		go LoadJournal(s, journal)
+		startServers(false)
+	} else {
+		startServers(true)
 	}
 
 	// Start the webserver

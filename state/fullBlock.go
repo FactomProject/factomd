@@ -132,12 +132,12 @@ func (a *WholeBlock) IsSameAs(b *WholeBlock) (resp bool) {
 }
 
 func (wb *WholeBlock) MarshalBinary() (b []byte, err error) {
-	defer func() {
+	/*defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("A panic has occurred while marshaling: %s", r)
 			return
 		}
-	}()
+	}()*/
 
 	buf := new(bytes.Buffer)
 

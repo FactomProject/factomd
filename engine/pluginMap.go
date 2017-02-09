@@ -87,12 +87,13 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 			if !man.IsBufferEmpty() {
 				var data []byte
 				// Exit conditions: If empty, quit. If length == 1 and first/only byte it 0x00
-				for !man.IsBufferEmpty() || !(len(data) == 1 && data[0] == 0x00) {
+				for !(man.IsBufferEmpty() || (len(data) == 1 && data[0] == 0x00)) {
 					// Msgs are waiting!
 					data = man.FetchFromBuffer()
 					dbMsg := new(messages.DBStateMsg)
 					err := dbMsg.UnmarshalBinary(data)
 					if err != nil {
+						log.Printf("%x %t\n", data, (len(data) == 1 && data[0] == 0x00))
 						log.Println("Error unmarshaling dbstate from plugin: ", err)
 						continue
 					}

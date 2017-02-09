@@ -765,42 +765,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if list.State.UsingTorrent() {
 		msg, err := list.State.LoadDBState(uint32(dbheight))
 		if err != nil {
-			panic("[1] Error creating torrent in SaveDBStateToDB: " + err.Error())
+			fmt.Println("[1] Error creating torrent in SaveDBStateToDB: " + err.Error())
 		}
-		dbstatemsg := msg.(*messages.DBStateMsg)
-		block := NewWholeBlock()
-		block.DBlock = d.DirectoryBlock
-		block.ABlock = d.AdminBlock
-		block.FBlock = d.FactoidBlock
-		block.ECBlock = d.EntryCreditBlock
-
-		eHashes := make([]interfaces.IHash, 0)
-		for _, e := range d.EntryBlocks {
-			block.AddEblock(e)
-			for _, eh := range e.GetEntryHashes() {
-				eHashes = append(eHashes, eh)
-			}
-		}
-
-		for _, e := range eHashes {
-			ent, err := list.State.DB.FetchEntry(e)
-			if err != nil {
-				panic("[2] Error creating torrent in SaveDBStateToDB: " + err.Error())
-			}
-			block.AddIEBEntry(ent)
-		}
-
-		block.SigList = dbstatemsg.SignatureList.List
-
-		data, err := block.MarshalBinary()
+		err = list.State.UploadDBState(msg)
 		if err != nil {
-			panic("[3] Error creating torrent in SaveDBStateToDB: " + err.Error())
-
-		}
-		if list.State.IsLeader() {
-			list.State.DBStateManager.UploadDBStateBytes(data, true)
-		} else {
-			list.State.DBStateManager.UploadDBStateBytes(data, false)
+			fmt.Println(err.Error())
 		}
 	}
 
