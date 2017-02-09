@@ -78,6 +78,7 @@ func NetStart(s *state.State) {
 
 	// Plugins
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
+	tormanagerPath := flag.String("plugin", "", "Input the path to the factomd-torrent binary")
 
 	flag.Parse()
 
@@ -481,7 +482,7 @@ func NetStart(s *state.State) {
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	if *tormanager {
-		manager, err := LaunchTorrentDBStateManagePlugin(fnodes[0].State.InMsgQueue(), fnodes[0].State.GetServerPrivateKey())
+		manager, err := LaunchTorrentDBStateManagePlugin(*tormanagerPath, fnodes[0].State.InMsgQueue(), fnodes[0].State.GetServerPrivateKey())
 		if err != nil {
 			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}
