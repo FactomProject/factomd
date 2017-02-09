@@ -8,11 +8,15 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -341,4 +345,75 @@ func TestExpandedDBlockHeader(t *testing.T) {
 	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000d"`) {
 		t.Error("Header does not contain ChainID")
 	}
+}
+
+func TestBuildBlock(t *testing.T) {
+	db1 := new(DirectoryBlock)
+	db1.Init()
+	//fmt.Println(db1)
+
+	k, _ := primitives.HexToHash("e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33")
+
+	if !k.IsSameAs(db1.GetKeyMR()) { //expected an empty directoryblock
+		fmt.Println(k)
+		fmt.Println(db1.GetKeyMR())
+		t.Fail()
+	}
+
+	db := NewDirectoryBlock(nil)
+
+	if db.GetEntrySigHashes() != nil {
+		t.Errorf("Invalid GetEntrySigHashes")
+	}
+
+	//h, _ := primitives.HexToHash("ce733587b898421bb3efab257ac8d6679b520df217ec949e41faf231121cb9b8")
+	a := new(adminBlock.AdminBlock)
+	a.Init()
+	//fmt.Println(a.DatabasePrimaryIndex())
+	db.SetABlockHash(a)
+
+	//h, _ = primitives.HexToHash("f294cd012b3c088740aa90b1fa8feead006c5a35176f57dd0bc7aac19c88f409")
+	e := new(entryCreditBlock.ECBlock)
+	e.Init()
+	db.SetECBlockHash(e)
+
+	//h, _ = primitives.HexToHash("1ce2a6114650bc6695f6714526c5170e7f93def316a3ea21ab6e3fa75007b770")
+	f := new(factoid.FBlock)
+	//f.Init()
+	db.SetFBlockHash(f)
+
+	c, _ := primitives.HexToHash("3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71")
+	h, _ := primitives.HexToHash("9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e")
+	db.SetEntryHash(h, c, 3)
+
+	c, _ = primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
+	h, _ = primitives.HexToHash("b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898")
+	db.SetEntryHash(h, c, 4)
+
+	k, _ = primitives.HexToHash("25212d6cb70ce4f109f09092985fd200da5d59668451601e21ba66e6ee0c9ebb")
+
+	if !k.IsSameAs(db.GetKeyMR()) {
+		fmt.Println(k)
+		fmt.Println(db.GetKeyMR())
+		t.Fail()
+	}
+
+	es := db.GetEBlockDBEntries()
+
+	//fmt.Println(es[1].GetChainID())
+
+	if !c.IsSameAs(es[1].GetChainID()) {
+		fmt.Println(c)
+		fmt.Println(es[1].GetChainID())
+		t.Fail()
+	}
+
+	es2 := db.GetEntryHashes()
+	//fmt.Println(es2)
+	if !h.IsSameAs(es2[4]) {
+		fmt.Println(h)
+		fmt.Println(es2[4])
+		t.Fail()
+	}
+
 }

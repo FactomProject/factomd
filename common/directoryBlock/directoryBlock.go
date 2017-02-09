@@ -41,8 +41,8 @@ func (c *DirectoryBlock) Init() {
 }
 
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
-	if len(c.DBEntries) < index {
-		ent := make([]interfaces.IDBEntry, index)
+	if len(c.DBEntries) <= index {
+		ent := make([]interfaces.IDBEntry, index+1)
 		copy(ent, c.DBEntries)
 		c.DBEntries = ent
 	}
