@@ -69,18 +69,82 @@ func TestMarshalUnmarshal(t *testing.T) {
 	}
 }
 
-func TestMerkleTrees(t *testing.T) {
+func TestGetEntryHashes(t *testing.T) {
+	f := GetDeterministicFBlock(t)
+	hashes := f.GetEntryHashes()
+	txs := f.Transactions
+
+	if len(txs) == 0 {
+		t.Errorf("No transactions found")
+	}
+	if len(hashes) != len(txs) {
+		t.Errorf("Returned wrong amount of hashes")
+		t.FailNow()
+	}
+
+	for i := range txs {
+		if txs[i].GetHash().IsSameAs(hashes[i]) == false {
+			t.Errorf("Hashes are not identical")
+		}
+	}
+}
+
+func TestGetEntrySigHashes(t *testing.T) {
+	f := GetDeterministicFBlock(t)
+	hashes := f.GetEntrySigHashes()
+	txs := f.Transactions
+	if len(txs) == 0 {
+		t.Errorf("No transactions found")
+	}
+
+	if len(hashes) != len(txs) {
+		t.Errorf("Returned wrong amount of hashes")
+		t.FailNow()
+	}
+
+	for i := range txs {
+		if txs[i].GetSigHash().IsSameAs(hashes[i]) == false {
+			t.Errorf("Hashes are not identical")
+		}
+	}
+}
+
+func TestGetTransactionByHash(t *testing.T) {
+	f := GetDeterministicFBlock(t)
+	txs := f.Transactions
+
+	if len(txs) == 0 {
+		t.Errorf("No transactions found")
+	}
+
+	for _, v := range txs {
+		tx := f.GetTransactionByHash(v.GetHash())
+		if tx == nil {
+			t.Errorf("Could not find transaction %v", v.GetHash())
+		} else {
+			if v.IsSameAs(tx) == false {
+				t.Errorf("Transactions are not the same")
+			}
+		}
+	}
+}
+
+func GetDeterministicFBlock(t *testing.T) *FBlock {
 	rawStr := "000000000000000000000000000000000000000000000000000000000000000f16a82932aa64e6ad45b2749f2abb871fcf3353ab9d4e163c9bd90e5bbd745b59a164ccbb77a21904edc4f2bb753aa60635fb2b60279c06ae01aa211f375417362fb170f73c3961d4218ff806dd75e6e348ca1798a5fc7a99d443fbe2ff939d9900000000000a2be8000000010000000002000000c702014f8a7fcd1b00000002014f8a851657010001e397a1607d4f56c528ab09da5bbf7b37b0b453f43db303730e28e9ebe02657dff431d4f7dfaf840017ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7d01a5be79b6ada79c0af4d6b7f91234ff321f3b647ed01e02ccbbc0fe9dcc63293482f22455b9756ee4b4db411a5d00e31b689c1bd1abe1d1e887cf4c52e67fc51fe4d9594c24643a91009c6ea91701b5b6df240248c2f39453162b61d71b98270100000000000000000000"
 	raw, err := hex.DecodeString(rawStr)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	f := new(FBlock)
-	_, err = f.UnmarshalBinaryData(raw)
+	f, err := UnmarshalFBlock(raw)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
+	return f.(*FBlock)
+}
+
+func TestMerkleTrees(t *testing.T) {
+	f := GetDeterministicFBlock(t)
 
 	if f.GetKeyMR().String() != "aa100f203f159e4369081bb366f6816b302387ec19a4f8b9c98495d97fbe3527" {
 		t.Errorf("Invalid GetKeyMR")
