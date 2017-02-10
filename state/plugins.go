@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/entryBlock"
+	//"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -24,6 +24,7 @@ func (s *State) UploadDBState(msg interfaces.IMsg) error {
 		//		panic("[1] Error creating torrent in SaveDBStateToDB: " + err.Error())
 		//	}
 		d := msg.(*messages.DBStateMsg)
+		fmt.Printf("Uploading DBState %d, Sigs: %d\n", d.DirectoryBlock.GetDatabaseHeight(), len(d.SignatureList.List))
 		block := NewWholeBlock()
 		block.DBlock = d.DirectoryBlock
 		block.ABlock = d.AdminBlock
@@ -39,11 +40,8 @@ func (s *State) UploadDBState(msg interfaces.IMsg) error {
 		}
 
 		for _, e := range eHashes {
-			if e.String()[:62] == "00000000000000000000000000000000000000000000000000000000000000" {
-				ent := entryBlock.NewEntry()
-				ent.ChainID = e
-				block.AddIEBEntry(ent)
-			} else {
+			if e.String()[:62] != "00000000000000000000000000000000000000000000000000000000000000" {
+				//} else {
 				ent, err := s.DB.FetchEntry(e)
 				if err != nil {
 					return fmt.Errorf("[2] Error creating torrent in SaveDBStateToDB: " + err.Error())
@@ -62,6 +60,7 @@ func (s *State) UploadDBState(msg interfaces.IMsg) error {
 			return fmt.Errorf("[3] Error creating torrent in SaveDBStateToDB: " + err.Error())
 
 		}
+
 		if s.IsLeader() {
 			s.DBStateManager.UploadDBStateBytes(data, true)
 		} else {
