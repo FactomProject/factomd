@@ -15,10 +15,10 @@ func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 	bs.Init()
 
 	if bs.FBlockHeadKeyMR.String() != fBlock.GetPrevKeyMR().String() {
-		fmt.Printf("Invalid FBlock %v previous KeyMR - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHeadKeyMR.String(), fBlock.GetPrevKeyMR().String())
+		return fmt.Errorf("Invalid FBlock %v previous KeyMR - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHeadKeyMR.String(), fBlock.GetPrevKeyMR().String())
 	}
 	if bs.FBlockHeadHash.String() != fBlock.GetPrevLedgerKeyMR().String() {
-		fmt.Printf("Invalid FBlock %v previous hash - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHeadHash.String(), fBlock.GetPrevLedgerKeyMR().String())
+		return fmt.Errorf("Invalid FBlock %v previous hash - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHeadHash.String(), fBlock.GetPrevLedgerKeyMR().String())
 	}
 	bs.FBlockHeadKeyMR = fBlock.DatabasePrimaryIndex().(*primitives.Hash)
 	bs.FBlockHeadHash = fBlock.DatabaseSecondaryIndex().(*primitives.Hash)

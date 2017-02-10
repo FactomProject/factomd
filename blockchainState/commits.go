@@ -29,7 +29,6 @@ func (bs *BlockchainState) PopCommit(h interfaces.IHash) error {
 	pc, ok := bs.PendingCommits[h.String()]
 	if ok == false {
 		return fmt.Errorf("No commits found")
-		//return nil
 	}
 	return pc.PopCommit(bs.DBlockHeight)
 }

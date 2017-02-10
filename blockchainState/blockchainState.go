@@ -16,7 +16,7 @@ import (
 const COMMITEXPIRATIONM1 uint32 = 500
 const COMMITEXPIRATIONM2 uint32 = 20 //TODO: set properly
 
-const M2SWITCHHEIGHT uint32 = 71664 //TODO: double-check
+const M2SWITCHHEIGHT uint32 = 70411 //TODO: double-check
 
 type BlockchainState struct {
 	NetworkID uint32
@@ -24,6 +24,7 @@ type BlockchainState struct {
 	DBlockHeadKeyMR *primitives.Hash
 	DBlockHeadHash  *primitives.Hash
 	DBlockHeight    uint32
+	DBlockTimestamp *primitives.Timestamp
 
 	ECBlockHeadKeyMR *primitives.Hash
 	ECBlockHeadHash  *primitives.Hash
