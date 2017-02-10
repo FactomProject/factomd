@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
@@ -416,4 +417,111 @@ func TestBuildBlock(t *testing.T) {
 		t.Fail()
 	}
 
+	es3 := db.GetEntryHashesForBranch()
+	list := fmt.Sprintf("%v", es3)
+	expectedList := "[000000000000000000000000000000000000000000000000000000000000000a 4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e 000000000000000000000000000000000000000000000000000000000000000c a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56 000000000000000000000000000000000000000000000000000000000000000f c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71 9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604 b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898]"
+	if list != expectedList {
+		fmt.Println(h)
+		fmt.Println(es2[4])
+		t.Fail()
+	}
+
+	printout := db.String()
+	expectedString1 := `              KeyMR: eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc
+             BodyMR: 01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
+           FullHash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
+  Version:         0
+  NetworkID:       0
+  BodyMR:          01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
+  PrevKeyMR:       0000000000000000000000000000000000000000000000000000000000000000
+  PrevFullHash:    0000000000000000000000000000000000000000000000000000000000000000
+  Timestamp:       0
+  Timestamp Str:   `
+	epoch := time.Unix(0, 0)
+	expectedString2 := epoch.Format("2006-01-02 15:04:05")
+
+	expectedString3 := `
+  DBHeight:        0
+  BlockCount:      5
+Entries: 
+    0 ChainID: 000000000000000000000000000000000000000000000000000000000000000a
+      KeyMR:   4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e
+    1 ChainID: 000000000000000000000000000000000000000000000000000000000000000c
+      KeyMR:   a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56
+    2 ChainID: 000000000000000000000000000000000000000000000000000000000000000f
+      KeyMR:   c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330
+    3 ChainID: 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71
+      KeyMR:   9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e
+    4 ChainID: df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
+      KeyMR:   b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898
+`
+	expectedString := expectedString1 + expectedString2 + expectedString3
+	if printout != expectedString {
+		fmt.Println(printout)
+		fmt.Println(expectedString)
+		t.Fail()
+	}
+	
+	m := db.GetDatabaseHeight()
+	if m != 0 {
+		t.Fail()
+	}
+	
+	n:= db.GetChainID()
+	cid, _ := primitives.HexToHash("000000000000000000000000000000000000000000000000000000000000000d")
+	if !n.IsSameAs(cid) {
+		fmt.Println(n)
+		fmt.Println(cid)
+		t.Fail()
+	}
+	
+	o:= db.DatabasePrimaryIndex()
+	r, _ := primitives.HexToHash("eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc")
+	if !o.IsSameAs(r) {
+		fmt.Println(o)
+		fmt.Println(r)
+		t.Fail()
+	}
+	
+	p:= db.DatabaseSecondaryIndex()
+	s, _ := primitives.HexToHash("857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9")
+	if !p.IsSameAs(s) {
+		fmt.Println(p)
+		fmt.Println(s)
+		t.Fail()
+	}
+	
+	
+	returnVal, _ := db.JSONString()
+	//fmt.Println(returnVal)
+
+	expectedString = `{"Header":{"Version":0,"NetworkID":0,"BodyMR":"01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3","PrevKeyMR":"0000000000000000000000000000000000000000000000000000000000000000","PrevFullHash":"0000000000000000000000000000000000000000000000000000000000000000","Timestamp":0,"DBHeight":0,"BlockCount":5,"ChainID":"000000000000000000000000000000000000000000000000000000000000000d"},"DBEntries":[{"ChainID":"000000000000000000000000000000000000000000000000000000000000000a","KeyMR":"4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e"},{"ChainID":"000000000000000000000000000000000000000000000000000000000000000c","KeyMR":"a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56"},{"ChainID":"000000000000000000000000000000000000000000000000000000000000000f","KeyMR":"c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330"},{"ChainID":"3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71","KeyMR":"9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e"},{"ChainID":"df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604","KeyMR":"b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898"}],"DBHash":"857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9","KeyMR":"eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc"}`
+	if returnVal != expectedString {
+		fmt.Println("got", returnVal)
+		fmt.Println("expected", expectedString)
+		t.Fail()
+	}
+	
+	//fmt.Println(q)
+	
+	returnByte, _ := db.JSONByte()
+	by := string(returnByte)
+	if by != expectedString {
+		fmt.Println("got", by)
+		fmt.Println("expected", expectedString)
+		t.Fail()
+	}
+	
+	if nil == CheckBlockPairIntegrity(nil, nil){
+		t.Fail()
+	}
+	
+	if nil != CheckBlockPairIntegrity(db, nil){
+		t.Fail()
+	}
+	
+	
+	
+	
+	
 }
