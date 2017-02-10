@@ -54,8 +54,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 	}
 
 	dbo := databaseOverlay.NewOverlay(db)
-	bs := new(BlockchainState)
-	bs.Init()
+	bs := NewBSMainNet()
 	bl := new(BalanceLedger)
 	bl.Init()
 
@@ -90,6 +89,19 @@ func CheckDatabase(db interfaces.IDatabase) {
 				panic(err)
 			}
 		*/
+		if i%10000 == 0 {
+			//periodically save and reload BS
+			bin, err := bs.MarshalBinaryData()
+			if err != nil {
+				panic(err)
+			}
+			bs = new(BlockchainState)
+			err = bs.UnmarshalBinaryData(bin)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("Successfully saved and loaded BS\n")
+		}
 	}
 	fmt.Printf("\tFinished!\n")
 
