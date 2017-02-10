@@ -24,7 +24,7 @@ func (s *State) UploadDBState(msg interfaces.IMsg) error {
 		//		panic("[1] Error creating torrent in SaveDBStateToDB: " + err.Error())
 		//	}
 		d := msg.(*messages.DBStateMsg)
-		fmt.Printf("Uploading DBState %d, Sigs: %d\n", d.DirectoryBlock.GetDatabaseHeight(), len(d.SignatureList.List))
+		//fmt.Printf("Uploading DBState %d, Sigs: %d\n", d.DirectoryBlock.GetDatabaseHeight(), len(d.SignatureList.List))
 		block := NewWholeBlock()
 		block.DBlock = d.DirectoryBlock
 		block.ABlock = d.AdminBlock
@@ -64,12 +64,13 @@ func (s *State) UploadDBState(msg interfaces.IMsg) error {
 		if s.IsLeader() {
 			s.DBStateManager.UploadDBStateBytes(data, true)
 		} else {
-			s.DBStateManager.UploadDBStateBytes(data, false)
+			// s.DBStateManager.UploadDBStateBytes(data, false)
 		}
 	}
 	return nil
 }
 
-func (s *State) GetMissingDBState(height uint32) {
-	s.DBStateManager.RetrieveDBStateByHeight(height)
+func (s *State) GetMissingDBState(height uint32) error {
+	fmt.Printf("DEBUG: GetMissingDBState Requested at height %d\n", height)
+	return s.DBStateManager.RetrieveDBStateByHeight(height)
 }

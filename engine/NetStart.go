@@ -41,6 +41,7 @@ var p2pNetwork *p2p.Controller
 var logPort string
 
 func NetStart(s *state.State) {
+	fmt.Println("DEBUG [v0.0.0.0]")
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")

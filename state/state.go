@@ -1004,7 +1004,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	if s.UsingTorrent() {
 		err := s.UploadDBState(msg)
 		if err != nil {
-			fmt.Println(err.Error())
+			// fmt.Println(err.Error())
 		}
 	}
 

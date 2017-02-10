@@ -769,7 +769,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		err = list.State.UploadDBState(msg)
 		if err != nil {
-			fmt.Println(err.Error())
+			//fmt.Println(err.Error())
 		}
 	}
 

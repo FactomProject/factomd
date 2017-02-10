@@ -81,6 +81,7 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	case MissingMsg:
 		go resend(state, msg, 1, 1)
 	case DBStateMissing:
+		fmt.Println("DEBUG: DBStateMissingRequest")
 		if state.UsingTorrent() {
 			go torSend(state, msg, 2, 60)
 		} else {

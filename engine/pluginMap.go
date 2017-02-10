@@ -98,6 +98,7 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 						continue
 					}
 
+					log.Println("DEBUG: Log going into inQueue")
 					inQueue <- dbMsg
 				}
 			}

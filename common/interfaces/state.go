@@ -270,5 +270,5 @@ type IState interface {
 
 	// Plugins
 	UsingTorrent() bool
-	GetMissingDBState(height uint32)
+	GetMissingDBState(height uint32) error
 }
