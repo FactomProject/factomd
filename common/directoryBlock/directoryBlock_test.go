@@ -461,37 +461,36 @@ Entries:
 		fmt.Println(expectedString)
 		t.Fail()
 	}
-	
+
 	m := db.GetDatabaseHeight()
 	if m != 0 {
 		t.Fail()
 	}
-	
-	n:= db.GetChainID()
+
+	n := db.GetChainID()
 	cid, _ := primitives.HexToHash("000000000000000000000000000000000000000000000000000000000000000d")
 	if !n.IsSameAs(cid) {
 		fmt.Println(n)
 		fmt.Println(cid)
 		t.Fail()
 	}
-	
-	o:= db.DatabasePrimaryIndex()
+
+	o := db.DatabasePrimaryIndex()
 	r, _ := primitives.HexToHash("eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc")
 	if !o.IsSameAs(r) {
 		fmt.Println(o)
 		fmt.Println(r)
 		t.Fail()
 	}
-	
-	p:= db.DatabaseSecondaryIndex()
+
+	p := db.DatabaseSecondaryIndex()
 	s, _ := primitives.HexToHash("857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9")
 	if !p.IsSameAs(s) {
 		fmt.Println(p)
 		fmt.Println(s)
 		t.Fail()
 	}
-	
-	
+
 	returnVal, _ := db.JSONString()
 	//fmt.Println(returnVal)
 
@@ -501,9 +500,9 @@ Entries:
 		fmt.Println("expected", expectedString)
 		t.Fail()
 	}
-	
+
 	//fmt.Println(q)
-	
+
 	returnByte, _ := db.JSONByte()
 	by := string(returnByte)
 	if by != expectedString {
@@ -511,17 +510,62 @@ Entries:
 		fmt.Println("expected", expectedString)
 		t.Fail()
 	}
-	
-	if nil == CheckBlockPairIntegrity(nil, nil){
+
+	if nil == CheckBlockPairIntegrity(nil, nil) {
 		t.Fail()
 	}
-	
-	if nil != CheckBlockPairIntegrity(db, nil){
+
+	if nil != CheckBlockPairIntegrity(db, nil) {
 		t.Fail()
 	}
-	
-	
-	
-	
-	
+
+	db2 := NewDirectoryBlock(db1)
+	j, _ := primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
+	i, _ := primitives.HexToHash("b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898")
+	db2.SetEntryHash(j, i, 3)
+
+	l, _ := primitives.HexToHash("3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71")
+	q, _ := primitives.HexToHash("9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e")
+	db2.SetEntryHash(l, q, 4)
+
+	_, err := db2.MarshalBinary()
+
+	if nil != err {
+		t.Fail()
+	}
+
+	if nil != CheckBlockPairIntegrity(db2, db1) {
+		t.Fail()
+	}
+
+	bm := db.New()
+	bms := fmt.Sprintln(bm)
+
+	expectedString1 = `              KeyMR: e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33
+             BodyMR: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+           FullHash: e9f7dd92d52ff4efa31d0fb6521e64a30e211a262a6d407588f3b9229343b06b
+  Version:         0
+  NetworkID:       0
+  BodyMR:          e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  PrevKeyMR:       0000000000000000000000000000000000000000000000000000000000000000
+  PrevFullHash:    0000000000000000000000000000000000000000000000000000000000000000
+  Timestamp:       0
+  Timestamp Str:   `
+	epoch = time.Unix(0, 0)
+	expectedString2 = epoch.Format("2006-01-02 15:04:05")
+
+	expectedString3 = `
+  DBHeight:        0
+  BlockCount:      0
+Entries: 
+
+`
+	expectedString = expectedString1 + expectedString2 + expectedString3
+
+	if bms != expectedString {
+		fmt.Println(bms)
+		fmt.Println(expectedString)
+		t.Fail()
+	}
+
 }
