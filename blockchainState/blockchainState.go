@@ -41,12 +41,15 @@ type BlockchainState struct {
 	ExchangeRate uint64
 
 	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
+
+	IdentityChains map[string]string //IdentityChainID:Public Key
 }
 
 func NewBSMainNet() *BlockchainState {
 	bs := new(BlockchainState)
 	bs.NetworkID = constants.MAIN_NETWORK_ID
 	bs.Init()
+	bs.IdentityChains["0000000000000000000000000000000000000000000000000000000000000000"] = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	return bs
 }
 
@@ -103,6 +106,9 @@ func (bs *BlockchainState) Init() {
 	if bs.ABlockHeadRefHash == nil {
 		bs.ABlockHeadRefHash = primitives.NewZeroHash().(*primitives.Hash)
 	}
+	if bs.IdentityChains == nil {
+		bs.IdentityChains = map[string]string{}
+	}
 }
 
 func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aBlock interfaces.IAdminBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock,
@@ -117,7 +123,7 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aB
 	if err != nil {
 		return err
 	}
-	err = bs.ProcessABlock(aBlock)
+	err = bs.ProcessABlock(aBlock, dBlock)
 	if err != nil {
 		return err
 	}
