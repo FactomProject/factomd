@@ -158,6 +158,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "configuration":
 		resp, jsonError = HandleConfig(state, params)
 		break
+	case "current-minute":
+		resp, jsonError = HandleCurrentMinute(state, params)
+		break
 	case "federated-servers":
 		resp, jsonError = HandleFedServers(state, params)
 		break

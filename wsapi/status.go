@@ -35,6 +35,16 @@ func HandleConfig(
 	return state.GetCfg(), nil
 }
 
+func HandleCurrentMinute(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	return state.GetCurrentMinute(), nil
+}
+
 func HandleFedServers(
 	state interfaces.IState,
 	params interface{},
