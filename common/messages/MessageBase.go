@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -44,7 +43,6 @@ func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 }
 
 func torSend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
-	fmt.Println("DEBUG: Torrent sendout")
 	for i := 0; i < cnt; i++ {
 		missing := msg.(*DBStateMissing)
 		beg := missing.DBHeightStart
@@ -81,7 +79,6 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	case MissingMsg:
 		go resend(state, msg, 1, 1)
 	case DBStateMissing:
-		fmt.Println("DEBUG: DBStateMissingRequest")
 		if state.UsingTorrent() {
 			go torSend(state, msg, 2, 60)
 		} else {

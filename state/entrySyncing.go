@@ -23,8 +23,6 @@ func fetchByTorrent(s *State, entry bool) {
 		}
 		var i uint32
 		for i = 0; i < span; i++ {
-			sum := height + i
-			fmt.Printf("%d - ", sum)
 			err := s.GetMissingDBState(height + i)
 			if err != nil {
 				fmt.Println("DEBUG: Error in torrent retrieve: " + err.Error())

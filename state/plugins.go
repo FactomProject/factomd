@@ -64,13 +64,12 @@ func (s *State) UploadDBState(msg interfaces.IMsg) error {
 		if s.IsLeader() {
 			s.DBStateManager.UploadDBStateBytes(data, true)
 		} else {
-			// s.DBStateManager.UploadDBStateBytes(data, false)
+			s.DBStateManager.UploadDBStateBytes(data, false)
 		}
 	}
 	return nil
 }
 
 func (s *State) GetMissingDBState(height uint32) error {
-	fmt.Printf("DEBUG: GetMissingDBState Requested at height %d\n", height)
 	return s.DBStateManager.RetrieveDBStateByHeight(height)
 }

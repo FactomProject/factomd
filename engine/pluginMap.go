@@ -4,6 +4,7 @@ package engine
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os/exec"
 	"time"
@@ -18,6 +19,7 @@ import (
 var CHECK_BUFFER time.Duration = 2 * time.Second
 
 var _ log.Logger
+var _ = ioutil.Discard
 
 // pluginMap is the map of plugins we can dispense.
 var pluginMap = map[string]plugin.Plugin{
@@ -29,7 +31,7 @@ var pluginMap = map[string]plugin.Plugin{
 // can be interacted with like a usual interface. The client returned must be
 // killed before we exit
 func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg, sigKey *primitives.PrivateKey) (interfaces.IManagerController, error) {
-	// log.SetOutput(ioutil.Discard)
+	//log.SetOutput(ioutil.Discard)
 
 	var managerHandshakeConfig = plugin.HandshakeConfig{
 		ProtocolVersion:  1,
@@ -84,6 +86,7 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 		case <-quit:
 			return
 		default:
+			fmt.Println(man.IsBufferEmpty())
 			if !man.IsBufferEmpty() {
 				var data []byte
 				// Exit conditions: If empty, quit. If length == 1 and first/only byte it 0x00
@@ -98,7 +101,6 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 						continue
 					}
 
-					log.Println("DEBUG: Log going into inQueue")
 					inQueue <- dbMsg
 				}
 			}
