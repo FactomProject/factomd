@@ -23,6 +23,12 @@ func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock) erro
 
 func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock) error {
 	bs.Init()
+
+	err := CheckEBlockMinuteNumbers(eBlock)
+	if err != nil {
+		return err
+	}
+
 	eHashes := eBlock.GetEntryHashes()
 	for _, v := range eHashes {
 		err := bs.ProcessEntryHash(v, eBlock.GetHash())
@@ -51,5 +57,26 @@ func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 		//fmt.Printf("Error - %v\n", err)
 		//panic("")
 	}
+	return nil
+}
+
+func CheckEBlockMinuteNumbers(eBlock interfaces.IEntryBlock) error {
+	//Check whether MinuteNumbers are increasing
+	entries := eBlock.GetEntryHashes()
+
+	var lastMinute byte = 0
+	for i, v := range entries {
+		if v.IsMinuteMarker() {
+			minute := v.ToMinute()
+			if minute < 1 || minute > 10 {
+				return fmt.Errorf("EBlock Invalid minute number at position %v", i)
+			}
+			if minute <= lastMinute {
+				return fmt.Errorf("EBlock Invalid minute number at position %v", i)
+			}
+			lastMinute = minute
+		}
+	}
+
 	return nil
 }

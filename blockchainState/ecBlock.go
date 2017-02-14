@@ -21,8 +21,21 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 	if bs.ECBlockHeadHash.String() != ecBlock.GetHeader().GetPrevFullHash().String() {
 		return fmt.Errorf("Invalid ECBlock %v previous hash - expected %v, got %v\n", ecBlock.DatabasePrimaryIndex().String(), bs.ECBlockHeadHash.String(), ecBlock.GetHeader().GetPrevFullHash().String())
 	}
+
+	if bs.DBlockHeight > M2SWITCHHEIGHT {
+		//Only check in M2, since that's when this error got fixed
+		if bs.DBlockHeight != ecBlock.GetDatabaseHeight() {
+			return fmt.Errorf("Invalid ECBlock height - expected %v, got %v", bs.DBlockHeight, ecBlock.GetDatabaseHeight())
+		}
+	}
+
 	bs.ECBlockHeadKeyMR = ecBlock.DatabasePrimaryIndex().(*primitives.Hash)
 	bs.ECBlockHeadHash = ecBlock.DatabaseSecondaryIndex().(*primitives.Hash)
+
+	err := CheckECBlockMinuteNumbers(ecBlock)
+	if err != nil {
+		return err
+	}
 
 	entries := ecBlock.GetEntries()
 	for _, v := range entries {
@@ -60,5 +73,26 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 	default:
 		break
 	}
+	return nil
+}
+
+func CheckECBlockMinuteNumbers(ecBlock interfaces.IEntryCreditBlock) error {
+	//Check whether MinuteNumbers are increasing
+	entries := ecBlock.GetEntries()
+
+	var lastMinute uint8 = 0
+	for i, v := range entries {
+		if v.ECID() == entryCreditBlock.ECIDMinuteNumber {
+			minute := v.(*entryCreditBlock.MinuteNumber).Number
+			if minute < 1 || minute > 10 {
+				return fmt.Errorf("ECBlock Invalid minute number at position %v - %v", i, minute)
+			}
+			if minute <= lastMinute {
+				return fmt.Errorf("ECBlock Invalid minute number at position %v - %v", i, minute)
+			}
+			lastMinute = minute
+		}
+	}
+
 	return nil
 }

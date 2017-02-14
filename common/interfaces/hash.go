@@ -18,5 +18,6 @@ type IHash interface {
 	IsMinuteMarker() bool
 	UnmarshalText(b []byte) error
 	IsZero() bool
+	ToMinute() byte
 	//MarshalText() ([]byte, error)
 }

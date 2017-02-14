@@ -20,6 +20,11 @@ func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 	if bs.FBlockHeadHash.String() != fBlock.GetPrevLedgerKeyMR().String() {
 		return fmt.Errorf("Invalid FBlock %v previous hash - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHeadHash.String(), fBlock.GetPrevLedgerKeyMR().String())
 	}
+
+	if bs.DBlockHeight != fBlock.GetDatabaseHeight() {
+		return fmt.Errorf("Invalid FBlock height - expected %v, got %v", bs.DBlockHeight, fBlock.GetDatabaseHeight())
+	}
+
 	bs.FBlockHeadKeyMR = fBlock.DatabasePrimaryIndex().(*primitives.Hash)
 	bs.FBlockHeadHash = fBlock.DatabaseSecondaryIndex().(*primitives.Hash)
 
