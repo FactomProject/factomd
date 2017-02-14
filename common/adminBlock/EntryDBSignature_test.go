@@ -77,6 +77,7 @@ func TestDBSEGenesisBlock(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
+
 	dBlock, _, _, _ := state.GenerateGenesisBlocks(constants.MAIN_NETWORK_ID)
 	if dBlock == nil {
 		t.Errorf("DBlock is nil")
@@ -84,27 +85,6 @@ func TestDBSEGenesisBlock(t *testing.T) {
 	}
 
 	bin, _ := dBlock.GetHeader().MarshalBinary()
-
-	t.Logf("%x", bin)
-	if dbse.PrevDBSig.Verify(bin) == false {
-		t.Errorf("Invalid signature")
-	}
-
-	bin = dBlock.DatabasePrimaryIndex().Bytes()
-
-	t.Logf("%x", bin)
-	if dbse.PrevDBSig.Verify(bin) == false {
-		t.Errorf("Invalid signature")
-	}
-
-	bin = dBlock.DatabaseSecondaryIndex().Bytes()
-
-	t.Logf("%x", bin)
-	if dbse.PrevDBSig.Verify(bin) == false {
-		t.Errorf("Invalid signature")
-	}
-
-	bin, _ = dBlock.MarshalBinary()
 
 	t.Logf("%x", bin)
 	if dbse.PrevDBSig.Verify(bin) == false {
