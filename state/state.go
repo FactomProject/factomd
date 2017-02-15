@@ -29,6 +29,7 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 var _ = fmt.Print
@@ -194,6 +195,13 @@ type State struct {
 	// By default, this is false, which means DBstates are discarded
 	// when a majority of leaders disagree with the hash we have via DBSigs
 	KeepMismatch bool
+
+	// If this is true, outbound messages will be sent out
+	// via Consul (as well as sent out over the p2p network normally)
+	UseConsul bool
+
+	ConsulClient  *consulapi.Client
+	ConsulSession string
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 

@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 var _ = log.Printf
@@ -135,6 +136,12 @@ func NetworkOutputs(fnode *FactomNode) {
 					msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())
+
+				if fnode.State.UseConsul {
+					kv := fnode.State.ConsulClient.KV()
+					d := &consulapi.KVPair{Key: msg.GetMsgHash().String(), Value: []byte(msg.String()), Session: fnode.State.ConsulSession}
+					kv.Acquire(d, nil)
+				}
 
 				p := msg.GetOrigin() - 1
 

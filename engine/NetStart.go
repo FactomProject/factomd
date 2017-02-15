@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 var _ = fmt.Print
@@ -55,6 +56,7 @@ func NetStart(s *state.State) {
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
 	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
+	consulPtr := flag.Bool("consul", true, "If true, use consul to track current-block messages.")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
 	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Address for control panel webserver to listen on.")
 	logportPtr := flag.String("logPort", "6060", "Port for profile logging")
@@ -93,6 +95,7 @@ func NetStart(s *state.State) {
 	portOverride := *portOverridePtr
 	peers := *peersPtr
 	networkName := *networkNamePtr
+	useConsul := *consulPtr
 	networkPortOverride := *networkPortOverridePtr
 	ControlPanelPortOverride := *ControlPanelPortOverridePtr
 	logPort = *logportPtr
@@ -333,6 +336,31 @@ func NetStart(s *state.State) {
 		if 0 < networkPortOverride {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
+		if useConsul {
+			s.UseConsul = true
+			config := consulapi.DefaultConfig()
+			consul, err := consulapi.NewClient(config)
+			if err != nil {
+				panic(err)
+			}
+			session := consul.Session()
+			sessionID, _, err := session.Create(nil, nil)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("Consul Session ID:", sessionID)
+			kv := consul.KV()
+			kvPairList, _, err := kv.List("", nil)
+			if err == nil && kvPairList != nil {
+				fmt.Println("Full Consul List:")
+				for _, kvPair := range kvPairList {
+					fmt.Println(kvPair.Key, ":", string(kvPair.Value))
+				}
+			}
+			s.ConsulClient = consul
+			s.ConsulSession = sessionID
+		}
+
 		ci := p2p.ControllerInit{
 			Port:                     networkPort,
 			PeersFile:                s.PeersFile,
