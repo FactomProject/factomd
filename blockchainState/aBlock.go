@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func (bs *BlockchainState) ProcessABlock(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock) error {
+func (bs *BlockchainState) ProcessABlock(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock, prevHeader []byte) error {
 	bs.Init()
 
 	if bs.ABlockHeadRefHash.String() != aBlock.GetHeader().GetPrevBackRefHash().String() {
@@ -30,7 +30,7 @@ func (bs *BlockchainState) ProcessABlock(aBlock interfaces.IAdminBlock, dBlock i
 		return err
 	}
 
-	err = bs.CheckDBSignatureEntries(aBlock, dBlock)
+	err = bs.CheckDBSignatureEntries(aBlock, dBlock, prevHeader)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func CheckABlockMinuteNumbers(aBlock interfaces.IAdminBlock) error {
 	return nil
 }
 
-func (bs *BlockchainState) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock) error {
+func (bs *BlockchainState) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock, prevHeader []byte) error {
 	if dBlock.GetDatabaseHeight() == 0 {
 		return nil
 	}
@@ -76,13 +76,12 @@ func (bs *BlockchainState) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 			}
 			foundSigs[dbs.IdentityAdminChainID.String()] = "ok"
 			pub := dbs.PrevDBSig.Pub
-			sig := dbs.PrevDBSig.GetSignature()
 
 			if bs.IdentityChains[dbs.IdentityAdminChainID.String()] != pub.String() {
 				return fmt.Errorf("Invalid Public Key in DBSignatureEntry %v - expected %v, got %v", v.Hash().String(), bs.IdentityChains[dbs.IdentityAdminChainID.String()], pub.String())
 			}
 
-			if pub.Verify(dBlock.GetHeader().GetPrevKeyMR().Bytes(), sig) == false {
+			if dbs.PrevDBSig.Verify(prevHeader) == false {
 				return fmt.Errorf("Invalid signature in DBSignatureEntry %v", v.Hash().String())
 			}
 		}

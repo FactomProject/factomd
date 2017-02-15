@@ -25,6 +25,7 @@ type BlockchainState struct {
 	DBlockHeadHash  *primitives.Hash
 	DBlockHeight    uint32
 	DBlockTimestamp *primitives.Timestamp
+	DBlockHeader    []byte //For DBSignatureEntry
 
 	ECBlockHeadKeyMR *primitives.Hash
 	ECBlockHeadHash  *primitives.Hash
@@ -119,11 +120,13 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aB
 		return err
 	}
 
+	prevHeader := bs.DBlockHeader
+
 	err = bs.ProcessDBlock(dBlock)
 	if err != nil {
 		return err
 	}
-	err = bs.ProcessABlock(aBlock, dBlock)
+	err = bs.ProcessABlock(aBlock, dBlock, prevHeader)
 	if err != nil {
 		return err
 	}

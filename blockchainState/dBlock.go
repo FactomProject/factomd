@@ -45,6 +45,10 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 	bs.DBlockHeadHash = dBlock.DatabaseSecondaryIndex().(*primitives.Hash)
 	bs.DBlockHeight = dBlock.GetDatabaseHeight()
 	bs.DBlockTimestamp = dBlock.GetTimestamp().(*primitives.Timestamp)
+	bs.DBlockHeader, err = dBlock.GetHeader().MarshalBinary()
+	if err != nil {
+		return err
+	}
 
 	dbEntries := dBlock.GetDBEntries()
 	for _, v := range dbEntries {
