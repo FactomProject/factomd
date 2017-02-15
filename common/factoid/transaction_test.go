@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 // Random first "address".  It isn't a real one, but one we are using for now.
@@ -86,6 +87,37 @@ func nextAuth2() interfaces.IRCD {
 
 	rcd, _ := NewRCD_2(n, m, addresses)
 	return rcd
+}
+
+func getDeterministicTransaction() interfaces.ITransaction {
+	tx := new(Transaction)
+
+	for i := 0; i < 5; i++ {
+		tx.AddInput(testHelper.NewFactoidAddress(uint64(i)), uint64(100*(i+1)))
+	}
+
+	for i := 0; i < 3; i++ {
+		tx.AddOutput(testHelper.NewFactoidAddress(uint64(i+5)), uint64(100*(i+1)))
+	}
+
+	for i := 0; i < 2; i++ {
+		tx.AddECOutput(testHelper.NewECAddress(uint64(i+8)), uint64(100*(i+1)))
+	}
+
+	for i := 0; i < 5; i++ {
+		tx.AddAuthorization(testHelper.NewFactoidRCDAddress(uint64(i)))
+	}
+
+	data, err := tx.MarshalBinarySig()
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < 5; i++ {
+		sig := NewSingleSignatureBlock(testHelper.NewPrivKey(uint64(i)), data)
+		tx.SetSignatureBlock(i, sig)
+	}
+
+	return tx
 }
 
 var nb interfaces.ITransaction
@@ -242,5 +274,35 @@ func TestUnmarshalTransaction(t *testing.T) {
 	}
 	if tr.GetFullHash().String() != "c3d09d10693eb867e2bd0a503746df370403c9451ae91a363046f2a68529c2fd" {
 		t.Errorf("Invalid FullHash - %v vs %v", tr.GetFullHash().String(), "")
+	}
+}
+
+func TestHasUserAddress(t *testing.T) {
+	tx := getDeterministicTransaction()
+	t.Logf("%v", tx.String())
+
+	for i := 0; i < 5; i++ {
+		_, _, str := testHelper.NewFactoidAddressStrings(uint64(i))
+		if tx.HasUserAddress(str) == false {
+			t.Errorf("Did not found user address %v", str)
+		}
+	}
+
+	for i := 0; i < 3; i++ {
+		_, _, str := testHelper.NewFactoidAddressStrings(uint64(i))
+		if tx.HasUserAddress(str) == false {
+			t.Errorf("Did not found user address %v", str)
+		}
+	}
+
+	for i := 0; i < 2; i++ {
+		add := testHelper.NewECAddress(uint64(i + 8))
+		str, err := PublicKeyStringToECAddressString(add.String())
+		if err != nil {
+			t.Errorf("Error converting - %v", err)
+		}
+		if tx.HasUserAddress(str) == false {
+			t.Errorf("Did not found user address %v", str)
+		}
 	}
 }

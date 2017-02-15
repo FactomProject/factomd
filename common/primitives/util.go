@@ -213,6 +213,9 @@ func ConvertAddressToUser(prefix []byte, addr interfaces.IAddress) []byte {
 
 // Convert Factoid Addresses
 func ConvertFctAddressToUserStr(addr interfaces.IAddress) string {
+	//NOTE: This converts the final hash into user-readable string, NOT the public key!
+	//In practical terms, you'll need to convert the public key into RCD,
+	//then hash it before using this function!
 	userd := ConvertAddressToUser(FactoidPrefix, addr)
 	return base58.Encode(userd)
 }

@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/factoid"
 	. "github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )
@@ -181,5 +182,63 @@ func TestValidateUserStr(t *testing.T) {
 		if ok == false {
 			t.Errorf("Valid address not validating - %v", v)
 		}
+	}
+}
+
+func TestAddressConversions(t *testing.T) {
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-address
+	pub := "0000000000000000000000000000000000000000000000000000000000000000"
+	user := "FA1y5ZGuHSLmf2TqNf6hVMkPiNGyQpQDTFJvDLRkKQaoPo4bmbgu"
+
+	h, err := NewShaHashFromStr(pub)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add := factoid.CreateAddress(h)
+
+	converted := ConvertFctAddressToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry-credit-address
+	pub = "0000000000000000000000000000000000000000000000000000000000000000"
+	user = "EC1m9mouvUQeEidmqpUYpYtXg8fvTYi6GNHaKg8KMLbdMBrFfmUa"
+
+	h, err = NewShaHashFromStr(pub)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+
+	converted = ConvertECAddressToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-private-keys
+	priv := "0000000000000000000000000000000000000000000000000000000000000000"
+	user = "Fs1KWJrpLdfucvmYwN2nWrwepLn8ercpMbzXshd1g8zyhKXLVLWj"
+	h, err = NewShaHashFromStr(priv)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+	converted = ConvertFctPrivateToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
+	}
+
+	//https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry-credit-private-keys
+	priv = "0000000000000000000000000000000000000000000000000000000000000000"
+	user = "Es2Rf7iM6PdsqfYCo3D1tnAR65SkLENyWJG1deUzpRMQmbh9F3eG"
+	h, err = NewShaHashFromStr(priv)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	add = factoid.CreateAddress(h)
+	converted = ConvertECPrivateToUserStr(add)
+	if converted != user {
+		t.Errorf("Wrong conversion - %v vs %v", converted, user)
 	}
 }
