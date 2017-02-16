@@ -342,29 +342,6 @@ func NetStart(s *state.State) {
 		if useConsul {
 			s.SetUseConsul(true)
 			s.ConsulClient, s.ConsulSession = LaunchConsulPlugin()
-			/*
-				config := consulapi.DefaultConfig()
-				consul, err := consulapi.NewClient(config)
-				if err != nil {
-					panic(err)
-				}
-				session := consul.Session()
-				sessionID, _, err := session.Create(nil, nil)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Println("Consul Session ID:", sessionID)
-				kv := consul.KV()
-				kvPairList, _, err := kv.List("", nil)
-				if err == nil && kvPairList != nil {
-					fmt.Println("Full Consul List:")
-					for _, kvPair := range kvPairList {
-						fmt.Println(kvPair.Key, ":", string(kvPair.Value))
-					}
-				}
-				s.ConsulClient = consul
-				s.ConsulSession = sessionID
-			*/
 		} else {
 			s.SetUseConsul(false)
 		}

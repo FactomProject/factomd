@@ -12,7 +12,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	consulapi "github.com/hashicorp/consul/api"
 )
 
 var _ = log.Printf
@@ -138,41 +137,39 @@ func NetworkOutputs(fnode *FactomNode) {
 					fnode.State.GetTimestamp())
 
 				if fnode.State.UsingConsul() {
-					kv := fnode.State.ConsulClient.KV()
-					d := &consulapi.KVPair{Key: msg.GetMsgHash().String(), Value: []byte(msg.String()), Session: fnode.State.ConsulSession}
-					kv.Acquire(d, nil)
-				}
-
-				p := msg.GetOrigin() - 1
-
-				if msg.IsPeer2Peer() {
-					// Must have a Peer to send a message to a peer
-					if len(fnode.Peers) > 0 {
-						if p < 0 {
-							p = rand.Int() % len(fnode.Peers)
-						}
-						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-						if !fnode.State.GetNetStateOff() {
-							fnode.Peers[p].Send(msg)
-							if fnode.State.MessageTally {
-								fnode.State.TallySent(int(msg.Type()))
-							}
-						}
-					}
+					fnode.State.SendIntoConsul(msg)
 				} else {
-					for i, peer := range fnode.Peers {
-						wt := 1
-						if p >= 0 {
-							wt = fnode.Peers[p].Weight()
-						}
-						// Don't resend to the node that sent it to you.
-						if i != p || wt > 1 {
-							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+					p := msg.GetOrigin() - 1
+
+					if msg.IsPeer2Peer() {
+						// Must have a Peer to send a message to a peer
+						if len(fnode.Peers) > 0 {
+							if p < 0 {
+								p = rand.Int() % len(fnode.Peers)
+							}
+							fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 							if !fnode.State.GetNetStateOff() {
-								peer.Send(msg)
+								fnode.Peers[p].Send(msg)
 								if fnode.State.MessageTally {
 									fnode.State.TallySent(int(msg.Type()))
+								}
+							}
+						}
+					} else {
+						for i, peer := range fnode.Peers {
+							wt := 1
+							if p >= 0 {
+								wt = fnode.Peers[p].Weight()
+							}
+							// Don't resend to the node that sent it to you.
+							if i != p || wt > 1 {
+								bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+								fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+								if !fnode.State.GetNetStateOff() {
+									peer.Send(msg)
+									if fnode.State.MessageTally {
+										fnode.State.TallySent(int(msg.Type()))
+									}
 								}
 							}
 						}

@@ -1400,6 +1400,13 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 	return nil, fmt.Errorf("%s", "Transaction not found")
 }
 
+func (s *State) SendIntoConsul(msg interfaces.IMsg) {
+	fmt.Println("SENDINTOCONSUL:", msg.GetMsgHash().String(), ":", msg.String())
+	kv := s.ConsulClient.KV()
+	d := &consulapi.KVPair{Key: msg.GetMsgHash().String(), Value: []byte(msg.String()), Session: s.ConsulSession}
+	kv.Acquire(d, nil)
+}
+
 func (s *State) IncFactoidTrans() {
 	s.FactoidTrans++
 }
