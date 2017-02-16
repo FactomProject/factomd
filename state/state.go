@@ -318,6 +318,10 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+
+	// Plugins
+	useDBStateManager bool
+	DBStateManager    interfaces.IManagerController
 }
 
 type MissingEntryBlock struct {
@@ -1003,6 +1007,14 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	}
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries, allSigs)
 	msg.(*messages.DBStateMsg).IsInDB = true
+
+	// Create the torrent
+	if s.UsingTorrent() {
+		err := s.UploadDBState(msg)
+		if err != nil {
+			// fmt.Println(err.Error())
+		}
+	}
 
 	return msg, nil
 }

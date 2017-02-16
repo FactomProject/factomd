@@ -458,7 +458,6 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
-
 	cntFail := func() {
 		if !dbstatemsg.IsInDB {
 			s.DBStateIgnoreCnt++

@@ -760,6 +760,19 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
+
+	// Create the torrent
+	if list.State.UsingTorrent() {
+		msg, err := list.State.LoadDBState(uint32(dbheight))
+		if err != nil {
+			fmt.Println("[1] Error creating torrent in SaveDBStateToDB: " + err.Error())
+		}
+		err = list.State.UploadDBState(msg)
+		if err != nil {
+			//fmt.Println(err.Error())
+		}
+	}
+
 	return
 }
 

@@ -5,9 +5,31 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 )
+
+func fetchByTorrent(s *State, entry bool) {
+	if s.UsingTorrent() {
+		height := s.EntryBlockDBHeightComplete
+		if entry {
+			height = s.EntryDBHeightProcessing
+		}
+		span := s.GetHighestCompletedBlk() - height
+		if s.GetHighestCompletedBlk() > height+100 {
+			span = 100
+		}
+		var i uint32
+		for i = 0; i < span; i++ {
+			err := s.GetMissingDBState(height + i)
+			if err != nil {
+				fmt.Println("DEBUG: Error in torrent retrieve: " + err.Error())
+			}
+		}
+	}
+}
 
 func (s *State) setTimersMakeRequests() {
 	now := s.GetTimestamp()
@@ -21,10 +43,13 @@ func (s *State) setTimersMakeRequests() {
 	// This is a replay, because sometimes requests are ignored or lost.
 	if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
 		s.MissingEntryBlockRepeat = now
-
 		for _, eb := range s.MissingEntryBlocks {
-			eBlockRequest := messages.NewMissingData(s, eb.ebhash)
-			s.NetworkOutMsgQueue() <- eBlockRequest
+			if s.UsingTorrent() {
+				fetchByTorrent(s, false)
+			} else {
+				eBlockRequest := messages.NewMissingData(s, eb.ebhash)
+				s.NetworkOutMsgQueue() <- eBlockRequest
+			}
 		}
 	}
 
@@ -47,8 +72,12 @@ func (s *State) setTimersMakeRequests() {
 					// Only send out 200 requests at a time.
 					break
 				}
-				entryRequest := messages.NewMissingData(s, eb.entryhash)
-				s.NetworkOutMsgQueue() <- entryRequest
+				if s.UsingTorrent() {
+					fetchByTorrent(s, true)
+				} else {
+					entryRequest := messages.NewMissingData(s, eb.entryhash)
+					s.NetworkOutMsgQueue() <- entryRequest
+				}
 			}
 		}
 	}
@@ -179,7 +208,6 @@ func (s *State) syncEntries(eights bool) {
 // called.
 
 func (s *State) catchupEBlocks() {
-
 	s.setTimersMakeRequests()
 
 	// If we still have blocks that we are asking for, then let's not add to the list.

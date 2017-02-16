@@ -86,6 +86,10 @@ imports:
   - snappy
 - name: github.com/FactomProject/web
   version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
+- name: github.com/hashicorp/go-plugin
+  version: 8cf118f7a2f0c7ef1c82f66d4f6ac77c7e27dc12
+- name: github.com/hashicorp/yamux
+  version: d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd
 - name: golang.org/x/crypto
   version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
   subpackages:
