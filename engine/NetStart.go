@@ -23,7 +23,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	consulapi "github.com/hashicorp/consul/api"
 )
 
 var _ = fmt.Print
@@ -341,28 +340,33 @@ func NetStart(s *state.State) {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
 		if useConsul {
-			s.UseConsul = true
-			config := consulapi.DefaultConfig()
-			consul, err := consulapi.NewClient(config)
-			if err != nil {
-				panic(err)
-			}
-			session := consul.Session()
-			sessionID, _, err := session.Create(nil, nil)
-			if err != nil {
-				panic(err)
-			}
-			fmt.Println("Consul Session ID:", sessionID)
-			kv := consul.KV()
-			kvPairList, _, err := kv.List("", nil)
-			if err == nil && kvPairList != nil {
-				fmt.Println("Full Consul List:")
-				for _, kvPair := range kvPairList {
-					fmt.Println(kvPair.Key, ":", string(kvPair.Value))
+			s.SetUseConsul(true)
+			s.ConsulClient, s.ConsulSession = LaunchConsulPlugin()
+			/*
+				config := consulapi.DefaultConfig()
+				consul, err := consulapi.NewClient(config)
+				if err != nil {
+					panic(err)
 				}
-			}
-			s.ConsulClient = consul
-			s.ConsulSession = sessionID
+				session := consul.Session()
+				sessionID, _, err := session.Create(nil, nil)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println("Consul Session ID:", sessionID)
+				kv := consul.KV()
+				kvPairList, _, err := kv.List("", nil)
+				if err == nil && kvPairList != nil {
+					fmt.Println("Full Consul List:")
+					for _, kvPair := range kvPairList {
+						fmt.Println(kvPair.Key, ":", string(kvPair.Value))
+					}
+				}
+				s.ConsulClient = consul
+				s.ConsulSession = sessionID
+			*/
+		} else {
+			s.SetUseConsul(false)
 		}
 
 		ci := p2p.ControllerInit{

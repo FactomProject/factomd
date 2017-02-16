@@ -137,7 +137,7 @@ func NetworkOutputs(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())
 
-				if fnode.State.UseConsul {
+				if fnode.State.UsingConsul() {
 					kv := fnode.State.ConsulClient.KV()
 					d := &consulapi.KVPair{Key: msg.GetMsgHash().String(), Value: []byte(msg.String()), Session: fnode.State.ConsulSession}
 					kv.Acquire(d, nil)

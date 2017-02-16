@@ -16,6 +16,14 @@ func (s *State) UsingTorrent() bool {
 	return s.useDBStateManager
 }
 
+func (s *State) SetUseConsul(setVal bool) {
+	s.useConsul = setVal
+}
+
+func (s *State) UsingConsul() bool {
+	return s.useConsul
+}
+
 func (s *State) UploadDBState(msg interfaces.IMsg) error {
 	// Create the torrent
 	if s.UsingTorrent() {

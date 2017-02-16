@@ -196,13 +196,6 @@ type State struct {
 	// when a majority of leaders disagree with the hash we have via DBSigs
 	KeepMismatch bool
 
-	// If this is true, outbound messages will be sent out
-	// via Consul (as well as sent out over the p2p network normally)
-	UseConsul bool
-
-	ConsulClient  *consulapi.Client
-	ConsulSession string
-
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
 	Saving  bool // True if we are in the process of saving to the database
@@ -322,6 +315,13 @@ type State struct {
 	// Plugins
 	useDBStateManager bool
 	DBStateManager    interfaces.IManagerController
+
+	// If this is true, outbound messages will be sent out
+	// via Consul (as well as sent out over the p2p network normally)
+	useConsul bool
+
+	ConsulClient  *consulapi.Client
+	ConsulSession string
 }
 
 type MissingEntryBlock struct {

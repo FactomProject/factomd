@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-plugin"
 )
 
@@ -25,6 +26,30 @@ var _ = ioutil.Discard
 var pluginMap = map[string]plugin.Plugin{
 	// Plugin to manage dbstates
 	"manager": &IManagerPlugin{},
+}
+
+func LaunchConsulPlugin() (*consulapi.Client, string) {
+	config := consulapi.DefaultConfig()
+	consul, err := consulapi.NewClient(config)
+	if err != nil {
+		panic(err)
+	}
+	session := consul.Session()
+	sessionID, _, err := session.Create(nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Consul Session ID:", sessionID)
+	kv := consul.KV()
+	kvPairList, _, err := kv.List("", nil)
+	if err == nil && kvPairList != nil {
+		fmt.Println("Full Consul List:")
+		for _, kvPair := range kvPairList {
+			fmt.Println(kvPair.Key, ":", string(kvPair.Value))
+		}
+	}
+
+	return consul, sessionID
 }
 
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that
