@@ -41,7 +41,7 @@ func LaunchConsulPlugin() (*consulapi.Client, string) {
 	}
 	fmt.Println("Consul Session ID:", sessionID)
 	kv := consul.KV()
-	kvPairList, _, err := kv.List("", nil)
+	kvPairList, _, err := kv.List("block", nil)
 	if err == nil && kvPairList != nil {
 		fmt.Println("Full Consul List:")
 		for _, kvPair := range kvPairList {
