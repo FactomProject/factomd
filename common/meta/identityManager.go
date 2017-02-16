@@ -5,10 +5,8 @@
 package meta
 
 import (
-	"fmt"
 	"sync"
 
-	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 )

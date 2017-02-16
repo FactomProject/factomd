@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/meta"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -44,6 +45,8 @@ type BlockchainState struct {
 	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
 
 	IdentityChains map[string]string //IdentityChainID:Public Key
+
+	IdentityManager meta.IdentityManager
 }
 
 func NewBSMainNet() *BlockchainState {
