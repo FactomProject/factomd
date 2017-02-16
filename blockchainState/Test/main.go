@@ -81,6 +81,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 
 		err := bs.ProcessBlockSet(set.DBlock, set.ABlock, set.FBlock, set.ECBlock, set.EBlocks)
 		if err != nil {
+			fmt.Printf("Error processing block set #%v\n", i)
 			panic(err)
 		}
 		/*
