@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
+
 type AnchorSigningKey struct {
 	BlockChain string
 	KeyLevel   byte

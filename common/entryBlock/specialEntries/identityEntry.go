@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
+
 const (
 	TypeRegisterServerManagement = "Register Server Management"
 	TypeNewBlockSigningKey       = "New Block Signing Key"

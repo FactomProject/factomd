@@ -51,19 +51,6 @@ func CheckSig(idKey interfaces.IHash, pub []byte, msg []byte, sig []byte) bool {
 	}
 }
 
-// Checking the external ids if they match the needed lengths
-func CheckExternalIDsLength(extIDs [][]byte, lengths []int) bool {
-	if len(extIDs) != len(lengths) {
-		return false
-	}
-	for i := range extIDs {
-		if !CheckLength(lengths[i], extIDs[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 func CheckLength(length int, item []byte) bool {
 	if len(item) != length {
 		return false
