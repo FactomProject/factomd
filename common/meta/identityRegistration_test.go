@@ -21,7 +21,7 @@ func TestIdentityRegistrationStructure(t *testing.T) {
 	}
 
 	extIDs := [][]byte{}
-	for i, v := range parts {
+	for _, v := range parts {
 		b, _ := hex.DecodeString(v)
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))

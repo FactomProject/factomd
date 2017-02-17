@@ -81,6 +81,11 @@ func (ics *IdentityChainNameStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	}
 	ics.Key4 = h
 	ics.Nonce = extIDs[6]
+
+	chainID := ics.GetChainID()
+	if chainID.String()[:6] != "888888" {
+		return fmt.Errorf("Invalid ChainID - it should start with '888888', but doesn't - %v", chainID.String())
+	}
 	return nil
 }
 

@@ -34,6 +34,9 @@ func (irs *IdentityRegistrationStructure) DecodeFromExtIDs(extIDs [][]byte) erro
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	irs.Version = extIDs[0][0]
+	if irs.Version != 0 {
+		return fmt.Errorf("Wrong Version - expected 0, got %v", irs.Version)
+	}
 	irs.FunctionName = extIDs[1]
 	if string(irs.FunctionName) != "Register Factom Identity" {
 		return fmt.Errorf("Invalid FunctionName - expected 'Register Factom Identity', got '%s'", irs.FunctionName)

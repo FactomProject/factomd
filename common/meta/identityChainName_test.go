@@ -22,12 +22,12 @@ func TestIdentityChainStructure(t *testing.T) {
 		"0000000000c512c7",
 	}
 	extIDs := [][]byte{}
-	for i, v := range parts {
+	for _, v := range parts {
 		b, _ := hex.DecodeString(v)
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	ics := new(IdentityChainStructure)
+	ics := new(IdentityChainNameStructure)
 	err := ics.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)
