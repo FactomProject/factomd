@@ -51,7 +51,7 @@ func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	}
 	nbks.FunctionName = extIDs[1]
 	if string(nbks.FunctionName) != "New Bitcoin Key" {
-		return fmt.Errorf("Invalid FunctionName - expected 'New Block Signing Key', got '%s'", nbks.FunctionName)
+		return fmt.Errorf("Invalid FunctionName - expected 'New Bitcoin Key', got '%s'", nbks.FunctionName)
 	}
 	h, err := primitives.NewShaHash(extIDs[2])
 	if err != nil {
