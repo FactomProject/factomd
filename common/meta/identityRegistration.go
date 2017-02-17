@@ -52,6 +52,7 @@ func (irs *IdentityRegistrationStructure) DecodeFromExtIDs(extIDs [][]byte) erro
 		return fmt.Errorf("Invalid PreimageIdentityKey prefix byte - 3xpected 1, got %v", irs.PreimageIdentityKey[0])
 	}
 	irs.Signature = extIDs[4]
+	//TODO: test signature
 	return nil
 }
 
