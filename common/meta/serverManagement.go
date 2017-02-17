@@ -13,7 +13,7 @@ import (
 )
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#server-management-subchain-creation
-type ManagementSubchainCreationStructure struct {
+type ServerManagementStructure struct {
 	//This chain is created after the identity chain is known.
 	//The Chain Name first element is a version, 0.
 	Version byte
@@ -25,48 +25,48 @@ type ManagementSubchainCreationStructure struct {
 	Nonce []byte
 }
 
-func (msc *ManagementSubchainCreationStructure) DecodeFromExtIDs(extIDs [][]byte) error {
+func (sm *ServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 4 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 4, got %v", len(extIDs))
 	}
 	if CheckExternalIDsLength(extIDs[:3], []int{1, 17, 32}) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
-	msc.Version = extIDs[0][0]
-	if msc.Version != 0 {
-		return fmt.Errorf("Wrong Version - expected 0, got %v", msc.Version)
+	sm.Version = extIDs[0][0]
+	if sm.Version != 0 {
+		return fmt.Errorf("Wrong Version - expected 0, got %v", sm.Version)
 	}
-	msc.FunctionName = extIDs[1]
-	if string(msc.FunctionName) != "Server Management" {
-		return fmt.Errorf("Invalid FunctionName - expected 'Server Management', got '%s'", msc.FunctionName)
+	sm.FunctionName = extIDs[1]
+	if string(sm.FunctionName) != "Server Management" {
+		return fmt.Errorf("Invalid FunctionName - expected 'Server Management', got '%s'", sm.FunctionName)
 	}
 	h, err := primitives.NewShaHash(extIDs[2])
 	if err != nil {
 		return err
 	}
-	msc.RootIdentityChainID = h
-	msc.Nonce = extIDs[3]
+	sm.RootIdentityChainID = h
+	sm.Nonce = extIDs[3]
 
-	chainID := msc.GetChainID()
+	chainID := sm.GetChainID()
 	if chainID.String()[:6] != "888888" {
 		return fmt.Errorf("Invalid ChainID - it should start with '888888', but doesn't - %v", chainID.String())
 	}
 	return nil
 }
 
-func (msc *ManagementSubchainCreationStructure) ToExternalIDs() [][]byte {
+func (sm *ServerManagementStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
-	extIDs = append(extIDs, []byte{msc.Version})
-	extIDs = append(extIDs, msc.FunctionName)
-	extIDs = append(extIDs, msc.RootIdentityChainID.Bytes())
-	extIDs = append(extIDs, msc.Nonce)
+	extIDs = append(extIDs, []byte{sm.Version})
+	extIDs = append(extIDs, sm.FunctionName)
+	extIDs = append(extIDs, sm.RootIdentityChainID.Bytes())
+	extIDs = append(extIDs, sm.Nonce)
 
 	return extIDs
 }
 
-func (msc *ManagementSubchainCreationStructure) GetChainID() interfaces.IHash {
-	extIDs := msc.ToExternalIDs()
+func (sm *ServerManagementStructure) GetChainID() interfaces.IHash {
+	extIDs := sm.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)
 }

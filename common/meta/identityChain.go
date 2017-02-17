@@ -12,25 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
-
-//TODO:
-//- Add conversion to human-readible private / public key
-
-const (
-	IdentityPrivateKeyPrefix1 = "4db6c9"
-	IdentityPrivateKeyPrefix2 = "4db6e7"
-	IdentityPrivateKeyPrefix3 = "4db705"
-	IdentityPrivateKeyPrefix4 = "4db723"
-
-	IdentityPublicKeyPrefix1 = "3fbeba"
-	IdentityPublicKeyPrefix2 = "3fbed8"
-	IdentityPublicKeyPrefix3 = "3fbef6"
-	IdentityPublicKeyPrefix4 = "3fbf14"
-)
-
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-chain-creation
-type IdentityChainNameStructure struct {
+type IdentityChainStructure struct {
 	//A Chain Name is constructed with 7 elements.
 	//The first element is a binary string 0 signifying the version.
 	Version byte
@@ -46,7 +29,7 @@ type IdentityChainNameStructure struct {
 	Nonce []byte
 }
 
-func (ics *IdentityChainNameStructure) DecodeFromExtIDs(extIDs [][]byte) error {
+func (ics *IdentityChainStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
 	}
@@ -90,7 +73,7 @@ func (ics *IdentityChainNameStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
-func (ics *IdentityChainNameStructure) ToExternalIDs() [][]byte {
+func (ics *IdentityChainStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
 	extIDs = append(extIDs, []byte{ics.Version})
@@ -104,21 +87,8 @@ func (ics *IdentityChainNameStructure) ToExternalIDs() [][]byte {
 	return extIDs
 }
 
-func (ics *IdentityChainNameStructure) GetChainID() interfaces.IHash {
+func (ics *IdentityChainStructure) GetChainID() interfaces.IHash {
 	extIDs := ics.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)
-}
-
-// Checking the external ids if they match the needed lengths
-func CheckExternalIDsLength(extIDs [][]byte, lengths []int) bool {
-	if len(extIDs) != len(lengths) {
-		return false
-	}
-	for i := range extIDs {
-		if lengths[i] != len(extIDs[i]) {
-			return false
-		}
-	}
-	return true
 }

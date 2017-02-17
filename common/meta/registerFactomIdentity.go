@@ -13,7 +13,7 @@ import (
 )
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-registration
-type IdentityRegistrationStructure struct {
+type RegisterFactomIdentityStructure struct {
 	//The registration message has 5 ExtIDs.
 	//The first ExtID is a binary string 0 signifying the version.
 	Version byte
@@ -27,50 +27,50 @@ type IdentityRegistrationStructure struct {
 	Signature []byte
 }
 
-func (irs *IdentityRegistrationStructure) DecodeFromExtIDs(extIDs [][]byte) error {
+func (rfi *RegisterFactomIdentityStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))
 	}
 	if CheckExternalIDsLength(extIDs, []int{1, 24, 32, 33, 64}) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
-	irs.Version = extIDs[0][0]
-	if irs.Version != 0 {
-		return fmt.Errorf("Wrong Version - expected 0, got %v", irs.Version)
+	rfi.Version = extIDs[0][0]
+	if rfi.Version != 0 {
+		return fmt.Errorf("Wrong Version - expected 0, got %v", rfi.Version)
 	}
-	irs.FunctionName = extIDs[1]
-	if string(irs.FunctionName) != "Register Factom Identity" {
-		return fmt.Errorf("Invalid FunctionName - expected 'Register Factom Identity', got '%s'", irs.FunctionName)
+	rfi.FunctionName = extIDs[1]
+	if string(rfi.FunctionName) != "Register Factom Identity" {
+		return fmt.Errorf("Invalid FunctionName - expected 'Register Factom Identity', got '%s'", rfi.FunctionName)
 	}
 	h, err := primitives.NewShaHash(extIDs[2])
 	if err != nil {
 		return err
 	}
-	irs.IdentityChainID = h
+	rfi.IdentityChainID = h
 
-	irs.PreimageIdentityKey = extIDs[3]
-	if irs.PreimageIdentityKey[0] != 1 {
-		return fmt.Errorf("Invalid PreimageIdentityKey prefix byte - 3xpected 1, got %v", irs.PreimageIdentityKey[0])
+	rfi.PreimageIdentityKey = extIDs[3]
+	if rfi.PreimageIdentityKey[0] != 1 {
+		return fmt.Errorf("Invalid PreimageIdentityKey prefix byte - 3xpected 1, got %v", rfi.PreimageIdentityKey[0])
 	}
-	irs.Signature = extIDs[4]
+	rfi.Signature = extIDs[4]
 	//TODO: test signature
 	return nil
 }
 
-func (irs *IdentityRegistrationStructure) ToExternalIDs() [][]byte {
+func (rfi *RegisterFactomIdentityStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
-	extIDs = append(extIDs, []byte{irs.Version})
-	extIDs = append(extIDs, irs.FunctionName)
-	extIDs = append(extIDs, irs.IdentityChainID.Bytes())
-	extIDs = append(extIDs, irs.PreimageIdentityKey)
-	extIDs = append(extIDs, irs.Signature)
+	extIDs = append(extIDs, []byte{rfi.Version})
+	extIDs = append(extIDs, rfi.FunctionName)
+	extIDs = append(extIDs, rfi.IdentityChainID.Bytes())
+	extIDs = append(extIDs, rfi.PreimageIdentityKey)
+	extIDs = append(extIDs, rfi.Signature)
 
 	return extIDs
 }
 
-func (irs *IdentityRegistrationStructure) GetChainID() interfaces.IHash {
-	extIDs := irs.ToExternalIDs()
+func (rfi *RegisterFactomIdentityStructure) GetChainID() interfaces.IHash {
+	extIDs := rfi.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)
 }

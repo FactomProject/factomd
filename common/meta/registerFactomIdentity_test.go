@@ -11,7 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/meta"
 )
 
-func TestIdentityRegistrationStructure(t *testing.T) {
+func TestRegisterFactomIdentityStructure(t *testing.T) {
 	parts := []string{
 		"00",
 		"526567697374657220466163746F6D204964656E74697479",
@@ -26,12 +26,12 @@ func TestIdentityRegistrationStructure(t *testing.T) {
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	irs := new(IdentityRegistrationStructure)
-	err := irs.DecodeFromExtIDs(extIDs)
+	rfi := new(RegisterFactomIdentityStructure)
+	err := rfi.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	h := irs.GetChainID()
+	h := rfi.GetChainID()
 	if h.String() != "9d40f0a4250a19c7d2cafc3bdbec5711edf840e53340748b4f746b8544700293" {
 		t.Errorf("Wrong ChainID, expected 9d40f0a4250a19c7d2cafc3bdbec5711edf840e53340748b4f746b8544700293, got %v", h.String())
 	}

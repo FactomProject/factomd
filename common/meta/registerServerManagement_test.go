@@ -11,7 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/meta"
 )
 
-func TestManagementSubchainRegistration(t *testing.T) {
+func TestRegisterServerManagementStructure(t *testing.T) {
 	parts := []string{
 		"00",
 		"526567697374657220536572766572204D616E6167656D656E74",
@@ -26,7 +26,7 @@ func TestManagementSubchainRegistration(t *testing.T) {
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	msr := new(ManagementSubchainRegistrationStructure)
+	msr := new(RegisterServerManagementStructure)
 	err := msr.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)

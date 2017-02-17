@@ -4,6 +4,9 @@
 
 package meta
 
+//************************ NOT USED YET! *************************************//
+
+/*
 import (
 	"fmt"
 
@@ -76,3 +79,4 @@ func (leck *LinkEntryCreditKeyStructure) GetChainID() interfaces.IHash {
 
 	return entryBlock.ExternalIDsToChainID(extIDs)
 }
+*/

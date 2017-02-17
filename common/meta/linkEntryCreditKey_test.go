@@ -4,6 +4,7 @@
 
 package meta_test
 
+/*
 import (
 	"encoding/hex"
 	"testing"
@@ -36,3 +37,4 @@ func TestLinkEntryCreditKeyStructure(t *testing.T) {
 		t.Errorf("Wrong ChainID, expected 8888881d59de393d9acc2b89116bc5a2dd0d0377af7a5e04bc7394149a6dbe23, got %v", h.String())
 	}
 }
+*/

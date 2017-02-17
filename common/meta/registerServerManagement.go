@@ -13,7 +13,7 @@ import (
 )
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#server-management-subchain-registration
-type ManagementSubchainRegistrationStructure struct {
+type RegisterServerManagementStructure struct {
 	//It is very similar to the Factom identity registration message.
 	//[0 (version)] [Register Server Management] [subchain ChainID] [identity key preimage] [signature of version through ChainID]
 
@@ -29,50 +29,50 @@ type ManagementSubchainRegistrationStructure struct {
 	Signature []byte
 }
 
-func (msr *ManagementSubchainRegistrationStructure) DecodeFromExtIDs(extIDs [][]byte) error {
+func (rsm *RegisterServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))
 	}
 	if CheckExternalIDsLength(extIDs, []int{1, 26, 32, 33, 64}) == false {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
-	msr.Version = extIDs[0][0]
-	if msr.Version != 0 {
-		return fmt.Errorf("Wrong Version - expected 0, got %v", msr.Version)
+	rsm.Version = extIDs[0][0]
+	if rsm.Version != 0 {
+		return fmt.Errorf("Wrong Version - expected 0, got %v", rsm.Version)
 	}
-	msr.FunctionName = extIDs[1]
-	if string(msr.FunctionName) != "Register Server Management" {
-		return fmt.Errorf("Invalid FunctionName - expected 'Register Server Management', got '%s'", msr.FunctionName)
+	rsm.FunctionName = extIDs[1]
+	if string(rsm.FunctionName) != "Register Server Management" {
+		return fmt.Errorf("Invalid FunctionName - expected 'Register Server Management', got '%s'", rsm.FunctionName)
 	}
 	h, err := primitives.NewShaHash(extIDs[2])
 	if err != nil {
 		return err
 	}
-	msr.SubchainChainID = h
+	rsm.SubchainChainID = h
 
-	msr.PreimageIdentityKey = extIDs[3]
-	if msr.PreimageIdentityKey[0] != 1 {
-		return fmt.Errorf("Invalid PreimageIdentityKey prefix byte - 3xpected 1, got %v", msr.PreimageIdentityKey[0])
+	rsm.PreimageIdentityKey = extIDs[3]
+	if rsm.PreimageIdentityKey[0] != 1 {
+		return fmt.Errorf("Invalid PreimageIdentityKey prefix byte - 3xpected 1, got %v", rsm.PreimageIdentityKey[0])
 	}
-	msr.Signature = extIDs[4]
+	rsm.Signature = extIDs[4]
 	//TODO: test signature
 	return nil
 }
 
-func (msr *ManagementSubchainRegistrationStructure) ToExternalIDs() [][]byte {
+func (rsm *RegisterServerManagementStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
-	extIDs = append(extIDs, []byte{msr.Version})
-	extIDs = append(extIDs, msr.FunctionName)
-	extIDs = append(extIDs, msr.SubchainChainID.Bytes())
-	extIDs = append(extIDs, msr.PreimageIdentityKey)
-	extIDs = append(extIDs, msr.Signature)
+	extIDs = append(extIDs, []byte{rsm.Version})
+	extIDs = append(extIDs, rsm.FunctionName)
+	extIDs = append(extIDs, rsm.SubchainChainID.Bytes())
+	extIDs = append(extIDs, rsm.PreimageIdentityKey)
+	extIDs = append(extIDs, rsm.Signature)
 
 	return extIDs
 }
 
-func (msr *ManagementSubchainRegistrationStructure) GetChainID() interfaces.IHash {
-	extIDs := msr.ToExternalIDs()
+func (rsm *RegisterServerManagementStructure) GetChainID() interfaces.IHash {
+	extIDs := rsm.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)
 }

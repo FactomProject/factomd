@@ -27,7 +27,7 @@ func TestIdentityChainStructure(t *testing.T) {
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	ics := new(IdentityChainNameStructure)
+	ics := new(IdentityChainStructure)
 	err := ics.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)
