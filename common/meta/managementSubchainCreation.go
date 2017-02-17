@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#server-management-subchain-creation
 type ManagementSubchainCreationStructure struct {
 	//This chain is created after the identity chain is known.
 	//The Chain Name first element is a version, 0.

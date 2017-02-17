@@ -29,6 +29,7 @@ const (
 	IdentityPublicKeyPrefix4 = "3fbf14"
 )
 
+//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-chain-creation
 type IdentityChainNameStructure struct {
 	//A Chain Name is constructed with 7 elements.
 	//The first element is a binary string 0 signifying the version.

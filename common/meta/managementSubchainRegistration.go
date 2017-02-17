@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#server-management-subchain-registration
 type ManagementSubchainRegistrationStructure struct {
 	//It is very similar to the Factom identity registration message.
 	//[0 (version)] [Register Server Management] [subchain ChainID] [identity key preimage] [signature of version through ChainID]

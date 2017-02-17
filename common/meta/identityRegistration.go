@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#factom-identity-registration
 type IdentityRegistrationStructure struct {
 	//The registration message has 5 ExtIDs.
 	//The first ExtID is a binary string 0 signifying the version.

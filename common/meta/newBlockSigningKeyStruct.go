@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+//https://github.com/FactomProject/FactomDocs/blob/master/Identity.md#add-new-block-signing-key
 type NewBlockSigningKeyStruct struct {
 	//The message is a Factom Entry with several extIDs holding the various parts.
 	//[0 (version)] [New Block Signing Key] [identity ChainID] [new key] [timestamp] [identity key preimage] [signature of version through timestamp]
