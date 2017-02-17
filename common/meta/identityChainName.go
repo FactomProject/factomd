@@ -29,17 +29,23 @@ const (
 	IdentityPublicKeyPrefix4 = "3fbf14"
 )
 
-type IdentityChainStructure struct {
-	Version      byte
+type IdentityChainNameStructure struct {
+	//A Chain Name is constructed with 7 elements.
+	//The first element is a binary string 0 signifying the version.
+	Version byte
+	//The second element is ASCII bytes "Identity Chain".
 	FunctionName []byte //"Identity Chain"
-	Key1         interfaces.IHash
-	Key2         interfaces.IHash
-	Key3         interfaces.IHash
-	Key4         interfaces.IHash
-	Nonce        []byte
+	//The third element is the level 1 identity key in binary form.
+	Key1 interfaces.IHash
+	//Elements 4-6 are levels 2-4.
+	Key2 interfaces.IHash
+	Key3 interfaces.IHash
+	Key4 interfaces.IHash
+	//The 7th element is a nonce which is iterated until the first 3 bytes match 0x888888.
+	Nonce []byte
 }
 
-func (ics *IdentityChainStructure) DecodeFromExtIDs(extIDs [][]byte) error {
+func (ics *IdentityChainNameStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
 	}
@@ -47,6 +53,9 @@ func (ics *IdentityChainStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 		return fmt.Errorf("Wrong lengths of ExtIDs")
 	}
 	ics.Version = extIDs[0][0]
+	if ics.Version != 0 {
+		return fmt.Errorf("Wrong Version - expected 0, got %v", ics.Version)
+	}
 	ics.FunctionName = extIDs[1]
 	if string(ics.FunctionName) != "Identity Chain" {
 		return fmt.Errorf("Invalid FunctionName - expected 'Identity Chain', got '%s'", ics.FunctionName)
@@ -75,7 +84,7 @@ func (ics *IdentityChainStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	return nil
 }
 
-func (ics *IdentityChainStructure) GetChainID() interfaces.IHash {
+func (ics *IdentityChainNameStructure) ToExternalIDs() [][]byte {
 	extIDs := [][]byte{}
 
 	extIDs = append(extIDs, []byte{ics.Version})
@@ -85,6 +94,12 @@ func (ics *IdentityChainStructure) GetChainID() interfaces.IHash {
 	extIDs = append(extIDs, ics.Key3.Bytes())
 	extIDs = append(extIDs, ics.Key4.Bytes())
 	extIDs = append(extIDs, ics.Nonce)
+
+	return extIDs
+}
+
+func (ics *IdentityChainNameStructure) GetChainID() interfaces.IHash {
+	extIDs := ics.ToExternalIDs()
 
 	return entryBlock.ExternalIDsToChainID(extIDs)
 }
