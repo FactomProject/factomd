@@ -604,25 +604,6 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 }
 
 // Return the number of times we have tripped an ask for this request.
-func (p *ProcessList) AskDBState(vmIndex int, height int) int {
-	now := p.State.GetTimestamp().GetTimeMilli()
-
-	r := p.GetRequest(now, vmIndex, height, 60)
-
-	if now-r.sent >= r.wait*1000+500 {
-		dbstate := messages.NewDBStateMissing(p.State, p.State.LLeaderHeight, p.State.LLeaderHeight+1)
-
-		dbstate.SendOut(p.State, dbstate)
-		p.State.DBStateAskCnt++
-
-		r.sent = now
-		r.requestCnt++
-	}
-
-	return r.requestCnt
-}
-
-// Return the number of times we have tripped an ask for this request.
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
@@ -704,8 +685,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	}
 
 	state.PLProcessHeight = p.DBHeight
-
-	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
 	if len(p.System.List) >= p.System.Height {
 	systemloop:
