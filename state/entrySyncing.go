@@ -6,7 +6,53 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 )
+
+func (s *State) setTimersMakeRequests() {
+	now := s.GetTimestamp()
+
+	// If we have no Entry Blocks in our queue, reset our timer.
+	if len(s.MissingEntryBlocks) == 0 || s.MissingEntryBlockRepeat == nil {
+		s.MissingEntryBlockRepeat = now
+	}
+
+	// If our delay has been reached, then ask for some missing Entry blocks
+	// This is a replay, because sometimes requests are ignored or lost.
+	if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
+		s.MissingEntryBlockRepeat = now
+
+		for _, eb := range s.MissingEntryBlocks {
+			eBlockRequest := messages.NewMissingData(s, eb.ebhash)
+			s.NetworkOutMsgQueue() <- eBlockRequest
+		}
+	}
+
+	if len(s.MissingEntries) == 0 {
+		s.MissingEntryRepeat = nil
+		s.EntryDBHeightComplete = s.EntryBlockDBHeightComplete
+		s.EntryDBHeightComplete = s.EntryDBHeightComplete
+	} else {
+		if s.MissingEntryRepeat == nil {
+			s.MissingEntryRepeat = now
+		}
+
+		// If our delay has been reached, then ask for some missing Entry blocks
+		// This is a replay, because sometimes requests are ignored or lost.
+		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
+			s.MissingEntryRepeat = now
+
+			for i, eb := range s.MissingEntries {
+				if i > 200 {
+					// Only send out 200 requests at a time.
+					break
+				}
+				entryRequest := messages.NewMissingData(s, eb.entryhash)
+				s.NetworkOutMsgQueue() <- entryRequest
+			}
+		}
+	}
+}
 
 func (s *State) syncEntryBlocks() {
 	// All done is true, and as long as it says true, we walk our bookmark forward.  Once we find something
@@ -144,7 +190,7 @@ func (s *State) syncEntries(eights bool) {
 func (s *State) catchupEBlocks() {
 
 	// If we still have blocks that we are asking for, then let's not add to the list.
-
+	s.setTimersMakeRequests()
 	s.syncEntryBlocks()
 	s.syncEntries(false)
 
