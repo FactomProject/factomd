@@ -176,14 +176,21 @@ func CheckDatabase(db interfaces.IDatabase) {
 	if err != nil {
 		panic(err)
 	}
+	checkCount := 0
+	missingCount := 0
 	for _, chain := range chains {
-		//fmt.Printf("Checking chain %v\n", chain.String())
 		blocks, err := dbo.FetchAllEBlocksByChain(chain)
 		if err != nil {
 			panic(err)
 		}
+		if len(blocks) == 0 {
+			panic("Found no blocks!")
+		}
 		for _, block := range blocks {
 			entryHashes := block.GetEntryHashes()
+			if len(entryHashes) == 0 {
+				panic("Found no entryHashes!")
+			}
 			for _, eHash := range entryHashes {
 				if eHash.IsMinuteMarker() == true {
 					continue
@@ -193,12 +200,15 @@ func CheckDatabase(db interfaces.IDatabase) {
 					panic(err)
 				}
 				if entry == nil {
+					missingCount++
 					fmt.Printf("Missing entry %v!\n", eHash.String())
+				} else {
+					checkCount++
 				}
 			}
 		}
 	}
-
+	fmt.Printf("Found %v entries, missing %v\n", checkCount, missingCount)
 	fmt.Printf("\tFinished looking for missing EBlock Entries\n")
 
 	//CheckMinuteNumbers(dbo)
