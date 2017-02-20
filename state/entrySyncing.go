@@ -87,7 +87,16 @@ func (s *State) syncEntries(eights bool) {
 					continue
 				}
 				e, _ := s.DB.FetchEntry(entryhash)
-				if e == nil {
+				// If I have the entry, then remove it from the Missing Entries list.
+				if e != nil {
+					for i, v := range s.MissingEntries {
+						if entryhash.Fixed() == v.entryhash.Fixed() {
+							s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[:i+1]...)
+						}
+					}
+
+					// If I am missing the entry, add it to th eMissing Entries list
+				} else {
 					//Check lists and not add if already there.
 					addit := true
 					for _, e := range s.MissingEntries {
