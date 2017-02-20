@@ -1,7 +1,6 @@
 package state
 
 import (
-	"fmt"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
@@ -65,17 +64,18 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 				}
 			}
 
-			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+5))
-			fmt.Println("****", list.State.FactomNodeName, msg.String())
+			if list.State.RunLeader && !list.State.IgnoreMissing {
+				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end + 5))
 
-			if msg != nil {
-				//		list.State.RunLeader = false
-				//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
-				msg.SendOut(list.State, msg)
-				list.State.DBStateAskCnt++
-				list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
-				list.LastBegin = begin
-				list.LastEnd = end
+				if msg != nil {
+					//		list.State.RunLeader = false
+					//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
+					msg.SendOut(list.State, msg)
+					list.State.DBStateAskCnt++
+					list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
+					list.LastBegin = begin
+					list.LastEnd = end
+				}
 			}
 		}
 	}
