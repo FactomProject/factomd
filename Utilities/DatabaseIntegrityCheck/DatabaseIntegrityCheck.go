@@ -171,6 +171,36 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 
 	fmt.Printf("\tFinished looking for free-floating blocks\n")
 
+	fmt.Printf("\tLooking for missing EBlock Entries\n")
+	chains, err := dbo.FetchAllEBlockChainIDs()
+	if err != nil {
+		panic(err)
+	}
+	for _, chain := range chains {
+		//fmt.Printf("Checking chain %v\n", chain.String())
+		blocks, err := dbo.FetchAllEBlocksByChain(chain)
+		if err != nil {
+			panic(err)
+		}
+		for _, block := range blocks {
+			entryHashes := block.GetEntryHashes()
+			for _, eHash := range entryHashes {
+				if eHash.IsMinuteMarker() == true {
+					continue
+				}
+				entry, err := dbo.FetchEntry(eHash)
+				if err != nil {
+					panic(err)
+				}
+				if entry == nil {
+					fmt.Printf("Missing entry %v!\n", eHash.String())
+				}
+			}
+		}
+	}
+
+	fmt.Printf("\tFinished looking for missing EBlock Entries\n")
+
 	//CheckMinuteNumbers(dbo)
 }
 
