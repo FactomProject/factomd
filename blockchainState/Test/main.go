@@ -217,7 +217,7 @@ func SaveBS(bs *BlockchainState) error {
 		return err
 	}
 
-	err = ioutil.WriteFile("bs.dat", b, 0644)
+	err = ioutil.WriteFile("bs.test", b, 0644)
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func SaveBS(bs *BlockchainState) error {
 }
 
 func LoadBS() (*BlockchainState, error) {
-	b, err := ioutil.ReadFile("bs.dat")
+	b, err := ioutil.ReadFile("bs.test")
 	if err != nil {
 		return nil, err
 	}
