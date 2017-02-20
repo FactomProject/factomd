@@ -173,6 +173,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 
 	fmt.Printf("\tLooking for missing EBlocks\n")
 
+	foundBlocks := 0
 	for _, dHash := range dBlocks {
 		dBlock, err := dbo.FetchDBlock(dHash)
 		if err != nil {
@@ -190,11 +191,13 @@ func CheckDatabase(db interfaces.IDatabase) {
 			}
 			if eBlock == nil {
 				fmt.Errorf("Could not find eBlock %v!\n", v.GetKeyMR())
+			} else {
+				foundBlocks++
 			}
 		}
 	}
 
-	fmt.Printf("\tFinished looking for missing EBlocks\n")
+	fmt.Printf("\tFinished looking for missing EBlocks - found %v\n", foundBlocks)
 
 	fmt.Printf("\tLooking for missing EBlock Entries\n")
 
