@@ -65,7 +65,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 			}
 
 			if list.State.RunLeader && !list.State.IgnoreMissing {
-				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end + 5))
+				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+5))
 
 				if msg != nil {
 					//		list.State.RunLeader = false
