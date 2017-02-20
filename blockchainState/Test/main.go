@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
+	//"os"
 
 	. "github.com/FactomProject/factomd/blockchainState"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -16,24 +17,26 @@ const bolt string = "bolt"
 func main() {
 	fmt.Println("Usage:")
 	fmt.Println("Test level/bolt DBFileLocation")
+	/*
+		if len(os.Args) < 3 {
+			fmt.Println("\nNot enough arguments passed")
+			os.Exit(1)
+		}
+		if len(os.Args) > 3 {
+			fmt.Println("\nToo many arguments passed")
+			os.Exit(1)
+		}
 
-	if len(os.Args) < 3 {
-		fmt.Println("\nNot enough arguments passed")
-		os.Exit(1)
-	}
-	if len(os.Args) > 3 {
-		fmt.Println("\nToo many arguments passed")
-		os.Exit(1)
-	}
+		levelBolt := os.Args[1]
 
-	levelBolt := os.Args[1]
-
-	if levelBolt != level && levelBolt != bolt {
-		fmt.Println("\nFirst argument should be `level` or `bolt`")
-		os.Exit(1)
-	}
-	path := os.Args[2]
-
+		if levelBolt != level && levelBolt != bolt {
+			fmt.Println("\nFirst argument should be `level` or `bolt`")
+			os.Exit(1)
+		}
+		path := os.Args[2]
+	*/
+	levelBolt := "level"
+	path := "C:/Users/ThePiachu/.factom/m2/main-database/ldb/MAIN/factoid_level.db"
 	var dbase *hybridDB.HybridDB
 	var err error
 	if levelBolt == bolt {
@@ -54,7 +57,13 @@ func CheckDatabase(db interfaces.IDatabase) {
 	}
 
 	dbo := databaseOverlay.NewOverlay(db)
-	bs := NewBSMainNet()
+	start := 0
+	bs, err := LoadBS()
+	if err != nil {
+		bs = NewBSMainNet()
+	} else {
+		start = int(bs.DBlockHeight) + 1
+	}
 	bl := new(BalanceLedger)
 	bl.Init()
 
@@ -73,13 +82,13 @@ func CheckDatabase(db interfaces.IDatabase) {
 		//max = 40000
 	}
 
-	for i := 0; i < max; i++ {
+	for i := start; i < max; i++ {
 		set := FetchBlockSet(dbo, i)
 		if i%1000 == 0 {
 			fmt.Printf("\"%v\", //%v\n", set.DBlock.DatabasePrimaryIndex(), set.DBlock.GetDatabaseHeight())
 		}
 
-		err := bs.ProcessBlockSet(set.DBlock, set.ABlock, set.FBlock, set.ECBlock, set.EBlocks)
+		err := bs.ProcessBlockSet(set.DBlock, set.ABlock, set.FBlock, set.ECBlock, set.EBlocks, set.Entries)
 		if err != nil {
 			fmt.Printf("Error processing block set #%v\n", i)
 			panic(err)
@@ -102,6 +111,12 @@ func CheckDatabase(db interfaces.IDatabase) {
 				panic(err)
 			}
 			fmt.Printf("Successfully saved and loaded BS\n")
+		}
+		if i == 70000 {
+			err = SaveBS(bs)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 	fmt.Printf("\tFinished!\n")
@@ -131,6 +146,7 @@ type BlockSet struct {
 	FBlock  interfaces.IFBlock
 	DBlock  interfaces.IDirectoryBlock
 	EBlocks []interfaces.IEntryBlock
+	Entries []interfaces.IEBEntry
 }
 
 func FetchBlockSet(dbo interfaces.DBOverlay, index int) *BlockSet {
@@ -175,9 +191,51 @@ func FetchBlockSet(dbo interfaces.DBOverlay, index int) *BlockSet {
 				panic(err)
 			}
 			bs.EBlocks = append(bs.EBlocks, eBlock)
+			for _, v := range eBlock.GetEntryHashes() {
+				if v.IsMinuteMarker() {
+					continue
+				}
+				e, err := dbo.FetchEntry(v)
+				if err != nil {
+					panic(err)
+				}
+				if e == nil {
+					panic("Couldn't find entry " + v.String())
+				}
+				bs.Entries = append(bs.Entries, e)
+			}
 			break
 		}
 	}
 
 	return bs
+}
+
+func SaveBS(bs *BlockchainState) error {
+	b, err := bs.MarshalBinaryData()
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile("bs.dat", b, 0644)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Saved BS\n")
+
+	return nil
+}
+
+func LoadBS() (*BlockchainState, error) {
+	b, err := ioutil.ReadFile("bs.dat")
+	if err != nil {
+		return nil, err
+	}
+	bs := NewBSMainNet()
+	err = bs.UnmarshalBinaryData(b)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Loaded BS\n")
+	return bs, nil
 }

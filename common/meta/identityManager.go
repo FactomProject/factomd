@@ -5,6 +5,8 @@
 package meta
 
 import (
+	"bytes"
+	"encoding/gob"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -12,10 +14,32 @@ import (
 )
 
 type IdentityManager struct {
-	Mutex                sync.RWMutex
+	Mutex sync.RWMutex
+	IdentityManagerWithoutMutex
+}
+
+type IdentityManagerWithoutMutex struct {
 	Authorities          map[string]*Authority
 	Identities           map[string]*Identity
 	AuthorityServerCount int
+}
+
+func (im *IdentityManager) GobDecode(data []byte) error {
+	//Circumventing Gob's "gob: type sync.RWMutex has no exported fields"
+	b := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(b)
+	return dec.Decode(&im.IdentityManagerWithoutMutex)
+}
+
+func (im *IdentityManager) GobEncode() ([]byte, error) {
+	//Circumventing Gob's "gob: type sync.RWMutex has no exported fields"
+	b := bytes.NewBuffer(nil)
+	enc := gob.NewEncoder(b)
+	err := enc.Encode(im.IdentityManagerWithoutMutex)
+	if err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
 }
 
 func (im *IdentityManager) Init() {

@@ -116,7 +116,7 @@ func (bs *BlockchainState) Init() {
 }
 
 func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aBlock interfaces.IAdminBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock,
-	eBlocks []interfaces.IEntryBlock) error {
+	eBlocks []interfaces.IEntryBlock, entries []interfaces.IEBEntry) error {
 	bs.Init()
 	err := bs.HandlePreBlockErrors(dBlock.DatabasePrimaryIndex())
 	if err != nil {
@@ -141,7 +141,7 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aB
 	if err != nil {
 		return err
 	}
-	err = bs.ProcessEBlocks(eBlocks)
+	err = bs.ProcessEBlocks(eBlocks, entries)
 	if err != nil {
 		return err
 	}

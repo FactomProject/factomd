@@ -10,10 +10,14 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock) error {
+func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock, entries []interfaces.IEBEntry) error {
 	bs.Init()
+	entryMap := map[string]interfaces.IEBEntry{}
+	for _, v := range entries {
+		entryMap[v.GetHash().String()] = v
+	}
 	for _, v := range eBlocks {
-		err := bs.ProcessEBlock(v)
+		err := bs.ProcessEBlock(v, entryMap)
 		if err != nil {
 			return err
 		}
@@ -21,7 +25,7 @@ func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock) erro
 	return bs.ClearExpiredCommits()
 }
 
-func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock) error {
+func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock, entryMap map[string]interfaces.IEBEntry) error {
 	bs.Init()
 
 	err := CheckEBlockMinuteNumbers(eBlock)
@@ -34,6 +38,40 @@ func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock) error {
 		err := bs.ProcessEntryHash(v, eBlock.GetHash())
 		if err != nil {
 			return err
+		}
+	}
+
+	if IsSpecialBlock(eBlock.GetChainID()) {
+		err = bs.ProcessSpecialBlock(eBlock, entryMap)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func IsSpecialBlock(chainID interfaces.IHash) bool {
+	switch chainID.String() {
+	//Identity chain
+	case "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327":
+		return true
+	}
+	return false
+}
+
+func (bs *BlockchainState) ProcessSpecialBlock(eBlock interfaces.IEntryBlock, entryMap map[string]interfaces.IEBEntry) error {
+	if IsSpecialBlock(eBlock.GetChainID()) == false {
+		return fmt.Errorf("Non-special block passed to ProcessSpecialBlock - %v", eBlock.GetHash().String())
+	}
+	if eBlock.GetChainID().String() == "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327" {
+		//Identity Chain
+		for _, v := range eBlock.GetEntryHashes() {
+			if v.IsMinuteMarker() {
+				continue
+			}
+			entry := entryMap[v.String()]
+			fmt.Printf("Processing entry %v\n", entry.String())
 		}
 	}
 	return nil
