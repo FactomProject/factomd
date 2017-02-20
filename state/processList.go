@@ -790,7 +790,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 			// to disk.  Then we can insist on having the entry blocks.
-			diff := p.DBHeight - state.EntryBlockDBHeightComplete
+			diff := p.DBHeight - state.EntryDBHeightComplete
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the first couple signatures are processed, we will be 2 behind.

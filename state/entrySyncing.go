@@ -5,6 +5,7 @@
 package state
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 )
@@ -12,46 +13,47 @@ import (
 func (s *State) setTimersMakeRequests() {
 	now := s.GetTimestamp()
 
-	// If we have no Entry Blocks in our queue, reset our timer.
-	if len(s.MissingEntryBlocks) == 0 || s.MissingEntryBlockRepeat == nil {
-		s.MissingEntryBlockRepeat = now
-	}
-
 	// If our delay has been reached, then ask for some missing Entry blocks
 	// This is a replay, because sometimes requests are ignored or lost.
-	if now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() > 5 {
-		s.MissingEntryBlockRepeat = now
-
-		for _, eb := range s.MissingEntryBlocks {
-			eBlockRequest := messages.NewMissingData(s, eb.ebhash)
-			s.NetworkOutMsgQueue() <- eBlockRequest
-		}
+	if s.MissingEntryBlockRepeat != nil && now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() < 5 {
+		return
 	}
 
-	if len(s.MissingEntries) == 0 {
-		s.MissingEntryRepeat = nil
-		s.EntryDBHeightComplete = s.EntryBlockDBHeightComplete
-		s.EntryDBHeightComplete = s.EntryDBHeightComplete
-	} else {
-		if s.MissingEntryRepeat == nil {
-			s.MissingEntryRepeat = now
-		}
+	s.MissingEntryBlockRepeat = now
 
-		// If our delay has been reached, then ask for some missing Entry blocks
-		// This is a replay, because sometimes requests are ignored or lost.
-		if now.GetTimeSeconds()-s.MissingEntryRepeat.GetTimeSeconds() > 5 {
-			s.MissingEntryRepeat = now
 
-			for i, eb := range s.MissingEntries {
-				if i > 200 {
-					// Only send out 200 requests at a time.
-					break
-				}
-				entryRequest := messages.NewMissingData(s, eb.entryhash)
-				s.NetworkOutMsgQueue() <- entryRequest
-			}
+	// Remove all Entries that we have already found and recorded.
+	var keep []MissingEntry
+	for _, v := range s.MissingEntries {
+		e, _ := s.DB.FetchEntry(v.entryhash)
+		if e == nil {
+			keep = append(keep, v)
 		}
 	}
+	s.MissingEntries = keep
+
+	// Remove all entry blocks we have already found and recorded
+	var keepeb []MissingEntryBlock
+	for _, v := range s.MissingEntryBlocks {
+		eb, _ := s.DB.FetchEBlock(v.ebhash)
+		if eb == nil {
+			keepeb = append(keepeb, v)
+		}
+	}
+	s.MissingEntryBlocks = keepeb
+
+	// Ask for missing entry blocks
+	for _, v := range s.MissingEntryBlocks {
+		eBlockRequest := messages.NewMissingData(s, v.ebhash)
+		s.NetworkOutMsgQueue() <- eBlockRequest
+	}
+
+	// Ask for missing entries.
+	for _, v := range s.MissingEntries {
+		entryRequest := messages.NewMissingData(s, v.entryhash)
+		entryRequest.SendOut(s, entryRequest)
+	}
+
 }
 
 func (s *State) syncEntryBlocks() {
@@ -59,12 +61,8 @@ func (s *State) syncEntryBlocks() {
 	// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 	// review the directory block over again the next time.
 	alldone := true
-	for s.EntryBlockDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntryBlocks) < 300 {
-		dbstate := s.DBStates.Get(int(s.EntryBlockDBHeightProcessing))
+	for s.EntryBlockDBHeightProcessing < s.GetHighestSavedBlk() && len(s.MissingEntryBlocks) < 1000 {
 
-		if dbstate == nil {
-			return
-		}
 		db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
 		for _, ebKeyMR := range db.GetEntryHashes()[3:] {
@@ -103,17 +101,14 @@ func (s *State) syncEntryBlocks() {
 	}
 }
 
-func (s *State) syncEntries(eights bool) {
+func (s *State) syncEntries() {
 
-	for s.EntryDBHeightProcessing < s.GetHighestCompletedBlk() && len(s.MissingEntries) < 300 {
-		dbstate := s.DBStates.Get(int(s.EntryDBHeightProcessing))
+	scan := s.EntryDBHeightProcessing
+	alldone := true
 
-		if dbstate == nil {
-			return
-		}
-		db := s.GetDirectoryBlockByHeight(s.EntryDBHeightProcessing)
+	for scan < s.GetHighestSavedBlk() && len(s.MissingEntries) < 300 {
 
-		alldone := true
+		db := s.GetDirectoryBlockByHeight(scan)
 
 		for _, ebKeyMR := range db.GetEntryHashes()[3:] {
 			// The first three entries (0,1,2) in every directory block are blocks we already have by
@@ -125,7 +120,7 @@ func (s *State) syncEntries(eights bool) {
 			// Dont have an eBlock?  Huh. We can go on, but we can't advance
 			if eBlock == nil {
 				alldone = false
-				break
+				continue
 			}
 
 			for _, entryhash := range eBlock.GetEntryHashes() {
@@ -135,18 +130,12 @@ func (s *State) syncEntries(eights bool) {
 				e, _ := s.DB.FetchEntry(entryhash)
 				// If I have the entry, then remove it from the Missing Entries list.
 				if e != nil {
-					for i, v := range s.MissingEntries {
-						if entryhash.Fixed() == v.entryhash.Fixed() {
-							s.MissingEntries = append(s.MissingEntries[:i], s.MissingEntries[:i+1]...)
-						}
-					}
-
 					// If I am missing the entry, add it to th eMissing Entries list
 				} else {
 					//Check lists and not add if already there.
 					addit := true
 					for _, e := range s.MissingEntries {
-						if e.ebhash.Fixed() == entryhash.Fixed() {
+						if e.entryhash.Fixed() == entryhash.Fixed() {
 							addit = false
 							break
 						}
@@ -173,13 +162,10 @@ func (s *State) syncEntries(eights bool) {
 			}
 		}
 		if alldone {
-			s.EntryDBHeightComplete++
-			s.EntryDBHeightProcessing++
-			s.EntryBlockDBHeightComplete = s.EntryDBHeightComplete
-			s.EntryBlockDBHeightProcessing = s.EntryDBHeightProcessing
-		} else {
-			return
+			s.EntryDBHeightComplete = scan
+			s.EntryDBHeightProcessing = scan + 1
 		}
+		scan++
 	}
 }
 
@@ -189,9 +175,8 @@ func (s *State) syncEntries(eights bool) {
 
 func (s *State) catchupEBlocks() {
 
-	// If we still have blocks that we are asking for, then let's not add to the list.
 	s.setTimersMakeRequests()
 	s.syncEntryBlocks()
-	s.syncEntries(false)
+	s.syncEntries()
 
 }
