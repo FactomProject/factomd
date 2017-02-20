@@ -249,9 +249,11 @@ func ConvertECPrivateToUserStr(addr interfaces.IAddress) string {
 func validateUserStr(prefix []byte, userFAddr string) bool {
 	if len(userFAddr) != 52 {
 		return false
-
 	}
 	v := base58.Decode(userFAddr)
+	if len(v) < 3 {
+		return false
+	}
 	if bytes.Compare(prefix, v[:2]) != 0 {
 		return false
 
