@@ -21,7 +21,6 @@ func (s *State) setTimersMakeRequests() {
 
 	s.MissingEntryBlockRepeat = now
 
-
 	// Remove all Entries that we have already found and recorded.
 	var keep []MissingEntry
 	for _, v := range s.MissingEntries {
