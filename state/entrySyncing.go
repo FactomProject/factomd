@@ -104,7 +104,7 @@ func (s *State) syncEntries() {
 	scan := s.EntryDBHeightProcessing
 	alldone := true
 
-	for scan <= s.GetHighestSavedBlk() && len(s.MissingEntries) < 300 {
+	for scan <= s.GetHighestSavedBlk() && len(s.MissingEntries) < 50 {
 
 		db := s.GetDirectoryBlockByHeight(scan)
 
