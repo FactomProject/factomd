@@ -59,7 +59,7 @@ func (s *State) syncEntryBlocks() {
 	// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 	// review the directory block over again the next time.
 	alldone := true
-	for s.EntryBlockDBHeightProcessing < s.GetHighestSavedBlk() && len(s.MissingEntryBlocks) < 1000 {
+	for s.EntryBlockDBHeightProcessing <= s.GetHighestSavedBlk() && len(s.MissingEntryBlocks) < 1000 {
 
 		db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
@@ -104,7 +104,7 @@ func (s *State) syncEntries() {
 	scan := s.EntryDBHeightProcessing
 	alldone := true
 
-	for scan < s.GetHighestSavedBlk() && len(s.MissingEntries) < 300 {
+	for scan <= s.GetHighestSavedBlk() && len(s.MissingEntries) < 300 {
 
 		db := s.GetDirectoryBlockByHeight(scan)
 
