@@ -67,7 +67,7 @@ func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg,
 		return nil, err
 	}
 
-	// We should have a Greeter now! This feels like a normal interface
+	// This feels like a normal interface
 	// implementation but is in fact over an RPC connection.
 	manager := raw.(interfaces.IManagerController)
 
@@ -86,7 +86,6 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 		case <-quit:
 			return
 		default:
-			fmt.Println(man.IsBufferEmpty())
 			if !man.IsBufferEmpty() {
 				var data []byte
 				// Exit conditions: If empty, quit. If length == 1 and first/only byte it 0x00
