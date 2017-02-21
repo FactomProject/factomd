@@ -33,6 +33,15 @@ type NewBlockSigningKeyStruct struct {
 	Signature []byte
 }
 
+func DecodeNewBlockSigningKeyStructFromExtIDs(extIDs [][]byte) (*NewBlockSigningKeyStruct, error) {
+	nbsk := new(NewBlockSigningKeyStruct)
+	err := nbsk.DecodeFromExtIDs(extIDs)
+	if err != nil {
+		return nil, err
+	}
+	return nbsk, nil
+}
+
 func (nbsk *NewBlockSigningKeyStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))

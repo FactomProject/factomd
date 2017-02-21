@@ -29,6 +29,15 @@ type RegisterServerManagementStructure struct {
 	Signature []byte
 }
 
+func DecodeRegisterServerManagementStructureFromExtIDs(extIDs [][]byte) (*RegisterServerManagementStructure, error) {
+	rsm := new(RegisterServerManagementStructure)
+	err := rsm.DecodeFromExtIDs(extIDs)
+	if err != nil {
+		return nil, err
+	}
+	return rsm, nil
+}
+
 func (rsm *RegisterServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))

@@ -32,6 +32,15 @@ type NewMatryoshkaHashStructure struct {
 	Signature []byte
 }
 
+func DecodeNewMatryoshkaHashStructureFromExtIDs(extIDs [][]byte) (*NewMatryoshkaHashStructure, error) {
+	nmh := new(NewMatryoshkaHashStructure)
+	err := nmh.DecodeFromExtIDs(extIDs)
+	if err != nil {
+		return nil, err
+	}
+	return nmh, nil
+}
+
 func (nmh *NewMatryoshkaHashStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))

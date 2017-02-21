@@ -29,6 +29,15 @@ type IdentityChainStructure struct {
 	Nonce []byte
 }
 
+func DecodeIdentityChainStructureFromExtIDs(extIDs [][]byte) (*IdentityChainStructure, error) {
+	ics := new(IdentityChainStructure)
+	err := ics.DecodeFromExtIDs(extIDs)
+	if err != nil {
+		return nil, err
+	}
+	return ics, nil
+}
+
 func (ics *IdentityChainStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))

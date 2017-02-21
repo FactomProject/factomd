@@ -72,6 +72,11 @@ func (bs *BlockchainState) ProcessSpecialBlock(eBlock interfaces.IEntryBlock, en
 			}
 			entry := entryMap[v.String()]
 			fmt.Printf("Processing entry %v\n", entry.String())
+
+			err := bs.ProcessIdentityEntry(entry)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

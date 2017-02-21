@@ -25,6 +25,15 @@ type ServerManagementStructure struct {
 	Nonce []byte
 }
 
+func DecodeServerManagementStructureFromExtIDs(extIDs [][]byte) (*ServerManagementStructure, error) {
+	sm := new(ServerManagementStructure)
+	err := sm.DecodeFromExtIDs(extIDs)
+	if err != nil {
+		return nil, err
+	}
+	return sm, nil
+}
+
 func (sm *ServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 4 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 4, got %v", len(extIDs))

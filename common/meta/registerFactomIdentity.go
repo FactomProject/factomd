@@ -27,6 +27,15 @@ type RegisterFactomIdentityStructure struct {
 	Signature []byte
 }
 
+func DecodeRegisterFactomIdentityStructureFromExtIDs(extIDs [][]byte) (*RegisterFactomIdentityStructure, error) {
+	rfi := new(RegisterFactomIdentityStructure)
+	err := rfi.DecodeFromExtIDs(extIDs)
+	if err != nil {
+		return nil, err
+	}
+	return rfi, nil
+}
+
 func (rfi *RegisterFactomIdentityStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))

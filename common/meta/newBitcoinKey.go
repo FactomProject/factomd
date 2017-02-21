@@ -38,6 +38,15 @@ type NewBitcoinKeyStructure struct {
 	Signature []byte
 }
 
+func DecodeNewBitcoinKeyStructureFromExtIDs(extIDs [][]byte) (*NewBitcoinKeyStructure, error) {
+	nbks := new(NewBitcoinKeyStructure)
+	err := nbks.DecodeFromExtIDs(extIDs)
+	if err != nil {
+		return nil, err
+	}
+	return nbks, nil
+}
+
 func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 9 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 9, got %v", len(extIDs))
