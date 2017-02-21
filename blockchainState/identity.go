@@ -34,49 +34,70 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry) error
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v", ic)
+		err = bs.IdentityManager.ApplyIdentityChainStructure(ic)
+		if err != nil {
+			return err
+		}
 		break
 	case "New Bitcoin Key":
 		nkb, err := meta.DecodeNewBitcoinKeyStructureFromExtIDs(extIDs)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v", nkb)
+		err = bs.IdentityManager.ApplyNewBitcoinKeyStructure(nkb)
+		if err != nil {
+			return err
+		}
 		break
 	case "New Block Signing Key":
 		nbsk, err := meta.DecodeNewBlockSigningKeyStructFromExtIDs(extIDs)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v", nbsk)
+		err = bs.IdentityManager.ApplyNewBlockSigningKeyStruct(nbsk)
+		if err != nil {
+			return err
+		}
 		break
 	case "New Matryoshka Hash":
 		nmh, err := meta.DecodeNewMatryoshkaHashStructureFromExtIDs(extIDs)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v", nmh)
+		err = bs.IdentityManager.ApplyNewMatryoshkaHashStructure(nmh)
+		if err != nil {
+			return err
+		}
 		break
 	case "Register Factom Identity":
 		rfi, err := meta.DecodeRegisterFactomIdentityStructureFromExtIDs(extIDs)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v", rfi)
+		err = bs.IdentityManager.ApplyRegisterFactomIdentityStructure(rfi)
+		if err != nil {
+			return err
+		}
 		break
 	case "Register Server Management":
 		rsm, err := meta.DecodeRegisterServerManagementStructureFromExtIDs(extIDs)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v", rsm)
+		err = bs.IdentityManager.ApplyRegisterServerManagementStructure(rsm)
+		if err != nil {
+			return err
+		}
 		break
 	case "Server Management":
 		sm, err := meta.DecodeServerManagementStructureFromExtIDs(extIDs)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%v", sm)
+		err = bs.IdentityManager.ApplyServerManagementStructure(sm)
+		if err != nil {
+			return err
+		}
 		break
 	}
 

@@ -119,3 +119,31 @@ func (im *IdentityManager) CreateAuthority(chainID interfaces.IHash) {
 
 	im.SetAuthority(chainID, newAuth)
 }
+
+func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructure) error {
+	return nil
+}
+
+func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructure) error {
+	return nil
+}
+
+func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKeyStruct) error {
+	return nil
+}
+
+func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHashStructure) error {
+	return nil
+}
+
+func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFactomIdentityStructure) error {
+	return nil
+}
+
+func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterServerManagementStructure) error {
+	return nil
+}
+
+func (im *IdentityManager) ApplyServerManagementStructure(sm *ServerManagementStructure) error {
+	return nil
+}
