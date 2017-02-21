@@ -11,23 +11,10 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 )
 
-func fetchByTorrent(s *State, entry bool) {
-	if s.UsingTorrent() {
-		height := s.EntryBlockDBHeightComplete
-		if entry {
-			height = s.EntryDBHeightProcessing
-		}
-		span := s.GetHighestCompletedBlk() - height
-		if s.GetHighestCompletedBlk() > height+100 {
-			span = 100
-		}
-		var i uint32
-		for i = 0; i < span; i++ {
-			err := s.GetMissingDBState(height + i)
-			if err != nil {
-				fmt.Println("DEBUG: Error in torrent retrieve: " + err.Error())
-			}
-		}
+func fetchByTorrent(s *State, height uint32) {
+	err := s.GetMissingDBState(height)
+	if err != nil {
+		fmt.Println("DEBUG: Error in torrent retrieve: " + err.Error())
 	}
 }
 
@@ -65,13 +52,21 @@ func (s *State) setTimersMakeRequests() {
 	// Ask for missing entry blocks
 	for _, v := range s.MissingEntryBlocks {
 		eBlockRequest := messages.NewMissingData(s, v.ebhash)
-		s.NetworkOutMsgQueue() <- eBlockRequest
+		if s.UsingTorrent() {
+			fetchByTorrent(s, v.dbheight)
+		} else {
+			s.NetworkOutMsgQueue() <- eBlockRequest
+		}
 	}
 
 	// Ask for missing entries.
 	for _, v := range s.MissingEntries {
 		entryRequest := messages.NewMissingData(s, v.entryhash)
-		entryRequest.SendOut(s, entryRequest)
+		if s.UsingTorrent() {
+			fetchByTorrent(s, v.dbheight)
+		} else {
+			entryRequest.SendOut(s, entryRequest)
+		}
 	}
 
 }
