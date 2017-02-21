@@ -63,6 +63,10 @@ func (s *State) syncEntryBlocks() {
 
 		db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
+		if db == nil {
+			return
+		}
+
 		for _, ebKeyMR := range db.GetEntryHashes()[3:] {
 			// The first three entries (0,1,2) in every directory block are blocks we already have by
 			// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
@@ -107,6 +111,10 @@ func (s *State) syncEntries() {
 	for scan <= s.GetHighestSavedBlk() && len(s.MissingEntries) < 50 {
 
 		db := s.GetDirectoryBlockByHeight(scan)
+
+		if db == nil {
+			return
+		}
 
 		for _, ebKeyMR := range db.GetEntryHashes()[3:] {
 			// The first three entries (0,1,2) in every directory block are blocks we already have by
