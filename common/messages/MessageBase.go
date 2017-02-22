@@ -42,6 +42,7 @@ func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	}
 }
 
+// Not currently used to grab DBStates. Torrents used for entry syncing
 func torSend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for i := 0; i < cnt; i++ {
 		missing := msg.(*DBStateMissing)
@@ -79,11 +80,11 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	case MissingMsg:
 		go resend(state, msg, 1, 1)
 	case DBStateMissing:
-		if state.UsingTorrent() {
-			go torSend(state, msg, 2, 60)
-		} else {
-			go resend(state, msg, 1, 1)
-		}
+		//if state.UsingTorrent() {
+		//	go torSend(state, msg, 2, 60)
+		//} else {
+		go resend(state, msg, 1, 1)
+		//}
 	default:
 		go resend(state, msg, 1, 1)
 	}

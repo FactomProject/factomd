@@ -476,7 +476,7 @@ func NetStart(s *state.State) {
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	if *tormanager {
-		manager, err := LaunchTorrentDBStateManagePlugin(*tormanagerPath, fnodes[0].State.InMsgQueue(), fnodes[0].State.GetServerPrivateKey())
+		manager, err := LaunchTorrentDBStateManagePlugin(*tormanagerPath, fnodes[0].State.InMsgQueue(), fnodes[0].State.DB, fnodes[0].State.GetServerPrivateKey())
 		if err != nil {
 			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}
