@@ -515,6 +515,7 @@ func startServers(load bool) {
 		if load {
 			go state.LoadDatabase(fnode.State)
 		}
+		go fnode.State.MakeMissingEntryRequests()
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
 	}

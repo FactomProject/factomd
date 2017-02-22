@@ -180,6 +180,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		ss.InvalidMessages[k] = state.InvalidMessages[k]
 	}
 
+	state.MissingEntryMutex.Lock()
+	defer state.MissingEntryMutex.Unlock()
+
 	// DBlock Height at which node has a complete set of eblocks+entries
 	ss.EntryBlockDBHeightComplete = state.EntryBlockDBHeightComplete
 	ss.EntryBlockDBHeightProcessing = state.EntryBlockDBHeightProcessing
@@ -435,6 +438,10 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	for k := range ss.InvalidMessages {
 		state.InvalidMessages[k] = ss.InvalidMessages[k]
 	}
+
+	state.MissingEntryMutex.Lock()
+	defer state.MissingEntryMutex.Unlock()
+
 
 	// DBlock Height at which node has a complete set of eblocks+entries
 	state.EntryBlockDBHeightComplete = ss.EntryBlockDBHeightComplete

@@ -273,6 +273,8 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
+	MissingEntryMutex sync.Mutex
+
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryBlockDBHeightComplete uint32
@@ -845,6 +847,9 @@ func (s *State) GetEntryDBHeightComplete() uint32 {
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
+	s.MissingEntryMutex.Lock()
+	defer s.MissingEntryMutex.Unlock()
+
 	return uint32(len(s.MissingEntries))
 }
 

@@ -693,6 +693,9 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 			return
 		}
 
+		s.MissingEntryMutex.Lock()
+		defer s.MissingEntryMutex.Unlock()
+
 		for _, missing := range s.MissingEntries {
 			e := missing.entryhash
 
