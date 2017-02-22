@@ -38,6 +38,30 @@ func DecodeRegisterServerManagementStructureFromExtIDs(extIDs [][]byte) (*Regist
 	return rsm, nil
 }
 
+func (rsm *RegisterServerManagementStructure) MarshalForSig() []byte {
+	answer := []byte{}
+	answer = append(answer, rsm.Version)
+	answer = append(answer, rsm.FunctionName...)
+	answer = append(answer, rsm.SubchainChainID.Bytes()...)
+	return answer
+}
+
+func (rsm *RegisterServerManagementStructure) VerifySignature() error {
+	bin := rsm.MarshalForSig()
+	pk := new(primitives.PublicKey)
+	err := pk.UnmarshalBinary(rsm.PreimageIdentityKey[1:])
+	if err != nil {
+		return err
+	}
+	var sig [64]byte
+	copy(sig[:], rsm.Signature)
+	ok := pk.Verify(bin, &sig)
+	if ok == false {
+		return fmt.Errorf("Invalid signature")
+	}
+	return nil
+}
+
 func (rsm *RegisterServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))
@@ -64,7 +88,12 @@ func (rsm *RegisterServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) 
 		return fmt.Errorf("Invalid PreimageIdentityKey prefix byte - 3xpected 1, got %v", rsm.PreimageIdentityKey[0])
 	}
 	rsm.Signature = extIDs[4]
-	//TODO: test signature
+
+	err = rsm.VerifySignature()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -27,13 +27,18 @@ func TestNewBlockSigningKeyStruct(t *testing.T) {
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	msr := new(NewBlockSigningKeyStruct)
-	err := msr.DecodeFromExtIDs(extIDs)
+	nbsk := new(NewBlockSigningKeyStruct)
+	err := nbsk.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	h := msr.GetChainID()
-	if h.String() != "bcabf9375eeb361e1a6ca509c60763365fbde5a3c5d3d87911d254057b3aa84f" {
-		t.Errorf("Wrong ChainID, expected bcabf9375eeb361e1a6ca509c60763365fbde5a3c5d3d87911d254057b3aa84f, got %v", h.String())
+	h := nbsk.GetChainID()
+	if h.String() != "311b1b090d9eeea67136de1591d34c87e2deb80d334119151a918958e05d178f" {
+		t.Errorf("Wrong ChainID, expected 311b1b090d9eeea67136de1591d34c87e2deb80d334119151a918958e05d178f, got %v", h.String())
+	}
+
+	err = nbsk.VerifySignature()
+	if err != nil {
+		t.Errorf("%v", err)
 	}
 }

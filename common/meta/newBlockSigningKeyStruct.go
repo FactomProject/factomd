@@ -42,6 +42,32 @@ func DecodeNewBlockSigningKeyStructFromExtIDs(extIDs [][]byte) (*NewBlockSigning
 	return nbsk, nil
 }
 
+func (nbsk *NewBlockSigningKeyStruct) MarshalForSig() []byte {
+	answer := []byte{}
+	answer = append(answer, nbsk.Version)
+	answer = append(answer, nbsk.FunctionName...)
+	answer = append(answer, nbsk.RootIdentityChainID.Bytes()...)
+	answer = append(answer, nbsk.NewPublicKey...)
+	answer = append(answer, nbsk.Timestamp...)
+	return answer
+}
+
+func (nbsk *NewBlockSigningKeyStruct) VerifySignature() error {
+	bin := nbsk.MarshalForSig()
+	pk := new(primitives.PublicKey)
+	err := pk.UnmarshalBinary(nbsk.PreimageIdentityKey[1:])
+	if err != nil {
+		return err
+	}
+	var sig [64]byte
+	copy(sig[:], nbsk.Signature)
+	ok := pk.Verify(bin, &sig)
+	if ok == false {
+		return fmt.Errorf("Invalid signature")
+	}
+	return nil
+}
+
 func (nbsk *NewBlockSigningKeyStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
@@ -63,10 +89,15 @@ func (nbsk *NewBlockSigningKeyStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	}
 	nbsk.RootIdentityChainID = h
 	nbsk.NewPublicKey = extIDs[3]
-	nbsk.Timestamp = extIDs[3]
-	nbsk.PreimageIdentityKey = extIDs[3]
-	nbsk.Signature = extIDs[3]
-	//TODO: chech signature
+	nbsk.Timestamp = extIDs[4]
+	nbsk.PreimageIdentityKey = extIDs[5]
+	nbsk.Signature = extIDs[6]
+
+	err = nbsk.VerifySignature()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

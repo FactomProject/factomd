@@ -27,13 +27,18 @@ func TestNewMatryoshkaHashStructure(t *testing.T) {
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	ics := new(NewMatryoshkaHashStructure)
-	err := ics.DecodeFromExtIDs(extIDs)
+	nmh := new(NewMatryoshkaHashStructure)
+	err := nmh.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	h := ics.GetChainID()
+	h := nmh.GetChainID()
 	if h.String() != "631d82b86861ad552b1bb3e8311a9f04960e5d966c2830f0ada4caace517a914" {
 		t.Errorf("Wrong ChainID, expected 631d82b86861ad552b1bb3e8311a9f04960e5d966c2830f0ada4caace517a914, got %v", h.String())
+	}
+
+	err = nmh.VerifySignature()
+	if err != nil {
+		t.Errorf("%v", err)
 	}
 }

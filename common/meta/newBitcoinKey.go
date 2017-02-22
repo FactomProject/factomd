@@ -47,6 +47,34 @@ func DecodeNewBitcoinKeyStructureFromExtIDs(extIDs [][]byte) (*NewBitcoinKeyStru
 	return nbks, nil
 }
 
+func (nbks *NewBitcoinKeyStructure) MarshalForSig() []byte {
+	answer := []byte{}
+	answer = append(answer, nbks.Version)
+	answer = append(answer, nbks.FunctionName...)
+	answer = append(answer, nbks.RootIdentityChainID.Bytes()...)
+	answer = append(answer, nbks.BitcoinKeyLevel)
+	answer = append(answer, nbks.KeyType)
+	answer = append(answer, nbks.NewKey...)
+	answer = append(answer, nbks.Timestamp...)
+	return answer
+}
+
+func (nbks *NewBitcoinKeyStructure) VerifySignature() error {
+	bin := nbks.MarshalForSig()
+	pk := new(primitives.PublicKey)
+	err := pk.UnmarshalBinary(nbks.PreimageIdentityKey[1:])
+	if err != nil {
+		return err
+	}
+	var sig [64]byte
+	copy(sig[:], nbks.Signature)
+	ok := pk.Verify(bin, &sig)
+	if ok == false {
+		return fmt.Errorf("Invalid signature")
+	}
+	return nil
+}
+
 func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 9 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 9, got %v", len(extIDs))
@@ -74,7 +102,12 @@ func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	nbks.Timestamp = extIDs[6]
 	nbks.PreimageIdentityKey = extIDs[7]
 	nbks.Signature = extIDs[8]
-	//TODO: chech signature
+
+	err = nbks.VerifySignature()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

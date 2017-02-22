@@ -29,13 +29,18 @@ func TestNewBitcoinKeyStructure(t *testing.T) {
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	ics := new(NewBitcoinKeyStructure)
-	err := ics.DecodeFromExtIDs(extIDs)
+	nbks := new(NewBitcoinKeyStructure)
+	err := nbks.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	h := ics.GetChainID()
+	h := nbks.GetChainID()
 	if h.String() != "18665ed9cc13f6b664033aa45179002f391395657ebc6e8a755a0658980580c6" {
 		t.Errorf("Wrong ChainID, expected 18665ed9cc13f6b664033aa45179002f391395657ebc6e8a755a0658980580c6, got %v", h.String())
+	}
+
+	err = nbks.VerifySignature()
+	if err != nil {
+		t.Errorf("%v", err)
 	}
 }

@@ -41,6 +41,32 @@ func DecodeNewMatryoshkaHashStructureFromExtIDs(extIDs [][]byte) (*NewMatryoshka
 	return nmh, nil
 }
 
+func (nmh *NewMatryoshkaHashStructure) MarshalForSig() []byte {
+	answer := []byte{}
+	answer = append(answer, nmh.Version)
+	answer = append(answer, nmh.FunctionName...)
+	answer = append(answer, nmh.RootIdentityChainID.Bytes()...)
+	answer = append(answer, nmh.OutermostMHash.Bytes()...)
+	answer = append(answer, nmh.Timestamp...)
+	return answer
+}
+
+func (nmh *NewMatryoshkaHashStructure) VerifySignature() error {
+	bin := nmh.MarshalForSig()
+	pk := new(primitives.PublicKey)
+	err := pk.UnmarshalBinary(nmh.PreimageIdentityKey[1:])
+	if err != nil {
+		return err
+	}
+	var sig [64]byte
+	copy(sig[:], nmh.Signature)
+	ok := pk.Verify(bin, &sig)
+	if ok == false {
+		return fmt.Errorf("Invalid signature")
+	}
+	return nil
+}
+
 func (nmh *NewMatryoshkaHashStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 7 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 7, got %v", len(extIDs))
@@ -70,7 +96,12 @@ func (nmh *NewMatryoshkaHashStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	nmh.Timestamp = extIDs[4]
 	nmh.PreimageIdentityKey = extIDs[5]
 	nmh.Signature = extIDs[6]
-	//TODO: chech signature
+
+	err = nmh.VerifySignature()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

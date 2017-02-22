@@ -26,13 +26,18 @@ func TestRegisterServerManagementStructure(t *testing.T) {
 		extIDs = append(extIDs, b)
 		//t.Logf("Len %v - %v", i, len(b))
 	}
-	msr := new(RegisterServerManagementStructure)
-	err := msr.DecodeFromExtIDs(extIDs)
+	rsms := new(RegisterServerManagementStructure)
+	err := rsms.DecodeFromExtIDs(extIDs)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	h := msr.GetChainID()
+	h := rsms.GetChainID()
 	if h.String() != "925dd7acd19cee29379bf5f7ee0b60ceb2a540dca7c71490540a4b9544c7dc6e" {
 		t.Errorf("Wrong ChainID, expected 925dd7acd19cee29379bf5f7ee0b60ceb2a540dca7c71490540a4b9544c7dc6e, got %v", h.String())
+	}
+
+	err = rsms.VerifySignature()
+	if err != nil {
+		t.Errorf("%v", err)
 	}
 }

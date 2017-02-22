@@ -36,6 +36,30 @@ func DecodeRegisterFactomIdentityStructureFromExtIDs(extIDs [][]byte) (*Register
 	return rfi, nil
 }
 
+func (rfi *RegisterFactomIdentityStructure) MarshalForSig() []byte {
+	answer := []byte{}
+	answer = append(answer, rfi.Version)
+	answer = append(answer, rfi.FunctionName...)
+	answer = append(answer, rfi.IdentityChainID.Bytes()...)
+	return answer
+}
+
+func (rfi *RegisterFactomIdentityStructure) VerifySignature() error {
+	bin := rfi.MarshalForSig()
+	pk := new(primitives.PublicKey)
+	err := pk.UnmarshalBinary(rfi.PreimageIdentityKey[1:])
+	if err != nil {
+		return err
+	}
+	var sig [64]byte
+	copy(sig[:], rfi.Signature)
+	ok := pk.Verify(bin, &sig)
+	if ok == false {
+		return fmt.Errorf("Invalid signature")
+	}
+	return nil
+}
+
 func (rfi *RegisterFactomIdentityStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	if len(extIDs) != 5 {
 		return fmt.Errorf("Wrong number of ExtIDs - expected 5, got %v", len(extIDs))
@@ -62,7 +86,12 @@ func (rfi *RegisterFactomIdentityStructure) DecodeFromExtIDs(extIDs [][]byte) er
 		return fmt.Errorf("Invalid PreimageIdentityKey prefix byte - 3xpected 1, got %v", rfi.PreimageIdentityKey[0])
 	}
 	rfi.Signature = extIDs[4]
-	//TODO: test signature
+
+	err = rfi.VerifySignature()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
