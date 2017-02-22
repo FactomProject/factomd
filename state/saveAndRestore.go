@@ -180,19 +180,6 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		ss.InvalidMessages[k] = state.InvalidMessages[k]
 	}
 
-	state.MissingEntryMutex.Lock()
-	defer state.MissingEntryMutex.Unlock()
-
-	// DBlock Height at which node has a complete set of eblocks+entries
-	ss.EntryBlockDBHeightComplete = state.EntryBlockDBHeightComplete
-	ss.EntryBlockDBHeightProcessing = state.EntryBlockDBHeightProcessing
-	ss.MissingEntryBlocks = append(ss.MissingEntryBlocks, state.MissingEntryBlocks...)
-
-	ss.EntryBlockDBHeightComplete = state.EntryDBHeightComplete
-	ss.EntryDBHeightComplete = state.EntryDBHeightComplete
-	ss.EntryDBHeightProcessing = state.EntryBlockDBHeightProcessing
-	ss.MissingEntries = append(ss.MissingEntries, state.MissingEntries...)
-
 	ss.FactoshisPerEC = state.FactoshisPerEC
 	ss.FERChainId = state.FERChainId
 	ss.ExchangeRateAuthorityPublicKey = state.ExchangeRateAuthorityPublicKey
@@ -438,20 +425,6 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	for k := range ss.InvalidMessages {
 		state.InvalidMessages[k] = ss.InvalidMessages[k]
 	}
-
-	state.MissingEntryMutex.Lock()
-	defer state.MissingEntryMutex.Unlock()
-
-
-	// DBlock Height at which node has a complete set of eblocks+entries
-	state.EntryBlockDBHeightComplete = ss.EntryBlockDBHeightComplete
-	state.EntryBlockDBHeightProcessing = ss.EntryBlockDBHeightProcessing
-	state.MissingEntryBlocks = append(state.MissingEntryBlocks[:0], ss.MissingEntryBlocks...)
-
-	state.EntryBlockDBHeightComplete = ss.EntryDBHeightComplete
-	state.EntryDBHeightComplete = ss.EntryDBHeightComplete
-	state.EntryDBHeightProcessing = ss.EntryBlockDBHeightProcessing
-	state.MissingEntries = append(state.MissingEntries[:0], ss.MissingEntries...)
 
 	state.FactoshisPerEC = ss.FactoshisPerEC
 	state.FERChainId = ss.FERChainId

@@ -5,26 +5,29 @@
 package state
 
 import (
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	"time"
-	"fmt"
 )
+
+var _ = fmt.Print
 
 // This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
 // them if it finds entries in the missing lists.
 func (s *State) MakeMissingEntryRequests() {
 
-	now := time.Now()
-
 	type EntryTrack struct {
 		lastRequest time.Time
-		cnt int
+		cnt         int
 	}
 
-	InPlay := make(map[[32]byte] *EntryTrack)
+	InPlay := make(map[[32]byte]*EntryTrack)
+
+	found := 0
 
 	for {
+		now := time.Now()
 		s.MissingEntryMutex.Lock()
 
 		// Remove all Entries that we have already found and recorded.
@@ -33,8 +36,9 @@ func (s *State) MakeMissingEntryRequests() {
 			e, _ := s.DB.FetchEntry(v.entryhash)
 			if e == nil {
 				keep = append(keep, v)
-			}else{
-				delete(InPlay,v.entryhash.Fixed())
+			} else {
+				found++
+				delete(InPlay, v.entryhash.Fixed())
 			}
 		}
 		s.MissingEntries = keep
@@ -57,22 +61,27 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 
 			eBlockRequest := messages.NewMissingData(s, v.ebhash)
-			s.NetworkOutMsgQueue() <- eBlockRequest
+			eBlockRequest.SendOut(s, eBlockRequest)
 		}
 
-		j := 0
+		i := 0
 		// Ask for missing entries.
+
 		for _, v := range s.MissingEntries {
 
-			if j > 50 {
+			if i > 2000 {
 				break
 			}
 
 			entryTrack := InPlay[v.entryhash.Fixed()]
 
-			if entryTrack == nil || now.Second() - entryTrack.lastRequest.Second() > 30 {
+			if entryTrack == nil || now.Unix()-entryTrack.lastRequest.Unix() > 15 {
+				i++
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
+				s.MissingEntryMutex.Unlock()
+				time.Sleep(40 * time.Millisecond)
+				s.MissingEntryMutex.Lock()
 				if entryTrack == nil {
 					entryTrack = new(EntryTrack)
 					InPlay[v.entryhash.Fixed()] = entryTrack
@@ -80,14 +89,34 @@ func (s *State) MakeMissingEntryRequests() {
 				entryTrack.lastRequest = now
 				entryTrack.cnt++
 				if entryTrack.cnt > 20 {
-					fmt.Printf("***esCan't get Entry Block %x Entry %x \n", v.ebhash.Bytes(), v.entryhash.Bytes())
+					fmt.Printf("***es Can't get Entry Block %x Entry %x \n", v.ebhash.Bytes(), v.entryhash.Bytes())
 				}
-				j++
-				fmt.Print(".")
-			}else{
-				fmt.Print("s")
 			}
 		}
+
+		min := 10000000
+		max := 0
+		maxcnt := 0
+		for _, v := range s.MissingEntries {
+			if min > int(v.dbheight) {
+				min = int(v.dbheight)
+			}
+			if max < int(v.dbheight) {
+				max = int(v.dbheight)
+			}
+			et := InPlay[v.entryhash.Fixed()]
+			if et != nil && maxcnt < et.cnt {
+				maxcnt = et.cnt
+			}
+		}
+
+		fmt.Printf("***es Looking for %6d Found %6d In Play %6d Min Height %8d Max Height %8d Max Send: %3d \n",
+			len(s.MissingEntries),
+			found,
+			len(InPlay),
+			min,
+			max,
+			maxcnt)
 
 		s.MissingEntryMutex.Unlock()
 		time.Sleep(1 * time.Second)
@@ -219,12 +248,13 @@ func (s *State) syncEntries() {
 // Once it finds something missing, it keeps that as a mark, and starts there the next time it is
 // called.
 
-func (s *State) catchupEBlocks() {
+func (s *State) CatchupEBlocks() {
 
-	s.MissingEntryMutex.Lock()
-	defer s.MissingEntryMutex.Unlock()
-
-	s.syncEntryBlocks()
-	s.syncEntries()
-
+	for {
+		s.MissingEntryMutex.Lock()
+		s.syncEntryBlocks()
+		s.syncEntries()
+		s.MissingEntryMutex.Unlock()
+		time.Sleep(5 * time.Second)
+	}
 }
