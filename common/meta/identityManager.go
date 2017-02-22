@@ -7,10 +7,12 @@ package meta
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type IdentityManager struct {
@@ -129,14 +131,61 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 }
 
 func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKeyStruct) error {
+	err := nbsk.VerifySignature()
+	if err != nil {
+		return err
+	}
+	id := im.GetIdentity(nbsk.RootIdentityChainID)
+	if id == nil {
+		return fmt.Errorf("ChainID doesn't exists! %v", nbsk.RootIdentityChainID.String())
+	}
+	//Check Timestamp??
+	//Check PreimageIdentityKey??
+
+	key := primitives.NewZeroHash()
+	err = key.UnmarshalBinary(nbsk.NewPublicKey)
+	if err != nil {
+		return err
+	}
+	id.SigningKey = key
+
+	im.SetIdentity(nbsk.RootIdentityChainID, id)
 	return nil
 }
 
 func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHashStructure) error {
+	err := nmh.VerifySignature()
+	if err != nil {
+		return err
+	}
+	id := im.GetIdentity(nmh.RootIdentityChainID)
+	if id == nil {
+		return fmt.Errorf("ChainID doesn't exists! %v", nmh.RootIdentityChainID.String())
+	}
+	//Check Timestamp??
+	//Check PreimageIdentityKey??
+
+	id.MatryoshkaHash = nmh.OutermostMHash
+
+	im.SetIdentity(nmh.RootIdentityChainID, id)
 	return nil
 }
 
 func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFactomIdentityStructure) error {
+	err := rfi.VerifySignature()
+	if err != nil {
+		return err
+	}
+	id := im.GetIdentity(rfi.IdentityChainID)
+	if id != nil {
+		return fmt.Errorf("ChainID already exists! %v", rfi.IdentityChainID.String())
+	}
+
+	id = new(Identity)
+	id.IdentityChainID = rfi.IdentityChainID
+	//rfi.PreimageIdentityKey ????????????????????????
+
+	im.SetIdentity(id.IdentityChainID, id)
 	return nil
 }
 
