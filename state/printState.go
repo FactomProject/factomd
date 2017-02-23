@@ -188,7 +188,6 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryRepeat", state.MissingEntryRepeat)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightComplete", state.EntryDBHeightComplete)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryHeightComplete", state.EntryDBHeightComplete)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightProcessing", state.EntryDBHeightProcessing)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntries", state.MissingEntries)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrint", state.LastPrint)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrintCnt", state.LastPrintCnt)
