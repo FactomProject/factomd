@@ -266,6 +266,7 @@ type IState interface {
 	GetDelay() int64
 	SetDelay(int64)
 	GetDropRate() int
+	SetDropRate(int)
 	
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg

@@ -69,8 +69,14 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "delay":
 		resp, jsonError = HandleDelay(state, params)
 		break
+	case "set-delay":
+		resp, jsonError = HandleSetDelay(state, params)
+		break
 	case "drop-rate":
 		resp, jsonError = HandleDropRate(state, params)
+		break
+	case "set-drop-rate":
+		resp, jsonError = HandleSetDropRate(state, params)
 		break
 	case "federated-servers":
 		resp, jsonError = HandleFedServers(state, params)
@@ -186,7 +192,36 @@ func HandleDropRate(
 	interface{},
 	*primitives.JSONError,
 ) {
-	return state.GetDropRate(), nil
+	type ret struct {
+		DropRate int
+	}
+	r := new(ret)
+	
+	r.DropRate = state.GetDropRate()
+	return r, nil
+}
+
+func HandleSetDropRate(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		DropRate int
+	}
+	r := new(ret)
+	
+	droprate := new(SetDropRateRequest)
+	err := MapToObject(params, droprate)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	
+	state.SetDropRate(droprate.DropRate)
+	r.DropRate = droprate.DropRate
+	return r, nil
 }
 
 func HandleFedServers(
@@ -275,4 +310,8 @@ func HandlePredictiveFER(
 
 type SetDelayRequest struct {
 	Delay int64 `json:"delay"`
+}
+
+type SetDropRateRequest struct {
+	DropRate int `json:"droprate"`
 }
