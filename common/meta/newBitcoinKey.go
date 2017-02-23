@@ -59,7 +59,7 @@ func (nbks *NewBitcoinKeyStructure) MarshalForSig() []byte {
 	return answer
 }
 
-func (nbks *NewBitcoinKeyStructure) VerifySignature() error {
+func (nbks *NewBitcoinKeyStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := nbks.MarshalForSig()
 	pk := new(primitives.PublicKey)
 	err := pk.UnmarshalBinary(nbks.PreimageIdentityKey[1:])
@@ -72,6 +72,15 @@ func (nbks *NewBitcoinKeyStructure) VerifySignature() error {
 	if ok == false {
 		return fmt.Errorf("Invalid signature")
 	}
+
+	if key1 == nil {
+		return nil
+	}
+	hashedKey := primitives.Shad(nbks.PreimageIdentityKey)
+	if hashedKey.IsSameAs(key1) == false {
+		return fmt.Errorf("PreimageIdentityKey does not equal Key1 - %v vs %v", hashedKey, key1)
+	}
+
 	return nil
 }
 
@@ -103,7 +112,7 @@ func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	nbks.PreimageIdentityKey = extIDs[7]
 	nbks.Signature = extIDs[8]
 
-	err = nbks.VerifySignature()
+	err = nbks.VerifySignature(nil)
 	if err != nil {
 		return err
 	}

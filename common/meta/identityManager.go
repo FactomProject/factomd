@@ -122,7 +122,24 @@ func (im *IdentityManager) CreateAuthority(chainID interfaces.IHash) {
 	im.SetAuthority(chainID, newAuth)
 }
 
-func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructure) error {
+func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructure, chainID interfaces.IHash, dBlockHeight uint32) error {
+	id := im.GetIdentity(chainID)
+	if id != nil {
+		return fmt.Errorf("ChainID already exists! %v", chainID.String())
+	}
+
+	id = new(Identity)
+
+	id.Key1 = ic.Key1
+	id.Key2 = ic.Key2
+	id.Key3 = ic.Key3
+	id.Key4 = ic.Key4
+
+	id.IdentityCreated = dBlockHeight
+
+	id.IdentityChainID = chainID
+
+	im.SetIdentity(chainID, id)
 	return nil
 }
 
@@ -131,16 +148,15 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 }
 
 func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKeyStruct) error {
-	err := nbsk.VerifySignature()
-	if err != nil {
-		return err
-	}
 	id := im.GetIdentity(nbsk.RootIdentityChainID)
 	if id == nil {
 		return fmt.Errorf("ChainID doesn't exists! %v", nbsk.RootIdentityChainID.String())
 	}
+	err := nbsk.VerifySignature(id.Key1)
+	if err != nil {
+		return err
+	}
 	//Check Timestamp??
-	//Check PreimageIdentityKey??
 
 	key := primitives.NewZeroHash()
 	err = key.UnmarshalBinary(nbsk.NewPublicKey)
@@ -154,16 +170,15 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 }
 
 func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHashStructure) error {
-	err := nmh.VerifySignature()
-	if err != nil {
-		return err
-	}
 	id := im.GetIdentity(nmh.RootIdentityChainID)
 	if id == nil {
 		return fmt.Errorf("ChainID doesn't exists! %v", nmh.RootIdentityChainID.String())
 	}
+	err := nmh.VerifySignature(id.Key1)
+	if err != nil {
+		return err
+	}
 	//Check Timestamp??
-	//Check PreimageIdentityKey??
 
 	id.MatryoshkaHash = nmh.OutermostMHash
 
@@ -171,28 +186,51 @@ func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHas
 	return nil
 }
 
-func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFactomIdentityStructure) error {
-	err := rfi.VerifySignature()
+func (im *IdentityManager) ApplyRegisterFactomIdentityStructure(rfi *RegisterFactomIdentityStructure, dBlockHeight uint32) error {
+	id := im.GetIdentity(rfi.IdentityChainID)
+	if id == nil {
+		return fmt.Errorf("ChainID doesn't exists! %v", rfi.IdentityChainID.String())
+	}
+
+	err := rfi.VerifySignature(id.Key1)
 	if err != nil {
 		return err
 	}
-	id := im.GetIdentity(rfi.IdentityChainID)
-	if id != nil {
-		return fmt.Errorf("ChainID already exists! %v", rfi.IdentityChainID.String())
-	}
 
-	id = new(Identity)
-	id.IdentityChainID = rfi.IdentityChainID
-	//rfi.PreimageIdentityKey ????????????????????????
+	id.ManagementRegistered = dBlockHeight
 
 	im.SetIdentity(id.IdentityChainID, id)
 	return nil
 }
 
-func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterServerManagementStructure) error {
+func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterServerManagementStructure, chainID interfaces.IHash, dBlockHeight uint32) error {
+	id := im.GetIdentity(chainID)
+	if id == nil {
+		return fmt.Errorf("ChainID doesn't exists! %v", chainID.String())
+	}
+
+	err := rfi.VerifySignature(id.Key1)
+	if err != nil {
+		return err
+	}
+
+	if id.ManagementRegistered == 0 {
+		id.ManagementRegistered = dBlockHeight
+	}
+	id.ManagementChainID = rsm.SubchainChainID
+
+	im.SetIdentity(id.IdentityChainID, id)
 	return nil
 }
 
-func (im *IdentityManager) ApplyServerManagementStructure(sm *ServerManagementStructure) error {
+func (im *IdentityManager) ApplyServerManagementStructure(sm *ServerManagementStructure, chainID interfaces.IHash, dBlockHeight uint32) error {
+	id := im.GetIdentity(chainID)
+	if id == nil {
+		return fmt.Errorf("ChainID doesn't exists! %v", chainID.String())
+	}
+
+	id.ManagementCreated = dBlockHeight
+
+	im.SetIdentity(chainID, id)
 	return nil
 }

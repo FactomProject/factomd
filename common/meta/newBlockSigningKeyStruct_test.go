@@ -37,7 +37,7 @@ func TestNewBlockSigningKeyStruct(t *testing.T) {
 		t.Errorf("Wrong ChainID, expected 311b1b090d9eeea67136de1591d34c87e2deb80d334119151a918958e05d178f, got %v", h.String())
 	}
 
-	err = nbsk.VerifySignature()
+	err = nbsk.VerifySignature(nil)
 	if err != nil {
 		t.Errorf("%v", err)
 	}

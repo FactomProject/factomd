@@ -39,7 +39,7 @@ func TestNewBitcoinKeyStructure(t *testing.T) {
 		t.Errorf("Wrong ChainID, expected 18665ed9cc13f6b664033aa45179002f391395657ebc6e8a755a0658980580c6, got %v", h.String())
 	}
 
-	err = nbks.VerifySignature()
+	err = nbks.VerifySignature(nil)
 	if err != nil {
 		t.Errorf("%v", err)
 	}

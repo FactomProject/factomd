@@ -36,7 +36,7 @@ func TestRegisterFactomIdentityStructure(t *testing.T) {
 		t.Errorf("Wrong ChainID, expected 9d40f0a4250a19c7d2cafc3bdbec5711edf840e53340748b4f746b8544700293, got %v", h.String())
 	}
 
-	err = rfi.VerifySignature()
+	err = rfi.VerifySignature(nil)
 	if err != nil {
 		t.Errorf("%v", err)
 	}

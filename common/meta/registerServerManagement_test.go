@@ -36,7 +36,7 @@ func TestRegisterServerManagementStructure(t *testing.T) {
 		t.Errorf("Wrong ChainID, expected 925dd7acd19cee29379bf5f7ee0b60ceb2a540dca7c71490540a4b9544c7dc6e, got %v", h.String())
 	}
 
-	err = rsms.VerifySignature()
+	err = rsms.VerifySignature(nil)
 	if err != nil {
 		t.Errorf("%v", err)
 	}

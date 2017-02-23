@@ -44,7 +44,7 @@ func (rfi *RegisterFactomIdentityStructure) MarshalForSig() []byte {
 	return answer
 }
 
-func (rfi *RegisterFactomIdentityStructure) VerifySignature() error {
+func (rfi *RegisterFactomIdentityStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := rfi.MarshalForSig()
 	pk := new(primitives.PublicKey)
 	err := pk.UnmarshalBinary(rfi.PreimageIdentityKey[1:])
@@ -57,6 +57,15 @@ func (rfi *RegisterFactomIdentityStructure) VerifySignature() error {
 	if ok == false {
 		return fmt.Errorf("Invalid signature")
 	}
+
+	if key1 == nil {
+		return nil
+	}
+	hashedKey := primitives.Shad(rfi.PreimageIdentityKey)
+	if hashedKey.IsSameAs(key1) == false {
+		return fmt.Errorf("PreimageIdentityKey does not equal Key1 - %v vs %v", hashedKey, key1)
+	}
+
 	return nil
 }
 
@@ -87,7 +96,7 @@ func (rfi *RegisterFactomIdentityStructure) DecodeFromExtIDs(extIDs [][]byte) er
 	}
 	rfi.Signature = extIDs[4]
 
-	err = rfi.VerifySignature()
+	err = rfi.VerifySignature(nil)
 	if err != nil {
 		return err
 	}

@@ -52,7 +52,7 @@ func (nbsk *NewBlockSigningKeyStruct) MarshalForSig() []byte {
 	return answer
 }
 
-func (nbsk *NewBlockSigningKeyStruct) VerifySignature() error {
+func (nbsk *NewBlockSigningKeyStruct) VerifySignature(key1 interfaces.IHash) error {
 	bin := nbsk.MarshalForSig()
 	pk := new(primitives.PublicKey)
 	err := pk.UnmarshalBinary(nbsk.PreimageIdentityKey[1:])
@@ -65,6 +65,15 @@ func (nbsk *NewBlockSigningKeyStruct) VerifySignature() error {
 	if ok == false {
 		return fmt.Errorf("Invalid signature")
 	}
+
+	if key1 == nil {
+		return nil
+	}
+	hashedKey := primitives.Shad(nbsk.PreimageIdentityKey)
+	if hashedKey.IsSameAs(key1) == false {
+		return fmt.Errorf("PreimageIdentityKey does not equal Key1 - %v vs %v", hashedKey, key1)
+	}
+
 	return nil
 }
 
@@ -93,7 +102,7 @@ func (nbsk *NewBlockSigningKeyStruct) DecodeFromExtIDs(extIDs [][]byte) error {
 	nbsk.PreimageIdentityKey = extIDs[5]
 	nbsk.Signature = extIDs[6]
 
-	err = nbsk.VerifySignature()
+	err = nbsk.VerifySignature(nil)
 	if err != nil {
 		return err
 	}

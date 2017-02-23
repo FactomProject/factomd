@@ -15,6 +15,10 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry) error
 	if entry.GetChainID().String() != "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327" {
 		return fmt.Errorf("Invalic chainID - expected 888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327, got %v", entry.GetChainID().String())
 	}
+	if entry.GetHash().String() == "172eb5cb84a49280c9ad0baf13bea779a624def8d10adab80c3d007fe8bce9ec" {
+		//First entry, can ignore
+		return nil
+	}
 
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) < 2 {

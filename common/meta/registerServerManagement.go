@@ -46,7 +46,7 @@ func (rsm *RegisterServerManagementStructure) MarshalForSig() []byte {
 	return answer
 }
 
-func (rsm *RegisterServerManagementStructure) VerifySignature() error {
+func (rsm *RegisterServerManagementStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := rsm.MarshalForSig()
 	pk := new(primitives.PublicKey)
 	err := pk.UnmarshalBinary(rsm.PreimageIdentityKey[1:])
@@ -59,6 +59,15 @@ func (rsm *RegisterServerManagementStructure) VerifySignature() error {
 	if ok == false {
 		return fmt.Errorf("Invalid signature")
 	}
+
+	if key1 == nil {
+		return nil
+	}
+	hashedKey := primitives.Shad(rsm.PreimageIdentityKey)
+	if hashedKey.IsSameAs(key1) == false {
+		return fmt.Errorf("PreimageIdentityKey does not equal Key1 - %v vs %v", hashedKey, key1)
+	}
+
 	return nil
 }
 
@@ -89,7 +98,7 @@ func (rsm *RegisterServerManagementStructure) DecodeFromExtIDs(extIDs [][]byte) 
 	}
 	rsm.Signature = extIDs[4]
 
-	err = rsm.VerifySignature()
+	err = rsm.VerifySignature(nil)
 	if err != nil {
 		return err
 	}

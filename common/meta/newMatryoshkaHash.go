@@ -51,7 +51,7 @@ func (nmh *NewMatryoshkaHashStructure) MarshalForSig() []byte {
 	return answer
 }
 
-func (nmh *NewMatryoshkaHashStructure) VerifySignature() error {
+func (nmh *NewMatryoshkaHashStructure) VerifySignature(key1 interfaces.IHash) error {
 	bin := nmh.MarshalForSig()
 	pk := new(primitives.PublicKey)
 	err := pk.UnmarshalBinary(nmh.PreimageIdentityKey[1:])
@@ -64,6 +64,15 @@ func (nmh *NewMatryoshkaHashStructure) VerifySignature() error {
 	if ok == false {
 		return fmt.Errorf("Invalid signature")
 	}
+
+	if key1 == nil {
+		return nil
+	}
+	hashedKey := primitives.Shad(nmh.PreimageIdentityKey)
+	if hashedKey.IsSameAs(key1) == false {
+		return fmt.Errorf("PreimageIdentityKey does not equal Key1 - %v vs %v", hashedKey, key1)
+	}
+
 	return nil
 }
 
@@ -97,7 +106,7 @@ func (nmh *NewMatryoshkaHashStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 	nmh.PreimageIdentityKey = extIDs[5]
 	nmh.Signature = extIDs[6]
 
-	err = nmh.VerifySignature()
+	err = nmh.VerifySignature(nil)
 	if err != nil {
 		return err
 	}
