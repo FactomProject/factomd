@@ -177,6 +177,10 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Port", state.Port)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "IsReplaying", state.IsReplaying)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ReplayTimestamp", state.ReplayTimestamp)
+
+	state.MissingEntryMutex.Lock()
+	defer state.MissingEntryMutex.Unlock()
+
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryBlockRepeat", state.MissingEntryBlockRepeat)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryBlockDBHeightComplete", state.EntryBlockDBHeightComplete)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryBlockDBHeightProcessing", state.EntryBlockDBHeightProcessing)
@@ -184,7 +188,6 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryRepeat", state.MissingEntryRepeat)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightComplete", state.EntryDBHeightComplete)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryHeightComplete", state.EntryDBHeightComplete)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightProcessing", state.EntryDBHeightProcessing)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntries", state.MissingEntries)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrint", state.LastPrint)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrintCnt", state.LastPrintCnt)

@@ -9,7 +9,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
+	"math"
+	"time"
 )
+
+var _ = fmt.Print
 
 func fetchByTorrent(s *State, height uint32) {
 	err := s.GetMissingDBState(height)
@@ -18,57 +22,162 @@ func fetchByTorrent(s *State, height uint32) {
 	}
 }
 
-func (s *State) setTimersMakeRequests() {
-	now := s.GetTimestamp()
+// This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
+// them if it finds entries in the missing lists.
+func (s *State) MakeMissingEntryRequests() {
 
-	// If our delay has been reached, then ask for some missing Entry blocks
-	// This is a replay, because sometimes requests are ignored or lost.
-	if s.MissingEntryBlockRepeat != nil && now.GetTimeSeconds()-s.MissingEntryBlockRepeat.GetTimeSeconds() < 5 {
-		return
+	type EntryTrack struct {
+		lastRequest time.Time
+		cnt         int
 	}
 
-	s.MissingEntryBlockRepeat = now
+	InPlay := make(map[[32]byte]*EntryTrack)
 
-	// Remove all Entries that we have already found and recorded.
-	var keep []MissingEntry
-	for _, v := range s.MissingEntries {
-		e, _ := s.DB.FetchEntry(v.entryhash)
-		if e == nil {
-			keep = append(keep, v)
+	found := 0
+
+	for {
+		now := time.Now()
+		newfound := 0
+		// Make a copy of Missing Entries while locked down, and do all the Entry Block syncing (because mostly
+		// we are not doing any engry block syncing because they are synced with DBStates, but we do so for
+		// sanity purposes.
+
+		s.MissingEntryMutex.Lock()
+		{
+			// Remove all entry blocks we have already found and recorded
+			var keepeb []MissingEntryBlock
+			for _, v := range s.MissingEntryBlocks {
+				eb, _ := s.DB.FetchEBlock(v.ebhash)
+				if eb == nil {
+					keepeb = append(keepeb, v)
+				}
+			}
+			s.MissingEntryBlocks = keepeb
+
+			// Ask for missing entry blocks
+			for i, v := range s.MissingEntryBlocks {
+
+				if i > 50 {
+					break
+				}
+
+				eBlockRequest := messages.NewMissingData(s, v.ebhash)
+				if s.UsingTorrent() {
+					fetchByTorrent(s, v.dbheight)
+				} else {
+					eBlockRequest.SendOut(s, eBlockRequest)
+				}
+			}
 		}
-	}
-	s.MissingEntries = keep
 
-	// Remove all entry blocks we have already found and recorded
-	var keepeb []MissingEntryBlock
-	for _, v := range s.MissingEntryBlocks {
-		eb, _ := s.DB.FetchEBlock(v.ebhash)
-		if eb == nil {
-			keepeb = append(keepeb, v)
+		s.MissingEntryMutex.Unlock()
+		var keep []MissingEntry
+
+		// Every call to update recomputes the keep array from the s.MissingEntries, and s.MissingEntries
+		update := func() {
+
+			s.MissingEntryMutex.Lock()
+			defer s.MissingEntryMutex.Unlock()
+
+			keep = make([]MissingEntry, 0)
+			// Remove all Entries that we have already found and recorded. "keep" the ones we are still looking for.
+			for _, v := range s.MissingEntries {
+				e, _ := s.DB.FetchEntry(v.entryhash)
+				if e == nil {
+					keep = append(keep, v)
+				} else {
+					found++
+					newfound++
+					delete(InPlay, v.entryhash.Fixed())
+				}
+			}
+			// Let the outside world know which entries we are looking for.
+			s.MissingEntries = make([]MissingEntry, len(keep))
+			copy(s.MissingEntries, keep)
 		}
-	}
-	s.MissingEntryBlocks = keepeb
 
-	// Ask for missing entry blocks
-	for _, v := range s.MissingEntryBlocks {
-		eBlockRequest := messages.NewMissingData(s, v.ebhash)
-		if s.UsingTorrent() {
-			fetchByTorrent(s, v.dbheight)
-		} else {
-			s.NetworkOutMsgQueue() <- eBlockRequest
+		update()
+
+		// Ask for missing entries.
+
+		feedback := func() {
+			min := int(math.MaxInt32)
+			max := 0
+			maxcnt := 0
+			for _, v := range keep {
+				if min > int(v.dbheight) {
+					min = int(v.dbheight)
+				}
+				if max < int(v.dbheight) {
+					max = int(v.dbheight)
+				}
+				et := InPlay[v.entryhash.Fixed()]
+				if et != nil && maxcnt < et.cnt {
+					maxcnt = et.cnt
+				}
+			}
+
+			if min >= int(math.MaxInt32) {
+				min = 0
+			}
+
+			s.EntryDBHeightComplete = uint32(min)
+
+			foundstr := fmt.Sprint(newfound, "/", found)
+			newfound = 0
+			fmt.Printf("***es Looking for: %8d Found: %13s In Play: %6d Min Height: %8d Max Height: %8d Max Send: %3d \n",
+				len(keep),
+				foundstr,
+				len(InPlay),
+				min,
+				max,
+				maxcnt)
 		}
-	}
 
-	// Ask for missing entries.
-	for _, v := range s.MissingEntries {
-		entryRequest := messages.NewMissingData(s, v.entryhash)
-		if s.UsingTorrent() {
-			fetchByTorrent(s, v.dbheight)
-		} else {
-			entryRequest.SendOut(s, entryRequest)
+		var loopList []MissingEntry
+		loopList = append(loopList, keep...)
+
+		for i, v := range loopList {
+
+			if i > 2000 {
+				break
+			}
+
+			if (i+1)%100 == 0 {
+				update()
+				feedback()
+			}
+
+			entryTrack := InPlay[v.entryhash.Fixed()]
+
+			if entryTrack == nil || now.Unix()-entryTrack.lastRequest.Unix() > 40 {
+				entryRequest := messages.NewMissingData(s, v.entryhash)
+				if s.UsingTorrent() {
+					fetchByTorrent(s, v.dbheight)
+				} else {
+					entryRequest.SendOut(s, entryRequest)
+				}
+
+				time.Sleep(5 * time.Millisecond)
+
+				if entryTrack == nil {
+					entryTrack = new(EntryTrack)
+					InPlay[v.entryhash.Fixed()] = entryTrack
+				}
+				entryTrack.lastRequest = now
+				entryTrack.cnt++
+				if entryTrack.cnt > 25 {
+					fmt.Printf("***es Can't get Entry Block %x Entry %x \n", v.ebhash.Bytes(), v.entryhash.Bytes())
+				}
+			}
 		}
-	}
 
+		if len(InPlay) == 0 {
+			time.Sleep(60 * time.Second)
+		}
+		feedback()
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (s *State) syncEntryBlocks() {
@@ -120,75 +229,76 @@ func (s *State) syncEntryBlocks() {
 	}
 }
 
-func (s *State) syncEntries() {
+func (s *State) SyncEntries() {
+	scan := uint32(0)
+	for {
 
-	scan := s.EntryDBHeightProcessing
-	alldone := true
+		s.MissingEntryMutex.Lock()
 
-	for scan <= s.GetHighestSavedBlk() && len(s.MissingEntries) < 50 {
+	scanEntries:
+		for scan <= s.GetHighestSavedBlk() && len(s.MissingEntries) < 10000 {
 
-		db := s.GetDirectoryBlockByHeight(scan)
+			db := s.GetDirectoryBlockByHeight(scan)
 
-		if db == nil {
-			return
-		}
-
-		for _, ebKeyMR := range db.GetEntryHashes()[3:] {
-			// The first three entries (0,1,2) in every directory block are blocks we already have by
-			// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
-			// then this assumption might not hold.  But it does for now.
-
-			eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
-
-			// Dont have an eBlock?  Huh. We can go on, but we can't advance
-			if eBlock == nil {
-				alldone = false
-				continue
+			if db == nil {
+				break scanEntries
 			}
 
-			for _, entryhash := range eBlock.GetEntryHashes() {
-				if entryhash.IsMinuteMarker() {
-					continue
+			for _, ebKeyMR := range db.GetEntryHashes()[3:] {
+				// The first three entries (0,1,2) in every directory block are blocks we already have by
+				// definition.  If we decide to not have Factoid blocks or Entry Credit blocks in some cases,
+				// then this assumption might not hold.  But it does for now.
+
+				eBlock, _ := s.DB.FetchEBlock(ebKeyMR)
+
+				// Dont have an eBlock?  Huh. We can go on, but we can't advance
+				if eBlock == nil {
+					break scanEntries
 				}
-				e, _ := s.DB.FetchEntry(entryhash)
-				// If I have the entry, then remove it from the Missing Entries list.
-				if e != nil {
-					// If I am missing the entry, add it to th eMissing Entries list
-				} else {
-					//Check lists and not add if already there.
-					addit := true
-					for _, e := range s.MissingEntries {
-						if e.entryhash.Fixed() == entryhash.Fixed() {
-							addit = false
-							break
+
+				for _, entryhash := range eBlock.GetEntryHashes() {
+					if entryhash.IsMinuteMarker() {
+						continue
+					}
+					e, _ := s.DB.FetchEntry(entryhash)
+					// If I have the entry, then remove it from the Missing Entries list.
+					if e != nil {
+						// If I am missing the entry, add it to th eMissing Entries list
+					} else {
+						//Check lists and not add if already there.
+						addit := true
+						for _, e := range s.MissingEntries {
+							if e.entryhash.Fixed() == entryhash.Fixed() {
+								addit = false
+								break
+							}
+						}
+
+						if addit {
+							var v MissingEntry
+
+							v.dbheight = eBlock.GetHeader().GetDBHeight()
+							v.entryhash = entryhash
+							v.ebhash = ebKeyMR
+
+							s.MissingEntries = append(s.MissingEntries, v)
 						}
 					}
-
-					if addit {
-						var v MissingEntry
-
-						v.dbheight = eBlock.GetHeader().GetDBHeight()
-						v.entryhash = entryhash
-						v.ebhash = ebKeyMR
-
-						s.MissingEntries = append(s.MissingEntries, v)
+					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+					s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
+					// If the save worked, then remove any commit that might be around.
+					if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+						delete(s.Commits, entryhash.Fixed())
 					}
-					// Something missing. stop moving the bookmark.
-					alldone = false
-				}
-				// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-				s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
-				// If the save worked, then remove any commit that might be around.
-				if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
-					delete(s.Commits, entryhash.Fixed())
 				}
 			}
+			scan++
 		}
-		if alldone {
-			s.EntryDBHeightComplete = scan
-			s.EntryDBHeightProcessing = scan + 1
+		s.MissingEntryMutex.Unlock()
+		if scan == s.GetHighestSavedBlk() {
+			time.Sleep(60 * time.Second)
 		}
-		scan++
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -196,9 +306,12 @@ func (s *State) syncEntries() {
 // Once it finds something missing, it keeps that as a mark, and starts there the next time it is
 // called.
 
-func (s *State) catchupEBlocks() {
-	s.setTimersMakeRequests()
-	s.syncEntryBlocks()
-	s.syncEntries()
+func (s *State) CatchupEBlocks() {
 
+	for {
+		s.MissingEntryMutex.Lock()
+		s.syncEntryBlocks()
+		s.MissingEntryMutex.Unlock()
+		time.Sleep(5 * time.Second)
+	}
 }
