@@ -438,6 +438,10 @@ func (s *State) SetDBStatesSent(sents []*interfaces.DBStateSent) {
 	s.DBStatesSent = sents
 }
 
+func (s *State) GetDelay() int64 {
+	return s.Delay
+}
+
 func (s *State) GetDropRate() int {
 	return s.DropRate
 }

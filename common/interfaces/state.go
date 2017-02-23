@@ -264,6 +264,7 @@ type IState interface {
 	GetEntryBlockDBHeightComplete() uint32
 	GetCurrentMinute() int
 	GetDropRate() int
+	GetDelay() int64
 	
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg

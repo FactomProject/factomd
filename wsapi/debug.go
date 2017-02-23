@@ -66,6 +66,9 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "current-minute":
 		resp, jsonError = HandleCurrentMinute(state, params)
 		break
+	case "delay":
+		resp, jsonError = HandleDelay(state, params)
+		break
 	case "drop-rate":
 		resp, jsonError = HandleDropRate(state, params)
 		break
@@ -134,6 +137,16 @@ func HandleCurrentMinute(
 	*primitives.JSONError,
 ) {
 	return state.GetCurrentMinute(), nil
+}
+
+func HandleDelay(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	return state.GetDelay(), nil
 }
 
 func HandleDropRate(
