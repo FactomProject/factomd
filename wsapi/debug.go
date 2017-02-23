@@ -146,7 +146,37 @@ func HandleDelay(
 	interface{},
 	*primitives.JSONError,
 ) {
-	return state.GetDelay(), nil
+	type ret struct {
+		Delay int64
+	}
+	r := new(ret)
+	
+	r.Delay = state.GetDelay()
+	return r, nil
+}
+
+func HandleSetDelay(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		Delay int64
+	}
+	r := new(ret)
+	
+	delay := new(SetDelayRequest)
+	err := MapToObject(params, delay)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+	
+	state.SetDelay(delay.Delay)
+	r.Delay = delay.Delay
+
+	return r, nil
 }
 
 func HandleDropRate(
@@ -243,3 +273,6 @@ func HandlePredictiveFER(
 	return r, nil
 }
 
+type SetDelayRequest struct {
+	Delay int64 `json:"delay"`
+}

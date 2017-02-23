@@ -442,6 +442,10 @@ func (s *State) GetDelay() int64 {
 	return s.Delay
 }
 
+func (s *State) SetDelay(delay int64) {
+	s.Delay = delay
+}
+
 func (s *State) GetDropRate() int {
 	return s.DropRate
 }
