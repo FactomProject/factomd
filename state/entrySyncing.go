@@ -231,6 +231,7 @@ func (s *State) syncEntryBlocks() {
 
 func (s *State) SyncEntries() {
 	scan := uint32(0)
+	alldone := true
 	for {
 
 		s.MissingEntryMutex.Lock()
@@ -253,6 +254,7 @@ func (s *State) SyncEntries() {
 
 				// Dont have an eBlock?  Huh. We can go on, but we can't advance
 				if eBlock == nil {
+					alldone = false
 					break scanEntries
 				}
 
@@ -265,6 +267,7 @@ func (s *State) SyncEntries() {
 					if e != nil {
 						// If I am missing the entry, add it to th eMissing Entries list
 					} else {
+						alldone = false
 						//Check lists and not add if already there.
 						addit := true
 						for _, e := range s.MissingEntries {
@@ -291,6 +294,9 @@ func (s *State) SyncEntries() {
 						delete(s.Commits, entryhash.Fixed())
 					}
 				}
+			}
+			if alldone {
+				s.EntryDBHeightComplete = scan
 			}
 			scan++
 		}
