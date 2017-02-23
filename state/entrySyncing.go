@@ -159,6 +159,7 @@ func (s *State) MakeMissingEntryRequests() {
 		if len(InPlay) == 0 {
 			time.Sleep(60 * time.Second)
 		}
+		update()
 		feedback()
 		time.Sleep(1 * time.Second)
 	}
