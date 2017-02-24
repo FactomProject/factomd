@@ -29,7 +29,7 @@ type NewBitcoinKeyStructure struct {
 	//The next extID specifies what type of Bitcoin key is used, P2PKH or P2SH.
 	KeyType byte
 	//Next is the 20 byte Bitcoin key.
-	NewKey []byte
+	NewKey [20]byte
 	//Seventh is a timestamp, which prevents replay attacks.
 	Timestamp []byte
 	//Eighth is the identity key preimage.
@@ -107,7 +107,7 @@ func (nbks *NewBitcoinKeyStructure) DecodeFromExtIDs(extIDs [][]byte) error {
 
 	nbks.BitcoinKeyLevel = extIDs[3][0]
 	nbks.KeyType = extIDs[4][0]
-	nbks.NewKey = extIDs[5]
+	copy(nbks.NewKey[:], extIDs[5])
 	nbks.Timestamp = extIDs[6]
 	nbks.PreimageIdentityKey = extIDs[7]
 	nbks.Signature = extIDs[8]
