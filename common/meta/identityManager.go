@@ -143,7 +143,7 @@ func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructur
 	return nil
 }
 
-func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructure, subChainID interfaces.IHash, BlockChain string) error {
+func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructure, subChainID interfaces.IHash, BlockChain string, dBlockTimestamp interfaces.Timestamp) error {
 	chainID := bnk.RootIdentityChainID
 
 	id := im.GetIdentity(chainID)
@@ -224,8 +224,9 @@ func (im *IdentityManager) ApplyNewBitcoinKeyStructure(bnk *NewBitcoinKeyStructu
 	return nil
 }
 
-func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKeyStruct) error {
-	id := im.GetIdentity(nbsk.RootIdentityChainID)
+func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKeyStruct, subchainID interfaces.IHash, dBlockTimestamp interfaces.Timestamp) error {
+	chainID := nbsk.RootIdentityChainID
+	id := im.GetIdentity(chainID)
 	if id == nil {
 		return fmt.Errorf("ChainID doesn't exists! %v", nbsk.RootIdentityChainID.String())
 	}
@@ -233,6 +234,11 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 	if err != nil {
 		return err
 	}
+
+	if id.ManagementChainID.IsSameAs(subchainID) == false {
+		return fmt.Errorf("Identity Error: Entry was not placed in the correct management chain - %v vs %v", id.ManagementChainID.String(), subchainID.String())
+	}
+
 	//Check Timestamp??
 
 	key := primitives.NewZeroHash()
@@ -248,79 +254,46 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 	/*
 
 		func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uint32, st *State) error {
-			extIDs := entry.ExternalIDs()
-			if len(extIDs) == 0 {
-				return errors.New("Identity Error Block Signing Key: Invalid external ID length")
+
+
+
+
+
+		dbase := st.GetAndLockDB()
+		dblk, err := dbase.FetchDBlockByHeight(height)
+		st.UnlockDB()
+
+		if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
+			if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
+				return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 			}
-			if bytes.Compare([]byte{0x00}, extIDs[0]) != 0 || // Version
-				!CheckExternalIDsLength(extIDs, []int{1, 21, 32, 32, 8, 33, 64}) {
-				return errors.New("Identity Error Block Signing Key: Invalid external ID length")
+		} else {
+			if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
+				return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
 			}
-
-			subChainID := entry.GetChainID()
-			chainID := new(primitives.Hash)
-			chainID.SetBytes(extIDs[2][:32])
-
-			IdentityIndex := st.isIdentityChain(chainID)
-			if IdentityIndex == -1 {
-				return errors.New("Identity Error: This cannot happen. New block signing key to nonexistent identity")
-			}
-
-			if !st.Identities[IdentityIndex].ManagementChainID.IsSameAs(subChainID) {
-				return errors.New("Identity Error: Entry was not placed in the correct management chain")
-			}
-
-			sigmsg, err := AppendExtIDs(extIDs, 0, 4)
-			if err != nil {
-				return err
-			} else {
-				//verify Signature
-				idKey := st.Identities[IdentityIndex].Key1
-				if CheckSig(idKey, extIDs[5][1:33], sigmsg, extIDs[6]) {
-					// Check block key length
-					if len(extIDs[3]) != 32 {
-						return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid length")
-					}
-
-					dbase := st.GetAndLockDB()
-					dblk, err := dbase.FetchDBlockByHeight(height)
-					st.UnlockDB()
-
-					if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
-						if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
-							return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
-						}
-					} else {
-						if !CheckTimestamp(extIDs[4], st.GetTimestamp().GetTimeSeconds()) {
-							return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")
-						}
-					}
-
-					st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
-					// Add to admin block if the following:
-					//		Not the initial load
-					//		A Federated or Audit server
-					//		This node is charge of admin block
-					status := st.Identities[IdentityIndex].Status
-					if !initial && statusIsFedOrAudit(status) && st.GetLeaderVM() == st.ComputeVMIndex(entry.GetChainID().Bytes()) {
-						key := primitives.NewHash(extIDs[3])
-						msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
-						err := msg.(*messages.ChangeServerKeyMsg).Sign(st.serverPrivKey)
-						if err != nil {
-							return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
-						}
-						st.InMsgQueue() <- msg
-					}
-				} else {
-					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
-				}
-			}
-			return nil
 		}
+	*/
+
+	/*
+		st.Identities[IdentityIndex].SigningKey = primitives.NewHash(extIDs[3])
+		// Add to admin block if the following:
+		//		Not the initial load
+		//		A Federated or Audit server
+		//		This node is charge of admin block
+		status := st.Identities[IdentityIndex].Status
+		if !initial && statusIsFedOrAudit(status) && st.GetLeaderVM() == st.ComputeVMIndex(entry.GetChainID().Bytes()) {
+			key := primitives.NewHash(extIDs[3])
+			msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
+			err := msg.(*messages.ChangeServerKeyMsg).Sign(st.serverPrivKey)
+			if err != nil {
+				return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
+			}
+			st.InMsgQueue() <- msg
+
 	*/
 }
 
-func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHashStructure) error {
+func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHashStructure, dBlockTimestamp interfaces.Timestamp) error {
 	id := im.GetIdentity(nmh.RootIdentityChainID)
 	if id == nil {
 		return fmt.Errorf("ChainID doesn't exists! %v", nmh.RootIdentityChainID.String())
