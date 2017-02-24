@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -333,7 +334,7 @@ func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterS
 		return fmt.Errorf("ChainID doesn't exists! %v", chainID.String())
 	}
 
-	err := rfi.VerifySignature(id.Key1)
+	err := rsm.VerifySignature(id.Key1)
 	if err != nil {
 		return err
 	}

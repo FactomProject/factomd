@@ -54,7 +54,7 @@ func (nbks *NewBitcoinKeyStructure) MarshalForSig() []byte {
 	answer = append(answer, nbks.RootIdentityChainID.Bytes()...)
 	answer = append(answer, nbks.BitcoinKeyLevel)
 	answer = append(answer, nbks.KeyType)
-	answer = append(answer, nbks.NewKey...)
+	answer = append(answer, nbks.NewKey[:]...)
 	answer = append(answer, nbks.Timestamp...)
 	return answer
 }
@@ -128,7 +128,7 @@ func (nbks *NewBitcoinKeyStructure) ToExternalIDs() [][]byte {
 	extIDs = append(extIDs, nbks.RootIdentityChainID.Bytes())
 	extIDs = append(extIDs, []byte{nbks.BitcoinKeyLevel})
 	extIDs = append(extIDs, []byte{nbks.KeyType})
-	extIDs = append(extIDs, nbks.NewKey)
+	extIDs = append(extIDs, nbks.NewKey[:])
 	extIDs = append(extIDs, nbks.Timestamp)
 	extIDs = append(extIDs, nbks.PreimageIdentityKey)
 	extIDs = append(extIDs, nbks.Signature)

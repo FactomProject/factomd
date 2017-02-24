@@ -17,7 +17,7 @@ type AnchorSigningKey struct {
 	BlockChain string
 	KeyLevel   byte
 	KeyType    byte
-	SigningKey []byte //if bytes, it is hex
+	SigningKey [20]byte //if bytes, it is hex
 }
 
 type Identity struct {

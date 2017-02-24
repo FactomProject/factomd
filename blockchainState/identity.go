@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/meta"
 )
 
-func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry) error {
+func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBlockHeight uint32, dBlockTimestamp interfaces.Timestamp) error {
 	if entry.GetChainID().String() != "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327" {
 		return fmt.Errorf("Invalic chainID - expected 888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327, got %v", entry.GetChainID().String())
 	}
