@@ -87,8 +87,8 @@ func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*p
 	case "network-info":
 		resp, jsonError = HandleNetworkInfo(state, params)
 		break
-	case "node-status":
-		resp, jsonError = HandleNodeStatus(state, params)
+	case "summary":
+		resp, jsonError = HandleSummary(state, params)
 		break
 	case "predictive-fer":
 		resp, jsonError = HandlePredictiveFER(state, params)
@@ -277,7 +277,7 @@ func HandleNetworkInfo(
 	return r, nil
 }
 
-func HandleNodeStatus(
+func HandleSummary(
 	state interfaces.IState,
 	params interface{},
 ) (
@@ -285,10 +285,10 @@ func HandleNodeStatus(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		Status []string
+		Summary []string
 	}
 	r := new(ret)
-	r.Status = state.GetStatus()
+	r.Summary = state.GetStatus()
 
 	return r, nil
 }
