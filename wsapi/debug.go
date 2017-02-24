@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/web"
@@ -23,9 +23,19 @@ func HandleDebug(ctx *web.Context) {
 	if err := checkAuthHeader(state, ctx.Request); err != nil {
 		remoteIP := ""
 		remoteIP += strings.Split(ctx.Request.RemoteAddr, ":")[0]
-		fmt.Printf("Unauthorized V2 API client connection attempt from %s\n", remoteIP)
-		ctx.ResponseWriter.Header().Add("WWW-Authenticate", `Basic realm="factomd RPC"`)
-		http.Error(ctx.ResponseWriter, "401 Unauthorized.", http.StatusUnauthorized)
+		fmt.Printf(
+			"Unauthorized V2 API client connection attempt from %s\n",
+			remoteIP,
+		)
+		ctx.ResponseWriter.Header().Add(
+			"WWW-Authenticate",
+			`Basic realm="factomd RPC"`,
+		)
+		http.Error(
+			ctx.ResponseWriter,
+			"401 Unauthorized.",
+			http.StatusUnauthorized,
+		)
 
 		return
 	}
@@ -52,7 +62,13 @@ func HandleDebug(ctx *web.Context) {
 	ctx.Write([]byte(jsonResp.String()))
 }
 
-func HandleDebugRequest(state interfaces.IState, j *primitives.JSON2Request) (*primitives.JSON2Response, *primitives.JSONError) {
+func HandleDebugRequest(
+	state interfaces.IState,
+	j *primitives.JSON2Request,
+) (
+	*primitives.JSON2Response,
+	*primitives.JSONError,
+) {
 	var resp interface{}
 	var jsonError *primitives.JSONError
 	params := j.Params
@@ -156,7 +172,7 @@ func HandleDelay(
 		Delay int64
 	}
 	r := new(ret)
-	
+
 	r.Delay = state.GetDelay()
 	return r, nil
 }
@@ -172,13 +188,13 @@ func HandleSetDelay(
 		Delay int64
 	}
 	r := new(ret)
-	
+
 	delay := new(SetDelayRequest)
 	err := MapToObject(params, delay)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
-	
+
 	state.SetDelay(delay.Delay)
 	r.Delay = delay.Delay
 
@@ -196,7 +212,7 @@ func HandleDropRate(
 		DropRate int
 	}
 	r := new(ret)
-	
+
 	r.DropRate = state.GetDropRate()
 	return r, nil
 }
@@ -212,13 +228,13 @@ func HandleSetDropRate(
 		DropRate int
 	}
 	r := new(ret)
-	
+
 	droprate := new(SetDropRateRequest)
 	err := MapToObject(params, droprate)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}
-	
+
 	state.SetDropRate(droprate.DropRate)
 	r.DropRate = droprate.DropRate
 	return r, nil
