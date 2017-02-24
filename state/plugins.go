@@ -2,21 +2,45 @@ package state
 
 import (
 	"fmt"
+	"time"
 
 	//"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
 
+// Only called once to set the torrent flag.
 func (s *State) SetUseTorrent(setVal bool) {
 	s.useDBStateManager = setVal
+	if setVal {
+		// Drain our upload queue for torrents
+		go s.drainUploads()
+	}
 }
 
 func (s *State) UsingTorrent() bool {
 	return s.useDBStateManager
 }
 
-func (s *State) UploadDBState(msg interfaces.IMsg) error {
+func (s *State) UploadDBState(msg interfaces.IMsg) {
+	s.torrentUploadQueue <- msg
+}
+
+// drainUploads is a go routine that passes the msgs to the torrent to upload.
+// making it a goroutine maintains our fast bootup, and delegates the catchup work
+// to the plugin
+func (s *State) drainUploads() {
+	for {
+		select {
+		case msg := <-s.torrentUploadQueue:
+			s.uploadDBState(msg)
+		default:
+			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
+func (s *State) uploadDBState(msg interfaces.IMsg) error {
 	// Create the torrent
 	if s.UsingTorrent() {
 		//msg, err := s.LoadDBState(uint32(dbheight))

@@ -314,8 +314,9 @@ type State struct {
 	AckChange uint32
 
 	// Plugins
-	useDBStateManager bool
-	DBStateManager    interfaces.IManagerController
+	useDBStateManager  bool
+	torrentUploadQueue chan interfaces.IMsg
+	DBStateManager     interfaces.IManagerController
 }
 
 type MissingEntryBlock struct {
@@ -700,12 +701,13 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 10000)           //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)  //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 10000)            //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 10000)            //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 10000)            //queue of Follower messages
+	s.torrentUploadQueue = make(chan interfaces.IMsg, 100000) // Channel used if torrents enabled. Queue of torrents to upload
+	s.ShutdownChan = make(chan int, 1)                        //Channel to gracefully shut down.
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -1007,10 +1009,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	// Create the torrent
 	if s.UsingTorrent() {
-		err := s.UploadDBState(msg)
-		if err != nil {
-			// fmt.Println(err.Error())
-		}
+		s.UploadDBState(msg)
 	}
 
 	return msg, nil

@@ -682,10 +682,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if err != nil {
 			fmt.Println("[1] Error creating torrent in SaveDBStateToDB: " + err.Error())
 		}
-		err = list.State.UploadDBState(msg)
-		if err != nil {
-			//fmt.Println(err.Error())
-		}
+		list.State.UploadDBState(msg)
 	}
 
 	return
