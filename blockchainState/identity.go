@@ -20,6 +20,8 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		return nil
 	}
 
+	chainID := entry.GetChainID()
+
 	extIDs := entry.ExternalIDs()
 	if len(extIDs) < 2 {
 		//Invalid Identity Chain Entry
@@ -38,7 +40,7 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		err = bs.IdentityManager.ApplyIdentityChainStructure(ic)
+		err = bs.IdentityManager.ApplyIdentityChainStructure(ic, chainID, dBlockHeight)
 		if err != nil {
 			return err
 		}
@@ -48,7 +50,7 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		err = bs.IdentityManager.ApplyNewBitcoinKeyStructure(nkb)
+		err = bs.IdentityManager.ApplyNewBitcoinKeyStructure(nkb, chainID, "???????????????", dBlockTimestamp)
 		if err != nil {
 			return err
 		}
@@ -58,7 +60,7 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		err = bs.IdentityManager.ApplyNewBlockSigningKeyStruct(nbsk)
+		err = bs.IdentityManager.ApplyNewBlockSigningKeyStruct(nbsk, chainID, dBlockTimestamp)
 		if err != nil {
 			return err
 		}
@@ -68,7 +70,7 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		err = bs.IdentityManager.ApplyNewMatryoshkaHashStructure(nmh)
+		err = bs.IdentityManager.ApplyNewMatryoshkaHashStructure(nmh, dBlockTimestamp)
 		if err != nil {
 			return err
 		}
@@ -78,7 +80,7 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		err = bs.IdentityManager.ApplyRegisterFactomIdentityStructure(rfi)
+		err = bs.IdentityManager.ApplyRegisterFactomIdentityStructure(rfi, dBlockHeight)
 		if err != nil {
 			return err
 		}
@@ -88,7 +90,7 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		err = bs.IdentityManager.ApplyRegisterServerManagementStructure(rsm)
+		err = bs.IdentityManager.ApplyRegisterServerManagementStructure(rsm, chainID, dBlockHeight)
 		if err != nil {
 			return err
 		}
@@ -98,7 +100,7 @@ func (bs *BlockchainState) ProcessIdentityEntry(entry interfaces.IEBEntry, dBloc
 		if err != nil {
 			return err
 		}
-		err = bs.IdentityManager.ApplyServerManagementStructure(sm)
+		err = bs.IdentityManager.ApplyServerManagementStructure(sm, chainID, dBlockHeight)
 		if err != nil {
 			return err
 		}
