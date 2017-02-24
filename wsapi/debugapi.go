@@ -158,7 +158,13 @@ func HandleCurrentMinute(
 	interface{},
 	*primitives.JSONError,
 ) {
-	return state.GetCurrentMinute(), nil
+	type ret struct {
+		Minute int
+	}
+	r := new(ret)
+	
+	r.Minute = state.GetCurrentMinute()
+	return r, nil
 }
 
 func HandleDelay(
