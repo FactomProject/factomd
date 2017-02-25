@@ -57,6 +57,9 @@ func IsSpecialBlock(chainID interfaces.IHash) bool {
 	case "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327":
 		return true
 	}
+	if chainID.String()[:6] == "888888" {
+		return true
+	}
 	return false
 }
 
@@ -64,7 +67,7 @@ func (bs *BlockchainState) ProcessSpecialBlock(eBlock interfaces.IEntryBlock, en
 	if IsSpecialBlock(eBlock.GetChainID()) == false {
 		return fmt.Errorf("Non-special block passed to ProcessSpecialBlock - %v", eBlock.GetHash().String())
 	}
-	if eBlock.GetChainID().String() == "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327" {
+	if eBlock.GetChainID().String()[:6] == "888888" {
 		//Identity Chain
 		for _, v := range eBlock.GetEntryHashes() {
 			if v.IsMinuteMarker() {
@@ -75,6 +78,8 @@ func (bs *BlockchainState) ProcessSpecialBlock(eBlock interfaces.IEntryBlock, en
 
 			err := bs.ProcessIdentityEntry(entry, bs.DBlockHeight, bs.DBlockTimestamp)
 			if err != nil {
+				fmt.Printf("Err - %v\n", err)
+				continue
 				return err
 			}
 		}
