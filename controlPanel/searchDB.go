@@ -55,7 +55,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		}
 		hash := base58.Decode(searchitem)
 		if len(hash) < 34 {
-			return false, ""
+			break
 		}
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
@@ -67,7 +67,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		}
 		hash := base58.Decode(searchitem)
 		if len(hash) < 34 {
-			return false, ""
+			break
 		}
 		var fixed [32]byte
 		copy(fixed[:], hash[2:34])
