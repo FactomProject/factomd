@@ -1752,6 +1752,19 @@ func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
 }
 
+func (s *State) GetNetworkName() string {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return "MAIN"
+	case constants.NETWORK_TEST:
+		return "TEST"
+	case constants.NETWORK_LOCAL:
+		return "LOCAL"
+	case constants.NETWORK_CUSTOM:
+		return "CUSTOM"
+	}
+}
+
 func (s *State) GetNetworkID() uint32 {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
