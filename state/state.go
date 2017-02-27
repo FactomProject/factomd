@@ -1763,6 +1763,7 @@ func (s *State) GetNetworkName() string {
 	case constants.NETWORK_CUSTOM:
 		return "CUSTOM"
 	}
+	return "" // Shouldn't ever get here
 }
 
 func (s *State) GetNetworkID() uint32 {
