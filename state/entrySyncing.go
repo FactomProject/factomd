@@ -20,6 +20,7 @@ func (s *State) MakeMissingEntryRequests() {
 
 	type EntryTrack struct {
 		lastRequest time.Time
+		dbheight    uint32
 		cnt         int
 	}
 
@@ -76,7 +77,6 @@ func (s *State) MakeMissingEntryRequests() {
 				} else {
 					found++
 					newfound++
-					delete(InPlay, v.entryhash.Fixed())
 				}
 			}
 			// Let the outside world know which entries we are looking for.
@@ -85,6 +85,12 @@ func (s *State) MakeMissingEntryRequests() {
 		}
 
 		update()
+
+		for k := range InPlay {
+			if InPlay[k].dbheight < s.EntryDBHeightComplete {
+				delete(InPlay, k)
+			}
+		}
 
 		// Ask for missing entries.
 
@@ -146,6 +152,7 @@ func (s *State) MakeMissingEntryRequests() {
 
 				if entryTrack == nil {
 					entryTrack = new(EntryTrack)
+					entryTrack.dbheight = v.dbheight
 					InPlay[v.entryhash.Fixed()] = entryTrack
 				}
 				entryTrack.lastRequest = now
@@ -157,7 +164,7 @@ func (s *State) MakeMissingEntryRequests() {
 		}
 
 		if len(InPlay) == 0 {
-			time.Sleep(60 * time.Second)
+			time.Sleep(3 * time.Second)
 		}
 		feedback()
 		time.Sleep(1 * time.Second)
