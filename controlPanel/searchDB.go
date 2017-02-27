@@ -51,7 +51,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 	switch searchitem[:2] {
 	case "EC":
 		if !primitives.ValidateECUserStr(searchitem) {
-			return false, ""
+			break
 		}
 		hash := base58.Decode(searchitem)
 		if len(hash) < 34 {
@@ -63,7 +63,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		return true, `{"Type":"EC","item":` + bal + "}"
 	case "FA":
 		if !primitives.ValidateFUserStr(searchitem) {
-			return false, ""
+			break
 		}
 		hash := base58.Decode(searchitem)
 		if len(hash) < 34 {
