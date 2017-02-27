@@ -44,8 +44,6 @@ type BlockchainState struct {
 
 	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
 
-	IdentityChains map[string]string //IdentityChainID:Public Key
-
 	IdentityManager meta.IdentityManager
 }
 
@@ -53,7 +51,6 @@ func NewBSMainNet() *BlockchainState {
 	bs := new(BlockchainState)
 	bs.NetworkID = constants.MAIN_NETWORK_ID
 	bs.Init()
-	bs.IdentityChains["0000000000000000000000000000000000000000000000000000000000000000"] = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 	return bs
 }
 
@@ -109,9 +106,6 @@ func (bs *BlockchainState) Init() {
 	}
 	if bs.ABlockHeadRefHash == nil {
 		bs.ABlockHeadRefHash = primitives.NewZeroHash().(*primitives.Hash)
-	}
-	if bs.IdentityChains == nil {
-		bs.IdentityChains = map[string]string{}
 	}
 }
 

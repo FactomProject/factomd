@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -29,6 +30,9 @@ type IdentityManagerWithoutMutex struct {
 
 	OldEntries []*OldEntry
 }
+
+//Skeleton key:
+//"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 
 func (im *IdentityManager) GobDecode(data []byte) error {
 	//Circumventing Gob's "gob: type sync.RWMutex has no exported fields"
@@ -534,6 +538,7 @@ func (im *IdentityManager) ProcessOldEntries() error {
 				allErrors = false
 				im.OldEntries = append(im.OldEntries[:i], im.OldEntries[i+1:]...)
 				i--
+				fmt.Printf("\n\nRemoving entry!\n\n")
 			}
 		}
 		//loop over and over until no entries have been removed in a whole loop
@@ -541,5 +546,77 @@ func (im *IdentityManager) ProcessOldEntries() error {
 			return nil
 		}
 	}
+	return nil
+}
+
+func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock, dBlock interfaces.IDirectoryBlock, prevHeader []byte) error {
+	if dBlock.GetDatabaseHeight() == 0 {
+		return nil
+	}
+
+	entries := aBlock.GetABEntries()
+
+	foundSigs := map[string]string{}
+	skeletonKeyUsed := false
+
+	for _, v := range entries {
+		if v.Type() == constants.TYPE_DB_SIGNATURE {
+			dbs := v.(*adminBlock.DBSignatureEntry)
+			if foundSigs[dbs.IdentityAdminChainID.String()] != "" {
+				return fmt.Errorf("Found duplicate entry for ChainID %v", dbs.IdentityAdminChainID.String())
+			}
+			foundSigs[dbs.IdentityAdminChainID.String()] = "ok"
+			pub := dbs.PrevDBSig.Pub
+			signingKey := ""
+
+			if dbs.IdentityAdminChainID.String() == "0000000000000000000000000000000000000000000000000000000000000000" {
+				//Skeleton key
+				signingKey = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
+				skeletonKeyUsed = true
+			} else {
+				auth := im.GetAuthority(dbs.IdentityAdminChainID)
+				signingKey = auth.SigningKey.String()
+			}
+
+			if signingKey != pub.String() {
+				return fmt.Errorf("Invalid Public Key in DBSignatureEntry %v - expected %v, got %v", v.Hash().String(), signingKey, pub.String())
+			}
+
+			if dbs.PrevDBSig.Verify(prevHeader) == false {
+				return fmt.Errorf("Invalid signature in DBSignatureEntry %v", v.Hash().String())
+			}
+		}
+	}
+	if skeletonKeyUsed {
+		if len(foundSigs) != 1 {
+			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v", aBlock.DatabasePrimaryIndex().String())
+		}
+	} else {
+		if len(foundSigs) != im.AuthorityServerCount {
+			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v", aBlock.DatabasePrimaryIndex().String())
+		}
+	}
+	return nil
+}
+
+func (im *IdentityManager) ApplyAddFederatedServer(afs *adminBlock.AddFederatedServer) error {
+	auth := new(Authority)
+
+	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+	auth.AuthorityChainID = afs.IdentityChainID
+
+	im.SetAuthority(afs.IdentityChainID, auth)
+
+	return nil
+}
+
+func (im *IdentityManager) ApplyAddAuditServer(aas *adminBlock.AddAuditServer) error {
+	auth := new(Authority)
+
+	auth.Status = constants.IDENTITY_AUDIT_SERVER
+	auth.AuthorityChainID = aas.IdentityChainID
+
+	im.SetAuthority(aas.IdentityChainID, auth)
+
 	return nil
 }
