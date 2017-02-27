@@ -63,6 +63,12 @@ func (s *State) uploadDBState(msg interfaces.IMsg) error {
 			}
 		}
 
+		if len(eHashes) == 0 {
+			// No hashes in the msg. Possibly not make torrent?
+			// If we only use torrents for entry syncing, then no need
+			// to make this torrent
+		}
+
 		for _, e := range eHashes {
 			if e.String()[:62] != "00000000000000000000000000000000000000000000000000000000000000" {
 				//} else {

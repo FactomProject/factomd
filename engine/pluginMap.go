@@ -104,7 +104,8 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 
 					// Write entries into DB
 					for _, e := range dbMsg.Entries {
-						db.InsertEntry(e)
+						// db.InsertEntry(e)
+						var _ = e
 					}
 				}
 			}
