@@ -22,6 +22,10 @@ func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock, entr
 			return err
 		}
 	}
+	err := bs.IdentityManager.ProcessOldEntries()
+	if err != nil {
+		return err
+	}
 	return bs.ClearExpiredCommits()
 }
 
@@ -76,7 +80,7 @@ func (bs *BlockchainState) ProcessSpecialBlock(eBlock interfaces.IEntryBlock, en
 			entry := entryMap[v.String()]
 			fmt.Printf("Processing entry %v\n", entry.String())
 
-			err := bs.ProcessIdentityEntry(entry, bs.DBlockHeight, bs.DBlockTimestamp)
+			err := bs.IdentityManager.ProcessIdentityEntry(entry, bs.DBlockHeight, bs.DBlockTimestamp, true)
 			if err != nil {
 				fmt.Printf("Err - %v\n", err)
 				continue
