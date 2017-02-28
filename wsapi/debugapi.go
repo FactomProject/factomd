@@ -12,6 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/web"
 )
 
@@ -187,7 +188,7 @@ func HandleCurrentMinute(
 		Minute int
 	}
 	r := new(ret)
-	
+
 	r.Minute = state.GetCurrentMinute()
 	return r, nil
 }
@@ -332,10 +333,10 @@ func HandleSummary(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		Summary []string
+		Summary string
 	}
 	r := new(ret)
-	r.Summary = state.GetStatus()
+	r.Summary = state.ShortString()
 
 	return r, nil
 }
@@ -363,10 +364,10 @@ func HandleProcessList(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		ProcessList interfaces.IProcessList
+		ProcessList string
 	}
 	r := new(ret)
-	r.ProcessList = state.GetLeaderPL()
+	r.ProcessList = state.GetLeaderPL().String()
 	return r, nil
 }
 
@@ -378,8 +379,8 @@ func HandleReloadConfig(
 	*primitives.JSONError,
 ) {
 	// LoacConfig with "" strings should load the default location
-	state.LoadConfig("", "")
-	
+	state.LoadConfig(util.ConfigFilename(), state.GetNetworkName())
+
 	return state.GetCfg(), nil
 }
 
