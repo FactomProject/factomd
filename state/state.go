@@ -1736,7 +1736,12 @@ func (s *State) SetFaultWait(wait int) {
 
 // GetAuthoritites will return a list of the network athoritites
 func (s *State) GetAuthorities() []interfaces.IAuthority {
-	return s.Authoritites
+	auths := make([]interfaces.IAuthority, 0)
+	for _, auth := range s.Authorities {
+		auths = append(auths, auth)
+	}
+	
+	return auths
 }
 
 // GetLeaderPL returns the leader process list from the state. this method is
