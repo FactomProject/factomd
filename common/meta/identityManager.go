@@ -166,7 +166,7 @@ func (im *IdentityManager) ProcessOldEntries() error {
 				allErrors = false
 				im.OldEntries = append(im.OldEntries[:i], im.OldEntries[i+1:]...)
 				i--
-				fmt.Printf("\n\nRemoving entry!\n\n")
+				//fmt.Printf("\n\nRemoving entry!\n\n")
 			}
 		}
 		//loop over and over until no entries have been removed in a whole loop

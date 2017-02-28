@@ -23,13 +23,13 @@ func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry) error {
 	case constants.TYPE_ADD_FED_SERVER:
 		return im.ApplyAddFederatedServer(entry)
 	case constants.TYPE_ADD_AUDIT_SERVER:
-		//return im.ApplyAddAuditServer(entry)
+		return im.ApplyAddAuditServer(entry)
 	case constants.TYPE_REMOVE_FED_SERVER:
-		//return im.ApplyRemoveFederatedServer(entry)
+		return im.ApplyRemoveFederatedServer(entry)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
-		//return im.ApplyAddFederatedServerSigningKey(entry)
+		return im.ApplyAddFederatedServerSigningKey(entry)
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
-		//return im.ApplyAddFederatedServerBitcoinAnchorKey(entry)
+		return im.ApplyAddFederatedServerBitcoinAnchorKey(entry)
 	}
 	return nil
 }
@@ -82,49 +82,42 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error 
 	return nil
 }
 
-/*
 func (im *IdentityManager) ApplyRemoveFederatedServer(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.RemoveFederatedServer)
-
-	AuthorityIndex = im.isAuthorityChain(e.IdentityChainID)
-	if AuthorityIndex == -1 {
-		log.Println(e.IdentityChainID.String() + " Cannot be removed.  Not in Authorities Liim.")
-	} else {
-		im.RemoveAuthority(e.IdentityChainID)
-		IdentityIndex := im.isIdentityChain(e.IdentityChainID)
-		if IdentityIndex != -1 && IdentityIndex < len(im.Identities) {
-			if im.Identities[IdentityIndex].IdentityChainID.IsSameAs(im.GetNetworkSkeletonIdentity()) {
-				im.Identities[IdentityIndex].Status = constants.IDENTITY_SKELETON
-			} else {
-				im.removeIdentity(IdentityIndex)
-			}
-		}
-	}
+	im.RemoveAuthority(e.IdentityChainID)
 	return nil
 }
+
 func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServerSigningKey)
 
-	keyBytes, err := e.PublicKey.MarshalBinary()
-	if err != nil {
-		return err
+	auth := im.GetAuthority(e.IdentityChainID)
+	if auth == nil {
+		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
 	}
-	key := new(primitives.Hash)
-	err = key.SetBytes(keyBytes)
-	if err != nil {
-		return err
-	}
-	addServerSigningKey(e.IdentityChainID, key, e.DBHeight, am)
+	auth.SigningKey = auth.SigningKey
+
+	im.SetAuthority(e.IdentityChainID, auth)
 	return nil
 }
+
 func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServerBitcoinAnchorKey)
 
-	pubKey, err := e.ECDSAPublicKey.MarshalBinary()
-	if err != nil {
-		return err
+	auth := im.GetAuthority(e.IdentityChainID)
+	if auth == nil {
+		return fmt.Errorf("Authority %v not found", e.IdentityChainID.String())
 	}
-	registerAuthAnchor(e.IdentityChainID, pubKey, e.KeyType, e.KeyPriority, am, "BTC")
+
+	var ask AnchorSigningKey
+	ask.SigningKey = e.ECDSAPublicKey
+	ask.KeyLevel = e.KeyPriority
+	ask.KeyType = e.KeyType
+	//ask.BlockChain = e.
+
+	auth.AnchorKeys = append(auth.AnchorKeys, ask)
+
+	im.SetAuthority(e.IdentityChainID, auth)
 	return nil
 }
 
