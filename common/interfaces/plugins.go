@@ -13,3 +13,10 @@ type IManagerController interface {
 	FetchFromBuffer() []byte
 	SetSigningKey(sec []byte) error
 }
+
+// IConsulManager plugin interface
+type IConsulManager interface {
+	SendIntoConsul(blockHeight uint32, minuteNum int, msg []byte) error
+	GetMinuteData(blockHeight uint32, minuteNum int) [][]byte
+	GetBlockData(blockHeight uint32) [][]byte
+}

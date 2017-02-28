@@ -1,6 +1,3 @@
-// Interface that allows factomd to offload the dbstate fetching to this
-// plugin. If offloaded, factomd will need to drain the buffer by launching
-// a drain go routine
 package engine
 
 import (
@@ -10,20 +7,12 @@ import (
 	"github.com/hashicorp/go-plugin"
 )
 
-// IManagerPlugin is the interface we are exposing as a plugin. It is
-// not directly a manager interface, as we have to handle goroutines
-// in the plugin
-/*type IManagerController interface {
-	// Manager functions extended
-	RetrieveDBStateByHeight(height uint32) error
-	UploadDBStateBytes(data []byte, sign bool) error
-
-	// Control function
-	IsBufferEmpty() bool
-	FetchFromBuffer() []byte
-	SetSigningKey(sec []byte) error
-}*/
-
+/*****************************************
+ *										**
+ *				Torrents				**
+ *		interfaces.IManagerPlugin		**
+ *										**
+ *****************************************/
 // Here is an implementation that talks over RPC
 type IManagerPluginRPC struct{ client *rpc.Client }
 
@@ -134,4 +123,115 @@ func (p *IManagerPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
 
 func (IManagerPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
 	return &IManagerPluginRPC{client: c}, nil
+}
+
+/*****************************************
+*										**
+*				Consul					**
+*		interfaces.IConsulManager		**
+*										**
+******************************************/
+
+type ConsulManager interface {
+	SendIntoConsul(blockHeight uint32, minuteNum int, msg interfaces.IMsg) error
+	GetMinuteData(blockHeight uint32, minuteNum int) [][]byte /* []interfaces.IMsg*/
+	GetBlockData(blockHeight uint32) [][]byte                 /* []interfaces.IMsg*/
+}
+
+// Here is an implementation that talks over RPC
+type IConsulPluginRPC struct{ client *rpc.Client }
+
+func (g *IConsulPluginRPC) RetrieveDBStateByHeight(height uint32) error {
+	var resp error
+	err := g.client.Call("Plugin.RetrieveDBStateByHeight", height, &resp)
+	if err != nil {
+		return err
+	}
+
+	return resp
+}
+
+type SendIntoConsulArgs struct {
+	BlockHeight uint32
+	MinuteNum   int
+	Msg         []byte // interfaces.IMsg
+}
+
+func (g *IConsulPluginRPC) SendIntoConsul(blockHeight uint32, minuteNum int, msg []byte) error {
+	var resp error
+	args := SendIntoConsulArgs{
+		BlockHeight: blockHeight,
+		MinuteNum:   minuteNum,
+		Msg:         msg,
+	}
+	err := g.client.Call("Plugin.SendIntoConsul", &args, &resp)
+	if err != nil {
+		return err
+	}
+
+	return resp
+}
+
+type GetMinuteData struct {
+	BlockHeight uint32
+	MinuteNum   int
+}
+
+func (g *IConsulPluginRPC) GetMinuteData(blockHeight uint32, minuteNum int) [][]byte {
+	var resp [][]byte
+	args := SendIntoConsulArgs{
+		BlockHeight: blockHeight,
+		MinuteNum:   minuteNum,
+	}
+	err := g.client.Call("Plugin.GetMinuteData", &args, &resp)
+	if err != nil {
+		return nil
+	}
+
+	return resp
+}
+
+func (g *IConsulPluginRPC) GetBlockData(blockHeight uint32) [][]byte {
+	var resp [][]byte
+	err := g.client.Call("Plugin.GetBlockData", blockHeight, &resp)
+	if err != nil {
+		return nil
+	}
+
+	return resp
+}
+
+// Here is the RPC server that IConsulPluginRPC talks to, conforming to
+// the requirements of net/rpc
+type IIConsulPluginRPCCServer struct {
+	// This is the real implementation
+	Impl interfaces.IConsulManager
+}
+
+func (s *IIConsulPluginRPCCServer) SendIntoConsul(args *SendIntoConsulArgs, resp *error) error {
+	*resp = s.Impl.SendIntoConsul(args.BlockHeight, args.MinuteNum, args.Msg)
+	return *resp
+}
+
+func (s *IIConsulPluginRPCCServer) GetMinuteData(args *GetMinuteData, resp *[][]byte) error {
+	*resp = s.Impl.GetMinuteData(args.BlockHeight, args.MinuteNum)
+	return nil
+}
+
+func (s *IIConsulPluginRPCCServer) GetBlockData(blockheight uint32, resp *[][]byte) error {
+	*resp = s.Impl.GetBlockData(blockheight)
+	return nil
+}
+
+type IConsulPlugin struct {
+	// Impl Injection
+	Impl interfaces.IConsulManager
+}
+
+func (p *IConsulPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
+	return &IIConsulPluginRPCCServer{Impl: p.Impl}, nil
+}
+
+func (IConsulPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
+	return &IConsulPluginRPC{client: c}, nil
 }
