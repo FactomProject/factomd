@@ -107,6 +107,12 @@ func (s *State) Process() (progress bool) {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		}
 	} else if s.IgnoreMissing {
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		if s.CurrentMinute > 9 {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+		} else {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
@@ -1383,6 +1389,8 @@ func (s *State) CheckForIDChange() {
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
+	s.AddStatus(fmt.Sprintf("ProcessDBSig: %s ", msg.String()))
+
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
@@ -1434,7 +1442,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
-				return false
+				dbstate := s.DBStates.Get(int(dbs.DBHeight - 1))
+				if dbstate == nil || (!dbstate.Locked && !dbstate.Saved) {
+					db, _ := s.DB.FetchDBlockByHeight(dbs.DBHeight - 1)
+					if db == nil {
+						s.AddStatus("ProcessDBSig(): Previous Process List isn't complete." + dbs.String())
+						return false
+					}
+				}
 			}
 		}
 

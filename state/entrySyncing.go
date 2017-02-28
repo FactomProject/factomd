@@ -120,23 +120,25 @@ func (s *State) MakeMissingEntryRequests() {
 				}
 			}
 
-			if min >= int(math.MaxInt32) {
-				min = 0
-			}
-
-			if min > 0 {
+			if min != math.MaxInt32 && min > 0 {
 				s.EntryDBHeightComplete = uint32(min - 1)
 			}
 
 			foundstr := fmt.Sprint(newfound, "/", found)
 			newfound = 0
-			fmt.Printf("***es Looking for: %8d Found: %13s In Play: %6d Min Height: %8d Max Height: %8d Max Send: %3d \n",
+			mmin := min
+			if mmin == math.MaxInt32 {
+				mmin = 0
+			}
+			fmt.Printf("***es Looking for: %s %8d NewFound/Found: %13s In Play: %6d Min Height: %8d Max Height: %8d Max Send: %3d Highest Saved %d \n",
+				s.FactomNodeName,
 				len(keep),
 				foundstr,
 				len(InPlay),
-				min,
+				mmin,
 				max,
-				maxcnt)
+				maxcnt,
+				s.GetHighestSavedBlk())
 		}
 
 		var loopList []MissingEntry
@@ -305,7 +307,7 @@ func (s *State) SyncEntries() {
 		}
 		s.MissingEntryMutex.Unlock()
 		if scan == s.GetHighestSavedBlk() {
-			time.Sleep(60 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 		time.Sleep(5 * time.Second)
 	}

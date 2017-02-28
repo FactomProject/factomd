@@ -270,6 +270,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 func systemFaults(f *FactomNode) string {
 	dbheight := f.State.LLeaderHeight
 	pl := f.State.ProcessLists.Get(dbheight)
+	if pl == nil {
+		return ""
+	}
 	if len(pl.System.List) == 0 {
 		str := fmt.Sprintf("%5s %13s %6s Length: 0\n", "", "System List", f.State.FactomNodeName)
 		return str
