@@ -30,6 +30,30 @@ type IdentityManagerWithoutMutex struct {
 	OldEntries []*OldEntry
 }
 
+func (im *IdentityManager) FedServerCount() int {
+	im.Mutex.RLock()
+	defer im.Mutex.RUnlock()
+	answer := 0
+	for _, v := range im.Authorities {
+		if v.Type() == constants.IDENTITY_FEDERATED_SERVER {
+			answer++
+		}
+	}
+	return answer
+}
+
+func (im *IdentityManager) AuditServerCount() int {
+	im.Mutex.RLock()
+	defer im.Mutex.RUnlock()
+	answer := 0
+	for _, v := range im.Authorities {
+		if v.Type() == constants.IDENTITY_AUDIT_SERVER {
+			answer++
+		}
+	}
+	return answer
+}
+
 //Skeleton key:
 //"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 
@@ -93,6 +117,7 @@ func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authorit
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
 	im.Authorities[chainID.String()] = auth
+	//fmt.Printf("SetAuth - %v - %v\n", chainID.String(), auth)
 }
 
 func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
@@ -203,6 +228,7 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 				skeletonKeyUsed = true
 			} else {
 				auth := im.GetAuthority(dbs.IdentityAdminChainID)
+				//fmt.Printf("Auth - %v\n", auth)
 				signingKey = auth.SigningKey.String()
 			}
 
@@ -217,11 +243,12 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 	}
 	if skeletonKeyUsed {
 		if len(foundSigs) != 1 {
-			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v", aBlock.DatabasePrimaryIndex().String())
+			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v - %v vs %v", aBlock.DatabasePrimaryIndex().String(), len(foundSigs), 1)
 		}
 	} else {
-		if len(foundSigs) != im.AuthorityServerCount {
-			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v", aBlock.DatabasePrimaryIndex().String())
+		fedServerCount := im.FedServerCount()
+		if len(foundSigs) < fedServerCount/2 {
+			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v - %v vs %v", aBlock.DatabasePrimaryIndex().String(), len(foundSigs), fedServerCount)
 		}
 	}
 	return nil

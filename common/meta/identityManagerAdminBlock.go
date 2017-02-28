@@ -60,8 +60,18 @@ func (im *IdentityManager) ApplyIncreaseServerCount(entry interfaces.IABEntry) e
 }
 
 func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) error {
+	//fmt.Printf("ApplyAddFederatedServer - %v\n", entry.String())
 	e := entry.(*adminBlock.AddFederatedServer)
-	auth := new(Authority)
+
+	auth := im.GetAuthority(e.IdentityChainID)
+	/*
+		if auth != nil {
+			return fmt.Errorf("Authority %v already exists!", e.IdentityChainID.String())
+		}
+	*/
+	if auth == nil {
+		auth = new(Authority)
+	}
 
 	auth.Status = constants.IDENTITY_FEDERATED_SERVER
 	auth.AuthorityChainID = e.IdentityChainID
@@ -71,8 +81,20 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) er
 }
 
 func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error {
+	//fmt.Printf("ApplyAddAuditServer - %v\n", entry.String())
 	e := entry.(*adminBlock.AddAuditServer)
-	auth := new(Authority)
+
+	auth := im.GetAuthority(e.IdentityChainID)
+	/*
+		if auth != nil {
+			return fmt.Errorf("Authority %v already exists!", e.IdentityChainID.String())
+		}
+	*/
+	if auth == nil {
+		auth = new(Authority)
+	}
+
+	auth = new(Authority)
 
 	auth.Status = constants.IDENTITY_AUDIT_SERVER
 	auth.AuthorityChainID = e.IdentityChainID
@@ -83,19 +105,22 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error 
 }
 
 func (im *IdentityManager) ApplyRemoveFederatedServer(entry interfaces.IABEntry) error {
+	//fmt.Printf("ApplyRemoveFederatedServer - %v\n", entry.String())
 	e := entry.(*adminBlock.RemoveFederatedServer)
 	im.RemoveAuthority(e.IdentityChainID)
 	return nil
 }
 
 func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IABEntry) error {
+	fmt.Printf("ApplyAddFederatedServerSigningKey - %v\n", entry.String())
 	e := entry.(*adminBlock.AddFederatedServerSigningKey)
 
 	auth := im.GetAuthority(e.IdentityChainID)
 	if auth == nil {
 		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
 	}
-	auth.SigningKey = auth.SigningKey
+
+	auth.SigningKey = e.PublicKey
 
 	im.SetAuthority(e.IdentityChainID, auth)
 	return nil
