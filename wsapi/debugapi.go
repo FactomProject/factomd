@@ -115,6 +115,9 @@ func HandleDebugRequest(
 	case "process-list":
 		resp, jsonError = HandleProcessList(state, params)
 		break
+	case "reload-configuration":
+		resp, jsonError = HandleReloadConfig(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -365,6 +368,19 @@ func HandleProcessList(
 	r := new(ret)
 	r.ProcessList = state.GetLeaderPL()
 	return r, nil
+}
+
+func HandleReloadConfig(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	// LoacConfig with "" strings should load the default location
+	state.LoadConfig("", "")
+	
+	return state.GetCfg(), nil
 }
 
 type SetDelayRequest struct {
