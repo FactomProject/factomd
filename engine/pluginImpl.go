@@ -132,12 +132,6 @@ func (IManagerPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, e
 *										**
 ******************************************/
 
-type ConsulManager interface {
-	SendIntoConsul(blockHeight uint32, minuteNum int, msg interfaces.IMsg) error
-	GetMinuteData(blockHeight uint32, minuteNum int) [][]byte /* []interfaces.IMsg*/
-	GetBlockData(blockHeight uint32) [][]byte                 /* []interfaces.IMsg*/
-}
-
 // Here is an implementation that talks over RPC
 type IConsulPluginRPC struct{ client *rpc.Client }
 
@@ -203,22 +197,22 @@ func (g *IConsulPluginRPC) GetBlockData(blockHeight uint32) [][]byte {
 
 // Here is the RPC server that IConsulPluginRPC talks to, conforming to
 // the requirements of net/rpc
-type IIConsulPluginRPCCServer struct {
+type IConsulPluginRPCServer struct {
 	// This is the real implementation
 	Impl interfaces.IConsulManager
 }
 
-func (s *IIConsulPluginRPCCServer) SendIntoConsul(args *SendIntoConsulArgs, resp *error) error {
+func (s *IConsulPluginRPCServer) SendIntoConsul(args *SendIntoConsulArgs, resp *error) error {
 	*resp = s.Impl.SendIntoConsul(args.BlockHeight, args.MinuteNum, args.Msg)
 	return *resp
 }
 
-func (s *IIConsulPluginRPCCServer) GetMinuteData(args *GetMinuteData, resp *[][]byte) error {
+func (s *IConsulPluginRPCServer) GetMinuteData(args *GetMinuteData, resp *[][]byte) error {
 	*resp = s.Impl.GetMinuteData(args.BlockHeight, args.MinuteNum)
 	return nil
 }
 
-func (s *IIConsulPluginRPCCServer) GetBlockData(blockheight uint32, resp *[][]byte) error {
+func (s *IConsulPluginRPCServer) GetBlockData(blockheight uint32, resp *[][]byte) error {
 	*resp = s.Impl.GetBlockData(blockheight)
 	return nil
 }
@@ -229,7 +223,7 @@ type IConsulPlugin struct {
 }
 
 func (p *IConsulPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
-	return &IIConsulPluginRPCCServer{Impl: p.Impl}, nil
+	return &IConsulPluginRPCServer{Impl: p.Impl}, nil
 }
 
 func (IConsulPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
