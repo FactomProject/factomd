@@ -1734,6 +1734,12 @@ func (s *State) SetFaultWait(wait int) {
 
 //var _ IState = (*State)(nil)
 
+// GetLeaderPL returns the leader process list from the state. this method is
+// for debugging and should not be called in normal production code.
+func (s *State) GetLeaderPL() interfaces.IProcessList {
+	return s.LeaderPL
+}
+
 // Getting the cfg state for Factom doesn't force a read of the config file unless
 // it hasn't been read yet.
 func (s *State) GetCfg() interfaces.IFactomConfig {

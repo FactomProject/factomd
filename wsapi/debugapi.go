@@ -109,6 +109,9 @@ func HandleDebugRequest(
 	case "predictive-fer":
 		resp, jsonError = HandlePredictiveFER(state, params)
 		break
+	case "process-list":
+		resp, jsonError = HandleProcessList(state, params)
+		break
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -327,6 +330,21 @@ func HandlePredictiveFER(
 	}
 	r := new(ret)
 	r.PredictiveFER = state.GetPredictiveFER()
+	return r, nil
+}
+
+func HandleProcessList(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		ProcessList interfaces.IProcessList
+	}
+	r := new(ret)
+	r.ProcessList = state.GetLeaderPL()
 	return r, nil
 }
 
