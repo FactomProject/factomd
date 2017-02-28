@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-plugin"
 )
 
@@ -27,30 +29,49 @@ var _ = ioutil.Discard
 var pluginMap = map[string]plugin.Plugin{
 	// Plugin to manage dbstates
 	"manager": &IManagerPlugin{},
+	"consul":  &IConsulPlugin{},
 }
 
-func LaunchConsulPlugin() (*consulapi.Client, string) {
-	config := consulapi.DefaultConfig()
-	consul, err := consulapi.NewClient(config)
-	if err != nil {
-		panic(err)
-	}
-	session := consul.Session()
-	sessionID, _, err := session.Create(nil, nil)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Consul Session ID:", sessionID)
-	kv := consul.KV()
-	kvPairList, _, err := kv.List("block", nil)
-	if err == nil && kvPairList != nil {
-		fmt.Println("Full Consul List:")
-		for _, kvPair := range kvPairList {
-			fmt.Println(kvPair.Key, ":", string(kvPair.Value))
-		}
+func LaunchConsulPlugin(path string) (interfaces.IConsulManager, error) {
+	fmt.Println("Fake_Host running...")
+	// So we don't get debug logs. Comment this out if you want to keep plugin
+	// logs
+	log.SetOutput(ioutil.Discard)
+
+	var handshakeConfig = plugin.HandshakeConfig{
+		ProtocolVersion:  1,
+		MagicCookieKey:   "Consul_Manager",
+		MagicCookieValue: "factom_consul",
 	}
 
-	return consul, sessionID
+	// We're a host! Start by launching the plugin process.
+	client := plugin.NewClient(&plugin.ClientConfig{
+		HandshakeConfig: handshakeConfig,
+		Plugins:         pluginMap,
+		Cmd:             exec.Command("consul-manager", "plugin"),
+	})
+
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		client.Kill()
+	}()
+
+	// Connect via RPC
+	rpcClient, err := client.Client()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Request the plugin
+	raw, err := rpcClient.Dispense("consul")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	consuleManager := raw.(interfaces.IConsulManager)
+
+	return consuleManager, nil
 }
 
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that

@@ -29,7 +29,6 @@ import (
 	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	consulapi "github.com/hashicorp/consul/api"
 )
 
 var _ = fmt.Print
@@ -322,8 +321,7 @@ type State struct {
 	// If this is true, outbound messages will be sent out
 	// via Consul (as well as sent out over the p2p network normally)
 	useConsul     bool
-	ConsulClient  *consulapi.Client
-	ConsulSession string
+	ConsulManager interfaces.IConsulManager
 }
 
 type MissingEntryBlock struct {
@@ -1405,11 +1403,10 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 
 func (s *State) SendIntoConsul(msg interfaces.IMsg) {
 	fmt.Println("SENDINTOCONSUL:", msg.GetMsgHash().String(), ":", msg.String())
-	kv := s.ConsulClient.KV()
-	fullKey := fmt.Sprintf("block/%d/minute/%d/%s", s.GetDBHeightComplete(), s.GetCurrentMinute(), msg.GetMsgHash().String())
-	fmt.Println(fullKey)
-	d := &consulapi.KVPair{Key: fullKey, Value: []byte(msg.String()), Session: s.ConsulSession}
-	kv.Acquire(d, nil)
+	msgBytes, err := msg.MarshalBinary()
+	if err == nil {
+		s.ConsulManager.SendIntoConsul(s.GetDBHeightComplete(), s.GetCurrentMinute(), msgBytes)
+	}
 }
 
 func (s *State) IncFactoidTrans() {
