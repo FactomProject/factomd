@@ -79,7 +79,7 @@ func NetStart(s *state.State) {
 	// Plugins
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	tormanagerPath := flag.String("plugin", "", "Input the path to the factomd-torrent binary")
-	consulPtr := flag.Bool("consul", true, "If true, use consul to track current-block messages.")
+	useConsul := flag.Bool("consul", true, "If true, use consul to track current-block messages.")
 	consulManagerPath := flag.String("consul-plugin", "", "Input the path to the consul-manager binary")
 
 	flag.Parse()
@@ -99,7 +99,6 @@ func NetStart(s *state.State) {
 	portOverride := *portOverridePtr
 	peers := *peersPtr
 	networkName := *networkNamePtr
-	useConsul := *consulPtr
 	networkPortOverride := *networkPortOverridePtr
 	ControlPanelPortOverride := *ControlPanelPortOverridePtr
 	logPort = *logportPtr
@@ -340,10 +339,10 @@ func NetStart(s *state.State) {
 		if 0 < networkPortOverride {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
-		if useConsul {
+		if *useConsul {
 			consulManager, err := LaunchConsulPlugin(*consulManagerPath)
 			if err != nil {
-				panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
+				panic("Encountered an error while trying to use Consul plugin: " + err.Error())
 			}
 			fnodes[0].State.ConsulManager = consulManager
 			fnodes[0].State.SetUseConsul(true)

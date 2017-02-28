@@ -33,7 +33,6 @@ var pluginMap = map[string]plugin.Plugin{
 }
 
 func LaunchConsulPlugin(path string) (interfaces.IConsulManager, error) {
-	fmt.Println("Fake_Host running...")
 	// So we don't get debug logs. Comment this out if you want to keep plugin
 	// logs
 	log.SetOutput(ioutil.Discard)
