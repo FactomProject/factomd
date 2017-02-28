@@ -119,14 +119,9 @@ func (m *DirectoryBlockSignature) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	if m.DBHeight < state.GetLLeaderHeight() {
-		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbht: %v %s", state.GetLLeaderHeight(), m.String()))
+	if m.DBHeight < state.GetHighestSavedBlk() {
+		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s", m.DBHeight, state.GetHighestSavedBlk(), m.String()))
 		return -1
-	}
-
-	if m.DBHeight > state.GetLLeaderHeight() {
-		//state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Wait dbht: %v %s", state.GetLLeaderHeight(), m.String()))
-		return 0
 	}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)

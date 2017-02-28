@@ -1446,6 +1446,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbstate := s.GetDBState(dbheight - 1)
 
 		if dbstate == nil {
+			s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
 			return false
 		}
 

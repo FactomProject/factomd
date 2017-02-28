@@ -390,20 +390,20 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 
 	ss.EOMsyncing = state.EOMsyncing
 
-	state.EOM = ss.EOM
+	state.EOM = false
 	state.EOMLimit = ss.EOMLimit
 	state.EOMProcessed = ss.EOMProcessed
 	state.EOMDone = ss.EOMDone
 	state.EOMMinute = ss.EOMMinute
 	state.EOMSys = ss.EOMSys
-	state.DBSig = ss.DBSig
+	state.DBSig = false
 	state.DBSigLimit = ss.DBSigLimit
 	state.DBSigProcessed = ss.DBSigProcessed
 	state.DBSigDone = ss.DBSigDone
 	state.DBSigSys = ss.DBSigSys
-	state.Saving = ss.Saving
-	state.Syncing = ss.Syncing
-
+	state.Saving = true
+	state.Syncing = false
+	state.HighestKnown = ss.DBHeight + 2
 	state.Holding = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Holding {
 		state.Holding[k] = ss.Holding[k]

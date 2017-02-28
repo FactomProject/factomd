@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"math"
 	"time"
 )
@@ -77,6 +78,7 @@ func (s *State) MakeMissingEntryRequests() {
 				} else {
 					found++
 					newfound++
+					delete(InPlay, v.entryhash.Fixed())
 				}
 			}
 			// Let the outside world know which entries we are looking for.
@@ -89,7 +91,14 @@ func (s *State) MakeMissingEntryRequests() {
 		for k := range InPlay {
 			if InPlay[k].dbheight < s.EntryDBHeightComplete {
 				delete(InPlay, k)
+			} else {
+				h := primitives.NewHash(k[:])
+				e, _ := s.DB.FetchEntry(h)
+				if e != nil {
+					delete(InPlay, k)
+				}
 			}
+
 		}
 
 		// Ask for missing entries.
@@ -115,7 +124,9 @@ func (s *State) MakeMissingEntryRequests() {
 				min = 0
 			}
 
-			s.EntryDBHeightComplete = uint32(min)
+			if min > 0 {
+				s.EntryDBHeightComplete = uint32(min - 1)
+			}
 
 			foundstr := fmt.Sprint(newfound, "/", found)
 			newfound = 0

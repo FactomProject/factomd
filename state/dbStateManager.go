@@ -187,7 +187,7 @@ func (ds *DBState) String() string {
 func (list *DBStateList) GetHighestCompletedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
-		if dbstate != nil && dbstate.Locked {
+		if (dbstate != nil && dbstate.Locked) || dbstate.Saved {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
