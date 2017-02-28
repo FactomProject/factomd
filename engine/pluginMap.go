@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-plugin"
 )
@@ -55,7 +56,7 @@ func LaunchConsulPlugin() (*consulapi.Client, string) {
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that
 // can be interacted with like a usual interface. The client returned must be
 // killed before we exit
-func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg, sigKey *primitives.PrivateKey) (interfaces.IManagerController, error) {
+func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg, db *databaseOverlay.Overlay, sigKey *primitives.PrivateKey) (interfaces.IManagerController, error) {
 	//log.SetOutput(ioutil.Discard)
 
 	var managerHandshakeConfig = plugin.HandshakeConfig{
@@ -100,12 +101,12 @@ func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg,
 		manager.SetSigningKey(sigKey.Key[:32])
 	}
 
-	go manageDrain(inQueue, manager, stop)
+	go manageDrain(inQueue, manager, db, stop)
 
 	return manager, nil
 }
 
-func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController, quit chan int) {
+func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController, db *databaseOverlay.Overlay, quit chan int) {
 	for {
 		select {
 		case <-quit:
@@ -120,12 +121,17 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 					dbMsg := new(messages.DBStateMsg)
 					err := dbMsg.UnmarshalBinary(data)
 					if err != nil {
-						log.Printf("%x %t\n", data, (len(data) == 1 && data[0] == 0x00))
 						log.Println("Error unmarshaling dbstate from plugin: ", err)
 						continue
 					}
 
 					inQueue <- dbMsg
+
+					// Write entries into DB
+					for _, e := range dbMsg.Entries {
+						// db.InsertEntry(e)
+						var _ = e
+					}
 				}
 			}
 			time.Sleep(CHECK_BUFFER)

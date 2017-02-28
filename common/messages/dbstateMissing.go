@@ -91,7 +91,7 @@ func (m *DBStateMissing) LeaderExecute(state interfaces.IState) {
 }
 
 // Only send the same block again after 15 seconds.
-func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
+func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen int) {
 	send := true
 
 	now := state.GetTimestamp()
@@ -99,7 +99,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 	var keeps []*interfaces.DBStateSent
 
 	for _, v := range sents {
-		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 1 {
+		if now.GetTimeSeconds()-v.Sent.GetTimeSeconds() < 10 {
 			if v.DBHeight == dbheight {
 				send = false
 			}
@@ -109,6 +109,11 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 	if send {
 		msg, err := state.LoadDBState(dbheight)
 		if msg != nil && err == nil {
+			b, err := msg.MarshalBinary()
+			if err != nil {
+				return
+			}
+			msglen = len(b)
 			msg.SetOrigin(m.GetOrigin())
 			msg.SetNetworkOrigin(m.GetNetworkOrigin())
 			msg.SetNoResend(false)
@@ -121,6 +126,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) {
 		}
 		state.SetDBStatesSent(keeps)
 	}
+	return
 }
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
@@ -135,8 +141,9 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if end-start > 200 {
 		end = start + 200
 	}
-	for dbs := start; dbs <= end; dbs++ {
-		m.send(dbs, state)
+	sent := 0
+	for dbs := start; dbs <= end && sent < 1024*1024; dbs++ {
+		sent += m.send(dbs, state)
 	}
 
 	return
