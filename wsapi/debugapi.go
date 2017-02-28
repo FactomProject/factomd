@@ -76,6 +76,9 @@ func HandleDebugRequest(
 	case "audit-servers":
 		resp, jsonError = HandleAuditServers(state, params)
 		break
+	case "authorities":
+		resp, jsonError = HandleAuthorities(state, params)
+		break
 	case "configuration":
 		resp, jsonError = HandleConfig(state, params)
 		break
@@ -141,6 +144,22 @@ func HandleAuditServers(
 	r := new(ret)
 
 	r.AuditServers = state.GetAuditServers(state.GetLeaderHeight())
+	return r, nil
+}
+
+func HandleAuthorities(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		Authorities []interfaces.IAuthority
+	}
+	r := new(ret)
+
+	r.Authorities = state.GetAuthorities()
 	return r, nil
 }
 

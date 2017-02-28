@@ -257,6 +257,7 @@ type IState interface {
 
 	AddAuthorityDelta(changeString string)
 
+	GetAuthorities() []IAuthority
 	GetLeaderPL() IProcessList
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32

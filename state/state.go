@@ -1734,6 +1734,11 @@ func (s *State) SetFaultWait(wait int) {
 
 //var _ IState = (*State)(nil)
 
+// GetAuthoritites will return a list of the network athoritites
+func (s *State) GetAuthorities() []interfaces.IAuthority {
+	return s.Authoritites
+}
+
 // GetLeaderPL returns the leader process list from the state. this method is
 // for debugging and should not be called in normal production code.
 func (s *State) GetLeaderPL() interfaces.IProcessList {
