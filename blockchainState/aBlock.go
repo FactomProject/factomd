@@ -36,7 +36,7 @@ func (bs *BlockchainState) ProcessABlock(aBlock interfaces.IAdminBlock, dBlock i
 	}
 
 	for _, v := range aBlock.GetABEntries() {
-		err = bs.ProcessABlockEntry(v)
+		err = bs.IdentityManager.ProcessABlockEntry(v)
 		if err != nil {
 			return err
 		}

@@ -10,88 +10,80 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry) error {
 	switch entry.Type() {
 	case constants.TYPE_REVEAL_MATRYOSHKA:
-		return im.RevealMatryoshkaHash(entry)
+		return im.ApplyRevealMatryoshkaHash(entry)
 	case constants.TYPE_ADD_MATRYOSHKA:
-		return im.AddReplaceMatryoshkaHash(entry)
+		return im.ApplyAddReplaceMatryoshkaHash(entry)
 	case constants.TYPE_ADD_SERVER_COUNT:
-		return im.IncreaseServerCount(entry)
+		return im.ApplyIncreaseServerCount(entry)
 	case constants.TYPE_ADD_FED_SERVER:
-		return im.AddFederatedServer(entry)
+		return im.ApplyAddFederatedServer(entry)
 	case constants.TYPE_ADD_AUDIT_SERVER:
-		//return im.AddAuditServer(entry)
+		//return im.ApplyAddAuditServer(entry)
 	case constants.TYPE_REMOVE_FED_SERVER:
-		//return im.RemoveFederatedServer(entry)
+		//return im.ApplyRemoveFederatedServer(entry)
 	case constants.TYPE_ADD_FED_SERVER_KEY:
-		//return im.AddFederatedServerSigningKey(entry)
+		//return im.ApplyAddFederatedServerSigningKey(entry)
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
-		//return im.AddFederatedServerBitcoinAnchorKey(entry)
+		//return im.ApplyAddFederatedServerBitcoinAnchorKey(entry)
 	}
 	return nil
 }
 
-func (im *IdentityManager) RevealMatryoshkaHash(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyRevealMatryoshkaHash(entry interfaces.IABEntry) error {
 	//e:=entry.(*adminBlock.RevealMatryoshkaHash)
 	// Does nothing for authority right now
 	return nil
 }
 
-func (im *IdentityManager) AddReplaceMatryoshkaHash(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyAddReplaceMatryoshkaHash(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddReplaceMatryoshkaHash)
 
-	auth := im.IdentityManager.GetAuthority(e.IdentityChainID)
+	auth := im.GetAuthority(e.IdentityChainID)
 	if auth == nil {
 		return fmt.Errorf("Authority %v not found", e.IdentityChainID.String())
 	}
 	auth.MatryoshkaHash = e.MHash
-	im.IdentityManager.SetAuthority(e.IdentityChainID, auth)
+	im.SetAuthority(e.IdentityChainID, auth)
 
 	return nil
 }
 
-func (im *IdentityManager) IncreaseServerCount(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyIncreaseServerCount(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.IncreaseServerCount)
-	im.IdentityManager.AuthorityServerCount = im.IdentityManager.AuthorityServerCount + int(e.Amount)
+	im.AuthorityServerCount = im.AuthorityServerCount + int(e.Amount)
 	return nil
 }
 
-func (im *IdentityManager) AddFederatedServer(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServer)
-	return im.IdentityManager.ApplyAddFederatedServer(e)
-	/*
-		err := im.AddIdentityFromChainID(e.IdentityChainID)
-		if err != nil {
-			//fmt.Println("Error when Making Identity,", err)
-		}
-		im.Authorities[e.IdentityChainID.String()].Status = constants.IDENTITY_FEDERATED_SERVER
-		// check Identity status
-		im.UpdateIdentityStatus(e.IdentityChainID, constants.IDENTITY_FEDERATED_SERVER)
-		return nil
-	*/
+	auth := new(Authority)
+
+	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+	auth.AuthorityChainID = e.IdentityChainID
+
+	im.SetAuthority(e.IdentityChainID, auth)
+	return nil
 }
 
-func (im *IdentityManager) AddAuditServer(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddAuditServer)
-	return im.IdentityManager.ApplyAddAuditServer(e)
-	/*
-		err := im.AddIdentityFromChainID(e.IdentityChainID)
-		if err != nil {
-			//fmt.Println("Error when Making Identity,", err)
-		}
-		im.Authorities[e.IdentityChainID.String()].Status = constants.IDENTITY_AUDIT_SERVER
-		// check Identity status
-		im.UpdateIdentityStatus(e.IdentityChainID, constants.IDENTITY_AUDIT_SERVER)
-		return nil
-	*/
+	auth := new(Authority)
+
+	auth.Status = constants.IDENTITY_AUDIT_SERVER
+	auth.AuthorityChainID = e.IdentityChainID
+
+	im.SetAuthority(e.IdentityChainID, auth)
+
+	return nil
 }
 
 /*
-func (im *IdentityManager) RemoveFederatedServer(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyRemoveFederatedServer(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.RemoveFederatedServer)
 
 	AuthorityIndex = im.isAuthorityChain(e.IdentityChainID)
@@ -110,7 +102,7 @@ func (im *IdentityManager) RemoveFederatedServer(entry interfaces.IABEntry) erro
 	}
 	return nil
 }
-func (im *IdentityManager) AddFederatedServerSigningKey(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServerSigningKey)
 
 	keyBytes, err := e.PublicKey.MarshalBinary()
@@ -125,7 +117,7 @@ func (im *IdentityManager) AddFederatedServerSigningKey(entry interfaces.IABEntr
 	addServerSigningKey(e.IdentityChainID, key, e.DBHeight, am)
 	return nil
 }
-func (im *IdentityManager) AddFederatedServerBitcoinAnchorKey(entry interfaces.IABEntry) error {
+func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServerBitcoinAnchorKey)
 
 	pubKey, err := e.ECDSAPublicKey.MarshalBinary()
