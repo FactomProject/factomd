@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+var lookingFor = "8888884a0acbf1a23e3291b99681b80a91ca51914d64e39de65645868e0b4714"
+
 func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry) error {
 	switch entry.Type() {
 	case constants.TYPE_REVEAL_MATRYOSHKA:
@@ -62,6 +64,9 @@ func (im *IdentityManager) ApplyIncreaseServerCount(entry interfaces.IABEntry) e
 func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) error {
 	//fmt.Printf("ApplyAddFederatedServer - %v\n", entry.String())
 	e := entry.(*adminBlock.AddFederatedServer)
+	if e.IdentityChainID.String() == lookingFor {
+		fmt.Printf("ApplyAddFederatedServer - %v\n", entry.String())
+	}
 
 	auth := im.GetAuthority(e.IdentityChainID)
 	/*
@@ -70,6 +75,7 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) er
 		}
 	*/
 	if auth == nil {
+		fmt.Printf("Authority %v is nil\n", e.IdentityChainID)
 		auth = new(Authority)
 	}
 
@@ -83,6 +89,9 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) er
 func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error {
 	//fmt.Printf("ApplyAddAuditServer - %v\n", entry.String())
 	e := entry.(*adminBlock.AddAuditServer)
+	if e.IdentityChainID.String() == lookingFor {
+		fmt.Printf("ApplyAddAuditServer - %v\n", entry.String())
+	}
 
 	auth := im.GetAuthority(e.IdentityChainID)
 	/*
@@ -93,8 +102,6 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error 
 	if auth == nil {
 		auth = new(Authority)
 	}
-
-	auth = new(Authority)
 
 	auth.Status = constants.IDENTITY_AUDIT_SERVER
 	auth.AuthorityChainID = e.IdentityChainID
@@ -107,20 +114,34 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error 
 func (im *IdentityManager) ApplyRemoveFederatedServer(entry interfaces.IABEntry) error {
 	//fmt.Printf("ApplyRemoveFederatedServer - %v\n", entry.String())
 	e := entry.(*adminBlock.RemoveFederatedServer)
+	if e.IdentityChainID.String() == lookingFor {
+		fmt.Printf("ApplyRemoveFederatedServer - %v\n", entry.String())
+	}
 	im.RemoveAuthority(e.IdentityChainID)
 	return nil
 }
 
 func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IABEntry) error {
-	fmt.Printf("ApplyAddFederatedServerSigningKey - %v\n", entry.String())
+	//fmt.Printf("ApplyAddFederatedServerSigningKey - %v\n", entry.String())
 	e := entry.(*adminBlock.AddFederatedServerSigningKey)
+	if e.IdentityChainID.String() == lookingFor {
+		fmt.Printf("ApplyAddFederatedServerSigningKey - %v\n", entry.String())
+	}
 
 	auth := im.GetAuthority(e.IdentityChainID)
 	if auth == nil {
 		return fmt.Errorf("Authority %v not found!", e.IdentityChainID.String())
 	}
 
-	auth.SigningKey = e.PublicKey
+	b, err := e.PublicKey.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	err = auth.SigningKey.UnmarshalBinary(b)
+	if err != nil {
+		return err
+	}
+	//fmt.Printf("Applied key %v to authority %v\n", auth.SigningKey.String(), e.IdentityChainID.String())
 
 	im.SetAuthority(e.IdentityChainID, auth)
 	return nil
@@ -128,6 +149,9 @@ func (im *IdentityManager) ApplyAddFederatedServerSigningKey(entry interfaces.IA
 
 func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfaces.IABEntry) error {
 	e := entry.(*adminBlock.AddFederatedServerBitcoinAnchorKey)
+	if e.IdentityChainID.String() == lookingFor {
+		fmt.Printf("AddFederatedServerBitcoinAnchorKey - %v\n", entry.String())
+	}
 
 	auth := im.GetAuthority(e.IdentityChainID)
 	if auth == nil {

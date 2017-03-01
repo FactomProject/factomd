@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	//"runtime/debug"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -118,6 +119,7 @@ func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authorit
 	defer im.Mutex.Unlock()
 	im.Authorities[chainID.String()] = auth
 	//fmt.Printf("SetAuth - %v - %v\n", chainID.String(), auth)
+	//fmt.Printf("%s\n", debug.Stack())
 }
 
 func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
@@ -139,6 +141,7 @@ func (im *IdentityManager) GetAuthority(chainID interfaces.IHash) *Authority {
 	return im.Authorities[chainID.String()]
 }
 
+/*
 func (im *IdentityManager) CreateAuthority(chainID interfaces.IHash) {
 	newAuth := new(Authority)
 	newAuth.AuthorityChainID = chainID
@@ -153,6 +156,7 @@ func (im *IdentityManager) CreateAuthority(chainID interfaces.IHash) {
 
 	im.SetAuthority(chainID, newAuth)
 }
+*/
 
 type OldEntry struct {
 	EntryBinary     []byte
@@ -218,7 +222,6 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 			if foundSigs[dbs.IdentityAdminChainID.String()] != "" {
 				return fmt.Errorf("Found duplicate entry for ChainID %v", dbs.IdentityAdminChainID.String())
 			}
-			foundSigs[dbs.IdentityAdminChainID.String()] = "ok"
 			pub := dbs.PrevDBSig.Pub
 			signingKey := ""
 
@@ -237,7 +240,9 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 			}
 
 			if dbs.PrevDBSig.Verify(prevHeader) == false {
-				return fmt.Errorf("Invalid signature in DBSignatureEntry %v", v.Hash().String())
+				//return fmt.Errorf("Invalid signature in DBSignatureEntry %v", v.Hash().String())
+			} else {
+				foundSigs[dbs.IdentityAdminChainID.String()] = "ok"
 			}
 		}
 	}
