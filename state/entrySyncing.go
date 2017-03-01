@@ -145,8 +145,8 @@ func (s *State) MakeMissingEntryRequests() {
 				mmin,
 				max,
 				maxcnt,
-				s.EntryDBHeightComplete,
-				s.GetHighestSavedBlk())
+				s.GetHighestSavedBlk(),
+			s.EntryDBHeightComplete)
 		}
 
 		var loopList []MissingEntry
@@ -169,7 +169,7 @@ func (s *State) MakeMissingEntryRequests() {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
 
-				time.Sleep(5 * time.Millisecond)
+				time.Sleep(time.Duration(len(s.inMsgQueue)/5) * time.Millisecond)
 
 				if entryTrack == nil {
 					entryTrack = new(EntryTrack)
@@ -184,12 +184,19 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
+		time.Sleep(time.Duration(len(s.inMsgQueue)*2) * time.Millisecond)
+
+		if len(s.inMsgQueue) > 5000 {
+			for len(s.inMsgQueue) > 10 {
+				time.Sleep(1 * time.Second)
+			}
+		}
+
 		if len(InPlay) == 0 {
 			time.Sleep(3 * time.Second)
 		}
 		update()
 		feedback()
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -312,10 +319,12 @@ func (s *State) SyncEntries() {
 					}
 				}
 			}
-			if alldone {
+			s.MissingEntryMutex.Lock()
+			if alldone && len(s.MissingEntries) == 0 {
 				s.EntryDBHeightComplete = scan
 			}
 			scan++
+			s.MissingEntryMutex.Unlock()
 		}
 
 		s.MissingEntryMutex.Lock()
@@ -324,10 +333,17 @@ func (s *State) SyncEntries() {
 		}
 		s.MissingEntryMutex.Unlock()
 
-		if scan == s.GetHighestSavedBlk() {
+		time.Sleep(time.Duration(len(s.inMsgQueue)*2) * time.Millisecond)
+
+		if len(s.inMsgQueue) > 5000 {
+			for len(s.inMsgQueue) > 10 {
+				time.Sleep(1 * time.Second)
+			}
+		}
+
+		if scan >= s.GetHighestSavedBlk() {
 			time.Sleep(5 * time.Second)
 		}
-		time.Sleep(5 * time.Second)
 
 	}
 }
@@ -342,6 +358,6 @@ func (s *State) CatchupEBlocks() {
 		s.MissingEntryMutex.Lock()
 		s.syncEntryBlocks()
 		s.MissingEntryMutex.Unlock()
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(len(s.inMsgQueue)/100) * time.Second)
 	}
 }
