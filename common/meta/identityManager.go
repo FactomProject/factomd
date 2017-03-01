@@ -26,8 +26,19 @@ type IdentityManagerWithoutMutex struct {
 	Authorities          map[string]*Authority
 	Identities           map[string]*Identity
 	AuthorityServerCount int
+	SkeletonKey          string
 
 	OldEntries []*OldEntry
+}
+
+func (im *IdentityManager) SetSkeletonKey(key string) {
+	im.SkeletonKey = key
+}
+
+func (im *IdentityManager) SetSkeletonKeyMainNet() {
+	//Skeleton key:
+	//"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
+	im.SetSkeletonKey("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
 }
 
 func (im *IdentityManager) FedServerCount() int {
@@ -53,9 +64,6 @@ func (im *IdentityManager) AuditServerCount() int {
 	}
 	return answer
 }
-
-//Skeleton key:
-//"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 
 func (im *IdentityManager) GobDecode(data []byte) error {
 	//Circumventing Gob's "gob: type sync.RWMutex has no exported fields"
@@ -123,11 +131,14 @@ func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
 	im.Init()
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
-	_, ok := im.Authorities[chainID.String()]
-	if ok == false {
+
+	auth := im.GetAuthority(chainID)
+	if auth == nil {
 		return false
 	}
-	delete(im.Authorities, chainID.String())
+	auth.Status = constants.IDENTITY_UNASSIGNED
+	im.SetAuthority(chainID, auth)
+
 	return true
 }
 
@@ -206,7 +217,7 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 
 			if dbs.IdentityAdminChainID.String() == "0000000000000000000000000000000000000000000000000000000000000000" {
 				//Skeleton key
-				signingKey = "0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
+				signingKey = im.SkeletonKey
 				skeletonKeyUsed = true
 			} else {
 				auth := im.GetAuthority(dbs.IdentityAdminChainID)

@@ -50,6 +50,7 @@ type BlockchainState struct {
 func NewBSMainNet() *BlockchainState {
 	bs := new(BlockchainState)
 	bs.NetworkID = constants.MAIN_NETWORK_ID
+	bs.IdentityManager.SetSkeletonKeyMainNet()
 	bs.Init()
 	return bs
 }
