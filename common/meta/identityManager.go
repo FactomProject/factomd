@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	//"runtime/debug"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -118,8 +117,6 @@ func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authorit
 	im.Mutex.Lock()
 	defer im.Mutex.Unlock()
 	im.Authorities[chainID.String()] = auth
-	//fmt.Printf("SetAuth - %v - %v\n", chainID.String(), auth)
-	//fmt.Printf("%s\n", debug.Stack())
 }
 
 func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
@@ -140,23 +137,6 @@ func (im *IdentityManager) GetAuthority(chainID interfaces.IHash) *Authority {
 	defer im.Mutex.RUnlock()
 	return im.Authorities[chainID.String()]
 }
-
-/*
-func (im *IdentityManager) CreateAuthority(chainID interfaces.IHash) {
-	newAuth := new(Authority)
-	newAuth.AuthorityChainID = chainID
-
-	identity := im.GetIdentity(chainID)
-	if identity != nil {
-		if identity.ManagementChainID != nil {
-			newAuth.ManagementChainID = identity.ManagementChainID
-		}
-	}
-	newAuth.Status = constants.IDENTITY_PENDING_FULL
-
-	im.SetAuthority(chainID, newAuth)
-}
-*/
 
 type OldEntry struct {
 	EntryBinary     []byte
@@ -195,7 +175,6 @@ func (im *IdentityManager) ProcessOldEntries() error {
 				allErrors = false
 				im.OldEntries = append(im.OldEntries[:i], im.OldEntries[i+1:]...)
 				i--
-				//fmt.Printf("\n\nRemoving entry!\n\n")
 			}
 		}
 		//loop over and over until no entries have been removed in a whole loop
@@ -231,7 +210,6 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 				skeletonKeyUsed = true
 			} else {
 				auth := im.GetAuthority(dbs.IdentityAdminChainID)
-				//fmt.Printf("Auth - %v\n", auth)
 				signingKey = auth.SigningKey.String()
 			}
 
