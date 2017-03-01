@@ -152,6 +152,16 @@ func SimControl(listenTo int) {
 					wsapi.SetState(fnodes[wsapiNode].State)
 					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
 				}
+			case 'W' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					break
+				}
+				fnodes[listenTo].State.WaitForEntries = !fnodes[listenTo].State.WaitForEntries
+				if fnodes[listenTo].State.WaitForEntries {
+					os.Stderr.WriteString("Wait for all Entries\n")
+				} else {
+					os.Stderr.WriteString("Don't wait for all Entries\n")
+				}
 			case 's' == b[0]:
 
 				if len(b) > 1 {

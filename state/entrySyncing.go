@@ -146,7 +146,7 @@ func (s *State) MakeMissingEntryRequests() {
 				max,
 				maxcnt,
 				s.GetHighestSavedBlk(),
-			s.EntryDBHeightComplete)
+				s.EntryDBHeightComplete)
 		}
 
 		var loopList []MissingEntry

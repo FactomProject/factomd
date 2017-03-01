@@ -292,6 +292,9 @@ type State struct {
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries []MissingEntry
 
+	// Holds leaders and followers up until all missing entries are processed, if true
+	WaitForEntries bool
+
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
