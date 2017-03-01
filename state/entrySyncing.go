@@ -6,7 +6,6 @@ package state
 
 import (
 	"fmt"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"math"
@@ -311,12 +310,10 @@ func (s *State) SyncEntries() {
 							s.MissingEntryMutex.Unlock()
 						}
 					}
-					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-					s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
-					// If the save worked, then remove any commit that might be around.
-					if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
-						delete(s.Commits, entryhash.Fixed())
-					}
+					ueh := new(EntryUpdate)
+					ueh.Hash = entryhash
+					ueh.Timestamp = db.GetTimestamp()
+					s.UpdateEntryHash <- ueh
 				}
 			}
 			s.MissingEntryMutex.Lock()

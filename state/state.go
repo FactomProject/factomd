@@ -212,11 +212,12 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
-	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
+	UpdateEntryHash chan *EntryUpdate              // Channel for updating entry Hashes tracking (repeats and such)
+	resendHolding   interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
+	Holding         map[[32]byte]interfaces.IMsg   // Hold Messages
+	XReview         []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+	Acks            map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+	Commits         map[[32]byte][]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -315,6 +316,11 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+}
+
+type EntryUpdate struct {
+	Hash      interfaces.IHash
+	Timestamp interfaces.Timestamp
 }
 
 type MissingEntryBlock struct {
@@ -705,6 +711,7 @@ func (s *State) Init() {
 	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)       //Handles entry hashes and updating Commit maps.
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -1487,6 +1494,21 @@ func (s *State) UpdateState() (progress bool) {
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
+
+entryHashProcessing:
+	for {
+		select {
+		case e := <-s.UpdateEntryHash:
+			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
+			// If the save worked, then remove any commit that might be around.
+			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
+				delete(s.Commits, e.Hash.Fixed())
+			}
+		default:
+			break entryHashProcessing
+		}
+	}
 
 	return
 }
