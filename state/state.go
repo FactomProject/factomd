@@ -84,6 +84,7 @@ type State struct {
 	CustomNetworkID         []byte
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
+	ConsulAddress           string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []*Identity      // Identities of all servers in management chain
@@ -589,6 +590,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
+		s.ConsulAddress = cfg.App.ConsulAddress
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {

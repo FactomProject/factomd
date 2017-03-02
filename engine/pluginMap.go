@@ -32,10 +32,10 @@ var pluginMap = map[string]plugin.Plugin{
 	"consul":  &IConsulPlugin{},
 }
 
-func LaunchConsulPlugin(path string) (interfaces.IConsulManager, error) {
+func LaunchConsulPlugin(path string, addr string) (interfaces.IConsulManager, error) {
 	// So we don't get debug logs. Comment this out if you want to keep plugin
 	// logs
-	log.SetOutput(ioutil.Discard)
+	//log.SetOutput(ioutil.Discard)
 
 	var handshakeConfig = plugin.HandshakeConfig{
 		ProtocolVersion:  1,
@@ -47,7 +47,7 @@ func LaunchConsulPlugin(path string) (interfaces.IConsulManager, error) {
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: handshakeConfig,
 		Plugins:         pluginMap,
-		Cmd:             exec.Command("consul-manager", "plugin"),
+		Cmd:             exec.Command("consul-manager", "plugin", addr),
 	})
 
 	c := make(chan os.Signal, 2)

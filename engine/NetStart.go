@@ -340,7 +340,7 @@ func NetStart(s *state.State) {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
 		if *useConsul {
-			consulManager, err := LaunchConsulPlugin(*consulManagerPath)
+			consulManager, err := LaunchConsulPlugin(*consulManagerPath, fnodes[0].State.ConsulAddress)
 			if err != nil {
 				panic("Encountered an error while trying to use Consul plugin: " + err.Error())
 			}

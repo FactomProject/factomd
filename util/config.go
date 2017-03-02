@@ -58,6 +58,7 @@ type FactomdConfig struct {
 		FactomdTlsPublicCert    string
 		FactomdRpcUser          string
 		FactomdRpcPass          string
+		ConsulAddress           string
 
 		ChangeAcksHeight uint32
 	}
@@ -128,6 +129,7 @@ LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factompr
 LocalSpecialPeers    = ""
 CustomBootstrapIdentity     = 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
 CustomBootstrapKey          = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
+ConsulAddress				= 127.0.0.1:8500
 ; --------------- NodeMode: FULL | SERVER ----------------
 NodeMode                                = FULL
 LocalServerPrivKey                      = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
@@ -229,6 +231,7 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
 	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
+	out.WriteString(fmt.Sprintf("\n    ConsulAddress          %v", s.App.ConsulAddress))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
 
 	out.WriteString(fmt.Sprintf("\n  Log"))
