@@ -88,16 +88,11 @@ func (s *State) MakeMissingEntryRequests() {
 		update()
 
 		for k := range InPlay {
-			if InPlay[k].dbheight < s.EntryDBHeightComplete {
+			h := primitives.NewHash(k[:])
+			e, _ := s.DB.FetchEntry(h)
+			if e != nil {
 				delete(InPlay, k)
-			} else {
-				h := primitives.NewHash(k[:])
-				e, _ := s.DB.FetchEntry(h)
-				if e != nil {
-					delete(InPlay, k)
-				}
 			}
-
 		}
 
 		// Ask for missing entries.
@@ -106,11 +101,13 @@ func (s *State) MakeMissingEntryRequests() {
 		max := 0
 		maxcnt := 0
 		avg := 0
+		cnt := 0
 		feedback := func() {
 			min = int(math.MaxInt32)
 			max = 0
 			maxcnt = 0
 			sum := 0
+			cnt = 0
 			for _, v := range keep {
 				if min > int(v.dbheight) {
 					min = int(v.dbheight)
@@ -119,14 +116,20 @@ func (s *State) MakeMissingEntryRequests() {
 					max = int(v.dbheight)
 				}
 				et := InPlay[v.entryhash.Fixed()]
+
 				if et != nil && maxcnt < et.cnt {
 					maxcnt = et.cnt
 				}
-				sum += et.cnt
+
+				if et != nil && et.cnt > 0 {
+					cnt++
+					sum += et.cnt
+				}
 			}
 
-			if len(keep) > 0 {
-				avg = (1000 * sum) / len(keep)
+			avg = 0
+			if cnt > 0 {
+				avg = (1000 * sum) / cnt
 			}
 
 			if min != math.MaxInt32 && min > 0 {
@@ -139,13 +142,14 @@ func (s *State) MakeMissingEntryRequests() {
 			if mmin == math.MaxInt32 {
 				mmin = 0
 			}
-			fmt.Printf("***es Looking for: %s %d"+
-				" NewFound/Found: %s"+
-				" In Play: %d"+
+			fmt.Printf("***es %s #missing: %d"+
+				" NewFound/Found: %13s"+
+				" In Play: %6d"+
 				" Min Height: %d "+
 				" Max Height: %d "+
 				" Avg Send: %d.%03d"+
-				" Max Send: %d"+
+				" Sending: %d"+
+				" Max Send: %2d"+
 				" Highest Saved %d "+
 				" Entry complete %d\n",
 				s.FactomNodeName,
@@ -155,6 +159,7 @@ func (s *State) MakeMissingEntryRequests() {
 				mmin,
 				max,
 				avg/1000, avg%1000,
+				cnt,
 				maxcnt,
 				s.GetHighestSavedBlk(),
 				s.EntryDBHeightComplete)
@@ -174,34 +179,30 @@ func (s *State) MakeMissingEntryRequests() {
 				feedback()
 			}
 
-			entryTrack := InPlay[v.entryhash.Fixed()]
+			et := InPlay[v.entryhash.Fixed()]
 
-			if entryTrack == nil || now.Unix()-entryTrack.lastRequest.Unix() > 40 {
+			if et == nil {
+				et = new(EntryTrack)
+				et.dbheight = v.dbheight
+				InPlay[v.entryhash.Fixed()] = et
+			}
+
+			if et.cnt == 0 || now.Unix()-et.lastRequest.Unix() > 40 {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
-
 				time.Sleep(time.Duration(len(s.inMsgQueue)/5) * time.Millisecond)
-
-				if entryTrack == nil {
-					entryTrack = new(EntryTrack)
-					entryTrack.dbheight = v.dbheight
-					InPlay[v.entryhash.Fixed()] = entryTrack
-				}
-				entryTrack.lastRequest = now
-				entryTrack.cnt++
-				if entryTrack.cnt > 25 {
-					fmt.Printf("***es Can't get Entry Block %x Entry %x \n", v.ebhash.Bytes(), v.entryhash.Bytes())
+				et.lastRequest = now
+				et.cnt++
+				if et.cnt%25 == 25 {
+					fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", v.ebhash.Bytes(), v.entryhash.Bytes(), et.cnt)
 				}
 			}
 		}
-
+		// slow down as our ability to process messages goes down
 		time.Sleep(time.Duration(len(s.inMsgQueue)*2) * time.Millisecond)
-		time.Sleep(time.Duration(max-1) * 30 * time.Second)
-		if len(s.inMsgQueue) > 5000 {
-			for len(s.inMsgQueue) > 10 {
-				time.Sleep(1 * time.Second)
-			}
-		}
+
+		// slow down as the number of retries per message goes up
+		time.Sleep(time.Duration((avg - 1000)) * time.Millisecond)
 
 		if len(InPlay) == 0 {
 			time.Sleep(3 * time.Second)
