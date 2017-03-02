@@ -154,14 +154,14 @@ func (im *IdentityManager) ApplyIdentityChainStructure(ic *IdentityChainStructur
 
 	id = new(Identity)
 
-	id.Key1 = ic.Key1
-	id.Key2 = ic.Key2
-	id.Key3 = ic.Key3
-	id.Key4 = ic.Key4
+	id.Key1 = ic.Key1.(*primitives.Hash)
+	id.Key2 = ic.Key2.(*primitives.Hash)
+	id.Key3 = ic.Key3.(*primitives.Hash)
+	id.Key4 = ic.Key4.(*primitives.Hash)
 
 	id.IdentityCreated = dBlockHeight
 
-	id.IdentityChainID = chainID
+	id.IdentityChainID = chainID.(*primitives.Hash)
 
 	im.SetIdentity(chainID, id)
 	return false, nil
@@ -270,7 +270,7 @@ func (im *IdentityManager) ApplyNewBlockSigningKeyStruct(nbsk *NewBlockSigningKe
 	if err != nil {
 		return false, err
 	}
-	id.SigningKey = key
+	id.SigningKey = key.(*primitives.Hash)
 
 	im.SetIdentity(nbsk.RootIdentityChainID, id)
 	return false, nil
@@ -328,7 +328,7 @@ func (im *IdentityManager) ApplyNewMatryoshkaHashStructure(nmh *NewMatryoshkaHas
 	}
 	//Check Timestamp??
 
-	id.MatryoshkaHash = nmh.OutermostMHash
+	id.MatryoshkaHash = nmh.OutermostMHash.(*primitives.Hash)
 
 	im.SetIdentity(nmh.RootIdentityChainID, id)
 	return false, nil
@@ -365,7 +365,7 @@ func (im *IdentityManager) ApplyRegisterServerManagementStructure(rsm *RegisterS
 	if id.ManagementRegistered == 0 {
 		id.ManagementRegistered = dBlockHeight
 	}
-	id.ManagementChainID = rsm.SubchainChainID
+	id.ManagementChainID = rsm.SubchainChainID.(*primitives.Hash)
 
 	im.SetIdentity(id.IdentityChainID, id)
 	return false, nil

@@ -21,18 +21,18 @@ type AnchorSigningKey struct {
 }
 
 type Identity struct {
-	IdentityChainID      interfaces.IHash
+	IdentityChainID      *primitives.Hash
 	IdentityRegistered   uint32
 	IdentityCreated      uint32
-	ManagementChainID    interfaces.IHash
+	ManagementChainID    *primitives.Hash
 	ManagementRegistered uint32
 	ManagementCreated    uint32
-	MatryoshkaHash       interfaces.IHash
-	Key1                 interfaces.IHash
-	Key2                 interfaces.IHash
-	Key3                 interfaces.IHash
-	Key4                 interfaces.IHash
-	SigningKey           interfaces.IHash
+	MatryoshkaHash       *primitives.Hash
+	Key1                 *primitives.Hash
+	Key2                 *primitives.Hash
+	Key3                 *primitives.Hash
+	Key4                 *primitives.Hash
+	SigningKey           *primitives.Hash
 	Status               int
 	AnchorKeys           []AnchorSigningKey
 }

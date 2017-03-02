@@ -7,14 +7,13 @@ package meta
 import (
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
 type Authority struct {
-	AuthorityChainID  interfaces.IHash
-	ManagementChainID interfaces.IHash
-	MatryoshkaHash    interfaces.IHash
+	AuthorityChainID  *primitives.Hash
+	ManagementChainID *primitives.Hash
+	MatryoshkaHash    *primitives.Hash
 	SigningKey        primitives.PublicKey
 	Status            int
 	AnchorKeys        []AnchorSigningKey

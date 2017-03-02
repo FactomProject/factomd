@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry) error {
@@ -49,7 +50,7 @@ func (im *IdentityManager) ApplyAddReplaceMatryoshkaHash(entry interfaces.IABEnt
 	if auth == nil {
 		return fmt.Errorf("Authority %v not found", e.IdentityChainID.String())
 	}
-	auth.MatryoshkaHash = e.MHash
+	auth.MatryoshkaHash = e.MHash.(*primitives.Hash)
 	im.SetAuthority(e.IdentityChainID, auth)
 
 	return nil
@@ -70,7 +71,7 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) er
 	}
 
 	auth.Status = constants.IDENTITY_FEDERATED_SERVER
-	auth.AuthorityChainID = e.IdentityChainID
+	auth.AuthorityChainID = e.IdentityChainID.(*primitives.Hash)
 
 	im.SetAuthority(e.IdentityChainID, auth)
 	return nil
@@ -85,7 +86,7 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error 
 	}
 
 	auth.Status = constants.IDENTITY_AUDIT_SERVER
-	auth.AuthorityChainID = e.IdentityChainID
+	auth.AuthorityChainID = e.IdentityChainID.(*primitives.Hash)
 
 	im.SetAuthority(e.IdentityChainID, auth)
 

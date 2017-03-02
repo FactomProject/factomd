@@ -26,18 +26,22 @@ type IdentityManagerWithoutMutex struct {
 	Authorities          map[string]*Authority
 	Identities           map[string]*Identity
 	AuthorityServerCount int
-	SkeletonKey          string
 
 	OldEntries []*OldEntry
 }
 
 func (im *IdentityManager) SetSkeletonKey(key string) {
-	im.SkeletonKey = key
+	auth := new(Authority)
+	auth.SigningKey.UnmarshalText([]byte(key))
+	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+
+	im.SetAuthority(primitives.NewZeroHash(), auth)
 }
 
 func (im *IdentityManager) SetSkeletonKeyMainNet() {
 	//Skeleton key:
 	//"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
+
 	im.SetSkeletonKey("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
 }
 
@@ -202,7 +206,6 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 	entries := aBlock.GetABEntries()
 
 	foundSigs := map[string]string{}
-	skeletonKeyUsed := false
 
 	for _, v := range entries {
 		if v.Type() == constants.TYPE_DB_SIGNATURE {
@@ -213,14 +216,8 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 			pub := dbs.PrevDBSig.Pub
 			signingKey := ""
 
-			if dbs.IdentityAdminChainID.String() == "0000000000000000000000000000000000000000000000000000000000000000" {
-				//Skeleton key
-				signingKey = im.SkeletonKey
-				skeletonKeyUsed = true
-			} else {
-				auth := im.GetAuthority(dbs.IdentityAdminChainID)
-				signingKey = auth.SigningKey.String()
-			}
+			auth := im.GetAuthority(dbs.IdentityAdminChainID)
+			signingKey = auth.SigningKey.String()
 
 			if signingKey != pub.String() {
 				return fmt.Errorf("Invalid Public Key in DBSignatureEntry %v - expected %v, got %v", v.Hash().String(), signingKey, pub.String())
@@ -233,15 +230,9 @@ func (im *IdentityManager) CheckDBSignatureEntries(aBlock interfaces.IAdminBlock
 			}
 		}
 	}
-	if skeletonKeyUsed {
-		if len(foundSigs) != 1 {
-			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v - %v vs %v", aBlock.DatabasePrimaryIndex().String(), len(foundSigs), 1)
-		}
-	} else {
-		fedServerCount := im.FedServerCount()
-		if len(foundSigs) < fedServerCount/2 {
-			return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v - %v vs %v", aBlock.DatabasePrimaryIndex().String(), len(foundSigs), fedServerCount)
-		}
+	fedServerCount := im.FedServerCount()
+	if len(foundSigs) < fedServerCount/2 {
+		return fmt.Errorf("Invalid number of DBSignatureEntries found in aBlock %v - %v vs %v", aBlock.DatabasePrimaryIndex().String(), len(foundSigs), fedServerCount)
 	}
 	return nil
 }
