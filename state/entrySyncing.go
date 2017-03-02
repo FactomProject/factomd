@@ -129,7 +129,7 @@ func (s *State) MakeMissingEntryRequests() {
 			if mmin == math.MaxInt32 {
 				mmin = 0
 			}
-			fmt.Printf("***es Looking for: %s %8d"+
+			fmt.Printf("***es %s #missing: %8d"+
 				" NewFound/Found: %13s"+
 				" In Play: %6d"+
 				" Min Height: %8d "+
@@ -167,8 +167,11 @@ func (s *State) MakeMissingEntryRequests() {
 			if entryTrack == nil || now.Unix()-entryTrack.lastRequest.Unix() > 40 {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
-
-				time.Sleep(time.Duration(len(s.inMsgQueue)/5) * time.Millisecond)
+				if !s.WaitForEntries {
+					time.Sleep(time.Duration(len(s.inMsgQueue)) * time.Millisecond)
+				} else {
+					time.Sleep(time.Duration(len(s.inMsgQueue)/5) * time.Millisecond)
+				}
 
 				if entryTrack == nil {
 					entryTrack = new(EntryTrack)
@@ -191,7 +194,7 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
-		if len(InPlay) == 0 {
+		if len(InPlay) < 1000 {
 			time.Sleep(3 * time.Second)
 		}
 		update()
