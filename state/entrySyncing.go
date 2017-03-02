@@ -102,10 +102,14 @@ func (s *State) MakeMissingEntryRequests() {
 
 		// Ask for missing entries.
 
+		min := int(math.MaxInt32)
+		max := 0
+		maxcnt := 0
+
 		feedback := func() {
-			min := int(math.MaxInt32)
-			max := 0
-			maxcnt := 0
+			min = int(math.MaxInt32)
+			max = 0
+			maxcnt = 0
 			for _, v := range keep {
 				if min > int(v.dbheight) {
 					min = int(v.dbheight)
@@ -184,7 +188,7 @@ func (s *State) MakeMissingEntryRequests() {
 		}
 
 		time.Sleep(time.Duration(len(s.inMsgQueue)*2) * time.Millisecond)
-
+		time.Sleep(time.Duration(max-1) * 30 * time.Second)
 		if len(s.inMsgQueue) > 5000 {
 			for len(s.inMsgQueue) > 10 {
 				time.Sleep(1 * time.Second)
