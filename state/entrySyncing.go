@@ -190,7 +190,9 @@ func (s *State) MakeMissingEntryRequests() {
 			if et.cnt == 0 || now.Unix()-et.lastRequest.Unix() > 40 {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
-				time.Sleep(time.Duration(len(s.WriteEntry)/5) * time.Millisecond)
+				if len(s.WriteEntry) > 2000 {
+					time.Sleep(time.Duration(len(s.WriteEntry)/10) * time.Millisecond)
+				}
 				et.lastRequest = now
 				et.cnt++
 				if et.cnt%25 == 25 {
@@ -198,15 +200,10 @@ func (s *State) MakeMissingEntryRequests() {
 				}
 			}
 		}
-		// slow down as our ability to process messages goes down
-		time.Sleep(time.Duration(len(s.WriteEntry)*2) * time.Millisecond)
 
 		// slow down as the number of retries per message goes up
 		time.Sleep(time.Duration((avg - 1000)) * time.Millisecond)
 
-		if len(InPlay) == 0 {
-			time.Sleep(3 * time.Second)
-		}
 		update()
 		feedback()
 	}

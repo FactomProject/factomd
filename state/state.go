@@ -712,7 +712,7 @@ func (s *State) Init() {
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)       //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 10000)     //Entries to be written to the database
+	s.WriteEntry = make(chan interfaces.IEBEntry, 20000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
