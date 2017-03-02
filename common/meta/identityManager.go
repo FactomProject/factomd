@@ -129,8 +129,6 @@ func (im *IdentityManager) SetAuthority(chainID interfaces.IHash, auth *Authorit
 
 func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
 	im.Init()
-	im.Mutex.Lock()
-	defer im.Mutex.Unlock()
 
 	auth := im.GetAuthority(chainID)
 	if auth == nil {
