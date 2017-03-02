@@ -105,11 +105,12 @@ func (s *State) MakeMissingEntryRequests() {
 		min := int(math.MaxInt32)
 		max := 0
 		maxcnt := 0
-
+		avg := 0
 		feedback := func() {
 			min = int(math.MaxInt32)
 			max = 0
 			maxcnt = 0
+			sum := 0
 			for _, v := range keep {
 				if min > int(v.dbheight) {
 					min = int(v.dbheight)
@@ -121,6 +122,11 @@ func (s *State) MakeMissingEntryRequests() {
 				if et != nil && maxcnt < et.cnt {
 					maxcnt = et.cnt
 				}
+				sum += et.cnt
+			}
+
+			if len(keep) > 0 {
+				avg = (1000 * sum) / len(keep)
 			}
 
 			if min != math.MaxInt32 && min > 0 {
@@ -133,12 +139,13 @@ func (s *State) MakeMissingEntryRequests() {
 			if mmin == math.MaxInt32 {
 				mmin = 0
 			}
-			fmt.Printf("***es Looking for: %s %8d"+
-				" NewFound/Found: %13s"+
-				" In Play: %6d"+
-				" Min Height: %8d "+
-				" Max Height: %8d "+
-				" Max Send: %3d"+
+			fmt.Printf("***es Looking for: %s %d"+
+				" NewFound/Found: %s"+
+				" In Play: %d"+
+				" Min Height: %d "+
+				" Max Height: %d "+
+				" Avg Send: %d.%03d"+
+				" Max Send: %d"+
 				" Highest Saved %d "+
 				" Entry complete %d\n",
 				s.FactomNodeName,
@@ -147,6 +154,7 @@ func (s *State) MakeMissingEntryRequests() {
 				len(InPlay),
 				mmin,
 				max,
+				avg/1000, avg%1000,
 				maxcnt,
 				s.GetHighestSavedBlk(),
 				s.EntryDBHeightComplete)
