@@ -22,10 +22,12 @@ func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock, entr
 			return err
 		}
 	}
-	err := bs.IdentityManager.ProcessOldEntries()
-	if err != nil {
-		return err
-	}
+	/*
+		err := bs.IdentityManager.ProcessOldEntries()
+		if err != nil {
+			return err
+		}
+	*/
 	return bs.ClearExpiredCommits()
 }
 
@@ -38,20 +40,21 @@ func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock, entryMap
 	}
 
 	eHashes := eBlock.GetEntryHashes()
+	eBlockHash := eBlock.GetHash()
 	for _, v := range eHashes {
-		err := bs.ProcessEntryHash(v, eBlock.GetHash())
+		err := bs.ProcessEntryHash(v, eBlockHash)
 		if err != nil {
 			return err
 		}
 	}
-
-	if IsSpecialBlock(eBlock.GetChainID()) {
-		err = bs.ProcessSpecialBlock(eBlock, entryMap)
-		if err != nil {
-			return err
+	/*
+		if IsSpecialBlock(eBlock.GetChainID()) {
+			err = bs.ProcessSpecialBlock(eBlock, entryMap)
+			if err != nil {
+				return err
+			}
 		}
-	}
-
+	*/
 	return nil
 }
 
