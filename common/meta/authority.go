@@ -17,11 +17,6 @@ type Authority struct {
 	SigningKey        primitives.PublicKey
 	Status            int
 	AnchorKeys        []AnchorSigningKey
-
-	KeyHistory []struct {
-		ActiveDBHeight uint32
-		SigningKey     primitives.PublicKey
-	}
 }
 
 // 1 if fed, 0 if audit, -1 if neither
@@ -35,7 +30,6 @@ func (auth *Authority) Type() int {
 }
 
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
-	//return true, nil // Testing
 	var pub [32]byte
 	tmp, err := auth.SigningKey.MarshalBinary()
 	if err != nil {
@@ -43,20 +37,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	} else {
 		copy(pub[:], tmp)
 		valid := ed.VerifyCanonical(&pub, msg, sig)
-		if !valid {
-			for _, histKey := range auth.KeyHistory {
-				histTemp, err := histKey.SigningKey.MarshalBinary()
-				if err != nil {
-					continue
-				}
-				copy(pub[:], histTemp)
-				if ed.VerifyCanonical(&pub, msg, sig) {
-					return true, nil
-				}
-			}
-		} else {
-			return true, nil
-		}
+		return valid, nil
 	}
 	return false, nil
 }
