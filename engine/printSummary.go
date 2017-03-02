@@ -186,6 +186,18 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkInvalidMsgQueue", list)
 
+		list = ""
+		for _, f := range pnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.UpdateEntryHash))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "UpdateEntryHash", list)
+
+		list = ""
+		for _, f := range pnodes {
+			list = list + fmt.Sprintf(" %3d", len(f.State.WriteEntry))
+		}
+		prt = prt + fmt.Sprintf(fmtstr, "WriteEntry", list)
+
 		if f.State.MessageTally {
 			prt = prt + "\nType:"
 			for i := 0; i < constants.NUM_MESSAGES; i++ {

@@ -190,7 +190,7 @@ func (s *State) MakeMissingEntryRequests() {
 			if et.cnt == 0 || now.Unix()-et.lastRequest.Unix() > 40 {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
-				time.Sleep(time.Duration(len(s.inMsgQueue)/5) * time.Millisecond)
+				time.Sleep(time.Duration(len(s.WriteEntry)/5) * time.Millisecond)
 				et.lastRequest = now
 				et.cnt++
 				if et.cnt%25 == 25 {
@@ -199,7 +199,7 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 		// slow down as our ability to process messages goes down
-		time.Sleep(time.Duration(len(s.inMsgQueue)*2) * time.Millisecond)
+		time.Sleep(time.Duration(len(s.WriteEntry)*2) * time.Millisecond)
 
 		// slow down as the number of retries per message goes up
 		time.Sleep(time.Duration((avg - 1000)) * time.Millisecond)
@@ -261,10 +261,48 @@ func (s *State) syncEntryBlocks() {
 	}
 }
 
-func (s *State) SyncEntries() {
-	scan := uint32(0)
-	alldone := true
+func (s *State) GoWriteEntries() {
 	for {
+
+		time.Sleep(3 * time.Second)
+
+	entryWrite:
+		for {
+
+			select {
+
+			case entry := <-s.WriteEntry:
+
+				var missinge []MissingEntry
+
+				s.MissingEntryMutex.Lock()
+				missinge = append(missinge, s.MissingEntries...)
+				s.MissingEntryMutex.Unlock()
+
+				for _, missing := range missinge {
+					e := missing.entryhash
+
+					if e.Fixed() == entry.GetHash().Fixed() {
+						s.DB.InsertEntry(entry)
+						break
+					}
+				}
+
+			default:
+				break entryWrite
+			}
+		}
+	}
+}
+
+func (s *State) SyncEntries() {
+
+	go s.GoWriteEntries()
+
+	for {
+
+		scan := uint32(0)
+		alldone := true
 
 		s.MissingEntryMutex.Lock()
 		lenEntries := len(s.MissingEntries)
@@ -343,13 +381,7 @@ func (s *State) SyncEntries() {
 		}
 		s.MissingEntryMutex.Unlock()
 
-		time.Sleep(time.Duration(len(s.inMsgQueue)*2) * time.Millisecond)
-
-		if len(s.inMsgQueue) > 5000 {
-			for len(s.inMsgQueue) > 10 {
-				time.Sleep(1 * time.Second)
-			}
-		}
+		time.Sleep(time.Duration(len(s.WriteEntry)*20) * time.Millisecond)
 
 		if scan >= s.GetHighestSavedBlk() {
 			time.Sleep(5 * time.Second)
@@ -368,6 +400,6 @@ func (s *State) CatchupEBlocks() {
 		s.MissingEntryMutex.Lock()
 		s.syncEntryBlocks()
 		s.MissingEntryMutex.Unlock()
-		time.Sleep(time.Duration(len(s.inMsgQueue)/100) * time.Second)
+		time.Sleep(time.Duration(len(s.WriteEntry)/100) * time.Second)
 	}
 }

@@ -212,12 +212,11 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	UpdateEntryHash chan *EntryUpdate              // Channel for updating entry Hashes tracking (repeats and such)
-	resendHolding   interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
-	Holding         map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview         []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks            map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits         map[[32]byte][]interfaces.IMsg // Commit Messages
+	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
+	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
+	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -294,8 +293,9 @@ type State struct {
 	MissingEntries []MissingEntry
 
 	// Holds leaders and followers up until all missing entries are processed, if true
-	WaitForEntries bool
-
+	WaitForEntries  bool
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
+	WriteEntry      chan interfaces.IEBEntry
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -712,6 +712,7 @@ func (s *State) Init() {
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
 	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)       //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 10000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
