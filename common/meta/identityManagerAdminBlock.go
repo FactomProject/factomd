@@ -30,6 +30,8 @@ func (im *IdentityManager) ProcessABlockEntry(entry interfaces.IABEntry) error {
 		return im.ApplyAddFederatedServerSigningKey(entry)
 	case constants.TYPE_ADD_BTC_ANCHOR_KEY:
 		return im.ApplyAddFederatedServerBitcoinAnchorKey(entry)
+	case constants.TYPE_SERVER_FAULT:
+		return im.ApplyServerFault(entry)
 	}
 	return nil
 }
@@ -134,5 +136,10 @@ func (im *IdentityManager) ApplyAddFederatedServerBitcoinAnchorKey(entry interfa
 	auth.AnchorKeys = append(auth.AnchorKeys, ask)
 
 	im.SetAuthority(e.IdentityChainID, auth)
+	return nil
+}
+
+func (im *IdentityManager) ApplyServerFault(entry interfaces.IABEntry) error {
+	//	e := entry.(*adminBlock.ServerFault)
 	return nil
 }
