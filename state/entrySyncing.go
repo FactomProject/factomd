@@ -153,7 +153,7 @@ func (s *State) MakeMissingEntryRequests() {
 				avg = (1000 * sum) / cnt
 			}
 
-			if min != math.MaxInt32 && min > 0 && min > int(s.EntryBlockDBHeightComplete) {
+			if min != math.MaxInt32 && min > 0 && min > int(s.EntryDBHeightComplete) {
 				s.EntryDBHeightComplete = uint32(min - 1)
 			}
 
