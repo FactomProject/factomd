@@ -522,7 +522,7 @@ func startServers(load bool) {
 			go state.LoadDatabase(fnode.State)
 		}
 		go fnode.State.MakeMissingEntryRequests()
-		go fnode.State.SyncEntries()
+		go fnode.State.GoSyncEntries()
 		go fnode.State.CatchupEBlocks()
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()

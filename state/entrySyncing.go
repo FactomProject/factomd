@@ -35,17 +35,24 @@ func (s *State) MakeMissingEntryRequests() {
 		// we are not doing any engry block syncing because they are synced with DBStates, but we do so for
 		// sanity purposes.
 
+		var missingeb []MissingEntryBlock
+
 		s.MissingEntryMutex.Lock()
+		missingeb = append(missingeb, s.MissingEntryBlocks...)
+		s.MissingEntryMutex.Unlock()
+
 		{
 			// Remove all entry blocks we have already found and recorded
 			var keepeb []MissingEntryBlock
-			for _, v := range s.MissingEntryBlocks {
+			for _, v := range missingeb {
 				eb, _ := s.DB.FetchEBlock(v.ebhash)
 				if eb == nil {
 					keepeb = append(keepeb, v)
 				}
 			}
+			s.MissingEntryMutex.Lock()
 			s.MissingEntryBlocks = keepeb
+			s.MissingEntryMutex.Unlock()
 
 			// Ask for missing entry blocks
 			for i, v := range s.MissingEntryBlocks {
@@ -59,18 +66,20 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
-		s.MissingEntryMutex.Unlock()
 		var keep []MissingEntry
 
 		// Every call to update recomputes the keep array from the s.MissingEntries, and s.MissingEntries
 		update := func() {
+			var missinge []MissingEntry
+			keep = make([]MissingEntry, 0)
 
 			s.MissingEntryMutex.Lock()
-			defer s.MissingEntryMutex.Unlock()
+			missinge = append(missinge, s.MissingEntries...)
+			s.MissingEntryMutex.Unlock()
 
-			keep = make([]MissingEntry, 0)
 			// Remove all Entries that we have already found and recorded. "keep" the ones we are still looking for.
-			for _, v := range s.MissingEntries {
+			for _, v := range missinge {
+
 				e, _ := s.DB.FetchEntry(v.entryhash)
 				if e == nil {
 					keep = append(keep, v)
@@ -80,9 +89,21 @@ func (s *State) MakeMissingEntryRequests() {
 					delete(InPlay, v.entryhash.Fixed())
 				}
 			}
+
+			// Okay, so at this point we have what entries in the missingEntries we should keep, as of when we
+			// entered this routine.  But the scanner might have found some more missing entries.  They are on the
+			// end.  So we will get those in newStuff, and append that to the end of what we figured out we should
+			// keep.
+			//
+			// This is assumed the only code that removes missingEntries.  If any other code removes from the
+			// MissingEntries slice, it is going to mess up everything.
+
+			s.MissingEntryMutex.Lock()
 			// Let the outside world know which entries we are looking for.
-			s.MissingEntries = make([]MissingEntry, len(keep))
-			copy(s.MissingEntries, keep)
+			newStuff := []MissingEntry{}
+			newStuff = append(newStuff, s.MissingEntries[len(missinge):]...)
+			s.MissingEntries = append(keep, newStuff...)
+			s.MissingEntryMutex.Unlock()
 		}
 
 		update()
@@ -132,37 +153,40 @@ func (s *State) MakeMissingEntryRequests() {
 				avg = (1000 * sum) / cnt
 			}
 
-			if min != math.MaxInt32 && min > 0 {
+			if min != math.MaxInt32 && min > 0 && min > int(s.EntryBlockDBHeightComplete) {
 				s.EntryDBHeightComplete = uint32(min - 1)
 			}
 
-			foundstr := fmt.Sprint(newfound, "/", found)
-			newfound = 0
-			mmin := min
-			if mmin == math.MaxInt32 {
-				mmin = 0
+			if newfound > 0 {
+				foundstr := fmt.Sprint(newfound, "/", found)
+				newfound = 0
+				mmin := min
+				if mmin == math.MaxInt32 {
+					mmin = 0
+				}
+
+				fmt.Printf("***es %s #missing: %4d"+
+					" NewFound/Found: %9s"+
+					" In Play: %4d"+
+					" Min Height: %d "+
+					" Max Height: %d "+
+					" Avg Send: %d.%03d"+
+					" Sending: %4d"+
+					" Max Send: %2d"+
+					" Highest Saved %d "+
+					" Entry complete %d\n",
+					s.FactomNodeName,
+					len(keep),
+					foundstr,
+					len(InPlay),
+					mmin,
+					max,
+					avg/1000, avg%1000,
+					cnt,
+					maxcnt,
+					s.GetHighestSavedBlk(),
+					s.EntryDBHeightComplete)
 			}
-			fmt.Printf("***es %s #missing: %d"+
-				" NewFound/Found: %13s"+
-				" In Play: %6d"+
-				" Min Height: %d "+
-				" Max Height: %d "+
-				" Avg Send: %d.%03d"+
-				" Sending: %d"+
-				" Max Send: %2d"+
-				" Highest Saved %d "+
-				" Entry complete %d\n",
-				s.FactomNodeName,
-				len(keep),
-				foundstr,
-				len(InPlay),
-				mmin,
-				max,
-				avg/1000, avg%1000,
-				cnt,
-				maxcnt,
-				s.GetHighestSavedBlk(),
-				s.EntryDBHeightComplete)
 		}
 
 		var loopList []MissingEntry
@@ -214,7 +238,15 @@ func (s *State) syncEntryBlocks() {
 	// missing, we stop moving the bookmark, and rely on caching to keep us from thrashing the disk as we
 	// review the directory block over again the next time.
 	alldone := true
-	for s.EntryBlockDBHeightProcessing <= s.GetHighestSavedBlk() && len(s.MissingEntryBlocks) < 1000 {
+
+	var keep []MissingEntryBlock
+	var missingeb []MissingEntryBlock
+
+	s.MissingEntryMutex.Lock()
+	missingeb = append(missingeb, s.MissingEntryBlocks...)
+	s.MissingEntryMutex.Unlock()
+
+	for s.EntryBlockDBHeightProcessing <= s.GetHighestSavedBlk() && len(missingeb) < 1000 {
 
 		db := s.GetDirectoryBlockByHeight(s.EntryBlockDBHeightProcessing)
 
@@ -234,7 +266,7 @@ func (s *State) syncEntryBlocks() {
 
 				// Check lists and not add if already there.
 				addit := true
-				for _, eb := range s.MissingEntryBlocks {
+				for _, eb := range missingeb {
 					if eb.ebhash.Fixed() == ebKeyMR.Fixed() {
 						addit = false
 						break
@@ -242,14 +274,19 @@ func (s *State) syncEntryBlocks() {
 				}
 
 				if addit {
-					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
-						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+					missingEntryBlock := MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing}
+					keep = append(keep, missingEntryBlock)
 				}
 				// Something missing, stop moving the bookmark.
 				alldone = false
 				continue
 			}
 		}
+
+		s.MissingEntryMutex.Lock()
+		s.MissingEntryBlocks = keep
+		s.MissingEntryMutex.Unlock()
+
 		if alldone {
 			// we had three bookmarks.  Now they are all in lockstep. TODO: get rid of extra bookmarks.
 			s.EntryBlockDBHeightComplete++
@@ -260,8 +297,7 @@ func (s *State) syncEntryBlocks() {
 
 func (s *State) GoWriteEntries() {
 	for {
-
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 
 	entryWrite:
 		for {
@@ -292,25 +328,28 @@ func (s *State) GoWriteEntries() {
 	}
 }
 
-func (s *State) SyncEntries() {
+func (s *State) GoSyncEntries() {
 
-	go s.GoWriteEntries()
+	go s.GoWriteEntries() // Start a go routine to write the Entries to the DB
+
+	starting := uint32(0)
 
 	for {
 
-		scan := uint32(0)
+		scan := uint32(starting)
+		var missinge []MissingEntry
+		var newentries []MissingEntry
 		alldone := true
-
 		s.MissingEntryMutex.Lock()
-		lenEntries := len(s.MissingEntries)
+		missinge = append(missinge, s.MissingEntries...)
 		s.MissingEntryMutex.Unlock()
-	scanEntries:
-		for scan <= s.GetHighestSavedBlk() && lenEntries < 10000 {
+	scanentries:
+		for scan <= s.GetHighestSavedBlk() && len(missinge) < 10000 {
 
 			db := s.GetDirectoryBlockByHeight(scan)
 
 			if db == nil {
-				break scanEntries
+				break
 			}
 
 			for _, ebKeyMR := range db.GetEntryHashes()[3:] {
@@ -323,10 +362,14 @@ func (s *State) SyncEntries() {
 				// Dont have an eBlock?  Huh. We can go on, but we can't advance
 				if eBlock == nil {
 					alldone = false
-					break scanEntries
+					break scanentries
 				}
 
 				for _, entryhash := range eBlock.GetEntryHashes() {
+
+					// slow down if we are behind.
+					time.Sleep(time.Duration(len(s.WriteEntry)) * time.Millisecond)
+
 					if entryhash.IsMinuteMarker() {
 						continue
 					}
@@ -335,17 +378,14 @@ func (s *State) SyncEntries() {
 					if e != nil {
 						// If I am missing the entry, add it to th eMissing Entries list
 					} else {
-						alldone = false
 						//Check lists and not add if already there.
 						addit := true
-						s.MissingEntryMutex.Lock()
-						for _, e := range s.MissingEntries {
+						for _, e := range missinge {
 							if e.entryhash.Fixed() == entryhash.Fixed() {
 								addit = false
 								break
 							}
 						}
-						s.MissingEntryMutex.Unlock()
 
 						if addit {
 							var v MissingEntry
@@ -353,9 +393,7 @@ func (s *State) SyncEntries() {
 							v.dbheight = eBlock.GetHeader().GetDBHeight()
 							v.entryhash = entryhash
 							v.ebhash = ebKeyMR
-							s.MissingEntryMutex.Lock()
-							s.MissingEntries = append(s.MissingEntries, v)
-							s.MissingEntryMutex.Unlock()
+							newentries = append(newentries, v)
 						}
 					}
 					ueh := new(EntryUpdate)
@@ -363,9 +401,13 @@ func (s *State) SyncEntries() {
 					ueh.Timestamp = db.GetTimestamp()
 					s.UpdateEntryHash <- ueh
 				}
+
 			}
+
 			s.MissingEntryMutex.Lock()
-			if alldone && len(s.MissingEntries) == 0 {
+
+			if alldone && len(s.MissingEntries) == 0 && len(newentries) == 0 {
+				starting = scan
 				s.EntryDBHeightComplete = scan
 			}
 			scan++
@@ -373,16 +415,18 @@ func (s *State) SyncEntries() {
 		}
 
 		s.MissingEntryMutex.Lock()
+
+		s.MissingEntries = append(s.MissingEntries, newentries...)
+
 		if len(s.MissingEntries) == 0 {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
+			starting = s.GetHighestSavedBlk()
 		}
+
 		s.MissingEntryMutex.Unlock()
 
-		time.Sleep(time.Duration(len(s.WriteEntry)*20) * time.Millisecond)
-
-		if scan >= s.GetHighestSavedBlk() {
-			time.Sleep(5 * time.Second)
-		}
+		// sleep some time no matter what.
+		time.Sleep(1 * time.Second)
 
 	}
 }
@@ -394,9 +438,7 @@ func (s *State) SyncEntries() {
 func (s *State) CatchupEBlocks() {
 
 	for {
-		s.MissingEntryMutex.Lock()
 		s.syncEntryBlocks()
-		s.MissingEntryMutex.Unlock()
 		time.Sleep(time.Duration(len(s.WriteEntry)/100) * time.Second)
 	}
 }
