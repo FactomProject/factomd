@@ -215,7 +215,7 @@ func (s *State) MakeMissingEntryRequests() {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
 				if len(s.WriteEntry) > 2000 {
-					time.Sleep(time.Duration(len(s.WriteEntry)/10) * time.Millisecond)
+					time.Sleep(time.Duration(len(s.WriteEntry)/20) * time.Millisecond)
 				}
 				et.lastRequest = now
 				et.cnt++
@@ -365,10 +365,15 @@ func (s *State) GoSyncEntries() {
 					break scanentries
 				}
 
+				if len(newentries)+len(missinge) > 5000 {
+					alldone = false
+					break scanentries
+				}
+
 				for _, entryhash := range eBlock.GetEntryHashes() {
 
 					// slow down if we are behind.
-					time.Sleep(time.Duration(len(s.WriteEntry)) * time.Millisecond)
+					time.Sleep(time.Duration(len(s.WriteEntry)/10) * time.Millisecond)
 
 					if entryhash.IsMinuteMarker() {
 						continue
