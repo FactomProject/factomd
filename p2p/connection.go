@@ -205,8 +205,7 @@ func (c *Connection) Start() {
 func (c *Connection) runLoop() {
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
-		time.Sleep(time.Millisecond * 10) // This can be a tight loop, don't want to starve the application
-		c.updateStats()                   // Update controller with metrics
+		c.updateStats() // Update controller with metrics
 		c.connectionStatusReport()
 		// if 2 == rand.Intn(100) {
 		debug(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
@@ -372,7 +371,7 @@ func (c *Connection) goShutdown() {
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
 	// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
-	for 0 < len(c.SendChannel) && ConnectionOnline == c.state {
+	for i := 0; i < 100 && 0 < len(c.SendChannel) && ConnectionOnline == c.state; i++ {
 		message := <-c.SendChannel
 		switch message.(type) {
 		case ConnectionParcel:
@@ -463,6 +462,7 @@ func (c *Connection) processReceives() {
 			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
+			time.Sleep(10 * time.Millisecond)
 			c.handleNetErrors(err)
 			return
 		}

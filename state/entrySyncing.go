@@ -18,6 +18,12 @@ var _ = fmt.Print
 // them if it finds entries in the missing lists.
 func (s *State) MakeMissingEntryRequests() {
 
+	startt := time.Now()
+
+	secs := func() int {
+		return int(time.Now().Unix() - startt.Unix())
+	}
+
 	type EntryTrack struct {
 		lastRequest time.Time
 		dbheight    uint32
@@ -102,7 +108,9 @@ func (s *State) MakeMissingEntryRequests() {
 			// Let the outside world know which entries we are looking for.
 			newStuff := []MissingEntry{}
 			newStuff = append(newStuff, s.MissingEntries[len(missinge):]...)
-			s.MissingEntries = append(keep, newStuff...)
+			var newme []MissingEntry
+			keep = append(keep, newStuff...)
+			s.MissingEntries = append(newme, keep...)
 			s.MissingEntryMutex.Unlock()
 		}
 
@@ -157,7 +165,7 @@ func (s *State) MakeMissingEntryRequests() {
 				s.EntryDBHeightComplete = uint32(min - 1)
 			}
 
-			if newfound > 0 {
+			if newfound > 0 || secs() < 10 {
 				foundstr := fmt.Sprint(newfound, "/", found)
 				newfound = 0
 				mmin := min
@@ -165,17 +173,20 @@ func (s *State) MakeMissingEntryRequests() {
 					mmin = 0
 				}
 
-				fmt.Printf("***es %s #missing: %4d"+
-					" NewFound/Found: %9s"+
+				fmt.Printf("***es %s"+
+					" time %3d:%02d"+
+					" #missing: %4d"+
+					" NewFound/Found: %13s"+
 					" In Play: %4d"+
-					" Min Height: %d "+
-					" Max Height: %d "+
+					" Min Height: %6d "+
+					" Max Height: %6d "+
 					" Avg Send: %d.%03d"+
 					" Sending: %4d"+
 					" Max Send: %2d"+
-					" Highest Saved %d "+
-					" Entry complete %d\n",
+					" Highest Saved %6d "+
+					" Entry complete %6d\n",
 					s.FactomNodeName,
+					secs()/60, secs()%60,
 					len(keep),
 					foundstr,
 					len(InPlay),
@@ -189,10 +200,7 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
-		var loopList []MissingEntry
-		loopList = append(loopList, keep...)
-
-		for i, v := range loopList {
+		for i, v := range keep {
 
 			if i > 2000 {
 				break
@@ -214,8 +222,8 @@ func (s *State) MakeMissingEntryRequests() {
 			if et.cnt == 0 || now.Unix()-et.lastRequest.Unix() > 40 {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
-				if len(s.WriteEntry) > 2000 {
-					time.Sleep(time.Duration(len(s.WriteEntry)/20) * time.Millisecond)
+				if len(InPlay) > 500 {
+					time.Sleep(time.Duration(len(InPlay)/20) * time.Millisecond)
 				}
 				et.lastRequest = now
 				et.cnt++
@@ -223,6 +231,10 @@ func (s *State) MakeMissingEntryRequests() {
 					fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", v.ebhash.Bytes(), v.entryhash.Bytes(), et.cnt)
 				}
 			}
+		}
+
+		if len(keep) == 0 {
+			time.Sleep(1 * time.Second)
 		}
 
 		// slow down as the number of retries per message goes up
