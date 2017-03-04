@@ -64,8 +64,14 @@ func CheckDatabase(db interfaces.IDatabase) {
 	} else {
 		start = int(bs.DBlockHeight) + 1
 	}
-	bl := new(BalanceLedger)
-	bl.Init()
+	bl, err := LoadBL()
+	if err != nil {
+		panic(err)
+	}
+	if bl == nil {
+		bl = new(BalanceLedger)
+		bl.Init()
+	}
 
 	dBlock, err := dbo.FetchDBlockHead()
 	if err != nil {
@@ -93,12 +99,12 @@ func CheckDatabase(db interfaces.IDatabase) {
 			fmt.Printf("Error processing block set #%v\n", i)
 			panic(err)
 		}
-		/*
-			err = bl.ProcessFBlock(set.FBlock)
-			if err != nil {
-				panic(err)
-			}
-		*/
+
+		err = bl.ProcessFBlock(set.FBlock)
+		if err != nil {
+			panic(err)
+		}
+
 		if i%10000 == 0 {
 			//periodically save and reload BS
 			bin, err := bs.MarshalBinaryData()
@@ -113,6 +119,10 @@ func CheckDatabase(db interfaces.IDatabase) {
 			fmt.Printf("Successfully saved and loaded BS\n")
 			if i <= 70000 {
 				err = SaveBS(bs)
+				if err != nil {
+					panic(err)
+				}
+				err = SaveBL(bl)
 				if err != nil {
 					panic(err)
 				}
@@ -240,4 +250,34 @@ func LoadBS() (*BlockchainState, error) {
 	}
 	fmt.Printf("Loaded BS\n")
 	return bs, nil
+}
+
+func SaveBL(bl *BalanceLedger) error {
+	b, err := bl.MarshalBinaryData()
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile("bl.test", b, 0644)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Saved BL\n")
+
+	return nil
+}
+
+func LoadBL() (*BalanceLedger, error) {
+	b, err := ioutil.ReadFile("bl.test")
+	if err != nil {
+		return nil, err
+	}
+	bl := new(BalanceLedger)
+	bl.Init()
+	err = bl.UnmarshalBinaryData(b)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Loaded BL\n")
+	return bl, nil
 }
