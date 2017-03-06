@@ -326,6 +326,9 @@ func (s *State) GoSyncEntryBlocks() {
 		s.MissingEntryMutex.Lock()
 		t := len(s.MissingEntries)
 		s.MissingEntryMutex.Unlock()
+		if t == 0 {
+			time.Sleep(3 * time.Second)
+		}
 		time.Sleep(time.Duration(t/10) * time.Millisecond)
 
 	}
@@ -465,9 +468,11 @@ func (s *State) GoSyncEntries() {
 		if len(s.MissingEntries) == 0 {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
 			starting = s.GetHighestSavedBlk()
+			s.MissingEntryMutex.Unlock()
+			time.Sleep(1 * time.Second)
+		} else {
+			s.MissingEntryMutex.Unlock()
 		}
-
-		s.MissingEntryMutex.Unlock()
 
 		// sleep some time no matter what.
 		time.Sleep(1 * time.Second)
