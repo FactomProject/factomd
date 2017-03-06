@@ -747,7 +747,7 @@ searchLoop:
 		cnt++
 	}
 
-	keep := uint32(3) // How many states to keep around; debugging helps with more.
+	keep := uint32(5) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)
