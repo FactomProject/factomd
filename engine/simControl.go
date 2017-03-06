@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
+	"runtime"
 )
 
 var _ = fmt.Print
@@ -89,6 +90,19 @@ func SimControl(listenTo int) {
 				s := fnodes[listenTo].State
 				os.Stderr.WriteString("Reset Node: " + s.FactomNodeName + "\n")
 				s.Reset()
+
+			case 'b' == b[0]:
+				if len(b) == 1 {
+					os.Stderr.WriteString("specifivy how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
+					break
+				}
+				delay, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					os.Stderr.WriteString("type bnnn where nnn is the number of nanoseconds of a block to record when profiling.\n")
+					break
+				}
+				runtime.SetBlockProfileRate(delay)
+				os.Stderr.WriteString(fmt.Sprintf("Recording delays due to blocked go routines longer than %d ns (%d ms)\n", delay, delay/1000000))
 
 			case 'g' == b[0]:
 				if len(b) > 1 {

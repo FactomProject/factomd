@@ -16,4 +16,5 @@ import (
 // https://golang.org/pkg/net/http/pprof/
 func StartProfiler() {
 	log.Println(http.ListenAndServe(fmt.Sprintf("localhost:%s", logPort), nil))
+	//runtime.SetBlockProfileRate(100000)
 }

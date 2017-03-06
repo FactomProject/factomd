@@ -462,7 +462,7 @@ func (c *Connection) processReceives() {
 			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			c.handleNetErrors(err)
 			return
 		}
