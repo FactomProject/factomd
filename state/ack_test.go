@@ -42,6 +42,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 				continue
 			}
 
+			// get the tx from the database
 			dtx, err := s1.FetchECTransactionByHash(tx.Hash())
 			if err != nil {
 				t.Error("Could not fetch transaction:", err)
@@ -51,6 +52,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 				continue
 			}
 
+			// test that the db transaction matches the tx we are looking for
 			p1, err := tx.MarshalBinary()
 			if err != nil {
 				t.Error(err)
@@ -72,6 +74,7 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 
 	for _, block := range blocks {
 		for _, tx := range block.FBlock.GetTransactions() {
+			// get the transaction from the database
 			dtx, err := s1.FetchFactoidTransactionByHash(tx.GetHash())
 			if err != nil {
 				t.Error("Could not fetch transaction:", err)
@@ -81,6 +84,7 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 				continue
 			}
 
+			// make sure the tx matches the one we are looking for
 			p1, err := tx.MarshalBinary()
 			if err != nil {
 				t.Error(err)
@@ -104,6 +108,7 @@ func TestFetchPaidFor(t *testing.T) {
 		for _, tx := range block.ECBlock.GetEntries() {
 			switch tx.ECID() {
 			case entryCreditBlock.ECIDEntryCommit:
+				// check that we can get the hash for the paid entry commit
 				eh := tx.(*entryCreditBlock.CommitEntry).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
 				if err != nil {
@@ -114,10 +119,13 @@ func TestFetchPaidFor(t *testing.T) {
 					t.Error("tx not found in database")
 					continue
 				}
+
+				// make sure the tx sig matches the one we got
 				if !h1.IsSameAs(tx.GetSigHash()) {
 					t.Error("hash mismatch")
 				}
 			case entryCreditBlock.ECIDChainCommit:
+				// check that we can get the hash for the paid chain commit
 				eh := tx.(*entryCreditBlock.CommitChain).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
 				if err != nil {
@@ -128,10 +136,13 @@ func TestFetchPaidFor(t *testing.T) {
 					t.Error("tx not found in database")
 					continue
 				}
+
+				// make sure the tx sig matches the one we got
 				if !h1.IsSameAs(tx.GetSigHash()) {
 					t.Error("hash mismatch")
 				}
 			default:
+				// make sure we dont get a positive result for a non-paid entry
 				h1, err := s1.FetchPaidFor(tx.Hash())
 				if err != nil {
 					t.Error(err)
