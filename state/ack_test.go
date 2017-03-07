@@ -154,3 +154,27 @@ func TestFetchPaidFor(t *testing.T) {
 		}
 	}
 }
+
+func TestFetchEntryByHash(t *testing.T) {
+	s1 := CreateAndPopulateTestState()
+	blocks := CreateFullTestBlockSet()
+
+	for _, block := range blocks {
+		for _, h := range block.EBlock.GetEntryHashes() {
+			// get the entry from the database
+			dentry, err := s1.FetchEntryByHash(h)
+			if err != nil {
+				t.Error("Could not fetch entry:", err)
+			}
+			if dentry == nil {
+				t.Error("entry not found in database")
+				continue
+			}
+
+			// make sure the entry hash matches the one we are looking for
+			if !h.IsSameAs(dentry.GetHash()) {
+				t.Error("mismatched entry")
+			}
+		}
+	}
+}
