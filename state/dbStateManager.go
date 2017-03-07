@@ -340,7 +340,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 }
 
 // a contains b, returns true
-func containsServer(haystack []interfaces.IFctServer, needle interfaces.IFctServer) bool {
+func containsServer(haystack []interfaces.IServer, needle interfaces.IServer) bool {
 	for _, hay := range haystack {
 		if needle.GetChainID().IsSameAs(hay.GetChainID()) {
 			return true

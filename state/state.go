@@ -1509,7 +1509,7 @@ func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
-func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.FedServers
@@ -1517,7 +1517,7 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.AuditServers
@@ -1525,9 +1525,9 @@ func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IServer {
 	allAuditServers := s.GetAuditServers(dbheight)
-	var onlineAuditServers []interfaces.IFctServer
+	var onlineAuditServers []interfaces.IServer
 
 	for _, server := range allAuditServers {
 		if server.IsOnline() {

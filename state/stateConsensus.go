@@ -1606,7 +1606,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	}
 
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
-	var theAuditReplacement interfaces.IFctServer
+	var theAuditReplacement interfaces.IServer
 
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {

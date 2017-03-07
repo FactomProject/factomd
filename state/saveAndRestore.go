@@ -24,8 +24,8 @@ type SaveState struct {
 	// DBState settings are fixed and cannot change going forward.  Any DBState objects higher than the
 	// DBHeight here must be tossed and reconstructed.
 
-	FedServers   []interfaces.IFctServer
-	AuditServers []interfaces.IFctServer
+	FedServers   []interfaces.IServer
+	AuditServers []interfaces.IServer
 
 	// The old balances must be restored
 	FactoidBalancesP map[[32]byte]int64

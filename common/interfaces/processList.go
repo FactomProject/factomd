@@ -12,7 +12,7 @@ type IProcessList interface {
 	SortFedServers()
 	SortAuditServers()
 	SortDBSigs()
-	FedServerFor(minute int, hash []byte) IFctServer
+	FedServerFor(minute int, hash []byte) IServer
 	GetVirtualServers(minute int, identityChainID IHash) (found bool, index int)
 	GetFedServerIndexHash(identityChainID IHash) (bool, int)
 	GetAuditServerIndexHash(identityChainID IHash) (bool, int)
