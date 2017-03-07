@@ -9,30 +9,21 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"math"
 	"time"
 )
+
+func has(s *State, entry interfaces.IHash) bool {
+	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
+	return exists
+}
 
 var _ = fmt.Print
 
 // This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
 // them if it finds entries in the missing lists.
 func (s *State) MakeMissingEntryRequests() {
-
-	all := make(map[[32]byte]int)
-	if false {
-		all_list, _ := s.DB.FetchAllEntryIDs()
-		for _, v := range all_list {
-			all[v.Fixed()] = 1
-		}
-	}
-	has := func(entry interfaces.IHash) bool {
-		if all[entry.Fixed()] == 1 {
-			return true
-		}
-		e, _ := s.DB.FetchEntry(entry)
-		return e != nil
-	}
 
 	startt := time.Now()
 
@@ -103,7 +94,7 @@ func (s *State) MakeMissingEntryRequests() {
 			// Remove all Entries that we have already found and recorded. "keep" the ones we are still looking for.
 			for _, v := range missinge {
 
-				if !has(v.entryhash) {
+				if !has(s, v.entryhash) {
 					keep = append(keep, v)
 				} else {
 					found++
@@ -335,6 +326,9 @@ func (s *State) GoSyncEntryBlocks() {
 		s.MissingEntryMutex.Lock()
 		t := len(s.MissingEntries)
 		s.MissingEntryMutex.Unlock()
+		if t == 0 {
+			time.Sleep(3 * time.Second)
+		}
 		time.Sleep(time.Duration(t/10) * time.Millisecond)
 
 	}
@@ -374,22 +368,6 @@ func (s *State) GoWriteEntries() {
 }
 
 func (s *State) GoSyncEntries() {
-
-	all := make(map[[32]byte]int)
-	if false {
-		all_list, _ := s.DB.FetchAllEntryIDs()
-		for _, v := range all_list {
-			all[v.Fixed()] = 1
-		}
-	}
-
-	has := func(entry interfaces.IHash) bool {
-		if all[entry.Fixed()] == 1 {
-			return true
-		}
-		e, _ := s.DB.FetchEntry(entry)
-		return e != nil
-	}
 
 	go s.GoWriteEntries() // Start a go routine to write the Entries to the DB
 	go s.GoSyncEntryBlocks()
@@ -442,7 +420,7 @@ func (s *State) GoSyncEntries() {
 					}
 
 					// If I have the entry, then remove it from the Missing Entries list.
-					if has(entryhash) {
+					if has(s, entryhash) {
 						// If I am missing the entry, add it to th eMissing Entries list
 					} else {
 						//Check lists and not add if already there.
@@ -490,9 +468,11 @@ func (s *State) GoSyncEntries() {
 		if len(s.MissingEntries) == 0 {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
 			starting = s.GetHighestSavedBlk()
+			s.MissingEntryMutex.Unlock()
+			time.Sleep(1 * time.Second)
+		} else {
+			s.MissingEntryMutex.Unlock()
 		}
-
-		s.MissingEntryMutex.Unlock()
 
 		// sleep some time no matter what.
 		time.Sleep(1 * time.Second)
