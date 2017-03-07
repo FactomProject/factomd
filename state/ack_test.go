@@ -95,3 +95,51 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 		}
 	}
 }
+
+func TestFetchPaidFor(t *testing.T) {
+	s1 := CreateAndPopulateTestState()
+	blocks := CreateFullTestBlockSet()
+
+	for _, block := range blocks {
+		for _, tx := range block.ECBlock.GetEntries() {
+			switch tx.ECID() {
+			case entryCreditBlock.ECIDEntryCommit:
+				eh := tx.(*entryCreditBlock.CommitEntry).EntryHash
+				h1, err := s1.FetchPaidFor(eh)
+				if err != nil {
+					t.Error("tx not found in database:", err)
+					continue
+				}
+				if h1 == nil {
+					t.Error("tx not found in database")
+					continue
+				}
+				if !h1.IsSameAs(tx.GetSigHash()) {
+					t.Error("hash mismatch")
+				}
+			case entryCreditBlock.ECIDChainCommit:
+				eh := tx.(*entryCreditBlock.CommitChain).EntryHash
+				h1, err := s1.FetchPaidFor(eh)
+				if err != nil {
+					t.Error("tx not found in database:", err)
+					continue
+				}
+				if h1 == nil {
+					t.Error("tx not found in database")
+					continue
+				}
+				if !h1.IsSameAs(tx.GetSigHash()) {
+					t.Error("hash mismatch")
+				}
+			default:
+				h1, err := s1.FetchPaidFor(tx.Hash())
+				if err != nil {
+					t.Error(err)
+				}
+				if h1 != nil {
+					t.Error("returned non-paid tx")
+				}
+			}
+		}
+	}
+}
