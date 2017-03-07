@@ -65,3 +65,33 @@ func TestFetchECTransactionByHash(t *testing.T) {
 		}
 	}
 }
+
+func TestFetchFactoidTransactionByHash(t *testing.T) {
+	s1 := CreateAndPopulateTestState()
+	blocks := CreateFullTestBlockSet()
+
+	for _, block := range blocks {
+		for _, tx := range block.FBlock.GetTransactions() {
+			dtx, err := s1.FetchFactoidTransactionByHash(tx.GetHash())
+			if err != nil {
+				t.Error("Could not fetch transaction:", err)
+			}
+			if dtx == nil {
+				t.Error("transaction not found in database")
+				continue
+			}
+
+			p1, err := tx.MarshalBinary()
+			if err != nil {
+				t.Error(err)
+			}
+			p2, err := tx.MarshalBinary()
+			if err != nil {
+				t.Error(err)
+			}
+			if !primitives.AreBytesEqual(p1, p2) {
+				t.Error("database transaction does not match transaction")
+			}
+		}
+	}
+}
