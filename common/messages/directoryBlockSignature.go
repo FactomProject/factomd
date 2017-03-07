@@ -124,7 +124,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	found, _ := state.GetVirtualServers(m.DBHeight, 0, m.ServerIdentityChainID)
+	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
 		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbht: %v Server not found %x %s",
