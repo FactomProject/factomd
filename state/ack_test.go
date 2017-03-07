@@ -57,7 +57,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			p2, err := tx.MarshalBinary()
+			p2, err := dtx.MarshalBinary()
 			if err != nil {
 				t.Error(err)
 			}
