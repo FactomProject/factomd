@@ -312,21 +312,6 @@ type State struct {
 	AckChange uint32
 }
 
-type MissingEntryBlock struct {
-	ebhash   interfaces.IHash
-	dbheight uint32
-}
-
-var _ interfaces.BinaryMarshallable = (*MissingEntryBlock)(nil)
-
-type MissingEntry struct {
-	ebhash    interfaces.IHash
-	entryhash interfaces.IHash
-	dbheight  uint32
-}
-
-var _ interfaces.BinaryMarshallable = (*MissingEntry)(nil)
-
 var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {

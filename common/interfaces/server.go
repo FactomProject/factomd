@@ -11,6 +11,8 @@ import (
 // This object will hold the public keys for servers that are not
 // us, and maybe other information about servers.
 type IServer interface {
+	BinaryMarshallable
+
 	GetChainID() IHash
 	String() string
 	GetName() string
@@ -28,6 +30,19 @@ type Server struct {
 }
 
 var _ IServer = (*Server)(nil)
+var _ BinaryMarshallable = (*Server)(nil)
+
+func (s *Server) MarshalBinary() ([]byte, error) {
+	return nil, nil
+}
+
+func (s *Server) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	return
+}
+
+func (s *Server) UnmarshalBinary(p []byte) error {
+	return nil
+}
 
 func (s *Server) GetName() string {
 	return s.Name

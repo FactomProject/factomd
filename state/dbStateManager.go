@@ -52,6 +52,20 @@ type DBState struct {
 	NextTimestamp     interfaces.Timestamp
 }
 
+var _ interfaces.BinaryMarshallable = (*DBState)(nil)
+
+func (dbs *DBState) MarshalBinary() ([]byte, error) {
+	return nil, nil
+}
+
+func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	return
+}
+
+func (dbs *DBState) UnmarshalBinary(p []byte) error {
+	return nil
+}
+
 type DBStateList struct {
 	SrcNetwork bool // True if I got this block from the network.
 
@@ -63,6 +77,20 @@ type DBStateList struct {
 	Base     uint32
 	Complete uint32
 	DBStates []*DBState
+}
+
+var _ interfaces.BinaryMarshallable = (*DBStateList)(nil)
+
+func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
+	return nil, nil
+}
+
+func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	return
+}
+
+func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
+	return nil
 }
 
 // Validate this directory block given the next Directory Block.  Need to check the

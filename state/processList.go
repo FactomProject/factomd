@@ -113,6 +113,18 @@ type ProcessList struct {
 var _ interfaces.IProcessList = (*ProcessList)(nil)
 var _ interfaces.BinaryMarshallable = (*ProcessList)(nil)
 
+func (pl *ProcessList) MarshalBinary() ([]byte, error) {
+	return nil, nil
+}
+
+func (pl *ProcessList) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	return
+}
+
+func (pl *ProcessList) UnmarshalBinary(p []byte) error {
+	return nil
+}
+
 func (p *ProcessList) GetAmINegotiator() bool {
 	return p.AmINegotiator
 }
