@@ -317,11 +317,15 @@ type MissingEntryBlock struct {
 	dbheight uint32
 }
 
+var _ interfaces.BinaryMarshallable = (*MissingEntryBlock)(nil)
+
 type MissingEntry struct {
 	ebhash    interfaces.IHash
 	entryhash interfaces.IHash
 	dbheight  uint32
 }
+
+var _ interfaces.BinaryMarshallable = (*MissingEntry)(nil)
 
 var _ interfaces.IState = (*State)(nil)
 

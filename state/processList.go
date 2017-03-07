@@ -111,6 +111,7 @@ type ProcessList struct {
 }
 
 var _ interfaces.IProcessList = (*ProcessList)(nil)
+var _ interfaces.BinaryMarshallable = (*ProcessList)(nil)
 
 func (p *ProcessList) GetAmINegotiator() bool {
 	return p.AmINegotiator

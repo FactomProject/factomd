@@ -100,6 +100,8 @@ type SaveState struct {
 	FERPrioritySetHeight uint32
 }
 
+var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
+
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss = new(SaveState)
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
@@ -454,4 +456,16 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.FERChangePrice = ss.FERChangePrice
 	state.FERPriority = ss.FERPriority
 	state.FERPrioritySetHeight = ss.FERPrioritySetHeight
+}
+
+func (ss *SaveState) MarshalBinary() ([]byte, error) {
+	return nil, nil
+}
+
+func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	return
+}
+
+func (ss *SaveState) UnmarshalBinary(p []byte) error {
+	return nil
 }

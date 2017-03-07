@@ -11,6 +11,8 @@ import (
 // This object will hold the public keys for servers that are not
 // us, and maybe other information about servers.
 type IFctServer interface {
+	interfaces.BinaryMarshallable
+
 	GetChainID() IHash
 	String() string
 	GetName() string
@@ -28,6 +30,7 @@ type FctServer struct {
 }
 
 var _ IFctServer = (*FctServer)(nil)
+var _ interfaces.BinaryMarshallable = (*FctServer)(nil)
 
 func (s *FctServer) GetChainID() IHash {
 	return s.ChainID
