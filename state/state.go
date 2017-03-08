@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -1430,6 +1431,24 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 		f.WriteString(str)
 		f.Close()
 	}
+}
+
+func (s *State) GetJournal() string {
+	if !s.Journaling || s.JournalFile == "" {
+		return ""
+	}
+	
+	f, err := os.Open(s.JournalFile)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	
+	p, err := ioutil.ReadAll(f)
+	if err != nil {
+		return ""
+	}
+	return string(p)
 }
 
 func (s *State) GetLeaderVM() int {

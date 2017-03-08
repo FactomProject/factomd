@@ -104,6 +104,9 @@ func HandleDebugRequest(
 	case "holding-queue":
 		resp, jsonError = HandleHoldingQueue(state, params)
 		break
+	case "messages":
+		resp, jsonError = HandleMessages(state, params)
+		break
 	case "network-info":
 		resp, jsonError = HandleNetworkInfo(state, params)
 		break
@@ -303,6 +306,21 @@ func HandleHoldingQueue(
 	for _, v := range state.LoadHoldingMap() {
 		r.Messages = append(r.Messages, v)
 	}
+	return r, nil
+}
+
+func HandleMessages(
+	state interfaces.IState,
+	params interface{},
+) (
+	interface{},
+	*primitives.JSONError,
+) {
+	type ret struct {
+		MessageLog string
+	}
+	r := new(ret)
+	r.MessageLog = state.GetJournal()
 	return r, nil
 }
 
