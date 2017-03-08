@@ -667,7 +667,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		}
 
 		for i, missing := range s.MissingEntryBlocks {
-			eb := missing.ebhash
+			eb := missing.EBHash
 			if !eb.IsSameAs(ebKeyMR) {
 				continue
 			}
@@ -694,7 +694,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		}
 
 		for i, missing := range s.MissingEntries {
-			e := missing.entryhash
+			e := missing.EntryHash
 
 			if e.Fixed() == entry.GetHash().Fixed() {
 				s.DB.InsertEntry(entry)

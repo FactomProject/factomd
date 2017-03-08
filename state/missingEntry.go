@@ -6,43 +6,142 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 type MissingEntryBlock struct {
-	ebhash   interfaces.IHash
-	dbheight uint32
+	EBHash   interfaces.IHash
+	DBHeight uint32
 }
 
 var _ interfaces.BinaryMarshallable = (*MissingEntryBlock)(nil)
 
+func RandomMissingEntryBlock() *MissingEntryBlock {
+	meb := new(MissingEntryBlock)
+	meb.EBHash = primitives.RandomHash()
+	meb.DBHeight = random.RandUInt32()
+	return meb
+}
+
+func (s *MissingEntryBlock) IsSameAs(b *MissingEntryBlock) bool {
+	if s.EBHash.IsSameAs(b.EBHash) == false {
+		return false
+	}
+	return s.DBHeight == b.DBHeight
+}
+
 func (s *MissingEntryBlock) MarshalBinary() ([]byte, error) {
-	return nil, nil
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBinaryMarshallable(s.EBHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(s.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (s *MissingEntryBlock) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	s.EBHash = primitives.NewZeroHash()
+
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	err = buf.PopBinaryMarshallable(s.EBHash)
+	if err != nil {
+		return
+	}
+
+	s.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
 	return
 }
 
 func (s *MissingEntryBlock) UnmarshalBinary(p []byte) error {
-	return nil
+	_, err := s.UnmarshalBinaryData(p)
+	return err
 }
 
 type MissingEntry struct {
-	ebhash    interfaces.IHash
-	entryhash interfaces.IHash
-	dbheight  uint32
+	EBHash    interfaces.IHash
+	EntryHash interfaces.IHash
+	DBHeight  uint32
 }
 
 var _ interfaces.BinaryMarshallable = (*MissingEntry)(nil)
 
+func RandomMissingEntry() *MissingEntry {
+	me := new(MissingEntry)
+	me.EBHash = primitives.RandomHash()
+	me.EntryHash = primitives.RandomHash()
+	me.DBHeight = random.RandUInt32()
+	return me
+}
+
+func (s *MissingEntry) IsSameAs(b *MissingEntry) bool {
+	if s.EBHash.IsSameAs(b.EBHash) == false {
+		return false
+	}
+	if s.EntryHash.IsSameAs(b.EntryHash) == false {
+		return false
+	}
+	return s.DBHeight == b.DBHeight
+}
+
 func (s *MissingEntry) MarshalBinary() ([]byte, error) {
-	return nil, nil
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBinaryMarshallable(s.EBHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(s.EntryHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(s.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (s *MissingEntry) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	s.EBHash = primitives.NewZeroHash()
+	s.EntryHash = primitives.NewZeroHash()
+
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	err = buf.PopBinaryMarshallable(s.EBHash)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(s.EntryHash)
+	if err != nil {
+		return
+	}
+
+	s.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
 	return
 }
 
 func (s *MissingEntry) UnmarshalBinary(p []byte) error {
-	return nil
+	_, err := s.UnmarshalBinaryData(p)
+	return err
 }

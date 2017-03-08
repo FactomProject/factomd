@@ -23,7 +23,7 @@ func (s *State) setTimersMakeRequests() {
 		s.MissingEntryBlockRepeat = now
 
 		for _, eb := range s.MissingEntryBlocks {
-			eBlockRequest := messages.NewMissingData(s, eb.ebhash)
+			eBlockRequest := messages.NewMissingData(s, eb.EBHash)
 			s.NetworkOutMsgQueue() <- eBlockRequest
 		}
 	}
@@ -47,7 +47,7 @@ func (s *State) setTimersMakeRequests() {
 					// Only send out 200 requests at a time.
 					break
 				}
-				entryRequest := messages.NewMissingData(s, eb.entryhash)
+				entryRequest := messages.NewMissingData(s, eb.EntryHash)
 				s.NetworkOutMsgQueue() <- entryRequest
 			}
 		}
@@ -80,7 +80,7 @@ func (s *State) syncEntryBlocks() {
 				// Check lists and not add if already there.
 				addit := true
 				for _, eb := range s.MissingEntryBlocks {
-					if eb.ebhash.Fixed() == ebKeyMR.Fixed() {
+					if eb.EBHash.Fixed() == ebKeyMR.Fixed() {
 						addit = false
 						break
 					}
@@ -88,7 +88,7 @@ func (s *State) syncEntryBlocks() {
 
 				if addit {
 					s.MissingEntryBlocks = append(s.MissingEntryBlocks,
-						MissingEntryBlock{ebhash: ebKeyMR, dbheight: s.EntryBlockDBHeightProcessing})
+						MissingEntryBlock{EBHash: ebKeyMR, DBHeight: s.EntryBlockDBHeightProcessing})
 				}
 				// Something missing, stop moving the bookmark.
 				alldone = false
@@ -128,16 +128,16 @@ func (s *State) syncEntries(eights bool) {
 				break
 			}
 
-			for _, entryhash := range eBlock.GetEntryHashes() {
-				if entryhash.IsMinuteMarker() {
+			for _, EntryHash := range eBlock.GetEntryHashes() {
+				if EntryHash.IsMinuteMarker() {
 					continue
 				}
-				e, _ := s.DB.FetchEntry(entryhash)
+				e, _ := s.DB.FetchEntry(EntryHash)
 				if e == nil {
 					//Check lists and not add if already there.
 					addit := true
 					for _, e := range s.MissingEntries {
-						if e.ebhash.Fixed() == entryhash.Fixed() {
+						if e.EBHash.Fixed() == EntryHash.Fixed() {
 							addit = false
 							break
 						}
@@ -146,9 +146,9 @@ func (s *State) syncEntries(eights bool) {
 					if addit {
 						var v MissingEntry
 
-						v.dbheight = eBlock.GetHeader().GetDBHeight()
-						v.entryhash = entryhash
-						v.ebhash = ebKeyMR
+						v.DBHeight = eBlock.GetHeader().GetDBHeight()
+						v.EntryHash = EntryHash
+						v.EBHash = ebKeyMR
 
 						s.MissingEntries = append(s.MissingEntries, v)
 					}
@@ -156,10 +156,10 @@ func (s *State) syncEntries(eights bool) {
 					alldone = false
 				}
 				// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
-				s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
+				s.Replay.SetHashNow(constants.REVEAL_REPLAY, EntryHash.Fixed(), db.GetTimestamp())
 				// If the save worked, then remove any commit that might be around.
-				if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
-					delete(s.Commits, entryhash.Fixed())
+				if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, EntryHash.Fixed()) {
+					delete(s.Commits, EntryHash.Fixed())
 				}
 			}
 		}
