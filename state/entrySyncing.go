@@ -324,9 +324,9 @@ func (s *State) GoSyncEntryBlocks() {
 			}
 		}
 		s.MissingEntryMutex.Lock()
-		t := len(s.MissingEntries)
+		t := len(s.MissingEntryBlocks)
 		s.MissingEntryMutex.Unlock()
-		if t == 0 {
+		if t <= 3 {
 			time.Sleep(3 * time.Second)
 		}
 		time.Sleep(time.Duration(t/10) * time.Millisecond)

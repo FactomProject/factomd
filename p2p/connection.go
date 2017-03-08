@@ -22,6 +22,7 @@ import (
 // (defined below).
 type Connection struct {
 	conn           net.Conn
+	sendChan       chan *Parcel     // Used to order sends
 	SendChannel    chan interface{} // Send means "towards the network" Channel sends Parcels and ConnectionCommands
 	ReceiveChannel chan interface{} // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
 	// and as "address" for sending messages to specific nodes.
@@ -203,6 +204,8 @@ func (c *Connection) Start() {
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
 // runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
 func (c *Connection) runLoop() {
+	go c.processSends()
+
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		c.updateStats() // Update controller with metrics
@@ -221,7 +224,7 @@ func (c *Connection) runLoop() {
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
-			c.processSends()
+
 			c.processReceives() // We may get messages that change state (Eg: loopback error)
 			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
@@ -370,22 +373,21 @@ func (c *Connection) goShutdown() {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
-	// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
-	for i := 0; i < 100 && 0 < len(c.SendChannel) && ConnectionOnline == c.state; i++ {
-		message := <-c.SendChannel
-		switch message.(type) {
-		case ConnectionParcel:
-			verbose(c.peer.PeerIdent(), "processSends() ConnectionParcel")
-			parameters := message.(ConnectionParcel)
-			parameters.Parcel.Trace("Connection.processSends()", "e")
-			c.sendParcel(parameters.Parcel)
-		case ConnectionCommand:
-			verbose(c.peer.PeerIdent(), "processSends() ConnectionCommand")
-			parameters := message.(ConnectionCommand)
-			c.handleCommand(parameters)
-		default:
-			logfatal(c.peer.PeerIdent(), "processSends() unknown message?: %+v ", message)
+	for ConnectionClosed != c.state {
+		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
+		for ConnectionOnline == c.state {
+			message := <-c.SendChannel
+			switch message.(type) {
+			case ConnectionParcel:
+				parameters := message.(ConnectionParcel)
+				c.sendParcel(parameters.Parcel)
+			case ConnectionCommand:
+				parameters := message.(ConnectionCommand)
+				c.handleCommand(parameters)
+			default:
+			}
 		}
+		time.Sleep(300 * time.Millisecond)
 	}
 }
 
@@ -419,9 +421,7 @@ func (c *Connection) handleCommand(command ConnectionCommand) {
 }
 
 func (c *Connection) sendParcel(parcel Parcel) {
-	debug(c.peer.PeerIdent(), "sendParcel() sending message to network of type: %s", parcel.MessageType())
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
-	verbose(c.peer.PeerIdent(), "sendParcel() Sanity check. State: %s Encoder: %+v, Parcel: %s", c.ConnectionState(), c.encoder, parcel.MessageType())
 	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500))
 
 	//deadline := time.Now().Add(NetworkDeadline)
@@ -431,7 +431,6 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	//}
 	//c.conn.SetWriteDeadline(deadline)
 
-	parcel.Trace("Connection.sendParcel().encoder.Encode(parcel)", "f")
 	err := c.encoder.Encode(parcel)
 	switch {
 	case nil == err:
