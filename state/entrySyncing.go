@@ -453,25 +453,24 @@ func (s *State) GoSyncEntries() {
 
 			if alldone && len(s.MissingEntries) == 0 && len(newentries) == 0 {
 				starting = scan
-				if scan > s.EntryDBHeightComplete {
-					s.EntryDBHeightComplete = scan
-				}
 			}
 			scan++
 			s.MissingEntryMutex.Unlock()
 		}
 
+		zerolen := false
 		s.MissingEntryMutex.Lock()
-
 		s.MissingEntries = append(s.MissingEntries, newentries...)
+		zerolen = len(s.MissingEntries) == 0
 
-		if len(s.MissingEntries) == 0 {
+		if zerolen {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
 			starting = s.GetHighestSavedBlk()
-			s.MissingEntryMutex.Unlock()
-			time.Sleep(1 * time.Second)
-		} else {
-			s.MissingEntryMutex.Unlock()
+		}
+		s.MissingEntryMutex.Unlock()
+
+		if zerolen {
+			time.Sleep(2 * time.Second)
 		}
 
 		// sleep some time no matter what.
