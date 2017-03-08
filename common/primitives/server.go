@@ -5,8 +5,6 @@
 package primitives
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -62,38 +60,22 @@ func (s *Server) IsSameAs(b interfaces.IServer) bool {
 func (s *Server) MarshalBinary() ([]byte, error) {
 	buf := new(Buffer)
 
-	b := s.ChainID.Bytes()
-	_, err := buf.Write(b)
+	err := buf.PushBinaryMarshallable(s.ChainID)
 	if err != nil {
 		return nil, err
 	}
 
-	l := uint32(len(s.Name))
-	err = binary.Write(buf, binary.BigEndian, &l)
+	err = buf.PushString(s.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = buf.Write([]byte(s.Name))
+	err = buf.PushBool(s.Online)
 	if err != nil {
 		return nil, err
 	}
-	if s.Online == false {
-		err = buf.WriteByte(0x00)
-		if err != nil {
-			panic(err)
-			return nil, err
-		}
-	} else {
-		err = buf.WriteByte(0x01)
-		if err != nil {
-			panic(err)
-			return nil, err
-		}
-	}
 
-	b = s.Replace.Bytes()
-	_, err = buf.Write(b)
+	err = buf.PushBinaryMarshallable(s.Replace)
 	if err != nil {
 		return nil, err
 	}
@@ -103,58 +85,31 @@ func (s *Server) MarshalBinary() ([]byte, error) {
 
 func (s *Server) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	s.Init()
-	buf := bytes.NewBuffer(p)
-
-	hash := make([]byte, 32)
+	buf := NewBuffer(p)
 	newData = p
 
-	_, err = buf.Read(hash)
-	if err != nil {
-		return
-	} else {
-		err = s.ChainID.UnmarshalBinary(hash)
-		if err != nil {
-			panic(err)
-			return
-		}
-	}
-
-	var strLen uint32
-
-	err = binary.Read(buf, binary.BigEndian, &strLen)
+	err = buf.PopBinaryMarshallable(s.ChainID)
 	if err != nil {
 		return
 	}
-	fmt.Printf("Len - %v\n", strLen)
 
-	str := make([]byte, int(strLen))
-
-	_, err = buf.Read(str)
+	s.Name, err = buf.PopString()
 	if err != nil {
 		return
-	} else {
-		s.Name = string(str)
 	}
 
-	b, err := buf.ReadByte()
+	s.Online, err = buf.PopBool()
 	if err != nil {
 		return
-	} else {
-		s.Online = b > 0x00
 	}
 
-	_, err = buf.Read(hash)
+	err = buf.PopBinaryMarshallable(s.Replace)
+
 	if err != nil {
 		return
-	} else {
-		err = s.Replace.UnmarshalBinary(hash)
-		if err != nil {
-			panic(err)
-			return
-		}
 	}
 
-	newData = buf.Bytes()
+	newData = buf.DeepCopyBytes()
 	return
 }
 
@@ -189,4 +144,12 @@ func (s *Server) LeaderToReplace() interfaces.IHash {
 
 func (s *Server) SetReplace(h interfaces.IHash) {
 	s.Replace = h
+}
+
+func (e *Server) JSONByte() ([]byte, error) {
+	return EncodeJSON(e)
+}
+
+func (e *Server) JSONString() (string, error) {
+	return EncodeJSONString(e)
 }

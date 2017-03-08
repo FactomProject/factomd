@@ -8,9 +8,9 @@ package interfaces
 // us, and maybe other information about servers.
 type IServer interface {
 	BinaryMarshallable
+	Printable
 
 	GetChainID() IHash
-	String() string
 	GetName() string
 	IsOnline() bool
 	SetOnline(bool)
