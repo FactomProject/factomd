@@ -42,6 +42,7 @@ func (s *State) MakeMissingEntryRequests() {
 	found := 0
 
 	for {
+		callTime := time.Now().UnixNano() // Prometheus Start
 		now := time.Now()
 		newfound := 0
 		newrequest := 0
@@ -236,6 +237,7 @@ func (s *State) MakeMissingEntryRequests() {
 			if et.cnt == 0 || now.Unix()-et.lastRequest.Unix() > 40 {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
+				stateEntrySyncRequestEntryCounter.Add(1) // Prometheus
 				newrequest++
 				if len(InPlay) > 500 {
 					time.Sleep(time.Duration(len(InPlay)/10) * time.Millisecond)
@@ -257,6 +259,7 @@ func (s *State) MakeMissingEntryRequests() {
 
 		update()
 		feedback()
+		stateEntrySyncMakeMissingEntryRequestsLoopTime.Observe(float64(time.Now().UnixNano() - callTime)) // Prometheus
 	}
 }
 
@@ -356,6 +359,7 @@ func (s *State) GoWriteEntries() {
 
 					if e.Fixed() == entry.GetHash().Fixed() {
 						s.DB.InsertEntry(entry)
+						stateEntrySyncWriteEntryCounter.Add(1) // Prometheus
 						break
 					}
 				}
