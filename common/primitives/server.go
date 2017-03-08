@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 type Server struct {
@@ -31,19 +32,43 @@ func (s *Server) Init() {
 	}
 }
 
+func RandomServer() interfaces.IServer {
+	s := new(Server)
+	s.Init()
+	s.ChainID = RandomHash()
+	s.Name = random.RandomString()
+	s.Online = (random.RandInt()%2 == 0)
+	s.Replace = RandomHash()
+	return s
+}
+
+func (s *Server) IsSameAs(b interfaces.IServer) bool {
+	serv := b.(*Server)
+	if s.ChainID.IsSameAs(serv.ChainID) == false {
+		return false
+	}
+	if s.Name != serv.Name {
+		return false
+	}
+	if s.Online != serv.Online {
+		return false
+	}
+	if s.Replace.IsSameAs(serv.Replace) == false {
+		return false
+	}
+	return true
+}
+
 func (s *Server) MarshalBinary() ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
+	buf := new(Buffer)
 
-	b, err := s.ChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Read(b)
+	b := s.ChainID.Bytes()
+	_, err := buf.Write(b)
 	if err != nil {
 		return nil, err
 	}
 
-	l := len(s.Name)
+	l := uint32(len(s.Name))
 	err = binary.Write(buf, binary.BigEndian, &l)
 	if err != nil {
 		return nil, err
@@ -56,25 +81,24 @@ func (s *Server) MarshalBinary() ([]byte, error) {
 	if s.Online == false {
 		err = buf.WriteByte(0x00)
 		if err != nil {
+			panic(err)
 			return nil, err
 		}
 	} else {
 		err = buf.WriteByte(0x01)
 		if err != nil {
+			panic(err)
 			return nil, err
 		}
 	}
 
-	b, err = s.Replace.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Read(b)
+	b = s.Replace.Bytes()
+	_, err = buf.Write(b)
 	if err != nil {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (s *Server) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
@@ -90,18 +114,20 @@ func (s *Server) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	} else {
 		err = s.ChainID.UnmarshalBinary(hash)
 		if err != nil {
+			panic(err)
 			return
 		}
 	}
 
-	strLen := 0
+	var strLen uint32
 
 	err = binary.Read(buf, binary.BigEndian, &strLen)
 	if err != nil {
 		return
 	}
+	fmt.Printf("Len - %v\n", strLen)
 
-	str := make([]byte, strLen)
+	str := make([]byte, int(strLen))
 
 	_, err = buf.Read(str)
 	if err != nil {
@@ -123,6 +149,7 @@ func (s *Server) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	} else {
 		err = s.Replace.UnmarshalBinary(hash)
 		if err != nil {
+			panic(err)
 			return
 		}
 	}

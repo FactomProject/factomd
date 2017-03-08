@@ -16,4 +16,6 @@ type IServer interface {
 	SetOnline(bool)
 	LeaderToReplace() IHash
 	SetReplace(IHash)
+
+	IsSameAs(b IServer) bool
 }
