@@ -711,7 +711,7 @@ func (s *State) Init() {
 	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)       //Handles entry hashes and updating Commit maps.
+	s.UpdateEntryHash = make(chan *EntryUpdate, 100000)      //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, 20000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)

@@ -378,7 +378,7 @@ func (c *Connection) processSends() {
 			verbose(c.peer.PeerIdent(), "processSends() ConnectionParcel")
 			parameters := message.(ConnectionParcel)
 			parameters.Parcel.Trace("Connection.processSends()", "e")
-			c.sendParcel(parameters.Parcel)
+			go c.sendParcel(parameters.Parcel)
 		case ConnectionCommand:
 			verbose(c.peer.PeerIdent(), "processSends() ConnectionCommand")
 			parameters := message.(ConnectionCommand)
