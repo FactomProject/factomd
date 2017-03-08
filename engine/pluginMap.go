@@ -47,7 +47,7 @@ func LaunchConsulPlugin(path string, addr string) (interfaces.IConsulManager, er
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: handshakeConfig,
 		Plugins:         pluginMap,
-		Cmd:             exec.Command("consul-manager", "plugin", addr),
+		Cmd:             exec.Command(path+"consul-manager", "plugin", addr),
 	})
 
 	c := make(chan os.Signal, 2)
