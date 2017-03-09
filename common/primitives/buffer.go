@@ -51,7 +51,19 @@ func (b *Buffer) PushBytes(h []byte) error {
 	return nil
 }
 
+func (b *Buffer) Push(h []byte) error {
+	_, err := b.Write(h)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (b *Buffer) PushUInt32(i uint32) error {
+	return binary.Write(b, binary.BigEndian, &i)
+}
+
+func (b *Buffer) PushUInt64(i uint64) error {
 	return binary.Write(b, binary.BigEndian, &i)
 }
 
@@ -82,6 +94,15 @@ func (b *Buffer) PopVarInt() (uint64, error) {
 
 func (b *Buffer) PopUInt32() (uint32, error) {
 	var i uint32
+	err := binary.Read(b, binary.BigEndian, &i)
+	if err != nil {
+		return 0, err
+	}
+	return i, nil
+}
+
+func (b *Buffer) PopUInt64() (uint64, error) {
+	var i uint64
 	err := binary.Read(b, binary.BigEndian, &i)
 	if err != nil {
 		return 0, err

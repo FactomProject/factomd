@@ -12,9 +12,13 @@ import (
 	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -54,16 +58,228 @@ type DBState struct {
 
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
 
+func (dbs *DBState) Init() {
+	if dbs.SaveStruct == nil {
+		dbs.SaveStruct = new(SaveState)
+	}
+
+	if dbs.DBHash == nil {
+		dbs.DBHash = primitives.NewZeroHash()
+	}
+	if dbs.ABHash == nil {
+		dbs.ABHash = primitives.NewZeroHash()
+	}
+	if dbs.FBHash == nil {
+		dbs.FBHash = primitives.NewZeroHash()
+	}
+	if dbs.ECHash == nil {
+		dbs.ECHash = primitives.NewZeroHash()
+	}
+
+	if dbs.DirectoryBlock == nil {
+		dbs.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
+	}
+	if dbs.AdminBlock == nil {
+		dbs.AdminBlock = adminBlock.NewAdminBlock(nil)
+	}
+	if dbs.FactoidBlock == nil {
+		dbs.FactoidBlock = factoid.NewFBlock(nil)
+	}
+	if dbs.EntryCreditBlock == nil {
+		dbs.EntryCreditBlock = entryCreditBlock.NewECBlock()
+	}
+
+	if dbs.Added == nil {
+		dbs.Added = primitives.NewTimestampFromMilliseconds(0)
+	}
+	if dbs.NextTimestamp == nil {
+		dbs.NextTimestamp = primitives.NewTimestampFromMilliseconds(0)
+	}
+}
+
 func (dbs *DBState) MarshalBinary() ([]byte, error) {
-	return nil, nil
+	b := primitives.NewBuffer(nil)
+
+	err := b.PushBool(dbs.IsNew)
+	if err != nil {
+		return nil, err
+	}
+	//TODO:Handle SaveStruct
+	err = b.PushBinaryMarshallable(dbs.DBHash)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.ABHash)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.FBHash)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.ECHash)
+	if err != nil {
+		return nil, err
+	}
+
+	l := len(dbs.EntryBlocks)
+	err = b.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range dbs.EntryBlocks {
+		err = b.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	h, err := entryBlock.MarshalEntryList(dbs.Entries)
+	if err != nil {
+		return nil, err
+	}
+	err = b.Push(h)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBool(dbs.ReadyToSave)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Locked)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Signed)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Saved)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBinaryMarshallable(dbs.Added)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushUInt64(dbs.FinalExchangeRate)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.NextTimestamp)
+	if err != nil {
+		return nil, err
+	}
+	return b.DeepCopyBytes(), nil
 }
 
 func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	dbs.Init()
+	newData = p
+	b := primitives.NewBuffer(p)
+
+	dbs.IsNew, err = b.PopBool()
+	if err != nil {
+		return
+	}
+
+	//TODO:Handle SaveStruct
+
+	err = b.PopBinaryMarshallable(dbs.DBHash)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.ABHash)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.FBHash)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.ECHash)
+	if err != nil {
+		return
+	}
+
+	err = b.PopBinaryMarshallable(dbs.DirectoryBlock)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.AdminBlock)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.FactoidBlock)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.EntryCreditBlock)
+	if err != nil {
+		return
+	}
+
+	l, err := b.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		eb := entryBlock.NewEBlock()
+		err = b.PopBinaryMarshallable(eb)
+		if err != nil {
+			return
+		}
+		dbs.EntryBlocks = append(dbs.EntryBlocks, eb)
+	}
+
+	entries, rest, err := entryBlock.UnmarshalEntryList(b.DeepCopyBytes())
+	if err != nil {
+		return
+	}
+	dbs.Entries = entries
+	b = primitives.NewBuffer(rest)
+
+	dbs.ReadyToSave, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Locked, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Signed, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Saved, err = b.PopBool()
+	if err != nil {
+		return
+	}
+
+	err = b.PopBinaryMarshallable(dbs.Added)
+	if err != nil {
+		return
+	}
+
+	dbs.FinalExchangeRate, err = b.PopUInt64()
+	if err != nil {
+		return
+	}
+
+	err = b.PopBinaryMarshallable(dbs.NextTimestamp)
+	if err != nil {
+		return
+	}
+
+	newData = b.DeepCopyBytes()
 	return
 }
 
 func (dbs *DBState) UnmarshalBinary(p []byte) error {
-	return nil
+	_, err := dbs.UnmarshalBinaryData(p)
+	return err
 }
 
 type DBStateList struct {
