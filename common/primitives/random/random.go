@@ -18,6 +18,10 @@ func RandUInt32() uint32 {
 	return uint32(RandUInt64Between(0, math.MaxUint32))
 }
 
+func RandUInt8() uint8 {
+	return uint8(RandUInt64Between(0, math.MaxUint8))
+}
+
 func RandUInt64Between(min, max uint64) uint64 {
 	if min >= max {
 		return 0

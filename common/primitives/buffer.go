@@ -65,6 +65,21 @@ func (b *Buffer) PushBool(boo bool) error {
 	return err
 }
 
+func (b *Buffer) PushVarInt(vi uint64) error {
+	return EncodeVarInt(b, vi)
+}
+
+func (b *Buffer) PopVarInt() (uint64, error) {
+	h := b.DeepCopyBytes()
+	l, rest := DecodeVarInt(h)
+	b.Reset()
+	_, err := b.Write(rest)
+	if err != nil {
+		return 0, err
+	}
+	return l, nil
+}
+
 func (b *Buffer) PopUInt32() (uint32, error) {
 	var i uint32
 	err := binary.Read(b, binary.BigEndian, &i)

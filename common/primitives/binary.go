@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 func AreBytesEqual(b1, b2 []byte) bool {
@@ -333,6 +334,13 @@ var _ interfaces.Printable = (*ByteSlice)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*ByteSlice)(nil)
 
+func RandomByteSlice() *ByteSlice {
+	bs := new(ByteSlice)
+	x := random.RandNonEmptyByteSlice()
+	bs.UnmarshalBinary(x)
+	return bs
+}
+
 func StringToByteSlice(s string) *ByteSlice {
 	bin, err := DecodeBinary(s)
 	if err != nil {
@@ -344,6 +352,17 @@ func StringToByteSlice(s string) *ByteSlice {
 		return nil
 	}
 	return bs
+}
+
+func (bs *ByteSlice) IsSameAs(b *ByteSlice) bool {
+	if b == nil {
+		if bs == nil {
+			return true
+		} else {
+			return false
+		}
+	}
+	return AreBytesEqual(bs.Bytes, b.Bytes)
 }
 
 func (bs *ByteSlice) New() interfaces.BinaryMarshallableAndCopyable {
