@@ -18,7 +18,7 @@ func TestIsStateFullySynced(t *testing.T) {
 	s1_good := CreateAndPopulateTestState()
 	t.Log("IsStateFullySynced():", s1_good.IsStateFullySynced())
 	if !s1_good.IsStateFullySynced() {
-		t.Error("test state is show to be not fully synced")
+		t.Error("Test state is shown not to be fully synced")
 	}
 
 	//// we can't test the negative here because when we set the bad DBHeight the
@@ -48,7 +48,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 				t.Error("Could not fetch transaction:", err)
 			}
 			if dtx == nil {
-				t.Error("transaction not found in database")
+				t.Error("Transaction not found in database")
 				continue
 			}
 
@@ -62,7 +62,7 @@ func TestFetchECTransactionByHash(t *testing.T) {
 				t.Error(err)
 			}
 			if !primitives.AreBytesEqual(p1, p2) {
-				t.Error("database transaction does not match transaction")
+				t.Error("Database transaction does not match transaction")
 			}
 		}
 	}
@@ -80,7 +80,7 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 				t.Error("Could not fetch transaction:", err)
 			}
 			if dtx == nil {
-				t.Error("transaction not found in database")
+				t.Error("Transaction not found in database")
 				continue
 			}
 
@@ -94,7 +94,7 @@ func TestFetchFactoidTransactionByHash(t *testing.T) {
 				t.Error(err)
 			}
 			if !primitives.AreBytesEqual(p1, p2) {
-				t.Error("database transaction does not match transaction")
+				t.Error("Database transaction does not match transaction")
 			}
 		}
 	}
@@ -112,34 +112,34 @@ func TestFetchPaidFor(t *testing.T) {
 				eh := tx.(*entryCreditBlock.CommitEntry).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
 				if err != nil {
-					t.Error("tx not found in database:", err)
+					t.Error("Transaction not found in database:", err)
 					continue
 				}
 				if h1 == nil {
-					t.Error("tx not found in database")
+					t.Error("Transaction not found in database")
 					continue
 				}
 
 				// make sure the tx sig matches the one we got
 				if !h1.IsSameAs(tx.GetSigHash()) {
-					t.Error("hash mismatch")
+					t.Error("Hash mismatch")
 				}
 			case entryCreditBlock.ECIDChainCommit:
 				// check that we can get the hash for the paid chain commit
 				eh := tx.(*entryCreditBlock.CommitChain).EntryHash
 				h1, err := s1.FetchPaidFor(eh)
 				if err != nil {
-					t.Error("tx not found in database:", err)
+					t.Error("Transaction not found in database:", err)
 					continue
 				}
 				if h1 == nil {
-					t.Error("tx not found in database")
+					t.Error("Transaction not found in database")
 					continue
 				}
 
 				// make sure the tx sig matches the one we got
 				if !h1.IsSameAs(tx.GetSigHash()) {
-					t.Error("hash mismatch")
+					t.Error("Hash mismatch")
 				}
 			default:
 				// make sure we dont get a positive result for a non-paid entry
@@ -148,7 +148,7 @@ func TestFetchPaidFor(t *testing.T) {
 					t.Error(err)
 				}
 				if h1 != nil {
-					t.Error("returned non-paid tx")
+					t.Error("Found non-paid transaction")
 				}
 			}
 		}
@@ -167,13 +167,13 @@ func TestFetchEntryByHash(t *testing.T) {
 				t.Error("Could not fetch entry:", err)
 			}
 			if dentry == nil {
-				t.Error("entry not found in database")
+				t.Error("Entry not found in database")
 				continue
 			}
 
 			// make sure the entry hash matches the one we are looking for
 			if !h.IsSameAs(dentry.GetHash()) {
-				t.Error("mismatched entry")
+				t.Error("Mismatched entry")
 			}
 		}
 	}
