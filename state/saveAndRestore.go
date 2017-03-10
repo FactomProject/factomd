@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Because we have to go back to a previous state should the network be partictoned and we are on a separate
@@ -459,7 +460,140 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 }
 
 func (ss *SaveState) MarshalBinary() ([]byte, error) {
-	return nil, nil
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushUInt32(ss.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	l := len(ss.FedServers)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.FedServers {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	l = len(ss.AuditServers)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.AuditServers {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	l = len(ss.FactoidBalancesP)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range ss.FactoidBalancesP {
+		err = buf.Push(k[:])
+		if err != nil {
+			return nil, err
+		}
+		err = buf.PushUInt64(uint64(v))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	l = len(ss.ECBalancesP)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range ss.ECBalancesP {
+		err = buf.Push(k[:])
+		if err != nil {
+			return nil, err
+		}
+		err = buf.PushUInt64(uint64(v))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	/*
+		Identities           []*Identity  // Identities of all servers in management chain
+		Authorities          []*Authority // Identities of all servers in management chain
+		AuthorityServerCount int          // number of federated or audit servers allowed
+
+		// Server State
+		LLeaderHeight uint32
+		Leader        bool
+		LeaderVMIndex int
+		LeaderPL      *ProcessList
+		CurrentMinute int
+
+		EOMsyncing bool
+
+		EOM          bool // Set to true when the first EOM is encountered
+		EOMLimit     int
+		EOMProcessed int
+		EOMDone      bool
+		EOMMinute    int
+		EOMSys       bool // At least one EOM has covered the System List
+
+		DBSig          bool
+		DBSigLimit     int
+		DBSigProcessed int // Number of DBSignatures received and processed.
+		DBSigDone      bool
+		DBSigSys       bool // At least one DBSig has covered the System List
+
+		Newblk  bool // True if we are starting a new block, and a dbsig is needed.
+		Saving  bool // True if we are in the process of saving to the database
+		Syncing bool // Looking for messages from leaders to sync
+
+		Replay *Replay
+
+		LeaderTimestamp interfaces.Timestamp
+
+		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
+		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+
+		InvalidMessages map[[32]byte]interfaces.IMsg
+
+		// DBlock Height at which node has a complete set of eblocks+entries
+		EntryBlockDBHeightComplete uint32
+		// DBlock Height at which we have started asking for entry blocks
+		EntryBlockDBHeightProcessing uint32
+		// Entry Blocks we don't have that we are asking our neighbors for
+		MissingEntryBlocks []MissingEntryBlock
+
+		// DBlock Height at which node has a complete set of eblocks+entries
+		EntryDBHeightComplete uint32
+		// Height in the DBlock where we have all the entries
+		EntryHeightComplete int
+		// DBlock Height at which we have started asking for or have all entries
+		EntryDBHeightProcessing uint32
+		// Height in the Directory Block where we have
+		// Entries we don't have that we are asking our neighbors for
+		MissingEntries []MissingEntry
+
+		// FER section
+		FactoshisPerEC                 uint64
+		FERChainId                     string
+		ExchangeRateAuthorityPublicKey string
+
+		FERChangeHeight      uint32
+		FERChangePrice       uint64
+		FERPriority          uint32
+		FERPrioritySetHeight uint32
+	*/
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
@@ -467,5 +601,6 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 }
 
 func (ss *SaveState) UnmarshalBinary(p []byte) error {
-	return nil
+	_, err := ss.UnmarshalBinaryData(p)
+	return err
 }

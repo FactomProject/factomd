@@ -21,6 +21,23 @@ type AnchorSigningKey struct {
 	SigningKey []byte //if bytes, it is hex
 }
 
+var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)
+
+func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (e *AnchorSigningKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	return
+}
+
+func (e *AnchorSigningKey) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
+}
+
 type Identity struct {
 	IdentityChainID      interfaces.IHash
 	IdentityRegistered   uint32
@@ -39,6 +56,22 @@ type Identity struct {
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
+var _ interfaces.BinaryMarshallable = (*Identity)(nil)
+
+func (e *Identity) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	return
+}
+
+func (e *Identity) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
+}
 
 func (id *Identity) FixMissingKeys(s *State) error {
 	// This identity will always have blank keys
