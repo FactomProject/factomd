@@ -440,7 +440,7 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
-	p.FedServers[i] = &primitives.Server{ChainID: identityChainID, Online: true}
+	p.FedServers[i] = &Server{ChainID: identityChainID, Online: true}
 	p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	p.MakeMap()
@@ -464,7 +464,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
-	p.AuditServers[i] = &primitives.Server{ChainID: identityChainID, Online: true}
+	p.AuditServers[i] = &Server{ChainID: identityChainID, Online: true}
 	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	return i

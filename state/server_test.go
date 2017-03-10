@@ -2,12 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package primitives_test
+package state_test
 
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/state"
 )
 
 func TestServerMarshalUnmarshal(t *testing.T) {

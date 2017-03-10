@@ -2,12 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package primitives
+package state
 
 import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
@@ -23,20 +24,20 @@ var _ interfaces.BinaryMarshallable = (*Server)(nil)
 
 func (s *Server) Init() {
 	if s.ChainID == nil {
-		s.ChainID = NewZeroHash()
+		s.ChainID = primitives.NewZeroHash()
 	}
 	if s.Replace == nil {
-		s.Replace = NewZeroHash()
+		s.Replace = primitives.NewZeroHash()
 	}
 }
 
 func RandomServer() interfaces.IServer {
 	s := new(Server)
 	s.Init()
-	s.ChainID = RandomHash()
+	s.ChainID = primitives.RandomHash()
 	s.Name = random.RandomString()
 	s.Online = (random.RandInt()%2 == 0)
-	s.Replace = RandomHash()
+	s.Replace = primitives.RandomHash()
 	return s
 }
 
@@ -58,7 +59,7 @@ func (s *Server) IsSameAs(b interfaces.IServer) bool {
 }
 
 func (s *Server) MarshalBinary() ([]byte, error) {
-	buf := new(Buffer)
+	buf := new(primitives.Buffer)
 
 	err := buf.PushBinaryMarshallable(s.ChainID)
 	if err != nil {
@@ -85,7 +86,7 @@ func (s *Server) MarshalBinary() ([]byte, error) {
 
 func (s *Server) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	s.Init()
-	buf := NewBuffer(p)
+	buf := primitives.NewBuffer(p)
 	newData = p
 
 	err = buf.PopBinaryMarshallable(s.ChainID)
@@ -147,9 +148,9 @@ func (s *Server) SetReplace(h interfaces.IHash) {
 }
 
 func (e *Server) JSONByte() ([]byte, error) {
-	return EncodeJSON(e)
+	return primitives.EncodeJSON(e)
 }
 
 func (e *Server) JSONString() (string, error) {
-	return EncodeJSONString(e)
+	return primitives.EncodeJSONString(e)
 }
