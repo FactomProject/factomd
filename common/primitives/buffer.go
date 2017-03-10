@@ -81,6 +81,14 @@ func (b *Buffer) PushVarInt(vi uint64) error {
 	return EncodeVarInt(b, vi)
 }
 
+func (b *Buffer) PushByte(h byte) error {
+	return b.WriteByte(h)
+}
+
+func (b *Buffer) PopByte() (byte, error) {
+	return b.ReadByte()
+}
+
 func (b *Buffer) PopVarInt() (uint64, error) {
 	h := b.DeepCopyBytes()
 	l, rest := DecodeVarInt(h)

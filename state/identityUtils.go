@@ -26,10 +26,50 @@ var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)
 func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
 
+	err := buf.PushString(e.BlockChain)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushByte(e.KeyLevel)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(e.KeyType)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBytes(e.SigningKey)
+	if err != nil {
+		return nil, err
+	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AnchorSigningKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	e.BlockChain, err = buf.PopString()
+	if err != nil {
+		return
+	}
+	e.KeyLevel, err = buf.PopByte()
+	if err != nil {
+		return
+	}
+	e.KeyType, err = buf.PopByte()
+	if err != nil {
+		return
+	}
+	e.SigningKey, err = buf.PopBytes()
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
 	return
 }
 
@@ -58,13 +98,174 @@ type Identity struct {
 var _ interfaces.Printable = (*Identity)(nil)
 var _ interfaces.BinaryMarshallable = (*Identity)(nil)
 
+func (e *Identity) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+	if e.ManagementChainID == nil {
+		e.ManagementChainID = primitives.NewZeroHash()
+	}
+	if e.MatryoshkaHash == nil {
+		e.MatryoshkaHash = primitives.NewZeroHash()
+	}
+	if e.Key1 == nil {
+		e.Key1 = primitives.NewZeroHash()
+	}
+	if e.Key2 == nil {
+		e.Key2 = primitives.NewZeroHash()
+	}
+	if e.Key3 == nil {
+		e.Key3 = primitives.NewZeroHash()
+	}
+	if e.Key4 == nil {
+		e.Key4 = primitives.NewZeroHash()
+	}
+	if e.SigningKey == nil {
+		e.SigningKey = primitives.NewZeroHash()
+	}
+}
+
 func (e *Identity) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBinaryMarshallable(e.IdentityChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.IdentityRegistered)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.IdentityCreated)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.ManagementChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.ManagementRegistered)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.ManagementCreated)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.MatryoshkaHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key1)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key2)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key3)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key4)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.SigningKey)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(byte(e.Status))
+	if err != nil {
+		return nil, err
+	}
+
+	l := len(e.AnchorKeys)
+	err = buf.PushVarInt(uint64(l))
+	for _, v := range e.AnchorKeys {
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
 func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	e.Init()
+	buf := primitives.NewBuffer(p)
+	newData = p
+
+	err = buf.PopBinaryMarshallable(e.IdentityChainID)
+	if err != nil {
+		return
+	}
+	e.IdentityRegistered, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	e.IdentityCreated, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.ManagementChainID)
+	if err != nil {
+		return
+	}
+	e.ManagementRegistered, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	e.ManagementCreated, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.MatryoshkaHash)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key1)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key2)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key3)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key4)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.SigningKey)
+	if err != nil {
+		return
+	}
+	b, err := buf.PopByte()
+	if err != nil {
+		return
+	}
+	e.Status = int(b)
+
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < int(l); i++ {
+		var ak AnchorSigningKey
+		err = buf.PopBinaryMarshallable(&ak)
+		if err != nil {
+			return
+		}
+		e.AnchorKeys = append(e.AnchorKeys, ak)
+	}
+
 	return
 }
 
