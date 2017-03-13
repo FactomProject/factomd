@@ -155,14 +155,14 @@ const (
 // Identity Status Types
 //---------------------------------------------------------------------
 const (
-	IDENTITY_UNASSIGNED               int = iota // 0
-	IDENTITY_FEDERATED_SERVER                    // 1
-	IDENTITY_AUDIT_SERVER                        // 2
-	IDENTITY_FULL                                // 3
-	IDENTITY_PENDING_FEDERATED_SERVER            // 4
-	IDENTITY_PENDING_AUDIT_SERVER                // 5
-	IDENTITY_PENDING_FULL                        // 6
-	IDENTITY_SKELETON                            // 7 - Skeleton Identity
+	IDENTITY_UNASSIGNED               uint8 = iota // 0
+	IDENTITY_FEDERATED_SERVER                      // 1
+	IDENTITY_AUDIT_SERVER                          // 2
+	IDENTITY_FULL                                  // 3
+	IDENTITY_PENDING_FEDERATED_SERVER              // 4
+	IDENTITY_PENDING_AUDIT_SERVER                  // 5
+	IDENTITY_PENDING_FULL                          // 6
+	IDENTITY_SKELETON                              // 7 - Skeleton Identity
 )
 
 //---------------------------------------------------------------------

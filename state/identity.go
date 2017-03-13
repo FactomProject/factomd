@@ -782,7 +782,7 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 	return false
 }
 
-func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo int, st *State) {
+func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo uint8, st *State) {
 	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
 		return

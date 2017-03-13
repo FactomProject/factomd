@@ -91,7 +91,7 @@ type Identity struct {
 	Key3                 interfaces.IHash
 	Key4                 interfaces.IHash
 	SigningKey           interfaces.IHash
-	Status               int
+	Status               uint8
 	AnchorKeys           []AnchorSigningKey
 }
 
@@ -250,7 +250,7 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status = int(b)
+	e.Status = uint8(b)
 
 	l, err := buf.PopVarInt()
 	if err != nil {
@@ -400,7 +400,7 @@ func CheckTimestamp(time []byte, timeEntered int64) bool {
 	}
 }
 
-func statusIsFedOrAudit(status int) bool {
+func statusIsFedOrAudit(status uint8) bool {
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_AUDIT_SERVER ||
 		status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||

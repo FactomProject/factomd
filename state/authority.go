@@ -16,18 +16,119 @@ import (
 	"github.com/FactomProject/factomd/log"
 )
 
+type HistoricKey struct {
+	ActiveDBHeight uint32
+	SigningKey     primitives.PublicKey
+}
+
+var _ interfaces.BinaryMarshallable = (*HistoricKey)(nil)
+
+func (e *HistoricKey) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushUInt32(e.ActiveDBHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(&e.SigningKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (e *HistoricKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	e.ActiveDBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	err = buf.PopBinaryMarshallable(&e.SigningKey)
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
+	return
+}
+
+func (e *HistoricKey) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
+}
+
 type Authority struct {
 	AuthorityChainID  interfaces.IHash
 	ManagementChainID interfaces.IHash
 	MatryoshkaHash    interfaces.IHash
 	SigningKey        primitives.PublicKey
-	Status            int
+	Status            uint8
 	AnchorKeys        []AnchorSigningKey
 
-	KeyHistory []struct {
-		ActiveDBHeight uint32
-		SigningKey     primitives.PublicKey
+	KeyHistory []HistoricKey
+}
+
+var _ interfaces.BinaryMarshallable = (*Authority)(nil)
+
+func (e *Authority) Init() {
+	if e.AuthorityChainID == nil {
+		e.AuthorityChainID = primitives.NewZeroHash()
 	}
+	if e.ManagementChainID == nil {
+		e.ManagementChainID = primitives.NewZeroHash()
+	}
+	if e.MatryoshkaHash == nil {
+		e.MatryoshkaHash = primitives.NewZeroHash()
+	}
+}
+
+func (e *Authority) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBinaryMarshallable(e.AuthorityChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.ManagementChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.MatryoshkaHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(&e.SigningKey)
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		Status            uint8
+		AnchorKeys        []AnchorSigningKey
+
+		KeyHistory []HistoricKey
+	*/
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	e.Init()
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	newData = buf.DeepCopyBytes()
+	return
+}
+
+func (e *Authority) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
 }
 
 // 1 if fed, 0 if audit, -1 if neither
