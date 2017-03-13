@@ -64,12 +64,8 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 		go resend(state, msg, 2, 5)
 	case ServerFault:
 		go resend(state, msg, 2, 5)
-	case MissingMsg:
-		go resend(state, msg, 1, 1)
-	case DBStateMissing:
-		go resend(state, msg, 1, 1)
 	default:
-		go resend(state, msg, 1, 1)
+		go resend(state, msg, 1, 0)
 	}
 }
 
