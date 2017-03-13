@@ -237,8 +237,8 @@ func (s *State) MakeMissingEntryRequests() {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
 				newrequest++
-				if len(InPlay) > 500 {
-					time.Sleep(time.Duration(len(InPlay)/10) * time.Millisecond)
+				if len(InPlay) > 1000 {
+					time.Sleep(time.Duration(len(InPlay)/20) * time.Millisecond)
 				}
 				et.lastRequest = now
 				et.cnt++
@@ -336,7 +336,7 @@ func (s *State) GoSyncEntryBlocks() {
 
 func (s *State) GoWriteEntries() {
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(300 * time.Millisecond)
 
 	entryWrite:
 		for {
@@ -405,7 +405,7 @@ func (s *State) GoSyncEntries() {
 					break scanentries
 				}
 
-				if len(newentries)+len(missinge) > 4000 {
+				if len(newentries)+len(missinge) > 1000 {
 					alldone = false
 					break scanentries
 				}
@@ -470,11 +470,11 @@ func (s *State) GoSyncEntries() {
 		s.MissingEntryMutex.Unlock()
 
 		if zerolen {
-			time.Sleep(2 * time.Second)
+			time.Sleep(300 * time.Millisecond)
 		}
 
 		// sleep some time no matter what.
-		time.Sleep(1 * time.Second)
+		time.Sleep(200 * time.Millisecond)
 
 	}
 }
