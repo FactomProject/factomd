@@ -440,8 +440,11 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
 	//}
 	//c.conn.SetWriteDeadline(deadline)
-
-	err := c.encoder.Encode(parcel)
+	encode := c.encoder
+	if encode == nil {
+		return
+	}
+	err := encode.Encode(parcel)
 	switch {
 	case nil == err:
 		c.metrics.BytesSent += parcel.Header.Length

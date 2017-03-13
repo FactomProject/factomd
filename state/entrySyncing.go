@@ -240,8 +240,8 @@ func (s *State) MakeMissingEntryRequests() {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
 				newrequest++
-				if len(InPlay) > 20 {
-					time.Sleep(time.Duration(len(InPlay)/20) * time.Millisecond)
+				if len(InPlay) > 50 {
+					time.Sleep(time.Duration((len(InPlay)-50)/10) * time.Millisecond)
 				}
 				et.lastRequest = now
 				et.cnt++
