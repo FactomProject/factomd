@@ -3,18 +3,18 @@
 nchains=10   # number of chains to create
 nentries=15    # number of entries to add to each chain
 
-fa1=$(factom-cli -s 10.41.0.5:8088 -w 10.41.0.215:8089 importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
+fa1=$(factom-cli  importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
 #fa1=FA3RrKWJLQeDuzC9YzxcSwenU1qDzzwjR1uHMpp1SQbs8wH9Qbbr
-ec1=$(factom-cli -s 10.41.0.5:8088 -w 10.41.0.215:8089 importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
+ec1=$(factom-cli  importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
-factom-cli -s 10.41.0.5:8088 -w 10.41.0.215:8089 listaddresses
+factom-cli  listaddresses
 
 buyECs=$(expr $nentries \* $nchains \* 11 )
 echo "Buying" $buyECs $fa1 $ec1
-factom-cli -s 10.41.0.5:8088 -w 10.41.0.215:8089 buyec $fa1 $ec1 $buyECs
+factom-cli  buyec $fa1 $ec1 $buyECs
 sleep 5s
 	
-factom-cli -s 10.41.0.5:8088 -w 10.41.0.215:8089 listaddresses
+factom-cli  listaddresses
 
 addentries() {
     # create a random datafile
@@ -25,7 +25,7 @@ addentries() {
 	echo "Entry Length " $datalen " bytes, file name: " $datafile
 
 	for ((i=0; i<nentries; i++)); do
-    		cat $datafile | factom-cli -s 10.41.0.5:8088 -w 10.41.0.215:8089 addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
+    		cat $datafile | factom-cli  addentry -f -c $1 -e test -e $i -e $RANDOM -e $RANDOM -e $RANDOM $ec1
 		echo "write entry Chain:"  $2 $i
 		sleep 5.2s
 	done
@@ -38,7 +38,7 @@ echo "Start"
 
 for ((i=0; i<nchains; i++)); do
 	echo "create chain" $i
-	chainid=$(echo test $i $RANDOM | factom-cli -s 10.41.0.5:8088 -w 10.41.0.215:8089 addchain -f -n test -n $i -n $RANDOM $ec1 | awk '/ChainID/{print $2}')
+	chainid=$(echo test $i $RANDOM | factom-cli  addchain -f -n test -n $i -n $RANDOM $ec1 | awk '/ChainID/{print $2}')
 	addentries $chainid $i &
 	sleep 10
 done

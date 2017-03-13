@@ -25,6 +25,7 @@ var _ = fmt.Print
 // them if it finds entries in the missing lists.
 func (s *State) MakeMissingEntryRequests() {
 
+	lastFeedback := 0
 	startt := time.Now()
 
 	secs := func() int {
@@ -220,9 +221,11 @@ func (s *State) MakeMissingEntryRequests() {
 				break
 			}
 
-			if (i+1)%100 == 0 {
+			thesecs := secs()
+			if thesecs-lastFeedback > 3 {
 				update()
 				feedback()
+				lastFeedback = thesecs
 			}
 
 			et := InPlay[v.entryhash.Fixed()]
@@ -237,7 +240,7 @@ func (s *State) MakeMissingEntryRequests() {
 				entryRequest := messages.NewMissingData(s, v.entryhash)
 				entryRequest.SendOut(s, entryRequest)
 				newrequest++
-				if len(InPlay) > 1000 {
+				if len(InPlay) > 20 {
 					time.Sleep(time.Duration(len(InPlay)/20) * time.Millisecond)
 				}
 				et.lastRequest = now
@@ -248,15 +251,15 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
-		if len(keep) == 0 {
-			time.Sleep(1 * time.Second)
-		}
+		update()
+		feedback()
 
+		if len(keep) == 0 {
+			time.Sleep(300 * time.Millisecond)
+		}
 		// slow down as the number of retries per message goes up
 		time.Sleep(time.Duration((avg - 1000)) * time.Millisecond)
 
-		update()
-		feedback()
 	}
 }
 
