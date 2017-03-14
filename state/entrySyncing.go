@@ -312,7 +312,7 @@ func (s *State) GoWriteEntries() {
 }
 
 func (s *State) GoSyncEntries() {
-
+	fmt.Println("*** Start go routine")
 	go s.GoWriteEntries() // Start a go routine to write the Entries to the DB
 	go s.GoSyncEntryBlocks()
 
@@ -320,7 +320,7 @@ func (s *State) GoSyncEntries() {
 	for {
 
 		for scan := start; scan < s.GetHighestSavedBlk(); scan++ {
-
+			fmt.Println("*** looking at dbheight", scan)
 			db := s.GetDirectoryBlockByHeight(scan)
 
 			for db == nil {
@@ -337,32 +337,28 @@ func (s *State) GoSyncEntries() {
 
 				// Dont have an eBlock?  Huh. We can go on, but we can't advance
 				for eBlock == nil {
-					eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
 					time.Sleep(1 * time.Second)
+					eBlock, _ = s.DB.FetchEBlock(ebKeyMR)
 				}
 
 				for _, entryhash := range eBlock.GetEntryHashes() {
+					if !entryhash.IsMinuteMarker() {
+						// If I have the entry, then remove it from the Missing Entries list.
+						if !has(s, entryhash) {
+							fmt.Println("*** Hey! Missing!", entryhash.String())
+							var v MissingEntry
 
-					if entryhash.IsMinuteMarker() {
-						continue
+							v.DBHeight = eBlock.GetHeader().GetDBHeight()
+							v.EntryHash = entryhash
+							v.EBHash = ebKeyMR
+							s.MissingEntries <- v
+						}
+						ueh := new(EntryUpdate)
+						ueh.Hash = entryhash
+						ueh.Timestamp = db.GetTimestamp()
+						s.UpdateEntryHash <- ueh
 					}
-
-					// If I have the entry, then remove it from the Missing Entries list.
-					if !has(s, entryhash) {
-
-						var v MissingEntry
-
-						v.DBHeight = eBlock.GetHeader().GetDBHeight()
-						v.EntryHash = entryhash
-						v.EBHash = ebKeyMR
-						s.MissingEntries <- v
-					}
-					ueh := new(EntryUpdate)
-					ueh.Hash = entryhash
-					ueh.Timestamp = db.GetTimestamp()
-					s.UpdateEntryHash <- ueh
 				}
-
 			}
 			start = scan
 		}
