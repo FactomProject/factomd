@@ -1404,7 +1404,6 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 }
 
 func (s *State) SendIntoConsul(msg interfaces.IMsg) {
-	fmt.Println("SENDINTOCONSUL:", msg.GetMsgHash().String(), ":", msg.String())
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
 		s.ConsulManager.SendIntoConsul(s.GetDBHeightComplete(), s.GetCurrentMinute(), msgBytes)
