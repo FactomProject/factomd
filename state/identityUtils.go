@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 type AnchorSigningKey struct {
@@ -22,6 +23,32 @@ type AnchorSigningKey struct {
 }
 
 var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)
+
+func RandomAnchorSigningKey() *AnchorSigningKey {
+	ask := new(AnchorSigningKey)
+
+	ask.BlockChain = random.RandomString()
+	ask.KeyLevel = random.RandByte()
+	ask.KeyType = random.RandByte()
+
+	return ask
+}
+
+func (e *AnchorSigningKey) IsSameAs(b *AnchorSigningKey) bool {
+	if e.BlockChain != b.BlockChain {
+		return false
+	}
+	if e.KeyLevel != b.KeyLevel {
+		return false
+	}
+	if e.KeyType != b.KeyType {
+		return false
+	}
+	if primitives.AreBytesEqual(e.SigningKey, b.SigningKey) == false {
+		return false
+	}
+	return true
+}
 
 func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)

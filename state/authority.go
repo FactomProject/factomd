@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -22,6 +23,26 @@ type HistoricKey struct {
 }
 
 var _ interfaces.BinaryMarshallable = (*HistoricKey)(nil)
+
+func RandomHistoricKey() *HistoricKey {
+	hk := new(HistoricKey)
+
+	hk.ActiveDBHeight = random.RandUInt32()
+	hk.SigningKey = *primitives.RandomPrivateKey().Pub
+
+	return hk
+}
+
+func (e *HistoricKey) IsSameAs(b *HistoricKey) bool {
+	if e.ActiveDBHeight != b.ActiveDBHeight {
+		return false
+	}
+	if e.SigningKey.IsSameAs(&b.SigningKey) == false {
+		return false
+	}
+
+	return true
+}
 
 func (e *HistoricKey) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
@@ -74,6 +95,66 @@ type Authority struct {
 }
 
 var _ interfaces.BinaryMarshallable = (*Authority)(nil)
+
+func RandomAuthority() *Authority {
+	a := new(Authority)
+
+	a.AuthorityChainID = primitives.RandomHash()
+	a.ManagementChainID = primitives.RandomHash()
+	a.MatryoshkaHash = primitives.RandomHash()
+
+	a.SigningKey = *primitives.RandomPrivateKey().Pub
+	a.Status = random.RandUInt8()
+
+	l := random.RandIntBetween(1, 10)
+	for i := 0; i < l; i++ {
+		a.AnchorKeys = append(a.AnchorKeys, *RandomAnchorSigningKey())
+	}
+
+	l = random.RandIntBetween(1, 10)
+	for i := 0; i < l; i++ {
+		a.KeyHistory = append(a.KeyHistory, *RandomHistoricKey())
+	}
+
+	return a
+}
+
+func (e *Authority) IsSameAs(b *Authority) bool {
+	if e.AuthorityChainID.IsSameAs(b.AuthorityChainID) == false {
+		return false
+	}
+	if e.ManagementChainID.IsSameAs(b.ManagementChainID) == false {
+		return false
+	}
+	if e.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
+		return false
+	}
+	if e.SigningKey.IsSameAs(&b.SigningKey) == false {
+		return false
+	}
+	if e.Status != b.Status {
+		return false
+	}
+
+	if len(e.AnchorKeys) != len(b.AnchorKeys) {
+		return false
+	}
+	for i := range e.AnchorKeys {
+		if e.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
+			return false
+		}
+	}
+	if len(e.KeyHistory) != len(b.KeyHistory) {
+		return false
+	}
+	for i := range e.KeyHistory {
+		if e.KeyHistory[i].IsSameAs(&b.KeyHistory[i]) == false {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (e *Authority) Init() {
 	if e.AuthorityChainID == nil {

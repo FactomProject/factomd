@@ -22,6 +22,10 @@ func RandUInt8() uint8 {
 	return uint8(RandUInt64Between(0, math.MaxUint8))
 }
 
+func RandByte() byte {
+	return RandByteSliceOfLen(1)[0]
+}
+
 func RandUInt64Between(min, max uint64) uint64 {
 	if min >= max {
 		return 0
