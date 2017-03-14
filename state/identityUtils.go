@@ -30,6 +30,7 @@ func RandomAnchorSigningKey() *AnchorSigningKey {
 	ask.BlockChain = random.RandomString()
 	ask.KeyLevel = random.RandByte()
 	ask.KeyType = random.RandByte()
+	ask.SigningKey = random.RandNonEmptyByteSlice()
 
 	return ask
 }
@@ -124,6 +125,82 @@ type Identity struct {
 
 var _ interfaces.Printable = (*Identity)(nil)
 var _ interfaces.BinaryMarshallable = (*Identity)(nil)
+
+func RandomIdentity() *Identity {
+	id := new(Identity)
+
+	id.IdentityChainID = primitives.RandomHash()
+	id.IdentityRegistered = random.RandUInt32()
+	id.IdentityCreated = random.RandUInt32()
+	id.ManagementChainID = primitives.RandomHash()
+	id.ManagementRegistered = random.RandUInt32()
+	id.ManagementCreated = random.RandUInt32()
+	id.MatryoshkaHash = primitives.RandomHash()
+	id.Key1 = primitives.RandomHash()
+	id.Key2 = primitives.RandomHash()
+	id.Key3 = primitives.RandomHash()
+	id.Key4 = primitives.RandomHash()
+	id.SigningKey = primitives.RandomHash()
+	id.Status = random.RandUInt8()
+
+	l := random.RandIntBetween(0, 10)
+	for i := 0; i < l; i++ {
+		id.AnchorKeys = append(id.AnchorKeys, *RandomAnchorSigningKey())
+	}
+
+	return id
+}
+
+func (e *Identity) IsSameAs(b *Identity) bool {
+	if e.IdentityChainID.IsSameAs(b.IdentityChainID) == false {
+		return false
+	}
+	if e.IdentityRegistered != b.IdentityRegistered {
+		return false
+	}
+	if e.IdentityCreated != b.IdentityCreated {
+		return false
+	}
+	if e.ManagementChainID.IsSameAs(b.ManagementChainID) == false {
+		return false
+	}
+	if e.ManagementRegistered != b.ManagementRegistered {
+		return false
+	}
+	if e.ManagementCreated != b.ManagementCreated {
+		return false
+	}
+	if e.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
+		return false
+	}
+	if e.Key1.IsSameAs(b.Key1) == false {
+		return false
+	}
+	if e.Key2.IsSameAs(b.Key2) == false {
+		return false
+	}
+	if e.Key3.IsSameAs(b.Key3) == false {
+		return false
+	}
+	if e.Key4.IsSameAs(b.Key4) == false {
+		return false
+	}
+	if e.SigningKey.IsSameAs(b.SigningKey) == false {
+		return false
+	}
+	if e.Status != b.Status {
+		return false
+	}
+	if len(e.AnchorKeys) != len(b.AnchorKeys) {
+		return false
+	}
+	for i := range e.AnchorKeys {
+		if e.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
+			return false
+		}
+	}
+	return true
+}
 
 func (e *Identity) Init() {
 	if e.IdentityChainID == nil {
