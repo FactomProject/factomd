@@ -297,16 +297,114 @@ type DBStateList struct {
 
 var _ interfaces.BinaryMarshallable = (*DBStateList)(nil)
 
+func (dbsl *DBStateList) Init() {
+	if dbsl.TimeToAsk == nil {
+		dbsl.TimeToAsk = primitives.NewTimestampFromMilliseconds(0)
+	}
+}
+
 func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
-	return nil, nil
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBool(dbsl.SrcNetwork)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(uint32(dbsl.LastEnd))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(uint32(dbsl.LastBegin))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(dbsl.TimeToAsk)
+	if err != nil {
+		return nil, err
+	}
+	//TODO: handle State
+	err = buf.PushUInt32(dbsl.Base)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(dbsl.Complete)
+	if err != nil {
+		return nil, err
+	}
+	l := len(dbsl.DBStates)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range dbsl.DBStates {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	dbsl.Init()
+	newData = p
+
+	buf := primitives.NewBuffer(p)
+
+	dbsl.SrcNetwork, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	x, err := buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.LastEnd = int(x)
+	x, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.LastBegin = int(x)
+
+	err = buf.PopBinaryMarshallable(dbsl.TimeToAsk)
+	if err != nil {
+		return
+	}
+
+	//TODO: handle State
+	dbsl.Base, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.Complete, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		dbs := new(DBState)
+		err = buf.PopBinaryMarshallable(dbs)
+		if err != nil {
+			return
+		}
+		dbsl.DBStates = append(dbsl.DBStates, dbs)
+
+	}
+
+	newData = buf.DeepCopyBytes()
 	return
 }
 
 func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
-	return nil
+	_, err := dbsl.UnmarshalBinaryData(p)
+	return err
 }
 
 // Validate this directory block given the next Directory Block.  Need to check the
