@@ -727,6 +727,281 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 }
 
 func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	ss.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Server)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.FedServers = append(ss.FedServers, s)
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Server)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.AuditServers = append(ss.AuditServers, s)
+	}
+
+	k := make([]byte, 32)
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		var b [32]byte
+		err = buf.Pop(k)
+		if err != nil {
+			return
+		}
+		copy(b[:], k)
+		v, err := buf.PopUInt64()
+		if err != nil {
+			return newData, err
+		}
+		ss.FactoidBalancesP[b] = int64(v)
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		var b [32]byte
+		err = buf.Pop(k)
+		if err != nil {
+			return
+		}
+		copy(b[:], k)
+		v, err := buf.PopUInt64()
+		if err != nil {
+			return newData, err
+		}
+		ss.ECBalancesP[b] = int64(v)
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Identity)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.Identities = append(ss.Identities, s)
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Authority)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.Authorities = append(ss.Authorities, s)
+	}
+
+	/*
+		err = buf.PopVarInt(uint64(ss.AuthorityServerCount))
+		if err != nil {
+			return
+		}
+
+		err = buf.PopUInt32(ss.LLeaderHeight)
+		if err != nil {
+			return
+		}
+		err = buf.PopBool(ss.Leader)
+		if err != nil {
+			return
+		}
+		err = buf.PopVarInt(uint64(ss.LeaderVMIndex))
+		if err != nil {
+			return
+		}
+		//TODO: handle LeaderPL      *ProcessList
+		err = buf.PopVarInt(uint64(ss.CurrentMinute))
+		if err != nil {
+			return
+		}
+
+		err = buf.PopBool(ss.EOMsyncing)
+		if err != nil {
+			return
+		}
+
+		err = buf.PopBool(ss.EOM)
+		if err != nil {
+			return
+		}
+		err = buf.PopVarInt(uint64(ss.EOMLimit))
+		if err != nil {
+			return
+		}
+		err = buf.PopVarInt(uint64(ss.EOMProcessed))
+		if err != nil {
+			return
+		}
+		err = buf.PopBool(ss.EOMDone)
+		if err != nil {
+			return
+		}
+		err = buf.PopVarInt(uint64(ss.EOMMinute))
+		if err != nil {
+			return
+		}
+		err = buf.PopBool(ss.EOMSys)
+		if err != nil {
+			return
+		}
+
+		err = buf.PopBool(ss.DBSig)
+		if err != nil {
+			return
+		}
+		err = buf.PopVarInt(uint64(ss.DBSigLimit))
+		if err != nil {
+			return
+		}
+		err = buf.PopVarInt(uint64(ss.DBSigProcessed))
+		if err != nil {
+			return
+		}
+		err = buf.PopBool(ss.DBSigDone)
+		if err != nil {
+			return
+		}
+		err = buf.PopBool(ss.DBSigSys)
+		if err != nil {
+			return
+		}
+
+		err = buf.PopBool(ss.Newblk)
+		if err != nil {
+			return
+		}
+		err = buf.PopBool(ss.Saving)
+		if err != nil {
+			return
+		}
+		err = buf.PopBool(ss.Syncing)
+		if err != nil {
+			return
+		}
+
+		//TODO: handle Replay *Replay
+
+		err = buf.PopBinaryMarshallable(ss.LeaderTimestamp)
+		if err != nil {
+			return
+		}*/
+	/*
+		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
+		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+
+		InvalidMessages map[[32]byte]interfaces.IMsg
+	*/
+	/*
+		err = buf.PopUInt32(ss.EntryBlockDBHeightComplete)
+		if err != nil {
+			return
+		}
+		err = buf.PopUInt32(ss.EntryBlockDBHeightProcessing)
+		if err != nil {
+			return
+		}
+		l = len(ss.MissingEntryBlocks)
+		err = buf.PopVarInt(uint64(l))
+		if err != nil {
+			return
+		}
+		for _, v := range ss.MissingEntryBlocks {
+			err = buf.PopBinaryMarshallable(&v)
+			if err != nil {
+				return
+			}
+		}
+
+		err = buf.PopUInt32(ss.EntryDBHeightComplete)
+		if err != nil {
+			return
+		}
+		err = buf.PopVarInt(uint64(ss.EntryHeightComplete))
+		if err != nil {
+			return
+		}
+		err = buf.PopUInt32(ss.EntryDBHeightProcessing)
+		if err != nil {
+			return
+		}
+		l = len(ss.MissingEntries)
+		err = buf.PopVarInt(uint64(l))
+		if err != nil {
+			return
+		}
+		for _, v := range ss.MissingEntries {
+			err = buf.PopBinaryMarshallable(&v)
+			if err != nil {
+				return
+			}
+		}
+
+		err = buf.PopVarInt(ss.FactoshisPerEC)
+		if err != nil {
+			return
+		}
+		err = buf.PopString(ss.FERChainId)
+		if err != nil {
+			return
+		}
+		err = buf.PopString(ss.ExchangeRateAuthorityPublicKey)
+		if err != nil {
+			return
+		}
+
+		err = buf.PopUInt32(ss.FERChangeHeight)
+		if err != nil {
+			return
+		}
+		err = buf.PopUInt64(ss.FERChangePrice)
+		if err != nil {
+			return
+		}
+		err = buf.PopUInt32(ss.FERPriority)
+		if err != nil {
+			return
+		}
+		err = buf.PopUInt32(ss.FERPrioritySetHeight)
+		if err != nil {
+			return
+		}*/
+
+	newData = buf.DeepCopyBytes()
 	return
 }
 

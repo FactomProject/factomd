@@ -150,6 +150,23 @@ func (b *Buffer) PopBytes() ([]byte, error) {
 	return answer, nil
 }
 
+func (b *Buffer) PopLen(l int) ([]byte, error) {
+	answer := make([]byte, l)
+	_, err := b.Read(answer)
+	if err != nil {
+		return nil, err
+	}
+	return answer, nil
+}
+
+func (b *Buffer) Pop(h []byte) error {
+	_, err := b.Read(h)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (b *Buffer) PopBinaryMarshallable(dst interfaces.BinaryMarshallable) error {
 	h := b.DeepCopyBytes()
 	rest, err := dst.UnmarshalBinaryData(h)
