@@ -523,75 +523,205 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 		}
 	}
 
+	l = len(ss.Identities)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.Identities {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	l = len(ss.Authorities)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.Authorities {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushVarInt(uint64(ss.AuthorityServerCount))
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(ss.LLeaderHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.Leader)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.LeaderVMIndex))
+	if err != nil {
+		return nil, err
+	}
+	//TODO: handle LeaderPL      *ProcessList
+	err = buf.PushVarInt(uint64(ss.CurrentMinute))
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.EOMsyncing)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.EOM)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EOMLimit))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EOMProcessed))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.EOMDone)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EOMMinute))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.EOMSys)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.DBSig)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.DBSigLimit))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.DBSigProcessed))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.DBSigDone)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.DBSigSys)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.Newblk)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.Saving)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.Syncing)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: handle Replay *Replay
+
+	err = buf.PushBinaryMarshallable(ss.LeaderTimestamp)
+	if err != nil {
+		return nil, err
+	}
 	/*
-		Identities           []*Identity  // Identities of all servers in management chain
-		Authorities          []*Authority // Identities of all servers in management chain
-		AuthorityServerCount int          // number of federated or audit servers allowed
-
-		// Server State
-		LLeaderHeight uint32
-		Leader        bool
-		LeaderVMIndex int
-		LeaderPL      *ProcessList
-		CurrentMinute int
-
-		EOMsyncing bool
-
-		EOM          bool // Set to true when the first EOM is encountered
-		EOMLimit     int
-		EOMProcessed int
-		EOMDone      bool
-		EOMMinute    int
-		EOMSys       bool // At least one EOM has covered the System List
-
-		DBSig          bool
-		DBSigLimit     int
-		DBSigProcessed int // Number of DBSignatures received and processed.
-		DBSigDone      bool
-		DBSigSys       bool // At least one DBSig has covered the System List
-
-		Newblk  bool // True if we are starting a new block, and a dbsig is needed.
-		Saving  bool // True if we are in the process of saving to the database
-		Syncing bool // Looking for messages from leaders to sync
-
-		Replay *Replay
-
-		LeaderTimestamp interfaces.Timestamp
-
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
 		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
 		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
 		InvalidMessages map[[32]byte]interfaces.IMsg
-
-		// DBlock Height at which node has a complete set of eblocks+entries
-		EntryBlockDBHeightComplete uint32
-		// DBlock Height at which we have started asking for entry blocks
-		EntryBlockDBHeightProcessing uint32
-		// Entry Blocks we don't have that we are asking our neighbors for
-		MissingEntryBlocks []MissingEntryBlock
-
-		// DBlock Height at which node has a complete set of eblocks+entries
-		EntryDBHeightComplete uint32
-		// Height in the DBlock where we have all the entries
-		EntryHeightComplete int
-		// DBlock Height at which we have started asking for or have all entries
-		EntryDBHeightProcessing uint32
-		// Height in the Directory Block where we have
-		// Entries we don't have that we are asking our neighbors for
-		MissingEntries []MissingEntry
-
-		// FER section
-		FactoshisPerEC                 uint64
-		FERChainId                     string
-		ExchangeRateAuthorityPublicKey string
-
-		FERChangeHeight      uint32
-		FERChangePrice       uint64
-		FERPriority          uint32
-		FERPrioritySetHeight uint32
 	*/
+
+	err = buf.PushUInt32(ss.EntryBlockDBHeightComplete)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.EntryBlockDBHeightProcessing)
+	if err != nil {
+		return nil, err
+	}
+	l = len(ss.MissingEntryBlocks)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.MissingEntryBlocks {
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushUInt32(ss.EntryDBHeightComplete)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EntryHeightComplete))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.EntryDBHeightProcessing)
+	if err != nil {
+		return nil, err
+	}
+	l = len(ss.MissingEntries)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.MissingEntries {
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushVarInt(ss.FactoshisPerEC)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushString(ss.FERChainId)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushString(ss.ExchangeRateAuthorityPublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(ss.FERChangeHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt64(ss.FERChangePrice)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.FERPriority)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.FERPrioritySetHeight)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
