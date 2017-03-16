@@ -17,13 +17,13 @@ import (
 var _ = fmt.Print
 
 type DirectoryBlock struct {
-	//Marshalized
-	Header    interfaces.IDirectoryBlockHeader
-	DBEntries []interfaces.IDBEntry
-
 	//Not Marshalized
 	DBHash interfaces.IHash
 	KeyMR  interfaces.IHash
+
+	//Marshalized
+	Header    interfaces.IDirectoryBlockHeader
+	DBEntries []interfaces.IDBEntry
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
