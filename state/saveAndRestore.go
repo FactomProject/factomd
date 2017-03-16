@@ -635,7 +635,10 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
-	//TODO: handle Replay *Replay
+	err = buf.PushBinaryMarshallable(ss.Replay)
+	if err != nil {
+		return nil, err
+	}
 
 	err = buf.PushBinaryMarshallable(ss.LeaderTimestamp)
 	if err != nil {
@@ -927,7 +930,11 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	//TODO: handle Replay *Replay
+	ss.Replay = new(Replay)
+	err = buf.PopBinaryMarshallable(ss.Replay)
+	if err != nil {
+		return
+	}
 
 	ss.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(0)
 	err = buf.PopBinaryMarshallable(ss.LeaderTimestamp)

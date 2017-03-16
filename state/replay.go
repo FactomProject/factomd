@@ -5,6 +5,7 @@
 package state
 
 import (
+	"encoding/gob"
 	"fmt"
 	"sync"
 	"time"
@@ -21,10 +22,43 @@ var _ = time.Now()
 var _ = fmt.Print
 
 type Replay struct {
-	Mutex    sync.Mutex
+	Mutex sync.Mutex
+	ReplayWithoutMutex
+}
+
+type ReplayWithoutMutex struct {
 	Buckets  [numBuckets]map[[32]byte]int
 	Basetime int // hours since 1970
 	Center   int // Hour of the current time.
+}
+
+var _ interfaces.BinaryMarshallable = (*Replay)(nil)
+
+func (r *Replay) MarshalBinary() ([]byte, error) {
+	b := primitives.NewBuffer(nil)
+	enc := gob.NewEncoder(b)
+	err := enc.Encode(r.ReplayWithoutMutex)
+	if err != nil {
+		return nil, err
+	}
+	return b.DeepCopyBytes(), nil
+}
+
+func (r *Replay) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	newData = p
+	b := primitives.NewBuffer(p)
+	dec := gob.NewDecoder(b)
+	err = dec.Decode(&r.ReplayWithoutMutex)
+	if err != nil {
+		return
+	}
+	newData = b.DeepCopyBytes()
+	return
+}
+
+func (r *Replay) UnmarshalBinary(p []byte) error {
+	_, err := r.UnmarshalBinaryData(p)
+	return err
 }
 
 func (r *Replay) Save() *Replay {
