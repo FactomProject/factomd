@@ -26,7 +26,7 @@ func (s *State) MakeMissingEntryRequests() {
 	missing := 0
 	found := 0
 
-	pause := time.Now().Add(60 * time.Second)
+	pause := time.Now().Add(20 * time.Second)
 
 	for {
 
@@ -84,25 +84,27 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
-		// Make requests for entries we don't have.
-		for k := range MissingEntryMap {
-			et := MissingEntryMap[k]
+		if len(s.inMsgQueue) < 500 {
+			// Make requests for entries we don't have.
+			for k := range MissingEntryMap {
+				et := MissingEntryMap[k]
 
-			if et.Cnt == 0 || now.Unix()-et.LastTime.Unix() > 40 {
-				entryRequest := messages.NewMissingData(s, et.EntryHash)
-				entryRequest.SendOut(s, entryRequest)
-				newrequest++
-				et.LastTime = now
-				et.Cnt++
-				if et.Cnt%25 == 25 {
-					fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", et.EBHash.Bytes(), et.EntryHash.Bytes(), et.Cnt)
+				if et.Cnt == 0 || now.Unix()-et.LastTime.Unix() > 40 {
+					entryRequest := messages.NewMissingData(s, et.EntryHash)
+					entryRequest.SendOut(s, entryRequest)
+					newrequest++
+					et.LastTime = now
+					et.Cnt++
+					if et.Cnt%25 == 25 {
+						fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", et.EBHash.Bytes(), et.EntryHash.Bytes(), et.Cnt)
+					}
 				}
 			}
 		}
 
 		// Insert the entries we have found into the database.
 	InsertLoop:
-		for i := 0; i < 300; i++ {
+		for {
 
 			select {
 
@@ -120,10 +122,7 @@ func (s *State) MakeMissingEntryRequests() {
 		}
 
 		// slow down as the number of retries per message goes up
-		time.Sleep(time.Duration((200)) * time.Millisecond)
-		for len(s.inMsgQueue) > 100 {
-			time.Sleep(100 * time.Millisecond)
-		}
+		time.Sleep(time.Duration((300)) * time.Millisecond)
 	}
 }
 
@@ -139,6 +138,7 @@ func (s *State) GoSyncEntries() {
 
 	// If I find no missing entries, then the firstMissing will be -1
 	firstMissing := -1
+
 	lastfirstmissing := 0
 	for {
 		fmt.Printf("***es %10s Missing: %6d MissingMap %6d FirstMissing %6d\n", s.FactomNodeName, entryMissing, len(missingMap), lastfirstmissing)
@@ -219,7 +219,7 @@ func (s *State) GoSyncEntries() {
 		}
 		lastfirstmissing = firstMissing
 		// If we are caught up, we hardly need to do anything.
-		for start >= s.GetHighestSavedBlk() {
+		for start >= s.GetHighestKnownBlock()-10 {
 			time.Sleep(1 * time.Second)
 		}
 		if firstMissing >= 0 {
@@ -231,12 +231,9 @@ func (s *State) GoSyncEntries() {
 		} else {
 			s.EntryDBHeightComplete = start
 		}
-		// sleep some time no matter what.
-		for len(s.MissingEntries) > 1000 {
+		for len(s.MissingEntries) > 8000 {
 			time.Sleep(100 * time.Millisecond)
 		}
-		for len(s.inMsgQueue) > 100 {
-			time.Sleep(100 * time.Millisecond)
-		}
+
 	}
 }
