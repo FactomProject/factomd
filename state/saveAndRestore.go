@@ -102,6 +102,7 @@ type SaveState struct {
 }
 
 var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
+var _ interfaces.Printable = (*SaveState)(nil)
 
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss = new(SaveState)
@@ -823,101 +824,117 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		}
 		ss.Authorities = append(ss.Authorities, s)
 	}
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.AuthorityServerCount = int(l)
 
-	/*
-		err = buf.PopVarInt(uint64(ss.AuthorityServerCount))
-		if err != nil {
-			return
-		}
+	ss.LLeaderHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.Leader, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.LeaderVMIndex = int(l)
 
-		err = buf.PopUInt32(ss.LLeaderHeight)
-		if err != nil {
-			return
-		}
-		err = buf.PopBool(ss.Leader)
-		if err != nil {
-			return
-		}
-		err = buf.PopVarInt(uint64(ss.LeaderVMIndex))
-		if err != nil {
-			return
-		}
-		//TODO: handle LeaderPL      *ProcessList
-		err = buf.PopVarInt(uint64(ss.CurrentMinute))
-		if err != nil {
-			return
-		}
+	//TODO: handle LeaderPL      *ProcessList
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.CurrentMinute = int(l)
 
-		err = buf.PopBool(ss.EOMsyncing)
-		if err != nil {
-			return
-		}
+	ss.EOMsyncing, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.EOM, err = buf.PopBool()
+	if err != nil {
+		return
+	}
 
-		err = buf.PopBool(ss.EOM)
-		if err != nil {
-			return
-		}
-		err = buf.PopVarInt(uint64(ss.EOMLimit))
-		if err != nil {
-			return
-		}
-		err = buf.PopVarInt(uint64(ss.EOMProcessed))
-		if err != nil {
-			return
-		}
-		err = buf.PopBool(ss.EOMDone)
-		if err != nil {
-			return
-		}
-		err = buf.PopVarInt(uint64(ss.EOMMinute))
-		if err != nil {
-			return
-		}
-		err = buf.PopBool(ss.EOMSys)
-		if err != nil {
-			return
-		}
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EOMLimit = int(l)
 
-		err = buf.PopBool(ss.DBSig)
-		if err != nil {
-			return
-		}
-		err = buf.PopVarInt(uint64(ss.DBSigLimit))
-		if err != nil {
-			return
-		}
-		err = buf.PopVarInt(uint64(ss.DBSigProcessed))
-		if err != nil {
-			return
-		}
-		err = buf.PopBool(ss.DBSigDone)
-		if err != nil {
-			return
-		}
-		err = buf.PopBool(ss.DBSigSys)
-		if err != nil {
-			return
-		}
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EOMProcessed = int(l)
 
-		err = buf.PopBool(ss.Newblk)
-		if err != nil {
-			return
-		}
-		err = buf.PopBool(ss.Saving)
-		if err != nil {
-			return
-		}
-		err = buf.PopBool(ss.Syncing)
-		if err != nil {
-			return
-		}
+	ss.EOMDone, err = buf.PopBool()
+	if err != nil {
+		return
+	}
 
-		//TODO: handle Replay *Replay
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EOMMinute = int(l)
 
-		err = buf.PopBinaryMarshallable(ss.LeaderTimestamp)
-		if err != nil {
-			return
-		}*/
+	ss.EOMSys, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	ss.DBSig, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.DBSigLimit = int(l)
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.DBSigProcessed = int(l)
+
+	ss.DBSigDone, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.DBSigSys, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	ss.Newblk, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.Saving, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.Syncing, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	//TODO: handle Replay *Replay
+
+	ss.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(0)
+	err = buf.PopBinaryMarshallable(ss.LeaderTimestamp)
+	if err != nil {
+		return
+	}
+
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
 		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
@@ -926,15 +943,17 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 
 		InvalidMessages map[[32]byte]interfaces.IMsg
 	*/
+
+	ss.EntryBlockDBHeightComplete, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.EntryBlockDBHeightProcessing, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
 	/*
-		err = buf.PopUInt32(ss.EntryBlockDBHeightComplete)
-		if err != nil {
-			return
-		}
-		err = buf.PopUInt32(ss.EntryBlockDBHeightProcessing)
-		if err != nil {
-			return
-		}
 		l = len(ss.MissingEntryBlocks)
 		err = buf.PopVarInt(uint64(l))
 		if err != nil {
@@ -1008,4 +1027,17 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 func (ss *SaveState) UnmarshalBinary(p []byte) error {
 	_, err := ss.UnmarshalBinaryData(p)
 	return err
+}
+
+func (e *SaveState) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
+func (e *SaveState) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *SaveState) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
 }
