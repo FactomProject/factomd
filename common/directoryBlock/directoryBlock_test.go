@@ -8,11 +8,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -341,4 +346,226 @@ func TestExpandedDBlockHeader(t *testing.T) {
 	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000d"`) {
 		t.Error("Header does not contain ChainID")
 	}
+}
+
+func TestBuildBlock(t *testing.T) {
+	db1 := new(DirectoryBlock)
+	db1.Init()
+	//fmt.Println(db1)
+
+	k, _ := primitives.HexToHash("e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33")
+
+	if !k.IsSameAs(db1.GetKeyMR()) { //expected an empty directoryblock
+		fmt.Println(k)
+		fmt.Println(db1.GetKeyMR())
+		t.Fail()
+	}
+
+	db := NewDirectoryBlock(nil)
+
+	if db.GetEntrySigHashes() != nil {
+		t.Errorf("Invalid GetEntrySigHashes")
+	}
+
+	//h, _ := primitives.HexToHash("ce733587b898421bb3efab257ac8d6679b520df217ec949e41faf231121cb9b8")
+	a := new(adminBlock.AdminBlock)
+	a.Init()
+	//fmt.Println(a.DatabasePrimaryIndex())
+	db.SetABlockHash(a)
+
+	//h, _ = primitives.HexToHash("f294cd012b3c088740aa90b1fa8feead006c5a35176f57dd0bc7aac19c88f409")
+	e := new(entryCreditBlock.ECBlock)
+	e.Init()
+	db.SetECBlockHash(e)
+
+	//h, _ = primitives.HexToHash("1ce2a6114650bc6695f6714526c5170e7f93def316a3ea21ab6e3fa75007b770")
+	f := new(factoid.FBlock)
+	//f.Init()
+	db.SetFBlockHash(f)
+
+	c, _ := primitives.HexToHash("3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71")
+	h, _ := primitives.HexToHash("9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e")
+	db.SetEntryHash(h, c, 3)
+
+	c, _ = primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
+	h, _ = primitives.HexToHash("b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898")
+	db.SetEntryHash(h, c, 4)
+
+	k, _ = primitives.HexToHash("25212d6cb70ce4f109f09092985fd200da5d59668451601e21ba66e6ee0c9ebb")
+
+	if !k.IsSameAs(db.GetKeyMR()) {
+		fmt.Println(k)
+		fmt.Println(db.GetKeyMR())
+		t.Fail()
+	}
+
+	es := db.GetEBlockDBEntries()
+
+	//fmt.Println(es[1].GetChainID())
+
+	if !c.IsSameAs(es[1].GetChainID()) {
+		fmt.Println(c)
+		fmt.Println(es[1].GetChainID())
+		t.Fail()
+	}
+
+	es2 := db.GetEntryHashes()
+	//fmt.Println(es2)
+	if !h.IsSameAs(es2[4]) {
+		fmt.Println(h)
+		fmt.Println(es2[4])
+		t.Fail()
+	}
+
+	es3 := db.GetEntryHashesForBranch()
+	list := fmt.Sprintf("%v", es3)
+	expectedList := "[000000000000000000000000000000000000000000000000000000000000000a 4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e 000000000000000000000000000000000000000000000000000000000000000c a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56 000000000000000000000000000000000000000000000000000000000000000f c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71 9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604 b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898]"
+	if list != expectedList {
+		fmt.Println(h)
+		fmt.Println(es2[4])
+		t.Fail()
+	}
+
+	printout := db.String()
+	expectedString1 := `              KeyMR: eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc
+             BodyMR: 01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
+           FullHash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
+  Version:         0
+  NetworkID:       0
+  BodyMR:          01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
+  PrevKeyMR:       0000000000000000000000000000000000000000000000000000000000000000
+  PrevFullHash:    0000000000000000000000000000000000000000000000000000000000000000
+  Timestamp:       0
+  Timestamp Str:   `
+	epoch := time.Unix(0, 0)
+	expectedString2 := epoch.Format("2006-01-02 15:04:05")
+
+	expectedString3 := `
+  DBHeight:        0
+  BlockCount:      5
+Entries: 
+    0 ChainID: 000000000000000000000000000000000000000000000000000000000000000a
+      KeyMR:   4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e
+    1 ChainID: 000000000000000000000000000000000000000000000000000000000000000c
+      KeyMR:   a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56
+    2 ChainID: 000000000000000000000000000000000000000000000000000000000000000f
+      KeyMR:   c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330
+    3 ChainID: 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71
+      KeyMR:   9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e
+    4 ChainID: df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604
+      KeyMR:   b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898
+`
+	expectedString := expectedString1 + expectedString2 + expectedString3
+	if printout != expectedString {
+		fmt.Println(printout)
+		fmt.Println(expectedString)
+		t.Fail()
+	}
+
+	m := db.GetDatabaseHeight()
+	if m != 0 {
+		t.Fail()
+	}
+
+	n := db.GetChainID()
+	cid, _ := primitives.HexToHash("000000000000000000000000000000000000000000000000000000000000000d")
+	if !n.IsSameAs(cid) {
+		fmt.Println(n)
+		fmt.Println(cid)
+		t.Fail()
+	}
+
+	o := db.DatabasePrimaryIndex()
+	r, _ := primitives.HexToHash("eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc")
+	if !o.IsSameAs(r) {
+		fmt.Println(o)
+		fmt.Println(r)
+		t.Fail()
+	}
+
+	p := db.DatabaseSecondaryIndex()
+	s, _ := primitives.HexToHash("857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9")
+	if !p.IsSameAs(s) {
+		fmt.Println(p)
+		fmt.Println(s)
+		t.Fail()
+	}
+
+	returnVal, _ := db.JSONString()
+	//fmt.Println(returnVal)
+
+	expectedString = `{"Header":{"Version":0,"NetworkID":0,"BodyMR":"01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3","PrevKeyMR":"0000000000000000000000000000000000000000000000000000000000000000","PrevFullHash":"0000000000000000000000000000000000000000000000000000000000000000","Timestamp":0,"DBHeight":0,"BlockCount":5,"ChainID":"000000000000000000000000000000000000000000000000000000000000000d"},"DBEntries":[{"ChainID":"000000000000000000000000000000000000000000000000000000000000000a","KeyMR":"4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e"},{"ChainID":"000000000000000000000000000000000000000000000000000000000000000c","KeyMR":"a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56"},{"ChainID":"000000000000000000000000000000000000000000000000000000000000000f","KeyMR":"c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330"},{"ChainID":"3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71","KeyMR":"9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e"},{"ChainID":"df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604","KeyMR":"b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898"}],"DBHash":"857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9","KeyMR":"eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc"}`
+	if returnVal != expectedString {
+		fmt.Println("got", returnVal)
+		fmt.Println("expected", expectedString)
+		t.Fail()
+	}
+
+	//fmt.Println(q)
+
+	returnByte, _ := db.JSONByte()
+	by := string(returnByte)
+	if by != expectedString {
+		fmt.Println("got", by)
+		fmt.Println("expected", expectedString)
+		t.Fail()
+	}
+
+	if nil == CheckBlockPairIntegrity(nil, nil) {
+		t.Fail()
+	}
+
+	if nil != CheckBlockPairIntegrity(db, nil) {
+		t.Fail()
+	}
+
+	db2 := NewDirectoryBlock(db1)
+	j, _ := primitives.HexToHash("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604")
+	i, _ := primitives.HexToHash("b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898")
+	db2.SetEntryHash(j, i, 3)
+
+	l, _ := primitives.HexToHash("3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71")
+	q, _ := primitives.HexToHash("9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e")
+	db2.SetEntryHash(l, q, 4)
+
+	_, err := db2.MarshalBinary()
+
+	if nil != err {
+		t.Fail()
+	}
+
+	if nil != CheckBlockPairIntegrity(db2, db1) {
+		t.Fail()
+	}
+
+	bm := db.New()
+	bms := fmt.Sprintln(bm)
+
+	expectedString1 = `              KeyMR: e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33
+             BodyMR: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+           FullHash: e9f7dd92d52ff4efa31d0fb6521e64a30e211a262a6d407588f3b9229343b06b
+  Version:         0
+  NetworkID:       0
+  BodyMR:          e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  PrevKeyMR:       0000000000000000000000000000000000000000000000000000000000000000
+  PrevFullHash:    0000000000000000000000000000000000000000000000000000000000000000
+  Timestamp:       0
+  Timestamp Str:   `
+	epoch = time.Unix(0, 0)
+	expectedString2 = epoch.Format("2006-01-02 15:04:05")
+
+	expectedString3 = `
+  DBHeight:        0
+  BlockCount:      0
+Entries: 
+
+`
+	expectedString = expectedString1 + expectedString2 + expectedString3
+
+	if bms != expectedString {
+		fmt.Println(bms)
+		fmt.Println(expectedString)
+		t.Fail()
+	}
+
 }
