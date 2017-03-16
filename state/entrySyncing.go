@@ -232,6 +232,10 @@ func (s *State) GoSyncEntries() {
 			s.EntryDBHeightComplete = start
 		}
 
+		if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
+			time.Sleep(10*time.Second)
+		}
+
 		time.Sleep(200 * time.Millisecond)
 
 		for len(s.MissingEntries) > 8000 {
