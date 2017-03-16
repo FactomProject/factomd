@@ -106,7 +106,7 @@ func GetEBlock(keymr string) (interfaces.IEntryBlock, error) {
 }
 
 func GetEntry(hash string) (interfaces.IEBEntry, error) {
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		raw, err := GetRaw(hash)
 		if err != nil {
 			fmt.Printf("got error %s\n", err)
@@ -130,7 +130,7 @@ func GetEntry(hash string) (interfaces.IEBEntry, error) {
 		}
 		return entry, nil
 	}
-	panic("Failed 100 times to get the data " + hash)
+	//panic("Failed 100 times to get the data " + hash)
 	return nil, nil
 }
 

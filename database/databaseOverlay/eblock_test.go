@@ -38,7 +38,7 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 	if head == nil {
-		t.Error("DBlock head is nil")
+		t.Error("EBlock head is nil")
 	}
 
 	m1, err := b1.MarshalBinary()
@@ -196,5 +196,18 @@ func TestLoadUnknownEBlocks(t *testing.T) {
 		if len(all) != 0 {
 			t.Error("Fetched entries while we expected nil - %v", all)
 		}
+	}
+}
+
+func TestFetchAllEBlockChainIDs(t *testing.T) {
+	dbo := CreateAndPopulateTestDatabaseOverlay()
+	defer dbo.Close()
+
+	chains, err := dbo.FetchAllEBlockChainIDs()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if len(chains) != 2 {
+		t.Errorf("Got wrong number of chains - %v", len(chains))
 	}
 }
