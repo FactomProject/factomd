@@ -37,9 +37,11 @@ func (s *State) MakeMissingEntryRequests() {
 			now = time.Now()
 		}
 
-		fmt.Printf("***es %-10s Missing: %6d  Found: %6d Queue: %d\n", s.FactomNodeName, missing, found, len(s.MissingEntries))
-
 		newrequest := 0
+
+		cnt := 0
+		sum := 0
+		avg := 0
 
 		// Look through our map, and remove any entries we now have in our database.
 		s.MissingEntryMutex.Lock()
@@ -48,16 +50,23 @@ func (s *State) MakeMissingEntryRequests() {
 				found++
 				delete(s.MissingEntryMap, k)
 			} else {
-				missing++
+				cnt++
+				sum += s.MissingEntryMap[k].Cnt
 			}
 		}
+		if cnt > 0 {
+			avg = sum / cnt
+		}
+
+		fmt.Printf("***es %-10s Avg %6d Missing: %6d  Found: %6d Queue: %d\n", s.FactomNodeName, avg, missing, found, len(s.MissingEntries))
+
 		s.MissingEntryMutex.Unlock()
 
 		time.Sleep(20 * time.Millisecond)
 
 		s.MissingEntryMutex.Lock()
 	fillMap:
-		for len(s.MissingEntryMap) < 600 {
+		for len(s.MissingEntryMap) < 1500 {
 			select {
 			case et := <-s.MissingEntries:
 				missing++
@@ -88,7 +97,9 @@ func (s *State) MakeMissingEntryRequests() {
 		s.MissingEntryMutex.Unlock()
 		// slow down as the number of retries per message goes up
 		time.Sleep(time.Duration((200)) * time.Millisecond)
-		time.Sleep(time.Duration(len(s.inMsgQueue)) * time.Millisecond)
+		for len(s.inMsgQueue) > 100 {
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 }
 
@@ -222,7 +233,13 @@ func (s *State) GoSyncEntries() {
 		} else {
 			s.EntryDBHeightComplete = start
 		}
+		start = s.EntryDBHeightComplete
 		// sleep some time no matter what.
-		time.Sleep(200 * time.Millisecond)
+		for len(s.MissingEntries) > 1000 {
+			time.Sleep(100 * time.Millisecond)
+		}
+		for len(s.inMsgQueue) > 100 {
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 }

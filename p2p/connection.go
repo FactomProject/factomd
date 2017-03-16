@@ -378,7 +378,7 @@ func (c *Connection) goShutdown() {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
-	for ConnectionClosed != c.state {
+	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
