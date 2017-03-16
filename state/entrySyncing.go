@@ -231,9 +231,11 @@ func (s *State) GoSyncEntries() {
 		} else {
 			s.EntryDBHeightComplete = start
 		}
+
+		time.Sleep(200 * time.Millisecond)
+
 		for len(s.MissingEntries) > 8000 {
 			time.Sleep(100 * time.Millisecond)
 		}
-
 	}
 }
