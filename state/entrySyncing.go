@@ -98,9 +98,6 @@ func (s *State) MakeMissingEntryRequests() {
 					fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", et.EBHash.Bytes(), et.EntryHash.Bytes(), et.Cnt)
 				}
 			}
-			if len(s.WriteEntry) > 200 {
-				time.Sleep(time.Duration(len(s.WriteEntry)) * time.Millisecond)
-			}
 		}
 
 		// Insert the entries we have found into the database.
@@ -228,12 +225,12 @@ func (s *State) GoSyncEntries() {
 		if firstMissing >= 0 {
 			if firstMissing > 0 {
 				s.EntryDBHeightComplete = uint32(firstMissing - 1)
+				start = s.EntryDBHeightComplete
 			}
 			firstMissing = -1
 		} else {
 			s.EntryDBHeightComplete = start
 		}
-		start = s.EntryDBHeightComplete
 		// sleep some time no matter what.
 		for len(s.MissingEntries) > 1000 {
 			time.Sleep(100 * time.Millisecond)
