@@ -953,72 +953,77 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	/*
-		l = len(ss.MissingEntryBlocks)
-		err = buf.PopVarInt(uint64(l))
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(MissingEntryBlock)
+		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
 			return
 		}
-		for _, v := range ss.MissingEntryBlocks {
-			err = buf.PopBinaryMarshallable(&v)
-			if err != nil {
-				return
-			}
-		}
+		ss.MissingEntryBlocks = append(ss.MissingEntryBlocks, *s)
+	}
 
-		err = buf.PopUInt32(ss.EntryDBHeightComplete)
-		if err != nil {
-			return
-		}
-		err = buf.PopVarInt(uint64(ss.EntryHeightComplete))
-		if err != nil {
-			return
-		}
-		err = buf.PopUInt32(ss.EntryDBHeightProcessing)
-		if err != nil {
-			return
-		}
-		l = len(ss.MissingEntries)
-		err = buf.PopVarInt(uint64(l))
-		if err != nil {
-			return
-		}
-		for _, v := range ss.MissingEntries {
-			err = buf.PopBinaryMarshallable(&v)
-			if err != nil {
-				return
-			}
-		}
+	ss.EntryDBHeightComplete, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
 
-		err = buf.PopVarInt(ss.FactoshisPerEC)
-		if err != nil {
-			return
-		}
-		err = buf.PopString(ss.FERChainId)
-		if err != nil {
-			return
-		}
-		err = buf.PopString(ss.ExchangeRateAuthorityPublicKey)
-		if err != nil {
-			return
-		}
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EntryHeightComplete = int(l)
 
-		err = buf.PopUInt32(ss.FERChangeHeight)
+	ss.EntryDBHeightProcessing, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(MissingEntry)
+		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
 			return
 		}
-		err = buf.PopUInt64(ss.FERChangePrice)
-		if err != nil {
-			return
-		}
-		err = buf.PopUInt32(ss.FERPriority)
-		if err != nil {
-			return
-		}
-		err = buf.PopUInt32(ss.FERPrioritySetHeight)
-		if err != nil {
-			return
-		}*/
+		ss.MissingEntries = append(ss.MissingEntries, *s)
+	}
+
+	ss.FactoshisPerEC, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.FERChainId, err = buf.PopString()
+	if err != nil {
+		return
+	}
+	ss.ExchangeRateAuthorityPublicKey, err = buf.PopString()
+	if err != nil {
+		return
+	}
+
+	ss.FERChangeHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.FERChangePrice, err = buf.PopUInt64()
+	if err != nil {
+		return
+	}
+	ss.FERPriority, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.FERPrioritySetHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
 
 	newData = buf.DeepCopyBytes()
 	return
