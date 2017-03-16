@@ -30,6 +30,8 @@ func (s *State) MakeMissingEntryRequests() {
 
 	for {
 
+		MissingEntryMap := make(map[[32]byte]*MissingEntry)
+
 		now := time.Now()
 		// While we are waiting to boot or whatever, just idle here for a while.  Otherwise we can lock up.
 		for now.Before(pause) {
@@ -44,43 +46,47 @@ func (s *State) MakeMissingEntryRequests() {
 		avg := 0
 
 		// Look through our map, and remove any entries we now have in our database.
-		s.MissingEntryMutex.Lock()
-		for k := range s.MissingEntryMap {
-			if has(s, s.MissingEntryMap[k].EntryHash) {
+		for k := range MissingEntryMap {
+			if has(s, MissingEntryMap[k].EntryHash) {
 				found++
-				delete(s.MissingEntryMap, k)
+				delete(MissingEntryMap, k)
 			} else {
 				cnt++
-				sum += s.MissingEntryMap[k].Cnt
+				sum += MissingEntryMap[k].Cnt
 			}
 		}
 		if cnt > 0 {
 			avg = sum / cnt
 		}
 
-		fmt.Printf("***es %-10s Avg %6d Missing: %6d  Found: %6d Queue: %d\n", s.FactomNodeName, avg, missing, found, len(s.MissingEntries))
+		fmt.Printf("***es %-10s EComplete: %6d Len(MissingMap): %6d Avg: %6d Missing: %6d  Found: %6d Queue: %d\n",
+			s.FactomNodeName,
+			s.EntryDBHeightComplete,
+			len(MissingEntryMap),
+			avg,
+			missing,
+			found,
+			len(s.MissingEntries))
 
-		s.MissingEntryMutex.Unlock()
+		for len(s.inMsgQueue) > 100 {
+			time.Sleep(100 * time.Millisecond)
+		}
 
-		time.Sleep(20 * time.Millisecond)
-
-		s.MissingEntryMutex.Lock()
+		// Keep our map of entries that we are asking for filled up.
 	fillMap:
-		for len(s.MissingEntryMap) < 1500 {
+		for len(MissingEntryMap) < 3000 {
 			select {
 			case et := <-s.MissingEntries:
 				missing++
-				s.MissingEntryMap[et.EntryHash.Fixed()] = &et
+				MissingEntryMap[et.EntryHash.Fixed()] = &et
 			default:
 				break fillMap
 			}
 		}
-		s.MissingEntryMutex.Unlock()
 
-		s.MissingEntryMutex.Lock()
-		for k := range s.MissingEntryMap {
-			et := s.MissingEntryMap[k]
-			s.MissingEntryMutex.Unlock()
+		// Make requests for entries we don't have.
+		for k := range MissingEntryMap {
+			et := MissingEntryMap[k]
 
 			if et.Cnt == 0 || now.Unix()-et.LastTime.Unix() > 40 {
 				entryRequest := messages.NewMissingData(s, et.EntryHash)
@@ -92,9 +98,30 @@ func (s *State) MakeMissingEntryRequests() {
 					fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", et.EBHash.Bytes(), et.EntryHash.Bytes(), et.Cnt)
 				}
 			}
-			s.MissingEntryMutex.Lock()
+			if len(s.WriteEntry) > 200 {
+				time.Sleep(time.Duration(len(s.WriteEntry)) * time.Millisecond)
+			}
 		}
-		s.MissingEntryMutex.Unlock()
+
+		// Insert the entries we have found into the database.
+	InsertLoop:
+		for i := 0; i < 300; i++ {
+
+			select {
+
+			case entry := <-s.WriteEntry:
+
+				asked := MissingEntryMap[entry.GetHash().Fixed()] != nil
+
+				if asked {
+					s.DB.InsertEntry(entry)
+				}
+
+			default:
+				break InsertLoop
+			}
+		}
+
 		// slow down as the number of retries per message goes up
 		time.Sleep(time.Duration((200)) * time.Millisecond)
 		for len(s.inMsgQueue) > 100 {
@@ -103,35 +130,8 @@ func (s *State) MakeMissingEntryRequests() {
 	}
 }
 
-func (s *State) GoWriteEntries() {
-	for {
-		time.Sleep(300 * time.Millisecond)
-
-	entryWrite:
-		for {
-
-			select {
-
-			case entry := <-s.WriteEntry:
-
-				s.MissingEntryMutex.Lock()
-				asked := s.MissingEntryMap[entry.GetHash().Fixed()] != nil
-				s.MissingEntryMutex.Unlock()
-
-				if asked {
-					s.DB.InsertEntry(entry)
-				}
-
-			default:
-				break entryWrite
-			}
-		}
-	}
-}
-
 func (s *State) GoSyncEntries() {
 	go s.MakeMissingEntryRequests()
-	go s.GoWriteEntries() // Start a go routine to write the Entries to the DB
 
 	// Map to track what I know is missing
 	missingMap := make(map[[32]byte]interfaces.IHash)

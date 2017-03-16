@@ -273,8 +273,6 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
-	MissingEntryMutex sync.Mutex
-
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryBlockDBHeightComplete uint32
@@ -292,8 +290,6 @@ type State struct {
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries chan MissingEntry
 
-	//Map of Entries we are presently looking for
-	MissingEntryMap map[[32]byte]*MissingEntry
 	// Holds leaders and followers up until all missing entries are processed, if true
 	WaitForEntries  bool
 	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
@@ -719,8 +715,6 @@ func (s *State) Init() {
 	s.UpdateEntryHash = make(chan *EntryUpdate, 100000)      //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, 20000)     //Entries to be written to the database
 
-	s.MissingEntryMap = make(map[[32]byte]*MissingEntry)
-
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
@@ -865,9 +859,6 @@ func (s *State) GetEntryDBHeightComplete() uint32 {
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
-	s.MissingEntryMutex.Lock()
-	defer s.MissingEntryMutex.Unlock()
-
 	return uint32(len(s.MissingEntries))
 }
 
