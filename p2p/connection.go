@@ -463,24 +463,27 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- something causes our state to be offline
 // -- we run out of data to recieve (which gives an io.EOF which is handled by handleNetErrors)
 func (c *Connection) processReceives() {
-	for ConnectionOnline == c.state {
-		var message Parcel
-		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
-		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
-		err := c.decoder.Decode(&message)
-		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
-		switch {
-		case nil == err:
-			debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
-			c.metrics.BytesReceived += message.Header.Length
-			c.metrics.MessagesReceived += 1
-			message.Header.PeerAddress = c.peer.Address
-			c.handleParcel(message)
-		default:
-			time.Sleep(100 * time.Millisecond)
-			c.Errors <- err
-			return
+	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
+		for ConnectionOnline == c.state {
+			var message Parcel
+			verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
+			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
+			err := c.decoder.Decode(&message)
+			message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
+			switch {
+			case nil == err:
+				debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
+				c.metrics.BytesReceived += message.Header.Length
+				c.metrics.MessagesReceived += 1
+				message.Header.PeerAddress = c.peer.Address
+				c.handleParcel(message)
+			default:
+				time.Sleep(100 * time.Millisecond)
+				c.Errors <- err
+				return
+			}
 		}
+		time.Sleep(100*time.Millisecond)
 	}
 }
 
