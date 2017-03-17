@@ -223,7 +223,7 @@ func (c *Connection) runLoop() {
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				c.setNotes("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
-				c.goShutdown()
+				//c.goShutdown()
 			} else {
 				c.setNotes("Connection.runLoop() ConnectionInitialized, going dialLoop(). %+v", c.peer.PeerIdent())
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
@@ -241,7 +241,7 @@ func (c *Connection) runLoop() {
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
-				c.goShutdown()
+				go c.goShutdown()
 			}
 		case ConnectionOffline:
 			switch {
@@ -249,7 +249,7 @@ func (c *Connection) runLoop() {
 				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			default: // the connection dialed us, so we shutdown
-				c.goShutdown()
+				go c.goShutdown()
 			}
 		case ConnectionShuttingDown:
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
@@ -275,7 +275,7 @@ func (c *Connection) dialLoop() {
 	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
 	if c.peer.QualityScore < MinumumQualityScore {
 		c.setNotes("Connection.dialLoop() Quality Score too low, not dialing out again.")
-		c.goShutdown()
+		go c.goShutdown()
 		return
 	}
 	for {
@@ -295,11 +295,13 @@ func (c *Connection) dialLoop() {
 					time.Sleep(TimeBetweenRedials)
 				case !c.isOutGoing: // incomming connection we redial once, then give up.
 					c.setNotes("Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down. Last note was: %s", c.notes)
-					c.goShutdown()
+					go c.goShutdown()
 					return
 				case ConnectionInitialized == c.state:
 					c.setNotes("Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down. Last note was: %s", c.notes)
-					c.goShutdown() // We're dialing possibly many peers who are no longer there.
+					//??????????????????????????????????????????
+					//c.goShutdown() // We're dialing possibly many peers who are no longer there.
+					//??????????????????????????????????????????
 					return
 				case ConnectionOffline == c.state: // We were online with the peer at one point.
 					c.setNotes(fmt.Sprintf("Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
@@ -307,7 +309,7 @@ func (c *Connection) dialLoop() {
 					switch {
 					case MaxNumberOfRedialAttempts < c.attempts:
 						c.setNotes(fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
-						c.goShutdown()
+						go c.goShutdown()
 						return
 					default:
 						c.setNotes(fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
@@ -359,7 +361,6 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
-	debug(c.peer.PeerIdent(), "Connection.goOffline()")
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
@@ -404,7 +405,7 @@ func (c *Connection) handleCommand() {
 			switch command.Command {
 			case ConnectionShutdownNow:
 				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort()))
-				c.goShutdown()
+				go c.goShutdown()
 			case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
 				debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
 				peer := command.Peer
@@ -419,13 +420,13 @@ func (c *Connection) handleCommand() {
 					debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 					c.updatePeer()
 					c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinumumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinumumQualityScore))
-					c.goShutdown()
+					go c.goShutdown()
 				}
 			case ConnectionGoOffline:
 				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command recieved", c.peer.PeerIdent())
 				c.goOffline()
 			default:
-				c.goShutdown()
+				go c.goShutdown()
 				logfatal(c.peer.PeerIdent(), "handleCommand() unknown command?: %+v ", command)
 			}
 		default:
@@ -537,7 +538,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() Disconnecting peer: %s", c.peer.PeerIdent())
 		c.attempts = MaxNumberOfRedialAttempts + 50 // so we don't redial invalid Peer
 		c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to InvalidDisconnectPeer result from parcel. Previous notes: %s.", c.peer.AddressPort(), c.notes))
-		c.goShutdown()
+		go c.goShutdown()
 		return
 	case InvalidPeerDemerit:
 		parcel.Trace("Connection.handleParcel()-InvalidPeerDemerit", "I")

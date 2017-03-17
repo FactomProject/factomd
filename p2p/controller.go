@@ -523,12 +523,12 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 		dot("&&p\n")
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics")
 	case ConnectionIsClosed:
-		c.shutdown()
 		dot("&&q\n")
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
 		delete(c.connectionMetrics, connection.peer.Hash)
+		go connection.goShutdown()
 	case ConnectionUpdatingPeer:
 		dot("&&r\n")
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
