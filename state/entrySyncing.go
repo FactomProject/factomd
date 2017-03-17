@@ -189,6 +189,9 @@ func (s *State) GoSyncEntries() {
 
 							if firstMissing < 0 {
 								firstMissing = int(scan)
+								if scan > 0 {
+									s.EntryBlockDBHeightComplete = scan - 1
+								}
 							}
 
 							eh := missingMap[entryhash.Fixed()]
@@ -219,13 +222,7 @@ func (s *State) GoSyncEntries() {
 			start = scan
 		}
 		lastfirstmissing = firstMissing
-
-		if firstMissing > 0 {
-			s.EntryDBHeightComplete = uint32(firstMissing - 1)
-			start = s.EntryDBHeightComplete
-		} else if firstMissing == -1 {
-			s.EntryDBHeightComplete = start
-		}
+		start = s.EntryDBHeightComplete
 
 		// reset first Missing back to -1 every time.
 		firstMissing = -1
