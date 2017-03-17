@@ -367,7 +367,7 @@ func (c *Controller) runloop() {
 			case command := <-c.commandChannel:
 				c.handleCommand(command)
 			default:
-				time.Sleep(time.Millisecond * 121)
+				time.Sleep(time.Millisecond * 20)
 				break commandloop
 			}
 		}
