@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -594,8 +595,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	if d.Saved {
-		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
-		if dblk == nil {
+		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())
+		if err != nil || !Havedblk {
 			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
 				list.State.FactomNodeName,
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
@@ -612,69 +613,74 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
 
-	list.State.DB.StartMultiBatch()
+	saveItToDisk := func() {
+		list.State.DB.StartMultiBatch()
 
-	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
-		panic(err.Error())
-	}
-
-	if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
-		panic(err.Error())
-	}
-
-	if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
-		panic(err.Error())
-	}
-
-	pl := list.State.ProcessLists.Get(uint32(dbheight))
-
-	if len(d.EntryBlocks) > 0 {
-		for _, eb := range d.EntryBlocks {
-			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-				panic(err.Error())
-			}
+		if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
+			panic(err.Error())
 		}
-		for _, e := range d.Entries {
-			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-				panic(err.Error())
-			}
+
+		if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
+			panic(err.Error())
 		}
-	}
 
-	if pl != nil {
-		for _, eb := range pl.NewEBlocks {
-			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-				panic(err.Error())
+		if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
+			panic(err.Error())
+		}
+
+		pl := list.State.ProcessLists.Get(uint32(dbheight))
+
+		if len(d.EntryBlocks) > 0 {
+			for _, eb := range d.EntryBlocks {
+				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+					panic(err.Error())
+				}
 			}
-
-			for _, e := range eb.GetBody().GetEBEntries() {
-				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+			for _, e := range d.Entries {
+				if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
 					panic(err.Error())
 				}
 			}
 		}
-		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
-		pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
+
+		if pl != nil {
+			for _, eb := range pl.NewEBlocks {
+				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+					panic(err.Error())
+				}
+
+				for _, e := range eb.GetBody().GetEBEntries() {
+					if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+						panic(err.Error())
+					}
+				}
+			}
+			pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+			pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
+		}
+
+		d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
+		d.Entries = make([]interfaces.IEBEntry, 0)
+
+		if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+			panic(err.Error())
+		}
+
+		if err := list.State.DB.ExecuteMultiBatch(); err != nil {
+			panic(err.Error())
+		}
+
+		if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
+			list.State.DB.SaveDirectoryBlockHead(head)
+		}
+
+		progress = true
+		d.ReadyToSave = false
+		d.Saved = true
 	}
 
-	d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
-	d.Entries = make([]interfaces.IEBEntry, 0)
+	go saveItToDisk()
 
-	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
-		panic(err.Error())
-	}
-
-	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
-		panic(err.Error())
-	}
-
-	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
-		list.State.DB.SaveDirectoryBlockHead(head)
-	}
-
-	progress = true
-	d.ReadyToSave = false
-	d.Saved = true
 	return
 }
 

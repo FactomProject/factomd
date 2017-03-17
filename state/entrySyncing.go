@@ -49,20 +49,20 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 		if cnt > 0 {
-			avg = sum / cnt
+			avg = (1000 * sum) / cnt
 		}
 
 		fmt.Printf("***es %-10s "+
 			"EComplete: %6d "+
 			"Len(MissingEntyrMap): %6d "+
-			"Avg: %6d "+
+			"Avg: %6d.%03d "+
 			"Missing: %6d  "+
 			"Found: %6d "+
 			"Queue: %d\n",
 			s.FactomNodeName,
 			s.EntryDBHeightComplete,
 			len(MissingEntryMap),
-			avg,
+			avg/1000, avg%1000,
 			missing,
 			found,
 			len(s.MissingEntries))
@@ -190,7 +190,7 @@ func (s *State) GoSyncEntries() {
 							if firstMissing < 0 {
 								firstMissing = int(scan)
 								if scan > 0 {
-									s.EntryBlockDBHeightComplete = scan - 1
+									s.EntryDBHeightComplete = scan - 1
 								}
 							}
 
@@ -227,7 +227,11 @@ func (s *State) GoSyncEntries() {
 		// reset first Missing back to -1 every time.
 		firstMissing = -1
 
-		time.Sleep(20 * time.Second)
+		if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
+			time.Sleep(20 * time.Second)
+		} else {
+			time.Sleep(5 * time.Second)
+		}
 
 	}
 }

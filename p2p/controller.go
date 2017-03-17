@@ -543,10 +543,12 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
-		connection := *conn
-		connection.Start()
-		c.connections[connection.peer.Hash] = &connection
-		c.connectionsByAddress[connection.peer.Address] = &connection
+		conn.Start()
+		if c.connections[conn.peer.Hash] != nil {
+			go c.connections[conn.peer.Hash].goShutdown()
+		}
+		c.connections[conn.peer.Hash] = conn
+		c.connectionsByAddress[conn.peer.Address] = conn
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
@@ -559,6 +561,9 @@ func (c *Controller) handleCommand(command interface{}) {
 		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
+		if c.connections[connection.peer.Hash] != nil {
+			go c.connections[connection.peer.Hash].goShutdown()
+		}
 		c.connections[connection.peer.Hash] = connection
 		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
