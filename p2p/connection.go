@@ -425,6 +425,7 @@ func (c *Connection) handleCommand() {
 				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command recieved", c.peer.PeerIdent())
 				c.goOffline()
 			default:
+				c.goShutdown()
 				logfatal(c.peer.PeerIdent(), "handleCommand() unknown command?: %+v ", command)
 			}
 		default:
