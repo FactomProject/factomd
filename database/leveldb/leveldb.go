@@ -257,7 +257,6 @@ func NewLevelDB(filename string, create bool) (interfaces.IDatabase, error) {
 	}
 
 	opts := &opt.Options{
-		Compression:            opt.NoCompression,
 		OpenFilesCacheCapacity: 50, //this solves the "too many files open problem.  macs have a default of 250 max open files.
 		// setting this lower lessens contention with other programs for the scarce open file limit.
 	}

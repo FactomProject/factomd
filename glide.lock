@@ -1,5 +1,5 @@
 hash: 8dc34ac6836e01df2d658234329fc55b6d65f2572c77a522039088a970cf44c5
-updated: 2017-02-02T15:43:18.471289022-06:00
+updated: 2017-02-17T15:35:30.834131259-06:00
 imports:
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
@@ -32,14 +32,14 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: ee66cae73edad91fd38befa0d7755c2572f9993a
+  version: 69e0366ba3d6be5bbc851eefb7cda090eb1926d3
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-cli
   version: bf8490791dafd10fa77ed199001a5c492972e494
 - name: github.com/FactomProject/factom-walletd
-  version: e6bd1af3c884f2ba70229723eeda1fdb37fcec80
+  version: 76e693688a9d1265a5d9fd27d1dbf456a96b3b9c
 - name: github.com/FactomProject/fctwallet
   version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
 - name: github.com/FactomProject/fsnotify
@@ -87,16 +87,16 @@ imports:
 - name: github.com/FactomProject/web
   version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
 - name: golang.org/x/crypto
-  version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
+  version: 453249f01cfeb54c3d549ddb75ff152ca243f9d8
   subpackages:
   - pbkdf2
   - ripemd160
 - name: golang.org/x/net
-  version: 007e530097ad7f954752df63046b4036f98ba6a6
+  version: b4690f45fa1cafc47b1c280c2e75116efe40cc13
   subpackages:
   - websocket
 - name: golang.org/x/sys
-  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
+  version: 075e574b89e4c2d22f2286a7e2b919519c6f3547
   subpackages:
   - unix
 - name: gopkg.in/gcfg.v1
