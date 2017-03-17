@@ -74,7 +74,7 @@ func (s *State) MakeMissingEntryRequests() {
 			case et := <-s.MissingEntries:
 				if !has(s, et.EntryHash) {
 					missing++
-					MissingEntryMap[et.EntryHash.Fixed()] = &et
+					MissingEntryMap[et.EntryHash.Fixed()] = et
 				}
 			default:
 				break fillMap
@@ -97,8 +97,8 @@ func (s *State) MakeMissingEntryRequests() {
 					}
 				}
 			}
-		}else{
-			time.Sleep(20*time.Second)
+		} else {
+			time.Sleep(20 * time.Second)
 		}
 
 		// Insert the entries we have found into the database.
@@ -203,7 +203,7 @@ func (s *State) GoSyncEntries() {
 								v.EBHash = ebKeyMR
 								entryMissing++
 								missingMap[entryhash.Fixed()] = entryhash
-								s.MissingEntries <- v
+								s.MissingEntries <- &v
 							}
 						}
 						ueh := new(EntryUpdate)
