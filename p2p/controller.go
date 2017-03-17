@@ -361,14 +361,15 @@ func (c *Controller) runloop() {
 
 	for c.keepRunning { // Run until we get the exit command
 		dot("@@1\n")
-		progress := false
-		for 0 < len(c.commandChannel) {
-			command := <-c.commandChannel
-			c.handleCommand(command)
-			progress = true
-		}
-		if !progress {
-			time.Sleep(time.Millisecond * 121) // This can be a tight loop, don't want to starve the application
+	commandloop:
+		for {
+			select {
+			case command := <-c.commandChannel:
+				c.handleCommand(command)
+			default:
+				time.Sleep(time.Millisecond * 121)
+				break commandloop
+			}
 		}
 		dot("@@3\n")
 		// route messages to and from application
@@ -589,6 +590,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		logfatal("ctrlr", "Unkown p2p.Controller command recieved: %+v", commandType)
 	}
 }
+
 func (c *Controller) applicationPeerUpdate(qualityDelta int32, peerHash string) {
 	connection, present := c.connections[peerHash]
 	if present {
