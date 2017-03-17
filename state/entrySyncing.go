@@ -120,7 +120,7 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 		if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-			time.Sleep(20 * time.Second)
+			time.Sleep(30 * time.Second)
 		} else {
 			time.Sleep(5 * time.Second)
 		}
