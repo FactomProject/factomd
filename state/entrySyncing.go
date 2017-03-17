@@ -97,6 +97,8 @@ func (s *State) MakeMissingEntryRequests() {
 					}
 				}
 			}
+		}else{
+			time.Sleep(20*time.Second)
 		}
 
 		// Insert the entries we have found into the database.
@@ -118,7 +120,7 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 
