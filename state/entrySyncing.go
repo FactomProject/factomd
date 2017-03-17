@@ -119,8 +119,11 @@ func (s *State) MakeMissingEntryRequests() {
 				break InsertLoop
 			}
 		}
-
-		time.Sleep(10 * time.Second)
+		if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
+			time.Sleep(20 * time.Second)
+		} else {
+			time.Sleep(5 * time.Second)
+		}
 	}
 }
 

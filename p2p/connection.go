@@ -363,6 +363,8 @@ func (c *Connection) goOffline() {
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
+	c.SendChannel = make(chan interface{}, StandardChannelSize)
+	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 }
 
 func (c *Connection) goShutdown() {
@@ -374,6 +376,8 @@ func (c *Connection) goShutdown() {
 	c.decoder = nil
 	c.encoder = nil
 	c.state = ConnectionShuttingDown
+	c.SendChannel = make(chan interface{}, StandardChannelSize)
+	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 }
 
 // processSends gets all the messages from the application and sends them out over the network
