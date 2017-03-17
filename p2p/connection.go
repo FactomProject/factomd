@@ -363,8 +363,6 @@ func (c *Connection) goOffline() {
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
-	c.SendChannel = make(chan interface{}, StandardChannelSize)
-	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 }
 
 func (c *Connection) goShutdown() {
@@ -376,8 +374,6 @@ func (c *Connection) goShutdown() {
 	c.decoder = nil
 	c.encoder = nil
 	c.state = ConnectionShuttingDown
-	c.SendChannel = make(chan interface{}, StandardChannelSize)
-	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 }
 
 // processSends gets all the messages from the application and sends them out over the network
@@ -401,36 +397,39 @@ func (c *Connection) processSends() {
 }
 
 func (c *Connection) handleCommand() {
-	select {
-	case command := <-c.Commands:
+	for {
+		select {
+		case command := <-c.Commands:
 
-		switch command.Command {
-		case ConnectionShutdownNow:
-			c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort()))
-			c.goShutdown()
-		case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
-			debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
-			peer := command.Peer
-			if peer.QualityScore < c.peer.QualityScore {
-				c.peer.QualityScore = peer.QualityScore
-			}
-		case ConnectionAdjustPeerQuality:
-			delta := command.Delta
-			note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
-			c.peer.QualityScore = c.peer.QualityScore + delta
-			if MinumumQualityScore > c.peer.QualityScore {
-				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
-				c.updatePeer()
-				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinumumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinumumQualityScore))
+			switch command.Command {
+			case ConnectionShutdownNow:
+				c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to ConnectionShutdownNow message.", c.peer.AddressPort()))
 				c.goShutdown()
+			case ConnectionUpdatingPeer: // at this level we're only updating the quality score, to pass on application level demerits
+				debug(c.peer.PeerIdent(), "handleCommand() ConnectionUpdatingPeer")
+				peer := command.Peer
+				if peer.QualityScore < c.peer.QualityScore {
+					c.peer.QualityScore = peer.QualityScore
+				}
+			case ConnectionAdjustPeerQuality:
+				delta := command.Delta
+				note(c.peer.PeerIdent(), "handleCommand() ConnectionAdjustPeerQuality: Current Score: %d Delta: %d", c.peer.QualityScore, delta)
+				c.peer.QualityScore = c.peer.QualityScore + delta
+				if MinumumQualityScore > c.peer.QualityScore {
+					debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s for quality score: %d", c.peer.PeerIdent(), c.peer.QualityScore)
+					c.updatePeer()
+					c.setNotes(fmt.Sprintf("Connection(%s) shutting down due to QualityScore %d being below MinumumQualityScore: %d.", c.peer.AddressPort(), c.peer.QualityScore, MinumumQualityScore))
+					c.goShutdown()
+				}
+			case ConnectionGoOffline:
+				debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command recieved", c.peer.PeerIdent())
+				c.goOffline()
+			default:
+				logfatal(c.peer.PeerIdent(), "handleCommand() unknown command?: %+v ", command)
 			}
-		case ConnectionGoOffline:
-			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command recieved", c.peer.PeerIdent())
-			c.goOffline()
 		default:
-			logfatal(c.peer.PeerIdent(), "handleCommand() unknown command?: %+v ", command)
+			return
 		}
-	default:
 	}
 }
 
@@ -487,28 +486,31 @@ func (c *Connection) processReceives() {
 
 //handleNetErrors Reacts to errors we get from encoder or decoder
 func (c *Connection) handleNetErrors() {
-	select {
-	case err := <-c.Errors:
-		nerr, isNetError := err.(net.Error)
-		verbose(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got error: %+v", c.ConnectionState(), err)
-		switch {
-		case isNetError && nerr.Timeout(): /// buffer empty
-			return
-		case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
-			c.setNotes(fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr))
-			c.goOffline()
-		case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
-			c.setNotes(fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err))
-			c.goOffline()
-		case err == syscall.EPIPE: // "write: broken pipe"
-			c.setNotes(fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err))
-			c.goOffline()
+	for {
+		select {
+		case err := <-c.Errors:
+			nerr, isNetError := err.(net.Error)
+			verbose(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got error: %+v", c.ConnectionState(), err)
+			switch {
+			case isNetError && nerr.Timeout(): /// buffer empty
+				return
+			case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
+				c.setNotes(fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr))
+				c.goOffline()
+			case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
+				c.setNotes(fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err))
+				c.goOffline()
+			case err == syscall.EPIPE: // "write: broken pipe"
+				c.setNotes(fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err))
+				c.goOffline()
+			default:
+				significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
+				c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
+				c.goOffline()
+			}
 		default:
-			significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
-			c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
-			c.goOffline()
+			return
 		}
-	default:
 	}
 }
 
