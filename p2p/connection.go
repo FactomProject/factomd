@@ -391,7 +391,7 @@ func (c *Connection) processSends() {
 		if c.start == false {
 			return
 		}
-		
+
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
@@ -483,13 +483,10 @@ func (c *Connection) processReceives() {
 
 		for ConnectionOnline == c.state {
 			var message Parcel
-			verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
 			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 			err := c.decoder.Decode(&message)
-			message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
 			switch {
 			case nil == err:
-				debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 				c.metrics.BytesReceived += message.Header.Length
 				c.metrics.MessagesReceived += 1
 				message.Header.PeerAddress = c.peer.Address
