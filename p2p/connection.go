@@ -465,7 +465,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- something causes our state to be offline
 func (c *Connection) processReceives() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
-		for ConnectionOnline == c.state {
+		for ConnectionOnline == c.state && c.conn != nil && c.decoder != nil {
 			var message Parcel
 			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 			err := c.decoder.Decode(&message)
