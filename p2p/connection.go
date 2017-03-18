@@ -225,7 +225,7 @@ func (c *Connection) runLoop() {
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				c.setNotes("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
-				//c.goShutdown()
+				c.goShutdown()
 			} else {
 				c.setNotes("Connection.runLoop() ConnectionInitialized, going dialLoop(). %+v", c.peer.PeerIdent())
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
