@@ -208,7 +208,7 @@ func (c *Connection) Start() {
 // runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
 func (c *Connection) runLoop() {
 	go c.processSends()
-	c.processReceives()
+	go c.processReceives()
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
