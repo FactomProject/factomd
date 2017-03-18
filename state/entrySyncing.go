@@ -130,11 +130,12 @@ func (s *State) MakeMissingEntryRequests() {
 func (s *State) GoSyncEntries() {
 	go s.MakeMissingEntryRequests()
 
+	now := time.Now().Unix()
 	// Map to track what I know is missing
 	missingMap := make(map[[32]byte]interfaces.IHash)
 
 	// Once I have found all the entries, we quit searching so much for missing entries.
-	start := uint32(0)
+	start := uint32(1)
 	entryMissing := 0
 
 	// If I find no missing entries, then the firstMissing will be -1
@@ -142,7 +143,22 @@ func (s *State) GoSyncEntries() {
 
 	lastfirstmissing := 0
 	for {
-		fmt.Printf("***es %10s Missing: %6d MissingMap %6d FirstMissing %6d\n", s.FactomNodeName, entryMissing, len(missingMap), lastfirstmissing)
+		fmt.Printf("***es %10s"+
+			" t %6d"+
+			" EntryDBHeightComplete %d"+
+			" start %6d"+
+			" end %7d"+
+			" Missing: %6d"+
+			" MissingMap %6d"+
+			" FirstMissing %6d\n",
+			s.FactomNodeName,
+			time.Now().Unix()-now,
+			s.EntryDBHeightComplete,
+			start,
+			s.GetHighestSavedBlk(),
+			entryMissing,
+			len(missingMap),
+			lastfirstmissing)
 		entryMissing = 0
 
 		for k := range missingMap {
@@ -182,6 +198,12 @@ func (s *State) GoSyncEntries() {
 				for _, entryhash := range eBlock.GetEntryHashes() {
 					if !entryhash.IsMinuteMarker() {
 
+						if firstMissing < 0 {
+							if scan > 1 {
+								s.EntryDBHeightComplete = scan - 1
+							}
+						}
+
 						// If I have the entry, then remove it from the Missing Entries list.
 						if has(s, entryhash) {
 							delete(missingMap, entryhash.Fixed())
@@ -190,6 +212,7 @@ func (s *State) GoSyncEntries() {
 							if firstMissing < 0 {
 								firstMissing = int(scan)
 								if scan > 0 {
+									fmt.Println("*** Missing", entryhash.String())
 									s.EntryDBHeightComplete = scan - 1
 								}
 							}
