@@ -21,8 +21,6 @@ import (
 // via two channels, send and recieve.  These channels take structs of type ConnectionCommand or ConnectionParcel
 // (defined below).
 type Connection struct {
-	start          bool               // If I haven't started the underlying go routines, start is false.  If start is false,
-	                                  //  the underlying go routines should kill themselves.
 	conn           net.Conn
 	Errors         chan error             // handle errors from connections.
 	Commands       chan ConnectionCommand // handle connection commands
@@ -209,15 +207,11 @@ func (c *Connection) Start() {
 // runloop OWNs the connection.  It is the only goroutine that can change values in the connection struct
 // runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
 func (c *Connection) runLoop() {
+	go c.processSends()
+	c.processReceives()
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
-
-		if !c.start {
-			c.start = true
-			go c.processSends()
-			go c.processReceives()
-		}
-				// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
+		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		c.updateStats() // Update controller with metrics
 		c.connectionStatusReport()
 		// if 2 == rand.Intn(100) {
@@ -381,17 +375,11 @@ func (c *Connection) goShutdown() {
 	c.decoder = nil
 	c.encoder = nil
 	c.state = ConnectionShuttingDown
-	c.start = false
 }
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
-
-		if c.start == false {
-			return
-		}
-
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
@@ -473,14 +461,10 @@ func (c *Connection) sendParcel(parcel Parcel) {
 
 // processReceives is a go routine This is essentially an infinite loop that exits
 // when:
-// start is false.
+// -- a network error happens
+// -- something causes our state to be offline
 func (c *Connection) processReceives() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
-
-		if c.start == false {
-			return
-		}
-
 		for ConnectionOnline == c.state {
 			var message Parcel
 			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
