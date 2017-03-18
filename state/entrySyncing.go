@@ -144,6 +144,7 @@ func (s *State) GoSyncEntries() {
 	lastfirstmissing := 0
 	for {
 		fmt.Printf("***es %10s"+
+			" connections %d"+
 			" t %6d"+
 			" EntryDBHeightComplete %d"+
 			" start %6d"+
@@ -152,6 +153,7 @@ func (s *State) GoSyncEntries() {
 			" MissingMap %6d"+
 			" FirstMissing %6d\n",
 			s.FactomNodeName,
+			s.NetworkControler.NumConnections,
 			time.Now().Unix()-now,
 			s.EntryDBHeightComplete,
 			start,
@@ -211,10 +213,6 @@ func (s *State) GoSyncEntries() {
 
 							if firstMissing < 0 {
 								firstMissing = int(scan)
-								if scan > 0 {
-									fmt.Println("*** Missing", entryhash.String())
-									s.EntryDBHeightComplete = scan - 1
-								}
 							}
 
 							eh := missingMap[entryhash.Fixed()]

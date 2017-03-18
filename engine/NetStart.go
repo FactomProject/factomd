@@ -349,6 +349,7 @@ func NetStart(s *state.State) {
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
+		fnodes[0].State.NetworkControler = p2pNetwork
 		p2pNetwork.StartNetwork()
 		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)

@@ -28,6 +28,7 @@ type Controller struct {
 	listenPort           string                 // port we listen on for new connections
 	connections          map[string]*Connection // map of the connections indexed by peer hash
 	connectionsByAddress map[string]*Connection // map of the connections indexed by peer address
+	NumConnections       int                    // Number of Connections we are managing.
 
 	// After launching the network, the management is done via these channels.
 	commandChannel chan interface{} // Application use controller public API to send commands on this channel to controllers goroutines.
@@ -360,6 +361,9 @@ func (c *Controller) runloop() {
 	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
+
+		c.NumConnections = len(c.connections)
+
 		dot("@@1\n")
 	commandloop:
 		for {

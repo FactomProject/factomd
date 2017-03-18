@@ -27,6 +27,7 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/logger"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -35,6 +36,8 @@ var _ = fmt.Print
 
 type State struct {
 	filename string
+
+	NetworkControler *p2p.Controller
 
 	Salt interfaces.IHash
 
