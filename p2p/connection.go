@@ -476,9 +476,7 @@ func (c *Connection) processReceives() {
 				message.Header.PeerAddress = c.peer.Address
 				c.handleParcel(message)
 			default:
-				time.Sleep(100 * time.Millisecond)
 				c.Errors <- err
-				return
 			}
 		}
 		time.Sleep(100 * time.Millisecond)
