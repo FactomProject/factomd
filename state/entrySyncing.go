@@ -124,6 +124,9 @@ func (s *State) MakeMissingEntryRequests() {
 		} else {
 			time.Sleep(5 * time.Second)
 		}
+		if s.EntryDBHeightComplete == s.GetHighestSavedBlk() {
+			time.Sleep(20 * time.Second)
+		}
 	}
 }
 
@@ -174,6 +177,12 @@ func (s *State) GoSyncEntries() {
 	dirblkSearch:
 		for scan := start; scan <= s.GetHighestSavedBlk(); scan++ {
 
+			if firstMissing < 0 {
+				if scan > 1 {
+					s.EntryDBHeightComplete = scan - 1
+				}
+			}
+
 			db := s.GetDirectoryBlockByHeight(scan)
 
 			// Wait for the database if we have to
@@ -200,18 +209,13 @@ func (s *State) GoSyncEntries() {
 				for _, entryhash := range eBlock.GetEntryHashes() {
 					if !entryhash.IsMinuteMarker() {
 
-						if firstMissing < 0 {
-							if scan > 1 {
-								s.EntryDBHeightComplete = scan - 1
-							}
-						}
-
 						// If I have the entry, then remove it from the Missing Entries list.
 						if has(s, entryhash) {
 							delete(missingMap, entryhash.Fixed())
 						} else {
 
 							if firstMissing < 0 {
+								fmt.Println("***es Missing:", scan, "Entry", entryhash.String())
 								firstMissing = int(scan)
 							}
 
@@ -243,6 +247,11 @@ func (s *State) GoSyncEntries() {
 			start = scan
 		}
 		lastfirstmissing = firstMissing
+		if firstMissing < 0 {
+			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
+			time.Sleep(60 * time.Second)
+		}
+
 		start = s.EntryDBHeightComplete
 
 		// reset first Missing back to -1 every time.
@@ -251,7 +260,7 @@ func (s *State) GoSyncEntries() {
 		if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
 			time.Sleep(20 * time.Second)
 		} else {
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 
 	}

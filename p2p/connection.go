@@ -211,6 +211,7 @@ func (c *Connection) runLoop() {
 	go c.processReceives()
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
+		time.Sleep(100 * time.Millisecond)
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		c.updateStats() // Update controller with metrics
 		c.connectionStatusReport()
