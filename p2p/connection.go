@@ -381,7 +381,7 @@ func (c *Connection) goShutdown() {
 func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
-		for ConnectionOnline == c.state {
+		for ConnectionOnline == c.state && c.conn != nil && c.encoder != nil {
 			message := <-c.SendChannel
 			switch message.(type) {
 			case ConnectionParcel:
