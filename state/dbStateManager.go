@@ -613,74 +613,69 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	head, _ := list.State.DB.FetchDirectoryBlockHead()
 
-	saveItToDisk := func() {
-		list.State.DB.StartMultiBatch()
+	list.State.DB.StartMultiBatch()
 
-		if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
-			panic(err.Error())
-		}
-
-		if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
-			panic(err.Error())
-		}
-
-		if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
-			panic(err.Error())
-		}
-
-		pl := list.State.ProcessLists.Get(uint32(dbheight))
-
-		if len(d.EntryBlocks) > 0 {
-			for _, eb := range d.EntryBlocks {
-				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-					panic(err.Error())
-				}
-			}
-			for _, e := range d.Entries {
-				if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-					panic(err.Error())
-				}
-			}
-		}
-
-		if pl != nil {
-			for _, eb := range pl.NewEBlocks {
-				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-					panic(err.Error())
-				}
-
-				for _, e := range eb.GetBody().GetEBEntries() {
-					if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
-						panic(err.Error())
-					}
-				}
-			}
-			pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
-			pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
-		}
-
-		d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
-		d.Entries = make([]interfaces.IEBEntry, 0)
-
-		if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
-			panic(err.Error())
-		}
-
-		if err := list.State.DB.ExecuteMultiBatch(); err != nil {
-			panic(err.Error())
-		}
-
-		if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
-			list.State.DB.SaveDirectoryBlockHead(head)
-		}
-
-		progress = true
-		d.ReadyToSave = false
-		d.Saved = true
+	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
+		panic(err.Error())
 	}
 
-	go saveItToDisk()
+	if err := list.State.DB.ProcessFBlockMultiBatch(d.FactoidBlock); err != nil {
+		panic(err.Error())
+	}
 
+	if err := list.State.DB.ProcessECBlockMultiBatch(d.EntryCreditBlock, false); err != nil {
+		panic(err.Error())
+	}
+
+	pl := list.State.ProcessLists.Get(uint32(dbheight))
+
+	if len(d.EntryBlocks) > 0 {
+		for _, eb := range d.EntryBlocks {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+				panic(err.Error())
+			}
+		}
+		for _, e := range d.Entries {
+			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
+				panic(err.Error())
+			}
+		}
+	}
+
+	if pl != nil {
+		for _, eb := range pl.NewEBlocks {
+			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+				panic(err.Error())
+			}
+
+			for _, e := range eb.GetBody().GetEBEntries() {
+				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+					panic(err.Error())
+				}
+			}
+		}
+		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
+		pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
+	}
+
+	d.EntryBlocks = make([]interfaces.IEntryBlock, 0)
+	d.Entries = make([]interfaces.IEBEntry, 0)
+
+	if err := list.State.DB.ProcessDBlockMultiBatch(d.DirectoryBlock); err != nil {
+		panic(err.Error())
+	}
+
+	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
+		panic(err.Error())
+	}
+
+	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
+		list.State.DB.SaveDirectoryBlockHead(head)
+	}
+
+	progress = true
+	d.ReadyToSave = false
+	d.Saved = true
 	return
 }
 
