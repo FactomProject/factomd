@@ -24,6 +24,7 @@ type DirectoryBlock struct {
 	//Not Marshalized
 	DBHash interfaces.IHash
 	KeyMR  interfaces.IHash
+	keyMRSet bool
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -132,12 +133,13 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-	if c.KeyMR == nil {
+	if !c.keyMRSet {
 		keyMR, err := c.BuildKeyMerkleRoot()
 		if err != nil {
 			panic("Failed to build the key MR")
 		}
 
+		c.keyMRSet = true
 		c.KeyMR = keyMR
 	}
 	return c.KeyMR

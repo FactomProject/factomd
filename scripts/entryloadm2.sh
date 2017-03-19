@@ -18,7 +18,7 @@ factom-cli  listaddresses
 
 addentries() {
     # create a random datafile
-	datalen=$(shuf -i 100-10000 -n 1)
+	datalen=$(shuf -i 100-1900 -n 1)
 	datafile=$(mktemp)
 	base64 /dev/urandom | head -c $datalen > $datafile
 
