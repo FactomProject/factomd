@@ -59,6 +59,7 @@ func (s *Server) IsSameAs(b interfaces.IServer) bool {
 }
 
 func (s *Server) MarshalBinary() ([]byte, error) {
+	s.Init()
 	buf := new(primitives.Buffer)
 
 	err := buf.PushBinaryMarshallable(s.ChainID)

@@ -202,6 +202,11 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.FERChangePrice = state.FERChangePrice
 	ss.FERPriority = state.FERPriority
 	ss.FERPrioritySetHeight = state.FERPrioritySetHeight
+
+	err := SaveTheState(ss)
+	if err != nil {
+		panic(err)
+	}
 	return
 }
 
@@ -335,7 +340,7 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	**/
 }
 
-func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
+func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 	// We trim away the ProcessList under construction (and any others) so we can
 	// rebuild afresh.
 	index := int(state.ProcessLists.DBHeightBase) - int(ss.DBHeight)
