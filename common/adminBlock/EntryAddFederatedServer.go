@@ -11,8 +11,8 @@ import (
 
 // DB Signature Entry -------------------------
 type AddFederatedServer struct {
-	IdentityChainID interfaces.IHash
-	DBHeight        uint32
+	IdentityChainID interfaces.IHash `json:"identitychainid"`
+	DBHeight        uint32           `json:"dbheight"`
 }
 
 var _ interfaces.IABEntry = (*AddFederatedServer)(nil)

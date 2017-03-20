@@ -642,10 +642,10 @@ type ExpandedFBlock FBlock
 
 func (e FBlock) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		ExpandedFBlock
-		ChainID     string `json:"chainid"`
-		KeyMR       string `json:"keymr"`
-		LedgerKeyMR string `json:"ledgerkeymr"`
+		ExpandedFBlock `json:"expandedfblock"`
+		ChainID        string `json:"chainid"`
+		KeyMR          string `json:"keymr"`
+		LedgerKeyMR    string `json:"ledgerkeymr"`
 	}{
 		ExpandedFBlock: ExpandedFBlock(e),
 		ChainID:        "000000000000000000000000000000000000000000000000000000000000000f",

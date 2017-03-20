@@ -12,10 +12,10 @@ import (
 )
 
 type IncreaseBalance struct {
-	ECPubKey *primitives.ByteSlice32
-	TXID     interfaces.IHash
-	Index    uint64
-	NumEC    uint64
+	ECPubKey *primitives.ByteSlice32 `json:"ecpubkey"`
+	TXID     interfaces.IHash        `json:"txid"`
+	Index    uint64                  `json:"index"`
+	NumEC    uint64                  `json:"numec"`
 }
 
 var _ interfaces.Printable = (*IncreaseBalance)(nil)

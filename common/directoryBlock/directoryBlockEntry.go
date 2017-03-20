@@ -15,8 +15,8 @@ import (
 var _ = fmt.Print
 
 type DBEntry struct {
-	ChainID interfaces.IHash
-	KeyMR   interfaces.IHash // Different MR in EBlockHeader
+	ChainID interfaces.IHash `json:"chainid"`
+	KeyMR   interfaces.IHash `json:"keymr"` // Different MR in EBlockHeader
 }
 
 var _ interfaces.Printable = (*DBEntry)(nil)

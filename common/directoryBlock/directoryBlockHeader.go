@@ -16,16 +16,16 @@ import (
 var _ = fmt.Print
 
 type DBlockHeader struct {
-	Version   byte
-	NetworkID uint32
+	Version   byte   `json:"version"`
+	NetworkID uint32 `json:"networkid"`
 
-	BodyMR       interfaces.IHash
-	PrevKeyMR    interfaces.IHash
-	PrevFullHash interfaces.IHash
+	BodyMR       interfaces.IHash `json:"bodymr"`
+	PrevKeyMR    interfaces.IHash `json:"prevkeymr"`
+	PrevFullHash interfaces.IHash `json:"prevfullhash"`
 
-	Timestamp  uint32 //in minutes
-	DBHeight   uint32
-	BlockCount uint32
+	Timestamp  uint32 `json:"timestamp"` //in minutes
+	DBHeight   uint32 `json:"dbheight"`
+	BlockCount uint32 `json:"blockcount"`
 }
 
 var _ interfaces.Printable = (*DBlockHeader)(nil)
@@ -221,8 +221,8 @@ type ExpandedDBlockHeader DBlockHeader
 
 func (e DBlockHeader) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		ExpandedDBlockHeader
-		ChainID string
+		ExpandedDBlockHeader `json:"expandeddblockheader"`
+		ChainID              string `json:"chainid"`
 	}{
 		ExpandedDBlockHeader: ExpandedDBlockHeader(e),
 		ChainID:              "000000000000000000000000000000000000000000000000000000000000000d",

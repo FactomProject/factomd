@@ -9,7 +9,7 @@ import (
 )
 
 type EndOfMinuteEntry struct {
-	MinuteNumber byte
+	MinuteNumber byte `json:"minutenumber"`
 }
 
 var _ interfaces.Printable = (*EndOfMinuteEntry)(nil)

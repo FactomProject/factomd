@@ -21,8 +21,8 @@ import (
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#administrative-block
 type AdminBlock struct {
 	//Marshalized
-	Header    interfaces.IABlockHeader
-	ABEntries []interfaces.IABEntry //Interface
+	Header    interfaces.IABlockHeader `json:"header"`
+	ABEntries []interfaces.IABEntry    `json:"abentries"` //Interface
 }
 
 var _ interfaces.IAdminBlock = (*AdminBlock)(nil)
@@ -434,9 +434,9 @@ func (e AdminBlock) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(struct {
-		ExpandedABlock
-		BackReferenceHash string
-		LookupHash        string
+		ExpandedABlock    `json:"expandedablock"`
+		BackReferenceHash string `json:"backreferencehash"`
+		LookupHash        string `json:"lookuphash"`
 	}{
 		ExpandedABlock:    ExpandedABlock(e),
 		BackReferenceHash: backRefHash.String(),

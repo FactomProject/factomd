@@ -18,12 +18,12 @@ var _ = fmt.Print
 
 type DirectoryBlock struct {
 	//Marshalized
-	Header    interfaces.IDirectoryBlockHeader
-	DBEntries []interfaces.IDBEntry
+	Header    interfaces.IDirectoryBlockHeader `json:"header"`
+	DBEntries []interfaces.IDBEntry            `json:"dbentries"`
 
 	//Not Marshalized
-	DBHash interfaces.IHash
-	KeyMR  interfaces.IHash
+	DBHash interfaces.IHash `json:"dbhash"`
+	KeyMR  interfaces.IHash `json:"keymr"`
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)

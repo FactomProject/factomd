@@ -10,8 +10,8 @@ import (
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
-	IdentityAdminChainID interfaces.IHash
-	PrevDBSig            primitives.Signature
+	IdentityAdminChainID interfaces.IHash     `json:"identityadminchainid"`
+	PrevDBSig            primitives.Signature `json:"prevdbsig"`
 }
 
 var _ interfaces.IABEntry = (*DBSignatureEntry)(nil)

@@ -16,7 +16,7 @@ const (
 )
 
 type MinuteNumber struct {
-	Number uint8
+	Number uint8 `json:"number"`
 }
 
 var _ interfaces.Printable = (*MinuteNumber)(nil)
