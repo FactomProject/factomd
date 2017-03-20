@@ -4,7 +4,7 @@ nchains=10   # number of chains to create
 nentries=15    # number of entries to add to each chain
 
 fa1=$(factom-cli  importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
-#fa1=FA3RrKWJLQeDuzC9YzxcSwenU1qDzzwjR1uHMpp1SQbs8wH9Qbbr
+fa1=FA3RrKWJLQeDuzC9YzxcSwenU1qDzzwjR1uHMpp1SQbs8wH9Qbbr
 ec1=$(factom-cli  importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
 factom-cli  listaddresses
@@ -18,7 +18,7 @@ factom-cli  listaddresses
 
 addentries() {
     # create a random datafile
-	datalen=$(shuf -i 100-10000 -n 1)
+	datalen=$(shuf -i 100-1900 -n 1)
 	datafile=$(mktemp)
 	base64 /dev/urandom | head -c $datalen > $datafile
 

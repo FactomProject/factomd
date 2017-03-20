@@ -208,8 +208,10 @@ func (c *Connection) Start() {
 // runLoop operates the state machine and routes messages out to network (messages from network are routed in processReceives)
 func (c *Connection) runLoop() {
 	go c.processSends()
+	go c.processReceives()
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
+		time.Sleep(100 * time.Millisecond)
 		// time.Sleep(time.Second * 1) // This can be a tight loop, don't want to starve the application
 		c.updateStats() // Update controller with metrics
 		c.connectionStatusReport()
@@ -230,7 +232,6 @@ func (c *Connection) runLoop() {
 			}
 		case ConnectionOnline:
 
-			c.processReceives() // We may get messages that change state (Eg: loopback error)
 			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
@@ -455,16 +456,14 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	}
 }
 
-// processReceives is called as part of runloop. This is essentially an infinite loop that exits
+// processReceives is a go routine This is essentially an infinite loop that exits
 // when:
 // -- a network error happens
 // -- something causes our state to be offline
-// -- we run out of data to recieve (which gives an io.EOF which is handled by handleNetErrors)
 func (c *Connection) processReceives() {
-	for ConnectionOnline == c.state {
+	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		var message Parcel
-		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
-
+		
 		if nil == c.conn || nil == c.decoder {
 			time.Sleep(100 * time.Millisecond)
 			continue
@@ -472,19 +471,16 @@ func (c *Connection) processReceives() {
 
 		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 		err := c.decoder.Decode(&message)
-		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
 		switch {
 		case nil == err:
-			debug(c.peer.PeerIdent(), "Connection.processReceives() RECIEVED FROM NETWORK!  State: %s MessageType: %s", c.ConnectionState(), message.MessageType())
 			c.metrics.BytesReceived += message.Header.Length
 			c.metrics.MessagesReceived += 1
 			message.Header.PeerAddress = c.peer.Address
 			c.handleParcel(message)
 		default:
-			time.Sleep(100 * time.Millisecond)
 			c.Errors <- err
-			return
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -594,8 +595,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	if d.Saved {
-		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
-		if dblk == nil {
+		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())
+		if err != nil || !Havedblk {
 			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
 				list.State.FactomNodeName,
 				d.DirectoryBlock.GetHeader().GetDBHeight(),

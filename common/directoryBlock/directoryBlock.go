@@ -41,8 +41,8 @@ func (c *DirectoryBlock) Init() {
 }
 
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
-	if len(c.DBEntries) < index {
-		ent := make([]interfaces.IDBEntry, index)
+	if len(c.DBEntries) <= index {
+		ent := make([]interfaces.IDBEntry, index+1)
 		copy(ent, c.DBEntries)
 		c.DBEntries = ent
 	}
@@ -132,14 +132,12 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-	if c.KeyMR == nil {
 		keyMR, err := c.BuildKeyMerkleRoot()
 		if err != nil {
 			panic("Failed to build the key MR")
 		}
 
 		c.KeyMR = keyMR
-	}
 	return c.KeyMR
 }
 

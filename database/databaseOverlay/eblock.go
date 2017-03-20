@@ -118,16 +118,12 @@ func (db *Overlay) FetchEBlockHead(chainID interfaces.IHash) (interfaces.IEntryB
 }
 
 func (db *Overlay) FetchAllEBlockChainIDs() ([]interfaces.IHash, error) {
-	ids, err := db.ListAllKeys(ENTRYBLOCK)
+	ids, err := db.FetchAllBlockKeysFromBucket(CHAIN_HEAD)
 	if err != nil {
 		return nil, err
 	}
 	entries := []interfaces.IHash{}
-	for _, id := range ids {
-		h, err := primitives.NewShaHash(id)
-		if err != nil {
-			return nil, err
-		}
+	for _, h := range ids {
 		str := h.String()
 		if strings.Contains(str, "000000000000000000000000000000000000000000000000000000000000000") {
 			//skipping basic blocks
