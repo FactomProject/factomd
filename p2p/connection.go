@@ -379,6 +379,10 @@ func (c *Connection) goShutdown() {
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
+		if nil == c.decoder || nil == c.conn {
+			time.Sleep(100*time.Millisecond)
+			continue
+		}
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
@@ -441,9 +445,6 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	//}
 	//c.conn.SetWriteDeadline(deadline)
 	encode := c.encoder
-	if encode == nil {
-		return
-	}
 	err := encode.Encode(parcel)
 	switch {
 	case nil == err:
@@ -463,6 +464,12 @@ func (c *Connection) processReceives() {
 	for ConnectionOnline == c.state {
 		var message Parcel
 		verbose(c.peer.PeerIdent(), "Connection.processReceives() called. State: %s", c.ConnectionState())
+
+		if nil == c.conn || nil == c.decoder {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
 		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 		err := c.decoder.Decode(&message)
 		message.Trace("Connection.processReceives().c.decoder.Decode(&message)", "G")
