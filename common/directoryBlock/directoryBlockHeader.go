@@ -221,8 +221,8 @@ type ExpandedDBlockHeader DBlockHeader
 
 func (e DBlockHeader) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		ExpandedDBlockHeader `json:"expandeddblockheader"`
-		ChainID              string `json:"chainid"`
+		ExpandedDBlockHeader
+		ChainID string `json:"chainid"`
 	}{
 		ExpandedDBlockHeader: ExpandedDBlockHeader(e),
 		ChainID:              "000000000000000000000000000000000000000000000000000000000000000d",

@@ -434,7 +434,7 @@ func (e AdminBlock) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(struct {
-		ExpandedABlock    `json:"expandedablock"`
+		ExpandedABlock
 		BackReferenceHash string `json:"backreferencehash"`
 		LookupHash        string `json:"lookuphash"`
 	}{

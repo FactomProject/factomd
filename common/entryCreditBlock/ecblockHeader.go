@@ -246,9 +246,9 @@ type ExpandedECBlockHeader ECBlockHeader
 
 func (e ECBlockHeader) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		ExpandedECBlockHeader `json:"expandedecblockheader"`
-		ChainID               string `json:"chainid"`
-		ECChainID             string `json:"ecchainid"`
+		ExpandedECBlockHeader
+		ChainID   string `json:"chainid"`
+		ECChainID string `json:"ecchainid"`
 	}{
 		ExpandedECBlockHeader: ExpandedECBlockHeader(e),
 		ChainID:               "000000000000000000000000000000000000000000000000000000000000000c",
