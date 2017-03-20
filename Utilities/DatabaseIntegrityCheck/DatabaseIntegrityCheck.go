@@ -170,6 +170,105 @@ func CheckDatabase(db interfaces.IDatabase) {
 	}
 
 	fmt.Printf("\tFinished looking for free-floating blocks\n")
+
+	fmt.Printf("\tLooking for missing EBlocks\n")
+
+	foundBlocks := 0
+	for _, dHash := range dBlocks {
+		dBlock, err := dbo.FetchDBlock(dHash)
+		if err != nil {
+			panic(err)
+		}
+		if dBlock == nil {
+			fmt.Printf("Could not find DBlock %v!", dHash.String())
+			panic("")
+		}
+		eBlockEntries := dBlock.GetEBlockDBEntries()
+		for _, v := range eBlockEntries {
+			eBlock, err := dbo.FetchEBlock(v.GetKeyMR())
+			if err != nil {
+				panic(err)
+			}
+			if eBlock == nil {
+				fmt.Errorf("Could not find eBlock %v!\n", v.GetKeyMR())
+			} else {
+				foundBlocks++
+			}
+		}
+	}
+
+	fmt.Printf("\tFinished looking for missing EBlocks - found %v\n", foundBlocks)
+
+	fmt.Printf("\tLooking for missing EBlock Entries\n")
+
+	chains, err := dbo.FetchAllEBlockChainIDs()
+	if err != nil {
+		panic(err)
+	}
+	checkCount := 0
+	missingCount := 0
+	for _, chain := range chains {
+		blocks, err := dbo.FetchAllEBlocksByChain(chain)
+		if err != nil {
+			panic(err)
+		}
+		if len(blocks) == 0 {
+			panic("Found no blocks!")
+		}
+		for _, block := range blocks {
+			entryHashes := block.GetEntryHashes()
+			if len(entryHashes) == 0 {
+				panic("Found no entryHashes!")
+			}
+			for _, eHash := range entryHashes {
+				if eHash.IsMinuteMarker() == true {
+					continue
+				}
+				entry, err := dbo.FetchEntry(eHash)
+				if err != nil {
+					panic(err)
+				}
+				if entry == nil {
+					missingCount++
+					fmt.Printf("Missing entry %v!\n", eHash.String())
+				} else {
+					checkCount++
+				}
+			}
+		}
+	}
+	fmt.Printf("Found %v entries, missing %v\n", checkCount, missingCount)
+	fmt.Printf("\tFinished looking for missing EBlock Entries\n")
+
+	//CheckMinuteNumbers(dbo)
+}
+
+func CheckMinuteNumbers(dbo interfaces.DBOverlay) {
+	fmt.Printf("\tChecking Minute Numbers\n")
+
+	ecBlocks, err := dbo.FetchAllECBlocks()
+	if err != nil {
+		panic(err)
+	}
+	for _, v := range ecBlocks {
+		entries := v.GetEntries()
+		found := 0
+		lastNumber := 0
+		for _, e := range entries {
+			if e.ECID() == entryCreditBlock.ECIDMinuteNumber {
+				number := int(e.(*entryCreditBlock.MinuteNumber).Number)
+				if number != lastNumber+1 {
+					fmt.Printf("Block #%v %v, Minute Number %v is not last minute plus 1\n", v.GetDatabaseHeight(), v.GetHash().String(), number)
+				}
+				lastNumber = number
+				found++
+			}
+		}
+		if found != 10 {
+			fmt.Printf("Block #%v %v only contains %v minute numbers\n", v.GetDatabaseHeight(), v.GetHash().String(), found)
+		}
+	}
+	fmt.Printf("\tFinished checking Minute Numbers\n")
 }
 
 type BlockSet struct {
