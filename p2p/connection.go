@@ -381,12 +381,12 @@ func (c *Connection) goShutdown() {
 func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
-		conloop:
+	conloop:
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
 			switch message.(type) {
 			case ConnectionParcel:
-				if nil == c.decoder || nil == c.conn {
+				if nil == c.encoder || nil == c.conn {
 					break conloop
 				}
 				parameters := message.(ConnectionParcel)
@@ -464,7 +464,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 func (c *Connection) processReceives() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		var message Parcel
-		
+
 		if nil == c.conn || nil == c.decoder {
 			time.Sleep(100 * time.Millisecond)
 			continue
