@@ -103,7 +103,7 @@ func (e *DBEntry) JSONString() (string, error) {
 
 func (e *DBEntry) String() string {
 	var out primitives.Buffer
-	out.WriteString("ChainID: " + e.GetChainID().String() + "\n")
-	out.WriteString("      KeyMR:   " + e.GetKeyMR().String() + "\n")
+	out.WriteString("chainid: " + e.GetChainID().String() + "\n")
+	out.WriteString("      keymr:   " + e.GetKeyMR().String() + "\n")
 	return (string)(out.DeepCopyBytes())
 }

@@ -17,13 +17,13 @@ import (
 var _ = fmt.Print
 
 type DirectoryBlock struct {
-	//Marshalized
-	Header    interfaces.IDirectoryBlockHeader `json:"header"`
-	DBEntries []interfaces.IDBEntry            `json:"dbentries"`
-
 	//Not Marshalized
 	DBHash interfaces.IHash `json:"dbhash"`
 	KeyMR  interfaces.IHash `json:"keymr"`
+
+	//Marshalized
+	Header    interfaces.IDirectoryBlockHeader `json:"header"`
+	DBEntries []interfaces.IDBEntry            `json:"dbentries"`
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -199,13 +199,13 @@ func (e *DirectoryBlock) String() string {
 	var out primitives.Buffer
 
 	kmr := e.GetKeyMR()
-	out.WriteString(fmt.Sprintf("%20s %v\n", "KeyMR:", kmr.String()))
+	out.WriteString(fmt.Sprintf("%20s %v\n", "keymr:", kmr.String()))
 
 	kmr = e.BodyKeyMR()
-	out.WriteString(fmt.Sprintf("%20s %v\n", "BodyMR:", kmr.String()))
+	out.WriteString(fmt.Sprintf("%20s %v\n", "bodymr:", kmr.String()))
 
 	fh := e.GetFullHash()
-	out.WriteString(fmt.Sprintf("%20s %v\n", "FullHash:", fh.String()))
+	out.WriteString(fmt.Sprintf("%20s %v\n", "fullhash:", fh.String()))
 
 	out.WriteString(e.GetHeader().String())
 	out.WriteString("entries: \n")
