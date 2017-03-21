@@ -18,7 +18,7 @@ import (
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
 
 func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
-	highWaterMark := int(float64(cap(channel)) * 0.95)
+	highWaterMark := int(float64(cap(channel)) * 0.90)
 	clen := len(channel)
 	switch {
 	case highWaterMark < clen:

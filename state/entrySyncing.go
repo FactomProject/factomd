@@ -215,7 +215,6 @@ func (s *State) GoSyncEntries() {
 						} else {
 
 							if firstMissing < 0 {
-								fmt.Println("***es Missing:", scan, "Entry", entryhash.String())
 								firstMissing = int(scan)
 							}
 

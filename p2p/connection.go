@@ -463,25 +463,27 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- something causes our state to be offline
 func (c *Connection) processReceives() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
-		var message Parcel
+		for ConnectionOnline == c.state {
+			var message Parcel
 
-		if nil == c.conn || nil == c.decoder {
+			if nil == c.conn || nil == c.decoder {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+
+			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
+			err := c.decoder.Decode(&message)
+			switch {
+			case nil == err:
+				c.metrics.BytesReceived += message.Header.Length
+				c.metrics.MessagesReceived += 1
+				message.Header.PeerAddress = c.peer.Address
+				c.handleParcel(message)
+			default:
+				c.Errors <- err
+			}
 			time.Sleep(100 * time.Millisecond)
-			continue
 		}
-
-		c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
-		err := c.decoder.Decode(&message)
-		switch {
-		case nil == err:
-			c.metrics.BytesReceived += message.Header.Length
-			c.metrics.MessagesReceived += 1
-			message.Header.PeerAddress = c.peer.Address
-			c.handleParcel(message)
-		default:
-			c.Errors <- err
-		}
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 
