@@ -380,15 +380,15 @@ func (c *Connection) goShutdown() {
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
-		if nil == c.decoder || nil == c.conn {
-			time.Sleep(100*time.Millisecond)
-			continue
-		}
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
+		conloop:
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
 			switch message.(type) {
 			case ConnectionParcel:
+				if nil == c.decoder || nil == c.conn {
+					break conloop
+				}
 				parameters := message.(ConnectionParcel)
 				c.sendParcel(parameters.Parcel)
 			case ConnectionCommand:
@@ -436,6 +436,7 @@ func (c *Connection) handleCommand() {
 }
 
 func (c *Connection) sendParcel(parcel Parcel) {
+
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500))
 
