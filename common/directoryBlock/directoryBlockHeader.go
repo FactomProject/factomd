@@ -119,15 +119,15 @@ func (e *DBlockHeader) JSONString() (string, error) {
 func (e *DBlockHeader) String() string {
 	e.Init()
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf("  Version:         %v\n", e.Version))
-	out.WriteString(fmt.Sprintf("  NetworkID:       %x\n", e.NetworkID))
-	out.WriteString(fmt.Sprintf("  BodyMR:          %s\n", e.BodyMR.String()))
-	out.WriteString(fmt.Sprintf("  PrevKeyMR:       %s\n", e.PrevKeyMR.String()))
-	out.WriteString(fmt.Sprintf("  PrevFullHash:    %s\n", e.PrevFullHash.String()))
-	out.WriteString(fmt.Sprintf("  Timestamp:       %d\n", e.Timestamp))
-	out.WriteString(fmt.Sprintf("  Timestamp Str:   %s\n", e.GetTimestamp().String()))
-	out.WriteString(fmt.Sprintf("  DBHeight:        %d\n", e.DBHeight))
-	out.WriteString(fmt.Sprintf("  BlockCount:      %d\n", e.BlockCount))
+	out.WriteString(fmt.Sprintf("  version:         %v\n", e.Version))
+	out.WriteString(fmt.Sprintf("  networkid:       %x\n", e.NetworkID))
+	out.WriteString(fmt.Sprintf("  bodymr:          %s\n", e.BodyMR.String()))
+	out.WriteString(fmt.Sprintf("  prevkeymr:       %s\n", e.PrevKeyMR.String()))
+	out.WriteString(fmt.Sprintf("  prevfullhash:    %s\n", e.PrevFullHash.String()))
+	out.WriteString(fmt.Sprintf("  timestamp:       %d\n", e.Timestamp))
+	out.WriteString(fmt.Sprintf("  timestamp str:   %s\n", e.GetTimestamp().String()))
+	out.WriteString(fmt.Sprintf("  dbheight:        %d\n", e.DBHeight))
+	out.WriteString(fmt.Sprintf("  blockcount:      %d\n", e.BlockCount))
 
 	return (string)(out.DeepCopyBytes())
 }

@@ -50,7 +50,7 @@ func (c *AdminBlock) String() string {
 	out.WriteString(fmt.Sprintf("%20s %x\n", "512 Sha3:", fh.Bytes()))
 
 	out.WriteString(c.GetHeader().String())
-	out.WriteString("Entries: \n")
+	out.WriteString("entries: \n")
 	for _, entry := range c.ABEntries {
 		out.WriteString(entry.String() + "\n")
 	}

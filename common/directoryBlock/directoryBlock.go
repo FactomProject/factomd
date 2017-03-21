@@ -208,7 +208,7 @@ func (e *DirectoryBlock) String() string {
 	out.WriteString(fmt.Sprintf("%20s %v\n", "FullHash:", fh.String()))
 
 	out.WriteString(e.GetHeader().String())
-	out.WriteString("Entries: \n")
+	out.WriteString("entries: \n")
 	for i, entry := range e.DBEntries {
 		out.WriteString(fmt.Sprintf("%5d %s", i, entry.String()))
 	}
