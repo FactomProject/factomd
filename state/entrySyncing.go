@@ -93,6 +93,41 @@ func (s *State) syncEntryBlocks() {
 				// Something missing, stop moving the bookmark.
 				alldone = false
 				continue
+			} else {
+				for _, entryhash := range eBlock.GetEntryHashes() {
+					if entryhash.IsMinuteMarker() {
+						continue
+					}
+					e, _ := s.DB.FetchEntry(entryhash)
+					if e == nil {
+						//Check lists and not add if already there.
+						addit := false
+						for _, e := range s.MissingEntries {
+							if e.ebhash.Fixed() == entryhash.Fixed() {
+								addit = false
+							}
+							break
+						}
+
+						if addit {
+							var v MissingEntry
+
+							v.dbheight = eBlock.GetHeader().GetDBHeight()
+							v.entryhash = entryhash
+							v.ebhash = ebKeyMR
+
+							s.MissingEntries = append(s.MissingEntries, v)
+						}
+						// Something missing. stop moving the bookmark.
+						alldone = false
+					}
+					// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+					s.Replay.SetHashNow(constants.REVEAL_REPLAY, entryhash.Fixed(), db.GetTimestamp())
+					// If the save worked, then remove any commit that might be around.
+					if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, entryhash.Fixed()) {
+						delete(s.Commits, entryhash.Fixed())
+					}
+				}
 			}
 		}
 		if alldone {
