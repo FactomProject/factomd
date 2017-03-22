@@ -29,7 +29,7 @@ func (s *State) MakeMissingEntryRequests() {
 	MissingEntryMap := make(map[[32]byte]*MissingEntry)
 
 	for {
-		callTime := time.Now().UnixNano() // Prometheus Start
+
 		now := time.Now()
 
 		newrequest := 0
@@ -215,7 +215,6 @@ func (s *State) GoSyncEntries() {
 						} else {
 
 							if firstMissing < 0 {
-								fmt.Println("***es Missing:", scan, "Entry", entryhash.String())
 								firstMissing = int(scan)
 							}
 
