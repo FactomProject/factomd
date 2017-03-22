@@ -378,7 +378,6 @@ func (c *Connection) goShutdown() {
 func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
-	conloop:
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
 			switch message.(type) {
