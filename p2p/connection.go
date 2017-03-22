@@ -153,6 +153,7 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 
 // Init is called when we have peer info and need to dial into the peer
 func (c *Connection) Init(peer Peer, persistent bool) *Connection {
+	c.conn = nil
 	c.isOutGoing = true
 	c.commonInit(peer)
 	c.isPersistent = persistent
