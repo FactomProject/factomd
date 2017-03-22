@@ -390,10 +390,14 @@ func (c *Connection) processSends() {
 
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
+	conloop:
 		for ConnectionOnline == c.state {
 			message := <-c.SendChannel
 			switch message.(type) {
 			case ConnectionParcel:
+				if nil == c.decoder || nil == c.conn {
+					break conloop
+				}
 				parameters := message.(ConnectionParcel)
 				c.sendParcel(parameters.Parcel)
 			case ConnectionCommand:
@@ -444,10 +448,14 @@ func (c *Connection) sendParcel(parcel Parcel) {
 
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
 	c.conn.SetWriteDeadline(time.Now().Add(NetworkDeadline * 500))
+
+	//deadline := time.Now().Add(NetworkDeadline)
+	//if len(parcel.Payload) > 1000*10 {
+	//	ms := (len(parcel.Payload) * NetworkDeadline.Seconds())/1000
+	//	deadline = time.Now().Add(time.Duration(ms)*time.Millisecond)
+	//}
+	//c.conn.SetWriteDeadline(deadline)
 	encode := c.encoder
-	if encode == nil {
-		return
-	}
 	err := encode.Encode(parcel)
 	switch {
 	case nil == err:
@@ -463,20 +471,16 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- a network error happens
 // -- something causes our state to be offline
 func (c *Connection) processReceives() {
-
-	defer func() {
-		if r := recover(); r != nil {
-			// Just ignore the possible nil pointer error that can occur because
-			// we have cleared the pointer to the encoder or decoder outside this
-			// go routine.
-		}
-	}()
-
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
-		for ConnectionOnline == c.state {
+		for c.state == ConnectionOnline {
 			var message Parcel
-			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 
+			if nil == c.conn || nil == c.decoder {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+
+			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 			err := c.decoder.Decode(&message)
 			switch {
 			case nil == err:
@@ -485,10 +489,10 @@ func (c *Connection) processReceives() {
 				message.Header.PeerAddress = c.peer.Address
 				c.handleParcel(message)
 			default:
-				time.Sleep(100 * time.Millisecond)
 				c.Errors <- err
 			}
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
