@@ -485,6 +485,11 @@ func NetStart(s *state.State) {
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
 
+	// Start prometheus on port
+	launchPrometheus(9876)
+	// Start Package's prometheus
+	state.RegisterPrometheus()
+
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
 	SimControl(listenTo)
