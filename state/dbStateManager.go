@@ -5,11 +5,9 @@
 package state
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
-	"time"
-
-	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -17,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
+	"time"
 )
 
 var _ = hex.EncodeToString
