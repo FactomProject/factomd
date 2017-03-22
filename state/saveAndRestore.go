@@ -104,6 +104,27 @@ type SaveState struct {
 var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
 var _ interfaces.Printable = (*SaveState)(nil)
 
+func (ss *SaveState) Init() {
+	if ss.FactoidBalancesP == nil {
+		ss.FactoidBalancesP = map[[32]byte]int64{}
+	}
+	if ss.ECBalancesP == nil {
+		ss.ECBalancesP = map[[32]byte]int64{}
+	}
+	if ss.Holding == nil {
+		ss.Holding = map[[32]byte]interfaces.IMsg{}
+	}
+	if ss.Acks == nil {
+		ss.Acks = map[[32]byte]interfaces.IMsg{}
+	}
+	if ss.Commits == nil {
+		ss.Commits = map[[32]byte][]interfaces.IMsg{}
+	}
+	if ss.InvalidMessages == nil {
+		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
+	}
+}
+
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss = new(SaveState)
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
@@ -739,6 +760,7 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 }
 
 func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	ss.Init()
 	newData = p
 	buf := primitives.NewBuffer(p)
 

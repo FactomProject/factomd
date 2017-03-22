@@ -799,6 +799,11 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.starttime = time.Now()
+
+	err := LoadDBStateList(s.DBStates)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {

@@ -98,6 +98,7 @@ func (dbs *DBState) Init() {
 }
 
 func (dbs *DBState) MarshalBinary() ([]byte, error) {
+	dbs.Init()
 	b := primitives.NewBuffer(nil)
 
 	err := b.PushBool(dbs.IsNew)
@@ -123,6 +124,23 @@ func (dbs *DBState) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	err = b.PushBinaryMarshallable(dbs.ECHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBinaryMarshallable(dbs.DirectoryBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.AdminBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.FactoidBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.EntryCreditBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -408,6 +426,9 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	}
 
 	newData = buf.DeepCopyBytes()
+
+	dbsl.DBStates[len(dbsl.DBStates)-1].SaveStruct.RestoreFactomdState(dbsl.State)
+
 	return
 }
 
