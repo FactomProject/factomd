@@ -1058,10 +1058,8 @@ func (p *ProcessList) String() string {
 		} else {
 			saved = "constructing"
 		}
-		p.State.MissingEntryMutex.Lock()
-		lenEntries := len(p.State.MissingEntries)
-		p.State.MissingEntryMutex.Unlock()
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate = %s Entries Complete %d len %d\n",
+
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate = %s Entries Complete %d\n",
 			p.State.GetFactomNodeName(),
 			len(p.FedServers),
 			p.Complete(),
@@ -1069,8 +1067,7 @@ func (p *ProcessList) String() string {
 			p.State.DBSig,
 			p.State.EOM,
 			saved,
-			p.State.EntryDBHeightComplete,
-			lenEntries))
+			p.State.EntryDBHeightComplete))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]

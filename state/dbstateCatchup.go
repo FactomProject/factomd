@@ -8,16 +8,6 @@ import (
 func (list *DBStateList) Catchup(justDoIt bool) {
 	// We only check if we need updates once every so often.
 
-	if len(list.State.inMsgQueue) > 1000 {
-		// If we are behind the curve in processing messages, dump all the dbstates from holding.
-		for k := range list.State.Holding {
-			if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
-				delete(list.State.Holding, k)
-			}
-		}
-		return
-	}
-
 	now := list.State.GetTimestamp()
 
 	hs := int(list.State.GetHighestSavedBlk())
@@ -72,7 +62,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 					//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
 					msg.SendOut(list.State, msg)
 					list.State.DBStateAskCnt++
-					list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
+					list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 6)
 					list.LastBegin = begin
 					list.LastEnd = end
 				}
@@ -99,7 +89,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	if list.TimeToAsk == nil {
 		// Okay, have nothing in play, so wait a bit just in case.
 		list.TimeToAsk = list.State.GetTimestamp()
-		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
+		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 6)
 		list.LastBegin = begin
 		list.LastEnd = end
 		return

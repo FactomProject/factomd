@@ -22,8 +22,9 @@ type DirectoryBlock struct {
 	DBEntries []interfaces.IDBEntry
 
 	//Not Marshalized
-	DBHash interfaces.IHash
-	KeyMR  interfaces.IHash
+	DBHash   interfaces.IHash
+	KeyMR    interfaces.IHash
+	KeyMRset bool
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -41,8 +42,8 @@ func (c *DirectoryBlock) Init() {
 }
 
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
-	if len(c.DBEntries) < index {
-		ent := make([]interfaces.IDBEntry, index)
+	if len(c.DBEntries) <= index {
+		ent := make([]interfaces.IDBEntry, index+1)
 		copy(ent, c.DBEntries)
 		c.DBEntries = ent
 	}
@@ -132,13 +133,15 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-	keyMR, err := c.BuildKeyMerkleRoot()
-	if err != nil {
-		panic("Failed to build the key MR")
+	if !c.KeyMRset {
+		keyMR, err := c.BuildKeyMerkleRoot()
+		if err != nil {
+			panic("Failed to build the key MR")
+		}
+
+		c.KeyMR = keyMR
+		c.KeyMRset = true
 	}
-
-	c.KeyMR = keyMR
-
 	return c.KeyMR
 }
 
