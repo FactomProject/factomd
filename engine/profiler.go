@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // StartProfiler runs the go pprof tool
@@ -17,4 +19,9 @@ import (
 func StartProfiler() {
 	log.Println(http.ListenAndServe(fmt.Sprintf("localhost:%s", logPort), nil))
 	//runtime.SetBlockProfileRate(100000)
+}
+
+func launchPrometheus(port int) {
+	http.Handle("/metrics", prometheus.Handler())
+	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }

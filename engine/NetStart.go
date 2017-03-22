@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -24,7 +23,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var _ = fmt.Print
@@ -567,11 +565,6 @@ func setupFirstAuthority(s *state.State) {
 	auth.AuthorityChainID = id.IdentityChainID
 	auth.ManagementChainID, _ = primitives.HexToHash("88888800000000000000000000000000")
 	s.Authorities = append(s.Authorities, &auth)
-}
-
-func launchPrometheus(port int) {
-	http.Handle("/metrics", prometheus.Handler())
-	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func networkHousekeeping() {
