@@ -104,7 +104,12 @@ func (dbs *DBState) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	//TODO:Handle SaveStruct
+
+	err = b.PushBinaryMarshallable(dbs.SaveStruct)
+	if err != nil {
+		return nil, err
+	}
+
 	err = b.PushBinaryMarshallable(dbs.DBHash)
 	if err != nil {
 		return nil, err
@@ -185,7 +190,10 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	//TODO:Handle SaveStruct
+	err = b.PopBinaryMarshallable(dbs.SaveStruct)
+	if err != nil {
+		return
+	}
 
 	err = b.PopBinaryMarshallable(dbs.DBHash)
 	if err != nil {
@@ -304,6 +312,7 @@ func (dbsl *DBStateList) Init() {
 }
 
 func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
+	dbsl.Init()
 	buf := primitives.NewBuffer(nil)
 
 	err := buf.PushBool(dbsl.SrcNetwork)
@@ -968,6 +977,11 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		} else {
 			delete(s.Commits, k)
 		}
+	}
+
+	err := SaveDBStateList(list)
+	if err != nil {
+		panic(err)
 	}
 
 	return

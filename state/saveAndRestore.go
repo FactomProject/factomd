@@ -203,10 +203,13 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.FERPriority = state.FERPriority
 	ss.FERPrioritySetHeight = state.FERPrioritySetHeight
 
-	err := SaveTheState(ss)
-	if err != nil {
-		panic(err)
-	}
+	/*
+		err := SaveTheState(ss)
+		if err != nil {
+			panic(err)
+		}
+	*/
+
 	return
 }
 
