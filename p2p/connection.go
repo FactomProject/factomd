@@ -471,14 +471,18 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- a network error happens
 // -- something causes our state to be offline
 func (c *Connection) processReceives() {
+
+	defer func() {
+		if r := recover(); r != nil {
+			// Just ignore the possible nil pointer error that can occur because
+			// we have cleared the pointer to the encoder or decoder outside this
+			// go routine.
+		}
+	}()
+
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		for c.state == ConnectionOnline {
 			var message Parcel
-
-			if nil == c.conn || nil == c.decoder {
-				time.Sleep(100 * time.Millisecond)
-				continue
-			}
 
 			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 			err := c.decoder.Decode(&message)
@@ -492,6 +496,7 @@ func (c *Connection) processReceives() {
 				c.Errors <- err
 			}
 		}
+		// If not online, give some time up to handle states that are not online, closed, or shuttingdown.
 		time.Sleep(1 * time.Second)
 	}
 }
