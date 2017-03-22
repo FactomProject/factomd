@@ -760,7 +760,19 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 }
 
 func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
-	ss.Init()
+	ss.FactoidBalancesP = map[[32]byte]int64{}
+	ss.ECBalancesP = map[[32]byte]int64{}
+	ss.Holding = map[[32]byte]interfaces.IMsg{}
+	ss.Acks = map[[32]byte]interfaces.IMsg{}
+	ss.Commits = map[[32]byte][]interfaces.IMsg{}
+	ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
+
+	ss.FedServers = []interfaces.IServer{}
+	ss.AuditServers = []interfaces.IServer{}
+
+	ss.Identities = []*Identity{}
+	ss.Authorities = []*Authority{}
+
 	newData = p
 	buf := primitives.NewBuffer(p)
 

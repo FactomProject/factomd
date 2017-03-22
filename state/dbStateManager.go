@@ -200,6 +200,10 @@ func (dbs *DBState) MarshalBinary() ([]byte, error) {
 
 func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	dbs.Init()
+
+	dbs.EntryBlocks = []interfaces.IEntryBlock{}
+	dbs.Entries = []interfaces.IEBEntry{}
+
 	newData = p
 	b := primitives.NewBuffer(p)
 
@@ -376,6 +380,7 @@ func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
 
 func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	dbsl.Init()
+	dbsl.DBStates = []*DBState{}
 	newData = p
 
 	buf := primitives.NewBuffer(p)
