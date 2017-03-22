@@ -153,7 +153,6 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 
 // Init is called when we have peer info and need to dial into the peer
 func (c *Connection) Init(peer Peer, persistent bool) *Connection {
-	c.conn = nil
 	c.isOutGoing = true
 	c.commonInit(peer)
 	c.isPersistent = persistent
@@ -372,8 +371,6 @@ func (c *Connection) goShutdown() {
 	if nil != c.conn {
 		defer c.conn.Close()
 	}
-	c.decoder = nil
-	c.encoder = nil
 	c.state = ConnectionShuttingDown
 }
 
@@ -386,9 +383,6 @@ func (c *Connection) processSends() {
 			message := <-c.SendChannel
 			switch message.(type) {
 			case ConnectionParcel:
-				if nil == c.encoder || nil == c.conn {
-					break conloop
-				}
 				parameters := message.(ConnectionParcel)
 				c.sendParcel(parameters.Parcel)
 			case ConnectionCommand:
@@ -465,12 +459,6 @@ func (c *Connection) processReceives() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		for ConnectionOnline == c.state {
 			var message Parcel
-
-			if nil == c.conn || nil == c.decoder {
-				time.Sleep(100 * time.Millisecond)
-				continue
-			}
-
 			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 			err := c.decoder.Decode(&message)
 			switch {
