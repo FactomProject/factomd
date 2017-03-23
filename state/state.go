@@ -6,9 +6,9 @@ package state
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -105,14 +105,14 @@ type State struct {
 
 	//  pending entry/transaction api calls for the holding queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped holdingqueue snapshot for the calls on demand
-	HoldingMutex sync.Mutex
-	HoldingFlag  bool
+	HoldingMutex sync.RWMutex
+	HoldingLast  int64
 	HoldingMap   map[[32]byte]interfaces.IMsg
 
 	//  pending entry/transaction api calls for the ack queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand
-	AcksMutex sync.Mutex
-	AcksFlag  bool
+	AcksMutex sync.RWMutex
+	AcksLast  int64
 	AcksMap   map[[32]byte]interfaces.IMsg
 
 	DBStateAskCnt     int
@@ -198,7 +198,7 @@ type State struct {
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
-	Saving  bool // True if we are in the process of saving to the database
+	Saving  bool // True if we are in the process of saving to the dabase
 	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     bool // Disable if true, Enable if false
@@ -715,11 +715,12 @@ func (s *State) Init() {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
 	if s.Journaling {
-		_, err := os.Create(s.JournalFile) //Create the Journal File
+		f, err := os.Create(s.JournalFile)
 		if err != nil {
-			fmt.Println("Could not create the file: " + s.JournalFile)
+			fmt.Println("Could not create the journal file:", s.JournalFile)
 			s.JournalFile = ""
 		}
+		f.Close()
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -1061,76 +1062,57 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 
 func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 	// request holding queue from state from outside state scope
-	s.HoldingMutex.Lock()
-	defer s.HoldingMutex.Unlock()
+	s.HoldingMutex.RLock()
+	defer s.HoldingMutex.RUnlock()
+	localMap := s.HoldingMap
 
-	s.HoldingFlag = true
-
-	// wait for state to fill the holdingMap and set flag to false
-	timeout := 0
-	for s.HoldingFlag == true {
-		if timeout > 50 {
-			s.HoldingFlag = false
-
-		} // only wait 5 seconds for the holding queue before giving up
-		time.Sleep(100 * time.Millisecond)
-		timeout++
-	}
-	lHold := s.HoldingMap
-	// done with the holdingmap. clear it
-	s.HoldingMap = make(map[[32]byte]interfaces.IMsg, 0)
-	return lHold
-
+	return localMap
 }
 
 // this is executed in the state maintenance processes where the holding queue is in scope and can be queried
-//  This is what fills the HoldingMap requested in LoadHoldingMap
+//  This is what fills the HoldingMap while locking it against a read while building
 func (s *State) fillHoldingMap() {
-	if s.HoldingFlag == true {
-		s.HoldingMap = make(map[[32]byte]interfaces.IMsg, len(s.Holding))
-		for i, msg := range s.Holding {
-			s.HoldingMap[i] = msg
-		}
-		s.HoldingFlag = false
-	}
+	// once a second is often enough to rebuild the Ack list exposed to api
 
+	if s.HoldingLast < time.Now().Unix() {
+
+		localMap := make(map[[32]byte]interfaces.IMsg)
+		for i, msg := range s.Holding {
+			localMap[i] = msg
+		}
+		s.HoldingLast = time.Now().Unix()
+		s.HoldingMutex.Lock()
+		defer s.HoldingMutex.Unlock()
+		s.HoldingMap = localMap
+
+	}
 }
 
+// this is called from the APIs that do not have access directly to the Acks.  State makes a copy and puts it in AcksMap
 func (s *State) LoadAcksMap() map[[32]byte]interfaces.IMsg {
 	// request Acks queue from state from outside state scope
-	s.AcksMutex.Lock()
-	defer s.AcksMutex.Unlock()
+	s.AcksMutex.RLock()
+	defer s.AcksMutex.RUnlock()
+	localMap := s.AcksMap
 
-	s.AcksFlag = true
-
-	// wait for state to fill the AcksMap and set flag to false
-	timeout := 0
-	for s.AcksFlag == true {
-		if timeout > 50 {
-			s.AcksFlag = false
-
-		} // only wait 5 seconds for the Acks queue before giving up
-		time.Sleep(100 * time.Millisecond)
-		timeout++
-	}
-	lHold := s.AcksMap
-	// done with the Acksmap. clear it
-	s.AcksMap = make(map[[32]byte]interfaces.IMsg, 0)
-	return lHold
+	return localMap
 
 }
 
 // this is executed in the state maintenance processes where the Acks queue is in scope and can be queried
 //  This is what fills the AcksMap requested in LoadAcksMap
 func (s *State) fillAcksMap() {
-	if s.AcksFlag == true {
-		s.AcksMap = make(map[[32]byte]interfaces.IMsg, len(s.Acks))
+	// once a second is often enough to rebuild the Ack list exposed to api
+	if s.AcksLast < time.Now().Unix() {
+		localMap := make(map[[32]byte]interfaces.IMsg)
 		for i, msg := range s.Acks {
-			s.AcksMap[i] = msg
+			localMap[i] = msg
 		}
-		s.AcksFlag = false
+		s.AcksLast = time.Now().Unix()
+		s.AcksMutex.Lock()
+		defer s.AcksMutex.Unlock()
+		s.AcksMap = localMap
 	}
-
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
@@ -1409,46 +1391,124 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	return false
 }
 
-func (s *State) MessageToLogString(msg interfaces.IMsg) string {
-	bytes, err := msg.MarshalBinary()
-	if err != nil {
-		panic("Failed MarshalBinary: " + err.Error())
-	}
-	msgStr := hex.EncodeToString(bytes)
-
-	answer := "\n" + msg.String() + "\n  " + s.ShortString() + "\n" + "\t\t\tMsgHex: " + msgStr + "\n"
-	return answer
-}
-
+// JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
+	type journalentry struct {
+		Type byte
+		Message interfaces.IMsg
+	}
+	
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
 			return
 		}
-		str := s.MessageToLogString(msg)
-		f.WriteString(str)
-		f.Close()
+		defer f.Close()
+		
+		e := new(journalentry)
+		e.Type = msg.Type()
+		e.Message = msg
+		
+		p, err := json.Marshal(e)
+		if err != nil {
+			return
+		}
+		fmt.Fprintln(f, string(p))
 	}
 }
 
-func (s *State) GetJournal() string {
-	if !s.Journaling || s.JournalFile == "" {
-		return ""
+// GetJournalMessages gets all messages from the message journal
+func (s *State) GetJournalMessages() []interfaces.IMsg {
+	type journalentry struct {
+		Type byte
+		Message json.RawMessage
 	}
-	
-	f, err := os.Open(s.JournalFile)
-	if err != nil {
-		return ""
+
+	if s.Journaling && len(s.JournalFile) != 0 {
+		f, err := os.Open(s.JournalFile)
+		if err != nil {
+			s.JournalFile = ""
+			return nil
+		}
+		defer f.Close()
+		
+		msgs := make([]interfaces.IMsg, 0)
+		
+		dec := json.NewDecoder(f)
+		for {
+		    e := new(journalentry)
+		    if err := dec.Decode(e); err == io.EOF {
+		        break
+		    } else if err != nil {
+		        return nil
+		    }
+			var msg interfaces.IMsg
+			
+			switch e.Type {
+			case constants.EOM_MSG:
+				msg = new(messages.EOM)
+			case constants.ACK_MSG:
+				msg = new(messages.Ack)
+			case constants.AUDIT_SERVER_FAULT_MSG:
+				msg = new(messages.AuditServerFault)
+			case constants.FED_SERVER_FAULT_MSG:
+				msg = new(messages.ServerFault)
+			case constants.FULL_SERVER_FAULT_MSG:
+				msg = new(messages.FullServerFault)
+			case constants.COMMIT_CHAIN_MSG:
+				msg = new(messages.CommitChainMsg)
+			case constants.COMMIT_ENTRY_MSG:
+				msg = new(messages.CommitEntryMsg)
+			case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+				msg = new(messages.DirectoryBlockSignature)
+			case constants.EOM_TIMEOUT_MSG:
+				msg = new(messages.EOMTimeout)
+			case constants.FACTOID_TRANSACTION_MSG:
+				msg = new(messages.FactoidTransaction)
+			case constants.HEARTBEAT_MSG:
+				msg = new(messages.Heartbeat)
+			case constants.INVALID_DIRECTORY_BLOCK_MSG:
+				msg = new(messages.InvalidDirectoryBlock)
+			case constants.MISSING_MSG:
+				msg = new(messages.MissingMsg)
+			case constants.MISSING_MSG_RESPONSE:
+				msg = new(messages.MissingMsgResponse)
+			case constants.MISSING_DATA:
+				msg = new(messages.MissingData)
+			case constants.DATA_RESPONSE:
+				msg = new(messages.DataResponse)
+			case constants.REVEAL_ENTRY_MSG:
+				msg = new(messages.RevealEntryMsg)
+			case constants.REQUEST_BLOCK_MSG:
+				msg = new(messages.RequestBlock)
+			case constants.SIGNATURE_TIMEOUT_MSG:
+				msg = new(messages.SignatureTimeout)
+			case constants.DBSTATE_MISSING_MSG:
+				msg = new(messages.DBStateMissing)
+			case constants.DBSTATE_MSG:
+				msg = new(messages.DBStateMsg)
+			case constants.ADDSERVER_MSG:
+				msg = new(messages.AddServerMsg)
+			case constants.CHANGESERVER_KEY_MSG:
+				msg = new(messages.ChangeServerKeyMsg)
+			case constants.REMOVESERVER_MSG:
+				msg = new(messages.RemoveServerMsg)
+			case constants.BOUNCE_MSG:
+				msg = new(messages.Bounce)
+			case constants.BOUNCEREPLY_MSG:
+				msg = new(messages.BounceReply)
+			default:
+				return msgs
+		    }
+		    if err := json.Unmarshal(e.Message, msg); err != nil {
+		    	return msgs
+		    }
+		    msgs = append(msgs, msg)
+		}
+		return msgs
 	}
-	defer f.Close()
-	
-	p, err := ioutil.ReadAll(f)
-	if err != nil {
-		return ""
-	}
-	return string(p)
+	return nil
 }
 
 func (s *State) GetLeaderVM() int {

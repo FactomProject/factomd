@@ -584,3 +584,24 @@ func TestDoesKeyExist(t *testing.T) {
 		}
 	}
 }
+
+func TestFetchAllBlockKeysFromBucket(t *testing.T) {
+	dbo := createOverlay()
+	defer dbo.Close()
+
+	obj := NewDBTestObject()
+	bucket := []byte{0x01}
+
+	err := dbo.Insert(bucket, obj)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	keys, err := dbo.FetchAllBlockKeysFromBucket(bucket)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if len(keys) == 0 {
+		t.Errorf("No keys returned")
+	}
+}
