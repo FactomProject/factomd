@@ -557,6 +557,24 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.connectionsByAddress[conn.peer.Address] = conn
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
+
+		// Trim peers first.
+		keep := make(map[string]*Connection)
+		for k, connection := range c.connections {
+			switch {
+			case connection.IsOutGoing() && connection.IsOnline():
+				c.numberOutgoingConnections++
+				keep[k] = connection
+			case !connection.IsOutGoing() && connection.IsOnline():
+				c.numberIncommingConnections++
+				keep[k] = connection
+			case connection.state == ConnectionShuttingDown:
+			default: // we don't count offline connections for these purposes.
+				keep[k] = connection
+			}
+		}
+		c.connections = keep
+
 		parameters := command.(CommandAddPeer)
 		conn := parameters.conn // net.Conn
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
@@ -656,21 +674,6 @@ func (c *Controller) updateConnectionCounts() {
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0
-	keep := make(map[string]*Connection)
-	for k, connection := range c.connections {
-		switch {
-		case connection.IsOutGoing() && connection.IsOnline():
-			c.numberOutgoingConnections++
-			keep[k] = connection
-		case !connection.IsOutGoing() && connection.IsOnline():
-			c.numberIncommingConnections++
-			keep[k] = connection
-		case connection.state == ConnectionShuttingDown:
-		default: // we don't count offline connections for these purposes.
-			keep[k] = connection
-		}
-	}
-	c.connections = keep
 }
 
 // updateConnectionAddressMap() updates the address index map to reflect all current connections
