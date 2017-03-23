@@ -271,6 +271,7 @@ func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
 }
 
 func (b *DirectoryBlock) HeaderHash() (interfaces.IHash, error) {
+	b.Header.SetBlockCount(uint32(len(b.GetDBEntries())))
 	binaryEBHeader, err := b.GetHeader().MarshalBinary()
 	if err != nil {
 		return nil, err
