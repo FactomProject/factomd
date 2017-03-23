@@ -6,8 +6,9 @@ package state
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -438,6 +439,14 @@ func (s *State) SetDBStatesSent(sents []*interfaces.DBStateSent) {
 	s.DBStatesSent = sents
 }
 
+func (s *State) GetDelay() int64 {
+	return s.Delay
+}
+
+func (s *State) SetDelay(delay int64) {
+	s.Delay = delay
+}
+
 func (s *State) GetDropRate() int {
 	return s.DropRate
 }
@@ -706,11 +715,12 @@ func (s *State) Init() {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
 	if s.Journaling {
-		_, err := os.Create(s.JournalFile) //Create the Journal File
+		f, err := os.Create(s.JournalFile)
 		if err != nil {
-			fmt.Println("Could not create the file: " + s.JournalFile)
+			fmt.Println("Could not create the journal file:", s.JournalFile)
 			s.JournalFile = ""
 		}
+		f.Close()
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -1381,28 +1391,124 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	return false
 }
 
-func (s *State) MessageToLogString(msg interfaces.IMsg) string {
-	bytes, err := msg.MarshalBinary()
-	if err != nil {
-		panic("Failed MarshalBinary: " + err.Error())
-	}
-	msgStr := hex.EncodeToString(bytes)
-
-	answer := "\n" + msg.String() + "\n  " + s.ShortString() + "\n" + "\t\t\tMsgHex: " + msgStr + "\n"
-	return answer
-}
-
+// JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
+	type journalentry struct {
+		Type byte
+		Message interfaces.IMsg
+	}
+	
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
 			return
 		}
-		str := s.MessageToLogString(msg)
-		f.WriteString(str)
-		f.Close()
+		defer f.Close()
+		
+		e := new(journalentry)
+		e.Type = msg.Type()
+		e.Message = msg
+		
+		p, err := json.Marshal(e)
+		if err != nil {
+			return
+		}
+		fmt.Fprintln(f, string(p))
 	}
+}
+
+// GetJournalMessages gets all messages from the message journal
+func (s *State) GetJournalMessages() []interfaces.IMsg {
+	type journalentry struct {
+		Type byte
+		Message json.RawMessage
+	}
+
+	if s.Journaling && len(s.JournalFile) != 0 {
+		f, err := os.Open(s.JournalFile)
+		if err != nil {
+			s.JournalFile = ""
+			return nil
+		}
+		defer f.Close()
+		
+		msgs := make([]interfaces.IMsg, 0)
+		
+		dec := json.NewDecoder(f)
+		for {
+		    e := new(journalentry)
+		    if err := dec.Decode(e); err == io.EOF {
+		        break
+		    } else if err != nil {
+		        return nil
+		    }
+			var msg interfaces.IMsg
+			
+			switch e.Type {
+			case constants.EOM_MSG:
+				msg = new(messages.EOM)
+			case constants.ACK_MSG:
+				msg = new(messages.Ack)
+			case constants.AUDIT_SERVER_FAULT_MSG:
+				msg = new(messages.AuditServerFault)
+			case constants.FED_SERVER_FAULT_MSG:
+				msg = new(messages.ServerFault)
+			case constants.FULL_SERVER_FAULT_MSG:
+				msg = new(messages.FullServerFault)
+			case constants.COMMIT_CHAIN_MSG:
+				msg = new(messages.CommitChainMsg)
+			case constants.COMMIT_ENTRY_MSG:
+				msg = new(messages.CommitEntryMsg)
+			case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+				msg = new(messages.DirectoryBlockSignature)
+			case constants.EOM_TIMEOUT_MSG:
+				msg = new(messages.EOMTimeout)
+			case constants.FACTOID_TRANSACTION_MSG:
+				msg = new(messages.FactoidTransaction)
+			case constants.HEARTBEAT_MSG:
+				msg = new(messages.Heartbeat)
+			case constants.INVALID_DIRECTORY_BLOCK_MSG:
+				msg = new(messages.InvalidDirectoryBlock)
+			case constants.MISSING_MSG:
+				msg = new(messages.MissingMsg)
+			case constants.MISSING_MSG_RESPONSE:
+				msg = new(messages.MissingMsgResponse)
+			case constants.MISSING_DATA:
+				msg = new(messages.MissingData)
+			case constants.DATA_RESPONSE:
+				msg = new(messages.DataResponse)
+			case constants.REVEAL_ENTRY_MSG:
+				msg = new(messages.RevealEntryMsg)
+			case constants.REQUEST_BLOCK_MSG:
+				msg = new(messages.RequestBlock)
+			case constants.SIGNATURE_TIMEOUT_MSG:
+				msg = new(messages.SignatureTimeout)
+			case constants.DBSTATE_MISSING_MSG:
+				msg = new(messages.DBStateMissing)
+			case constants.DBSTATE_MSG:
+				msg = new(messages.DBStateMsg)
+			case constants.ADDSERVER_MSG:
+				msg = new(messages.AddServerMsg)
+			case constants.CHANGESERVER_KEY_MSG:
+				msg = new(messages.ChangeServerKeyMsg)
+			case constants.REMOVESERVER_MSG:
+				msg = new(messages.RemoveServerMsg)
+			case constants.BOUNCE_MSG:
+				msg = new(messages.Bounce)
+			case constants.BOUNCEREPLY_MSG:
+				msg = new(messages.BounceReply)
+			default:
+				return msgs
+		    }
+		    if err := json.Unmarshal(e.Message, msg); err != nil {
+		    	return msgs
+		    }
+		    msgs = append(msgs, msg)
+		}
+		return msgs
+	}
+	return nil
 }
 
 func (s *State) GetLeaderVM() int {
@@ -1707,6 +1813,22 @@ func (s *State) SetFaultWait(wait int) {
 
 //var _ IState = (*State)(nil)
 
+// GetAuthoritites will return a list of the network athoritites
+func (s *State) GetAuthorities() []interfaces.IAuthority {
+	auths := make([]interfaces.IAuthority, 0)
+	for _, auth := range s.Authorities {
+		auths = append(auths, auth)
+	}
+	
+	return auths
+}
+
+// GetLeaderPL returns the leader process list from the state. this method is
+// for debugging and should not be called in normal production code.
+func (s *State) GetLeaderPL() interfaces.IProcessList {
+	return s.LeaderPL
+}
+
 // Getting the cfg state for Factom doesn't force a read of the config file unless
 // it hasn't been read yet.
 func (s *State) GetCfg() interfaces.IFactomConfig {
@@ -1723,6 +1845,20 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 
 func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
+}
+
+func (s *State) GetNetworkName() string {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return "MAIN"
+	case constants.NETWORK_TEST:
+		return "TEST"
+	case constants.NETWORK_LOCAL:
+		return "LOCAL"
+	case constants.NETWORK_CUSTOM:
+		return "CUSTOM"
+	}
+	return "" // Shouldn't ever get here
 }
 
 func (s *State) GetNetworkID() uint32 {
