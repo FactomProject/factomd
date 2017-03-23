@@ -317,10 +317,10 @@ func HandleMessages(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		MessageLog string
+		Messages []interfaces.IMsg
 	}
 	r := new(ret)
-	r.MessageLog = state.GetJournal()
+	r.Messages = state.GetJournalMessages()
 	return r, nil
 }
 
