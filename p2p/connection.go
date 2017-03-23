@@ -26,7 +26,8 @@ type Connection struct {
 	Commands       chan ConnectionCommand // handle connection commands
 	SendChannel    chan interface{}       // Send means "towards the network" Channel sends Parcels and ConnectionCommands
 	ReceiveChannel chan interface{}       // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
-	// and as "address" for sending messages to specific nodes.
+	ReceiveParcel  chan *Parcel           // Parcels to be handled.
+																				// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
@@ -220,6 +221,18 @@ func (c *Connection) runLoop() {
 		// }
 		c.handleNetErrors()
 		c.handleCommand()
+
+		parcelloop:
+		for {
+			select {
+			case m := <-c.ReceiveParcel:
+				c.handleParcel(m)
+
+			default:
+				break parcelloop
+			}
+		}
+
 		switch c.state {
 		case ConnectionInitialized:
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
@@ -491,7 +504,7 @@ func (c *Connection) processReceives() {
 				c.metrics.BytesReceived += message.Header.Length
 				c.metrics.MessagesReceived += 1
 				message.Header.PeerAddress = c.peer.Address
-				c.handleParcel(message)
+				c.ReceiveParcel <- message
 			default:
 				c.Errors <- err
 			}
