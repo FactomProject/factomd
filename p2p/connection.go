@@ -226,7 +226,7 @@ func (c *Connection) runLoop() {
 		for {
 			select {
 			case m := <-c.ReceiveParcel:
-				c.handleParcel(m)
+				c.handleParcel(*m)
 
 			default:
 				break parcelloop
@@ -504,7 +504,7 @@ func (c *Connection) processReceives() {
 				c.metrics.BytesReceived += message.Header.Length
 				c.metrics.MessagesReceived += 1
 				message.Header.PeerAddress = c.peer.Address
-				c.ReceiveParcel <- message
+				c.ReceiveParcel <- &message
 			default:
 				c.Errors <- err
 			}
