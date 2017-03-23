@@ -363,6 +363,8 @@ func (c *Controller) runloop() {
 	for c.keepRunning { // Run until we get the exit command
 
 		c.NumConnections = len(c.connections)
+		p2pControllerNumConnections.Set(float64(c.NumConnections))
+		p2pControllerNumMetrics.Set(float64(len(c.connectionMetrics)))
 
 		dot("@@1\n")
 	commandloop:
