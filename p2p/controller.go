@@ -654,15 +654,21 @@ func (c *Controller) updateConnectionCounts() {
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0
-	for _, connection := range c.connections {
+	keep := make(map[string]*Connection)
+	for k, connection := range c.connections {
 		switch {
 		case connection.IsOutGoing() && connection.IsOnline():
 			c.numberOutgoingConnections++
+			keep[k] = connection
 		case !connection.IsOutGoing() && connection.IsOnline():
 			c.numberIncommingConnections++
+			keep[k] = connection
+		case connection.state == ConnectionShuttingDown:
 		default: // we don't count offline connections for these purposes.
+			keep[k] = connection
 		}
 	}
+	c.connections = keep
 }
 
 // updateConnectionAddressMap() updates the address index map to reflect all current connections
