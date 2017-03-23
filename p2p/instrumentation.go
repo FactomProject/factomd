@@ -28,8 +28,13 @@ var (
 	})
 
 	p2pConnectionsRunLoop = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_p2p_connection__runloop_routine_gauge",
+		Name: "factomd_p2p_connection_runloop_routine_gauge",
 		Help: "The number of connections in runloop",
+	})
+
+	p2pConnectionDialLoop = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_p2p_connection_dialloop_routine_guage",
+		Help: "The number of connections in dialloop",
 	})
 
 	// Runloops
@@ -72,6 +77,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(p2pProcessSendsGuage)    // processSends
 	prometheus.MustRegister(p2pProcessReceivesGuage) // processReceives
 	prometheus.MustRegister(p2pConnectionsRunLoop)
+	prometheus.MustRegister(p2pConnectionDialLoop)
 
 	// RunLoop
 	prometheus.MustRegister(p2pConnectionRunLoopInitalized)

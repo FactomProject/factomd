@@ -27,7 +27,7 @@ type Connection struct {
 	SendChannel    chan interface{}       // Send means "towards the network" Channel sends Parcels and ConnectionCommands
 	ReceiveChannel chan interface{}       // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
 	ReceiveParcel  chan *Parcel           // Parcels to be handled.
-																				// and as "address" for sending messages to specific nodes.
+	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
@@ -298,6 +298,9 @@ func (c *Connection) setNotes(format string, v ...interface{}) {
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
 // All exits from dialLoop change the state of the connection allowing the outside run_loop to proceed.
 func (c *Connection) dialLoop() {
+	p2pConnectionDialLoop.Inc()
+	defer p2pConnectionDialLoop.Dec()
+
 	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
 	if c.peer.QualityScore < MinumumQualityScore {
 		c.setNotes("Connection.dialLoop() Quality Score too low, not dialing out again.")
