@@ -1225,10 +1225,12 @@ searchLoop:
 
 	index := int(dbheight) - int(list.Base)
 
-	// If we have already processed this State, ignore it.
-	if index < int(list.Complete) {
-		return false
-	}
+	/*
+		// If we have already processed this State, ignore it.
+		if index < int(list.Complete) {
+			return false
+		}
+	*/
 
 	// make room for this entry.
 	for len(list.DBStates) <= index {

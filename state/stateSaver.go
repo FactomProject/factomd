@@ -13,6 +13,11 @@ var tmpState []byte
 func SaveDBStateList(ss *DBStateList) error {
 	//For now, to file. Later - to DB
 
+	//Don't save States after the server has booted - it might start it in a wrong state
+	if ss.State.DBFinished == true {
+		return nil
+	}
+
 	//Save only every 1000 states
 	if ss.GetHighestSavedBlk()%1000 != 0 || ss.GetHighestSavedBlk() < 1000 {
 		return nil
