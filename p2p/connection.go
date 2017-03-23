@@ -22,11 +22,11 @@ import (
 // (defined below).
 type Connection struct {
 	conn           net.Conn
-	Errors         chan error             // handle errors from connections.
-	Commands       chan ConnectionCommand // handle connection commands
-	SendChannel    chan interface{}       // Send means "towards the network" Channel sends Parcels and ConnectionCommands
-	ReceiveChannel chan interface{}       // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
-	ReceiveParcel  chan *Parcel           // Parcels to be handled.
+	Errors         chan error              // handle errors from connections.
+	Commands       chan *ConnectionCommand // handle connection commands
+	SendChannel    chan interface{}        // Send means "towards the network" Channel sends Parcels and ConnectionCommands
+	ReceiveChannel chan interface{}        // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
+	ReceiveParcel  chan *Parcel            // Parcels to be handled.
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
@@ -192,7 +192,7 @@ func (c *Connection) commonInit(peer Peer) {
 	c.peer = peer
 	c.setNotes("commonInit()")
 	c.Errors = make(chan error, StandardChannelSize)
-	c.Commands = make(chan ConnectionCommand, StandardChannelSize)
+	c.Commands = make(chan *ConnectionCommand, StandardChannelSize)
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveParcel = make(chan *Parcel, StandardChannelSize)
@@ -432,7 +432,7 @@ func (c *Connection) processSends() {
 				c.sendParcel(parameters.Parcel)
 			case ConnectionCommand:
 				parameters := message.(ConnectionCommand)
-				c.Commands <- parameters
+				c.Commands <- &parameters
 			default:
 			}
 		}
