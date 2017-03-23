@@ -195,6 +195,7 @@ func (c *Connection) commonInit(peer Peer) {
 	c.Commands = make(chan ConnectionCommand, StandardChannelSize)
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
+	c.ReceiveParcel = make(chan *Parcel, StandardChannelSize)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
