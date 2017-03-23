@@ -3,6 +3,8 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -36,6 +38,37 @@ func CreateEmptyTestState() *state.State {
 }
 
 func CreateAndPopulateTestState() *state.State {
+	s := new(state.State)
+	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
+	s.DB = CreateAndPopulateTestDatabaseOverlay()
+	s.LoadConfig("", "")
+
+	s.DirectoryBlockInSeconds = 20
+
+	s.Network = "LOCAL"
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", false))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", s.DBType))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", s.CloneDBType))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", s.DirectoryBlockInSeconds))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+
+	s.Init()
+	s.Network = "LOCAL"
+	/*err := s.RecalculateBalances()
+	if err != nil {
+		panic(err)
+	}*/
+	s.SetFactoshisPerEC(1)
+	state.LoadDatabase(s)
+	s.UpdateState()
+	go s.ValidatorLoop()
+	time.Sleep(30 * time.Millisecond)
+
+	return s
+}
+
+func CreateAndPopulateActiveTestState() *state.State {
 	s := new(state.State)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 
