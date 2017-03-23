@@ -211,6 +211,8 @@ func (c *Connection) Start() {
 func (c *Connection) runLoop() {
 	go c.processSends()
 	go c.processReceives()
+	p2pConnectionsRunLoop.Inc()
+	defer p2pConnectionsRunLoop.Dec()
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		time.Sleep(100 * time.Millisecond)
@@ -236,6 +238,7 @@ func (c *Connection) runLoop() {
 
 		switch c.state {
 		case ConnectionInitialized:
+			p2pConnectionRunLoopInitalized.Inc()
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				c.setNotes("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
@@ -245,6 +248,12 @@ func (c *Connection) runLoop() {
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
+			p2pConnectionRunLoopOnline.Inc()
+			c.pingPeer() // sends a ping periodically if things have been quiet
+			if PeerSaveInterval < time.Since(c.timeLastUpdate) {
+				debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
+			}
 
 			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
@@ -259,6 +268,7 @@ func (c *Connection) runLoop() {
 				c.goShutdown()
 			}
 		case ConnectionOffline:
+			p2pConnectionRunLoopOffline.Inc()
 			switch {
 			case c.isOutGoing:
 				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
@@ -267,6 +277,7 @@ func (c *Connection) runLoop() {
 				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
+			p2pConnectionRunLoopShutdown.Inc()
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
 			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
@@ -287,6 +298,9 @@ func (c *Connection) setNotes(format string, v ...interface{}) {
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
 // All exits from dialLoop change the state of the connection allowing the outside run_loop to proceed.
 func (c *Connection) dialLoop() {
+	p2pConnectionDialLoop.Inc()
+	defer p2pConnectionDialLoop.Dec()
+
 	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
 	if c.peer.QualityScore < MinumumQualityScore {
 		c.setNotes("Connection.dialLoop() Quality Score too low, not dialing out again.")
@@ -393,6 +407,8 @@ func (c *Connection) goShutdown() {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
+	p2pProcessSendsGuage.Inc()
+	defer p2pProcessSendsGuage.Dec()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -485,6 +501,8 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- a network error happens
 // -- something causes our state to be offline
 func (c *Connection) processReceives() {
+	p2pProcessReceivesGuage.Inc()
+	defer p2pProcessReceivesGuage.Dec()
 
 	defer func() {
 		if r := recover(); r != nil {
