@@ -174,6 +174,7 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
+
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
