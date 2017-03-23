@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -1382,7 +1383,13 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	return false
 }
 
+// JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
+	type journalentry struct {
+		Type byte
+		Message interfaces.IMsg
+	}
+	
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
@@ -1391,12 +1398,109 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 		}
 		defer f.Close()
 		
-		p, err := json.Marshal(msg)
+		e := new(journalentry)
+		e.Type = msg.Type()
+		e.Message = msg
+		
+		p, err := json.Marshal(e)
 		if err != nil {
 			return
 		}
 		fmt.Fprintln(f, string(p))
 	}
+}
+
+// GetJournalMessages gets all messages from the message journal
+func (s *State) GetJournalMessages() []interfaces.IMsg {
+	type journalentry struct {
+		Type byte
+		Message json.RawMessage
+	}
+
+	if s.Journaling && len(s.JournalFile) != 0 {
+		f, err := os.Open(s.JournalFile)
+		if err != nil {
+			s.JournalFile = ""
+			return nil
+		}
+		defer f.Close()
+		
+		msgs := make([]interfaces.IMsg, 0)
+		
+		dec := json.NewDecoder(f)
+		for {
+		    e := new(journalentry)
+		    if err := dec.Decode(e); err == io.EOF {
+		        break
+		    } else if err != nil {
+		        return nil
+		    }
+			var msg interfaces.IMsg
+			
+			switch e.Type {
+			case constants.EOM_MSG:
+				msg = new(messages.EOM)
+			case constants.ACK_MSG:
+				msg = new(messages.Ack)
+			case constants.AUDIT_SERVER_FAULT_MSG:
+				msg = new(messages.AuditServerFault)
+			case constants.FED_SERVER_FAULT_MSG:
+				msg = new(messages.ServerFault)
+			case constants.FULL_SERVER_FAULT_MSG:
+				msg = new(messages.FullServerFault)
+			case constants.COMMIT_CHAIN_MSG:
+				msg = new(messages.CommitChainMsg)
+			case constants.COMMIT_ENTRY_MSG:
+				msg = new(messages.CommitEntryMsg)
+			case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+				msg = new(messages.DirectoryBlockSignature)
+			case constants.EOM_TIMEOUT_MSG:
+				msg = new(messages.EOMTimeout)
+			case constants.FACTOID_TRANSACTION_MSG:
+				msg = new(messages.FactoidTransaction)
+			case constants.HEARTBEAT_MSG:
+				msg = new(messages.Heartbeat)
+			case constants.INVALID_DIRECTORY_BLOCK_MSG:
+				msg = new(messages.InvalidDirectoryBlock)
+			case constants.MISSING_MSG:
+				msg = new(messages.MissingMsg)
+			case constants.MISSING_MSG_RESPONSE:
+				msg = new(messages.MissingMsgResponse)
+			case constants.MISSING_DATA:
+				msg = new(messages.MissingData)
+			case constants.DATA_RESPONSE:
+				msg = new(messages.DataResponse)
+			case constants.REVEAL_ENTRY_MSG:
+				msg = new(messages.RevealEntryMsg)
+			case constants.REQUEST_BLOCK_MSG:
+				msg = new(messages.RequestBlock)
+			case constants.SIGNATURE_TIMEOUT_MSG:
+				msg = new(messages.SignatureTimeout)
+			case constants.DBSTATE_MISSING_MSG:
+				msg = new(messages.DBStateMissing)
+			case constants.DBSTATE_MSG:
+				msg = new(messages.DBStateMsg)
+			case constants.ADDSERVER_MSG:
+				msg = new(messages.AddServerMsg)
+			case constants.CHANGESERVER_KEY_MSG:
+				msg = new(messages.ChangeServerKeyMsg)
+			case constants.REMOVESERVER_MSG:
+				msg = new(messages.RemoveServerMsg)
+			case constants.BOUNCE_MSG:
+				msg = new(messages.Bounce)
+			case constants.BOUNCEREPLY_MSG:
+				msg = new(messages.BounceReply)
+			default:
+				return msgs
+		    }
+		    if err := json.Unmarshal(e.Message, msg); err != nil {
+		    	return msgs
+		    }
+		    msgs = append(msgs, msg)
+		}
+		return msgs
+	}
+	return nil
 }
 
 func (s *State) GetLeaderVM() int {
