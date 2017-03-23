@@ -40,7 +40,7 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
 
-func NetStart(s *state.State) {
+func NetStart(s *state.State, loadConfigFromFile bool) {
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
@@ -115,9 +115,11 @@ func NetStart(s *state.State) {
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
-	FactomConfigFilename := util.GetConfigFilename("m2")
-	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-	s.LoadConfig(FactomConfigFilename, networkName)
+	if loadConfigFromFile {
+		FactomConfigFilename := util.GetConfigFilename("m2")
+		fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
+		s.LoadConfig(FactomConfigFilename, networkName)
+	}
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 	s.StartDelayLimit = startDelay * 1000

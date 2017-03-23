@@ -50,7 +50,7 @@ func Factomd() {
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	fmt.Println("len(Args)", len(os.Args))
 
-	NetStart(state0)
+	NetStart(state0, true)
 }
 
 func isCompilerVersionOK() bool {
