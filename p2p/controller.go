@@ -549,7 +549,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		conn.Start()
 		if c.connections[conn.peer.Hash] != nil {
-			 c.connections[conn.peer.Hash].goShutdown()
+			c.connections[conn.peer.Hash].goShutdown()
 		}
 		c.connections[conn.peer.Hash] = conn
 		c.connectionsByAddress[conn.peer.Address] = conn
@@ -654,7 +654,7 @@ func (c *Controller) updateConnectionCounts() {
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0
-	keep := make(map [string]*Connection )
+	keep := make(map[string]*Connection)
 	for k, connection := range c.connections {
 		switch {
 		case connection.IsOutGoing() && connection.IsOnline():
