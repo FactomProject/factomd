@@ -706,11 +706,12 @@ func (s *State) Init() {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
 	if s.Journaling {
-		_, err := os.Create(s.JournalFile)
+		f, err := os.Create(s.JournalFile)
 		if err != nil {
 			fmt.Println("Could not create the journal file:", s.JournalFile)
 			s.JournalFile = ""
 		}
+		f.Close()
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -1394,7 +1395,7 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 		if err != nil {
 			return
 		}
-		f.WriteString(string(p))
+		fmt.Fprintln(f, string(p))
 	}
 }
 
