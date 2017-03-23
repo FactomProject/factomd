@@ -484,7 +484,9 @@ func NetStart(s *state.State, loadConfigFromFile bool) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
-	SimControl(listenTo)
+	if loadConfigFromFile {
+		SimControl(listenTo)
+	}
 }
 
 //**********************************************************************

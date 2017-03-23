@@ -154,6 +154,7 @@ func TestServerFaultUpdateState(t *testing.T) {
 	sf.SignatureList.Length = uint32(len(sf.SignatureList.List))
 
 	s := testHelper.CreateAndPopulateTestState()
+
 	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
 	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
 	for i := 0; i < sigs; i++ {
@@ -176,6 +177,8 @@ func TestServerFaultUpdateState(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
+
+	s.ShutdownChan <- 0
 
 }
 
