@@ -3,6 +3,8 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"time"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -39,6 +41,23 @@ func CreateAndPopulateTestState() *state.State {
 
 	engine.NetStart(s, false)
 
+	return s
+}
+
+func CreateAndPopulateFrozenTestState() *state.State {
+	s := new(state.State)
+	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
+	s.DirectoryBlockInSeconds = 8
+
+	engine.NetStart(s, false)
+
+	// Wait for 2 minutes, so that some blocks have time to be built
+	time.Sleep(80 * time.Second)
+
+	// Shut the node down (freeze the state)
+	s.ShutdownChan <- 0
+
+	// Return the frozen state
 	return s
 }
 
