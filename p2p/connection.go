@@ -27,7 +27,7 @@ type Connection struct {
 	SendChannel    chan interface{}       // Send means "towards the network" Channel sends Parcels and ConnectionCommands
 	ReceiveChannel chan interface{}       // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
 	ReceiveParcel  chan *Parcel           // Parcels to be handled.
-	// and as "address" for sending messages to specific nodes.
+																				// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
@@ -195,6 +195,7 @@ func (c *Connection) commonInit(peer Peer) {
 	c.Commands = make(chan ConnectionCommand, StandardChannelSize)
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
+	c.ReceiveParcel = make(chan *Parcel, StandardChannelSize)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
@@ -224,6 +225,17 @@ func (c *Connection) runLoop() {
 		c.handleNetErrors()
 		c.handleCommand()
 
+	parcelloop:
+		for {
+			select {
+			case m := <-c.ReceiveParcel:
+				c.handleParcel(*m)
+
+			default:
+				break parcelloop
+			}
+		}
+
 		switch c.state {
 		case ConnectionInitialized:
 			p2pConnectionRunLoopInitalized.Inc()
@@ -243,17 +255,13 @@ func (c *Connection) runLoop() {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
 
-		parcelloop:
-			for {
-				select {
-				case m := <-c.ReceiveParcel:
-					c.handleParcel(*m)
-
-				default:
-					break parcelloop
+			if ConnectionOnline == c.state {
+				c.pingPeer() // sends a ping periodically if things have been quiet
+				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
+					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
 			}
-
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.

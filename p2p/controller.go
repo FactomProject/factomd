@@ -551,7 +551,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		conn.Start()
 		if c.connections[conn.peer.Hash] != nil {
-			go c.connections[conn.peer.Hash].goShutdown()
+			c.connections[conn.peer.Hash].goShutdown()
 		}
 		c.connections[conn.peer.Hash] = conn
 		c.connectionsByAddress[conn.peer.Address] = conn
@@ -568,7 +568,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
 		if c.connections[connection.peer.Hash] != nil {
-			go c.connections[connection.peer.Hash].goShutdown()
+			c.connections[connection.peer.Hash].goShutdown()
 		}
 		c.connections[connection.peer.Hash] = connection
 		c.connectionsByAddress[connection.peer.Address] = connection
@@ -656,15 +656,21 @@ func (c *Controller) updateConnectionCounts() {
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0
-	for _, connection := range c.connections {
+	keep := make(map[string]*Connection)
+	for k, connection := range c.connections {
 		switch {
 		case connection.IsOutGoing() && connection.IsOnline():
 			c.numberOutgoingConnections++
+			keep[k] = connection
 		case !connection.IsOutGoing() && connection.IsOnline():
 			c.numberIncommingConnections++
+			keep[k] = connection
+		case connection.state == ConnectionShuttingDown:
 		default: // we don't count offline connections for these purposes.
+			keep[k] = connection
 		}
 	}
+	c.connections = keep
 }
 
 // updateConnectionAddressMap() updates the address index map to reflect all current connections
