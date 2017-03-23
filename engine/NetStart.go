@@ -119,6 +119,8 @@ func NetStart(s *state.State, loadConfigFromFile bool) {
 		FactomConfigFilename := util.GetConfigFilename("m2")
 		fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
 		s.LoadConfig(FactomConfigFilename, networkName)
+	} else {
+		s.LoadConfig("", "TEST")
 	}
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))

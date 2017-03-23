@@ -12,14 +12,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	//"github.com/FactomProject/factomd/engine"
+	"github.com/FactomProject/factomd/engine"
 	//"github.com/FactomProject/factomd/log"
-	"time"
 
 	"github.com/FactomProject/factomd/state"
+
 	//"fmt"
-	"fmt"
-	"os"
 )
 
 var BlockCount int = 10
@@ -38,30 +36,8 @@ func CreateEmptyTestState() *state.State {
 func CreateAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
-	s.DB = CreateAndPopulateTestDatabaseOverlay()
-	s.LoadConfig("", "")
 
-	s.DirectoryBlockInSeconds = 20
-
-	s.Network = "LOCAL"
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", false))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", s.DBType))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", s.CloneDBType))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", s.DirectoryBlockInSeconds))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
-
-	s.Init()
-	s.Network = "LOCAL"
-	/*err := s.RecalculateBalances()
-	if err != nil {
-		panic(err)
-	}*/
-	s.SetFactoshisPerEC(1)
-	state.LoadDatabase(s)
-	s.UpdateState()
-	go s.ValidatorLoop()
-	time.Sleep(30 * time.Millisecond)
+	engine.NetStart(s, false)
 
 	return s
 }
