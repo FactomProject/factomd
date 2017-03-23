@@ -178,8 +178,6 @@ func TestServerFaultUpdateState(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	s.ShutdownChan <- 0
-
 }
 
 /*
