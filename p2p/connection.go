@@ -26,7 +26,6 @@ type Connection struct {
 	Commands       chan ConnectionCommand // handle connection commands
 	SendChannel    chan interface{}       // Send means "towards the network" Channel sends Parcels and ConnectionCommands
 	ReceiveChannel chan interface{}       // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
-	ReceiveParcel  chan *Parcel           // Parcels to be handled.
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
@@ -221,7 +220,6 @@ func (c *Connection) runLoop() {
 		// }
 		c.handleNetErrors()
 		c.handleCommand()
-
 		switch c.state {
 		case ConnectionInitialized:
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
@@ -234,23 +232,13 @@ func (c *Connection) runLoop() {
 			}
 		case ConnectionOnline:
 
+			if ConnectionOnline == c.state {
 				c.pingPeer() // sends a ping periodically if things have been quiet
 				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
 					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				}
-
-			parcelloop:
-			for {
-				select {
-				case m := <-c.ReceiveParcel:
-					c.handleParcel(*m)
-
-				default:
-					break parcelloop
-				}
 			}
-
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
@@ -503,7 +491,7 @@ func (c *Connection) processReceives() {
 				c.metrics.BytesReceived += message.Header.Length
 				c.metrics.MessagesReceived += 1
 				message.Header.PeerAddress = c.peer.Address
-				c.ReceiveParcel <- &message
+				c.handleParcel(message)
 			default:
 				c.Errors <- err
 			}
