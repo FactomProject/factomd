@@ -75,6 +75,7 @@ func NetStart(s *state.State) {
 	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
+	fastPtr := flag.Bool("fast", false, "If true, factomd will fast-boot from a file.")
 
 	flag.Parse()
 
@@ -112,6 +113,7 @@ func NetStart(s *state.State) {
 	rpcPassword := *rpcPasswordflag
 	factomdTLS := *factomdTLSflag
 	factomdLocations := *factomdLocationsflag
+	fast := *fastPtr
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
@@ -170,6 +172,8 @@ func NetStart(s *state.State) {
 		}
 		s.FactomdLocations += factomdLocations
 	}
+
+	s.FastBoot = fast
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")

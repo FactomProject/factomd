@@ -310,6 +310,8 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+
+	FastBoot bool
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -800,9 +802,11 @@ func (s *State) Init() {
 	// end of FER removal
 	s.starttime = time.Now()
 
-	err := LoadDBStateList(s.DBStates)
-	if err != nil {
-		panic(err)
+	if s.FastBoot {
+		err := LoadDBStateList(s.DBStates)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
