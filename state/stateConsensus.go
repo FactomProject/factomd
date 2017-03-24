@@ -571,6 +571,15 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStates.LastBegin = int(dbheight)
 	}
 	s.DBStates.TimeToAsk = nil
+
+	if dbstatemsg.IsLocal() {
+		dbstate.SaveStruct = SaveFactomdState(s, dbstate)
+
+		err := SaveDBStateList(s.DBStates)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
