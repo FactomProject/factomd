@@ -1223,7 +1223,6 @@ searchLoop:
 
 	// If we have already processed this State, ignore it.
 	if index < int(list.Complete) {
-		fmt.Printf("%v < %v\n", index, int(list.Complete))
 		return false
 	}
 
