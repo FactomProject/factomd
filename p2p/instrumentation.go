@@ -16,6 +16,11 @@ var (
 		Help: "Number of current connection metrics",
 	})
 
+	p2pControllerNumConnectionsByAddress = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_p2p_controller_connectionsbyaddress_current",
+		Help: "Number of current connections by address",
+	})
+
 	// Connection Routines
 	p2pProcessSendsGuage = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_p2p_connection_process_sends_routine_guage",
@@ -57,6 +62,12 @@ var (
 		Name: "factomd_p2p_connection_runloop_shutdown_counter",
 		Help: "Numer of runloops that hit shutdown",
 	})
+
+	// Connections
+	p2pConnectionCommonInit = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_p2p_connection_commonInit_calls_total",
+		Help: "Number of times the commonInit() is called",
+	})
 )
 
 var registered = false
@@ -72,6 +83,7 @@ func RegisterPrometheus() {
 	// Controller
 	prometheus.MustRegister(p2pControllerNumConnections)
 	prometheus.MustRegister(p2pControllerNumMetrics)
+	prometheus.MustRegister(p2pControllerNumConnectionsByAddress)
 
 	// Connection Routines
 	prometheus.MustRegister(p2pProcessSendsGuage)    // processSends
@@ -84,4 +96,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(p2pConnectionRunLoopOnline)
 	prometheus.MustRegister(p2pConnectionRunLoopOffline)
 	prometheus.MustRegister(p2pConnectionRunLoopShutdown)
+
+	// Connections
+	prometheus.MustRegister(p2pConnectionCommonInit)
 }

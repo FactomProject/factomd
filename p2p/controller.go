@@ -365,6 +365,7 @@ func (c *Controller) runloop() {
 		c.NumConnections = len(c.connections)
 		p2pControllerNumConnections.Set(float64(c.NumConnections))
 		p2pControllerNumMetrics.Set(float64(len(c.connectionMetrics)))
+		p2pControllerNumConnectionsByAddress.Set(float64(len(c.connectionsByAddress)))
 
 		dot("@@1\n")
 	commandloop:
