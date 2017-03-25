@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -187,7 +188,7 @@ func (ds *DBState) String() string {
 func (list *DBStateList) GetHighestCompletedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
-		if dbstate != nil && dbstate.Locked {
+		if dbstate != nil && (dbstate.Locked || dbstate.Saved) {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
@@ -224,91 +225,6 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 		}
 	}
 	return ht
-}
-
-// Once a second at most, we check to see if we need to pull down some blocks to catch up.
-func (list *DBStateList) Catchup(justDoIt bool) {
-	// We only check if we need updates once every so often.
-
-	if len(list.State.inMsgQueue) > 1000 {
-		// If we are behind the curve in processing messages, dump all the dbstates from holding.
-		for k := range list.State.Holding {
-			if _, ok := list.State.Holding[k].(*messages.DBStateMsg); ok {
-				delete(list.State.Holding, k)
-			}
-		}
-		return
-	}
-
-	now := list.State.GetTimestamp()
-
-	hs := int(list.State.GetHighestSavedBlk())
-	hk := int(list.State.GetHighestKnownBlock())
-	begin := hs
-	end := hk
-
-	ask := func() {
-		if list.TimeToAsk != nil && hk-hs > 4 && now.GetTime().After(list.TimeToAsk.GetTime()) {
-
-			// Don't ask for more than we already have.
-			for i, v := range list.State.DBStatesReceived {
-				if i <= hs-list.State.DBStatesReceivedBase {
-					continue
-				}
-				ix := i + list.State.DBStatesReceivedBase
-				if v != nil && ix < end {
-					end = ix + 1
-					if begin > end {
-						return
-					}
-					break
-				}
-			}
-
-			msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+3))
-
-			if msg != nil {
-				//		list.State.RunLeader = false
-				//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
-				msg.SendOut(list.State, msg)
-				list.State.DBStateAskCnt++
-				list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 3)
-				list.LastBegin = begin
-				list.LastEnd = end + 3
-			}
-		}
-	}
-
-	if end-begin > 200 {
-		end = begin + 200
-	}
-
-	if end+3 > begin && justDoIt {
-		ask()
-		return
-	}
-
-	// return if we are caught up, and clear our timer
-	if end-begin <= 1 {
-		list.TimeToAsk = nil
-		return
-	}
-
-	// First Ask.  Because the timer is nil!
-	if list.TimeToAsk == nil {
-		// Okay, have nothing in play, so wait a bit just in case.
-		list.TimeToAsk = list.State.GetTimestamp()
-		list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 5)
-		list.LastBegin = begin
-		list.LastEnd = end
-		return
-	}
-
-	if list.TimeToAsk.GetTime().Before(now.GetTime()) {
-		ask()
-		return
-	}
-
 }
 
 // a contains b, returns true
@@ -679,8 +595,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	if d.Saved {
-		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
-		if dblk == nil {
+		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())
+		if err != nil || !Havedblk {
 			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
 				list.State.FactomNodeName,
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
@@ -832,7 +748,7 @@ searchLoop:
 		cnt++
 	}
 
-	keep := uint32(5) // How many states to keep around; debugging helps with more.
+	keep := uint32(3) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)

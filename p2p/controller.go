@@ -28,6 +28,7 @@ type Controller struct {
 	listenPort           string                 // port we listen on for new connections
 	connections          map[string]*Connection // map of the connections indexed by peer hash
 	connectionsByAddress map[string]*Connection // map of the connections indexed by peer address
+	NumConnections       int                    // Number of Connections we are managing.
 
 	// After launching the network, the management is done via these channels.
 	commandChannel chan interface{} // Application use controller public API to send commands on this channel to controllers goroutines.
@@ -360,15 +361,19 @@ func (c *Controller) runloop() {
 	time.Sleep(time.Second * time.Duration(2)) // Wait a few seconds to let the system come up.
 
 	for c.keepRunning { // Run until we get the exit command
+
+		c.NumConnections = len(c.connections)
+
 		dot("@@1\n")
-		progress := false
-		for 0 < len(c.commandChannel) {
-			command := <-c.commandChannel
-			c.handleCommand(command)
-			progress = true
-		}
-		if !progress {
-			time.Sleep(time.Millisecond * 121) // This can be a tight loop, don't want to starve the application
+	commandloop:
+		for {
+			select {
+			case command := <-c.commandChannel:
+				c.handleCommand(command)
+			default:
+				time.Sleep(time.Millisecond * 20)
+				break commandloop
+			}
 		}
 		dot("@@3\n")
 		// route messages to and from application
@@ -527,6 +532,7 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
 		delete(c.connectionMetrics, connection.peer.Hash)
+		go connection.goShutdown()
 	case ConnectionUpdatingPeer:
 		dot("&&r\n")
 		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
@@ -541,10 +547,12 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
-		connection := *conn
-		connection.Start()
-		c.connections[connection.peer.Hash] = &connection
-		c.connectionsByAddress[connection.peer.Address] = &connection
+		conn.Start()
+		if c.connections[conn.peer.Hash] != nil {
+			go c.connections[conn.peer.Hash].goShutdown()
+		}
+		c.connections[conn.peer.Hash] = conn
+		c.connectionsByAddress[conn.peer.Address] = conn
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 		parameters := command.(CommandAddPeer)
@@ -557,6 +565,9 @@ func (c *Controller) handleCommand(command interface{}) {
 		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
+		if c.connections[connection.peer.Hash] != nil {
+			go c.connections[connection.peer.Hash].goShutdown()
+		}
 		c.connections[connection.peer.Hash] = connection
 		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
@@ -589,6 +600,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		logfatal("ctrlr", "Unkown p2p.Controller command recieved: %+v", commandType)
 	}
 }
+
 func (c *Controller) applicationPeerUpdate(qualityDelta int32, peerHash string) {
 	connection, present := c.connections[peerHash]
 	if present {
