@@ -18,6 +18,10 @@ import (
 var _ = debug.PrintStack
 
 type Transaction struct {
+	// Not marshalled
+	Txid interfaces.IHash `json:"txid"`
+
+	//Marshalled
 	// version     uint64         Version of transaction. Hardcoded, naturally.
 	MilliTimestamp uint64 `json:"millitimestamp"`
 	// #inputs     uint8          number of inputs
@@ -459,6 +463,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		if err != nil || t.Inputs[i] == nil {
 			return nil, err
 		}
+		t.Inputs[i].(*TransAddress).UserAddress = primitives.ConvertFctAddressToUserStr(t.Inputs[i].(*TransAddress).Address)
 	}
 	for i, _ := range t.Outputs {
 		t.Outputs[i] = new(TransAddress)
@@ -466,6 +471,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		if err != nil {
 			return nil, err
 		}
+		t.Outputs[i].(*TransAddress).UserAddress = primitives.ConvertFctAddressToUserStr(t.Outputs[i].(*TransAddress).Address)
 	}
 	for i, _ := range t.OutECs {
 		t.OutECs[i] = new(TransAddress)
@@ -473,6 +479,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		if err != nil {
 			return nil, err
 		}
+		t.OutECs[i].(*TransAddress).UserAddress = primitives.ConvertECAddressToUserStr(t.OutECs[i].(*TransAddress).Address)
 	}
 
 	t.RCDs = make([]interfaces.IRCD, len(t.Inputs))
@@ -491,6 +498,7 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 			return nil, err
 		}
 	}
+	t.Txid = t.GetSigHash()
 
 	return data, nil
 }

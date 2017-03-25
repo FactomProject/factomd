@@ -16,7 +16,7 @@ const (
 )
 
 type ServerIndexNumber struct {
-	ServerIndexNumber uint8
+	ServerIndexNumber uint8 `json:"serverindexnumber"`
 }
 
 var _ interfaces.Printable = (*ServerIndexNumber)(nil)

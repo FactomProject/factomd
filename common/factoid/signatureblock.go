@@ -22,7 +22,7 @@ import (
  **************************************/
 
 type SignatureBlock struct {
-	Signatures []interfaces.ISignature
+	Signatures []interfaces.ISignature `json:"signatures"`
 }
 
 var _ interfaces.ISignatureBlock = (*SignatureBlock)(nil)

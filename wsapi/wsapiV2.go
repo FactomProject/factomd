@@ -341,7 +341,7 @@ func ObjectToJStruct(source interface{}) (*JStruct, error) {
 		return nil, err
 	}
 	dst := new(JStruct)
-	dst.data = []byte(strings.ToLower(string(b)))
+	dst.data = []byte(string(b))
 	return dst, nil
 }
 
