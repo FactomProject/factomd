@@ -1411,10 +1411,10 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 // JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
 	type journalentry struct {
-		Type byte
+		Type    byte
 		Message interfaces.IMsg
 	}
-	
+
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
@@ -1422,11 +1422,11 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 			return
 		}
 		defer f.Close()
-		
+
 		e := new(journalentry)
 		e.Type = msg.Type()
 		e.Message = msg
-		
+
 		p, err := json.Marshal(e)
 		if err != nil {
 			return
@@ -1438,7 +1438,7 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 // GetJournalMessages gets all messages from the message journal
 func (s *State) GetJournalMessages() []interfaces.IMsg {
 	type journalentry struct {
-		Type byte
+		Type    byte
 		Message json.RawMessage
 	}
 
@@ -1449,19 +1449,19 @@ func (s *State) GetJournalMessages() []interfaces.IMsg {
 			return nil
 		}
 		defer f.Close()
-		
+
 		msgs := make([]interfaces.IMsg, 0)
-		
+
 		dec := json.NewDecoder(f)
 		for {
-		    e := new(journalentry)
-		    if err := dec.Decode(e); err == io.EOF {
-		        break
-		    } else if err != nil {
-		        return nil
-		    }
+			e := new(journalentry)
+			if err := dec.Decode(e); err == io.EOF {
+				break
+			} else if err != nil {
+				return nil
+			}
 			var msg interfaces.IMsg
-			
+
 			switch e.Type {
 			case constants.EOM_MSG:
 				msg = new(messages.EOM)
@@ -1517,11 +1517,11 @@ func (s *State) GetJournalMessages() []interfaces.IMsg {
 				msg = new(messages.BounceReply)
 			default:
 				return msgs
-		    }
-		    if err := json.Unmarshal(e.Message, msg); err != nil {
-		    	return msgs
-		    }
-		    msgs = append(msgs, msg)
+			}
+			if err := json.Unmarshal(e.Message, msg); err != nil {
+				return msgs
+			}
+			msgs = append(msgs, msg)
 		}
 		return msgs
 	}
@@ -1849,7 +1849,7 @@ func (s *State) GetAuthorities() []interfaces.IAuthority {
 	for _, auth := range s.Authorities {
 		auths = append(auths, auth)
 	}
-	
+
 	return auths
 }
 

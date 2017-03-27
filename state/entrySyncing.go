@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"math/rand"
 	"time"
 )
 
@@ -81,16 +82,20 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 
+		sent := 0
 		if len(s.inMsgQueue) < 500 {
 			// Make requests for entries we don't have.
 			for k := range MissingEntryMap {
+
 				et := MissingEntryMap[k]
 
-				if et.Cnt == 0 || now.Unix()-et.LastTime.Unix() > 60 {
+				if et.Cnt == 0 || now.Unix()-et.LastTime.Unix() > 5 && sent < 100 {
+					sent++
 					entryRequest := messages.NewMissingData(s, et.EntryHash)
 					entryRequest.SendOut(s, entryRequest)
+					fmt.Println("***es ASKING FOR: ", et.EntryHash.String())
 					newrequest++
-					et.LastTime = now
+					et.LastTime = now.Add(time.Duration(rand.Int()%5+1) * time.Second)
 					et.Cnt++
 					if et.Cnt%25 == 25 {
 						fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", et.EBHash.Bytes(), et.EntryHash.Bytes(), et.Cnt)
@@ -119,13 +124,15 @@ func (s *State) MakeMissingEntryRequests() {
 				break InsertLoop
 			}
 		}
-		if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-			time.Sleep(30 * time.Second)
-		} else {
-			time.Sleep(5 * time.Second)
-		}
-		if s.EntryDBHeightComplete == s.GetHighestSavedBlk() {
-			time.Sleep(20 * time.Second)
+		if sent == 0 {
+			if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
+				time.Sleep(30 * time.Second)
+			} else {
+				time.Sleep(1 * time.Second)
+			}
+			if s.EntryDBHeightComplete == s.GetHighestSavedBlk() {
+				time.Sleep(20 * time.Second)
+			}
 		}
 	}
 }
