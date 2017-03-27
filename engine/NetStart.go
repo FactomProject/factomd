@@ -42,6 +42,7 @@ var logPort string
 
 func NetStart(s *state.State) {
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
+	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
 	cntPtr := flag.Int("count", 1, "The number of nodes to generate")
 	netPtr := flag.String("net", "tree", "The default algorithm to build the network connections")
@@ -79,6 +80,7 @@ func NetStart(s *state.State) {
 	flag.Parse()
 
 	enableNet := *enablenetPtr
+	waitEntries := *waitEntriesPtr
 	listenTo := *listenToPtr
 	cnt := *cntPtr
 	net := *netPtr
@@ -122,6 +124,9 @@ func NetStart(s *state.State) {
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 	s.StartDelayLimit = startDelay * 1000
 	s.Journaling = journaling
+
+	// Set the wait for entries flag
+	s.WaitForEntries = waitEntries
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
@@ -242,6 +247,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", enableNet))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", waitEntries))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node", listenTo))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "prefix", prefix))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "node count", cnt))
@@ -343,6 +349,7 @@ func NetStart(s *state.State) {
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
+		fnodes[0].State.NetworkControler = p2pNetwork
 		p2pNetwork.StartNetwork()
 		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
@@ -478,6 +485,11 @@ func NetStart(s *state.State) {
 	// Start the webserver
 	go wsapi.Start(fnodes[0].State)
 
+	// Start prometheus on port
+	launchPrometheus(9876)
+	// Start Package's prometheus
+	state.RegisterPrometheus()
+
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
 	SimControl(listenTo)
@@ -515,6 +527,7 @@ func startServers(load bool) {
 		if load {
 			go state.LoadDatabase(fnode.State)
 		}
+		go fnode.State.GoSyncEntries()
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
 	}

@@ -30,6 +30,7 @@ func (lists *ProcessLists) LastList() *ProcessList {
 // is always the block above the HighestRecordedBlock, but we only care about messages that
 // are at the highest known block, as long as that is above the highest recorded block.
 func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
+
 	// Look and see if we need to toss some previous blocks under construction.
 	diff := int(dbheight) - int(lists.DBHeightBase)
 	if diff > 1 && len(lists.Lists) > 1 {
@@ -45,10 +46,13 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 	}
 	dbstate := lists.State.DBStates.Get(int(dbheight))
 	pl := lists.Get(dbheight)
-	for pl.Complete() || (dbstate != nil && dbstate.Signed) {
+	for pl.Complete() || (dbstate != nil && (dbstate.Signed || dbstate.Saved)) {
 		dbheight++
 		pl = lists.Get(dbheight)
 		dbstate = lists.State.DBStates.Get(int(dbheight))
+	}
+	if pl == nil {
+		return false
 	}
 	if dbheight > lists.State.LLeaderHeight {
 		s := lists.State
@@ -62,6 +66,7 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
+	lists.State.AddStatus(fmt.Sprintf("UpdateState: ProcessList Height %d", pl.DBHeight))
 	return pl.Process(lists.State)
 
 }
@@ -109,6 +114,9 @@ func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
 func (lists *ProcessLists) String() string {
 	str := "Process Lists"
 	for i, pl := range lists.Lists {
+		if pl == nil {
+			continue
+		}
 		if len(lists.Lists)-i > 3 {
 			continue
 		}
