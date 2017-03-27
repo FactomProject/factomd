@@ -28,6 +28,7 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/logger"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -36,6 +37,8 @@ var _ = fmt.Print
 
 type State struct {
 	filename string
+
+	NetworkControler *p2p.Controller
 
 	Salt interfaces.IHash
 
@@ -198,7 +201,7 @@ type State struct {
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
-	Saving  bool // True if we are in the process of saving to the dabase
+	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     bool // Disable if true, Enable if false
@@ -289,8 +292,12 @@ type State struct {
 	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
-	MissingEntries []MissingEntry
+	MissingEntries chan *MissingEntry
 
+	// Holds leaders and followers up until all missing entries are processed, if true
+	WaitForEntries  bool
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
+	WriteEntry      chan interfaces.IEBEntry
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -313,15 +320,22 @@ type State struct {
 	AckChange uint32
 }
 
+type EntryUpdate struct {
+	Hash      interfaces.IHash
+	Timestamp interfaces.Timestamp
+}
+
 type MissingEntryBlock struct {
 	ebhash   interfaces.IHash
 	dbheight uint32
 }
 
 type MissingEntry struct {
-	ebhash    interfaces.IHash
-	entryhash interfaces.IHash
-	dbheight  uint32
+	Cnt       int
+	LastTime  time.Time
+	EBHash    interfaces.IHash
+	EntryHash interfaces.IHash
+	DBHeight  uint32
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -709,6 +723,9 @@ func (s *State) Init() {
 	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 20000)       //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 30000)       //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 10000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -1558,8 +1575,6 @@ func (s *State) UpdateState() (progress bool) {
 	p2 := s.DBStates.UpdateState()
 	progress = progress || p2
 
-	s.catchupEBlocks()
-
 	s.SetString()
 	if s.ControlPanelDataRequest {
 		s.CopyStateToControlPanel()
@@ -1568,6 +1583,21 @@ func (s *State) UpdateState() (progress bool) {
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
+
+entryHashProcessing:
+	for {
+		select {
+		case e := <-s.UpdateEntryHash:
+			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
+			// If the save worked, then remove any commit that might be around.
+			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
+				delete(s.Commits, e.Hash.Fixed())
+			}
+		default:
+			break entryHashProcessing
+		}
+	}
 
 	return
 }
@@ -2215,6 +2245,9 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
 	if h < 0 {
 		h = 0
+	}
+	if h > 0 && uint32(h-1) > s.HighestKnown {
+		s.HighestKnown = uint32(h - 1)
 	}
 	return uint32(h)
 }
