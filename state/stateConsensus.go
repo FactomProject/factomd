@@ -1985,11 +1985,6 @@ func (s *State) ComputeVMIndex(hash []byte) int {
 	return s.LeaderPL.VMIndexFor(hash)
 }
 
-func (s *State) GetNetworkName() string {
-	return (s.Cfg.(*util.FactomdConfig)).App.Network
-
-}
-
 func (s *State) GetDBHeightComplete() uint32 {
 	db := s.GetDirectoryBlock()
 	if db == nil {

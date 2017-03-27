@@ -81,17 +81,6 @@ func CreateTestDBStateList() []interfaces.IMsg {
 	return answer
 }
 
-func CreateTestLogFileString() string {
-	messages := CreateTestDBStateList()
-	answer := ""
-	st := CreateEmptyTestState()
-	for _, v := range messages {
-		s := st.MessageToLogString(v)
-		answer = answer + s
-	}
-	return answer
-}
-
 func MakeSureAnchorValidationKeyIsPresent() {
 	priv := NewPrimitivesPrivateKey(0)
 	pub := priv.Pub
