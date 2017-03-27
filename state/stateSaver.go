@@ -5,12 +5,13 @@
 package state
 
 import (
+	"fmt"
 	"io/ioutil"
 )
 
 var tmpState []byte
 
-func SaveDBStateList(ss *DBStateList) error {
+func SaveDBStateList(ss *DBStateList, networkName string) error {
 	//For now, to file. Later - to DB
 
 	//Don't save States after the server has booted - it might start it in a wrong state
@@ -25,7 +26,7 @@ func SaveDBStateList(ss *DBStateList) error {
 
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	if len(tmpState) > 0 {
-		err := SaveToFile(tmpState)
+		err := SaveToFile(tmpState, NetworkIDToFilename(networkName))
 		if err != nil {
 			return err
 		}
@@ -41,8 +42,8 @@ func SaveDBStateList(ss *DBStateList) error {
 	return nil
 }
 
-func LoadDBStateList(ss *DBStateList) error {
-	b, err := LoadFromFile()
+func LoadDBStateList(ss *DBStateList, networkName string) error {
+	b, err := LoadFromFile(NetworkIDToFilename(networkName))
 	if err != nil {
 		return nil
 	}
@@ -53,7 +54,7 @@ func LoadDBStateList(ss *DBStateList) error {
 	return ss.UnmarshalBinary(b)
 }
 
-func SaveTheState(ss *SaveState) error {
+func SaveTheState(ss *SaveState, networkName string) error {
 	//For now, to file. Later - to DB
 
 	//Save only every 1000 states
@@ -63,7 +64,7 @@ func SaveTheState(ss *SaveState) error {
 
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	if len(tmpState) > 0 {
-		err := SaveToFile(tmpState)
+		err := SaveToFile(tmpState, NetworkIDToFilename(networkName))
 		if err != nil {
 			return err
 		}
@@ -79,8 +80,12 @@ func SaveTheState(ss *SaveState) error {
 	return nil
 }
 
-func LoadState(ss *SaveState) error {
-	b, err := LoadFromFile()
+func NetworkIDToFilename(networkName string) string {
+	return fmt.Sprintf("FastBoot_%s.db", networkName)
+}
+
+func LoadState(ss *SaveState, networkName string) error {
+	b, err := LoadFromFile(NetworkIDToFilename(networkName))
 	if err != nil {
 		return nil
 	}
@@ -91,16 +96,16 @@ func LoadState(ss *SaveState) error {
 	return ss.UnmarshalBinary(b)
 }
 
-func SaveToFile(b []byte) error {
-	err := ioutil.WriteFile("ss.test", b, 0644)
+func SaveToFile(b []byte, filename string) error {
+	err := ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LoadFromFile() ([]byte, error) {
-	b, err := ioutil.ReadFile("ss.test")
+func LoadFromFile(filename string) ([]byte, error) {
+	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

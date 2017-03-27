@@ -173,7 +173,9 @@ func NetStart(s *state.State) {
 		s.FactomdLocations += factomdLocations
 	}
 
-	s.FastBoot = fast
+	if fast == true {
+		s.FastBoot = true
+	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")

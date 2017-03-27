@@ -568,6 +568,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
+		s.FastBoot = cfg.App.FastBoot
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -803,7 +804,7 @@ func (s *State) Init() {
 	s.starttime = time.Now()
 
 	if s.FastBoot {
-		err := LoadDBStateList(s.DBStates)
+		err := LoadDBStateList(s.DBStates, s.Network)
 		if err != nil {
 			panic(err)
 		}
