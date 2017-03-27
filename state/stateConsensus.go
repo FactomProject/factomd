@@ -168,7 +168,7 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
-			process <- msg
+
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -1979,11 +1979,6 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // returns -1 if we are not the leader for this hash
 func (s *State) ComputeVMIndex(hash []byte) int {
 	return s.LeaderPL.VMIndexFor(hash)
-}
-
-func (s *State) GetNetworkName() string {
-	return (s.Cfg.(*util.FactomdConfig)).App.Network
-
 }
 
 func (s *State) GetDBHeightComplete() uint32 {

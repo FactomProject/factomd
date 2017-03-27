@@ -171,7 +171,36 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 
 	fmt.Printf("\tFinished looking for free-floating blocks\n")
 
+	fmt.Printf("\tLooking for missing EBlocks\n")
+
+	foundBlocks := 0
+	for _, dHash := range dBlocks {
+		dBlock, err := dbo.FetchDBlock(dHash)
+		if err != nil {
+			panic(err)
+		}
+		if dBlock == nil {
+			fmt.Printf("Could not find DBlock %v!", dHash.String())
+			panic("")
+		}
+		eBlockEntries := dBlock.GetEBlockDBEntries()
+		for _, v := range eBlockEntries {
+			eBlock, err := dbo.FetchEBlock(v.GetKeyMR())
+			if err != nil {
+				panic(err)
+			}
+			if eBlock == nil {
+				fmt.Errorf("Could not find eBlock %v!\n", v.GetKeyMR())
+			} else {
+				foundBlocks++
+			}
+		}
+	}
+
+	fmt.Printf("\tFinished looking for missing EBlocks - found %v\n", foundBlocks)
+
 	fmt.Printf("\tLooking for missing EBlock Entries\n")
+
 	chains, err := dbo.FetchAllEBlockChainIDs()
 	if err != nil {
 		panic(err)

@@ -267,10 +267,11 @@ func SaveBlocksLoop(input chan []interfaces.IDirectoryBlock, done chan int) {
 									fmt.Printf("Problem getting entry `%v` from block %v\n", ehash.String(), e.GetKeyMR().String())
 									panic(err)
 								}
-
-								blockSet.Mutex.Lock()
-								blockSet.Entries = append(blockSet.Entries, entry)
-								blockSet.Mutex.Unlock()
+								if entry != nil {
+									blockSet.Mutex.Lock()
+									blockSet.Entries = append(blockSet.Entries, entry)
+									blockSet.Mutex.Unlock()
+								}
 							}(eHash)
 						}
 						for range eBlockEntries {

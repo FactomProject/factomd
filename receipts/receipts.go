@@ -26,7 +26,7 @@ func (e *Receipt) TrimReceipt() {
 	if e == nil {
 		return
 	}
-	entry, _ := primitives.NewShaHashFromStr(e.Entry.Key)
+	entry, _ := primitives.NewShaHashFromStr(e.Entry.EntryHash)
 	for i := range e.MerkleBranch {
 		if entry.IsSameAs(e.MerkleBranch[i].Left) {
 			e.MerkleBranch[i].Left = nil
@@ -56,7 +56,7 @@ func (e *Receipt) Validate() error {
 	if e.DirectoryBlockKeyMR == nil {
 		return fmt.Errorf("Receipt has no DirectoryBlockKeyMR")
 	}
-	entryHash, err := primitives.NewShaHashFromStr(e.Entry.Key)
+	entryHash, err := primitives.NewShaHashFromStr(e.Entry.EntryHash)
 	//TODO: validate entry hashes into EntryHash
 
 	if err != nil {
@@ -238,7 +238,7 @@ func DecodeReceiptString(str string) (*Receipt, error) {
 
 type JSON struct {
 	Raw  string `json:"raw,omitempty"`
-	Key  string `json:"key,omitempty"`
+	EntryHash  string `json:"entryhash,omitempty"`
 	Json string `json:"json,omitempty"`
 }
 
@@ -262,7 +262,7 @@ func (e *JSON) IsSameAs(r *JSON) bool {
 	if e.Raw != r.Raw {
 		return false
 	}
-	if e.Key != r.Key {
+	if e.EntryHash != r.EntryHash {
 		return false
 	}
 	if e.Json != r.Json {
@@ -289,7 +289,7 @@ func CreateMinimalReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*
 func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
 	receipt := new(Receipt)
 	receipt.Entry = new(JSON)
-	receipt.Entry.Key = entryID.String()
+	receipt.Entry.EntryHash = entryID.String()
 
 	//EBlock
 

@@ -17,13 +17,13 @@ import (
 var _ = fmt.Print
 
 type DirectoryBlock struct {
-	//Marshalized
-	Header    interfaces.IDirectoryBlockHeader
-	DBEntries []interfaces.IDBEntry
-
 	//Not Marshalized
 	DBHash interfaces.IHash
 	KeyMR  interfaces.IHash
+
+	//Marshalized
+	Header    interfaces.IDirectoryBlockHeader
+	DBEntries []interfaces.IDBEntry
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -41,8 +41,8 @@ func (c *DirectoryBlock) Init() {
 }
 
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
-	if len(c.DBEntries) < index {
-		ent := make([]interfaces.IDBEntry, index)
+	if len(c.DBEntries) <= index {
+		ent := make([]interfaces.IDBEntry, index+1)
 		copy(ent, c.DBEntries)
 		c.DBEntries = ent
 	}
