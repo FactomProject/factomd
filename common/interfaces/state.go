@@ -96,7 +96,7 @@ type IState interface {
 
 	// Journalling
 	JournalMessage(IMsg)
-	GetJournalMessages() []IMsg
+	GetJournalMessages() [][]byte
 
 	// Consensus
 	APIQueue() chan IMsg   // Input Queue from the API
