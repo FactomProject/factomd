@@ -6,8 +6,9 @@ package state
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/logger"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -35,6 +37,8 @@ var _ = fmt.Print
 
 type State struct {
 	filename string
+
+	NetworkControler *p2p.Controller
 
 	Salt interfaces.IHash
 
@@ -197,7 +201,7 @@ type State struct {
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
-	Saving  bool // True if we are in the process of saving to the dabase
+	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     bool // Disable if true, Enable if false
@@ -288,8 +292,12 @@ type State struct {
 	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
-	MissingEntries []MissingEntry
+	MissingEntries chan *MissingEntry
 
+	// Holds leaders and followers up until all missing entries are processed, if true
+	WaitForEntries  bool
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
+	WriteEntry      chan interfaces.IEBEntry
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -315,6 +323,11 @@ type State struct {
 }
 
 var _ interfaces.IState = (*State)(nil)
+
+type EntryUpdate struct {
+	Hash      interfaces.IHash
+	Timestamp interfaces.Timestamp
+}
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState := new(State)
@@ -427,6 +440,14 @@ func (s *State) GetDBStatesSent() []*interfaces.DBStateSent {
 
 func (s *State) SetDBStatesSent(sents []*interfaces.DBStateSent) {
 	s.DBStatesSent = sents
+}
+
+func (s *State) GetDelay() int64 {
+	return s.Delay
+}
+
+func (s *State) SetDelay(delay int64) {
+	s.Delay = delay
 }
 
 func (s *State) GetDropRate() int {
@@ -692,17 +713,21 @@ func (s *State) Init() {
 	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 20000)       //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 30000)       //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 10000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
 	if s.Journaling {
-		_, err := os.Create(s.JournalFile) //Create the Journal File
+		f, err := os.Create(s.JournalFile)
 		if err != nil {
-			fmt.Println("Could not create the file: " + s.JournalFile)
+			fmt.Println("Could not create the journal file:", s.JournalFile)
 			s.JournalFile = ""
 		}
+		f.Close()
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -1380,28 +1405,124 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	return false
 }
 
-func (s *State) MessageToLogString(msg interfaces.IMsg) string {
-	bytes, err := msg.MarshalBinary()
-	if err != nil {
-		panic("Failed MarshalBinary: " + err.Error())
-	}
-	msgStr := hex.EncodeToString(bytes)
-
-	answer := "\n" + msg.String() + "\n  " + s.ShortString() + "\n" + "\t\t\tMsgHex: " + msgStr + "\n"
-	return answer
-}
-
+// JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
+	type journalentry struct {
+		Type    byte
+		Message interfaces.IMsg
+	}
+
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
 			return
 		}
-		str := s.MessageToLogString(msg)
-		f.WriteString(str)
-		f.Close()
+		defer f.Close()
+
+		e := new(journalentry)
+		e.Type = msg.Type()
+		e.Message = msg
+
+		p, err := json.Marshal(e)
+		if err != nil {
+			return
+		}
+		fmt.Fprintln(f, string(p))
 	}
+}
+
+// GetJournalMessages gets all messages from the message journal
+func (s *State) GetJournalMessages() []interfaces.IMsg {
+	type journalentry struct {
+		Type    byte
+		Message json.RawMessage
+	}
+
+	if s.Journaling && len(s.JournalFile) != 0 {
+		f, err := os.Open(s.JournalFile)
+		if err != nil {
+			s.JournalFile = ""
+			return nil
+		}
+		defer f.Close()
+
+		msgs := make([]interfaces.IMsg, 0)
+
+		dec := json.NewDecoder(f)
+		for {
+			e := new(journalentry)
+			if err := dec.Decode(e); err == io.EOF {
+				break
+			} else if err != nil {
+				return nil
+			}
+			var msg interfaces.IMsg
+
+			switch e.Type {
+			case constants.EOM_MSG:
+				msg = new(messages.EOM)
+			case constants.ACK_MSG:
+				msg = new(messages.Ack)
+			case constants.AUDIT_SERVER_FAULT_MSG:
+				msg = new(messages.AuditServerFault)
+			case constants.FED_SERVER_FAULT_MSG:
+				msg = new(messages.ServerFault)
+			case constants.FULL_SERVER_FAULT_MSG:
+				msg = new(messages.FullServerFault)
+			case constants.COMMIT_CHAIN_MSG:
+				msg = new(messages.CommitChainMsg)
+			case constants.COMMIT_ENTRY_MSG:
+				msg = new(messages.CommitEntryMsg)
+			case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+				msg = new(messages.DirectoryBlockSignature)
+			case constants.EOM_TIMEOUT_MSG:
+				msg = new(messages.EOMTimeout)
+			case constants.FACTOID_TRANSACTION_MSG:
+				msg = new(messages.FactoidTransaction)
+			case constants.HEARTBEAT_MSG:
+				msg = new(messages.Heartbeat)
+			case constants.INVALID_DIRECTORY_BLOCK_MSG:
+				msg = new(messages.InvalidDirectoryBlock)
+			case constants.MISSING_MSG:
+				msg = new(messages.MissingMsg)
+			case constants.MISSING_MSG_RESPONSE:
+				msg = new(messages.MissingMsgResponse)
+			case constants.MISSING_DATA:
+				msg = new(messages.MissingData)
+			case constants.DATA_RESPONSE:
+				msg = new(messages.DataResponse)
+			case constants.REVEAL_ENTRY_MSG:
+				msg = new(messages.RevealEntryMsg)
+			case constants.REQUEST_BLOCK_MSG:
+				msg = new(messages.RequestBlock)
+			case constants.SIGNATURE_TIMEOUT_MSG:
+				msg = new(messages.SignatureTimeout)
+			case constants.DBSTATE_MISSING_MSG:
+				msg = new(messages.DBStateMissing)
+			case constants.DBSTATE_MSG:
+				msg = new(messages.DBStateMsg)
+			case constants.ADDSERVER_MSG:
+				msg = new(messages.AddServerMsg)
+			case constants.CHANGESERVER_KEY_MSG:
+				msg = new(messages.ChangeServerKeyMsg)
+			case constants.REMOVESERVER_MSG:
+				msg = new(messages.RemoveServerMsg)
+			case constants.BOUNCE_MSG:
+				msg = new(messages.Bounce)
+			case constants.BOUNCEREPLY_MSG:
+				msg = new(messages.BounceReply)
+			default:
+				return msgs
+			}
+			if err := json.Unmarshal(e.Message, msg); err != nil {
+				return msgs
+			}
+			msgs = append(msgs, msg)
+		}
+		return msgs
+	}
+	return nil
 }
 
 func (s *State) GetLeaderVM() int {
@@ -1451,8 +1572,6 @@ func (s *State) UpdateState() (progress bool) {
 	p2 := s.DBStates.UpdateState()
 	progress = progress || p2
 
-	s.catchupEBlocks()
-
 	s.SetString()
 	if s.ControlPanelDataRequest {
 		s.CopyStateToControlPanel()
@@ -1461,6 +1580,21 @@ func (s *State) UpdateState() (progress bool) {
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
+
+entryHashProcessing:
+	for {
+		select {
+		case e := <-s.UpdateEntryHash:
+			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
+			// If the save worked, then remove any commit that might be around.
+			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
+				delete(s.Commits, e.Hash.Fixed())
+			}
+		default:
+			break entryHashProcessing
+		}
+	}
 
 	return
 }
@@ -1706,6 +1840,22 @@ func (s *State) SetFaultWait(wait int) {
 
 //var _ IState = (*State)(nil)
 
+// GetAuthoritites will return a list of the network athoritites
+func (s *State) GetAuthorities() []interfaces.IAuthority {
+	auths := make([]interfaces.IAuthority, 0)
+	for _, auth := range s.Authorities {
+		auths = append(auths, auth)
+	}
+
+	return auths
+}
+
+// GetLeaderPL returns the leader process list from the state. this method is
+// for debugging and should not be called in normal production code.
+func (s *State) GetLeaderPL() interfaces.IProcessList {
+	return s.LeaderPL
+}
+
 // Getting the cfg state for Factom doesn't force a read of the config file unless
 // it hasn't been read yet.
 func (s *State) GetCfg() interfaces.IFactomConfig {
@@ -1722,6 +1872,20 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 
 func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
+}
+
+func (s *State) GetNetworkName() string {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return "MAIN"
+	case constants.NETWORK_TEST:
+		return "TEST"
+	case constants.NETWORK_LOCAL:
+		return "LOCAL"
+	case constants.NETWORK_CUSTOM:
+		return "CUSTOM"
+	}
+	return "" // Shouldn't ever get here
 }
 
 func (s *State) GetNetworkID() uint32 {
@@ -2078,6 +2242,9 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
 	if h < 0 {
 		h = 0
+	}
+	if h > 0 && uint32(h-1) > s.HighestKnown {
+		s.HighestKnown = uint32(h - 1)
 	}
 	return uint32(h)
 }

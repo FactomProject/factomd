@@ -82,6 +82,12 @@ func Start(state interfaces.IState) {
 
 		server.Post("/v2", HandleV2)
 		server.Get("/v2", HandleV2)
+		
+		// start the debugging api if we are not on the main network
+		if state.GetNetworkName() != "MAIN" {
+			server.Post("/debug", HandleDebug)
+			server.Get("/debug", HandleDebug)
+		}
 
 		tlsIsEnabled, tlsPrivate, tlsPublic := state.GetTlsInfo()
 		if tlsIsEnabled {

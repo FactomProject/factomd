@@ -37,25 +37,31 @@ func (state *State) ValidatorLoop() {
 				//fmt.Printf("dddd %20s %10s --- %10s %10v %10s %10v\n", "Validation", state.FactomNodeName, "Process", p, "Update", b)
 			}
 
-			select {
-			case min := <-state.tickerQueue:
-				timeStruct.timer(state, min)
-			default:
-			}
+			for i := 0; i < 10; i++ {
+				select {
+				case min := <-state.tickerQueue:
+					timeStruct.timer(state, min)
+				default:
+				}
 
-			select {
-			case msg = <-state.TimerMsgQueue():
-				state.JournalMessage(msg)
-				break loop
-			default:
-			}
+				select {
+				case msg = <-state.TimerMsgQueue():
+					state.JournalMessage(msg)
+					break loop
+				default:
+				}
 
-			select {
-			case msg = <-state.InMsgQueue(): // Get message from the timer or input queue
-				state.JournalMessage(msg)
-				break loop
-			default: // No messages? Sleep for a bit
-				time.Sleep(200 * time.Millisecond)
+				select {
+				case msg = <-state.InMsgQueue():
+					// Get message from the timer or input queue
+					state.JournalMessage(msg)
+					break loop
+				default:
+					// No messages? Sleep for a bit
+					for i := 0; i < 10 && len(state.InMsgQueue()) == 0; i++ {
+						time.Sleep(10 * time.Millisecond)
+					}
+				}
 			}
 		}
 

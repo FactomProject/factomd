@@ -5,6 +5,8 @@
 package state
 
 import (
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -72,6 +74,8 @@ func (s *MissingEntryBlock) UnmarshalBinary(p []byte) error {
 }
 
 type MissingEntry struct {
+	Cnt       int
+	LastTime  time.Time
 	EBHash    interfaces.IHash
 	EntryHash interfaces.IHash
 	DBHeight  uint32
@@ -81,6 +85,8 @@ var _ interfaces.BinaryMarshallable = (*MissingEntry)(nil)
 
 func RandomMissingEntry() *MissingEntry {
 	me := new(MissingEntry)
+	me.Cnt = random.RandIntBetween(0, 1000000)
+	me.LastTime = time.Unix(random.RandInt64Between(0, 1000000), random.RandInt64Between(0, 1000000))
 	me.EBHash = primitives.RandomHash()
 	me.EntryHash = primitives.RandomHash()
 	me.DBHeight = random.RandUInt32()
@@ -94,13 +100,27 @@ func (s *MissingEntry) IsSameAs(b *MissingEntry) bool {
 	if s.EntryHash.IsSameAs(b.EntryHash) == false {
 		return false
 	}
+	if s.Cnt != b.Cnt {
+		return false
+	}
+	if s.LastTime.Sub(b.LastTime).Nanoseconds() != 0 {
+		return false
+	}
 	return s.DBHeight == b.DBHeight
 }
 
 func (s *MissingEntry) MarshalBinary() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
 
-	err := buf.PushBinaryMarshallable(s.EBHash)
+	err := buf.PushVarInt(uint64(s.Cnt))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(s.LastTime.UnixNano()))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(s.EBHash)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +142,17 @@ func (s *MissingEntry) UnmarshalBinaryData(p []byte) (newData []byte, err error)
 
 	newData = p
 	buf := primitives.NewBuffer(p)
+
+	i, err := buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	s.Cnt = int(i)
+	i, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	s.LastTime = time.Unix(int64(i/1000000000), int64(i%1000000000))
 
 	err = buf.PopBinaryMarshallable(s.EBHash)
 	if err != nil {

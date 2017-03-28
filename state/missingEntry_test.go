@@ -26,7 +26,7 @@ func TestMissingEntryBlockMarshalUnmarshal(t *testing.T) {
 			t.Errorf("Returned too much data")
 		}
 		if s.IsSameAs(s2) == false {
-			t.Errorf("Servers are not the same")
+			t.Errorf("MissingEntryBlocks are not the same")
 		}
 	}
 }
@@ -47,7 +47,7 @@ func TestMissingEntryMarshalUnmarshal(t *testing.T) {
 			t.Errorf("Returned too much data")
 		}
 		if s.IsSameAs(s2) == false {
-			t.Errorf("Servers are not the same")
+			t.Errorf("MissingEntries are not the same")
 		}
 	}
 }

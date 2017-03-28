@@ -37,8 +37,6 @@ type IProcessList interface {
 	ResetDiffSigTally()
 	IncrementDiffSigTally()
 	CheckDiffSigTally() bool
-	//GetRequest(now int64, vmIndex int, height int, waitSeconds int64) IRequest
-	AskDBState(vmIndex int, height int) int
 	Ask(vmIndex int, height int, waitSeconds int64, tag int) int
 	TrimVMList(height uint32, vmIndex int)
 	//Process(state IState) (progress bool)
