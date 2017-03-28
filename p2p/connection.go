@@ -32,6 +32,7 @@ type Connection struct {
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int               // reconnection attempts
+	TimeLastpacket  time.Time         // Time we last successfully recieved a packet or command.
 	timeLastAttempt time.Time         // time of last attempt to connect via dial
 	timeLastPing    time.Time         // time of last ping sent
 	timeLastUpdate  time.Time         // time of last peer update sent
@@ -230,6 +231,7 @@ func (c *Connection) runLoop() {
 		for {
 			select {
 			case m := <-c.ReceiveParcel:
+				c.TimeLastpacket = time.Now()
 				c.handleParcel(*m)
 
 			default:
@@ -256,18 +258,12 @@ func (c *Connection) runLoop() {
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
 
-			if ConnectionOnline == c.state {
-				c.pingPeer() // sends a ping periodically if things have been quiet
-				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
-					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
-				}
-			}
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
+
 		case ConnectionOffline:
 			p2pConnectionRunLoopOffline.Inc()
 			switch {
@@ -389,7 +385,6 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
-	debug(c.peer.PeerIdent(), "Connection.goOffline()")
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
@@ -525,6 +520,7 @@ func (c *Connection) processReceives() {
 				c.metrics.MessagesReceived += 1
 				message.Header.PeerAddress = c.peer.Address
 				c.ReceiveParcel <- &message
+				c.TimeLastpacket = time.Now()
 			default:
 				c.Errors <- err
 			}
