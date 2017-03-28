@@ -230,6 +230,7 @@ func (e *Identity) Init() {
 }
 
 func (e *Identity) MarshalBinary() ([]byte, error) {
+	e.Init()
 	buf := primitives.NewBuffer(nil)
 
 	err := buf.PushBinaryMarshallable(e.IdentityChainID)
