@@ -288,18 +288,20 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	state.Replay = pss.Replay.Save()
 
 	return
-	pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
-	pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)
+	/*
+		pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
+		pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)
 
-	//state.Identities = append(state.Identities[:0], pss.Identities...)
-	//state.Authorities = append(state.Authorities[:0], pss.Authorities...)
-	//state.AuthorityServerCount = pss.AuthorityServerCount
+		//state.Identities = append(state.Identities[:0], pss.Identities...)
+		//state.Authorities = append(state.Authorities[:0], pss.Authorities...)
+		//state.AuthorityServerCount = pss.AuthorityServerCount
 
-	state.Holding = make(map[[32]byte]interfaces.IMsg)
-	for k := range ss.Holding {
-		state.Holding[k] = pss.Holding[k]
-	}
-	state.XReview = append(state.XReview[:0], pss.XReview...)
+		state.Holding = make(map[[32]byte]interfaces.IMsg)
+		for k := range ss.Holding {
+			state.Holding[k] = pss.Holding[k]
+		}
+		state.XReview = append(state.XReview[:0], pss.XReview...)
+	*/
 
 	/**
 	ss.EOMsyncing = state.EOMsyncing
@@ -404,8 +406,10 @@ func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 	state.Replay = ss.Replay.Save()
 	state.LeaderTimestamp = ss.LeaderTimestamp
 
-	pl.FedServers = append(pl.FedServers[:0], ss.FedServers...)
-	pl.AuditServers = append(pl.AuditServers[:0], ss.AuditServers...)
+	pl.FedServers = []interfaces.IServer{}
+	pl.AuditServers = []interfaces.IServer{}
+	pl.FedServers = append(pl.FedServers, ss.FedServers...)
+	pl.AuditServers = append(pl.AuditServers, ss.AuditServers...)
 
 	state.FactoidBalancesPMutex.Lock()
 	state.FactoidBalancesP = make(map[[32]byte]int64, 0)
