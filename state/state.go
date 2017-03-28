@@ -1411,10 +1411,10 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 // JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
 	type journalentry struct {
-		Type byte
+		Type    byte
 		Message interfaces.IMsg
 	}
-	
+
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
@@ -1422,11 +1422,11 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 			return
 		}
 		defer f.Close()
-		
+
 		e := new(journalentry)
 		e.Type = msg.Type()
 		e.Message = msg
-		
+
 		p, err := json.Marshal(e)
 		if err != nil {
 			return
@@ -1441,14 +1441,14 @@ func (s *State) GetJournalMessages() [][]byte {
 	if !s.Journaling || len(s.JournalFile) == 0 {
 		return nil
 	}
-	
+
 	f, err := os.Open(s.JournalFile)
 	if err != nil {
 		s.JournalFile = ""
 		return nil
 	}
 	defer f.Close()
-	
+
 	r := bufio.NewReader(f)
 	for {
 		p, err := r.ReadBytes('\n')
@@ -1457,7 +1457,7 @@ func (s *State) GetJournalMessages() [][]byte {
 		}
 		ret = append(ret, p)
 	}
-	
+
 	return ret
 }
 
@@ -1782,7 +1782,7 @@ func (s *State) GetAuthorities() []interfaces.IAuthority {
 	for _, auth := range s.Authorities {
 		auths = append(auths, auth)
 	}
-	
+
 	return auths
 }
 

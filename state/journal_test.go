@@ -31,7 +31,7 @@ func TestJournal(t *testing.T) {
 	msg.SerialHash = primitives.NewZeroHash()
 
 	s.JournalMessage(msg)
-	
+
 	msgs := s.GetJournalMessages()
 	if msgs == nil {
 		t.Error("No messages returned from journal")

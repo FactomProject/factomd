@@ -237,9 +237,9 @@ func DecodeReceiptString(str string) (*Receipt, error) {
 }
 
 type JSON struct {
-	Raw  string `json:"raw,omitempty"`
-	EntryHash  string `json:"entryhash,omitempty"`
-	Json string `json:"json,omitempty"`
+	Raw       string `json:"raw,omitempty"`
+	EntryHash string `json:"entryhash,omitempty"`
+	Json      string `json:"json,omitempty"`
 }
 
 func (e *JSON) JSONByte() ([]byte, error) {
