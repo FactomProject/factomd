@@ -380,7 +380,7 @@ func TestIsMinuteMarker(t *testing.T) {
 			t.Errorf("Entry %v is a minute marker!", str)
 		}
 
-		text, err := hash.(*Hash).MarshalText()
+		text, err := hash.MarshalText()
 		if err != nil {
 			t.Errorf("%v", err)
 		}
