@@ -731,6 +731,23 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		FaultCheck(p)
 
+		if state.UsingConsul() {
+			fmt.Println("WE ARE CONSULLING IN PROCESS")
+			// clear out whatever is in the vm.List
+			vm.List = vm.List[:0]
+
+			// grab whatever is in Consul for this block
+			listOfMsgBytes := state.ConsulManager.GetBlockData(p.DBHeight)
+
+			// make a new vm.List out of what we get from Consul
+			for _, msgBytes := range listOfMsgBytes {
+				msgFromConsul, err := messages.UnmarshalMessage(msgBytes)
+				if err == nil {
+					vm.List = append(vm.List, msgFromConsul)
+				}
+			}
+		}
+
 		if vm.Height == len(vm.List) && p.State.Syncing && !vm.Synced {
 			// means that we are missing an EOM
 			p.Ask(i, vm.Height, 0, 1)
