@@ -437,7 +437,7 @@ func (c *Connection) processSends() {
 			default:
 			}
 		}
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
