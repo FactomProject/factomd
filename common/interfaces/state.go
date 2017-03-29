@@ -96,7 +96,7 @@ type IState interface {
 
 	// Journalling
 	JournalMessage(IMsg)
-	GetJournalMessages() []IMsg
+	GetJournalMessages() [][]byte
 
 	// Consensus
 	APIQueue() chan IMsg   // Input Queue from the API
@@ -270,7 +270,7 @@ type IState interface {
 	SetDelay(int64)
 	GetDropRate() int
 	SetDropRate(int)
-	
+
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg

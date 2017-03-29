@@ -5,10 +5,10 @@
 package state
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -1433,96 +1433,29 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 }
 
 // GetJournalMessages gets all messages from the message journal
-func (s *State) GetJournalMessages() []interfaces.IMsg {
-	type journalentry struct {
-		Type    byte
-		Message json.RawMessage
+func (s *State) GetJournalMessages() [][]byte {
+	ret := make([][]byte, 0)
+	if !s.Journaling || len(s.JournalFile) == 0 {
+		return nil
 	}
 
-	if s.Journaling && len(s.JournalFile) != 0 {
-		f, err := os.Open(s.JournalFile)
+	f, err := os.Open(s.JournalFile)
+	if err != nil {
+		s.JournalFile = ""
+		return nil
+	}
+	defer f.Close()
+
+	r := bufio.NewReader(f)
+	for {
+		p, err := r.ReadBytes('\n')
 		if err != nil {
-			s.JournalFile = ""
-			return nil
+			break
 		}
-		defer f.Close()
-
-		msgs := make([]interfaces.IMsg, 0)
-
-		dec := json.NewDecoder(f)
-		for {
-			e := new(journalentry)
-			if err := dec.Decode(e); err == io.EOF {
-				break
-			} else if err != nil {
-				return nil
-			}
-			var msg interfaces.IMsg
-
-			switch e.Type {
-			case constants.EOM_MSG:
-				msg = new(messages.EOM)
-			case constants.ACK_MSG:
-				msg = new(messages.Ack)
-			case constants.AUDIT_SERVER_FAULT_MSG:
-				msg = new(messages.AuditServerFault)
-			case constants.FED_SERVER_FAULT_MSG:
-				msg = new(messages.ServerFault)
-			case constants.FULL_SERVER_FAULT_MSG:
-				msg = new(messages.FullServerFault)
-			case constants.COMMIT_CHAIN_MSG:
-				msg = new(messages.CommitChainMsg)
-			case constants.COMMIT_ENTRY_MSG:
-				msg = new(messages.CommitEntryMsg)
-			case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-				msg = new(messages.DirectoryBlockSignature)
-			case constants.EOM_TIMEOUT_MSG:
-				msg = new(messages.EOMTimeout)
-			case constants.FACTOID_TRANSACTION_MSG:
-				msg = new(messages.FactoidTransaction)
-			case constants.HEARTBEAT_MSG:
-				msg = new(messages.Heartbeat)
-			case constants.INVALID_DIRECTORY_BLOCK_MSG:
-				msg = new(messages.InvalidDirectoryBlock)
-			case constants.MISSING_MSG:
-				msg = new(messages.MissingMsg)
-			case constants.MISSING_MSG_RESPONSE:
-				msg = new(messages.MissingMsgResponse)
-			case constants.MISSING_DATA:
-				msg = new(messages.MissingData)
-			case constants.DATA_RESPONSE:
-				msg = new(messages.DataResponse)
-			case constants.REVEAL_ENTRY_MSG:
-				msg = new(messages.RevealEntryMsg)
-			case constants.REQUEST_BLOCK_MSG:
-				msg = new(messages.RequestBlock)
-			case constants.SIGNATURE_TIMEOUT_MSG:
-				msg = new(messages.SignatureTimeout)
-			case constants.DBSTATE_MISSING_MSG:
-				msg = new(messages.DBStateMissing)
-			case constants.DBSTATE_MSG:
-				msg = new(messages.DBStateMsg)
-			case constants.ADDSERVER_MSG:
-				msg = new(messages.AddServerMsg)
-			case constants.CHANGESERVER_KEY_MSG:
-				msg = new(messages.ChangeServerKeyMsg)
-			case constants.REMOVESERVER_MSG:
-				msg = new(messages.RemoveServerMsg)
-			case constants.BOUNCE_MSG:
-				msg = new(messages.Bounce)
-			case constants.BOUNCEREPLY_MSG:
-				msg = new(messages.BounceReply)
-			default:
-				return msgs
-			}
-			if err := json.Unmarshal(e.Message, msg); err != nil {
-				return msgs
-			}
-			msgs = append(msgs, msg)
-		}
-		return msgs
+		ret = append(ret, p)
 	}
-	return nil
+
+	return ret
 }
 
 func (s *State) GetLeaderVM() int {
