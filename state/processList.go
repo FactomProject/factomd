@@ -213,6 +213,9 @@ func (p *ProcessList) LenNewEntries() int {
 }
 
 func (p *ProcessList) Complete() bool {
+	if p == nil {
+		return false
+	}
 	if p.DBHeight <= p.State.GetHighestSavedBlk() {
 		return true
 	}
@@ -604,25 +607,6 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 }
 
 // Return the number of times we have tripped an ask for this request.
-func (p *ProcessList) AskDBState(vmIndex int, height int) int {
-	now := p.State.GetTimestamp().GetTimeMilli()
-
-	r := p.GetRequest(now, vmIndex, height, 60)
-
-	if now-r.sent >= r.wait*1000+500 {
-		dbstate := messages.NewDBStateMissing(p.State, p.State.LLeaderHeight, p.State.LLeaderHeight+1)
-
-		dbstate.SendOut(p.State, dbstate)
-		p.State.DBStateAskCnt++
-
-		r.sent = now
-		r.requestCnt++
-	}
-
-	return r.requestCnt
-}
-
-// Return the number of times we have tripped an ask for this request.
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
 	now := p.State.GetTimestamp().GetTimeMilli()
 
@@ -700,12 +684,11 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
+		p.State.AddStatus(fmt.Sprintf("ProcessList.Process: VM Height is %d and Saved height is %d", dbht, state.GetHighestSavedBlk()))
 		return true
 	}
 
 	state.PLProcessHeight = p.DBHeight
-
-	p.AskDBState(0, p.VMs[0].Height) // Look for a possible dbstate at this height.
 
 	if len(p.System.List) >= p.System.Height {
 	systemloop:
@@ -765,6 +748,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
+				p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				p.Ask(i, j, 0, 3)
 				break VMListLoop
 			}
@@ -780,6 +764,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
+					vm.List[j] = nil
+					p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, j, 3, 4)
 					break VMListLoop
 				}
@@ -804,6 +790,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// according to this node's processList
 
 					//fault(p, i, 0, vm, 0, j, 2)
+					p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: SerialHash fails to match at dbht %d vm %d vm-height %d ", p.DBHeight, i, j))
 					p.State.Reset()
 					return
 				}
@@ -811,11 +798,11 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 			// to disk.  Then we can insist on having the entry blocks.
-			diff := p.DBHeight - state.EntryBlockDBHeightComplete
+			diff := p.DBHeight - state.EntryDBHeightComplete
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the first couple signatures are processed, we will be 2 behind.
-			if (vm.LeaderMinute < 2 && diff <= 2) || diff <= 1 {
+			if !p.State.WaitForEntries || (vm.LeaderMinute < 2 && diff <= 3) || diff <= 2 {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1
 				msg := vm.List[j]
@@ -830,6 +817,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				}
 			} else {
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
+				p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, state.EntryDBHeightComplete))
 				break VMListLoop
 			}
 		}
@@ -1070,14 +1058,16 @@ func (p *ProcessList) String() string {
 		} else {
 			saved = "constructing"
 		}
-		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate = %s\n",
+
+		buf.WriteString(fmt.Sprintf("%s #VMs %d Complete %v DBHeight %d DBSig %v EOM %v p-dbstate = %s Entries Complete %d\n",
 			p.State.GetFactomNodeName(),
 			len(p.FedServers),
 			p.Complete(),
 			p.DBHeight,
 			p.State.DBSig,
 			p.State.EOM,
-			saved))
+			saved,
+			p.State.EntryDBHeightComplete))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]

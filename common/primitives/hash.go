@@ -74,8 +74,8 @@ func (h *Hash) UnmarshalText(b []byte) error {
 	return nil
 }
 
-func (h Hash) Fixed() [constants.HASH_LENGTH]byte {
-	return h
+func (h *Hash) Fixed() [constants.HASH_LENGTH]byte {
+	return *h
 }
 
 func (h *Hash) Bytes() []byte {
@@ -183,7 +183,7 @@ func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 }
 
 // Compare two Hashes
-func (a Hash) IsSameAs(b interfaces.IHash) bool {
+func (a *Hash) IsSameAs(b interfaces.IHash) bool {
 	if b == nil {
 		return false
 	}
