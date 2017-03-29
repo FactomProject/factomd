@@ -5,6 +5,8 @@
 package p2p
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
@@ -45,7 +47,10 @@ func (p *Peer) Init(address string, port string, quality int32, peerType uint8, 
 }
 
 func (p *Peer) generatePeerHash() {
-	p.Hash = p.Address + ":" + p.Port
+	buff := make([]byte, 256)
+	RandomGenerator.Read(buff)
+	raw := sha256.Sum256(buff)
+	p.Hash = base64.URLEncoding.EncodeToString(raw[0:sha256.Size])
 }
 
 func (p *Peer) AddressPort() string {

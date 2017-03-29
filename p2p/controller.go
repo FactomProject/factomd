@@ -557,7 +557,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		case !connection.IsOutGoing() && connection.IsOnline():
 			c.numberIncommingConnections++
 			keep[k] = connection
-		case connection.state == ConnectionShuttingDown || connection.state == ConnectionClosed:
+		case false && connection.state == ConnectionShuttingDown || connection.state == ConnectionClosed:
 		default: // we don't count offline connections for these purposes.
 			keep[k] = connection
 		}
@@ -569,12 +569,6 @@ func (c *Controller) handleCommand(command interface{}) {
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		conn.Start()
-
-		if c.connections[conn.peer.Hash] != nil {
-			c.connections[conn.peer.Hash].goShutdown()
-		}
-
-		delete(c.connectionMetrics, conn.peer.Hash)
 
 		c.connections[conn.peer.Hash] = conn
 		c.connectionsByAddress[conn.peer.Address] = conn
@@ -591,11 +585,6 @@ func (c *Controller) handleCommand(command interface{}) {
 		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
-		if c.connections[connection.peer.Hash] != nil {
-			c.connections[connection.peer.Hash].goShutdown()
-		}
-
-		delete(c.connectionMetrics, connection.peer.Hash)
 
 		c.connections[connection.peer.Hash] = connection
 		c.connectionsByAddress[connection.peer.Address] = connection

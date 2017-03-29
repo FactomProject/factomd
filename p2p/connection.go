@@ -385,6 +385,7 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
+	debug(c.peer.PeerIdent(), "Connection.goOffline()")
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
@@ -417,7 +418,11 @@ func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 	conloop:
-		for ConnectionOnline == c.state {
+		for ConnectionOnline == c.state && len(c.SendChannel) > 0 {
+			// This was blocking. By checking the length of the channel before entering, this does not block.
+			// The problem was this routine was blocked on a closed connection. Idealling we do want to block
+			// on a 0 length channel, and this is still possible if use a select and close the channel when we
+			// close the connection.
 			message := <-c.SendChannel
 			switch message.(type) {
 			case ConnectionParcel:
