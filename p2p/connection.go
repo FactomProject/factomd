@@ -547,12 +547,15 @@ func (c *Connection) handleNetErrors() {
 		case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
 			c.setNotes(fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr))
 			c.goOffline()
-		case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
+		case io.EOF == err:
+			// This does not necessarily mean a connection has hungup/closed, it just signals a 0 byte read.
+		case io.ErrClosedPipe == err: // Remote hung up
 			c.setNotes(fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err))
 			c.goOffline()
 		case err == syscall.EPIPE: // "write: broken pipe"
 			c.setNotes(fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err))
 			c.goOffline()
+
 		default:
 			significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
 			c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
