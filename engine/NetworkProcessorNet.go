@@ -137,7 +137,7 @@ func NetworkOutputs(fnode *FactomNode) {
 					fnode.State.GetTimestamp())
 
 				if fnode.State.UsingConsul() {
-					fnode.State.SendIntoConsul(msg)
+					//fnode.State.SendIntoConsul(msg)
 				} else {
 					p := msg.GetOrigin() - 1
 

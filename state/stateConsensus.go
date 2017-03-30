@@ -1116,7 +1116,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
-
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
 		return
