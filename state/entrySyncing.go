@@ -53,20 +53,10 @@ func (s *State) MakeMissingEntryRequests() {
 			avg = (1000 * sum) / cnt
 		}
 
-		fmt.Printf("***es %-10s "+
-			"EComplete: %6d "+
-			"Len(MissingEntyrMap): %6d "+
-			"Avg: %6d.%03d "+
-			"Missing: %6d  "+
-			"Found: %6d "+
-			"Queue: %d\n",
-			s.FactomNodeName,
-			s.EntryDBHeightComplete,
-			len(MissingEntryMap),
-			avg/1000, avg%1000,
-			missing,
-			found,
-			len(s.MissingEntries))
+		ESAsking.Set(float64(len(MissingEntryMap)))
+		ESAsking.Set(float64(cnt))
+		ESFound.Set(float64(found))
+		ESAvgRequests.Set(float64(avg) / 1000)
 
 		// Keep our map of entries that we are asking for filled up.
 	fillMap:
@@ -97,7 +87,6 @@ func (s *State) MakeMissingEntryRequests() {
 						sent++
 						entryRequest := messages.NewMissingData(s, et.EntryHash)
 						entryRequest.SendOut(s, entryRequest)
-						fmt.Println("***es ASKING FOR: ", et.EntryHash.String())
 						newrequest++
 						et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
 						et.Cnt++
@@ -131,7 +120,7 @@ func (s *State) MakeMissingEntryRequests() {
 		}
 		if sent == 0 {
 			if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-				time.Sleep(30 * time.Second)
+				time.Sleep(10 * time.Second)
 			} else {
 				time.Sleep(1 * time.Second)
 			}
@@ -145,7 +134,6 @@ func (s *State) MakeMissingEntryRequests() {
 func (s *State) GoSyncEntries() {
 	go s.MakeMissingEntryRequests()
 
-	now := time.Now().Unix()
 	// Map to track what I know is missing
 	missingMap := make(map[[32]byte]interfaces.IHash)
 
@@ -158,30 +146,13 @@ func (s *State) GoSyncEntries() {
 
 	lastfirstmissing := 0
 
-	num := 0
-	if nil != s.NetworkControler {
-		num = s.NetworkControler.NumConnections
-	}
-
 	for {
-		fmt.Printf("***es %10s"+
-			" connections %d"+
-			" t %6d"+
-			" EntryDBHeightComplete %d"+
-			" start %6d"+
-			" end %7d"+
-			" Missing: %6d"+
-			" MissingMap %6d"+
-			" FirstMissing %6d\n",
-			s.FactomNodeName,
-			num,
-			time.Now().Unix()-now,
-			s.EntryDBHeightComplete,
-			start,
-			s.GetHighestSavedBlk(),
-			entryMissing,
-			len(missingMap),
-			lastfirstmissing)
+
+		ESMissingQueue.Set(float64(len(missingMap)))
+		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete))
+		ESFirstMissing.Set(float64(lastfirstmissing))
+		ESHighestMissing.Set(float64(s.GetHighestSavedBlk()))
+
 		entryMissing = 0
 
 		for k := range missingMap {
