@@ -134,15 +134,14 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-	if !c.keyMRset {
-		keyMR, err := c.BuildKeyMerkleRoot()
-		if err != nil {
-			panic("Failed to build the key MR")
-		}
 
-		c.KeyMR = keyMR
-		c.keyMRset = true
+	keyMR, err := c.BuildKeyMerkleRoot()
+	if err != nil {
+		panic("Failed to build the key MR")
 	}
+	c.KeyMR = keyMR
+	c.keyMRset = true
+
 	return c.KeyMR
 }
 
