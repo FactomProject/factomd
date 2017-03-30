@@ -6,11 +6,12 @@ package state
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"math/rand"
-	"time"
 )
 
 func has(s *State, entry interfaces.IHash) bool {
@@ -90,9 +91,6 @@ func (s *State) MakeMissingEntryRequests() {
 						newrequest++
 						et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
 						et.Cnt++
-						if et.Cnt%25 == 25 {
-							fmt.Printf("***es Can't get Entry Block %x Entry %x in %v attempts.\n", et.EBHash.Bytes(), et.EntryHash.Bytes(), et.Cnt)
-						}
 					}
 				}
 			}

@@ -4,10 +4,15 @@ nchains=10   # number of chains to create
 nentries=15    # number of entries to add to each chain
 
 factomd=10.41.0.16:8088
-factomd=localhost:8088
+#factomd=localhost:8088
 
+# This address is for a LOCAL network
 fa1=$(factom-cli -s=$factomd importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK)
-# fa1=FA3RrKWJLQeDuzC9YzxcSwenU1qDzzwjR1uHMpp1SQbs8wH9Qbbr
+
+# This address is for a network with a production Genesis block
+#fa1=FA3RrKWJLQeDuzC9YzxcSwenU1qDzzwjR1uHMpp1SQbs8wH9Qbbr
+
+
 ec1=$(factom-cli -s=$factomd importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
 factom-cli -s=$factomd listaddresses
