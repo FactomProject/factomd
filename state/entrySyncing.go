@@ -11,12 +11,11 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 func has(s *State, entry interfaces.IHash) bool {
-	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
-	return exists
+	exists, err := s.DB.FetchEntry(entry)
+	return exists != nil && err == nil
 }
 
 var _ = fmt.Print
