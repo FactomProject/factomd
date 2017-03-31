@@ -5,6 +5,7 @@
 package wsapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -317,10 +318,12 @@ func HandleMessages(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		Messages []interfaces.IMsg
+		Messages []json.RawMessage
 	}
 	r := new(ret)
-	r.Messages = state.GetJournalMessages()
+	for _, v := range state.GetJournalMessages() {
+		r.Messages = append(r.Messages, v)
+	}
 	return r, nil
 }
 
