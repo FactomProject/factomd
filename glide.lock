@@ -1,5 +1,5 @@
 hash: 6a6ab634eb1aaa63d7018159f9fa7cf7b2140211c0898a9f06112324ebd17e32
-updated: 2017-03-29T18:22:05.30681739-05:00
+updated: 2017-03-31T15:45:17.049265625-05:00
 imports:
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
@@ -32,7 +32,7 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: 30f32c415a83221681876a600c221466382a776c
+  version: cceac7c3e8611bff774b218d65b4215b2498cd5c
   subpackages:
   - wallet
   - wallet/wsapi
@@ -82,8 +82,31 @@ imports:
   - utils
 - name: github.com/FactomProject/snappy-go
   version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
+  subpackages:
+  - snappy
 - name: github.com/FactomProject/web
   version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
+- name: golang.org/x/crypto
+  version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
+  subpackages:
+  - pbkdf2
+  - ripemd160
+- name: golang.org/x/net
+  version: 007e530097ad7f954752df63046b4036f98ba6a6
+  subpackages:
+  - websocket
+- name: golang.org/x/sys
+  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
+  subpackages:
+  - unix
+- name: gopkg.in/gcfg.v1
+  version: 27e4946190b4a327b539185f2b5b1f7c84730728
+  subpackages:
+  - scanner
+  - token
+  - types
+- name: gopkg.in/warnings.v0
+  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 - name: github.com/golang/protobuf
   version: 1f49d83d9aa00e6ce4fc8258c71cc7786aec968a
   subpackages:
@@ -112,25 +135,4 @@ imports:
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
-- name: golang.org/x/crypto
-  version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
-  subpackages:
-  - pbkdf2
-  - ripemd160
-- name: golang.org/x/net
-  version: 007e530097ad7f954752df63046b4036f98ba6a6
-  subpackages:
-  - websocket
-- name: golang.org/x/sys
-  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
-  subpackages:
-  - unix
-- name: gopkg.in/gcfg.v1
-  version: 27e4946190b4a327b539185f2b5b1f7c84730728
-  subpackages:
-  - scanner
-  - token
-  - types
-- name: gopkg.in/warnings.v0
-  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 testImports: []
