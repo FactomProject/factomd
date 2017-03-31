@@ -11,11 +11,12 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 func has(s *State, entry interfaces.IHash) bool {
-	exists, err := s.DB.FetchEntry(entry)
-	return exists != nil && err == nil
+	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
+	return exists
 }
 
 var _ = fmt.Print
@@ -63,10 +64,8 @@ func (s *State) MakeMissingEntryRequests() {
 		for len(MissingEntryMap) < 3000 {
 			select {
 			case et := <-s.MissingEntries:
-				if !has(s, et.EntryHash) {
-					missing++
-					MissingEntryMap[et.EntryHash.Fixed()] = et
-				}
+				missing++
+				MissingEntryMap[et.EntryHash.Fixed()] = et
 			default:
 				break fillMap
 			}
@@ -82,16 +81,17 @@ func (s *State) MakeMissingEntryRequests() {
 				if et.Cnt == 0 {
 					et.Cnt = 1
 					et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
-				} else {
-					if now.Unix()-et.LastTime.Unix() > 5 && sent < 100 {
-						sent++
-						entryRequest := messages.NewMissingData(s, et.EntryHash)
-						entryRequest.SendOut(s, entryRequest)
-						newrequest++
-						et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
-						et.Cnt++
-					}
+					continue
 				}
+				if now.Unix()-et.LastTime.Unix() > 5 && sent < 100 {
+					sent++
+					entryRequest := messages.NewMissingData(s, et.EntryHash)
+					entryRequest.SendOut(s, entryRequest)
+					newrequest++
+					et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
+					et.Cnt++
+				}
+
 			}
 		} else {
 			time.Sleep(20 * time.Second)
@@ -160,12 +160,17 @@ func (s *State) GoSyncEntries() {
 
 		// Scan all the directory blocks, from start to the highest saved.  Once we catch up,
 		// start will be the last block saved.
+
+		// First reset first Missing back to -1 every time.
+		firstMissing = -1
+
 	dirblkSearch:
 		for scan := start; scan <= s.GetHighestSavedBlk(); scan++ {
 
 			if firstMissing < 0 {
 				if scan > 1 {
 					s.EntryDBHeightComplete = scan - 1
+					start = scan
 				}
 			}
 
@@ -193,60 +198,51 @@ func (s *State) GoSyncEntries() {
 
 				// Go through all the entry hashes.
 				for _, entryhash := range eBlock.GetEntryHashes() {
-					if !entryhash.IsMinuteMarker() {
-
-						// If I have the entry, then remove it from the Missing Entries list.
-						if has(s, entryhash) {
-							delete(missingMap, entryhash.Fixed())
-						} else {
-
-							if firstMissing < 0 {
-								firstMissing = int(scan)
-							}
-
-							eh := missingMap[entryhash.Fixed()]
-							if eh == nil {
-
-								// If we have a full queue, break so we don't stall.
-								if len(s.MissingEntries) > 9000 {
-									break dirblkSearch
-								}
-
-								var v MissingEntry
-
-								v.DBHeight = eBlock.GetHeader().GetDBHeight()
-								v.EntryHash = entryhash
-								v.EBHash = ebKeyMR
-								entryMissing++
-								missingMap[entryhash.Fixed()] = entryhash
-								s.MissingEntries <- &v
-							}
-						}
-						ueh := new(EntryUpdate)
-						ueh.Hash = entryhash
-						ueh.Timestamp = db.GetTimestamp()
-						s.UpdateEntryHash <- ueh
+					if entryhash.IsMinuteMarker() {
+						continue
 					}
+					ueh := new(EntryUpdate)
+					ueh.Hash = entryhash
+					ueh.Timestamp = db.GetTimestamp()
+					s.UpdateEntryHash <- ueh
+
+					// If I have the entry, then remove it from the Missing Entries list.
+					if has(s, entryhash) {
+						delete(missingMap, entryhash.Fixed())
+						continue
+					}
+
+					if firstMissing < 0 {
+						firstMissing = int(scan)
+					}
+
+					eh := missingMap[entryhash.Fixed()]
+					if eh == nil {
+
+						// If we have a full queue, break so we don't stall.
+						if len(s.MissingEntries) > 9000 {
+							break dirblkSearch
+						}
+
+						var v MissingEntry
+
+						v.DBHeight = eBlock.GetHeader().GetDBHeight()
+						v.EntryHash = entryhash
+						v.EBHash = ebKeyMR
+						entryMissing++
+						missingMap[entryhash.Fixed()] = entryhash
+						s.MissingEntries <- &v
+					}
+
 				}
 			}
-			start = scan
 		}
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
-			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
 			time.Sleep(60 * time.Second)
 		}
 
-		start = s.EntryDBHeightComplete
-
-		// reset first Missing back to -1 every time.
-		firstMissing = -1
-
-		if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-			time.Sleep(20 * time.Second)
-		} else {
-			time.Sleep(1 * time.Second)
-		}
+		time.Sleep(1 * time.Second)
 
 	}
 }

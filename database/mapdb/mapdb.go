@@ -239,6 +239,6 @@ func (db *MapDB) DoesKeyExist(bucket, key []byte) (bool, error) {
 	if ok == false {
 		db.Cache[string(bucket)] = map[string][]byte{}
 	}
-	_, ok = db.Cache[string(bucket)][string(key)]
-	return ok, nil
+	v, ok := db.Cache[string(bucket)][string(key)]
+	return ok && v != nil, nil
 }

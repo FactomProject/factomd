@@ -698,7 +698,9 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if !ok {
 			return
 		}
-		s.WriteEntry <- entry
+		if len(s.WriteEntry) < cap(s.WriteEntry) {
+			s.WriteEntry <- entry
+		}
 	}
 }
 
