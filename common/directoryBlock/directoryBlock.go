@@ -140,9 +140,9 @@ func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
 		panic("Failed to build the key MR")
 	}
 
-	if c.keyMRset && c.KeyMR.Fixed() != keyMR.Fixed() {
-		panic("keyMR changed!")
-	}
+	//if c.keyMRset && c.KeyMR.Fixed() != keyMR.Fixed() {
+	//	panic("keyMR changed!")
+	//}
 
 	c.KeyMR = keyMR
 	c.keyMRset = true
