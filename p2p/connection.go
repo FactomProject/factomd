@@ -22,15 +22,17 @@ import (
 // (defined below).
 type Connection struct {
 	conn           net.Conn
-	Errors         chan error             // handle errors from connections.
-	Commands       chan ConnectionCommand // handle connection commands
-	SendChannel    chan interface{}       // Send means "towards the network" Channel sends Parcels and ConnectionCommands
-	ReceiveChannel chan interface{}       // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
+	Errors         chan error              // handle errors from connections.
+	Commands       chan *ConnectionCommand // handle connection commands
+	SendChannel    chan interface{}        // Send means "towards the network" Channel sends Parcels and ConnectionCommands
+	ReceiveChannel chan interface{}        // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
+	ReceiveParcel  chan *Parcel            // Parcels to be handled.
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int               // reconnection attempts
+	TimeLastpacket  time.Time         // Time we last successfully recieved a packet or command.
 	timeLastAttempt time.Time         // time of last attempt to connect via dial
 	timeLastPing    time.Time         // time of last ping sent
 	timeLastUpdate  time.Time         // time of last peer update sent
@@ -187,13 +189,15 @@ func (c *Connection) Notes() string {
 //////////////////////////////
 
 func (c *Connection) commonInit(peer Peer) {
+	p2pConnectionCommonInit.Inc() // Prometheus
 	c.state = ConnectionInitialized
 	c.peer = peer
 	c.setNotes("commonInit()")
 	c.Errors = make(chan error, StandardChannelSize)
-	c.Commands = make(chan ConnectionCommand, StandardChannelSize)
+	c.Commands = make(chan *ConnectionCommand, StandardChannelSize)
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
+	c.ReceiveParcel = make(chan *Parcel, StandardChannelSize)
 	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
@@ -209,6 +213,8 @@ func (c *Connection) Start() {
 func (c *Connection) runLoop() {
 	go c.processSends()
 	go c.processReceives()
+	p2pConnectionsRunLoop.Inc()
+	defer p2pConnectionsRunLoop.Dec()
 
 	for ConnectionClosed != c.state { // loop exits when we hit shutdown state
 		time.Sleep(100 * time.Millisecond)
@@ -220,8 +226,22 @@ func (c *Connection) runLoop() {
 		// }
 		c.handleNetErrors()
 		c.handleCommand()
+
+	parcelloop:
+		for {
+			select {
+			case m := <-c.ReceiveParcel:
+				c.TimeLastpacket = time.Now()
+				c.handleParcel(*m)
+
+			default:
+				break parcelloop
+			}
+		}
+
 		switch c.state {
 		case ConnectionInitialized:
+			p2pConnectionRunLoopInitalized.Inc()
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				c.setNotes("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
@@ -231,20 +251,21 @@ func (c *Connection) runLoop() {
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
-
-			if ConnectionOnline == c.state {
-				c.pingPeer() // sends a ping periodically if things have been quiet
-				if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-					debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
-					c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
-				}
+			p2pConnectionRunLoopOnline.Inc()
+			c.pingPeer() // sends a ping periodically if things have been quiet
+			if PeerSaveInterval < time.Since(c.timeLastUpdate) {
+				debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
+				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
+
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
 				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
+
 		case ConnectionOffline:
+			p2pConnectionRunLoopOffline.Inc()
 			switch {
 			case c.isOutGoing:
 				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
@@ -253,6 +274,7 @@ func (c *Connection) runLoop() {
 				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
+			p2pConnectionRunLoopShutdown.Inc()
 			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
 			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
@@ -273,6 +295,9 @@ func (c *Connection) setNotes(format string, v ...interface{}) {
 // dialLoop:  dials the connection until giving up. Called in offline or initializing states.
 // All exits from dialLoop change the state of the connection allowing the outside run_loop to proceed.
 func (c *Connection) dialLoop() {
+	p2pConnectionDialLoop.Inc()
+	defer p2pConnectionDialLoop.Dec()
+
 	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
 	if c.peer.QualityScore < MinumumQualityScore {
 		c.setNotes("Connection.dialLoop() Quality Score too low, not dialing out again.")
@@ -379,6 +404,8 @@ func (c *Connection) goShutdown() {
 
 // processSends gets all the messages from the application and sends them out over the network
 func (c *Connection) processSends() {
+	p2pProcessSendsGuage.Inc()
+	defer p2pProcessSendsGuage.Dec()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -391,7 +418,11 @@ func (c *Connection) processSends() {
 	for ConnectionClosed != c.state && c.state != ConnectionShuttingDown {
 		// note(c.peer.PeerIdent(), "Connection.processSends() called. Items in send channel: %d State: %s", len(c.SendChannel), c.ConnectionState())
 	conloop:
-		for ConnectionOnline == c.state {
+		for ConnectionOnline == c.state && len(c.SendChannel) > 0 {
+			// This was blocking. By checking the length of the channel before entering, this does not block.
+			// The problem was this routine was blocked on a closed connection. Idealling we do want to block
+			// on a 0 length channel, and this is still possible if use a select and close the channel when we
+			// close the connection.
 			message := <-c.SendChannel
 			switch message.(type) {
 			case ConnectionParcel:
@@ -402,11 +433,11 @@ func (c *Connection) processSends() {
 				c.sendParcel(parameters.Parcel)
 			case ConnectionCommand:
 				parameters := message.(ConnectionCommand)
-				c.Commands <- parameters
+				c.Commands <- &parameters
 			default:
 			}
 		}
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -471,6 +502,8 @@ func (c *Connection) sendParcel(parcel Parcel) {
 // -- a network error happens
 // -- something causes our state to be offline
 func (c *Connection) processReceives() {
+	p2pProcessReceivesGuage.Inc()
+	defer p2pProcessReceivesGuage.Dec()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -491,7 +524,8 @@ func (c *Connection) processReceives() {
 				c.metrics.BytesReceived += message.Header.Length
 				c.metrics.MessagesReceived += 1
 				message.Header.PeerAddress = c.peer.Address
-				c.handleParcel(message)
+				c.ReceiveParcel <- &message
+				c.TimeLastpacket = time.Now()
 			default:
 				c.Errors <- err
 			}
@@ -513,12 +547,15 @@ func (c *Connection) handleNetErrors() {
 		case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
 			c.setNotes(fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr))
 			c.goOffline()
-		case io.EOF == err, io.ErrClosedPipe == err: // Remote hung up
+		case io.EOF == err:
+			// This does not necessarily mean a connection has hungup/closed, it just signals a 0 byte read.
+		case io.ErrClosedPipe == err: // Remote hung up
 			c.setNotes(fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err))
 			c.goOffline()
 		case err == syscall.EPIPE: // "write: broken pipe"
 			c.setNotes(fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err))
 			c.goOffline()
+
 		default:
 			significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
 			c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
