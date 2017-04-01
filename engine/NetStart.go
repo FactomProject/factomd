@@ -77,6 +77,7 @@ func NetStart(s *state.State) {
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	fastPtr := flag.Bool("fast", false, "If true, factomd will fast-boot from a file.")
+	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 
 	flag.Parse()
 
@@ -239,7 +240,7 @@ func NetStart(s *state.State) {
 		net = "file"
 	}
 
-	go StartProfiler()
+	go StartProfiler(*memProfileRate)
 
 	s.AddPrefix(prefix)
 	s.SetOut(false)
@@ -495,6 +496,7 @@ func NetStart(s *state.State) {
 	launchPrometheus(9876)
 	// Start Package's prometheus
 	state.RegisterPrometheus()
+	p2p.RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:

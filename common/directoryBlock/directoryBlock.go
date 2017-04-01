@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"errors"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -133,15 +134,19 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-	if !c.keyMRset {
-		keyMR, err := c.BuildKeyMerkleRoot()
-		if err != nil {
-			panic("Failed to build the key MR")
-		}
 
-		c.KeyMR = keyMR
-		c.keyMRset = true
+	keyMR, err := c.BuildKeyMerkleRoot()
+	if err != nil {
+		panic("Failed to build the key MR")
 	}
+
+	//if c.keyMRset && c.KeyMR.Fixed() != keyMR.Fixed() {
+	//	panic("keyMR changed!")
+	//}
+
+	c.KeyMR = keyMR
+	c.keyMRset = true
+
 	return c.KeyMR
 }
 
@@ -155,12 +160,11 @@ func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
 }
 
 func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
-	c.DBEntries = dbEntries
-	c.GetHeader().SetBlockCount(uint32(len(dbEntries)))
-	_, err := c.BuildBodyMR()
-	if err != nil {
-		return err
+	if dbEntries == nil {
+		return errors.New("dbEntries cannot be nil")
 	}
+
+	c.DBEntries = dbEntries
 	return nil
 }
 
@@ -228,16 +232,13 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 
 	b.BuildBodyMR()
 
-	count := uint32(len(b.GetDBEntries()))
-	b.GetHeader().SetBlockCount(count)
-
 	data, err = b.GetHeader().MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
-	for i := uint32(0); i < count; i++ {
+	for i := uint32(0); i < b.Header.GetBlockCount(); i++ {
 		data, err = b.GetDBEntries()[i].MarshalBinary()
 		if err != nil {
 			return
@@ -249,6 +250,13 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 }
 
 func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
+
+	count := uint32(len(b.GetDBEntries()))
+	b.GetHeader().SetBlockCount(count)
+	if count == 0 {
+		panic("Zero block size!")
+	}
+
 	hashes := make([]interfaces.IHash, len(b.GetDBEntries()))
 	for i, entry := range b.GetDBEntries() {
 		data, err := entry.MarshalBinary()

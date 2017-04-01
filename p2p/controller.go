@@ -363,6 +363,9 @@ func (c *Controller) runloop() {
 	for c.keepRunning { // Run until we get the exit command
 
 		c.NumConnections = len(c.connections)
+		p2pControllerNumConnections.Set(float64(c.NumConnections))
+		p2pControllerNumMetrics.Set(float64(len(c.connectionMetrics)))
+		p2pControllerNumConnectionsByAddress.Set(float64(len(c.connectionsByAddress)))
 
 		dot("@@1\n")
 	commandloop:
@@ -543,18 +546,35 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 }
 
 func (c *Controller) handleCommand(command interface{}) {
+
+	// Trim peers first.
+	keep := make(map[string]*Connection)
+	for k, connection := range c.connections {
+		switch {
+		case connection.IsOutGoing() && connection.IsOnline():
+			c.numberOutgoingConnections++
+			keep[k] = connection
+		case !connection.IsOutGoing() && connection.IsOnline():
+			c.numberIncommingConnections++
+			keep[k] = connection
+		case false && connection.state == ConnectionShuttingDown || connection.state == ConnectionClosed:
+		default: // we don't count offline connections for these purposes.
+			keep[k] = connection
+		}
+	}
+	c.connections = keep
+
 	switch commandType := command.(type) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
 		conn.Start()
-		if c.connections[conn.peer.Hash] != nil {
-			go c.connections[conn.peer.Hash].goShutdown()
-		}
+
 		c.connections[conn.peer.Hash] = conn
 		c.connectionsByAddress[conn.peer.Address] = conn
 		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
+
 		parameters := command.(CommandAddPeer)
 		conn := parameters.conn // net.Conn
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
@@ -565,9 +585,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
-		if c.connections[connection.peer.Hash] != nil {
-			go c.connections[connection.peer.Hash].goShutdown()
-		}
+
 		c.connections[connection.peer.Hash] = connection
 		c.connectionsByAddress[connection.peer.Address] = connection
 		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
@@ -654,15 +672,6 @@ func (c *Controller) updateConnectionCounts() {
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0
-	for _, connection := range c.connections {
-		switch {
-		case connection.IsOutGoing() && connection.IsOnline():
-			c.numberOutgoingConnections++
-		case !connection.IsOutGoing() && connection.IsOnline():
-			c.numberIncommingConnections++
-		default: // we don't count offline connections for these purposes.
-		}
-	}
 }
 
 // updateConnectionAddressMap() updates the address index map to reflect all current connections

@@ -182,10 +182,6 @@ func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 
 func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 	block := createTestDirectoryBlock()
-	err := block.SetDBEntries([]interfaces.IDBEntry{})
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
 	min := 1000
 	max := -1
 
@@ -239,6 +235,10 @@ func createTestDirectoryBlock() *DirectoryBlock {
 	if err != nil {
 		panic(err)
 	}
+
+	dblock.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
+	dblock.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
+	dblock.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
 	dblock.GetHeader().SetBlockCount(uint32(len(dblock.GetDBEntries())))
 
 	return dblock
@@ -349,11 +349,13 @@ func TestExpandedDBlockHeader(t *testing.T) {
 }
 
 func TestBuildBlock(t *testing.T) {
-	db1 := new(DirectoryBlock)
-	db1.Init()
+	db1 := NewDirectoryBlock(nil)
+	db1.(*DirectoryBlock).Init()
 	//fmt.Println(db1)
 
 	k, _ := primitives.HexToHash("e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33")
+
+	fmt.Println(db1.GetKeyMR().String())
 
 	if !k.IsSameAs(db1.GetKeyMR()) { //expected an empty directoryblock
 		fmt.Println(k)
