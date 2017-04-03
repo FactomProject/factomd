@@ -775,9 +775,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 		for _, msgBytes := range listOfMsgBytes {
 			msgFromEtcd, err := messages.UnmarshalMessage(msgBytes)
 			if err == nil {
-				/*
-					fmt.Println(ijk, "::", msgFromEtcd.String())
-					fmt.Println(ijk, "::", msgFromEtcd.GetHash().String())*/
 				if msgFromEtcd.Type() == constants.ACK_MSG {
 					newListAck = append(newListAck, msgFromEtcd.(*messages.Ack))
 				} else {
@@ -790,15 +787,17 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 		}
 
-		for i, cmsg := range vm.List {
-			if cmsg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-				if cmsg.(*messages.DirectoryBlockSignature).Processed {
-					newList[i].(*messages.DirectoryBlockSignature).Processed = true
+		for _, cmsg := range vm.List {
+			if cmsg != nil {
+				if cmsg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+					if cmsg.(*messages.DirectoryBlockSignature).Processed {
+						newList[i].(*messages.DirectoryBlockSignature).Processed = true
+					}
 				}
-			}
-			if cmsg.Type() == constants.EOM_MSG {
-				if cmsg.(*messages.EOM).Processed {
-					newList[i].(*messages.EOM).Processed = true
+				if cmsg.Type() == constants.EOM_MSG {
+					if cmsg.(*messages.EOM).Processed {
+						newList[i].(*messages.EOM).Processed = true
+					}
 				}
 			}
 		}
