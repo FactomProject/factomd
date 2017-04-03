@@ -127,15 +127,15 @@ func (IManagerPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, e
 
 /*****************************************
 *										**
-*				Consul					**
-*		interfaces.IConsulManager		**
+*				Etcd					**
+*		interfaces.IEtcdManager		**
 *										**
 ******************************************/
 
 // Here is an implementation that talks over RPC
-type IConsulPluginRPC struct{ client *rpc.Client }
+type IEtcdPluginRPC struct{ client *rpc.Client }
 
-func (g *IConsulPluginRPC) RetrieveDBStateByHeight(height uint32) error {
+func (g *IEtcdPluginRPC) RetrieveDBStateByHeight(height uint32) error {
 	var resp error
 	err := g.client.Call("Plugin.RetrieveDBStateByHeight", height, &resp)
 	if err != nil {
@@ -145,20 +145,20 @@ func (g *IConsulPluginRPC) RetrieveDBStateByHeight(height uint32) error {
 	return resp
 }
 
-type SendIntoConsulArgs struct {
+type SendIntoEtcdArgs struct {
 	BlockHeight uint32
 	MinuteNum   int
 	Msg         []byte // interfaces.IMsg
 }
 
-func (g *IConsulPluginRPC) SendIntoConsul(blockHeight uint32, minuteNum int, msg []byte) error {
+func (g *IEtcdPluginRPC) SendIntoEtcd(blockHeight uint32, minuteNum int, msg []byte) error {
 	var resp error
-	args := SendIntoConsulArgs{
+	args := SendIntoEtcdArgs{
 		BlockHeight: blockHeight,
 		MinuteNum:   minuteNum,
 		Msg:         msg,
 	}
-	err := g.client.Call("Plugin.SendIntoConsul", &args, &resp)
+	err := g.client.Call("Plugin.SendIntoEtcd", &args, &resp)
 	if err != nil {
 		return err
 	}
@@ -171,9 +171,9 @@ type GetMinuteData struct {
 	MinuteNum   int
 }
 
-func (g *IConsulPluginRPC) GetMinuteData(blockHeight uint32, minuteNum int) [][]byte {
+func (g *IEtcdPluginRPC) GetMinuteData(blockHeight uint32, minuteNum int) [][]byte {
 	var resp [][]byte
-	args := SendIntoConsulArgs{
+	args := SendIntoEtcdArgs{
 		BlockHeight: blockHeight,
 		MinuteNum:   minuteNum,
 	}
@@ -185,7 +185,7 @@ func (g *IConsulPluginRPC) GetMinuteData(blockHeight uint32, minuteNum int) [][]
 	return resp
 }
 
-func (g *IConsulPluginRPC) GetBlockData(blockHeight uint32) [][]byte {
+func (g *IEtcdPluginRPC) GetBlockData(blockHeight uint32) [][]byte {
 	var resp [][]byte
 	err := g.client.Call("Plugin.GetBlockData", blockHeight, &resp)
 	if err != nil {
@@ -195,37 +195,37 @@ func (g *IConsulPluginRPC) GetBlockData(blockHeight uint32) [][]byte {
 	return resp
 }
 
-// Here is the RPC server that IConsulPluginRPC talks to, conforming to
+// Here is the RPC server that IEtcdPluginRPC talks to, conforming to
 // the requirements of net/rpc
-type IConsulPluginRPCServer struct {
+type IEtcdPluginRPCServer struct {
 	// This is the real implementation
-	Impl interfaces.IConsulManager
+	Impl interfaces.IEtcdManager
 }
 
-func (s *IConsulPluginRPCServer) SendIntoConsul(args *SendIntoConsulArgs, resp *error) error {
-	*resp = s.Impl.SendIntoConsul(args.BlockHeight, args.MinuteNum, args.Msg)
+func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *error) error {
+	*resp = s.Impl.SendIntoEtcd(args.BlockHeight, args.MinuteNum, args.Msg)
 	return *resp
 }
 
-func (s *IConsulPluginRPCServer) GetMinuteData(args *GetMinuteData, resp *[][]byte) error {
+func (s *IEtcdPluginRPCServer) GetMinuteData(args *GetMinuteData, resp *[][]byte) error {
 	*resp = s.Impl.GetMinuteData(args.BlockHeight, args.MinuteNum)
 	return nil
 }
 
-func (s *IConsulPluginRPCServer) GetBlockData(blockheight uint32, resp *[][]byte) error {
+func (s *IEtcdPluginRPCServer) GetBlockData(blockheight uint32, resp *[][]byte) error {
 	*resp = s.Impl.GetBlockData(blockheight)
 	return nil
 }
 
-type IConsulPlugin struct {
+type IEtcdPlugin struct {
 	// Impl Injection
-	Impl interfaces.IConsulManager
+	Impl interfaces.IEtcdManager
 }
 
-func (p *IConsulPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
-	return &IConsulPluginRPCServer{Impl: p.Impl}, nil
+func (p *IEtcdPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
+	return &IEtcdPluginRPCServer{Impl: p.Impl}, nil
 }
 
-func (IConsulPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
-	return &IConsulPluginRPC{client: c}, nil
+func (IEtcdPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
+	return &IEtcdPluginRPC{client: c}, nil
 }

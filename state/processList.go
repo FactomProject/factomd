@@ -731,39 +731,39 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 		FaultCheck(p)
 		/*
-			if state.UsingConsul() {
+			if state.UsingEtcd() {
 				// clear out whatever is in the vm.List
 				vm.List = vm.List[:0]
 
-				// grab whatever is in Consul for this block
-				listOfMsgBytes := state.ConsulManager.GetBlockData(p.DBHeight)
+				// grab whatever is in Etcd for this block
+				listOfMsgBytes := state.EtcdManager.GetBlockData(p.DBHeight)
 
-				// make a new vm.List out of what we get from Consul
+				// make a new vm.List out of what we get from Etcd
 				for ijk, msgBytes := range listOfMsgBytes {
-					msgFromConsul, err := messages.UnmarshalMessage(msgBytes)
+					msgFromEtcd, err := messages.UnmarshalMessage(msgBytes)
 					if err == nil {
-						vm.List = append(vm.List, msgFromConsul)
-						fmt.Println(ijk, "::", msgFromConsul.GetHash().String()[:10])
+						vm.List = append(vm.List, msgFromEtcd)
+						fmt.Println(ijk, "::", msgFromEtcd.GetHash().String()[:10])
 					}
 				}
 				fmt.Println("CONSUL LENG:", len(vm.List))
 			}
 		*/
 
-		// grab whatever is in Consul for this block
+		// grab whatever is in Etcd for this block
 
-		listOfMsgBytes := state.ConsulManager.GetBlockData(dbht)
+		listOfMsgBytes := state.EtcdManager.GetBlockData(dbht)
 		newList := *new([]interfaces.IMsg)
 		newListAck := *new([]*messages.Ack)
 
 		for _, msgBytes := range listOfMsgBytes {
-			msgFromConsul, err := messages.UnmarshalMessage(msgBytes)
+			msgFromEtcd, err := messages.UnmarshalMessage(msgBytes)
 			if err == nil {
 				/*
-					fmt.Println(ijk, "::", msgFromConsul.String())
-					fmt.Println(ijk, "::", msgFromConsul.GetHash().String())*/
-				if msgFromConsul.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-					newList = append(newList, msgFromConsul)
+					fmt.Println(ijk, "::", msgFromEtcd.String())
+					fmt.Println(ijk, "::", msgFromEtcd.GetHash().String())*/
+				if msgFromEtcd.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+					newList = append(newList, msgFromEtcd)
 					break
 				}
 			} else {
@@ -771,18 +771,18 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			}
 		}
 
-		// make a new vm.List out of what we get from Consul
+		// make a new vm.List out of what we get from Etcd
 		for _, msgBytes := range listOfMsgBytes {
-			msgFromConsul, err := messages.UnmarshalMessage(msgBytes)
+			msgFromEtcd, err := messages.UnmarshalMessage(msgBytes)
 			if err == nil {
 				/*
-					fmt.Println(ijk, "::", msgFromConsul.String())
-					fmt.Println(ijk, "::", msgFromConsul.GetHash().String())*/
-				if msgFromConsul.Type() == constants.ACK_MSG {
-					newListAck = append(newListAck, msgFromConsul.(*messages.Ack))
+					fmt.Println(ijk, "::", msgFromEtcd.String())
+					fmt.Println(ijk, "::", msgFromEtcd.GetHash().String())*/
+				if msgFromEtcd.Type() == constants.ACK_MSG {
+					newListAck = append(newListAck, msgFromEtcd.(*messages.Ack))
 				} else {
-					if msgFromConsul.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-						newList = append(newList, msgFromConsul)
+					if msgFromEtcd.Type() != constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+						newList = append(newList, msgFromEtcd)
 					}
 				}
 			} else {
@@ -1074,9 +1074,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.ListAck = append(vm.ListAck, nil)
 	}
 
-	if p.State.UsingConsul() {
-		p.State.SendIntoConsul(m)
-		p.State.SendIntoConsul(ack)
+	if p.State.UsingEtcd() {
+		p.State.SendIntoEtcd(m)
+		p.State.SendIntoEtcd(ack)
 	}
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m

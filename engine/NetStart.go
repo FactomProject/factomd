@@ -79,8 +79,8 @@ func NetStart(s *state.State) {
 	// Plugins
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	tormanagerPath := flag.String("plugin", "", "Input the path to the factomd-torrent binary")
-	useConsul := flag.Bool("consul", true, "If true, use consul to track current-block messages.")
-	consulManagerPath := flag.String("consul-plugin", "", "Input the path to the consul-manager binary")
+	useEtcd := flag.Bool("etcd", true, "If true, use etcd to track current-block messages.")
+	etcdManagerPath := flag.String("etcd-plugin", "", "Input the path to the etcd-manager binary")
 
 	flag.Parse()
 
@@ -339,15 +339,15 @@ func NetStart(s *state.State) {
 		if 0 < networkPortOverride {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
-		if *useConsul {
-			consulManager, err := LaunchConsulPlugin(*consulManagerPath, fnodes[0].State.ConsulAddress)
+		if *useEtcd {
+			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress)
 			if err != nil {
-				panic("Encountered an error while trying to use Consul plugin: " + err.Error())
+				panic("Encountered an error while trying to use Etcd plugin: " + err.Error())
 			}
-			fnodes[0].State.ConsulManager = consulManager
-			fnodes[0].State.SetUseConsul(true)
+			fnodes[0].State.EtcdManager = etcdManager
+			fnodes[0].State.SetUseEtcd(true)
 		} else {
-			fnodes[0].State.SetUseConsul(false)
+			fnodes[0].State.SetUseEtcd(false)
 		}
 
 		ci := p2p.ControllerInit{

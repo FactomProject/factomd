@@ -14,9 +14,9 @@ type IManagerController interface {
 	SetSigningKey(sec []byte) error
 }
 
-// IConsulManager plugin interface
-type IConsulManager interface {
-	SendIntoConsul(blockHeight uint32, minuteNum int, msg []byte) error
+// IEtcdManager plugin interface
+type IEtcdManager interface {
+	SendIntoEtcd(blockHeight uint32, minuteNum int, msg []byte) error
 	GetMinuteData(blockHeight uint32, minuteNum int) [][]byte
 	GetBlockData(blockHeight uint32) [][]byte
 }

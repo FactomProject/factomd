@@ -84,7 +84,7 @@ type State struct {
 	CustomNetworkID         []byte
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
-	ConsulAddress           string
+	EtcdAddress             string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []*Identity      // Identities of all servers in management chain
@@ -320,9 +320,9 @@ type State struct {
 	DBStateManager     interfaces.IManagerController
 
 	// If this is true, outbound messages will be sent out
-	// via Consul (as well as sent out over the p2p network normally)
-	useConsul     bool
-	ConsulManager interfaces.IConsulManager
+	// via Etcd (as well as sent out over the p2p network normally)
+	useEtcd     bool
+	EtcdManager interfaces.IEtcdManager
 }
 
 type MissingEntryBlock struct {
@@ -590,7 +590,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		s.ConsulAddress = cfg.App.ConsulAddress
+		s.EtcdAddress = cfg.App.EtcdAddress
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -1403,10 +1403,10 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 	return nil, fmt.Errorf("%s", "Transaction not found")
 }
 
-func (s *State) SendIntoConsul(msg interfaces.IMsg) {
+func (s *State) SendIntoEtcd(msg interfaces.IMsg) {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
-		s.ConsulManager.SendIntoConsul(s.GetDBHeightComplete(), s.GetCurrentMinute(), msgBytes)
+		s.EtcdManager.SendIntoEtcd(s.GetDBHeightComplete(), s.GetCurrentMinute(), msgBytes)
 	}
 }
 

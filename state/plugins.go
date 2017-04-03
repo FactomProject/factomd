@@ -22,12 +22,12 @@ func (s *State) UsingTorrent() bool {
 	return s.useDBStateManager
 }
 
-func (s *State) SetUseConsul(setVal bool) {
-	s.useConsul = setVal
+func (s *State) SetUseEtcd(setVal bool) {
+	s.useEtcd = setVal
 }
 
-func (s *State) UsingConsul() bool {
-	return s.useConsul
+func (s *State) UsingEtcd() bool {
+	return s.useEtcd
 }
 
 func (s *State) UploadDBState(msg interfaces.IMsg) {

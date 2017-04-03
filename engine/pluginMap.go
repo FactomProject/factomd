@@ -29,25 +29,25 @@ var _ = ioutil.Discard
 var pluginMap = map[string]plugin.Plugin{
 	// Plugin to manage dbstates
 	"manager": &IManagerPlugin{},
-	"consul":  &IConsulPlugin{},
+	"etcd":    &IEtcdPlugin{},
 }
 
-func LaunchConsulPlugin(path string, addr string) (interfaces.IConsulManager, error) {
+func LaunchEtcdPlugin(path string, addr string) (interfaces.IEtcdManager, error) {
 	// So we don't get debug logs. Comment this out if you want to keep plugin
 	// logs
 	//log.SetOutput(ioutil.Discard)
 
 	var handshakeConfig = plugin.HandshakeConfig{
 		ProtocolVersion:  1,
-		MagicCookieKey:   "Consul_Manager",
-		MagicCookieValue: "factom_consul",
+		MagicCookieKey:   "Etcd_Manager",
+		MagicCookieValue: "factom_etcd",
 	}
 
 	// We're a host! Start by launching the plugin process.
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: handshakeConfig,
 		Plugins:         pluginMap,
-		Cmd:             exec.Command(path+"consul-manager", "plugin", addr),
+		Cmd:             exec.Command(path+"etcd-manager", "plugin", addr),
 	})
 
 	c := make(chan os.Signal, 2)
@@ -63,14 +63,14 @@ func LaunchConsulPlugin(path string, addr string) (interfaces.IConsulManager, er
 	}
 
 	// Request the plugin
-	raw, err := rpcClient.Dispense("consul")
+	raw, err := rpcClient.Dispense("etcd")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	consuleManager := raw.(interfaces.IConsulManager)
+	etcdeManager := raw.(interfaces.IEtcdManager)
 
-	return consuleManager, nil
+	return etcdeManager, nil
 }
 
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that
