@@ -353,7 +353,7 @@ func TestBuildBlock(t *testing.T) {
 	db1.(*DirectoryBlock).Init()
 	//fmt.Println(db1)
 
-	k, _ := primitives.HexToHash("e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33")
+	k, _ := primitives.HexToHash("7b2b988cd5308f76d2a44c564ade986213929b7fcfab6f2fc7694b595c71012e")
 
 	t.Logf(db1.GetKeyMR().String())
 
@@ -520,33 +520,4 @@ Entries:
 	if nil != CheckBlockPairIntegrity(db2, db1) {
 		t.Errorf("CheckBlockPairIntegrity(db2, db1) failed")
 	}
-
-	bm := db.New()
-	bms := fmt.Sprintln(bm)
-
-	expectedString1 = `              KeyMR: e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33
-             BodyMR: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-           FullHash: e9f7dd92d52ff4efa31d0fb6521e64a30e211a262a6d407588f3b9229343b06b
-  Version:         0
-  NetworkID:       0
-  BodyMR:          e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-  PrevKeyMR:       0000000000000000000000000000000000000000000000000000000000000000
-  PrevFullHash:    0000000000000000000000000000000000000000000000000000000000000000
-  Timestamp:       0
-  Timestamp Str:   `
-	epoch = time.Unix(0, 0)
-	expectedString2 = epoch.Format("2006-01-02 15:04:05")
-
-	expectedString3 = `
-  DBHeight:        0
-  BlockCount:      0
-Entries: 
-
-`
-	expectedString = expectedString1 + expectedString2 + expectedString3
-
-	if bms != expectedString {
-		t.Errorf("Invalid bms:\n%v\n%v", bms, expectedString)
-	}
-
 }
