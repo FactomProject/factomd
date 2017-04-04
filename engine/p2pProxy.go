@@ -156,7 +156,13 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	if f.UsingEtcd() {
-		fmt.Printf("RECEIVE FROM ETCD: %x\n", f.EtcdManager.GetData())
+		newMsgBytes := f.EtcdManager.GetData()
+		if len(newMsgBytes) > 0 {
+			for _, indivMsgBytes := range newMsgBytes {
+				msg, err := messages.UnmarshalMessage(indivMsgBytes)
+				return msg, err
+			}
+		}
 	} else {
 		select {
 		case data, ok := <-f.BroadcastIn:
