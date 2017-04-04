@@ -306,43 +306,34 @@ func (c *Connection) dialLoop() {
 	}
 	for {
 		elapsed := time.Since(c.timeLastAttempt)
-		debug(c.peer.PeerIdent(), "Connection.dialLoop() elapsed: %s Attempts: %d", elapsed.String(), c.attempts)
 		if TimeBetweenRedials < elapsed {
 			c.timeLastAttempt = time.Now()
 			switch c.dial() {
 			case true:
-				c.setNotes("Connection.dialLoop() Connected, going online.")
 				c.goOnline()
 				return
 			case false:
 				switch {
 				case c.isPersistent:
-					c.setNotes("Connection.dialLoop() Persistent connection - Sleeping until next redial.")
 					time.Sleep(TimeBetweenRedials)
 				case !c.isOutGoing: // incomming connection we redial once, then give up.
-					c.setNotes("Connection.dialLoop() Incomming Connection - One Shot re-dial, so we're shutting down. Last note was: %s", c.notes)
 					c.goShutdown()
 					return
 				case ConnectionInitialized == c.state:
-					c.setNotes("Connection.dialLoop() ConnectionInitialized - One Shot dial, so we're shutting down. Last note was: %s", c.notes)
 					c.goShutdown() // We're dialing possibly many peers who are no longer there.
 					return
 				case ConnectionOffline == c.state: // We were online with the peer at one point.
-					c.setNotes(fmt.Sprintf("Connection.dialLoop() ConnectionOffline - Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
 					c.attempts++
 					switch {
 					case MaxNumberOfRedialAttempts < c.attempts:
-						c.setNotes(fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts < Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
 						c.goShutdown()
 						return
 					default:
-						c.setNotes(fmt.Sprintf("Connection.dialLoop() MaxNumberOfRedialAttempts > Attempts: %d - since redial: %s TimeBetweenRedials: %s", c.attempts, elapsed.String(), TimeBetweenRedials.String()))
 						time.Sleep(TimeBetweenRedials)
 					}
 				}
 			}
 		} else {
-			c.setNotes("Connection.dialLoop() TimeBetweenRedials > elapsed")
 			time.Sleep(TimeBetweenRedials)
 		}
 	}
@@ -650,52 +641,32 @@ func (c *Connection) parcelValidity(parcel Parcel) uint8 {
 func (c *Connection) handleParcelTypes(parcel Parcel) {
 	switch parcel.Header.Type {
 	case TypeAlert:
-		parcel.Trace("Connection.handleParcelTypes()-TypeAlert", "J")
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Alert: Alert feature not implemented.")
 	case TypePing:
 		// Send Pong
-		parcel.Trace("Connection.handleParcelTypes()-TypePing", "J")
 		pong := NewParcel(CurrentNetwork, []byte("Pong"))
 		pong.Header.Type = TypePong
-		debug(c.peer.PeerIdent(), "handleParcelTypes() GOT PING, Sending Pong: %s", pong.String())
-		parcel.Print()
 		BlockFreeChannelSend(c.SendChannel, ConnectionParcel{Parcel: *pong})
 	case TypePong: // all we need is the timestamp which is set already
-		parcel.Trace("Connection.handleParcelTypes()-TypePong", "J")
-
-		debug(c.peer.PeerIdent(), "handleParcelTypes() GOT Pong.")
 		return
 	case TypePeerRequest:
-		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerRequest")
-		parcel.Trace("Connection.handleParcelTypes()-TypePeerRequest", "J")
-
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypePeerResponse:
-		parcel.Trace("Connection.handleParcelTypes()-TypePeerResponse", "J")
-
-		debug(c.peer.PeerIdent(), "handleParcelTypes() TypePeerResponse")
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypeMessage:
-		parcel.Trace("Connection.handleParcelTypes()-TypeMessage", "J")
 		c.peer.QualityScore = c.peer.QualityScore + 1
-		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessage. Message is a: %s", parcel.MessageType())
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	case TypeMessagePart:
-		parcel.Trace("Connection.handleParcelTypes()-TypeMessagePart", "J")
-		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessagePart. Message is a: %s", parcel.MessageType())
 		c.peer.QualityScore = c.peer.QualityScore + 1
-		debug(c.peer.PeerIdent(), "handleParcelTypes() TypeMessagePart. Message is a: %s", parcel.MessageType())
 		// Store our connection ID so the controller can direct response to us.
 		parcel.Header.TargetPeer = c.peer.Hash
 		parcel.Header.NodeID = NodeID
 		BlockFreeChannelSend(c.ReceiveChannel, ConnectionParcel{Parcel: parcel}) // Controller handles these.
 	default:
-		parcel.Trace("Connection.handleParcelTypes()-unknown", "J")
 		significant(c.peer.PeerIdent(), "!!!!!!!!!!!!!!!!!! Got message of unknown type?")
-		parcel.Print()
 	}
 }
 
@@ -704,12 +675,9 @@ func (c *Connection) pingPeer() {
 	durationLastPing := time.Since(c.timeLastPing)
 	if PingInterval < durationLastContact && PingInterval < durationLastPing {
 		if MaxNumberOfRedialAttempts < c.attempts {
-			note(c.peer.PeerIdent(), "pingPeer() GOING OFFLINE - No response to pings. Attempts: %d Ti  since last contact: %s and time since last ping: %s", PingInterval.String(), durationLastContact.String(), durationLastPing.String())
 			c.goOffline()
 			return
 		} else {
-			verbose(c.peer.PeerIdent(), "pingPeer() Connection State: %s", c.ConnectionState())
-			note(c.peer.PeerIdent(), "pingPeer() Ping interval %s is less than duration since last contact: %s and time since last ping: %s", PingInterval.String(), durationLastContact.String(), durationLastPing.String())
 			parcel := NewParcel(CurrentNetwork, []byte("Ping"))
 			parcel.Header.Type = TypePing
 			c.timeLastPing = time.Now()
@@ -720,7 +688,6 @@ func (c *Connection) pingPeer() {
 }
 
 func (c *Connection) updatePeer() {
-	verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdatingPeer - Connection State: %s", c.ConnectionState())
 	c.timeLastUpdate = time.Now()
 	BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdatingPeer, Peer: c.peer})
 }

@@ -6,6 +6,7 @@ package state
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -106,6 +107,12 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
 	if pl == nil {
+		return nil
+	}
+
+	// If the timestamp is over a day old, then there is really no point in saving the state of
+	// historical data.
+	if time.Now().Unix()-d.DirectoryBlock.GetHeader().GetTimestamp().GetTimeSeconds() > 24*60*60 {
 		return nil
 	}
 

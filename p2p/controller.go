@@ -400,26 +400,15 @@ func (c *Controller) runloop() {
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
 // route also passes incomming messages on to the application.
 func (c *Controller) route() {
-	dot("&&a\n")
-	debug("ctrlr", "ctrlr.route() called. Number peers: %d", len(c.connections))
 	// Recieve messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
 		// Empty the recieve channel, stuff the application channel.
-		dot("&&b\n")
-		debug(peerHash, "ctrlr.route() size of recieve channel: %d", len(connection.ReceiveChannel))
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
-			dot("&&c\n")
 			message := <-connection.ReceiveChannel
-			dot("&&d\n")
 			switch message.(type) {
 			case ConnectionCommand:
-				debug(peerHash, "ctrlr.route() ConnectionCommand")
 				c.handleConnectionCommand(message.(ConnectionCommand), *connection)
 			case ConnectionParcel:
-				debug(peerHash, "ctrlr.route() ConnectionParcel")
-				msg := message.(ConnectionParcel)
-				parcel := msg.Parcel
-				parcel.Trace("controller.route().ReceiveChannel.ConnectionParcel", "K")
 				c.handleParcelReceive(message, peerHash, *connection)
 			default:
 				logfatal("ctrlr", "route() unknown message?: %+v ", message)
@@ -429,38 +418,33 @@ func (c *Controller) route() {
 	// For each message, see if it is directed, if so, send to the
 	// specific peer, otherwise, broadcast.
 	// significant("ctrlr", "Controller.route() size of ToNetwork channel: %d", len(c.ToNetwork))
-	dot("&&e\n")
 	for 0 < len(c.ToNetwork) { // effectively "While there are messages"
-		dot("&&f\n")
 		message := <-c.ToNetwork
-		dot("&&g\n")
 		parcel := message.(Parcel)
 		TotalMessagesSent++
-		debug("ctrlr", "Controller.route() got parcel from APPLICATION %+v", parcel.Header)
-		parcel.Trace("controller.route().ToNetwork", "c")
 		switch parcel.Header.TargetPeer {
 		case BroadcastFlag: // Send to all peers
-			parcel.Trace("controller.route().Broadcast", "d")
-			debug("ctrlr", "Controller.route() Broadcast send to %d peers", len(c.connections))
 			for _, connection := range c.connections {
-				dot("&&k\n")
-				debug("ctrlr", "Controller.route() Send to peer %s ", connection.peer.Hash)
 				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
 			}
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			debug("ctrlr", "Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
 			bestKey := ""
-			for key := range c.connections {
-				switch {
-				case 0 == len(bestKey):
-					bestKey = key
-				case 2 == rand.Intn(3):
-					bestKey = key
+		search:
+			for i := 0; i < len(c.connections)*3; i++ {
+				guess := (rand.Int() % len(c.connections))
+				i := 0
+				for key := range c.connections {
+					if i == guess {
+						connection := c.connections[key]
+						if connection.metrics.BytesReceived > 0 {
+							bestKey = key
+							break search
+						}
+					}
 				}
-				debug("ctrlr", "Directed Random: bestKey: %s, key: %s", bestKey, key)
 			}
 			parcel.Header.TargetPeer = bestKey
-			debug("ctrlr", "Controller.route() Directed FOUND RANDOM Target: %s Type: %s ", parcel.Header.TargetPeer, parcel.Header.AppType)
 			c.doDirectedSend(parcel)
 		default: // Check if we're connected to the peer, if not drop message.
 			debug("ctrlr", "Controller.route() Directed Neither Random nor Broadcast: %s Type: %s ", parcel.Header.TargetPeer, parcel.Header.AppType)
@@ -472,13 +456,7 @@ func (c *Controller) route() {
 func (c *Controller) doDirectedSend(parcel Parcel) {
 	connection, present := c.connections[parcel.Header.TargetPeer]
 	if present { // We're still connected to the target
-		parcel.Trace("controller.route().Directed Success", "d")
-		debug("ctrlr", "Controller.route() SUCCESS Directed send to %+v", parcel.Header.TargetPeer)
-		dot("&&i\n")
 		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
-	} else {
-		parcel.Trace("controller.route().Directed FAILURE not connected. Dropping message.", "d")
-		debug("ctrlr", "Controller.route() Directed FAILURE not connected. Dropping message. %+v", parcel.Header.TargetPeer)
 	}
 }
 
@@ -487,34 +465,24 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 	TotalMessagesRecieved++
 	parameters := message.(ConnectionParcel)
 	parcel := parameters.Parcel
-	debug("ctrlr", "Controller.route() got parcel from NETWORK %+v", parcel.MessageType())
-	dot("&&l\n")
 	parcel.Header.TargetPeer = peerHash // Set the connection ID so the application knows which peer the message is from.
 	switch parcel.Header.Type {
 	case TypeMessage: // Application message, send it on.
-		parcel.Trace("Controller.handleParcelReceive()-TypeMessage", "L")
-		dot("&&m\n")
 		ApplicationMessagesRecieved++
 		BlockFreeChannelSend(c.FromNetwork, parcel)
 	case TypeMessagePart: // A part of the application message, handle by assembler and if we have the full message, send it on.
-		parcel.Trace("Controller.handleParcelReceive()-TypeMessagePart", "L")
 		assembled := c.partsAssembler.handlePart(parcel)
 		if assembled != nil {
 			ApplicationMessagesRecieved++
 			BlockFreeChannelSend(c.FromNetwork, *assembled)
 		}
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
-		parcel.Trace("Controller.handleParcelReceive()-TypePeerRequest", "L")
-		dot("&&n\n")
 		// Get selection of peers from discovery
 		response := NewParcel(CurrentNetwork, c.discovery.SharePeers())
 		response.Header.Type = TypePeerResponse
 		// Send them out to the network - on the connection that requested it!
-		debug("ctrlr", "Controller.route() sent the SharePeers response: %+v", response.MessageType())
 		BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: *response})
 	case TypePeerResponse:
-		parcel.Trace("Controller.handleParcelReceive()-TypePeerResponse", "L")
-		dot("&&o\n")
 		// Add these peers to our known peers
 		c.discovery.LearnPeers(parcel)
 	default:
@@ -527,18 +495,12 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 	switch command.Command {
 	case ConnectionUpdateMetrics:
 		c.connectionMetrics[connection.peer.Hash] = command.Metrics
-		dot("&&p\n")
-		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdateMetrics")
 	case ConnectionIsClosed:
-		dot("&&q\n")
-		debug("ctrlr", "handleConnectionCommand() Got ConnectionIsShutdown from  %s", connection.peer.Hash)
 		delete(c.connectionsByAddress, connection.peer.Address)
 		delete(c.connections, connection.peer.Hash)
 		delete(c.connectionMetrics, connection.peer.Hash)
 		go connection.goShutdown()
 	case ConnectionUpdatingPeer:
-		dot("&&r\n")
-		debug("ctrlr", "handleConnectionCommand() Got ConnectionUpdatingPeer from  %s", connection.peer.Hash)
 		c.discovery.updatePeer(command.Peer)
 	default:
 		logfatal("ctrlr", "handleParcelReceive() unknown command.command?: %+v ", command.Command)
