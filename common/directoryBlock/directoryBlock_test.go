@@ -355,12 +355,10 @@ func TestBuildBlock(t *testing.T) {
 
 	k, _ := primitives.HexToHash("e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33")
 
-	fmt.Println(db1.GetKeyMR().String())
+	t.Logf(db1.GetKeyMR().String())
 
 	if !k.IsSameAs(db1.GetKeyMR()) { //expected an empty directoryblock
-		fmt.Println(k)
-		fmt.Println(db1.GetKeyMR())
-		t.Fail()
+		t.Errorf("Invalid KeyMR - %v vs %v", k, db1.GetKeyMR())
 	}
 
 	db := NewDirectoryBlock(nil)
@@ -396,9 +394,7 @@ func TestBuildBlock(t *testing.T) {
 	k, _ = primitives.HexToHash("eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc")
 
 	if !k.IsSameAs(db.GetKeyMR()) {
-		fmt.Println(k)
-		fmt.Println(db.GetKeyMR())
-		t.Fail()
+		t.Errorf("Invalid KeyMR - %v vs %v", k, db.GetKeyMR())
 	}
 
 	es := db.GetEBlockDBEntries()
@@ -406,26 +402,20 @@ func TestBuildBlock(t *testing.T) {
 	//fmt.Println(es[1].GetChainID())
 
 	if !c.IsSameAs(es[1].GetChainID()) {
-		fmt.Println(c)
-		fmt.Println(es[1].GetChainID())
-		t.Fail()
+		t.Errorf("Invalid ChainID - %v vs %v", c, es[1].GetChainID())
 	}
 
 	es2 := db.GetEntryHashes()
 	//fmt.Println(es2)
 	if !h.IsSameAs(es2[4]) {
-		fmt.Println(h)
-		fmt.Println(es2[4])
-		t.Fail()
+		t.Errorf("Invalid Entry Hash - %v vs %v", h, es2[4])
 	}
 
 	es3 := db.GetEntryHashesForBranch()
 	list := fmt.Sprintf("%v", es3)
 	expectedList := "[000000000000000000000000000000000000000000000000000000000000000a 4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e 000000000000000000000000000000000000000000000000000000000000000c a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56 000000000000000000000000000000000000000000000000000000000000000f c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71 9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604 b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898]"
 	if list != expectedList {
-		fmt.Println(h)
-		fmt.Println(es2[4])
-		t.Fail()
+		fmt.Printf("Invalid expectedList - %v vs %v", h, es2[4])
 	}
 
 	printout := db.String()
@@ -459,9 +449,7 @@ Entries:
 `
 	expectedString := expectedString1 + expectedString2 + expectedString3
 	if printout != expectedString {
-		fmt.Println(printout)
-		fmt.Println(expectedString)
-		t.Fail()
+		t.Errorf("Invalid printout:\n%v\n%v", printout, expectedString)
 	}
 
 	m := db.GetDatabaseHeight()
@@ -472,22 +460,19 @@ Entries:
 	n := db.GetChainID()
 	cid, _ := primitives.HexToHash("000000000000000000000000000000000000000000000000000000000000000d")
 	if !n.IsSameAs(cid) {
-		fmt.Println(n)
-		fmt.Println(cid)
-		t.Fail()
+		t.Errorf("Invalid cid - %v vs %v", n, cid)
 	}
 
 	o := db.DatabasePrimaryIndex()
 	r, _ := primitives.HexToHash("eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc")
 	if !o.IsSameAs(r) {
-		fmt.Println(o)
-		fmt.Println(r)
-		t.Fail()
+		t.Errorf("Invalid DatabasePrimaryIndex - %v vs %v", o, r)
 	}
 
 	p := db.DatabaseSecondaryIndex()
 	s, _ := primitives.HexToHash("857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9")
 	if !p.IsSameAs(s) {
+		t.Errorf("Invalid DatabaseSecondaryIndex - %v vs %v", p, s)
 		fmt.Println(p)
 		fmt.Println(s)
 		t.Fail()
@@ -498,9 +483,7 @@ Entries:
 
 	expectedString = `{"DBHash":"857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9","KeyMR":"eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc","Header":{"Version":0,"NetworkID":0,"BodyMR":"01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3","PrevKeyMR":"0000000000000000000000000000000000000000000000000000000000000000","PrevFullHash":"0000000000000000000000000000000000000000000000000000000000000000","Timestamp":0,"DBHeight":0,"BlockCount":5,"ChainID":"000000000000000000000000000000000000000000000000000000000000000d"},"DBEntries":[{"ChainID":"000000000000000000000000000000000000000000000000000000000000000a","KeyMR":"4fb409d5369fad6aa7768dc620f11cd219f9b885956b631ad050962ca934052e"},{"ChainID":"000000000000000000000000000000000000000000000000000000000000000c","KeyMR":"a566023a9d7b824e4a12121ee38bc4d3c4987988f04eb8cfecc63570936d7c56"},{"ChainID":"000000000000000000000000000000000000000000000000000000000000000f","KeyMR":"c9ab808e3d1d5eb2b7d3fa946dca27c2d250d782dab05a729fe99e9aaf656330"},{"ChainID":"3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71","KeyMR":"9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e"},{"ChainID":"df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604","KeyMR":"b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898"}]}`
 	if returnVal != expectedString {
-		fmt.Println("got", returnVal)
-		fmt.Println("expected", expectedString)
-		t.Fail()
+		t.Errorf("Invalid returnVal:\n%v\n%v", returnVal, expectedString)
 	}
 
 	//fmt.Println(q)
@@ -508,17 +491,15 @@ Entries:
 	returnByte, _ := db.JSONByte()
 	by := string(returnByte)
 	if by != expectedString {
-		fmt.Println("got", by)
-		fmt.Println("expected", expectedString)
-		t.Fail()
+		t.Errorf("Invalid returnByte:\n%v\n%v", by, expectedString)
 	}
 
 	if nil == CheckBlockPairIntegrity(nil, nil) {
-		t.Fail()
+		t.Errorf("CheckBlockPairIntegrity(nil, nil) failed")
 	}
 
 	if nil != CheckBlockPairIntegrity(db, nil) {
-		t.Fail()
+		t.Errorf("CheckBlockPairIntegrity(db, nil) failed")
 	}
 
 	db2 := NewDirectoryBlock(db1)
@@ -532,12 +513,12 @@ Entries:
 
 	_, err := db2.MarshalBinary()
 
-	if nil != err {
-		t.Fail()
+	if err != nil {
+		t.Errorf("%v", err)
 	}
 
 	if nil != CheckBlockPairIntegrity(db2, db1) {
-		t.Fail()
+		t.Errorf("CheckBlockPairIntegrity(db2, db1) failed")
 	}
 
 	bm := db.New()
@@ -565,9 +546,7 @@ Entries:
 	expectedString = expectedString1 + expectedString2 + expectedString3
 
 	if bms != expectedString {
-		fmt.Println(bms)
-		fmt.Println(expectedString)
-		t.Fail()
+		t.Errorf("Invalid bms:\n%v\n%v", bms, expectedString)
 	}
 
 }
