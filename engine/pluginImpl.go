@@ -169,23 +169,13 @@ type GetMinuteData struct {
 	MinuteNum   int
 }
 
-func (g *IEtcdPluginRPC) GetMinuteData(blockHeight uint32, minuteNum int) [][]byte {
+func (g *IEtcdPluginRPC) GetData() [][]byte {
 	var resp [][]byte
 	args := SendIntoEtcdArgs{
-		BlockHeight: blockHeight,
-		MinuteNum:   minuteNum,
+		BlockHeight: 0,
+		MinuteNum:   0,
 	}
-	err := g.client.Call("Plugin.GetMinuteData", &args, &resp)
-	if err != nil {
-		return nil
-	}
-
-	return resp
-}
-
-func (g *IEtcdPluginRPC) GetBlockData(blockHeight uint32) [][]byte {
-	var resp [][]byte
-	err := g.client.Call("Plugin.GetBlockData", blockHeight, &resp)
+	err := g.client.Call("Plugin.GetData", &args, &resp)
 	if err != nil {
 		return nil
 	}
@@ -205,13 +195,8 @@ func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *error)
 	return *resp
 }
 
-func (s *IEtcdPluginRPCServer) GetMinuteData(args *GetMinuteData, resp *[][]byte) error {
-	*resp = s.Impl.GetMinuteData(args.BlockHeight, args.MinuteNum)
-	return nil
-}
-
-func (s *IEtcdPluginRPCServer) GetBlockData(blockheight uint32, resp *[][]byte) error {
-	*resp = s.Impl.GetBlockData(blockheight)
+func (s *IEtcdPluginRPCServer) GetData(args *GetMinuteData, resp *[][]byte) error {
+	*resp = s.Impl.GetData()
 	return nil
 }
 
