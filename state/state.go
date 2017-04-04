@@ -5,10 +5,10 @@
 package state
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -29,6 +29,7 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/logger"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -37,6 +38,8 @@ var _ = fmt.Print
 
 type State struct {
 	filename string
+
+	NetworkControler *p2p.Controller
 
 	Salt interfaces.IHash
 
@@ -199,7 +202,7 @@ type State struct {
 
 	DBSigFails int // Keep track of how many blockhash mismatches we've had to correct
 
-	Saving  bool // True if we are in the process of saving to the dabase
+	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     bool // Disable if true, Enable if false
@@ -290,8 +293,12 @@ type State struct {
 	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
-	MissingEntries []MissingEntry
+	MissingEntries chan *MissingEntry
 
+	// Holds leaders and followers up until all missing entries are processed, if true
+	WaitForEntries  bool
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
+	WriteEntry      chan interfaces.IEBEntry
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -314,15 +321,22 @@ type State struct {
 	AckChange uint32
 }
 
+type EntryUpdate struct {
+	Hash      interfaces.IHash
+	Timestamp interfaces.Timestamp
+}
+
 type MissingEntryBlock struct {
 	ebhash   interfaces.IHash
 	dbheight uint32
 }
 
 type MissingEntry struct {
-	ebhash    interfaces.IHash
-	entryhash interfaces.IHash
-	dbheight  uint32
+	Cnt       int
+	LastTime  time.Time
+	EBHash    interfaces.IHash
+	EntryHash interfaces.IHash
+	DBHeight  uint32
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -710,6 +724,9 @@ func (s *State) Init() {
 	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 20000)       //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 30000)       //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 10000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -1395,10 +1412,10 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 // JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
 	type journalentry struct {
-		Type byte
+		Type    byte
 		Message interfaces.IMsg
 	}
-	
+
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
@@ -1406,11 +1423,11 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 			return
 		}
 		defer f.Close()
-		
+
 		e := new(journalentry)
 		e.Type = msg.Type()
 		e.Message = msg
-		
+
 		p, err := json.Marshal(e)
 		if err != nil {
 			return
@@ -1420,96 +1437,29 @@ func (s *State) JournalMessage(msg interfaces.IMsg) {
 }
 
 // GetJournalMessages gets all messages from the message journal
-func (s *State) GetJournalMessages() []interfaces.IMsg {
-	type journalentry struct {
-		Type byte
-		Message json.RawMessage
+func (s *State) GetJournalMessages() [][]byte {
+	ret := make([][]byte, 0)
+	if !s.Journaling || len(s.JournalFile) == 0 {
+		return nil
 	}
 
-	if s.Journaling && len(s.JournalFile) != 0 {
-		f, err := os.Open(s.JournalFile)
-		if err != nil {
-			s.JournalFile = ""
-			return nil
-		}
-		defer f.Close()
-		
-		msgs := make([]interfaces.IMsg, 0)
-		
-		dec := json.NewDecoder(f)
-		for {
-		    e := new(journalentry)
-		    if err := dec.Decode(e); err == io.EOF {
-		        break
-		    } else if err != nil {
-		        return nil
-		    }
-			var msg interfaces.IMsg
-			
-			switch e.Type {
-			case constants.EOM_MSG:
-				msg = new(messages.EOM)
-			case constants.ACK_MSG:
-				msg = new(messages.Ack)
-			case constants.AUDIT_SERVER_FAULT_MSG:
-				msg = new(messages.AuditServerFault)
-			case constants.FED_SERVER_FAULT_MSG:
-				msg = new(messages.ServerFault)
-			case constants.FULL_SERVER_FAULT_MSG:
-				msg = new(messages.FullServerFault)
-			case constants.COMMIT_CHAIN_MSG:
-				msg = new(messages.CommitChainMsg)
-			case constants.COMMIT_ENTRY_MSG:
-				msg = new(messages.CommitEntryMsg)
-			case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-				msg = new(messages.DirectoryBlockSignature)
-			case constants.EOM_TIMEOUT_MSG:
-				msg = new(messages.EOMTimeout)
-			case constants.FACTOID_TRANSACTION_MSG:
-				msg = new(messages.FactoidTransaction)
-			case constants.HEARTBEAT_MSG:
-				msg = new(messages.Heartbeat)
-			case constants.INVALID_DIRECTORY_BLOCK_MSG:
-				msg = new(messages.InvalidDirectoryBlock)
-			case constants.MISSING_MSG:
-				msg = new(messages.MissingMsg)
-			case constants.MISSING_MSG_RESPONSE:
-				msg = new(messages.MissingMsgResponse)
-			case constants.MISSING_DATA:
-				msg = new(messages.MissingData)
-			case constants.DATA_RESPONSE:
-				msg = new(messages.DataResponse)
-			case constants.REVEAL_ENTRY_MSG:
-				msg = new(messages.RevealEntryMsg)
-			case constants.REQUEST_BLOCK_MSG:
-				msg = new(messages.RequestBlock)
-			case constants.SIGNATURE_TIMEOUT_MSG:
-				msg = new(messages.SignatureTimeout)
-			case constants.DBSTATE_MISSING_MSG:
-				msg = new(messages.DBStateMissing)
-			case constants.DBSTATE_MSG:
-				msg = new(messages.DBStateMsg)
-			case constants.ADDSERVER_MSG:
-				msg = new(messages.AddServerMsg)
-			case constants.CHANGESERVER_KEY_MSG:
-				msg = new(messages.ChangeServerKeyMsg)
-			case constants.REMOVESERVER_MSG:
-				msg = new(messages.RemoveServerMsg)
-			case constants.BOUNCE_MSG:
-				msg = new(messages.Bounce)
-			case constants.BOUNCEREPLY_MSG:
-				msg = new(messages.BounceReply)
-			default:
-				return msgs
-		    }
-		    if err := json.Unmarshal(e.Message, msg); err != nil {
-		    	return msgs
-		    }
-		    msgs = append(msgs, msg)
-		}
-		return msgs
+	f, err := os.Open(s.JournalFile)
+	if err != nil {
+		s.JournalFile = ""
+		return nil
 	}
-	return nil
+	defer f.Close()
+
+	r := bufio.NewReader(f)
+	for {
+		p, err := r.ReadBytes('\n')
+		if err != nil {
+			break
+		}
+		ret = append(ret, p)
+	}
+
+	return ret
 }
 
 func (s *State) GetLeaderVM() int {
@@ -1559,8 +1509,6 @@ func (s *State) UpdateState() (progress bool) {
 	p2 := s.DBStates.UpdateState()
 	progress = progress || p2
 
-	s.catchupEBlocks()
-
 	s.SetString()
 	if s.ControlPanelDataRequest {
 		s.CopyStateToControlPanel()
@@ -1569,6 +1517,21 @@ func (s *State) UpdateState() (progress bool) {
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
+
+entryHashProcessing:
+	for {
+		select {
+		case e := <-s.UpdateEntryHash:
+			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
+			// If the save worked, then remove any commit that might be around.
+			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
+				delete(s.Commits, e.Hash.Fixed())
+			}
+		default:
+			break entryHashProcessing
+		}
+	}
 
 	return
 }
@@ -1820,7 +1783,7 @@ func (s *State) GetAuthorities() []interfaces.IAuthority {
 	for _, auth := range s.Authorities {
 		auths = append(auths, auth)
 	}
-	
+
 	return auths
 }
 
@@ -2216,6 +2179,9 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
 	if h < 0 {
 		h = 0
+	}
+	if h > 0 && uint32(h-1) > s.HighestKnown {
+		s.HighestKnown = uint32(h - 1)
 	}
 	return uint32(h)
 }

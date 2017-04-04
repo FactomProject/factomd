@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
+	"runtime"
 )
 
 var _ = fmt.Print
@@ -90,6 +91,19 @@ func SimControl(listenTo int) {
 				os.Stderr.WriteString("Reset Node: " + s.FactomNodeName + "\n")
 				s.Reset()
 
+			case 'b' == b[0]:
+				if len(b) == 1 {
+					os.Stderr.WriteString("specifivy how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
+					break
+				}
+				delay, err := strconv.Atoi(string(b[1:]))
+				if err != nil {
+					os.Stderr.WriteString("type bnnn where nnn is the number of nanoseconds of a block to record when profiling.\n")
+					break
+				}
+				runtime.SetBlockProfileRate(delay)
+				os.Stderr.WriteString(fmt.Sprintf("Recording delays due to blocked go routines longer than %d ns (%d ms)\n", delay, delay/1000000))
+
 			case 'g' == b[0]:
 				if len(b) > 1 {
 					if b[1] == 'c' {
@@ -151,6 +165,16 @@ func SimControl(listenTo int) {
 					wsapiNode = listenTo
 					wsapi.SetState(fnodes[wsapiNode].State)
 					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
+				}
+			case 'W' == b[0]:
+				if listenTo < 0 || listenTo > len(fnodes) {
+					break
+				}
+				fnodes[listenTo].State.WaitForEntries = !fnodes[listenTo].State.WaitForEntries
+				if fnodes[listenTo].State.WaitForEntries {
+					os.Stderr.WriteString("Wait for all Entries\n")
+				} else {
+					os.Stderr.WriteString("Don't wait for all Entries\n")
 				}
 			case 's' == b[0]:
 

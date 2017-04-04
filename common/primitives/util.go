@@ -247,21 +247,26 @@ func ConvertECPrivateToUserStr(addr interfaces.IAddress) string {
 // Returns false if the checksum is wrong.
 //
 func validateUserStr(prefix []byte, userFAddr string) bool {
+
 	if len(userFAddr) != 52 {
 		return false
 	}
+
 	v := base58.Decode(userFAddr)
 	if len(v) < 3 {
 		return false
 	}
+
 	if bytes.Compare(prefix, v[:2]) != 0 {
 		return false
 
 	}
+
 	sha256d := Sha(Sha(v[:34]).Bytes()).Bytes()
 	if bytes.Compare(sha256d[:4], v[34:]) != 0 {
 		return false
 	}
+
 	return true
 }
 

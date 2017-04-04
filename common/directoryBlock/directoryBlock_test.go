@@ -182,10 +182,6 @@ func TestInvalidUnmarshalDirectoryBlock(t *testing.T) {
 
 func TestMakeSureBlockCountIsNotDuplicates(t *testing.T) {
 	block := createTestDirectoryBlock()
-	err := block.SetDBEntries([]interfaces.IDBEntry{})
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
 	min := 1000
 	max := -1
 
@@ -239,6 +235,10 @@ func createTestDirectoryBlock() *DirectoryBlock {
 	if err != nil {
 		panic(err)
 	}
+
+	dblock.AddEntry(primitives.NewHash(constants.ADMIN_CHAINID), primitives.NewZeroHash())
+	dblock.AddEntry(primitives.NewHash(constants.EC_CHAINID), primitives.NewZeroHash())
+	dblock.AddEntry(primitives.NewHash(constants.FACTOID_CHAINID), primitives.NewZeroHash())
 	dblock.GetHeader().SetBlockCount(uint32(len(dblock.GetDBEntries())))
 
 	return dblock
@@ -349,11 +349,13 @@ func TestExpandedDBlockHeader(t *testing.T) {
 }
 
 func TestBuildBlock(t *testing.T) {
-	db1 := new(DirectoryBlock)
-	db1.Init()
+	db1 := NewDirectoryBlock(nil)
+	db1.(*DirectoryBlock).Init()
 	//fmt.Println(db1)
 
 	k, _ := primitives.HexToHash("e118d53659a92c69ad37602827bfaf256428867c6827f10829d678d7f8ddab33")
+
+	fmt.Println(db1.GetKeyMR().String())
 
 	if !k.IsSameAs(db1.GetKeyMR()) { //expected an empty directoryblock
 		fmt.Println(k)
@@ -391,7 +393,7 @@ func TestBuildBlock(t *testing.T) {
 	h, _ = primitives.HexToHash("b926da5ea5840b34189c37c55db9eb482f6e370bd097a16d6e890bc000c10898")
 	db.SetEntryHash(h, c, 4)
 
-	k, _ = primitives.HexToHash("25212d6cb70ce4f109f09092985fd200da5d59668451601e21ba66e6ee0c9ebb")
+	k, _ = primitives.HexToHash("eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc")
 
 	if !k.IsSameAs(db.GetKeyMR()) {
 		fmt.Println(k)
@@ -427,7 +429,7 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	printout := db.String()
-	expectedString1 := `              KeyMR: eadf05b85c7ad70390c72783a9a3a29ae253f4f7d45d36f176bbc56d56bab9cc
+	expectedString1 := fmt.Sprintf(`              KeyMR: %s
              BodyMR: 01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
            FullHash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
   Version:         0
@@ -436,7 +438,7 @@ func TestBuildBlock(t *testing.T) {
   PrevKeyMR:       0000000000000000000000000000000000000000000000000000000000000000
   PrevFullHash:    0000000000000000000000000000000000000000000000000000000000000000
   Timestamp:       0
-  Timestamp Str:   `
+  Timestamp Str:   `, k.String()) // Use KeyMR from above
 	epoch := time.Unix(0, 0)
 	expectedString2 := epoch.Format("2006-01-02 15:04:05")
 

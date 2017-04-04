@@ -67,3 +67,6 @@ import:
   - wire
 - package: github.com/btcsuitereleases/btcrpcclient
   version: master
+- package: github.com/prometheus/client_golang
+  subpackages:
+  - prometheus

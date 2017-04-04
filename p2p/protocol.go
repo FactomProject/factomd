@@ -18,7 +18,7 @@ import (
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
 
 func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
-	highWaterMark := int(float64(StandardChannelSize) * 0.90)
+	highWaterMark := int(float64(cap(channel)) * 0.95)
 	clen := len(channel)
 	switch {
 	case highWaterMark < clen:
@@ -51,8 +51,8 @@ var (
 	NetworkDeadline                      = time.Duration(30) * time.Second
 	NumberPeersToConnect                 = 8
 	MaxNumberIncommingConnections        = 150
-	MaxNumberOfRedialAttempts            = 15
-	StandardChannelSize                  = 100000
+	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
+	StandardChannelSize                  = 20000
 	NetworkStatusInterval                = time.Second * 9
 	ConnectionStatusInterval             = time.Second * 122
 	PingInterval                         = time.Second * 15

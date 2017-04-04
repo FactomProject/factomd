@@ -267,10 +267,9 @@ func (m *DataResponse) MarshalBinary() ([]byte, error) {
 }
 
 func (m *DataResponse) String() string {
-	return fmt.Sprintf("DataResponse Type: %v\n Hash: %x\n Object: %v\n",
+	return fmt.Sprintf("DataResponse Type: %2d Hash: %x\n",
 		m.DataType,
-		m.DataHash.Bytes()[:5],
-		m.DataObject)
+		m.DataHash.Bytes())
 }
 
 func NewDataResponse(state interfaces.IState, dataObject interfaces.BinaryMarshallable,
