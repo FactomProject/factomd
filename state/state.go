@@ -318,11 +318,6 @@ type State struct {
 	useDBStateManager  bool
 	torrentUploadQueue chan interfaces.IMsg
 	DBStateManager     interfaces.IManagerController
-
-	// If this is true, outbound messages will be sent out
-	// via Etcd (as well as sent out over the p2p network normally)
-	useEtcd     bool
-	EtcdManager interfaces.IEtcdManager
 }
 
 type MissingEntryBlock struct {
@@ -1401,13 +1396,6 @@ func (s *State) FetchEntryHashFromProcessListsByTxID(txID string) (interfaces.IH
 		}
 	}
 	return nil, fmt.Errorf("%s", "Transaction not found")
-}
-
-func (s *State) SendIntoEtcd(msg interfaces.IMsg) {
-	msgBytes, err := msg.MarshalBinary()
-	if err == nil {
-		s.EtcdManager.SendIntoEtcd(s.GetDBHeightComplete(), s.GetCurrentMinute(), msgBytes)
-	}
 }
 
 func (s *State) IncFactoidTrans() {

@@ -16,7 +16,7 @@ type IManagerController interface {
 
 // IEtcdManager plugin interface
 type IEtcdManager interface {
-	SendIntoEtcd(blockHeight uint32, minuteNum int, msg []byte) error
+	SendIntoEtcd(msg []byte) error
 	GetMinuteData(blockHeight uint32, minuteNum int) [][]byte
 	GetBlockData(blockHeight uint32) [][]byte
 }

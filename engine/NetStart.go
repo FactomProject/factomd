@@ -339,16 +339,6 @@ func NetStart(s *state.State) {
 		if 0 < networkPortOverride {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
-		if *useEtcd {
-			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress)
-			if err != nil {
-				panic("Encountered an error while trying to use Etcd plugin: " + err.Error())
-			}
-			fnodes[0].State.EtcdManager = etcdManager
-			fnodes[0].State.SetUseEtcd(true)
-		} else {
-			fnodes[0].State.SetUseEtcd(false)
-		}
 
 		ci := p2p.ControllerInit{
 			Port:                     networkPort,
@@ -365,6 +355,18 @@ func NetStart(s *state.State) {
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+
+		if *useEtcd {
+			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress)
+			if err != nil {
+				panic("Encountered an error while trying to use Etcd plugin: " + err.Error())
+			}
+			p2pProxy.EtcdManager = etcdManager
+			p2pProxy.SetUseEtcd(true)
+		} else {
+			p2pProxy.SetUseEtcd(false)
+		}
+
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(netdebug)
 		if 0 < netdebug {

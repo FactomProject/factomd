@@ -151,12 +151,10 @@ type SendIntoEtcdArgs struct {
 	Msg         []byte // interfaces.IMsg
 }
 
-func (g *IEtcdPluginRPC) SendIntoEtcd(blockHeight uint32, minuteNum int, msg []byte) error {
+func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) error {
 	var resp error
 	args := SendIntoEtcdArgs{
-		BlockHeight: blockHeight,
-		MinuteNum:   minuteNum,
-		Msg:         msg,
+		Msg: msg,
 	}
 	err := g.client.Call("Plugin.SendIntoEtcd", &args, &resp)
 	if err != nil {
@@ -203,7 +201,7 @@ type IEtcdPluginRPCServer struct {
 }
 
 func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *error) error {
-	*resp = s.Impl.SendIntoEtcd(args.BlockHeight, args.MinuteNum, args.Msg)
+	*resp = s.Impl.SendIntoEtcd(args.Msg)
 	return *resp
 }
 

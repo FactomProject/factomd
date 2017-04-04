@@ -39,6 +39,11 @@ type P2PProxy struct {
 	NumPeers  int
 	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
 	bytesIn   int // bandwidth recieved by application from network
+
+	// If this is true, outbound messages will be sent out
+	// via Etcd (as well as sent out over the p2p network normally)
+	useEtcd     bool
+	EtcdManager interfaces.IEtcdManager
 }
 
 type factomMessage struct {
@@ -62,6 +67,21 @@ func (e *factomMessage) String() string {
 }
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
+
+func (f *P2PProxy) SetUseEtcd(setVal bool) {
+	f.useEtcd = setVal
+}
+
+func (f *P2PProxy) UsingEtcd() bool {
+	return f.useEtcd
+}
+
+func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) {
+	msgBytes, err := msg.MarshalBinary()
+	if err == nil {
+		f.EtcdManager.SendIntoEtcd(msgBytes)
+	}
+}
 
 func (f *P2PProxy) Weight() int {
 	// should return the number of connections this peer represents.  For now, just say a lot
@@ -102,57 +122,65 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	f.logMessage(msg, false) // NODE_TALK_FIX
-	data, err := msg.MarshalBinary()
-	if err != nil {
-		fmt.Println("ERROR on Send: ", err)
-		return err
+	if f.UsingEtcd() {
+		f.SendIntoEtcd(msg)
+	} else {
+		f.logMessage(msg, false) // NODE_TALK_FIX
+		data, err := msg.MarshalBinary()
+		if err != nil {
+			fmt.Println("ERROR on Send: ", err)
+			return err
+		}
+		f.bytesOut += len(data)
+		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
+		appType := fmt.Sprintf("%d", msg.Type())
+		message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+		switch {
+		case !msg.IsPeer2Peer():
+			message.PeerHash = p2p.BroadcastFlag
+			f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
+		case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
+			message.PeerHash = p2p.RandomPeerFlag
+			f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - RandomPeerFlag", "a")
+		default:
+			f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
+		}
+		if msg.IsPeer2Peer() && 1 < f.debugMode {
+			fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
+		}
+		p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	}
-	f.bytesOut += len(data)
-	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-	appType := fmt.Sprintf("%d", msg.Type())
-	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
-	switch {
-	case !msg.IsPeer2Peer():
-		message.PeerHash = p2p.BroadcastFlag
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
-	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
-		message.PeerHash = p2p.RandomPeerFlag
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - RandomPeerFlag", "a")
-	default:
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
-	}
-	if msg.IsPeer2Peer() && 1 < f.debugMode {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
-	}
-	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	return nil
 }
 
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
-	select {
-	case data, ok := <-f.BroadcastIn:
-		if ok {
-			switch data.(type) {
-			case factomMessage:
-				fmessage := data.(factomMessage)
-				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
-				msg, err := messages.UnmarshalMessage(fmessage.Message)
-				if nil == err {
-					msg.SetNetworkOrigin(fmessage.PeerHash)
+	if f.UsingEtcd() {
+		fmt.Println("RECIEVE FROM ETCD:", f.EtcdManager.GetBlockData(0))
+	} else {
+		select {
+		case data, ok := <-f.BroadcastIn:
+			if ok {
+				switch data.(type) {
+				case factomMessage:
+					fmessage := data.(factomMessage)
+					f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
+					msg, err := messages.UnmarshalMessage(fmessage.Message)
+					if nil == err {
+						msg.SetNetworkOrigin(fmessage.PeerHash)
+					}
+					if 1 < f.debugMode {
+						f.logMessage(msg, true) // NODE_TALK_FIX
+						fmt.Printf(".")
+					}
+					f.bytesIn += len(fmessage.Message)
+					return msg, err
+				default:
+					fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 				}
-				if 1 < f.debugMode {
-					f.logMessage(msg, true) // NODE_TALK_FIX
-					fmt.Printf(".")
-				}
-				f.bytesIn += len(fmessage.Message)
-				return msg, err
-			default:
-				fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 			}
+		default:
 		}
-	default:
 	}
 	return nil, nil
 }

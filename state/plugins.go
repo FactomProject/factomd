@@ -22,14 +22,6 @@ func (s *State) UsingTorrent() bool {
 	return s.useDBStateManager
 }
 
-func (s *State) SetUseEtcd(setVal bool) {
-	s.useEtcd = setVal
-}
-
-func (s *State) UsingEtcd() bool {
-	return s.useEtcd
-}
-
 func (s *State) UploadDBState(msg interfaces.IMsg) {
 	s.torrentUploadQueue <- msg
 }

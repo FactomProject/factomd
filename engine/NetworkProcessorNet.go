@@ -136,40 +136,36 @@ func NetworkOutputs(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp())
 
-				if fnode.State.UsingEtcd() {
-					//fnode.State.SendIntoEtcd(msg)
-				} else {
-					p := msg.GetOrigin() - 1
+				p := msg.GetOrigin() - 1
 
-					if msg.IsPeer2Peer() {
-						// Must have a Peer to send a message to a peer
-						if len(fnode.Peers) > 0 {
-							if p < 0 {
-								p = rand.Int() % len(fnode.Peers)
-							}
-							fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-							if !fnode.State.GetNetStateOff() {
-								fnode.Peers[p].Send(msg)
-								if fnode.State.MessageTally {
-									fnode.State.TallySent(int(msg.Type()))
-								}
+				if msg.IsPeer2Peer() {
+					// Must have a Peer to send a message to a peer
+					if len(fnode.Peers) > 0 {
+						if p < 0 {
+							p = rand.Int() % len(fnode.Peers)
+						}
+						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						if !fnode.State.GetNetStateOff() {
+							fnode.Peers[p].Send(msg)
+							if fnode.State.MessageTally {
+								fnode.State.TallySent(int(msg.Type()))
 							}
 						}
-					} else {
-						for i, peer := range fnode.Peers {
-							wt := 1
-							if p >= 0 {
-								wt = fnode.Peers[p].Weight()
-							}
-							// Don't resend to the node that sent it to you.
-							if i != p || wt > 1 {
-								bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-								fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-								if !fnode.State.GetNetStateOff() {
-									peer.Send(msg)
-									if fnode.State.MessageTally {
-										fnode.State.TallySent(int(msg.Type()))
-									}
+					}
+				} else {
+					for i, peer := range fnode.Peers {
+						wt := 1
+						if p >= 0 {
+							wt = fnode.Peers[p].Weight()
+						}
+						// Don't resend to the node that sent it to you.
+						if i != p || wt > 1 {
+							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+							if !fnode.State.GetNetStateOff() {
+								peer.Send(msg)
+								if fnode.State.MessageTally {
+									fnode.State.TallySent(int(msg.Type()))
 								}
 							}
 						}
