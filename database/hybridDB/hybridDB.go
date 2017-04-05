@@ -84,6 +84,8 @@ func (db *HybridDB) Put(bucket, key []byte, data interfaces.BinaryMarshallable) 
 		return err
 	}
 
+	return nil
+
 	err = db.temporaryStorage.Put(bucket, key, data)
 	if err != nil {
 		return err
@@ -100,6 +102,9 @@ func (db *HybridDB) PutInBatch(records []interfaces.Record) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+
 	err = db.temporaryStorage.PutInBatch(records)
 	if err != nil {
 		return err
@@ -111,19 +116,22 @@ func (db *HybridDB) Get(bucket, key []byte, destination interfaces.BinaryMarshal
 	db.Sem.RLock()
 	defer db.Sem.RUnlock()
 
-	answer, err := db.temporaryStorage.Get(bucket, key, destination)
+	/*
+		answer, err := db.temporaryStorage.Get(bucket, key, destination)
+		if err != nil {
+			return nil, err
+		}
+		if answer != nil {
+			return answer, nil
+		}
+	*/
+
+	answer, err := db.persistentStorage.Get(bucket, key, destination)
 	if err != nil {
 		return nil, err
-	}
-	if answer != nil {
-		return answer, nil
 	}
 
-	answer, err = db.persistentStorage.Get(bucket, key, destination)
-	if err != nil {
-		return nil, err
-	}
-	db.temporaryStorage.Put(bucket, key, answer) //storing the data for later re-fetching
+	// db.temporaryStorage.Put(bucket, key, answer) //storing the data for later re-fetching
 
 	return answer, nil
 }
@@ -166,6 +174,8 @@ func (db *HybridDB) Clear(bucket []byte) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
 
 	err = db.temporaryStorage.Clear(bucket)
 	if err != nil {

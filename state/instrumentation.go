@@ -70,4 +70,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(ESMissing)
 	prometheus.MustRegister(ESFound)
 	prometheus.MustRegister(ESDBHTComplete)
+	prometheus.MustRegister(ESMissingQueue)
+	prometheus.MustRegister(ESHighestMissing)
+	prometheus.MustRegister(ESAvgRequests)
 }
