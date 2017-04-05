@@ -359,6 +359,18 @@ func NetStart(s *state.State) {
 			}
 			p2pProxy.EtcdManager = etcdManager
 			p2pProxy.SetUseEtcd(true)
+
+			etcdWaitStart := time.Now()
+			etcdReady := false
+			for !etcdReady {
+				etcdReady, err = etcdManager.Ready()
+				if err != nil {
+					fmt.Printf("Etcd wait err: %s\n", err.Error())
+				}
+				time.Sleep(time.Second)
+			}
+			etcdWaitElapsed := time.Since(etcdWaitStart)
+			fmt.Printf("Etcd wait took: %s\n", etcdWaitElapsed)
 		} else {
 			p2pProxy.SetUseEtcd(false)
 			p2pNetwork.StartNetwork()
