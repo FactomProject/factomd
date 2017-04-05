@@ -169,8 +169,8 @@ type GetMinuteData struct {
 	MinuteNum   int
 }
 
-func (g *IEtcdPluginRPC) GetData() [][]byte {
-	var resp [][]byte
+func (g *IEtcdPluginRPC) GetData() []byte {
+	var resp []byte
 	args := SendIntoEtcdArgs{
 		BlockHeight: 0,
 		MinuteNum:   0,
@@ -195,7 +195,7 @@ func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *error)
 	return *resp
 }
 
-func (s *IEtcdPluginRPCServer) GetData(args *GetMinuteData, resp *[][]byte) error {
+func (s *IEtcdPluginRPCServer) GetData(args *GetMinuteData, resp *[]byte) error {
 	*resp = s.Impl.GetData()
 	return nil
 }

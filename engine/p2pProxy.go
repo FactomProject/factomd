@@ -158,10 +158,8 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	if f.UsingEtcd() {
 		newMsgBytes := f.EtcdManager.GetData()
 		if len(newMsgBytes) > 0 {
-			for _, indivMsgBytes := range newMsgBytes {
-				msg, err := messages.UnmarshalMessage(indivMsgBytes)
-				return msg, err
-			}
+			msg, err := messages.UnmarshalMessage(newMsgBytes)
+			return msg, err
 		}
 	} else {
 		select {
