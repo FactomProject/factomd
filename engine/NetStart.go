@@ -79,7 +79,7 @@ func NetStart(s *state.State) {
 	// Plugins
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	tormanagerPath := flag.String("plugin", "", "Input the path to the factomd-torrent binary")
-	useEtcd := flag.Bool("etcd", true, "If true, use etcd to track current-block messages.")
+	useEtcd := flag.Bool("etcd", false, "If true, use etcd instead of the default p2p network for current-block messages.")
 	etcdManagerPath := flag.String("etcd-plugin", "", "Input the path to the etcd-manager binary")
 
 	flag.Parse()
