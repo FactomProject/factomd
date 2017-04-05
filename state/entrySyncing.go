@@ -206,7 +206,7 @@ func (s *State) GoSyncEntries() {
 					}
 
 					// Only update the replay hashes in the last 24 hours.
-					if time.Now().Unix()-db.GetTimestamp().GetTimeSeconds() > 24*60*60 {
+					if time.Now().Unix()-db.GetTimestamp().GetTimeSeconds() < 24*60*60 {
 						ueh := new(EntryUpdate)
 						ueh.Hash = entryhash
 						ueh.Timestamp = db.GetTimestamp()

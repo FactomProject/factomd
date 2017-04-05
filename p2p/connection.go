@@ -8,10 +8,8 @@ import (
 	"encoding/gob"
 	"fmt"
 	"hash/crc32"
-	"io"
 	"net"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -240,23 +238,19 @@ func (c *Connection) runLoop() {
 		case ConnectionInitialized:
 			p2pConnectionRunLoopInitalized.Inc()
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				c.setNotes("Connection.runloop(%s) ConnectionInitialized quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			} else {
-				c.setNotes("Connection.runLoop() ConnectionInitialized, going dialLoop(). %+v", c.peer.PeerIdent())
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			}
 		case ConnectionOnline:
 			p2pConnectionRunLoopOnline.Inc()
 			c.pingPeer() // sends a ping periodically if things have been quiet
 			if PeerSaveInterval < time.Since(c.timeLastUpdate) {
-				debug(c.peer.PeerIdent(), "runLoop() PeerSaveInterval interval %s is less than duration since last update: %s ", PeerSaveInterval.String(), time.Since(c.timeLastUpdate).String())
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 			}
 
 			if MinumumQualityScore > c.peer.QualityScore && !c.isPersistent {
-				note(c.peer.PeerIdent(), "Connection.runloop(%s) ConnectionOnline quality score too low: %d", c.peer.PeerIdent(), c.peer.QualityScore)
 				c.updatePeer() // every PeerSaveInterval * 0.90 we send an update peer to the controller.
 				c.goShutdown()
 			}
@@ -265,17 +259,14 @@ func (c *Connection) runLoop() {
 			p2pConnectionRunLoopOffline.Inc()
 			switch {
 			case c.isOutGoing:
-				note(c.peer.PeerIdent(), "Connection.runLoop() ConnectionOffline, going dialLoop().")
 				c.dialLoop() // dialLoop dials until it connects or shuts down.
 			default: // the connection dialed us, so we shutdown
 				c.goShutdown()
 			}
 		case ConnectionShuttingDown:
 			p2pConnectionRunLoopShutdown.Inc()
-			note(c.peer.PeerIdent(), "runLoop() in ConnectionShuttingDown state. The runloop() is sending ConnectionCommand{command: ConnectionIsClosed} Notes: %s", c.notes)
 			c.state = ConnectionClosed
 			BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionIsClosed})
-			fmt.Println(fmt.Sprintf("Connection(%s) has shut down. \nNotes: %s\n\n", c.peer.Address, c.notes))
 			return // ending runloop() goroutine
 		default:
 			logfatal(c.peer.PeerIdent(), "runLoop() unknown state?: %s ", connectionStateStrings[c.state])
@@ -295,66 +286,43 @@ func (c *Connection) dialLoop() {
 	p2pConnectionDialLoop.Inc()
 	defer p2pConnectionDialLoop.Dec()
 
-	c.setNotes(fmt.Sprintf("dialLoop() dialing: %+v", c.peer.PeerIdent()))
-	if c.peer.QualityScore < MinumumQualityScore {
-		c.setNotes("Connection.dialLoop() Quality Score too low, not dialing out again.")
-		c.goShutdown()
-		return
-	}
 	for {
-		elapsed := time.Since(c.timeLastAttempt)
-		if TimeBetweenRedials < elapsed {
-			c.timeLastAttempt = time.Now()
-			switch c.dial() {
-			case true:
-				c.goOnline()
-				return
-			case false:
-				switch {
-				case c.isPersistent:
-					time.Sleep(TimeBetweenRedials)
-				case !c.isOutGoing: // incomming connection we redial once, then give up.
-					c.goShutdown()
-					return
-				case ConnectionInitialized == c.state:
-					c.goShutdown() // We're dialing possibly many peers who are no longer there.
-					return
-				case ConnectionOffline == c.state: // We were online with the peer at one point.
-					c.attempts++
-					switch {
-					case MaxNumberOfRedialAttempts < c.attempts:
-						c.goShutdown()
-						return
-					default:
-						time.Sleep(TimeBetweenRedials)
-					}
-				}
-			}
-		} else {
-			time.Sleep(TimeBetweenRedials)
+		c.timeLastAttempt = time.Now()
+		if c.dial() {
+			c.goOnline()
+			return
 		}
+		switch {
+		case c.isPersistent:
+		case ConnectionOffline == c.state: // We were online with the peer at one point.
+			c.attempts++
+			if MaxNumberOfRedialAttempts < c.attempts {
+				c.goShutdown()
+				return
+			}
+		default:
+			c.goShutdown()
+			return
+		}
+
+		time.Sleep(TimeBetweenRedials)
 	}
 }
 
 // dial() handles connection logic and shifts states based on results.
 func (c *Connection) dial() bool {
 	address := c.peer.AddressPort()
-	note(c.peer.PeerIdent(), "Connection.dial() dialing: %+v", address)
 	// conn, err := net.Dial("tcp", c.peer.Address)
 	conn, err := net.DialTimeout("tcp", address, time.Second*10)
-	if nil != err {
-		c.setNotes(fmt.Sprintf("Connection.dial(%s) got error: %+v", address, err))
-		return false
+	if nil == err {
+		c.conn = conn
+		return true
 	}
-	c.conn = conn
-	c.setNotes(fmt.Sprintf("Connection.dial(%s) was successful.", address))
-	fmt.Println(fmt.Sprintf("Connection.dial(%s) was successful.", address))
-	return true
+	return false
 }
 
 // Called when we are online and connected to the peer.
 func (c *Connection) goOnline() {
-	debug(c.peer.PeerIdent(), "Connection.goOnline() called.")
 	c.state = ConnectionOnline
 	now := time.Now()
 	c.encoder = gob.NewEncoder(c.conn)
@@ -373,7 +341,6 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
-	debug(c.peer.PeerIdent(), "Connection.goOffline()")
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
@@ -528,25 +495,12 @@ func (c *Connection) handleNetErrors() {
 	select {
 	case err := <-c.Errors:
 		nerr, isNetError := err.(net.Error)
-		verbose(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got error: %+v", c.ConnectionState(), err)
 		switch {
 		case isNetError && nerr.Timeout(): /// buffer empty
 			return
-		case isNetError && nerr.Temporary(): /// Temporary error, try to reconnect.
-			c.setNotes(fmt.Sprintf("handleNetErrors() Temporary error: %+v", nerr))
-			c.goOffline()
-		case io.EOF == err:
-			// This does not necessarily mean a connection has hungup/closed, it just signals a 0 byte read.
-		case io.ErrClosedPipe == err: // Remote hung up
-			c.setNotes(fmt.Sprintf("handleNetErrors() Remote hung up - error: %+v", err))
-			c.goOffline()
-		case err == syscall.EPIPE: // "write: broken pipe"
-			c.setNotes(fmt.Sprintf("handleNetErrors() Broken Pipe: %+v", err))
-			c.goOffline()
-
+		//case io.EOF == err:
+		// This does not necessarily mean a connection has hungup/closed, it just signals a 0 byte read.
 		default:
-			significant(c.peer.PeerIdent(), "Connection.handleNetErrors() State: %s We got unhandled coding error: %+v", c.ConnectionState(), err)
-			c.setNotes(fmt.Sprintf("handleNetErrors() Unhandled error: %+v", err))
 			c.goOffline()
 		}
 	default:
