@@ -323,6 +323,7 @@ func (c *Connection) dial() bool {
 
 // Called when we are online and connected to the peer.
 func (c *Connection) goOnline() {
+	p2pConnectionOnlineCall.Inc()
 	c.state = ConnectionOnline
 	now := time.Now()
 	c.encoder = gob.NewEncoder(c.conn)
@@ -341,6 +342,10 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
+	if ConnectionOffline == c.state {
+		return
+	}
+	p2pConnectionOfflineCall.Inc()
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
@@ -492,18 +497,21 @@ func (c *Connection) processReceives() {
 
 //handleNetErrors Reacts to errors we get from encoder or decoder
 func (c *Connection) handleNetErrors() {
-	select {
-	case err := <-c.Errors:
-		nerr, isNetError := err.(net.Error)
-		switch {
-		case isNetError && nerr.Timeout(): /// buffer empty
-			return
-		//case io.EOF == err:
-		// This does not necessarily mean a connection has hungup/closed, it just signals a 0 byte read.
+	for {
+		select {
+		case err := <-c.Errors:
+			nerr, isNetError := err.(net.Error)
+			switch {
+			case isNetError && nerr.Timeout(): /// buffer empty
+				return
+			//case io.EOF == err:
+			// This does not necessarily mean a connection has hungup/closed, it just signals a 0 byte read.
+			default:
+				c.goOffline()
+			}
 		default:
-			c.goOffline()
+			return
 		}
-	default:
 	}
 }
 

@@ -68,6 +68,16 @@ var (
 		Name: "factomd_p2p_connection_commonInit_calls_total",
 		Help: "Number of times the commonInit() is called",
 	})
+
+	p2pConnectionOnlineCall = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_p2p_goOnline_total",
+		Help: "Number of times we call goOnline()",
+	})
+
+	p2pConnectionOfflineCall = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_p2p_goOffline_total",
+		Help: "Number of times we call goOffline()",
+	})
 )
 
 var registered = false
@@ -90,6 +100,8 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(p2pProcessReceivesGuage) // processReceives
 	prometheus.MustRegister(p2pConnectionsRunLoop)
 	prometheus.MustRegister(p2pConnectionDialLoop)
+	prometheus.MustRegister(p2pConnectionOnlineCall)
+	prometheus.MustRegister(p2pConnectionOfflineCall)
 
 	// RunLoop
 	prometheus.MustRegister(p2pConnectionRunLoopInitalized)

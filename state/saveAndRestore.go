@@ -199,9 +199,14 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 }
 
 func (ss *SaveState) TrimBack(state *State, d *DBState) {
+
 	pdbstate := d
 	d = state.DBStates.Get(int(ss.DBHeight + 1))
 	if pdbstate == nil {
+		return
+	}
+	// Don't do anything until we are within the current day
+	if time.Now().Unix()-d.DirectoryBlock.GetTimestamp().GetTimeSeconds() > 24*60*60 {
 		return
 	}
 	pss := pdbstate.SaveStruct
