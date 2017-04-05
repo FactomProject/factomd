@@ -5,7 +5,9 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -1037,17 +1039,37 @@ func PushBalanceMap(b *primitives.Buffer, m map[[32]byte]int64) error {
 	if err != nil {
 		return err
 	}
-	for k, v := range m {
+
+	keys := [][32]byte{}
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(ByKey(keys))
+
+	for _, k := range keys {
 		err = b.Push(k[:])
 		if err != nil {
 			return err
 		}
-		err = b.PushInt64(v)
+		err = b.PushInt64(m[k])
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+type ByKey [][32]byte
+
+func (f ByKey) Len() int {
+	return len(f)
+}
+func (f ByKey) Less(i, j int) bool {
+	return bytes.Compare(f[i][:], f[j][:]) < 0
+}
+func (f ByKey) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
 }
 
 func PopBalanceMap(buf *primitives.Buffer) (map[[32]byte]int64, error) {
