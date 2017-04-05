@@ -350,11 +350,7 @@ func NetStart(s *state.State) {
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
-		p2pNetwork.StartNetwork()
-		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
-		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 		if *useEtcd {
 			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress)
@@ -365,6 +361,10 @@ func NetStart(s *state.State) {
 			p2pProxy.SetUseEtcd(true)
 		} else {
 			p2pProxy.SetUseEtcd(false)
+			p2pNetwork.StartNetwork()
+			// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+			p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+			p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 		}
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
