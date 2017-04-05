@@ -403,14 +403,14 @@ func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 
 	state.FactoidBalancesPMutex.Lock()
 	state.FactoidBalancesP = make(map[[32]byte]int64, 0)
-	for k := range state.FactoidBalancesP {
+	for k := range ss.FactoidBalancesP {
 		state.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
 	}
 	state.FactoidBalancesPMutex.Unlock()
 
 	state.ECBalancesPMutex.Lock()
 	state.ECBalancesP = make(map[[32]byte]int64, 0)
-	for k := range state.ECBalancesP {
+	for k := range ss.ECBalancesP {
 		ss.ECBalancesP[k] = state.ECBalancesP[k]
 	}
 	state.ECBalancesPMutex.Unlock()
