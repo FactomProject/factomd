@@ -925,6 +925,24 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
+
+	if dblk != nil && err == nil && dbheight > 0 {
+		if dbheight%1000 == 0 {
+			fmt.Println("xxxx Progressing ...", dbheight)
+		}
+		pdblk, _ := s.DB.FetchDBlockByHeight(dbheight - 1)
+		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
+		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+			fmt.Println("xxxx Can't get the previous block by hash...")
+		}
+		if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+			fmt.Println("xxxx KeyMR incorrect at height", dbheight-1)
+		}
+		if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
+			fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}

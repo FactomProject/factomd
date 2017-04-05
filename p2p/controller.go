@@ -534,14 +534,11 @@ func (c *Controller) handleCommand(command interface{}) {
 
 		c.connections[conn.peer.Hash] = conn
 		c.connectionsByAddress[conn.peer.Address] = conn
-		debug("ctrlr", "Controller.handleCommand(CommandDialPeer) got peer %s", parameters.peer.Address)
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
 
 		parameters := command.(CommandAddPeer)
 		conn := parameters.conn // net.Conn
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
-		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got rconn.RemoteAddr().String() %s and parsed IP: %s and Port: %s",
-			conn.RemoteAddr().String(), addPort[0], addPort[1])
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		peer.Source["Accept()"] = time.Now()
@@ -550,26 +547,20 @@ func (c *Controller) handleCommand(command interface{}) {
 
 		c.connections[connection.peer.Hash] = connection
 		c.connectionsByAddress[connection.peer.Address] = connection
-		debug("ctrlr", "Controller.handleCommand(CommandAddPeer) got peer %+v", *peer)
 	case CommandShutdown:
-		significant("ctrlr", "handleCommand() Processing command: CommandShutdown")
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
 		CurrentLoggingLevel = parameters.Level
-		significant("ctrlr", "Controller.handleCommand(CommandChangeLogging) new logging level %s", LoggingLevels[parameters.Level])
 	case CommandAdjustPeerQuality:
-		verbose("ctrlr", "handleCommand() Processing command: CommandDemerit")
 		parameters := command.(CommandAdjustPeerQuality)
 		peerHash := parameters.PeerHash
 		c.applicationPeerUpdate(parameters.Adjustment, peerHash)
 	case CommandBan:
-		verbose("ctrlr", "handleCommand() Processing command: CommandBan")
 		parameters := command.(CommandBan)
 		peerHash := parameters.PeerHash
 		c.applicationPeerUpdate(BannedQualityScore, peerHash)
 	case CommandDisconnect:
-		verbose("ctrlr", "handleCommand() Processing command: CommandDisconnect")
 		parameters := command.(CommandDisconnect)
 		peerHash := parameters.PeerHash
 		connection, present := c.connections[peerHash]

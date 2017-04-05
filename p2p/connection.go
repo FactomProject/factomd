@@ -147,9 +147,7 @@ func (c *Connection) InitWithConn(conn net.Conn, peer Peer) *Connection {
 	c.isOutGoing = false // InitWithConn is called by controller's accept() loop
 	c.commonInit(peer)
 	c.isPersistent = false
-	debug(c.peer.PeerIdent(), "Connection.InitWithConn() called.")
 	c.goOnline()
-	c.setNotes("Incomming connection from accept()")
 	return c
 }
 
@@ -159,7 +157,6 @@ func (c *Connection) Init(peer Peer, persistent bool) *Connection {
 	c.isOutGoing = true
 	c.commonInit(peer)
 	c.isPersistent = persistent
-	debug(c.peer.PeerIdent(), "Connection.Init() called.")
 	return c
 }
 
