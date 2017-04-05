@@ -20,6 +20,12 @@ func (b *Buffer) DeepCopyBytes() []byte {
 	return b.Next(b.Len())
 }
 
+func NewBuffer(buf []byte) *Buffer {
+	tmp := new(Buffer)
+	tmp.Buffer = *bytes.NewBuffer(buf)
+	return tmp
+}
+
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
 	bin, err := bm.MarshalBinary()
 	if err != nil {
@@ -83,6 +89,18 @@ func (b *Buffer) PushVarInt(vi uint64) error {
 
 func (b *Buffer) PushByte(h byte) error {
 	return b.WriteByte(h)
+}
+
+func (b *Buffer) PushInt64(i int64) error {
+	return b.PushUInt64(uint64(i))
+}
+
+func (b *Buffer) PopInt64() (int64, error) {
+	i, err := b.PopUInt64()
+	if err != nil {
+		return 0, err
+	}
+	return int64(i), nil
 }
 
 func (b *Buffer) PopByte() (byte, error) {
@@ -180,10 +198,4 @@ func (b *Buffer) PopBinaryMarshallable(dst interfaces.BinaryMarshallable) error 
 		return err
 	}
 	return nil
-}
-
-func NewBuffer(buf []byte) *Buffer {
-	tmp := new(Buffer)
-	tmp.Buffer = *bytes.NewBuffer(buf)
-	return tmp
 }

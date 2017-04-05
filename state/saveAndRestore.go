@@ -505,36 +505,14 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	l = len(ss.FactoidBalancesP)
-	err = buf.PushVarInt(uint64(l))
+	err = PushBalanceMap(buf, ss.FactoidBalancesP)
 	if err != nil {
 		return nil, err
-	}
-	for k, v := range ss.FactoidBalancesP {
-		err = buf.Push(k[:])
-		if err != nil {
-			return nil, err
-		}
-		err = buf.PushUInt64(uint64(v))
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	l = len(ss.ECBalancesP)
-	err = buf.PushVarInt(uint64(l))
+	err = PushBalanceMap(buf, ss.ECBalancesP)
 	if err != nil {
 		return nil, err
-	}
-	for k, v := range ss.ECBalancesP {
-		err = buf.Push(k[:])
-		if err != nil {
-			return nil, err
-		}
-		err = buf.PushUInt64(uint64(v))
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	l = len(ss.Identities)
@@ -791,41 +769,14 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		ss.AuditServers = append(ss.AuditServers, s)
 	}
 
-	k := make([]byte, 32)
-	l, err = buf.PopVarInt()
+	ss.FactoidBalancesP, err = PopBalanceMap(buf)
 	if err != nil {
 		return
-	}
-	for i := 0; i < int(l); i++ {
-		var b [32]byte
-		err = buf.Pop(k)
-		if err != nil {
-			return
-		}
-		copy(b[:], k)
-		v, err := buf.PopUInt64()
-		if err != nil {
-			return newData, err
-		}
-		ss.FactoidBalancesP[b] = int64(v)
 	}
 
-	l, err = buf.PopVarInt()
+	ss.ECBalancesP, err = PopBalanceMap(buf)
 	if err != nil {
 		return
-	}
-	for i := 0; i < int(l); i++ {
-		var b [32]byte
-		err = buf.Pop(k)
-		if err != nil {
-			return
-		}
-		copy(b[:], k)
-		v, err := buf.PopUInt64()
-		if err != nil {
-			return newData, err
-		}
-		ss.ECBalancesP[b] = int64(v)
 	}
 
 	l, err = buf.PopVarInt()
@@ -1078,4 +1029,46 @@ func (e *SaveState) JSONByte() ([]byte, error) {
 
 func (e *SaveState) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
+}
+
+func PushBalanceMap(b *primitives.Buffer, m map[[32]byte]int64) error {
+	l := len(m)
+	err := b.PushVarInt(uint64(l))
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		err = b.Push(k[:])
+		if err != nil {
+			return err
+		}
+		err = b.PushInt64(v)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func PopBalanceMap(buf *primitives.Buffer) (map[[32]byte]int64, error) {
+	m := map[[32]byte]int64{}
+	k := make([]byte, 32)
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(l); i++ {
+		var b [32]byte
+		err = buf.Pop(k)
+		if err != nil {
+			return nil, err
+		}
+		copy(b[:], k)
+		v, err := buf.PopInt64()
+		if err != nil {
+			return nil, err
+		}
+		m[b] = v
+	}
+	return m, nil
 }
