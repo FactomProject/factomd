@@ -18,4 +18,8 @@ type IManagerController interface {
 type IEtcdManager interface {
 	SendIntoEtcd(msg []byte) error
 	GetData() []byte
+
+	// Ready will return true when the etcd client is instantiaed. It will return
+	// an error if the plugin process is unreachable
+	Ready() (bool, error)
 }

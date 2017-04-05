@@ -183,6 +183,20 @@ func (g *IEtcdPluginRPC) GetData() []byte {
 	return resp
 }
 
+type ReadyArgs struct {
+	Ready bool
+	Err   error
+}
+
+func (g *IEtcdPluginRPC) Ready() (bool, error) {
+	var resp ReadyArgs
+	err := g.client.Call("Plugin.Ready", new(interface{}), &resp)
+	if err != nil {
+		return false, err
+	}
+	return resp.Ready, resp.Err
+}
+
 // Here is the RPC server that IEtcdPluginRPC talks to, conforming to
 // the requirements of net/rpc
 type IEtcdPluginRPCServer struct {
@@ -197,6 +211,13 @@ func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *error)
 
 func (s *IEtcdPluginRPCServer) GetData(args *GetMinuteData, resp *[]byte) error {
 	*resp = s.Impl.GetData()
+	return nil
+}
+
+func (s *IEtcdPluginRPCServer) Ready(args interface{}, resp *ReadyArgs) error {
+	ready, err := s.Impl.Ready()
+	resp.Err = err
+	resp.Ready = ready
 	return nil
 }
 
