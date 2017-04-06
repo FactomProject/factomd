@@ -6,12 +6,12 @@ import (
 
 var (
 	LevelDBGets = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_leveldb_cacheblock",
-		Help: "Memory used by Level DB for caching",
+		Name: "factomd_database_leveldb_gets",
+		Help: "Counts gets from the database",
 	})
 	LevelDBPuts = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_database_leveldb_cacheblock",
-		Help: "Memory used by Level DB for caching",
+		Name: "factomd_database_leveldb_puts",
+		Help: "Count puts to the database",
 	})
 	LevelDBCacheblock = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_database_leveldb_cacheblock",

@@ -56,7 +56,7 @@ func (db *LevelDB) ListAllBuckets() ([][]byte, error) {
 // Can't trim a real database
 func (db *LevelDB) Trim() {
 	cache, _ := db.lDB.GetProperty("leveldb.cachedblock")
-	v,err := strconv.Atoi(cache)
+	v, err := strconv.Atoi(cache)
 	if err == nil {
 		LevelDBCacheblock.Set(float64(v))
 	}
