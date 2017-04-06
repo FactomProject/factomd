@@ -219,7 +219,7 @@ func (c *Connection) runLoop() {
 		// if 2 == rand.Intn(100) {
 		debug(c.peer.PeerFixedIdent(), "Connection.runloop() STATE IS: %s", connectionStateStrings[c.state])
 		// }
-		c.handleNetErrors()
+		c.handleNetErrors(false)
 		c.handleCommand()
 
 	parcelloop:
@@ -333,6 +333,11 @@ func (c *Connection) goOnline() {
 	c.timeLastAttempt = now
 	c.timeLastUpdate = now
 	c.peer.LastContact = now
+
+	// Wait a second for the processSends/Receives to put their erros in handleNetErrors,
+	// then drain the handleNetErrors
+	time.Sleep(1 * time.Second)
+	c.handleNetErrors(true)
 	// Probably shouldn't reset metrics when we go online. (Eg: say after a temp network problem)
 	// c.metrics = ConnectionMetrics{MomentConnected: now} // Reset metrics
 	// Now ask the other side for the peers they know about.
@@ -342,9 +347,6 @@ func (c *Connection) goOnline() {
 }
 
 func (c *Connection) goOffline() {
-	if ConnectionOffline == c.state {
-		return
-	}
 	p2pConnectionOfflineCall.Inc()
 	c.state = ConnectionOffline
 	c.attempts = 0
@@ -496,7 +498,8 @@ func (c *Connection) processReceives() {
 }
 
 //handleNetErrors Reacts to errors we get from encoder or decoder
-func (c *Connection) handleNetErrors() {
+func (c *Connection) handleNetErrors(toss bool) {
+	done := false
 	for {
 		select {
 		case err := <-c.Errors:
@@ -504,10 +507,12 @@ func (c *Connection) handleNetErrors() {
 			switch {
 			case isNetError && nerr.Timeout(): /// buffer empty
 				return
-			//case io.EOF == err:
-			// This does not necessarily mean a connection has hungup/closed, it just signals a 0 byte read.
 			default:
-				c.goOffline()
+				// Only go offline once per handleNetErrors call
+				if !toss && !done {
+					c.goOffline()
+				}
+				done = true
 			}
 		default:
 			return
