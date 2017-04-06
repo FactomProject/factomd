@@ -1885,6 +1885,16 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
+func (s *State) GetHighestAck() uint32 {
+	return s.HighestAck
+}
+
+func (s *State) SetHighestAck(dbht uint32) {
+	if dbht > s.HighestAck {
+		s.HighestAck = dbht
+	}
+}
+
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestSavedBlk() uint32 {
 	return s.DBStates.GetHighestSavedBlk()

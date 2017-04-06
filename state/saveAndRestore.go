@@ -415,6 +415,7 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.DBSigSys = ss.DBSigSys
 	state.Saving = true
 	state.Syncing = false
+	state.HighestAck = ss.DBHeight + 1
 	state.HighestKnown = ss.DBHeight + 2
 	state.Holding = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Holding {

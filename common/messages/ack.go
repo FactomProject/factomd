@@ -103,6 +103,11 @@ func (m *Ack) Validate(state interfaces.IState) int {
 			return -1
 		}
 	}
+
+	if m.DBHeight > state.GetHighestAck() {
+		state.SetHighestAck(m.DBHeight)
+	}
+
 	m.authvalid = true
 	return 1
 }
