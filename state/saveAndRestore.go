@@ -6,7 +6,6 @@ package state
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 )
@@ -112,7 +111,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 
 	// If the timestamp is over a day old, then there is really no point in saving the state of
 	// historical data.
-	if time.Now().Unix()-d.DirectoryBlock.GetHeader().GetTimestamp().GetTimeSeconds() > 24*60*60 {
+	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
 		return nil
 	}
 
@@ -206,9 +205,10 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 		return
 	}
 	// Don't do anything until we are within the current day
-	if time.Now().Unix()-d.DirectoryBlock.GetTimestamp().GetTimeSeconds() > 24*60*60 {
+	if state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 144 {
 		return
 	}
+
 	pss := pdbstate.SaveStruct
 	if pss == nil {
 		return

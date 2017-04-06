@@ -926,7 +926,7 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 
-	if dblk != nil && err == nil && dbheight > 0 {
+	if false && dblk != nil && err == nil && dbheight > 0 {
 		if dbheight%1000 == 0 {
 			fmt.Println("xxxx Progressing ...", dbheight)
 		}
