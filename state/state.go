@@ -24,7 +24,9 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/hybridDB"
+	//"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/database/boltdb"
+	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/logger"
@@ -258,6 +260,7 @@ type State struct {
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
 	HighestKnown    uint32
+	HighestAck      uint32
 	AuthorityDeltas string
 
 	// Factom State
@@ -712,20 +715,20 @@ func (s *State) Init() {
 	log.SetLevel(s.ConsoleLogLevel)
 
 	s.ControlPanelChannel = make(chan DisplayState, 20)
-	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
-	s.TimeOffset = new(primitives.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
+	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100)          //incoming eom notifications, used by leaders
+	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000) //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)         //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 10000)           //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 10000)           //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 10000)           //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                       //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 20000)       //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 30000)       //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 10000)     //Entries to be written to the database
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000) //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)        //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 100)            //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)            //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)            //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                      //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)       //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)      //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -925,6 +928,24 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
+
+	if dblk != nil && err == nil && dbheight > 0 {
+		if dbheight%1000 == 0 {
+			fmt.Println("xxxx Progressing ...", dbheight)
+		}
+		pdblk, _ := s.DB.FetchDBlockByHeight(dbheight - 1)
+		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
+		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+			fmt.Println("xxxx Can't get the previous block by hash...")
+		}
+		if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+			fmt.Println("xxxx KeyMR incorrect at height", dbheight-1)
+		}
+		if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
+			fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -1913,10 +1934,10 @@ func (s *State) InitLevelDB() error {
 
 	s.Println("Database:", path)
 
-	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
+	dbase, err := leveldb.NewLevelDB(path, false)
 
 	if err != nil || dbase == nil {
-		dbase, err = hybridDB.NewLevelMapHybridDB(path, true)
+		dbase, err = leveldb.NewLevelDB(path, true)
 		if err != nil {
 			return err
 		}
@@ -1935,7 +1956,9 @@ func (s *State) InitBoltDB() error {
 
 	s.Println("Database Path for", s.FactomNodeName, "is", path)
 	os.MkdirAll(path, 0777)
-	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
+
+	dbase := new(boltdb.BoltDB)
+	dbase.Init(nil, path+"FactomBolt.db")
 	s.DB = databaseOverlay.NewOverlay(dbase)
 	return nil
 }
