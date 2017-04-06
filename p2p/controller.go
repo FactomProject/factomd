@@ -439,6 +439,7 @@ func (c *Controller) route() {
 							break search
 						}
 					}
+					i++
 				}
 			}
 			parcel.Header.TargetPeer = bestKey
