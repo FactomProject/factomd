@@ -213,7 +213,6 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	}
 	peerAddresses := strings.FieldsFunc(peersString, parseFunc)
 	for _, peerAddress := range peerAddresses {
-		fmt.Println("Dialing Peer: ", peerAddress)
 		ipPort := strings.Split(peerAddress, ":")
 		if len(ipPort) == 2 {
 			peer := new(Peer).Init(ipPort[0], ipPort[1], 0, SpecialPeer, 0)
@@ -508,24 +507,6 @@ func (c *Controller) handleConnectionCommand(command ConnectionCommand, connecti
 }
 
 func (c *Controller) handleCommand(command interface{}) {
-
-	// Trim peers first.
-	keep := make(map[string]*Connection)
-	for k, connection := range c.connections {
-		switch {
-		case connection.IsOutGoing() && connection.IsOnline():
-			c.numberOutgoingConnections++
-			keep[k] = connection
-		case !connection.IsOutGoing() && connection.IsOnline():
-			c.numberIncommingConnections++
-			keep[k] = connection
-		case false && connection.state == ConnectionShuttingDown || connection.state == ConnectionClosed:
-		default: // we don't count offline connections for these purposes.
-			keep[k] = connection
-		}
-	}
-	c.connections = keep
-
 	switch commandType := command.(type) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
@@ -625,6 +606,15 @@ func (c *Controller) updateConnectionCounts() {
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0
+	for _, connection := range c.connections {
+		switch {
+		case connection.IsOutGoing() && connection.IsOnline():
+			c.numberOutgoingConnections++
+		case !connection.IsOutGoing() && connection.IsOnline():
+			c.numberIncommingConnections++
+		default: // we don't count offline connections for these purposes.
+		}
+	}
 }
 
 // updateConnectionAddressMap() updates the address index map to reflect all current connections
