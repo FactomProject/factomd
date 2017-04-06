@@ -672,7 +672,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.SaveDirectoryBlockHead(head)
 	}
 
-	list.State.SetHighestAck(uint32(dbheight + 1))
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true

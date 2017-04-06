@@ -207,7 +207,6 @@ func (c *Controller) StartNetwork() {
 
 // DialSpecialPeersString lets us pass in a string of special peers to dial
 func (c *Controller) DialSpecialPeersString(peersString string) {
-	note("ctrlr", "DialSpecialPeersString() Dialing Special Peers %s", peersString)
 	parseFunc := func(c rune) bool {
 		return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 	}
@@ -225,48 +224,39 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 }
 
 func (c *Controller) StartLogging(level uint8) {
-	note("ctrlr", "StartLogging() Changing log level to %s", LoggingLevels[level])
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) StopLogging() {
 	level := Silence
-	note("ctrlr", "StopLogging() Changing log level to %s", LoggingLevels[level])
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) ChangeLogLevel(level uint8) {
-	note("ctrlr", "Changing log level to %s", LoggingLevels[level])
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 
 func (c *Controller) DialPeer(peer Peer, persistent bool) {
-	debug("ctrlr", "DialPeer message for %s", peer.PeerIdent())
 	BlockFreeChannelSend(c.commandChannel, CommandDialPeer{peer: peer, persistent: persistent})
 }
 
 func (c *Controller) AddPeer(conn net.Conn) {
-	debug("ctrlr", "CommandAddPeer for %+v", conn)
 	BlockFreeChannelSend(c.commandChannel, CommandAddPeer{conn: conn})
 }
 
 func (c *Controller) NetworkStop() {
-	debug("ctrlr", "NetworkStop %+v", c)
 	if c != nil && c.commandChannel != nil {
 		BlockFreeChannelSend(c.commandChannel, CommandShutdown{})
 	}
 }
 
 func (c *Controller) AdjustPeerQuality(peerHash string, adjustment int32) {
-	debug("ctrlr", "AdjustPeerQuality ")
 	BlockFreeChannelSend(c.commandChannel, CommandAdjustPeerQuality{PeerHash: peerHash, Adjustment: adjustment})
 }
 
 func (c *Controller) Ban(peerHash string) {
-	debug("ctrlr", "Ban %s ", peerHash)
 	BlockFreeChannelSend(c.commandChannel, CommandBan{PeerHash: peerHash})
 }
 
 func (c *Controller) Disconnect(peerHash string) {
-	debug("ctrlr", "Ban %s ", peerHash)
 	BlockFreeChannelSend(c.commandChannel, CommandDisconnect{PeerHash: peerHash})
 }
 
@@ -423,8 +413,16 @@ func (c *Controller) route() {
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
 		case BroadcastFlag: // Send to all peers
-			for _, connection := range c.connections {
-				BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+			for i := 0; i < NumberPeersToBroadcast; i++ {
+				s := rand.Int() % len(c.connections)
+				loop := 0
+				for _, connection := range c.connections {
+					if loop == s {
+						BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
+						break
+					}
+					loop++
+				}
 			}
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			debug("ctrlr", "Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))

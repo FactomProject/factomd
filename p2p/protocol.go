@@ -49,7 +49,8 @@ var (
 	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                     = false
 	NetworkDeadline                      = time.Duration(30) * time.Second
-	NumberPeersToConnect                 = 8
+	NumberPeersToConnect                 = 16
+	NumberPeersToBroadcast               = 4
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
 	StandardChannelSize                  = 5000
