@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/messages"
+	"time"
 )
 
 // Once a second at most, we check to see if we need to pull down some blocks to catch up.
@@ -58,13 +59,19 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 				msg := messages.NewDBStateMissing(list.State, uint32(begin), uint32(end+5))
 
 				if msg != nil {
-					//		list.State.RunLeader = false
-					//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
-					msg.SendOut(list.State, msg)
-					list.State.DBStateAskCnt++
-					list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 6)
-					list.LastBegin = begin
-					list.LastEnd = end
+					request := func() {
+						if hk-hs <= 2 {
+							time.Sleep(90 * time.Second)
+						}
+						//		list.State.RunLeader = false
+						//		list.State.StartDelay = list.State.GetTimestamp().GetTimeMilli()
+						msg.SendOut(list.State, msg)
+						list.State.DBStateAskCnt++
+						list.TimeToAsk.SetTimeSeconds(now.GetTimeSeconds() + 6)
+						list.LastBegin = begin
+						list.LastEnd = end
+					}
+					go request()
 				}
 			}
 		}
