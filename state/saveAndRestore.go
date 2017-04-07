@@ -127,6 +127,158 @@ func (ss *SaveState) Init() {
 	}
 }
 
+func (a *SaveState) IsSameAs(b *SaveState) bool {
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	//FedServers   []interfaces.IServer
+	//AuditServers []interfaces.IServer
+
+	if len(a.FactoidBalancesP) != len(b.FactoidBalancesP) {
+		return false
+	}
+	for k := range a.FactoidBalancesP {
+		if a.FactoidBalancesP[k] != b.FactoidBalancesP[k] {
+			return false
+		}
+	}
+	if len(a.ECBalancesP) != len(b.ECBalancesP) {
+		return false
+	}
+	for k := range a.ECBalancesP {
+		if a.ECBalancesP[k] != b.ECBalancesP[k] {
+			return false
+		}
+	}
+
+	//Identities           []*Identity
+	//Authorities          []*Authority
+	if a.AuthorityServerCount != b.AuthorityServerCount {
+		return false
+	}
+
+	if a.LLeaderHeight != b.LLeaderHeight {
+		return false
+	}
+	if a.Leader != b.Leader {
+		return false
+	}
+	if a.LeaderVMIndex != b.LeaderVMIndex {
+		return false
+	}
+	//LeaderPL      *ProcessList
+	if a.CurrentMinute != b.CurrentMinute {
+		return false
+	}
+
+	if a.EOMsyncing != b.EOMsyncing {
+		return false
+	}
+
+	if a.EOM != b.EOM {
+		return false
+	}
+	if a.EOMLimit != b.EOMLimit {
+		return false
+	}
+	if a.EOMProcessed != b.EOMProcessed {
+		return false
+	}
+	if a.EOMDone != b.EOMDone {
+		return false
+	}
+	if a.EOMMinute != b.EOMMinute {
+		return false
+	}
+	if a.EOMSys != b.EOMSys {
+		return false
+	}
+
+	if a.DBSig != b.DBSig {
+		return false
+	}
+	if a.DBSigLimit != b.DBSigLimit {
+		return false
+	}
+	if a.DBSigProcessed != b.DBSigProcessed {
+		return false
+	}
+	if a.DBSigDone != b.DBSigDone {
+		return false
+	}
+	if a.DBSigSys != b.DBSigSys {
+		return false
+	}
+
+	if a.Newblk != b.Newblk {
+		return false
+	}
+	if a.Saving != b.Saving {
+		return false
+	}
+	if a.Syncing != b.Syncing {
+		return false
+	}
+
+	//Replay *Replay
+
+	if a.LeaderTimestamp.IsSameAs(b.LeaderTimestamp) == false {
+		return false
+	}
+
+	//Holding map[[32]byte]interfaces.IMsg
+	//XReview []interfaces.IMsg
+	//Acks    map[[32]byte]interfaces.IMsg
+	//Commits map[[32]byte][]interfaces.IMsg
+
+	//InvalidMessages map[[32]byte]interfaces.IMsg
+
+	if a.EntryBlockDBHeightComplete != b.EntryBlockDBHeightComplete {
+		return false
+	}
+	if a.EntryBlockDBHeightProcessing != b.EntryBlockDBHeightProcessing {
+		return false
+	}
+	//MissingEntryBlocks []MissingEntryBlock
+
+	if a.EntryDBHeightComplete != b.EntryDBHeightComplete {
+		return false
+	}
+	if a.EntryHeightComplete != b.EntryHeightComplete {
+		return false
+	}
+	if a.EntryDBHeightProcessing != b.EntryDBHeightProcessing {
+		return false
+	}
+	//MissingEntries []MissingEntry
+
+	if a.FactoshisPerEC != b.FactoshisPerEC {
+		return false
+	}
+	if a.FERChainId != b.FERChainId {
+		return false
+	}
+	if a.ExchangeRateAuthorityPublicKey != b.ExchangeRateAuthorityPublicKey {
+		return false
+	}
+
+	if a.FERChangeHeight != b.FERChangeHeight {
+		return false
+	}
+	if a.FERChangePrice != b.FERChangePrice {
+		return false
+	}
+	if a.FERPriority != b.FERPriority {
+		return false
+	}
+	if a.FERPrioritySetHeight != b.FERPrioritySetHeight {
+		return false
+	}
+
+	return true
+}
+
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss = new(SaveState)
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()

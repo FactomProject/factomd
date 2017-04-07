@@ -37,6 +37,10 @@ func (c *EBlock) Init() {
 	}
 }
 
+func (a *EBlock) IsSameAs(b interfaces.IEntryBlock) bool {
+	return true
+}
+
 func (c *EBlock) GetEntryHashes() []interfaces.IHash {
 	return c.GetBody().GetEBEntries()
 }

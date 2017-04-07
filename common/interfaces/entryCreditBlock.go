@@ -21,6 +21,7 @@ type IEntryCreditBlock interface {
 	GetEntryByHash(hash IHash) IECBlockEntry
 
 	UpdateState(IState) error
+	IsSameAs(IEntryCreditBlock) bool
 }
 
 type IECBlockHeader interface {

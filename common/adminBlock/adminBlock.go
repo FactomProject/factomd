@@ -38,6 +38,10 @@ func (c *AdminBlock) Init() {
 	}
 }
 
+func (a *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
+	return true
+}
+
 func (c *AdminBlock) String() string {
 	c.Init()
 	var out primitives.Buffer

@@ -45,6 +45,10 @@ func (c *ECBlock) Init() {
 	}
 }
 
+func (a *ECBlock) IsSameAs(b interfaces.IEntryCreditBlock) bool {
+	return true
+}
+
 func (c *ECBlock) UpdateState(state interfaces.IState) error {
 	if state == nil {
 		return fmt.Errorf("No State provided")

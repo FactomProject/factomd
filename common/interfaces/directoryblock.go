@@ -29,6 +29,7 @@ type IDirectoryBlock interface {
 	SetABlockHash(aBlock IAdminBlock) error
 	SetECBlockHash(ecBlock IEntryCreditBlock) error
 	SetFBlockHash(fBlock IFBlock) error
+	IsSameAs(IDirectoryBlock) bool
 }
 
 type IDirectoryBlockHeader interface {

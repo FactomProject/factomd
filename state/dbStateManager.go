@@ -98,6 +98,94 @@ func (dbs *DBState) Init() {
 	}
 }
 
+func (a *DBState) IsSameAs(b *DBState) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	if a.IsNew != b.IsNew {
+		return false
+	}
+
+	if a.SaveStruct.IsSameAs(b.SaveStruct) == false {
+		return false
+	}
+
+	if a.DBHash.IsSameAs(b.DBHash) == false {
+		return false
+	}
+	if a.ABHash.IsSameAs(b.ABHash) == false {
+		return false
+	}
+	if a.FBHash.IsSameAs(b.FBHash) == false {
+		return false
+	}
+	if a.ECHash.IsSameAs(b.ECHash) == false {
+		return false
+	}
+
+	if a.DirectoryBlock.IsSameAs(b.DirectoryBlock) == false {
+		return false
+	}
+	if a.AdminBlock.IsSameAs(b.AdminBlock) == false {
+		return false
+	}
+	if a.FactoidBlock.IsSameAs(b.FactoidBlock) == false {
+		return false
+	}
+	if a.EntryCreditBlock.IsSameAs(b.EntryCreditBlock) == false {
+		return false
+	}
+
+	if len(a.EntryBlocks) != len(b.EntryBlocks) {
+		return false
+	}
+	for i := range a.EntryBlocks {
+		if a.EntryBlocks[i].IsSameAs(b.EntryBlocks[i]) == false {
+			return false
+		}
+	}
+
+	if len(a.Entries) != len(b.Entries) {
+		return false
+	}
+	for i := range a.Entries {
+		if a.Entries[i].IsSameAs(b.Entries[i]) == false {
+			return false
+		}
+	}
+
+	if a.ReadyToSave != b.ReadyToSave {
+		return false
+	}
+	if a.Locked != b.Locked {
+		return false
+	}
+	if a.Signed != b.Signed {
+		return false
+	}
+	if a.Saved != b.Saved {
+		return false
+	}
+
+	if a.Added.IsSameAs(b.Added) == false {
+		return false
+	}
+
+	if a.FinalExchangeRate != b.FinalExchangeRate {
+		return false
+	}
+
+	if a.NextTimestamp.IsSameAs(b.NextTimestamp) == false {
+		return false
+	}
+
+	return true
+}
+
 func (dbs *DBState) MarshalBinary() ([]byte, error) {
 	dbs.Init()
 	b := primitives.NewBuffer(nil)
@@ -332,6 +420,47 @@ func (dbsl *DBStateList) Init() {
 	if dbsl.TimeToAsk == nil {
 		dbsl.TimeToAsk = primitives.NewTimestampFromMilliseconds(0)
 	}
+}
+
+func (a *DBStateList) IsSameAs(b *DBStateList) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	if a.SrcNetwork != b.SrcNetwork {
+		return false
+	}
+
+	if a.LastEnd != b.LastEnd {
+		return false
+	}
+	if a.LastBegin != b.LastBegin {
+		return false
+	}
+	if a.TimeToAsk.IsSameAs(b.TimeToAsk) == false {
+		return false
+	}
+
+	//State    *State
+	if a.Base != b.Base {
+		return false
+	}
+	if a.Complete != b.Complete {
+		return false
+	}
+
+	if len(a.DBStates) != len(b.DBStates) {
+		return false
+	}
+	for i := range a.DBStates {
+		if a.DBStates[i].IsSameAs(b.DBStates[i]) == false {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {

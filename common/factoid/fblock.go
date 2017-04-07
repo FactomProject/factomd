@@ -44,6 +44,10 @@ var _ interfaces.Printable = (*FBlock)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*FBlock)(nil)
 var _ interfaces.DatabaseBlockWithEntries = (*FBlock)(nil)
 
+func (a *FBlock) IsSameAs(b interfaces.IFBlock) bool {
+	return true
+}
+
 func (c *FBlock) GetEntryHashes() []interfaces.IHash {
 	entries := c.Transactions[:]
 	answer := make([]interfaces.IHash, len(entries))

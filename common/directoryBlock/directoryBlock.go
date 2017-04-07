@@ -42,6 +42,10 @@ func (c *DirectoryBlock) Init() {
 	}
 }
 
+func (a *DirectoryBlock) IsSameAs(b interfaces.IDirectoryBlock) bool {
+	return true
+}
+
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
 	if len(c.DBEntries) <= index {
 		ent := make([]interfaces.IDBEntry, index+1)

@@ -39,6 +39,7 @@ type IEntryBlock interface {
 	GetEntrySigHashes() []IHash
 	GetHash() IHash
 	HeaderHash() (IHash, error)
+	IsSameAs(IEntryBlock) bool
 }
 
 type IEntryBlockHeader interface {
