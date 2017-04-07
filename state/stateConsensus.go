@@ -1896,14 +1896,28 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
+func (s *State) GetHighestAck() uint32 {
+	return s.HighestAck
+}
+
+func (s *State) SetHighestAck(dbht uint32) {
+	if dbht > s.HighestAck {
+		s.HighestAck = dbht
+	}
+}
+
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestSavedBlk() uint32 {
-	return s.DBStates.GetHighestSavedBlk()
+	v := s.DBStates.GetHighestSavedBlk()
+	HighestSaved.Set(float64(v))
+	return v
 }
 
 // This is the highest block signed off, but not necessarily validted.
 func (s *State) GetHighestCompletedBlk() uint32 {
-	return s.DBStates.GetHighestCompletedBlk()
+	v := s.DBStates.GetHighestCompletedBlk()
+	HighestCompleted.Set(float64(v))
+	return v
 }
 
 // This is lowest block currently under construction under the "leader".
@@ -1917,6 +1931,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
+	HighestKnown.Set(float64(s.HighestKnown))
 	return s.HighestKnown
 }
 

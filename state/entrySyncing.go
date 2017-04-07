@@ -15,6 +15,9 @@ import (
 )
 
 func has(s *State, entry interfaces.IHash) bool {
+	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
+		time.Sleep(100 * time.Millisecond)
+	}
 	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
 	return exists
 }
@@ -201,10 +204,14 @@ func (s *State) GoSyncEntries() {
 					if entryhash.IsMinuteMarker() {
 						continue
 					}
-					ueh := new(EntryUpdate)
-					ueh.Hash = entryhash
-					ueh.Timestamp = db.GetTimestamp()
-					s.UpdateEntryHash <- ueh
+
+					// Only update the replay hashes in the last 24 hours.
+					if time.Now().Unix()-db.GetTimestamp().GetTimeSeconds() < 24*60*60 {
+						ueh := new(EntryUpdate)
+						ueh.Hash = entryhash
+						ueh.Timestamp = db.GetTimestamp()
+						s.UpdateEntryHash <- ueh
+					}
 
 					// If I have the entry, then remove it from the Missing Entries list.
 					if has(s, entryhash) {
@@ -220,7 +227,9 @@ func (s *State) GoSyncEntries() {
 					if eh == nil {
 
 						// If we have a full queue, break so we don't stall.
-						if len(s.MissingEntries) > 9000 {
+						// If we stall, we don't properly update the s.EntryDBHeightComplete state, and then we
+						// don't reasonably report the height of Entry Blocks scanned...
+						if cap(s.MissingEntries)-len(s.MissingEntries) < 2 {
 							break dirblkSearch
 						}
 

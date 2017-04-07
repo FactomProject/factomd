@@ -136,6 +136,12 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
+	// If the timestamp is over a day old, then there is really no point in saving the state of
+	// historical data.
+	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
+		return nil
+	}
+
 	state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
 	ss.Replay = state.Replay.Save()
@@ -227,11 +233,17 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 }
 
 func (ss *SaveState) TrimBack(state *State, d *DBState) {
+
 	pdbstate := d
 	d = state.DBStates.Get(int(ss.DBHeight + 1))
 	if pdbstate == nil {
 		return
 	}
+	// Don't do anything until we are within the current day
+	if state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 144 {
+		return
+	}
+
 	pss := pdbstate.SaveStruct
 	if pss == nil {
 		return
@@ -442,6 +454,7 @@ func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 	state.DBSigSys = ss.DBSigSys
 	state.Saving = true
 	state.Syncing = false
+	state.HighestAck = ss.DBHeight + 1
 	state.HighestKnown = ss.DBHeight + 2
 	state.Holding = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Holding {

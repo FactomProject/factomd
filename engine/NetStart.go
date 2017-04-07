@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
@@ -497,6 +498,7 @@ func NetStart(s *state.State) {
 	// Start Package's prometheus
 	state.RegisterPrometheus()
 	p2p.RegisterPrometheus()
+	leveldb.RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
