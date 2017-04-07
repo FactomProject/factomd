@@ -10,7 +10,9 @@ package state
 import (
 	"fmt"
 	"runtime/debug"
+	"sort"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -30,6 +32,52 @@ type FactoidState struct {
 }
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
+
+func getMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
+	type element struct {
+		adr [32]byte
+		v   int64
+	}
+
+	list := make([]*element, 0, len(bmap))
+
+	for k, v := range bmap {
+		e := new(element)
+		copy(e.adr[:], k[:])
+		e.v = v
+		list = append(list, e)
+	}
+	sort.Slice(list, func(i, j int) bool { return bytes.Compare(list[i].adr[:], list[j].adr[:]) < 0 })
+
+	buff := []byte(fmt.Sprintf("balances %d", dbheight))
+	h := primitives.Sha(buff)
+
+	for _, e := range list {
+		buff = append(buff[0:], h.Bytes()...)
+		buff = append(buff, e.adr[:]...)
+		buff = append(buff,
+			byte(e.v),
+			byte(e.v>>8),
+			byte(e.v>>16),
+			byte(e.v>>24),
+			byte(e.v>>32),
+			byte(e.v>>40),
+			byte(e.v>>48),
+			byte(e.v>>56))
+		h = primitives.Sha(buff)
+	}
+
+	return h
+}
+
+func (fs *FactoidState) GetBalanceHash() interfaces.IHash {
+	h1 := getMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
+	h2 := getMapHash(fs.DBHeight, fs.State.ECBalancesP)
+	var b []byte
+	b = append(b, h1.Bytes()...)
+	b = append(b, h2.Bytes()...)
+	return primitives.Sha(b)
+}
 
 // Reset this Factoid state to an empty state at a dbheight following the
 // given dbstate.

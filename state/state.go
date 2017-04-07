@@ -926,7 +926,7 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 	return false
 }
 
-func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+func (s *State) ValidatePrevious(dbheight uint32) error {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 
 	if dblk != nil && err == nil && dbheight > 0 {
@@ -937,18 +937,31 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
 		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
 			fmt.Println("xxxx Can't get the previous block by hash...")
+			return fmt.Errorf("Cannot find the previous block at %d", dbheight-1)
 		}
 		if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
 			fmt.Println("xxxx KeyMR incorrect at height", dbheight-1)
+			return fmt.Errorf("KeyMR incorrect at height %d", dbheight-1)
 		}
 		if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
 			fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+			return fmt.Errorf("Full hash incorrect block at %d", dbheight-1)
 		}
 	}
+	return nil
+}
 
+func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
 	}
+
+	err = s.ValidatePrevious(dbheight)
+	if err != nil {
+		return nil, err
+	}
+
 	if dblk == nil {
 		return nil, nil
 	}

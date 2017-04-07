@@ -332,6 +332,10 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	}
 	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
+	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 {
+		d.AdminBlock.SetBalanceHash(list.State.FactoidState.GetBalanceHash())
+	}
+
 	p.FactoidBlock.SetDBHeight(previousDBHeight)
 	d.FactoidBlock.SetDBHeight(currentDBHeight)
 	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
@@ -542,7 +546,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 			delete(s.Commits, k)
 		}
 	}
-
 	return
 }
 
@@ -591,6 +594,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if !d.Signed || !d.ReadyToSave {
 		return
+	}
+
+	// If our database has trash in it, panic
+	if err := list.State.ValidatePrevious(uint32(dbheight - 1)); err != nil {
+		panic(err.Error())
 	}
 
 	if d.Saved {

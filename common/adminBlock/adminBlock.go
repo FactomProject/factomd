@@ -38,9 +38,29 @@ func (c *AdminBlock) Init() {
 	}
 }
 
+func (c *AdminBlock) IsSameAs(c2 interfaces.IAdminBlock) bool {
+	if !c.Header.IsSameAs(c2.GetHeader()) {
+		return false
+	}
+	if len(c.ABEntries) != len(c2.GetABEntries()) {
+		return false
+	}
+	return true
+}
+
+func (c *AdminBlock) GetBalanceHash() interfaces.IHash {
+	return c.Header.GetBalanceHash()
+}
+
+func (c *AdminBlock) SetBalanceHash(bhash interfaces.IHash) {
+	c.Header.SetBalanceHash(bhash)
+}
+
 func (c *AdminBlock) String() string {
 	c.Init()
 	var out primitives.Buffer
+
+	c.MarshalBinary()
 
 	fh, _ := c.BackReferenceHash()
 	if fh == nil {

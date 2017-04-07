@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -18,6 +19,7 @@ import (
 type ABlockHeader struct {
 	PrevBackRefHash interfaces.IHash
 	DBHeight        uint32
+	BalanceHash     interfaces.IHash
 
 	HeaderExpansionSize uint64
 	HeaderExpansionArea []byte
@@ -28,10 +30,49 @@ type ABlockHeader struct {
 var _ interfaces.Printable = (*ABlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 
+func (e *ABlockHeader) IsSameAs(e2 interfaces.IABlockHeader) bool {
+	if !e.PrevBackRefHash.IsSameAs(e2.GetPrevBackRefHash()) {
+		return false
+	}
+	if e.BalanceHash == nil {
+		if e2.GetBalanceHash() != nil {
+			return false
+		}
+	} else {
+		if !e.BalanceHash.IsSameAs(e2.GetBalanceHash()) {
+			return false
+		}
+	}
+	if e.DBHeight != e2.GetDBHeight() {
+		return false
+	}
+	if int(e.HeaderExpansionSize) != len(e2.GetHeaderExpansionArea()) {
+		return false
+	}
+	if e.MessageCount != e2.GetMessageCount() {
+		return false
+	}
+	if e.BodySize != e2.GetBodySize() {
+		return false
+	}
+	if bytes.Compare(e.HeaderExpansionArea, e2.GetHeaderExpansionArea()) != 0 {
+		return false
+	}
+	return true
+}
+
 func (e *ABlockHeader) Init() {
 	if e.PrevBackRefHash == nil {
 		e.PrevBackRefHash = primitives.NewZeroHash()
 	}
+}
+
+func (e *ABlockHeader) GetBalanceHash() interfaces.IHash {
+	return e.BalanceHash
+}
+
+func (e *ABlockHeader) SetBalanceHash(bhash interfaces.IHash) {
+	e.BalanceHash = bhash
 }
 
 func (e *ABlockHeader) String() string {
@@ -101,6 +142,10 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	b.Init()
 	var buf primitives.Buffer
 
+	if b.BalanceHash != nil {
+		b.HeaderExpansionArea = append(b.HeaderExpansionArea[:0], b.BalanceHash.Bytes()...)
+	}
+
 	data, err = b.GetAdminChainID().MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -115,6 +160,7 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
 
+	b.HeaderExpansionSize = uint64(len(b.HeaderExpansionArea))
 	primitives.EncodeVarInt(&buf, b.HeaderExpansionSize)
 	buf.Write(b.HeaderExpansionArea)
 
@@ -145,7 +191,13 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
 	b.HeaderExpansionSize, newData = primitives.DecodeVarInt(newData)
-	b.HeaderExpansionArea, newData = newData[:b.HeaderExpansionSize], newData[b.HeaderExpansionSize:]
+	if b.HeaderExpansionSize > 0 {
+		b.HeaderExpansionArea = append(b.HeaderExpansionArea[:0], newData[:b.HeaderExpansionSize]...)
+		b.BalanceHash = primitives.NewHash(b.HeaderExpansionArea)
+	} else {
+		b.BalanceHash = nil
+	}
+	newData = newData[b.HeaderExpansionSize:]
 
 	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	b.BodySize, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]

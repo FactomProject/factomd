@@ -14,6 +14,7 @@ type IAdminBlock interface {
 	Printable
 	DatabaseBatchable
 
+	IsSameAs(IAdminBlock) bool
 	BackReferenceHash() (IHash, error)
 	GetABEntries() []IABEntry
 	GetDBHeight() uint32
@@ -21,6 +22,8 @@ type IAdminBlock interface {
 	GetHash() IHash
 	GetHeader() IABlockHeader
 	GetKeyMR() (IHash, error)
+	GetBalanceHash() IHash
+	SetBalanceHash(IHash)
 	LookupHash() (IHash, error)
 	RemoveFederatedServer(IHash) error
 	SetABEntries([]IABEntry)
@@ -43,6 +46,7 @@ type IABlockHeader interface {
 	Printable
 	BinaryMarshallable
 
+	IsSameAs(IABlockHeader) bool
 	GetAdminChainID() IHash
 	GetDBHeight() uint32
 	GetPrevBackRefHash() IHash
@@ -51,6 +55,8 @@ type IABlockHeader interface {
 
 	GetHeaderExpansionArea() []byte
 	SetHeaderExpansionArea([]byte)
+	GetBalanceHash() IHash
+	SetBalanceHash(IHash)
 
 	GetBodySize() uint32
 	GetMessageCount() uint32
