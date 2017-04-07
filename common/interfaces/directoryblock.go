@@ -52,6 +52,7 @@ type IDirectoryBlockHeader interface {
 	SetNetworkID(uint32)
 	GetTimestamp() Timestamp
 	SetTimestamp(Timestamp)
+	IsSameAs(IDirectoryBlockHeader) bool
 }
 
 type IDBEntry interface {
@@ -61,4 +62,5 @@ type IDBEntry interface {
 	SetChainID(IHash)
 	GetKeyMR() IHash
 	SetKeyMR(IHash)
+	IsSameAs(IDBEntry) bool
 }

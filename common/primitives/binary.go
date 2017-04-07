@@ -82,6 +82,16 @@ func Byte32ToByteSlice32(b [32]byte) *ByteSlice32 {
 	return bs
 }
 
+func (a *ByteSlice32) IsSameAs(b *ByteSlice32) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	return AreBytesEqual(a[:], b[:])
+}
+
 func (bs *ByteSlice32) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
@@ -130,6 +140,16 @@ type ByteSlice64 [64]byte
 var _ interfaces.Printable = (*ByteSlice64)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice64)(nil)
 
+func (a *ByteSlice64) IsSameAs(b *ByteSlice64) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	return AreBytesEqual(a[:], b[:])
+}
+
 func (bs *ByteSlice64) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
@@ -174,6 +194,16 @@ type ByteSlice6 [6]byte
 var _ interfaces.Printable = (*ByteSlice6)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice6)(nil)
 
+func (a *ByteSlice6) IsSameAs(b *ByteSlice6) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	return AreBytesEqual(a[:], b[:])
+}
+
 func (bs *ByteSlice6) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
@@ -217,6 +247,16 @@ type ByteSliceSig [ed25519.SignatureSize]byte
 
 var _ interfaces.Printable = (*ByteSliceSig)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSliceSig)(nil)
+
+func (a *ByteSliceSig) IsSameAs(b *ByteSliceSig) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	return AreBytesEqual(a[:], b[:])
+}
 
 func (bs *ByteSliceSig) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
@@ -280,6 +320,16 @@ type ByteSlice20 [20]byte
 var _ interfaces.Printable = (*ByteSlice20)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice20)(nil)
 
+func (a *ByteSlice20) IsSameAs(b *ByteSlice20) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	return AreBytesEqual(a[:], b[:])
+}
+
 func (bs *ByteSlice20) MarshalBinary() ([]byte, error) {
 	return bs[:], nil
 }
@@ -334,6 +384,16 @@ var _ interfaces.Printable = (*ByteSlice)(nil)
 var _ interfaces.BinaryMarshallable = (*ByteSlice)(nil)
 var _ interfaces.BinaryMarshallableAndCopyable = (*ByteSlice)(nil)
 
+func (a *ByteSlice) IsSameAs(b *ByteSlice) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	return AreBytesEqual(a.Bytes, b.Bytes)
+}
+
 func RandomByteSlice() *ByteSlice {
 	bs := new(ByteSlice)
 	x := random.RandNonEmptyByteSlice()
@@ -352,17 +412,6 @@ func StringToByteSlice(s string) *ByteSlice {
 		return nil
 	}
 	return bs
-}
-
-func (bs *ByteSlice) IsSameAs(b *ByteSlice) bool {
-	if b == nil {
-		if bs == nil {
-			return true
-		} else {
-			return false
-		}
-	}
-	return AreBytesEqual(bs.Bytes, b.Bytes)
 }
 
 func (bs *ByteSlice) New() interfaces.BinaryMarshallableAndCopyable {

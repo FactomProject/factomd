@@ -37,6 +37,47 @@ var _ interfaces.ShortInterpretable = (*CommitEntry)(nil)
 var _ interfaces.IECBlockEntry = (*CommitEntry)(nil)
 var _ interfaces.ISignable = (*CommitEntry)(nil)
 
+func (a *CommitEntry) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	if a.ECID() != b.ECID() {
+		return false
+	}
+
+	bb, ok := b.(*CommitEntry)
+	if ok == false {
+		return false
+	}
+
+	if a.Version != bb.Version {
+		return false
+	}
+	if a.MilliTime.IsSameAs(bb.MilliTime) == false {
+		return false
+	}
+	if a.EntryHash.IsSameAs(bb.EntryHash) == false {
+		return false
+	}
+	if a.Credits != bb.Credits {
+		return false
+	}
+	if a.ECPubKey.IsSameAs(bb.ECPubKey) == false {
+		return false
+	}
+	if a.Sig.IsSameAs(bb.Sig) == false {
+		return false
+	}
+	if a.SigHash.IsSameAs(bb.SigHash) == false {
+		return false
+	}
+
+	return true
+}
+
 func (e *CommitEntry) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitEntry"))
@@ -52,21 +93,6 @@ func (e *CommitEntry) String() string {
 
 func (a *CommitEntry) GetEntryHash() interfaces.IHash {
 	return a.EntryHash
-}
-
-func (a *CommitEntry) IsSameAs(b *CommitEntry) bool {
-	if b == nil {
-		return false
-	}
-	bin1, err := a.MarshalBinary()
-	if err != nil {
-		return false
-	}
-	bin2, err := b.MarshalBinary()
-	if err != nil {
-		return false
-	}
-	return primitives.AreBytesEqual(bin1, bin2)
 }
 
 func NewCommitEntry() *CommitEntry {

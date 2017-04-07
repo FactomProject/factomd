@@ -46,6 +46,20 @@ func (c *ECBlock) Init() {
 }
 
 func (a *ECBlock) IsSameAs(b interfaces.IEntryCreditBlock) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	if a.Header.IsSameAs(b.GetHeader()) == false {
+		return false
+	}
+	if a.Body.IsSameAs(b.GetBody()) == false {
+		return false
+	}
+
 	return true
 }
 

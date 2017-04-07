@@ -43,6 +43,25 @@ func (c *DirectoryBlock) Init() {
 }
 
 func (a *DirectoryBlock) IsSameAs(b interfaces.IDirectoryBlock) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	if a.Header.IsSameAs(b.GetHeader()) == false {
+		return false
+	}
+	bDBEntries := b.GetDBEntries()
+	if len(a.DBEntries) != len(bDBEntries) {
+		return false
+	}
+	for i := range a.DBEntries {
+		if a.DBEntries[i].IsSameAs(bDBEntries[i]) == false {
+			return false
+		}
+	}
 	return true
 }
 

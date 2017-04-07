@@ -128,6 +128,13 @@ func (ss *SaveState) Init() {
 }
 
 func (a *SaveState) IsSameAs(b *SaveState) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
 	if a.DBHeight != b.DBHeight {
 		return false
 	}

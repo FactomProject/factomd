@@ -20,6 +20,27 @@ type EBlockBody struct {
 var _ interfaces.Printable = (*EBlockBody)(nil)
 var _ interfaces.IEBlockBody = (*EBlockBody)(nil)
 
+func (a *EBlockBody) IsSameAs(b interfaces.IEBlockBody) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	bEBEntries := b.GetEBEntries()
+	if len(a.EBEntries) != len(bEBEntries) {
+		return false
+	}
+	for i := range a.EBEntries {
+		if a.EBEntries[i].IsSameAs(bEBEntries[i]) == false {
+			return false
+		}
+	}
+
+	return true
+}
+
 // NewEBlockBody initalizes an empty Entry Block Body.
 func NewEBlockBody() *EBlockBody {
 	e := new(EBlockBody)
