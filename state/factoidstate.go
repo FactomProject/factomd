@@ -33,12 +33,26 @@ type FactoidState struct {
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
 
-func getMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
-	type element struct {
-		adr [32]byte
-		v   int64
-	}
+type elementSortable []*element
 
+func (slice elementSortable) Len() int {
+	return len(slice)
+}
+
+func (slice elementSortable) Less(i, j int) bool {
+	return bytes.Compare(slice[i].adr[:], slice[j].adr[:]) < 0
+}
+
+func (slice elementSortable) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
+type element struct {
+	adr [32]byte
+	v   int64
+}
+
+func getMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	list := make([]*element, 0, len(bmap))
 
 	for k, v := range bmap {
@@ -47,7 +61,10 @@ func getMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 		e.v = v
 		list = append(list, e)
 	}
-	sort.Slice(list, func(i, j int) bool { return bytes.Compare(list[i].adr[:], list[j].adr[:]) < 0 })
+	// GoLang > 1.8
+	//sort.Slice(list, func(i, j int) bool { return bytes.Compare(list[i].adr[:], list[j].adr[:]) < 0 })
+	// GoLang < 1.8
+	sort.Sort(elementSortable(list))
 
 	buff := []byte(fmt.Sprintf("balances %d", dbheight))
 	h := primitives.Sha(buff)
