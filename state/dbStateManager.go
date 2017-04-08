@@ -644,7 +644,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if v%4 == 0 {
 		list.State.DB.Trim()
 	}
-	
+
 	list.State.DB.StartMultiBatch()
 
 	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
