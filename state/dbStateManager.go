@@ -72,6 +72,7 @@ type DBStateList struct {
 // Return a -1 on failure.
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
+
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 
@@ -84,6 +85,10 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
 		return 1
+	}
+
+	if d == nil || !d.Saved {
+		return 0
 	}
 
 	// Don't reload blocks!
