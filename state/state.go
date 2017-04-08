@@ -933,6 +933,15 @@ func (s *State) ValidatePrevious(dbheight uint32) error {
 		if dbheight%1000 == 0 {
 			fmt.Println("xxxx Progressing ...", dbheight)
 		}
+
+		if dblk2, err := s.DB.FetchDBlock(dblk.GetKeyMR()); err != nil {
+			fmt.Printf("Don't have the directory block hash indexed %d\n", dbheight)
+			panic(fmt.Sprintf("Don't have the directory block hash indexed %d", dbheight))
+		} else if dblk2 == nil {
+			fmt.Printf("Don't have the directory block hash indexed %d\n", dbheight)
+			panic(fmt.Sprintf("Don't have the directory block hash indexed %d", dbheight))
+		}
+
 		pdblk, _ := s.DB.FetchDBlockByHeight(dbheight - 1)
 		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
 		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
@@ -959,7 +968,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	err = s.ValidatePrevious(dbheight)
 	if err != nil {
-		return nil, err
+		panic(err.Error())
 	}
 
 	if dblk == nil {

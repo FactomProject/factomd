@@ -8,11 +8,11 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 	"runtime/debug"
 	"sort"
 
-	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"

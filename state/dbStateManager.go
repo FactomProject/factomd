@@ -476,6 +476,27 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString("=== AdminBlock.UpdateState() End ===")
 		fmt.Println(out.String())
 	}
+
+	if d.AdminBlock.GetBalanceHash() != nil {
+		bh := list.State.FactoidState.GetBalanceHash()
+		if bh.Fixed() != d.AdminBlock.GetBalanceHash().Fixed() {
+			fmt.Printf("*** %20s Our Balances do not conform to the system at block height %5d \n"+
+				"*** %20s     Expected:   XXX   %x Got %x\n",
+				list.State.FactomNodeName,
+				dbht,
+				list.State.FactomNodeName,
+				d.AdminBlock.GetBalanceHash().Bytes(),
+				bh.Bytes())
+		} else {
+			fmt.Printf("*** %20s Our Balances do     conform to the system at block height %5d \n"+
+				"*** %20s     Expected:         %x\n",
+				list.State.FactomNodeName,
+				dbht,
+				list.State.FactomNodeName,
+				d.AdminBlock.GetBalanceHash().Bytes())
+		}
+	}
+
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
