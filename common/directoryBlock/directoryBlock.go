@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"errors"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -17,13 +18,14 @@ import (
 var _ = fmt.Print
 
 type DirectoryBlock struct {
+	//Not Marshalized
+	DBHash   interfaces.IHash
+	KeyMR    interfaces.IHash
+	keyMRset bool
+
 	//Marshalized
 	Header    interfaces.IDirectoryBlockHeader
 	DBEntries []interfaces.IDBEntry
-
-	//Not Marshalized
-	DBHash interfaces.IHash
-	KeyMR  interfaces.IHash
 }
 
 var _ interfaces.Printable = (*DirectoryBlock)(nil)
@@ -41,8 +43,8 @@ func (c *DirectoryBlock) Init() {
 }
 
 func (c *DirectoryBlock) SetEntryHash(hash, chainID interfaces.IHash, index int) {
-	if len(c.DBEntries) < index {
-		ent := make([]interfaces.IDBEntry, index)
+	if len(c.DBEntries) <= index {
+		ent := make([]interfaces.IDBEntry, index+1)
 		copy(ent, c.DBEntries)
 		c.DBEntries = ent
 	}
@@ -132,12 +134,18 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
+
 	keyMR, err := c.BuildKeyMerkleRoot()
 	if err != nil {
 		panic("Failed to build the key MR")
 	}
 
+	//if c.keyMRset && c.KeyMR.Fixed() != keyMR.Fixed() {
+	//	panic("keyMR changed!")
+	//}
+
 	c.KeyMR = keyMR
+	c.keyMRset = true
 
 	return c.KeyMR
 }
@@ -152,12 +160,11 @@ func (c *DirectoryBlock) SetHeader(header interfaces.IDirectoryBlockHeader) {
 }
 
 func (c *DirectoryBlock) SetDBEntries(dbEntries []interfaces.IDBEntry) error {
-	c.DBEntries = dbEntries
-	c.GetHeader().SetBlockCount(uint32(len(dbEntries)))
-	_, err := c.BuildBodyMR()
-	if err != nil {
-		return err
+	if dbEntries == nil {
+		return errors.New("dbEntries cannot be nil")
 	}
+
+	c.DBEntries = dbEntries
 	return nil
 }
 
@@ -225,16 +232,13 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 
 	b.BuildBodyMR()
 
-	count := uint32(len(b.GetDBEntries()))
-	b.GetHeader().SetBlockCount(count)
-
 	data, err = b.GetHeader().MarshalBinary()
 	if err != nil {
 		return
 	}
 	buf.Write(data)
 
-	for i := uint32(0); i < count; i++ {
+	for i := uint32(0); i < b.Header.GetBlockCount(); i++ {
 		data, err = b.GetDBEntries()[i].MarshalBinary()
 		if err != nil {
 			return
@@ -246,6 +250,13 @@ func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
 }
 
 func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
+
+	count := uint32(len(b.GetDBEntries()))
+	b.GetHeader().SetBlockCount(count)
+	if count == 0 {
+		panic("Zero block size!")
+	}
+
 	hashes := make([]interfaces.IHash, len(b.GetDBEntries()))
 	for i, entry := range b.GetDBEntries() {
 		data, err := entry.MarshalBinary()
@@ -268,6 +279,7 @@ func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
 }
 
 func (b *DirectoryBlock) HeaderHash() (interfaces.IHash, error) {
+	b.Header.SetBlockCount(uint32(len(b.GetDBEntries())))
 	binaryEBHeader, err := b.GetHeader().MarshalBinary()
 	if err != nil {
 		return nil, err

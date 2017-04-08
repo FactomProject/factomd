@@ -5,17 +5,17 @@
 package state
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
-	"time"
-
-	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
+	"time"
 )
 
 var _ = hex.EncodeToString
@@ -187,7 +187,7 @@ func (ds *DBState) String() string {
 func (list *DBStateList) GetHighestCompletedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
-		if dbstate != nil && dbstate.Locked {
+		if dbstate != nil && (dbstate.Locked || dbstate.Saved) {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
@@ -594,8 +594,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	}
 
 	if d.Saved {
-		dblk, _ := list.State.DB.FetchDBKeyMRByHash(d.DirectoryBlock.GetKeyMR())
-		if dblk == nil {
+		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())
+		if err != nil || !Havedblk {
 			panic(fmt.Sprintf("Claimed to be found on %s DBHeight %d Hash %x",
 				list.State.FactomNodeName,
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
@@ -757,7 +757,7 @@ searchLoop:
 		cnt++
 	}
 
-	keep := uint32(5) // How many states to keep around; debugging helps with more.
+	keep := uint32(3) // How many states to keep around; debugging helps with more.
 	if uint32(cnt) > keep {
 		var dbstates []*DBState
 		dbstates = append(dbstates, list.DBStates[cnt-int(keep):]...)

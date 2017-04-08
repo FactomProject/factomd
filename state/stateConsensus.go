@@ -107,6 +107,12 @@ func (s *State) Process() (progress bool) {
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		}
 	} else if s.IgnoreMissing {
+		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
+		if s.CurrentMinute > 9 {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+		} else {
+			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+		}
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
@@ -168,7 +174,7 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
-			process <- msg
+
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -691,17 +697,8 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		if !ok {
 			return
 		}
-
-		s.MissingEntryMutex.Lock()
-		defer s.MissingEntryMutex.Unlock()
-
-		for _, missing := range s.MissingEntries {
-			e := missing.entryhash
-
-			if e.Fixed() == entry.GetHash().Fixed() {
-				s.DB.InsertEntry(entry)
-				break
-			}
+		if len(s.WriteEntry) < cap(s.WriteEntry) {
+			s.WriteEntry <- entry
 		}
 	}
 }
@@ -1381,6 +1378,8 @@ func (s *State) CheckForIDChange() {
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
+	s.AddStatus(fmt.Sprintf("ProcessDBSig: %s ", msg.String()))
+
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
@@ -1432,7 +1431,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
 			if !pl.Complete() {
-				return false
+				dbstate := s.DBStates.Get(int(dbs.DBHeight - 1))
+				if dbstate == nil || (!dbstate.Locked && !dbstate.Saved) {
+					db, _ := s.DB.FetchDBlockByHeight(dbs.DBHeight - 1)
+					if db == nil {
+						s.AddStatus("ProcessDBSig(): Previous Process List isn't complete." + dbs.String())
+						return false
+					}
+				}
 			}
 		}
 
@@ -1444,6 +1450,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbstate := s.GetDBState(dbheight - 1)
 
 		if dbstate == nil {
+			s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
 			return false
 		}
 
@@ -1876,14 +1883,28 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
+func (s *State) GetHighestAck() uint32 {
+	return s.HighestAck
+}
+
+func (s *State) SetHighestAck(dbht uint32) {
+	if dbht > s.HighestAck {
+		s.HighestAck = dbht
+	}
+}
+
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestSavedBlk() uint32 {
-	return s.DBStates.GetHighestSavedBlk()
+	v := s.DBStates.GetHighestSavedBlk()
+	HighestSaved.Set(float64(v))
+	return v
 }
 
 // This is the highest block signed off, but not necessarily validted.
 func (s *State) GetHighestCompletedBlk() uint32 {
-	return s.DBStates.GetHighestCompletedBlk()
+	v := s.DBStates.GetHighestCompletedBlk()
+	HighestCompleted.Set(float64(v))
+	return v
 }
 
 // This is lowest block currently under construction under the "leader".
@@ -1897,6 +1918,7 @@ func (s *State) GetHighestKnownBlock() uint32 {
 	if s.ProcessLists == nil {
 		return 0
 	}
+	HighestKnown.Set(float64(s.HighestKnown))
 	return s.HighestKnown
 }
 
@@ -1976,11 +1998,6 @@ func (s *State) PutE(rt bool, adr [32]byte, v int64) {
 // returns -1 if we are not the leader for this hash
 func (s *State) ComputeVMIndex(hash []byte) int {
 	return s.LeaderPL.VMIndexFor(hash)
-}
-
-func (s *State) GetNetworkName() string {
-	return (s.Cfg.(*util.FactomdConfig)).App.Network
-
 }
 
 func (s *State) GetDBHeightComplete() uint32 {

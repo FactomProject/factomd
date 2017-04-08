@@ -34,7 +34,7 @@ func Save(receipt *Receipt) error {
 	json.Indent(&out, data, "", "\t")
 	data = out.Next(out.Len())
 
-	entryID := receipt.Entry.Key
+	entryID := receipt.Entry.EntryHash
 	dir := DataStorePath // + entryID
 	if FileNotExists(dir) {
 		err := os.MkdirAll(dir, 0777)

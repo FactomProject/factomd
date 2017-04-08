@@ -76,17 +76,9 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	case FullServerFault:
 		go resend(state, msg, 2, 5)
 	case ServerFault:
-		go resend(state, msg, 1, 1)
-	case MissingMsg:
-		go resend(state, msg, 1, 1)
-	case DBStateMissing:
-		//if state.UsingTorrent() {
-		//	go torSend(state, msg, 2, 60)
-		//} else {
-		go resend(state, msg, 1, 1)
-		//}
+		go resend(state, msg, 2, 5)
 	default:
-		go resend(state, msg, 1, 1)
+		go resend(state, msg, 1, 0)
 	}
 }
 

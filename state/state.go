@@ -5,8 +5,9 @@
 package state
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -23,10 +24,13 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/database/hybridDB"
+	//"github.com/FactomProject/factomd/database/hybridDB"
+	"github.com/FactomProject/factomd/database/boltdb"
+	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/logger"
+	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 )
@@ -35,6 +39,8 @@ var _ = fmt.Print
 
 type State struct {
 	filename string
+
+	NetworkControler *p2p.Controller
 
 	Salt interfaces.IHash
 
@@ -105,14 +111,14 @@ type State struct {
 
 	//  pending entry/transaction api calls for the holding queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped holdingqueue snapshot for the calls on demand
-	HoldingMutex sync.Mutex
-	HoldingFlag  bool
+	HoldingMutex sync.RWMutex
+	HoldingLast  int64
 	HoldingMap   map[[32]byte]interfaces.IMsg
 
 	//  pending entry/transaction api calls for the ack queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand
-	AcksMutex sync.Mutex
-	AcksFlag  bool
+	AcksMutex sync.RWMutex
+	AcksLast  int64
 	AcksMap   map[[32]byte]interfaces.IMsg
 
 	DBStateAskCnt     int
@@ -255,6 +261,7 @@ type State struct {
 	ResetRequest    bool // Set to true to trigger a reset
 	ProcessLists    *ProcessLists
 	HighestKnown    uint32
+	HighestAck      uint32
 	AuthorityDeltas string
 
 	// Factom State
@@ -274,8 +281,6 @@ type State struct {
 	IsReplaying     bool
 	ReplayTimestamp interfaces.Timestamp
 
-	MissingEntryMutex sync.Mutex
-
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryBlockDBHeightComplete uint32
@@ -291,8 +296,12 @@ type State struct {
 	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
-	MissingEntries []MissingEntry
+	MissingEntries chan *MissingEntry
 
+	// Holds leaders and followers up until all missing entries are processed, if true
+	WaitForEntries  bool
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
+	WriteEntry      chan interfaces.IEBEntry
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -320,15 +329,22 @@ type State struct {
 	DBStateManager     interfaces.IManagerController
 }
 
+type EntryUpdate struct {
+	Hash      interfaces.IHash
+	Timestamp interfaces.Timestamp
+}
+
 type MissingEntryBlock struct {
 	ebhash   interfaces.IHash
 	dbheight uint32
 }
 
 type MissingEntry struct {
-	ebhash    interfaces.IHash
-	entryhash interfaces.IHash
-	dbheight  uint32
+	Cnt       int
+	LastTime  time.Time
+	EBHash    interfaces.IHash
+	EntryHash interfaces.IHash
+	DBHeight  uint32
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -444,6 +460,14 @@ func (s *State) GetDBStatesSent() []*interfaces.DBStateSent {
 
 func (s *State) SetDBStatesSent(sents []*interfaces.DBStateSent) {
 	s.DBStatesSent = sents
+}
+
+func (s *State) GetDelay() int64 {
+	return s.Delay
+}
+
+func (s *State) SetDelay(delay int64) {
+	s.Delay = delay
 }
 
 func (s *State) GetDropRate() int {
@@ -698,29 +722,32 @@ func (s *State) Init() {
 	log.SetLevel(s.ConsoleLogLevel)
 
 	s.ControlPanelChannel = make(chan DisplayState, 20)
-	s.tickerQueue = make(chan int, 10000)                        //ticks from a clock
-	s.timerMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming eom notifications, used by leaders
-	s.TimeOffset = new(primitives.Timestamp)                     //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
-	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 10000) //incoming message queue from the network messages
+	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
+	s.timerMsgQueue = make(chan interfaces.IMsg, 100)          //incoming eom notifications, used by leaders
+	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
+	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 10000)  //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)          //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 10000)            //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 10000)            //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 10000)            //queue of Follower messages
-	s.torrentUploadQueue = make(chan interfaces.IMsg, 100000) // Channel used if torrents enabled. Queue of torrents to upload
-	s.ShutdownChan = make(chan int, 1)                        //Channel to gracefully shut down.
+	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000) //Messages to be broadcast to the network
+	s.inMsgQueue = make(chan interfaces.IMsg, 10000)        //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 100)            //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)            //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)            //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                      //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)       //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)      //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)     //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
 		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 	}
 	if s.Journaling {
-		_, err := os.Create(s.JournalFile) //Create the Journal File
+		f, err := os.Create(s.JournalFile)
 		if err != nil {
-			fmt.Println("Could not create the file: " + s.JournalFile)
+			fmt.Println("Could not create the journal file:", s.JournalFile)
 			s.JournalFile = ""
 		}
+		f.Close()
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
@@ -855,9 +882,6 @@ func (s *State) GetEntryDBHeightComplete() uint32 {
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
-	s.MissingEntryMutex.Lock()
-	defer s.MissingEntryMutex.Unlock()
-
 	return uint32(len(s.MissingEntries))
 }
 
@@ -911,6 +935,24 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 
 func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
+
+	if dblk != nil && err == nil && dbheight > 0 {
+		if dbheight%1000 == 0 {
+			fmt.Println("xxxx Progressing ...", dbheight)
+		}
+		pdblk, _ := s.DB.FetchDBlockByHeight(dbheight - 1)
+		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
+		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+			fmt.Println("xxxx Can't get the previous block by hash...")
+		}
+		if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+			fmt.Println("xxxx KeyMR incorrect at height", dbheight-1)
+		}
+		if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
+			fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -1070,76 +1112,57 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 
 func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 	// request holding queue from state from outside state scope
-	s.HoldingMutex.Lock()
-	defer s.HoldingMutex.Unlock()
+	s.HoldingMutex.RLock()
+	defer s.HoldingMutex.RUnlock()
+	localMap := s.HoldingMap
 
-	s.HoldingFlag = true
-
-	// wait for state to fill the holdingMap and set flag to false
-	timeout := 0
-	for s.HoldingFlag == true {
-		if timeout > 50 {
-			s.HoldingFlag = false
-
-		} // only wait 5 seconds for the holding queue before giving up
-		time.Sleep(100 * time.Millisecond)
-		timeout++
-	}
-	lHold := s.HoldingMap
-	// done with the holdingmap. clear it
-	s.HoldingMap = make(map[[32]byte]interfaces.IMsg, 0)
-	return lHold
-
+	return localMap
 }
 
 // this is executed in the state maintenance processes where the holding queue is in scope and can be queried
-//  This is what fills the HoldingMap requested in LoadHoldingMap
+//  This is what fills the HoldingMap while locking it against a read while building
 func (s *State) fillHoldingMap() {
-	if s.HoldingFlag == true {
-		s.HoldingMap = make(map[[32]byte]interfaces.IMsg, len(s.Holding))
-		for i, msg := range s.Holding {
-			s.HoldingMap[i] = msg
-		}
-		s.HoldingFlag = false
-	}
+	// once a second is often enough to rebuild the Ack list exposed to api
 
+	if s.HoldingLast < time.Now().Unix() {
+
+		localMap := make(map[[32]byte]interfaces.IMsg)
+		for i, msg := range s.Holding {
+			localMap[i] = msg
+		}
+		s.HoldingLast = time.Now().Unix()
+		s.HoldingMutex.Lock()
+		defer s.HoldingMutex.Unlock()
+		s.HoldingMap = localMap
+
+	}
 }
 
+// this is called from the APIs that do not have access directly to the Acks.  State makes a copy and puts it in AcksMap
 func (s *State) LoadAcksMap() map[[32]byte]interfaces.IMsg {
 	// request Acks queue from state from outside state scope
-	s.AcksMutex.Lock()
-	defer s.AcksMutex.Unlock()
+	s.AcksMutex.RLock()
+	defer s.AcksMutex.RUnlock()
+	localMap := s.AcksMap
 
-	s.AcksFlag = true
-
-	// wait for state to fill the AcksMap and set flag to false
-	timeout := 0
-	for s.AcksFlag == true {
-		if timeout > 50 {
-			s.AcksFlag = false
-
-		} // only wait 5 seconds for the Acks queue before giving up
-		time.Sleep(100 * time.Millisecond)
-		timeout++
-	}
-	lHold := s.AcksMap
-	// done with the Acksmap. clear it
-	s.AcksMap = make(map[[32]byte]interfaces.IMsg, 0)
-	return lHold
+	return localMap
 
 }
 
 // this is executed in the state maintenance processes where the Acks queue is in scope and can be queried
 //  This is what fills the AcksMap requested in LoadAcksMap
 func (s *State) fillAcksMap() {
-	if s.AcksFlag == true {
-		s.AcksMap = make(map[[32]byte]interfaces.IMsg, len(s.Acks))
+	// once a second is often enough to rebuild the Ack list exposed to api
+	if s.AcksLast < time.Now().Unix() {
+		localMap := make(map[[32]byte]interfaces.IMsg)
 		for i, msg := range s.Acks {
-			s.AcksMap[i] = msg
+			localMap[i] = msg
 		}
-		s.AcksFlag = false
+		s.AcksLast = time.Now().Unix()
+		s.AcksMutex.Lock()
+		defer s.AcksMutex.Unlock()
+		s.AcksMap = localMap
 	}
-
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
@@ -1418,28 +1441,57 @@ func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	return false
 }
 
-func (s *State) MessageToLogString(msg interfaces.IMsg) string {
-	bytes, err := msg.MarshalBinary()
-	if err != nil {
-		panic("Failed MarshalBinary: " + err.Error())
-	}
-	msgStr := hex.EncodeToString(bytes)
-
-	answer := "\n" + msg.String() + "\n  " + s.ShortString() + "\n" + "\t\t\tMsgHex: " + msgStr + "\n"
-	return answer
-}
-
+// JournalMessage writes the message to the message journal for debugging
 func (s *State) JournalMessage(msg interfaces.IMsg) {
+	type journalentry struct {
+		Type    byte
+		Message interfaces.IMsg
+	}
+
 	if s.Journaling && len(s.JournalFile) != 0 {
 		f, err := os.OpenFile(s.JournalFile, os.O_APPEND+os.O_WRONLY, 0666)
 		if err != nil {
 			s.JournalFile = ""
 			return
 		}
-		str := s.MessageToLogString(msg)
-		f.WriteString(str)
-		f.Close()
+		defer f.Close()
+
+		e := new(journalentry)
+		e.Type = msg.Type()
+		e.Message = msg
+
+		p, err := json.Marshal(e)
+		if err != nil {
+			return
+		}
+		fmt.Fprintln(f, string(p))
 	}
+}
+
+// GetJournalMessages gets all messages from the message journal
+func (s *State) GetJournalMessages() [][]byte {
+	ret := make([][]byte, 0)
+	if !s.Journaling || len(s.JournalFile) == 0 {
+		return nil
+	}
+
+	f, err := os.Open(s.JournalFile)
+	if err != nil {
+		s.JournalFile = ""
+		return nil
+	}
+	defer f.Close()
+
+	r := bufio.NewReader(f)
+	for {
+		p, err := r.ReadBytes('\n')
+		if err != nil {
+			break
+		}
+		ret = append(ret, p)
+	}
+
+	return ret
 }
 
 func (s *State) GetLeaderVM() int {
@@ -1497,6 +1549,21 @@ func (s *State) UpdateState() (progress bool) {
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
+
+entryHashProcessing:
+	for {
+		select {
+		case e := <-s.UpdateEntryHash:
+			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
+			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
+			// If the save worked, then remove any commit that might be around.
+			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
+				delete(s.Commits, e.Hash.Fixed())
+			}
+		default:
+			break entryHashProcessing
+		}
+	}
 
 	return
 }
@@ -1742,6 +1809,22 @@ func (s *State) SetFaultWait(wait int) {
 
 //var _ IState = (*State)(nil)
 
+// GetAuthoritites will return a list of the network athoritites
+func (s *State) GetAuthorities() []interfaces.IAuthority {
+	auths := make([]interfaces.IAuthority, 0)
+	for _, auth := range s.Authorities {
+		auths = append(auths, auth)
+	}
+
+	return auths
+}
+
+// GetLeaderPL returns the leader process list from the state. this method is
+// for debugging and should not be called in normal production code.
+func (s *State) GetLeaderPL() interfaces.IProcessList {
+	return s.LeaderPL
+}
+
 // Getting the cfg state for Factom doesn't force a read of the config file unless
 // it hasn't been read yet.
 func (s *State) GetCfg() interfaces.IFactomConfig {
@@ -1758,6 +1841,20 @@ func (s *State) ReadCfg(filename string) interfaces.IFactomConfig {
 
 func (s *State) GetNetworkNumber() int {
 	return s.NetworkNumber
+}
+
+func (s *State) GetNetworkName() string {
+	switch s.NetworkNumber {
+	case constants.NETWORK_MAIN:
+		return "MAIN"
+	case constants.NETWORK_TEST:
+		return "TEST"
+	case constants.NETWORK_LOCAL:
+		return "LOCAL"
+	case constants.NETWORK_CUSTOM:
+		return "CUSTOM"
+	}
+	return "" // Shouldn't ever get here
 }
 
 func (s *State) GetNetworkID() uint32 {
@@ -1849,10 +1946,10 @@ func (s *State) InitLevelDB() error {
 
 	s.Println("Database:", path)
 
-	dbase, err := hybridDB.NewLevelMapHybridDB(path, false)
+	dbase, err := leveldb.NewLevelDB(path, false)
 
 	if err != nil || dbase == nil {
-		dbase, err = hybridDB.NewLevelMapHybridDB(path, true)
+		dbase, err = leveldb.NewLevelDB(path, true)
 		if err != nil {
 			return err
 		}
@@ -1871,7 +1968,9 @@ func (s *State) InitBoltDB() error {
 
 	s.Println("Database Path for", s.FactomNodeName, "is", path)
 	os.MkdirAll(path, 0777)
-	dbase := hybridDB.NewBoltMapHybridDB(nil, path+"FactomBolt.db")
+
+	dbase := new(boltdb.BoltDB)
+	dbase.Init(nil, path+"FactomBolt.db")
 	s.DB = databaseOverlay.NewOverlay(dbase)
 	return nil
 }
@@ -2114,6 +2213,9 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 	h := int(s.ProcessLists.DBHeightBase) + len(s.ProcessLists.Lists) - 3
 	if h < 0 {
 		h = 0
+	}
+	if h > 0 && uint32(h-1) > s.HighestKnown {
+		s.HighestKnown = uint32(h - 1)
 	}
 	return uint32(h)
 }

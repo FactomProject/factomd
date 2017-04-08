@@ -96,6 +96,7 @@ type IState interface {
 
 	// Journalling
 	JournalMessage(IMsg)
+	GetJournalMessages() [][]byte
 
 	// Consensus
 	APIQueue() chan IMsg   // Input Queue from the API
@@ -257,12 +258,18 @@ type IState interface {
 
 	AddAuthorityDelta(changeString string)
 
+	GetAuthorities() []IAuthority
+	GetLeaderPL() IProcessList
 	GetLLeaderHeight() uint32
 	GetEntryDBHeightComplete() uint32
 	GetMissingEntryCount() uint32
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
 	GetCurrentMinute() int
+	GetDelay() int64
+	SetDelay(int64)
+	GetDropRate() int
+	SetDropRate(int)
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg

@@ -4,32 +4,36 @@
 
 package state_test
 
-/*
 import (
 	"os"
 	"testing"
 
-	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	. "github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/testHelper"
 )
 
+// TODO - very incompleate journal test. needs to be expanded with different
+// message types and more messages and bad messages and so on.
 func TestJournal(t *testing.T) {
-	s := new(State)
+	s := CreateAndPopulateTestState()
 	filename := "journaltest.log"
 	s.JournalFile = filename
 	_, err := os.Create(s.JournalFile)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
+	s.Journaling = true
 
 	msg := new(messages.Ack)
 	msg.MsgHash = primitives.NewZeroHash()
 	msg.MessageHash = primitives.NewZeroHash()
 	msg.SerialHash = primitives.NewZeroHash()
-	msg.Timestamp = interfaces.Timestamp(0x112233)
 
 	s.JournalMessage(msg)
+
+	msgs := s.GetJournalMessages()
+	if msgs == nil {
+		t.Error("No messages returned from journal")
+	}
 }
-*/

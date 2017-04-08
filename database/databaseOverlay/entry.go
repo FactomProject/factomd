@@ -24,7 +24,7 @@ func (db *Overlay) InsertEntry(entry interfaces.IEBEntry) error {
 	if err != nil {
 		return err
 	}
-	if entry.GetHash().String() == AnchorBlockID {
+	if entry.GetChainID().String() == AnchorBlockID {
 		db.SaveAnchorInfoFromEntry(entry)
 	}
 	return nil
