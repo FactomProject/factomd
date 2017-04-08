@@ -80,11 +80,17 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if dbheight == 0 {
+	if dbheight == 0 && state.GetHighestSavedBlk() == 0 {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
 		return 1
 	}
+
+	// Don't reload blocks!
+	if dbheight <= state.GetHighestSavedBlk() {
+		return -1
+	}
+
 	if d == nil {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
