@@ -5,8 +5,8 @@
 package adminBlock_test
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/primitives"
