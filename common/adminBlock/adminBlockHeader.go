@@ -161,10 +161,10 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	if b.BalanceHash != nil {
 		var ea primitives.Buffer
 		ea.WriteByte(1)
-		primitives.EncodeVarInt(&ea,32)
+		primitives.EncodeVarInt(&ea, 32)
 		ea.Write(b.BalanceHash.Bytes())
 		b.HeaderExpansionArea = ea.DeepCopyBytes()
-	}else{
+	} else {
 		b.HeaderExpansionArea = b.HeaderExpansionArea[:0]
 	}
 
@@ -205,17 +205,17 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 		hp := b.HeaderExpansionArea
 		var eatype byte
 		var easize uint64
-		for i:= 0; i < 10 && len(hp)>0; i++ {
+		for i := 0; i < 10 && len(hp) > 0; i++ {
 			eatype, hp = hp[0], hp[1:]
 			easize, hp = primitives.DecodeVarInt(b.HeaderExpansionArea[1:])
 			switch eatype {
 			case 1:
 				b.BalanceHash, hp = primitives.NewHash(hp), hp[32:]
 			default:
-				hp = hp [easize:]
+				hp = hp[easize:]
 			}
 		}
-	}else{
+	} else {
 		b.HeaderExpansionArea = nil
 	}
 

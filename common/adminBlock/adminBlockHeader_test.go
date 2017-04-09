@@ -6,10 +6,10 @@ package adminBlock_test
 
 import (
 	"testing"
+	"fmt"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/primitives"
-	"fmt"
 )
 
 func TestUnmarshalNilABlockHeader(t *testing.T) {
@@ -29,8 +29,6 @@ func TestUnmarshalNilABlockHeader(t *testing.T) {
 		b := new(ABlockHeader)
 		b.UnmarshalBinary(data)
 		if !a.IsSameAs(b) {
-			fmt.Println("a\n"+a.String())
-			fmt.Println("b\n"+b.String())
 			t.Error("Failed to marshal/unmarshal header")
 		}
 	}
