@@ -654,10 +654,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		return
 	}
 	fmt.Printf("*** %10s %4d DBHT: %d Writing...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight)
-	fmt.Println(d.DirectoryBlock.String())
-	fmt.Println(d.FactoidBlock.String())
-	fmt.Println(d.AdminBlock.String())
-	fmt.Println(d.EntryCreditBlock.String())
+
+	//  fmt.Println(d.DirectoryBlock.String())
+	//  fmt.Println(d.FactoidBlock.String())
+	//  fmt.Println(d.AdminBlock.String())
+	//  fmt.Println(d.EntryCreditBlock.String())
 
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
@@ -746,7 +747,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if err != nil || td == nil {
 			if err != nil {
 				os.Stderr.WriteString(err.Error() + "\n")
-			}else{
+			} else {
 				os.Stderr.WriteString("Could not get directory block by primary key\n")
 			}
 			return
