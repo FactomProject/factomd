@@ -744,7 +744,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		td, err := list.State.DB.FetchDBlockByPrimary(mr)
 		if err != nil || td == nil {
-			os.Stderr.WriteString(err.Error() + "\n")
+			if err != nil {
+				os.Stderr.WriteString(err.Error() + "\n")
+			}else{
+				os.Stderr.WriteString("Could not get directory block by primary key\n")
+			}
 			return
 			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
