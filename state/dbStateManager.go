@@ -748,19 +748,18 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			if err != nil {
 				os.Stderr.WriteString(err.Error() + "\n")
 			} else {
-				os.Stderr.WriteString("Could not get directory block by primary key\n")
+				os.Stderr.WriteString(fmt.Sprintf("Could not get directory block by primary key at Block Height %d\n", dbheight))
 			}
 			return
 			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if td.GetKeyMR().Fixed() != mr.Fixed() {
-			os.Stderr.WriteString("Key MR is wrong\n")
+			os.Stderr.WriteString(fmt.Sprintf("Key MR is wrong at Directory Block Height %d\n", dbheight))
 			return
 			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
 		}
 		if !good {
 			return
-			panic("Was missing the KeyMR hash in the database.")
 		}
 	}
 	fmt.Printf("*** %10s %4d DBHT: %d OK!!!  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight)

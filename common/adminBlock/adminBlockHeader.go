@@ -142,10 +142,6 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	b.Init()
 	var buf primitives.Buffer
 
-	if b.BalanceHash != nil {
-		b.HeaderExpansionArea = append(b.HeaderExpansionArea[:0], b.BalanceHash.Bytes()...)
-	}
-
 	data, err = b.GetAdminChainID().MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -159,6 +155,18 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 	buf.Write(data)
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
+
+	// If we have a balance hash, write a type 1, var int size, and the balance hash to the ExpansionArea
+	// Otherwise, make sure the expansion area is nil
+	if b.BalanceHash != nil {
+		var ea primitives.Buffer
+		ea.WriteByte(1)
+		primitives.EncodeVarInt(&ea,32)
+		ea.Write(b.BalanceHash.Bytes())
+		b.HeaderExpansionArea = ea.DeepCopyBytes()
+	}else{
+		b.HeaderExpansionArea = b.HeaderExpansionArea[:0]
+	}
 
 	b.HeaderExpansionSize = uint64(len(b.HeaderExpansionArea))
 	primitives.EncodeVarInt(&buf, b.HeaderExpansionSize)
@@ -190,13 +198,27 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
+	b.BalanceHash = nil // Default to nil if no balance hash is in the expansion area
 	b.HeaderExpansionSize, newData = primitives.DecodeVarInt(newData)
 	if b.HeaderExpansionSize > 0 {
 		b.HeaderExpansionArea = append(b.HeaderExpansionArea[:0], newData[:b.HeaderExpansionSize]...)
-		b.BalanceHash = primitives.NewHash(b.HeaderExpansionArea)
-	} else {
-		b.BalanceHash = nil
+		hp := b.HeaderExpansionArea
+		var eatype byte
+		var easize uint64
+		for i:= 0; i < 10 && len(hp)>0; i++ {
+			eatype, hp = hp[0], hp[1:]
+			easize, hp = primitives.DecodeVarInt(b.HeaderExpansionArea[1:])
+			switch eatype {
+			case 1:
+				b.BalanceHash, hp = primitives.NewHash(hp), hp[32:]
+			default:
+				hp = hp [easize:]
+			}
+		}
+	}else{
+		b.HeaderExpansionArea = nil
 	}
+
 	newData = newData[b.HeaderExpansionSize:]
 
 	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
