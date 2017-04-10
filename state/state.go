@@ -788,15 +788,15 @@ func (s *State) Init() {
 	switch s.DBType {
 	case "LDB":
 		if err := s.InitLevelDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	case "Bolt":
 		if err := s.InitBoltDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	case "Map":
 		if err := s.InitMapDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	default:
 		panic("No Database type specified")
