@@ -80,18 +80,21 @@ func FixBlockHeads(db interfaces.IDatabase) error {
 			chainIDs := []interfaces.IHash{}
 			keyMRs := []interfaces.IHash{}
 
-			chainIDs = append(chainIDs, bs.DBlock.DatabasePrimaryIndex())
-			keyMRs = append(keyMRs, bs.DBlock.GetChainID())
+			chainIDs = append(chainIDs, bs.DBlock.GetChainID())
+			keyMRs = append(keyMRs, bs.DBlock.DatabasePrimaryIndex())
 
-			chainIDs = append(chainIDs, bs.FBlock.DatabasePrimaryIndex())
-			keyMRs = append(keyMRs, bs.FBlock.GetChainID())
+			chainIDs = append(chainIDs, bs.ABlock.GetChainID())
+			keyMRs = append(keyMRs, bs.ABlock.DatabasePrimaryIndex())
 
-			chainIDs = append(chainIDs, bs.ECBlock.DatabasePrimaryIndex())
-			keyMRs = append(keyMRs, bs.ECBlock.GetChainID())
+			chainIDs = append(chainIDs, bs.FBlock.GetChainID())
+			keyMRs = append(keyMRs, bs.FBlock.DatabasePrimaryIndex())
+
+			chainIDs = append(chainIDs, bs.ECBlock.GetChainID())
+			keyMRs = append(keyMRs, bs.ECBlock.DatabasePrimaryIndex())
 
 			for _, v := range bs.EBlocks {
-				chainIDs = append(chainIDs, v.DatabasePrimaryIndex())
-				keyMRs = append(keyMRs, v.GetChainID())
+				chainIDs = append(chainIDs, v.GetChainID())
+				keyMRs = append(keyMRs, v.DatabasePrimaryIndex())
 			}
 			err = dbo.SetChainHeads(keyMRs, chainIDs)
 			if err != nil {
