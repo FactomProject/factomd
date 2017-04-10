@@ -73,14 +73,15 @@ func getMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 		buff = append(buff[0:], h.Bytes()...)
 		buff = append(buff, e.adr[:]...)
 		buff = append(buff,
-			byte(e.v),
-			byte(e.v>>8),
-			byte(e.v>>16),
-			byte(e.v>>24),
-			byte(e.v>>32),
-			byte(e.v>>40),
+			byte(e.v>>56),
 			byte(e.v>>48),
-			byte(e.v>>56))
+			byte(e.v>>40),
+			byte(e.v>>32),
+			byte(e.v>>24),
+			byte(e.v>>16),
+			byte(e.v>>8),
+			byte(e.v),
+		)
 		h = primitives.Sha(buff)
 	}
 
