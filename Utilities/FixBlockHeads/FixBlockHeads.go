@@ -49,14 +49,21 @@ func main() {
 		}
 	}
 
-	err = FixBlockHeads(dbase)
+	dbo := databaseOverlay.NewOverlay(dbase)
+	err = FixBlockHeads(dbo)
+	if err != nil {
+		fmt.Errorf("ERROR: %v", err)
+	}
+
+	head, err := dbo.FetchDirectoryBlockHead()
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Head - %v\n", head.String())
 }
 
-func FixBlockHeads(db interfaces.IDatabase) error {
-	dbo := databaseOverlay.NewOverlay(db)
+func FixBlockHeads(dbo *databaseOverlay.Overlay) error {
+	var prevs []*databaseOverlay.BlockSet
 	var prev *databaseOverlay.BlockSet
 	prev = nil
 	for i := 0; ; i++ {
@@ -76,7 +83,14 @@ func FixBlockHeads(db interfaces.IDatabase) error {
 			if prevKeyMR.IsSameAs(keyMR) == false {
 				return fmt.Errorf("KeyMR mismatch at height %v", i)
 			}
+		}
 
+		prev = bs
+		prevs = append(prevs, prev)
+
+		//Ensuring we stay far away from the corrupted block head
+		if len(prevs) > 50 {
+			bs = prevs[0]
 			chainIDs := []interfaces.IHash{}
 			keyMRs := []interfaces.IHash{}
 
@@ -100,9 +114,8 @@ func FixBlockHeads(db interfaces.IDatabase) error {
 			if err != nil {
 				return err
 			}
+			prevs = prevs[1:]
 		}
-
-		prev = bs
 	}
 
 	return nil
