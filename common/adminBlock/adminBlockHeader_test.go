@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+var _ = fmt.Print
+
 func TestUnmarshalNilABlockHeader(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
