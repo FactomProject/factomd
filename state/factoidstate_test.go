@@ -53,16 +53,15 @@ func TestBalanceHash(t *testing.T) {
 	s.FactoidBalancesP = map[[32]byte]int64{}
 	s.ECBalancesP = map[[32]byte]int64{}
 
-
 	var ec, fct []interfaces.IHash
 	h := primitives.Sha([]byte("testing"))
 
 	for i := 1; i < 1000; i++ {
 		h = primitives.Sha(h.Bytes())
-		ec = append(ec,h)
+		ec = append(ec, h)
 		s.PutE(false, h.Fixed(), RandBal())
 		h = primitives.Sha(h.Bytes())
-		fct = append(fct,h)
+		fct = append(fct, h)
 		s.PutF(false, h.Fixed(), RandBal())
 	}
 
@@ -70,11 +69,10 @@ func TestBalanceHash(t *testing.T) {
 	hbal := fs.GetBalanceHash()
 
 	if hbal.String() != Expected {
-		t.Errorf("Expected %s but found %s",Expected,hbal.String())
+		t.Errorf("Expected %s but found %s", Expected, hbal.String())
 	}
 
-
-  x := func(addrArray [] interfaces.IHash, balanceArray *map[[32]byte]int64) {
+	x := func(addrArray []interfaces.IHash, balanceArray *map[[32]byte]int64) {
 
 		// Add a random address
 		for i := 1; i < 10; i++ {
@@ -89,7 +87,7 @@ func TestBalanceHash(t *testing.T) {
 				t.Errorf("Should not have gotten %s", Expected)
 			}
 
-			delete((*balanceArray),adr.Fixed())
+			delete((*balanceArray), adr.Fixed())
 
 			hbal = fs.GetBalanceHash()
 
@@ -121,32 +119,32 @@ func TestBalanceHash(t *testing.T) {
 
 		// Modify by one bit a random balance
 		for i := 1; i < 10; i++ {
-			indx := rand.Int()%len(addrArray)
+			indx := rand.Int() % len(addrArray)
 			adr := addrArray[indx].Fixed()
 
 			bal := (*balanceArray)[adr]
-			(*balanceArray)[adr]=bal ^ RandBit()
+			(*balanceArray)[adr] = bal ^ RandBit()
 
 			hbal := fs.GetBalanceHash()
 
 			if hbal.String() == Expected {
-				t.Errorf("Should not have gotten %s",Expected)
+				t.Errorf("Should not have gotten %s", Expected)
 			}
 
-			(*balanceArray)[adr]=bal
+			(*balanceArray)[adr] = bal
 
 			hbal = fs.GetBalanceHash()
 
 			if hbal.String() != Expected {
-				t.Errorf("Expected %s but found %s",Expected,hbal.String())
+				t.Errorf("Expected %s but found %s", Expected, hbal.String())
 			}
 
 		}
 
 	}
 
-	x(fct,&s.FactoidBalancesP)
-	x(ec,&s.ECBalancesP)
+	x(fct, &s.FactoidBalancesP)
+	x(ec, &s.ECBalancesP)
 
 }
 

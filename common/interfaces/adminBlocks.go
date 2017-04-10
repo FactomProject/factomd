@@ -22,8 +22,6 @@ type IAdminBlock interface {
 	GetHash() IHash
 	GetHeader() IABlockHeader
 	GetKeyMR() (IHash, error)
-	GetBalanceHash() IHash
-	SetBalanceHash(IHash)
 	LookupHash() (IHash, error)
 	RemoveFederatedServer(IHash) error
 	SetABEntries([]IABEntry)
@@ -55,8 +53,6 @@ type IABlockHeader interface {
 
 	GetHeaderExpansionArea() []byte
 	SetHeaderExpansionArea([]byte)
-	GetBalanceHash() IHash
-	SetBalanceHash(IHash)
 
 	GetBodySize() uint32
 	GetMessageCount() uint32
