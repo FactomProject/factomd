@@ -29,7 +29,6 @@ type CommitChain struct {
 	Credits     uint8
 	ECPubKey    *primitives.ByteSlice32
 	Sig         *primitives.ByteSlice64
-	SigHash     interfaces.IHash
 }
 
 var _ interfaces.Printable = (*CommitChain)(nil)
@@ -56,9 +55,6 @@ func (e *CommitChain) Init() {
 	}
 	if e.Sig == nil {
 		e.Sig = new(primitives.ByteSlice64)
-	}
-	if e.SigHash == nil {
-		e.SigHash = primitives.NewZeroHash()
 	}
 }
 
@@ -100,9 +96,6 @@ func (a *CommitChain) IsSameAs(b interfaces.IECBlockEntry) bool {
 		return false
 	}
 	if a.Sig.IsSameAs(bb.Sig) == false {
-		return false
-	}
-	if a.SigHash.IsSameAs(bb.SigHash) == false {
 		return false
 	}
 
@@ -194,8 +187,7 @@ func (c *CommitChain) GetHash() interfaces.IHash {
 
 func (c *CommitChain) GetSigHash() interfaces.IHash {
 	data := c.CommitMsg()
-	c.SigHash = primitives.Sha(data)
-	return c.SigHash
+	return primitives.Sha(data)
 }
 
 func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
