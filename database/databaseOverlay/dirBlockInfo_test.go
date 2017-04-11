@@ -13,12 +13,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
 func TestSaveLoadDirBlockInfo(t *testing.T) {
-	b1 := CreateTestDirBlockInfo(nil)
+	b1 := testHelper.CreateTestDirBlockInfo(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -49,7 +49,7 @@ func TestSaveLoadDirBlockInfo(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := CreateTestDirBlockInfo(b1)
+	b2 := testHelper.CreateTestDirBlockInfo(b1)
 
 	err = dbo.SaveDirBlockInfo(b2)
 	if err != nil {
@@ -125,7 +125,7 @@ func TestFetchDirBlockInfoBatches(t *testing.T) {
 	max := 10
 	var prev *dbInfo.DirBlockInfo = nil
 	for i := 0; i < max; i++ {
-		prev = CreateTestDirBlockInfo(prev)
+		prev = testHelper.CreateTestDirBlockInfo(prev)
 		blocks = append(blocks, prev)
 
 		err := dbo.SaveDirBlockInfo(prev)
@@ -203,7 +203,7 @@ func TestLoadUnknownDirBlockEntries(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
-		b := IntToByteSlice(i)
+		b := testHelper.IntToByteSlice(i)
 		hash, err := primitives.NewShaHash(b)
 		if err != nil {
 			t.Error(err)

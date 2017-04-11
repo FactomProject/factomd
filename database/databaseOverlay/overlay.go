@@ -10,6 +10,7 @@ package databaseOverlay
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -529,4 +530,103 @@ func (db *Overlay) GetEntryType(hash interfaces.IHash) (interfaces.IHash, error)
 	}
 
 	return nil, nil
+}
+
+type BlockSet struct {
+	DBHeight uint32
+
+	DBlock  interfaces.IDirectoryBlock
+	ABlock  interfaces.IAdminBlock
+	ECBlock interfaces.IEntryCreditBlock
+	FBlock  interfaces.IFBlock
+
+	EBlocks []interfaces.IEntryBlock
+	Entries []interfaces.IEBEntry
+}
+
+func (db *Overlay) FetchBlockSetByHeight(dbheight uint32) (*BlockSet, error) {
+	bs := new(BlockSet)
+
+	bs.DBHeight = dbheight
+
+	dBlock, err := db.FetchDBlockByHeight(dbheight)
+	if err != nil {
+		return nil, err
+	}
+	if dBlock == nil {
+		return nil, nil
+	}
+	bs.DBlock = dBlock
+
+	dbentries := dBlock.GetDBEntries()
+	for _, v := range dbentries {
+		switch v.GetChainID().String() {
+		case "000000000000000000000000000000000000000000000000000000000000000a":
+			aBlock, err := db.FetchABlock(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+			bs.ABlock = aBlock
+			break
+		case "000000000000000000000000000000000000000000000000000000000000000f":
+			fBlock, err := db.FetchFBlock(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+			bs.FBlock = fBlock
+			break
+		case "000000000000000000000000000000000000000000000000000000000000000c":
+			ecBlock, err := db.FetchECBlock(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+			bs.ECBlock = ecBlock
+			break
+		default:
+			eBlock, err := db.FetchEBlock(v.GetKeyMR())
+			if err != nil {
+				return nil, err
+			}
+			bs.EBlocks = append(bs.EBlocks, eBlock)
+			break
+		}
+	}
+
+	return bs, nil
+}
+
+func (db *Overlay) FetchBlockSetByHeightWithEntries(dbheight uint32) (*BlockSet, error) {
+	bs, err := db.FetchBlockSetByHeight(dbheight)
+	if err != nil {
+		return nil, err
+	}
+	if bs == nil {
+		return nil, nil
+	}
+
+	for _, eBlock := range bs.EBlocks {
+		entries := eBlock.GetEntryHashes()
+		for _, e := range entries {
+			entry, err := db.FetchEntry(e)
+			if err != nil {
+				return nil, err
+			}
+			bs.Entries = append(bs.Entries, entry)
+		}
+	}
+
+	return bs, nil
+}
+
+func (db *Overlay) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error {
+	if len(primaryIndexes) != len(chainIDs) {
+		return fmt.Errorf("Mismatched array lengths - %v vs %v", len(primaryIndexes), len(chainIDs))
+	}
+
+	batch := []interfaces.Record{}
+	for i := range primaryIndexes {
+		batch = append(batch, interfaces.Record{CHAIN_HEAD, chainIDs[i].Bytes(), primaryIndexes[i]})
+	}
+
+	return db.PutInBatch(batch)
 }
