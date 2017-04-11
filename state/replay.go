@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 const Range = 60                // Double this for the period we protect, i.e. 120 means +/- 120 minutes
@@ -33,6 +34,57 @@ type ReplayWithoutMutex struct {
 }
 
 var _ interfaces.BinaryMarshallable = (*Replay)(nil)
+
+func RandomReplay() *Replay {
+	r := new(Replay)
+
+	l := random.RandIntBetween(0, 100)
+	for i := 0; i < l; i++ {
+		l2 := random.RandIntBetween(0, 50)
+		m := map[[32]byte]int{}
+		for j := 0; j < l2; j++ {
+			h := primitives.RandomHash()
+			m[h.Fixed()] = random.RandInt()
+		}
+		r.Buckets = append(r.Buckets, m)
+	}
+
+	r.Basetime = random.RandInt()
+	r.Center = random.RandInt()
+
+	return r
+}
+
+func (a *Replay) IsSameAs(b *Replay) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	if len(a.Buckets) != len(b.Buckets) {
+		return false
+	}
+	for i := range a.Buckets {
+		if len(a.Buckets[i]) != len(b.Buckets[i]) {
+			return false
+		}
+		for k := range a.Buckets[i] {
+			if a.Buckets[i][k] != b.Buckets[i][k] {
+				return false
+			}
+		}
+	}
+
+	if a.Basetime != b.Basetime {
+		return false
+	}
+	if a.Center != b.Center {
+		return false
+	}
+	return true
+}
 
 func (r *Replay) MarshalBinary() ([]byte, error) {
 	b := primitives.NewBuffer(nil)
