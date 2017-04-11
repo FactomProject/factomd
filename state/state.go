@@ -33,6 +33,8 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	"errors"
 )
 
 var _ = fmt.Print
@@ -928,34 +930,43 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 
 func (s *State) ValidatePrevious(dbheight uint32) error {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
-
+	errs := ""
 	if dblk != nil && err == nil && dbheight > 0 {
 		if dbheight%1000 == 0 {
 			fmt.Println("xxxx Progressing ...", dbheight)
 		}
 
 		if dblk2, err := s.DB.FetchDBlock(dblk.GetKeyMR()); err != nil {
-			fmt.Printf("Don't have the directory block hash indexed %d\n", dbheight)
-			panic(fmt.Sprintf("Don't have the directory block hash indexed %d", dbheight))
+			errs += "Don't have the directory block hash indexed %d\n"
 		} else if dblk2 == nil {
-			fmt.Printf("Don't have the directory block hash indexed %d\n", dbheight)
-			panic(fmt.Sprintf("Don't have the directory block hash indexed %d", dbheight))
+			errs += fmt.Sprintf("Don't have the directory block hash indexed %d\n", dbheight)
 		}
 
 		pdblk, _ := s.DB.FetchDBlockByHeight(dbheight - 1)
 		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
-		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
-			fmt.Println("xxxx Can't get the previous block by hash...")
-			return fmt.Errorf("Cannot find the previous block at %d", dbheight-1)
+		if pdblk == nil {
+			errs += fmt.Sprintf("Cannot find the previous block by index at %d", dbheight-1)
+		} else {
+			if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+				errs += fmt.Sprintf("xxxx KeyMR incorrect at height %d", dbheight-1)
+			}
+			if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
+				fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+				return fmt.Errorf("Full hash incorrect block at %d", dbheight-1)
+			}
 		}
-		if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
-			fmt.Println("xxxx KeyMR incorrect at height", dbheight-1)
-			return fmt.Errorf("KeyMR incorrect at height %d", dbheight-1)
+		if pdblk2 == nil {
+			errs += fmt.Sprintf("Cannot find the previous block at %d", dbheight-1)
+		} else {
+			if pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+				errs += fmt.Sprintln("xxxx Hash is incorrect.  Expected: ", dblk.GetHeader().GetPrevKeyMR().String())
+				errs += fmt.Sprintln("xxxx Hash is incorrect.  Recieved: ", pdblk2.GetKeyMR().String())
+				errs += fmt.Sprintf("Hash is incorrect at %d", dbheight-1)
+			}
 		}
-		if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
-			fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
-			return fmt.Errorf("Full hash incorrect block at %d", dbheight-1)
-		}
+	}
+	if len(errs) > 0 {
+		return errors.New(errs)
 	}
 	return nil
 }

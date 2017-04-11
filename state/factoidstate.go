@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -67,27 +68,47 @@ func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	// GoLang < 1.8
 	sort.Sort(elementSortable(list))
 
-	buff := primitives.NewBuffer([]byte(fmt.Sprintf("balances %d", dbheight)))
+	var buff primitives.Buffer
+	if err := binary.Write(&buff, binary.BigEndian, &dbheight); err != nil {
+		return nil
+	}
 
 	for _, e := range list {
 		_, err := buff.Write(e.adr[:])
 		if err != nil {
 			return nil
 		}
-		err = binary.Write(buff, binary.BigEndian, &e.v)
+		if err := binary.Write(&buff, binary.BigEndian, &e.v); err != nil {
+			return nil
+		}
 	}
 
-	h := primitives.Sha(buff.DeepCopyBytes())
+	h := primitives.Sha(buff.Bytes())
 
 	return h
 }
 
-func (fs *FactoidState) GetBalanceHash() interfaces.IHash {
+func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 	h1 := GetMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
 	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
+	h3 := h1
+	h4 := h2
+	if messages.AckBalanceHash {
+		pl := fs.State.ProcessLists.Get(fs.DBHeight)
+		pl.ECBalancesTMutex.Lock()
+		pl.FactoidBalancesTMutex.Lock()
+		h3 = GetMapHash(fs.DBHeight, pl.FactoidBalancesT)
+		h4 = GetMapHash(fs.DBHeight, pl.ECBalancesT)
+		pl.ECBalancesTMutex.Unlock()
+		pl.FactoidBalancesTMutex.Unlock()
+	}
 	var b []byte
 	b = append(b, h1.Bytes()...)
 	b = append(b, h2.Bytes()...)
+	if messages.AckBalanceHash {
+		b = append(b, h3.Bytes()...)
+		b = append(b, h4.Bytes()...)
+	}
 	return primitives.Sha(b)
 }
 

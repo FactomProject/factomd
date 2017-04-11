@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
+	"os"
 )
 
 var _ = fmt.Print
@@ -846,7 +847,13 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
 	eom.MsgHash = nil
-	ack := s.NewAck(m)
+	ack := s.NewAck(m).(*messages.Ack)
+
+	if messages.AckBalanceHash {
+		ack.BalanceHash = s.FactoidState.GetBalanceHash(true)
+		os.Stderr.WriteString(fmt.Sprintf("****Ack %10s Balance hash: %s\n", s.FactomNodeName, ack.BalanceHash.String()))
+	}
+
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
@@ -875,7 +882,24 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		}
 	}
 
-	s.LeaderExecute(dbs)
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	if !ok {
+		delete(s.Holding, m.GetRepeatHash().Fixed())
+		delete(s.Holding, m.GetMsgHash().Fixed())
+		return
+	}
+
+	ack := s.NewAck(m).(*messages.Ack)
+
+	if messages.AckBalanceHash {
+		ack.BalanceHash = s.FactoidState.GetBalanceHash(true)
+		os.Stderr.WriteString(fmt.Sprintf("****DBSig %10s Balance hash: %s\n", s.FactomNodeName, ack.BalanceHash.String()))
+	}
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -1239,6 +1263,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
+		if messages.AckBalanceHash {
+			balanceHash := s.FactoidState.GetBalanceHash(true)
+			os.Stderr.WriteString(fmt.Sprintf("**** EOM Done %10s Balance hash: %s\n", s.FactomNodeName, balanceHash.String()))
+		}
+
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: EOM Complete: vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
 			e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 

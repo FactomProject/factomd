@@ -37,6 +37,7 @@ type Ack struct {
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
+var AckBalanceHash = true
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -206,7 +207,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
-	/*
+	if AckBalanceHash {
 		m.DataAreaSize, newData = primitives.DecodeVarInt(newData)
 		if m.DataAreaSize > 0 {
 			das := newData[:int(m.DataAreaSize)]
@@ -222,7 +223,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			}
 			newData = newData[int(m.DataAreaSize):]
 		}
-	*/
+	}
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -288,7 +289,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	/*
+	if AckBalanceHash {
 		if m.BalanceHash == nil {
 			primitives.EncodeVarInt(&buf, 0)
 		} else {
@@ -304,7 +305,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 			primitives.EncodeVarInt(&buf, m.DataAreaSize)
 			buf.Write(area.Bytes())
 		}
-	*/
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
