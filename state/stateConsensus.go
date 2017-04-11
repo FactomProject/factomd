@@ -481,11 +481,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	}
 
-	// ignore if we didn't ask for it, or if it is at least something with our range of asking for.
-	if !dbstatemsg.IsInDB && (s.DBStates.LastBegin-1 > int(dbheight) || s.DBStates.LastEnd+20 < int(dbheight)) {
-		return
-	}
-
 	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
