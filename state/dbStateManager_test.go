@@ -62,7 +62,7 @@ func TestSaveDBState(t *testing.T) {
 
 	// Create blocks
 	fee := int64(11000)
-	total := 1000
+	total := 15
 	initBal := int64(2000000000000)
 	per := 10000 + fee*2
 	msgs := createTestDBStateList(total, s)
