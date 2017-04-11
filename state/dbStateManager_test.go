@@ -2,10 +2,15 @@ package state_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -14,9 +19,10 @@ import (
 )
 
 var _ = fmt.Printf
+var _ = factoid.GetGenesisFBlock
+var _ = constants.SIGNATURE_LENGTH
 
-func TestSaveDBState(t *testing.T) {
-	// Init
+func newState() *State {
 	s := new(State)
 	s.LoadConfig("", "")
 	// Set custom config options
@@ -34,23 +40,62 @@ func TestSaveDBState(t *testing.T) {
 	// So it starts...
 	s.CustomBootstrapIdentity = "38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9"
 	s.CustomBootstrapKey = "cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a"
+
 	s.Init()
 	s.Network = "CUSTOM"
+	return s
+}
+
+func TestSaveDBState(t *testing.T) {
+	// Init
+	s := newState()
 	LoadDatabase(s)
 
+	// sec := FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6
+	// add := 646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc428
+
+	pub, _ := hex.DecodeString("646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc428")
+
+	var fixedpub [32]byte
+	copy(fixedpub[:], pub[:32])
+	fmt.Printf("%x\n", fixedpub[:])
+
 	// Create blocks
-	total := 100
+	fee := int64(11000)
+	total := 1000
+	initBal := int64(2000000000000)
+	per := 10000 + fee*2
 	msgs := createTestDBStateList(total, s)
 	for i, m := range msgs {
-		s.FollowerExecuteDBState(m)
-		var _ = i
-		if i%1000 == 0 {
-			//fmt.Printf("FE: %d\n", i)
+		i6 := int64(i)
+		// Execute 5 times
+		for ii := 0; ii < 5; ii++ {
+			s.FollowerExecuteDBState(m)
 		}
+
+		if i != 0 && s.FactoidState.GetFactoidBalance(fixedpub) != initBal-((i6)*per) {
+			t.Errorf("Balance should be %d, found %d", initBal-((i6)*per), s.FactoidState.GetFactoidBalance(fixedpub))
+		}
+		//fmt.Println(s.FactoidState.GetFactoidBalance(fixedpub))
 	}
 
 	// Verify blocks
 	errs := verifyBlocks(s, msgs)
+	if errs != nil {
+		for _, e := range errs {
+			t.Error(e)
+		}
+	}
+
+	err := s.DB.Close()
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	// Double Check DB
+	s = newState()
+	errs = verifyBlocks(s, msgs)
 	if errs != nil {
 		for _, e := range errs {
 			t.Error(e)
@@ -190,19 +235,61 @@ func compareMarshal(a interfaces.BinaryMarshallable, b interfaces.BinaryMarshall
 }
 
 func createTestDBStateList(blockCount int, s *State) []interfaces.IMsg {
+	// FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+	// Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK
+	/*	sec, err := hex.DecodeString("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
+		if err != nil {
+			panic(err)
+		}
+		pub, err := hex.DecodeString("031CCE24BCC43B596AF105167DE2C03603C20ADA3314A7CFB47BEFCAD4883E6F")
+		if err != nil {
+			panic(err)
+		}
+	*/
+	var err error
 	answer := make([]interfaces.IMsg, blockCount)
 	var prev *testHelper.BlockSet = nil
 
 	for i := 0; i < blockCount; i++ {
-		var _ = i
 		if i%1000 == 0 {
 			//fmt.Printf("CM: %d\n", i)
 		}
 
-		prev = testHelper.CreateTestBlockSetWithNetworkID(prev, s.GetNetworkID())
-
 		timestamp := primitives.NewTimestampNow()
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6)) //6 hours of difference between messages
+
+		prev = testHelper.CreateTestBlockSetWithNetworkID(prev, s.GetNetworkID(), false)
+		if i == 0 {
+			dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
+			msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
+			prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
+			prev.ABlock = ablk.(*adminBlock.AdminBlock)
+			prev.FBlock = fblk
+			prev.ECBlock = ecblk
+			answer[i] = msg
+			continue
+		}
+
+		ents := prev.DBlock.GetDBEntries()
+		for i, e := range ents {
+			if bytes.Compare(e.GetChainID().Bytes(), constants.FACTOID_CHAINID) == 0 {
+				//fromAdd []byte, toAdd []byte, amt uint64
+				newF := testHelper.CreateTestFactoidBlockWithTransaction(prev.FBlock,
+					"FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6", factoid.RandomAddress().Bytes(), 10000)
+
+				de := new(directoryBlock.DBEntry)
+				de.ChainID, err = primitives.NewShaHash(newF.GetChainID().Bytes())
+				if err != nil {
+					panic(err)
+				}
+				de.KeyMR = newF.DatabasePrimaryIndex()
+
+				ents[i] = de
+				prev.FBlock = newF
+			}
+		}
+
+		prev.DBlock.SetDBEntries(ents)
 
 		answer[i] = messages.NewDBStateMsg(timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
 	}
