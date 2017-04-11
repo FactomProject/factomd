@@ -9,6 +9,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"runtime/debug"
 	"sort"
@@ -52,7 +53,7 @@ type element struct {
 	v   int64
 }
 
-func getMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
+func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	list := make([]*element, 0, len(bmap))
 
 	for k, v := range bmap {
@@ -66,31 +67,24 @@ func getMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
 	// GoLang < 1.8
 	sort.Sort(elementSortable(list))
 
-	buff := []byte(fmt.Sprintf("balances %d", dbheight))
-	h := primitives.Sha(buff)
+	buff := primitives.NewBuffer([]byte(fmt.Sprintf("balances %d", dbheight)))
 
 	for _, e := range list {
-		buff = append(buff[0:], h.Bytes()...)
-		buff = append(buff, e.adr[:]...)
-		buff = append(buff,
-			byte(e.v>>56),
-			byte(e.v>>48),
-			byte(e.v>>40),
-			byte(e.v>>32),
-			byte(e.v>>24),
-			byte(e.v>>16),
-			byte(e.v>>8),
-			byte(e.v),
-		)
-		h = primitives.Sha(buff)
+		_, err := buff.Write(e.adr[:])
+		if err != nil {
+			return nil
+		}
+		err = binary.Write(buff, binary.BigEndian, &e.v)
 	}
+
+	h := primitives.Sha(buff.DeepCopyBytes())
 
 	return h
 }
 
 func (fs *FactoidState) GetBalanceHash() interfaces.IHash {
-	h1 := getMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
-	h2 := getMapHash(fs.DBHeight, fs.State.ECBalancesP)
+	h1 := GetMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
+	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
 	var b []byte
 	b = append(b, h1.Bytes()...)
 	b = append(b, h2.Bytes()...)

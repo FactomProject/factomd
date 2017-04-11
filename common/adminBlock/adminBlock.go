@@ -48,19 +48,9 @@ func (c *AdminBlock) IsSameAs(c2 interfaces.IAdminBlock) bool {
 	return true
 }
 
-func (c *AdminBlock) GetBalanceHash() interfaces.IHash {
-	return c.Header.GetBalanceHash()
-}
-
-func (c *AdminBlock) SetBalanceHash(bhash interfaces.IHash) {
-	c.Header.SetBalanceHash(bhash)
-}
-
 func (c *AdminBlock) String() string {
 	c.Init()
 	var out primitives.Buffer
-
-	c.MarshalBinary()
 
 	fh, _ := c.BackReferenceHash()
 	if fh == nil {

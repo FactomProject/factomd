@@ -19,7 +19,6 @@ import (
 type ABlockHeader struct {
 	PrevBackRefHash interfaces.IHash
 	DBHeight        uint32
-	BalanceHash     interfaces.IHash
 
 	HeaderExpansionSize uint64
 	HeaderExpansionArea []byte
@@ -33,15 +32,6 @@ var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
 func (e *ABlockHeader) IsSameAs(e2 interfaces.IABlockHeader) bool {
 	if !e.PrevBackRefHash.IsSameAs(e2.GetPrevBackRefHash()) {
 		return false
-	}
-	if e.BalanceHash == nil {
-		if e2.GetBalanceHash() != nil {
-			return false
-		}
-	} else {
-		if !e.BalanceHash.IsSameAs(e2.GetBalanceHash()) {
-			return false
-		}
 	}
 	if e.DBHeight != e2.GetDBHeight() {
 		return false
@@ -65,14 +55,6 @@ func (e *ABlockHeader) Init() {
 	if e.PrevBackRefHash == nil {
 		e.PrevBackRefHash = primitives.NewZeroHash()
 	}
-}
-
-func (e *ABlockHeader) GetBalanceHash() interfaces.IHash {
-	return e.BalanceHash
-}
-
-func (e *ABlockHeader) SetBalanceHash(bhash interfaces.IHash) {
-	e.BalanceHash = bhash
 }
 
 func (e *ABlockHeader) String() string {
@@ -156,19 +138,6 @@ func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
 
 	binary.Write(&buf, binary.BigEndian, b.DBHeight)
 
-	// If we have a balance hash, write a type 1, var int size, and the balance hash to the ExpansionArea
-	// Otherwise, make sure the expansion area is nil
-	if b.BalanceHash != nil {
-		var ea primitives.Buffer
-		ea.WriteByte(1)
-		primitives.EncodeVarInt(&ea, 32)
-		ea.Write(b.BalanceHash.Bytes())
-		b.HeaderExpansionArea = ea.DeepCopyBytes()
-	} else {
-		b.HeaderExpansionArea = b.HeaderExpansionArea[:0]
-	}
-
-	b.HeaderExpansionSize = uint64(len(b.HeaderExpansionArea))
 	primitives.EncodeVarInt(&buf, b.HeaderExpansionSize)
 	buf.Write(b.HeaderExpansionArea)
 
@@ -198,28 +167,8 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err err
 
 	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 
-	b.BalanceHash = nil // Default to nil if no balance hash is in the expansion area
 	b.HeaderExpansionSize, newData = primitives.DecodeVarInt(newData)
-	if b.HeaderExpansionSize > 0 {
-		b.HeaderExpansionArea = append(b.HeaderExpansionArea[:0], newData[:b.HeaderExpansionSize]...)
-		hp := b.HeaderExpansionArea
-		var eatype byte
-		var easize uint64
-		for i := 0; i < 10 && len(hp) > 0; i++ {
-			eatype, hp = hp[0], hp[1:]
-			easize, hp = primitives.DecodeVarInt(b.HeaderExpansionArea[1:])
-			switch eatype {
-			case 1:
-				b.BalanceHash, hp = primitives.NewHash(hp), hp[32:]
-			default:
-				hp = hp[easize:]
-			}
-		}
-	} else {
-		b.HeaderExpansionArea = nil
-	}
-
-	newData = newData[b.HeaderExpansionSize:]
+	b.HeaderExpansionArea, newData = newData[:b.HeaderExpansionSize], newData[b.HeaderExpansionSize:]
 
 	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	b.BodySize, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var _ = fmt.Print
@@ -23,7 +22,7 @@ func TestUnmarshalNilABlockHeader(t *testing.T) {
 
 	{
 		a := new(ABlockHeader)
-		a.BalanceHash = primitives.Sha([]byte("test"))
+
 		data, err := a.MarshalBinary()
 		if err != nil || data == nil {
 			t.Error("Should be able to marshal an Admin block header")
@@ -54,7 +53,6 @@ func TestUnmarshalNilABlockHeaderWithAdminBlk(t *testing.T) {
 	}()
 
 	a := createSmallTestAdminBlock()
-	a.SetBalanceHash(primitives.Sha([]byte("test")))
 	data, err := a.MarshalBinary()
 	if err != nil || data == nil {
 		t.Error("Should be able to marshal an Admin block header")
@@ -63,9 +61,6 @@ func TestUnmarshalNilABlockHeaderWithAdminBlk(t *testing.T) {
 	b.UnmarshalBinary(data)
 	if !a.IsSameAs(b) {
 		t.Error("Failed to marshal/unmarshal header")
-	}
-	if !b.GetBalanceHash().IsSameAs(primitives.Sha([]byte("test"))) {
-		t.Error("should be the same")
 	}
 
 }

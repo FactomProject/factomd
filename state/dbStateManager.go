@@ -344,10 +344,6 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	}
 	d.AdminBlock.GetHeader().SetPrevBackRefHash(hash)
 
-	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 {
-		d.AdminBlock.SetBalanceHash(list.State.FactoidState.GetBalanceHash())
-	}
-
 	p.FactoidBlock.SetDBHeight(previousDBHeight)
 	d.FactoidBlock.SetDBHeight(currentDBHeight)
 	d.FactoidBlock.SetPrevKeyMR(p.FactoidBlock.GetKeyMR())
@@ -482,27 +478,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		out.WriteString("=== AdminBlock.UpdateState() End ===")
 		fmt.Println(out.String())
 	}
-
-	if d.AdminBlock.GetBalanceHash() != nil {
-		bh := list.State.FactoidState.GetBalanceHash()
-		if bh.Fixed() != d.AdminBlock.GetBalanceHash().Fixed() {
-			fmt.Printf("*** %20s Our Balances do not conform to the system at block height %5d \n"+
-				"*** %20s     Expected:   XXX   %x Got %x\n",
-				list.State.FactomNodeName,
-				dbht,
-				list.State.FactomNodeName,
-				d.AdminBlock.GetBalanceHash().Bytes(),
-				bh.Bytes())
-		} else {
-			fmt.Printf("*** %20s Our Balances do     conform to the system at block height %5d \n"+
-				"*** %20s     Expected:         %x\n",
-				list.State.FactomNodeName,
-				dbht,
-				list.State.FactomNodeName,
-				d.AdminBlock.GetBalanceHash().Bytes())
-		}
-	}
-
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
 	fs.AddTransactionBlock(d.FactoidBlock)
@@ -579,6 +554,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 			delete(s.Commits, k)
 		}
 	}
+
 	return
 }
 
@@ -653,7 +629,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
-	fmt.Printf("*** %10s %4d DBHT: %d Writing...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight)
+	fmt.Printf("*** %10s %4d DBHT: %d Writing DblockKeyMr:%s, DblockHash: %s...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String(), d.DirectoryBlock.GetFullHash().String())
 
 	//  fmt.Println(d.DirectoryBlock.String())
 	//  fmt.Println(d.FactoidBlock.String())
@@ -665,6 +641,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	if v%4 == 0 {
 		list.State.DB.Trim()
 	}
+
+	head, _ := list.State.DB.FetchDirectoryBlockHead()
 
 	list.State.DB.StartMultiBatch()
 
@@ -722,6 +700,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
+	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
+		list.State.DB.SaveDirectoryBlockHead(head)
+	}
+
 	{
 		good := true
 		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
@@ -761,8 +743,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if !good {
 			return
 		}
+		fmt.Printf("*** %10s %4d DBHT: %d OK!!! KeyMRFound: %s  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, mr.String())
 	}
-	fmt.Printf("*** %10s %4d DBHT: %d OK!!!  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight)
 
 	progress = true
 	d.ReadyToSave = false

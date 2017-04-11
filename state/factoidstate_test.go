@@ -5,13 +5,15 @@
 package state_test
 
 import (
+	"fmt"
+	"math"
+	"math/rand"
+	"testing"
+
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
-
-	"fmt"
-	"math/rand"
-	"testing"
 )
 
 var fs interfaces.IFactoidState
@@ -53,16 +55,15 @@ func TestBalanceHash(t *testing.T) {
 	s.FactoidBalancesP = map[[32]byte]int64{}
 	s.ECBalancesP = map[[32]byte]int64{}
 
-
 	var ec, fct []interfaces.IHash
 	h := primitives.Sha([]byte("testing"))
 
 	for i := 1; i < 1000; i++ {
 		h = primitives.Sha(h.Bytes())
-		ec = append(ec,h)
+		ec = append(ec, h)
 		s.PutE(false, h.Fixed(), RandBal())
 		h = primitives.Sha(h.Bytes())
-		fct = append(fct,h)
+		fct = append(fct, h)
 		s.PutF(false, h.Fixed(), RandBal())
 	}
 
@@ -70,11 +71,10 @@ func TestBalanceHash(t *testing.T) {
 	hbal := fs.GetBalanceHash()
 
 	if hbal.String() != Expected {
-		t.Errorf("Expected %s but found %s",Expected,hbal.String())
+		t.Errorf("Expected %s but found %s", Expected, hbal.String())
 	}
 
-
-  x := func(addrArray [] interfaces.IHash, balanceArray *map[[32]byte]int64) {
+	x := func(addrArray []interfaces.IHash, balanceArray *map[[32]byte]int64) {
 
 		// Add a random address
 		for i := 1; i < 10; i++ {
@@ -89,7 +89,7 @@ func TestBalanceHash(t *testing.T) {
 				t.Errorf("Should not have gotten %s", Expected)
 			}
 
-			delete((*balanceArray),adr.Fixed())
+			delete((*balanceArray), adr.Fixed())
 
 			hbal = fs.GetBalanceHash()
 
@@ -121,33 +121,59 @@ func TestBalanceHash(t *testing.T) {
 
 		// Modify by one bit a random balance
 		for i := 1; i < 10; i++ {
-			indx := rand.Int()%len(addrArray)
+			indx := rand.Int() % len(addrArray)
 			adr := addrArray[indx].Fixed()
 
 			bal := (*balanceArray)[adr]
-			(*balanceArray)[adr]=bal ^ RandBit()
+			(*balanceArray)[adr] = bal ^ RandBit()
 
 			hbal := fs.GetBalanceHash()
 
 			if hbal.String() == Expected {
-				t.Errorf("Should not have gotten %s",Expected)
+				t.Errorf("Should not have gotten %s", Expected)
 			}
 
-			(*balanceArray)[adr]=bal
+			(*balanceArray)[adr] = bal
 
 			hbal = fs.GetBalanceHash()
 
 			if hbal.String() != Expected {
-				t.Errorf("Expected %s but found %s",Expected,hbal.String())
+				t.Errorf("Expected %s but found %s", Expected, hbal.String())
 			}
 
 		}
 
 	}
 
-	x(fct,&s.FactoidBalancesP)
-	x(ec,&s.ECBalancesP)
+	x(fct, &s.FactoidBalancesP)
+	x(ec, &s.ECBalancesP)
 
+}
+
+func TestGetMapHash(t *testing.T) {
+	var dbHeight uint32 = 1234
+
+	bmap := map[[32]byte]int64{}
+
+	//using some arbitrary IDs
+	h, _ := primitives.NewShaHash(constants.EC_CHAINID)
+	bmap[h.Fixed()] = 0
+	h, _ = primitives.NewShaHash(constants.D_CHAINID)
+	bmap[h.Fixed()] = 1
+	h, _ = primitives.NewShaHash(constants.ADMIN_CHAINID)
+	bmap[h.Fixed()] = math.MaxInt64
+	h, _ = primitives.NewShaHash(constants.FACTOID_CHAINID)
+	bmap[h.Fixed()] = math.MinInt64
+	h, _ = primitives.NewShaHash(constants.ZERO_HASH)
+	bmap[h.Fixed()] = 123456789
+
+	h2 := GetMapHash(dbHeight, bmap)
+	if h2 == nil {
+		t.Errorf("Hot nil hash")
+	}
+	if h2.String() != "ba57452b1eb34b4cff73ff8ae79d1b4508e26aa2de19513e0fdfd7902da5cd83" {
+		t.Errorf("Invalid hash - got %v, expected %v", h2.String(), "ba57452b1eb34b4cff73ff8ae79d1b4508e26aa2de19513e0fdfd7902da5cd83")
+	}
 }
 
 /*
