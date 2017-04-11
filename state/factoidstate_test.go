@@ -5,13 +5,15 @@
 package state_test
 
 import (
+	"fmt"
+	"math"
+	"math/rand"
+	"testing"
+
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
-
-	"fmt"
-	"math/rand"
-	"testing"
 )
 
 var fs interfaces.IFactoidState
@@ -146,6 +148,32 @@ func TestBalanceHash(t *testing.T) {
 	x(fct, &s.FactoidBalancesP)
 	x(ec, &s.ECBalancesP)
 
+}
+
+func TestGetMapHash(t *testing.T) {
+	var dbHeight uint32 = 1234
+
+	bmap := map[[32]byte]int64{}
+
+	//using some arbitrary IDs
+	h, _ := primitives.NewShaHash(constants.EC_CHAINID)
+	bmap[h.Fixed()] = 0
+	h, _ = primitives.NewShaHash(constants.D_CHAINID)
+	bmap[h.Fixed()] = 1
+	h, _ = primitives.NewShaHash(constants.ADMIN_CHAINID)
+	bmap[h.Fixed()] = math.MaxInt64
+	h, _ = primitives.NewShaHash(constants.FACTOID_CHAINID)
+	bmap[h.Fixed()] = math.MinInt64
+	h, _ = primitives.NewShaHash(constants.ZERO_HASH)
+	bmap[h.Fixed()] = 123456789
+
+	h2 := GetMapHash(dbHeight, bmap)
+	if h2 == nil {
+		t.Errorf("Hot nil hash")
+	}
+	if h2.String() != "ba57452b1eb34b4cff73ff8ae79d1b4508e26aa2de19513e0fdfd7902da5cd83" {
+		t.Errorf("Invalid hash - got %v, expected %v", h2.String(), "ba57452b1eb34b4cff73ff8ae79d1b4508e26aa2de19513e0fdfd7902da5cd83")
+	}
 }
 
 /*
