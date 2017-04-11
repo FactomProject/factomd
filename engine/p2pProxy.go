@@ -44,6 +44,7 @@ type P2PProxy struct {
 	// via Etcd (as well as sent out over the p2p network normally)
 	useEtcd     bool
 	EtcdManager interfaces.IEtcdManager
+	EtcdCounter uint64
 }
 
 type factomMessage struct {
@@ -79,7 +80,7 @@ func (f *P2PProxy) UsingEtcd() bool {
 func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
-		f.EtcdManager.SendIntoEtcd(msgBytes)
+		f.EtcdCounter = f.EtcdManager.SendIntoEtcd(msgBytes)
 	}
 }
 
@@ -156,7 +157,8 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	if f.UsingEtcd() {
-		newMsgBytes := f.EtcdManager.GetData()
+		var newMsgBytes []byte
+		newMsgBytes, f.EtcdCounter = f.EtcdManager.GetData(f.EtcdCounter)
 		if len(newMsgBytes) > 0 {
 			msg, err := messages.UnmarshalMessage(newMsgBytes)
 			return msg, err

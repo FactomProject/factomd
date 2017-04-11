@@ -146,41 +146,47 @@ func (g *IEtcdPluginRPC) RetrieveDBStateByHeight(height uint32) error {
 }
 
 type SendIntoEtcdArgs struct {
-	BlockHeight uint32
-	MinuteNum   int
-	Msg         []byte // interfaces.IMsg
+	Msg []byte // interfaces.IMsg
 }
 
-func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) error {
-	var resp error
+type SendIntoEtcdData struct {
+	NewIndex uint64
+}
+
+func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) uint64 {
+	var resp SendIntoEtcdData
 	args := SendIntoEtcdArgs{
 		Msg: msg,
 	}
 	err := g.client.Call("Plugin.SendIntoEtcd", &args, &resp)
 	if err != nil {
-		return err
+		return 0
 	}
 
-	return resp
+	//log.Println(resp.NewIndex)
+	return resp.NewIndex
 }
 
-type GetMinuteData struct {
-	BlockHeight uint32
-	MinuteNum   int
+type GetFromEtcdArgs struct {
+	OldIndex uint64
 }
 
-func (g *IEtcdPluginRPC) GetData() []byte {
-	var resp []byte
-	args := SendIntoEtcdArgs{
-		BlockHeight: 0,
-		MinuteNum:   0,
+type GetFromEtcdData struct {
+	Bytes    []byte
+	NewIndex uint64
+}
+
+func (g *IEtcdPluginRPC) GetData(oldIndex uint64) ([]byte, uint64) {
+	var resp GetFromEtcdData
+	args := GetFromEtcdArgs{
+		OldIndex: oldIndex,
 	}
 	err := g.client.Call("Plugin.GetData", &args, &resp)
 	if err != nil {
-		return nil
+		return nil, oldIndex
 	}
 
-	return resp
+	return resp.Bytes, resp.NewIndex
 }
 
 type ReadyArgs struct {
@@ -204,13 +210,16 @@ type IEtcdPluginRPCServer struct {
 	Impl interfaces.IEtcdManager
 }
 
-func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *error) error {
-	*resp = s.Impl.SendIntoEtcd(args.Msg)
-	return *resp
+func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *SendIntoEtcdData) error {
+	newIndex := s.Impl.SendIntoEtcd(args.Msg)
+	resp.NewIndex = newIndex
+	return nil
 }
 
-func (s *IEtcdPluginRPCServer) GetData(args *GetMinuteData, resp *[]byte) error {
-	*resp = s.Impl.GetData()
+func (s *IEtcdPluginRPCServer) GetData(args *GetFromEtcdArgs, resp *GetFromEtcdData) error {
+	dataBytes, newIndex := s.Impl.GetData(args.OldIndex)
+	resp.Bytes = dataBytes
+	resp.NewIndex = newIndex
 	return nil
 }
 
