@@ -54,6 +54,14 @@ func RandomReplay() *Replay {
 	return r
 }
 
+func (r *Replay) Init() {
+	for i := range r.Buckets {
+		if r.Buckets[i] == nil {
+			r.Buckets[i] = map[[32]byte]int{}
+		}
+	}
+}
+
 func (a *Replay) IsSameAs(b *Replay) bool {
 	if a == nil || b == nil {
 		if a == nil && b == nil {
@@ -61,6 +69,8 @@ func (a *Replay) IsSameAs(b *Replay) bool {
 		}
 		return false
 	}
+	a.Init()
+	b.Init()
 
 	if len(a.Buckets) != len(b.Buckets) {
 		return false
@@ -86,6 +96,7 @@ func (a *Replay) IsSameAs(b *Replay) bool {
 }
 
 func (r *Replay) MarshalBinary() ([]byte, error) {
+	r.Init()
 	b := primitives.NewBuffer(nil)
 	enc := gob.NewEncoder(b)
 	err := enc.Encode(r.ReplayWithoutMutex)
@@ -96,6 +107,7 @@ func (r *Replay) MarshalBinary() ([]byte, error) {
 }
 
 func (r *Replay) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	r.Init()
 	newData = p
 	b := primitives.NewBuffer(p)
 	dec := gob.NewDecoder(b)
