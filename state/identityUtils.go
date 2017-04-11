@@ -15,10 +15,10 @@ import (
 )
 
 type AnchorSigningKey struct {
-	BlockChain string
-	KeyLevel   byte
-	KeyType    byte
-	SigningKey []byte //if bytes, it is hex
+	BlockChain string `json:"blockchain"`
+	KeyLevel   byte   `json:"level"`
+	KeyType    byte   `json:"keytype"`
+	Key        []byte `json:"key"` //if bytes, it is hex
 }
 
 type Identity struct {
@@ -206,4 +206,27 @@ func (id *Identity) IsFull() bool {
 		return false
 	}
 	return true
+}
+
+// Only used for marshaling JSON
+func statusToJSONString(status int) string {
+	switch status {
+	case constants.IDENTITY_UNASSIGNED:
+		return "none"
+	case constants.IDENTITY_FEDERATED_SERVER:
+		return "federated"
+	case constants.IDENTITY_AUDIT_SERVER:
+		return "audit"
+	case constants.IDENTITY_FULL:
+		return "none"
+	case constants.IDENTITY_PENDING_FEDERATED_SERVER:
+		return "federated"
+	case constants.IDENTITY_PENDING_AUDIT_SERVER:
+		return "audit"
+	case constants.IDENTITY_PENDING_FULL:
+		return "none"
+	case constants.IDENTITY_SKELETON:
+		return "skeleton"
+	}
+	return "NA"
 }
