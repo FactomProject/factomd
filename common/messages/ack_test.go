@@ -65,7 +65,8 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 	ack := newSignedAck()
 	test(ack, "1")
 	ack2 := newSignedAck()
-	ack2.SetBalanceHash(primitives.NewHash([]byte("balanceHash")))
+	ack2.BalanceHash = primitives.Sha([]byte("balanceHash"))
+	fmt.Println("ack2", ack2.BalanceHash.String())
 	test(ack2, "2")
 }
 

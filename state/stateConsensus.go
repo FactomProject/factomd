@@ -788,7 +788,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m).(*messages.Ack)
+	ack := s.NewAck(m, nil).(*messages.Ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
@@ -842,12 +842,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
 	eom.MsgHash = nil
-	ack := s.NewAck(m).(*messages.Ack)
-
-	if messages.AckBalanceHash {
-		ack.BalanceHash = s.FactoidState.GetBalanceHash(true)
-		os.Stderr.WriteString(fmt.Sprintf("****Ack %10s Balance hash: %s\n", s.FactomNodeName, ack.BalanceHash.String()))
-	}
+	ack := s.NewAck(m, nil).(*messages.Ack)
 
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)
@@ -884,12 +879,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m).(*messages.Ack)
-
-	if messages.AckBalanceHash {
-		ack.BalanceHash = s.FactoidState.GetBalanceHash(true)
-		os.Stderr.WriteString(fmt.Sprintf("****DBSig %10s Balance hash: %s\n", s.FactomNodeName, ack.BalanceHash.String()))
-	}
+	ack := s.NewAck(m, s.FactoidState.GetBalanceHash(true)).(*messages.Ack)
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
@@ -935,7 +925,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m).(*messages.Ack)
+	ack := s.NewAck(m, nil).(*messages.Ack)
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
@@ -1258,10 +1248,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
-		if messages.AckBalanceHash {
-			balanceHash := s.FactoidState.GetBalanceHash(true)
-			os.Stderr.WriteString(fmt.Sprintf("**** EOM Done %10s Balance hash: %s\n", s.FactomNodeName, balanceHash.String()))
-		}
 
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: EOM Complete: vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
 			e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
@@ -1437,6 +1423,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
+		if messages.AckBalanceHash {
+			os.Stderr.WriteString(fmt.Sprintf("**=> %10s dbht %d bh: %x\n", s.FactomNodeName, dbheight, s.FactoidState.GetBalanceHash(true).Bytes()))
+		}
+
 		s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
@@ -1451,6 +1441,14 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
+
+		ack := msg.GetAck().(*messages.Ack)
+		if messages.AckBalanceHash && ack != nil && ack.BalanceHash != nil {
+			os.Stderr.WriteString(fmt.Sprintf("**** %10d dbht %d bh: %x\n", ack.VMIndex, dbheight, ack.BalanceHash.Bytes()))
+		} else {
+			os.Stderr.WriteString(fmt.Sprint(ack, messages.AckBalanceHash, ack.BalanceHash, "HUH?\n"))
+		}
+
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
@@ -2045,7 +2043,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
-func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
+func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interfaces.IMsg {
 
 	vmIndex := msg.GetVMIndex()
 
@@ -2059,7 +2057,7 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 	copy(ack.Salt[:8], s.Salt.Bytes()[:8])
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
-
+	ack.BalanceHash = balanceHash
 	listlen := len(s.LeaderPL.VMs[vmIndex].List)
 	if listlen == 0 {
 		ack.Height = 0
