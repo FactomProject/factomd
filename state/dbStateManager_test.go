@@ -62,10 +62,10 @@ func TestSaveDBState(t *testing.T) {
 
 	// Create blocks
 	fee := int64(11000)
-	total := 15
+	total := 400
 	initBal := int64(2000000000000)
-	per := 10000 + fee*2
-	msgs := createTestDBStateList(total, s)
+	per := (10000 + fee*2) * 5
+	msgs, adds := createTestDBStateList(total, s)
 	for i, m := range msgs {
 		i6 := int64(i)
 		// Execute 5 times
@@ -77,6 +77,14 @@ func TestSaveDBState(t *testing.T) {
 			t.Errorf("Balance should be %d, found %d", initBal-((i6)*per), s.FactoidState.GetFactoidBalance(fixedpub))
 		}
 		//fmt.Println(s.FactoidState.GetFactoidBalance(fixedpub))
+	}
+
+	for _, a := range adds {
+		var fixed [32]byte
+		copy(fixed[:32], a.Bytes()[:])
+		if s.FactoidState.GetFactoidBalance(fixed) != 10000*5 {
+			t.Errorf("Balance should be %d, found %d", 10000, s.FactoidState.GetFactoidBalance(fixed))
+		}
 	}
 
 	// Verify blocks
@@ -234,7 +242,7 @@ func compareMarshal(a interfaces.BinaryMarshallable, b interfaces.BinaryMarshall
 	return nil
 }
 
-func createTestDBStateList(blockCount int, s *State) []interfaces.IMsg {
+func createTestDBStateList(blockCount int, s *State) ([]interfaces.IMsg, []interfaces.IAddress) {
 	// FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
 	// Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK
 	/*	sec, err := hex.DecodeString("FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6")
@@ -249,6 +257,7 @@ func createTestDBStateList(blockCount int, s *State) []interfaces.IMsg {
 	var err error
 	answer := make([]interfaces.IMsg, blockCount)
 	var prev *testHelper.BlockSet = nil
+	adds := make([]interfaces.IAddress, 0)
 
 	for i := 0; i < blockCount; i++ {
 		if i%1000 == 0 {
@@ -274,8 +283,10 @@ func createTestDBStateList(blockCount int, s *State) []interfaces.IMsg {
 		for i, e := range ents {
 			if bytes.Compare(e.GetChainID().Bytes(), constants.FACTOID_CHAINID) == 0 {
 				//fromAdd []byte, toAdd []byte, amt uint64
+				add := factoid.RandomAddress()
+				adds = append(adds, add)
 				newF := testHelper.CreateTestFactoidBlockWithTransaction(prev.FBlock,
-					"FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6", factoid.RandomAddress().Bytes(), 10000)
+					"FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6", add.Bytes(), 10000)
 
 				de := new(directoryBlock.DBEntry)
 				de.ChainID, err = primitives.NewShaHash(newF.GetChainID().Bytes())
@@ -293,5 +304,5 @@ func createTestDBStateList(blockCount int, s *State) []interfaces.IMsg {
 
 		answer[i] = messages.NewDBStateMsg(timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
 	}
-	return answer
+	return answer, adds
 }
