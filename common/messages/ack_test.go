@@ -7,10 +7,10 @@ package messages_test
 import (
 	"testing"
 
+	"fmt"
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"fmt"
 )
 
 func TestUnmarshalNilAck(t *testing.T) {
@@ -53,20 +53,20 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 		}
 
 		if ack2.Type() != constants.ACK_MSG {
-			t.Error(num +" Invalid message type unmarshalled")
+			t.Error(num + " Invalid message type unmarshalled")
 		}
 
 		if ack.IsSameAs(ack2.(*Ack)) == false {
-			t.Error(num+" Acks are not the same")
+			t.Error(num + " Acks are not the same")
 			fmt.Println(ack.String())
 			fmt.Println(ack2.String())
 		}
 	}
 	ack := newSignedAck()
-	test(ack,"1")
+	test(ack, "1")
 	ack2 := newSignedAck()
-  ack2.SetBalanceHash(primitives.NewHash([]byte("balanceHash")))
-	test(ack2,"2")
+	ack2.SetBalanceHash(primitives.NewHash([]byte("balanceHash")))
+	test(ack2, "2")
 }
 
 func TestSignAndVerifyAck(t *testing.T) {

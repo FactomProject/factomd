@@ -24,14 +24,14 @@ type Ack struct {
 	Height      uint32               // Height of this ack in this process list
 	SerialHash  interfaces.IHash     // Serial hash including previous ack
 
-	DataAreaSize uint64              // Size of the Data Area
-	DataArea    []byte							 // Data Area
+	DataAreaSize uint64 // Size of the Data Area
+	DataArea     []byte // Data Area
 
 	Signature interfaces.IFullSignature
-																	 //Not marshalled
-	hash      	interfaces.IHash
-	authvalid 	bool
-	Response  	bool // A response to a missing data request
+	//Not marshalled
+	hash        interfaces.IHash
+	authvalid   bool
+	Response    bool // A response to a missing data request
 	BalanceHash interfaces.IHash
 }
 
@@ -206,21 +206,23 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
-	m.DataAreaSize, newData = primitives.DecodeVarInt(newData)
-	if m.DataAreaSize > 0 {
-		das := newData[:int(m.DataAreaSize)]
-		lenb := uint64(0)
-		for len(das)>0 {
-			typeb := das[1]
-			lenb, das = primitives.DecodeVarInt(das[1:])
-			switch typeb {
-			case 1:
-				m.BalanceHash = primitives.NewHash(das[:32])
+	/*
+		m.DataAreaSize, newData = primitives.DecodeVarInt(newData)
+		if m.DataAreaSize > 0 {
+			das := newData[:int(m.DataAreaSize)]
+			lenb := uint64(0)
+			for len(das) > 0 {
+				typeb := das[1]
+				lenb, das = primitives.DecodeVarInt(das[1:])
+				switch typeb {
+				case 1:
+					m.BalanceHash = primitives.NewHash(das[:32])
+				}
+				das = das[lenb:]
 			}
-			das = das[lenb:]
+			newData = newData[int(m.DataAreaSize):]
 		}
-		newData = newData[int(m.DataAreaSize):]
-	}
+	*/
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -239,7 +241,7 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 
 func (m *Ack) SetBalanceHash(h interfaces.IHash) {
 	m.BalanceHash = h
-	m.MarshalForSignature()  // Sets the DataArea
+	m.MarshalForSignature() // Sets the DataArea
 }
 
 func (m *Ack) MarshalForSignature() ([]byte, error) {
@@ -286,21 +288,23 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	if m.BalanceHash == nil {
-		primitives.EncodeVarInt(&buf,0)
-	}else{
+	/*
+		if m.BalanceHash == nil {
+			primitives.EncodeVarInt(&buf, 0)
+		} else {
 
-		// Figure out all the data we are going to write out.
-		var area primitives.Buffer
-		area.WriteByte(1)
-		primitives.EncodeVarInt(&area,32)
-		area.Write(m.BalanceHash.Bytes())
+			// Figure out all the data we are going to write out.
+			var area primitives.Buffer
+			area.WriteByte(1)
+			primitives.EncodeVarInt(&area, 32)
+			area.Write(m.BalanceHash.Bytes())
 
-		// Write out the size of said data, and then the data.
-		m.DataAreaSize = uint64(len(area.Bytes()))
-		primitives.EncodeVarInt(&buf,m.DataAreaSize)
-		buf.Write(area.Bytes())
-	}
+			// Write out the size of said data, and then the data.
+			m.DataAreaSize = uint64(len(area.Bytes()))
+			primitives.EncodeVarInt(&buf, m.DataAreaSize)
+			buf.Write(area.Bytes())
+		}
+	*/
 
 	return buf.DeepCopyBytes(), nil
 }
