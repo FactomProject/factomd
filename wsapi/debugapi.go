@@ -163,7 +163,7 @@ func HandleAuthorities(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		Authorities []interfaces.IAuthority
+		Authorities []interfaces.IAuthority `json: "authorities"`
 	}
 	r := new(ret)
 

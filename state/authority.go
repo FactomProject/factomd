@@ -6,6 +6,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	ed "github.com/FactomProject/ed25519"
@@ -280,6 +281,24 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 func (e *Authority) UnmarshalBinary(p []byte) error {
 	_, err := e.UnmarshalBinaryData(p)
 	return err
+}
+
+func (auth *Authority) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		AuthorityChainID  interfaces.IHash   `json:"chainid"`
+		ManagementChainID interfaces.IHash   `json:"manageid"`
+		MatryoshkaHash    interfaces.IHash   `json:"matroyshka"`
+		SigningKey        string             `json:"signingkey"`
+		Status            string             `json:"status"`
+		AnchorKeys        []AnchorSigningKey `json:"anchorkeys"`
+	}{
+		AuthorityChainID:  auth.AuthorityChainID,
+		ManagementChainID: auth.ManagementChainID,
+		MatryoshkaHash:    auth.MatryoshkaHash,
+		SigningKey:        auth.SigningKey.String(),
+		Status:            statusToJSONString(auth.Status),
+		AnchorKeys:        auth.AnchorKeys,
+	})
 }
 
 // 1 if fed, 0 if audit, -1 if neither
@@ -672,7 +691,7 @@ func registerAuthAnchor(chainID interfaces.IHash, signingKey []byte, keyType byt
 	oneASK.BlockChain = BlockChain
 	oneASK.KeyLevel = keyLevel
 	oneASK.KeyType = keyType
-	oneASK.SigningKey = signingKey
+	oneASK.Key = signingKey
 
 	newASK[len(ask)] = oneASK
 	st.Authorities[AuthorityIndex].AnchorKeys = newASK
