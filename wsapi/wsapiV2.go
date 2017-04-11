@@ -149,6 +149,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "ablock-by-height":
 		resp, jsonError = HandleV2ABlockByHeight(state, params)
 		break
+	case "authorities":
+		resp, jsonError = HandleAuthorities(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break

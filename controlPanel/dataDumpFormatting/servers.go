@@ -24,7 +24,7 @@ func Identities(copyDS state.DisplayState) string {
 		prt = prt + fmt.Sprint("Key 4: ", i.Key4, "\n")
 		prt = prt + fmt.Sprint("Signing Key: ", i.SigningKey, "\n")
 		for _, a := range i.AnchorKeys {
-			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
+			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key)
 		}
 	}
 	return prt
@@ -43,7 +43,7 @@ func Authorities(copyDS state.DisplayState) string {
 		prt = prt + fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n")
 		prt = prt + fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n")
 		for _, a := range i.AnchorKeys {
-			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey)
+			prt = prt + fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key)
 		}
 	}
 	return prt
