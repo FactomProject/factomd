@@ -30,7 +30,7 @@ func RandomAnchorSigningKey() *AnchorSigningKey {
 	ask.BlockChain = random.RandomString()
 	ask.KeyLevel = random.RandByte()
 	ask.KeyType = random.RandByte()
-	ask.SigningKey = random.RandNonEmptyByteSlice()
+	ask.Key = random.RandNonEmptyByteSlice()
 
 	return ask
 }
@@ -45,7 +45,7 @@ func (e *AnchorSigningKey) IsSameAs(b *AnchorSigningKey) bool {
 	if e.KeyType != b.KeyType {
 		return false
 	}
-	if primitives.AreBytesEqual(e.SigningKey, b.SigningKey) == false {
+	if primitives.AreBytesEqual(e.Key, b.Key) == false {
 		return false
 	}
 	return true
@@ -68,7 +68,7 @@ func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
-	err = buf.PushBytes(e.SigningKey)
+	err = buf.PushBytes(e.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (e *AnchorSigningKey) UnmarshalBinaryData(p []byte) (newData []byte, err er
 	if err != nil {
 		return
 	}
-	e.SigningKey, err = buf.PopBytes()
+	e.Key, err = buf.PopBytes()
 	if err != nil {
 		return
 	}
@@ -548,7 +548,7 @@ func (id *Identity) IsFull() bool {
 }
 
 // Only used for marshaling JSON
-func statusToJSONString(status int) string {
+func statusToJSONString(status uint8) string {
 	switch status {
 	case constants.IDENTITY_UNASSIGNED:
 		return "none"

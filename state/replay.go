@@ -38,15 +38,14 @@ var _ interfaces.BinaryMarshallable = (*Replay)(nil)
 func RandomReplay() *Replay {
 	r := new(Replay)
 
-	l := random.RandIntBetween(0, 100)
-	for i := 0; i < l; i++ {
+	for i := 0; i < numBuckets; i++ {
 		l2 := random.RandIntBetween(0, 50)
 		m := map[[32]byte]int{}
 		for j := 0; j < l2; j++ {
 			h := primitives.RandomHash()
 			m[h.Fixed()] = random.RandInt()
 		}
-		r.Buckets = append(r.Buckets, m)
+		r.Buckets[i] = m
 	}
 
 	r.Basetime = random.RandInt()
