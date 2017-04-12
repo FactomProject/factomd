@@ -65,6 +65,17 @@ var (
 		Name: "factomd_state_highest_completed",
 		Help: "Highest completed block, which may or may not be saved to the database",
 	})
+
+	// TPS
+	TotalTransactionPerSecond = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_txrate_total_tps",
+		Help: "Total transactions over life of node",
+	})
+
+	InstantTransactionPerSecond = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_txrate_instant_tps",
+		Help: "Total transactions over life of node weighted for last 3 seconds",
+	})
 )
 
 var registered bool = false
@@ -93,4 +104,8 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(HighestKnown)
 	prometheus.MustRegister(HighestSaved)
 	prometheus.MustRegister(HighestCompleted)
+
+	// TPS
+	prometheus.MustRegister(TotalTransactionPerSecond)
+	prometheus.MustRegister(InstantTransactionPerSecond)
 }
