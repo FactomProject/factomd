@@ -60,9 +60,11 @@ type DBState struct {
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
 
 func (dbs *DBState) Init() {
-	if dbs.SaveStruct == nil {
-		dbs.SaveStruct = new(SaveState)
-	}
+	/*
+		if dbs.SaveStruct == nil {
+			dbs.SaveStruct = new(SaveState)
+		}
+	*/
 
 	if dbs.DBHash == nil {
 		dbs.DBHash = primitives.NewZeroHash()
@@ -110,8 +112,14 @@ func (a *DBState) IsSameAs(b *DBState) bool {
 		return false
 	}
 
-	if a.SaveStruct.IsSameAs(b.SaveStruct) == false {
-		return false
+	if a.SaveStruct != nil {
+		if a.SaveStruct.IsSameAs(b.SaveStruct) == false {
+			return false
+		}
+	} else {
+		if b.SaveStruct != nil {
+			return false
+		}
 	}
 
 	if a.DBHash.IsSameAs(b.DBHash) == false {
@@ -195,9 +203,20 @@ func (dbs *DBState) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
-	err = b.PushBinaryMarshallable(dbs.SaveStruct)
-	if err != nil {
-		return nil, err
+	if dbs.SaveStruct == nil {
+		err = b.PushBool(false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = b.PushBool(true)
+		if err != nil {
+			return nil, err
+		}
+		err = b.PushBinaryMarshallable(dbs.SaveStruct)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = b.PushBinaryMarshallable(dbs.DBHash)
@@ -301,9 +320,17 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	err = b.PopBinaryMarshallable(dbs.SaveStruct)
+	ok, err := b.PopBool()
 	if err != nil {
 		return
+	}
+
+	if ok == true {
+		dbs.SaveStruct = new(SaveState)
+		err = b.PopBinaryMarshallable(dbs.SaveStruct)
+		if err != nil {
+			return
+		}
 	}
 
 	err = b.PopBinaryMarshallable(dbs.DBHash)

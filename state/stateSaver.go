@@ -11,6 +11,9 @@ import (
 
 var tmpState []byte
 
+//To be increased whenever the data being saved changes from the last verion
+const version = 1
+
 func SaveDBStateList(ss *DBStateList, networkName string) error {
 	//For now, to file. Later - to DB
 
@@ -54,6 +57,7 @@ func LoadDBStateList(ss *DBStateList, networkName string) error {
 	return ss.UnmarshalBinary(b)
 }
 
+/*
 func SaveTheState(ss *SaveState, networkName string) error {
 	//For now, to file. Later - to DB
 
@@ -79,9 +83,10 @@ func SaveTheState(ss *SaveState, networkName string) error {
 
 	return nil
 }
+*/
 
 func NetworkIDToFilename(networkName string) string {
-	return fmt.Sprintf("FastBoot_%s.db", networkName)
+	return fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
 }
 
 func LoadState(ss *SaveState, networkName string) error {

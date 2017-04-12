@@ -800,10 +800,6 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
-	if ss.Replay == nil {
-		ss.Replay = new(Replay)
-		ss.Replay.Init()
-	}
 	err = buf.PushBinaryMarshallable(ss.Replay)
 	if err != nil {
 		return nil, err
