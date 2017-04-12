@@ -138,6 +138,9 @@ func (db *LevelDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshall
 }
 
 func (db *LevelDB) PutInBatch(records []interfaces.Record) error {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
 	}
