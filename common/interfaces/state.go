@@ -235,6 +235,12 @@ type IState interface {
 	// Returns false if we have seen an Entry Replay in the current period.
 	NoEntryYet(IHash, Timestamp) bool
 
+	// Calculates the transaction rate this node is seeing.
+	//		totalTPS	: Total transactions / total time node running
+	//		instantTPS	: Weighted transactions per second to get a better value for
+	//					  current transaction rate.
+	CalculateTransactionRate() (totalTPS float64, instantTPS float64)
+
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 	FetchPaidFor(hash IHash) (IHash, error)
