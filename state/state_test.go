@@ -6,6 +6,7 @@ package state_test
 
 import (
 	"testing"
+	"time"
 
 	"fmt"
 	//"github.com/FactomProject/factomd/common/constants"
@@ -14,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
+	//. "github.com/FactomProject/factomd/state"
 )
 
 var _ = log.Print
@@ -94,6 +96,22 @@ func TestLoadAcksMap(t *testing.T) {
 	hque := state.LoadAcksMap()
 	if len(hque) != len(state.HoldingMap) {
 		t.Errorf("Error with Acks Map Length")
+	}
+
+}
+
+func TestCalculateTransactionRate(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	to, _ := s.CalculateTransactionRate()
+	time.Sleep(3 * time.Second)
+
+	s.FactoidTrans = 333
+	to2, i := s.CalculateTransactionRate()
+	if to >= to2 {
+		t.Errorf("Rate should be higher than %d, found %d", to, to2)
+	}
+	if i < 30 {
+		t.Errorf("Instant transaction rate should be > 30 (roughly), found %d", i)
 	}
 
 }

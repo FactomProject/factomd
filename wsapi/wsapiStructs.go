@@ -113,6 +113,11 @@ type SendRawMessageResponse struct {
 	Message string `json:"message"`
 }
 
+type TransactionRateResponse struct {
+	TotalTransactionRate   float64 `json:"totaltxrate"`
+	InstantTransactionRate float64 `json:"instanttxrate"`
+}
+
 /*********************************************************************/
 
 type DBHead struct {
