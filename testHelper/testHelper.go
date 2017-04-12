@@ -192,10 +192,11 @@ func CreateFullTestBlockSet() []*BlockSet {
 }
 
 func CreateTestBlockSet(prev *BlockSet) *BlockSet {
-	return CreateTestBlockSetWithNetworkID(prev, constants.LOCAL_NETWORK_ID)
+	return CreateTestBlockSetWithNetworkID(prev, constants.LOCAL_NETWORK_ID, true)
 }
 
-func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32) *BlockSet {
+// Transactions says whether or not to add a transaction
+func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transactions bool) *BlockSet {
 	var err error
 	height := 0
 	if prev != nil {
@@ -221,7 +222,11 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32) *BlockSet
 	dbEntries = append(dbEntries, de)
 
 	//FBlock
-	answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
+	if transactions {
+		answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
+	} else {
+		answer.FBlock = CreateTestFactoidBlockWithCoinbase(prev.FBlock, NewFactoidAddress(0), DefaultCoinbaseAmount)
+	}
 
 	de = new(directoryBlock.DBEntry)
 	de.ChainID, err = primitives.NewShaHash(answer.FBlock.GetChainID().Bytes())
