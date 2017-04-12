@@ -112,6 +112,9 @@ func (db *LevelDB) Get(bucket []byte, key []byte, destination interfaces.BinaryM
 }
 
 func (db *LevelDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
 	}
