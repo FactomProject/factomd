@@ -13,12 +13,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
 func TestSaveLoadECBlockHead(t *testing.T) {
-	b1 := CreateTestEntryCreditBlock(nil)
+	b1 := testHelper.CreateTestEntryCreditBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -49,7 +49,7 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := CreateTestEntryCreditBlock(b1)
+	b2 := testHelper.CreateTestEntryCreditBlock(b1)
 
 	err = dbo.SaveECBlockHead(b2, false)
 	if err != nil {
@@ -85,7 +85,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev = CreateTestEntryCreditBlock(prev)
+		prev = testHelper.CreateTestEntryCreditBlock(prev)
 		err := dbo.SaveECBlockHead(prev, false)
 		if err != nil {
 			t.Error(err)
@@ -154,7 +154,7 @@ func TestLoadUnknownECBlocks(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
-		b := IntToByteSlice(i)
+		b := testHelper.IntToByteSlice(i)
 		hash, err := primitives.NewShaHash(b)
 		if err != nil {
 			t.Error(err)

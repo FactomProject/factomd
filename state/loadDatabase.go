@@ -44,7 +44,7 @@ func LoadDatabase(s *State) {
 		start = start - 10
 	}
 
-	for i := int(start); true; i++ {
+	for i := int(start); i < int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {
 			since := time.Since(t)
 			ss := float64(since.Nanoseconds()) / 1000000000

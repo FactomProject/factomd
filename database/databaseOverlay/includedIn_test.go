@@ -14,7 +14,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryBlock"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper"
 
 	"testing"
 )
@@ -27,7 +27,7 @@ func TestIncludedIn(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev, _ = CreateTestEntryBlock(prev)
+		prev, _ = testHelper.CreateTestEntryBlock(prev)
 		blocks = append(blocks, prev)
 		err := dbo.SaveEBlockHead(prev, false)
 		if err != nil {
@@ -56,7 +56,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev, _ = CreateTestEntryBlockWithContentN(prev, 1)
+		prev, _ = testHelper.CreateTestEntryBlockWithContentN(prev, 1)
 		blocks = append(blocks, prev)
 		err := dbo.SaveEBlockHead(prev, true)
 		if err != nil {
@@ -88,7 +88,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 	dbo = NewOverlay(new(mapdb.MapDB))
 
 	for i := 0; i < max; i++ {
-		prev, _ = CreateTestEntryBlockWithContentN(prev, 1)
+		prev, _ = testHelper.CreateTestEntryBlockWithContentN(prev, 1)
 		blocks = append(blocks, prev)
 		err := dbo.SaveEBlockHead(prev, false)
 		if err != nil {
@@ -116,7 +116,7 @@ func TestIncludedInOverwriting(t *testing.T) {
 }
 
 func TestIncludedInFromAllBlocks(t *testing.T) {
-	dbo := CreateAndPopulateTestDatabaseOverlay()
+	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()
 
 	dBlocks, err := dbo.FetchAllDBlocks()
 	if err != nil {
@@ -195,7 +195,7 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 		}
 	}
 
-	eBlocks, err := dbo.FetchAllEBlocksByChain(GetChainID())
+	eBlocks, err := dbo.FetchAllEBlocksByChain(testHelper.GetChainID())
 	if err != nil {
 		t.Error(err)
 	}
@@ -214,7 +214,7 @@ func TestIncludedInFromAllBlocks(t *testing.T) {
 		}
 	}
 
-	anchorBlocks, err := dbo.FetchAllEBlocksByChain(GetAnchorChainID())
+	anchorBlocks, err := dbo.FetchAllEBlocksByChain(testHelper.GetAnchorChainID())
 	if err != nil {
 		t.Error(err)
 	}
