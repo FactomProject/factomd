@@ -2042,11 +2042,13 @@ func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64
 	shorttime := time.Since(s.lasttime)
 	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
 	tps := float64(total) / float64(runtime.Seconds())
+	TotalTransactionPerSecond.Set(tps) // Prometheus
 	if shorttime > time.Second*3 {
 		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
 		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
 		s.lasttime = time.Now()
-		s.transCnt = total // transactions accounted for
+		s.transCnt = total                     // transactions accounted for
+		InstantTransactionPerSecond.Set(s.tps) // Prometheus
 	}
 
 	return tps, s.tps
