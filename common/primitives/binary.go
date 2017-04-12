@@ -5,27 +5,12 @@
 package primitives
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
-
-type Buffer struct {
-	bytes.Buffer
-}
-
-func (b *Buffer) DeepCopyBytes() []byte {
-	return b.Next(b.Len())
-}
-
-func NewBuffer(buf []byte) *Buffer {
-	tmp := new(Buffer)
-	tmp.Buffer = *bytes.NewBuffer(buf)
-	return tmp
-}
 
 func AreBytesEqual(b1, b2 []byte) bool {
 	if len(b1) != len(b2) {
