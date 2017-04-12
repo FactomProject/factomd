@@ -16,7 +16,7 @@ import (
 
 func has(s *State, entry interfaces.IHash) bool {
 	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(30 * time.Millisecond)
 	}
 	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
 	return exists
@@ -122,7 +122,7 @@ func (s *State) MakeMissingEntryRequests() {
 			if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
 				time.Sleep(10 * time.Second)
 			} else {
-				time.Sleep(1 * time.Second)
+				time.Sleep(100 * time.Millisecond)
 			}
 			if s.EntryDBHeightComplete == s.GetHighestSavedBlk() {
 				time.Sleep(20 * time.Second)
@@ -252,7 +252,7 @@ func (s *State) GoSyncEntries() {
 			time.Sleep(60 * time.Second)
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 
 	}
 }
