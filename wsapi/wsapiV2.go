@@ -151,7 +151,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		break
 	case "authorities":
 		resp, jsonError = HandleAuthorities(state, params)
-	case "tx-rate":
+	case "tps-rate":
 		resp, jsonError = HandleV2TransactionRate(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
