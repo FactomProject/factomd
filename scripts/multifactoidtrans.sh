@@ -60,7 +60,7 @@ factom-cli addtxfee    -q t1 $big
 factom-cli signtx -q t1
 factom-cli sendtx -q -f t1
 
-sleep .2
+sleep .8
 
 done
 

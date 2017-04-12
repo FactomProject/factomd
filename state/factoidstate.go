@@ -18,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -93,7 +92,7 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
 	h3 := h1
 	h4 := h2
-	if messages.AckBalanceHash {
+	if includeTemp {
 		pl := fs.State.ProcessLists.Get(fs.DBHeight)
 		pl.ECBalancesTMutex.Lock()
 		pl.FactoidBalancesTMutex.Lock()
@@ -105,7 +104,7 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 	var b []byte
 	b = append(b, h1.Bytes()...)
 	b = append(b, h2.Bytes()...)
-	if messages.AckBalanceHash {
+	if includeTemp {
 		b = append(b, h3.Bytes()...)
 		b = append(b, h4.Bytes()...)
 	}

@@ -67,8 +67,8 @@ func TestBalanceHash(t *testing.T) {
 		s.PutF(false, h.Fixed(), RandBal())
 	}
 
-	Expected := fs.GetBalanceHash().String()
-	hbal := fs.GetBalanceHash()
+	Expected := fs.GetBalanceHash(false).String()
+	hbal := fs.GetBalanceHash(false)
 
 	if hbal.String() != Expected {
 		t.Errorf("Expected %s but found %s", Expected, hbal.String())
@@ -83,7 +83,7 @@ func TestBalanceHash(t *testing.T) {
 			bal := RandBal()
 			(*balanceArray)[adr.Fixed()] = bal
 
-			hbal := fs.GetBalanceHash()
+			hbal := fs.GetBalanceHash(false)
 
 			if hbal.String() == Expected {
 				t.Errorf("Should not have gotten %s", Expected)
@@ -91,7 +91,7 @@ func TestBalanceHash(t *testing.T) {
 
 			delete((*balanceArray), adr.Fixed())
 
-			hbal = fs.GetBalanceHash()
+			hbal = fs.GetBalanceHash(false)
 
 			if hbal.String() != Expected {
 				t.Errorf("Expected %s but found %s", Expected, hbal.String())
@@ -105,14 +105,14 @@ func TestBalanceHash(t *testing.T) {
 			bal := (*balanceArray)[adr]
 			delete((*balanceArray), adr)
 
-			hbal := fs.GetBalanceHash()
+			hbal := fs.GetBalanceHash(false)
 
 			if hbal.String() == Expected {
 				t.Errorf("Should not have gotten %s", Expected)
 			}
 			(*balanceArray)[adr] = bal
 
-			hbal = fs.GetBalanceHash()
+			hbal = fs.GetBalanceHash(false)
 
 			if hbal.String() != Expected {
 				t.Errorf("Expected %s but found %s", Expected, hbal.String())
@@ -127,15 +127,14 @@ func TestBalanceHash(t *testing.T) {
 			bal := (*balanceArray)[adr]
 			(*balanceArray)[adr] = bal ^ RandBit()
 
-			hbal := fs.GetBalanceHash()
-
+			hbal := fs.GetBalanceHash(false)
 			if hbal.String() == Expected {
 				t.Errorf("Should not have gotten %s", Expected)
 			}
 
 			(*balanceArray)[adr] = bal
 
-			hbal = fs.GetBalanceHash()
+			hbal = fs.GetBalanceHash(false)
 
 			if hbal.String() != Expected {
 				t.Errorf("Expected %s but found %s", Expected, hbal.String())
@@ -171,8 +170,8 @@ func TestGetMapHash(t *testing.T) {
 	if h2 == nil {
 		t.Errorf("Hot nil hash")
 	}
-	if h2.String() != "ba57452b1eb34b4cff73ff8ae79d1b4508e26aa2de19513e0fdfd7902da5cd83" {
-		t.Errorf("Invalid hash - got %v, expected %v", h2.String(), "ba57452b1eb34b4cff73ff8ae79d1b4508e26aa2de19513e0fdfd7902da5cd83")
+	if h2.String() != "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31" {
+		t.Errorf("Invalid hash - got %v, expected %v", h2.String(), "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31")
 	}
 }
 
