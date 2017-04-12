@@ -642,8 +642,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.Trim()
 	}
 
-	head, _ := list.State.DB.FetchDirectoryBlockHead()
-
 	list.State.DB.StartMultiBatch()
 
 	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
@@ -698,10 +696,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 		panic(err.Error())
-	}
-
-	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
-		list.State.DB.SaveDirectoryBlockHead(head)
 	}
 
 	{

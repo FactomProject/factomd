@@ -42,6 +42,7 @@ func (s *State) MakeMissingEntryRequests() {
 		cnt := 0
 		sum := 0
 		avg := 0
+		highest := 0
 
 		// Look through our map, and remove any entries we now have in our database.
 		for k := range MissingEntryMap {
@@ -51,6 +52,9 @@ func (s *State) MakeMissingEntryRequests() {
 			} else {
 				cnt++
 				sum += MissingEntryMap[k].Cnt
+				if MissingEntryMap[k].DBHeight > uint32(highest) {
+					highest = int(MissingEntryMap[k].DBHeight)
+				}
 			}
 		}
 		if cnt > 0 {
@@ -61,6 +65,7 @@ func (s *State) MakeMissingEntryRequests() {
 		ESAsking.Set(float64(cnt))
 		ESFound.Set(float64(found))
 		ESAvgRequests.Set(float64(avg) / 1000)
+		ESHighestAsking.Set(float64(highest))
 
 		// Keep our map of entries that we are asking for filled up.
 	fillMap:
@@ -148,7 +153,8 @@ func (s *State) GoSyncEntries() {
 
 	for {
 
-		ESMissingQueue.Set(float64(len(missingMap)))
+		ESMissing.Set(float64(len(missingMap)))
+		ESMissingQueue.Set(float64(len(s.MissingEntries)))
 		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete))
 		ESFirstMissing.Set(float64(lastfirstmissing))
 		ESHighestMissing.Set(float64(s.GetHighestSavedBlk()))
@@ -242,7 +248,6 @@ func (s *State) GoSyncEntries() {
 						missingMap[entryhash.Fixed()] = entryhash
 						s.MissingEntries <- &v
 					}
-
 				}
 			}
 		}

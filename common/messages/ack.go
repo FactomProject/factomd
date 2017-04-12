@@ -37,6 +37,7 @@ type Ack struct {
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
+var AckBalanceHash = true
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -206,13 +207,14 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
-	/*
+	if AckBalanceHash {
 		m.DataAreaSize, newData = primitives.DecodeVarInt(newData)
 		if m.DataAreaSize > 0 {
 			das := newData[:int(m.DataAreaSize)]
+
 			lenb := uint64(0)
 			for len(das) > 0 {
-				typeb := das[1]
+				typeb := das[0]
 				lenb, das = primitives.DecodeVarInt(das[1:])
 				switch typeb {
 				case 1:
@@ -220,9 +222,10 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 				}
 				das = das[lenb:]
 			}
+			m.DataArea = append(m.DataArea[:0], newData[:m.DataAreaSize]...)
 			newData = newData[int(m.DataAreaSize):]
 		}
-	*/
+	}
 
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
@@ -237,11 +240,6 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 func (m *Ack) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
-}
-
-func (m *Ack) SetBalanceHash(h interfaces.IHash) {
-	m.BalanceHash = h
-	m.MarshalForSignature() // Sets the DataArea
 }
 
 func (m *Ack) MarshalForSignature() ([]byte, error) {
@@ -288,9 +286,10 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 	}
 	buf.Write(data)
 
-	/*
+	if AckBalanceHash {
 		if m.BalanceHash == nil {
 			primitives.EncodeVarInt(&buf, 0)
+			m.DataArea = nil
 		} else {
 
 			// Figure out all the data we are going to write out.
@@ -304,7 +303,7 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 			primitives.EncodeVarInt(&buf, m.DataAreaSize)
 			buf.Write(area.Bytes())
 		}
-	*/
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -403,6 +402,22 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 		if a.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
 			return false
 		}
+	}
+
+	if a.BalanceHash == nil && b.BalanceHash != nil {
+		return false
+	}
+
+	if b.BalanceHash == nil && a.BalanceHash != nil {
+		return false
+	}
+
+	if a.BalanceHash == nil && b.BalanceHash == nil {
+		return true
+	}
+
+	if a.BalanceHash.Fixed() != b.BalanceHash.Fixed() {
+		return false
 	}
 
 	return true
