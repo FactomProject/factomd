@@ -5,12 +5,10 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"hash"
-
 	"time"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -19,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
-	"os"
 )
 
 var _ = fmt.Print
@@ -1424,7 +1421,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
 		if messages.AckBalanceHash {
-			os.Stderr.WriteString(fmt.Sprintf("**=> %10s dbht %d bh: %x\n", s.FactomNodeName, dbheight, s.FactoidState.GetBalanceHash(true).Bytes()))
+			fmt.Printf("**1*bh => %10s dbht %d bh: %x\n", s.FactomNodeName, dbheight, s.FactoidState.GetBalanceHash(true).Bytes())
 		}
 
 		s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
@@ -1444,9 +1441,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		ack := msg.GetAck().(*messages.Ack)
 		if messages.AckBalanceHash && ack != nil && ack.BalanceHash != nil {
-			os.Stderr.WriteString(fmt.Sprintf("**** %10d dbht %d bh: %x\n", ack.VMIndex, dbheight, ack.BalanceHash.Bytes()))
-		} else {
-			os.Stderr.WriteString(fmt.Sprint(ack, messages.AckBalanceHash, ack.BalanceHash, "HUH?\n"))
+			fmt.Printf("****bh    %10d dbht %d bh: %x\n", ack.VMIndex, dbheight, ack.BalanceHash.Bytes())
 		}
 
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
@@ -1543,7 +1538,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		} else {
 			s.DBSigFails++
-			s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v DiffSigTally %v", s.KeepMismatch, pl.CheckDiffSigTally()))
 			if pl != nil {
 				pl.Reset()
 				s.DBSig = false
