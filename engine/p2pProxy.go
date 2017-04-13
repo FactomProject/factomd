@@ -80,7 +80,7 @@ func (f *P2PProxy) UsingEtcd() bool {
 func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
-		f.EtcdCounter = f.EtcdManager.SendIntoEtcd(msgBytes)
+		f.EtcdCounter = f.EtcdManager.SendIntoEtcd(msgBytes, f.EtcdCounter)
 	}
 }
 
