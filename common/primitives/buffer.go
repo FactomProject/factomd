@@ -22,8 +22,22 @@ func (b *Buffer) DeepCopyBytes() []byte {
 
 func NewBuffer(buf []byte) *Buffer {
 	tmp := new(Buffer)
-	tmp.Buffer = *bytes.NewBuffer(buf)
+	c := make([]byte, len(buf))
+	copy(c, buf)
+	tmp.Buffer = *bytes.NewBuffer(c)
 	return tmp
+}
+
+func (b *Buffer) PeekByte() (byte, error) {
+	by, err := b.ReadByte()
+	if err != nil {
+		return by, err
+	}
+	err = b.UnreadByte()
+	if err != nil {
+		return by, err
+	}
+	return by, nil
 }
 
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
