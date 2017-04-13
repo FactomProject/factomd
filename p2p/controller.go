@@ -413,7 +413,7 @@ func (c *Controller) route() {
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
 		case BroadcastFlag: // Send to all peers
-			for i := 0; i < NumberPeersToBroadcast && len(c.connections)> 0; i++ {
+			for i := 0; i < NumberPeersToBroadcast && len(c.connections) > 0; i++ {
 				s := rand.Int() % len(c.connections)
 				loop := 0
 				for _, connection := range c.connections {
