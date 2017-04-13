@@ -41,7 +41,7 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
 
-func NetStart(s *state.State) {
+func NetStart(s *state.State, loadConfigFromFile bool) {
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
@@ -119,9 +119,13 @@ func NetStart(s *state.State) {
 
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
-	FactomConfigFilename := util.GetConfigFilename("m2")
-	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-	s.LoadConfig(FactomConfigFilename, networkName)
+	if loadConfigFromFile {
+		FactomConfigFilename := util.GetConfigFilename("m2")
+		fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
+		s.LoadConfig(FactomConfigFilename, networkName)
+	} else {
+		s.LoadConfig("", "TEST")
+	}
 	s.OneLeader = rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 	s.StartDelayLimit = startDelay * 1000
@@ -496,7 +500,9 @@ func NetStart(s *state.State) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
-	SimControl(listenTo)
+	if loadConfigFromFile {
+		SimControl(listenTo)
+	}
 }
 
 //**********************************************************************

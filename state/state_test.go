@@ -41,6 +41,17 @@ func TestSecretCode(t *testing.T) {
 	fmt.Printf("Secret Numbers %x %x %x\n", num1, num2, num3)
 }
 
+func TestFrozenState(t *testing.T) {
+	state := testHelper.CreateAndPopulateFrozenTestState()
+
+	fmt.Println("DBLOCK:")
+	fmt.Println(state.GetDirectoryBlockByHeight(2))
+
+	if state.GetDBHeightComplete() < 4 {
+		t.Errorf("More Directory Blocks should have been built for the frozen state")
+	}
+}
+
 /*
 func TestDirBlockHead(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
