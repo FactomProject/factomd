@@ -77,10 +77,10 @@ func (f *P2PProxy) UsingEtcd() bool {
 	return f.useEtcd
 }
 
-func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) {
+func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg, oldIndex uint64) {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
-		f.EtcdCounter = f.EtcdManager.SendIntoEtcd(msgBytes, f.EtcdCounter)
+		f.EtcdCounter = f.EtcdManager.SendIntoEtcd(msgBytes, oldIndex)
 	}
 }
 
@@ -124,7 +124,7 @@ func (f *P2PProxy) GetNameTo() string {
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if f.UsingEtcd() {
-		f.SendIntoEtcd(msg)
+		f.SendIntoEtcd(msg, f.EtcdCounter)
 	} else {
 		f.logMessage(msg, false) // NODE_TALK_FIX
 		data, err := msg.MarshalBinary()
