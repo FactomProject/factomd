@@ -878,7 +878,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m, s.FactoidState.GetBalanceHash(true)).(*messages.Ack)
+	ack := s.NewAck(m, s.FactoidState.GetBalanceHash(false)).(*messages.Ack)
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
@@ -1423,7 +1423,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
 		if messages.AckBalanceHash {
-			fmt.Printf("**1*bh => %10s dbht %d bh: %x\n", s.FactomNodeName, dbheight, s.FactoidState.GetBalanceHash(true).Bytes())
+			fmt.Printf("**1*bh => %10s dbht %d bh: %x\n", s.FactomNodeName, dbheight, s.FactoidState.GetBalanceHash(false).Bytes())
 		}
 
 		s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
