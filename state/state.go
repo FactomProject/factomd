@@ -1567,6 +1567,11 @@ func (s *State) UpdateState() (progress bool) {
 		s.CopyStateToControlPanel()
 	}
 
+	// Update our TPS every ~ 3 seconds at the earliest
+	if s.lasttime.Before(time.Now().Add(-3 * time.Second)) {
+		s.CalculateTransactionRate()
+	}
+
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
@@ -2062,6 +2067,26 @@ func (s *State) SetStringConsensus() {
 	s.serverPrt = str
 }
 
+// CalculateTransactionRate caculates how many transactions this node is processing
+//		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
+//		instantTPS	: Transaction rate weighted over last 3 seconds
+func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
+	runtime := time.Since(s.starttime)
+	shorttime := time.Since(s.lasttime)
+	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
+	tps := float64(total) / float64(runtime.Seconds())
+	TotalTransactionPerSecond.Set(tps) // Prometheus
+	if shorttime > time.Second*3 {
+		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
+		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
+		s.lasttime = time.Now()
+		s.transCnt = total                     // transactions accounted for
+		InstantTransactionPerSecond.Set(s.tps) // Prometheus
+	}
+
+	return tps, s.tps
+}
+
 func (s *State) SetStringQueues() {
 	vmi := -1
 	if s.Leader && s.LeaderVMIndex >= 0 {
@@ -2135,16 +2160,7 @@ func (s *State) SetStringQueues() {
 		dHeight = d.GetHeader().GetDBHeight()
 	}
 
-	runtime := time.Since(s.starttime)
-	shorttime := time.Since(s.lasttime)
-	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
-	tps := float64(total) / float64(runtime.Seconds())
-	if shorttime > time.Second*3 {
-		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
-		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
-		s.lasttime = time.Now()
-		s.transCnt = total // transactions accounted for
-	}
+	totalTPS, instantTPS := s.CalculateTransactionRate()
 
 	str := fmt.Sprintf("%10s[%6x] %4s%4s %2d/%2d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
@@ -2173,7 +2189,7 @@ func (s *State) SetStringQueues() {
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries-s.NewEntryChains)
 	apis := fmt.Sprintf("%d/%d/%d", s.FCTSubmits, s.ECCommits, s.ECommits)
-	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
+	stps := fmt.Sprintf("%3.2f/%3.2f", totalTPS, instantTPS)
 	str = str + fmt.Sprintf(" %5d %5d %12s %15s %11s",
 		s.ResendCnt,
 		s.ExpireCnt,
