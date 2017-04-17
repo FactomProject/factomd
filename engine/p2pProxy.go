@@ -42,9 +42,10 @@ type P2PProxy struct {
 
 	// If this is true, outbound messages will be sent out
 	// via Etcd (as well as sent out over the p2p network normally)
-	useEtcd     bool
-	EtcdManager interfaces.IEtcdManager
-	EtcdCounter uint64
+	useEtcd              bool
+	EtcdManager          interfaces.IEtcdManager
+	EtcdCounter          uint64
+	SuperVerboseMessages bool
 }
 
 type factomMessage struct {
@@ -80,7 +81,7 @@ func (f *P2PProxy) UsingEtcd() bool {
 func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg, oldIndex uint64) {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
-		f.EtcdCounter = f.EtcdManager.SendIntoEtcd(msgBytes, oldIndex)
+		f.EtcdManager.SendIntoEtcd(msgBytes, oldIndex)
 	}
 }
 
@@ -123,6 +124,9 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
+	if f.SuperVerboseMessages {
+		fmt.Println("SVM S:", msg.String())
+	}
 	if f.UsingEtcd() {
 		f.SendIntoEtcd(msg, f.EtcdCounter)
 	} else {
@@ -161,6 +165,13 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 		newMsgBytes, f.EtcdCounter = f.EtcdManager.GetData(f.EtcdCounter)
 		if len(newMsgBytes) > 0 {
 			msg, err := messages.UnmarshalMessage(newMsgBytes)
+			if f.SuperVerboseMessages {
+				if err != nil {
+					fmt.Println("SVM err:", err.Error())
+				} else {
+					fmt.Println("SVM R:", msg.String())
+				}
+			}
 			return msg, err
 		}
 	} else {
@@ -172,6 +183,13 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 					fmessage := data.(factomMessage)
 					f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 					msg, err := messages.UnmarshalMessage(fmessage.Message)
+					if f.SuperVerboseMessages {
+						if err != nil {
+							fmt.Println("SVM err:", err.Error())
+						} else {
+							fmt.Println("SVM R:", msg.String())
+						}
+					}
 					if nil == err {
 						msg.SetNetworkOrigin(fmessage.PeerHash)
 					}

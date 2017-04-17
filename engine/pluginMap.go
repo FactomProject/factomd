@@ -59,13 +59,15 @@ func LaunchEtcdPlugin(path string, addr string) (interfaces.IEtcdManager, error)
 	// Connect via RPC
 	rpcClient, err := client.Client()
 	if err != nil {
-		log.Fatal(err)
+		log.Println("RpcClient (etcd plugin) connect issue:", err)
+		return nil, err
 	}
 
 	// Request the plugin
 	raw, err := rpcClient.Dispense("etcd")
 	if err != nil {
-		log.Fatal(err)
+		log.Println("RpcClient (etcd plugin) dispense issue:", err)
+		return nil, err
 	}
 
 	etcdeManager := raw.(interfaces.IEtcdManager)
