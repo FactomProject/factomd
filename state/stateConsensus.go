@@ -235,6 +235,11 @@ func (s *State) ReviewHolding() {
 	if len(s.XReview) > 0 {
 		return
 	}
+
+	if len(s.inMsgQueue) > 10 {
+		return
+	}
+
 	now := s.GetTimestamp()
 	if s.resendHolding == nil {
 		s.resendHolding = now
