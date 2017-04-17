@@ -39,6 +39,12 @@ func (c *AdminBlock) Init() {
 }
 
 func (a *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
+	if !a.Header.IsSameAs(b.GetHeader()) {
+		return false
+	}
+	if len(a.ABEntries) != len(b.GetABEntries()) {
+		return false
+	}
 	return true
 }
 

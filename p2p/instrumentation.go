@@ -21,6 +21,17 @@ var (
 		Help: "Number of current connections by address",
 	})
 
+	SentToPeers = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_number_of_peers_broadcast",
+		Help: "Number of Peers to which we are broadcasting messages",
+	})
+
+	StartingPoint = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_StartingPoint_peers_broadcast",
+		Help: "Number of msgs broadcasting",
+	})
+
+	//
 	// Connection Routines
 	p2pProcessSendsGuage = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_p2p_connection_process_sends_routine_guage",
@@ -42,6 +53,7 @@ var (
 		Help: "The number of connections in dialloop",
 	})
 
+	//
 	// Runloops
 	p2pConnectionRunLoopInitalized = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_p2p_connection_runloop_initialized_counter",
@@ -63,6 +75,7 @@ var (
 		Help: "Numer of runloops that hit shutdown",
 	})
 
+	//
 	// Connections
 	p2pConnectionCommonInit = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_p2p_connection_commonInit_calls_total",
@@ -94,6 +107,8 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(p2pControllerNumConnections)
 	prometheus.MustRegister(p2pControllerNumMetrics)
 	prometheus.MustRegister(p2pControllerNumConnectionsByAddress)
+	prometheus.MustRegister(SentToPeers)
+	prometheus.MustRegister(StartingPoint)
 
 	// Connection Routines
 	prometheus.MustRegister(p2pProcessSendsGuage)    // processSends
@@ -111,4 +126,5 @@ func RegisterPrometheus() {
 
 	// Connections
 	prometheus.MustRegister(p2pConnectionCommonInit)
+
 }

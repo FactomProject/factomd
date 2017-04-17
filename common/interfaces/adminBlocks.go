@@ -14,6 +14,7 @@ type IAdminBlock interface {
 	Printable
 	DatabaseBatchable
 
+	IsSameAs(IAdminBlock) bool
 	BackReferenceHash() (IHash, error)
 	GetABEntries() []IABEntry
 	GetDBHeight() uint32
@@ -44,6 +45,7 @@ type IABlockHeader interface {
 	Printable
 	BinaryMarshallable
 
+	IsSameAs(IABlockHeader) bool
 	GetAdminChainID() IHash
 	GetDBHeight() uint32
 	GetPrevBackRefHash() IHash
