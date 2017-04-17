@@ -1202,12 +1202,15 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && s.EOMSys {
+		dbstate := s.GetDBState(dbheight - 1)
+		if !dbstate.Saved {
+			return false
+		}
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
 			s.EOM = false
 			s.EOMDone = false
-			s.ReviewHolding()
 			s.Syncing = false
 			s.EOMProcessed = 0
 		}
@@ -1235,6 +1238,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !e.Processed {
+
+		if e.Minute == 3 && s.FactomNodeName == "FNode0" {
+			fmt.Println("**1*bh")
+		}
+
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Process Once: !e.Processed(%v) EOM: %s", e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
@@ -1276,6 +1284,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		switch {
 		case s.CurrentMinute < 10:
+			if s.CurrentMinute == 1 {
+				dbstate := s.GetDBState(dbheight - 1)
+				if !dbstate.Saved {
+					dbstate.ReadyToSave = true
+				}
+			}
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		case s.CurrentMinute == 10:
@@ -1532,18 +1546,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.AddStatus("DBSig Fails Detected")
 			return false
 		}
-		dbstate := s.DBStates.Get(int(dbheight - 1))
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
-		if s.KeepMismatch || pl.CheckDiffSigTally() {
-			if !dbstate.Saved {
-				dbstate.ReadyToSave = true
-				s.DBStates.SaveDBStateToDB(dbstate)
-				//s.LeaderPL.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
-			}
-		} else {
+		if !s.KeepMismatch && !pl.CheckDiffSigTally() {
 			s.DBSigFails++
 			s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v", s.KeepMismatch))
 			if pl != nil {
@@ -1557,6 +1564,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				s.StartDelay = s.GetTimestamp().GetTimeMilli()
 				s.NetworkOutMsgQueue() <- msg
 			}
+			return false
 		}
 		s.ReviewHolding()
 		s.Saving = false
@@ -1848,14 +1856,6 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 				s.PutCommit(ce.EntryHash, emsg)
 			}
 			continue
-		}
-	}
-}
-
-func (s *State) ConsiderSaved(dbheight uint32) {
-	for _, dbs := range s.DBStates.DBStates {
-		if dbs.DirectoryBlock.GetDatabaseHeight() == dbheight {
-			dbs.Saved = true
 		}
 	}
 }

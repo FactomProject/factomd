@@ -586,12 +586,6 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 		return
 	}
 
-	for _, vm := range pl.VMs[:len(pl.FedServers)] {
-		if vm.LeaderMinute < 1 {
-			return
-		}
-	}
-
 	d.Signed = true
 	return true
 }
@@ -603,6 +597,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 
+	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
+		return
+	}
+
 	if dbheight > 0 {
 		dp := list.State.GetDBState(uint32(dbheight - 1))
 		if dp == nil || !dp.Saved {
@@ -610,8 +608,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 	}
 
-	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
-		return
+	if list.State.FactomNodeName == "FNode0" {
+		fmt.Println("**1 in dbstate save 2", d.Signed, d.ReadyToSave)
 	}
 
 	// If our database has trash in it, panic
@@ -642,6 +640,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.Trim()
 	}
 
+	// Save
 	list.State.DB.StartMultiBatch()
 
 	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
