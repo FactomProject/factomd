@@ -37,7 +37,6 @@ type IAdminBlock interface {
 	AddMatryoshkaHash(IHash, IHash) error
 	AddServerFault(IABEntry) error
 	UpdateState(IState) error
-	IsSameAs(IAdminBlock) bool
 }
 
 // Admin Block Header

@@ -89,6 +89,7 @@ func NetworkIDToFilename(networkName string) string {
 	return fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
 }
 
+/*
 func LoadState(ss *SaveState, networkName string) error {
 	b, err := LoadFromFile(NetworkIDToFilename(networkName))
 	if err != nil {
@@ -100,6 +101,7 @@ func LoadState(ss *SaveState, networkName string) error {
 
 	return ss.UnmarshalBinary(b)
 }
+*/
 
 func SaveToFile(b []byte, filename string) error {
 	err := ioutil.WriteFile(filename, b, 0644)
