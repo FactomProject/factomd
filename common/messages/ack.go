@@ -24,16 +24,20 @@ type Ack struct {
 	Height      uint32               // Height of this ack in this process list
 	SerialHash  interfaces.IHash     // Serial hash including previous ack
 
-	Signature interfaces.IFullSignature
+	DataAreaSize uint64 // Size of the Data Area
+	DataArea     []byte // Data Area
 
+	Signature interfaces.IFullSignature
 	//Not marshalled
-	hash      interfaces.IHash
-	authvalid bool
-	Response  bool // A response to a missing data request
+	hash        interfaces.IHash
+	authvalid   bool
+	Response    bool // A response to a missing data request
+	BalanceHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ Signable = (*Ack)(nil)
+var AckBalanceHash = true
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -203,6 +207,26 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
+	if AckBalanceHash {
+		m.DataAreaSize, newData = primitives.DecodeVarInt(newData)
+		if m.DataAreaSize > 0 {
+			das := newData[:int(m.DataAreaSize)]
+
+			lenb := uint64(0)
+			for len(das) > 0 {
+				typeb := das[0]
+				lenb, das = primitives.DecodeVarInt(das[1:])
+				switch typeb {
+				case 1:
+					m.BalanceHash = primitives.NewHash(das[:32])
+				}
+				das = das[lenb:]
+			}
+			m.DataArea = append(m.DataArea[:0], newData[:m.DataAreaSize]...)
+			newData = newData[int(m.DataAreaSize):]
+		}
+	}
+
 	if len(newData) > 0 {
 		m.Signature = new(primitives.Signature)
 		newData, err = m.Signature.UnmarshalBinaryData(newData)
@@ -261,6 +285,25 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 		return nil, err
 	}
 	buf.Write(data)
+
+	if AckBalanceHash {
+		if m.BalanceHash == nil {
+			primitives.EncodeVarInt(&buf, 0)
+			m.DataArea = nil
+		} else {
+
+			// Figure out all the data we are going to write out.
+			var area primitives.Buffer
+			area.WriteByte(1)
+			primitives.EncodeVarInt(&area, 32)
+			area.Write(m.BalanceHash.Bytes())
+
+			// Write out the size of said data, and then the data.
+			m.DataAreaSize = uint64(len(area.Bytes()))
+			primitives.EncodeVarInt(&buf, m.DataAreaSize)
+			buf.Write(area.Bytes())
+		}
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -342,6 +385,10 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 		return false
 	}
 
+	if a.DataAreaSize != b.DataAreaSize {
+		return false
+	}
+
 	if a.Signature != nil {
 		if a.Signature.IsSameAs(b.Signature) == false {
 			return false
@@ -355,6 +402,22 @@ func (a *Ack) IsSameAs(b *Ack) bool {
 		if a.LeaderChainID.IsSameAs(b.LeaderChainID) == false {
 			return false
 		}
+	}
+
+	if a.BalanceHash == nil && b.BalanceHash != nil {
+		return false
+	}
+
+	if b.BalanceHash == nil && a.BalanceHash != nil {
+		return false
+	}
+
+	if a.BalanceHash == nil && b.BalanceHash == nil {
+		return true
+	}
+
+	if a.BalanceHash.Fixed() != b.BalanceHash.Fixed() {
+		return false
 	}
 
 	return true

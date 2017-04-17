@@ -3,6 +3,8 @@ package testHelper
 //A package for functions used multiple times in tests that aren't useful in production code.
 
 import (
+	"encoding/hex"
+
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -34,6 +36,90 @@ func CreateTestFactoidBlock(prev interfaces.IFBlock) interfaces.IFBlock {
 	}
 
 	return fBlock
+}
+
+func CreateTestFactoidBlockWithTransaction(prev interfaces.IFBlock, sentSecret string, recievePublic []byte, amt uint64) interfaces.IFBlock {
+	fBlock := CreateTestFactoidBlockWithCoinbase(prev, NewFactoidAddress(0), DefaultCoinbaseAmount)
+
+	for i := 0; i < 5; i++ {
+		err := fBlock.AddTransaction(newTrans(fBlock.GetDatabaseHeight(), sentSecret, recievePublic, amt))
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return fBlock
+}
+
+func newTrans(height uint32, sentSecret string, recievePublic []byte, amt uint64) *factoid.Transaction {
+	privKey, pubKey, _, err := factoid.PrivateKeyStringToEverythingString(sentSecret)
+	if err != nil {
+		panic(err)
+	}
+
+	privBytes, err := hex.DecodeString(privKey)
+	if err != nil {
+		panic(err)
+	}
+
+	/*	pubBytes, err := hex.DecodeString(pubKey)
+		if err != nil {
+			panic(err)
+		}
+	*/
+	add, err := factoid.PublicKeyStringToFactoidAddress(pubKey)
+	if err != nil {
+		panic(err)
+	}
+
+	ecTx := new(factoid.Transaction)
+	ecTx.AddInput(add, amt)
+	ecTx.AddOutput(factoid.NewAddress(recievePublic), amt)
+	ecTx.SetTimestamp(primitives.NewTimestampFromSeconds(60 * 10 * uint32(height)))
+
+	fee, err := ecTx.CalculateFee(1000)
+	if err != nil {
+		panic(err)
+	}
+	in, err := ecTx.GetInput(0)
+	if err != nil {
+		panic(err)
+	}
+	in.SetAmount(in.GetAmount() + fee*2)
+
+	// SIGN
+	rcd, err := factoid.PublicKeyStringToFactoidRCDAddress(pubKey)
+	if err != nil {
+		panic(err)
+	}
+
+	ecTx.AddAuthorization(rcd)
+	data, err := ecTx.MarshalBinarySig()
+	if err != nil {
+		panic(err)
+	}
+
+	sig := factoid.NewSingleSignatureBlock(privBytes, data)
+
+	//str, err := sig.JSONString()
+
+	//fmt.Printf("sig, err - %v, %v\n", str, err)
+
+	ecTx.SetSignatureBlock(0, sig)
+
+	err = ecTx.Validate(1)
+	if err != nil {
+		panic(err)
+	}
+
+	err = ecTx.ValidateSignatures()
+	if err != nil {
+		panic(err)
+	}
+
+	// END SIGN
+
+	return ecTx
 }
 
 func SignFactoidTransaction(n uint64, tx interfaces.ITransaction) {

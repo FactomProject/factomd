@@ -192,6 +192,11 @@ func CreateFullTestBlockSet() []*BlockSet {
 }
 
 func CreateTestBlockSet(prev *BlockSet) *BlockSet {
+	return CreateTestBlockSetWithNetworkID(prev, constants.LOCAL_NETWORK_ID, true)
+}
+
+// Transactions says whether or not to add a transaction
+func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transactions bool) *BlockSet {
 	var err error
 	height := 0
 	if prev != nil {
@@ -217,7 +222,11 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	dbEntries = append(dbEntries, de)
 
 	//FBlock
-	answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
+	if transactions {
+		answer.FBlock = CreateTestFactoidBlock(prev.FBlock)
+	} else {
+		answer.FBlock = CreateTestFactoidBlockWithCoinbase(prev.FBlock, NewFactoidAddress(0), DefaultCoinbaseAmount)
+	}
 
 	de = new(directoryBlock.DBEntry)
 	de.ChainID, err = primitives.NewShaHash(answer.FBlock.GetChainID().Bytes())
@@ -264,7 +273,7 @@ func CreateTestBlockSet(prev *BlockSet) *BlockSet {
 	de.KeyMR = answer.ECBlock.DatabasePrimaryIndex()
 	dbEntries = append(dbEntries[:1], append([]interfaces.IDBEntry{de}, dbEntries[1:]...)...)
 
-	answer.DBlock = CreateTestDirectoryBlock(prev.DBlock)
+	answer.DBlock = CreateTestDirectoryBlockWithNetworkID(prev.DBlock, networkID)
 	err = answer.DBlock.SetDBEntries(dbEntries)
 	if err != nil {
 		panic(err)
@@ -308,9 +317,13 @@ func CreateTestAdminHeader(prev *adminBlock.AdminBlock) *adminBlock.ABlockHeader
 }
 
 func CreateTestDirectoryBlock(prevBlock *directoryBlock.DirectoryBlock) *directoryBlock.DirectoryBlock {
+	return CreateTestDirectoryBlockWithNetworkID(prevBlock, constants.LOCAL_NETWORK_ID)
+}
+
+func CreateTestDirectoryBlockWithNetworkID(prevBlock *directoryBlock.DirectoryBlock, networkID uint32) *directoryBlock.DirectoryBlock {
 	dblock := new(directoryBlock.DirectoryBlock)
 
-	dblock.SetHeader(CreateTestDirectoryBlockHeader(prevBlock))
+	dblock.SetHeader(CreateTestDirectoryBlockHeaderWithNetworkID(prevBlock, networkID))
 
 	de := new(directoryBlock.DBEntry)
 	de.ChainID = primitives.NewZeroHash()
@@ -326,11 +339,15 @@ func CreateTestDirectoryBlock(prevBlock *directoryBlock.DirectoryBlock) *directo
 }
 
 func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *directoryBlock.DBlockHeader {
+	return CreateTestDirectoryBlockHeaderWithNetworkID(prevBlock, constants.LOCAL_NETWORK_ID)
+}
+
+func CreateTestDirectoryBlockHeaderWithNetworkID(prevBlock *directoryBlock.DirectoryBlock, networkID uint32) *directoryBlock.DBlockHeader {
 	header := new(directoryBlock.DBlockHeader)
 
 	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
 	header.SetBlockCount(0)
-	header.SetNetworkID(constants.LOCAL_NETWORK_ID)
+	header.SetNetworkID(networkID)
 
 	if prevBlock == nil {
 		header.SetDBHeight(0)

@@ -386,7 +386,7 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.ECBalancesPMutex.Lock()
 	state.ECBalancesP = make(map[[32]byte]int64, 0)
 	for k := range state.ECBalancesP {
-		ss.ECBalancesP[k] = state.ECBalancesP[k]
+		state.ECBalancesP[k] = ss.ECBalancesP[k]
 	}
 	state.ECBalancesPMutex.Unlock()
 

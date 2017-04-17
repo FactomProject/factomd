@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
+	"os"
 	"time"
 )
 
@@ -72,6 +73,7 @@ type DBStateList struct {
 // Return a -1 on failure.
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
+
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 
@@ -80,11 +82,21 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if dbheight == 0 {
+	if dbheight == 0 && state.GetHighestSavedBlk() == 0 {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
 		return 1
 	}
+
+	if d == nil || !d.Saved {
+		return 0
+	}
+
+	// Don't reload blocks!
+	if dbheight <= state.GetHighestSavedBlk() {
+		return -1
+	}
+
 	if d == nil {
 		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
@@ -584,13 +596,27 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 	return true
 }
 
+var nowish int64 = time.Now().Unix()
+
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 
-	if !d.Signed || !d.ReadyToSave {
+	if dbheight > 0 {
+		dp := list.State.GetDBState(uint32(dbheight - 1))
+		if dp == nil || !dp.Saved {
+			return
+		}
+	}
+
+	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
+	}
+
+	// If our database has trash in it, panic
+	if err := list.State.ValidatePrevious(uint32(dbheight - 1)); err != nil {
+		panic(err.Error())
 	}
 
 	if d.Saved {
@@ -603,14 +629,18 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
+	fmt.Printf("*** %10s %4d DBHT: %d Writing DblockKeyMr:%s, DblockHash: %s...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String(), d.DirectoryBlock.GetFullHash().String())
+
+	//  fmt.Println(d.DirectoryBlock.String())
+	//  fmt.Println(d.FactoidBlock.String())
+	//  fmt.Println(d.AdminBlock.String())
+	//  fmt.Println(d.EntryCreditBlock.String())
 
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
 	if v%4 == 0 {
 		list.State.DB.Trim()
 	}
-
-	head, _ := list.State.DB.FetchDirectoryBlockHead()
 
 	list.State.DB.StartMultiBatch()
 
@@ -668,8 +698,46 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
-	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
-		list.State.DB.SaveDirectoryBlockHead(head)
+	{
+		good := true
+		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
+		if err != nil {
+			os.Stderr.WriteString(err.Error() + "\n")
+			return
+			panic(fmt.Sprintf("%20s At Directory Block Height %d", list.State.FactomNodeName, dbheight))
+		}
+		if mr == nil {
+			os.Stderr.WriteString(fmt.Sprintf("There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight))
+			mr = d.DirectoryBlock.GetKeyMR()
+			good = false
+		}
+		if dbheight > 0 {
+			err := list.State.ValidatePrevious(uint32(dbheight - 1))
+			if err != nil {
+				os.Stderr.WriteString(err.Error() + "\n")
+				return
+				panic(fmt.Sprintf("%20s Previous didn't validate at Block Height %d", list.State.FactomNodeName, dbheight))
+			}
+		}
+		td, err := list.State.DB.FetchDBlockByPrimary(mr)
+		if err != nil || td == nil {
+			if err != nil {
+				os.Stderr.WriteString(err.Error() + "\n")
+			} else {
+				os.Stderr.WriteString(fmt.Sprintf("Could not get directory block by primary key at Block Height %d\n", dbheight))
+			}
+			return
+			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
+		}
+		if td.GetKeyMR().Fixed() != mr.Fixed() {
+			os.Stderr.WriteString(fmt.Sprintf("Key MR is wrong at Directory Block Height %d\n", dbheight))
+			return
+			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
+		}
+		if !good {
+			return
+		}
+		fmt.Printf("*** %10s %4d DBHT: %d OK!!! KeyMRFound: %s  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, mr.String())
 	}
 
 	progress = true
