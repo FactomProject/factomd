@@ -82,10 +82,9 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
-	msg, err := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
-	if err == nil && msg != nil {
-		// we are going to claim this is valid, so it will set our highest known block index
-		return 1
+	_, err := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	if err != nil {
+		return -1
 	}
 
 	if !m.authvalid {
@@ -103,7 +102,7 @@ func (m *Ack) Validate(state interfaces.IState) int {
 			//fmt.Println("Err is not nil on Ack sig check: ", err)
 			return -1
 		}
-		if ackSigned < 1 {
+		if ackSigned <= 0 {
 			return -1
 		}
 	}
