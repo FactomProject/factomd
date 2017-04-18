@@ -1206,6 +1206,15 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if !dbstate.Saved {
 			return false
 		}
+
+		s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
+
+		if e.VMIndex == 0 {
+			tabbing := fmt.Sprintf("%%%ds", e.Minute+1)
+			tab := fmt.Sprintf(tabbing, " ")
+			fmt.Printf("**1*bh %10s dbht %d bh: %s%s (Temp) min: %d\n", s.FactomNodeName, dbheight, tab, s.TempBalanceHash.String(), e.Minute)
+		}
+
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
@@ -1239,7 +1248,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// What I do for each EOM
 	if !e.Processed {
 
-		if e.Minute == 3 && s.FactomNodeName == "FNode0" {
+		if e.VMIndex == 0 && e.Minute == 3 && s.FactomNodeName == "FNode0" {
 			fmt.Println("**1*bh")
 		}
 

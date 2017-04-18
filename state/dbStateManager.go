@@ -608,10 +608,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 	}
 
-	if list.State.FactomNodeName == "FNode0" {
-		fmt.Println("**1 in dbstate save 2", d.Signed, d.ReadyToSave)
-	}
-
 	// If our database has trash in it, panic
 	if err := list.State.ValidatePrevious(uint32(dbheight - 1)); err != nil {
 		panic(err.Error())

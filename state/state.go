@@ -274,6 +274,7 @@ type State struct {
 	FactoidBalancesPMutex sync.Mutex
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
+	TempBalanceHash       interfaces.IHash
 
 	// Web Services
 	Port int
