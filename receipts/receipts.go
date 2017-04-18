@@ -394,7 +394,7 @@ func CreateReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*R
 	return receipt, nil
 }
 
-func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
+func VerifyFullReceipt(dbo interfaces.DBOverlaySimple, receiptStr string) error {
 	receipt, err := DecodeReceiptString(receiptStr)
 	if err != nil {
 		return err
@@ -419,7 +419,7 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 	return nil
 }
 
-func VerifyMinimalReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
+func VerifyMinimalReceipt(dbo interfaces.DBOverlaySimple, receiptStr string) error {
 	receipt, err := DecodeReceiptString(receiptStr)
 	if err != nil {
 		return err
