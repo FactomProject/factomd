@@ -623,7 +623,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
-	fmt.Printf("*** %10s %4d DBHT: %d Writing DblockKeyMr:%s, DblockHash: %s...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String(), d.DirectoryBlock.GetFullHash().String())
+	fmt.Printf("**1*bh %10s %4d DBHT: %d Writing DblockKeyMr:%s, DblockHash: %s...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String(), d.DirectoryBlock.GetFullHash().String())
 
 	//  fmt.Println(d.DirectoryBlock.String())
 	//  fmt.Println(d.FactoidBlock.String())
@@ -732,7 +732,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if !good {
 			return
 		}
-		fmt.Printf("*** %10s %4d DBHT: %d OK!!! KeyMRFound: %s  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, mr.String())
+		fmt.Printf("**1*bh %10s %4d DBHT: %d OK!!! KeyMRFound: %s  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, mr.String())
 	}
 
 	progress = true
