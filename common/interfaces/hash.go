@@ -7,7 +7,7 @@ package interfaces
 import ()
 
 type IHash interface {
-	BinaryMarshallable
+	BinaryMarshallableAndCopyable
 	Printable
 
 	Copy() IHash
