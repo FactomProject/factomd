@@ -160,24 +160,21 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
-	if f.UsingEtcd() {
-		var newMsgBytes []byte
-		newMsgBytes, f.EtcdCounter = f.EtcdManager.GetData(f.EtcdCounter)
-		if len(newMsgBytes) > 0 {
-			msg, err := messages.UnmarshalMessage(newMsgBytes)
-			if f.SuperVerboseMessages {
-				if err != nil {
-					fmt.Println("SVM err:", err.Error())
-				} else {
-					fmt.Println("SVM R:", msg.String())
+	select {
+	case data, ok := <-f.BroadcastIn:
+		if ok {
+			if f.UsingEtcd() {
+				dataBytes := data.([]byte)
+				msg, err := messages.UnmarshalMessage(dataBytes)
+				if f.SuperVerboseMessages {
+					if err != nil {
+						fmt.Println("SVM err:", err.Error())
+					} else {
+						fmt.Println("SVM R:", msg.String())
+					}
 				}
-			}
-			return msg, err
-		}
-	} else {
-		select {
-		case data, ok := <-f.BroadcastIn:
-			if ok {
+				return msg, err
+			} else {
 				switch data.(type) {
 				case factomMessage:
 					fmessage := data.(factomMessage)
@@ -203,8 +200,8 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 					fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 				}
 			}
-		default:
 		}
+	default:
 	}
 	return nil, nil
 }
@@ -231,10 +228,28 @@ func (f *P2PProxy) Len() int {
 	return len(f.BroadcastIn)
 }
 
+func (f *P2PProxy) SweepEtcd() {
+	var newMsgBytes [][]byte
+	for {
+		newMsgBytes, f.EtcdCounter = f.EtcdManager.GetData(f.EtcdCounter)
+		if newMsgBytes != nil && len(newMsgBytes) > 0 {
+			for _, msgBytes := range newMsgBytes {
+				f.BroadcastIn <- msgBytes
+			}
+		} else {
+			time.Sleep(time.Second)
+		}
+
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) StartProxy() {
+	if p.UsingEtcd() {
+		go p.SweepEtcd()
+	}
 	if 1 < p.debugMode {
 		go p.ManageLogging()
 	}
