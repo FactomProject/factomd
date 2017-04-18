@@ -1,6 +1,10 @@
 hash: 6a6ab634eb1aaa63d7018159f9fa7cf7b2140211c0898a9f06112324ebd17e32
-updated: 2017-03-31T15:45:17.049265625-05:00
+updated: 2017-04-18T12:48:48.018510102-05:00
 imports:
+- name: github.com/beorn7/perks
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+  subpackages:
+  - quantile
 - name: github.com/btcsuitereleases/btcd
   version: e005ff2cdaac3b3a0b60c8d03978221b784ad50a
   subpackages:
@@ -32,14 +36,14 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: cceac7c3e8611bff774b218d65b4215b2498cd5c
+  version: a0a55096f9d2aeb5cb63b8b5a714a285f3a100b3
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-cli
-  version: 2a52903259e0e6f4d98cf6ea45ce3643aa7c3fdd
+  version: 5a24bcb6314aae534a1c399ac1bdfac2a36155a6
 - name: github.com/FactomProject/factom-walletd
-  version: 6781bfdabc5e67ebb3047349c4973d10e5775e69
+  version: 3ce6520ebc57166e71a7c383ea6cc5dbd41c3996
 - name: github.com/FactomProject/fctwallet
   version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
 - name: github.com/FactomProject/fsnotify
@@ -81,40 +85,17 @@ imports:
   - identity
   - utils
 - name: github.com/FactomProject/snappy-go
-  version: f2f83b22c29e5abc60e3a95062ce1491d3b95371
-  subpackages:
-  - snappy
+  version: fff4c573c694b1e2d5c7a9b2b72dbe947b6a4c8e
 - name: github.com/FactomProject/web
   version: 7daee1bf727fc2cd9142b9a73a797f98b3180756
+- name: github.com/golang/protobuf
+  version: 4bd1920723d7b7c925de087aa32e2187708897f7
+  subpackages:
+  - proto
 - name: github.com/hashicorp/go-plugin
   version: 8cf118f7a2f0c7ef1c82f66d4f6ac77c7e27dc12
 - name: github.com/hashicorp/yamux
   version: d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd
-- name: golang.org/x/crypto
-  version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
-  subpackages:
-  - pbkdf2
-  - ripemd160
-- name: golang.org/x/net
-  version: 007e530097ad7f954752df63046b4036f98ba6a6
-  subpackages:
-  - websocket
-- name: golang.org/x/sys
-  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
-  subpackages:
-  - unix
-- name: gopkg.in/gcfg.v1
-  version: 27e4946190b4a327b539185f2b5b1f7c84730728
-  subpackages:
-  - scanner
-  - token
-  - types
-- name: gopkg.in/warnings.v0
-  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
-- name: github.com/golang/protobuf
-  version: 1f49d83d9aa00e6ce4fc8258c71cc7786aec968a
-  subpackages:
-  - proto
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
@@ -135,8 +116,25 @@ imports:
   - model
 - name: github.com/prometheus/procfs
   version: abf152e5f3e97f2fafac028d2cc06c1feb87ffa5
-- name: github.com/beorn7/perks
-  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+- name: golang.org/x/crypto
+  version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
   subpackages:
-  - quantile
+  - pbkdf2
+  - ripemd160
+- name: golang.org/x/net
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
+  subpackages:
+  - websocket
+- name: golang.org/x/sys
+  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
+  subpackages:
+  - unix
+- name: gopkg.in/gcfg.v1
+  version: 27e4946190b4a327b539185f2b5b1f7c84730728
+  subpackages:
+  - scanner
+  - token
+  - types
+- name: gopkg.in/warnings.v0
+  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
 testImports: []
