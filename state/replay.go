@@ -5,8 +5,8 @@
 package state
 
 import (
-	"encoding/gob"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -23,11 +23,7 @@ var _ = time.Now()
 var _ = fmt.Print
 
 type Replay struct {
-	Mutex sync.Mutex
-	ReplayWithoutMutex
-}
-
-type ReplayWithoutMutex struct {
+	Mutex    sync.Mutex
 	Buckets  [numBuckets]map[[32]byte]int
 	Basetime int // hours since 1970
 	Center   int // Hour of the current time.
@@ -98,25 +94,48 @@ func (a *Replay) IsSameAs(b *Replay) bool {
 func (r *Replay) MarshalBinary() ([]byte, error) {
 	r.Init()
 	b := primitives.NewBuffer(nil)
-	enc := gob.NewEncoder(b)
-	err := enc.Encode(r.ReplayWithoutMutex)
+
+	for _, v := range r.Buckets {
+		err := PushBucketMap(b, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := b.PushInt(r.Basetime)
 	if err != nil {
 		return nil, err
 	}
+	err = b.PushInt(r.Center)
+	if err != nil {
+		return nil, err
+	}
+
 	return b.DeepCopyBytes(), nil
 }
 
-func (r *Replay) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+func (r *Replay) UnmarshalBinaryData(p []byte) ([]byte, error) {
 	r.Init()
-	newData = p
 	b := primitives.NewBuffer(p)
-	dec := gob.NewDecoder(b)
-	err = dec.Decode(&r.ReplayWithoutMutex)
-	if err != nil {
-		return
+
+	for i := 0; i < numBuckets; i++ {
+		m, err := PopBucketMap(b)
+		if err != nil {
+			return nil, err
+		}
+		r.Buckets[i] = m
 	}
-	newData = b.DeepCopyBytes()
-	return
+	var err error
+	r.Basetime, err = b.PopInt()
+	if err != nil {
+		return nil, err
+	}
+	r.Center, err = b.PopInt()
+	if err != nil {
+		return nil, err
+	}
+
+	return b.DeepCopyBytes(), nil
 }
 
 func (r *Replay) UnmarshalBinary(p []byte) error {
@@ -274,4 +293,54 @@ func (r *Replay) Clear(mask int, hash [32]byte) {
 			}
 		}
 	}
+}
+
+func PushBucketMap(b *primitives.Buffer, m map[[32]byte]int) error {
+	l := len(m)
+	err := b.PushVarInt(uint64(l))
+	if err != nil {
+		return err
+	}
+
+	keys := [][32]byte{}
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(ByKey(keys))
+
+	for _, k := range keys {
+		err = b.Push(k[:])
+		if err != nil {
+			return err
+		}
+		err = b.PushInt(m[k])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func PopBucketMap(buf *primitives.Buffer) (map[[32]byte]int, error) {
+	m := map[[32]byte]int{}
+	k := make([]byte, 32)
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(l); i++ {
+		var b [32]byte
+		err = buf.Pop(k)
+		if err != nil {
+			return nil, err
+		}
+		copy(b[:], k)
+		v, err := buf.PopInt()
+		if err != nil {
+			return nil, err
+		}
+		m[b] = v
+	}
+	return m, nil
 }

@@ -95,6 +95,18 @@ func (b *Buffer) PushInt64(i int64) error {
 	return b.PushUInt64(uint64(i))
 }
 
+func (b *Buffer) PushInt(i int) error {
+	return b.PushInt64(int64(i))
+}
+
+func (b *Buffer) PopInt() (int, error) {
+	i, err := b.PopInt64()
+	if err != nil {
+		return 0, err
+	}
+	return int(i), nil
+}
+
 func (b *Buffer) PopInt64() (int64, error) {
 	i, err := b.PopUInt64()
 	if err != nil {
