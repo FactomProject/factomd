@@ -135,7 +135,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			DATA_RESPONSE         // 18
 			MISSING_MSG_RESPONSE  //19
 			*/
-			f.SendIntoEtcd(msg, f.EtcdCounter)
+			go f.SendIntoEtcd(msg, f.EtcdCounter)
 		}
 	} else {
 		f.logMessage(msg, false) // NODE_TALK_FIX
