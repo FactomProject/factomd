@@ -590,7 +590,12 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 
 	newData = buf.DeepCopyBytes()
 
-	dbsl.DBStates[len(dbsl.DBStates)-1].SaveStruct.RestoreFactomdState(dbsl.State)
+	for i := len(dbsl.DBStates) - 1; i >= 0; i-- {
+		if dbsl.DBStates[i].SaveStruct != nil {
+			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
+			break
+		}
+	}
 
 	return
 }
