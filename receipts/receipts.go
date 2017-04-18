@@ -271,11 +271,11 @@ func (e *JSON) IsSameAs(r *JSON) bool {
 	return true
 }
 
-func CreateFullReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
+func CreateFullReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*Receipt, error) {
 	return CreateReceipt(dbo, entryID)
 }
 
-func CreateMinimalReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
+func CreateMinimalReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*Receipt, error) {
 	receipt, err := CreateReceipt(dbo, entryID)
 	if err != nil {
 		return nil, err
@@ -286,7 +286,7 @@ func CreateMinimalReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*
 	return receipt, nil
 }
 
-func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt, error) {
+func CreateReceipt(dbo interfaces.DBOverlaySimple, entryID interfaces.IHash) (*Receipt, error) {
 	receipt := new(Receipt)
 	receipt.Entry = new(JSON)
 	receipt.Entry.EntryHash = entryID.String()
@@ -394,7 +394,7 @@ func CreateReceipt(dbo interfaces.DBOverlay, entryID interfaces.IHash) (*Receipt
 	return receipt, nil
 }
 
-func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
+func VerifyFullReceipt(dbo interfaces.DBOverlaySimple, receiptStr string) error {
 	receipt, err := DecodeReceiptString(receiptStr)
 	if err != nil {
 		return err
@@ -419,7 +419,7 @@ func VerifyFullReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
 	return nil
 }
 
-func VerifyMinimalReceipt(dbo interfaces.DBOverlay, receiptStr string) error {
+func VerifyMinimalReceipt(dbo interfaces.DBOverlaySimple, receiptStr string) error {
 	receipt, err := DecodeReceiptString(receiptStr)
 	if err != nil {
 		return err

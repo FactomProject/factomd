@@ -116,7 +116,15 @@ func (s *State) MakeMissingEntryRequests() {
 				asked := MissingEntryMap[entry.GetHash().Fixed()] != nil
 
 				if asked {
-					s.DB.InsertEntry(entry)
+					s.DB.StartMultiBatch()
+					err := s.DB.InsertEntryMultiBatch(entry)
+					if err != nil {
+						panic(err)
+					}
+					err = s.DB.ExecuteMultiBatch()
+					if err != nil {
+						panic(err)
+					}
 				}
 
 			default:

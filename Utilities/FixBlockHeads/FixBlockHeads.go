@@ -59,7 +59,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Head - %v\n", head.String())
+	if head == nil {
+		fmt.Printf("Head not found!\n")
+	} else {
+		fmt.Printf("Head - %v\n", head.String())
+	}
 }
 
 func FixBlockHeads(dbo *databaseOverlay.Overlay) error {

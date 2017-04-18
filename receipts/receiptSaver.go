@@ -54,7 +54,7 @@ func Save(receipt *Receipt) error {
 	return nil
 }
 
-func ExportEntryReceipt(entryID string, dbo interfaces.DBOverlay) error {
+func ExportEntryReceipt(entryID string, dbo interfaces.DBOverlaySimple) error {
 	h, err := primitives.NewShaHashFromStr(entryID)
 	if err != nil {
 		return err
