@@ -6,10 +6,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/database/blockExtractor"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
-	"os"
 )
 
 const level string = "level"
@@ -56,7 +58,7 @@ func main() {
 			panic(err)
 		}
 	}
-	dbo := state.GetAndLockDB()
+	dbo := state.GetAndLockDB().(interfaces.DBOverlay)
 	defer state.UnlockDB()
 
 	if chainID != "" {

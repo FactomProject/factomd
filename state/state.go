@@ -242,7 +242,7 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB     *databaseOverlay.Overlay
+	DB     interfaces.DBOverlaySimple
 	Logger *logger.FLogger
 	Anchor interfaces.IAnchor
 
@@ -903,7 +903,7 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 	return nil
 }
 
-func (s *State) GetAndLockDB() interfaces.DBOverlay {
+func (s *State) GetAndLockDB() interfaces.DBOverlaySimple {
 	return s.DB
 }
 

@@ -115,11 +115,22 @@ func (m *EntryBlockResponse) FollowerExecute(state interfaces.IState) {
 	db := state.GetAndLockDB()
 	defer state.UnlockDB()
 
+	db.StartMultiBatch()
 	for _, v := range m.EBlocks {
-		db.ProcessEBlockBatchWithoutHead(v, true)
+		err := db.ProcessEBlockMultiBatchWithoutHead(v, true)
+		if err != nil {
+			panic(err)
+		}
 	}
 	for _, v := range m.Entries {
-		db.InsertEntry(v)
+		err := db.InsertEntryMultiBatch(v)
+		if err != nil {
+			panic(err)
+		}
+	}
+	err := db.ExecuteMultiBatch()
+	if err != nil {
+		panic(err)
 	}
 
 	return

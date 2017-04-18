@@ -180,21 +180,21 @@ func foundByHeight(s *State, msg *messages.DBStateMsg) error {
 
 func foundByKeyMR(s *State, msg *messages.DBStateMsg) error {
 	// Check that each item can be fetched by height
-	dblock, err := s.DB.FetchDBlockByPrimary(msg.DirectoryBlock.GetKeyMR())
+	dblock, err := s.DB.FetchDBlock(msg.DirectoryBlock.GetKeyMR())
 	if err != nil {
 		return err
 	} else if dblock == nil {
 		return fmt.Errorf("Dblock from database is nil")
 	}
 
-	fblock, err := s.DB.FetchFBlockByPrimary(msg.FactoidBlock.GetKeyMR())
+	fblock, err := s.DB.FetchFBlock(msg.FactoidBlock.GetKeyMR())
 	if err != nil {
 		return err
 	} else if fblock == nil {
 		return fmt.Errorf("Fblock from database is nil")
 	}
 
-	ecBlock, err := s.DB.FetchECBlockByPrimary(msg.EntryCreditBlock.DatabasePrimaryIndex())
+	ecBlock, err := s.DB.FetchECBlock(msg.EntryCreditBlock.DatabasePrimaryIndex())
 	if err != nil {
 		return err
 	} else if ecBlock == nil {

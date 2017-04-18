@@ -719,7 +719,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(fmt.Sprintf("%20s Previous didn't validate at Block Height %d", list.State.FactomNodeName, dbheight))
 			}
 		}
-		td, err := list.State.DB.FetchDBlockByPrimary(mr)
+		td, err := list.State.DB.FetchDBlock(mr)
 		if err != nil || td == nil {
 			if err != nil {
 				os.Stderr.WriteString(err.Error() + "\n")
