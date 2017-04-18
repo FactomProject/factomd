@@ -128,7 +128,15 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Println("SVM S:", msg.String())
 	}
 	if f.UsingEtcd() {
-		f.SendIntoEtcd(msg, f.EtcdCounter)
+		if msg.Type() < 16 || msg.Type() > 19 {
+			/* Let's skip these for now:
+			MISSING_MSG           // 16
+			MISSING_DATA          // 17
+			DATA_RESPONSE         // 18
+			MISSING_MSG_RESPONSE  //19
+			*/
+			f.SendIntoEtcd(msg, f.EtcdCounter)
+		}
 	} else {
 		f.logMessage(msg, false) // NODE_TALK_FIX
 		data, err := msg.MarshalBinary()
