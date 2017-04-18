@@ -418,7 +418,7 @@ func (c *Controller) route() {
 			// number of connections if that is more than 4.
 			num := NumberPeersToBroadcast
 			clen := len(c.connections)
-			if clen < 0 {
+			if clen == 0 {
 				return
 			} else if clen < num {
 				num = clen
