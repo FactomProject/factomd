@@ -125,7 +125,7 @@ func (f *P2PProxy) GetNameTo() string {
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if f.SuperVerboseMessages {
-		fmt.Println("SVM S:", msg.String())
+		fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 	}
 	if f.UsingEtcd() {
 		if msg.Type() < 16 || msg.Type() > 19 {
@@ -178,7 +178,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 					if err != nil {
 						fmt.Println("SVM err:", err.Error())
 					} else {
-						fmt.Println("SVM R:", msg.String())
+						fmt.Println("SVM R:", msg.String(), msg.GetHash().String()[:10])
 					}
 				}
 				return msg, err
