@@ -14,9 +14,7 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
-	"math/rand"
 	"strconv"
-	"time"
 )
 
 type LevelDB struct {
@@ -90,16 +88,9 @@ func CombineBucketAndKey(bucket []byte, key []byte) []byte {
 	return ldbKey
 }
 
-func db_delay() {
-	return
-	time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond)
-}
-
 func (db *LevelDB) Get(bucket []byte, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
 	db.dbLock.RLock()
 	defer db.dbLock.RUnlock()
-
-	db_delay()
 
 	LevelDBGets.Inc()
 
@@ -123,8 +114,6 @@ func (db *LevelDB) Get(bucket []byte, key []byte, destination interfaces.BinaryM
 func (db *LevelDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
-
-	db_delay()
 
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
@@ -151,8 +140,6 @@ func (db *LevelDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshall
 func (db *LevelDB) PutInBatch(records []interfaces.Record) error {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
-
-	db_delay()
 
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
