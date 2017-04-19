@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/state"
 )
 
@@ -172,6 +173,20 @@ func TestGetMapHash(t *testing.T) {
 	}
 	if h2.String() != "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31" {
 		t.Errorf("Invalid hash - got %v, expected %v", h2.String(), "fd9b4c42a47115af0bf1878c7de793e28b021415f82ed7151ab0cbb7db941b31")
+	}
+
+	for i := 0; i < 1000; i++ {
+		bmap = map[[32]byte]int64{}
+		l := random.RandIntBetween(0, 100)
+		for j := 0; j < l; j++ {
+			bmap[primitives.RandomHash().Fixed()] = random.RandInt64()
+		}
+		h2 = GetMapHash(uint32(i), bmap)
+		for j := 0; j < 10; j++ {
+			if h2.IsSameAs(GetMapHash(uint32(i), bmap)) == false {
+				t.Errorf("GetMapHash returns inconsistent hashes")
+			}
+		}
 	}
 }
 
