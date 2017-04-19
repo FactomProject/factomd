@@ -79,11 +79,12 @@ func (f *P2PProxy) UsingEtcd() bool {
 	return f.useEtcd
 }
 
-func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) {
+func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) int64 {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
-		f.EtcdManager.SendIntoEtcd(msgBytes)
+		return f.EtcdManager.SendIntoEtcd(msgBytes)
 	}
+	return 0
 }
 
 func (f *P2PProxy) Weight() int {
@@ -125,9 +126,6 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	if f.SuperVerboseMessages {
-		fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
-	}
 	if f.UsingEtcd() {
 		if msg.Type() < 16 || msg.Type() > 19 {
 			/* Let's skip these for now:
@@ -136,6 +134,9 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			DATA_RESPONSE         // 18
 			MISSING_MSG_RESPONSE  //19
 			*/
+			if f.SuperVerboseMessages {
+				fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
+			}
 			go f.SendIntoEtcd(msg)
 		}
 	} else {
@@ -144,6 +145,9 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		if err != nil {
 			fmt.Println("ERROR on Send: ", err)
 			return err
+		}
+		if f.SuperVerboseMessages {
+			fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 		}
 		f.bytesOut += len(data)
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
