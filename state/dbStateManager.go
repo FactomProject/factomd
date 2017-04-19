@@ -395,7 +395,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if d.Locked || d.IsNew || dbht <= list.ProcessHeight {
+	if d.Locked || d.IsNew || (dbht <= list.ProcessHeight && dbht > 0) {
 		return
 	}
 
@@ -627,7 +627,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		return
 	}
 	fmt.Printf("**1*bh %10s %4d DBHT: %d Writing DblockKeyMr:%s \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String())
-	
+
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
 	if v%4 == 0 {
