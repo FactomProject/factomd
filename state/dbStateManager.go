@@ -56,14 +56,14 @@ type DBState struct {
 type DBStateList struct {
 	SrcNetwork bool // True if I got this block from the network.
 
-	LastEnd   int
-	LastBegin int
-	TimeToAsk interfaces.Timestamp
-
-	State    *State
-	Base     uint32
-	Complete uint32
-	DBStates []*DBState
+	LastEnd       int
+	LastBegin     int
+	TimeToAsk     interfaces.Timestamp
+	ProcessHeight uint32
+	State         *State
+	Base          uint32
+	Complete      uint32
+	DBStates      []*DBState
 }
 
 // Validate this directory block given the next Directory Block.  Need to check the
@@ -395,7 +395,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if d.Locked || d.IsNew {
+	if d.Locked || d.IsNew || dbht <= list.ProcessHeight {
 		return
 	}
 
@@ -483,6 +483,8 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
 
+	fmt.Printf("**1*bh %10s dbht: %d \n", list.State.FactomNodeName, d.DirectoryBlock.GetHeader().GetDBHeight())
+
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
 	if list.State.FERChangeHeight == 1 {
@@ -506,6 +508,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if uint32(i) > list.Complete {
 		list.Complete = uint32(i)
 	}
+	list.ProcessHeight = dbht
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
 
@@ -623,13 +626,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
-	fmt.Printf("**1*bh %10s %4d DBHT: %d Writing DblockKeyMr:%s, DblockHash: %s...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String(), d.DirectoryBlock.GetFullHash().String())
-
-	//  fmt.Println(d.DirectoryBlock.String())
-	//  fmt.Println(d.FactoidBlock.String())
-	//  fmt.Println(d.AdminBlock.String())
-	//  fmt.Println(d.EntryCreditBlock.String())
-
+	fmt.Printf("**1*bh %10s %4d DBHT: %d Writing DblockKeyMr:%s \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String())
+	
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
 	if v%4 == 0 {
@@ -714,7 +712,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				panic(fmt.Sprintf("%20s Previous didn't validate at Block Height %d", list.State.FactomNodeName, dbheight))
 			}
 		}
-		td, err := list.State.DB.FetchDBlockByPrimary(mr)
+		td, err := list.State.DB.FetchDBlock(mr)
 		if err != nil || td == nil {
 			if err != nil {
 				os.Stderr.WriteString(err.Error() + "\n")

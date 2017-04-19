@@ -158,7 +158,7 @@ type IState interface {
 	GetAnchor() IAnchor
 
 	// Database
-	GetAndLockDB() DBOverlay
+	GetAndLockDB() DBOverlaySimple
 	UnlockDB()
 
 	// Web Services
