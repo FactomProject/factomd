@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"os"
 	"time"
+	"container/list"
 )
 
 var _ = hex.EncodeToString
@@ -395,7 +396,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if d.Locked || d.IsNew || dbht <= list.ProcessHeight {
+	if d.Locked || d.IsNew || (dbht > 0 && dbht <= list.ProcessHeight) {
 		return
 	}
 
