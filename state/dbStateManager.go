@@ -17,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/log"
 	"os"
 	"time"
-	"container/list"
 )
 
 var _ = hex.EncodeToString
@@ -628,7 +627,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		return
 	}
 	fmt.Printf("**1*bh %10s %4d DBHT: %d Writing DblockKeyMr:%s \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String())
-	
+
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
 	if v%4 == 0 {
