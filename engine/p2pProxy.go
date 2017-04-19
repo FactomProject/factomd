@@ -11,6 +11,7 @@ import (
 	"time"
 
 	// "github.com/FactomProject/factomd/common/constants"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -44,7 +45,7 @@ type P2PProxy struct {
 	// via Etcd (as well as sent out over the p2p network normally)
 	useEtcd              bool
 	EtcdManager          interfaces.IEtcdManager
-	EtcdCounter          uint64
+	EtcdCounter          int64
 	SuperVerboseMessages bool
 }
 
@@ -78,10 +79,10 @@ func (f *P2PProxy) UsingEtcd() bool {
 	return f.useEtcd
 }
 
-func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg, oldIndex uint64) {
+func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
-		f.EtcdManager.SendIntoEtcd(msgBytes, oldIndex)
+		f.EtcdManager.SendIntoEtcd(msgBytes)
 	}
 }
 
@@ -135,7 +136,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			DATA_RESPONSE         // 18
 			MISSING_MSG_RESPONSE  //19
 			*/
-			go f.SendIntoEtcd(msg, f.EtcdCounter)
+			go f.SendIntoEtcd(msg)
 		}
 	} else {
 		f.logMessage(msg, false) // NODE_TALK_FIX

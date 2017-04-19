@@ -146,23 +146,21 @@ func (g *IEtcdPluginRPC) RetrieveDBStateByHeight(height uint32) error {
 }
 
 type SendIntoEtcdArgs struct {
-	Msg      []byte // interfaces.IMsg
-	OldIndex uint64
+	Msg []byte // interfaces.IMsg
 }
 
 type SendIntoEtcdData struct {
-	NewIndex uint64
+	NewIndex int64
 }
 
-func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte, oldIndex uint64) uint64 {
+func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) int64 {
 	var resp SendIntoEtcdData
 	args := SendIntoEtcdArgs{
-		Msg:      msg,
-		OldIndex: oldIndex,
+		Msg: msg,
 	}
 	err := g.client.Call("Plugin.SendIntoEtcd", &args, &resp)
 	if err != nil {
-		return oldIndex
+		return 0
 	}
 
 	//log.Println(resp.NewIndex)
@@ -171,10 +169,10 @@ func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte, oldIndex uint64) uint64 {
 
 type GetFromEtcdData struct {
 	Bytes    [][]byte
-	NewIndex uint64
+	NewIndex int64
 }
 
-func (g *IEtcdPluginRPC) GetData(oldIndex uint64) ([][]byte, uint64) {
+func (g *IEtcdPluginRPC) GetData(oldIndex int64) ([][]byte, int64) {
 	var resp GetFromEtcdData
 	err := g.client.Call("Plugin.GetData", oldIndex, &resp)
 	if err != nil {
@@ -206,12 +204,12 @@ type IEtcdPluginRPCServer struct {
 }
 
 func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *SendIntoEtcdData) error {
-	newIndex := s.Impl.SendIntoEtcd(args.Msg, args.OldIndex)
+	newIndex := s.Impl.SendIntoEtcd(args.Msg)
 	resp.NewIndex = newIndex
 	return nil
 }
 
-func (s *IEtcdPluginRPCServer) GetData(arg uint64, resp *GetFromEtcdData) error {
+func (s *IEtcdPluginRPCServer) GetData(arg int64, resp *GetFromEtcdData) error {
 	dataBytes, newIndex := s.Impl.GetData(arg)
 	resp.Bytes = dataBytes
 	resp.NewIndex = newIndex
