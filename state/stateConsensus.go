@@ -883,7 +883,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m, s.FactoidState.GetBalanceHash(false)).(*messages.Ack)
+	ack := s.NewAck(m, s.Balancehash).(*messages.Ack)
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
