@@ -168,8 +168,11 @@ func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) error {
 }
 
 func (g *IEtcdPluginRPC) Reinitiate() error {
-	err := g.client.Call("Plugin.Reinitiate", new(interface{}), new(interface{}))
+	var resp SendIntoEtcdData
+
+	err := g.client.Call("Plugin.Reinitiate", new(interface{}), &resp)
 	if err != nil {
+		g.client.Close()
 		return err
 	}
 

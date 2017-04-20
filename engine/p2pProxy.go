@@ -149,10 +149,6 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 				if strings.Contains(err.Error(), "connection is shut down") {
 					f.EtcdManager.Reinitiate()
 				}
-				reader := bufio.NewReader(os.Stdin)
-				fmt.Print("Enter text: ")
-				text, _ := reader.ReadString('\n')
-				fmt.Println(text)
 			}
 		}
 	} else {
