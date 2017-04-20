@@ -432,14 +432,14 @@ func (dbs *DBState) UnmarshalBinary(p []byte) error {
 type DBStateList struct {
 	SrcNetwork bool // True if I got this block from the network.
 
-	LastEnd   int
-	LastBegin int
-	TimeToAsk interfaces.Timestamp
-
-	State    *State
-	Base     uint32
-	Complete uint32
-	DBStates []*DBState
+	LastEnd       int
+	LastBegin     int
+	TimeToAsk     interfaces.Timestamp
+	ProcessHeight uint32
+	State         *State
+	Base          uint32
+	Complete      uint32
+	DBStates      []*DBState
 }
 
 var _ interfaces.BinaryMarshallable = (*DBStateList)(nil)
@@ -934,7 +934,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if d.Locked || d.IsNew {
+	if d.Locked || d.IsNew || (dbht > 0 && dbht <= list.ProcessHeight) {
 		return
 	}
 
@@ -1045,6 +1045,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if uint32(i) > list.Complete {
 		list.Complete = uint32(i)
 	}
+	list.ProcessHeight = dbht
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
 
@@ -1125,12 +1126,6 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 		return
 	}
 
-	for _, vm := range pl.VMs[:len(pl.FedServers)] {
-		if vm.LeaderMinute < 1 {
-			return
-		}
-	}
-
 	d.Signed = true
 	return true
 }
@@ -1142,20 +1137,15 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 
+	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
+		return
+	}
+
 	if dbheight > 0 {
 		dp := list.State.GetDBState(uint32(dbheight - 1))
 		if dp == nil || !dp.Saved {
 			return
 		}
-	}
-
-	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
-		return
-	}
-
-	// If our database has trash in it, panic
-	if err := list.State.ValidatePrevious(uint32(dbheight - 1)); err != nil {
-		panic(err.Error())
 	}
 
 	if d.Saved {
@@ -1168,12 +1158,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
-	fmt.Printf("*** %10s %4d DBHT: %d Writing DblockKeyMr:%s, DblockHash: %s...  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String(), d.DirectoryBlock.GetFullHash().String())
-
-	//  fmt.Println(d.DirectoryBlock.String())
-	//  fmt.Println(d.FactoidBlock.String())
-	//  fmt.Println(d.AdminBlock.String())
-	//  fmt.Println(d.EntryCreditBlock.String())
 
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
@@ -1181,6 +1165,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.Trim()
 	}
 
+	// Save
 	list.State.DB.StartMultiBatch()
 
 	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
@@ -1237,7 +1222,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
-	{
+	// Not activated.  Set to true if you want extra checking of the data saved to the database.
+	if false {
 		good := true
 		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
 		if err != nil {
@@ -1250,14 +1236,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			mr = d.DirectoryBlock.GetKeyMR()
 			good = false
 		}
-		if dbheight > 0 {
-			err := list.State.ValidatePrevious(uint32(dbheight - 1))
-			if err != nil {
-				os.Stderr.WriteString(err.Error() + "\n")
-				return
-				panic(fmt.Sprintf("%20s Previous didn't validate at Block Height %d", list.State.FactomNodeName, dbheight))
-			}
-		}
+
 		td, err := list.State.DB.FetchDBlock(mr)
 		if err != nil || td == nil {
 			if err != nil {
@@ -1276,7 +1255,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if !good {
 			return
 		}
-		fmt.Printf("*** %10s %4d DBHT: %d OK!!! KeyMRFound: %s  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, mr.String())
 	}
 
 	progress = true

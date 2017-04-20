@@ -975,17 +975,14 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 	}
 
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
 		return true
 	}
 
 	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
 		return true
 	}
 
 	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
 		return true
 	}
 	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
@@ -1000,7 +997,6 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 	}
 
 	if !s.VerifyIsAuthority(ask.IdentityChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
 		return true
 	}
 
@@ -1213,12 +1209,21 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && s.EOMSys {
+		dbstate := s.GetDBState(dbheight - 1)
+		if dbstate == nil {
+			return false
+		}
+		if !dbstate.Saved {
+			return false
+		}
+
+		s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
+
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
 			s.EOM = false
 			s.EOMDone = false
-			s.ReviewHolding()
 			s.Syncing = false
 			s.EOMProcessed = 0
 		}
@@ -1246,6 +1251,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !e.Processed {
+
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Process Once: !e.Processed(%v) EOM: %s", e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
@@ -1287,6 +1293,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		switch {
 		case s.CurrentMinute < 10:
+			if s.CurrentMinute == 1 {
+				dbstate := s.GetDBState(dbheight - 1)
+				if !dbstate.Saved {
+					dbstate.ReadyToSave = true
+				}
+			}
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		case s.CurrentMinute == 10:
@@ -1393,7 +1405,6 @@ func (s *State) CheckForIDChange() {
 			panic(err)
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
-		fmt.Printf("Updated Local Server Identity to %s", s.LocalServerPrivKey)
 		s.initServerKeys()
 	}
 }
@@ -1438,9 +1449,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
-		if messages.AckBalanceHash {
-			fmt.Printf("**1*bh => %10s dbht %d bh: %x\n", s.FactomNodeName, dbheight, s.FactoidState.GetBalanceHash(false).Bytes())
-		}
 
 		s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
 		s.DBSigLimit = len(pl.FedServers)
@@ -1456,11 +1464,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
-
-		ack := msg.GetAck().(*messages.Ack)
-		if messages.AckBalanceHash && ack != nil && ack.BalanceHash != nil {
-			fmt.Printf("****bh    %10d dbht %d bh: %x\n", ack.VMIndex, dbheight, ack.BalanceHash.Bytes())
-		}
 
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 
@@ -1543,18 +1546,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.AddStatus("DBSig Fails Detected")
 			return false
 		}
-		dbstate := s.DBStates.Get(int(dbheight - 1))
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
-		if s.KeepMismatch || pl.CheckDiffSigTally() {
-			if !dbstate.Saved {
-				dbstate.ReadyToSave = true
-				s.DBStates.SaveDBStateToDB(dbstate)
-				//s.LeaderPL.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
-			}
-		} else {
+		if !s.KeepMismatch && !pl.CheckDiffSigTally() {
 			s.DBSigFails++
 			s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v", s.KeepMismatch))
 			if pl != nil {
@@ -1568,6 +1564,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				s.StartDelay = s.GetTimestamp().GetTimeMilli()
 				s.NetworkOutMsgQueue() <- msg
 			}
+			return false
 		}
 		s.ReviewHolding()
 		s.Saving = false
@@ -1859,14 +1856,6 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 				s.PutCommit(ce.EntryHash, emsg)
 			}
 			continue
-		}
-	}
-}
-
-func (s *State) ConsiderSaved(dbheight uint32) {
-	for _, dbs := range s.DBStates.DBStates {
-		if dbs.DirectoryBlock.GetDatabaseHeight() == dbheight {
-			dbs.Saved = true
 		}
 	}
 }
