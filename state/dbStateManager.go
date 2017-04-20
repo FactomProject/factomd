@@ -483,8 +483,6 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
 
-	fmt.Printf("**1*bh %10s dbht: %d \n", list.State.FactomNodeName, d.DirectoryBlock.GetHeader().GetDBHeight())
-
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
 	if list.State.FERChangeHeight == 1 {
@@ -626,7 +624,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 		return
 	}
-	fmt.Printf("**1*bh %10s %4d DBHT: %d Writing DblockKeyMr:%s \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, d.DirectoryBlock.GetKeyMR().String())
 
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
@@ -730,7 +727,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if !good {
 			return
 		}
-		fmt.Printf("**1*bh %10s %4d DBHT: %d OK!!! KeyMRFound: %s  \n", list.State.FactomNodeName, time.Now().Unix()-nowish, dbheight, mr.String())
 	}
 
 	progress = true

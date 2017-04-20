@@ -964,17 +964,14 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 	}
 
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
 		return true
 	}
 
 	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
 		return true
 	}
 
 	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
 		return true
 	}
 	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
@@ -989,7 +986,6 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 	}
 
 	if !s.VerifyIsAuthority(ask.IdentityChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
 		return true
 	}
 
@@ -1209,12 +1205,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 
-		if e.VMIndex == 0 {
-			tabbing := fmt.Sprintf("%%%ds", e.Minute+1)
-			tab := fmt.Sprintf(tabbing, " ")
-			fmt.Printf("**1*bh %10s dbht %d bh: %s%s (Temp) min: %d\n", s.FactomNodeName, dbheight, tab, s.TempBalanceHash.String(), e.Minute)
-		}
-
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
@@ -1247,10 +1237,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !e.Processed {
-
-		if e.VMIndex == 0 && e.Minute == 3 && s.FactomNodeName == "FNode0" {
-			fmt.Println("**1*bh")
-		}
 
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Process Once: !e.Processed(%v) EOM: %s", e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
@@ -1405,7 +1391,6 @@ func (s *State) CheckForIDChange() {
 			panic(err)
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
-		fmt.Printf("Updated Local Server Identity to %s", s.LocalServerPrivKey)
 		s.initServerKeys()
 	}
 }
@@ -1450,9 +1435,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
-		if messages.AckBalanceHash {
-			fmt.Printf("**1*bh => %10s dbht %d bh: %x\n", s.FactomNodeName, dbheight, s.FactoidState.GetBalanceHash(false).Bytes())
-		}
 
 		s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
 		s.DBSigLimit = len(pl.FedServers)
@@ -1468,11 +1450,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
-
-		ack := msg.GetAck().(*messages.Ack)
-		if messages.AckBalanceHash && ack != nil && ack.BalanceHash != nil {
-			fmt.Printf("****bh    %10d dbht %d bh: %x\n", ack.VMIndex, dbheight, ack.BalanceHash.Bytes())
-		}
 
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 

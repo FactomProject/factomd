@@ -933,9 +933,6 @@ func (s *State) ValidatePrevious(dbheight uint32) error {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	errs := ""
 	if dblk != nil && err == nil && dbheight > 0 {
-		if dbheight%1000 == 0 {
-			fmt.Println("xxxx Progressing ...", dbheight)
-		}
 
 		if dblk2, err := s.DB.FetchDBlock(dblk.GetKeyMR()); err != nil {
 			errs += "Don't have the directory block hash indexed %d\n"

@@ -161,8 +161,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		return nil, jsonError
 	}
 
-	fmt.Printf("API V2 method: <%v>  paramaters: %v\n", j.Method, params)
-
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
