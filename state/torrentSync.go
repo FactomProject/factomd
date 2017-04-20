@@ -33,7 +33,7 @@ func (s *State) StartTorrentSyncing() error {
 				// Short sleep otherwise, still loading some from disk
 				time.Sleep(5 * time.Second)
 			}
-			//continue
+			continue
 		}
 
 		// We can adjust the sleep at the end depending on what we do in the loop
