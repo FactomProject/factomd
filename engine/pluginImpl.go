@@ -167,6 +167,15 @@ func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) error {
 	return resp.Error
 }
 
+func (g *IEtcdPluginRPC) Reinitiate() error {
+	err := g.client.Call("Plugin.Reinitiate", new(interface{}), new(interface{}))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type GetFromEtcdData struct {
 	Bytes    []byte
 	NewIndex int64
@@ -207,6 +216,10 @@ func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *SendIn
 	err := s.Impl.SendIntoEtcd(args.Msg)
 	resp.Error = err
 	return nil
+}
+
+func (s *IEtcdPluginRPCServer) Reinitiate(args interface{}, resp *SendIntoEtcdData) error {
+	return s.Impl.Reinitiate()
 }
 
 func (s *IEtcdPluginRPCServer) GetData(arg int64, resp *GetFromEtcdData) error {

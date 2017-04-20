@@ -12,6 +12,8 @@ import (
 
 	// "github.com/FactomProject/factomd/common/constants"
 
+	"strings"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -83,8 +85,12 @@ func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
 		return f.EtcdManager.SendIntoEtcd(msgBytes)
-	} 
+	}
 	return err
+}
+
+func (f *P2PProxy) Reinitiate() error {
+	return f.EtcdManager.Reinitiate()
 }
 
 func (f *P2PProxy) Weight() int {
@@ -137,7 +143,17 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			if f.SuperVerboseMessages {
 				fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 			}
-			return f.SendIntoEtcd(msg)
+			err := f.SendIntoEtcd(msg)
+			if err != nil {
+				fmt.Println(err)
+				if strings.Contains(err.Error(), "connection is shut down") {
+					f.EtcdManager.Reinitiate()
+				}
+				reader := bufio.NewReader(os.Stdin)
+				fmt.Print("Enter text: ")
+				text, _ := reader.ReadString('\n')
+				fmt.Println(text)
+			}
 		}
 	} else {
 		f.logMessage(msg, false) // NODE_TALK_FIX
