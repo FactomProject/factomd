@@ -79,12 +79,12 @@ func (f *P2PProxy) UsingEtcd() bool {
 	return f.useEtcd
 }
 
-func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) int64 {
+func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
 		return f.EtcdManager.SendIntoEtcd(msgBytes)
-	}
-	return 0
+	} 
+	return err
 }
 
 func (f *P2PProxy) Weight() int {
@@ -137,7 +137,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			if f.SuperVerboseMessages {
 				fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 			}
-			go f.SendIntoEtcd(msg)
+			return f.SendIntoEtcd(msg)
 		}
 	} else {
 		f.logMessage(msg, false) // NODE_TALK_FIX

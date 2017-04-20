@@ -16,7 +16,7 @@ type IManagerController interface {
 
 // IEtcdManager plugin interface
 type IEtcdManager interface {
-	SendIntoEtcd(msg []byte) int64
+	SendIntoEtcd(msg []byte) error
 	GetData(int64) ([]byte, int64)
 
 	// Ready will return true when the etcd client is instantiaed. It will return

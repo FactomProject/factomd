@@ -150,21 +150,21 @@ type SendIntoEtcdArgs struct {
 }
 
 type SendIntoEtcdData struct {
-	NewIndex int64
+	Error error
 }
 
-func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) int64 {
+func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) error {
 	var resp SendIntoEtcdData
 	args := SendIntoEtcdArgs{
 		Msg: msg,
 	}
 	err := g.client.Call("Plugin.SendIntoEtcd", &args, &resp)
 	if err != nil {
-		return 0
+		return err
 	}
 
 	//log.Println(resp.NewIndex)
-	return resp.NewIndex
+	return resp.Error
 }
 
 type GetFromEtcdData struct {
@@ -204,8 +204,8 @@ type IEtcdPluginRPCServer struct {
 }
 
 func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *SendIntoEtcdData) error {
-	newIndex := s.Impl.SendIntoEtcd(args.Msg)
-	resp.NewIndex = newIndex
+	err := s.Impl.SendIntoEtcd(args.Msg)
+	resp.Error = err
 	return nil
 }
 
