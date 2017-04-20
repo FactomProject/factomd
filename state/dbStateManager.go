@@ -609,11 +609,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 	}
 
-	// If our database has trash in it, panic
-	if err := list.State.ValidatePrevious(uint32(dbheight - 1)); err != nil {
-		panic(err.Error())
-	}
-
 	if d.Saved {
 		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())
 		if err != nil || !Havedblk {
@@ -688,7 +683,8 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
-	{
+	// Not activated.  Set to true if you want extra checking of the data saved to the database.
+	if false {
 		good := true
 		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
 		if err != nil {
@@ -701,14 +697,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			mr = d.DirectoryBlock.GetKeyMR()
 			good = false
 		}
-		if dbheight > 0 {
-			err := list.State.ValidatePrevious(uint32(dbheight - 1))
-			if err != nil {
-				os.Stderr.WriteString(err.Error() + "\n")
-				return
-				panic(fmt.Sprintf("%20s Previous didn't validate at Block Height %d", list.State.FactomNodeName, dbheight))
-			}
-		}
+
 		td, err := list.State.DB.FetchDBlock(mr)
 		if err != nil || td == nil {
 			if err != nil {
