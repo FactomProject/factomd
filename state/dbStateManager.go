@@ -512,6 +512,10 @@ func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = buf.PushUInt32(dbsl.ProcessHeight)
+	if err != nil {
+		return nil, err
+	}
 	//TODO: handle State
 	err = buf.PushUInt32(dbsl.Base)
 	if err != nil {
@@ -560,6 +564,10 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 	dbsl.LastBegin = int(x)
 
 	err = buf.PopBinaryMarshallable(dbsl.TimeToAsk)
+	if err != nil {
+		return
+	}
+	dbsl.ProcessHeight, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
