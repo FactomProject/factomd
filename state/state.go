@@ -324,6 +324,11 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+
+	// Plugins
+	useDBStateManager bool
+	Uploader          *UploadController // Controls the uploads of torrents. Prevents backups
+	DBStateManager    interfaces.IManagerController
 }
 
 type EntryUpdate struct {
