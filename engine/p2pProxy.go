@@ -242,13 +242,11 @@ func (f *P2PProxy) Len() int {
 }
 
 func (f *P2PProxy) SweepEtcd() {
-	var newMsgBytes [][]byte
+	var newMsgBytes []byte
 	for {
 		newMsgBytes, f.EtcdCounter = f.EtcdManager.GetData(f.EtcdCounter)
 		if newMsgBytes != nil && len(newMsgBytes) > 0 {
-			for _, msgBytes := range newMsgBytes {
-				f.BroadcastIn <- msgBytes
-			}
+			f.BroadcastIn <- newMsgBytes
 		} else {
 			time.Sleep(time.Second)
 		}

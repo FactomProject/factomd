@@ -168,11 +168,11 @@ func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) int64 {
 }
 
 type GetFromEtcdData struct {
-	Bytes    [][]byte
+	Bytes    []byte
 	NewIndex int64
 }
 
-func (g *IEtcdPluginRPC) GetData(oldIndex int64) ([][]byte, int64) {
+func (g *IEtcdPluginRPC) GetData(oldIndex int64) ([]byte, int64) {
 	var resp GetFromEtcdData
 	err := g.client.Call("Plugin.GetData", oldIndex, &resp)
 	if err != nil {
