@@ -1199,6 +1199,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// let processing continue.
 	if s.EOMDone && s.EOMSys {
 		dbstate := s.GetDBState(dbheight - 1)
+		if dbstate == nil {
+			return false
+		}
 		if !dbstate.Saved {
 			return false
 		}
