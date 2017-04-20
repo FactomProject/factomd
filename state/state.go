@@ -275,6 +275,7 @@ type State struct {
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
 	TempBalanceHash       interfaces.IHash
+	Balancehash           interfaces.IHash
 
 	// Web Services
 	Port int
@@ -2036,7 +2037,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
+	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -2054,7 +2055,8 @@ func (s *State) SummaryHeader() string {
 		"Fct/EC/E",
 		"API:Fct/EC/E",
 		"tps t/i",
-		"SysHeight")
+		"SysHeight",
+		"BH")
 
 	return str
 }
@@ -2195,6 +2197,10 @@ func (s *State) SetStringQueues() {
 		apis,
 		stps)
 
+	if s.Balancehash == nil {
+		s.Balancehash = primitives.NewHash(constants.ZERO_HASH)
+	}
+
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
@@ -2207,6 +2213,8 @@ func (s *State) SetStringQueues() {
 	} else {
 		str = str + " -"
 	}
+
+	str = str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3])
 
 	s.serverPrt = str
 

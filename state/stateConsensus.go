@@ -883,7 +883,7 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m, s.FactoidState.GetBalanceHash(false)).(*messages.Ack)
+	ack := s.NewAck(m, s.Balancehash).(*messages.Ack)
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
@@ -1206,6 +1206,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 
+		s.Balancehash = s.FactoidState.GetBalanceHash(false)
 		s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 
 		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", e.VMIndex, s.EOMDone, s.EOMSys))
