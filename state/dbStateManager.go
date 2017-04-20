@@ -744,6 +744,11 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
+
+	if list.State.UsingTorrent() {
+		list.State.UploadDBState(uint32(dbheight))
+	}
+
 	return
 }
 

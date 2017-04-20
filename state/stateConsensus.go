@@ -18,6 +18,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 )
 
@@ -467,6 +468,34 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	}
 }
 
+func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
+	height := dbmsg.DirectoryBlock.GetDatabaseHeight()
+
+	if s.EntryDBHeightComplete > height {
+		return
+	}
+	// If no Eblocks, leave
+	if len(dbmsg.EBlocks) == 0 {
+		return
+	}
+
+	// All DBStates that got here are valid, so just checking the DBlock hash works
+	dblock, err := s.DB.FetchDBlockByHeight(height)
+	if err != nil {
+		return // This is a werid case
+	}
+
+	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
+		return // Bad DBlock
+	}
+
+	for _, e := range dbmsg.Entries {
+		if exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, e.GetHash().Bytes()); !exists {
+			s.DB.InsertEntryMultiBatch(e)
+		}
+	}
+}
+
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
 
@@ -480,8 +509,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
-	// ignore if too old.
-	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() {
+	// ignore if too old. If its under EntryDBHeightComplete
+	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete {
 		return
 	}
 
@@ -503,6 +532,8 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 		ix := int(dbheight) - s.DBStatesReceivedBase
 		if ix < 0 {
+			// If we are missing entries at this DBState, we can apply the entries only
+			s.ExecuteEntriesInDBState(dbstatemsg)
 			return
 		}
 		for len(s.DBStatesReceived) <= ix {

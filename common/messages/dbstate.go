@@ -160,7 +160,8 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	diff := int(dbheight) - (int(state.GetHighestSavedBlk())) // Difference from the working height (completed+1)
+	// Difference of completed blocks, rather than just highest DBlock (might be missing entries)
+	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete()))
 
 	// Look at saved heights if not too far from what we have saved.
 	if diff < -1 {
@@ -180,6 +181,71 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			}
 		}
 	}
+
+	// Checking the content of the DBState against the directoryblock contained
+	// Map of Entries and Eblocks in this DBState dblock
+	eblocks := make(map[string]bool) //, len(m.EBlocks))
+	ents := make(map[string]bool)    //, len(m.Entries))
+
+	// Ensure blocks in the DBlock matches blocks in DBState
+	for _, b := range m.DirectoryBlock.GetEBlockDBEntries() {
+		switch {
+		case bytes.Compare(b.GetChainID().Bytes(), constants.ADMIN_CHAINID) == 0:
+			// Validate ABlock
+			goodKeyMr, err := m.AdminBlock.GetKeyMR()
+			if err != nil {
+				return -1
+			}
+			if !b.GetKeyMR().IsSameAs(goodKeyMr) {
+				return -1
+			}
+		case bytes.Compare(b.GetChainID().Bytes(), constants.FACTOID_CHAINID) == 0:
+			// Validate FBlock
+			if !b.GetKeyMR().IsSameAs(m.FactoidBlock.GetKeyMR()) {
+				return -1
+			}
+		case bytes.Compare(b.GetChainID().Bytes(), constants.EC_CHAINID) == 0:
+			// Validate ECBlock
+			if !b.GetKeyMR().IsSameAs(m.EntryCreditBlock.GetHash()) {
+				return -1
+			}
+		default: // EBLOCK
+			// Eblocks in the DBlock. Not only check if the Eblocks in DBState list are good, but also entries
+			eblocks[b.GetKeyMR().String()] = false
+		}
+	}
+
+	// Same number of Eblocks and DBlock Eblocks
+	if len(m.EBlocks) != len(eblocks) {
+		return -1
+	}
+
+	// Loop over eblocks and see if they fall in the map
+	for _, eb := range m.EBlocks {
+		keymr, err := eb.KeyMR()
+		if err != nil {
+			return -1
+		}
+
+		// true indicated a repeat
+		if v, ok := eblocks[keymr.String()]; !ok || v {
+			return -1
+		}
+		eblocks[keymr.String()] = true
+
+		for _, e := range eb.GetEntryHashes() {
+			ents[e.String()] = false
+		}
+	}
+
+	for _, e := range m.Entries {
+		if v, ok := ents[e.GetHash().String()]; !ok || v {
+			return -1
+		}
+		ents[e.GetHash().String()] = true
+	}
+
+	return 1
 
 	return 1
 }

@@ -1080,6 +1080,11 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries, allSigs)
 	msg.(*messages.DBStateMsg).IsInDB = true
 
+	// Create the torrent
+	if s.UsingTorrent() {
+		s.UploadDBState(dbheight)
+	}
+
 	return msg, nil
 }
 
