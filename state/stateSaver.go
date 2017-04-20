@@ -12,7 +12,7 @@ import (
 var tmpState []byte
 
 //To be increased whenever the data being saved changes from the last verion
-const version = 3
+const version = 4
 
 func SaveDBStateList(ss *DBStateList, networkName string) error {
 	//For now, to file. Later - to DB

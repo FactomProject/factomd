@@ -168,6 +168,9 @@ func (a *DBState) IsSameAs(b *DBState) bool {
 		}
 	}
 
+	if a.Repeat != b.Repeat {
+		return false
+	}
 	if a.ReadyToSave != b.ReadyToSave {
 		return false
 	}
@@ -276,6 +279,10 @@ func (dbs *DBState) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
+	err = b.PushBool(dbs.Repeat)
+	if err != nil {
+		return nil, err
+	}
 	err = b.PushBool(dbs.ReadyToSave)
 	if err != nil {
 		return nil, err
@@ -389,6 +396,10 @@ func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	dbs.Entries = entries
 	b = primitives.NewBuffer(rest)
 
+	dbs.Repeat, err = b.PopBool()
+	if err != nil {
+		return
+	}
 	dbs.ReadyToSave, err = b.PopBool()
 	if err != nil {
 		return
@@ -472,6 +483,12 @@ func (a *DBStateList) IsSameAs(b *DBStateList) bool {
 	if a.TimeToAsk.IsSameAs(b.TimeToAsk) == false {
 		return false
 	}
+	if a.ProcessHeight != b.ProcessHeight {
+		return false
+	}
+	if a.SavedHeight != b.SavedHeight {
+		return false
+	}
 
 	//State    *State
 	if a.Base != b.Base {
@@ -515,6 +532,10 @@ func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	err = buf.PushUInt32(dbsl.ProcessHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(dbsl.SavedHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -570,6 +591,10 @@ func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err erro
 		return
 	}
 	dbsl.ProcessHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.SavedHeight, err = buf.PopUInt32()
 	if err != nil {
 		return
 	}
