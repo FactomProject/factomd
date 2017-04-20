@@ -8,6 +8,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -15,8 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
-	"os"
-	"time"
 )
 
 var _ = hex.EncodeToString
@@ -42,6 +43,7 @@ type DBState struct {
 	EntryBlocks []interfaces.IEntryBlock
 	Entries     []interfaces.IEBEntry
 
+	Repeat      bool
 	ReadyToSave bool
 	Locked      bool
 	Signed      bool
@@ -60,6 +62,7 @@ type DBStateList struct {
 	LastBegin     int
 	TimeToAsk     interfaces.Timestamp
 	ProcessHeight uint32
+	SavedHeight   uint32
 	State         *State
 	Base          uint32
 	Complete      uint32
@@ -395,7 +398,18 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if d.Locked || d.IsNew || (dbht > 0 && dbht <= list.ProcessHeight) {
+	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
+	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
+	// at this height) then we simpy return.
+	if d.Locked || d.IsNew || d.Repeat {
+		return
+	}
+
+	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
+	// go forward.
+	if dbht > 0 && dbht <= list.ProcessHeight {
+		progress = true
+		d.Repeat = true
 		return
 	}
 
@@ -566,7 +580,7 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
 	// have been checked, so we can consider this guy signed.
-	if dbheight == 0 || list.Get(int(dbheight+1)) != nil {
+	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
 		d.Signed = true
 		return true
 	}
@@ -600,6 +614,14 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
+	}
+
+	// If this is a repeated block, and I have already saved at this height, then we can safely ignore
+	// this dbstate.
+	if d.Repeat == true && uint32(dbheight) <= list.SavedHeight {
+		progress = true
+		d.ReadyToSave = false
+		d.Saved = true
 	}
 
 	if dbheight > 0 {
@@ -718,6 +740,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		}
 	}
 
+	list.SavedHeight = uint32(dbheight)
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
