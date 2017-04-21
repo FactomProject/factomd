@@ -59,7 +59,7 @@ imports:
 - name: github.com/FactomProject/gocoding
   version: 59666ce39524e0b2ed84fbdbb16e9b38dc92d9df
 - name: github.com/FactomProject/goleveldb
-  version: 9d147f2b8f767adca2a29f9728658681081b03a8
+  version: e7800c6976c5d75f0a9c5e9e0e2ff8086940e58f
   subpackages:
   - leveldb
   - leveldb/cache
