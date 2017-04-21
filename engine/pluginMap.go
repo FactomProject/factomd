@@ -32,7 +32,7 @@ var pluginMap = map[string]plugin.Plugin{
 	"etcd":    &IEtcdPlugin{},
 }
 
-func LaunchEtcdPlugin(path string, addr string) (interfaces.IEtcdManager, error) {
+func LaunchEtcdPlugin(path, addr, uid string) (interfaces.IEtcdManager, error) {
 	// So we don't get debug logs. Comment this out if you want to keep plugin
 	// logs
 	//log.SetOutput(ioutil.Discard)
@@ -47,7 +47,7 @@ func LaunchEtcdPlugin(path string, addr string) (interfaces.IEtcdManager, error)
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: handshakeConfig,
 		Plugins:         pluginMap,
-		Cmd:             exec.Command(path+"etcd-manager", "plugin", addr),
+		Cmd:             exec.Command(path+"etcd-manager", "plugin", addr, uid),
 	})
 
 	c := make(chan os.Signal, 2)

@@ -187,7 +187,7 @@ func (g *IEtcdPluginRPC) GetData() []byte {
 	var resp GetFromEtcdData
 	err := g.client.Call("Plugin.GetData", new(interface{}), &resp)
 	if err != nil {
-		return nil, oldIndex
+		return nil
 	}
 
 	return resp.Bytes

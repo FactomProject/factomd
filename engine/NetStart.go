@@ -366,11 +366,11 @@ func NetStart(s *state.State) {
 		}
 
 		if *useEtcd {
-			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress)
+			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress, fnodes[0].State.GetFactomNodeName())
 			if err != nil {
 				fmt.Printf("Encountered an error while trying to use Etcd plugin: %s (trying one more time)\n", err.Error())
 				time.Sleep(3 * time.Second)
-				etcdManager, err = LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress)
+				etcdManager, err = LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress, fnodes[0].State.GetFactomNodeName())
 				if err != nil {
 					fmt.Printf("Encountered an error while trying to use Etcd plugin (again): %s\n", err.Error())
 					panic("Plugin manager not working")
