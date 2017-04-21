@@ -580,7 +580,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		if s.FastBoot {
 			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
 
-			err := SaveDBStateList(s.DBStates, s.Network)
+			err := SaveDBStateList(s.DBStates, s.Network, s.FastBootLocation)
 			if err != nil {
 				panic(err)
 			}

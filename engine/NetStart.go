@@ -80,6 +80,7 @@ func NetStart(s *state.State) {
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	fastPtr := flag.Bool("fast", false, "If true, factomd will fast-boot from a file.")
+	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 
 	flag.Parse()
@@ -186,6 +187,9 @@ func NetStart(s *state.State) {
 
 	if fast == true {
 		s.FastBoot = true
+	}
+	if fastLocationPtr != nil {
+		s.FastBootLocation = *fastLocationPtr
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")

@@ -14,7 +14,7 @@ var tmpState []byte
 //To be increased whenever the data being saved changes from the last verion
 const version = 4
 
-func SaveDBStateList(ss *DBStateList, networkName string) error {
+func SaveDBStateList(ss *DBStateList, networkName string, fileLocation string) error {
 	//For now, to file. Later - to DB
 
 	//Don't save States after the server has booted - it might start it in a wrong state
@@ -29,7 +29,7 @@ func SaveDBStateList(ss *DBStateList, networkName string) error {
 
 	//Actually save data from previous cached state to prevent dealing with rollbacks
 	if len(tmpState) > 0 {
-		err := SaveToFile(tmpState, NetworkIDToFilename(networkName))
+		err := SaveToFile(tmpState, NetworkIDToFilename(networkName, fileLocation))
 		if err != nil {
 			return err
 		}
@@ -45,8 +45,8 @@ func SaveDBStateList(ss *DBStateList, networkName string) error {
 	return nil
 }
 
-func LoadDBStateList(ss *DBStateList, networkName string) error {
-	b, err := LoadFromFile(NetworkIDToFilename(networkName))
+func LoadDBStateList(ss *DBStateList, networkName string, fileLocation string) error {
+	b, err := LoadFromFile(NetworkIDToFilename(networkName, fileLocation))
 	if err != nil {
 		return nil
 	}
@@ -85,8 +85,12 @@ func SaveTheState(ss *SaveState, networkName string) error {
 }
 */
 
-func NetworkIDToFilename(networkName string) string {
-	return fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
+func NetworkIDToFilename(networkName string, fileLocation string) string {
+	file := fmt.Sprintf("FastBoot_%s_v%v.db", networkName, version)
+	if fileLocation != "" {
+		return fmt.Sprintf("%v/%v", fileLocation, file)
+	}
+	return file
 }
 
 /*

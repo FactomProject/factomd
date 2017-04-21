@@ -326,7 +326,8 @@ type State struct {
 
 	AckChange uint32
 
-	FastBoot bool
+	FastBoot         bool
+	FastBootLocation string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -597,6 +598,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
 		s.FastBoot = cfg.App.FastBoot
+		s.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -836,7 +838,7 @@ func (s *State) Init() {
 	s.starttime = time.Now()
 
 	if s.FastBoot {
-		err := LoadDBStateList(s.DBStates, s.Network)
+		err := LoadDBStateList(s.DBStates, s.Network, s.FastBootLocation)
 		if err != nil {
 			panic(err)
 		}
