@@ -295,10 +295,13 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	// If the timestamp is over a day old, then there is really no point in saving the state of
-	// historical data.
-	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
-		return nil
+	//Only check if we're not loading from the database
+	if state.DBFinished == true {
+		// If the timestamp is over a day old, then there is really no point in saving the state of
+		// historical data.
+		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
+			return nil
+		}
 	}
 
 	state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
@@ -392,7 +395,6 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 }
 
 func (ss *SaveState) TrimBack(state *State, d *DBState) {
-
 	pdbstate := d
 	d = state.DBStates.Get(int(ss.DBHeight + 1))
 	if pdbstate == nil {

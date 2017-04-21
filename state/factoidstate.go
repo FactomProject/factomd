@@ -280,12 +280,6 @@ func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
 	return fs.State.GetE(true, address)
 }
 
-func (fs *FactoidState) ResetBalances() {
-	fs.State.FactoidBalancesP = map[[32]byte]int64{}
-	fs.State.ECBalancesP = map[[32]byte]int64{}
-	fs.State.NumTransactions = 0
-}
-
 func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEntry) error {
 	switch trans.ECID() {
 	case entryCreditBlock.ECIDServerIndexNumber:
