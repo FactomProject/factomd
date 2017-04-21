@@ -187,11 +187,32 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// we can validate by prevKeyMr of the block that follows this one
 	if m.DirectoryBlock.GetDatabaseHeight() == state.GetHighestSavedBlk()+1 {
 		// Fed count of this height -1, as we may not have the height itself
-		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight() - 1))
+		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight()))
 		if m.SigTally(state) >= (fedCount/2 + 1) {
 			// This has all the signatures it needs
 			goto ValidSignatures
+		} else {
+			// If we remove servers, there will not be as many signatures. We need to accomadate for this
+			// by reducing our needed. This will only get called if we fall short on signatures.
+			aes := m.AdminBlock.GetABEntries()
+			for _, adminEntry := range aes {
+				switch adminEntry.Type() {
+				case constants.TYPE_REMOVE_FED_SERVER:
+					// Double check the entry is a real remove fed server message
+					_, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+					if !ok {
+						continue
+					}
+					// Reduce our total fed servers
+					fedCount--
+				}
+			}
+			if m.SigTally(state) >= (fedCount/2 + 1) {
+				// This has all the signatures it needs
+				goto ValidSignatures
+			}
 		}
+
 		// It does not pass the signatures. Should we return -1?
 		return 0
 	} else { // Alternative to signatures passing by checking our DB
@@ -231,7 +252,6 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 
 	// If there is a repeat signature, we do not count it twice
 	sigmap := make(map[string]bool)
-
 	for _, sig := range m.SignatureList.List {
 		if sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] {
 			continue // Toss duplicate signatures
@@ -248,7 +268,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			}
 		}
 
-		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight-1)
+		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
 		if err == nil && check >= 0 {
 			validSigCount++
 			continue
@@ -287,6 +307,19 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 					newSigners[r.IdentityChainID.String()] = new(tempAuthority)
 				}
 				newSigners[r.IdentityChainID.String()].Promoted = true
+			case constants.TYPE_REMOVE_FED_SERVER:
+				// A remove will remove this server from our list of servers that can sign,
+				// but we need them to still be valid, so we will allow them to still sign
+				r, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+				if !ok {
+					// This shouldn't fail, as we checked the type
+					continue
+				}
+
+				if _, ok := newSigners[r.IdentityChainID.String()]; !ok {
+					newSigners[r.IdentityChainID.String()] = new(tempAuthority)
+				}
+				newSigners[r.IdentityChainID.String()].Promoted = true
 			case constants.TYPE_ADD_FED_SERVER_KEY:
 				r, ok := adminEntry.(*adminBlock.AddFederatedServerSigningKey)
 				if !ok {
@@ -308,11 +341,19 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 
 		// There is a chance their signing keys won't be located in the admin block. If they came from being an audit server,
 		// their key might be in the authority list, or identity list.
-		for _, v := range newSigners {
+		for i, v := range newSigners {
 			if v.Key != nil {
 				continue
 			}
-			// TODO: Potentially look through identity/authority list to try and find keys
+
+			idHash, err := primitives.HexToHash(i)
+			if err != nil {
+				continue
+			}
+			signingkey, status := state.GetSigningKey(idHash)
+			if status >= 0 {
+				v.Key = signingkey.Bytes()
+			}
 		}
 
 		// These signatures that did not validate with current set of authorities
