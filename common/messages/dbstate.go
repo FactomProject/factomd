@@ -181,6 +181,37 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	// Validate Signatures
+
+	// If this is the next block that we need, we can validate it by signatures. If it is a past block
+	// we can validate by prevKeyMr of the block that follows this one
+	if m.DirectoryBlock.GetDatabaseHeight() == state.GetHighestSavedBlk()+1 {
+		// Fed count of this height -1, as we may not have the height itself
+		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight() - 1))
+		if m.SigTally(state) >= (fedCount/2 + 1) {
+			// This has all the signatures it needs
+			goto ValidSignatures
+		}
+		// It does not pass the signatures. Should we return -1?
+		return 0
+	} else { // Alternative to signatures passing by checking our DB
+		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
+		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)
+		if next == nil {
+			// Do not have the next directory block, so we cannot tell by this method
+			return 0
+		}
+		// If the prevKeyMr of the next matches this one, we know it is valid.
+		if next.GetHeader().GetPrevKeyMR().IsSameAs(m.DirectoryBlock.GetKeyMR()) {
+			goto ValidSignatures
+		} else {
+			// The KeyMR does not match, this block is invalid
+			return -1
+		}
+
+	}
+ValidSignatures: // Goto here if signatures pass
+
 	return 1
 }
 
@@ -195,22 +226,107 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 		return validSigCount
 	}
 
+	// Signatures that are not valid by current fed list
+	var remainingSig []interfaces.IFullSignature
+
+	// If there is a repeat signature, we do not count it twice
+	sigmap := make(map[string]bool)
+
 	for _, sig := range m.SignatureList.List {
+		if sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] {
+			continue // Toss duplicate signatures
+		}
+		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
 		//Check signature against the Skeleton key
 		authoritativeKey := state.GetNetworkBootStrapKey()
 		if authoritativeKey != nil {
 			if bytes.Compare(sig.GetKey(), authoritativeKey.Bytes()) == 0 {
 				if sig.Verify(data) {
 					validSigCount++
+					continue
 				}
 			}
 		}
 
-		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
+		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight-1)
 		if err == nil && check >= 0 {
 			validSigCount++
+			continue
+		}
+
+		if sig.Verify(data) {
+			remainingSig = append(remainingSig, sig)
 		}
 	}
+
+	// TEMPORARY: If promotions have occurred this block, we need to account for their signatures to be
+	// valid. We will only pay for this overhead if there are signatures left, meaning most blocks will
+	// not enter this loop
+	if len(remainingSig) > 0 {
+		type tempAuthority struct {
+			Key      []byte
+			Promoted bool
+		}
+
+		// Map of new federated servers, and their keys
+		newSigners := make(map[string]*tempAuthority)
+
+		// Search for promotions and their keys and populate the map:
+		aes := m.AdminBlock.GetABEntries()
+		for _, adminEntry := range aes {
+			switch adminEntry.Type() {
+			case constants.TYPE_ADD_FED_SERVER:
+				// New federated server that can sign blocks
+				r, ok := adminEntry.(*adminBlock.AddFederatedServer)
+				if !ok {
+					// This shouldn't fail, as we checked the type
+					continue
+				}
+
+				if _, ok := newSigners[r.IdentityChainID.String()]; !ok {
+					newSigners[r.IdentityChainID.String()] = new(tempAuthority)
+				}
+				newSigners[r.IdentityChainID.String()].Promoted = true
+			case constants.TYPE_ADD_FED_SERVER_KEY:
+				r, ok := adminEntry.(*adminBlock.AddFederatedServerSigningKey)
+				if !ok {
+					// This shouldn't fail, as we checked the type
+					continue
+				}
+
+				// We need to grab the signing key from the admin block if provided
+				if _, ok := newSigners[r.IdentityChainID.String()]; !ok {
+					newSigners[r.IdentityChainID.String()] = new(tempAuthority)
+				}
+				keybytes, err := r.PublicKey.MarshalBinary()
+				if err != nil {
+					continue
+				}
+				newSigners[r.IdentityChainID.String()].Key = keybytes
+			}
+		}
+
+		// There is a chance their signing keys won't be located in the admin block. If they came from being an audit server,
+		// their key might be in the authority list, or identity list.
+		for _, v := range newSigners {
+			if v.Key != nil {
+				continue
+			}
+			// TODO: Potentially look through identity/authority list to try and find keys
+		}
+
+		// These signatures that did not validate with current set of authorities
+		for _, sig := range remainingSig {
+		InnerSingerLoop:
+			for _, signer := range newSigners {
+				if bytes.Compare(sig.GetKey(), signer.Key) == 0 {
+					validSigCount++
+					break InnerSingerLoop
+				}
+			}
+		}
+	}
+	// End Temporary fix
 
 	return validSigCount
 }
