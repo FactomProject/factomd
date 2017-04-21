@@ -92,6 +92,10 @@ func (f *P2PProxy) Reinitiate() error {
 	return f.EtcdManager.Reinitiate()
 }
 
+func (f *P2PProxy) NewBlockLease() error {
+	return f.EtcdManager.NewBlockLease()
+}
+
 func (f *P2PProxy) Weight() int {
 	// should return the number of connections this peer represents.  For now, just say a lot
 	return f.NumPeers

@@ -179,6 +179,18 @@ func (g *IEtcdPluginRPC) Reinitiate() error {
 	return nil
 }
 
+func (g *IEtcdPluginRPC) NewBlockLease() error {
+	var resp SendIntoEtcdData
+
+	err := g.client.Call("Plugin.NewBlockLease", new(interface{}), &resp)
+	if err != nil {
+		g.client.Close()
+		return err
+	}
+
+	return nil
+}
+
 type GetFromEtcdData struct {
 	Bytes []byte
 }
@@ -222,6 +234,10 @@ func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *SendIn
 
 func (s *IEtcdPluginRPCServer) Reinitiate(args interface{}, resp *SendIntoEtcdData) error {
 	return s.Impl.Reinitiate()
+}
+
+func (s *IEtcdPluginRPCServer) NewBlockLease(args interface{}, resp *SendIntoEtcdData) error {
+	return s.Impl.NewBlockLease()
 }
 
 func (s *IEtcdPluginRPCServer) GetData(args interface{}, resp *GetFromEtcdData) error {
