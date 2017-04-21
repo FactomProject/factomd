@@ -180,18 +180,17 @@ func (g *IEtcdPluginRPC) Reinitiate() error {
 }
 
 type GetFromEtcdData struct {
-	Bytes    []byte
-	NewIndex int64
+	Bytes []byte
 }
 
-func (g *IEtcdPluginRPC) GetData(oldIndex int64) ([]byte, int64) {
+func (g *IEtcdPluginRPC) GetData() []byte {
 	var resp GetFromEtcdData
-	err := g.client.Call("Plugin.GetData", oldIndex, &resp)
+	err := g.client.Call("Plugin.GetData", new(interface{}), &resp)
 	if err != nil {
 		return nil, oldIndex
 	}
 
-	return resp.Bytes, resp.NewIndex
+	return resp.Bytes
 }
 
 type ReadyArgs struct {
@@ -225,10 +224,9 @@ func (s *IEtcdPluginRPCServer) Reinitiate(args interface{}, resp *SendIntoEtcdDa
 	return s.Impl.Reinitiate()
 }
 
-func (s *IEtcdPluginRPCServer) GetData(arg int64, resp *GetFromEtcdData) error {
-	dataBytes, newIndex := s.Impl.GetData(arg)
+func (s *IEtcdPluginRPCServer) GetData(args interface{}, resp *GetFromEtcdData) error {
+	dataBytes := s.Impl.GetData()
 	resp.Bytes = dataBytes
-	resp.NewIndex = newIndex
 	return nil
 }
 

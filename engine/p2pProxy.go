@@ -47,7 +47,6 @@ type P2PProxy struct {
 	// via Etcd (as well as sent out over the p2p network normally)
 	useEtcd              bool
 	EtcdManager          interfaces.IEtcdManager
-	EtcdCounter          int64
 	SuperVerboseMessages bool
 }
 
@@ -256,7 +255,7 @@ func (f *P2PProxy) Len() int {
 func (f *P2PProxy) SweepEtcd() {
 	var newMsgBytes []byte
 	for {
-		newMsgBytes, f.EtcdCounter = f.EtcdManager.GetData(f.EtcdCounter)
+		newMsgBytes = f.EtcdManager.GetData()
 		if newMsgBytes != nil && len(newMsgBytes) > 0 {
 			f.BroadcastIn <- newMsgBytes
 		} else {
