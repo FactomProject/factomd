@@ -91,6 +91,7 @@ type State struct {
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
 	EtcdAddress             string
+	EtcdUUID                string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []*Identity      // Identities of all servers in management chain
@@ -610,6 +611,7 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
 		s.EtcdAddress = cfg.App.EtcdAddress
+		s.EtcdUUID = cfg.App.EtcdUUID
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
