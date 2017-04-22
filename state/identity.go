@@ -25,6 +25,30 @@ var (
 	MAIN_FACTOM_IDENTITY_LIST = "888888001750ede0eff4b05f0c3f557890b256450cabbb84cada937f9c258327"
 )
 
+// GetSigningKey will return the signing key of the identity, and it's type
+//		Returns:
+//			-1	--> Follower
+//			0 	--> Audit Server
+//			1	--> Federated
+func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
+	getReturnStatInt := func(stat int) int {
+		if stat == constants.IDENTITY_PENDING_FEDERATED_SERVER || stat == constants.IDENTITY_FEDERATED_SERVER {
+			return 1
+		}
+		if stat == constants.IDENTITY_AUDIT_SERVER || stat == constants.IDENTITY_PENDING_AUDIT_SERVER {
+			return 0
+		}
+		return -1
+	}
+
+	for _, identity := range st.Identities {
+		if identity.IdentityChainID.IsSameAs(id) {
+			return identity.SigningKey, getReturnStatInt(identity.Status)
+		}
+	}
+	return nil, -1
+}
+
 func (st *State) GetNetworkSkeletonKey() interfaces.IHash {
 	i := st.isIdentityChain(st.GetNetworkSkeletonIdentity())
 	if i == -1 { // There should always be a skeleton identity. It cannot be removed

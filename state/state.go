@@ -1037,7 +1037,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
 	}
 
-	blockSig := new(primitives.Signature)
 	var allSigs []interfaces.IFullSignature
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
@@ -1067,6 +1066,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 				if err != nil {
 					continue
 				}
+
+				blockSig := new(primitives.Signature)
 				blockSig.SetSignature(r.PrevDBSig.Bytes())
 				blockSig.SetPub(r.PrevDBSig.GetKey())
 				allSigs = append(allSigs, blockSig)
