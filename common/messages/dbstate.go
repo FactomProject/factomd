@@ -410,10 +410,14 @@ func (m *DBStateMsg) hardcodedFix() int {
 	returnAmt := 0
 	if m.DirectoryBlock.GetDatabaseHeight() == 75893 {
 		goodSig, _ := hex.DecodeString("8066fc4222eff67470ffaca15bdb5d6d15b65daf3cc86c121b872d7485b388b3cb4b7bbbd0248076065262d54699bab68e7d5be96e137aa3428b903916e4180a")
+		fmt.Printf("hhh Hit hardcoded 1, %x\n", goodSig)
 		for _, s := range m.SignatureList.List {
 			if bytes.Compare(s.Bytes(), goodSig) == 0 {
+				fmt.Printf("hhhh Hardcoded! 75893, %x\n", s.Bytes())
 				returnAmt++
 				break
+			} else {
+				fmt.Printf("hhh hardcoded no :(, %x\n", s.Bytes())
 			}
 		}
 	}
