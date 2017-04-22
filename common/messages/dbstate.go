@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -263,6 +264,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
 
 	validSigCount := 0
+	validSigCount += m.hardcodedFix()
 
 	data, err := m.DirectoryBlock.GetHeader().MarshalBinary()
 	if err != nil {
@@ -402,6 +404,21 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	// End Temporary fix
 	printoutsigstuff(m, state, printout, fmt.Sprintf("Closeout, Valid: %d", validSigCount))
 	return validSigCount
+}
+
+func (m *DBStateMsg) hardcodedFix() int {
+	returnAmt := 0
+	if m.DirectoryBlock.GetDatabaseHeight() == 75893 {
+		goodSig, _ := hex.DecodeString("8066fc4222eff67470ffaca15bdb5d6d15b65daf3cc86c121b872d7485b388b3cb4b7bbbd0248076065262d54699bab68e7d5be96e137aa3428b903916e4180a")
+		for _, s := range m.SignatureList.List {
+			if bytes.Compare(s.Bytes(), goodSig) == 0 {
+				returnAmt++
+				break
+			}
+		}
+	}
+
+	return returnAmt
 }
 
 func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
