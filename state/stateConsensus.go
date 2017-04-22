@@ -45,6 +45,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 	}
 
+	m, ok := msg.(*messages.DBStateMsg)
+	if ok {
+		fmt.Printf("mmm0 %s %d, V:%d\n", s.FactomNodeName, m.DirectoryBlock.GetDatabaseHeight(), msg.Validate(s))
+	}
 	switch msg.Validate(s) {
 	case 1:
 		if s.RunLeader &&
