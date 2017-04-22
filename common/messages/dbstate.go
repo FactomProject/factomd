@@ -142,7 +142,10 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
+	pre := fmt.Sprintf("%s Ht:%d", state.GetFactomNodeName(), m.DirectoryBlock.GetDatabaseHeight())
+
 	if m.IsInDB {
+		fmt.Printf("vvv %s : VALID : Is in DB\n", pre)
 		return 1
 	}
 
@@ -150,6 +153,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
 	// Just accept the genesis block
 	if dbheight == 0 {
+		fmt.Printf("vvv2 %s : VALID : Block is gensis\n", pre)
 		return 1
 	}
 
@@ -157,6 +161,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d Expecting NetworkID %x and found %x",
 			dbheight, state.GetNetworkID(), m.DirectoryBlock.GetHeader().GetNetworkID()))
 		//Wrong network ID
+		fmt.Printf("vvv1 %s : INVALID : Wrong networkID\n", pre)
 		return -1
 	}
 
@@ -166,6 +171,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	if diff < -1 {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
 			dbheight, state.GetEntryDBHeightComplete(), diff))
+		fmt.Printf("vvv1 %s : INVALID : Diff < -1. DL%d, C:%d\n", pre, diff, state.GetEntryDBHeightComplete())
 		return -1
 	}
 
@@ -176,6 +182,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 				state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d checkpoint failure. Had %s Expected %s",
 					dbheight, m.DirectoryBlock.DatabasePrimaryIndex().String(), key))
 				//Key does not match checkpoint
+				fmt.Printf("vvv1 %s : INVALID : Bad checkpoint\n", pre)
 				return -1
 			}
 		}
@@ -221,6 +228,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)
 		if next == nil {
 			// Do not have the next directory block, so we cannot tell by this method
+			fmt.Printf("vvv1 %s : UNSURE : Next Dblock is nil\n", pre)
 			return 0
 		}
 		// If the prevKeyMr of the next matches this one, we know it is valid.
@@ -228,12 +236,13 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			goto ValidSignatures
 		} else {
 			// The KeyMR does not match, this block is invalid
+			fmt.Printf("vvv1 %s : INVALID : KeyMr does not match\n", pre)
 			return -1
 		}
 
 	}
 ValidSignatures: // Goto here if signatures pass
-
+	fmt.Printf("vvv2 %s : VALID : End of Validate\n", pre)
 	return 1
 }
 
