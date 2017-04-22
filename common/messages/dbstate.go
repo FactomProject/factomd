@@ -223,8 +223,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 
 		// It does not pass the signatures. Should we return -1?
-		str, err := m.JSONString()
-		fmt.Printf("vvv %s ::: UNSURE : F:%d, T:%d, S:%d, E:%v\nvvv  %s -- %s\n", pre, fedCount, tally, len(m.SignatureList.List), err, pre, str)
+		fmt.Printf("vvv %s ::: UNSURE : F:%d, T:%d, S:%d\n", pre, fedCount, tally, len(m.SignatureList.List))
 		return 0
 	} else { // Alternative to signatures passing by checking our DB
 		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
