@@ -100,7 +100,6 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	for _, fed := range feds {
 		auth, _ := st.GetAuthority(fed.GetChainID())
 		if auth == nil {
-			fmt.Printf("sss %s Ht:%d :: Fed %s not found\n", st.GetFactomNodeName(), dbheight, auth.AuthorityChainID.String())
 			continue
 		}
 		valid, err := auth.VerifySignature(msg, sig)
@@ -112,7 +111,6 @@ func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_
 	for _, aud := range auds {
 		auth, _ := st.GetAuthority(aud.GetChainID())
 		if auth == nil {
-			fmt.Printf("sss %s Ht:%d :: Aud %s not found\n", st.GetFactomNodeName(), dbheight, auth.AuthorityChainID.String())
 			continue
 		}
 		valid, err := auth.VerifySignature(msg, sig)
