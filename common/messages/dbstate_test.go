@@ -40,6 +40,7 @@ func TestUnmarshalNilDBStateMsg(t *testing.T) {
 
 func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	msg := newDBStateMsg()
+	msg.String()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -77,6 +78,44 @@ func TestMarshalUnmarshalDBStateMsg(t *testing.T) {
 	if msg.IsSameAs(msg2.(*DBStateMsg)) != true {
 		t.Errorf("DBStateMsg messages are not identical")
 	}
+
+	// Test Invalid IsSameAs
+	// Simple testing
+	if msg.IsSameAs(nil) == true {
+		t.Error("DBState msg compare should be false to nil")
+	}
+
+	tmp := *msg
+	tmp.Timestamp = primitives.NewTimestampNow()
+
+	if msg.IsSameAs(&tmp) == true {
+		t.Error("DBState msg compare should be false")
+	}
+	tmp.Timestamp = msg.Timestamp
+
+	tmp.DirectoryBlock = testHelper.CreateTestDirectoryBlock(nil)
+	if msg.IsSameAs(&tmp) == true {
+		t.Error("DBState msg compare should be false")
+	}
+	tmp.DirectoryBlock = msg.DirectoryBlock
+
+	tmp.AdminBlock = testHelper.CreateTestAdminBlock(nil)
+	if msg.IsSameAs(&tmp) == true {
+		t.Error("DBState msg compare should be false")
+	}
+	tmp.AdminBlock = msg.AdminBlock
+
+	tmp.EntryCreditBlock = testHelper.CreateTestEntryCreditBlock(nil)
+	if msg.IsSameAs(&tmp) == true {
+		t.Error("DBState msg compare should be false")
+	}
+	tmp.EntryCreditBlock = msg.EntryCreditBlock
+
+	tmp.FactoidBlock = testHelper.CreateTestFactoidBlock(nil)
+	if msg.IsSameAs(&tmp) == true {
+		t.Error("DBState msg compare should be false")
+	}
+	tmp.FactoidBlock = msg.FactoidBlock
 }
 
 func TestSimpleDBStateMsgValidate(t *testing.T) {
@@ -138,6 +177,10 @@ func TestSignedDBStateValidate(t *testing.T) {
 	prev.FBlock = fblk
 	prev.ECBlock = ecblk
 	genDBState := NewDBStateMsg(state.GetTimestamp(), prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
+	if genDBState.Validate(state) != 1 {
+		t.Error("Genesis should always be valid")
+	}
+
 	state.FollowerExecuteDBState(genDBState)
 	// Ok Geneis set
 
