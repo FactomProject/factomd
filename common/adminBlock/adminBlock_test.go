@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/testHelper"
+	"fmt"
 )
 
 func TestAdminBlockUnmarshalComplexBlock(t *testing.T) {
@@ -452,6 +453,20 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 				t.Error("ABEntries are not identical")
 			}
 		}
+		str1, err1 := block.JSONString()
+		str2, err2 := block2.JSONString()
+		if err1 != nil || err2 != nil || str1 != str2  {
+			fmt.Println("One ", str1, "\nTwo ", str2)
+			t.Errorf("JSON doesn't match. %d",b)
+		}
+		b1, err1 := block.JSONByte()
+		b2, err2 := block.JSONByte()
+		if err1 != nil || err2 != nil || bytes.Compare(b1,b2) != 0 {
+			t.Errorf("JSON Byte doesn't match. %d",b)
+		}
+		if block.String() != block2.String() {
+			t.Errorf("String representation doesn't match %d",b)
+		}
 	}
 }
 
@@ -731,6 +746,7 @@ func TestAddServerFault(t *testing.T) {
 
 func createTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
+	block.(*AdminBlock).Init()
 	block.SetHeader(createTestAdminHeader())
 	/**
 	p, _ := hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
@@ -753,6 +769,7 @@ func createTestAdminBlock() (block interfaces.IAdminBlock) {
 
 func createSmallTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
+	block.(*AdminBlock).Init()
 	block.SetHeader(createSmallTestAdminHeader())
 	block.GetHeader().SetMessageCount(uint32(len(block.GetABEntries())))
 	return block

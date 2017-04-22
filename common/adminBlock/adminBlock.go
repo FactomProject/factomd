@@ -35,6 +35,7 @@ func (c *AdminBlock) Init() {
 		h := new(ABlockHeader)
 		h.Init()
 		c.Header = h
+		c.ABEntries = make([]interfaces.IABEntry, 0)
 	}
 }
 
