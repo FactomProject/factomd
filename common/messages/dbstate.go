@@ -410,7 +410,7 @@ func (e *DBStateMsg) JSONString() (string, error) {
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("vvv3 Unmarshal Failed, hit panic recover()\n")
+			fmt.Printf("vvv3 Unmarshal Failed, hit panic recover()\nvvv %x\n", data)
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
 	}()
