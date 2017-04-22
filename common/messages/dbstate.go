@@ -140,14 +140,10 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks"))
 		//We need the basic block types
-		fmt.Printf("vvv0 %s : INVALID : Missing a crucial block: D: %t, A:%t, F:%t, EC:%t\n", state.GetFactomNodeName(), m.DirectoryBlock != nil, m.AdminBlock != nil, m.FactoidBlock != nil, m.EntryCreditBlock != nil)
 		return -1
 	}
 
-	pre := fmt.Sprintf("%s Ht:%d", state.GetFactomNodeName(), m.DirectoryBlock.GetDatabaseHeight())
-
 	if m.IsInDB {
-		fmt.Printf("vvv %s : VALID : Is in DB\n", pre)
 		return 1
 	}
 
@@ -155,7 +151,6 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 
 	// Just accept the genesis block
 	if dbheight == 0 {
-		fmt.Printf("vvv2 %s : VALID : Block is gensis\n", pre)
 		return 1
 	}
 
@@ -163,7 +158,6 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d Expecting NetworkID %x and found %x",
 			dbheight, state.GetNetworkID(), m.DirectoryBlock.GetHeader().GetNetworkID()))
 		//Wrong network ID
-		fmt.Printf("vvv1 %s : INVALID : Wrong networkID\n", pre)
 		return -1
 	}
 
@@ -173,7 +167,6 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	if diff < -1 {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
 			dbheight, state.GetEntryDBHeightComplete(), diff))
-		fmt.Printf("vvv1 %s : INVALID : Diff < -1. DL%d, C:%d\n", pre, diff, state.GetEntryDBHeightComplete())
 		return -1
 	}
 
@@ -184,7 +177,6 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 				state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  ht: %d checkpoint failure. Had %s Expected %s",
 					dbheight, m.DirectoryBlock.DatabasePrimaryIndex().String(), key))
 				//Key does not match checkpoint
-				fmt.Printf("vvv1 %s : INVALID : Bad checkpoint\n", pre)
 				return -1
 			}
 		}
@@ -224,14 +216,12 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 
 		// It does not pass the signatures. Should we return -1?
-		fmt.Printf("vvv %s ::: UNSURE : F:%d, T:%d, S:%d\n", pre, fedCount, tally, len(m.SignatureList.List))
 		return 0
 	} else { // Alternative to signatures passing by checking our DB
 		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
 		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)
 		if next == nil {
 			// Do not have the next directory block, so we cannot tell by this method
-			fmt.Printf("vvv1 %s : UNSURE : Next Dblock is nil\n", pre)
 			return 0
 		}
 		// If the prevKeyMr of the next matches this one, we know it is valid.
@@ -239,28 +229,15 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			goto ValidSignatures
 		} else {
 			// The KeyMR does not match, this block is invalid
-			fmt.Printf("vvv1 %s : INVALID : KeyMr does not match\n", pre)
 			return -1
 		}
 
 	}
 ValidSignatures: // Goto here if signatures pass
-	fmt.Printf("vvv2 %s : VALID : End of Validate\n", pre)
 	return 1
 }
 
-func printoutsigstuff(m *DBStateMsg, s interfaces.IState, p bool, str string) {
-	if p {
-		fmt.Printf("sss %s Ht:%d :: %s\n", s.GetFactomNodeName(), m.DirectoryBlock.GetDatabaseHeight(),
-			str)
-	}
-}
-
 func (m *DBStateMsg) SigTally(state interfaces.IState) int {
-	printout := false
-	if m.DirectoryBlock.GetDatabaseHeight() == 75893 {
-		printout = true
-	}
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
 
 	validSigCount := 0
@@ -268,7 +245,6 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 
 	data, err := m.DirectoryBlock.GetHeader().MarshalBinary()
 	if err != nil {
-		printoutsigstuff(m, state, printout, "Fail in marshal header. Valid: 0")
 		state.AddStatus(fmt.Sprint("Debug: DBState Signature Error, Marshal binary errored"))
 		return validSigCount
 	}
@@ -276,12 +252,10 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	// Signatures that are not valid by current fed list
 	var remainingSig []interfaces.IFullSignature
 
-	sigs := ""
 	// If there is a repeat signature, we do not count it twice
 	sigmap := make(map[string]bool)
 	for _, sig := range m.SignatureList.List {
 		if sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] {
-			printoutsigstuff(m, state, printout, "Duplicate Signature Found")
 			continue // Toss duplicate signatures
 		}
 		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
@@ -303,12 +277,9 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 		}
 
 		if sig.Verify(data) {
-			sigs += fmt.Sprintf("%x ", sig.GetSignature()[:])
 			remainingSig = append(remainingSig, sig)
 		}
 	}
-
-	printoutsigstuff(m, state, printout, fmt.Sprintf("Normal, Valid: %d, R:%d / %s", validSigCount, len(remainingSig), sigs))
 
 	// If promotions have occurred this block, we need to account for their signatures to be
 	// valid. We will only pay for this overhead if there are signatures left, meaning most blocks will
@@ -387,8 +358,6 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			}
 		}
 
-		printoutsigstuff(m, state, printout, fmt.Sprintf("Remaining Pre, Valid: %d, New:%d", validSigCount, len(newSigners)))
-
 		// These signatures that did not validate with current set of authorities
 		for _, sig := range remainingSig {
 		InnerSingerLoop:
@@ -399,10 +368,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 				}
 			}
 		}
-		printoutsigstuff(m, state, printout, fmt.Sprintf("Remaining End, Valid: %d, R:%d", validSigCount, len(remainingSig)))
 	}
-	// End Temporary fix
-	printoutsigstuff(m, state, printout, fmt.Sprintf("Closeout, Valid: %d", validSigCount))
 	return validSigCount
 }
 
@@ -463,7 +429,6 @@ func (e *DBStateMsg) JSONString() (string, error) {
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("vvv3 Unmarshal Failed, hit panic recover()\nvvv %x\n", data)
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
 	}()
