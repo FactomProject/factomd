@@ -139,6 +139,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks"))
 		//We need the basic block types
+		fmt.Printf("vvv0 %s : INVALID : Missing a crucial block: D: %t, A:%t, F:%t, EC:%t\n", state.GetFactomNodeName(), m.DirectoryBlock != nil, m.AdminBlock != nil, m.FactoidBlock != nil, m.EntryCreditBlock != nil)
 		return -1
 	}
 
@@ -409,6 +410,7 @@ func (e *DBStateMsg) JSONString() (string, error) {
 func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			fmt.Printf("vvv3 Unmarshal Failed, hit panic recover()\n")
 			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
 		}
 	}()
