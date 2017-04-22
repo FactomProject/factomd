@@ -137,7 +137,7 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
-		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks ht: %d", m.DirectoryBlock.GetHeader().GetDBHeight()))
+		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks"))
 		//We need the basic block types
 		return -1
 	}
@@ -160,12 +160,12 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	diff := int(dbheight) - (int(state.GetHighestSavedBlk())) // Difference from the working height (completed+1)
+	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete())) // Difference from the working height (completed+1)
 
 	// Look at saved heights if not too far from what we have saved.
 	if diff < -1 {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
-			dbheight, state.GetHighestSavedBlk(), diff))
+			dbheight, state.GetEntryDBHeightComplete(), diff))
 		return -1
 	}
 
@@ -188,7 +188,8 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	if m.DirectoryBlock.GetDatabaseHeight() == state.GetHighestSavedBlk()+1 {
 		// Fed count of this height -1, as we may not have the height itself
 		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight()))
-		if m.SigTally(state) >= (fedCount/2 + 1) {
+		tally := m.SigTally(state)
+		if tally >= (fedCount/2 + 1) {
 			// This has all the signatures it needs
 			goto ValidSignatures
 		} else {
@@ -207,7 +208,7 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 					fedCount--
 				}
 			}
-			if m.SigTally(state) >= (fedCount/2 + 1) {
+			if tally >= (fedCount/2 + 1) {
 				// This has all the signatures it needs
 				goto ValidSignatures
 			}
@@ -279,7 +280,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 		}
 	}
 
-	// TEMPORARY: If promotions have occurred this block, we need to account for their signatures to be
+	// If promotions have occurred this block, we need to account for their signatures to be
 	// valid. We will only pay for this overhead if there are signatures left, meaning most blocks will
 	// not enter this loop
 	if len(remainingSig) > 0 {
