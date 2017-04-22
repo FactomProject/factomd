@@ -249,13 +249,25 @@ ValidSignatures: // Goto here if signatures pass
 	return 1
 }
 
+func printoutsigstuff(m *DBStateMsg, s interfaces.IState, p bool, str string) {
+	if p {
+		fmt.Printf("sss %s Ht:%d :: %s\n", s.GetFactomNodeName(), m.DirectoryBlock.GetDatabaseHeight(),
+			str)
+	}
+}
+
 func (m *DBStateMsg) SigTally(state interfaces.IState) int {
+	printout := false
+	if m.DirectoryBlock.GetDatabaseHeight() == 75893 {
+		printout = true
+	}
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
 
 	validSigCount := 0
 
 	data, err := m.DirectoryBlock.GetHeader().MarshalBinary()
 	if err != nil {
+		printoutsigstuff(m, state, printout, "Fail in marshal header. Valid: 0")
 		state.AddStatus(fmt.Sprint("Debug: DBState Signature Error, Marshal binary errored"))
 		return validSigCount
 	}
@@ -263,10 +275,12 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	// Signatures that are not valid by current fed list
 	var remainingSig []interfaces.IFullSignature
 
+	sigs := ""
 	// If there is a repeat signature, we do not count it twice
 	sigmap := make(map[string]bool)
 	for _, sig := range m.SignatureList.List {
 		if sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] {
+			printoutsigstuff(m, state, printout, "Duplicate Signature Found")
 			continue // Toss duplicate signatures
 		}
 		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
@@ -288,9 +302,12 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 		}
 
 		if sig.Verify(data) {
+			sigs += fmt.Sprintf("%x ", sig.GetSignature()[:])
 			remainingSig = append(remainingSig, sig)
 		}
 	}
+
+	printoutsigstuff(m, state, printout, fmt.Sprintf("Normal, Valid: %d, R:%d / %s", validSigCount, len(remainingSig), sigs))
 
 	// If promotions have occurred this block, we need to account for their signatures to be
 	// valid. We will only pay for this overhead if there are signatures left, meaning most blocks will
@@ -369,6 +386,8 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			}
 		}
 
+		printoutsigstuff(m, state, printout, fmt.Sprintf("Remaining Pre, Valid: %d, New:%d", validSigCount, len(newSigners)))
+
 		// These signatures that did not validate with current set of authorities
 		for _, sig := range remainingSig {
 		InnerSingerLoop:
@@ -379,9 +398,10 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 				}
 			}
 		}
+		printoutsigstuff(m, state, printout, fmt.Sprintf("Remaining End, Valid: %d, R:%d", validSigCount, len(remainingSig)))
 	}
 	// End Temporary fix
-
+	printoutsigstuff(m, state, printout, fmt.Sprintf("Closeout, Valid: %d", validSigCount))
 	return validSigCount
 }
 
