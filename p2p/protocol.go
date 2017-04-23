@@ -50,7 +50,7 @@ var (
 	OnlySpecialPeers                     = false
 	NetworkDeadline                      = time.Duration(30) * time.Second
 	NumberPeersToConnect                 = 16
-	NumberPeersToBroadcast               = 4
+	NumberPeersToBroadcast               = 50
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
 	StandardChannelSize                  = 5000

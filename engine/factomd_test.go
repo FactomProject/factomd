@@ -88,6 +88,7 @@ func TestFactomdMain(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	waitBlocks(n0.State, 1)
+	waitMinutes(n0.State, 1)
 
 	leadercnt := 0
 	auditcnt := 0
@@ -101,6 +102,7 @@ func TestFactomdMain(t *testing.T) {
 			auditcnt++
 		}
 	}
+
 
 	if leadercnt != 4 {
 		t.Logf("found %d ", leadercnt)
