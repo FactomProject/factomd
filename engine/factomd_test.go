@@ -19,6 +19,21 @@ func waitBlocks(s *state.State, blks int) {
 	}
 }
 
+// Wait to a given minute.  If we are == to the minute or greater, then
+// we first wait to the start of the next block.
+func waitMinutes(s *state.State, min int) {
+	if s.CurrentMinute >= min {
+		for s.CurrentMinute > 0 {
+			time.Sleep(100*time.Millisecond)
+		}
+	}
+
+	for min > s.CurrentMinute {
+		time.Sleep(100*time.Millisecond)
+	}
+}
+
+
 func TestFactomdMain(t *testing.T) {
 	{
 		var svar string
@@ -52,6 +67,9 @@ func TestFactomdMain(t *testing.T) {
 	InputChan <- "g10"
 	waitBlocks(n0.State, 1)
 	// Allocate 4 leaders
+
+	waitMinutes(n0.State, 1)
+
 	InputChan <- "l"
 	time.Sleep(100 * time.Millisecond)
 	InputChan <- "l"
@@ -94,9 +112,9 @@ func TestFactomdMain(t *testing.T) {
 		t.Fail()
 	}
 
-	t.Log("Run to a dbht of 20")
+	t.Log("Run to a dbht of 10")
 	n0.State.DirectoryBlockInSeconds = 4
-	for n0.State.LLeaderHeight < 20 {
+	for n0.State.LLeaderHeight < 10 {
 		time.Sleep(time.Second)
 	}
 	for n0.State.CurrentMinute < 1 {
@@ -105,7 +123,7 @@ func TestFactomdMain(t *testing.T) {
 	t.Log("Shutting down Node 0")
 	n0.State.ShutdownChan <- 1
 	time.Sleep(15 * time.Second)
-	if n0.State.LLeaderHeight > 20 {
+	if n0.State.LLeaderHeight > 10 {
 		t.Log("Failed to shut down factomd via ShutdownChan")
 		t.Fail()
 	}
