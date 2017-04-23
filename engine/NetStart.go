@@ -42,7 +42,7 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
 
-func NetStart(s *state.State) {
+func NetStart(s *state.State, args []string) {
 	ackBalanceHashPtr := flag.Bool("balancehash", true, "If false, then don't pass around balance hashes")
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
@@ -81,7 +81,7 @@ func NetStart(s *state.State) {
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 
-	flag.Parse()
+	flag.CommandLine.Parse(args)
 
 	ackbalanceHash := *ackBalanceHashPtr
 	enableNet := *enablenetPtr

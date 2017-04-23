@@ -6,9 +6,10 @@ package main
 
 import (
 	"github.com/FactomProject/factomd/engine"
+	"os"
 )
 
 func main() {
 	// uncomment StartProfiler() to run the pprof tool (for testing)
-	engine.Factomd()
+	engine.Factomd(os.Args[1:])
 }
