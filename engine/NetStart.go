@@ -55,13 +55,9 @@ func NetStart(s *state.State, args []string) {
 	journalingPtr := flag.Bool("journaling", false, "Write a journal of all messages recieved. Default is off.")
 	followerPtr := flag.Bool("follower", false, "If true, force node to be a follower.  Only used when replaying a journal.")
 	leaderPtr := flag.Bool("leader", true, "If true, force node to be a leader.  Only used when replaying a journal.")
-	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation")
+	dbPtr := flag.String("db", "", "Override the Database in the Config file and use this Database implementation. Options Map, LDB, or Bolt")
 	cloneDBPtr := flag.String("clonedb", "", "Override the main node and use this database for the clones in a Network.")
-	portOverridePtr := flag.Int("port", 0, "Address to serve WSAPI on")
 	networkNamePtr := flag.String("network", "", "Network to join: MAIN, TEST or LOCAL")
-	networkPortOverridePtr := flag.Int("networkPort", 0, "Address for p2p network to listen on.")
-	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Address for control panel webserver to listen on.")
-	logportPtr := flag.String("logPort", "6060", "Port for profile logging")
 	peersPtr := flag.String("peers", "", "Array of peer addresses. ")
 	blkTimePtr := flag.Int("blktime", 0, "Seconds per block.  Production is 600.")
 	faultTimeoutPtr := flag.Int("faulttimeout", 60, "Seconds before considering Federated servers at-fault. Default is 60.")
@@ -80,6 +76,14 @@ func NetStart(s *state.State, args []string) {
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+
+	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
+	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
+	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Port for control panel webserver;  Default 8090")
+	networkPortOverridePtr := flag.Int("networkPort", 0, "Port for p2p network; default 8110")
+
+	s.PortNumber = 8088
+	s.ControlPanelPort = 8090
 
 	flag.CommandLine.Parse(args)
 
@@ -136,9 +140,13 @@ func NetStart(s *state.State, args []string) {
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
+	}else{
+		portOverride = s.GetPort()
 	}
 	if 999 < ControlPanelPortOverride { // The command line flag exists and seems reasonable.
 		s.ControlPanelPort = ControlPanelPortOverride
+	}else{
+		ControlPanelPortOverride = s.ControlPanelPort
 	}
 
 	if blkTime > 0 {
@@ -263,7 +271,6 @@ func NetStart(s *state.State, args []string) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "journal", journal))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", db))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", cloneDB))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
@@ -285,6 +292,9 @@ func NetStart(s *state.State, args []string) {
 	} else {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
 	}
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "TCP port", s.PortNumber))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "pprof port", logPort))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "Control Panel port", s.ControlPanelPort))
 
 	//************************************************
 	// Actually setup the Network
