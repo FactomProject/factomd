@@ -28,7 +28,7 @@ var _ = fmt.Print
 // Since we are tracking code changes, then there is no need to delete the binary to use the latest message
 var Build string
 
-func Factomd(args []string) {
+func Factomd(args []string, listenToStdin bool) {
 	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")
@@ -50,7 +50,7 @@ func Factomd(args []string) {
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	fmt.Println("len(Args)", len(os.Args))
 
-	NetStart(state0,args)
+	NetStart(state0, args, listenToStdin)
 }
 
 func isCompilerVersionOK() bool {

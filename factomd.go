@@ -11,5 +11,5 @@ import (
 
 func main() {
 	// uncomment StartProfiler() to run the pprof tool (for testing)
-	engine.Factomd(os.Args[1:])
+	engine.Factomd(os.Args[1:], true)
 }

@@ -34,7 +34,28 @@ var lastcmd []string
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
-func SimControl(listenTo int) {
+var InputChan = make(chan string, 500)
+
+func GetLine(listenToStdin bool) string {
+	if listenToStdin {
+		l := make([]byte, 100)
+		var err error
+		// When running as a detatched process, this routine becomes a very tight loop and starves other goroutines.
+		// So, we will sleep before letting it check to see if Stdin has been reconnected
+		for {
+			if _, err = os.Stdin.Read(l); err == nil {
+				return string(l)
+			} else {
+				continue
+			}
+		}
+	} else {
+		line := <-InputChan
+		return line
+	}
+}
+
+func SimControl(listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
 	var watchPL int
@@ -44,21 +65,12 @@ func SimControl(listenTo int) {
 	var faulting bool
 
 	for {
-		l := make([]byte, 100)
-		var err error
-		// When running as a detatched process, this routine becomes a very tight loop and starves other goroutines.
-		// So, we will sleep before letting it check to see if Stdin has been reconnected
-		if _, err = os.Stdin.Read(l); err != nil {
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
 		// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
 		parseFunc := func(c rune) bool {
 			return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
-		cmd := strings.FieldsFunc(string(l), parseFunc)
+		cmd := strings.FieldsFunc(GetLine(listenStdin), parseFunc)
 		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		switch {

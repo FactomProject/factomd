@@ -42,7 +42,11 @@ var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
 var logPort string
 
-func NetStart(s *state.State, args []string) {
+func GetFnodes() []*FactomNode {
+	return fnodes
+}
+
+func NetStart(s *state.State, args []string, listenToStdin bool) {
 	ackBalanceHashPtr := flag.Bool("balancehash", true, "If false, then don't pass around balance hashes")
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
@@ -140,12 +144,12 @@ func NetStart(s *state.State, args []string) {
 
 	if 999 < portOverride { // The command line flag exists and seems reasonable.
 		s.SetPort(portOverride)
-	}else{
+	} else {
 		portOverride = s.GetPort()
 	}
 	if 999 < ControlPanelPortOverride { // The command line flag exists and seems reasonable.
 		s.ControlPanelPort = ControlPanelPortOverride
-	}else{
+	} else {
 		ControlPanelPortOverride = s.ControlPanelPort
 	}
 
@@ -511,7 +515,7 @@ func NetStart(s *state.State, args []string) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
-	SimControl(listenTo)
+	SimControl(listenTo, listenToStdin)
 }
 
 //**********************************************************************
