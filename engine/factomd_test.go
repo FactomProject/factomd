@@ -84,7 +84,7 @@ func TestFactomdMain(t *testing.T) {
 		}
 	}
 
-	if leadercnt != 4 {cat
+	if leadercnt != 4 {
 		t.Logf("found %d ", leadercnt)
 		t.Fail()
 	}
