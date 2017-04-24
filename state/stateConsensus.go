@@ -31,6 +31,7 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	fmt.Println("Justin executeM: ", msg.String())
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		return
@@ -61,13 +62,18 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				msg.LeaderExecute(s)
 			}
 		} else {
+			fmt.Println("Justin executeM2: ", msg.String())
 			msg.FollowerExecute(s)
 		}
 		ret = true
 	case 0:
 		//s.Holding[msg.GetMsgHash().Fixed()] = msg
+		fmt.Println("Justin executeM3: ", msg.String())
+
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
 	default:
+		fmt.Println("Justin executeM4: ", msg.String())
+
 		//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
 		if !msg.SentInvlaid() {
@@ -155,13 +161,19 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
+			fmt.Println("JUSTIN ACK:", a.String())
 			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
+				fmt.Println("JUSTIN ACKvalid:", a.String())
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
+						fmt.Println("JUSTIN ACKex1:", a.String())
+
 						s.executeMsg(vm, ack)
 					}
 				} else {
+					fmt.Println("JUSTIN ACKex2:", a.String())
+
 					s.executeMsg(vm, ack)
 				}
 			}
@@ -464,6 +476,8 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
 
+	fmt.Println("Justin FollexAck: ", ack.String())
+
 	if ack.DBHeight > s.HighestKnown {
 		s.HighestKnown = ack.DBHeight
 	}
@@ -474,14 +488,19 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	}
 	list := pl.VMs[ack.VMIndex].List
 	if len(list) > int(ack.Height) && list[ack.Height] != nil {
+		fmt.Println("Justin FollexAck1: ", ack.String())
+
 		return
 	}
+	fmt.Println("Justin FollexAck2: ", ack.String())
 
 	//s.Acks[ack.GetHash().Fixed()] = ack
 	s.AddToAcks(ack.GetHash().Fixed(), ack)
 	//m, _ := s.Holding[ack.GetHash().Fixed()]
 	m := s.GetHolding(ack.GetHash().Fixed())
 	if m != nil {
+		fmt.Println("Justin FollexAck3: ", ack.String())
+
 		m.FollowerExecute(s)
 	}
 }
