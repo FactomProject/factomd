@@ -367,7 +367,8 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		// If no such ProcessList exists, or if we don't consider
 		// the VM in this ServerFault message to be at fault,
 		// do not proceed with regularFaultExecution
-		s.Holding[m.GetRepeatHash().Fixed()] = m
+		//s.Holding[m.GetRepeatHash().Fixed()] = m
+		s.AddToHolding(m.GetRepeatHash().Fixed(), m)
 		return
 	}
 
@@ -461,7 +462,8 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
 	if pl == nil {
-		s.Holding[m.GetHash().Fixed()] = m
+		//s.Holding[m.GetHash().Fixed()] = m
+		s.AddToHolding(m.GetHash().Fixed(), m)
 		return
 	}
 

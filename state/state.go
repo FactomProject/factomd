@@ -25,6 +25,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	//"github.com/FactomProject/factomd/database/hybridDB"
+
 	"github.com/FactomProject/factomd/database/boltdb"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
@@ -1139,6 +1140,76 @@ func (s *State) fillHoldingMap() {
 		s.HoldingMap = localMap
 
 	}
+}
+
+func (s *State) AddToHolding(key [32]byte, msg interfaces.IMsg) {
+	keyString := fmt.Sprintf("%x", key)
+	fmt.Println("Justin AddToHolding Locking for", keyString)
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
+	s.Holding[key] = msg
+	fmt.Println("Justin AddToHolding Unlocking for", keyString)
+}
+
+func (s *State) RemoveFromHolding(key [32]byte) {
+	keyString := fmt.Sprintf("%x", key)
+	fmt.Println("Justin RemoveFromHolding Locking for", keyString)
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
+	delete(s.Holding, key)
+	fmt.Println("Justin RemoveFromHolding Unlocking for", keyString)
+
+}
+
+func (s *State) GetHolding(key [32]byte) interfaces.IMsg {
+	keyString := fmt.Sprintf("%x", key)
+	fmt.Println("Justin GetHolding Locking for", keyString)
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
+	msg, ok := s.Holding[key]
+	if ok {
+		fmt.Println("Justin GetHolding Unlocking for", keyString, "(success)")
+
+		return msg
+	}
+	fmt.Println("Justin GetHolding Unlocking for", keyString, "(fail)")
+
+	return nil
+}
+
+func (s *State) AddToAcks(key [32]byte, msg interfaces.IMsg) {
+	keyString := fmt.Sprintf("%x", key)
+	fmt.Println("Justin AddToAcks Locking for", keyString)
+
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+	s.Acks[key] = msg
+	fmt.Println("Justin AddToAcks Unlocking for", keyString)
+
+}
+
+func (s *State) RemoveFromAcks(key [32]byte) {
+	keyString := fmt.Sprintf("%x", key)
+	fmt.Println("Justin RemoveFromAcks Locking for", keyString)
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+	delete(s.Acks, key)
+	fmt.Println("Justin RemoveFromAcks Unlocking for", keyString)
+
+}
+
+func (s *State) GetAcks(key [32]byte) interfaces.IMsg {
+	keyString := fmt.Sprintf("%x", key)
+	fmt.Println("Justin GetAcks Locking for", keyString)
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+	msg, ok := s.Acks[key]
+	if ok {
+		fmt.Println("Justin GetAcks Unlocking for", keyString, "(success)")
+		return msg
+	}
+	fmt.Println("Justin GetAcks Unlocking for", keyString, "(fail)")
+	return nil
 }
 
 // this is called from the APIs that do not have access directly to the Acks.  State makes a copy and puts it in AcksMap
