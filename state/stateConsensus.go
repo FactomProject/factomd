@@ -278,7 +278,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3) {
+		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3 || int(highest) < 3 || int(saved) < 1) {
 			delete(s.Holding, k)
 			continue
 		}
