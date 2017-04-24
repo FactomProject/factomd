@@ -1029,6 +1029,15 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
+	fmt.Println("JUSTIN PROC")
+	for idx, procLM := range p.VMs[ack.VMIndex].List {
+		if procLM == nil {
+			fmt.Println("PL:", idx, "::: NIL")
+		} else {
+			fmt.Println("PL:", idx, ":::", procLM.String())
+		}
+	}
+
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
