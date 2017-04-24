@@ -828,7 +828,8 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Make sure we have a list, and punt if we don't.
 	if p == nil {
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		//p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.AddToHolding(m.GetRepeatHash().Fixed(), m)
 		return false
 	}
 
@@ -853,7 +854,8 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 			p.System.Height,
 			int(fullFault.SystemHeight),
 			fullFault.String()))
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		//p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.AddToHolding(m.GetRepeatHash().Fixed(), m)
 		return false
 	}
 
@@ -950,8 +952,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, hint)
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, ack.String())
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
-		delete(p.State.Holding, ack.GetHash().Fixed())
-		delete(p.State.Acks, ack.GetHash().Fixed())
+		//delete(p.State.Holding, ack.GetHash().Fixed())
+		p.State.RemoveFromHolding(ack.GetHash().Fixed())
+		//delete(p.State.Acks, ack.GetHash().Fixed())
+		p.State.RemoveFromAcks(ack.GetHash().Fixed())
 	}
 
 	now := p.State.GetTimestamp()
@@ -997,8 +1001,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
-	delete(p.State.Acks, ack.GetHash().Fixed())
-	delete(p.State.Holding, m.GetMsgHash().Fixed())
+	//delete(p.State.Acks, ack.GetHash().Fixed())
+	p.State.RemoveFromAcks(ack.GetHash().Fixed())
+	//delete(p.State.Holding, m.GetMsgHash().Fixed())
+	p.State.RemoveFromHolding(m.GetMsgHash().Fixed())
 
 	// Both the ack and the message hash to the same GetHash()
 	m.SetLocal(false)

@@ -14,13 +14,14 @@ import (
 	"time"
 	"unicode"
 
+	"runtime"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
-	"runtime"
 )
 
 var _ = fmt.Print
@@ -531,7 +532,8 @@ func SimControl(listenTo int) {
 					f := fnodes[listenTo]
 					fmt.Println("Holding:")
 					for k := range f.State.Holding {
-						v := f.State.Holding[k]
+						//v := f.State.Holding[k]
+						v := f.State.GetHolding(k)
 						if v != nil {
 							os.Stderr.WriteString((v.String()) + "\n")
 						} else {

@@ -1141,6 +1141,50 @@ func (s *State) fillHoldingMap() {
 	}
 }
 
+func (s *State) AddToHolding(key [32]byte, msg interfaces.IMsg) {
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
+	s.Holding[key] = msg
+}
+
+func (s *State) RemoveFromHolding(key [32]byte) {
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
+	delete(s.Holding, key)
+}
+
+func (s *State) GetHolding(key [32]byte) interfaces.IMsg {
+	s.HoldingMutex.Lock()
+	defer s.HoldingMutex.Unlock()
+	msg, ok := s.Holding[key]
+	if ok {
+		return msg
+	}
+	return nil
+}
+
+func (s *State) AddToAcks(key [32]byte, msg interfaces.IMsg) {
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+	s.Acks[key] = msg
+}
+
+func (s *State) RemoveFromAcks(key [32]byte) {
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+	delete(s.Acks, key)
+}
+
+func (s *State) GetAcks(key [32]byte) interfaces.IMsg {
+	s.AcksMutex.Lock()
+	defer s.AcksMutex.Unlock()
+	msg, ok := s.Acks[key]
+	if ok {
+		return msg
+	}
+	return nil
+}
+
 // this is called from the APIs that do not have access directly to the Acks.  State makes a copy and puts it in AcksMap
 func (s *State) LoadAcksMap() map[[32]byte]interfaces.IMsg {
 	// request Acks queue from state from outside state scope

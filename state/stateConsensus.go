@@ -65,9 +65,11 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 		ret = true
 	case 0:
-		s.Holding[msg.GetMsgHash().Fixed()] = msg
+		//s.Holding[msg.GetMsgHash().Fixed()] = msg
+		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
 	default:
-		s.Holding[msg.GetMsgHash().Fixed()] = msg
+		//s.Holding[msg.GetMsgHash().Fixed()] = msg
+		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
 		if !msg.SentInvlaid() {
 			msg.MarkSentInvalid(true)
 			s.networkInvalidMsgQueue <- msg
@@ -252,58 +254,66 @@ func (s *State) ReviewHolding() {
 	highest := s.GetHighestKnownBlock()
 
 	for k := range s.Holding {
-		v := s.Holding[k]
-
+		//v := s.Holding[k]
+		v := s.GetHolding(k)
 		saved := s.GetHighestSavedBlk()
 
 		mm, ok := v.(*messages.MissingMsgResponse)
 		if ok {
 			ff, ok := mm.MsgResponse.(*messages.FullServerFault)
 			if ok && ff.DBHeight < saved {
-				delete(s.Holding, k)
+				//delete(s.Holding, k)
+				s.RemoveFromHolding(k)
 			}
 			continue
 		}
 
 		sf, ok := v.(*messages.ServerFault)
 		if ok && sf.DBHeight < saved {
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
 		ff, ok := v.(*messages.FullServerFault)
 		if ok && ff.DBHeight < saved {
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3) {
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 {
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && (dbsigmsg.DBHeight < saved-1 || dbsigmsg.DBHeight < highest-3) {
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
 		if v.Expire(s) {
 			s.ExpireCnt++
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
@@ -315,7 +325,8 @@ func (s *State) ReviewHolding() {
 		}
 
 		if v.Validate(s) < 0 {
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 			continue
 		}
 
@@ -329,12 +340,14 @@ func (s *State) ReviewHolding() {
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if s.Commits[re.Entry.GetHash().Fixed()] != nil && entryCnt < 200 {
 				s.XReview = append(s.XReview, v)
-				delete(s.Holding, k)
+				s.RemoveFromHolding(k)
+				//delete(s.Holding, k)
 				entryCnt++
 			}
 		} else {
 			s.XReview = append(s.XReview, v)
-			delete(s.Holding, k)
+			//delete(s.Holding, k)
+			s.RemoveFromHolding(k)
 		}
 	}
 }
@@ -405,9 +418,10 @@ func (s *State) AddDBState(isNew bool,
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	fmt.Println("Justin Follex:", m.String())
-	s.Holding[m.GetMsgHash().Fixed()] = m
-	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
-
+	//s.Holding[m.GetMsgHash().Fixed()] = m
+	s.AddToHolding(m.GetMsgHash().Fixed(), m)
+	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	ack := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
 	if ack != nil {
 		fmt.Println("Justin Follex Add:", m.String())
 		m.SetLeaderChainID(ack.GetLeaderChainID())
@@ -430,9 +444,10 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	s.Holding[m.GetMsgHash().Fixed()] = m
-
-	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	//s.Holding[m.GetMsgHash().Fixed()] = m
+	s.AddToHolding(m.GetMsgHash().Fixed(), m)
+	ack := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
+	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		fmt.Println("Justin FollexEOM Good:", m.String())
 
@@ -462,8 +477,10 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 		return
 	}
 
-	s.Acks[ack.GetHash().Fixed()] = ack
-	m, _ := s.Holding[ack.GetHash().Fixed()]
+	//s.Acks[ack.GetHash().Fixed()] = ack
+	s.AddToAcks(ack.GetHash().Fixed(), ack)
+	//m, _ := s.Holding[ack.GetHash().Fixed()]
+	m := s.GetHolding(ack.GetHash().Fixed())
 	if m != nil {
 		m.FollowerExecute(s)
 	}
@@ -641,8 +658,8 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 
-	s.Acks[ack.GetHash().Fixed()] = ack
-
+	//s.Acks[ack.GetHash().Fixed()] = ack
+	s.AddToAcks(ack.GetHash().Fixed(), ack)
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
 		s.XReview = append(s.XReview, ack)
@@ -752,7 +769,8 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	cc := m.(*messages.CommitChainMsg)
-	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
+	//re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
+	re := s.GetHolding(cc.CommitChain.EntryHash.Fixed())
 	if re != nil {
 		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
@@ -762,7 +780,8 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	ce := m.(*messages.CommitEntryMsg)
-	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
+	//re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
+	re := s.GetHolding(ce.CommitEntry.EntryHash.Fixed())
 	if re != nil {
 		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
@@ -770,8 +789,10 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
-	s.Holding[m.GetMsgHash().Fixed()] = m
-	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	//s.Holding[m.GetMsgHash().Fixed()] = m
+	s.AddToHolding(m.GetMsgHash().Fixed(), m)
+	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	ack := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
 	fmt.Println("Justin FollexReveal:", m.String())
 
 	if ack != nil {
@@ -798,8 +819,10 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		delete(s.Holding, m.GetRepeatHash().Fixed())
-		delete(s.Holding, m.GetMsgHash().Fixed())
+		//delete(s.Holding, m.GetRepeatHash().Fixed())
+		s.RemoveFromHolding(m.GetRepeatHash().Fixed())
+		//delete(s.Holding, m.GetMsgHash().Fixed())
+		s.RemoveFromHolding(m.GetMsgHash().Fixed())
 		return
 	}
 
@@ -858,7 +881,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Sign(s)
 	eom.MsgHash = nil
 	ack := s.NewAck(m)
-	s.Acks[eom.GetMsgHash().Fixed()] = ack
+	//s.Acks[eom.GetMsgHash().Fixed()] = ack
+	s.AddToAcks(eom.GetMsgHash().Fixed(), ack)
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
@@ -892,7 +916,8 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 	cc := m.(*messages.CommitChainMsg)
-	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
+	//re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
+	re := s.GetHolding(cc.CommitChain.EntryHash.Fixed())
 	if re != nil {
 		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
@@ -902,7 +927,8 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 	ce := m.(*messages.CommitEntryMsg)
-	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
+	//re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
+	re := s.GetHolding(ce.CommitEntry.EntryHash.Fixed())
 	if re != nil {
 		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
@@ -933,10 +959,12 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	m.SetMinute(ack.Minute)
 
 	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
-	s.Acks[m.GetMsgHash().Fixed()] = ack
+	//s.Acks[m.GetMsgHash().Fixed()] = ack
+	s.AddToAcks(m.GetMsgHash().Fixed(), ack)
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 	// If it was added, then get rid of the matching Commit.
-	if s.Acks[m.GetMsgHash().Fixed()] != nil {
+	if s.GetAcks(m.GetMsgHash().Fixed()) != nil {
+		//if s.Acks[m.GetMsgHash().Fixed()] != nil {
 		m.FollowerExecute(s)
 		s.PutCommit(eh, commit)
 	} else {
@@ -1025,11 +1053,13 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		// save the Commit to match agains the Reveal later
 		h := c.CommitChain.EntryHash
 		s.PutCommit(h, c)
-		entry := s.Holding[h.Fixed()]
+		//entry := s.Holding[h.Fixed()]
+		entry := s.GetHolding(h.Fixed())
 		if entry != nil {
 			entry.SendOut(s, entry)
 			s.XReview = append(s.XReview, entry)
-			delete(s.Holding, h.Fixed())
+			//delete(s.Holding, h.Fixed())
+			s.RemoveFromHolding(h.Fixed())
 		}
 		return true
 	} else {
@@ -1049,11 +1079,13 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		// save the Commit to match agains the Reveal later
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
-		entry := s.Holding[h.Fixed()]
+		//entry := s.Holding[h.Fixed()]
+		entry := s.GetHolding(h.Fixed())
 		if entry != nil {
 			entry.SendOut(s, entry)
 			s.XReview = append(s.XReview, entry)
-			delete(s.Holding, h.Fixed())
+			//delete(s.Holding, h.Fixed())
+			s.RemoveFromHolding(h.Fixed())
 		}
 		return true
 	} else {
@@ -1364,9 +1396,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		for k := range s.Acks {
-			v := s.Acks[k].(*messages.Ack)
+			//v := s.Acks[k].(*messages.Ack)
+			v := s.GetAcks(k).(*messages.Ack)
 			if v.DBHeight < s.LLeaderHeight {
-				delete(s.Acks, k)
+				//delete(s.Acks, k)
+				s.RemoveFromAcks(k)
 			}
 		}
 	}
