@@ -294,10 +294,14 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		highSub3 := highest - 3
+		if highSub3 > 4294967293 {
+			highSub3 = 0
+		}
+
 		eom, ok := v.(*messages.EOM)
-		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3) {
+		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highSub3) {
 			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo: ", eom.String(), eom.DBHeight, saved, highest)
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -310,7 +314,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && (dbsigmsg.DBHeight < saved-1 || dbsigmsg.DBHeight < highest-3) {
+		if ok && (dbsigmsg.DBHeight < saved-1 || dbsigmsg.DBHeight < highSub3) {
 			//delete(s.Holding, k)
 			s.RemoveFromHolding(k)
 			continue
