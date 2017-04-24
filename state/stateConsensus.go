@@ -423,8 +423,10 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
+	fmt.Println("Justin FollexEOM:", m.String())
 
 	if m.IsLocal() {
+		fmt.Println("Justin FollexEOM IsLocal:", m.String())
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
@@ -432,8 +434,12 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
+		fmt.Println("Justin FollexEOM Good:", m.String())
+
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
+	} else {
+		fmt.Println("Justin FollexEOM Bad (nil ack):", m.String())
 	}
 }
 
@@ -766,8 +772,11 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	fmt.Println("Justin FollexReveal:", m.String())
 
 	if ack != nil {
+		fmt.Println("Justin FollexReveal Good:", m.String())
+
 		m.SendOut(s, m)
 		ack.SendOut(s, ack)
 		m.SetLeaderChainID(ack.GetLeaderChainID())
