@@ -937,35 +937,46 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
+	fmt.Println("Justin ProcAddServ")
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
+		fmt.Println("Justin ProcAddServ NotGood", ok)
 		s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
 		return false
 	}
+
+	fmt.Println("Justin ProcAddServ Good")
 	return true
 }
 
 func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.IMsg) bool {
+	fmt.Println("Justin ProcRemServ")
 	rs, ok := removeServerMsg.(*messages.RemoveServerMsg)
 	if !ok {
+		fmt.Println("Justin ProcRemServ NotOk")
 		return true
 	}
 
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
+		fmt.Println("Justin ProcRemServ NotAuth")
 		return true
 	}
 
 	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
+		fmt.Println("Justin ProcRemServ NotServType")
 		return true
 	}
 
 	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
+		fmt.Println("Justin ProcRemServ OnlyOne")
+
 		return true
 	}
 	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
+	fmt.Println("Justin ProcRemServ Good")
 
 	return true
 }
