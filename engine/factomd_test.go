@@ -3,6 +3,8 @@ package engine_test
 import (
 	"testing"
 	"time"
+	"os"
+	"io/ioutil"
 
 
 	. "github.com/FactomProject/factomd/engine"
@@ -37,6 +39,29 @@ func waitMinutes(s *state.State, min int) {
 
 func TestSetupANetwork(t *testing.T) {
 
+	rescueStdout := os.Stdout
+	r, w, _ := os.Pipe()
+
+	startCap := func() {
+		rescueStdout = os.Stdout
+		r, w, _ = os.Pipe()
+		os.Stdout = w
+	}
+	endCap := func() string {
+		<-ProcessChan
+		w.Close()
+		out, _ := ioutil.ReadAll(r)
+		os.Stdout = rescueStdout
+		return string(out)
+	}
+
+	runCmd := func(cmd string) string{
+		startCap()
+		InputChan <- cmd
+		v := endCap()
+		return v
+	}
+
 	args := append([]string{},
 		"-db=Map",
 		"-network=LOCAL",
@@ -58,30 +83,30 @@ func TestSetupANetwork(t *testing.T) {
 	}
 	n0 := GetFnodes()[0]
 
-	InputChan <- "s"
+	runCmd("s")
 
 	waitBlocks(n0.State, 1)
-	InputChan <- "g10"
+	runCmd("g10")
 	waitBlocks(n0.State, 1)
 	// Allocate 4 leaders
 
 	waitMinutes(n0.State, 1)
 
-	InputChan <- "l"
+	runCmd("l")
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- ""
+	runCmd("")
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- ""
+	runCmd("")
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- ""
+	runCmd("")
 	time.Sleep(100 * time.Millisecond)
 
 	// Allocate 3 audit servers
-	InputChan <- "o"
+	runCmd("o")
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- ""
+	runCmd("")
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- ""
+	runCmd("")
 	time.Sleep(100 * time.Millisecond)
 
 	waitBlocks(n0.State, 1)
@@ -116,10 +141,10 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode0, but got %s",fn1.State.FactomNodeName)
 	}
 
-	InputChan <-"8"
+	runCmd("8")
 
 	time.Sleep(100*time.Millisecond)
-	
+
 
 	fn2 := GetFocus()
 	if fn2.State.FactomNodeName != "FNode08" {
@@ -127,17 +152,38 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	// Test block recording lengths and error checking for pprof
-	InputChan <-"b100"
+	runCmd("b100")
 
-	InputChan <- "b"
+	runCmd("b")
 
-	InputChan <- "babc"
+	runCmd("babc")
 
-	InputChan <- "b1000000"
+	runCmd("b1000000")
 
-	InputChan <- "/"
+	runCmd("/")
 
-	InputChan <- "w"
+	runCmd("w")
+
+	runCmd("g101")
+
+	runCmd("a1")
+	runCmd("e1")
+	runCmd("d1")
+	runCmd("f1")
+	runCmd("a100")
+	runCmd("e100")
+	runCmd("d100")
+	runCmd("f100")
+	runCmd("p")
+	runCmd("p")
+	runCmd("r")
+	time.Sleep(5*time.Second)
+	runCmd("r")
+	runCmd("9")
+	runCmd("x")
+	waitBlocks(fn1.State, 3)
+	runCmd("T20")
+	runCmd("x")
 
 	t.Log("Run to a dbht of 10")
 	n0.State.DirectoryBlockInSeconds = 4
