@@ -8,8 +8,11 @@
 package state
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"runtime/debug"
+	"sort"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -30,6 +33,83 @@ type FactoidState struct {
 }
 
 var _ interfaces.IFactoidState = (*FactoidState)(nil)
+
+type elementSortable []*element
+
+func (slice elementSortable) Len() int {
+	return len(slice)
+}
+
+func (slice elementSortable) Less(i, j int) bool {
+	return bytes.Compare(slice[i].adr[:], slice[j].adr[:]) < 0
+}
+
+func (slice elementSortable) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
+type element struct {
+	adr [32]byte
+	v   int64
+}
+
+func GetMapHash(dbheight uint32, bmap map[[32]byte]int64) interfaces.IHash {
+	list := make([]*element, 0, len(bmap))
+
+	for k, v := range bmap {
+		e := new(element)
+		copy(e.adr[:], k[:])
+		e.v = v
+		list = append(list, e)
+	}
+	// GoLang > 1.8
+	//sort.Slice(list, func(i, j int) bool { return bytes.Compare(list[i].adr[:], list[j].adr[:]) < 0 })
+	// GoLang < 1.8
+	sort.Sort(elementSortable(list))
+
+	var buff primitives.Buffer
+	if err := binary.Write(&buff, binary.BigEndian, &dbheight); err != nil {
+		return nil
+	}
+
+	for _, e := range list {
+		_, err := buff.Write(e.adr[:])
+		if err != nil {
+			return nil
+		}
+		if err := binary.Write(&buff, binary.BigEndian, &e.v); err != nil {
+			return nil
+		}
+	}
+
+	h := primitives.Sha(buff.Bytes())
+
+	return h
+}
+
+func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
+	h1 := GetMapHash(fs.DBHeight, fs.State.FactoidBalancesP)
+	h2 := GetMapHash(fs.DBHeight, fs.State.ECBalancesP)
+	h3 := h1
+	h4 := h2
+	if includeTemp {
+		pl := fs.State.ProcessLists.Get(fs.DBHeight)
+		pl.ECBalancesTMutex.Lock()
+		pl.FactoidBalancesTMutex.Lock()
+		h3 = GetMapHash(fs.DBHeight, pl.FactoidBalancesT)
+		h4 = GetMapHash(fs.DBHeight, pl.ECBalancesT)
+		pl.ECBalancesTMutex.Unlock()
+		pl.FactoidBalancesTMutex.Unlock()
+	}
+	var b []byte
+	b = append(b, h1.Bytes()...)
+	b = append(b, h2.Bytes()...)
+	if includeTemp {
+		b = append(b, h3.Bytes()...)
+		b = append(b, h4.Bytes()...)
+	}
+	return primitives.Sha(b)
+}
 
 // Reset this Factoid state to an empty state at a dbheight following the
 // given dbstate.

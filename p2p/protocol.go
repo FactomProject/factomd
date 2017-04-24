@@ -49,10 +49,11 @@ var (
 	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                     = false
 	NetworkDeadline                      = time.Duration(30) * time.Second
-	NumberPeersToConnect                 = 8
+	NumberPeersToConnect                 = 32
+	NumberPeersToBroadcast               = 100
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
-	StandardChannelSize                  = 20000
+	StandardChannelSize                  = 5000
 	NetworkStatusInterval                = time.Second * 9
 	ConnectionStatusInterval             = time.Second * 122
 	PingInterval                         = time.Second * 15
@@ -73,12 +74,9 @@ var (
 
 const (
 	// ProtocolVersion is the latest version this package supports
-	ProtocolVersion uint16 = 07
+	ProtocolVersion uint16 = 8
 	// ProtocolVersionMinimum is the earliest version this package supports
-	ProtocolVersionMinimum uint16 = 07
-	// Don't think we need this.
-	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
-	// Used in generating message CRC values
+	ProtocolVersionMinimum uint16 = 8
 )
 
 // NetworkIdentifier represents the P2P network we are participating in (eg: test, nmain, etc.)

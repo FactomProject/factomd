@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb"
 	"github.com/FactomProject/goleveldb/leveldb/opt"
 	"github.com/FactomProject/goleveldb/leveldb/util"
+	"strconv"
 )
 
 type LevelDB struct {
@@ -54,6 +55,11 @@ func (db *LevelDB) ListAllBuckets() ([][]byte, error) {
 
 // Can't trim a real database
 func (db *LevelDB) Trim() {
+	cache, _ := db.lDB.GetProperty("leveldb.cachedblock")
+	v, err := strconv.Atoi(cache)
+	if err == nil {
+		LevelDBCacheblock.Set(float64(v))
+	}
 }
 
 func (db *LevelDB) Delete(bucket []byte, key []byte) error {
@@ -86,6 +92,8 @@ func (db *LevelDB) Get(bucket []byte, key []byte, destination interfaces.BinaryM
 	db.dbLock.RLock()
 	defer db.dbLock.RUnlock()
 
+	LevelDBGets.Inc()
+
 	ldbKey := CombineBucketAndKey(bucket, key)
 	data, err := db.lDB.Get(ldbKey, db.ro)
 	if err != nil {
@@ -104,11 +112,16 @@ func (db *LevelDB) Get(bucket []byte, key []byte, destination interfaces.BinaryM
 }
 
 func (db *LevelDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshallable) error {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
 	}
 
 	defer db.lbatch.Reset()
+
+	LevelDBPuts.Inc()
 
 	ldbKey := CombineBucketAndKey(bucket, key)
 	hex, err := data.MarshalBinary()
@@ -125,6 +138,9 @@ func (db *LevelDB) Put(bucket []byte, key []byte, data interfaces.BinaryMarshall
 }
 
 func (db *LevelDB) PutInBatch(records []interfaces.Record) error {
+	db.dbLock.Lock()
+	defer db.dbLock.Unlock()
+
 	if db.lbatch == nil {
 		db.lbatch = new(leveldb.Batch)
 	}

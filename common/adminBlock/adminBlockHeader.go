@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -27,6 +28,28 @@ type ABlockHeader struct {
 
 var _ interfaces.Printable = (*ABlockHeader)(nil)
 var _ interfaces.BinaryMarshallable = (*ABlockHeader)(nil)
+
+func (e *ABlockHeader) IsSameAs(e2 interfaces.IABlockHeader) bool {
+	if !e.PrevBackRefHash.IsSameAs(e2.GetPrevBackRefHash()) {
+		return false
+	}
+	if e.DBHeight != e2.GetDBHeight() {
+		return false
+	}
+	if int(e.HeaderExpansionSize) != len(e2.GetHeaderExpansionArea()) {
+		return false
+	}
+	if e.MessageCount != e2.GetMessageCount() {
+		return false
+	}
+	if e.BodySize != e2.GetBodySize() {
+		return false
+	}
+	if bytes.Compare(e.HeaderExpansionArea, e2.GetHeaderExpansionArea()) != 0 {
+		return false
+	}
+	return true
+}
 
 func (e *ABlockHeader) Init() {
 	if e.PrevBackRefHash == nil {

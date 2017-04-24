@@ -14,25 +14,25 @@ import (
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
 
 type AnchorSigningKey struct {
-	BlockChain string
-	KeyLevel   byte
-	KeyType    byte
-	SigningKey [20]byte //if bytes, it is hex
+	BlockChain string   `json:"blockchain"`
+	KeyLevel   byte     `json:"level"`
+	KeyType    byte     `json:"keytype"`
+	SigningKey [20]byte `json:"key"` //if bytes, it is hex
 }
 
 type Identity struct {
-	IdentityChainID      *primitives.Hash
+	IdentityChainID      interfaces.IHash
 	IdentityRegistered   uint32
 	IdentityCreated      uint32
-	ManagementChainID    *primitives.Hash
+	ManagementChainID    interfaces.IHash
 	ManagementRegistered uint32
 	ManagementCreated    uint32
-	MatryoshkaHash       *primitives.Hash
-	Key1                 *primitives.Hash
-	Key2                 *primitives.Hash
-	Key3                 *primitives.Hash
-	Key4                 *primitives.Hash
-	SigningKey           *primitives.Hash
+	MatryoshkaHash       interfaces.IHash
+	Key1                 interfaces.IHash
+	Key2                 interfaces.IHash
+	Key3                 interfaces.IHash
+	Key4                 interfaces.IHash
+	SigningKey           interfaces.IHash
 	Status               int
 	AnchorKeys           []AnchorSigningKey
 }

@@ -21,7 +21,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	//"github.com/FactomProject/factomd/database/databaseOverlay"
 )
 
 var _ = fmt.Print
@@ -143,7 +143,7 @@ type VM struct {
 
 func (p *ProcessList) Clear() {
 	return
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d", p.DBHeight))
+	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Clear dbht %d", p.DBHeight))
 	p.FactoidBalancesTMutex.Lock()
 	defer p.FactoidBalancesTMutex.Unlock()
 	p.FactoidBalancesT = nil
@@ -419,22 +419,22 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	p.SortFedServers()
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
-		p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
+		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
 	// If an audit server, it gets promoted
 	auditFound, _ := p.GetAuditServerIndexHash(identityChainID)
 	if auditFound {
-		p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server %x was an audit server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
+		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server %x was an audit server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveAuditServerHash(identityChainID)
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
-	p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
+	//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	p.MakeMap()
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddFedServer: Adding Server %x", identityChainID.Bytes()[3:8]))
+	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddFedServer: Adding Server %x", identityChainID.Bytes()[3:8]))
 	return i
 }
 
@@ -443,19 +443,19 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	found, i := p.GetAuditServerIndexHash(identityChainID)
 	if found {
-		p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
+		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
 	// If a fed server, demote
 	fedFound, _ := p.GetFedServerIndexHash(identityChainID)
 	if fedFound {
-		p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server %x was a fed server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
+		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server %x was a fed server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveFedServerHash(identityChainID)
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
 	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
+	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	return i
 }
@@ -469,7 +469,7 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 	}
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
 	p.MakeMap()
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveFedServer: Removing Server %x", identityChainID.Bytes()[3:8]))
+	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveFedServer: Removing Server %x", identityChainID.Bytes()[3:8]))
 }
 
 // Remove the given serverChain from this processlist's Audit Servers
@@ -479,7 +479,7 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 	p.AuditServers = append(p.AuditServers[:i], p.AuditServers[i+1:]...)
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveAuditServer: Removing Audit Server %x", identityChainID.Bytes()[3:8]))
+	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveAuditServer: Removing Audit Server %x", identityChainID.Bytes()[3:8]))
 }
 
 // Given a server index, return the last Ack
@@ -582,7 +582,7 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	// If the majority of VMs' signatures do not match our
 	// saved block, we discard that block from our database.
 	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
-		p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
+		// p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
 		return false
 	}
 
@@ -684,7 +684,7 @@ func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 func (p *ProcessList) Process(state *State) (progress bool) {
 	dbht := state.GetHighestSavedBlk()
 	if dbht >= p.DBHeight {
-		p.State.AddStatus(fmt.Sprintf("ProcessList.Process: VM Height is %d and Saved height is %d", dbht, state.GetHighestSavedBlk()))
+		//p.State.AddStatus(fmt.Sprintf("ProcessList.Process: VM Height is %d and Saved height is %d", dbht, state.GetHighestSavedBlk()))
 		return true
 	}
 
@@ -703,7 +703,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 			if ok {
 				vm := p.VMs[fault.VMIndex]
 				if vm.Height < int(fault.Height) {
-					p.State.AddStatus(fmt.Sprint("VM HEIGHT IS", vm.Height, "FH IS", fault.Height))
+					//p.State.AddStatus(fmt.Sprint("VM HEIGHT IS", vm.Height, "FH IS", fault.Height))
 					break systemloop
 				}
 				if !fault.Process(p.DBHeight, p.State) {
@@ -748,7 +748,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 	VMListLoop:
 		for j := vm.Height; j < len(vm.List); j++ {
 			if vm.List[j] == nil {
-				p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
+				//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Found nil list at vm %d vm height %d ", i, j))
 				p.Ask(i, j, 0, 3)
 				break VMListLoop
 			}
@@ -765,7 +765,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
 					vm.List[j] = nil
-					p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
+					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, j, 3, 4)
 					break VMListLoop
 				}
@@ -773,7 +773,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				// compare the SerialHash of this acknowledgement with the
 				// expected serialHash (generated above)
 				if !expectedSerialHash.IsSameAs(thisAck.SerialHash) {
-					p.State.AddStatus(fmt.Sprintf("processList.Process(): SerialHash fail: dbht: %d vm %d msg %s", p.DBHeight, i, vm.List[j]))
+					//p.State.AddStatus(fmt.Sprintf("processList.Process(): SerialHash fail: dbht: %d vm %d msg %s", p.DBHeight, i, vm.List[j]))
 
 					//fmt.Printf("dddd %20s %10s --- %10s %10x %10s %10x \n", "Conflict", p.State.FactomNodeName, "expected", expectedSerialHash.Bytes()[:3], "This", thisAck.Bytes()[:3])
 					//fmt.Printf("dddd Error detected on %s\nSerial Hash failure: Fed Server %d  Leader ID %x List Ht: %d \nDetected on: %s\n",
@@ -790,7 +790,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					// according to this node's processList
 
 					//fault(p, i, 0, vm, 0, j, 2)
-					p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: SerialHash fails to match at dbht %d vm %d vm-height %d ", p.DBHeight, i, j))
+					//p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: SerialHash fails to match at dbht %d vm %d vm-height %d ", p.DBHeight, i, j))
 					p.State.Reset()
 					return
 				}
@@ -812,12 +812,12 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 					progress = true
 				} else {
-					p.State.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
+					//p.State.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
 					break VMListLoop // Don't process further in this list, go to the next.
 				}
 			} else {
 				// If we don't have the Entry Blocks (or we haven't processed the signatures) we can't do more.
-				p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, state.EntryDBHeightComplete))
+				// p.State.AddStatus(fmt.Sprintf("Can't do more: dbht: %d vm: %d vm-height: %d Entry Height: %d", p.DBHeight, i, j, state.EntryDBHeightComplete))
 				break VMListLoop
 			}
 		}
@@ -834,25 +834,25 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 
 	fullFault, ok := m.(*messages.FullServerFault)
 	if !ok {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (not a FullFault) %s", m))
+		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (not a FullFault) %s", m))
 		return false // Should never happen;  Don't pass junk to be added to the System List
 	}
 
 	// If we have already processed past this fault, just ignore.
 	if p.System.Height > int(fullFault.SystemHeight) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (System.Height > fullFault.SystemHeight) (%d > %d) : %s",
-			p.System.Height,
-			int(fullFault.SystemHeight),
-			fullFault.String()))
+		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (System.Height > fullFault.SystemHeight) (%d > %d) : %s",
+		//	p.System.Height,
+		//	int(fullFault.SystemHeight),
+		//	fullFault.String()))
 		return false
 	}
 
 	// If the fault is in the future, hold it.
 	if p.System.Height < int(fullFault.SystemHeight) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Holding (System.Height(%d) < fullFault.SystemHeight(%d)) : %s",
-			p.System.Height,
-			int(fullFault.SystemHeight),
-			fullFault.String()))
+		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Holding (System.Height(%d) < fullFault.SystemHeight(%d)) : %s",
+		//	p.System.Height,
+		//	int(fullFault.SystemHeight),
+		//	fullFault.String()))
 		p.State.Holding[m.GetRepeatHash().Fixed()] = m
 		return false
 	}
@@ -861,8 +861,8 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	if len(p.System.List) <= p.System.Height {
 		// Nothing in our list a this slot yet, so insert this FullFault message
 		p.System.List = append(p.System.List, fullFault)
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (append) : %s",
-			fullFault.String()))
+		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (append) : %s",
+		//	fullFault.String()))
 		return true
 	}
 
@@ -871,33 +871,33 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	existingSystemFault, _ := p.System.List[p.System.Height].(*messages.FullServerFault)
 	if existingSystemFault.GetHash().IsSameAs(fullFault.GetHash()) {
 		if p.VMs[existingSystemFault.VMIndex].WhenFaulted > 0 {
-			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (already have) : %s",
-				fullFault.String()))
+			//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (already have) : %s",
+			//	fullFault.String()))
 			return false
 		}
 	}
 
 	if existingSystemFault.HasEnoughSigs(p.State) && p.State.pledgedByAudit(existingSystemFault) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault is complete) : %s",
-			existingSystemFault.String()))
+		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (existingFault is complete) : %s",
+		//	existingSystemFault.String()))
 		return false
 	}
 
 	if fullFault.Priority(p.State) < existingSystemFault.Priority(p.State) {
-		p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (priority %d < %d) :: Exist: %s /// New: %s",
-			fullFault.Priority(p.State),
-			existingSystemFault.Priority(p.State),
-			existingSystemFault.String(),
-			fullFault.String()))
+		//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (priority %d < %d) :: Exist: %s /// New: %s",
+		//	fullFault.Priority(p.State),
+		//	existingSystemFault.Priority(p.State),
+		//	existingSystemFault.String(),
+		//	fullFault.String()))
 		return false
 	}
 
 	if existingSystemFault.SigTally(p.State) > fullFault.SigTally(p.State) {
 		if fullFault.GetCoreHash().IsSameAs(existingSystemFault.GetCoreHash()) {
-			p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
-				existingSystemFault.SigTally(p.State),
-				fullFault.SigTally(p.State),
-				fullFault.String()))
+			//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Fail (less sigs than existingFault's) (%d > %d) : %s",
+			//	existingSystemFault.SigTally(p.State),
+			//	fullFault.SigTally(p.State),
+			//	fullFault.String()))
 			return false
 		}
 	}
@@ -905,8 +905,8 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 
 	p.System.List[p.System.Height] = fullFault
 
-	p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (create) : %s sigs:%d",
-		fullFault.String(), fullFault.SigTally(p.State)))
+	//p.State.AddStatus(fmt.Sprintf("FULL FAULT AddToSystemList Success (create) : %s sigs:%d",
+	//	fullFault.String(), fullFault.SigTally(p.State)))
 
 	return true
 
@@ -916,6 +916,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	if p == nil {
 		return
 	}
+
+	m.PutAck(ack)
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
@@ -1119,7 +1121,7 @@ func (p *ProcessList) Reset() bool {
 		return false
 	}
 
-	p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Reset(): at dbht %d", p.DBHeight))
+	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.Reset(): at dbht %d", p.DBHeight))
 
 	// Make a copy of the previous FedServers
 	p.System.List = p.System.List[:0]

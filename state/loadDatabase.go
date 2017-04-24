@@ -31,7 +31,7 @@ func LoadDatabase(s *State) {
 
 	var blkCnt uint32
 
-	head, err := s.DB.FetchDirectoryBlockHead()
+	head, err := s.DB.FetchDBlockHead()
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
@@ -40,7 +40,7 @@ func LoadDatabase(s *State) {
 
 	//msg, err := s.LoadDBState(blkCnt)
 
-	for i := 0; true; i++ {
+	for i := 0; i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {
 			since := time.Since(t)
 			ss := float64(since.Nanoseconds()) / 1000000000

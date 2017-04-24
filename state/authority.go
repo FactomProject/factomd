@@ -369,7 +369,7 @@ func registerAuthAnchor(chainID interfaces.IHash, signingKey []byte, keyType byt
 	oneASK.BlockChain = BlockChain
 	oneASK.KeyLevel = keyLevel
 	oneASK.KeyType = keyType
-	oneASK.SigningKey = signingKey
+	copy(oneASK.SigningKey[:], signingKey)
 
 	newASK[len(ask)] = oneASK
 	st.Authorities[AuthorityIndex].AnchorKeys = newASK

@@ -49,6 +49,33 @@ var (
 		Name: "factomd_state_es_average_requests",
 		Help: "Average number of times we have had to request a missing entry",
 	})
+	HighestAck = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_highest_ack",
+		Help: "Acknowledgement with the highest directory block height",
+	})
+	HighestKnown = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_highest_known",
+		Help: "Highest known block (which can be different than the highest ack)",
+	})
+	HighestSaved = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_highest_saved",
+		Help: "Highest saved block to the database",
+	})
+	HighestCompleted = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_highest_completed",
+		Help: "Highest completed block, which may or may not be saved to the database",
+	})
+
+	// TPS
+	TotalTransactionPerSecond = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_txrate_total_tps",
+		Help: "Total transactions over life of node",
+	})
+
+	InstantTransactionPerSecond = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_txrate_instant_tps",
+		Help: "Total transactions over life of node weighted for last 3 seconds",
+	})
 )
 
 var registered bool = false
@@ -70,4 +97,15 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(ESMissing)
 	prometheus.MustRegister(ESFound)
 	prometheus.MustRegister(ESDBHTComplete)
+	prometheus.MustRegister(ESMissingQueue)
+	prometheus.MustRegister(ESHighestMissing)
+	prometheus.MustRegister(ESAvgRequests)
+	prometheus.MustRegister(HighestAck)
+	prometheus.MustRegister(HighestKnown)
+	prometheus.MustRegister(HighestSaved)
+	prometheus.MustRegister(HighestCompleted)
+
+	// TPS
+	prometheus.MustRegister(TotalTransactionPerSecond)
+	prometheus.MustRegister(InstantTransactionPerSecond)
 }

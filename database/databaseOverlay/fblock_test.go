@@ -13,12 +13,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
 func TestSaveLoadFBlockHead(t *testing.T) {
-	b1 := CreateTestFactoidBlock(nil)
+	b1 := testHelper.CreateTestFactoidBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -49,7 +49,7 @@ func TestSaveLoadFBlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := CreateTestFactoidBlock(b1)
+	b2 := testHelper.CreateTestFactoidBlock(b1)
 
 	err = dbo.SaveFactoidBlockHead(b2)
 	if err != nil {
@@ -85,7 +85,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev = CreateTestFactoidBlock(prev)
+		prev = testHelper.CreateTestFactoidBlock(prev)
 		blocks = append(blocks, prev)
 		err := dbo.SaveFactoidBlockHead(prev)
 		if err != nil {
@@ -155,7 +155,7 @@ func TestLoadUnknownFBlocks(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
-		b := IntToByteSlice(i)
+		b := testHelper.IntToByteSlice(i)
 		hash, err := primitives.NewShaHash(b)
 		if err != nil {
 			t.Error(err)

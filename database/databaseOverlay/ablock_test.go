@@ -10,7 +10,7 @@ package databaseOverlay_test
 
 import (
 	. "github.com/FactomProject/factomd/common/adminBlock"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper"
 	//"github.com/FactomProject/factomd/common/interfaces"
 	"testing"
 
@@ -20,7 +20,7 @@ import (
 )
 
 func TestSaveLoadABlockHead(t *testing.T) {
-	b1 := CreateTestAdminBlock(nil)
+	b1 := testHelper.CreateTestAdminBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -51,7 +51,7 @@ func TestSaveLoadABlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := CreateTestAdminBlock(b1)
+	b2 := testHelper.CreateTestAdminBlock(b1)
 
 	err = dbo.SaveABlockHead(b2)
 	if err != nil {
@@ -88,7 +88,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev = CreateTestAdminBlock(prev)
+		prev = testHelper.CreateTestAdminBlock(prev)
 		blocks = append(blocks, prev)
 		err := dbo.SaveABlockHead(prev)
 		if err != nil {
@@ -159,7 +159,7 @@ func TestLoadUnknownABlocks(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
-		b := IntToByteSlice(i)
+		b := testHelper.IntToByteSlice(i)
 		hash, err := primitives.NewShaHash(b)
 		if err != nil {
 			t.Error(err)

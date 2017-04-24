@@ -9,6 +9,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
 )
@@ -114,6 +115,42 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 	}
 
 	fmt.Printf("\tFinished analysing %v sets of blocks\n", i)
+
+	fmt.Printf("\tChecking block indexes\n")
+
+	hashes, keys, err := dbo.GetAll(databaseOverlay.DIRECTORYBLOCK_NUMBER, primitives.NewZeroHash())
+	for i, v := range hashes {
+		h := v.(*primitives.Hash)
+		if hashMap[h.String()] != "OK" {
+			fmt.Printf("Invalid DBlock indexed at height 0x%x - %v\n", keys[i], h)
+		}
+	}
+
+	hashes, keys, err = dbo.GetAll(databaseOverlay.FACTOIDBLOCK_NUMBER, primitives.NewZeroHash())
+	for i, v := range hashes {
+		h := v.(*primitives.Hash)
+		if hashMap[h.String()] != "OK" {
+			fmt.Printf("Invalid FBlock indexed at height 0x%x - %v\n", keys[i], h)
+		}
+	}
+
+	hashes, keys, err = dbo.GetAll(databaseOverlay.ADMINBLOCK_NUMBER, primitives.NewZeroHash())
+	for i, v := range hashes {
+		h := v.(*primitives.Hash)
+		if hashMap[h.String()] != "OK" {
+			fmt.Printf("Invalid ABlock indexed at height 0x%x - %v\n", keys[i], h)
+		}
+	}
+
+	hashes, keys, err = dbo.GetAll(databaseOverlay.ENTRYCREDITBLOCK_NUMBER, primitives.NewZeroHash())
+	for i, v := range hashes {
+		h := v.(*primitives.Hash)
+		if hashMap[h.String()] != "OK" {
+			fmt.Printf("Invalid ECBlock indexed at height 0x%x - %v\n", keys[i], h)
+		}
+	}
+
+	fmt.Printf("\tFinished checking block indexes\n")
 
 	fmt.Printf("\tLooking for free-floating blocks\n")
 

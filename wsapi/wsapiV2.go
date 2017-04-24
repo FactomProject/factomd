@@ -149,6 +149,10 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "ablock-by-height":
 		resp, jsonError = HandleV2ABlockByHeight(state, params)
 		break
+	case "authorities":
+		resp, jsonError = HandleAuthorities(state, params)
+	case "tps-rate":
+		resp, jsonError = HandleV2TransactionRate(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -156,8 +160,6 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	if jsonError != nil {
 		return nil, jsonError
 	}
-
-	fmt.Printf("API V2 method: <%v>  paramaters: %v\n", j.Method, params)
 
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
@@ -975,4 +977,15 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	answer.IncludedInDirectoryBlockHeight = int64(dBlock.GetDatabaseHeight())
 
 	return answer, nil
+}
+
+func HandleV2TransactionRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	r := new(TransactionRateResponse)
+
+	// total	: Transaction rate over entire life of node
+	// instant	: Transaction rate weighted for last 3 seconds
+	total, instant := state.CalculateTransactionRate()
+	r.TotalTransactionRate = total
+	r.InstantTransactionRate = instant
+	return r, nil
 }

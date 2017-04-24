@@ -11,6 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -39,7 +40,8 @@ func Peers(fnode *FactomNode) {
 				}
 				cnt++
 				msg.SetOrigin(0)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
+				_, ok := msg.(*messages.Ack)
+				if ok || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
@@ -77,9 +79,9 @@ func Peers(fnode *FactomNode) {
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
 					break
 				}
-
+				_, ok := msg.(*messages.Ack)
 				msg.SetOrigin(i + 1)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if ok || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
@@ -130,11 +132,14 @@ func NetworkOutputs(fnode *FactomNode) {
 				if msg.GetRepeatHash() == nil {
 					continue
 				}
-				fnode.State.Replay.IsTSValid_(
-					constants.NETWORK_REPLAY,
-					msg.GetRepeatHash().Fixed(),
-					msg.GetTimestamp(),
-					fnode.State.GetTimestamp())
+				_, ok := msg.(*messages.Ack)
+				if ok {
+					fnode.State.Replay.IsTSValid_(
+						constants.NETWORK_REPLAY,
+						msg.GetRepeatHash().Fixed(),
+						msg.GetTimestamp(),
+						fnode.State.GetTimestamp())
+				}
 
 				p := msg.GetOrigin() - 1
 

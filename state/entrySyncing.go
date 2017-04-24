@@ -15,6 +15,9 @@ import (
 )
 
 func has(s *State, entry interfaces.IHash) bool {
+	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
+		time.Sleep(30 * time.Millisecond)
+	}
 	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
 	return exists
 }
@@ -39,6 +42,7 @@ func (s *State) MakeMissingEntryRequests() {
 		cnt := 0
 		sum := 0
 		avg := 0
+		highest := 0
 
 		// Look through our map, and remove any entries we now have in our database.
 		for k := range MissingEntryMap {
@@ -48,6 +52,9 @@ func (s *State) MakeMissingEntryRequests() {
 			} else {
 				cnt++
 				sum += MissingEntryMap[k].Cnt
+				if MissingEntryMap[k].DBHeight > uint32(highest) {
+					highest = int(MissingEntryMap[k].DBHeight)
+				}
 			}
 		}
 		if cnt > 0 {
@@ -58,6 +65,7 @@ func (s *State) MakeMissingEntryRequests() {
 		ESAsking.Set(float64(cnt))
 		ESFound.Set(float64(found))
 		ESAvgRequests.Set(float64(avg) / 1000)
+		ESHighestAsking.Set(float64(highest))
 
 		// Keep our map of entries that we are asking for filled up.
 	fillMap:
@@ -108,7 +116,15 @@ func (s *State) MakeMissingEntryRequests() {
 				asked := MissingEntryMap[entry.GetHash().Fixed()] != nil
 
 				if asked {
-					s.DB.InsertEntry(entry)
+					s.DB.StartMultiBatch()
+					err := s.DB.InsertEntryMultiBatch(entry)
+					if err != nil {
+						panic(err)
+					}
+					err = s.DB.ExecuteMultiBatch()
+					if err != nil {
+						panic(err)
+					}
 				}
 
 			default:
@@ -119,7 +135,7 @@ func (s *State) MakeMissingEntryRequests() {
 			if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
 				time.Sleep(10 * time.Second)
 			} else {
-				time.Sleep(1 * time.Second)
+				time.Sleep(100 * time.Millisecond)
 			}
 			if s.EntryDBHeightComplete == s.GetHighestSavedBlk() {
 				time.Sleep(20 * time.Second)
@@ -145,7 +161,8 @@ func (s *State) GoSyncEntries() {
 
 	for {
 
-		ESMissingQueue.Set(float64(len(missingMap)))
+		ESMissing.Set(float64(len(missingMap)))
+		ESMissingQueue.Set(float64(len(s.MissingEntries)))
 		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete))
 		ESFirstMissing.Set(float64(lastfirstmissing))
 		ESHighestMissing.Set(float64(s.GetHighestSavedBlk()))
@@ -201,10 +218,14 @@ func (s *State) GoSyncEntries() {
 					if entryhash.IsMinuteMarker() {
 						continue
 					}
-					ueh := new(EntryUpdate)
-					ueh.Hash = entryhash
-					ueh.Timestamp = db.GetTimestamp()
-					s.UpdateEntryHash <- ueh
+
+					// Only update the replay hashes in the last 24 hours.
+					if time.Now().Unix()-db.GetTimestamp().GetTimeSeconds() < 24*60*60 {
+						ueh := new(EntryUpdate)
+						ueh.Hash = entryhash
+						ueh.Timestamp = db.GetTimestamp()
+						s.UpdateEntryHash <- ueh
+					}
 
 					// If I have the entry, then remove it from the Missing Entries list.
 					if has(s, entryhash) {
@@ -220,7 +241,9 @@ func (s *State) GoSyncEntries() {
 					if eh == nil {
 
 						// If we have a full queue, break so we don't stall.
-						if len(s.MissingEntries) > 9000 {
+						// If we stall, we don't properly update the s.EntryDBHeightComplete state, and then we
+						// don't reasonably report the height of Entry Blocks scanned...
+						if cap(s.MissingEntries)-len(s.MissingEntries) < 2 {
 							break dirblkSearch
 						}
 
@@ -233,17 +256,16 @@ func (s *State) GoSyncEntries() {
 						missingMap[entryhash.Fixed()] = entryhash
 						s.MissingEntries <- &v
 					}
-
 				}
 			}
 		}
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
 			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
-			time.Sleep(60 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 
 	}
 }
