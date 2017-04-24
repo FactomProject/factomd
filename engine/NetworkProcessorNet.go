@@ -81,7 +81,7 @@ func Peers(fnode *FactomNode) {
 				}
 				_, ok := msg.(*messages.Ack)
 				msg.SetOrigin(i + 1)
-				if ok || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if ok || fnode.State.UsingEtcd() || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {

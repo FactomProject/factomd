@@ -677,7 +677,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	d.ReadyToSave = false
 	d.Saved = true
 
-	// JUSTIN TODO: if usingEtcd, call NewBlockLease()
+	if list.State.UsingEtcd() {
+		// JUSTIN TODO: if usingEtcd, call NewBlockLease()
+	}
 
 	// Create the torrent
 	if list.State.UsingTorrent() {

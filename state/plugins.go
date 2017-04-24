@@ -103,3 +103,12 @@ func (s *State) uploadDBState(msg interfaces.IMsg) error {
 func (s *State) GetMissingDBState(height uint32) error {
 	return s.DBStateManager.RetrieveDBStateByHeight(height)
 }
+
+// Only called once to set the etcd flag.
+func (s *State) SetUseEtcd(setVal bool) {
+	s.useEtcd = setVal
+}
+
+func (s *State) UsingEtcd() bool {
+	return s.useEtcd
+}

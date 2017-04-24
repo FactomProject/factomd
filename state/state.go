@@ -328,6 +328,7 @@ type State struct {
 	useDBStateManager  bool
 	torrentUploadQueue chan interfaces.IMsg
 	DBStateManager     interfaces.IManagerController
+	useEtcd            bool
 }
 
 type EntryUpdate struct {
