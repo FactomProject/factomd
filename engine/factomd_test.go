@@ -2,11 +2,11 @@ package engine_test
 
 import (
 	"testing"
+	"time"
 
-	"flag"
+
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
-	"time"
 )
 
 var _ = Factomd
@@ -34,11 +34,8 @@ func waitMinutes(s *state.State, min int) {
 }
 
 
-func TestFactomdMain(t *testing.T) {
-	{
-		var svar string
-		flag.StringVar(&svar, "svar", "bo", "a string var")
-	}
+
+func TestSetupANetwork(t *testing.T) {
 
 	args := append([]string{},
 		"-db=Map",
@@ -56,7 +53,7 @@ func TestFactomdMain(t *testing.T) {
 
 	t.Log("Allocated 10 nodes")
 	if len(GetFnodes()) != 10 {
-		t.Log("Should have allocated 10 nodes")
+		t.Fatal("Should have allocated 10 nodes")
 		t.Fail()
 	}
 	n0 := GetFnodes()[0]
@@ -72,19 +69,19 @@ func TestFactomdMain(t *testing.T) {
 
 	InputChan <- "l"
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- "l"
+	InputChan <- ""
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- "l"
+	InputChan <- ""
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- "l"
+	InputChan <- ""
 	time.Sleep(100 * time.Millisecond)
 
 	// Allocate 3 audit servers
 	InputChan <- "o"
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- "o"
+	InputChan <- ""
 	time.Sleep(100 * time.Millisecond)
-	InputChan <- "o"
+	InputChan <- ""
 	time.Sleep(100 * time.Millisecond)
 
 	waitBlocks(n0.State, 1)
@@ -105,14 +102,42 @@ func TestFactomdMain(t *testing.T) {
 
 
 	if leadercnt != 4 {
-		t.Logf("found %d ", leadercnt)
-		t.Fail()
+		t.Fatalf("found %d leaders, expected 4", leadercnt)
 	}
 
 	if auditcnt != 3 {
-		t.Logf("found %d ", auditcnt)
+		t.Fatalf("found %d audit servers, expected 3", auditcnt)
 		t.Fail()
 	}
+
+
+	fn1 := GetFocus()
+	if fn1.State.FactomNodeName != "FNode07" {
+		t.Fatalf("Expected FNode0, but got %s",fn1.State.FactomNodeName)
+	}
+
+	InputChan <-"8"
+
+	time.Sleep(100*time.Millisecond)
+	
+
+	fn2 := GetFocus()
+	if fn2.State.FactomNodeName != "FNode08" {
+		t.Fatalf("Expected FNode08, but got %s",fn1.State.FactomNodeName)
+	}
+
+	// Test block recording lengths and error checking for pprof
+	InputChan <-"b100"
+
+	InputChan <- "b"
+
+	InputChan <- "babc"
+
+	InputChan <- "b1000000"
+
+	InputChan <- "/"
+
+	InputChan <- "w"
 
 	t.Log("Run to a dbht of 10")
 	n0.State.DirectoryBlockInSeconds = 4
@@ -122,11 +147,15 @@ func TestFactomdMain(t *testing.T) {
 	for n0.State.CurrentMinute < 1 {
 		time.Sleep(time.Second)
 	}
-	t.Log("Shutting down Node 0")
-	n0.State.ShutdownChan <- 1
+
+	t.Log("Shutting down the network")
+	for _, fn := range GetFnodes() {
+		fn.State.ShutdownChan <- 1
+	}
+
 	time.Sleep(15 * time.Second)
 	if n0.State.LLeaderHeight > 10 {
-		t.Log("Failed to shut down factomd via ShutdownChan")
-		t.Fail()
+		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 }
+
