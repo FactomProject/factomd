@@ -84,6 +84,9 @@ func TestSetupANetwork(t *testing.T) {
 	n0 := GetFnodes()[0]
 
 	runCmd("s")
+	runCmd("9")
+	runCmd("x")
+	runCmd("0")
 
 	waitBlocks(n0.State, 1)
 	runCmd("g10")
@@ -182,9 +185,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("9")
 	runCmd("x")
 	waitBlocks(fn1.State, 3)
-	runCmd("T20")
-	runCmd("x")
-
+	runCmd("T10")
 	t.Log("Run to a dbht of 10")
 	n0.State.DirectoryBlockInSeconds = 4
 	for n0.State.LLeaderHeight < 10 {
