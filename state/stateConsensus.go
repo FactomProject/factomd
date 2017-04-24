@@ -421,8 +421,8 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 	//s.Holding[m.GetMsgHash().Fixed()] = m
 	s.AddToHolding(m.GetMsgHash().Fixed(), m)
 	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
-	ack := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
-	if ack != nil {
+	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
+	if ack != nil && ok {
 		fmt.Println("Justin Follex Add:", m.String())
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
@@ -446,9 +446,9 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
 	//s.Holding[m.GetMsgHash().Fixed()] = m
 	s.AddToHolding(m.GetMsgHash().Fixed(), m)
-	ack := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
+	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
 	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
-	if ack != nil {
+	if ack != nil && ok {
 		fmt.Println("Justin FollexEOM Good:", m.String())
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
@@ -792,10 +792,10 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	//s.Holding[m.GetMsgHash().Fixed()] = m
 	s.AddToHolding(m.GetMsgHash().Fixed(), m)
 	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
-	ack := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
+	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
 	fmt.Println("Justin FollexReveal:", m.String())
 
-	if ack != nil {
+	if ack != nil && ok {
 		fmt.Println("Justin FollexReveal Good:", m.String())
 
 		m.SendOut(s, m)
@@ -1397,8 +1397,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		for k := range s.Acks {
 			//v := s.Acks[k].(*messages.Ack)
-			v := s.GetAcks(k).(*messages.Ack)
-			if v.DBHeight < s.LLeaderHeight {
+			v, ok := s.GetAcks(k).(*messages.Ack)
+			if ok && v.DBHeight < s.LLeaderHeight {
 				//delete(s.Acks, k)
 				s.RemoveFromAcks(k)
 			}
