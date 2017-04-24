@@ -297,6 +297,7 @@ func (s *State) ReviewHolding() {
 		eom, ok := v.(*messages.EOM)
 		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3) {
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo: ", eom.String(), eom.DBHeight, saved, highest)
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -318,6 +319,7 @@ func (s *State) ReviewHolding() {
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo ReplayVal: ", v.String(), v.GetTimestamp().String(), s.GetTimestamp().String())
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -325,6 +327,8 @@ func (s *State) ReviewHolding() {
 		if v.Expire(s) {
 			s.ExpireCnt++
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo Expire: ", v.String())
+
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -338,6 +342,8 @@ func (s *State) ReviewHolding() {
 
 		if v.Validate(s) < 0 {
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo Validate < 0: ", v.String())
+
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -359,6 +365,7 @@ func (s *State) ReviewHolding() {
 		} else {
 			s.XReview = append(s.XReview, v)
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo XReview: ", v.String())
 			s.RemoveFromHolding(k)
 		}
 	}
