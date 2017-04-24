@@ -136,12 +136,19 @@ func (f *P2PProxy) GetNameTo() string {
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if f.UsingEtcd() {
-		if msg.Type() < 16 || msg.Type() > 19 {
-			/* Let's skip these for now:
+		if msg.Type() < 16 || (msg.Type() > 21 && msg.Type() < 25) {
+			/* Let's ignore these message types:
 			MISSING_MSG           // 16
 			MISSING_DATA          // 17
 			DATA_RESPONSE         // 18
 			MISSING_MSG_RESPONSE  //19
+			DBSTATE_MSG          // 20
+			DBSTATE_MISSING_MSG  // 21
+
+			BOUNCE_MSG      // 25
+			BOUNCEREPLY_MSG // 26
+			MISSING_ENTRY_BLOCKS //27
+			ENTRY_BLOCK_RESPONSE //28
 			*/
 			if f.SuperVerboseMessages {
 				fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
