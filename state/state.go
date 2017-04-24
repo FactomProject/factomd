@@ -275,6 +275,7 @@ type State struct {
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
 	TempBalanceHash       interfaces.IHash
+	Balancehash           interfaces.IHash
 
 	// Web Services
 	Port int
@@ -1041,7 +1042,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
 	}
 
-	blockSig := new(primitives.Signature)
 	var allSigs []interfaces.IFullSignature
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
@@ -1071,6 +1071,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 				if err != nil {
 					continue
 				}
+
+				blockSig := new(primitives.Signature)
 				blockSig.SetSignature(r.PrevDBSig.Bytes())
 				blockSig.SetPub(r.PrevDBSig.GetKey())
 				allSigs = append(allSigs, blockSig)
@@ -1614,7 +1616,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
-	s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1623,17 +1625,17 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
-	s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
-	s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
-	s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
@@ -2046,7 +2048,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
+	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -2064,7 +2066,8 @@ func (s *State) SummaryHeader() string {
 		"Fct/EC/E",
 		"API:Fct/EC/E",
 		"tps t/i",
-		"SysHeight")
+		"SysHeight",
+		"BH")
 
 	return str
 }
@@ -2205,6 +2208,10 @@ func (s *State) SetStringQueues() {
 		apis,
 		stps)
 
+	if s.Balancehash == nil {
+		s.Balancehash = primitives.NewHash(constants.ZERO_HASH)
+	}
+
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
@@ -2217,6 +2224,8 @@ func (s *State) SetStringQueues() {
 	} else {
 		str = str + " -"
 	}
+
+	str = str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3])
 
 	s.serverPrt = str
 

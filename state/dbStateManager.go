@@ -86,7 +86,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	if dbheight == 0 && state.GetHighestSavedBlk() == 0 {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
+		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
 		return 1
 	}
@@ -101,7 +101,7 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	}
 
 	if d == nil {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
+		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
 		return 0
 	}
@@ -118,13 +118,13 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		}
 
 		if pkeymr.Fixed() == pdir.GetKeyMR().Fixed() {
-			state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match at first. dbht: %d dbstate had prev %x but we expected %x But on disk %x",
-				dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
+			//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match at first. dbht: %d dbstate had prev %x but we expected %x But on disk %x",
+			//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
 			return 1
 		}
 
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x on disk %x",
-			dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
+		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x on disk %x",
+		//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
 		// If not the same, this is a bad new Directory Block
 		return -1
 	}
@@ -289,14 +289,14 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	majority := (len(currentFeds) / 2) + 1
 	lenDBSigs := len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures)
 	if lenDBSigs < majority {
-		list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: return without processing: lenDBSigs)(%v) < majority(%d)",
-			lenDBSigs,
-			majority))
+		//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: return without processing: lenDBSigs)(%v) < majority(%d)",
+		//	lenDBSigs,
+		//	majority))
 
 		return false
 	}
-	list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
-		majority))
+	//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
+	//	majority))
 
 	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
 		if i < majority {
@@ -306,7 +306,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		}
 	}
 
-	list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
+	//list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
 
 	// Correcting Server Lists (Caused by Server Faults)
 	for _, cf := range currentFeds {
@@ -317,7 +317,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) ||
 			list.State.Identities[index].Status == constants.IDENTITY_AUDIT_SERVER) {*/
 			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
-			list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding delta to the Admin Block: %s", addEntry.String()))
+			//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding delta to the Admin Block: %s", addEntry.String()))
 			d.AdminBlock.AddFirstABEntry(addEntry)
 			/*} else {
 				list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Not Adding delta to the Admin Block: Idx: %d Status: %d", index, list.State.Identities[index].Status))
@@ -416,7 +416,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
 		if pd != nil && !pd.Saved {
-			list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
+			//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
 			return
 		}
 	}
@@ -463,7 +463,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	//
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
-	list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
+	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
@@ -497,15 +497,17 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
 
+	list.State.Balancehash = fs.GetBalanceHash(false)
+
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
 	if list.State.FERChangeHeight == 1 {
 		list.State.FERChangeHeight = 0
 	} else {
 		if list.State.FactoshisPerEC != d.FactoidBlock.GetExchRate() {
-			list.State.AddStatus(fmt.Sprint("PROCESSBLOCKS:  setting rate", list.State.FactoshisPerEC,
-				" to ", d.FactoidBlock.GetExchRate(),
-				" - Height ", d.DirectoryBlock.GetHeader().GetDBHeight()))
+			//list.State.AddStatus(fmt.Sprint("PROCESSBLOCKS:  setting rate", list.State.FactoshisPerEC,
+			//	" to ", d.FactoidBlock.GetExchRate(),
+			//	" - Height ", d.DirectoryBlock.GetHeader().GetDBHeight()))
 		}
 		list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
 	}
