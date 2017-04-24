@@ -188,7 +188,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("T10")
 	t.Log("Run to a dbht of 10")
 	n0.State.DirectoryBlockInSeconds = 4
-	for n0.State.LLeaderHeight < 10 {
+	for n0.State.LLeaderHeight < 8 {
 		time.Sleep(time.Second)
 	}
 	for n0.State.CurrentMinute < 1 {
