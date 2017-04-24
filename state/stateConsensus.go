@@ -404,11 +404,12 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
-
+	fmt.Println("Justin Follex:", m.String())
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
+		fmt.Println("Justin Follex Add:", m.String())
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
