@@ -112,7 +112,3 @@ func (s *State) SetUseEtcd(setVal bool) {
 func (s *State) UsingEtcd() bool {
 	return s.useEtcd
 }
-
-func (s *State) NewEtcdLease() {
-	fmt.Println("NewBlockLease")
-}
