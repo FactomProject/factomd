@@ -39,7 +39,7 @@ type MessageBase struct {
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for i := 0; i < cnt; i++ {
-		state.NetworkOutMsgQueue() <- msg
+		state.NetworkOutMsgQueue().Enqueue(msg)
 		time.Sleep(time.Duration(delay) * time.Second)
 	}
 }
@@ -112,7 +112,7 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 && len(s.NetworkOutMsgQueue()) < 1000 {
+	if now-m.resend > 20000 && s.NetworkOutMsgQueue().Length() < 1000 {
 		m.resend = now
 		return true
 	}

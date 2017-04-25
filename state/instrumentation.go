@@ -79,190 +79,284 @@ var (
 
 	// Queues
 	//	InMsg
-	CurrentMessageQueueInMsgQueueEOM = prometheus.NewGauge(prometheus.GaugeOpts{
+	CurrentMessageQueueInMsgEOM = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_queue_current_inmsg_eom",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueACK = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_ack",
+	CurrentMessageQueueInMsgACK = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_ack",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueAudFault = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_audfault",
+	CurrentMessageQueueInMsgAudFault = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_audfault",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueFedFault = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_fedfault",
+	CurrentMessageQueueInMsgFedFault = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_fedfault",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueFullFault = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_fullfault",
+	CurrentMessageQueueInMsgFullFault = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_fullfault",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueCommitChain = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_commitchain",
+	CurrentMessageQueueInMsgCommitChain = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_commitchain",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueCommitEntry = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_commitentry",
+	CurrentMessageQueueInMsgCommitEntry = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_commitentry",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueDBSig = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_dbsig",
+	CurrentMessageQueueInMsgDBSig = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_dbsig",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueEOMTimeout = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_eomtimeout",
+	CurrentMessageQueueInMsgEOMTimeout = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_eomtimeout",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueFactTX = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_facttx",
+	CurrentMessageQueueInMsgFactTX = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_facttx",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueHeartbeat = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_heatbeat",
+	CurrentMessageQueueInMsgHeartbeat = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_heatbeat",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueInvalidDB = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_invaliddb",
+	CurrentMessageQueueInMsgInvalidDB = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_invaliddb",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueMissingMsg = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_mmsg",
+	CurrentMessageQueueInMsgMissingMsg = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_mmsg",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueMissingMsgResp = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_mmsgresp",
+	CurrentMessageQueueInMsgMissingMsgResp = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_mmsgresp",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueMissingData = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_missingdata",
+	CurrentMessageQueueInMsgMissingData = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_missingdata",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueMissingDataResp = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_missingdataresp",
+	CurrentMessageQueueInMsgMissingDataResp = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_missingdataresp",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueRevealEntry = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_revealentry",
+	CurrentMessageQueueInMsgRevealEntry = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_revealentry",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueReqBlock = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_reqblock",
+	CurrentMessageQueueInMsgReqBlock = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_reqblock",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueDbStateMissing = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_dbstatemissing",
+	CurrentMessageQueueInMsgDbStateMissing = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_dbstatemissing",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueDbState = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_dbstate",
+	CurrentMessageQueueInMsgDbState = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_dbstate",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueBounceMsg = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_bounce",
+	CurrentMessageQueueInMsgBounceMsg = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_bounce",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueBounceResp = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_bounceresp",
+	CurrentMessageQueueInMsgBounceResp = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_bounceresp",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgQueueMisc = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_insmg_misc",
+	CurrentMessageQueueInMsgMisc = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_misc",
 		Help: "Instrumenting the inmsg queue",
 	})
 
-	TotalMessageQueueInMsgQueueEOM = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalMessageQueueInMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_queue_total_inmsg_eom",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueACK = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_ack",
+	TotalMessageQueueInMsgACK = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_ack",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueAudFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_audfault",
+	TotalMessageQueueInMsgAudFault = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_audfault",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueFedFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_fedfault",
+	TotalMessageQueueInMsgFedFault = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_fedfault",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueFullFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_fullfault",
+	TotalMessageQueueInMsgFullFault = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_fullfault",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueCommitChain = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_commitchain",
+	TotalMessageQueueInMsgCommitChain = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_commitchain",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueCommitEntry = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_commitentry",
+	TotalMessageQueueInMsgCommitEntry = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_commitentry",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueDBSig = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_dbsig",
+	TotalMessageQueueInMsgDBSig = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_dbsig",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueEOMTimeout = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_eomtimeout",
+	TotalMessageQueueInMsgEOMTimeout = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_eomtimeout",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueFactTX = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_facttx",
+	TotalMessageQueueInMsgFactTX = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_facttx",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueHeartbeat = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_heatbeat",
+	TotalMessageQueueInMsgHeartbeat = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_heatbeat",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueInvalidDB = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_invaliddb",
+	TotalMessageQueueInMsgInvalidDB = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_invaliddb",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueMissingMsg = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_mmsg",
+	TotalMessageQueueInMsgMissingMsg = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_mmsg",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueMissingMsgResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_mmsgresp",
+	TotalMessageQueueInMsgMissingMsgResp = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_mmsgresp",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueMissingData = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_missingdata",
+	TotalMessageQueueInMsgMissingData = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_missingdata",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueMissingDataResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_missingdataresp",
+	TotalMessageQueueInMsgMissingDataResp = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_missingdataresp",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueRevealEntry = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_revealentry",
+	TotalMessageQueueInMsgRevealEntry = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_revealentry",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueReqBlock = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_reqblock",
+	TotalMessageQueueInMsgReqBlock = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_reqblock",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueDbStateMissing = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_dbstatemissing",
+	TotalMessageQueueInMsgDbStateMissing = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_dbstatemissing",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueDbState = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_dbstate",
+	TotalMessageQueueInMsgDbState = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_dbstate",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueBounceMsg = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_bounce",
+	TotalMessageQueueInMsgBounceMsg = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_bounce",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueBounceResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_bounceresp",
+	TotalMessageQueueInMsgBounceResp = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_bounceresp",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgQueueMisc = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_insmg_misc",
+	TotalMessageQueueInMsgMisc = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_misc",
 		Help: "Instrumenting the inmsg queue",
+	})
+
+	//	NetworkOutMsg
+	TotalMessageQueueNetOutMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_eom",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgACK = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_ack",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgAudFault = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_audfault",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgFedFault = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_fedfault",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgFullFault = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_fullfault",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgCommitChain = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_commitchain",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgCommitEntry = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_commitentry",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgDBSig = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_dbsig",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgEOMTimeout = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_eomtimeout",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgFactTX = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_facttx",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgHeartbeat = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_heatbeat",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgInvalidDB = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_invaliddb",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgMissingMsg = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_mmsg",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgMissingMsgResp = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_mmsgresp",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgMissingData = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_missingdata",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgMissingDataResp = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_missingdataresp",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgRevealEntry = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_revealentry",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgReqBlock = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_reqblock",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgDbStateMissing = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_dbstatemissing",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgDbState = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_dbstate",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgBounceMsg = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_bounce",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgBounceResp = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_bounceresp",
+		Help: "Instrumenting the netoutmsg queue",
+	})
+	TotalMessageQueueNetOutMsgMisc = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_misc",
+		Help: "Instrumenting the netoutmsg queue",
 	})
 )
 
@@ -298,52 +392,77 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(InstantTransactionPerSecond)
 
 	// Queues
-	//	InMsg
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueEOM)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueACK)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueAudFault)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueFedFault)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueFullFault)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueCommitChain)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueCommitEntry)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueDBSig)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueEOMTimeout)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueFactTX)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueHeartbeat)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueInvalidDB)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueMissingMsg)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueMissingMsgResp)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueMissingData)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueMissingDataResp)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueRevealEntry)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueReqBlock)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueDbStateMissing)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueDbState)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueBounceMsg)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueBounceResp)
-	prometheus.MustRegister(CurrentMessageQueueInMsgQueueMisc)
+	//	InMsg Current
+	prometheus.MustRegister(CurrentMessageQueueInMsgEOM)
+	prometheus.MustRegister(CurrentMessageQueueInMsgACK)
+	prometheus.MustRegister(CurrentMessageQueueInMsgAudFault)
+	prometheus.MustRegister(CurrentMessageQueueInMsgFedFault)
+	prometheus.MustRegister(CurrentMessageQueueInMsgFullFault)
+	prometheus.MustRegister(CurrentMessageQueueInMsgCommitChain)
+	prometheus.MustRegister(CurrentMessageQueueInMsgCommitEntry)
+	prometheus.MustRegister(CurrentMessageQueueInMsgDBSig)
+	prometheus.MustRegister(CurrentMessageQueueInMsgEOMTimeout)
+	prometheus.MustRegister(CurrentMessageQueueInMsgFactTX)
+	prometheus.MustRegister(CurrentMessageQueueInMsgHeartbeat)
+	prometheus.MustRegister(CurrentMessageQueueInMsgInvalidDB)
+	prometheus.MustRegister(CurrentMessageQueueInMsgMissingMsg)
+	prometheus.MustRegister(CurrentMessageQueueInMsgMissingMsgResp)
+	prometheus.MustRegister(CurrentMessageQueueInMsgMissingData)
+	prometheus.MustRegister(CurrentMessageQueueInMsgMissingDataResp)
+	prometheus.MustRegister(CurrentMessageQueueInMsgRevealEntry)
+	prometheus.MustRegister(CurrentMessageQueueInMsgReqBlock)
+	prometheus.MustRegister(CurrentMessageQueueInMsgDbStateMissing)
+	prometheus.MustRegister(CurrentMessageQueueInMsgDbState)
+	prometheus.MustRegister(CurrentMessageQueueInMsgBounceMsg)
+	prometheus.MustRegister(CurrentMessageQueueInMsgBounceResp)
+	prometheus.MustRegister(CurrentMessageQueueInMsgMisc)
+	//	InMsg Total
+	prometheus.MustRegister(TotalMessageQueueInMsgEOM)
+	prometheus.MustRegister(TotalMessageQueueInMsgACK)
+	prometheus.MustRegister(TotalMessageQueueInMsgAudFault)
+	prometheus.MustRegister(TotalMessageQueueInMsgFedFault)
+	prometheus.MustRegister(TotalMessageQueueInMsgFullFault)
+	prometheus.MustRegister(TotalMessageQueueInMsgCommitChain)
+	prometheus.MustRegister(TotalMessageQueueInMsgCommitEntry)
+	prometheus.MustRegister(TotalMessageQueueInMsgDBSig)
+	prometheus.MustRegister(TotalMessageQueueInMsgEOMTimeout)
+	prometheus.MustRegister(TotalMessageQueueInMsgFactTX)
+	prometheus.MustRegister(TotalMessageQueueInMsgHeartbeat)
+	prometheus.MustRegister(TotalMessageQueueInMsgInvalidDB)
+	prometheus.MustRegister(TotalMessageQueueInMsgMissingMsg)
+	prometheus.MustRegister(TotalMessageQueueInMsgMissingMsgResp)
+	prometheus.MustRegister(TotalMessageQueueInMsgMissingData)
+	prometheus.MustRegister(TotalMessageQueueInMsgMissingDataResp)
+	prometheus.MustRegister(TotalMessageQueueInMsgRevealEntry)
+	prometheus.MustRegister(TotalMessageQueueInMsgReqBlock)
+	prometheus.MustRegister(TotalMessageQueueInMsgDbStateMissing)
+	prometheus.MustRegister(TotalMessageQueueInMsgDbState)
+	prometheus.MustRegister(TotalMessageQueueInMsgBounceMsg)
+	prometheus.MustRegister(TotalMessageQueueInMsgBounceResp)
+	prometheus.MustRegister(TotalMessageQueueInMsgMisc)
 
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueEOM)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueACK)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueAudFault)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueFedFault)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueFullFault)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueCommitChain)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueCommitEntry)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueDBSig)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueEOMTimeout)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueFactTX)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueHeartbeat)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueInvalidDB)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueMissingMsg)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueMissingMsgResp)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueMissingData)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueMissingDataResp)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueRevealEntry)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueReqBlock)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueDbStateMissing)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueDbState)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueBounceMsg)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueBounceResp)
-	prometheus.MustRegister(TotalMessageQueueInMsgQueueMisc)
+	// Net Out
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOM)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgACK)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgAudFault)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgFedFault)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgFullFault)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgCommitChain)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgCommitEntry)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgDBSig)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOMTimeout)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgFactTX)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgHeartbeat)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgInvalidDB)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingMsg)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingMsgResp)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingData)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingDataResp)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgRevealEntry)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgReqBlock)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgDbStateMissing)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgDbState)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceMsg)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceResp)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgMisc)
 }

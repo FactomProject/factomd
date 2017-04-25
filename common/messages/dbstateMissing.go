@@ -130,7 +130,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 }
 
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
-	if len(state.NetworkOutMsgQueue()) > 100 {
+	if state.NetworkOutMsgQueue().Length() > 100 {
 		return
 	}
 

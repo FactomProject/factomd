@@ -3,6 +3,7 @@ package state_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -13,11 +14,13 @@ var _ = fmt.Println
 
 func TestQueues(t *testing.T) {
 	RegisterPrometheus()
+	RegisterPrometheus()
 	channel := make(chan interfaces.IMsg, 1000)
 	general := GeneralMSGQueue(channel)
-	inmsg := InMsgMSGQueue{GeneralMSGQueue: general}
+	inmsg := InMsgMSGQueue(channel)
+	netOut := NetOutMsgQueue(channel)
 
-	if !checkLensAndCap(channel, general, inmsg) {
+	if !checkLensAndCap(channel, []interfaces.IQueue{general, inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")
 	}
 
@@ -35,9 +38,10 @@ func TestQueues(t *testing.T) {
 		if c == 3 {
 			c = 0
 		}
-		if !checkLensAndCap(channel, general, inmsg) {
+		if !checkLensAndCap(channel, []interfaces.IQueue{general, inmsg, netOut}) {
 			t.Error("Error: Lengths/Cap does not match")
 		}
+
 	}
 
 	for i := 0; i < 100; i++ {
@@ -53,7 +57,7 @@ func TestQueues(t *testing.T) {
 		if c == 3 {
 			c = 0
 		}
-		if !checkLensAndCap(channel, general, inmsg) {
+		if !checkLensAndCap(channel, []interfaces.IQueue{general, inmsg, netOut}) {
 			t.Error("Error: Lengths/Cap does not match")
 		}
 	}
@@ -67,75 +71,91 @@ func TestQueues(t *testing.T) {
 	case <-channel:
 	default:
 	}
-	general.Dequeue()
-	inmsg.Dequeue()
+	go func() {
+		time.Sleep(1100 * time.Millisecond)
+		general.Enqueue(nil)
+		inmsg.Enqueue(nil)
+		netOut.Enqueue(nil)
+	}()
+
+	b := time.Now().Unix()
+	general.BlockingDequeue()
+	if time.Now().Unix()-b < 1 {
+		t.Error("Did not properly block")
+	}
+
+	inmsg.BlockingDequeue()
+	if time.Now().Unix()-b < 1 {
+		t.Error("Did not properly block")
+	}
+
+	netOut.BlockingDequeue()
+	if time.Now().Unix()-b < 1 {
+		t.Error("Did not properly block")
+	}
 
 	// Trip prometheus, unfortunately, we cannot actually check the values
-	inmsg.Enqueue(new(messages.EOM))
-	inmsg.Enqueue(new(messages.Ack))
-	inmsg.Enqueue(new(messages.AuditServerFault))
-	inmsg.Enqueue(new(messages.ServerFault))
-	inmsg.Enqueue(new(messages.FullServerFault))
-	inmsg.Enqueue(new(messages.CommitChainMsg))
-	inmsg.Enqueue(new(messages.CommitEntryMsg))
-	inmsg.Enqueue(new(messages.DirectoryBlockSignature))
-	inmsg.Enqueue(new(messages.EOMTimeout))
-	inmsg.Enqueue(new(messages.Heartbeat))
-	inmsg.Enqueue(new(messages.InvalidDirectoryBlock))
-	inmsg.Enqueue(new(messages.MissingMsg))
-	inmsg.Enqueue(new(messages.MissingMsgResponse))
-	inmsg.Enqueue(new(messages.MissingData))
-	inmsg.Enqueue(new(messages.RevealEntryMsg))
-	inmsg.Enqueue(new(messages.DBStateMsg))
-	inmsg.Enqueue(new(messages.DBStateMissing))
-	inmsg.Enqueue(new(messages.Bounce))
-	inmsg.Enqueue(new(messages.BounceReply))
-	inmsg.Enqueue(new(messages.SignatureTimeout))
-
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
-	inmsg.Dequeue()
+	tripAllMessages(inmsg)
+	tripAllMessages(general)
+	tripAllMessages(netOut)
 
 	if len(channel) != 0 {
 		t.Errorf("Channel should be 0, found %d", len(channel))
 	}
-	if !checkLensAndCap(channel, general, inmsg) {
+	if !checkLensAndCap(channel, []interfaces.IQueue{general, inmsg, netOut}) {
 		t.Error("Error: Lengths/Cap does not match")
 	}
 }
 
-func checkLensAndCap(channel chan interfaces.IMsg, gen GeneralMSGQueue, in InMsgMSGQueue) bool {
-	if len(channel) != gen.Length() {
-		return false
-	}
+func tripAllMessages(q interfaces.IQueue) {
+	q.Enqueue(new(messages.EOM))
+	q.Enqueue(new(messages.Ack))
+	q.Enqueue(new(messages.AuditServerFault))
+	q.Enqueue(new(messages.ServerFault))
+	q.Enqueue(new(messages.FullServerFault))
+	q.Enqueue(new(messages.CommitChainMsg))
+	q.Enqueue(new(messages.CommitEntryMsg))
+	q.Enqueue(new(messages.DirectoryBlockSignature))
+	q.Enqueue(new(messages.EOMTimeout))
+	q.Enqueue(new(messages.Heartbeat))
+	q.Enqueue(new(messages.InvalidDirectoryBlock))
+	q.Enqueue(new(messages.MissingMsg))
+	q.Enqueue(new(messages.MissingMsgResponse))
+	q.Enqueue(new(messages.MissingData))
+	q.Enqueue(new(messages.RevealEntryMsg))
+	q.Enqueue(new(messages.DBStateMsg))
+	q.Enqueue(new(messages.DBStateMissing))
+	q.Enqueue(new(messages.Bounce))
+	q.Enqueue(new(messages.BounceReply))
+	q.Enqueue(new(messages.SignatureTimeout))
 
-	if len(channel) != in.Length() {
-		return false
-	}
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+	q.Dequeue()
+}
 
-	if cap(channel) != gen.Cap() {
-		return false
-	}
-
-	if cap(channel) != in.Cap() {
-		return false
+func checkLensAndCap(channel chan interfaces.IMsg, qs []interfaces.IQueue) bool {
+	for _, q := range qs {
+		if len(channel) != q.Length() {
+			return false
+		}
 	}
 	return true
 }

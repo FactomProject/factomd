@@ -15,6 +15,7 @@ type IQueue interface {
 	Cap() int
 	Enqueue(msg IMsg)
 	Dequeue() IMsg
+	BlockingDequeue() IMsg
 }
 
 // Holds the state information for factomd.  This does imply that we will be
@@ -99,7 +100,7 @@ type IState interface {
 	// Network Processor
 	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
-	NetworkOutMsgQueue() chan IMsg
+	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
 	// Journalling

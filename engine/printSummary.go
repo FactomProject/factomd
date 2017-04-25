@@ -176,7 +176,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
+			list = list + fmt.Sprintf(" %3d", f.State.NetworkOutMsgQueue().Length())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
 
