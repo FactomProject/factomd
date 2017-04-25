@@ -283,19 +283,19 @@ func (s *State) ReviewHolding() {
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3) {
+		if ok && ((eom.DBHeight < saved-1 && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
-		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 {
+		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
 			delete(s.Holding, k)
 			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && (dbsigmsg.DBHeight < saved-1 || dbsigmsg.DBHeight < highest-3) {
+		if ok && ((dbsigmsg.DBHeight < saved-1 && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}
