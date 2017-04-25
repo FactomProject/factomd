@@ -143,11 +143,11 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	// just a bit over 1 MB
 	l := len(state.InMsgQueue())
 	switch {
-	case l > 500:
+	case l > 200:
 		return
 	case l > 50 && end-start > 10:
 		end = start + 10
-	case l > 10 && end-start > 1:
+	case l > 50 && end-start > 1:
 		end = start + 1
 	case end-start > 200:
 		end = start + 200
