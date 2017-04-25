@@ -703,6 +703,11 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+	// Don't respond to missing messages if we are behind.
+	if len(s.inMsgQueue) > 100 {
+		return
+	}
+
 	m := msg.(*messages.MissingMsg)
 
 	pl := s.ProcessLists.Get(m.DBHeight)
