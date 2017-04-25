@@ -100,7 +100,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 			}
 		}
 		// Search for EBlock
-		if eBlock, err := dbase.FetchEBlockByPrimary(hash); err == nil && eBlock != nil {
+		if eBlock, err := dbase.FetchEBlock(hash); err == nil && eBlock != nil {
 			resp := newSearchResponse("eblock", eBlock)
 			if len(resp) > 1 {
 				st.UnlockDB()
@@ -108,7 +108,7 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 			}
 		}
 		// Search for DBlock
-		if dBlock, err := dbase.FetchDBlockByPrimary(hash); err == nil && dBlock != nil {
+		if dBlock, err := dbase.FetchDBlock(hash); err == nil && dBlock != nil {
 			resp := newSearchResponse("dblock", dBlock)
 			if len(resp) > 1 {
 				st.UnlockDB()

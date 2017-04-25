@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/mapdb"
-	. "github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/testHelper"
 	"testing"
 )
 
@@ -23,7 +23,7 @@ func TestSaveLoadEntries(t *testing.T) {
 
 	entries := []*entryBlock.Entry{}
 
-	firstEntry := CreateFirstTestEntry()
+	firstEntry := testHelper.CreateFirstTestEntry()
 	err := dbo.InsertEntry(firstEntry)
 	if err != nil {
 		t.Error(err)
@@ -32,7 +32,7 @@ func TestSaveLoadEntries(t *testing.T) {
 
 	max := 10
 	for i := 0; i < max; i++ {
-		entry := CreateTestEntry(uint32(i))
+		entry := testHelper.CreateTestEntry(uint32(i))
 		err = dbo.InsertEntry(entry)
 		if err != nil {
 			t.Error(err)
@@ -104,7 +104,7 @@ func TestLoadUnknownEntries(t *testing.T) {
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 	for i := 0; i < 10; i++ {
-		b := IntToByteSlice(i)
+		b := testHelper.IntToByteSlice(i)
 		hash, err := primitives.NewShaHash(b)
 		if err != nil {
 			t.Error(err)

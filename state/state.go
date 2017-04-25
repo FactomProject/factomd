@@ -34,6 +34,8 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	"errors"
 )
 
 var _ = fmt.Print
@@ -243,7 +245,7 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB     *databaseOverlay.Overlay
+	DB     interfaces.DBOverlaySimple
 	Logger *logger.FLogger
 	Anchor interfaces.IAnchor
 
@@ -275,6 +277,8 @@ type State struct {
 	FactoidBalancesPMutex sync.Mutex
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
+	TempBalanceHash       interfaces.IHash
+	Balancehash           interfaces.IHash
 
 	// Web Services
 	Port int
@@ -799,15 +803,15 @@ func (s *State) Init() {
 	switch s.DBType {
 	case "LDB":
 		if err := s.InitLevelDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	case "Bolt":
 		if err := s.InitBoltDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	case "Map":
 		if err := s.InitMapDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	default:
 		panic("No Database type specified")
@@ -912,7 +916,7 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 	return nil
 }
 
-func (s *State) GetAndLockDB() interfaces.DBOverlay {
+func (s *State) GetAndLockDB() interfaces.DBOverlaySimple {
 	return s.DB
 }
 
@@ -937,29 +941,57 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 	return false
 }
 
-func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+func (s *State) ValidatePrevious(dbheight uint32) error {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
-
+	errs := ""
 	if dblk != nil && err == nil && dbheight > 0 {
-		if dbheight%1000 == 0 {
-			fmt.Println("xxxx Progressing ...", dbheight)
+
+		if dblk2, err := s.DB.FetchDBlock(dblk.GetKeyMR()); err != nil {
+			errs += "Don't have the directory block hash indexed %d\n"
+		} else if dblk2 == nil {
+			errs += fmt.Sprintf("Don't have the directory block hash indexed %d\n", dbheight)
 		}
+
 		pdblk, _ := s.DB.FetchDBlockByHeight(dbheight - 1)
 		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
-		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
-			fmt.Println("xxxx Can't get the previous block by hash...")
+		if pdblk == nil {
+			errs += fmt.Sprintf("Cannot find the previous block by index at %d", dbheight-1)
+		} else {
+			if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+				errs += fmt.Sprintf("xxxx KeyMR incorrect at height %d", dbheight-1)
+			}
+			if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
+				fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+				return fmt.Errorf("Full hash incorrect block at %d", dbheight-1)
+			}
 		}
-		if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
-			fmt.Println("xxxx KeyMR incorrect at height", dbheight-1)
-		}
-		if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
-			fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+		if pdblk2 == nil {
+			errs += fmt.Sprintf("Cannot find the previous block at %d", dbheight-1)
+		} else {
+			if pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+				errs += fmt.Sprintln("xxxx Hash is incorrect.  Expected: ", dblk.GetHeader().GetPrevKeyMR().String())
+				errs += fmt.Sprintln("xxxx Hash is incorrect.  Recieved: ", pdblk2.GetKeyMR().String())
+				errs += fmt.Sprintf("Hash is incorrect at %d", dbheight-1)
+			}
 		}
 	}
+	if len(errs) > 0 {
+		return errors.New(errs)
+	}
+	return nil
+}
 
+func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
 	}
+
+	err = s.ValidatePrevious(dbheight)
+	if err != nil {
+		panic(err.Error() + " " + s.FactomNodeName)
+	}
+
 	if dblk == nil {
 		return nil, nil
 	}
@@ -1016,7 +1048,6 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
 	}
 
-	blockSig := new(primitives.Signature)
 	var allSigs []interfaces.IFullSignature
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
@@ -1046,6 +1077,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 				if err != nil {
 					continue
 				}
+
+				blockSig := new(primitives.Signature)
 				blockSig.SetSignature(r.PrevDBSig.Bytes())
 				blockSig.SetPub(r.PrevDBSig.GetKey())
 				allSigs = append(allSigs, blockSig)
@@ -1592,6 +1625,11 @@ func (s *State) UpdateState() (progress bool) {
 		s.CopyStateToControlPanel()
 	}
 
+	// Update our TPS every ~ 3 seconds at the earliest
+	if s.lasttime.Before(time.Now().Add(-3 * time.Second)) {
+		s.CalculateTransactionRate()
+	}
+
 	// check to see ig a holding queue list request has been made
 	s.fillHoldingMap()
 	s.fillAcksMap()
@@ -1626,7 +1664,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
-	s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1635,17 +1673,17 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
-	s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
-	s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
-	s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
@@ -2058,7 +2096,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
+	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -2076,7 +2114,8 @@ func (s *State) SummaryHeader() string {
 		"Fct/EC/E",
 		"API:Fct/EC/E",
 		"tps t/i",
-		"SysHeight")
+		"SysHeight",
+		"BH")
 
 	return str
 }
@@ -2085,6 +2124,26 @@ func (s *State) SetStringConsensus() {
 	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
 
 	s.serverPrt = str
+}
+
+// CalculateTransactionRate caculates how many transactions this node is processing
+//		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
+//		instantTPS	: Transaction rate weighted over last 3 seconds
+func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
+	runtime := time.Since(s.starttime)
+	shorttime := time.Since(s.lasttime)
+	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
+	tps := float64(total) / float64(runtime.Seconds())
+	TotalTransactionPerSecond.Set(tps) // Prometheus
+	if shorttime > time.Second*3 {
+		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
+		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
+		s.lasttime = time.Now()
+		s.transCnt = total                     // transactions accounted for
+		InstantTransactionPerSecond.Set(s.tps) // Prometheus
+	}
+
+	return tps, s.tps
 }
 
 func (s *State) SetStringQueues() {
@@ -2160,16 +2219,7 @@ func (s *State) SetStringQueues() {
 		dHeight = d.GetHeader().GetDBHeight()
 	}
 
-	runtime := time.Since(s.starttime)
-	shorttime := time.Since(s.lasttime)
-	total := s.FactoidTrans + s.NewEntryChains + s.NewEntries
-	tps := float64(total) / float64(runtime.Seconds())
-	if shorttime > time.Second*3 {
-		delta := (s.FactoidTrans + s.NewEntryChains + s.NewEntries) - s.transCnt
-		s.tps = ((float64(delta) / float64(shorttime.Seconds())) + 2*s.tps) / 3
-		s.lasttime = time.Now()
-		s.transCnt = total // transactions accounted for
-	}
+	totalTPS, instantTPS := s.CalculateTransactionRate()
 
 	str := fmt.Sprintf("%10s[%6x] %4s%4s %2d/%2d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
@@ -2198,13 +2248,17 @@ func (s *State) SetStringQueues() {
 
 	trans := fmt.Sprintf("%d/%d/%d", s.FactoidTrans, s.NewEntryChains, s.NewEntries-s.NewEntryChains)
 	apis := fmt.Sprintf("%d/%d/%d", s.FCTSubmits, s.ECCommits, s.ECommits)
-	stps := fmt.Sprintf("%3.2f/%3.2f", tps, s.tps)
+	stps := fmt.Sprintf("%3.2f/%3.2f", totalTPS, instantTPS)
 	str = str + fmt.Sprintf(" %5d %5d %12s %15s %11s",
 		s.ResendCnt,
 		s.ExpireCnt,
 		trans,
 		apis,
 		stps)
+
+	if s.Balancehash == nil {
+		s.Balancehash = primitives.NewHash(constants.ZERO_HASH)
+	}
 
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
@@ -2218,6 +2272,8 @@ func (s *State) SetStringQueues() {
 	} else {
 		str = str + " -"
 	}
+
+	str = str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3])
 
 	s.serverPrt = str
 

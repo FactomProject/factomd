@@ -7,6 +7,7 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -137,7 +138,7 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
-		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks ht: %d", m.DirectoryBlock.GetHeader().GetDBHeight()))
+		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail  Doesn't have all the blocks"))
 		//We need the basic block types
 		return -1
 	}
@@ -160,12 +161,12 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	diff := int(dbheight) - (int(state.GetHighestSavedBlk())) // Difference from the working height (completed+1)
+	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete())) // Difference from the working height (completed+1)
 
 	// Look at saved heights if not too far from what we have saved.
 	if diff < -1 {
 		state.AddStatus(fmt.Sprintf("DBStateMsg.Validate() Fail dbstate dbht: %d Highest Saved %d diff %d",
-			dbheight, state.GetHighestSavedBlk(), diff))
+			dbheight, state.GetEntryDBHeightComplete(), diff))
 		return -1
 	}
 
@@ -181,6 +182,58 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	// Validate Signatures
+
+	// If this is the next block that we need, we can validate it by signatures. If it is a past block
+	// we can validate by prevKeyMr of the block that follows this one
+	if m.DirectoryBlock.GetDatabaseHeight() == state.GetHighestSavedBlk()+1 {
+		// Fed count of this height -1, as we may not have the height itself
+		fedCount := len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight()))
+		tally := m.SigTally(state)
+		if tally >= (fedCount/2 + 1) {
+			// This has all the signatures it needs
+			goto ValidSignatures
+		} else {
+			// If we remove servers, there will not be as many signatures. We need to accomadate for this
+			// by reducing our needed. This will only get called if we fall short on signatures.
+			aes := m.AdminBlock.GetABEntries()
+			for _, adminEntry := range aes {
+				switch adminEntry.Type() {
+				case constants.TYPE_REMOVE_FED_SERVER:
+					// Double check the entry is a real remove fed server message
+					_, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+					if !ok {
+						continue
+					}
+					// Reduce our total fed servers
+					fedCount--
+				}
+			}
+			if tally >= (fedCount/2 + 1) {
+				// This has all the signatures it needs
+				goto ValidSignatures
+			}
+		}
+
+		// It does not pass the signatures. Should we return -1?
+		return 0
+	} else { // Alternative to signatures passing by checking our DB
+		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
+		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)
+		if next == nil {
+			// Do not have the next directory block, so we cannot tell by this method
+			return 0
+		}
+		// If the prevKeyMr of the next matches this one, we know it is valid.
+		if next.GetHeader().GetPrevKeyMR().IsSameAs(m.DirectoryBlock.GetKeyMR()) {
+			goto ValidSignatures
+		} else {
+			// The KeyMR does not match, this block is invalid
+			return -1
+		}
+
+	}
+ValidSignatures: // Goto here if signatures pass
 	return 1
 }
 
@@ -188,6 +241,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	dbheight := m.DirectoryBlock.GetHeader().GetDBHeight()
 
 	validSigCount := 0
+	validSigCount += m.checkpointFix()
 
 	data, err := m.DirectoryBlock.GetHeader().MarshalBinary()
 	if err != nil {
@@ -195,13 +249,23 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 		return validSigCount
 	}
 
+	// Signatures that are not valid by current fed list
+	var remainingSig []interfaces.IFullSignature
+
+	// If there is a repeat signature, we do not count it twice
+	sigmap := make(map[string]bool)
 	for _, sig := range m.SignatureList.List {
+		if sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] {
+			continue // Toss duplicate signatures
+		}
+		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
 		//Check signature against the Skeleton key
 		authoritativeKey := state.GetNetworkBootStrapKey()
 		if authoritativeKey != nil {
 			if bytes.Compare(sig.GetKey(), authoritativeKey.Bytes()) == 0 {
 				if sig.Verify(data) {
 					validSigCount++
+					continue
 				}
 			}
 		}
@@ -209,10 +273,133 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
 		if err == nil && check >= 0 {
 			validSigCount++
+			continue
+		}
+
+		if sig.Verify(data) {
+			remainingSig = append(remainingSig, sig)
 		}
 	}
 
+	// If promotions have occurred this block, we need to account for their signatures to be
+	// valid. We will only pay for this overhead if there are signatures left, meaning most blocks will
+	// not enter this loop
+	if len(remainingSig) > 0 {
+		type tempAuthority struct {
+			Key      []byte
+			Promoted bool
+		}
+
+		// Map of new federated servers, and their keys
+		newSigners := make(map[string]*tempAuthority)
+
+		// Search for promotions and their keys and populate the map:
+		aes := m.AdminBlock.GetABEntries()
+		for _, adminEntry := range aes {
+			switch adminEntry.Type() {
+			case constants.TYPE_ADD_FED_SERVER:
+				// New federated server that can sign blocks
+				r, ok := adminEntry.(*adminBlock.AddFederatedServer)
+				if !ok {
+					// This shouldn't fail, as we checked the type
+					continue
+				}
+
+				if _, ok := newSigners[r.IdentityChainID.String()]; !ok {
+					newSigners[r.IdentityChainID.String()] = new(tempAuthority)
+				}
+				newSigners[r.IdentityChainID.String()].Promoted = true
+			case constants.TYPE_REMOVE_FED_SERVER:
+				// A remove will remove this server from our list of servers that can sign,
+				// but we need them to still be valid, so we will allow them to still sign
+				r, ok := adminEntry.(*adminBlock.RemoveFederatedServer)
+				if !ok {
+					// This shouldn't fail, as we checked the type
+					continue
+				}
+
+				if _, ok := newSigners[r.IdentityChainID.String()]; !ok {
+					newSigners[r.IdentityChainID.String()] = new(tempAuthority)
+				}
+				newSigners[r.IdentityChainID.String()].Promoted = true
+			case constants.TYPE_ADD_FED_SERVER_KEY:
+				r, ok := adminEntry.(*adminBlock.AddFederatedServerSigningKey)
+				if !ok {
+					// This shouldn't fail, as we checked the type
+					continue
+				}
+
+				// We need to grab the signing key from the admin block if provided
+				if _, ok := newSigners[r.IdentityChainID.String()]; !ok {
+					newSigners[r.IdentityChainID.String()] = new(tempAuthority)
+				}
+				keybytes, err := r.PublicKey.MarshalBinary()
+				if err != nil {
+					continue
+				}
+				newSigners[r.IdentityChainID.String()].Key = keybytes
+			}
+		}
+
+		// There is a chance their signing keys won't be located in the admin block. If they came from being an audit server,
+		// their key might be in the authority list, or identity list.
+		for i, v := range newSigners {
+			if v.Key != nil {
+				continue
+			}
+
+			idHash, err := primitives.HexToHash(i)
+			if err != nil {
+				continue
+			}
+			signingkey, status := state.GetSigningKey(idHash)
+			if status >= 0 {
+				v.Key = signingkey.Bytes()
+			}
+		}
+
+		// These signatures that did not validate with current set of authorities
+		for _, sig := range remainingSig {
+		InnerSingerLoop:
+			for _, signer := range newSigners {
+				if bytes.Compare(sig.GetKey(), signer.Key) == 0 {
+					validSigCount++
+					break InnerSingerLoop
+				}
+			}
+		}
+	}
 	return validSigCount
+}
+
+func (m *DBStateMsg) checkpointFix() int {
+	returnAmt := 0
+	dbheight := m.DirectoryBlock.GetDatabaseHeight()
+
+	allow := func(str string, siglist SigList) int {
+		amt := 0
+		goodSig, _ := hex.DecodeString(str)
+		for _, s := range siglist.List {
+			if bytes.Compare(s.Bytes(), goodSig) == 0 {
+				amt++
+				break
+			}
+		}
+		return amt
+	}
+
+	switch dbheight {
+	case 75893:
+		returnAmt += allow("8066fc4222eff67470ffaca15bdb5d6d15b65daf3cc86c121b872d7485b388b3cb4b7bbbd0248076065262d54699bab68e7d5be96e137aa3428b903916e4180a", m.SignatureList)
+	case 76720:
+		returnAmt += allow("ab429576ee93485cfffe0c778d429073f24ce76d3014f2ddecd6e90e87a5e912b849842597cae23a66beee203ee455bd44fe4073747ce6c099a21f4525c3d901", m.SignatureList)
+	case 76792:
+		returnAmt += allow("9f86122d624400b3036e60105f3db4e99199ae9217cbeb1462811426319983dc0e4f5e5cd16996cc3cf2940ead765ce00fc699e23b459395569c10e1df4c650b", m.SignatureList)
+	default:
+		return 0
+	}
+
+	return returnAmt
 }
 
 func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}

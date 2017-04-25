@@ -237,6 +237,11 @@ func (s *State) ReviewHolding() {
 	if len(s.XReview) > 0 {
 		return
 	}
+
+	if len(s.inMsgQueue) > 10 {
+		return
+	}
+
 	now := s.GetTimestamp()
 	if s.resendHolding == nil {
 		s.resendHolding = now
@@ -287,7 +292,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
-		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && int(saved) > 0 {
+		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -354,7 +359,7 @@ func (s *State) AddDBState(isNew bool,
 	dbState := s.DBStates.NewDBState(isNew, directoryBlock, adminBlock, factoidBlock, entryCreditBlock, eBlocks, entries)
 
 	if dbState == nil {
-		s.AddStatus(fmt.Sprintf("AddDBState(): Fail dbstate is nil at dbht: %d", directoryBlock.GetHeader().GetDBHeight()))
+		//s.AddStatus(fmt.Sprintf("AddDBState(): Fail dbstate is nil at dbht: %d", directoryBlock.GetHeader().GetDBHeight()))
 		return nil
 	}
 
@@ -471,27 +476,22 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 	}
 
-	saved := s.GetHighestSavedBlk()
+	// saved := s.GetHighestSavedBlk()
 
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// ignore if too old.
-	if dbheight < s.GetHighestSavedBlk() {
+	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() {
 		return
 	}
 
-	// ignore if we didn't ask for it, or if it is at least something with our range of asking for.
-	if !dbstatemsg.IsInDB && (s.DBStates.LastBegin-1 > int(dbheight) || s.DBStates.LastEnd+20 < int(dbheight)) {
-		return
-	}
-
-	s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
+	//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
 	switch pdbstate.ValidNext(s, dbstatemsg) {
 	case 0:
-		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
+		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState might be valid %d", dbheight))
 
 		// Don't add duplicate dbstate messages.
 		if s.DBStatesReceivedBase < int(s.GetHighestSavedBlk()) {
@@ -511,7 +511,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStatesReceived[ix] = dbstatemsg
 		return
 	case -1:
-		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
+		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): DBState is invalid at ht %d", dbheight))
 		// Do nothing because this dbstate looks to be invalid
 		cntFail()
 		return
@@ -526,7 +526,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	if dbheight > 1 && dbheight >= s.ProcessLists.DBHeightBase {
 		dbs := s.DBStates.Get(int(dbheight))
 		if pdbstate.SaveStruct != nil {
-			s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Reset to previous state before applying at ht %d", dbheight))
+			//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Reset to previous state before applying at ht %d", dbheight))
 			pdbstate.SaveStruct.TrimBack(s, dbs)
 		}
 	}
@@ -539,22 +539,20 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		dbstatemsg.EBlocks,
 		dbstatemsg.Entries)
 	if dbstate == nil {
-		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
+		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate fail at ht %d", dbheight))
 		cntFail()
 		return
 	}
 
 	if dbstatemsg.IsInDB == false {
-		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
+		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
 		dbstate.ReadyToSave = true
 		dbstate.Locked = false
-		s.DBStates.ProcessBlocks(dbstate)
 		dbstate.Signed = true
-		dbstate.ReadyToSave = true
-		s.DBStates.SaveDBStateToDB(dbstate)
 		s.DBStateAppliedCnt++
+		s.DBStates.UpdateState()
 	} else {
-		s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
+		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from local db at ht %d", dbheight))
 		dbstate.Saved = true
 		dbstate.IsNew = false
 		dbstate.Locked = false
@@ -705,6 +703,11 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+	// Don't respond to missing messages if we are behind.
+	if len(s.inMsgQueue) > 100 {
+		return
+	}
+
 	m := msg.(*messages.MissingMsg)
 
 	pl := s.ProcessLists.Get(m.DBHeight)
@@ -800,7 +803,7 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m).(*messages.Ack)
+	ack := s.NewAck(m, nil).(*messages.Ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
@@ -854,8 +857,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
 	eom.MsgHash = nil
-	ack := s.NewAck(m)
-	//s.Acks[eom.GetMsgHash().Fixed()] = ack
+
+	ack := s.NewAck(m, nil).(*messages.Ack)
 	s.AddToAcks(eom.GetMsgHash().Fixed(), ack)
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
@@ -884,7 +887,19 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 		}
 	}
 
-	s.LeaderExecute(dbs)
+	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
+	if !ok {
+		delete(s.Holding, m.GetRepeatHash().Fixed())
+		delete(s.Holding, m.GetMsgHash().Fixed())
+		return
+	}
+
+	ack := s.NewAck(m, s.Balancehash).(*messages.Ack)
+
+	m.SetLeaderChainID(ack.GetLeaderChainID())
+	m.SetMinute(ack.Minute)
+
+	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
@@ -927,7 +942,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		return
 	}
 
-	ack := s.NewAck(m).(*messages.Ack)
+	ack := s.NewAck(m, nil).(*messages.Ack)
 
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
@@ -951,7 +966,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
-		s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
+		//s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
 		return false
 	}
 
@@ -965,17 +980,14 @@ func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.
 	}
 
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
 		return true
 	}
 
 	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
 		return true
 	}
 
 	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
 		return true
 	}
 	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
@@ -990,7 +1002,6 @@ func (s *State) ProcessChangeServerKey(dbheight uint32, changeServerKeyMsg inter
 	}
 
 	if !s.VerifyIsAuthority(ask.IdentityChainID) {
-		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "ChangeServerKey message did not add to admin block.")
 		return true
 	}
 
@@ -1029,7 +1040,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 	} else {
 		fmt.Println(e)
 	}
-	s.AddStatus("Cannot process Commit Chain")
+	//s.AddStatus("Cannot process Commit Chain")
 
 	return false
 }
@@ -1055,7 +1066,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 	} else {
 		fmt.Println(e)
 	}
-	s.AddStatus("Cannot Process Commit Entry")
+	//s.AddStatus("Cannot Process Commit Entry")
 
 	return false
 }
@@ -1099,7 +1110,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	// be a chain somewhere.  If not, we return false.
 	if eb == nil {
 		if eb_db == nil {
-			s.AddStatus("Failed to add to process Reveal Entry because no Entry Block found")
+			//s.AddStatus("Failed to add to process Reveal Entry because no Entry Block found")
 			return false
 		}
 		eb = entryBlock.NewEBlock()
@@ -1183,16 +1194,16 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	e := msg.(*messages.EOM)
 
 	if s.Syncing && !s.EOM {
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", e.VMIndex, s.Syncing, s.EOM))
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", e.VMIndex, s.Syncing, s.EOM))
 		return false
 	}
 
 	if s.EOM && e.DBHeight != dbheight {
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Invalid EOM s.EOM(%v) && e.DBHeight(%v) != dbheight(%v)", e.VMIndex, s.EOM, e.DBHeight, dbheight))
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Invalid EOM s.EOM(%v) && e.DBHeight(%v) != dbheight(%v)", e.VMIndex, s.EOM, e.DBHeight, dbheight))
 	}
 
 	if s.EOM && int(e.Minute) > s.EOMMinute {
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Will Not Process: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
 		return false
 	}
 
@@ -1206,12 +1217,21 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// If I have done everything for all EOMs for all VMs, then and only then do I
 	// let processing continue.
 	if s.EOMDone && s.EOMSys {
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", e.VMIndex, s.EOMDone, s.EOMSys))
+		dbstate := s.GetDBState(dbheight - 1)
+		if dbstate == nil {
+			return false
+		}
+		if !dbstate.Saved {
+			return false
+		}
+
+		s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
+
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
 			s.EOM = false
 			s.EOMDone = false
-			s.ReviewHolding()
 			s.Syncing = false
 			s.EOMProcessed = 0
 		}
@@ -1222,7 +1242,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
 	if !s.EOM {
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Start EOM Processing: !s.EOM(%v) EOM: %s", e.VMIndex, s.EOM, e.String()))
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Start EOM Processing: !s.EOM(%v) EOM: %s", e.VMIndex, s.EOM, e.String()))
 		s.EOMSys = false
 		s.Syncing = true
 		s.EOM = true
@@ -1239,10 +1259,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// What I do for each EOM
 	if !e.Processed {
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Process Once: !e.Processed(%v) EOM: %s", e.VMIndex, e.Processed, e.String()))
+
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Process Once: !e.Processed(%v) EOM: %s", e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d EOMProcessed++ (%2d)", e.VMIndex, s.EOMProcessed))
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d EOMProcessed++ (%2d)", e.VMIndex, s.EOMProcessed))
 		e.Processed = true
 		vm.Synced = true
 		markNoFault(pl, msg.GetVMIndex())
@@ -1256,8 +1277,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
-		s.AddStatus(fmt.Sprintf("EOM PROCESS: EOM Complete: vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
-			e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
+
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: EOM Complete: vm %2d allfaults(%v) && s.EOMProcessed(%v) == s.EOMLimit(%v) && !s.EOMDone(%v)",
+		//	e.VMIndex, allfaults, s.EOMProcessed, s.EOMLimit, s.EOMDone))
 
 		s.EOMDone = true
 		for _, eb := range pl.NewEBlocks {
@@ -1279,6 +1301,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 
 		switch {
 		case s.CurrentMinute < 10:
+			if s.CurrentMinute == 1 {
+				dbstate := s.GetDBState(dbheight - 1)
+				if !dbstate.Saved {
+					dbstate.ReadyToSave = true
+				}
+			}
 			s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
 			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 		case s.CurrentMinute == 10:
@@ -1387,7 +1415,6 @@ func (s *State) CheckForIDChange() {
 			panic(err)
 		}
 		s.LocalServerPrivKey = config.App.LocalServerPrivKey
-		fmt.Printf("Updated Local Server Identity to %s", s.LocalServerPrivKey)
 		s.initServerKeys()
 	}
 }
@@ -1397,13 +1424,13 @@ func (s *State) CheckForIDChange() {
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
-	s.AddStatus(fmt.Sprintf("ProcessDBSig: %s ", msg.String()))
+	//s.AddStatus(fmt.Sprintf("ProcessDBSig: %s ", msg.String()))
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
-		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)",
-			dbs.DBHeight, s.Syncing, s.DBSig))
+		//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)",
+		//	dbs.DBHeight, s.Syncing, s.DBSig))
 		return false
 	}
 
@@ -1416,7 +1443,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// If we are done with DBSigs, and this message is processed, then we are done.  Let everything go!
 	if s.DBSigSys && s.DBSig && s.DBSigDone {
-		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Finished with DBSig: s.DBSigSys(%v) && s.DBSig(%v) && s.DBSigDone(%v)", s.DBSigSys, s.DBSig, s.DBSigDone))
+		//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Finished with DBSig: s.DBSigSys(%v) && s.DBSig(%v) && s.DBSigDone(%v)", s.DBSigSys, s.DBSig, s.DBSigDone))
 		s.DBSigProcessed--
 		if s.DBSigProcessed <= 0 {
 			s.EOMDone = false
@@ -1432,7 +1459,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that only executes once at the start of DBSignatures here
 	if !s.DBSig {
-		s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
+
+		//s.AddStatus("ProcessDBSig(): Start DBSig" + dbs.String())
 		s.DBSigLimit = len(pl.FedServers)
 		s.DBSigProcessed = 0
 		s.DBSig = true
@@ -1446,6 +1474,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes per DBSignature here
 	if !dbs.Processed {
+
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 
 			pl := s.ProcessLists.Get(dbs.DBHeight - 1)
@@ -1454,22 +1483,22 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				if dbstate == nil || (!dbstate.Locked && !dbstate.Saved) {
 					db, _ := s.DB.FetchDBlockByHeight(dbs.DBHeight - 1)
 					if db == nil {
-						s.AddStatus("ProcessDBSig(): Previous Process List isn't complete." + dbs.String())
+						//s.AddStatus("ProcessDBSig(): Previous Process List isn't complete." + dbs.String())
 						return false
 					}
 				}
 			}
 		}
 
-		s.AddStatus(fmt.Sprintf("ProcessDBSig(): Process the %d DBSig: %v", s.DBSigProcessed, dbs.String()))
+		//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Process the %d DBSig: %v", s.DBSigProcessed, dbs.String()))
 		if dbs.VMIndex == 0 {
-			s.AddStatus(fmt.Sprintf("ProcessDBSig(): Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
+			//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
 		dbstate := s.GetDBState(dbheight - 1)
 
 		if dbstate == nil {
-			s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
+			//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
 			return false
 		}
 
@@ -1482,10 +1511,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		allChecks := false
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
 		if err != nil {
-			s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Marshal binary errored"))
+			//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Marshal binary errored"))
 		} else {
 			if !dbs.DBSignature.Verify(data) {
-				s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Verify errored"))
+				//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Verify errored"))
 			} else {
 				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
 					allChecks = true
@@ -1500,7 +1529,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		dbs.Processed = true
 		s.DBSigProcessed++
-		s.AddStatus(fmt.Sprintf("Process DBSig vm %2v DBSigProcessed++ (%2d)", dbs.VMIndex, s.DBSigProcessed))
+		//s.AddStatus(fmt.Sprintf("Process DBSig vm %2v DBSigProcessed++ (%2d)", dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
 	}
 
@@ -1508,8 +1537,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// Put the stuff that executes once for set of DBSignatures (after I have them all) here
 	if allfaults && !s.DBSigDone && s.DBSigProcessed >= s.DBSigLimit {
-		s.AddStatus(fmt.Sprintf("All DBSigs are processed: allfaults(%v), && !s.DBSigDone(%v) && s.DBSigProcessed(%v)>= s.DBSigLimit(%v)",
-			allfaults, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit))
+		//s.AddStatus(fmt.Sprintf("All DBSigs are processed: allfaults(%v), && !s.DBSigDone(%v) && s.DBSigProcessed(%v)>= s.DBSigLimit(%v)",
+		//	allfaults, s.DBSigDone, s.DBSigProcessed, s.DBSigLimit))
 		fails := 0
 		for i := range pl.FedServers {
 			vm := pl.VMs[i]
@@ -1524,23 +1553,16 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 		}
 		if fails > 0 {
-			s.AddStatus("DBSig Fails Detected")
+			//s.AddStatus("DBSig Fails Detected")
 			return false
 		}
-		dbstate := s.DBStates.Get(int(dbheight - 1))
 
 		// TODO: check signatures here.  Count what match and what don't.  Then if a majority
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
-		if s.KeepMismatch || pl.CheckDiffSigTally() {
-			if !dbstate.Saved {
-				dbstate.ReadyToSave = true
-				s.DBStates.SaveDBStateToDB(dbstate)
-				//s.LeaderPL.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
-			}
-		} else {
+		if !s.KeepMismatch && !pl.CheckDiffSigTally() {
 			s.DBSigFails++
-			s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v DiffSigTally %v", s.KeepMismatch, pl.CheckDiffSigTally()))
+			//s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v", s.KeepMismatch))
 			if pl != nil {
 				pl.Reset()
 				s.DBSig = false
@@ -1552,6 +1574,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 				s.StartDelay = s.GetTimestamp().GetTimeMilli()
 				s.NetworkOutMsgQueue() <- msg
 			}
+			return false
 		}
 		s.ReviewHolding()
 		s.Saving = false
@@ -1585,13 +1608,13 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	}
 
 	// First we will update our status to include our fault process attempt
-	s.AddStatus(fmt.Sprintf("PROCESS Full Fault: %s",
-		fullFault.StringWithSigCnt(s)))
+	//s.AddStatus(fmt.Sprintf("PROCESS Full Fault: %s",
+	//	fullFault.StringWithSigCnt(s)))
 
 	// If we're not caught up in our SystemList enough to process the fault,
 	// processing must fail
 	if pl.System.Height < int(fullFault.SystemHeight) {
-		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height: %s", fullFault.StringWithSigCnt(s)))
+		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height: %s", fullFault.StringWithSigCnt(s)))
 		return false
 	}
 
@@ -1599,19 +1622,19 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 	// Do not process the fault until the VM height is caught up to it
 	if fullFault.Height > uint32(vm.Height) {
-		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right vm height: (FF:%d vm:%d) %s",
-			fullFault.Height,
-			uint32(vm.Height),
-			fullFault.StringWithSigCnt(s)))
+		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right vm height: (FF:%d vm:%d) %s",
+		//	fullFault.Height,
+		//	uint32(vm.Height),
+		//	fullFault.StringWithSigCnt(s)))
 		return false
 	}
 
 	// Double-check that the fault's SystemHeight is proper
 	if int(fullFault.SystemHeight) != pl.System.Height {
-		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height (FF:%d sys:%d) : %s",
-			int(fullFault.SystemHeight),
-			pl.System.Height,
-			fullFault.StringWithSigCnt(s)))
+		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Not at right system height (FF:%d sys:%d) : %s",
+		//	int(fullFault.SystemHeight),
+		//	pl.System.Height,
+		//	fullFault.StringWithSigCnt(s)))
 
 		return false
 	}
@@ -1622,7 +1645,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		if fullFault.GetVMIndex() < len(pl.VMs) && pl.VMs[fullFault.GetVMIndex()].WhenFaulted == 0 {
 			// If we agree that the server doesn't need to be faulted, we will clear our currentFault
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
-			s.AddStatus(fmt.Sprintf("PROCESS Full Fault CLEARING: %s", fullFault.StringWithSigCnt(s)))
+			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault CLEARING: %s", fullFault.StringWithSigCnt(s)))
 			fullFault.SetAlreadyProcessed()
 			return true
 		}
@@ -1639,14 +1662,14 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	if theAuditReplacement == nil {
 		for _, fedServer := range s.GetFedServers(fullFault.DBHeight) {
 			if fedServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
-				s.AddStatus(fmt.Sprintf("PROCESS Full Fault Nothing to do, Already a Fed Server! %s", fullFault.StringWithSigCnt(s)))
+				//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Nothing to do, Already a Fed Server! %s", fullFault.StringWithSigCnt(s)))
 				return false
 			}
 		}
 		// If we don't have any Audit Servers in our Authority set
 		// that match the nominated Audit Server in the FullFault,
 		// we can't really do anything useful with it
-		s.AddStatus(fmt.Sprintf("PROCESS Full Fault Audit Server not an audit server. %s", fullFault.StringWithSigCnt(s)))
+		//s.AddStatus(fmt.Sprintf("PROCESS Full Fault Audit Server not an audit server. %s", fullFault.StringWithSigCnt(s)))
 		return false
 	}
 
@@ -1658,11 +1681,11 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 		rHt := vm.Height
 		ffHt := int(fullFault.Height)
 		if rHt > ffHt {
-			s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL but reset vm... %s", fullFault.StringWithSigCnt(s)))
+			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL but reset vm... %s", fullFault.StringWithSigCnt(s)))
 			vm.Height = ffHt
 			return false
 		} else if rHt < ffHt {
-			s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL, vm not there yet. %s", fullFault.StringWithSigCnt(s)))
+			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault: FAIL, vm not there yet. %s", fullFault.StringWithSigCnt(s)))
 			return false
 		}
 
@@ -1696,7 +1719,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 					fullFault.ServerID.String()[4:12],
 					fullFault.AuditServerID.String()[4:12])
 				pl.State.AddAuthorityDelta(authorityDeltaString)
-				s.AddStatus(authorityDeltaString)
+				//s.AddStatus(authorityDeltaString)
 
 				pl.State.LastFaultAction = time.Now().Unix()
 				markNoFault(pl, fullFault.GetVMIndex())
@@ -1776,7 +1799,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 
 					nsf := messages.NewServerFault(fullFault.ServerID, fullFault.AuditServerID, int(fullFault.VMIndex),
 						fullFault.DBHeight, fullFault.Height, int(fullFault.SystemHeight), fullFault.Timestamp)
-					s.AddStatus(fmt.Sprintf("Match FullFault: %s", nsf.String()))
+					//s.AddStatus(fmt.Sprintf("Match FullFault: %s", nsf.String()))
 
 					s.matchFault(nsf)
 				}
@@ -1843,14 +1866,6 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 				s.PutCommit(ce.EntryHash, emsg)
 			}
 			continue
-		}
-	}
-}
-
-func (s *State) ConsiderSaved(dbheight uint32) {
-	for _, dbs := range s.DBStates.DBStates {
-		if dbs.DirectoryBlock.GetDatabaseHeight() == dbheight {
-			dbs.Saved = true
 		}
 	}
 }
@@ -2040,7 +2055,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 
 // Create a new Acknowledgement.  Must be called by a leader.  This
 // call assumes all the pieces are in place to create a new acknowledgement
-func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
+func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interfaces.IMsg {
 
 	vmIndex := msg.GetVMIndex()
 
@@ -2054,7 +2069,7 @@ func (s *State) NewAck(msg interfaces.IMsg) interfaces.IMsg {
 	copy(ack.Salt[:8], s.Salt.Bytes()[:8])
 	ack.MessageHash = msg.GetMsgHash()
 	ack.LeaderChainID = s.IdentityChainID
-
+	ack.BalanceHash = balanceHash
 	listlen := len(s.LeaderPL.VMs[vmIndex].List)
 	if listlen == 0 {
 		ack.Height = 0

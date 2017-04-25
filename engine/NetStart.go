@@ -17,8 +17,10 @@ import (
 	"bufio"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
@@ -42,6 +44,7 @@ var p2pNetwork *p2p.Controller
 var logPort string
 
 func NetStart(s *state.State) {
+	ackBalanceHashPtr := flag.Bool("balancehash", true, "If false, then don't pass around balance hashes")
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
@@ -88,6 +91,7 @@ func NetStart(s *state.State) {
 
 	flag.Parse()
 
+	ackbalanceHash := *ackBalanceHashPtr
 	enableNet := *enablenetPtr
 	waitEntries := *waitEntriesPtr
 	listenTo := *listenToPtr
@@ -124,6 +128,7 @@ func NetStart(s *state.State) {
 	factomdTLS := *factomdTLSflag
 	factomdLocations := *factomdLocationsflag
 
+	messages.AckBalanceHash = ackbalanceHash
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
@@ -254,6 +259,7 @@ func NetStart(s *state.State) {
 	setupFirstAuthority(s)
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", enableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", waitEntries))
@@ -527,7 +533,7 @@ func NetStart(s *state.State) {
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	if *tormanager {
-		manager, err := LaunchTorrentDBStateManagePlugin(*tormanagerPath, fnodes[0].State.InMsgQueue(), fnodes[0].State.DB, fnodes[0].State.GetServerPrivateKey())
+		manager, err := LaunchTorrentDBStateManagePlugin(*tormanagerPath, fnodes[0].State.InMsgQueue(), fnodes[0].State.DB.(*databaseOverlay.Overlay), fnodes[0].State.GetServerPrivateKey())
 		if err != nil {
 			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
 		}

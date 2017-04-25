@@ -525,6 +525,15 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 					}
 					f.State.SetNetStateOff(!v)
+
+					// Advance to the next node. Makes taking a number of nodes off or on line easier
+					fnodes[listenTo].State.SetOut(false)
+					listenTo++
+					if listenTo >= len(fnodes) {
+						listenTo = 0
+					}
+					fnodes[listenTo].State.SetOut(true)
+					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				}
 
 			case 'y' == b[0]:
@@ -758,7 +767,7 @@ func SimControl(listenTo int) {
 								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Key4, "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
 								for _, a := range ident.AnchorKeys {
-									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key))
 								}
 							}
 						} else if show == 1 {
@@ -769,7 +778,7 @@ func SimControl(listenTo int) {
 							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
 						} else if show == 4 {
 							for _, a := range ident.AnchorKeys {
-								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key))
 							}
 						}
 					}
@@ -877,7 +886,7 @@ func SimControl(listenTo int) {
 					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n"))
 					for _, a := range i.AnchorKeys {
-						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
+						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key))
 					}
 				}
 			case 'q' == b[0]:

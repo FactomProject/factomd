@@ -139,6 +139,9 @@ type IState interface {
 	GetNetworkSkeletonKey() IHash
 	IntiateNetworkSkeletonIdentity() error
 
+	// Getting info about an identity
+	GetSigningKey(id IHash) (IHash, int)
+
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
@@ -158,7 +161,7 @@ type IState interface {
 	GetAnchor() IAnchor
 
 	// Database
-	GetAndLockDB() DBOverlay
+	GetAndLockDB() DBOverlaySimple
 	UnlockDB()
 
 	// Web Services
@@ -234,6 +237,12 @@ type IState interface {
 	// No Entry Yet returns true if no Entry Hash is found in the Replay structs.
 	// Returns false if we have seen an Entry Replay in the current period.
 	NoEntryYet(IHash, Timestamp) bool
+
+	// Calculates the transaction rate this node is seeing.
+	//		totalTPS	: Total transactions / total time node running
+	//		instantTPS	: Weighted transactions per second to get a better value for
+	//					  current transaction rate.
+	CalculateTransactionRate() (totalTPS float64, instantTPS float64)
 
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)

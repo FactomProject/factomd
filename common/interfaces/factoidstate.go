@@ -21,6 +21,9 @@ type IFactoidState interface {
 	AddTransactionBlock(IFBlock) error
 	AddECBlock(IEntryCreditBlock) error
 
+	// Get a hash of all the balances at this height
+	GetBalanceHash(bool) IHash
+
 	// Validate transaction
 	// Return zero len string if the balance of an address covers each input
 	Validate(int, ITransaction) error

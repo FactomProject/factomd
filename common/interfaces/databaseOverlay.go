@@ -10,12 +10,52 @@ package interfaces
 
 import ()
 
+//A simplified DBOverlay to make sure we are not calling functions that could cause problems
+type DBOverlaySimple interface {
+	Close() error
+	DoesKeyExist(bucket, key []byte) (bool, error)
+	ExecuteMultiBatch() error
+	FetchABlock(IHash) (IAdminBlock, error)
+	FetchABlockByHeight(blockHeight uint32) (IAdminBlock, error)
+	FetchDBKeyMRByHeight(dBlockHeight uint32) (dBlockKeyMR IHash, err error)
+	FetchDBlock(IHash) (IDirectoryBlock, error)
+	FetchDBlockByHeight(uint32) (IDirectoryBlock, error)
+	FetchDBlockHead() (IDirectoryBlock, error)
+	FetchEBlock(IHash) (IEntryBlock, error)
+	FetchEBlockHead(chainID IHash) (IEntryBlock, error)
+	FetchECBlock(IHash) (IEntryCreditBlock, error)
+	FetchECBlockByHeight(blockHeight uint32) (IEntryCreditBlock, error)
+	FetchECTransaction(hash IHash) (IECBlockEntry, error)
+	FetchEntry(IHash) (IEBEntry, error)
+	FetchFBlock(IHash) (IFBlock, error)
+	FetchFBlockByHeight(blockHeight uint32) (IFBlock, error)
+	FetchFactoidTransaction(hash IHash) (ITransaction, error)
+	FetchHeadIndexByChainID(chainID IHash) (IHash, error)
+	FetchIncludedIn(hash IHash) (IHash, error)
+	FetchPaidFor(hash IHash) (IHash, error)
+	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
+	InsertEntryMultiBatch(entry IEBEntry) error
+	ProcessABlockMultiBatch(block DatabaseBatchable) error
+	ProcessDBlockMultiBatch(block DatabaseBlockWithEntries) error
+	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessEBlockMultiBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessECBlockMultiBatch(IEntryCreditBlock, bool) (err error)
+	ProcessFBlockMultiBatch(DatabaseBlockWithEntries) error
+	FetchDirBlockInfoByKeyMR(hash IHash) (IDirBlockInfo, error)
+	SetExportData(path string)
+	StartMultiBatch()
+	Trim()
+	FetchAllEntriesByChainID(chainID IHash) ([]IEBEntry, error)
+}
+
 // Db defines a generic interface that is used to request and insert data into db
 type DBOverlay interface {
 	// We let Database method calls flow through.
 	IDatabase
 
 	FetchHeadIndexByChainID(chainID IHash) (IHash, error)
+	SetExportData(path string)
 
 	StartMultiBatch()
 	PutInMultiBatch(records []Record)
@@ -42,6 +82,7 @@ type DBOverlay interface {
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessEBlockBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	ProcessEBlockMultiBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	FetchEBlock(IHash) (IEntryBlock, error)

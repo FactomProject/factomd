@@ -165,7 +165,7 @@ func NegotiationCheck(pl *ProcessList) {
 			ff.SendOut(pl.State, ff)
 			ff.FollowerExecute(pl.State)
 		}
-		pl.State.AddStatus(fmt.Sprintf("Sending Negotiation message (because %d) at %d since LFA=%d: %s", prevVM.FaultFlag, now, pl.State.LastFaultAction, ff.String()))
+		//pl.State.AddStatus(fmt.Sprintf("Sending Negotiation message (because %d) at %d since LFA=%d: %s", prevVM.FaultFlag, now, pl.State.LastFaultAction, ff.String()))
 		pl.State.LastFaultAction = now
 	}
 
@@ -472,12 +472,12 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 		return
 	}
 
-	s.AddStatus(fmt.Sprintf("FULL FAULT FOLLOWER EXECUTE Execute Full Fault:  Replacing %x with %x at height %d leader height %d %s",
-		fullFault.ServerID.Bytes()[2:6],
-		fullFault.AuditServerID.Bytes()[2:6],
-		fullFault.DBHeight,
-		s.LLeaderHeight,
-		fullFault.String()))
+	//s.AddStatus(fmt.Sprintf("FULL FAULT FOLLOWER EXECUTE Execute Full Fault:  Replacing %x with %x at height %d leader height %d %s",
+	//	fullFault.ServerID.Bytes()[2:6],
+	//	fullFault.AuditServerID.Bytes()[2:6],
+	//	fullFault.DBHeight,
+	//	s.LLeaderHeight,
+	//	fullFault.String()))
 
 	pl.AddToSystemList(fullFault)
 }
@@ -509,17 +509,17 @@ func (s *State) Reset() {
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
 	s.ResetTryCnt++
-	s.AddStatus(fmt.Sprintf("RESET: Trying to Reset for the %d time", s.ResetTryCnt))
+	//s.AddStatus(fmt.Sprintf("RESET: Trying to Reset for the %d time", s.ResetTryCnt))
 	index := len(s.DBStates.DBStates) - 1
 	if index < 2 {
-		s.AddStatus("RESET: Failed to Reset because not enough dbstates")
+		//s.AddStatus("RESET: Failed to Reset because not enough dbstates")
 		return
 	}
 
 	dbs := s.DBStates.DBStates[index]
 	for {
 		if dbs == nil || dbs.DirectoryBlock == nil || dbs.AdminBlock == nil || dbs.FactoidBlock == nil || dbs.EntryCreditBlock == nil {
-			s.AddStatus(fmt.Sprintf("RESET: Reset Failed, no dbstate at %d", index))
+			//s.AddStatus(fmt.Sprintf("RESET: Reset Failed, no dbstate at %d", index))
 			return
 		}
 		if dbs.Saved {
@@ -529,7 +529,7 @@ func (s *State) DoReset() {
 		dbs = s.DBStates.DBStates[index]
 	}
 	if index < 0 {
-		s.AddStatus("RESET: Can't reset far enough back")
+		//s.AddStatus("RESET: Can't reset far enough back")
 		return
 	}
 	s.ResetCnt++
@@ -549,5 +549,5 @@ func (s *State) DoReset() {
 	s.SetLeaderTimestamp(dbs.NextTimestamp)
 
 	s.DBStates.ProcessBlocks(dbs)
-	s.AddStatus("RESET: Complete")
+	//s.AddStatus("RESET: Complete")
 }

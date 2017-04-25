@@ -53,6 +53,8 @@ func Start(state interfaces.IState) {
 	if Servers[state.GetPort()] == nil {
 		server = web.NewServer()
 
+		server.Logger.SetOutput(ioutil.Discard)
+
 		Servers[state.GetPort()] = server
 		server.Env["state"] = state
 

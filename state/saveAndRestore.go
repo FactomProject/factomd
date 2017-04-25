@@ -115,7 +115,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
+	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
 	ss.Replay = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
@@ -364,11 +364,11 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	}
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
-	state.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight))
+	// state.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight))
 
 	dindex := ss.DBHeight - state.DBStates.Base
 	state.DBStates.DBStates = state.DBStates.DBStates[:dindex]
-	state.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
+	//state.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
 	state.Replay = ss.Replay.Save()
 	state.LeaderTimestamp = ss.LeaderTimestamp
@@ -386,7 +386,7 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.ECBalancesPMutex.Lock()
 	state.ECBalancesP = make(map[[32]byte]int64, 0)
 	for k := range state.ECBalancesP {
-		ss.ECBalancesP[k] = state.ECBalancesP[k]
+		state.ECBalancesP[k] = ss.ECBalancesP[k]
 	}
 	state.ECBalancesPMutex.Unlock()
 

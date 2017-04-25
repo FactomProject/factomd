@@ -42,7 +42,7 @@ func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 	d.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	d.peersFilePath = peersFile
 	d.seedURL = seed
-	d.LoadPeers()
+	//d.LoadPeers()
 	d.DiscoverPeersFromSeed()
 	return d
 }
