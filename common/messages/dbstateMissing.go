@@ -133,14 +133,26 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if len(state.NetworkOutMsgQueue()) > 100 {
 		return
 	}
-
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
 	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
-	if end-start > 200 {
+
+	// Look at our backlog of messages from the network.  If we are really behind, ignore completely.
+	// Otherwise, dial back our response, or give them as  much as we can.  In any event, limit to
+	// just a bit over 1 MB
+	l := len(state.InMsgQueue())
+	switch {
+	case l > 500:
+		return
+	case l > 50 && end-start > 10:
+		end = start + 10
+	case l > 10 && end-start > 1:
+		end = start + 1
+	case end-start > 200:
 		end = start + 200
 	}
+
 	sent := 0
 	for dbs := start; dbs <= end && sent < 1024*1024; dbs++ {
 		sent += m.send(dbs, state)
