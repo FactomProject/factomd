@@ -141,14 +141,12 @@ func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	// Look at our backlog of messages from the network.  If we are really behind, ignore completely.
 	// Otherwise, dial back our response, or give them as  much as we can.  In any event, limit to
 	// just a bit over 1 MB
-	l := len(state.InMsgQueue())
+	inlen := len(state.InMsgQueue())
 	switch {
-	case l > 200:
+	case inlen > 500:
 		return
-	case l > 50 && end-start > 10:
-		end = start + 10
-	case l > 50 && end-start > 1:
-		end = start + 1
+	case inlen > 200 && end-start > 50:
+		end = start + 50
 	case end-start > 200:
 		end = start + 200
 	}
