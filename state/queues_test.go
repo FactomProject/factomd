@@ -95,9 +95,15 @@ func TestQueues(t *testing.T) {
 	}
 
 	// Test NonBlocking
-	general.Dequeue()
-	inmsg.Dequeue()
-	netOut.Dequeue()
+	if v := general.Dequeue(); v != nil {
+		t.Error("Should be nil")
+	}
+	if v := inmsg.Dequeue(); v != nil {
+		t.Error("Should be nil")
+	}
+	if v := netOut.Dequeue(); v != nil {
+		t.Error("Should be nil")
+	}
 
 	// Trip prometheus, unfortunately, we cannot actually check the values
 	tripAllMessages(inmsg)
@@ -134,11 +140,14 @@ func tripAllMessages(q interfaces.IQueue) {
 	EnAndDeQueue(q, new(messages.BounceReply))
 	EnAndDeQueue(q, new(messages.SignatureTimeout))
 	EnAndDeQueue(q, new(messages.FactoidTransaction))
+	EnAndDeQueue(q, new(messages.DataResponse))
+	EnAndDeQueue(q, new(messages.RequestBlock))
 
 }
 
 func EnAndDeQueue(q interfaces.IQueue, m interfaces.IMsg) {
-
+	q.Enqueue(m)
+	q.Dequeue()
 }
 
 func checkLensAndCap(channel chan interfaces.IMsg, qs []interfaces.IQueue) bool {
