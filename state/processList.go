@@ -764,8 +764,6 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				last := vm.ListAck[vm.Height-1]
 				expectedSerialHash, err = primitives.CreateHash(last.MessageHash, thisAck.MessageHash)
 				if err != nil {
-					//JUSTIN
-					fmt.Println("Justin vmList", j, "setting to nil because:", err.Error())
 					vm.List[j] = nil
 					p.State.AddStatus(fmt.Sprintf("ProcessList.go Process: Error computing serial hash at dbht: %d vm %d  vm-height %d ", p.DBHeight, i, j))
 					p.Ask(i, j, 3, 4)
@@ -917,11 +915,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 }
 
 func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
-	fmt.Println("Justin AddToProc:", m.String())
-
 	if p == nil {
-		fmt.Println("Justin AddToProc (nil):", m.String())
-
 		return
 	}
 
@@ -931,7 +925,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		now := p.State.GetTimestamp()
 		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
 			// Us and too old?  Just ignore.
-			fmt.Println("Justin AddToProc Too Old:", m.String())
 			return
 		}
 		num := p.State.GetSalt(ack.Timestamp)
@@ -987,7 +980,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			return
 		}
 
-		fmt.Println("Justin AddToProc NotNilStuff:", m.String())
 		vm.List[ack.Height] = nil
 
 		return
@@ -1016,28 +1008,16 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	ack.SendOut(p.State, ack)
 	m.SendOut(p.State, m)
-	fmt.Println("Justin AddToProc Good:", m.String())
 
 	for len(vm.List) <= int(ack.Height) {
 		vm.List = append(vm.List, nil)
 		vm.ListAck = append(vm.ListAck, nil)
 	}
-	fmt.Println("Justin AddToProc RGood:", m.String())
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
-
-	fmt.Println("JUSTIN PROC")
-	for idx, procLM := range p.VMs[ack.VMIndex].List {
-		if procLM == nil {
-			fmt.Println("PL:", idx, "::: NIL")
-		} else {
-			fmt.Println("PL:", idx, ":::", procLM.String())
-		}
-	}
-
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

@@ -31,7 +31,6 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
-	fmt.Println("Justin executeM: ", msg.String())
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		return
@@ -62,18 +61,13 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				msg.LeaderExecute(s)
 			}
 		} else {
-			fmt.Println("Justin executeM2: ", msg.String())
 			msg.FollowerExecute(s)
 		}
 		ret = true
 	case 0:
 		//s.Holding[msg.GetMsgHash().Fixed()] = msg
-		fmt.Println("Justin executeM3: ", msg.String())
-
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
 	default:
-		fmt.Println("Justin executeM4: ", msg.String())
-
 		//s.Holding[msg.GetMsgHash().Fixed()] = msg
 		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
 		if !msg.SentInvlaid() {
@@ -161,19 +155,13 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			fmt.Println("JUSTIN ACK:", a.String())
 			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
-				fmt.Println("JUSTIN ACKvalid:", a.String())
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
-						fmt.Println("JUSTIN ACKex1:", a.String())
-
 						s.executeMsg(vm, ack)
 					}
 				} else {
-					fmt.Println("JUSTIN ACKex2:", a.String())
-
 					s.executeMsg(vm, ack)
 				}
 			}
@@ -188,8 +176,6 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
-			fmt.Println("Justin s.msgQueue ex", msg.String())
-
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -207,17 +193,14 @@ emptyLoop:
 		if msg == nil {
 			continue
 		}
-		fmt.Println("Justin XReview process <- ", msg.String())
 		process <- msg
 		progress = s.executeMsg(vm, msg) || progress
 	}
-	fmt.Println("Justin emptying XReview")
 
 	s.XReview = s.XReview[:0]
 
 	for len(process) > 0 {
 		msg := <-process
-		fmt.Println("Justin XReview msg <- process", msg.String())
 		s.executeMsg(vm, msg)
 		if !msg.IsPeer2Peer() {
 			msg.SendOut(s, msg)
@@ -287,55 +270,42 @@ func (s *State) ReviewHolding() {
 
 		sf, ok := v.(*messages.ServerFault)
 		if ok && sf.DBHeight < saved {
-			//delete(s.Holding, k)
 			s.RemoveFromHolding(k)
 			continue
 		}
 
 		ff, ok := v.(*messages.FullServerFault)
 		if ok && ff.DBHeight < saved {
-			//delete(s.Holding, k)
 			s.RemoveFromHolding(k)
 			continue
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight < saved-1 && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
-			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo EOM:", eom.String(), eom.DBHeight, saved, highest)
 			s.RemoveFromHolding(k)
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && int(saved) > 0 {
-			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo DBState:", dbsmsg.String(), saved)
 			s.RemoveFromHolding(k)
 			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && ((dbsigmsg.DBHeight < saved-1 && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
-			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo DBSig:", dbsigmsg.String(), dbsigmsg.DBHeight, saved, highest)
 			s.RemoveFromHolding(k)
 			continue
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
-			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo ReplayVal: ", v.String(), v.GetTimestamp().String(), s.GetTimestamp().String())
 			s.RemoveFromHolding(k)
 			continue
 		}
 
 		if v.Expire(s) {
 			s.ExpireCnt++
-			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo Expire: ", v.String())
-
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -348,9 +318,6 @@ func (s *State) ReviewHolding() {
 		}
 
 		if v.Validate(s) < 0 {
-			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo Validate < 0: ", v.String())
-
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -366,13 +333,10 @@ func (s *State) ReviewHolding() {
 			if s.Commits[re.Entry.GetHash().Fixed()] != nil && entryCnt < 200 {
 				s.XReview = append(s.XReview, v)
 				s.RemoveFromHolding(k)
-				//delete(s.Holding, k)
 				entryCnt++
 			}
 		} else {
 			s.XReview = append(s.XReview, v)
-			//delete(s.Holding, k)
-			fmt.Println("Justin RemFromHo XReview: ", v.String())
 			s.RemoveFromHolding(k)
 		}
 	}
@@ -443,13 +407,9 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
-	fmt.Println("Justin Follex:", m.String())
-	//s.Holding[m.GetMsgHash().Fixed()] = m
 	s.AddToHolding(m.GetMsgHash().Fixed(), m)
-	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
 	if ack != nil && ok {
-		fmt.Println("Justin Follex Add:", m.String())
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
@@ -463,10 +423,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
-	fmt.Println("Justin FollexEOM:", m.String())
-
 	if m.IsLocal() {
-		fmt.Println("Justin FollexEOM IsLocal:", m.String())
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
@@ -475,12 +432,8 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
 	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil && ok {
-		fmt.Println("Justin FollexEOM Good:", m.String())
-
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
-	} else {
-		fmt.Println("Justin FollexEOM Bad (nil ack):", m.String())
 	}
 }
 
@@ -489,8 +442,6 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 // message.
 func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	ack := msg.(*messages.Ack)
-
-	fmt.Println("Justin FollexAck: ", ack.String())
 
 	if ack.DBHeight > s.HighestKnown {
 		s.HighestKnown = ack.DBHeight
@@ -502,19 +453,12 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 	}
 	list := pl.VMs[ack.VMIndex].List
 	if len(list) > int(ack.Height) && list[ack.Height] != nil {
-		fmt.Println("Justin FollexAck1: ", ack.String())
-
 		return
 	}
-	fmt.Println("Justin FollexAck2: ", ack.String())
 
-	//s.Acks[ack.GetHash().Fixed()] = ack
 	s.AddToAcks(ack.GetHash().Fixed(), ack)
-	//m, _ := s.Holding[ack.GetHash().Fixed()]
 	m := s.GetHolding(ack.GetHash().Fixed())
 	if m != nil {
-		fmt.Println("Justin FollexAck3: ", ack.String())
-
 		m.FollowerExecute(s)
 	}
 }
@@ -826,11 +770,8 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	s.AddToHolding(m.GetMsgHash().Fixed(), m)
 	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
-	fmt.Println("Justin FollexReveal:", m.String())
 
 	if ack != nil && ok {
-		fmt.Println("Justin FollexReveal Good:", m.String())
-
 		m.SendOut(s, m)
 		ack.SendOut(s, ack)
 		m.SetLeaderChainID(ack.GetLeaderChainID())
@@ -1008,46 +949,36 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 }
 
 func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) bool {
-	fmt.Println("Justin ProcAddServ")
 	as, ok := addServerMsg.(*messages.AddServerMsg)
 	if ok && !ProcessIdentityToAdminBlock(s, as.ServerChainID, as.ServerType) {
-		fmt.Println("Justin ProcAddServ NotGood", ok)
 		s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
 		return false
 	}
 
-	fmt.Println("Justin ProcAddServ Good")
 	return true
 }
 
 func (s *State) ProcessRemoveServer(dbheight uint32, removeServerMsg interfaces.IMsg) bool {
-	fmt.Println("Justin ProcRemServ")
 	rs, ok := removeServerMsg.(*messages.RemoveServerMsg)
 	if !ok {
-		fmt.Println("Justin ProcRemServ NotOk")
 		return true
 	}
 
 	if !s.VerifyIsAuthority(rs.ServerChainID) {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Not an Authority")
-		fmt.Println("Justin ProcRemServ NotAuth")
 		return true
 	}
 
 	if s.GetAuthorityServerType(rs.ServerChainID) != rs.ServerType {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Servertype of message did not match authority's")
-		fmt.Println("Justin ProcRemServ NotServType")
 		return true
 	}
 
 	if len(s.LeaderPL.FedServers) < 2 && rs.ServerType == 0 {
 		fmt.Printf("dddd %s %s\n", s.FactomNodeName, "RemoveServer message did not add to admin block. Only 1 federated server exists.")
-		fmt.Println("Justin ProcRemServ OnlyOne")
-
 		return true
 	}
 	s.LeaderPL.AdminBlock.RemoveFederatedServer(rs.ServerChainID)
-	fmt.Println("Justin ProcRemServ Good")
 
 	return true
 }

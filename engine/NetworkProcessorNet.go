@@ -101,7 +101,6 @@ func Peers(fnode *FactomNode) {
 					}
 
 				} else {
-					fmt.Println("Justin did not put msg in InMsgQueue:", msg.String())
 					fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 				}
 			}
