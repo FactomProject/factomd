@@ -46,7 +46,49 @@ func GetFnodes() []*FactomNode {
 	return fnodes
 }
 
-func NetStart(s *state.State, args []string, listenToStdin bool) {
+type FactomParams struct {
+	ackbalanceHash           bool
+	enableNet                bool
+	waitEntries              bool
+	listenTo                 int
+	cnt                      int
+	net                      string
+	fnet                     string
+	droprate                 int
+	journal                  string
+	journaling               bool
+	follower                 bool
+	leader                   bool
+	db                       string
+	cloneDB                  string
+	portOverride             string
+	peers                    string
+	networkName              string
+	networkPortOverride      int
+	ControlPanelPortOverride int
+	logPort                  string
+	blkTime                  int
+	faultTimeout             int
+	runtimeLog               bool
+	netdebug                 bool
+	exclusive                bool
+	prefix                   string
+	rotate                   bool
+	timeOffset               int
+	keepMismatch             bool
+	startDelay               int
+	deadline                 int
+	customNet                string
+	rpcUser                  string
+	rpcPassword              string
+	factomdTLS               bool
+	factomdLocations         string
+	newProfileRate           int
+}
+
+func ParseCmdLine() *FactomParams {
+	p := new(FactomParams)
+
 	ackBalanceHashPtr := flag.Bool("balancehash", true, "If false, then don't pass around balance hashes")
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
@@ -79,64 +121,68 @@ func NetStart(s *state.State, args []string, listenToStdin bool) {
 	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
-	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+	newProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 
 	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
 	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
 	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Port for control panel webserver;  Default 8090")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Port for p2p network; default 8110")
 
+	flag.CommandLine.Parse(os.Args)
+	p.ackbalanceHash = *ackBalanceHashPtr
+	p.enableNet = *enablenetPtr
+	p.waitEntries = *waitEntriesPtr
+	p.listenTo = *listenToPtr
+	p.cnt = *cntPtr
+	p.net = *netPtr
+	p.fnet = *fnetPtr
+	p.droprate = *dropPtr
+	p.journal = *journalPtr
+	p.journaling = *journalingPtr
+	p.follower = *followerPtr
+	p.leader = *leaderPtr
+	p.db = *dbPtr
+	p.cloneDB = *cloneDBPtr
+	p.portOverride = *portOverridePtr
+	p.peers = *peersPtr
+	p.networkName = *networkNamePtr
+	p.networkPortOverride = *networkPortOverridePtr
+	p.ControlPanelPortOverride = *ControlPanelPortOverridePtr
+	p.logPort = *logportPtr
+	p.blkTime = *blkTimePtr
+	p.faultTimeout = *faultTimeoutPtr
+	p.runtimeLog = *runtimeLogPtr
+	p.netdebug = *netdebugPtr
+	p.exclusive = *exclusivePtr
+	p.prefix = *prefixNodePtr
+	p.rotate = *rotatePtr
+	p.timeOffset = *timeOffsetPtr
+	p.keepMismatch = *keepMismatchPtr
+	p.startDelay = int64(*startDelayPtr)
+	p.deadline = *deadlinePtr
+	p.customNet = primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
+	p.rpcUser = *rpcUserflag
+	p.rpcPassword = *rpcPasswordflag
+	p.factomdTLS = *factomdTLSflag
+	p.factomdLocations = *factomdLocationsflag
+	p.newProfileRate = *newProfileRate
+	return p
+}
+
+func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
+
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
 
-	flag.CommandLine.Parse(args)
-
-	ackbalanceHash := *ackBalanceHashPtr
-	enableNet := *enablenetPtr
-	waitEntries := *waitEntriesPtr
-	listenTo := *listenToPtr
-	cnt := *cntPtr
-	net := *netPtr
-	fnet := *fnetPtr
-	droprate := *dropPtr
-	journal := *journalPtr
-	journaling := *journalingPtr
-	follower := *followerPtr
-	leader := *leaderPtr
-	db := *dbPtr
-	cloneDB := *cloneDBPtr
-	portOverride := *portOverridePtr
-	peers := *peersPtr
-	networkName := *networkNamePtr
-	networkPortOverride := *networkPortOverridePtr
-	ControlPanelPortOverride := *ControlPanelPortOverridePtr
-	logPort = *logportPtr
-	blkTime := *blkTimePtr
-	faultTimeout := *faultTimeoutPtr
-	runtimeLog := *runtimeLogPtr
-	netdebug := *netdebugPtr
-	exclusive := *exclusivePtr
-	prefix := *prefixNodePtr
-	rotate := *rotatePtr
-	timeOffset := *timeOffsetPtr
-	keepMismatch := *keepMismatchPtr
-	startDelay := int64(*startDelayPtr)
-	deadline := *deadlinePtr
-	customNet := primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
-	rpcUser := *rpcUserflag
-	rpcPassword := *rpcPasswordflag
-	factomdTLS := *factomdTLSflag
-	factomdLocations := *factomdLocationsflag
-
-	messages.AckBalanceHash = ackbalanceHash
+	messages.AckBalanceHash = p.ackbalanceHash
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
 	fmt.Println(fmt.Sprintf("factom config: %s", FactomConfigFilename))
-	s.LoadConfig(FactomConfigFilename, networkName)
-	s.OneLeader = rotate
-	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
-	s.StartDelayLimit = startDelay * 1000
+	s.LoadConfig(FactomConfigFilename, p.networkName)
+	s.OneLeader = p.rotate
+	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.timeOffset))
+	s.StartDelayLimit = p.startDelay * 1000
 	s.Journaling = journaling
 
 	// Set the wait for entries flag

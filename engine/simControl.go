@@ -35,8 +35,8 @@ var ListenTo int
 // Used for signing messages
 var LOCAL_NET_PRIV_KEY string = "4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d"
 
-var ProcessChan = make(chan int)		// signal done here.
-var InputChan = make(chan string)	  // Get commands here
+var ProcessChan = make(chan int)  // signal done here.
+var InputChan = make(chan string) // Get commands here
 
 func GetLine(listenToStdin bool) string {
 
@@ -60,7 +60,7 @@ func GetLine(listenToStdin bool) string {
 }
 
 func GetFocus() *FactomNode {
-	if len(fnodes)> ListenTo && ListenTo >= 0 {
+	if len(fnodes) > ListenTo && ListenTo >= 0 {
 		return fnodes[ListenTo]
 	}
 	return nil

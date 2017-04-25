@@ -1,11 +1,10 @@
 package engine_test
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
-	"os"
-	"io/ioutil"
-
 
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
@@ -26,16 +25,14 @@ func waitBlocks(s *state.State, blks int) {
 func waitMinutes(s *state.State, min int) {
 	if s.CurrentMinute >= min {
 		for s.CurrentMinute > 0 {
-			time.Sleep(100*time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
 	for min > s.CurrentMinute {
-		time.Sleep(100*time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
-
-
 
 func TestSetupANetwork(t *testing.T) {
 
@@ -55,7 +52,7 @@ func TestSetupANetwork(t *testing.T) {
 		return string(out)
 	}
 
-	runCmd := func(cmd string) string{
+	runCmd := func(cmd string) string {
 		startCap()
 		InputChan <- cmd
 		v := endCap()
@@ -128,7 +125,6 @@ func TestSetupANetwork(t *testing.T) {
 		}
 	}
 
-
 	if leadercnt != 4 {
 		t.Fatalf("found %d leaders, expected 4", leadercnt)
 	}
@@ -138,20 +134,18 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fail()
 	}
 
-
 	fn1 := GetFocus()
 	if fn1.State.FactomNodeName != "FNode07" {
-		t.Fatalf("Expected FNode0, but got %s",fn1.State.FactomNodeName)
+		t.Fatalf("Expected FNode0, but got %s", fn1.State.FactomNodeName)
 	}
 
 	runCmd("8")
 
-	time.Sleep(100*time.Millisecond)
-
+	time.Sleep(100 * time.Millisecond)
 
 	fn2 := GetFocus()
 	if fn2.State.FactomNodeName != "FNode08" {
-		t.Fatalf("Expected FNode08, but got %s",fn1.State.FactomNodeName)
+		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
 
 	// Test block recording lengths and error checking for pprof
@@ -180,7 +174,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("p")
 	runCmd("p")
 	runCmd("r")
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 	runCmd("r")
 	runCmd("9")
 	runCmd("x")
@@ -205,4 +199,3 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 }
-
