@@ -236,7 +236,7 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
-	if len(s.inMsgQueue) > 10 {
+	if s.inMsgQueue.Length() > 10 {
 		return
 	}
 

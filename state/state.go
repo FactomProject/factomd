@@ -141,13 +141,14 @@ type State struct {
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     chan interfaces.IMsg
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             chan interfaces.IMsg
+	inMsgQueue             InMsgMSGQueue
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	ShutdownChan           chan int // For gracefully halting Factom
-	JournalFile            string
-	Journaling             bool
+
+	ShutdownChan chan int // For gracefully halting Factom
+	JournalFile  string
+	Journaling   bool
 
 	serverPrivKey         *primitives.PrivateKey
 	serverPubKey          *primitives.PublicKey
@@ -725,7 +726,7 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000) //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)        //incoming message queue for factom application messages
+	s.inMsgQueue = *NewInMsgQueue(10000)                    //incoming message queue for factom application messages
 	s.apiQueue = make(chan interfaces.IMsg, 100)            //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)            //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)            //queue of Follower messages
@@ -1798,7 +1799,7 @@ func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
 	return s.networkOutMsgQueue
 }
 
-func (s *State) InMsgQueue() chan interfaces.IMsg {
+func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 

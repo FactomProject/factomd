@@ -45,8 +45,8 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-					if len(fnode.State.InMsgQueue()) < 9000 {
-						fnode.State.InMsgQueue() <- msg
+					if fnode.State.InMsgQueue().Length() < 9000 {
+						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				}
 			default:
@@ -96,8 +96,8 @@ func Peers(fnode *FactomNode) {
 					fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
 					// Ignore messages if there are too many.
-					if len(fnode.State.InMsgQueue()) < 9000 {
-						fnode.State.InMsgQueue() <- msg
+					if fnode.State.InMsgQueue().Length() < 9000 {
+						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 
 				} else {

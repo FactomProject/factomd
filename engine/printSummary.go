@@ -150,7 +150,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
+			list = list + fmt.Sprintf(" %3d", f.State.InMsgQueue().Length())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
 
