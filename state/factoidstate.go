@@ -94,6 +94,9 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 	h4 := h2
 	if includeTemp {
 		pl := fs.State.ProcessLists.Get(fs.DBHeight)
+		if pl == nil {
+			return primitives.NewZeroHash()
+		}
 		pl.ECBalancesTMutex.Lock()
 		pl.FactoidBalancesTMutex.Lock()
 		h3 = GetMapHash(fs.DBHeight, pl.FactoidBalancesT)
