@@ -679,6 +679,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if list.State.UsingEtcd() {
 		// JUSTIN TODO: if usingEtcd, call NewBlockLease()
+		list.State.NewEtcdLease()
 	}
 
 	// Create the torrent

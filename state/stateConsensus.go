@@ -188,6 +188,7 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
+			fmt.Println("Justin s.msgQueue ex", msg.String())
 
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
@@ -206,13 +207,17 @@ emptyLoop:
 		if msg == nil {
 			continue
 		}
+		fmt.Println("Justin XReview process <- ", msg.String())
 		process <- msg
 		progress = s.executeMsg(vm, msg) || progress
 	}
+	fmt.Println("Justin emptying XReview")
+
 	s.XReview = s.XReview[:0]
 
 	for len(process) > 0 {
 		msg := <-process
+		fmt.Println("Justin XReview msg <- process", msg.String())
 		s.executeMsg(vm, msg)
 		if !msg.IsPeer2Peer() {
 			msg.SendOut(s, msg)
@@ -297,13 +302,15 @@ func (s *State) ReviewHolding() {
 		eom, ok := v.(*messages.EOM)
 		if ok && (eom.DBHeight < saved-1 || eom.DBHeight < highest-3 || int(highest) < 3 || int(saved) < 1) {
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo EOM:", eom.String(), eom.DBHeight, saved, highest)
 			s.RemoveFromHolding(k)
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
-		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 {
+		if ok && dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 || int(saved) < 1 {
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo DBState:", dbsmsg.String(), saved)
 			s.RemoveFromHolding(k)
 			continue
 		}
@@ -311,6 +318,7 @@ func (s *State) ReviewHolding() {
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && (dbsigmsg.DBHeight < saved-1 || dbsigmsg.DBHeight < highest-3 || int(highest) < 3 || int(saved) < 1) {
 			//delete(s.Holding, k)
+			fmt.Println("Justin RemFromHo DBSig:", dbsigmsg.String(), dbsigmsg.DBHeight, saved, highest)
 			s.RemoveFromHolding(k)
 			continue
 		}
