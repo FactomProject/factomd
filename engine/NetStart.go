@@ -18,6 +18,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/meta"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
@@ -543,7 +544,7 @@ func startServers(load bool) {
 }
 
 func setupFirstAuthority(s *state.State) {
-	var id state.Identity
+	var id meta.Identity
 	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
 		id.IdentityChainID = networkIdentity
 	} else {
@@ -567,7 +568,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Status = 1
 	s.Identities = append(s.Identities, &id)
 
-	var auth state.Authority
+	var auth meta.Authority
 	auth.Status = 1
 	auth.SigningKey = primitives.PubKeyFromString(id.SigningKey.String())
 	auth.MatryoshkaHash = primitives.NewZeroHash()

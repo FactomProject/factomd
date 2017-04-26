@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	. "github.com/FactomProject/factomd/common/meta"
 )
 
 // Because we have to go back to a previous state should the network be partictoned and we are on a separate

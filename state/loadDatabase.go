@@ -109,6 +109,7 @@ func GenerateGenesisBlocks(networkID uint32) (interfaces.IDirectoryBlock, interf
 	dblk.GetHeader().SetNetworkID(networkID)
 
 	dblk.GetHeader().SetTimestamp(primitives.NewTimestampFromMinutes(24018960))
+	dblk.BuildBodyMR()
 
 	return dblk, ablk, fblk, ecblk
 }
