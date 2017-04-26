@@ -94,6 +94,17 @@ func TestQueues(t *testing.T) {
 		t.Error("Did not properly block")
 	}
 
+	// Test NonBlocking
+	if v := general.Dequeue(); v != nil {
+		t.Error("Should be nil")
+	}
+	if v := inmsg.Dequeue(); v != nil {
+		t.Error("Should be nil")
+	}
+	if v := netOut.Dequeue(); v != nil {
+		t.Error("Should be nil")
+	}
+
 	// Trip prometheus, unfortunately, we cannot actually check the values
 	tripAllMessages(inmsg)
 	tripAllMessages(general)
@@ -108,52 +119,43 @@ func TestQueues(t *testing.T) {
 }
 
 func tripAllMessages(q interfaces.IQueue) {
-	q.Enqueue(new(messages.EOM))
-	q.Enqueue(new(messages.Ack))
-	q.Enqueue(new(messages.AuditServerFault))
-	q.Enqueue(new(messages.ServerFault))
-	q.Enqueue(new(messages.FullServerFault))
-	q.Enqueue(new(messages.CommitChainMsg))
-	q.Enqueue(new(messages.CommitEntryMsg))
-	q.Enqueue(new(messages.DirectoryBlockSignature))
-	q.Enqueue(new(messages.EOMTimeout))
-	q.Enqueue(new(messages.Heartbeat))
-	q.Enqueue(new(messages.InvalidDirectoryBlock))
-	q.Enqueue(new(messages.MissingMsg))
-	q.Enqueue(new(messages.MissingMsgResponse))
-	q.Enqueue(new(messages.MissingData))
-	q.Enqueue(new(messages.RevealEntryMsg))
-	q.Enqueue(new(messages.DBStateMsg))
-	q.Enqueue(new(messages.DBStateMissing))
-	q.Enqueue(new(messages.Bounce))
-	q.Enqueue(new(messages.BounceReply))
-	q.Enqueue(new(messages.SignatureTimeout))
+	EnAndDeQueue(q, new(messages.EOM))
+	EnAndDeQueue(q, new(messages.Ack))
+	EnAndDeQueue(q, new(messages.AuditServerFault))
+	EnAndDeQueue(q, new(messages.ServerFault))
+	EnAndDeQueue(q, new(messages.FullServerFault))
+	EnAndDeQueue(q, new(messages.CommitChainMsg))
+	EnAndDeQueue(q, new(messages.CommitEntryMsg))
+	EnAndDeQueue(q, new(messages.DirectoryBlockSignature))
+	EnAndDeQueue(q, new(messages.EOMTimeout))
+	EnAndDeQueue(q, new(messages.Heartbeat))
+	EnAndDeQueue(q, new(messages.InvalidDirectoryBlock))
+	EnAndDeQueue(q, new(messages.MissingMsg))
+	EnAndDeQueue(q, new(messages.MissingMsgResponse))
+	EnAndDeQueue(q, new(messages.MissingData))
+	EnAndDeQueue(q, new(messages.RevealEntryMsg))
+	EnAndDeQueue(q, new(messages.DBStateMsg))
+	EnAndDeQueue(q, new(messages.DBStateMissing))
+	EnAndDeQueue(q, new(messages.Bounce))
+	EnAndDeQueue(q, new(messages.BounceReply))
+	EnAndDeQueue(q, new(messages.SignatureTimeout))
+	EnAndDeQueue(q, new(messages.FactoidTransaction))
+	EnAndDeQueue(q, new(messages.DataResponse))
+	EnAndDeQueue(q, new(messages.RequestBlock))
 
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
-	q.Dequeue()
+}
+
+func EnAndDeQueue(q interfaces.IQueue, m interfaces.IMsg) {
+	q.Enqueue(m)
 	q.Dequeue()
 }
 
 func checkLensAndCap(channel chan interfaces.IMsg, qs []interfaces.IQueue) bool {
 	for _, q := range qs {
 		if len(channel) != q.Length() {
+			return false
+		}
+		if cap(channel) != q.Cap() {
 			return false
 		}
 	}
