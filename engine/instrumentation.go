@@ -10,6 +10,11 @@ var (
 		Name: "factomd_state_msg_replay_toss_total",
 		Help: "Number of repeated msgs.",
 	})
+
+	BroadInCastQueue = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_broadcast_in_current",
+		Help: "Number of msgs in broadcastin queue.",
+	})
 )
 
 var registered = false
@@ -23,4 +28,5 @@ func RegisterPrometheus() {
 	registered = true
 
 	prometheus.MustRegister(RepeatMsgs)
+	prometheus.MustRegister(BroadInCastQueue)
 }

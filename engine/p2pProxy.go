@@ -134,22 +134,23 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	select {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
+			BroadInCastQueue.Dec()
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)
-				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
+				//f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 				if nil == err {
 					msg.SetNetworkOrigin(fmessage.PeerHash)
 				}
-				if 1 < f.debugMode {
-					f.logMessage(msg, true) // NODE_TALK_FIX
-					fmt.Printf(".")
-				}
+				// if 1 < f.debugMode {
+				// 	f.logMessage(msg, true) // NODE_TALK_FIX
+				// 	fmt.Printf(".")
+				// }
 				f.bytesIn += len(fmessage.Message)
 				return msg, err
 			default:
-				fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
+				// fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 			}
 		}
 	default:
@@ -300,6 +301,7 @@ func (f *P2PProxy) ManageInChannel() {
 			f.trace(parcel.Header.AppHash, parcel.Header.AppType, "P2PProxy.ManageInChannel()", "M")
 			message := factomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
 			p2p.BlockFreeChannelSend(f.BroadcastIn, message)
+			BroadInCastQueue.Inc()
 		default:
 			fmt.Printf("Garbage on f.FromNetwork. %+v", data)
 		}
