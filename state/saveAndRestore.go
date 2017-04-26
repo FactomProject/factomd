@@ -65,10 +65,12 @@ type SaveState struct {
 
 	LeaderTimestamp interfaces.Timestamp
 
-	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+	Holding      map[[32]byte]interfaces.IMsg   // Hold Messages
+	HoldingTimes map[[32]byte]int64             // Hold Messages' time-in-holding
+	XReview      []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+	Acks         map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+	AcksTimes    map[[32]byte]int64             // Hold Acknowledgemets' time-in-holding
+	Commits      map[[32]byte][]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
 
@@ -164,6 +166,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.Syncing = state.Syncing
 
 	ss.Holding = make(map[[32]byte]interfaces.IMsg)
+	ss.HoldingTimes = make(map[[32]byte]int64)
 	//for k := range state.Holding {
 	//ss.Holding[k] = state.Holding[k]
 	//}
@@ -171,6 +174,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.XReview = append(ss.XReview, state.XReview...)
 
 	ss.Acks = make(map[[32]byte]interfaces.IMsg)
+	ss.AcksTimes = make(map[[32]byte]int64)
 	//for k := range state.Acks {
 	//	ss.Acks[k] = state.Acks[k]
 	//}
@@ -421,13 +425,20 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	for k := range ss.Holding {
 		state.Holding[k] = ss.Holding[k]
 	}
+	state.HoldingTimes = make(map[[32]byte]int64)
+	for k := range ss.HoldingTimes {
+		state.HoldingTimes[k] = ss.HoldingTimes[k]
+	}
 	state.XReview = append(state.XReview[:0], ss.XReview...)
 
 	state.Acks = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Acks {
 		state.Acks[k] = ss.Acks[k]
 	}
-
+	state.AcksTimes = make(map[[32]byte]int64)
+	for k := range ss.AcksTimes {
+		state.AcksTimes[k] = ss.AcksTimes[k]
+	}
 	state.Commits = make(map[[32]byte][]interfaces.IMsg)
 	for k := range ss.Commits {
 		var c []interfaces.IMsg

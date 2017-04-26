@@ -764,7 +764,9 @@ func (s *State) Init() {
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
+	s.HoldingTimes = make(map[[32]byte]int64)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
+	s.AcksTimes = make(map[[32]byte]int64)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
