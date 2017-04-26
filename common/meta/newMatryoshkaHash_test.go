@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/meta"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestNewMatryoshkaHashStructure(t *testing.T) {
@@ -37,7 +38,11 @@ func TestNewMatryoshkaHashStructure(t *testing.T) {
 		t.Errorf("Wrong ChainID, expected 631d82b86861ad552b1bb3e8311a9f04960e5d966c2830f0ada4caace517a914, got %v", h.String())
 	}
 
-	err = nmh.VerifySignature()
+	h, err = primitives.NewShaHashFromStr("3f2b77bca02392c95149dc769a78bc758b1037b6a546011b163af0d492b1bcc0")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	err = nmh.VerifySignature(h)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
