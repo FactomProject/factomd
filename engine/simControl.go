@@ -524,6 +524,15 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 					}
 					f.State.SetNetStateOff(!v)
+
+					// Advance to the next node. Makes taking a number of nodes off or on line easier
+					fnodes[listenTo].State.SetOut(false)
+					listenTo++
+					if listenTo >= len(fnodes) {
+						listenTo = 0
+					}
+					fnodes[listenTo].State.SetOut(true)
+					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", listenTo, "\r\n"))
 				}
 
 			case 'y' == b[0]:

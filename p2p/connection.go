@@ -324,7 +324,6 @@ func (c *Connection) dial() bool {
 // Called when we are online and connected to the peer.
 func (c *Connection) goOnline() {
 	p2pConnectionOnlineCall.Inc()
-	c.state = ConnectionOnline
 	now := time.Now()
 	c.encoder = gob.NewEncoder(c.conn)
 	c.decoder = gob.NewDecoder(c.conn)
@@ -334,9 +333,9 @@ func (c *Connection) goOnline() {
 	c.timeLastUpdate = now
 	c.peer.LastContact = now
 
-	// Wait a second for the processSends/Receives to put their erros in handleNetErrors,
-	// then drain the handleNetErrors
-	time.Sleep(1 * time.Second)
+	c.state = ConnectionOnline
+
+	// Drain the handleNetErrors to avoid immediate disconnect
 	c.handleNetErrors(true)
 	// Probably shouldn't reset metrics when we go online. (Eg: say after a temp network problem)
 	// c.metrics = ConnectionMetrics{MomentConnected: now} // Reset metrics

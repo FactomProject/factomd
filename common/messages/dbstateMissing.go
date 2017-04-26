@@ -129,18 +129,36 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 	return
 }
 
+func NewEnd(inLen int, start uint32, end uint32 ) (s uint32, e uint32){
+	switch {
+	case inLen > 500:
+		return 0, 0
+	case inLen > 200 && end-start > 50:
+		end = start + 50
+	case end-start > 200:
+		end = start + 200
+	}
+	return start, end
+}
+
 func (m *DBStateMissing) FollowerExecute(state interfaces.IState) {
 	if len(state.NetworkOutMsgQueue()) > 100 {
 		return
 	}
-
 	// TODO: Likely need to consider a limit on how many blocks we reply with.  For now,
 	// just give them what they ask for.
 	start := m.DBHeightStart
 	end := m.DBHeightEnd
-	if end-start > 200 {
-		end = start + 200
+
+	if end == 0 {
+		return
 	}
+
+	// Look at our backlog of messages from the network.  If we are really behind, ignore completely.
+	// Otherwise, dial back our response, or give them as  much as we can.  In any event, limit to
+	// just a bit over 1 MB
+	start, end = NewEnd(len(state.InMsgQueue()), start, end)
+
 	sent := 0
 	for dbs := start; dbs <= end && sent < 1024*1024; dbs++ {
 		sent += m.send(dbs, state)
