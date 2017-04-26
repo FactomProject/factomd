@@ -46,6 +46,7 @@ type P2PProxy struct {
 	// If this is true, outbound messages will be sent out
 	// via Etcd (as well as sent out over the p2p network normally)
 	useEtcd              bool
+	blockLeaseIdx        uint32
 	EtcdManager          interfaces.IEtcdManager
 	SuperVerboseMessages bool
 }
@@ -120,6 +121,7 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
 	f.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
 	f.logging = make(chan interface{}, p2p.StandardChannelSize)
+	f.blockLeaseIdx = 0
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -150,14 +152,15 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			MISSING_ENTRY_BLOCKS //27
 			ENTRY_BLOCK_RESPONSE //28
 			*/
-			if f.SuperVerboseMessages {
-				fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
-			}
 			err := f.SendIntoEtcd(msg)
 			if err != nil {
 				fmt.Println(err)
 				if strings.Contains(err.Error(), "connection is shut down") {
 					f.EtcdManager.Reinitiate()
+				}
+			} else {
+				if f.SuperVerboseMessages {
+					fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 				}
 			}
 		}
