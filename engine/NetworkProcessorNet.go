@@ -40,14 +40,15 @@ func Peers(fnode *FactomNode) {
 				}
 				cnt++
 				msg.SetOrigin(0)
-				_, ok := msg.(*messages.Ack)
-				if ok || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 					if len(fnode.State.InMsgQueue()) < 9000 {
 						fnode.State.InMsgQueue() <- msg
 					}
+				} else {
+					RepeatMsgs.Inc()
 				}
 			default:
 
@@ -79,9 +80,8 @@ func Peers(fnode *FactomNode) {
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
 					break
 				}
-				_, ok := msg.(*messages.Ack)
 				msg.SetOrigin(i + 1)
-				if ok || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
@@ -101,6 +101,7 @@ func Peers(fnode *FactomNode) {
 					}
 
 				} else {
+					RepeatMsgs.Inc()
 					fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 				}
 			}
