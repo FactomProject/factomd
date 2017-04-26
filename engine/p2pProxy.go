@@ -81,10 +81,28 @@ func (f *P2PProxy) UsingEtcd() bool {
 	return f.useEtcd
 }
 
+// Here we filter messages by type (only sending ProcessList-able messages)
+// Messages are sent into etcd as marshaled byte-slices
 func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
-	msgBytes, err := msg.MarshalBinary()
-	if err == nil {
-		return f.EtcdManager.SendIntoEtcd(msgBytes)
+	var err error
+	if msg.Type() < 16 || (msg.Type() > 21 && msg.Type() < 25) {
+		/* Let's ignore these message types:
+		MISSING_MSG           // 16
+		MISSING_DATA          // 17
+		DATA_RESPONSE         // 18
+		MISSING_MSG_RESPONSE  //19
+		DBSTATE_MSG          // 20
+		DBSTATE_MISSING_MSG  // 21
+
+		BOUNCE_MSG      // 25
+		BOUNCEREPLY_MSG // 26
+		MISSING_ENTRY_BLOCKS //27
+		ENTRY_BLOCK_RESPONSE //28
+		*/
+		msgBytes, err := msg.MarshalBinary()
+		if err == nil {
+			return f.EtcdManager.SendIntoEtcd(msgBytes)
+		}
 	}
 	return err
 }
@@ -138,31 +156,20 @@ func (f *P2PProxy) GetNameTo() string {
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if f.UsingEtcd() {
-		if msg.Type() < 16 || (msg.Type() > 21 && msg.Type() < 25) {
-			/* Let's ignore these message types:
-			MISSING_MSG           // 16
-			MISSING_DATA          // 17
-			DATA_RESPONSE         // 18
-			MISSING_MSG_RESPONSE  //19
-			DBSTATE_MSG          // 20
-			DBSTATE_MISSING_MSG  // 21
-
-			BOUNCE_MSG      // 25
-			BOUNCEREPLY_MSG // 26
-			MISSING_ENTRY_BLOCKS //27
-			ENTRY_BLOCK_RESPONSE //28
-			*/
-			err := f.SendIntoEtcd(msg)
-			if err != nil {
-				fmt.Println(err)
-				if strings.Contains(err.Error(), "connection is shut down") {
-					f.EtcdManager.Reinitiate()
+		err := f.SendIntoEtcd(msg)
+		if err != nil {
+			if f.SuperVerboseMessages {
+				if !strings.Contains(err.Error(), "non-etcd message") {
+					fmt.Println(err)
 				}
-			} else {
-				// Send was successful (err was nil)
-				if f.SuperVerboseMessages {
-					fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
-				}
+			}
+			if strings.Contains(err.Error(), "connection is shut down") {
+				f.EtcdManager.Reinitiate()
+			}
+		} else {
+			// Send was successful (err was nil)
+			if f.SuperVerboseMessages {
+				fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 			}
 		}
 	} else {
