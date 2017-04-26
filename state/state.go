@@ -225,8 +225,10 @@ type State struct {
 	// For Follower
 	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
+	HoldingTimes  map[[32]byte]int64             // Hold Messages' time-in-holding
 	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+	AcksTimes     map[[32]byte]int64             // Hold Acknowledgemets' time-in-holding
 	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
@@ -1177,13 +1179,27 @@ func (s *State) fillHoldingMap() {
 func (s *State) AddToHolding(key [32]byte, msg interfaces.IMsg) {
 	s.HoldingMutex.Lock()
 	defer s.HoldingMutex.Unlock()
+	if s.UsingEtcd() {
+		s.HoldingTimes[key] = s.GetTimestamp().GetTimeSeconds()
+	}
 	s.Holding[key] = msg
 }
 
 func (s *State) RemoveFromHolding(key [32]byte) {
 	s.HoldingMutex.Lock()
 	defer s.HoldingMutex.Unlock()
-	delete(s.Holding, key)
+	if s.UsingEtcd() {
+		howLongInHolding, ok := s.HoldingTimes[key]
+		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInHolding > 600 {
+			// When using etcd, we will leave messages in Holding for at least 10 minutes
+			// before allowing them to be moved to XReview
+			delete(s.Holding, key)
+			delete(s.HoldingTimes, key)
+		}
+	} else {
+		delete(s.Holding, key)
+		delete(s.HoldingTimes, key)
+	}
 }
 
 func (s *State) GetHolding(key [32]byte) interfaces.IMsg {
@@ -1199,13 +1215,27 @@ func (s *State) GetHolding(key [32]byte) interfaces.IMsg {
 func (s *State) AddToAcks(key [32]byte, msg interfaces.IMsg) {
 	s.AcksMutex.Lock()
 	defer s.AcksMutex.Unlock()
+	if s.UsingEtcd() {
+		s.AcksTimes[key] = s.GetTimestamp().GetTimeSeconds()
+	}
 	s.Acks[key] = msg
 }
 
 func (s *State) RemoveFromAcks(key [32]byte) {
 	s.AcksMutex.Lock()
 	defer s.AcksMutex.Unlock()
-	delete(s.Acks, key)
+	if s.UsingEtcd() {
+		howLongInAcks, ok := s.AcksTimes[key]
+		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInAcks > 600 {
+			// When using etcd, we will leave messages in Acks for at least 10 minutes
+			// before allowing them to be removed
+			delete(s.Acks, key)
+			delete(s.AcksTimes, key)
+		}
+	} else {
+		delete(s.Acks, key)
+		delete(s.AcksTimes, key)
+	}
 }
 
 func (s *State) GetAcks(key [32]byte) interfaces.IMsg {
