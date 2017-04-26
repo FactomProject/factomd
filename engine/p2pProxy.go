@@ -159,6 +159,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 					f.EtcdManager.Reinitiate()
 				}
 			} else {
+				// Send was successful (err was nil)
 				if f.SuperVerboseMessages {
 					fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 				}
