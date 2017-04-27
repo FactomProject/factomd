@@ -14,6 +14,7 @@ import (
 
 	"strings"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -99,6 +100,28 @@ func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
 		MISSING_ENTRY_BLOCKS //27
 		ENTRY_BLOCK_RESPONSE //28
 		*/
+		if msg.Type() == constants.EOM_MSG {
+			eomMsg := msg.(*messages.EOM)
+			if eomMsg.DBHeight > f.blockLeaseIdx {
+				f.blockLeaseIdx = eomMsg.DBHeight
+				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+			}
+		}
+		if msg.Type() == constants.ACK_MSG {
+			ackMsg := msg.(*messages.Ack)
+			if ackMsg.DBHeight > f.blockLeaseIdx {
+				f.blockLeaseIdx = ackMsg.DBHeight
+				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+			}
+		}
+		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+			dbsigMsg := msg.(*messages.DirectoryBlockSignature)
+			if dbsigMsg.DBHeight > f.blockLeaseIdx {
+				f.blockLeaseIdx = dbsigMsg.DBHeight
+				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+			}
+		}
+
 		msgBytes, err := msg.MarshalBinary()
 		if err == nil {
 			return f.EtcdManager.SendIntoEtcd(msgBytes)
