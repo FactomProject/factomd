@@ -149,12 +149,16 @@ type SendIntoEtcdArgs struct {
 	Msg []byte // interfaces.IMsg
 }
 
-type SendIntoEtcdData struct {
+type NewBlockLeaseArgs struct {
+	Height uint32
+}
+
+type ErrorData struct {
 	Error error
 }
 
 func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) error {
-	var resp SendIntoEtcdData
+	var resp ErrorData
 	args := SendIntoEtcdArgs{
 		Msg: msg,
 	}
@@ -168,7 +172,7 @@ func (g *IEtcdPluginRPC) SendIntoEtcd(msg []byte) error {
 }
 
 func (g *IEtcdPluginRPC) Reinitiate() error {
-	var resp SendIntoEtcdData
+	var resp ErrorData
 
 	err := g.client.Call("Plugin.Reinitiate", new(interface{}), &resp)
 	if err != nil {
@@ -179,10 +183,12 @@ func (g *IEtcdPluginRPC) Reinitiate() error {
 	return nil
 }
 
-func (g *IEtcdPluginRPC) NewBlockLease() error {
-	var resp SendIntoEtcdData
-
-	err := g.client.Call("Plugin.NewBlockLease", new(interface{}), &resp)
+func (g *IEtcdPluginRPC) NewBlockLease(blockHeight uint32) error {
+	var resp ErrorData
+	args := NewBlockLeaseArgs{
+		Height: blockHeight,
+	}
+	err := g.client.Call("Plugin.NewBlockLease", &args, &resp)
 	if err != nil {
 		g.client.Close()
 		return err
@@ -226,18 +232,20 @@ type IEtcdPluginRPCServer struct {
 	Impl interfaces.IEtcdManager
 }
 
-func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *SendIntoEtcdData) error {
+func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *ErrorData) error {
 	err := s.Impl.SendIntoEtcd(args.Msg)
 	resp.Error = err
 	return nil
 }
 
-func (s *IEtcdPluginRPCServer) Reinitiate(args interface{}, resp *SendIntoEtcdData) error {
+func (s *IEtcdPluginRPCServer) Reinitiate(args interface{}, resp *ErrorData) error {
 	return s.Impl.Reinitiate()
 }
 
-func (s *IEtcdPluginRPCServer) NewBlockLease(args interface{}, resp *SendIntoEtcdData) error {
-	return s.Impl.NewBlockLease()
+func (s *IEtcdPluginRPCServer) NewBlockLease(args *NewBlockLeaseArgs, resp *ErrorData) error {
+	err := s.Impl.NewBlockLease(args.Height)
+	resp.Error = err
+	return nil
 }
 
 func (s *IEtcdPluginRPCServer) GetData(args interface{}, resp *GetFromEtcdData) error {

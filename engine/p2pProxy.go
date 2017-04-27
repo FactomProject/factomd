@@ -111,8 +111,8 @@ func (f *P2PProxy) Reinitiate() error {
 	return f.EtcdManager.Reinitiate()
 }
 
-func (f *P2PProxy) NewBlockLease() error {
-	return f.EtcdManager.NewBlockLease()
+func (f *P2PProxy) NewBlockLease(blockHeight uint32) error {
+	return f.EtcdManager.NewBlockLease(blockHeight)
 }
 
 func (f *P2PProxy) Weight() int {
