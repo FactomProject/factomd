@@ -50,161 +50,92 @@ func (q NetOutMsgQueue) BlockingDequeue() interfaces.IMsg {
 //
 
 func (q NetOutMsgQueue) EOM(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgEOM.Inc()
 }
 
 func (q NetOutMsgQueue) ACK(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgACK.Inc()
 }
 
 func (q NetOutMsgQueue) AudFault(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgAudFault.Inc()
 }
 func (q NetOutMsgQueue) FedFault(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgFedFault.Inc()
 }
 
 func (q NetOutMsgQueue) FullFault(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgFullFault.Inc()
 }
 
 func (q NetOutMsgQueue) CommitChain(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgCommitChain.Inc()
 }
 
 func (q NetOutMsgQueue) CommitEntry(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgCommitEntry.Inc()
 }
 
 func (q NetOutMsgQueue) DBSig(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgDBSig.Inc()
 }
 
 func (q NetOutMsgQueue) EOMTimeout(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgEOMTimeout.Inc()
 }
 
 func (q NetOutMsgQueue) FactTx(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgFactTX.Inc()
 }
 
 func (q NetOutMsgQueue) Heartbeat(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgHeartbeat.Inc()
 }
 
 func (q NetOutMsgQueue) InvalidDBlock(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgInvalidDB.Inc()
 }
 
 func (q NetOutMsgQueue) MissingMsg(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgMissingMsg.Inc()
 }
 
 func (q NetOutMsgQueue) MissingMsgResp(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgMissingMsgResp.Inc()
 }
 
 func (q NetOutMsgQueue) MissingData(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgMissingData.Inc()
 }
 
 func (q NetOutMsgQueue) MissingDataResp(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgMissingDataResp.Inc()
 }
 
 func (q NetOutMsgQueue) RevealEntry(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgRevealEntry.Inc()
 }
 
 func (q NetOutMsgQueue) DBStateMissing(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgDbStateMissing.Inc()
 }
 
 func (q NetOutMsgQueue) DBState(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgDbState.Inc()
 }
 
 func (q NetOutMsgQueue) Bounce(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgBounceMsg.Inc()
 }
 
 func (q NetOutMsgQueue) BounceReply(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgBounceResp.Inc()
 }
 
 func (q NetOutMsgQueue) ReqBlock(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgReqBlock.Inc()
 }
 
 func (q NetOutMsgQueue) Misc(increment bool) {
-	if !increment {
-		return
-	}
 	TotalMessageQueueNetOutMsgMisc.Inc()
 }
