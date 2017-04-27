@@ -1192,8 +1192,8 @@ func (s *State) RemoveFromHolding(key [32]byte) {
 	defer s.HoldingMutex.Unlock()
 	if s.UsingEtcd() {
 		howLongInHolding, ok := s.HoldingTimes[key]
-		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInHolding > 600 {
-			// When using etcd, we will leave messages in Holding for at least 10 minutes
+		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInHolding > 10 {
+			// When using etcd, we will leave messages in Holding for at least 10 seconds
 			// before allowing them to be moved to XReview
 			delete(s.Holding, key)
 			delete(s.HoldingTimes, key)
