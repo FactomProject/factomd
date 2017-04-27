@@ -102,6 +102,7 @@ func Peers(fnode *FactomNode) {
 
 				} else {
 					RepeatMsgs.Inc()
+					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
 				}
 			}
 		}

@@ -133,7 +133,6 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
 			return m.ValidateRTN(state)
 		}
-		fmt.Println("Made a chain: ", state.GetFactomNodeName(), m.Entry.GetChainID().String())
 	}
 
 	return commit, 1

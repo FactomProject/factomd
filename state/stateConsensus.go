@@ -272,56 +272,48 @@ func (s *State) ReviewHolding() {
 			if ok && ff.DBHeight < saved {
 				delete(s.Holding, k)
 			}
-			fmt.Println("12")
 			continue
 		}
 
 		sf, ok := v.(*messages.ServerFault)
 		if ok && sf.DBHeight < saved {
 			delete(s.Holding, k)
-			fmt.Println("11")
 			continue
 		}
 
 		ff, ok := v.(*messages.FullServerFault)
 		if ok && ff.DBHeight < saved {
 			delete(s.Holding, k)
-			fmt.Println("10")
 			continue
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight < saved-1 && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
-			fmt.Println("9")
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
 			delete(s.Holding, k)
-			fmt.Println("8")
 			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && ((dbsigmsg.DBHeight < saved-1 && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
-			fmt.Println("7")
 			continue
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
 			delete(s.Holding, k)
-			fmt.Println("6")
 			continue
 		}
 
 		if v.Expire(s) {
 			s.ExpireCnt++
 			delete(s.Holding, k)
-			fmt.Println("5")
 			continue
 		}
 
@@ -329,14 +321,12 @@ func (s *State) ReviewHolding() {
 			if v.Validate(s) == 1 {
 				s.ResendCnt++
 				v.SendOut(s, v)
-				fmt.Println("4")
 				continue
 			}
 		}
 
 		if v.Validate(s) < 0 {
 			delete(s.Holding, k)
-			fmt.Println("3")
 			continue
 		}
 
@@ -768,7 +758,6 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
-	fmt.Println("Follower Execute")
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
@@ -919,9 +908,6 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
-
-	fmt.Println("Leader Execute")
-
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
 
