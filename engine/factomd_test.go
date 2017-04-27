@@ -53,7 +53,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	runCmd := func(cmd string) string {
-		os.Stderr.WriteString("Executing: "+cmd)
+		os.Stderr.WriteString("Executing: "+cmd+"\n")
 		startCap()
 		InputChan <- cmd
 		v := endCap()

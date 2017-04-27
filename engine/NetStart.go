@@ -560,6 +560,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	state.RegisterPrometheus()
 	p2p.RegisterPrometheus()
 	leveldb.RegisterPrometheus()
+	RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:

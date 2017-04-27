@@ -135,6 +135,10 @@ func SimControl(listenTo int, listenStdin bool) {
 						copyOver(fnodes[ListenTo].State)
 						break
 					}
+					if b[1] == 'f' {
+						fundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
+						break
+					}
 				}
 				if ListenTo < 0 || ListenTo > len(fnodes) {
 					break
@@ -549,18 +553,52 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString("Take  " + f.State.FactomNodeName + " off the network\n")
 					}
 					f.State.SetNetStateOff(!v)
+
+					// Advance to the next node. Makes taking a number of nodes off or on line easier
+					fnodes[ListenTo].State.SetOut(false)
+					listenTo++
+					if listenTo >= len(fnodes) {
+						listenTo = 0
+					}
+					fnodes[ListenTo].State.SetOut(true)
+					os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
 				}
 
 			case 'y' == b[0]:
 				if ListenTo >= 0 && ListenTo < len(fnodes) {
-					f := fnodes[ListenTo]
-					fmt.Println("Holding:")
-					for k := range f.State.Holding {
-						v := f.State.Holding[k]
-						if v != nil {
-							os.Stderr.WriteString((v.String()) + "\n")
-						} else {
-							os.Stderr.WriteString("<nul>\n")
+					if len(b) == 1 || b[1] == 'h' {
+						f := fnodes[ListenTo]
+						fmt.Println("Holding:")
+						for k := range f.State.Holding {
+							v := f.State.Holding[k]
+							if v != nil {
+								os.Stderr.WriteString((v.String()) + "\n")
+							} else {
+								os.Stderr.WriteString("<nul>\n")
+							}
+						}
+					} else if b[1] == 'c' {
+						f := fnodes[ListenTo]
+						fmt.Println("Commits:")
+						for _, v := range f.State.Commits {
+							if v != nil && len(v) > 0 {
+								os.Stderr.WriteString("[\n")
+								for _, c := range v {
+									os.Stderr.WriteString("  " + (c.String()))
+									cc, ok1 := c.(*messages.CommitChainMsg)
+									cm, ok2 := c.(*messages.CommitEntryMsg)
+									if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
+										os.Stderr.WriteString(" cc MATCH!\n")
+									} else if ok2 && f.State.Holding[cm.CommitEntry.EntryHash.Fixed()] != nil {
+										os.Stderr.WriteString(" ce MATCH!\n")
+									} else {
+										os.Stderr.WriteString(" no match\n")
+									}
+								}
+								os.Stderr.WriteString("]\n")
+							} else {
+								os.Stderr.WriteString("<nul>\n")
+							}
 						}
 					}
 				}
@@ -600,7 +638,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					break
 				}
 
-				fnodes[ListenTo].State.InMsgQueue() <- msg
+				fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[ListenTo].State.GetFactomNodeName(), "as a server"))
 
 				fallthrough
@@ -633,7 +671,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
 						break
 					}
-					fnodes[ListenTo].State.InMsgQueue() <- msg
+					fnodes[ListenTo].State.InMsgQueue().Enqueue(msg)
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[ListenTo].State.GetFactomNodeName(), "a Audit Server"))
 				}
 				fallthrough
@@ -677,7 +715,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
 						break
 					}
-					fnodes[ListenTo].State.InMsgQueue() <- msg
+					fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[ListenTo].State.GetFactomNodeName(), "a Leader"))
 				}
 				fallthrough
