@@ -110,6 +110,10 @@ func SimControl(listenTo int) {
 						copyOver(fnodes[listenTo].State)
 						break
 					}
+					if b[1] == 'f' {
+						fundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
+						break
+					}
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
 					break

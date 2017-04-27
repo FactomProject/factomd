@@ -94,7 +94,6 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // Discard any invalid entries in the map.  Should never happen.
-		fmt.Println("dddd Bad EB Commit", state.GetFactomNodeName())
 		return m.ValidateRTN(state)
 	}
 
@@ -104,7 +103,6 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
-			fmt.Println("dddd EB Commit is short", state.GetFactomNodeName())
 			return m.ValidateRTN(state) // Discard commits that are not funded properly.
 		}
 
@@ -112,12 +110,19 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		db := state.GetAndLockDB()
 		dbheight := state.GetLeaderHeight()
 		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
-		eb_db := state.GetNewEBlocks(dbheight-1, m.Entry.GetChainID())
-		if eb_db == nil {
-			eb_db, _ = db.FetchEBlockHead(m.Entry.GetChainID())
+		if eb == nil {
+			eb_db := state.GetNewEBlocks(dbheight-1, m.Entry.GetChainID())
+			eb = eb_db
+		}
+		if eb == nil {
+			eb_db2 := state.GetNewEBlocks(dbheight-2, m.Entry.GetChainID())
+			eb = eb_db2
+		}
+		if eb == nil {
+			eb, _ = db.FetchEBlockHead(m.Entry.GetChainID())
 		}
 
-		if eb_db == nil && eb == nil {
+		if eb == nil {
 			// If we don't have a chain, put the commit back.  Don't want to lose it.
 			state.PutCommit(m.Entry.GetHash(), commit)
 			return nil, 0
@@ -128,6 +133,7 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
 			return m.ValidateRTN(state)
 		}
+		fmt.Println("Made a chain: ", state.GetFactomNodeName(), m.Entry.GetChainID().String())
 	}
 
 	return commit, 1
