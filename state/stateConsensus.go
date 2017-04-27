@@ -185,17 +185,21 @@ emptyLoop:
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-	for _, msg := range s.XReview {
-		if !room() {
-			break
+skipreview:
+	for {
+		for _, msg := range s.XReview {
+			if !room() {
+				break skipreview
+			}
+			if msg == nil {
+				continue
+			}
+			process <- msg
+			progress = s.executeMsg(vm, msg) || progress
 		}
-		if msg == nil {
-			continue
-		}
-		process <- msg
-		progress = s.executeMsg(vm, msg) || progress
+		s.XReview = s.XReview[:0]
+		break
 	}
-	s.XReview = s.XReview[:0]
 
 	for len(process) > 0 {
 		msg := <-process
@@ -236,7 +240,7 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
-	if len(s.inMsgQueue) > 10 {
+	if s.inMsgQueue.Length() > 10 {
 		return
 	}
 
@@ -316,6 +320,7 @@ func (s *State) ReviewHolding() {
 			if v.Validate(s) == 1 {
 				s.ResendCnt++
 				v.SendOut(s, v)
+				continue
 			}
 		}
 
@@ -324,23 +329,8 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		// Only reprocess up to 200 Entry Reveals per round.  Keeps entry reveals from hiding all the good stuff like
-		// EOM messages, DBSigs, Missing data messages, etc.  You know, the stuff we have to do BEFORE we can deal
-		// with Entry Reveal messages.  Note we are adding them to the end anyway, so this is more about not blocking
-		// the next round of processing.
-		entryCnt := 0
-		// Pointless to review a Reveal Entry;  it will be pulled into play when its commit
-		// comes around.
-		if re, ok := v.(*messages.RevealEntryMsg); ok {
-			if s.Commits[re.Entry.GetHash().Fixed()] != nil && entryCnt < 200 {
-				s.XReview = append(s.XReview, v)
-				delete(s.Holding, k)
-				entryCnt++
-			}
-		} else {
-			s.XReview = append(s.XReview, v)
-			delete(s.Holding, k)
-		}
+		s.XReview = append(s.XReview, v)
+		delete(s.Holding, k)
 	}
 }
 
@@ -732,7 +722,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		s.NetworkOutMsgQueue() <- msgResponse
+		s.NetworkOutMsgQueue().Enqueue(msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
 	}
@@ -745,7 +735,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			s.NetworkOutMsgQueue() <- msgResponse
+			s.NetworkOutMsgQueue().Enqueue(msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true
 		}
@@ -936,6 +926,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	switch rtn {
 	case 0:
 		m.FollowerExecute(s)
+		return
 	case -1:
 		return
 	}
@@ -955,8 +946,8 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 	// If it was added, then get rid of the matching Commit.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {
-		m.FollowerExecute(s)
 		s.PutCommit(eh, commit)
+		m.FollowerExecute(s)
 	} else {
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
@@ -1035,8 +1026,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
-	} else {
-		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot process Commit Chain")
 
@@ -1059,8 +1048,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
-	} else {
-		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
 
@@ -1567,7 +1554,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if msg != nil {
 				s.RunLeader = false
 				s.StartDelay = s.GetTimestamp().GetTimeMilli()
-				s.NetworkOutMsgQueue() <- msg
+				s.NetworkOutMsgQueue().Enqueue(msg)
 			}
 			return false
 		}
@@ -1866,11 +1853,14 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return nil
+	if dbheight <= s.GetHighestSavedBlk()+1 {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return nil
+		}
+		return pl.GetNewEBlocks(hash)
 	}
-	return pl.GetNewEBlocks(hash)
+	return nil
 }
 
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {

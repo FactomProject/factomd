@@ -80,7 +80,7 @@ func (s *State) MakeMissingEntryRequests() {
 		}
 
 		sent := 0
-		if len(s.inMsgQueue) < 500 {
+		if s.inMsgQueue.Length() < 500 {
 			// Make requests for entries we don't have.
 			for k := range MissingEntryMap {
 
