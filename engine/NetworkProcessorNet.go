@@ -43,7 +43,7 @@ func Peers(fnode *FactomNode) {
 				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
-					fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
+					//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 					if fnode.State.InMsgQueue().Length() < 9000 {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
