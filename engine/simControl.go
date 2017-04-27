@@ -537,14 +537,39 @@ func SimControl(listenTo int) {
 
 			case 'y' == b[0]:
 				if listenTo >= 0 && listenTo < len(fnodes) {
-					f := fnodes[listenTo]
-					fmt.Println("Holding:")
-					for k := range f.State.Holding {
-						v := f.State.Holding[k]
-						if v != nil {
-							os.Stderr.WriteString((v.String()) + "\n")
-						} else {
-							os.Stderr.WriteString("<nul>\n")
+					if len(b) == 1 || b[1] == 'h' {
+						f := fnodes[listenTo]
+						fmt.Println("Holding:")
+						for k := range f.State.Holding {
+							v := f.State.Holding[k]
+							if v != nil {
+								os.Stderr.WriteString((v.String()) + "\n")
+							} else {
+								os.Stderr.WriteString("<nul>\n")
+							}
+						}
+					} else if b[1] == 'c' {
+						f := fnodes[listenTo]
+						fmt.Println("Commits:")
+						for _, v := range f.State.Commits {
+							if v != nil && len(v) > 0 {
+								os.Stderr.WriteString("[\n")
+								for _, c := range v {
+									os.Stderr.WriteString("  " + (c.String()))
+									cc, ok1 := c.(*messages.CommitChainMsg)
+									cm, ok2 := c.(*messages.CommitEntryMsg)
+									if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
+										os.Stderr.WriteString(" cc MATCH!\n")
+									} else if ok2 && f.State.Holding[cm.CommitEntry.EntryHash.Fixed()] != nil {
+										os.Stderr.WriteString(" ce MATCH!\n")
+									} else {
+										os.Stderr.WriteString(" no match\n")
+									}
+								}
+								os.Stderr.WriteString("]\n")
+							} else {
+								os.Stderr.WriteString("<nul>\n")
+							}
 						}
 					}
 				}
