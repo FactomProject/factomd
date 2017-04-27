@@ -5,11 +5,13 @@
 package main
 
 import (
-	"github.com/FactomProject/factomd/engine"
 	"os"
+
+	"github.com/FactomProject/factomd/engine"
 )
 
 func main() {
 	// uncomment StartProfiler() to run the pprof tool (for testing)
-	engine.Factomd(os.Args[1:], true)
+	params := engine.ParseCmdLine(os.Args)
+	engine.Factomd(params, true)
 }

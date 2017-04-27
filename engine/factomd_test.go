@@ -53,6 +53,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	runCmd := func(cmd string) string {
+		os.Stderr.WriteString("Executing: "+cmd)
 		startCap()
 		InputChan <- cmd
 		v := endCap()
@@ -70,7 +71,8 @@ func TestSetupANetwork(t *testing.T) {
 		"-ControlPanelPort=37002",
 		"-networkPort=37003")
 
-	go Factomd(args, false)
+	params := ParseCmdLine(args)
+	go Factomd(params, false)
 	time.Sleep(3 * time.Second)
 
 	t.Log("Allocated 10 nodes")
@@ -171,6 +173,8 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("e100")
 	runCmd("d100")
 	runCmd("f100")
+	runCmd("yh")
+	runCmd("yc")
 	runCmd("p")
 	runCmd("p")
 	runCmd("r")
