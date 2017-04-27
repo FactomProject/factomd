@@ -1228,8 +1228,8 @@ func (s *State) RemoveFromAcks(key [32]byte) {
 	defer s.AcksMutex.Unlock()
 	if s.UsingEtcd() {
 		howLongInAcks, ok := s.AcksTimes[key]
-		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInAcks > 600 {
-			// When using etcd, we will leave messages in Acks for at least 10 minutes
+		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInAcks > 10 {
+			// When using etcd, we will leave messages in Acks for at least 10 seconds
 			// before allowing them to be removed
 			delete(s.Acks, key)
 			delete(s.AcksTimes, key)
