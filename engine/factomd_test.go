@@ -85,8 +85,8 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("s")
 	runCmd("9")
 	runCmd("x")
-	runCmd("0")
-
+	runCmd("8")
+	runCmd("")
 	waitBlocks(n0.State, 1)
 	runCmd("g10")
 	waitBlocks(n0.State, 1)
@@ -95,21 +95,14 @@ func TestSetupANetwork(t *testing.T) {
 	waitMinutes(n0.State, 1)
 
 	runCmd("l")
-	time.Sleep(100 * time.Millisecond)
 	runCmd("")
-	time.Sleep(100 * time.Millisecond)
 	runCmd("")
-	time.Sleep(100 * time.Millisecond)
 	runCmd("")
-	time.Sleep(100 * time.Millisecond)
 
 	// Allocate 3 audit servers
 	runCmd("o")
-	time.Sleep(100 * time.Millisecond)
 	runCmd("")
-	time.Sleep(100 * time.Millisecond)
 	runCmd("")
-	time.Sleep(100 * time.Millisecond)
 
 	waitBlocks(n0.State, 1)
 	waitMinutes(n0.State, 1)
@@ -138,7 +131,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	fn1 := GetFocus()
 	if fn1.State.FactomNodeName != "FNode07" {
-		t.Fatalf("Expected FNode0, but got %s", fn1.State.FactomNodeName)
+		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
 
 	runCmd("8")
@@ -175,14 +168,13 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("f100")
 	runCmd("yh")
 	runCmd("yc")
-	runCmd("p")
-	runCmd("p")
 	runCmd("r")
 	time.Sleep(5 * time.Second)
 	runCmd("r")
 	runCmd("9")
 	runCmd("x")
 	waitBlocks(fn1.State, 3)
+
 	runCmd("T10")
 	t.Log("Run to a dbht of 10")
 	n0.State.DirectoryBlockInSeconds = 4
