@@ -334,11 +334,11 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 		listenTo := 0
 		if listenTo >= 0 && listenTo < len(fnodes) {
 			fmt.Printf("%s:\n", now)
-			fmt.Printf("      InMsgQueue             %d\n", len(fnodes[listenTo].State.InMsgQueue()))
+			fmt.Printf("      InMsgQueue             %d\n", fnodes[listenTo].State.InMsgQueue().Length())
 			fmt.Printf("      AckQueue               %d\n", len(fnodes[listenTo].State.AckQueue()))
 			fmt.Printf("      MsgQueue               %d\n", len(fnodes[listenTo].State.MsgQueue()))
 			fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
-			fmt.Printf("      NetworkOutMsgQueue     %d\n", len(fnodes[listenTo].State.NetworkOutMsgQueue()))
+			fmt.Printf("      NetworkOutMsgQueue     %d\n", fnodes[listenTo].State.NetworkOutMsgQueue().Length())
 			fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))
 			fmt.Printf("      HoldingQueue           %d\n", len(fnodes[listenTo].State.Holding))
 		}

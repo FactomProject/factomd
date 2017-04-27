@@ -584,7 +584,7 @@ func SimControl(listenTo int) {
 					break
 				}
 
-				fnodes[listenTo].State.InMsgQueue() <- msg
+				fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
 
 				fallthrough
@@ -617,7 +617,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
 						break
 					}
-					fnodes[listenTo].State.InMsgQueue() <- msg
+					fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
 				}
 				fallthrough
@@ -661,7 +661,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
 						break
 					}
-					fnodes[listenTo].State.InMsgQueue() <- msg
+					fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 				}
 				fallthrough

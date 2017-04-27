@@ -91,7 +91,7 @@ func (m *MissingEntryBlocks) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
-	if len(state.NetworkOutMsgQueue()) > 1000 {
+	if state.NetworkOutMsgQueue().Length() > 1000 {
 		return
 	}
 	start := m.DBHeightStart
