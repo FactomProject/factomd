@@ -53,7 +53,7 @@ func Timer(state interfaces.IState) {
 				next += tenthPeriod
 			}
 			time.Sleep(time.Duration(wait))
-			for len(state.InMsgQueue()) > 5000 {
+			for state.InMsgQueue().Length() > 5000 {
 				time.Sleep(100 * time.Millisecond)
 			}
 
