@@ -163,7 +163,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 			ID: tid,
 			// Can you believe there isn't a 'RandomPrivateKey' that returns a private key.
 			// Well this works
-			Key: *(primitives.RandomPrivateKey().(*primitives.PrivateKey)),
+			Key: *primitives.RandomPrivateKey(),
 		}
 	}
 
@@ -292,7 +292,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 			ID: tid,
 			// Can you believe there isn't a 'RandomPrivateKey' that returns a private key.
 			// Well this works
-			Key: *(primitives.RandomPrivateKey().(*primitives.PrivateKey)),
+			Key: *primitives.RandomPrivateKey(),
 		}
 	}
 
