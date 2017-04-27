@@ -140,15 +140,16 @@ type State struct {
 	timerMsgQueue          chan interfaces.IMsg
 	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
-	networkOutMsgQueue     chan interfaces.IMsg
+	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             chan interfaces.IMsg
+	inMsgQueue             InMsgMSGQueue
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	ShutdownChan           chan int // For gracefully halting Factom
-	JournalFile            string
-	Journaling             bool
+
+	ShutdownChan chan int // For gracefully halting Factom
+	JournalFile  string
+	Journaling   bool
 
 	serverPrivKey         *primitives.PrivateKey
 	serverPubKey          *primitives.PublicKey
@@ -725,15 +726,15 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000) //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)        //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 100)            //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)            //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)            //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                      //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)       //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)      //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)     //Entries to be written to the database
+	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 100)        //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)   //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -1795,11 +1796,11 @@ func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
 	return s.networkInvalidMsgQueue
 }
 
-func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
+func (s *State) NetworkOutMsgQueue() interfaces.IQueue {
 	return s.networkOutMsgQueue
 }
 
-func (s *State) InMsgQueue() chan interfaces.IMsg {
+func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 
