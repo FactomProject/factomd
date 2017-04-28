@@ -300,8 +300,10 @@ func (f *P2PProxy) ManageInChannel() {
 			parcel := data.(p2p.Parcel)
 			f.trace(parcel.Header.AppHash, parcel.Header.AppType, "P2PProxy.ManageInChannel()", "M")
 			message := factomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
-			p2p.BlockFreeChannelSend(f.BroadcastIn, message)
+			removed := p2p.BlockFreeChannelSend(f.BroadcastIn, message)
 			BroadInCastQueue.Inc()
+			BroadInCastQueue.Add(float64(-1 * removed))
+			BroadCastInQueueDrop.Add(float64(removed))
 		default:
 			fmt.Printf("Garbage on f.FromNetwork. %+v", data)
 		}
