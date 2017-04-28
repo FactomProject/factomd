@@ -236,10 +236,6 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
-	if len(s.XReview) > 0 {
-		return
-	}
-
 	if s.inMsgQueue.Length() > 10 {
 		return
 	}
@@ -256,7 +252,6 @@ func (s *State) ReviewHolding() {
 
 	s.resendHolding = now
 	// Anything we are holding, we need to reprocess.
-	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
 
