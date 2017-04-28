@@ -43,7 +43,7 @@ type MsgLog struct {
 	msgPerSecp int
 }
 
-func (m *MsgLog) init(enable bool, nodecnt int) {
+func (m *MsgLog) Init(enable bool, nodecnt int) {
 	m.Enable = enable
 	m.nodeCnt = nodecnt
 	if nodecnt == 0 {
@@ -51,7 +51,7 @@ func (m *MsgLog) init(enable bool, nodecnt int) {
 	}
 }
 
-func (m *MsgLog) add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
+func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, valid bool, msg interfaces.IMsg) {
 	m.sem.Lock()
 	defer m.sem.Unlock()
 	now := fnode.State.GetTimestamp()
