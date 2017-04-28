@@ -48,6 +48,14 @@ const (
 const NUM_MESSAGES = 29
 
 const (
+	// Limits for keeping inputs from flooding our execution
+	INMSGQUEUE_HIGH = 1000
+	INMSGQUEUE_MED  = 500
+	INMSGQUEUE_LOW  = 100
+
+	DBSTATE_REQUEST_LIM_HIGH = 200
+	DBSTATE_REQUEST_LIM_MED  = 50
+
 	// Replay
 	INTERNAL_REPLAY = 1
 	NETWORK_REPLAY  = 2

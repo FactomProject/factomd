@@ -240,7 +240,7 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
-	if s.inMsgQueue.Length() > 10 {
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
 	}
 
@@ -570,7 +570,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Just ignore missing messages for a period after going off line or starting up.
-	if s.IgnoreMissing {
+	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
 		return
 	}
 
@@ -694,7 +694,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	// Don't respond to missing messages if we are behind.
-	if len(s.inMsgQueue) > 100 {
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
 	}
 
