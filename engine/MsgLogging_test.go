@@ -33,9 +33,17 @@ func TestMessageLoging(t *testing.T) {
 	msgLog.Startp = primitives.NewTimestampFromMilliseconds(0)
 	msgLog.Add2(fnode, false, "peer","where",true,msg)
 
-
 	if len(msgLog.MsgList) != 3 {
-		t.Error("Should have two entries")
+		t.Error("Should have three entries")
+	}
+	msgLog.PrtMsgs(s)
+	
+	msgLog.Last = primitives.NewTimestampFromMilliseconds(0)
+	msgLog.Add2(fnode, false, "peer","where",true,msg)
+
+
+	if len(msgLog.MsgList) != 0 {
+		t.Error("Should be clear")
 	}
 	msgLog.PrtMsgs(s)
 }

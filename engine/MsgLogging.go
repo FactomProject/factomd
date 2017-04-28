@@ -28,7 +28,7 @@ type MsgLog struct {
 	Enable     bool
 	sem        sync.Mutex
 	MsgList    []*msglist
-	last       interfaces.Timestamp
+	Last       interfaces.Timestamp
 	all        bool
 	nodeCnt    int
 
@@ -57,7 +57,7 @@ func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, va
 	now := fnode.State.GetTimestamp()
 	if m.start == nil {
 		m.start = fnode.State.GetTimestamp()
-		m.last = m.start // last is start
+		m.Last = m.start // last is start
 		m.Period = 2
 		m.Startp = m.start
 	}
@@ -87,11 +87,11 @@ func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, va
 	}
 	// If it has been 4 seconds and we are NOT printing, then toss.
 	// This gives us a second to get to print.
-	if now.GetTimeSeconds()-m.last.GetTimeSeconds() > 3 {
+	if now.GetTimeSeconds()-m.Last.GetTimeSeconds() > 3 {
 		m.msgCnt += len(m.MsgList) // Keep my counts
 		m.MsgCntp += len(m.MsgList)
 		m.MsgList = make([]*msglist, 0) // Clear the record.
-		m.last = now
+		m.Last = now
 	}
 
 }
@@ -119,7 +119,7 @@ func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 		}
 	}
 	now := state.GetTimestamp()
-	m.last = now
+	m.Last = now
 	m.msgCnt += len(m.MsgList) // Keep my counts
 	m.MsgCntp += len(m.MsgList)
 	m.MsgList = m.MsgList[0:0] // Once printed, clear the list
