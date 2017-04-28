@@ -245,16 +245,16 @@ func (s *State) ReviewHolding() {
 	}
 
 	now := s.GetTimestamp()
-	if s.resendHolding == nil {
-		s.resendHolding = now
+	if s.ResendHolding == nil {
+		s.ResendHolding = now
 	}
-	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
 		return
 	}
 
 	s.DB.Trim()
 
-	s.resendHolding = now
+	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 

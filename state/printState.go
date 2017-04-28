@@ -146,7 +146,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "NewEntryChains", state.NewEntryChains)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "NewEntries", state.NewEntries)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LeaderTimestamp", state.LeaderTimestamp)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "resendHolding", state.resendHolding)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "resendHolding", state.ResendHolding)
 	//str = fmt.Sprintf("%s %35s = %+v\n", str, "Holding", state.Holding)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "XReview", state.XReview)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Acks", state.Acks)
