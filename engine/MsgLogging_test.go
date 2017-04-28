@@ -42,8 +42,8 @@ func TestMessageLoging(t *testing.T) {
 	msgLog.Add2(fnode, false, "peer","where",true,msg)
 
 
-	if len(msgLog.MsgList) != 0 {
-		t.Error("Should be clear")
+	if len(msgLog.MsgList) != 1 {
+		t.Error("Should have one message")
 	}
 	msgLog.PrtMsgs(s)
 }
