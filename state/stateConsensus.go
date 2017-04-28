@@ -65,7 +65,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 		ret = true
 	case 0:
-		fmt.Println("Straigt to holding")
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 	default:
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
@@ -1016,8 +1015,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
-	} else {
-		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot process Commit Chain")
 
@@ -1040,8 +1037,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
-	} else {
-		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
 
