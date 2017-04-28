@@ -25,7 +25,17 @@ func TestMessageLoging(t *testing.T) {
 	msg.Data = []byte("here is some data")
 	msg.Stamps = append(msg.Stamps, primitives.NewTimestampNow())
 
+	msgLog.PrtMsgs(s)
+
 	msgLog.Add2(fnode, true, "peer","where",true,msg)
 	msgLog.Add2(fnode, false, "peer","where",true,msg)
+
+	msgLog.Startp = primitives.NewTimestampFromMilliseconds(0)
+	msgLog.Add2(fnode, false, "peer","where",true,msg)
+
+
+	if len(msgLog.MsgList) != 3 {
+		t.Error("Should have two entries")
+	}
 	msgLog.PrtMsgs(s)
 }

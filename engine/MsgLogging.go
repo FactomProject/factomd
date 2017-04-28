@@ -25,22 +25,22 @@ type msglist struct {
 }
 
 type MsgLog struct {
-	Enable  bool
-	sem     sync.Mutex
-	MsgList []*msglist
-	last    interfaces.Timestamp
-	all     bool
-	nodeCnt int
+	Enable     bool
+	sem        sync.Mutex
+	MsgList    []*msglist
+	last       interfaces.Timestamp
+	all        bool
+	nodeCnt    int
 
-	start     interfaces.Timestamp
-	msgCnt    int
-	msgPerSec int
+	start      interfaces.Timestamp
+	msgCnt     int
+	msgPerSec  int
 
 	// The last period (msg rate over the last period, so msg changes can be seen)
-	period     int64
-	startp     interfaces.Timestamp
-	msgCntp    int
-	msgPerSecp int
+	Period     int64
+	Startp     interfaces.Timestamp
+	MsgCntp    int
+	MsgPerSecp int
 }
 
 func (m *MsgLog) Init(enable bool, nodecnt int) {
@@ -58,8 +58,8 @@ func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, va
 	if m.start == nil {
 		m.start = fnode.State.GetTimestamp()
 		m.last = m.start // last is start
-		m.period = 2
-		m.startp = m.start
+		m.Period = 2
+		m.Startp = m.start
 	}
 
 	nm := new(msglist)
@@ -80,16 +80,16 @@ func (m *MsgLog) Add2(fnode *FactomNode, out bool, peer string, where string, va
 	if now.GetTimeSeconds()-m.start.GetTimeSeconds() > 1 {
 		m.msgPerSec = (m.msgCnt + len(m.MsgList)) / interval / m.nodeCnt
 	}
-	if now.GetTimeSeconds()-m.startp.GetTimeSeconds() >= m.period {
-		m.msgPerSecp = (m.msgCntp + len(m.MsgList)) / interval / m.nodeCnt
-		m.msgCntp = 0
-		m.startp = now // Reset timer
+	if now.GetTimeSeconds()-m.Startp.GetTimeSeconds() >= m.Period {
+		m.MsgPerSecp = (m.MsgCntp + len(m.MsgList)) / interval / m.nodeCnt
+		m.MsgCntp = 0
+		m.Startp = now // Reset timer
 	}
 	// If it has been 4 seconds and we are NOT printing, then toss.
 	// This gives us a second to get to print.
 	if now.GetTimeSeconds()-m.last.GetTimeSeconds() > 3 {
 		m.msgCnt += len(m.MsgList) // Keep my counts
-		m.msgCntp += len(m.MsgList)
+		m.MsgCntp += len(m.MsgList)
 		m.MsgList = make([]*msglist, 0) // Clear the record.
 		m.last = now
 	}
@@ -121,9 +121,9 @@ func (m *MsgLog) PrtMsgs(state interfaces.IState) {
 	now := state.GetTimestamp()
 	m.last = now
 	m.msgCnt += len(m.MsgList) // Keep my counts
-	m.msgCntp += len(m.MsgList)
+	m.MsgCntp += len(m.MsgList)
 	m.MsgList = m.MsgList[0:0] // Once printed, clear the list
 
-	fmt.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.msgPerSecp)))
+	fmt.Println(fmt.Sprintf("*** %42s **** ", fmt.Sprintf("Length: %d    Msgs/sec: T %d P %d", len(m.MsgList), m.msgPerSec, m.MsgPerSecp)))
 	fmt.Println("\n-----------------------------------------------------")
 }
