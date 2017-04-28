@@ -1192,8 +1192,8 @@ func (s *State) RemoveFromHolding(key [32]byte) {
 	defer s.HoldingMutex.Unlock()
 	if s.UsingEtcd() {
 		howLongInHolding, ok := s.HoldingTimes[key]
-		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInHolding > 10 {
-			// When using etcd, we will leave messages in Holding for at least 10 seconds
+		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInHolding > 100 {
+			// When using etcd, we will leave messages in Holding for at least 100 seconds
 			// before allowing them to be moved to XReview
 			delete(s.Holding, key)
 			delete(s.HoldingTimes, key)
@@ -1228,8 +1228,8 @@ func (s *State) RemoveFromAcks(key [32]byte) {
 	defer s.AcksMutex.Unlock()
 	if s.UsingEtcd() {
 		howLongInAcks, ok := s.AcksTimes[key]
-		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInAcks > 10 {
-			// When using etcd, we will leave messages in Acks for at least 10 seconds
+		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInAcks > 100 {
+			// When using etcd, we will leave messages in Acks for at least 100 seconds
 			// before allowing them to be removed
 			delete(s.Acks, key)
 			delete(s.AcksTimes, key)
