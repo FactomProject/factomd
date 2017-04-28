@@ -82,10 +82,10 @@ func LoadJournalFromReader(s interfaces.IState, r *bufio.Reader) {
 		}
 
 		// Process the message.
-		s.InMsgQueue() <- msg
+		s.InMsgQueue().Enqueue(msg)
 		p++
-		if len(s.InMsgQueue()) > 200 {
-			for len(s.InMsgQueue()) > 50 {
+		if s.InMsgQueue().Length() > 200 {
+			for s.InMsgQueue().Length() > 50 {
 				time.Sleep(time.Millisecond * 10)
 			}
 			time.Sleep(time.Millisecond * 100)
@@ -94,7 +94,7 @@ func LoadJournalFromReader(s interfaces.IState, r *bufio.Reader) {
 
 	//Waiting for state to process the message queue
 	//before we disable "IsDoneReplaying"
-	for len(s.InMsgQueue()) > 0 {
+	for s.InMsgQueue().Length() > 0 {
 		time.Sleep(time.Millisecond * 100)
 	}
 }

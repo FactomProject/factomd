@@ -368,7 +368,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		// the VM in this ServerFault message to be at fault,
 		// do not proceed with regularFaultExecution
 		//s.Holding[m.GetRepeatHash().Fixed()] = m
-		s.AddToHolding(m.GetRepeatHash().Fixed(), m)
+		s.Holding[m.GetRepeatHash().Fixed()] = m
 		return
 	}
 
@@ -449,7 +449,7 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 	if sf != nil {
 		sf.Sign(s.serverPrivKey)
 		sf.SendOut(s, sf)
-		s.InMsgQueue() <- sf
+		s.InMsgQueue().Enqueue(sf)
 	}
 }
 
@@ -462,8 +462,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
 	if pl == nil {
-		//s.Holding[m.GetHash().Fixed()] = m
-		s.AddToHolding(m.GetHash().Fixed(), m)
+		s.Holding[m.GetHash().Fixed()] = m
 		return
 	}
 

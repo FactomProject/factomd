@@ -106,12 +106,6 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
-
-		list = ""
-		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
@@ -150,7 +144,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.InMsgQueue()))
+			list = list + fmt.Sprintf(" %3d", f.State.InMsgQueue().Length())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
 
@@ -176,7 +170,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.NetworkOutMsgQueue()))
+			list = list + fmt.Sprintf(" %3d", f.State.NetworkOutMsgQueue().Length())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
 

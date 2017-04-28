@@ -56,7 +56,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				s.XReview = append(s.XReview, msg)
+				s.Holding[msg.GetHash().Fixed()] = msg
 			} else {
 				msg.LeaderExecute(s)
 			}
@@ -65,11 +65,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 		ret = true
 	case 0:
-		//s.Holding[msg.GetMsgHash().Fixed()] = msg
-		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
+		s.Holding[msg.GetMsgHash().Fixed()] = msg
 	default:
-		//s.Holding[msg.GetMsgHash().Fixed()] = msg
-		s.AddToHolding(msg.GetMsgHash().Fixed(), msg)
+		s.Holding[msg.GetMsgHash().Fixed()] = msg
 		if !msg.SentInvlaid() {
 			msg.MarkSentInvalid(true)
 			s.networkInvalidMsgQueue <- msg
@@ -176,6 +174,7 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
+
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -186,18 +185,31 @@ emptyLoop:
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-	for _, msg := range s.XReview {
-		if !room() {
-			break
+skipreview:
+	for {
+		now := s.GetTimestamp()
+		if s.resendHolding == nil {
+			s.resendHolding = now
 		}
-		if msg == nil {
-			continue
+		if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
+			break skipreview
 		}
-		process <- msg
-		progress = s.executeMsg(vm, msg) || progress
-	}
+		s.resendHolding = now
 
-	s.XReview = s.XReview[:0]
+		s.ReviewHolding()
+
+		for _, msg := range s.Holding {
+			if !room() {
+				break skipreview
+			}
+			if msg == nil {
+				continue
+			}
+			process <- msg
+			progress = s.executeMsg(vm, msg) || progress
+		}
+		break
+	}
 
 	for len(process) > 0 {
 		msg := <-process
@@ -230,88 +242,74 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // Consensus Methods
 //***************************************************************
 
-// Places the entries in the holding map back into the XReview list for
+// Places the entries in the holding map back for
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
-	if len(s.XReview) > 0 {
-		return
-	}
 
-	if len(s.inMsgQueue) > 10 {
-		return
-	}
-
-	now := s.GetTimestamp()
-	if s.resendHolding == nil {
-		s.resendHolding = now
-	}
-	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
+	if s.inMsgQueue.Length() > 10 {
 		return
 	}
 
 	s.DB.Trim()
 
-	s.resendHolding = now
 	// Anything we are holding, we need to reprocess.
-	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
 
 	for k := range s.Holding {
-		//v := s.Holding[k]
-		v := s.GetHolding(k)
+		v := s.Holding[k]
+
 		saved := s.GetHighestSavedBlk()
 
 		mm, ok := v.(*messages.MissingMsgResponse)
 		if ok {
 			ff, ok := mm.MsgResponse.(*messages.FullServerFault)
 			if ok && ff.DBHeight < saved {
-				//delete(s.Holding, k)
-				s.RemoveFromHolding(k)
+				delete(s.Holding, k)
 			}
 			continue
 		}
 
 		sf, ok := v.(*messages.ServerFault)
 		if ok && sf.DBHeight < saved {
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
 		ff, ok := v.(*messages.FullServerFault)
 		if ok && ff.DBHeight < saved {
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
 		eom, ok := v.(*messages.EOM)
 		if ok && ((eom.DBHeight < saved-1 && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
 		dbsmsg, ok := v.(*messages.DBStateMsg)
 		if ok && (dbsmsg.DirectoryBlock.GetHeader().GetDBHeight() < saved-1 && saved > 0) {
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
 		if ok && ((dbsigmsg.DBHeight < saved-1 && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 		if !ok {
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
 		if v.Expire(s) {
 			s.ExpireCnt++
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
@@ -319,31 +317,15 @@ func (s *State) ReviewHolding() {
 			if v.Validate(s) == 1 {
 				s.ResendCnt++
 				v.SendOut(s, v)
+				continue
 			}
 		}
 
 		if v.Validate(s) < 0 {
-			s.RemoveFromHolding(k)
+			delete(s.Holding, k)
 			continue
 		}
 
-		// Only reprocess up to 200 Entry Reveals per round.  Keeps entry reveals from hiding all the good stuff like
-		// EOM messages, DBSigs, Missing data messages, etc.  You know, the stuff we have to do BEFORE we can deal
-		// with Entry Reveal messages.  Note we are adding them to the end anyway, so this is more about not blocking
-		// the next round of processing.
-		entryCnt := 0
-		// Pointless to review a Reveal Entry;  it will be pulled into play when its commit
-		// comes around.
-		if re, ok := v.(*messages.RevealEntryMsg); ok {
-			if s.Commits[re.Entry.GetHash().Fixed()] != nil && entryCnt < 200 {
-				s.XReview = append(s.XReview, v)
-				s.RemoveFromHolding(k)
-				entryCnt++
-			}
-		} else {
-			s.XReview = append(s.XReview, v)
-			s.RemoveFromHolding(k)
-		}
 	}
 }
 
@@ -412,9 +394,11 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
-	s.AddToHolding(m.GetMsgHash().Fixed(), m)
-	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
-	if ack != nil && ok {
+
+	s.Holding[m.GetMsgHash().Fixed()] = m
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
+	if ack != nil {
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
@@ -428,15 +412,15 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
+
 	if m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
-	//s.Holding[m.GetMsgHash().Fixed()] = m
-	s.AddToHolding(m.GetMsgHash().Fixed(), m)
-	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
-	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
-	if ack != nil && ok {
+	s.Holding[m.GetMsgHash().Fixed()] = m
+
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
 	}
@@ -461,8 +445,8 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 		return
 	}
 
-	s.AddToAcks(ack.GetHash().Fixed(), ack)
-	m := s.GetHolding(ack.GetHash().Fixed())
+	s.Acks[ack.GetHash().Fixed()] = ack
+	m, _ := s.Holding[ack.GetHash().Fixed()]
 	if m != nil {
 		m.FollowerExecute(s)
 	}
@@ -470,6 +454,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
+
 	cntFail := func() {
 		if !dbstatemsg.IsInDB {
 			s.DBStateIgnoreCnt++
@@ -595,13 +580,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
 				if okff {
-					s.XReview = append(s.XReview, fullFault)
+					s.Holding[fullFault.GetHash().Fixed()] = fullFault
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				s.XReview = append(s.XReview, fullFault)
+				s.Holding[fullFault.GetHash().Fixed()] = fullFault
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -633,14 +618,14 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 		return
 	}
 
-	//s.Acks[ack.GetHash().Fixed()] = ack
-	s.AddToAcks(ack.GetHash().Fixed(), ack)
+	s.Acks[ack.GetHash().Fixed()] = ack
+
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.XReview = append(s.XReview, ack)
+		s.inMsgQueue.Enqueue(ack)
 	}
 	if okm {
-		s.XReview = append(s.XReview, msg)
+		s.inMsgQueue.Enqueue(ack)
 	}
 
 	// If I've seen both, put them in the process list.
@@ -721,7 +706,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		s.NetworkOutMsgQueue() <- msgResponse
+		s.NetworkOutMsgQueue().Enqueue(msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
 	}
@@ -734,7 +719,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			s.NetworkOutMsgQueue() <- msgResponse
+			s.NetworkOutMsgQueue().Enqueue(msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true
 		}
@@ -749,10 +734,9 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	cc := m.(*messages.CommitChainMsg)
-	//re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
-	re := s.GetHolding(cc.CommitChain.EntryHash.Fixed())
+	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
@@ -760,21 +744,18 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	s.FollowerExecuteMsg(m)
 	ce := m.(*messages.CommitEntryMsg)
-	//re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
-	re := s.GetHolding(ce.CommitEntry.EntryHash.Fixed())
+	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
 
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
-	//s.Holding[m.GetMsgHash().Fixed()] = m
-	s.AddToHolding(m.GetMsgHash().Fixed(), m)
-	//ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
-	ack, ok := s.GetAcks(m.GetMsgHash().Fixed()).(*messages.Ack)
+	s.Holding[m.GetMsgHash().Fixed()] = m
+	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
-	if ack != nil && ok {
+	if ack != nil {
 		m.SendOut(s, m)
 		ack.SendOut(s, ack)
 		m.SetLeaderChainID(ack.GetLeaderChainID())
@@ -796,10 +777,8 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		//delete(s.Holding, m.GetRepeatHash().Fixed())
-		s.RemoveFromHolding(m.GetRepeatHash().Fixed())
-		//delete(s.Holding, m.GetMsgHash().Fixed())
-		s.RemoveFromHolding(m.GetMsgHash().Fixed())
+		delete(s.Holding, m.GetRepeatHash().Fixed())
+		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
 
@@ -857,9 +836,9 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
 	eom.MsgHash = nil
-
 	ack := s.NewAck(m, nil).(*messages.Ack)
-	s.AddToAcks(eom.GetMsgHash().Fixed(), ack)
+
+	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
@@ -905,10 +884,9 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 	cc := m.(*messages.CommitChainMsg)
-	//re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
-	re := s.GetHolding(cc.CommitChain.EntryHash.Fixed())
+	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
@@ -916,10 +894,9 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	s.LeaderExecute(m)
 	ce := m.(*messages.CommitEntryMsg)
-	//re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
-	re := s.GetHolding(ce.CommitEntry.EntryHash.Fixed())
+	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
@@ -933,6 +910,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	switch rtn {
 	case 0:
 		m.FollowerExecute(s)
+		return
 	case -1:
 		return
 	}
@@ -948,14 +926,12 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	m.SetMinute(ack.Minute)
 
 	// Put the acknowledgement in the Acks so we can tell if AddToProcessList() adds it.
-	//s.Acks[m.GetMsgHash().Fixed()] = ack
-	s.AddToAcks(m.GetMsgHash().Fixed(), ack)
+	s.Acks[m.GetMsgHash().Fixed()] = ack
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 	// If it was added, then get rid of the matching Commit.
-	if s.GetAcks(m.GetMsgHash().Fixed()) != nil {
-		//if s.Acks[m.GetMsgHash().Fixed()] != nil {
-		m.FollowerExecute(s)
+	if s.Acks[m.GetMsgHash().Fixed()] != nil {
 		s.PutCommit(eh, commit)
+		m.FollowerExecute(s)
 	} else {
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
@@ -969,7 +945,6 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		//s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
 		return false
 	}
-
 	return true
 }
 
@@ -1028,13 +1003,11 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		// save the Commit to match agains the Reveal later
 		h := c.CommitChain.EntryHash
 		s.PutCommit(h, c)
-		//entry := s.Holding[h.Fixed()]
-		entry := s.GetHolding(h.Fixed())
+		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
-			//delete(s.Holding, h.Fixed())
-			s.RemoveFromHolding(h.Fixed())
+			s.inMsgQueue.Enqueue(entry)
+			delete(s.Holding, h.Fixed())
 		}
 		return true
 	} else {
@@ -1054,13 +1027,11 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		// save the Commit to match agains the Reveal later
 		h := c.CommitEntry.EntryHash
 		s.PutCommit(h, c)
-		//entry := s.Holding[h.Fixed()]
-		entry := s.GetHolding(h.Fixed())
+		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
-			//delete(s.Holding, h.Fixed())
-			s.RemoveFromHolding(h.Fixed())
+			s.inMsgQueue.Enqueue(entry)
+			delete(s.Holding, h.Fixed())
 		}
 		return true
 	} else {
@@ -1141,6 +1112,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
 		return
@@ -1388,11 +1360,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		for k := range s.Acks {
-			//v := s.Acks[k].(*messages.Ack)
-			v, ok := s.GetAcks(k).(*messages.Ack)
-			if ok && v.DBHeight < s.LLeaderHeight {
-				//delete(s.Acks, k)
-				s.RemoveFromAcks(k)
+			v := s.Acks[k].(*messages.Ack)
+			if v.DBHeight < s.LLeaderHeight {
+				delete(s.Acks, k)
 			}
 		}
 	}
@@ -1572,7 +1542,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if msg != nil {
 				s.RunLeader = false
 				s.StartDelay = s.GetTimestamp().GetTimeMilli()
-				s.NetworkOutMsgQueue() <- msg
+				s.NetworkOutMsgQueue().Enqueue(msg)
 			}
 			return false
 		}
@@ -1871,11 +1841,14 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return nil
+	if dbheight <= s.GetHighestSavedBlk()+1 {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return nil
+		}
+		return pl.GetNewEBlocks(hash)
 	}
-	return pl.GetNewEBlocks(hash)
+	return nil
 }
 
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
