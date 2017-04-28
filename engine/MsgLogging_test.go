@@ -7,6 +7,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	"time"
 )
 
 
@@ -38,12 +40,12 @@ func TestMessageLoging(t *testing.T) {
 	}
 	msgLog.PrtMsgs(s)
 	
-	msgLog.Last = primitives.NewTimestampFromMilliseconds(0)
+	msgLog.Last.SetTimeSeconds(msgLog.Last.GetTimeSeconds()-6)
+	time.Sleep(10*time.Millisecond)
 	msgLog.Add2(fnode, false, "peer","where",true,msg)
 
-
-	if len(msgLog.MsgList) != 1 {
-		t.Error("Should have one message")
+	if len(msgLog.MsgList) != 0 {
+		t.Error("Should have zero messages")
 	}
 	msgLog.PrtMsgs(s)
 }
