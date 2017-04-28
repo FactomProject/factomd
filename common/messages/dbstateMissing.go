@@ -131,12 +131,12 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 
 func NewEnd(inLen int, start uint32, end uint32) (s uint32, e uint32) {
 	switch {
-	case inLen > 500:
+	case inLen > constants.INMSGQUEUE_HIGH:
 		return 0, 0
-	case inLen > 200 && end-start > 50:
-		end = start + 50
-	case end-start > 200:
-		end = start + 200
+	case inLen > constants.INMSGQUEUE_MED && end-start > constants.DBSTATE_REQUEST_LIM_MED:
+		end = start + constants.DBSTATE_REQUEST_LIM_MED
+	case end-start > constants.DBSTATE_REQUEST_LIM_HIGH:
+		end = start + constants.DBSTATE_REQUEST_LIM_HIGH
 	}
 	return start, end
 }

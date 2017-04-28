@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
@@ -80,7 +81,7 @@ func (s *State) MakeMissingEntryRequests() {
 		}
 
 		sent := 0
-		if s.inMsgQueue.Length() < 500 {
+		if s.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
 			// Make requests for entries we don't have.
 			for k := range MissingEntryMap {
 

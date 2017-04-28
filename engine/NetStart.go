@@ -246,7 +246,7 @@ func NetStart(s *state.State) {
 	s.Init()
 	s.SetDropRate(droprate)
 
-	mLog.init(runtimeLog, cnt)
+	mLog.Init(runtimeLog, cnt)
 
 	setupFirstAuthority(s)
 
