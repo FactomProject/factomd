@@ -240,21 +240,21 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
-	if s.inMsgQueue.Length() > 10 {
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
 	}
 
 	now := s.GetTimestamp()
-	if s.resendHolding == nil {
-		s.resendHolding = now
+	if s.ResendHolding == nil {
+		s.ResendHolding = now
 	}
-	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
 		return
 	}
 
 	s.DB.Trim()
 
-	s.resendHolding = now
+	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
@@ -581,7 +581,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Just ignore missing messages for a period after going off line or starting up.
-	if s.IgnoreMissing {
+	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
 		return
 	}
 
@@ -705,7 +705,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	// Don't respond to missing messages if we are behind.
-	if len(s.inMsgQueue) > 100 {
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
 	}
 

@@ -48,6 +48,14 @@ const (
 const NUM_MESSAGES = 29
 
 const (
+	// Limits for keeping inputs from flooding our execution
+	INMSGQUEUE_HIGH = 1000
+	INMSGQUEUE_MED  = 500
+	INMSGQUEUE_LOW  = 100
+
+	DBSTATE_REQUEST_LIM_HIGH = 200
+	DBSTATE_REQUEST_LIM_MED  = 50
+
 	// Replay
 	INTERNAL_REPLAY = 1
 	NETWORK_REPLAY  = 2
@@ -97,7 +105,7 @@ const (
 	//NETWORK constants
 	//==================
 	VERSION_0               = byte(0)
-	FACTOMD_VERSION         = 4001002
+	FACTOMD_VERSION         = 4001003
 	MAIN_NETWORK_ID  uint32 = 0xFA92E5A2
 	TEST_NETWORK_ID  uint32 = 0xFA92E5A3
 	LOCAL_NETWORK_ID uint32 = 0xFA92E5A4
