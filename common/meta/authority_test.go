@@ -5,16 +5,32 @@
 package meta_test
 
 import (
-	//"bytes"
-	//"encoding/binary"
 	"testing"
-	//"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
+	. "github.com/FactomProject/factomd/common/meta"
 	"github.com/FactomProject/factomd/common/primitives"
-	//. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
+
+func TestAuthorityType(t *testing.T) {
+	auth := new(Authority)
+	if auth.Type() != -1 {
+		t.Errorf("Invalid type returned - %v", auth.Type())
+	}
+
+	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+	if auth.Type() != 1 {
+		t.Errorf("Invalid type returned - %v", auth.Type())
+	}
+
+	auth.Status = constants.IDENTITY_AUDIT_SERVER
+	if auth.Type() != 0 {
+		t.Errorf("Invalid type returned - %v", auth.Type())
+	}
+
+}
 
 func TestAuthoritySignature(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
