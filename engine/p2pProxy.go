@@ -187,7 +187,10 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 				}
 			}
 			if strings.Contains(err.Error(), "connection is shut down") {
-				f.EtcdManager.Reinitiate()
+				err := f.EtcdManager.Reinitiate()
+				if err != nil {
+					fmt.Println("Tried to reinitiate plugin on failed send; err:", err)
+				}
 			}
 		} else {
 			// Send was successful (err was nil)
