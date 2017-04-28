@@ -303,7 +303,7 @@ func (f *P2PProxy) ManageInChannel() {
 			removed := p2p.BlockFreeChannelSend(f.BroadcastIn, message)
 			BroadInCastQueue.Inc()
 			BroadInCastQueue.Add(float64(-1 * removed))
-			fmt.Println("Removed")
+			BroadCastInQueueDrop.Add(float64(removed))
 		default:
 			fmt.Printf("Garbage on f.FromNetwork. %+v", data)
 		}
