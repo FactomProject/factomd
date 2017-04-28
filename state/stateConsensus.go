@@ -56,7 +56,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				s.XReview = append(s.XReview, msg)
+				s.Holding[msg.GetHash().Fixed()] = msg
 			} else {
 				msg.LeaderExecute(s)
 			}
@@ -145,8 +145,6 @@ func (s *State) Process() (progress bool) {
 		s.DBStatesReceived[ix] = nil
 	}
 
-	s.ReviewHolding()
-
 	// Process acknowledgements if we have some.
 ackLoop:
 	for room() {
@@ -187,7 +185,18 @@ emptyLoop:
 	// Process last first
 skipreview:
 	for {
-		for _, msg := range s.XReview {
+		now := s.GetTimestamp()
+		if s.resendHolding == nil {
+			s.resendHolding = now
+		}
+		if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
+			break skipreview
+		}
+		s.resendHolding = now
+
+		s.ReviewHolding()
+
+		for _, msg := range s.Holding {
 			if !room() {
 				break skipreview
 			}
@@ -197,7 +206,6 @@ skipreview:
 			process <- msg
 			progress = s.executeMsg(vm, msg) || progress
 		}
-		s.XReview = s.XReview[:0]
 		break
 	}
 
@@ -236,27 +244,14 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
-	if len(s.XReview) > 0 {
-		return
-	}
 
 	if s.inMsgQueue.Length() > 10 {
 		return
 	}
 
-	now := s.GetTimestamp()
-	if s.resendHolding == nil {
-		s.resendHolding = now
-	}
-	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
-		return
-	}
-
 	s.DB.Trim()
 
-	s.resendHolding = now
 	// Anything we are holding, we need to reprocess.
-	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
 
@@ -329,8 +324,6 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		s.XReview = append(s.XReview, v)
-		delete(s.Holding, k)
 	}
 }
 
@@ -585,13 +578,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
 				if okff {
-					s.XReview = append(s.XReview, fullFault)
+					s.Holding[fullFault.GetHash().Fixed()] = fullFault
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				s.XReview = append(s.XReview, fullFault)
+				s.Holding[fullFault.GetHash().Fixed()] = fullFault
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -627,10 +620,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.XReview = append(s.XReview, ack)
+		s.inMsgQueue.Enqueue(ack)
 	}
 	if okm {
-		s.XReview = append(s.XReview, msg)
+		s.inMsgQueue.Enqueue(ack)
 	}
 
 	// If I've seen both, put them in the process list.
@@ -741,7 +734,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
@@ -751,7 +744,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
@@ -891,7 +884,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
@@ -901,7 +894,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.inMsgQueue.Enqueue(re)
 		re.SendOut(s, re)
 	}
 }
@@ -1011,7 +1004,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
+			s.inMsgQueue.Enqueue(entry)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
@@ -1033,7 +1026,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
+			s.inMsgQueue.Enqueue(entry)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
@@ -1547,7 +1540,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 			return false
 		}
-		s.ReviewHolding()
 		s.Saving = false
 		s.DBSigDone = true
 	}

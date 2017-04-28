@@ -265,12 +265,6 @@ func messageLists(fnodes []*State) string {
 
 	list = ""
 	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.XReview))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "Review", list)
-
-	list = ""
-	for _, f := range fnodes {
 		list = list + fmt.Sprintf(" %3d", len(f.Holding))
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
