@@ -546,7 +546,7 @@ func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 				if err != nil {
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
-				st.InMsgQueue() <- msg
+				st.InMsgQueue().Enqueue(msg)
 			}
 		} else {
 			return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -615,7 +615,7 @@ func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
 				//log.Printfln("DEBUG: MHash ChangeServer Message Sent")
-				st.InMsgQueue() <- msg
+				st.InMsgQueue().Enqueue(msg)
 				//}
 			}
 		} else {
@@ -711,7 +711,7 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 				if err != nil {
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
-				st.InMsgQueue() <- msg
+				st.InMsgQueue().Enqueue(msg)
 			}
 		} else {
 			return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")

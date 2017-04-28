@@ -449,7 +449,7 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 	if sf != nil {
 		sf.Sign(s.serverPrivKey)
 		sf.SendOut(s, sf)
-		s.InMsgQueue() <- sf
+		s.InMsgQueue().Enqueue(sf)
 	}
 }
 

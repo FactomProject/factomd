@@ -1,10 +1,8 @@
 package dataDumpFormatting
 
-import (
 //"fmt"
 
 //"github.com/FactomProject/factomd/state"
-)
 
 /*func RawSummary(fnodes []*state.State) string {
 	out := ""
@@ -75,12 +73,6 @@ func messageLists(fnodes []*state.State) string {
 		list = list + fmt.Sprintf(" %3d", i)
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "", list)
-
-	list = ""
-	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.XReview))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 
 	list = ""
 	for _, f := range fnodes {

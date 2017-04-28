@@ -56,7 +56,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				s.XReview = append(s.XReview, msg)
 			} else {
 				msg.LeaderExecute(s)
 			}
@@ -147,7 +146,7 @@ func (s *State) Process() (progress bool) {
 		s.DBStatesReceived[ix] = nil
 	}
 
-	s.ReviewHolding()
+	s.ReviewHolding(vm)
 
 	// Process acknowledgements if we have some.
 ackLoop:
@@ -176,6 +175,7 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
+
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
 			}
@@ -186,19 +186,6 @@ emptyLoop:
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-	for _, msg := range s.XReview {
-		if !room() {
-			break
-		}
-		if msg == nil {
-			continue
-		}
-		process <- msg
-		progress = s.executeMsg(vm, msg) || progress
-	}
-
-	s.XReview = s.XReview[:0]
-
 	for len(process) > 0 {
 		msg := <-process
 		s.executeMsg(vm, msg)
@@ -230,15 +217,9 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // Consensus Methods
 //***************************************************************
 
-// Places the entries in the holding map back into the XReview list for
-// review if this is a leader, and those messages are that leader's
-// responsibility
-func (s *State) ReviewHolding() {
-	if len(s.XReview) > 0 {
-		return
-	}
-
-	if len(s.inMsgQueue) > 10 {
+// Tries to remove obsolete messages from Holding, and then match Holding/Ack queues
+func (s *State) ReviewHolding(vm *VM) {
+	if s.inMsgQueue.Length() > 10 {
 		return
 	}
 
@@ -254,7 +235,6 @@ func (s *State) ReviewHolding() {
 
 	s.resendHolding = now
 	// Anything we are holding, we need to reprocess.
-	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
 
@@ -336,13 +316,14 @@ func (s *State) ReviewHolding() {
 		// comes around.
 		if re, ok := v.(*messages.RevealEntryMsg); ok {
 			if s.Commits[re.Entry.GetHash().Fixed()] != nil && entryCnt < 200 {
-				s.XReview = append(s.XReview, v)
-				s.RemoveFromHolding(k)
 				entryCnt++
 			}
-		} else {
-			s.XReview = append(s.XReview, v)
-			s.RemoveFromHolding(k)
+		}
+
+		correspondingAck := s.GetAcks(k)
+		if correspondingAck != nil {
+			// We have found a matching Ack message -- let's shuttle them both to the ProcessList
+			s.executeMsg(vm, v)
 		}
 	}
 }
@@ -595,13 +576,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
 				if okff {
-					s.XReview = append(s.XReview, fullFault)
+					s.AddToHolding(fullFault.GetHash().Fixed(), fullFault)
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				s.XReview = append(s.XReview, fullFault)
+				s.AddToHolding(fullFault.GetHash().Fixed(), fullFault)
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -636,12 +617,6 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	//s.Acks[ack.GetHash().Fixed()] = ack
 	s.AddToAcks(ack.GetHash().Fixed(), ack)
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
-	if okr {
-		s.XReview = append(s.XReview, ack)
-	}
-	if okm {
-		s.XReview = append(s.XReview, msg)
-	}
 
 	// If I've seen both, put them in the process list.
 	if !okr && !okm {
@@ -721,7 +696,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		s.NetworkOutMsgQueue() <- msgResponse
+		s.NetworkOutMsgQueue().Enqueue(msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
 	}
@@ -734,7 +709,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			s.NetworkOutMsgQueue() <- msgResponse
+			s.NetworkOutMsgQueue().Enqueue(msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true
 		}
@@ -752,7 +727,6 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	//re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	re := s.GetHolding(cc.CommitChain.EntryHash.Fixed())
 	if re != nil {
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -763,7 +737,6 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	//re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	re := s.GetHolding(ce.CommitEntry.EntryHash.Fixed())
 	if re != nil {
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -857,7 +830,6 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	eom.Minute = byte(s.CurrentMinute)
 	eom.Sign(s)
 	eom.MsgHash = nil
-
 	ack := s.NewAck(m, nil).(*messages.Ack)
 	s.AddToAcks(eom.GetMsgHash().Fixed(), ack)
 	m.SetLocal(false)
@@ -908,7 +880,6 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	//re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	re := s.GetHolding(cc.CommitChain.EntryHash.Fixed())
 	if re != nil {
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -919,7 +890,6 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	//re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	re := s.GetHolding(ce.CommitEntry.EntryHash.Fixed())
 	if re != nil {
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -969,7 +939,6 @@ func (s *State) ProcessAddServer(dbheight uint32, addServerMsg interfaces.IMsg) 
 		//s.AddStatus(fmt.Sprintf("Failed to add %x as server type %d", as.ServerChainID.Bytes()[2:5], as.ServerType))
 		return false
 	}
-
 	return true
 }
 
@@ -1032,9 +1001,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		entry := s.GetHolding(h.Fixed())
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
-			//delete(s.Holding, h.Fixed())
-			s.RemoveFromHolding(h.Fixed())
 		}
 		return true
 	} else {
@@ -1058,9 +1024,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		entry := s.GetHolding(h.Fixed())
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
-			//delete(s.Holding, h.Fixed())
-			s.RemoveFromHolding(h.Fixed())
 		}
 		return true
 	} else {
@@ -1141,6 +1104,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
 		return
@@ -1572,11 +1536,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if msg != nil {
 				s.RunLeader = false
 				s.StartDelay = s.GetTimestamp().GetTimeMilli()
-				s.NetworkOutMsgQueue() <- msg
+				s.NetworkOutMsgQueue().Enqueue(msg)
 			}
 			return false
 		}
-		s.ReviewHolding()
+		//s.ReviewHolding()
 		s.Saving = false
 		s.DBSigDone = true
 	}
@@ -1871,11 +1835,14 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return nil
+	if dbheight <= s.GetHighestSavedBlk()+1 {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return nil
+		}
+		return pl.GetNewEBlocks(hash)
 	}
-	return pl.GetNewEBlocks(hash)
+	return nil
 }
 
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {

@@ -142,15 +142,16 @@ type State struct {
 	timerMsgQueue          chan interfaces.IMsg
 	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
-	networkOutMsgQueue     chan interfaces.IMsg
+	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             chan interfaces.IMsg
+	inMsgQueue             InMsgMSGQueue
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	ShutdownChan           chan int // For gracefully halting Factom
-	JournalFile            string
-	Journaling             bool
+
+	ShutdownChan chan int // For gracefully halting Factom
+	JournalFile  string
+	Journaling   bool
 
 	serverPrivKey         *primitives.PrivateKey
 	serverPubKey          *primitives.PublicKey
@@ -225,10 +226,7 @@ type State struct {
 	// For Follower
 	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
-	HoldingTimes  map[[32]byte]int64             // Hold Messages' time-in-holding
-	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	AcksTimes     map[[32]byte]int64             // Hold Acknowledgemets' time-in-holding
 	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
@@ -737,15 +735,15 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000) //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)        //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 100)            //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)            //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)            //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                      //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)       //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)      //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)     //Entries to be written to the database
+	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 100)        //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)   //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -764,9 +762,7 @@ func (s *State) Init() {
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
-	s.HoldingTimes = make(map[[32]byte]int64)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.AcksTimes = make(map[[32]byte]int64)
 	s.Commits = make(map[[32]byte][]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
@@ -1181,27 +1177,13 @@ func (s *State) fillHoldingMap() {
 func (s *State) AddToHolding(key [32]byte, msg interfaces.IMsg) {
 	s.HoldingMutex.Lock()
 	defer s.HoldingMutex.Unlock()
-	if s.UsingEtcd() {
-		s.HoldingTimes[key] = s.GetTimestamp().GetTimeSeconds()
-	}
 	s.Holding[key] = msg
 }
 
 func (s *State) RemoveFromHolding(key [32]byte) {
 	s.HoldingMutex.Lock()
 	defer s.HoldingMutex.Unlock()
-	if s.UsingEtcd() {
-		howLongInHolding, ok := s.HoldingTimes[key]
-		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInHolding > 100 {
-			// When using etcd, we will leave messages in Holding for at least 100 seconds
-			// before allowing them to be moved to XReview
-			delete(s.Holding, key)
-			delete(s.HoldingTimes, key)
-		}
-	} else {
-		delete(s.Holding, key)
-		delete(s.HoldingTimes, key)
-	}
+	delete(s.Holding, key)
 }
 
 func (s *State) GetHolding(key [32]byte) interfaces.IMsg {
@@ -1217,27 +1199,13 @@ func (s *State) GetHolding(key [32]byte) interfaces.IMsg {
 func (s *State) AddToAcks(key [32]byte, msg interfaces.IMsg) {
 	s.AcksMutex.Lock()
 	defer s.AcksMutex.Unlock()
-	if s.UsingEtcd() {
-		s.AcksTimes[key] = s.GetTimestamp().GetTimeSeconds()
-	}
 	s.Acks[key] = msg
 }
 
 func (s *State) RemoveFromAcks(key [32]byte) {
 	s.AcksMutex.Lock()
 	defer s.AcksMutex.Unlock()
-	if s.UsingEtcd() {
-		howLongInAcks, ok := s.AcksTimes[key]
-		if ok && s.GetTimestamp().GetTimeSeconds()-howLongInAcks > 100 {
-			// When using etcd, we will leave messages in Acks for at least 100 seconds
-			// before allowing them to be removed
-			delete(s.Acks, key)
-			delete(s.AcksTimes, key)
-		}
-	} else {
-		delete(s.Acks, key)
-		delete(s.AcksTimes, key)
-	}
+	delete(s.Acks, key)
 }
 
 func (s *State) GetAcks(key [32]byte) interfaces.IMsg {
@@ -1884,11 +1852,11 @@ func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
 	return s.networkInvalidMsgQueue
 }
 
-func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
+func (s *State) NetworkOutMsgQueue() interfaces.IQueue {
 	return s.networkOutMsgQueue
 }
 
-func (s *State) InMsgQueue() chan interfaces.IMsg {
+func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 

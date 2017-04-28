@@ -20,7 +20,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
@@ -84,8 +83,6 @@ func NetStart(s *state.State) {
 	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
 
 	// Plugins
-	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
-	tormanagerPath := flag.String("plugin", "", "Input the path to the factomd-torrent binary")
 	useEtcd := flag.Bool("etcd", false, "If true, use etcd instead of the default p2p network for current-block messages.")
 	etcdManagerPath := flag.String("etcd-plugin", "", "Input the path to the etcd-manager binary")
 
@@ -530,19 +527,6 @@ func NetStart(s *state.State) {
 
 	}
 
-	// Initate dbstate plugin if enabled. Only does so for first node,
-	// any more nodes on sim control will use default method
-	if *tormanager {
-		manager, err := LaunchTorrentDBStateManagePlugin(*tormanagerPath, fnodes[0].State.InMsgQueue(), fnodes[0].State.DB.(*databaseOverlay.Overlay), fnodes[0].State.GetServerPrivateKey())
-		if err != nil {
-			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
-		}
-		fnodes[0].State.DBStateManager = manager
-		fnodes[0].State.SetUseTorrent(true)
-	} else {
-		fnodes[0].State.SetUseTorrent(false)
-	}
-
 	if journal != "" {
 		go LoadJournal(s, journal)
 		startServers(false)
@@ -559,6 +543,7 @@ func NetStart(s *state.State) {
 	state.RegisterPrometheus()
 	p2p.RegisterPrometheus()
 	leveldb.RegisterPrometheus()
+	RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:

@@ -265,12 +265,6 @@ func messageLists(fnodes []*State) string {
 
 	list = ""
 	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.XReview))
-	}
-	prt = prt + fmt.Sprintf(fmtstr, "Review", list)
-
-	list = ""
-	for _, f := range fnodes {
 		list = list + fmt.Sprintf(" %3d", len(f.Holding))
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "Holding", list)
@@ -291,7 +285,7 @@ func messageLists(fnodes []*State) string {
 
 	list = ""
 	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.InMsgQueue()))
+		list = list + fmt.Sprintf(" %3d", f.InMsgQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "InMsgQueue", list)
 
@@ -317,7 +311,7 @@ func messageLists(fnodes []*State) string {
 
 	list = ""
 	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.NetworkOutMsgQueue()))
+		list = list + fmt.Sprintf(" %3d", f.NetworkOutMsgQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "NetworkOutMsgQueue", list)
 
