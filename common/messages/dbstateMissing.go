@@ -129,7 +129,7 @@ func (m *DBStateMissing) send(dbheight uint32, state interfaces.IState) (msglen 
 	return
 }
 
-func NewEnd(inLen int, start uint32, end uint32 ) (s uint32, e uint32){
+func NewEnd(inLen int, start uint32, end uint32) (s uint32, e uint32) {
 	switch {
 	case inLen > 500:
 		return 0, 0
