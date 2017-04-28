@@ -182,7 +182,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		err := f.SendIntoEtcd(msg)
 		if err != nil {
 			if f.SuperVerboseMessages {
-				if !strings.Contains(err.Error(), "non-etcd message") {
+				if !strings.Contains(err.Error(), "already exists") {
 					fmt.Println(err)
 				}
 			}
