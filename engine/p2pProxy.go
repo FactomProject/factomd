@@ -238,16 +238,18 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 		if ok {
 			BroadInCastQueue.Dec()
 			if f.UsingEtcd() {
-				dataBytes := data.([]byte)
-				msg, err := messages.UnmarshalMessage(dataBytes)
-				if f.SuperVerboseMessages {
-					if err != nil {
-						fmt.Println("SVM err:", err.Error())
-					} else {
-						fmt.Println("SVM R:", msg.String(), msg.GetHash().String()[:10])
+				dataBytes, areActuallyBytes := data.([]byte)
+				if areActuallyBytes {
+					msg, err := messages.UnmarshalMessage(dataBytes)
+					if f.SuperVerboseMessages {
+						if err != nil {
+							fmt.Println("SVM err:", err.Error())
+						} else {
+							fmt.Println("SVM R:", msg.String(), msg.GetHash().String()[:10])
+						}
 					}
+					return msg, err
 				}
-				return msg, err
 			} //else {
 			switch data.(type) {
 			case factomMessage:
