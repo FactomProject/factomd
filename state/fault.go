@@ -461,7 +461,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
 	if pl == nil {
-		s.Holding[m.GetHash().Fixed()] = m
+		s.Holding[m.GetRepeatHash().Fixed()] = m
 		return
 	}
 
