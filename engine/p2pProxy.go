@@ -198,35 +198,35 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 				fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 			}
 		}
-	} else {
-		f.logMessage(msg, false) // NODE_TALK_FIX
-		data, err := msg.MarshalBinary()
-		if err != nil {
-			fmt.Println("ERROR on Send: ", err)
-			return err
-		}
-		if f.SuperVerboseMessages {
-			fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
-		}
-		f.bytesOut += len(data)
-		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
-		appType := fmt.Sprintf("%d", msg.Type())
-		message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
-		switch {
-		case !msg.IsPeer2Peer():
-			message.PeerHash = p2p.BroadcastFlag
-			f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
-		case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
-			message.PeerHash = p2p.RandomPeerFlag
-			f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - RandomPeerFlag", "a")
-		default:
-			f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
-		}
-		if msg.IsPeer2Peer() && 1 < f.debugMode {
-			fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
-		}
-		p2p.BlockFreeChannelSend(f.BroadcastOut, message)
+	} //else {
+	f.logMessage(msg, false) // NODE_TALK_FIX
+	data, err := msg.MarshalBinary()
+	if err != nil {
+		fmt.Println("ERROR on Send: ", err)
+		return err
 	}
+	if f.SuperVerboseMessages {
+		fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
+	}
+	f.bytesOut += len(data)
+	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
+	appType := fmt.Sprintf("%d", msg.Type())
+	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+	switch {
+	case !msg.IsPeer2Peer():
+		message.PeerHash = p2p.BroadcastFlag
+		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
+	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
+		message.PeerHash = p2p.RandomPeerFlag
+		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - RandomPeerFlag", "a")
+	default:
+		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
+	}
+	if msg.IsPeer2Peer() && 1 < f.debugMode {
+		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
+	}
+	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
+	//}
 
 	return nil
 }
@@ -248,32 +248,32 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 					}
 				}
 				return msg, err
-			} else {
-				switch data.(type) {
-				case factomMessage:
-					fmessage := data.(factomMessage)
-					f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
-					msg, err := messages.UnmarshalMessage(fmessage.Message)
-					if f.SuperVerboseMessages {
-						if err != nil {
-							fmt.Println("SVM err:", err.Error())
-						} else {
-							fmt.Println("SVM R:", msg.String())
-						}
+			} //else {
+			switch data.(type) {
+			case factomMessage:
+				fmessage := data.(factomMessage)
+				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
+				msg, err := messages.UnmarshalMessage(fmessage.Message)
+				if f.SuperVerboseMessages {
+					if err != nil {
+						fmt.Println("SVM err:", err.Error())
+					} else {
+						fmt.Println("SVM R:", msg.String())
 					}
-					if nil == err {
-						msg.SetNetworkOrigin(fmessage.PeerHash)
-					}
-					//if 1 < f.debugMode {
-					//	f.logMessage(msg, true) // NODE_TALK_FIX
-					//	fmt.Printf(".")
-					//}
-					f.bytesIn += len(fmessage.Message)
-					return msg, err
-				default:
-					//fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 				}
+				if nil == err {
+					msg.SetNetworkOrigin(fmessage.PeerHash)
+				}
+				//if 1 < f.debugMode {
+				//	f.logMessage(msg, true) // NODE_TALK_FIX
+				//	fmt.Printf(".")
+				//}
+				f.bytesIn += len(fmessage.Message)
+				return msg, err
+			default:
+				//fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 			}
+			//}
 		}
 	default:
 	}
