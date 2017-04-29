@@ -394,13 +394,13 @@ func NetStart(s *state.State) {
 			}
 			etcdWaitElapsed := time.Since(etcdWaitStart)
 			fmt.Printf("Etcd wait took: %s\n", etcdWaitElapsed)
-		} else {
-			p2pProxy.SetUseEtcd(false)
-			p2pNetwork.StartNetwork()
-			// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
-			p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-			p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-		}
+		} //else {
+
+		p2pNetwork.StartNetwork()
+		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+		//}
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(netdebug)
