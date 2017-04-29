@@ -214,6 +214,9 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 	switch {
 	case !msg.IsPeer2Peer():
+		if f.UsingEtcd() {
+			return nil
+		}
 		message.PeerHash = p2p.BroadcastFlag
 		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
 	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
