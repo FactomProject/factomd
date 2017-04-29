@@ -186,25 +186,23 @@ emptyLoop:
 skipreview:
 	for {
 		now := s.GetTimestamp()
-		if s.resendHolding == nil {
-			s.resendHolding = now
+		if s.ResendHolding == nil {
+			s.ResendHolding = now
 		}
-		if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
+		if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
 			break skipreview
 		}
-		s.resendHolding = now
+		s.ResendHolding = now
 
 		s.ReviewHolding()
-
 		for _, msg := range s.Holding {
-			if !room() {
-				break skipreview
-			}
 			if msg == nil {
 				continue
 			}
+			if !room() {
+				break skipreview
+			}
 			process <- msg
-			progress = s.executeMsg(vm, msg) || progress
 		}
 		break
 	}
@@ -563,7 +561,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Just ignore missing messages for a period after going off line or starting up.
-	if s.IgnoreMissing {
+	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
 		return
 	}
 
@@ -578,13 +576,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
 				if okff {
-					s.Holding[fullFault.GetHash().Fixed()] = fullFault
+					s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				s.Holding[fullFault.GetHash().Fixed()] = fullFault
+				s.Holding[fullFault.GetRepeatHash().Fixed()] = fullFault
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -687,7 +685,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	// Don't respond to missing messages if we are behind.
-	if len(s.inMsgQueue) > 100 {
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
 	}
 

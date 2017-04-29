@@ -616,7 +616,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		return 0
 	}
 
-	if now-r.sent >= waitSeconds*1000+500 {
+	if now-r.sent >= waitSeconds*1000+500 && p.State.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
 		// The System (handling full faults) is a special VM.  Let's guess it first.
@@ -937,10 +937,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
 			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
-	}
-
-	if _, ok := m.(*messages.MissingMsg); ok {
-		panic("This shouldn't happen")
 	}
 
 	toss := func(hint string) {
