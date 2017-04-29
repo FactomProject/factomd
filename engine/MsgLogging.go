@@ -25,16 +25,16 @@ type msglist struct {
 }
 
 type MsgLog struct {
-	Enable     bool
-	sem        sync.Mutex
-	MsgList    []*msglist
-	Last       interfaces.Timestamp
-	all        bool
-	nodeCnt    int
+	Enable  bool
+	sem     sync.Mutex
+	MsgList []*msglist
+	Last    interfaces.Timestamp
+	all     bool
+	nodeCnt int
 
-	start      interfaces.Timestamp
-	msgCnt     int
-	msgPerSec  int
+	start     interfaces.Timestamp
+	msgCnt    int
+	msgPerSec int
 
 	// The last period (msg rate over the last period, so msg changes can be seen)
 	Period     int64
