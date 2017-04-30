@@ -223,7 +223,7 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
+	ResendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
 	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
 	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
