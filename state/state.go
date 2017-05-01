@@ -172,6 +172,7 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+	BootTime        int64 // Time in seconds that we last booted
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
@@ -721,6 +722,7 @@ func (s *State) Init() {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 	s.IgnoreMissing = true
+	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 
