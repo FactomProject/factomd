@@ -930,6 +930,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		}
 		num := p.State.GetSalt(ack.Timestamp)
 		if num != ack.SaltNumber {
+			os.Stderr.WriteString(fmt.Sprintf("This  AckHash    %x\n", ack.GetHash().Bytes()))
 			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
 			os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
 			os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
