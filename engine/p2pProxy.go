@@ -47,6 +47,7 @@ type P2PProxy struct {
 	// If this is true, outbound messages will be sent out
 	// via Etcd (as well as sent out over the p2p network normally)
 	useEtcd              bool
+	useEtcdExclusive     bool
 	blockLeaseIdx        uint32
 	EtcdManager          interfaces.IEtcdManager
 	SuperVerboseMessages bool
@@ -78,8 +79,16 @@ func (f *P2PProxy) SetUseEtcd(setVal bool) {
 	f.useEtcd = setVal
 }
 
+func (f *P2PProxy) SetUseEtcdExclusive(setVal bool) {
+	f.useEtcdExclusive = setVal
+}
+
 func (f *P2PProxy) UsingEtcd() bool {
 	return f.useEtcd
+}
+
+func (f *P2PProxy) UsingEtcdExclusive() bool {
+	return f.useEtcdExclusive
 }
 
 // Here we filter messages by type (only sending ProcessList-able messages)
@@ -199,6 +208,11 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			}
 		}
 	} //else {
+
+	if f.UsingEtcdExclusive() {
+		return nil
+	}
+
 	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
@@ -253,7 +267,13 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 					}
 					return msg, err
 				}
-			} //else {
+			}
+
+			if f.UsingEtcdExclusive() {
+				return nil, nil
+			}
+
+			//else {
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)

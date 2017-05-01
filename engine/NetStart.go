@@ -83,8 +83,9 @@ func NetStart(s *state.State) {
 	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
 
 	// Plugins
-	useEtcd := flag.Bool("etcd", false, "If true, use etcd instead of the default p2p network for current-block messages.")
+	useEtcd := flag.Bool("etcd", false, "If true, use etcd along with the default p2p network for current-block messages.")
 	etcdManagerPath := flag.String("etcd-plugin", "", "Input the path to the etcd-manager binary")
+	etcdExclusive := flag.Bool("etcd-exclusive", false, "If true, use etcd _instead of_ the default p2p network for current-block messages.")
 
 	flag.Parse()
 
@@ -382,6 +383,9 @@ func NetStart(s *state.State) {
 			p2pProxy.EtcdManager = etcdManager
 			p2pProxy.SetUseEtcd(true)
 			fnodes[0].State.SetUseEtcd(true)
+			if *etcdExclusive {
+				p2pProxy.SetUseEtcdExclusive(true)
+			}
 
 			etcdWaitStart := time.Now()
 			etcdReady := false
@@ -395,12 +399,12 @@ func NetStart(s *state.State) {
 			etcdWaitElapsed := time.Since(etcdWaitStart)
 			fmt.Printf("Etcd wait took: %s\n", etcdWaitElapsed)
 		} //else {
-
-		p2pNetwork.StartNetwork()
-		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
-		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-		//}
+		if !*etcdExclusive {
+			p2pNetwork.StartNetwork()
+			// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+			p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+			p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+		}
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(netdebug)
