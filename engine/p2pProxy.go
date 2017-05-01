@@ -279,6 +279,10 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				fmessage := data.(factomMessage)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
+				if f.UsingEtcd() && (err != nil || msg.Type() < 2) {
+					return nil, err
+				}
+
 				if f.SuperVerboseMessages {
 					if err != nil {
 						fmt.Println("SVM err:", err.Error())
