@@ -46,9 +46,6 @@ func Peers(fnode *FactomNode) {
 					//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
 					if fnode.State.InMsgQueue().Length() < 9000 {
 						fnode.State.InMsgQueue().Enqueue(msg)
-						if fnode.State.SuperVerboseMessages {
-							fmt.Printf("SVM Enq (Peers): %s\n", msg.String())
-						}
 					}
 				} else {
 					RepeatMsgs.Inc()
@@ -102,9 +99,6 @@ func Peers(fnode *FactomNode) {
 					// Ignore messages if there are too many.
 					if fnode.State.InMsgQueue().Length() < 9000 {
 						fnode.State.InMsgQueue().Enqueue(msg)
-						if fnode.State.SuperVerboseMessages {
-							fmt.Printf("SVM Enq (Peers2): %s\n", msg.String())
-						}
 					}
 
 				} else {

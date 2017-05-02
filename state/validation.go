@@ -55,9 +55,6 @@ func (state *State) ValidatorLoop() {
 				msg = state.InMsgQueue().Dequeue()
 				if msg != nil {
 					state.JournalMessage(msg)
-					if state.SuperVerboseMessages {
-						fmt.Printf("SVM Deq: %s\n", msg.String())
-					}
 					break loop
 				} else {
 					// No messages? Sleep for a bit

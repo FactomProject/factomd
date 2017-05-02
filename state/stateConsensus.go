@@ -33,6 +33,9 @@ var _ = (*hash.Hash32)(nil)
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM exMsg (replay invalid):", msg.String(), msg.GetHash().String()[:10])
+		}
 		return
 	}
 	s.SetString()
@@ -41,6 +44,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	if s.IgnoreMissing {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+			if s.SuperVerboseMessages {
+				fmt.Println("SVM exMsg (too old):", msg.String(), msg.GetHash().String()[:10])
+			}
 			return
 		}
 	}
@@ -65,8 +71,14 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 		ret = true
 	case 0:
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM exMsg Holding1:", msg.String(), msg.GetHash().String()[:10])
+		}
 		s.Holding[msg.GetRepeatHash().Fixed()] = msg
 	default:
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM exMsg Holding2:", msg.String(), msg.GetHash().String()[:10])
+		}
 		s.Holding[msg.GetRepeatHash().Fixed()] = msg
 		if !msg.SentInvlaid() {
 			msg.MarkSentInvalid(true)
@@ -312,11 +324,15 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.Resend(s) {
-			if v.Validate(s) == 1 {
-				s.ResendCnt++
-				v.SendOut(s, v)
-				continue
+		_, ok = v.(*messages.MissingMsgResponse)
+
+		if !ok {
+			if v.Resend(s) {
+				if v.Validate(s) == 1 {
+					s.ResendCnt++
+					v.SendOut(s, v)
+					continue
+				}
 			}
 		}
 

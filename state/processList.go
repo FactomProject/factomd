@@ -324,6 +324,8 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 		return false, -1
 	}
 
+	p.MakeMap()
+
 	for i := 0; i < len(p.FedServers); i++ {
 		fedix := p.ServerMap[minute][i]
 		if fedix == fedIndex {
@@ -1012,6 +1014,11 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.ListAck = append(vm.ListAck, nil)
 	}
 
+	p.VMs[ack.VMIndex].List[ack.Height] = m
+	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
+	p.AddOldMsgs(m)
+	p.OldAcks[m.GetMsgHash().Fixed()] = ack
+
 	if p.State.SuperVerboseMessages {
 		fmt.Printf("SVM Just AddedToPL: %s / %s\n", m.String(), ack.String())
 		thisString := ""
@@ -1025,10 +1032,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		}
 	}
 
-	p.VMs[ack.VMIndex].List[ack.Height] = m
-	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
-	p.AddOldMsgs(m)
-	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
