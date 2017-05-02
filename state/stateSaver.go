@@ -7,15 +7,29 @@ package state
 import (
 	"fmt"
 	"io/ioutil"
+	"sync"
 )
 
 var tmpState []byte
+var mutex sync.Mutex
+var stop bool
 
 //To be increased whenever the data being saved changes from the last verion
 const version = 4
 
+func StopSaving() {
+	mutex.Lock()
+	defer mutex.Unlock()
+	stop = true
+}
+
 func SaveDBStateList(ss *DBStateList, networkName string, fileLocation string) error {
 	//For now, to file. Later - to DB
+	if stop == true {
+		return nil
+	}
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	//Don't save States after the server has booted - it might start it in a wrong state
 	if ss.State.DBFinished == true {
