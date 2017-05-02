@@ -330,10 +330,11 @@ type State struct {
 	AckChange uint32
 
 	// Plugins
-	useDBStateManager  bool
-	torrentUploadQueue chan interfaces.IMsg
-	DBStateManager     interfaces.IManagerController
-	useEtcd            bool
+	useDBStateManager    bool
+	torrentUploadQueue   chan interfaces.IMsg
+	DBStateManager       interfaces.IManagerController
+	useEtcd              bool
+	SuperVerboseMessages bool
 }
 
 type EntryUpdate struct {

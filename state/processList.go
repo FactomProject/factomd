@@ -918,6 +918,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
+	if p.State.SuperVerboseMessages {
+		fmt.Printf("SVM AddToPL: %s / %s\n", m.String(), ack.String())
+	}
+
 	m.PutAck(ack)
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
@@ -948,6 +952,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	toss := func(hint string) {
 		delete(p.State.Holding, m.GetRepeatHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
+		if p.State.SuperVerboseMessages {
+			fmt.Printf("SVM Toss: %s / %s (%s)\n", m.String(), ack.String(), hint)
+		}
 	}
 
 	now := p.State.GetTimestamp()
@@ -1003,6 +1010,13 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	for len(vm.List) <= int(ack.Height) {
 		vm.List = append(vm.List, nil)
 		vm.ListAck = append(vm.ListAck, nil)
+	}
+
+	if p.State.SuperVerboseMessages {
+		fmt.Printf("SVM Just AddedToPL: %s / %s\n", m.String(), ack.String())
+		for listIdx, msgInList := range vm.List {
+			fmt.Printf("SVM ProcList (%d) / %s\n", listIdx, msgInList.String())
+		}
 	}
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m

@@ -54,6 +54,9 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
+				if s.SuperVerboseMessages {
+					fmt.Printf("SVM Enq (LoadDB): %s\n", msg.String())
+				}
 				s.InMsgQueue().Enqueue(msg)
 				msg.SetLocal(true)
 				if s.InMsgQueue().Length() > 500 {
@@ -79,6 +82,9 @@ func LoadDatabase(s *State) {
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 		s.InMsgQueue().Enqueue(msg)
+		if s.SuperVerboseMessages {
+			fmt.Printf("SVM Enq (LoadDB0): %s\n", msg.String())
+		}
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
 }

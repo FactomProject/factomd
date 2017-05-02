@@ -219,7 +219,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		fmt.Println("ERROR on Send: ", err)
 		return err
 	}
-	if f.SuperVerboseMessages {
+	if f.SuperVerboseMessages && !f.UsingEtcd() {
 		fmt.Println("SVM S:", msg.String(), msg.GetHash().String()[:10])
 	}
 	f.bytesOut += len(data)

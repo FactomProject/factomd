@@ -6,9 +6,10 @@ package state
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"time"
 )
 
 func (state *State) ValidatorLoop() {
@@ -54,6 +55,9 @@ func (state *State) ValidatorLoop() {
 				msg = state.InMsgQueue().Dequeue()
 				if msg != nil {
 					state.JournalMessage(msg)
+					if state.SuperVerboseMessages {
+						fmt.Printf("SVM Deq: %s\n", msg.String())
+					}
 					break loop
 				} else {
 					// No messages? Sleep for a bit

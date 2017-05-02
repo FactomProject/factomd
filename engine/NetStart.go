@@ -367,6 +367,7 @@ func NetStart(s *state.State) {
 
 		if *superVerboseMessages {
 			p2pProxy.SuperVerboseMessages = true
+			fnodes[0].State.SuperVerboseMessages = true
 		}
 
 		if *useEtcd {
