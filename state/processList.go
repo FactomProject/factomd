@@ -1014,8 +1014,14 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if p.State.SuperVerboseMessages {
 		fmt.Printf("SVM Just AddedToPL: %s / %s\n", m.String(), ack.String())
+		thisString := ""
 		for listIdx, msgInList := range vm.List {
-			fmt.Printf("SVM ProcList (%d) / %s\n", listIdx, msgInList.String())
+			if msgInList == nil {
+				thisString = "<nil>"
+			} else {
+				thisString = msgInList.String()
+			}
+			fmt.Printf("SVM ProcList (%d) / %s\n", listIdx, thisString)
 		}
 	}
 
