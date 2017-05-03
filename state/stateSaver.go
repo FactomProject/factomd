@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sync"
+
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 var tmpState []byte
@@ -15,7 +17,7 @@ var mutex sync.Mutex
 var stop bool
 
 //To be increased whenever the data being saved changes from the last verion
-const version = 4
+const version = 5
 
 func StopSaving() {
 	mutex.Lock()
@@ -54,6 +56,9 @@ func SaveDBStateList(ss *DBStateList, networkName string, fileLocation string) e
 	if err != nil {
 		return err
 	}
+	//adding an integrity check
+	h := primitives.Sha(b)
+	b = append(h.Bytes(), b...)
 	tmpState = b
 
 	return nil
@@ -66,6 +71,15 @@ func LoadDBStateList(ss *DBStateList, networkName string, fileLocation string) e
 	}
 	if b == nil {
 		return nil
+	}
+	h := primitives.NewZeroHash()
+	b, err = h.UnmarshalBinaryData(b)
+	if err != nil {
+		return nil
+	}
+	h2 := primitives.Sha(b)
+	if h.IsSameAs(h2) == false {
+		return fmt.Errorf("Integrity hashes do not match")
 	}
 
 	return ss.UnmarshalBinary(b)
