@@ -129,12 +129,14 @@ func NetworkOutputs(fnode *FactomNode) {
 			if rand.Int()%1000 < fnode.State.GetDropRate() {
 				//drop the message, rather than processing it normally
 			} else {
+				fmt.Println("BlockDeq:", msg.String())
 				// We don't care about the result, but we do want to log that we have
 				// seen this message before, because we might have generated the message
 				// ourselves.
 				if msg.GetRepeatHash() == nil {
 					continue
 				}
+
 				_, ok := msg.(*messages.Ack)
 				if ok {
 					fnode.State.Replay.IsTSValid_(
@@ -147,6 +149,8 @@ func NetworkOutputs(fnode *FactomNode) {
 				p := msg.GetOrigin() - 1
 
 				if msg.IsPeer2Peer() {
+					fmt.Println("BlockDeq3:", msg.String())
+
 					// Must have a Peer to send a message to a peer
 					if len(fnode.Peers) > 0 {
 						if p < 0 {
@@ -161,6 +165,8 @@ func NetworkOutputs(fnode *FactomNode) {
 						}
 					}
 				} else {
+					fmt.Println("BlockDeq4:", msg.String())
+
 					for i, peer := range fnode.Peers {
 						wt := 1
 						if p >= 0 {
@@ -171,6 +177,7 @@ func NetworkOutputs(fnode *FactomNode) {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							if !fnode.State.GetNetStateOff() {
+								fmt.Println("BlockDeq5:", peer.Weight(), msg.String())
 								peer.Send(msg)
 								if fnode.State.MessageTally {
 									fnode.State.TallySent(int(msg.Type()))

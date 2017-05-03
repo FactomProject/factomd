@@ -47,12 +47,13 @@ type P2PProxy struct {
 
 	// If this is true, outbound messages will be sent out
 	// via Etcd (as well as sent out over the p2p network normally)
-	useEtcd              bool
-	useEtcdExclusive     bool
-	blockLeaseIdx        uint32
-	EtcdManager          interfaces.IEtcdManager
-	SuperVerboseMessages bool
-	NetworkReplayFilter  *ttlcache.Cache
+	useEtcd                bool
+	useEtcdExclusive       bool
+	blockLeaseIdx          uint32
+	EtcdManager            interfaces.IEtcdManager
+	SuperVerboseMessages   bool
+	NetworkReplayFilter    *ttlcache.Cache
+	NetworkAckReplayFilter *ttlcache.Cache
 }
 
 type factomMessage struct {
@@ -174,6 +175,8 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.logging = make(chan interface{}, p2p.StandardChannelSize)
 	f.blockLeaseIdx = 0
 	f.NetworkReplayFilter = ttlcache.NewCache(20 * time.Minute)
+	f.NetworkAckReplayFilter = ttlcache.NewCache(20 * time.Minute)
+
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -189,10 +192,18 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	if _, exists := f.NetworkReplayFilter.Get(msg.GetHash().String()); exists {
-		return nil
+	if msg.Type() == constants.ACK_MSG {
+		if _, exists := f.NetworkAckReplayFilter.Get(msg.GetHash().String()); exists {
+			return nil
+		}
+		f.NetworkAckReplayFilter.Set(msg.GetHash().String(), msg.String())
+	} else {
+		if _, exists := f.NetworkReplayFilter.Get(msg.GetHash().String()); exists {
+			return nil
+		}
+		f.NetworkReplayFilter.Set(msg.GetHash().String(), msg.String())
 	}
-	f.NetworkReplayFilter.Set(msg.GetHash().String(), msg.String())
+
 	if f.UsingEtcd() {
 		err := f.SendIntoEtcd(msg)
 		if err != nil {
