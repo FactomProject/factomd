@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -54,7 +53,6 @@ func (m *MessageBase) PutAck(ack interfaces.IMsg) {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
-	fmt.Println("SendOut:", msg.String())
 	// Dont' resend if we are behind
 	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
 		return

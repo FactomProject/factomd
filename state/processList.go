@@ -929,13 +929,12 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
-		now := p.State.GetTimestamp()
-		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
-			// Us and too old?  Just ignore.
-			return
-		}
-
 		if !(p.State.UsingEtcd() && ack.Timestamp.GetTimeSeconds() < p.State.BootTime) {
+			now := p.State.GetTimestamp()
+			if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+				// Us and too old?  Just ignore.
+				return
+			}
 			// When using etcd, we allow acks with salt mismatches if they existed before we booted
 			num := p.State.GetSalt(ack.Timestamp)
 			if num != ack.SaltNumber {
@@ -1020,7 +1019,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
 	if p.State.SuperVerboseMessages {
-		fmt.Printf("SVM Just AddedToPL: %s / %s\n", m.String(), ack.String())
+		fmt.Printf("SVM Added To PL: %s / %s\n", m.String(), ack.String())
 		thisString := ""
 		for listIdx, msgInList := range vm.List {
 			if msgInList == nil {

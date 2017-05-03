@@ -40,10 +40,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	}
 	s.SetString()
 	msg.ComputeVMIndex(s)
+	now := s.GetTimestamp().GetTimeSeconds()
 
 	if s.IgnoreMissing {
-		now := s.GetTimestamp().GetTimeSeconds()
-		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 && msg.GetTimestamp().GetTimeSeconds() >= s.BootTime {
 			if s.SuperVerboseMessages {
 				fmt.Println("SVM exMsg (too old):", msg.String(), msg.GetHash().String()[:10])
 			}
@@ -60,7 +60,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-			if len(vm.List) == 0 {
+			if len(vm.List) == 0 && now-s.BootTime > 20 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				s.MsgQueue() <- msg
 			} else {
@@ -136,8 +136,9 @@ func (s *State) Process() (progress bool) {
 
 	var vm *VM
 	if s.Leader {
+		sinceBoot := s.GetTimestamp().GetTimeSeconds() - s.BootTime
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		if vm.Height == 0 {
+		if vm.Height == 0 && sinceBoot > 20 {
 			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
 		}
 	}
@@ -409,9 +410,16 @@ func (s *State) AddDBState(isNew bool,
 //
 // Returns true if it finds a match, puts the message in holding, or invalidates the message
 func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
-
 	s.Holding[m.GetRepeatHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
+
+	if ack == nil {
+		var ok bool
+		ack, ok = m.GetAck().(*messages.Ack)
+		if !ok {
+			ack = nil
+		}
+	}
 
 	if ack != nil {
 		m.SetLeaderChainID(ack.GetLeaderChainID())
@@ -891,6 +899,9 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
+	ack.SendOut(s, ack)
+	m.SendOut(s, m)
+
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
@@ -1162,7 +1173,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				if err != nil {
 					panic(err)
 				}
-
+				dbs.SendOut(s, dbs)
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
