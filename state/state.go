@@ -1042,7 +1042,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
 	if err != nil || nextABlock == nil {
-		pl := s.ProcessLists.Get(dbheight + 1)
+		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
 			dbkl, err := s.DB.FetchDBlockByHeight(dbheight)
 			if err != nil || dbkl == nil {
