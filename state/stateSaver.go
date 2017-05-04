@@ -79,6 +79,7 @@ func LoadDBStateList(ss *DBStateList, networkName string, fileLocation string) e
 	}
 	h2 := primitives.Sha(b)
 	if h.IsSameAs(h2) == false {
+		fmt.Printf("LoadDBStateList - Integrity hashes do not match!")
 		return nil
 		//return fmt.Errorf("Integrity hashes do not match")
 	}
