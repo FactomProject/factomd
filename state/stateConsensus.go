@@ -477,6 +477,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
+	if dbstatemsg.ValidateSignatures(s) < 1 {
+		return
+	}
+
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
 	switch pdbstate.ValidNext(s, dbstatemsg) {
