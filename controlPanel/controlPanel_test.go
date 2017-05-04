@@ -53,8 +53,3 @@ func PopulateConnectionChan(total uint32, connections chan interface{}) {
 	connections <- temp
 }
 
-
-func TestPrints(t *testing.T) {
-	data := GetDataDumps()
-	fmt.Println("Len",len(data))
-}
