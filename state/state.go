@@ -1603,52 +1603,31 @@ func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) 
 }
 
 func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfaces.IFullSignature) {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		pl.AddDBSig(chainID, sig)
-	}
+	s.ProcessLists.Get(dbheight).AddDBSig(chainID, sig)
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		return pl.AddFedServer(hash)
-	}
-	return -1
+	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
 func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		pl.TrimVMList(height, vmIndex)
-	}
+	s.ProcessLists.Get(dbheight).TrimVMList(height, vmIndex)
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		pl.RemoveFedServerHash(hash)
-	}
+	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		return pl.AddAuditServer(hash)
-	}
 	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	return -1
+	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		pl.RemoveAuditServerHash(hash)
-	}
 	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-
+	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
@@ -1685,10 +1664,7 @@ func (s *State) IsLeader() bool {
 
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (bool, int) {
 	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		return pl.GetVirtualServers(minute, identityChainID)
-	}
-	return false, 0
+	return pl.GetVirtualServers(minute, identityChainID)
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
