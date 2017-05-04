@@ -1042,7 +1042,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
 	if err != nil || nextABlock == nil {
-		pl := s.ProcessLists.Get(dbheight)
+		pl := s.ProcessLists.Get(dbheight + 1)
 		if pl == nil {
 			dbkl, err := s.DB.FetchDBlockByHeight(dbheight)
 			if err != nil || dbkl == nil {
@@ -1603,31 +1603,52 @@ func (s *State) NoEntryYet(entryhash interfaces.IHash, ts interfaces.Timestamp) 
 }
 
 func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfaces.IFullSignature) {
-	s.ProcessLists.Get(dbheight).AddDBSig(chainID, sig)
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		pl.AddDBSig(chainID, sig)
+	}
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
 	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		return pl.AddFedServer(hash)
+	}
+	return -1
 }
 
 func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
-	s.ProcessLists.Get(dbheight).TrimVMList(height, vmIndex)
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		pl.TrimVMList(height, vmIndex)
+	}
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
 	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		pl.RemoveFedServerHash(hash)
+	}
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		return pl.AddAuditServer(hash)
+	}
 	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
+	return -1
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		pl.RemoveAuditServerHash(hash)
+	}
 	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
-	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
+
 }
 
 func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
@@ -1664,7 +1685,10 @@ func (s *State) IsLeader() bool {
 
 func (s *State) GetVirtualServers(dbheight uint32, minute int, identityChainID interfaces.IHash) (bool, int) {
 	pl := s.ProcessLists.Get(dbheight)
-	return pl.GetVirtualServers(minute, identityChainID)
+	if pl != nil {
+		return pl.GetVirtualServers(minute, identityChainID)
+	}
+	return false, 0
 }
 
 func (s *State) GetFactoshisPerEC() uint64 {
