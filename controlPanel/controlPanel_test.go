@@ -52,3 +52,4 @@ func PopulateConnectionChan(total uint32, connections chan interface{}) {
 	}
 	connections <- temp
 }
+
