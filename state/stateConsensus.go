@@ -782,7 +782,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		delete(s.Holding, m.GetRepeatHash().Fixed())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -873,7 +872,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		delete(s.Holding, m.GetRepeatHash().Fixed())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}

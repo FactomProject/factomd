@@ -828,7 +828,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Make sure we have a list, and punt if we don't.
 	if p == nil {
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 
@@ -853,7 +853,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		//	p.System.Height,
 		//	int(fullFault.SystemHeight),
 		//	fullFault.String()))
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 
