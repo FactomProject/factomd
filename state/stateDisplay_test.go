@@ -17,10 +17,9 @@ import (
 var _ = log.Print
 var _ = util.ReadConfig
 
-
 func TestDisplay(t *testing.T) {
 	s := new(state.State)
-	s.LoadConfig("","LOCAL")
+	s.LoadConfig("", "LOCAL")
 	s.NodeMode = "SERVER"
 	s.DBType = "Map"
 	s.Init()
@@ -44,4 +43,3 @@ func TestDisplay(t *testing.T) {
 	}
 
 }
-

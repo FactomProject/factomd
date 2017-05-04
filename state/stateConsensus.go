@@ -477,7 +477,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
 
-	if dbstatemsg.ValidateSignatures(s) < 1 {
+	if dbheight > 0 && dbstatemsg.ValidateSignatures(s) < 1 {
 		return
 	}
 
