@@ -471,15 +471,11 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// ignore if too old.
-	if dbheight > 0 && !dbstatemsg.IsInDB && dbheight <= s.GetHighestSavedBlk() {
+	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() {
 		return
 	}
 
 	//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): Saved %d dbht: %d", saved, dbheight))
-
-	if dbheight > 0 && dbstatemsg.ValidateSignatures(s) < 1 {
-		return
-	}
 
 	pdbstate := s.DBStates.Get(int(dbheight - 1))
 
