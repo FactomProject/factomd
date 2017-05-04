@@ -5,17 +5,17 @@
 package state_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
+	"fmt"
 	//"github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
-	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
+	//. "github.com/FactomProject/factomd/state"
 )
 
 var _ = log.Print
@@ -114,27 +114,6 @@ func TestCalculateTransactionRate(t *testing.T) {
 		t.Errorf("Instant transaction rate should be > 30 (roughly), found %d", i)
 	}
 
-}
-
-func TestClone(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
-	s2i := s.Clone(1)
-	s2, ok := s2i.(*State)
-	if !ok {
-		t.Error("Clone failed")
-	}
-	if s2.GetFactomNodeName() != "FNode01" {
-		t.Error("Factom Node Name incorrect")
-	}
-	s.AddPrefix("x")
-	s3i := s.Clone(2)
-	s3, ok := s3i.(*State)
-	if !ok {
-		t.Error("Clone failed")
-	}
-	if s3.GetFactomNodeName() != "xFNode02" {
-		t.Error("Factom Node Name incorrect")
-	}
 }
 
 /*
