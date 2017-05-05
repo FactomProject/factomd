@@ -774,7 +774,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		msg := m.(*messages.RevealEntryMsg)
 		delete(s.Commits, msg.Entry.GetHash().Fixed())
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.LeaderTimestamp)
+		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 
 	}
 

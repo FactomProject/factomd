@@ -154,7 +154,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
-		return -1
+		return 0
 	}
 
 	marshalledMsg, _ := m.MarshalForSignature()
