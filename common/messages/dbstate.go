@@ -182,6 +182,15 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
+	if m.ValidateSignatures(state) != 1 {
+		return 0
+	}
+
+	return 1
+}
+
+func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
+
 	// Validate Signatures
 
 	// If this is the next block that we need, we can validate it by signatures. If it is a past block

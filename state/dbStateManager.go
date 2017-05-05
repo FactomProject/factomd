@@ -106,6 +106,11 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
+	if !next.IsInDB &&  next.ValidateSignatures(state) == -1 {
+		return -1
+	}
+
+
 	// Get the keymr of the Previous DBState
 	pkeymr := d.DirectoryBlock.GetKeyMR()
 	// Get the Previous KeyMR pointer in the possible new Directory Block
