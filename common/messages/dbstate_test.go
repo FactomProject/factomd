@@ -177,7 +177,6 @@ func TestSignedDBStateValidate(t *testing.T) {
 	prev.FBlock = fblk
 	prev.ECBlock = ecblk
 	genDBState := NewDBStateMsg(state.GetTimestamp(), prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
-	genDBState.(DBStateMsg).IgnoreSigs = true
 	if genDBState.Validate(state) != 1 {
 		t.Error("Genesis should always be valid")
 	}
