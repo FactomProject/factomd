@@ -106,10 +106,9 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if !next.IsInDB &&  next.ValidateSignatures(state) == -1 {
+	if !next.IsInDB && next.ValidateSignatures(state) == -1 {
 		return -1
 	}
-
 
 	// Get the keymr of the Previous DBState
 	pkeymr := d.DirectoryBlock.GetKeyMR()
@@ -549,6 +548,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 		// are discarded after we have recorded said Entry Reveal
 		if len(commits) == 0 {
 			delete(s.Commits, k)
+			continue
 		} else {
 			{
 				c, ok := s.Commits[k][0].(*messages.CommitChainMsg)
