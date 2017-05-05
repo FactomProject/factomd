@@ -140,7 +140,7 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit, rtn := m.ValidateRTN(state)
-	if rtn == 1 {
+	if rtn >= 0 {
 		// Don't lose the commit that validates the entry
 		state.PutCommit(m.Entry.GetHash(), commit)
 	}
