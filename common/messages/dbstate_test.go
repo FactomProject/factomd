@@ -177,6 +177,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 	prev.FBlock = fblk
 	prev.ECBlock = ecblk
 	genDBState := NewDBStateMsg(state.GetTimestamp(), prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
+	genDBState.(DBStateMsg).IgnoreSigs = true
 	if genDBState.Validate(state) != 1 {
 		t.Error("Genesis should always be valid")
 	}
@@ -249,6 +250,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 
 		msg := NewDBStateMsg(timestamp, set.DBlock, set.ABlock, set.FBlock, set.ECBlock, nil, nil, dbSigList)
 		m := msg.(*DBStateMsg)
+		m.IgnoreSigs = true
 		if i%2 == 0 {
 			if i%6 == 0 {
 				if msg.Validate(state) < 0 {
@@ -306,6 +308,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 	prev.FBlock = fblk
 	prev.ECBlock = ecblk
 	genDBState := NewDBStateMsg(state.GetTimestamp(), prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
+	genDBState.(*DBStateMsg).IgnoreSigs = true
 	state.FollowerExecuteDBState(genDBState)
 	// Ok Geneis set
 

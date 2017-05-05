@@ -38,8 +38,9 @@ type DBStateMsg struct {
 	SignatureList SigList
 
 	//Not marshalled
-	Sent   interfaces.Timestamp
-	IsInDB bool
+	IgnoreSigs bool
+	Sent       interfaces.Timestamp
+	IsInDB     bool
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
@@ -225,7 +226,7 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 		}
 
 		// It does not pass the signatures. Should we return -1?
-		return -1
+		return 0
 	} else { // Alternative to signatures passing by checking our DB
 		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
 		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)

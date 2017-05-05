@@ -106,8 +106,8 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if !next.IsInDB && next.ValidateSignatures(state) == -1 {
-		return -1
+	if !next.IsInDB && !next.IgnoreSigs && next.ValidateSignatures(state) != 1 {
+		return 0
 	}
 
 	// Get the keymr of the Previous DBState
