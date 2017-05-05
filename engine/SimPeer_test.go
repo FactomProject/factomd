@@ -1,8 +1,8 @@
 package engine_test
 
 import (
-	"testing"
 	"math"
+	"testing"
 
 	. "github.com/FactomProject/factomd/engine"
 )
@@ -12,7 +12,6 @@ var fnodes []*FactomNode
 func SimPeerTest(t *testing.T) {
 	cnt := 40
 	side := int(math.Sqrt(float64(cnt)))
-
 
 	for i := 0; i < side; i++ {
 		AddSimPeer(fnodes, i*side, (i+1)*side-1)
@@ -26,6 +25,6 @@ func SimPeerTest(t *testing.T) {
 	}
 
 	if len(fnodes) != cnt {
-		t.Errorf("Should have %d nodes",cnt)
+		t.Errorf("Should have %d nodes", cnt)
 	}
 }

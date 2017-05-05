@@ -5,17 +5,17 @@
 package state_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 
 	//"github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
-	. "github.com/FactomProject/factomd/state"
 )
 
 var _ = log.Print
