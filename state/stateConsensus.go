@@ -910,7 +910,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
 
-	commit, rtn := re.ValidateRTN(s)
+	rtn := re.Validate(s)
 
 	switch rtn {
 	case 0:
@@ -919,6 +919,9 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	case -1:
 		return
 	}
+
+	commit := s.NextCommit(eh)
+
 	now := s.GetTimestamp()
 	// If we have already recorded a Reveal Entry with this hash in this period, just ignore.
 	if _, v := s.Replay.Valid(constants.REVEAL_REPLAY, eh.Fixed(), s.GetLeaderTimestamp(), now); !v {

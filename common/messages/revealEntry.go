@@ -82,11 +82,11 @@ func (m *RevealEntryMsg) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 // Also return the matching commit, if 1 (Don't put it back into the Commit List)
-func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, int) {
+func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
-		return nil, 0
+		return 0
 	}
 	//
 	// Make sure one of the two proper commits got us here.
@@ -94,7 +94,7 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
-		return nil, -1
+		return -1
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.
@@ -103,7 +103,7 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
-			return nil, 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
+			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
@@ -124,25 +124,18 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 
 		if eb == nil {
 			// No chain, we have to leave it be and maybe one will be made.
-			return nil, 0
+			return 0
 		}
-		return commit, 1
+		return 1
 	}
 
 	m.IsEntry = false
 	ECs := int(m.commitChain.CommitChain.Credits)
 	if m.Entry.KSize()+10 > ECs {
-		return nil, 0 // Wait for a commit that might fund us properly
+		return 0 // Wait for a commit that might fund us properly
 	}
 
-	return commit, 1
-}
-
-func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	_, rtn := m.ValidateRTN(state)
-	if rtn >= 0 {
-	}
-	return rtn
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as
