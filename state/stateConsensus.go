@@ -261,10 +261,10 @@ func (s *State) ReviewHolding() {
 	highest := s.GetHighestKnownBlock()
 	saved := s.GetHighestSavedBlk()
 
-	for k,v := range s.Holding {
+	for k, v := range s.Holding {
 
 		if int(highest)-int(saved) > 1000 {
-			delete(s.Holding,k)
+			delete(s.Holding, k)
 		}
 
 		mm, ok := v.(*messages.MissingMsgResponse)
@@ -289,7 +289,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && ((eom.DBHeight < saved-1 && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
+		if ok && ((eom.DBHeight <= saved && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}
@@ -301,7 +301,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && ((dbsigmsg.DBHeight < saved-1 && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
+		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}

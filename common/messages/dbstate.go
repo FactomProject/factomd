@@ -225,13 +225,13 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 		}
 
 		// It does not pass the signatures. Should we return -1?
-		return 1
+		return -1
 	} else { // Alternative to signatures passing by checking our DB
 		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
 		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)
 		if next == nil {
 			// Do not have the next directory block, so we cannot tell by this method
-			return 1
+			return 0
 		}
 		// If the prevKeyMr of the next matches this one, we know it is valid.
 		if next.GetHeader().GetPrevKeyMR().IsSameAs(m.DirectoryBlock.GetKeyMR()) {
