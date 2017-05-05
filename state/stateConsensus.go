@@ -259,11 +259,13 @@ func (s *State) ReviewHolding() {
 	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
+	saved := s.GetHighestSavedBlk()
 
-	for k := range s.Holding {
-		v := s.Holding[k]
+	for k,v := range s.Holding {
 
-		saved := s.GetHighestSavedBlk()
+		if int(highest)-int(saved) > 1000 {
+			delete(s.Holding,k)
+		}
 
 		mm, ok := v.(*messages.MissingMsgResponse)
 		if ok {
