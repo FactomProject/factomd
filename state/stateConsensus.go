@@ -774,7 +774,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		msg := m.(*messages.RevealEntryMsg)
 		delete(s.Commits, msg.Entry.GetHash().Fixed())
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
-		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
+		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.LeaderTimestamp)
 
 	}
 
@@ -1343,19 +1343,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Saving = true
 		}
 
-		for k := range s.Commits {
-			vs := s.Commits[k]
-			if len(vs) == 0 {
-				delete(s.Commits, k)
-				continue
-			}
-			v, ok := vs[0].(interfaces.IMsg)
-			if ok {
+		for k, v := range s.Commits {
+			if v != nil {
 				_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 				if !ok {
-					copy(vs, vs[1:])
-					vs[len(vs)-1] = nil
-					s.Commits[k] = vs[:len(vs)-1]
+					delete(s.Commits, k)
 				}
 			}
 		}
@@ -1871,31 +1863,24 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
-	cs := s.Commits[hash.Fixed()]
-	if cs == nil {
-		return nil
-	}
-
-	if len(cs) == 0 {
-		delete(s.Commits, hash.Fixed())
-		return nil
-	}
-
-	r := cs[0]
-
-	copy(cs[:], cs[1:])
-	cs[len(cs)-1] = nil
-	s.Commits[hash.Fixed()] = cs[:len(cs)-1]
-
-	return r
+	c := s.Commits[hash.Fixed()]
+	return c
 }
 
 func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
-	cs := s.Commits[hash.Fixed()]
-	if cs == nil {
-		cs = make([]interfaces.IMsg, 0)
+	e, ok1 := s.Commits[hash.Fixed()].(*messages.CommitEntryMsg)
+	m, ok1b := msg.(*messages.CommitEntryMsg)
+	ec, ok2 := s.Commits[hash.Fixed()].(*messages.CommitChainMsg)
+	mc, ok2b := msg.(*messages.CommitEntryMsg)
+
+	// Keep the most entry credits.
+
+	switch {
+	case ok1 && ok1b && e.CommitEntry.Credits > m.CommitEntry.Credits:
+	case ok2 && ok2b && ec.CommitChain.Credits > mc.CommitEntry.Credits:
+	default:
+		s.Commits[hash.Fixed()] = msg
 	}
-	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
 func (s *State) GetHighestAck() uint32 {

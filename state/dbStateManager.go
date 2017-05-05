@@ -540,41 +540,22 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	s := list.State
 	// Time out commits every now and again.
 	now := s.GetTimestamp()
-	for k := range s.Commits {
-		var keep []interfaces.IMsg
-		commits := s.Commits[k]
-
-		// Check to see if an entry Reveal has negated any pending commits.  All commits to the same EntryReveal
-		// are discarded after we have recorded said Entry Reveal
-		if len(commits) == 0 {
-			delete(s.Commits, k)
-		} else {
-			{
-				c, ok := s.Commits[k][0].(*messages.CommitChainMsg)
-				if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
-					delete(s.Commits, k)
-					continue
-				}
-			}
-			c, ok := s.Commits[k][0].(*messages.CommitEntryMsg)
-			if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+	for k, msg := range s.Commits {
+		{
+			c, ok := msg.(*messages.CommitChainMsg)
+			if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
 				delete(s.Commits, k)
 				continue
 			}
 		}
-
-		for _, v := range commits {
-			if v == nil {
-				continue
-			}
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), now)
-			if ok {
-				keep = append(keep, v)
-			}
+		c, ok := msg.(*messages.CommitEntryMsg)
+		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+			delete(s.Commits, k)
+			continue
 		}
-		if len(keep) > 0 {
-			s.Commits[k] = keep
-		} else {
+
+		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+		if !ok {
 			delete(s.Commits, k)
 		}
 	}

@@ -221,11 +221,11 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	ResendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
-	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
+	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
+	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
+	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits       map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -753,7 +753,7 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte][]interfaces.IMsg)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}

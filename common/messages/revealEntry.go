@@ -93,8 +93,8 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 	var okChain, okEntry bool
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
-	if !okChain && !okEntry { // Discard any invalid entries in the map.  Should never happen.
-		return m.ValidateRTN(state)
+	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
+		return nil, -1
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.
@@ -103,7 +103,7 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
-			return m.ValidateRTN(state) // Discard commits that are not funded properly.
+			return nil, 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
@@ -123,26 +123,24 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		}
 
 		if eb == nil {
-			// If we don't have a chain, put the commit back.  Don't want to lose it.
-			state.PutCommit(m.Entry.GetHash(), commit)
+			// No chain, we have to leave it be and maybe one will be made.
 			return nil, 0
 		}
-	} else {
-		m.IsEntry = false
-		ECs := int(m.commitChain.CommitChain.Credits)
-		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
-			return m.ValidateRTN(state)
-		}
+		return commit, 1
+	}
+
+	m.IsEntry = false
+	ECs := int(m.commitChain.CommitChain.Credits)
+	if m.Entry.KSize()+10 > ECs {
+		return nil, 0 // Wait for a commit that might fund us properly
 	}
 
 	return commit, 1
 }
 
 func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	commit, rtn := m.ValidateRTN(state)
+	_, rtn := m.ValidateRTN(state)
 	if rtn >= 0 {
-		// Don't lose the commit that validates the entry
-		state.PutCommit(m.Entry.GetHash(), commit)
 	}
 	return rtn
 }
