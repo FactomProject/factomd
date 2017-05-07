@@ -38,8 +38,9 @@ type DBStateMsg struct {
 	SignatureList SigList
 
 	//Not marshalled
-	Sent   interfaces.Timestamp
-	IsInDB bool
+	IgnoreSigs bool
+	Sent       interfaces.Timestamp
+	IsInDB     bool
 }
 
 var _ interfaces.IMsg = (*DBStateMsg)(nil)
@@ -181,6 +182,15 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 			}
 		}
 	}
+
+	if m.ValidateSignatures(state) != 1 {
+		return 0
+	}
+
+	return 1
+}
+
+func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 
 	// Validate Signatures
 

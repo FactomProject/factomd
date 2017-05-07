@@ -422,6 +422,9 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
+	if i < 0 {
+		return i
+	}
 	// If an audit server, it gets promoted
 	auditFound, _ := p.GetAuditServerIndexHash(identityChainID)
 	if auditFound {
@@ -828,7 +831,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Make sure we have a list, and punt if we don't.
 	if p == nil {
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 
@@ -853,7 +856,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		//	p.System.Height,
 		//	int(fullFault.SystemHeight),
 		//	fullFault.String()))
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 

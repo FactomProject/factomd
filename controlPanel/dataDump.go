@@ -29,7 +29,7 @@ type DataDump struct {
 	}
 }
 
-func getDataDumps() []byte {
+func GetDataDumps() []byte {
 	holder := new(DataDump)
 	DisplayStateMutex.RLock()
 	DsCopy := DisplayState.Clone()

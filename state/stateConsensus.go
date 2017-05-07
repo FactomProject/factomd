@@ -259,11 +259,13 @@ func (s *State) ReviewHolding() {
 	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
+	saved := s.GetHighestSavedBlk()
 
-	for k := range s.Holding {
-		v := s.Holding[k]
+	for k, v := range s.Holding {
 
-		saved := s.GetHighestSavedBlk()
+		if int(highest)-int(saved) > 1000 {
+			delete(s.Holding, k)
+		}
 
 		mm, ok := v.(*messages.MissingMsgResponse)
 		if ok {
@@ -287,7 +289,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && ((eom.DBHeight < saved-1 && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
+		if ok && ((eom.DBHeight <= saved && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}
@@ -299,7 +301,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && ((dbsigmsg.DBHeight < saved-1 && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
+		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}
@@ -782,7 +784,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		delete(s.Holding, m.GetRepeatHash().Fixed())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -873,7 +874,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		delete(s.Holding, m.GetRepeatHash().Fixed())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -910,7 +910,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
 
-	commit, rtn := re.ValidateRTN(s)
+	rtn := re.Validate(s)
 
 	switch rtn {
 	case 0:
@@ -919,6 +919,9 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	case -1:
 		return
 	}
+
+	commit := s.NextCommit(eh)
+
 	now := s.GetTimestamp()
 	// If we have already recorded a Reveal Entry with this hash in this period, just ignore.
 	if _, v := s.Replay.Valid(constants.REVEAL_REPLAY, eh.Fixed(), s.GetLeaderTimestamp(), now); !v {
@@ -1343,19 +1346,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Saving = true
 		}
 
-		for k := range s.Commits {
-			vs := s.Commits[k]
-			if len(vs) == 0 {
-				delete(s.Commits, k)
-				continue
-			}
-			v, ok := vs[0].(interfaces.IMsg)
-			if ok {
+		for k, v := range s.Commits {
+			if v != nil {
 				_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 				if !ok {
-					copy(vs, vs[1:])
-					vs[len(vs)-1] = nil
-					s.Commits[k] = vs[:len(vs)-1]
+					delete(s.Commits, k)
 				}
 			}
 		}
@@ -1407,6 +1402,13 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	pl := s.ProcessLists.Get(dbheight)
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+
+	// If the DBSig doesn't validate, we are done.  Toss it, and return.
+	if msg.Validate(s) != 1 {
+		vm.List[0] = nil
+		vm.ListAck[0] = nil
+		return false
+	}
 
 	if uint32(pl.System.Height) >= dbs.SysHeight {
 		s.DBSigSys = true
@@ -1864,31 +1866,24 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
-	cs := s.Commits[hash.Fixed()]
-	if cs == nil {
-		return nil
-	}
-
-	if len(cs) == 0 {
-		delete(s.Commits, hash.Fixed())
-		return nil
-	}
-
-	r := cs[0]
-
-	copy(cs[:], cs[1:])
-	cs[len(cs)-1] = nil
-	s.Commits[hash.Fixed()] = cs[:len(cs)-1]
-
-	return r
+	c := s.Commits[hash.Fixed()]
+	return c
 }
 
 func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
-	cs := s.Commits[hash.Fixed()]
-	if cs == nil {
-		cs = make([]interfaces.IMsg, 0)
+	e, ok1 := s.Commits[hash.Fixed()].(*messages.CommitEntryMsg)
+	m, ok1b := msg.(*messages.CommitEntryMsg)
+	ec, ok2 := s.Commits[hash.Fixed()].(*messages.CommitChainMsg)
+	mc, ok2b := msg.(*messages.CommitEntryMsg)
+
+	// Keep the most entry credits.
+
+	switch {
+	case ok1 && ok1b && e.CommitEntry.Credits > m.CommitEntry.Credits:
+	case ok2 && ok2b && ec.CommitChain.Credits > mc.CommitEntry.Credits:
+	default:
+		s.Commits[hash.Fixed()] = msg
 	}
-	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
 func (s *State) GetHighestAck() uint32 {
