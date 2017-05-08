@@ -11,13 +11,13 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	now := list.State.GetTimestamp()
 
 	hs := int(list.State.GetHighestSavedBlk())
-	hk := int(list.State.GetHighestKnownBlock())
+	hk := int(list.State.GetHighestAck())
 	begin := hs + 1
 	end := hk
 
 	ask := func() {
 
-		if list.TimeToAsk != nil && hk-hs > 2 && now.GetTime().After(list.TimeToAsk.GetTime()) {
+		if list.TimeToAsk != nil && hk-hs > 1 && now.GetTime().After(list.TimeToAsk.GetTime()) {
 
 			// Find the first dbstate we don't have.
 			for i, v := range list.State.DBStatesReceived {

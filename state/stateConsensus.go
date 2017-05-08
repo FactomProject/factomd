@@ -1405,8 +1405,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	// If the DBSig doesn't validate, we are done.  Toss it, and return.
 	if msg.Validate(s) != 1 {
-		vm.List[0] = nil
-		vm.ListAck[0] = nil
 		return false
 	}
 
@@ -1518,10 +1516,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if len(vm.List) > 0 {
 				tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
 				if !ok || !tdbsig.Matches {
-					fails++
-					vm.List[0] = nil
-					vm.Height = 0
+					fmt.Println("**** dbstate DBSig fail at ht", dbs.DBHeight, "vm", dbs.VMIndex)
 					s.DBSigProcessed--
+					return false
 				}
 			}
 		}
@@ -1537,9 +1534,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			s.DBSigFails++
 			//s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v", s.KeepMismatch))
 			if pl != nil {
-				pl.Reset()
-				s.DBSig = false
+				fmt.Println("**** dbstate DBSig tally failure")
+				s.DBSigProcessed--
+				return false
 			}
+
 			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
 
 			if msg != nil {
@@ -1549,6 +1548,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			}
 			return false
 		}
+
 		s.ReviewHolding()
 		s.Saving = false
 		s.DBSigDone = true

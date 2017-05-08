@@ -104,6 +104,7 @@ func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
 	if pl == nil && dbheight < lists.State.GetHighestCompletedBlk()+200 {
 		pl = NewProcessList(lists.State, prev, dbheight)
 		if !getindex() {
+			pl = nil
 			return
 		}
 		lists.Lists[i] = pl
