@@ -80,7 +80,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	}
 
 	// return if we are caught up, and clear our timer
-	if end-begin <= 1 {
+	if end-begin < 1 {
 		list.TimeToAsk = nil
 		return
 	}
