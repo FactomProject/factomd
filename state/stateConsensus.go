@@ -1476,6 +1476,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
 			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
 			pl.IncrementDiffSigTally()
+		} else {
+			return false
 		}
 
 		// Adds DB Sig to be added to Admin block if passes sig checks
@@ -1500,6 +1502,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		if allChecks {
 			dbs.Matches = true
 			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
+		} else {
+			return false
 		}
 
 		dbs.Processed = true
