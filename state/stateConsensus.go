@@ -5,12 +5,10 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"hash"
-
 	"time"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -1455,6 +1453,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 					db, _ := s.DB.FetchDBlockByHeight(dbs.DBHeight - 1)
 					if db == nil {
 						//s.AddStatus("ProcessDBSig(): Previous Process List isn't complete." + dbs.String())
+						fmt.Println("**** dbstate: dbsig fail -2")
 						return false
 					}
 				}
@@ -1466,45 +1465,48 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		dbstate := s.GetDBState(dbheight - 1)
 
-		if dbstate == nil {
-			//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
-			return false
+		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
+		if err != nil || dblk == nil {
+			dbstate := s.GetDBState(dbheight - 1)
+			if dbstate == nil || !(!dbstate.IsNew || dbstate.Locked || dbstate.Saved) {
+				//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
+				fmt.Println("**** dbstate: dbsig fail -1")
+				return false
+			}
+			dblk = dbstate.DirectoryBlock
 		}
 
-		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
-			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
+		fmt.Println("**** dbstate ", s.FactomNodeName, "Compare::: ",
+			dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ",
+			dblk.GetHeader().GetBodyMR().String()[:10])
+
+		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() == dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
 		} else {
+			fmt.Println("**** dbstate: dbsig fail 0")
 			return false
 		}
 
 		// Adds DB Sig to be added to Admin block if passes sig checks
-		allChecks := false
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
 		if err != nil {
+			fmt.Println("**** dbstate: dbsig fail 1")
 			return false
-			//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Marshal binary errored"))
-		} else {
-			if !dbs.DBSignature.Verify(data) {
-				return false
-				//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Verify errored"))
-			} else {
-				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
-					allChecks = true
-				} else {
-					return false
-				}
-			}
+		}
+		if !dbs.DBSignature.Verify(data) {
+			fmt.Println("**** dbstate: dbsig fail 2")
+			return false
 		}
 
-		if allChecks {
-			dbs.Matches = true
-			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
-		} else {
+		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
+		if err != nil || valid != 1 {
+			fmt.Println("**** dbstate: dbsig fail 3")
 			return false
 		}
+
+		dbs.Matches = true
+		s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
 
 		dbs.Processed = true
 		s.DBSigProcessed++
