@@ -12,6 +12,10 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	hs := int(list.State.GetHighestSavedBlk())
 	hk := int(list.State.GetHighestAck())
+	if list.State.GetHighestKnownBlock() > uint32(hk+2) {
+		hk = int(list.State.GetHighestKnownBlock())
+	}
+
 	begin := hs + 1
 	end := hk
 
