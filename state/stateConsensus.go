@@ -1482,13 +1482,17 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		allChecks := false
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
 		if err != nil {
+			return false
 			//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Marshal binary errored"))
 		} else {
 			if !dbs.DBSignature.Verify(data) {
+				return false
 				//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Verify errored"))
 			} else {
 				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
 					allChecks = true
+				} else {
+					return false
 				}
 			}
 		}
