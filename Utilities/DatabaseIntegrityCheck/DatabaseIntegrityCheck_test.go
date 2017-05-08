@@ -17,13 +17,13 @@ func TestCheckDatabaseFromDBO(t *testing.T) {
 
 func TestCheckDatabaseFromState(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()
-	CheckDatabase(state.DB.DB)
+	CheckDatabase(state.DB.(interfaces.DBOverlay))
 }
 
 func TestCheckDatabaseFromWSAPI(t *testing.T) {
 	ctx := testHelper.CreateWebContext()
 	state := ctx.Server.Env["state"].(interfaces.IState)
-	dbase := state.GetAndLockDB()
+	dbase := state.GetAndLockDB().(interfaces.DBOverlay)
 	defer state.UnlockDB()
 
 	CheckDatabase(dbase)

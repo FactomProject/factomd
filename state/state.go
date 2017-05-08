@@ -33,6 +33,8 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	"errors"
 )
 
 var _ = fmt.Print
@@ -137,15 +139,16 @@ type State struct {
 	timerMsgQueue          chan interfaces.IMsg
 	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
-	networkOutMsgQueue     chan interfaces.IMsg
+	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             chan interfaces.IMsg
+	inMsgQueue             InMsgMSGQueue
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	ShutdownChan           chan int // For gracefully halting Factom
-	JournalFile            string
-	Journaling             bool
+
+	ShutdownChan chan int // For gracefully halting Factom
+	JournalFile  string
+	Journaling   bool
 
 	serverPrivKey         *primitives.PrivateKey
 	serverPubKey          *primitives.PublicKey
@@ -218,11 +221,11 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
-	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
+	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
+	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
+	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits       map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -240,7 +243,7 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB     *databaseOverlay.Overlay
+	DB     interfaces.DBOverlaySimple
 	Logger *logger.FLogger
 	Anchor interfaces.IAnchor
 
@@ -272,6 +275,8 @@ type State struct {
 	FactoidBalancesPMutex sync.Mutex
 	ECBalancesP           map[[32]byte]int64
 	ECBalancesPMutex      sync.Mutex
+	TempBalanceHash       interfaces.IHash
+	Balancehash           interfaces.IHash
 
 	// Web Services
 	Port int
@@ -720,15 +725,15 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000) //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)        //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 100)            //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)            //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)            //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                      //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)       //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)      //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)     //Entries to be written to the database
+	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 100)        //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)   //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -748,7 +753,7 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte][]interfaces.IMsg)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -788,15 +793,15 @@ func (s *State) Init() {
 	switch s.DBType {
 	case "LDB":
 		if err := s.InitLevelDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	case "Bolt":
 		if err := s.InitBoltDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	case "Map":
 		if err := s.InitMapDB(); err != nil {
-			log.Printfln("Error initializing the database: %v", err)
+			panic(fmt.Sprintf("Error initializing the database: %v", err))
 		}
 	default:
 		panic("No Database type specified")
@@ -901,7 +906,7 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 	return nil
 }
 
-func (s *State) GetAndLockDB() interfaces.DBOverlay {
+func (s *State) GetAndLockDB() interfaces.DBOverlaySimple {
 	return s.DB
 }
 
@@ -926,29 +931,57 @@ func (s *State) Needed(eb interfaces.IEntryBlock) bool {
 	return false
 }
 
-func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+func (s *State) ValidatePrevious(dbheight uint32) error {
 	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
-
+	errs := ""
 	if dblk != nil && err == nil && dbheight > 0 {
-		if dbheight%1000 == 0 {
-			fmt.Println("xxxx Progressing ...", dbheight)
+
+		if dblk2, err := s.DB.FetchDBlock(dblk.GetKeyMR()); err != nil {
+			errs += "Don't have the directory block hash indexed %d\n"
+		} else if dblk2 == nil {
+			errs += fmt.Sprintf("Don't have the directory block hash indexed %d\n", dbheight)
 		}
+
 		pdblk, _ := s.DB.FetchDBlockByHeight(dbheight - 1)
 		pdblk2, _ := s.DB.FetchDBlock(dblk.GetHeader().GetPrevKeyMR())
-		if pdblk2 == nil || pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
-			fmt.Println("xxxx Can't get the previous block by hash...")
+		if pdblk == nil {
+			errs += fmt.Sprintf("Cannot find the previous block by index at %d", dbheight-1)
+		} else {
+			if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+				errs += fmt.Sprintf("xxxx KeyMR incorrect at height %d", dbheight-1)
+			}
+			if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
+				fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+				return fmt.Errorf("Full hash incorrect block at %d", dbheight-1)
+			}
 		}
-		if pdblk.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
-			fmt.Println("xxxx KeyMR incorrect at height", dbheight-1)
-		}
-		if pdblk.GetFullHash().Fixed() != dblk.GetHeader().GetPrevFullHash().Fixed() {
-			fmt.Println("xxxx Full Hash incorrect at height", dbheight-1)
+		if pdblk2 == nil {
+			errs += fmt.Sprintf("Cannot find the previous block at %d", dbheight-1)
+		} else {
+			if pdblk2.GetKeyMR().Fixed() != dblk.GetHeader().GetPrevKeyMR().Fixed() {
+				errs += fmt.Sprintln("xxxx Hash is incorrect.  Expected: ", dblk.GetHeader().GetPrevKeyMR().String())
+				errs += fmt.Sprintln("xxxx Hash is incorrect.  Recieved: ", pdblk2.GetKeyMR().String())
+				errs += fmt.Sprintf("Hash is incorrect at %d", dbheight-1)
+			}
 		}
 	}
+	if len(errs) > 0 {
+		return errors.New(errs)
+	}
+	return nil
+}
 
+func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
+	dblk, err := s.DB.FetchDBlockByHeight(dbheight)
 	if err != nil {
 		return nil, err
 	}
+
+	err = s.ValidatePrevious(dbheight)
+	if err != nil {
+		panic(err.Error() + " " + s.FactomNodeName)
+	}
+
 	if dblk == nil {
 		return nil, nil
 	}
@@ -1005,12 +1038,11 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 		panic(fmt.Sprintf("The configured network ID (%x) differs from the one in the local database (%x) at height %d", configuredID, dbaseID, dbheight))
 	}
 
-	blockSig := new(primitives.Signature)
 	var allSigs []interfaces.IFullSignature
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
 	if err != nil || nextABlock == nil {
-		pl := s.ProcessLists.Get(dbheight)
+		pl := s.ProcessLists.GetSafe(dbheight + 1)
 		if pl == nil {
 			dbkl, err := s.DB.FetchDBlockByHeight(dbheight)
 			if err != nil || dbkl == nil {
@@ -1035,6 +1067,8 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 				if err != nil {
 					continue
 				}
+
+				blockSig := new(primitives.Signature)
 				blockSig.SetSignature(r.PrevDBSig.Bytes())
 				blockSig.SetPub(r.PrevDBSig.GetKey())
 				allSigs = append(allSigs, blockSig)
@@ -1573,7 +1607,7 @@ func (s *State) AddDBSig(dbheight uint32, chainID interfaces.IHash, sig interfac
 }
 
 func (s *State) AddFedServer(dbheight uint32, hash interfaces.IHash) int {
-	s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("AddFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddFedServer(hash)
 }
 
@@ -1582,17 +1616,17 @@ func (s *State) TrimVMList(dbheight uint32, height uint32, vmIndex int) {
 }
 
 func (s *State) RemoveFedServer(dbheight uint32, hash interfaces.IHash) {
-	s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("RemoveFedServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveFedServerHash(hash)
 }
 
 func (s *State) AddAuditServer(dbheight uint32, hash interfaces.IHash) int {
-	s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("AddAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	return s.ProcessLists.Get(dbheight).AddAuditServer(hash)
 }
 
 func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
-	s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
+	//s.AddStatus(fmt.Sprintf("RemoveAuditServer %x at dbht: %d", hash.Bytes()[2:6], dbheight))
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
@@ -1761,11 +1795,11 @@ func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
 	return s.networkInvalidMsgQueue
 }
 
-func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
+func (s *State) NetworkOutMsgQueue() interfaces.IQueue {
 	return s.networkOutMsgQueue
 }
 
-func (s *State) InMsgQueue() chan interfaces.IMsg {
+func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 
@@ -2005,7 +2039,7 @@ func (s *State) SetString() {
 }
 
 func (s *State) SummaryHeader() string {
-	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %s\n",
+	str := fmt.Sprintf(" %10s %6s %12s %5s %4s %6s %10s %8s %5s %4s %20s %12s %10s %-8s %-9s %15s %9s %9s %s\n",
 		"Node",
 		"ID   ",
 		" ",
@@ -2023,7 +2057,8 @@ func (s *State) SummaryHeader() string {
 		"Fct/EC/E",
 		"API:Fct/EC/E",
 		"tps t/i",
-		"SysHeight")
+		"SysHeight",
+		"BH")
 
 	return str
 }
@@ -2164,6 +2199,10 @@ func (s *State) SetStringQueues() {
 		apis,
 		stps)
 
+	if s.Balancehash == nil {
+		s.Balancehash = primitives.NewHash(constants.ZERO_HASH)
+	}
+
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))
 
 	if list.System.Height < len(list.System.List) {
@@ -2176,6 +2215,8 @@ func (s *State) SetStringQueues() {
 	} else {
 		str = str + " -"
 	}
+
+	str = str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3])
 
 	s.serverPrt = str
 

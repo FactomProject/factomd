@@ -31,7 +31,7 @@ func LoadDatabase(s *State) {
 
 	var blkCnt uint32
 
-	head, err := s.DB.FetchDirectoryBlockHead()
+	head, err := s.DB.FetchDBlockHead()
 	if err == nil && head != nil {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
@@ -39,14 +39,14 @@ func LoadDatabase(s *State) {
 	t := time.Now()
 
 	//msg, err := s.LoadDBState(blkCnt)
-
-	for i := 0; i < int(blkCnt); i++ {
+	for i := 0; i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {
 			since := time.Since(t)
 			ss := float64(since.Nanoseconds()) / 1000000000
 			bps := float64(i) / ss
 			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d / %v. Blocks per second %8.2f\n", s.FactomNodeName, i, blkCnt, bps))
 		}
+
 		msg, err := s.LoadDBState(uint32(i))
 		if err != nil {
 			s.Println(err.Error())
@@ -54,10 +54,10 @@ func LoadDatabase(s *State) {
 			break
 		} else {
 			if msg != nil {
-				s.InMsgQueue() <- msg
+				s.InMsgQueue().Enqueue(msg)
 				msg.SetLocal(true)
-				if len(s.InMsgQueue()) > 500 {
-					for len(s.InMsgQueue()) > 100 {
+				if s.InMsgQueue().Length() > 500 {
+					for s.InMsgQueue().Length() > 100 {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}
@@ -78,7 +78,7 @@ func LoadDatabase(s *State) {
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
 
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
-		s.InMsgQueue() <- msg
+		s.InMsgQueue().Enqueue(msg)
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
 }

@@ -17,6 +17,7 @@ import (
 	"bufio"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
@@ -42,6 +43,7 @@ var p2pNetwork *p2p.Controller
 var logPort string
 
 func NetStart(s *state.State) {
+	ackBalanceHashPtr := flag.Bool("balancehash", true, "If false, then don't pass around balance hashes")
 	enablenetPtr := flag.Bool("enablenet", true, "Enable or disable networking")
 	waitEntriesPtr := flag.Bool("waitentries", false, "Wait for Entries to be validated prior to execution of messages")
 	listenToPtr := flag.Int("node", 0, "Node Number the simulator will set as the focus")
@@ -81,6 +83,7 @@ func NetStart(s *state.State) {
 
 	flag.Parse()
 
+	ackbalanceHash := *ackBalanceHashPtr
 	enableNet := *enablenetPtr
 	waitEntries := *waitEntriesPtr
 	listenTo := *listenToPtr
@@ -117,6 +120,7 @@ func NetStart(s *state.State) {
 	factomdTLS := *factomdTLSflag
 	factomdLocations := *factomdLocationsflag
 
+	messages.AckBalanceHash = ackbalanceHash
 	// Must add the prefix before loading the configuration.
 	s.AddPrefix(prefix)
 	FactomConfigFilename := util.GetConfigFilename("m2")
@@ -242,11 +246,12 @@ func NetStart(s *state.State) {
 	s.Init()
 	s.SetDropRate(droprate)
 
-	mLog.init(runtimeLog, cnt)
+	mLog.Init(runtimeLog, cnt)
 
 	setupFirstAuthority(s)
 
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "Build", Build))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "balancehash", messages.AckBalanceHash))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "FNode 0 Salt", s.Salt.String()[:16]))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "enablenet", enableNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "waitentries", waitEntries))
@@ -493,6 +498,7 @@ func NetStart(s *state.State) {
 	state.RegisterPrometheus()
 	p2p.RegisterPrometheus()
 	leveldb.RegisterPrometheus()
+	RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:

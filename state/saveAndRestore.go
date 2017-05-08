@@ -65,10 +65,10 @@ type SaveState struct {
 
 	LeaderTimestamp interfaces.Timestamp
 
-	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
 
@@ -115,7 +115,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
+	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
 
 	ss.Replay = state.Replay.Save()
 	ss.LeaderTimestamp = d.DirectoryBlock.GetTimestamp()
@@ -175,10 +175,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//	ss.Acks[k] = state.Acks[k]
 	//}
 
-	ss.Commits = make(map[[32]byte][]interfaces.IMsg)
-	for k := range state.Commits {
-		var c []interfaces.IMsg
-		ss.Commits[k] = append(c, state.Commits[k]...)
+	ss.Commits = make(map[[32]byte]interfaces.IMsg)
+	for k, c := range state.Commits {
+		ss.Commits[k] = c
 	}
 
 	ss.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
@@ -364,11 +363,11 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	}
 	pl := state.ProcessLists.Get(ss.DBHeight)
 
-	state.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight))
+	// state.AddStatus(fmt.Sprintln("Index: ", index, "dbht:", ss.DBHeight, "lleaderheight", state.LLeaderHeight))
 
 	dindex := ss.DBHeight - state.DBStates.Base
 	state.DBStates.DBStates = state.DBStates.DBStates[:dindex]
-	state.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
+	//state.AddStatus(fmt.Sprintf("SAVESTATE Restoring the State to dbht: %d", ss.DBHeight))
 
 	state.Replay = ss.Replay.Save()
 	state.LeaderTimestamp = ss.LeaderTimestamp
@@ -386,7 +385,7 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.ECBalancesPMutex.Lock()
 	state.ECBalancesP = make(map[[32]byte]int64, 0)
 	for k := range state.ECBalancesP {
-		ss.ECBalancesP[k] = state.ECBalancesP[k]
+		state.ECBalancesP[k] = ss.ECBalancesP[k]
 	}
 	state.ECBalancesPMutex.Unlock()
 
@@ -428,10 +427,9 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 		state.Acks[k] = ss.Acks[k]
 	}
 
-	state.Commits = make(map[[32]byte][]interfaces.IMsg)
-	for k := range ss.Commits {
-		var c []interfaces.IMsg
-		state.Commits[k] = append(c, ss.Commits[k]...)
+	state.Commits = make(map[[32]byte]interfaces.IMsg)
+	for k, c := range ss.Commits {
+		state.Commits[k] = c
 	}
 
 	state.InvalidMessages = make(map[[32]byte]interfaces.IMsg)

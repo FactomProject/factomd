@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"math/rand"
 	"time"
 )
 
@@ -29,7 +30,8 @@ type SimPeer struct {
 	BroadcastIn  chan *SimPacket
 
 	// Delay in Milliseconds
-	Delay int64
+	Delay    int64 // The maximum delay
+	DelayUse int64 // We actually select a random delay for each data element.
 	// Were we hold delayed packets
 	Delayed *SimPacket
 
@@ -119,7 +121,7 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 		return err
 	}
 	if len(f.BroadcastOut) < 9000 {
-		packet := SimPacket{data, time.Now().UnixNano() / 1000000}
+		packet := SimPacket{data: data, sent: time.Now().UnixNano() / 1000000}
 		f.BroadcastOut <- &packet
 	}
 	return nil
@@ -136,11 +138,17 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 		default:
 			return nil, nil // Nothing to do
 		}
+		if f.Delay > 0 {
+			f.DelayUse = rand.Int63n(f.Delay)
+		} else {
+			f.DelayUse = 0
+		}
+
 	}
 
 	now := time.Now().UnixNano() / 1000000
 
-	if f.Delayed != nil && now-f.Delayed.sent > f.Delay {
+	if f.Delayed != nil && now-f.Delayed.sent > f.DelayUse {
 		data := f.Delayed.data
 		f.Delayed = nil
 		msg, err := messages.UnmarshalMessage(data)

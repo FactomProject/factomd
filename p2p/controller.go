@@ -413,17 +413,49 @@ func (c *Controller) route() {
 		TotalMessagesSent++
 		switch parcel.Header.TargetPeer {
 		case BroadcastFlag: // Send to all peers
-			for i := 0; i < NumberPeersToBroadcast && len(c.connections)> 0; i++ {
-				s := rand.Int() % len(c.connections)
-				loop := 0
+
+			// First off, how many nodes are we broadcasting to?  At least 4, if possible.  But 1/4 of the
+			// number of connections if that is more than 4.
+			num := NumberPeersToBroadcast
+			clen := len(c.connections)
+			if clen == 0 {
+				return
+			} else if clen < num {
+				num = clen
+			}
+			quarter := clen / 4
+			if quarter > num {
+				num = quarter
+			}
+
+			// So at this point num <= clen, and we are going to send num sequentinial connections our message.
+			// Note that if we run over the end of the connections, we wrap back to the start.  We don't assume
+			// an order of connections, but we do assume that if we range over a map twice, we get the keys in
+			// the same order both times.  (We do not modify the map)
+			cnt := 0
+			start := rand.Int() % clen
+			spot := start
+		broadcast:
+			for i := 0; i < 2; i++ {
+				loopcnt := 0
 				for _, connection := range c.connections {
-					if loop == s {
+					if loopcnt == spot {
 						BlockFreeChannelSend(connection.SendChannel, ConnectionParcel{Parcel: parcel})
-						break
+						spot++
+						if spot >= clen {
+							spot = 0
+						}
+						cnt++
 					}
-					loop++
+					if cnt >= num {
+						break broadcast
+					}
+					loopcnt++
 				}
 			}
+			SentToPeers.Set(float64(cnt))
+			StartingPoint.Set(float64(start))
+
 		case RandomPeerFlag: // Find a random peer, send to that peer.
 			debug("ctrlr", "Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
 			bestKey := ""

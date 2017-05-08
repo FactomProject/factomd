@@ -17,7 +17,11 @@ import (
 
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
 
-func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
+// BlockFreeChannelSend will remove things from the queue to make room for new messages if the queue is full.
+// This prevents channel blocking on full.
+//		Returns: The number of elements cleared from the channel to make room
+func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
+	removed := 0
 	highWaterMark := int(float64(cap(channel)) * 0.95)
 	clen := len(channel)
 	switch {
@@ -25,6 +29,7 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 		str, _ := primitives.EncodeJSONString(message)
 		significant("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
 		for highWaterMark <= len(channel) { // Clear out some messages
+			removed++
 			<-channel
 		}
 		fallthrough
@@ -34,6 +39,7 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 		default:
 		}
 	}
+	return removed
 }
 
 // Global variables for the p2p protocol
@@ -49,8 +55,8 @@ var (
 	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
 	OnlySpecialPeers                     = false
 	NetworkDeadline                      = time.Duration(30) * time.Second
-	NumberPeersToConnect                 = 16
-	NumberPeersToBroadcast               = 4
+	NumberPeersToConnect                 = 32
+	NumberPeersToBroadcast               = 100
 	MaxNumberIncommingConnections        = 150
 	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
 	StandardChannelSize                  = 5000
@@ -74,12 +80,9 @@ var (
 
 const (
 	// ProtocolVersion is the latest version this package supports
-	ProtocolVersion uint16 = 07
+	ProtocolVersion uint16 = 8
 	// ProtocolVersionMinimum is the earliest version this package supports
-	ProtocolVersionMinimum uint16 = 07
-	// Don't think we need this.
-	// ProtocolCookie         uint32 = uint32([]bytes("Fact"))
-	// Used in generating message CRC values
+	ProtocolVersionMinimum uint16 = 8
 )
 
 // NetworkIdentifier represents the P2P network we are participating in (eg: test, nmain, etc.)

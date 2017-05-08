@@ -30,6 +30,8 @@ type MessageBase struct {
 	resend        int64 // Time to resend (milliseconds)
 	expire        int64 // Time to expire (milliseconds)
 
+	Ack interfaces.IMsg
+
 	Stalled     bool // This message is currently stalled
 	MarkInvalid bool
 	Sigvalid    bool
@@ -37,9 +39,17 @@ type MessageBase struct {
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for i := 0; i < cnt; i++ {
-		state.NetworkOutMsgQueue() <- msg
+		state.NetworkOutMsgQueue().Enqueue(msg)
 		time.Sleep(time.Duration(delay) * time.Second)
 	}
+}
+
+func (m *MessageBase) GetAck() interfaces.IMsg {
+	return m.Ack
+}
+
+func (m *MessageBase) PutAck(ack interfaces.IMsg) {
+	m.Ack = ack
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
@@ -102,7 +112,7 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 && len(s.NetworkOutMsgQueue()) < 1000 {
+	if now-m.resend > 20000 && s.NetworkOutMsgQueue().Length() < 1000 {
 		m.resend = now
 		return true
 	}

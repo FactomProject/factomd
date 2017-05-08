@@ -8,6 +8,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/factoid"
@@ -15,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
-	"time"
 )
 
 var _ = hex.EncodeToString
@@ -41,6 +43,7 @@ type DBState struct {
 	EntryBlocks []interfaces.IEntryBlock
 	Entries     []interfaces.IEBEntry
 
+	Repeat      bool
 	ReadyToSave bool
 	Locked      bool
 	Signed      bool
@@ -55,14 +58,15 @@ type DBState struct {
 type DBStateList struct {
 	SrcNetwork bool // True if I got this block from the network.
 
-	LastEnd   int
-	LastBegin int
-	TimeToAsk interfaces.Timestamp
-
-	State    *State
-	Base     uint32
-	Complete uint32
-	DBStates []*DBState
+	LastEnd       int
+	LastBegin     int
+	TimeToAsk     interfaces.Timestamp
+	ProcessHeight uint32
+	SavedHeight   uint32
+	State         *State
+	Base          uint32
+	Complete      uint32
+	DBStates      []*DBState
 }
 
 // Validate this directory block given the next Directory Block.  Need to check the
@@ -72,6 +76,7 @@ type DBStateList struct {
 // Return a -1 on failure.
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
+
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 
@@ -80,14 +85,28 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if dbheight == 0 {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
+	if dbheight == 0 && state.GetHighestSavedBlk() == 0 {
+		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 1 genesis block is valid dbht: %d", dbheight))
 		// The genesis block is valid by definition.
 		return 1
 	}
+
+	if d == nil || !d.Saved {
+		return 0
+	}
+
+	// Don't reload blocks!
+	if dbheight <= state.GetHighestSavedBlk() {
+		return -1
+	}
+
 	if d == nil {
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
+		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
+		return 0
+	}
+
+	if !next.IsInDB && !next.IgnoreSigs && next.ValidateSignatures(state) != 1 {
 		return 0
 	}
 
@@ -103,13 +122,13 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		}
 
 		if pkeymr.Fixed() == pdir.GetKeyMR().Fixed() {
-			state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match at first. dbht: %d dbstate had prev %x but we expected %x But on disk %x",
-				dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
+			//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match at first. dbht: %d dbstate had prev %x but we expected %x But on disk %x",
+			//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
 			return 1
 		}
 
-		state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x on disk %x",
-			dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
+		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn -1 hashes don't match. dbht: %d dbstate had prev %x but we expected %x on disk %x",
+		//	dbheight, prevkeymr.Bytes()[:3], pkeymr.Bytes()[:3], pdir.GetKeyMR().Bytes()[:3]))
 		// If not the same, this is a bad new Directory Block
 		return -1
 	}
@@ -274,14 +293,14 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	majority := (len(currentFeds) / 2) + 1
 	lenDBSigs := len(list.State.ProcessLists.Get(currentDBHeight).DBSignatures)
 	if lenDBSigs < majority {
-		list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: return without processing: lenDBSigs)(%v) < majority(%d)",
-			lenDBSigs,
-			majority))
+		//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: return without processing: lenDBSigs)(%v) < majority(%d)",
+		//	lenDBSigs,
+		//	majority))
 
 		return false
 	}
-	list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
-		majority))
+	//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding the first %d dbsigs",
+	//	majority))
 
 	for i, sig := range list.State.ProcessLists.Get(currentDBHeight).DBSignatures {
 		if i < majority {
@@ -291,7 +310,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		}
 	}
 
-	list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
+	//list.State.AddStatus("FIXUPLINKS: Adding the deltas to the Admin Block, if necessary")
 
 	// Correcting Server Lists (Caused by Server Faults)
 	for _, cf := range currentFeds {
@@ -302,7 +321,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 			list.State.Identities[index].Status == constants.IDENTITY_FEDERATED_SERVER) ||
 			list.State.Identities[index].Status == constants.IDENTITY_AUDIT_SERVER) {*/
 			addEntry := adminBlock.NewAddFederatedServer(cf.GetChainID(), currentDBHeight+1)
-			list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding delta to the Admin Block: %s", addEntry.String()))
+			//list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Adding delta to the Admin Block: %s", addEntry.String()))
 			d.AdminBlock.AddFirstABEntry(addEntry)
 			/*} else {
 				list.State.AddStatus(fmt.Sprintf("FIXUPLINKS: Not Adding delta to the Admin Block: Idx: %d Status: %d", index, list.State.Identities[index].Status))
@@ -383,14 +402,25 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	dbht := d.DirectoryBlock.GetHeader().GetDBHeight()
 
-	if d.Locked || d.IsNew {
+	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
+	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
+	// at this height) then we simpy return.
+	if d.Locked || d.IsNew || d.Repeat {
+		return
+	}
+
+	// If we detect that we have processed at this height, flag the dbstate as a repeat, progress is good, and
+	// go forward.
+	if dbht > 0 && dbht <= list.ProcessHeight {
+		progress = true
+		d.Repeat = true
 		return
 	}
 
 	if dbht > 1 {
 		pd := list.State.DBStates.Get(int(dbht - 1))
 		if pd != nil && !pd.Saved {
-			list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
+			//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Previous dbstate (%d) not saved", dbht-1))
 			return
 		}
 	}
@@ -437,7 +467,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	//
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
-	list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
+	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	d.AdminBlock.UpdateState(list.State)
 	d.EntryCreditBlock.UpdateState(list.State)
 
@@ -471,15 +501,17 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	fs.AddTransactionBlock(d.FactoidBlock)
 	fs.AddECBlock(d.EntryCreditBlock)
 
+	list.State.Balancehash = fs.GetBalanceHash(false)
+
 	// Make the current exchange rate whatever we had in the previous block.
 	// UNLESS there was a FER entry processed during this block  changeheight will be left at 1 on a change block
 	if list.State.FERChangeHeight == 1 {
 		list.State.FERChangeHeight = 0
 	} else {
 		if list.State.FactoshisPerEC != d.FactoidBlock.GetExchRate() {
-			list.State.AddStatus(fmt.Sprint("PROCESSBLOCKS:  setting rate", list.State.FactoshisPerEC,
-				" to ", d.FactoidBlock.GetExchRate(),
-				" - Height ", d.DirectoryBlock.GetHeader().GetDBHeight()))
+			//list.State.AddStatus(fmt.Sprint("PROCESSBLOCKS:  setting rate", list.State.FactoshisPerEC,
+			//	" to ", d.FactoidBlock.GetExchRate(),
+			//	" - Height ", d.DirectoryBlock.GetHeader().GetDBHeight()))
 		}
 		list.State.FactoshisPerEC = d.FactoidBlock.GetExchRate()
 	}
@@ -494,6 +526,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	if uint32(i) > list.Complete {
 		list.Complete = uint32(i)
 	}
+	list.ProcessHeight = dbht
 	progress = true
 	d.Locked = true // Only after all is done will I admit this state has been saved.
 
@@ -507,38 +540,22 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	s := list.State
 	// Time out commits every now and again.
 	now := s.GetTimestamp()
-	for k := range s.Commits {
-		var keep []interfaces.IMsg
-		commits := s.Commits[k]
-
-		// Check to see if an entry Reveal has negated any pending commits.  All commits to the same EntryReveal
-		// are discarded after we have recorded said Entry Reveal
-		if len(commits) == 0 {
-			delete(s.Commits, k)
-		} else {
-			{
-				c, ok := s.Commits[k][0].(*messages.CommitChainMsg)
-				if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
-					delete(s.Commits, k)
-					continue
-				}
-			}
-			c, ok := s.Commits[k][0].(*messages.CommitEntryMsg)
-			if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+	for k, msg := range s.Commits {
+		{
+			c, ok := msg.(*messages.CommitChainMsg)
+			if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
 				delete(s.Commits, k)
 				continue
 			}
 		}
-
-		for _, v := range commits {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), now)
-			if ok {
-				keep = append(keep, v)
-			}
+		c, ok := msg.(*messages.CommitEntryMsg)
+		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+			delete(s.Commits, k)
+			continue
 		}
-		if len(keep) > 0 {
-			s.Commits[k] = keep
-		} else {
+
+		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+		if !ok {
 			delete(s.Commits, k)
 		}
 	}
@@ -553,7 +570,7 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 
 	// If we have the next dbstate in the list, then all the signatures for this dbstate
 	// have been checked, so we can consider this guy signed.
-	if dbheight == 0 || list.Get(int(dbheight+1)) != nil {
+	if dbheight == 0 || list.Get(int(dbheight+1)) != nil || d.Repeat == true {
 		d.Signed = true
 		return true
 	}
@@ -574,23 +591,34 @@ func (list *DBStateList) SignDB(d *DBState) (process bool) {
 		return
 	}
 
-	for _, vm := range pl.VMs[:len(pl.FedServers)] {
-		if vm.LeaderMinute < 1 {
-			return
-		}
-	}
-
 	d.Signed = true
 	return true
 }
+
+var nowish int64 = time.Now().Unix()
 
 func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	dbheight := int(d.DirectoryBlock.GetHeader().GetDBHeight())
 	// Take the height, and some function of the identity chain, and use that to decide to trim.  That
 	// way, not all nodes in a simulation Trim() at the same time.
 
-	if !d.Signed || !d.ReadyToSave {
+	if !d.Signed || !d.ReadyToSave || list.State.DB == nil {
 		return
+	}
+
+	// If this is a repeated block, and I have already saved at this height, then we can safely ignore
+	// this dbstate.
+	if d.Repeat == true && uint32(dbheight) <= list.SavedHeight {
+		progress = true
+		d.ReadyToSave = false
+		d.Saved = true
+	}
+
+	if dbheight > 0 {
+		dp := list.State.GetDBState(uint32(dbheight - 1))
+		if dp == nil || !dp.Saved {
+			return
+		}
 	}
 
 	if d.Saved {
@@ -610,8 +638,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		list.State.DB.Trim()
 	}
 
-	head, _ := list.State.DB.FetchDirectoryBlockHead()
-
+	// Save
 	list.State.DB.StartMultiBatch()
 
 	if err := list.State.DB.ProcessABlockMultiBatch(d.AdminBlock); err != nil {
@@ -668,10 +695,42 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
-	if d.DirectoryBlock.GetHeader().GetDBHeight() > 0 && d.DirectoryBlock.GetHeader().GetDBHeight() < head.GetHeader().GetDBHeight() {
-		list.State.DB.SaveDirectoryBlockHead(head)
+	// Not activated.  Set to true if you want extra checking of the data saved to the database.
+	if false {
+		good := true
+		mr, err := list.State.DB.FetchDBKeyMRByHeight(uint32(dbheight))
+		if err != nil {
+			os.Stderr.WriteString(err.Error() + "\n")
+			return
+			panic(fmt.Sprintf("%20s At Directory Block Height %d", list.State.FactomNodeName, dbheight))
+		}
+		if mr == nil {
+			os.Stderr.WriteString(fmt.Sprintf("There is no mr returned by list.State.DB.FetchDBKeyMRByHeight() at %d\n", dbheight))
+			mr = d.DirectoryBlock.GetKeyMR()
+			good = false
+		}
+
+		td, err := list.State.DB.FetchDBlock(mr)
+		if err != nil || td == nil {
+			if err != nil {
+				os.Stderr.WriteString(err.Error() + "\n")
+			} else {
+				os.Stderr.WriteString(fmt.Sprintf("Could not get directory block by primary key at Block Height %d\n", dbheight))
+			}
+			return
+			panic(fmt.Sprintf("%20s Error reading db by mr at Directory Block Height %d", list.State.FactomNodeName, dbheight))
+		}
+		if td.GetKeyMR().Fixed() != mr.Fixed() {
+			os.Stderr.WriteString(fmt.Sprintf("Key MR is wrong at Directory Block Height %d\n", dbheight))
+			return
+			panic(fmt.Sprintf("%20s KeyMR is wrong at Directory Block Height %d", list.State.FactomNodeName, dbheight))
+		}
+		if !good {
+			return
+		}
 	}
 
+	list.SavedHeight = uint32(dbheight)
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true

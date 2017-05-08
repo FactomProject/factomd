@@ -9,6 +9,15 @@ type DBStateSent struct {
 	Sent     Timestamp
 }
 
+// IQueue is the interface returned by returning queue functions
+type IQueue interface {
+	Length() int
+	Cap() int
+	Enqueue(msg IMsg)
+	Dequeue() IMsg
+	BlockingDequeue() IMsg
+}
+
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -91,7 +100,7 @@ type IState interface {
 	// Network Processor
 	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
-	NetworkOutMsgQueue() chan IMsg
+	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
 	// Journalling
@@ -99,10 +108,10 @@ type IState interface {
 	GetJournalMessages() [][]byte
 
 	// Consensus
-	APIQueue() chan IMsg   // Input Queue from the API
-	InMsgQueue() chan IMsg // Read by Validate
-	AckQueue() chan IMsg   // Leader Queue
-	MsgQueue() chan IMsg   // Follower Queue
+	APIQueue() chan IMsg // Input Queue from the API
+	InMsgQueue() IQueue  // Read by Validate
+	AckQueue() chan IMsg // Leader Queue
+	MsgQueue() chan IMsg // Follower Queue
 
 	// Lists and Maps
 	// =====
@@ -139,6 +148,9 @@ type IState interface {
 	GetNetworkSkeletonKey() IHash
 	IntiateNetworkSkeletonIdentity() error
 
+	// Getting info about an identity
+	GetSigningKey(id IHash) (IHash, int)
+
 	GetMatryoshka(dbheight uint32) IHash // Reverse Hash
 
 	// These are methods run by the consensus algorithm to track what servers are the leaders
@@ -158,7 +170,7 @@ type IState interface {
 	GetAnchor() IAnchor
 
 	// Database
-	GetAndLockDB() DBOverlay
+	GetAndLockDB() DBOverlaySimple
 	UnlockDB()
 
 	// Web Services

@@ -38,6 +38,16 @@ func (c *AdminBlock) Init() {
 	}
 }
 
+func (c *AdminBlock) IsSameAs(c2 interfaces.IAdminBlock) bool {
+	if !c.Header.IsSameAs(c2.GetHeader()) {
+		return false
+	}
+	if len(c.ABEntries) != len(c2.GetABEntries()) {
+		return false
+	}
+	return true
+}
+
 func (c *AdminBlock) String() string {
 	c.Init()
 	var out primitives.Buffer

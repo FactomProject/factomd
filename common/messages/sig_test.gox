@@ -1,0 +1,161 @@
+package messages_test
+
+// Find bad sigs in a database
+
+import (
+	//"encoding/hex"
+	"fmt"
+	"testing"
+
+	"github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/testHelper"
+	//"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/database/leveldb"
+)
+
+var _ = fmt.Sprintf("")
+
+func TestSig(t *testing.T) {
+	db, err := leveldb.NewLevelDB("/home/steven/.factom/m2/main-database/ldb/MAIN/factoid_level.db", false)
+	if err != nil {
+		panic(err)
+	}
+
+	start := 60000
+	end := 90000
+
+	var _, _ = start, end
+
+	for i := start; i < end; i++ {
+		// i := 75893
+		o := databaseOverlay.NewOverlay(db)
+		dblk, err := o.FetchDBlockByHeight(uint32(i))
+		if err != nil {
+			// panic(err)
+			return
+		}
+		if dblk == nil {
+			//panic("Nil")
+			return
+		}
+
+		sigsblock, err := o.FetchABlockByHeight(uint32(i + 1))
+		if err != nil {
+			//panic(err)
+			return
+		}
+		if sigsblock == nil {
+			//panic("Nil")
+			return
+		}
+
+		data, err := dblk.GetHeader().MarshalBinary()
+		if err != nil {
+			//panic(err)
+			return
+		}
+
+		/*publics := []string{
+			"e3b88b704533612f69b5d6390737481694d7d8acb71e532cac3e8dd2d11ca691",
+			"c2bbab9d274415765eae5c3ee3b94ff3c38dd5c9b02c8f842e2770a6de0b5068",
+			"646f6bf2eaa80a803f1ffd3286945c4d6ddfdf5974177a52141c6906153f5237",
+			"07f339e556ee999cc7e33500753ea0933381b09f5c2bca26e224d716e61a8862",
+			"6ceeb261cc19b14f6c89bb0bd937f195ffc9e6adaa5618e432752b01a00792c7",
+		}
+
+		sigs := []string{
+			"bdd779452c9060a677e0840d20bedf4a0b33a067a41f4abbb57d8e6bd9a1d850e9130393c425a1699d50919faf25a4285a16c8a9955207f3a7befed36da89e0d",
+			"b35598404950e25c69a290d1bd6807912aed7e882c9ff92aa38683657ce7c9e5874e12ea10e12f0174f2a84034d02e64b2dec388278b55e9972ac622e257300c",
+			"8066fc4222eff67470ffaca15bdb5d6d15b65daf3cc86c121b872d7485b388b3cb4b7bbbd0248076065262d54699bab68e7d5be96e137aa3428b903916e4180a",
+			"3ca389d8111dc232f0efdccb74734a7709b64b7d5698b32c012236526d9ab3eada38b410c01c0ecee54a4bbc0ab8b59f9a8dcdf2fafbd30a667400c13b66f905",
+			"00ba44dd5429b0e57069103e0095cab49fd1721078a6136fda231c24baccfd41be3b75a73a52bb01aa2c08c1e71ba4ba2036f9859b601835d69721310221c401",
+		}*/
+
+		var sigList []interfaces.IFullSignature
+		for _, a := range sigsblock.GetABEntries() {
+			dbs, ok := a.(*adminBlock.DBSignatureEntry)
+			if ok {
+				v := dbs.PrevDBSig.Verify(data)
+				if !v {
+					t.Errorf("H: %d, Invalid Sig. %x", i, dbs.PrevDBSig.GetSigBytes())
+				}
+				sigList = append(sigList, &dbs.PrevDBSig)
+			}
+		}
+
+		// Extra stuff to get sig tally
+		continue
+		a, err := o.FetchABlockByHeight(uint32(i))
+		if err != nil {
+			// panic(err)
+			return
+		}
+
+		f, err := o.FetchFBlockByHeight(uint32(i))
+		if err != nil {
+			// panic(err)
+			return
+		}
+
+		e, err := o.FetchECBlockByHeight(uint32(i))
+		if err != nil {
+			// panic(err)
+			return
+		}
+
+		var eblks []interfaces.IEntryBlock
+		for _, ents := range dblk.GetEBlockDBEntries() {
+			eb, err := o.FetchEBlock(ents.GetKeyMR())
+			if err != nil {
+				panic(err)
+				//	return
+			}
+			eblks = append(eblks, eb)
+		}
+
+		var entries []interfaces.IEBEntry
+		for _, ent := range eblks {
+			hashes := ent.GetEntryHashes()
+			for _, h := range hashes {
+				if !h.IsMinuteMarker() {
+					e, err := o.FetchEntry(h)
+					if err != nil {
+						panic(err)
+						//	return
+					}
+					entries = append(entries, e)
+				}
+			}
+		}
+
+		msg := messages.NewDBStateMsg(primitives.NewTimestampNow(), dblk, a, f, e, eblks, entries, sigList)
+		m := msg.(*messages.DBStateMsg)
+
+		s := testHelper.CreateEmptyTestState()
+
+		fmt.Println(m.SigTally(s))
+
+		/*for i := range publics {
+			pub, err := hex.DecodeString(publics[i])
+			if err != nil {
+				panic(err)
+			}
+
+			sig, err := hex.DecodeString(sigs[i])
+			if err != nil {
+				panic(err)
+			}
+
+			err = primitives.VerifySignature(data, pub, sig)
+			if err != nil {
+				fmt.Printf("%x\n", pub)
+				fmt.Printf("%x\n", sig)
+				// panic(err)
+			}
+		}*/
+	}
+}
