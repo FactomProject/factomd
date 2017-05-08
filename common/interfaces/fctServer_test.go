@@ -1,4 +1,4 @@
-package interfaces
+package interfaces_test
 
 import (
 	"testing"
@@ -7,15 +7,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
-
-/*
-type FctServer struct {
-	ChainID IHash
-	Name    string
-	Online  bool
-	Replace IHash
-}
-*/
 
 func TestFCTServer(t *testing.T) {
 	rbool := func() bool {
