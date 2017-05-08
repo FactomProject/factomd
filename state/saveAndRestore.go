@@ -120,7 +120,7 @@ func (ss *SaveState) Init() {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = map[[32]byte][]interfaces.IMsg{}
+		ss.Commits = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
@@ -900,7 +900,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	ss.ECBalancesP = map[[32]byte]int64{}
 	ss.Holding = map[[32]byte]interfaces.IMsg{}
 	ss.Acks = map[[32]byte]interfaces.IMsg{}
-	ss.Commits = map[[32]byte][]interfaces.IMsg{}
+	ss.Commits = map[[32]byte]interfaces.IMsg{}
 	ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 
 	ss.FedServers = []interfaces.IServer{}
