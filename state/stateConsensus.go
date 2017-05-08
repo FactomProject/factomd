@@ -1401,11 +1401,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
-	// If the DBSig doesn't validate, we are done.  Toss it, and return.
-	if msg.Validate(s) != 1 {
-		return false
-	}
-
 	if uint32(pl.System.Height) >= dbs.SysHeight {
 		s.DBSigSys = true
 	}
@@ -1481,9 +1476,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ",
 			dblk.GetHeader().GetBodyMR().String()[:10])
 
-		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() == dblk.GetHeader().GetBodyMR().Fixed() {
+		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
-		} else {
 			fmt.Println("**** dbstate: dbsig fail 0")
 			return false
 		}
@@ -1534,6 +1528,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 		if fails > 0 {
 			//s.AddStatus("DBSig Fails Detected")
+			fmt.Println("**** dbstate: dbsig fail 4")
 			return false
 		}
 
@@ -1541,21 +1536,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
 		if !s.KeepMismatch && !pl.CheckDiffSigTally() {
-			s.DBSigFails++
-			//s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v", s.KeepMismatch))
-			if pl != nil {
-				fmt.Println("**** dbstate DBSig tally failure")
-				s.DBSigProcessed--
-				return false
-			}
-
-			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
-
-			if msg != nil {
-				s.RunLeader = false
-				s.StartDelay = s.GetTimestamp().GetTimeMilli()
-				s.NetworkOutMsgQueue().Enqueue(msg)
-			}
+			fmt.Println("**** dbstate: dbsig fail 5")
 			return false
 		}
 
@@ -1563,6 +1544,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.Saving = false
 		s.DBSigDone = true
 	}
+	fmt.Println("**** dbstate: dbsig fail 6")
 	return false
 	/*
 		err := s.LeaderPL.AdminBlock.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)

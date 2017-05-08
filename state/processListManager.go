@@ -71,6 +71,27 @@ func (lists *ProcessLists) UpdateState(dbheight uint32) (progress bool) {
 
 }
 
+// Only gets an existing process list
+func (lists *ProcessLists) GetSafe(dbheight uint32) (pl *ProcessList) {
+	var i int
+
+	getindex := func() bool {
+		i = int(dbheight) - int(lists.DBHeightBase)
+
+		if i < 0 {
+			return false
+		}
+		if len(lists.Lists) <= i {
+			return false
+		}
+		return true
+	}
+	if getindex() {
+		return lists.Lists[i]
+	}
+	return nil
+}
+
 func (lists *ProcessLists) Get(dbheight uint32) (pl *ProcessList) {
 	var i int
 
