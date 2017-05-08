@@ -405,6 +405,8 @@ func (m *DBStateMsg) checkpointFix() int {
 		returnAmt += allow("ab429576ee93485cfffe0c778d429073f24ce76d3014f2ddecd6e90e87a5e912b849842597cae23a66beee203ee455bd44fe4073747ce6c099a21f4525c3d901", m.SignatureList)
 	case 76792:
 		returnAmt += allow("9f86122d624400b3036e60105f3db4e99199ae9217cbeb1462811426319983dc0e4f5e5cd16996cc3cf2940ead765ce00fc699e23b459395569c10e1df4c650b", m.SignatureList)
+	case 87624:
+		returnAmt += allow("cb67b7f8ed2b2845b9941264f3631a639685e2b7a47b8c353461ee9b197c2307aaab27419b72f5478f0e2a0d610ef4f16cbfaa5e9889c114415a63b8cb54f000", m.SignatureList)
 	default:
 		return 0
 	}
