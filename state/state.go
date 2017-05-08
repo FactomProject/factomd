@@ -92,6 +92,8 @@ type State struct {
 	CustomNetworkID         []byte
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
+	EtcdAddress             string
+	EtcdUUID                string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []*Identity      // Identities of all servers in management chain
@@ -170,6 +172,7 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+	BootTime        int64 // Time in seconds that we last booted
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
@@ -223,7 +226,6 @@ type State struct {
 	// For Follower
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
-	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits       map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -326,6 +328,13 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+
+	// Plugins
+	useDBStateManager    bool
+	torrentUploadQueue   chan interfaces.IMsg
+	DBStateManager       interfaces.IManagerController
+	useEtcd              bool
+	SuperVerboseMessages bool
 }
 
 type EntryUpdate struct {
@@ -608,6 +617,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
+		s.EtcdAddress = cfg.App.EtcdAddress
+		s.EtcdUUID = cfg.App.EtcdUUID
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -712,6 +723,7 @@ func (s *State) Init() {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 	s.IgnoreMissing = true
+	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 
 	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
 

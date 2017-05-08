@@ -33,14 +33,20 @@ var _ = (*hash.Hash32)(nil)
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM exMsg (replay invalid):", msg.String(), msg.GetHash().String()[:10])
+		}
 		return
 	}
 	s.SetString()
 	msg.ComputeVMIndex(s)
+	now := s.GetTimestamp().GetTimeSeconds()
 
 	if s.IgnoreMissing {
-		now := s.GetTimestamp().GetTimeSeconds()
-		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 && msg.GetTimestamp().GetTimeSeconds() >= s.BootTime {
+			if s.SuperVerboseMessages {
+				fmt.Println("SVM exMsg (too old):", msg.String(), msg.GetHash().String()[:10])
+			}
 			return
 		}
 	}
@@ -54,9 +60,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-			if len(vm.List) == 0 {
+			if len(vm.List) == 0 && now-s.BootTime > 20 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				s.XReview = append(s.XReview, msg)
+				s.MsgQueue() <- msg
 			} else {
 				msg.LeaderExecute(s)
 			}
@@ -65,8 +71,14 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		}
 		ret = true
 	case 0:
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM exMsg Holding1:", msg.String(), msg.GetHash().String()[:10])
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 	default:
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM exMsg Holding2:", msg.String(), msg.GetHash().String()[:10])
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 		if !msg.SentInvlaid() {
 			msg.MarkSentInvalid(true)
@@ -124,8 +136,9 @@ func (s *State) Process() (progress bool) {
 
 	var vm *VM
 	if s.Leader {
+		sinceBoot := s.GetTimestamp().GetTimeSeconds() - s.BootTime
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		if vm.Height == 0 {
+		if vm.Height == 0 && sinceBoot > 20 {
 			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
 		}
 	}
@@ -185,9 +198,22 @@ emptyLoop:
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
+	now := s.GetTimestamp()
+	if s.ResendHolding == nil {
+		s.ResendHolding = now
+	}
 skipreview:
-	for {
-		for _, msg := range s.XReview {
+	switch {
+	case now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300:
+	case s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW:
+	default:
+		s.ResendHolding = now
+
+		s.ReviewHolding()
+		for _, msg := range s.Holding {
+			if msg == nil {
+				continue
+			}
 			if !room() {
 				break skipreview
 			}
@@ -197,15 +223,20 @@ skipreview:
 			process <- msg
 			progress = s.executeMsg(vm, msg) || progress
 		}
-		s.XReview = s.XReview[:0]
 		break
 	}
 
-	for len(process) > 0 {
-		msg := <-process
-		s.executeMsg(vm, msg)
-		if !msg.IsPeer2Peer() {
-			msg.SendOut(s, msg)
+processloop:
+	for {
+		select {
+		case msg := <-process:
+			s.executeMsg(vm, msg)
+			if !msg.IsPeer2Peer() {
+				msg.SendOut(s, msg)
+			}
+			progress = s.UpdateState()
+		default:
+			break processloop
 		}
 		s.UpdateState()
 	}
@@ -232,40 +263,20 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // Consensus Methods
 //***************************************************************
 
-// Places the entries in the holding map back into the XReview list for
+// Places the entries in the holding map back for
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
-	if len(s.XReview) > 0 {
-		return
-	}
-
-	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
-		return
-	}
-
-	now := s.GetTimestamp()
-	if s.ResendHolding == nil {
-		s.ResendHolding = now
-	}
-	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
-		return
-	}
-
 	s.DB.Trim()
 
-	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
-	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
-	saved := s.GetHighestSavedBlk()
 
-	for k, v := range s.Holding {
+	for k := range s.Holding {
+		v := s.Holding[k]
 
-		if int(highest)-int(saved) > 1000 {
-			delete(s.Holding, k)
-		}
+		saved := s.GetHighestSavedBlk()
 
 		mm, ok := v.(*messages.MissingMsgResponse)
 		if ok {
@@ -318,11 +329,15 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.Resend(s) {
-			if v.Validate(s) == 1 {
-				s.ResendCnt++
-				v.SendOut(s, v)
-				continue
+		_, ok = v.(*messages.MissingMsgResponse)
+
+		if !ok {
+			if v.Resend(s) {
+				if v.Validate(s) == 1 {
+					s.ResendCnt++
+					v.SendOut(s, v)
+					continue
+				}
 			}
 		}
 
@@ -331,8 +346,6 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		s.XReview = append(s.XReview, v)
-		delete(s.Holding, k)
 	}
 }
 
@@ -587,13 +600,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
 				if okff {
-					s.XReview = append(s.XReview, fullFault)
+					s.MsgQueue() <- fullFault
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				s.XReview = append(s.XReview, fullFault)
+				s.MsgQueue() <- fullFault
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -629,10 +642,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.XReview = append(s.XReview, ack)
+		s.MsgQueue() <- ack
 	}
 	if okm {
-		s.XReview = append(s.XReview, msg)
+		s.MsgQueue() <- msg
 	}
 
 	// If I've seen both, put them in the process list.
@@ -743,7 +756,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.MsgQueue() <- re
 		re.SendOut(s, re)
 	}
 }
@@ -753,7 +766,7 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.MsgQueue() <- re
 		re.SendOut(s, re)
 	}
 }
@@ -883,6 +896,9 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
 
+	ack.SendOut(s, ack)
+	m.SendOut(s, m)
+
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
@@ -891,7 +907,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.MsgQueue() <- re
 		re.SendOut(s, re)
 	}
 }
@@ -901,7 +917,7 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.MsgQueue() <- re
 		re.SendOut(s, re)
 	}
 }
@@ -1014,10 +1030,12 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
+			s.MsgQueue() <- entry
 			delete(s.Holding, h.Fixed())
 		}
 		return true
+	} else {
+		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot process Commit Chain")
 
@@ -1036,10 +1054,12 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.XReview = append(s.XReview, entry)
+			s.MsgQueue() <- entry
 			delete(s.Holding, h.Fixed())
 		}
 		return true
+	} else {
+		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
 
@@ -1153,7 +1173,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				if err != nil {
 					panic(err)
 				}
-
+				dbs.SendOut(s, dbs)
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true

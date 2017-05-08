@@ -234,6 +234,7 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			// Do not have the next directory block, so we cannot tell by this method
 			return 0
 		}
+
 		// If the prevKeyMr of the next matches this one, we know it is valid.
 		if next.GetHeader().GetPrevKeyMR().IsSameAs(m.DirectoryBlock.GetKeyMR()) {
 			goto ValidSignatures
@@ -241,7 +242,6 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			// The KeyMR does not match, this block is invalid
 			return -1
 		}
-
 	}
 ValidSignatures: // Goto here if signatures pass
 	return 1
@@ -379,6 +379,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			}
 		}
 	}
+
 	return validSigCount
 }
 

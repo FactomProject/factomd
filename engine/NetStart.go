@@ -80,6 +80,12 @@ func NetStart(s *state.State) {
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
+
+	// Plugins
+	useEtcd := flag.Bool("etcd", false, "If true, use etcd along with the default p2p network for current-block messages.")
+	etcdManagerPath := flag.String("etcd-plugin", "", "Input the path to the etcd-manager binary")
+	etcdExclusive := flag.Bool("etcd-exclusive", false, "If true, use etcd _instead of_ the default p2p network for current-block messages.")
 
 	flag.Parse()
 
@@ -346,6 +352,7 @@ func NetStart(s *state.State) {
 		if 0 < networkPortOverride {
 			networkPort = fmt.Sprintf("%d", networkPortOverride)
 		}
+
 		ci := p2p.ControllerInit{
 			Port:                     networkPort,
 			PeersFile:                s.PeersFile,
@@ -356,12 +363,50 @@ func NetStart(s *state.State) {
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
-		fnodes[0].State.NetworkControler = p2pNetwork
-		p2pNetwork.StartNetwork()
-		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
-		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+
+		if *superVerboseMessages {
+			p2pProxy.SuperVerboseMessages = true
+			fnodes[0].State.SuperVerboseMessages = true
+		}
+
+		if *useEtcd {
+			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
+			if err != nil {
+				fmt.Printf("Encountered an error while trying to use Etcd plugin: %s (trying one more time)\n", err.Error())
+				time.Sleep(3 * time.Second)
+				etcdManager, err = LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
+				if err != nil {
+					fmt.Printf("Encountered an error while trying to use Etcd plugin (again): %s\n", err.Error())
+					panic("Plugin manager not working")
+				}
+			}
+			p2pProxy.EtcdManager = etcdManager
+			p2pProxy.SetUseEtcd(true)
+			fnodes[0].State.SetUseEtcd(true)
+			if *etcdExclusive {
+				p2pProxy.SetUseEtcdExclusive(true)
+			}
+
+			etcdWaitStart := time.Now()
+			etcdReady := false
+			for !etcdReady {
+				etcdReady, err = etcdManager.Ready()
+				if err != nil {
+					fmt.Printf("Etcd wait err: %s\n", err.Error())
+				}
+				time.Sleep(time.Second)
+			}
+			etcdWaitElapsed := time.Since(etcdWaitStart)
+			fmt.Printf("Etcd wait took: %s\n", etcdWaitElapsed)
+		} //else {
+		if !*etcdExclusive {
+			p2pNetwork.StartNetwork()
+			// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
+			p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+			p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+		}
+
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(netdebug)
 		if 0 < netdebug {
@@ -373,7 +418,11 @@ func NetStart(s *state.State) {
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
 		p2pNetwork.DialSpecialPeersString(peers)
-		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+		if *useEtcd {
+			p2pProxy.SetWeight(100)
+		} else {
+			go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
+		}
 	}
 
 	switch net {
@@ -482,6 +531,9 @@ func NetStart(s *state.State) {
 		}
 
 	}
+
+	fnodes[0].State.SetUseTorrent(false)
+
 	if journal != "" {
 		go LoadJournal(s, journal)
 		startServers(false)

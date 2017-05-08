@@ -15,11 +15,6 @@ var (
 		Name: "factomd_state_broadcast_in_current",
 		Help: "Number of msgs in broadcastin queue.",
 	})
-
-	BroadCastInQueueDrop = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_broadcast_in_drop_total",
-		Help: "How many messages are dropped due to full queues",
-	})
 )
 
 var registered = false
@@ -34,5 +29,4 @@ func RegisterPrometheus() {
 
 	prometheus.MustRegister(RepeatMsgs)
 	prometheus.MustRegister(BroadInCastQueue)
-	prometheus.MustRegister(BroadCastInQueueDrop)
 }

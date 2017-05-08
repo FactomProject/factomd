@@ -17,11 +17,7 @@ import (
 
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
 
-// BlockFreeChannelSend will remove things from the queue to make room for new messages if the queue is full.
-// This prevents channel blocking on full.
-//		Returns: The number of elements cleared from the channel to make room
-func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
-	removed := 0
+func BlockFreeChannelSend(channel chan interface{}, message interface{}) {
 	highWaterMark := int(float64(cap(channel)) * 0.95)
 	clen := len(channel)
 	switch {
@@ -29,7 +25,6 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 		str, _ := primitives.EncodeJSONString(message)
 		significant("protocol", "nonBlockingChanSend() - DROPPING MESSAGES. Channel is over 90 percent full! \n channel len: \n %d \n 90 percent: \n %d \n last message type: %v", len(channel), highWaterMark, str)
 		for highWaterMark <= len(channel) { // Clear out some messages
-			removed++
 			<-channel
 		}
 		fallthrough
@@ -39,7 +34,6 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 		default:
 		}
 	}
-	return removed
 }
 
 // Global variables for the p2p protocol

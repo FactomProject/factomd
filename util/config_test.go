@@ -85,6 +85,8 @@ LocalSeedURL            = "https://raw.githubusercontent.com/FactomProject/facto
 LocalSpecialPeers       = ""
 CustomBootstrapIdentity = 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
 CustomBootstrapKey      = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
+EtcdAddress			= 127.0.0.1:2379
+EtcdUUID			= "etcdUUID"
 ; --------------- NodeMode: FULL | SERVER | LIGHT ----------------
 NodeMode                              = FULL
 LocalServerPrivKey                    = 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d

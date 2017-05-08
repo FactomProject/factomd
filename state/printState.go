@@ -148,7 +148,6 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LeaderTimestamp", state.LeaderTimestamp)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "resendHolding", state.ResendHolding)
 	//str = fmt.Sprintf("%s %35s = %+v\n", str, "Holding", state.Holding)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "XReview", state.XReview)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Acks", state.Acks)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Commits", state.Commits)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "InvalidMessages", state.InvalidMessages)

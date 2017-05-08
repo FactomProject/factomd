@@ -80,8 +80,9 @@ func Peers(fnode *FactomNode) {
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
 					break
 				}
+				_, ok := msg.(*messages.Ack)
 				msg.SetOrigin(i + 1)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if ok || fnode.State.UsingEtcd() || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
@@ -118,7 +119,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		// if len(fnode.State.NetworkOutMsgQueue()) > 500 {
 		// 	fmt.Print(fnode.State.GetFactomNodeName(), "-", len(fnode.State.NetworkOutMsgQueue()), " ")
 		// }
-		// msg := <-fnode.State.NetworkOutMsgQueue()
+		//msg := <-fnode.State.NetworkOutMsgQueue()
 		msg := fnode.State.NetworkOutMsgQueue().BlockingDequeue()
 
 		// Local Messages are Not broadcast out.  This is mostly the block signature
@@ -134,6 +135,7 @@ func NetworkOutputs(fnode *FactomNode) {
 				if msg.GetRepeatHash() == nil {
 					continue
 				}
+
 				_, ok := msg.(*messages.Ack)
 				if ok {
 					fnode.State.Replay.IsTSValid_(

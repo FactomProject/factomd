@@ -106,12 +106,6 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
-		}
-		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
-
-		list = ""
-		for _, f := range pnodes {
 			list = list + fmt.Sprintf(" %3d", len(f.State.Holding))
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Holding", list)

@@ -324,6 +324,8 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 		return false, -1
 	}
 
+	p.MakeMap()
+
 	for i := 0; i < len(p.FedServers); i++ {
 		fedix := p.ServerMap[minute][i]
 		if fedix == fedIndex {
@@ -831,7 +833,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Make sure we have a list, and punt if we don't.
 	if p == nil {
-		p.State.Holding[m.GetMsgHash().Fixed()] = m
+		p.State.Holding[m.GetRepeatHash().Fixed()] = m
 		return false
 	}
 
@@ -920,25 +922,33 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
+	if p.State.SuperVerboseMessages {
+		fmt.Printf("SVM AddToPL: %s / %s\n", m.String(), ack.String())
+	}
+
 	m.PutAck(ack)
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
-		now := p.State.GetTimestamp()
-		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
-			// Us and too old?  Just ignore.
-			return
-		}
-		num := p.State.GetSalt(ack.Timestamp)
-		if num != ack.SaltNumber {
-			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
-			os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
-			os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
-			os.Stderr.WriteString(fmt.Sprintf("Ack   ChainID    %x\n", ack.LeaderChainID.Bytes()))
-			os.Stderr.WriteString(fmt.Sprintf("Ack   Salt       %x\n", ack.Salt))
-			os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
-			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
+		if !(p.State.UsingEtcd() && ack.Timestamp.GetTimeSeconds() < p.State.BootTime) {
+			now := p.State.GetTimestamp()
+			if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+				// Us and too old?  Just ignore.
+				return
+			}
+			// When using etcd, we allow acks with salt mismatches if they existed before we booted
+			num := p.State.GetSalt(ack.Timestamp)
+			if num != ack.SaltNumber {
+				os.Stderr.WriteString(fmt.Sprintf("This  AckHash    %x\n", ack.GetHash().Bytes()))
+				os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
+				os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
+				os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
+				os.Stderr.WriteString(fmt.Sprintf("Ack   ChainID    %x\n", ack.LeaderChainID.Bytes()))
+				os.Stderr.WriteString(fmt.Sprintf("Ack   Salt       %x\n", ack.Salt))
+				os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
+				panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
+			}
 		}
 	}
 
@@ -948,6 +958,9 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
+		if p.State.SuperVerboseMessages {
+			fmt.Printf("SVM Toss: %s / %s (%s)\n", m.String(), ack.String(), hint)
+		}
 	}
 
 	now := p.State.GetTimestamp()
@@ -1013,6 +1026,19 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
+
+	if p.State.SuperVerboseMessages {
+		fmt.Printf("SVM Added To PL: %s / %s\n", m.String(), ack.String())
+		thisString := ""
+		for listIdx, msgInList := range vm.List {
+			if msgInList == nil {
+				thisString = "<nil>"
+			} else {
+				thisString = msgInList.String()
+			}
+			fmt.Printf("SVM ProcList (%d) / %s\n", listIdx, thisString)
+		}
+	}
 
 }
 

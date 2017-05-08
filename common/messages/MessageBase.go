@@ -53,7 +53,6 @@ func (m *MessageBase) PutAck(ack interfaces.IMsg) {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
-
 	// Dont' resend if we are behind
 	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
 		return
@@ -70,10 +69,10 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	switch msg.(interface{}).(type) {
 	//case ServerFault:
 	//	go resend(state, msg, 20, 1)
-	case FullServerFault:
-		go resend(state, msg, 2, 5)
-	case ServerFault:
-		go resend(state, msg, 2, 5)
+	//case FullServerFault:
+	//	go resend(state, msg, 2, 5)
+	//case ServerFault:
+	//	go resend(state, msg, 2, 5)
 	default:
 		go resend(state, msg, 1, 0)
 	}
