@@ -85,11 +85,6 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 		return
 	}
 
-	if end-begin == 1 && list.State.CurrentMinute == 0 {
-		list.TimeToAsk = nil
-		return
-	}
-
 	// First Ask.  Because the timer is nil!
 	if list.TimeToAsk == nil {
 		// Okay, have nothing in play, so wait a bit just in case.
