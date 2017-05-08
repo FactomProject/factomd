@@ -1448,7 +1448,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 					db, _ := s.DB.FetchDBlockByHeight(dbs.DBHeight - 1)
 					if db == nil {
 						//s.AddStatus("ProcessDBSig(): Previous Process List isn't complete." + dbs.String())
-						fmt.Println("**** dbstate: dbsig fail -2")
 						return false
 					}
 				}
@@ -1466,36 +1465,27 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			dbstate := s.GetDBState(dbheight - 1)
 			if dbstate == nil || !(!dbstate.IsNew || dbstate.Locked || dbstate.Saved) {
 				//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
-				fmt.Println("**** dbstate: dbsig fail -1")
 				return false
 			}
 			dblk = dbstate.DirectoryBlock
 		}
 
-		fmt.Println("**** dbstate ", s.FactomNodeName, "Compare::: ",
-			dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ",
-			dblk.GetHeader().GetBodyMR().String()[:10])
-
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
-			fmt.Println("**** dbstate: dbsig fail 0")
 			return false
 		}
 
 		// Adds DB Sig to be added to Admin block if passes sig checks
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
 		if err != nil {
-			fmt.Println("**** dbstate: dbsig fail 1")
 			return false
 		}
 		if !dbs.DBSignature.Verify(data) {
-			fmt.Println("**** dbstate: dbsig fail 2")
 			return false
 		}
 
 		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
 		if err != nil || valid != 1 {
-			fmt.Println("**** dbstate: dbsig fail 3")
 			return false
 		}
 
@@ -1520,7 +1510,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if len(vm.List) > 0 {
 				tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
 				if !ok || !tdbsig.Matches {
-					fmt.Println("**** dbstate DBSig fail at ht", dbs.DBHeight, "vm", dbs.VMIndex)
 					s.DBSigProcessed--
 					return false
 				}
@@ -1528,7 +1517,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 		if fails > 0 {
 			//s.AddStatus("DBSig Fails Detected")
-			fmt.Println("**** dbstate: dbsig fail 4")
 			return false
 		}
 
@@ -1536,7 +1524,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
 		if !s.KeepMismatch && !pl.CheckDiffSigTally() {
-			fmt.Println("**** dbstate: dbsig fail 5")
 			return false
 		}
 
@@ -1544,7 +1531,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		s.Saving = false
 		s.DBSigDone = true
 	}
-	fmt.Println("**** dbstate: dbsig fail 6")
 	return false
 	/*
 		err := s.LeaderPL.AdminBlock.AddDBSig(dbs.ServerIdentityChainID, dbs.DBSignature)
