@@ -98,6 +98,7 @@ func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.
 // manageDrain handles messages being returned by the plugin, since our requests are asyncronous
 // When we make a request via a retrieve, this function will pick up the return
 func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s *state.State, quit chan int) {
+	cm := NewCompletedHeightManager()
 	for {
 		select {
 		case <-quit:
@@ -134,6 +135,12 @@ func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s
 					if dbMsg.DirectoryBlock.GetDatabaseHeight() < s.EntryDBHeightComplete {
 						continue
 					}
+
+					if !cm.CompleteHeight(int(dbMsg.DirectoryBlock.GetDatabaseHeight())) {
+						continue
+					}
+					cm.ClearTo(int(s.EntryDBHeightComplete))
+
 					inQueue.Enqueue(dbMsg)
 				}
 			}
@@ -141,4 +148,59 @@ func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s
 			time.Sleep(CHECK_BUFFER)
 		}
 	}
+}
+
+// CompletedHeightsManager ensures the same height is not processed many times
+type CompletedHeightsManager struct {
+	Completed []int64
+	Base      int
+}
+
+func NewCompletedHeightManager() *CompletedHeightsManager {
+	return new(CompletedHeightsManager)
+}
+
+// CompleteHeight will signal a height has been completed. It will return a boolean value
+// to indicate whether or not to allow this height to be added to the inmsg queue
+func (c *CompletedHeightsManager) CompleteHeight(height int) bool {
+	if height < c.Base {
+		return false
+	}
+
+	endHeight := len(c.Completed) + c.Base
+	if endHeight <= height {
+		needed := (height - endHeight) + 1
+		if needed < 500 {
+			needed = 500
+		}
+		c.Completed = append(c.Completed, make([]int64, needed)...)
+	}
+
+	now := time.Now().Unix()
+	last := c.Completed[height-c.Base]
+	if last == 0 {
+		c.Completed[height-c.Base] = now
+		return true
+	} else if now-240 < last {
+		// If completed less than 4min ago
+		return false
+	}
+	c.Completed[height-c.Base] = now
+
+	return true
+}
+
+// ClearTo will indicate anything below this height is no longer needed
+func (c *CompletedHeightsManager) ClearTo(height int) {
+	// If it's close, no point in doing anything. Just wait
+	if height <= c.Base+200 {
+		return
+	}
+	clear := height - c.Base
+	c.Base = height
+	if len(c.Completed) < clear {
+		c.Completed = make([]int64, 0)
+		return
+	}
+	c.Completed = c.Completed[clear:]
 }
