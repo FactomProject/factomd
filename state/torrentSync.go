@@ -14,6 +14,11 @@ func (s *State) StartTorrentSyncing() error {
 		return fmt.Errorf("State is not using torrents, yet torrent sync was called")
 	}
 
+	// Wait for loading from disk to finish
+	for !s.DBFinished {
+		time.Sleep(1 * time.Second)
+	}
+
 	// Upload we have done up to
 	var done uint32 = 0
 	for {
@@ -54,7 +59,7 @@ func (s *State) StartTorrentSyncing() error {
 		allowed := 3000
 
 		// Range of heights to request
-		lower := dblock.GetDatabaseHeight()
+		lower := s.GetHighestSavedBlk() // dblock.GetDatabaseHeight()
 		upper := s.GetHighestKnownBlock()
 
 		// If the first pass is caught up, work on the second pass
