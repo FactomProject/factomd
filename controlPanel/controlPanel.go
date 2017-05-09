@@ -357,7 +357,7 @@ func factomdQuery(item string, value string) []byte {
 		return HeightToJsonStruct(h)
 	case "connections":
 	case "dataDump":
-		data := getDataDumps()
+		data := GetDataDumps()
 		return data
 	case "nextNode":
 		// Disabled

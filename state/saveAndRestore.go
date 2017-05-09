@@ -65,10 +65,10 @@ type SaveState struct {
 
 	LeaderTimestamp interfaces.Timestamp
 
-	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
 
@@ -175,10 +175,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//	ss.Acks[k] = state.Acks[k]
 	//}
 
-	ss.Commits = make(map[[32]byte][]interfaces.IMsg)
-	for k := range state.Commits {
-		var c []interfaces.IMsg
-		ss.Commits[k] = append(c, state.Commits[k]...)
+	ss.Commits = make(map[[32]byte]interfaces.IMsg)
+	for k, c := range state.Commits {
+		ss.Commits[k] = c
 	}
 
 	ss.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
@@ -428,10 +427,9 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 		state.Acks[k] = ss.Acks[k]
 	}
 
-	state.Commits = make(map[[32]byte][]interfaces.IMsg)
-	for k := range ss.Commits {
-		var c []interfaces.IMsg
-		state.Commits[k] = append(c, ss.Commits[k]...)
+	state.Commits = make(map[[32]byte]interfaces.IMsg)
+	for k, c := range ss.Commits {
+		state.Commits[k] = c
 	}
 
 	state.InvalidMessages = make(map[[32]byte]interfaces.IMsg)

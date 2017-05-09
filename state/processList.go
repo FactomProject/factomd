@@ -422,6 +422,9 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
+	if i < 0 {
+		return i
+	}
 	// If an audit server, it gets promoted
 	auditFound, _ := p.GetAuditServerIndexHash(identityChainID)
 	if auditFound {
@@ -616,7 +619,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		return 0
 	}
 
-	if now-r.sent >= waitSeconds*1000+500 {
+	if now-r.sent >= waitSeconds*1000+500 && p.State.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
 		// The System (handling full faults) is a special VM.  Let's guess it first.
@@ -828,7 +831,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Make sure we have a list, and punt if we don't.
 	if p == nil {
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 
@@ -853,7 +856,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		//	p.System.Height,
 		//	int(fullFault.SystemHeight),
 		//	fullFault.String()))
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 
@@ -937,10 +940,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
 			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
-	}
-
-	if _, ok := m.(*messages.MissingMsg); ok {
-		panic("This shouldn't happen")
 	}
 
 	toss := func(hint string) {

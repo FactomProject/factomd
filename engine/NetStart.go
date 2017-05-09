@@ -250,7 +250,7 @@ func NetStart(s *state.State) {
 	s.Init()
 	s.SetDropRate(droprate)
 
-	mLog.init(runtimeLog, cnt)
+	mLog.Init(runtimeLog, cnt)
 
 	setupFirstAuthority(s)
 
@@ -516,6 +516,7 @@ func NetStart(s *state.State) {
 	state.RegisterPrometheus()
 	p2p.RegisterPrometheus()
 	leveldb.RegisterPrometheus()
+	RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
