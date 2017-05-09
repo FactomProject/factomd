@@ -5,12 +5,10 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"hash"
-
 	"time"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -1423,13 +1421,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	pl := s.ProcessLists.Get(dbheight)
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
-	// If the DBSig doesn't validate, we are done.  Toss it, and return.
-	if msg.Validate(s) != 1 {
-		vm.List[0] = nil
-		vm.ListAck[0] = nil
-		return false
-	}
-
 	if uint32(pl.System.Height) >= dbs.SysHeight {
 		s.DBSigSys = true
 	}
@@ -1488,37 +1479,38 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		dbstate := s.GetDBState(dbheight - 1)
 
-		if dbstate == nil {
-			//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
+		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
+		if err != nil || dblk == nil {
+			dbstate := s.GetDBState(dbheight - 1)
+			if dbstate == nil || !(!dbstate.IsNew || dbstate.Locked || dbstate.Saved) {
+				//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
+				return false
+			}
+			dblk = dbstate.DirectoryBlock
+		}
+
+		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
+			pl.IncrementDiffSigTally()
 			return false
 		}
 
-		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
-			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
-			pl.IncrementDiffSigTally()
-		}
-
 		// Adds DB Sig to be added to Admin block if passes sig checks
-		allChecks := false
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
 		if err != nil {
-			//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Marshal binary errored"))
-		} else {
-			if !dbs.DBSignature.Verify(data) {
-				//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Verify errored"))
-			} else {
-				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
-					allChecks = true
-				}
-			}
+			return false
+		}
+		if !dbs.DBSignature.Verify(data) {
+			return false
 		}
 
-		if allChecks {
-			dbs.Matches = true
-			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
+		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
+		if err != nil || valid != 1 {
+			return false
 		}
+
+		dbs.Matches = true
+		s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
 
 		dbs.Processed = true
 		s.DBSigProcessed++
@@ -1538,10 +1530,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if len(vm.List) > 0 {
 				tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
 				if !ok || !tdbsig.Matches {
-					fails++
-					vm.List[0] = nil
-					vm.Height = 0
 					s.DBSigProcessed--
+					return false
 				}
 			}
 		}
@@ -1554,21 +1544,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
 		if !s.KeepMismatch && !pl.CheckDiffSigTally() {
-			s.DBSigFails++
-			//s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v", s.KeepMismatch))
-			if pl != nil {
-				pl.Reset()
-				s.DBSig = false
-			}
-			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
-
-			if msg != nil {
-				s.RunLeader = false
-				s.StartDelay = s.GetTimestamp().GetTimeMilli()
-				s.NetworkOutMsgQueue().Enqueue(msg)
-			}
 			return false
 		}
+
 		s.ReviewHolding()
 		s.Saving = false
 		s.DBSigDone = true
