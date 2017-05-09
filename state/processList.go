@@ -1032,7 +1032,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if p.State.SuperVerboseMessages {
 		fmt.Printf("SVM Added To PL: %s / %s\n", m.String(), ack.String())
-		thisString := ""
+		/*thisString := ""
 		for listIdx, msgInList := range vm.List {
 			if msgInList == nil {
 				thisString = "<nil>"
@@ -1040,7 +1040,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 				thisString = msgInList.String()
 			}
 			fmt.Printf("SVM ProcList (%d) / %s\n", listIdx, thisString)
-		}
+		}*/
 	}
 
 }

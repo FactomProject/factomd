@@ -7,6 +7,7 @@ package engine
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -209,19 +210,19 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		if err != nil {
 			if f.SuperVerboseMessages {
 				if !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "etcd message-type") {
-					fmt.Println(err)
+					log.Println(err)
 				}
 			}
 			if strings.Contains(err.Error(), "connection is shut down") {
 				err := f.EtcdManager.Reinitiate()
 				if err != nil {
-					fmt.Println("Tried to reinitiate plugin on failed send; err:", err)
+					log.Println("Tried to reinitiate plugin on failed send; err:", err)
 				}
 			}
 		} else {
 			// Send was successful (err was nil)
 			if f.SuperVerboseMessages {
-				fmt.Println("SVM Send(etcd):", msg.String(), msg.GetHash().String()[:10])
+				log.Println("SVM Send(etcd):", msg.String(), msg.GetHash().String()[:10])
 			}
 		}
 	} //else {
@@ -233,11 +234,11 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
-		fmt.Println("ERROR on Send: ", err)
+		log.Println("ERROR on Send: ", err)
 		return err
 	}
 	if f.SuperVerboseMessages && !f.UsingEtcd() {
-		fmt.Println("SVM Send(old):", msg.String(), msg.GetHash().String()[:10])
+		log.Println("SVM Send(old):", msg.String(), msg.GetHash().String()[:10])
 	}
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
@@ -257,7 +258,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
 	}
 	if msg.IsPeer2Peer() && 1 < f.debugMode {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
+		log.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	//}
@@ -277,9 +278,9 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 					msg, err := messages.UnmarshalMessage(dataBytes)
 					if f.SuperVerboseMessages {
 						if err != nil {
-							fmt.Println("SVM err:", err.Error())
+							log.Println("SVM err:", err.Error())
 						} else {
-							fmt.Println("SVM Receive(etcd):", msg.String(), msg.GetHash().String()[:10])
+							log.Println("SVM Receive(etcd):", msg.String(), msg.GetHash().String()[:10])
 						}
 					}
 					return msg, err
@@ -302,9 +303,9 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 
 				if f.SuperVerboseMessages {
 					if err != nil {
-						fmt.Println("SVM err:", err.Error())
+						log.Println("SVM err:", err.Error())
 					} else {
-						fmt.Println("SVM Receive(old):", msg.String())
+						log.Println("SVM Receive(old):", msg.String())
 					}
 				}
 				if nil == err {
