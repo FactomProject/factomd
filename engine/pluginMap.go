@@ -31,7 +31,7 @@ var pluginMap = map[string]plugin.Plugin{
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that
 // can be interacted with like a usual interface. The client returned must be
 // killed before we exit
-func LaunchDBStateManagePlugin(path string, inQueue chan interfaces.IMsg, s *state.State, sigKey *primitives.PrivateKey, memProfileRate int) (interfaces.IManagerController, error) {
+func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.State, sigKey *primitives.PrivateKey, memProfileRate int) (interfaces.IManagerController, error) {
 	//log.SetOutput(ioutil.Discard)
 
 	var managerHandshakeConfig = plugin.HandshakeConfig{
@@ -97,7 +97,7 @@ func LaunchDBStateManagePlugin(path string, inQueue chan interfaces.IMsg, s *sta
 
 // manageDrain handles messages being returned by the plugin, since our requests are asyncronous
 // When we make a request via a retrieve, this function will pick up the return
-func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController, s *state.State, quit chan int) {
+func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s *state.State, quit chan int) {
 	for {
 		select {
 		case <-quit:
@@ -114,7 +114,7 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 				// Exit conditions: If empty, quit. If length == 1 and first/only byte it 0x00
 				for !(man.IsBufferEmpty() || (len(data) == 1 && data[0] == 0x00)) {
 					// If we have too much to process, do not spam inqueue, let the plugin hold it
-					for len(inQueue) > 400 {
+					for inQueue.Length() > 400 {
 						time.Sleep(100 * time.Millisecond)
 					}
 					data = man.FetchFromBuffer()
@@ -134,7 +134,7 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 					if dbMsg.DirectoryBlock.GetDatabaseHeight() < s.EntryDBHeightComplete {
 						continue
 					}
-					inQueue <- dbMsg
+					inQueue.Enqueue(dbMsg)
 				}
 			}
 
