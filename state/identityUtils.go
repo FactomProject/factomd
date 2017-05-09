@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 type AnchorSigningKey struct {
@@ -19,6 +20,90 @@ type AnchorSigningKey struct {
 	KeyLevel   byte   `json:"level"`
 	KeyType    byte   `json:"keytype"`
 	Key        []byte `json:"key"` //if bytes, it is hex
+}
+
+var _ interfaces.BinaryMarshallable = (*AnchorSigningKey)(nil)
+
+func RandomAnchorSigningKey() *AnchorSigningKey {
+	ask := new(AnchorSigningKey)
+
+	ask.BlockChain = random.RandomString()
+	ask.KeyLevel = random.RandByte()
+	ask.KeyType = random.RandByte()
+	ask.Key = random.RandNonEmptyByteSlice()
+
+	return ask
+}
+
+func (e *AnchorSigningKey) IsSameAs(b *AnchorSigningKey) bool {
+	if e.BlockChain != b.BlockChain {
+		return false
+	}
+	if e.KeyLevel != b.KeyLevel {
+		return false
+	}
+	if e.KeyType != b.KeyType {
+		return false
+	}
+	if primitives.AreBytesEqual(e.Key, b.Key) == false {
+		return false
+	}
+	return true
+}
+
+func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushString(e.BlockChain)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushByte(e.KeyLevel)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(e.KeyType)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBytes(e.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (e *AnchorSigningKey) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	e.BlockChain, err = buf.PopString()
+	if err != nil {
+		return
+	}
+	e.KeyLevel, err = buf.PopByte()
+	if err != nil {
+		return
+	}
+	e.KeyType, err = buf.PopByte()
+	if err != nil {
+		return
+	}
+	e.Key, err = buf.PopBytes()
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
+	return
+}
+
+func (e *AnchorSigningKey) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
 }
 
 type Identity struct {
@@ -34,11 +119,265 @@ type Identity struct {
 	Key3                 interfaces.IHash
 	Key4                 interfaces.IHash
 	SigningKey           interfaces.IHash
-	Status               int
+	Status               uint8
 	AnchorKeys           []AnchorSigningKey
 }
 
 var _ interfaces.Printable = (*Identity)(nil)
+var _ interfaces.BinaryMarshallable = (*Identity)(nil)
+
+func RandomIdentity() *Identity {
+	id := new(Identity)
+
+	id.IdentityChainID = primitives.RandomHash()
+	id.IdentityRegistered = random.RandUInt32()
+	id.IdentityCreated = random.RandUInt32()
+	id.ManagementChainID = primitives.RandomHash()
+	id.ManagementRegistered = random.RandUInt32()
+	id.ManagementCreated = random.RandUInt32()
+	id.MatryoshkaHash = primitives.RandomHash()
+	id.Key1 = primitives.RandomHash()
+	id.Key2 = primitives.RandomHash()
+	id.Key3 = primitives.RandomHash()
+	id.Key4 = primitives.RandomHash()
+	id.SigningKey = primitives.RandomHash()
+	id.Status = random.RandUInt8()
+
+	l := random.RandIntBetween(0, 10)
+	for i := 0; i < l; i++ {
+		id.AnchorKeys = append(id.AnchorKeys, *RandomAnchorSigningKey())
+	}
+
+	return id
+}
+
+func (e *Identity) IsSameAs(b *Identity) bool {
+	if e.IdentityChainID.IsSameAs(b.IdentityChainID) == false {
+		return false
+	}
+	if e.IdentityRegistered != b.IdentityRegistered {
+		return false
+	}
+	if e.IdentityCreated != b.IdentityCreated {
+		return false
+	}
+	if e.ManagementChainID.IsSameAs(b.ManagementChainID) == false {
+		return false
+	}
+	if e.ManagementRegistered != b.ManagementRegistered {
+		return false
+	}
+	if e.ManagementCreated != b.ManagementCreated {
+		return false
+	}
+	if e.MatryoshkaHash.IsSameAs(b.MatryoshkaHash) == false {
+		return false
+	}
+	if e.Key1.IsSameAs(b.Key1) == false {
+		return false
+	}
+	if e.Key2.IsSameAs(b.Key2) == false {
+		return false
+	}
+	if e.Key3.IsSameAs(b.Key3) == false {
+		return false
+	}
+	if e.Key4.IsSameAs(b.Key4) == false {
+		return false
+	}
+	if e.SigningKey.IsSameAs(b.SigningKey) == false {
+		return false
+	}
+	if e.Status != b.Status {
+		return false
+	}
+	if len(e.AnchorKeys) != len(b.AnchorKeys) {
+		return false
+	}
+	for i := range e.AnchorKeys {
+		if e.AnchorKeys[i].IsSameAs(&b.AnchorKeys[i]) == false {
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Identity) Init() {
+	if e.IdentityChainID == nil {
+		e.IdentityChainID = primitives.NewZeroHash()
+	}
+	if e.ManagementChainID == nil {
+		e.ManagementChainID = primitives.NewZeroHash()
+	}
+	if e.MatryoshkaHash == nil {
+		e.MatryoshkaHash = primitives.NewZeroHash()
+	}
+	if e.Key1 == nil {
+		e.Key1 = primitives.NewZeroHash()
+	}
+	if e.Key2 == nil {
+		e.Key2 = primitives.NewZeroHash()
+	}
+	if e.Key3 == nil {
+		e.Key3 = primitives.NewZeroHash()
+	}
+	if e.Key4 == nil {
+		e.Key4 = primitives.NewZeroHash()
+	}
+	if e.SigningKey == nil {
+		e.SigningKey = primitives.NewZeroHash()
+	}
+}
+
+func (e *Identity) MarshalBinary() ([]byte, error) {
+	e.Init()
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBinaryMarshallable(e.IdentityChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.IdentityRegistered)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.IdentityCreated)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.ManagementChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.ManagementRegistered)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.ManagementCreated)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.MatryoshkaHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key1)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key2)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key3)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.Key4)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.SigningKey)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(byte(e.Status))
+	if err != nil {
+		return nil, err
+	}
+
+	l := len(e.AnchorKeys)
+	err = buf.PushVarInt(uint64(l))
+	for _, v := range e.AnchorKeys {
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	e.Init()
+	buf := primitives.NewBuffer(p)
+	newData = p
+
+	err = buf.PopBinaryMarshallable(e.IdentityChainID)
+	if err != nil {
+		return
+	}
+	e.IdentityRegistered, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	e.IdentityCreated, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.ManagementChainID)
+	if err != nil {
+		return
+	}
+	e.ManagementRegistered, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	e.ManagementCreated, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.MatryoshkaHash)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key1)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key2)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key3)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.Key4)
+	if err != nil {
+		return
+	}
+	err = buf.PopBinaryMarshallable(e.SigningKey)
+	if err != nil {
+		return
+	}
+	b, err := buf.PopByte()
+	if err != nil {
+		return
+	}
+	e.Status = uint8(b)
+
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < int(l); i++ {
+		var ak AnchorSigningKey
+		err = buf.PopBinaryMarshallable(&ak)
+		if err != nil {
+			return
+		}
+		e.AnchorKeys = append(e.AnchorKeys, ak)
+	}
+
+	return
+}
+
+func (e *Identity) UnmarshalBinary(p []byte) error {
+	_, err := e.UnmarshalBinaryData(p)
+	return err
+}
 
 func (id *Identity) FixMissingKeys(s *State) error {
 	// This identity will always have blank keys
@@ -166,7 +505,7 @@ func CheckTimestamp(time []byte, timeEntered int64) bool {
 	}
 }
 
-func statusIsFedOrAudit(status int) bool {
+func statusIsFedOrAudit(status uint8) bool {
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_AUDIT_SERVER ||
 		status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||
@@ -209,7 +548,7 @@ func (id *Identity) IsFull() bool {
 }
 
 // Only used for marshaling JSON
-func statusToJSONString(status int) string {
+func statusToJSONString(status uint8) string {
 	switch status {
 	case constants.IDENTITY_UNASSIGNED:
 		return "none"

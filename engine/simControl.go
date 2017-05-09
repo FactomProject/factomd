@@ -1067,7 +1067,7 @@ func SimControl(listenTo int) {
 		}
 	}
 }
-func returnStatString(i int) string {
+func returnStatString(i uint8) string {
 	var stat string
 	switch i {
 	case 0:

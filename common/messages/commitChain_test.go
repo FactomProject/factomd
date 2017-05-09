@@ -70,6 +70,12 @@ func TestMarshalUnmarshalCommitChain(t *testing.T) {
 	if cc.IsSameAs(cc2.(*CommitChainMsg)) == false {
 		t.Error("CommitChainMsgs are not the same")
 	}
+
+	hex, err = cc2.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("Marshalled 2 - %x", hex)
 }
 
 func TestSignAndVerifyCommitChain(t *testing.T) {

@@ -326,27 +326,17 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+
+	FastBoot         bool
+	FastBootLocation string
 }
+
+var _ interfaces.IState = (*State)(nil)
 
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
 }
-
-type MissingEntryBlock struct {
-	ebhash   interfaces.IHash
-	dbheight uint32
-}
-
-type MissingEntry struct {
-	Cnt       int
-	LastTime  time.Time
-	EBHash    interfaces.IHash
-	EntryHash interfaces.IHash
-	DBHeight  uint32
-}
-
-var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState := new(State)
@@ -608,6 +598,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
+		s.FastBoot = cfg.App.FastBoot
+		s.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -845,6 +837,13 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.starttime = time.Now()
+
+	if s.FastBoot {
+		err := LoadDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
@@ -1630,7 +1629,7 @@ func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
-func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.FedServers
@@ -1638,7 +1637,7 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.AuditServers
@@ -1646,9 +1645,9 @@ func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IServer {
 	allAuditServers := s.GetAuditServers(dbheight)
-	var onlineAuditServers []interfaces.IFctServer
+	var onlineAuditServers []interfaces.IServer
 
 	for _, server := range allAuditServers {
 		if server.IsOnline() {

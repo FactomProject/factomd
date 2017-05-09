@@ -1,14 +1,39 @@
-package interfaces_test
+// Copyright 2017 Factom Foundation
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+package state_test
 
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	. "github.com/FactomProject/factomd/state"
 )
 
-func TestFCTServer(t *testing.T) {
+func TestServerMarshalUnmarshal(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		s := RandomServer()
+		b, err := s.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		s2 := new(Server)
+		rest, err := s2.UnmarshalBinaryData(b)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if len(rest) > 0 {
+			t.Errorf("Returned too much data")
+		}
+		if s.IsSameAs(s2) == false {
+			t.Errorf("Servers are not the same")
+		}
+	}
+}
+
+func TestServer(t *testing.T) {
 	rbool := func() bool {
 		if random.RandIntBetween(0, 2) == 1 {
 			return true
@@ -22,13 +47,13 @@ func TestFCTServer(t *testing.T) {
 		o := rbool()
 		r := primitives.RandomHash()
 
-		f := new(FctServer)
+		f := new(Server)
 		f.ChainID = c
 		f.Name = n
 		f.Online = o
 		f.Replace = r
 
-		sf := new(FctServer)
+		sf := new(Server)
 		sf.ChainID = c
 		sf.Name = n
 		sf.Online = o

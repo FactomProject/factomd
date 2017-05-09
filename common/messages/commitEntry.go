@@ -34,7 +34,10 @@ var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
 var _ Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
-	if b == nil {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
 		return false
 	}
 

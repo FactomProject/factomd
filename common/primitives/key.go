@@ -32,7 +32,7 @@ func (e *PrivateKey) Init() {
 	}
 }
 
-func RandomPrivateKey() interfaces.Signer {
+func RandomPrivateKey() *PrivateKey {
 	return NewPrivateKeyFromHexBytes(random.RandByteSliceOfLen(ed25519.PrivateKeySize))
 }
 
