@@ -185,15 +185,16 @@ func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 // MarshalBinary returns the serialized binary form of the Entry Block.
 func (e *EBlock) MarshalBinary() ([]byte, error) {
 	e.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
-	if err := e.BuildHeader(); err != nil {
+	err := e.BuildHeader()
+	if err != nil {
 		return nil, err
 	}
-	if p, err := e.GetHeader().MarshalBinary(); err != nil {
+
+	err = buf.PushBinaryMarshallable(e.GetHeader())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(p)
 	}
 
 	if p, err := e.marshalBodyBinary(); err != nil {
