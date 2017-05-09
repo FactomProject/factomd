@@ -327,9 +327,10 @@ type State struct {
 	AckChange uint32
 
 	// Plugins
-	useDBStateManager bool
-	Uploader          *UploadController // Controls the uploads of torrents. Prevents backups
-	DBStateManager    interfaces.IManagerController
+	useDBStateManager       bool
+	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
+	DBStateManager          interfaces.IManagerController
+	HighestCompletedTorrent uint32
 }
 
 type EntryUpdate struct {

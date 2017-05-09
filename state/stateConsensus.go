@@ -498,7 +498,6 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 
 func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbstatemsg, _ := msg.(*messages.DBStateMsg)
-
 	cntFail := func() {
 		if !dbstatemsg.IsInDB {
 			s.DBStateIgnoreCnt++

@@ -115,7 +115,7 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 				for !(man.IsBufferEmpty() || (len(data) == 1 && data[0] == 0x00)) {
 					// If we have too much to process, do not spam inqueue, let the plugin hold it
 					for len(inQueue) > 400 {
-						time.Sleep(1 * time.Second)
+						time.Sleep(100 * time.Millisecond)
 					}
 					data = man.FetchFromBuffer()
 					dbMsg := new(messages.DBStateMsg)
@@ -125,22 +125,16 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 						continue
 					}
 
+					// Set the highest completed
+					if s.HighestCompletedTorrent < dbMsg.DirectoryBlock.GetDatabaseHeight() {
+						s.HighestCompletedTorrent = dbMsg.DirectoryBlock.GetDatabaseHeight()
+					}
+
 					// Already processed this height completely
 					if dbMsg.DirectoryBlock.GetDatabaseHeight() < s.EntryDBHeightComplete {
 						continue
 					}
-
 					inQueue <- dbMsg
-
-					// Put entries into the write entry queue. This queue checks to see
-					// if it is an entry we have requested, if it is, we will add it. If we
-					// did not request it, they get tossed. This ensures no entries that are
-					// not valid make it into the DB
-					for _, e := range dbMsg.Entries {
-						if len(s.WriteEntry) < cap(s.WriteEntry)-1 {
-							s.WriteEntry <- e
-						}
-					}
 				}
 			}
 

@@ -16,7 +16,11 @@ import (
 
 func has(s *State, entry interfaces.IHash) bool {
 	if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
-		time.Sleep(30 * time.Millisecond)
+		if s.UsingTorrent() {
+			// Torrents complete second pass
+		} else {
+			time.Sleep(30 * time.Millisecond)
+		}
 	}
 	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
 	return exists

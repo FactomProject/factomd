@@ -50,12 +50,27 @@ func (s *State) StartTorrentSyncing() error {
 			continue
 		}
 
+		// How many blocks ahead of the current we should request from the plugin
+		allowed := 3000
+
 		// Range of heights to request
 		lower := dblock.GetDatabaseHeight()
 		upper := s.GetHighestKnownBlock()
 
+		// If the first pass is caught up, work on the second pass
 		if upper-(BATCH_SIZE*2) < lower {
 			lower = s.EntryDBHeightComplete
+			// Reduce the allowed for second pass
+			allowed = 2000
+		}
+
+		// Make sure we don't overload holding.
+		if len(s.Holding) > 3000 || s.HighestCompletedTorrent > lower+3500 {
+			if s.HighestCompletedTorrent > lower+500 {
+				allowed = 1000
+			} else {
+				allowed = 2000
+			}
 		}
 
 		// If the network is at block 0, we aren't on the network
@@ -73,9 +88,6 @@ func (s *State) StartTorrentSyncing() error {
 		// Prometheus
 		stateTorrentSyncingLower.Set(float64(lower))
 		stateTorrentSyncingUpper.Set(float64(upper))
-
-		// How many blocks ahead of the current we should request from the plugin
-		allowed := 5000
 
 		// What is the end height we request
 		max := lower + uint32(allowed)
@@ -106,6 +118,9 @@ func (s *State) StartTorrentSyncing() error {
 			}
 		}
 
+		if lower > s.EntryBlockDBHeightComplete {
+			s.DBStateManager.RetrieveDBStateByHeight(s.EntryDBHeightComplete)
+		}
 		// This tells our plugin to ignore any heights below this for retrieval
 		s.DBStateManager.CompletedHeightTo(s.EntryDBHeightComplete)
 		time.Sleep(rightDuration)
