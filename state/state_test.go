@@ -5,9 +5,9 @@
 package state_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
+	"fmt"
 
 	//"github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/primitives"
