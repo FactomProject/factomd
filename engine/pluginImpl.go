@@ -140,6 +140,11 @@ func (s *IManagerPluginRPCServer) IsBufferEmpty(args interface{}, resp *bool) er
 	return nil
 }
 
+func (s *IManagerPluginRPCServer) SetSigningKey(key []byte, resp *error) error {
+	*resp = s.Impl.SetSigningKey(key)
+	return *resp
+}
+
 func (s *IManagerPluginRPCServer) FetchFromBuffer(args interface{}, resp *[]byte) error {
 	*resp = s.Impl.FetchFromBuffer()
 	return nil

@@ -28,20 +28,20 @@ var pluginMap = map[string]plugin.Plugin{
 	"etcd":    &IEtcdPlugin{},
 }
 
+var etcdHandshakeConfig = plugin.HandshakeConfig{
+	ProtocolVersion:  1,
+	MagicCookieKey:   "Etcd_Manager",
+	MagicCookieValue: "factom_etcd",
+}
+
 func LaunchEtcdPlugin(path, addr, uid, prefix string) (interfaces.IEtcdManager, error) {
 	// So we don't get debug logs. Comment this out if you want to keep plugin
 	// logs
 	//log.SetOutput(ioutil.Discard)
 
-	var handshakeConfig = plugin.HandshakeConfig{
-		ProtocolVersion:  1,
-		MagicCookieKey:   "Etcd_Manager",
-		MagicCookieValue: "factom_etcd",
-	}
-
 	// We're a host! Start by launching the plugin process.
 	client := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig: handshakeConfig,
+		HandshakeConfig: etcdHandshakeConfig,
 		Plugins:         pluginMap,
 		Cmd:             exec.Command(path+"etcd-manager", "plugin", addr, uid, prefix),
 	})
@@ -71,17 +71,19 @@ func LaunchEtcdPlugin(path, addr, uid, prefix string) (interfaces.IEtcdManager, 
 	return etcdeManager, nil
 }
 
+var managerHandshakeConfig = plugin.HandshakeConfig{
+	ProtocolVersion:  1,
+	MagicCookieKey:   "Torrent_Manager",
+	MagicCookieValue: "factom_torrent",
+}
+
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that
 // can be interacted with like a usual interface. The client returned must be
 // killed before we exit
 func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.State, sigKey *primitives.PrivateKey, memProfileRate int) (interfaces.IManagerController, error) {
+	// So we don't get debug logs. Comment this out if you want to keep plugin
+	// logs
 	//log.SetOutput(ioutil.Discard)
-
-	var managerHandshakeConfig = plugin.HandshakeConfig{
-		ProtocolVersion:  1,
-		MagicCookieKey:   "Torrent_Manager",
-		MagicCookieValue: "factom_torrent",
-	}
 
 	// We're a host! Start by launching the plugin process.
 	client := plugin.NewClient(&plugin.ClientConfig{
