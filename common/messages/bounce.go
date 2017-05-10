@@ -25,6 +25,13 @@ type Bounce struct {
 	Stamps    []interfaces.Timestamp
 	Data      []byte
 	size      int
+
+	// Can set to be not valid
+	// If flag is set, that means the default
+	// was overwritten
+	setValid  bool
+	valid     int
+	processed bool
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
@@ -74,11 +81,19 @@ func (m *Bounce) VerifySignature() (bool, error) {
 	return true, nil
 }
 
+func (m *Bounce) SetValid(v int) {
+	m.setValid = true
+	m.valid = v
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Bounce) Validate(state interfaces.IState) int {
+	if m.setValid {
+		return m.valid
+	}
 	return 1
 }
 
@@ -90,14 +105,21 @@ func (m *Bounce) ComputeVMIndex(state interfaces.IState) {
 // Execute the leader functions of the given message
 // Leader, follower, do the same thing.
 func (m *Bounce) LeaderExecute(state interfaces.IState) {
+	m.processed = true
 }
 
 func (m *Bounce) FollowerExecute(state interfaces.IState) {
+	m.processed = true
 }
 
 // Acknowledgements do not go into the process list.
 func (e *Bounce) Process(dbheight uint32, state interfaces.IState) bool {
+	e.processed = true
 	return true
+}
+
+func (e *Bounce) Processed() bool {
+	return e.processed
 }
 
 func (e *Bounce) JSONByte() ([]byte, error) {
