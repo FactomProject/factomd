@@ -183,16 +183,6 @@ func (IManagerPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, e
 // Here is an implementation that talks over RPC
 type IEtcdPluginRPC struct{ client *rpc.Client }
 
-func (g *IEtcdPluginRPC) RetrieveDBStateByHeight(height uint32) error {
-	var resp error
-	err := g.client.Call("Plugin.RetrieveDBStateByHeight", height, &resp)
-	if err != nil {
-		return err
-	}
-
-	return resp
-}
-
 type SendIntoEtcdArgs struct {
 	Msg []byte // interfaces.IMsg
 }

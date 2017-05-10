@@ -63,7 +63,7 @@ func TestTorrentImpl(t *testing.T) {
 	}
 
 	mc := raw.(interfaces.IManagerController)
-
+	// Client working
 	err = mc.Alive()
 	if err != nil {
 		t.Error(err)
@@ -98,6 +98,53 @@ func TestTorrentImpl(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	bo := mc.IsBufferEmpty()
+	if !bo {
+		t.Error("Should be true")
+	}
+
+	// Client not working
+	client.Close()
+	err = mc.Alive()
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	err = mc.RetrieveDBStateByHeight(0)
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	err = mc.UploadDBStateBytes(nil, true)
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	v = mc.RequestMoreUploads()
+	if v != -1 {
+		t.Error("Should be -1")
+	}
+
+	err = mc.CompletedHeightTo(0)
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	b = mc.FetchFromBuffer()
+	if b == nil || len(b) != 1 {
+		t.Error("Should be length 1")
+	}
+
+	err = mc.SetSigningKey(nil)
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	bo = mc.IsBufferEmpty()
+	if bo {
+		t.Error("Should be false")
+	}
 }
 
 // TestEtcdImpl just checks the plugin implementation of the interface
@@ -113,8 +160,8 @@ func TestEtcdImpl(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Client working
 	mc := raw.(interfaces.IEtcdManager)
-
 	err = mc.SendIntoEtcd(nil)
 	if err != nil {
 		t.Error(err)
@@ -141,5 +188,35 @@ func TestEtcdImpl(t *testing.T) {
 	}
 	if !b {
 		t.Error("Should be true")
+	}
+
+	// Client closed
+	client.Close()
+	err = mc.SendIntoEtcd(nil)
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	v = mc.GetData()
+	if v != nil {
+		t.Error("Should be nil")
+	}
+
+	err = mc.Reinitiate()
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	err = mc.NewBlockLease(0)
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+
+	b, err = mc.Ready()
+	if err == nil {
+		t.Error("Stream closed, this should fail")
+	}
+	if b {
+		t.Error("Should be false")
 	}
 }
