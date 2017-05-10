@@ -150,6 +150,10 @@ func (f *P2PProxy) NewBlockLease(blockHeight uint32) error {
 	return f.EtcdManager.NewBlockLease(blockHeight)
 }
 
+func (f *P2PProxy) PickUpFromHash(messageHash string) error {
+	return f.EtcdManager.PickUpFromHash(messageHash)
+}
+
 func (f *P2PProxy) Weight() int {
 	// should return the number of connections this peer represents.  For now, just say a lot
 	return f.NumPeers

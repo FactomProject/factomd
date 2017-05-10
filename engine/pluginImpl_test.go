@@ -12,11 +12,12 @@ import (
 // FakeEtcdInstance is a fake etcd plugin
 type FakeEtcdInstance struct{}
 
-func (f *FakeEtcdInstance) SendIntoEtcd(msg []byte) error          { return nil }
-func (f *FakeEtcdInstance) GetData() []byte                        { return nil }
-func (f *FakeEtcdInstance) Reinitiate() error                      { return nil }
-func (f *FakeEtcdInstance) NewBlockLease(blockHeight uint32) error { return nil }
-func (f *FakeEtcdInstance) Ready() (bool, error)                   { return true, nil }
+func (f *FakeEtcdInstance) SendIntoEtcd(msg []byte) error           { return nil }
+func (f *FakeEtcdInstance) GetData() []byte                         { return nil }
+func (f *FakeEtcdInstance) Reinitiate() error                       { return nil }
+func (f *FakeEtcdInstance) NewBlockLease(blockHeight uint32) error  { return nil }
+func (f *FakeEtcdInstance) PickUpFromHash(messageHash string) error { return nil }
+func (f *FakeEtcdInstance) Ready() (bool, error)                    { return true, nil }
 
 // FakeTorrent is a fake torrent plugin
 type FakeTorrent struct{}

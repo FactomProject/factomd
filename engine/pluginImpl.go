@@ -187,6 +187,10 @@ type SendIntoEtcdArgs struct {
 	Msg []byte // interfaces.IMsg
 }
 
+type PickUpFromHashArgs struct {
+	MessageHash string
+}
+
 type NewBlockLeaseArgs struct {
 	Height uint32
 }
@@ -233,6 +237,20 @@ func (g *IEtcdPluginRPC) NewBlockLease(blockHeight uint32) error {
 	}
 
 	return nil
+}
+
+func (g *IEtcdPluginRPC) PickUpFromHash(messageHash string) error {
+	var resp ErrorData
+	args := PickUpFromHashArgs{
+		MessageHash: messageHash,
+	}
+	err := g.client.Call("Plugin.PickUpFromHash", &args, &resp)
+	if err != nil {
+		return err
+	}
+
+	//log.Println(resp.NewIndex)
+	return resp.Error
 }
 
 type GetFromEtcdData struct {
@@ -296,6 +314,12 @@ func (s *IEtcdPluginRPCServer) Ready(args interface{}, resp *ReadyArgs) error {
 	ready, err := s.Impl.Ready()
 	resp.Err = err
 	resp.Ready = ready
+	return nil
+}
+
+func (s *IEtcdPluginRPCServer) PickUpFromHash(args *PickUpFromHashArgs, resp *ErrorData) error {
+	err := s.Impl.PickUpFromHash(args.MessageHash)
+	resp.Error = err
 	return nil
 }
 
