@@ -369,6 +369,32 @@ var (
 		Name: "factomd_state_queue_total_netoutmsg_misc",
 		Help: "Instrumenting the netoutmsg queue",
 	})
+
+	// InMsgQueue Rates
+	TotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_arrival_avg_total_inmsg",
+		Help: "Total avg of inmsg queue arrival rate",
+	})
+
+	InstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_arrival_avg_instant_inmsg",
+		Help: "Instant avg of inmsg queue arrival rate",
+	})
+
+	TotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_complete_avg_total_inmsg",
+		Help: "Total avg of inmsg queue complete rate",
+	})
+
+	InstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_complete_avg_instant_inmsg",
+		Help: "Instant avg of inmsg queue complete rate",
+	})
+
+	QueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_backup_inmsg",
+		Help: "Backup of queue",
+	})
 )
 
 var registered bool = false
@@ -480,4 +506,11 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceMsg)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceResp)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMisc)
+
+	// InMsgRate
+	prometheus.MustRegister(TotalArrivalQueueRate)
+	prometheus.MustRegister(InstantArrivalQueueRate)
+	prometheus.MustRegister(TotalCompleteQueueRate)
+	prometheus.MustRegister(InstantCompleteQueueRate)
+	prometheus.MustRegister(QueueBackupRate)
 }
