@@ -83,13 +83,14 @@ func NetStart(s *state.State) {
 	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
 
 	// Plugins
+	pluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
+
+	// 	Etcd Plugin
 	useEtcd := flag.Bool("etcd", false, "If true, use etcd along with the default p2p network for current-block messages.")
-	etcdManagerPath := flag.String("etcd-plugin", "", "Input the path to the etcd-manager binary")
 	etcdExclusive := flag.Bool("etcd-exclusive", false, "If true, use etcd _instead of_ the default p2p network for current-block messages.")
 
-	// Plugins
+	// 	Torrent Plugin
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
-	pluginPath := flag.String("plugin", "", "Input the path to the factomd-torrent binary")
 
 	flag.Parse()
 
@@ -375,11 +376,11 @@ func NetStart(s *state.State) {
 		}
 
 		if *useEtcd {
-			etcdManager, err := LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
+			etcdManager, err := LaunchEtcdPlugin(*pluginPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
 			if err != nil {
 				fmt.Printf("Encountered an error while trying to use Etcd plugin: %s (trying one more time)\n", err.Error())
 				time.Sleep(3 * time.Second)
-				etcdManager, err = LaunchEtcdPlugin(*etcdManagerPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
+				etcdManager, err = LaunchEtcdPlugin(*pluginPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
 				if err != nil {
 					fmt.Printf("Encountered an error while trying to use Etcd plugin (again): %s\n", err.Error())
 					panic("Plugin manager not working")
