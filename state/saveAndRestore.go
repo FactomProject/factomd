@@ -66,7 +66,8 @@ type SaveState struct {
 	LeaderTimestamp interfaces.Timestamp
 
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
@@ -166,6 +167,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//for k := range state.Holding {
 	//ss.Holding[k] = state.Holding[k]
 	//}
+	ss.XReview = append(ss.XReview, state.XReview...)
 
 	ss.Acks = make(map[[32]byte]interfaces.IMsg)
 	//for k := range state.Acks {
@@ -264,6 +266,7 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	for k := range ss.Holding {
 		state.Holding[k] = pss.Holding[k]
 	}
+	state.XReview = append(state.XReview[:0], pss.XReview...)
 
 	/**
 	ss.EOMsyncing = state.EOMsyncing
@@ -415,6 +418,8 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	for k := range ss.Holding {
 		state.Holding[k] = ss.Holding[k]
 	}
+
+	state.XReview = append(state.XReview[:0], ss.XReview...)
 
 	state.Acks = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Acks {

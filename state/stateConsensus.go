@@ -61,7 +61,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
 			if len(vm.List) == 0 && now-s.BootTime > 20 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
-				s.MsgQueue() <- msg
+				s.XReview = append(s.XReview, msg)
 			} else {
 				msg.LeaderExecute(s)
 			}
@@ -197,22 +197,9 @@ emptyLoop:
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-	now := s.GetTimestamp()
-	if s.ResendHolding == nil {
-		s.ResendHolding = now
-	}
 skipreview:
-	switch {
-	case now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300:
-	case s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW:
-	default:
-		s.ResendHolding = now
-
-		s.ReviewHolding()
-		for _, msg := range s.Holding {
-			if msg == nil {
-				continue
-			}
+	for {
+		for _, msg := range s.XReview {
 			if !room() {
 				break skipreview
 			}
@@ -222,20 +209,15 @@ skipreview:
 			process <- msg
 			progress = s.executeMsg(vm, msg) || progress
 		}
+		s.XReview = s.XReview[:0]
 		break
 	}
 
-processloop:
-	for {
-		select {
-		case msg := <-process:
-			s.executeMsg(vm, msg)
-			if !msg.IsPeer2Peer() {
-				msg.SendOut(s, msg)
-			}
-			progress = s.UpdateState()
-		default:
-			break processloop
+	for len(process) > 0 {
+		msg := <-process
+		s.executeMsg(vm, msg)
+		if !msg.IsPeer2Peer() {
+			msg.SendOut(s, msg)
 		}
 		s.UpdateState()
 	}
@@ -262,20 +244,40 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // Consensus Methods
 //***************************************************************
 
-// Places the entries in the holding map back for
+// Places the entries in the holding map back into the XReview list for
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
+	if len(s.XReview) > 0 {
+		return
+	}
+
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
+		return
+	}
+
+	now := s.GetTimestamp()
+	if s.ResendHolding == nil {
+		s.ResendHolding = now
+	}
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
+		return
+	}
+
 	s.DB.Trim()
 
+	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
+	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
+	saved := s.GetHighestSavedBlk()
 
-	for k := range s.Holding {
-		v := s.Holding[k]
+	for k, v := range s.Holding {
 
-		saved := s.GetHighestSavedBlk()
+		if int(highest)-int(saved) > 1000 {
+			delete(s.Holding, k)
+		}
 
 		mm, ok := v.(*messages.MissingMsgResponse)
 		if ok {
@@ -328,15 +330,11 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		_, ok = v.(*messages.MissingMsgResponse)
-
-		if !ok {
-			if v.Resend(s) {
-				if v.Validate(s) == 1 {
-					s.ResendCnt++
-					v.SendOut(s, v)
-					continue
-				}
+		if v.Resend(s) {
+			if v.Validate(s) == 1 {
+				s.ResendCnt++
+				v.SendOut(s, v)
+				continue
 			}
 		}
 
@@ -345,6 +343,8 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		s.XReview = append(s.XReview, v)
+		delete(s.Holding, k)
 	}
 }
 
@@ -628,13 +628,13 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 				_, okff := s.Replay.Valid(constants.INTERNAL_REPLAY, fullFault.GetRepeatHash().Fixed(), fullFault.GetTimestamp(), s.GetTimestamp())
 
 				if okff {
-					s.MsgQueue() <- fullFault
+					s.XReview = append(s.XReview, fullFault)
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
-				s.MsgQueue() <- fullFault
+				s.XReview = append(s.XReview, fullFault)
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -670,10 +670,10 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
 	if okr {
-		s.MsgQueue() <- ack
+		s.XReview = append(s.XReview, ack)
 	}
 	if okm {
-		s.MsgQueue() <- msg
+		s.XReview = append(s.XReview, msg)
 	}
 
 	// If I've seen both, put them in the process list.
@@ -784,7 +784,7 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.MsgQueue() <- re
+		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -935,7 +935,7 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		s.MsgQueue() <- re
+		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -1058,7 +1058,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.MsgQueue() <- entry
+			s.XReview = append(s.XReview, entry)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
@@ -1082,7 +1082,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
 			entry.SendOut(s, entry)
-			s.MsgQueue() <- entry
+			s.XReview = append(s.XReview, entry)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
