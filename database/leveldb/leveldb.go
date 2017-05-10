@@ -154,6 +154,7 @@ func (db *LevelDB) PutInBatch(records []interfaces.Record) error {
 			return err
 		}
 		db.lbatch.Put(ldbKey, hex)
+		LevelDBPuts.Inc()
 	}
 
 	err := db.lDB.Write(db.lbatch, db.wo)
