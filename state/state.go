@@ -330,9 +330,10 @@ type State struct {
 	AckChange uint32
 
 	// Plugins
-	useDBStateManager    bool
-	torrentUploadQueue   chan interfaces.IMsg
-	DBStateManager       interfaces.IManagerController
+	useDBStateManager       bool
+	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
+	DBStateManager          interfaces.IManagerController
+	HighestCompletedTorrent uint32
 	useEtcd              bool
 	SuperVerboseMessages bool
 }
@@ -1089,6 +1090,11 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 	}
 	msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, eBlocks, entries, allSigs)
 	msg.(*messages.DBStateMsg).IsInDB = true
+
+	// Create the torrent
+	if s.UsingTorrent() {
+		s.UploadDBState(dbheight)
+	}
 
 	return msg, nil
 }

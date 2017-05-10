@@ -77,6 +77,17 @@ var (
 		Help: "Total transactions over life of node weighted for last 3 seconds",
 	})
 
+	// Torrent
+	stateTorrentSyncingLower = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_torrentsync_lower_gauge",
+		Help: "The lower limit of torrent sync",
+	})
+
+	stateTorrentSyncingUpper = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_torrentsync_upper_gauge",
+		Help: "The upper limit of torrent sync",
+	})
+
 	// Queues
 	//	InMsg
 	CurrentMessageQueueInMsgEOM = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -390,6 +401,10 @@ func RegisterPrometheus() {
 	// TPS
 	prometheus.MustRegister(TotalTransactionPerSecond)
 	prometheus.MustRegister(InstantTransactionPerSecond)
+
+	// Torrent
+	prometheus.MustRegister(stateTorrentSyncingLower)
+	prometheus.MustRegister(stateTorrentSyncingUpper)
 
 	// Queues
 	//	InMsg Current

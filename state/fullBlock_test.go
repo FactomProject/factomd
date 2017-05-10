@@ -30,12 +30,17 @@ func TestUInt32Bytes(t *testing.T) {
 
 func TestWholeBlocks(t *testing.T) {
 	blocks := makeDBStateList(100)
+	all := make([]byte, 0)
+
+	var err error
+
 	for _, a := range blocks {
 		b := NewWholeBlock()
 		data, err := a.MarshalBinary()
 		if err != nil {
 			t.Error(err)
 		}
+		all = append(all, data...)
 
 		newData, err := b.UnmarshalBinaryData(data)
 		if err != nil {
@@ -49,6 +54,22 @@ func TestWholeBlocks(t *testing.T) {
 		if !a.IsSameAs(b) {
 			t.Error("Should be same")
 		}
+	}
+
+	// Test block of binary unmarshal into individual blocks
+	for _, a := range blocks {
+		b := NewWholeBlock()
+		all, err = b.UnmarshalBinaryData(all)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !a.IsSameAs(b) {
+			t.Error("Should be same")
+		}
+	}
+	if len(all) > 0 {
+		t.Error("Bytes left over")
 	}
 }
 

@@ -6,20 +6,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/state"
 	"github.com/hashicorp/go-plugin"
 )
 
-// How often to check the buffer
+// How often to check the plugin if it has messages ready
 var CHECK_BUFFER time.Duration = 2 * time.Second
 
 var _ log.Logger
@@ -27,7 +24,6 @@ var _ = ioutil.Discard
 
 // pluginMap is the map of plugins we can dispense.
 var pluginMap = map[string]plugin.Plugin{
-	// Plugin to manage dbstates
 	"manager": &IManagerPlugin{},
 	"etcd":    &IEtcdPlugin{},
 }
@@ -50,11 +46,11 @@ func LaunchEtcdPlugin(path, addr, uid, prefix string) (interfaces.IEtcdManager, 
 		Cmd:             exec.Command(path+"etcd-manager", "plugin", addr, uid, prefix),
 	})
 
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
+	// Make sure we close our client on close
+	AddInterruptHandler(func() {
+		fmt.Println("Etcd plugin is now closing...")
 		client.Kill()
-	}()
+	})
 
 	// Connect via RPC
 	rpcClient, err := client.Client()
@@ -78,7 +74,7 @@ func LaunchEtcdPlugin(path, addr, uid, prefix string) (interfaces.IEtcdManager, 
 // LaunchDBStateManagePlugin launches the plugin and returns an interface that
 // can be interacted with like a usual interface. The client returned must be
 // killed before we exit
-func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg, db *databaseOverlay.Overlay, sigKey *primitives.PrivateKey) (interfaces.IManagerController, error) {
+func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.State, sigKey *primitives.PrivateKey, memProfileRate int) (interfaces.IManagerController, error) {
 	//log.SetOutput(ioutil.Discard)
 
 	var managerHandshakeConfig = plugin.HandshakeConfig{
@@ -91,14 +87,14 @@ func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg,
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: managerHandshakeConfig,
 		Plugins:         pluginMap,
-		Cmd:             exec.Command(path+"factomd-torrent", "plugin"),
+		Cmd:             exec.Command(path+"factomd-torrent", fmt.Sprintf("-mpr=%d", memProfileRate)),
 	})
 
 	stop := make(chan int, 10)
 
 	// Make sure we close our client on close
 	AddInterruptHandler(func() {
-		fmt.Println("Manager pluging is now closing...")
+		fmt.Println("Manager plugin is now closing...")
 		client.Kill()
 		stop <- 0
 	})
@@ -123,22 +119,48 @@ func LaunchTorrentDBStateManagePlugin(path string, inQueue chan interfaces.IMsg,
 		manager.SetSigningKey(sigKey.Key[:32])
 	}
 
-	go manageDrain(inQueue, manager, db, stop)
+	// Upload controller controls how quickly we upload things. Keeping our rate similar to
+	// the torrent prevents data being backed up in memory
+	s.Uploader = state.NewUploadController(manager)
+	AddInterruptHandler(func() {
+		fmt.Println("State's Upload controller is now closing...")
+		s.Uploader.Close()
+	})
+
+	// We need to drain messages returned by the plugin.
+	go manageDrain(inQueue, manager, s, stop)
+	// RunUploadController controls our uploading to ensure not overloading queues and consuming too
+	// much memory
+	go s.RunUploadController()
+	// StartTorrentSyncing will use torrents to sync past our current height if we are not synced up
+	go s.StartTorrentSyncing()
 
 	return manager, nil
 }
 
-func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController, db *databaseOverlay.Overlay, quit chan int) {
+// manageDrain handles messages being returned by the plugin, since our requests are asyncronous
+// When we make a request via a retrieve, this function will pick up the return
+func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s *state.State, quit chan int) {
+	cm := NewCompletedHeightManager()
 	for {
 		select {
 		case <-quit:
 			return
 		default:
+			if err := man.Alive(); err != nil {
+				log.Fatal("ERROR: Connection lost to torrent plugin")
+				return
+			}
+
+			// If there is something for us to grab
 			if !man.IsBufferEmpty() {
 				var data []byte
 				// Exit conditions: If empty, quit. If length == 1 and first/only byte it 0x00
 				for !(man.IsBufferEmpty() || (len(data) == 1 && data[0] == 0x00)) {
-					// Msgs are waiting!
+					// If we have too much to process, do not spam inqueue, let the plugin hold it
+					for inQueue.Length() > 400 {
+						time.Sleep(100 * time.Millisecond)
+					}
 					data = man.FetchFromBuffer()
 					dbMsg := new(messages.DBStateMsg)
 					err := dbMsg.UnmarshalBinary(data)
@@ -147,16 +169,81 @@ func manageDrain(inQueue chan interfaces.IMsg, man interfaces.IManagerController
 						continue
 					}
 
-					inQueue <- dbMsg
-
-					// Write entries into DB
-					for _, e := range dbMsg.Entries {
-						// db.InsertEntry(e)
-						var _ = e
+					// Set the highest completed
+					if s.HighestCompletedTorrent < dbMsg.DirectoryBlock.GetDatabaseHeight() {
+						s.HighestCompletedTorrent = dbMsg.DirectoryBlock.GetDatabaseHeight()
 					}
+
+					// Already processed this height completely
+					if dbMsg.DirectoryBlock.GetDatabaseHeight() < s.EntryDBHeightComplete {
+						continue
+					}
+
+					if !cm.CompleteHeight(int(dbMsg.DirectoryBlock.GetDatabaseHeight())) {
+						continue
+					}
+					cm.ClearTo(int(s.EntryDBHeightComplete))
+
+					inQueue.Enqueue(dbMsg)
 				}
 			}
+
 			time.Sleep(CHECK_BUFFER)
 		}
 	}
+}
+
+// CompletedHeightsManager ensures the same height is not processed many times
+type CompletedHeightsManager struct {
+	Completed []int64
+	Base      int
+}
+
+func NewCompletedHeightManager() *CompletedHeightsManager {
+	return new(CompletedHeightsManager)
+}
+
+// CompleteHeight will signal a height has been completed. It will return a boolean value
+// to indicate whether or not to allow this height to be added to the inmsg queue
+func (c *CompletedHeightsManager) CompleteHeight(height int) bool {
+	if height < c.Base {
+		return false
+	}
+
+	endHeight := len(c.Completed) + c.Base
+	if endHeight <= height {
+		needed := (height - endHeight) + 1
+		if needed < 500 {
+			needed = 500
+		}
+		c.Completed = append(c.Completed, make([]int64, needed)...)
+	}
+
+	now := time.Now().Unix()
+	last := c.Completed[height-c.Base]
+	if last == 0 {
+		c.Completed[height-c.Base] = now
+		return true
+	} else if now-240 < last {
+		// If completed less than 4min ago
+		return false
+	}
+	c.Completed[height-c.Base] = now
+
+	return true
+}
+
+// ClearTo will indicate anything below this height is no longer needed
+func (c *CompletedHeightsManager) ClearTo(height int) {
+	// If it's close, no point in doing anything. Just wait
+	if height <= c.Base+200 {
+		return
+	}
+	clear := height - c.Base
+	c.Base = height
+	if len(c.Completed) < clear {
+		c.Completed = make([]int64, 0)
+		return
+	}
+	c.Completed = c.Completed[clear:]
 }

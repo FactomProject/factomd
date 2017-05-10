@@ -87,6 +87,10 @@ func NetStart(s *state.State) {
 	etcdManagerPath := flag.String("etcd-plugin", "", "Input the path to the etcd-manager binary")
 	etcdExclusive := flag.Bool("etcd-exclusive", false, "If true, use etcd _instead of_ the default p2p network for current-block messages.")
 
+	// Plugins
+	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
+	pluginPath := flag.String("plugin", "", "Input the path to the factomd-torrent binary")
+
 	flag.Parse()
 
 	ackbalanceHash := *ackBalanceHashPtr
@@ -532,7 +536,18 @@ func NetStart(s *state.State) {
 
 	}
 
-	fnodes[0].State.SetUseTorrent(false)
+	// Initate dbstate plugin if enabled. Only does so for first node,
+	// any more nodes on sim control will use default method
+	if *tormanager {
+		fnodes[0].State.SetUseTorrent(true)
+		manager, err := LaunchDBStateManagePlugin(*pluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), *memProfileRate)
+		if err != nil {
+			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
+		}
+		fnodes[0].State.DBStateManager = manager
+	} else {
+		fnodes[0].State.SetUseTorrent(false)
+	}
 
 	if journal != "" {
 		go LoadJournal(s, journal)

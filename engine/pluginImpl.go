@@ -1,3 +1,6 @@
+// Interface that allows factomd to offload the dbstate fetching to this
+// plugin. If offloaded, factomd will need to drain the buffer by launching
+// a drain go routine
 package engine
 
 import (
@@ -13,6 +16,7 @@ import (
  *		interfaces.IManagerPlugin		**
  *										**
  *****************************************/
+
 // Here is an implementation that talks over RPC
 type IManagerPluginRPC struct{ client *rpc.Client }
 
@@ -24,6 +28,31 @@ func (g *IManagerPluginRPC) RetrieveDBStateByHeight(height uint32) error {
 	}
 
 	return resp
+}
+
+func (g *IManagerPluginRPC) CompletedHeightTo(height uint32) error {
+	var resp error
+	err := g.client.Call("Plugin.CompletedHeightTo", height, &resp)
+	if err != nil {
+		return err
+	}
+
+	return resp
+}
+
+func (g *IManagerPluginRPC) RequestMoreUploads() int {
+	var resp int
+	err := g.client.Call("Plugin.RequestMoreUploads", new(interface{}), &resp)
+	if err != nil {
+		return -1
+	}
+	return resp
+}
+
+func (g *IManagerPluginRPC) Alive() error {
+	var resp error
+	err := g.client.Call("Plugin.Alive", new(interface{}), &resp)
+	return err
 }
 
 type UploadDBStateArgs struct {
@@ -82,8 +111,22 @@ type IManagerPluginRPCServer struct {
 	Impl interfaces.IManagerController
 }
 
+func (s *IManagerPluginRPCServer) RequestMoreUploads(args interface{}, resp *int) error {
+	*resp = s.Impl.RequestMoreUploads()
+	return nil
+}
+func (s *IManagerPluginRPCServer) Alive(args interface{}, resp *error) error {
+	*resp = s.Impl.Alive()
+	return *resp
+}
+
 func (s *IManagerPluginRPCServer) RetrieveDBStateByHeight(height uint32, resp *error) error {
 	*resp = s.Impl.RetrieveDBStateByHeight(height)
+	return *resp
+}
+
+func (s *IManagerPluginRPCServer) CompletedHeightTo(height uint32, resp *error) error {
+	*resp = s.Impl.CompletedHeightTo(height)
 	return *resp
 }
 
@@ -128,7 +171,7 @@ func (IManagerPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, e
 /*****************************************
 *										**
 *				Etcd					**
-*		interfaces.IEtcdManager		**
+*		interfaces.IEtcdManager			**
 *										**
 ******************************************/
 
