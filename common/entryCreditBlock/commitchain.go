@@ -7,7 +7,6 @@ package entryCreditBlock
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -168,27 +167,41 @@ func (c *CommitChain) GetSigHash() interfaces.IHash {
 
 func (c *CommitChain) MarshalBinarySig() ([]byte, error) {
 	c.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
 	// 1 byte Version
-	if err := binary.Write(buf, binary.BigEndian, c.Version); err != nil {
+	err := buf.PushUInt8(c.Version)
+	if err != nil {
 		return nil, err
 	}
 
 	// 6 byte MilliTime
-	buf.Write(c.MilliTime[:])
+	err = buf.PushBinaryMarshallable(c.MilliTime)
+	if err != nil {
+		return nil, err
+	}
 
 	// 32 byte double sha256 hash of the ChainID
-	buf.Write(c.ChainIDHash.Bytes())
+	err = buf.PushBinaryMarshallable(c.ChainIDHash)
+	if err != nil {
+		return nil, err
+	}
 
 	// 32 byte Commit Weld sha256(sha256(Entry Hash + ChainID))
-	buf.Write(c.Weld.Bytes())
+	err = buf.PushBinaryMarshallable(c.Weld)
+	if err != nil {
+		return nil, err
+	}
 
 	// 32 byte Entry Hash
-	buf.Write(c.EntryHash.Bytes())
+	err = buf.PushBinaryMarshallable(c.EntryHash)
+	if err != nil {
+		return nil, err
+	}
 
 	// 1 byte number of Entry Credits
-	if err := binary.Write(buf, binary.BigEndian, c.Credits); err != nil {
+	err = buf.PushUInt8(c.Credits)
+	if err != nil {
 		return nil, err
 	}
 
@@ -279,108 +292,66 @@ func (c *CommitChain) ECID() byte {
 	return ECIDChainCommit
 }
 
-func (c *CommitChain) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling CommitChain: %v", r)
-		}
-	}()
+func (c *CommitChain) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	c.Init()
 	buf := primitives.NewBuffer(data)
-	hash := make([]byte, 32)
+	var err error
 
 	// 1 byte Version
-	var b byte
-	var p []byte
-	if b, err = buf.ReadByte(); err != nil {
-		return
-	} else {
-		c.Version = uint8(b)
+	c.Version, err = buf.PopUInt8()
+	if err != nil {
+		return nil, err
 	}
 
-	if buf.Len() < 6 {
-		err = io.EOF
-		return
-	}
-
-	// 6 byte MilliTime
-	if p = buf.Next(6); p == nil {
-		err = fmt.Errorf("Could not read MilliTime")
-		return
-	} else {
-		c.MilliTime = new(primitives.ByteSlice6)
-		err = c.MilliTime.UnmarshalBinary(p)
-		if err != nil {
-			return
-		}
+	c.MilliTime = new(primitives.ByteSlice6)
+	err = buf.PopBinaryMarshallable(c.MilliTime)
+	if err != nil {
+		return nil, err
 	}
 
 	// 32 byte ChainIDHash
-	if _, err = buf.Read(hash); err != nil {
-		return
+	err = buf.PopBinaryMarshallable(c.ChainIDHash)
+	if err != nil {
+		return nil, err
 	}
-	c.ChainIDHash = primitives.NewHash(hash)
 
 	// 32 byte Weld
-	if _, err = buf.Read(hash); err != nil {
-		return
+	err = buf.PopBinaryMarshallable(c.Weld)
+	if err != nil {
+		return nil, err
 	}
-	c.Weld = primitives.NewHash(hash)
 
 	// 32 byte Entry Hash
-	if _, err = buf.Read(hash); err != nil {
-		return
+	err = buf.PopBinaryMarshallable(c.EntryHash)
+	if err != nil {
+		return nil, err
 	}
-	c.EntryHash = primitives.NewHash(hash)
 
 	// 1 byte number of Entry Credits
-	if b, err = buf.ReadByte(); err != nil {
-		return
-	} else {
-		c.Credits = uint8(b)
-	}
-
-	if buf.Len() < 32 {
-		err = io.EOF
-		return
+	c.Credits, err = buf.PopUInt8()
+	if err != nil {
+		return nil, err
 	}
 
 	// 32 byte Public Key
-	if p := buf.Next(32); p == nil {
-		err = fmt.Errorf("Could not read ECPubKey")
-		return
-	} else {
-		c.ECPubKey = new(primitives.ByteSlice32)
-		err = c.ECPubKey.UnmarshalBinary(p)
-		if err != nil {
-			return
-		}
+	c.ECPubKey = new(primitives.ByteSlice32)
+	err = buf.PopBinaryMarshallable(c.ECPubKey)
+	if err != nil {
+		return nil, err
 	}
 
-	if buf.Len() < 64 {
-		err = io.EOF
-		return
-	}
-
-	// 64 byte Signature
-	if p := buf.Next(64); p == nil {
-		err = fmt.Errorf("Could not read Sig")
-		return
-	} else {
-		c.Sig = new(primitives.ByteSlice64)
-		err = c.Sig.UnmarshalBinary(p)
-		if err != nil {
-			return
-		}
+	c.Sig = new(primitives.ByteSlice64)
+	err = buf.PopBinaryMarshallable(c.Sig)
+	if err != nil {
+		return nil, err
 	}
 
 	err = c.ValidateSignatures()
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	newData = buf.DeepCopyBytes()
-
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (c *CommitChain) UnmarshalBinary(data []byte) (err error) {

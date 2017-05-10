@@ -6,7 +6,6 @@ package entryCreditBlock
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -172,23 +171,31 @@ func (e *ECBlock) HeaderHash() (interfaces.IHash, error) {
 
 func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	e.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
 	// Header
-	if err := e.BuildHeader(); err != nil {
+	err := e.BuildHeader()
+	if err != nil {
 		return nil, err
-	}
-	if p, err := e.GetHeader().MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(p)
 	}
 
-	// Body of ECBlockEntries
-	if p, err := e.marshalBodyBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(e.GetHeader())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(p)
+	}
+	x := buf.DeepCopyBytes()
+	fmt.Printf("x - %x\n", x)
+	buf = primitives.NewBuffer(x)
+
+	// Body of ECBlockEntries
+	p, err := e.marshalBodyBinary()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("p - %x\n", p)
+	err = buf.PushBytes(p)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil
@@ -221,29 +228,26 @@ func UnmarshalECBlock(data []byte) (interfaces.IEntryCreditBlock, error) {
 	return block, nil
 }
 
-func (e *ECBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
+func (e *ECBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	fmt.Printf("UnmarshalBinaryData - %x\n", data)
+	buf := primitives.NewBuffer(data)
 
 	// Unmarshal Header
 	if e.GetHeader() == nil {
 		e.Header = NewECBlockHeader()
 	}
-	newData, err = e.GetHeader().UnmarshalBinaryData(data)
+	err := buf.PopBinaryMarshallable(e.GetHeader())
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	// Unmarshal Body
-	newData, err = e.unmarshalBodyBinaryData(newData)
+	newData, err := e.unmarshalBodyBinaryData(buf.DeepCopyBytes())
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	return
+	return newData, err
 }
 
 func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
@@ -253,88 +257,72 @@ func (e *ECBlock) UnmarshalBinary(data []byte) (err error) {
 
 func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 	e.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
+	entries := e.GetBody().GetEntries()
 
-	for _, v := range e.GetBody().GetEntries() {
-		p, err := v.MarshalBinary()
+	for _, v := range entries {
+		fmt.Printf("ECID - %x\n", v.ECID())
+		err := buf.PushByte(v.ECID())
 		if err != nil {
-			return buf.Bytes(), err
+			return nil, err
 		}
-		buf.WriteByte(v.ECID())
-		buf.Write(p)
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
 func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
+	e.Init()
+	fmt.Printf("Data - %x\n", data)
 	buf := primitives.NewBuffer(data)
-	var err error
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
 
 	for i := uint64(0); i < e.GetHeader().GetObjectCount(); i++ {
-		var id byte
-		id, err = buf.ReadByte()
+		id, err := buf.PopByte()
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("ID - %v\n", id)
+
 		switch id {
 		case ECIDServerIndexNumber:
 			s := NewServerIndexNumber()
-			if buf.Len() < ServerIndexNumberSize {
-				err = io.EOF
-				return nil, err
-			}
-			_, err = s.UnmarshalBinaryData(buf.Next(ServerIndexNumberSize))
+			err = buf.PopBinaryMarshallable(s)
 			if err != nil {
 				return nil, err
 			}
 			e.GetBody().AddEntry(s)
 		case ECIDMinuteNumber:
 			m := NewMinuteNumber(0)
-			if buf.Len() < MinuteNumberSize {
-				err = io.EOF
-				return nil, err
-			}
-			_, err = m.UnmarshalBinaryData(buf.Next(MinuteNumberSize))
+			err = buf.PopBinaryMarshallable(m)
 			if err != nil {
 				return nil, err
 			}
 			e.GetBody().AddEntry(m)
 		case ECIDChainCommit:
-			if buf.Len() < CommitChainSize {
-				err = io.EOF
-				return nil, err
-			}
 			c := NewCommitChain()
-			_, err = c.UnmarshalBinaryData(buf.Next(CommitChainSize))
+			err = buf.PopBinaryMarshallable(c)
 			if err != nil {
 				return nil, err
 			}
 			e.GetBody().AddEntry(c)
 		case ECIDEntryCommit:
-			if buf.Len() < CommitEntrySize {
-				err = io.EOF
-				return nil, err
-			}
 			c := NewCommitEntry()
-			_, err = c.UnmarshalBinaryData(buf.Next(CommitEntrySize))
+			err = buf.PopBinaryMarshallable(c)
 			if err != nil {
 				return nil, err
 			}
 			e.GetBody().AddEntry(c)
 		case ECIDBalanceIncrease:
 			c := NewIncreaseBalance()
-			tmp, err := c.UnmarshalBinaryData(buf.DeepCopyBytes())
+			err = buf.PopBinaryMarshallable(c)
 			if err != nil {
 				return nil, err
 			}
 			e.GetBody().AddEntry(c)
-			buf = primitives.NewBuffer(tmp)
 		default:
 			err = fmt.Errorf("Unsupported ECID: %x\n", id)
 			return nil, err

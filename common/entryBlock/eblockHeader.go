@@ -1,7 +1,6 @@
 package entryBlock
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -128,7 +127,7 @@ func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 	e.Init()
 	buf := primitives.NewBuffer(nil)
 
-	err = buf.PushBinaryMarshallable(e.ChainID)
+	err := buf.PushBinaryMarshallable(e.ChainID)
 	if err != nil {
 		return nil, err
 	}

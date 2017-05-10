@@ -41,6 +41,9 @@ func (b *Buffer) PeekByte() (byte, error) {
 }
 
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
+	if bm == nil {
+		return fmt.Errorf("BinaryMarshallable is nil")
+	}
 	bin, err := bm.MarshalBinary()
 	if err != nil {
 		return err
@@ -107,6 +110,18 @@ func (b *Buffer) PushByte(h byte) error {
 
 func (b *Buffer) PushInt64(i int64) error {
 	return b.PushUInt64(uint64(i))
+}
+
+func (b *Buffer) PushUInt8(h uint8) error {
+	return b.PushByte(byte(h))
+}
+
+func (b *Buffer) PopUInt8() (uint8, error) {
+	h, err := b.PopByte()
+	if err != nil {
+		return 0, err
+	}
+	return uint8(h), nil
 }
 
 func (b *Buffer) PopInt64() (int64, error) {
@@ -200,6 +215,9 @@ func (b *Buffer) Pop(h []byte) error {
 }
 
 func (b *Buffer) PopBinaryMarshallable(dst interfaces.BinaryMarshallable) error {
+	if dst == nil {
+		return fmt.Errorf("Destination is nil")
+	}
 	h := b.DeepCopyBytes()
 	rest, err := dst.UnmarshalBinaryData(h)
 	if err != nil {
