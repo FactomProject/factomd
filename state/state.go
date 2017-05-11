@@ -432,9 +432,6 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
 
-	newState.FastBoot = s.FastBoot
-	newState.FastBootLocation = s.FastBootLocation
-
 	return newState
 }
 
