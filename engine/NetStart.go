@@ -189,7 +189,9 @@ func NetStart(s *state.State) {
 		s.FastBoot = true
 	}
 	if fastLocationPtr != nil {
-		s.FastBootLocation = *fastLocationPtr
+		if *fastLocationPtr != "" {
+			s.FastBootLocation = *fastLocationPtr
+		}
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -289,6 +291,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", deadline))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "fastBoot", s.FastBoot))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "fastBoot folder", s.FastBootLocation))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))

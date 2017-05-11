@@ -568,11 +568,14 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 
 	if dbstatemsg.IsLocal() {
 		if s.FastBoot {
-			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
+			//If it's the main node
+			if s.FactomNodeName == s.Prefix+"FNode0" {
+				dbstate.SaveStruct = SaveFactomdState(s, dbstate)
 
-			err := SaveDBStateList(s.DBStates, s.Network, s.FastBootLocation)
-			if err != nil {
-				panic(err)
+				err := SaveDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
