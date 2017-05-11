@@ -116,6 +116,19 @@ func (b *Buffer) PushUInt8(h uint8) error {
 	return b.PushByte(byte(h))
 }
 
+func (b *Buffer) PushUInt16(i uint16) error {
+	return binary.Write(b, binary.BigEndian, &i)
+}
+
+func (b *Buffer) PopUInt16() (uint16, error) {
+	var i uint16
+	err := binary.Read(b, binary.BigEndian, &i)
+	if err != nil {
+		return 0, err
+	}
+	return i, nil
+}
+
 func (b *Buffer) PopUInt8() (uint8, error) {
 	h, err := b.PopByte()
 	if err != nil {

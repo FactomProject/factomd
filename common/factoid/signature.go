@@ -72,11 +72,8 @@ func (s *FactoidSignature) GetSignature() *[constants.SIGNATURE_LENGTH]byte {
 }
 
 func (s FactoidSignature) MarshalBinary() ([]byte, error) {
-	var out primitives.Buffer
-
-	out.Write(s.Signature[:])
-
-	return out.DeepCopyBytes(), nil
+	buf := primitives.NewBuffer(s.Signature[:])
+	return buf.DeepCopyBytes(), nil
 }
 
 func (s FactoidSignature) CustomMarshalText() ([]byte, error) {
