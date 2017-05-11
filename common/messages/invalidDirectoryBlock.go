@@ -7,6 +7,8 @@ package messages
 import (
 	"fmt"
 
+	"encoding/hex"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -17,7 +19,8 @@ type InvalidDirectoryBlock struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 
-	Signature interfaces.IFullSignature
+	RequestHash interfaces.IHash
+	Signature   interfaces.IFullSignature
 
 	//Not marshalled
 	hash interfaces.IHash
@@ -72,14 +75,18 @@ func (m *InvalidDirectoryBlock) GetRepeatHash() interfaces.IHash {
 }
 
 func (m *InvalidDirectoryBlock) GetHash() interfaces.IHash {
-	if m.hash == nil {
-		data, err := m.MarshalForSignature()
-		if err != nil {
-			panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
+	return m.RequestHash
+
+	/*
+		if m.hash == nil {
+			data, err := m.MarshalForSignature()
+			if err != nil {
+				panic(fmt.Sprintf("Error in CommitChain.GetHash(): %s", err.Error()))
+			}
+			m.hash = primitives.Sha(data)
 		}
-		m.hash = primitives.Sha(data)
-	}
-	return m.hash
+		return m.hash
+	*/
 }
 
 func (m *InvalidDirectoryBlock) GetMsgHash() interfaces.IHash {
@@ -115,6 +122,14 @@ func (m *InvalidDirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte
 
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	if err != nil {
+		return nil, err
+	}
+
+	if m.RequestHash == nil {
+		m.RequestHash = primitives.NewZeroHash()
+	}
+	newData, err = m.RequestHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
@@ -163,6 +178,11 @@ func (m *InvalidDirectoryBlock) MarshalForSignature() (data []byte, err error) {
 		buf.Write(d)
 	}
 
+	if d, err := m.RequestHash.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 	//TODO: expand
 
 	return buf.DeepCopyBytes(), nil
@@ -214,4 +234,18 @@ func (e *InvalidDirectoryBlock) JSONByte() ([]byte, error) {
 
 func (e *InvalidDirectoryBlock) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
+}
+
+func NewInvalidDirectoryBlock(state interfaces.IState, requestHash string) interfaces.IMsg {
+	msg := new(InvalidDirectoryBlock)
+
+	msg.Peer2Peer = false // Always a peer2peer request.
+	msg.Timestamp = state.GetTimestamp()
+	myString, err := hex.DecodeString(requestHash)
+	if err == nil {
+		msg.RequestHash = primitives.NewHash(myString)
+	} else {
+		msg.RequestHash = primitives.NewHash([]byte(myString))
+	}
+	return msg
 }

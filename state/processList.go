@@ -6,6 +6,7 @@ package state
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"sync"
@@ -615,6 +616,30 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 
 // Return the number of times we have tripped an ask for this request.
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
+	if p.State.UsingEtcd() {
+		if len(p.VMs) < 1 {
+			return 1
+		}
+		vm := p.VMs[vmIndex]
+		if len(vm.List) < 1 || len(vm.List) < height+1 {
+			return 1
+		}
+
+		if height > 0 {
+			attemptMessage := vm.List[height-1]
+			if attemptMessage == nil {
+				return 1
+			}
+			prevMsgBytes, err := attemptMessage.MarshalBinary()
+			if err == nil {
+				sha := sha256.New()
+				sha.Write(prevMsgBytes)
+				msgHashString := fmt.Sprintf("%x", sha.Sum(nil))
+				p.State.PickUpFromHash(msgHashString)
+				return 1
+			}
+		}
+	}
 	now := p.State.GetTimestamp().GetTimeMilli()
 
 	r := p.GetRequest(now, vmIndex, len(p.VMs[0].List), waitSeconds)

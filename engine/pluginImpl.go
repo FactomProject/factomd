@@ -4,6 +4,7 @@
 package engine
 
 import (
+	"fmt"
 	"net/rpc"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -246,10 +247,9 @@ func (g *IEtcdPluginRPC) PickUpFromHash(messageHash string) error {
 	}
 	err := g.client.Call("Plugin.PickUpFromHash", &args, &resp)
 	if err != nil {
+		fmt.Println("Cannot call plugin.PickUpFromHash:", err.Error())
 		return err
 	}
-
-	//log.Println(resp.NewIndex)
 	return resp.Error
 }
 

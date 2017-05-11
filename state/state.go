@@ -335,8 +335,8 @@ type State struct {
 	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
 	DBStateManager          interfaces.IManagerController
 	HighestCompletedTorrent uint32
-	useEtcd              bool
-	SuperVerboseMessages bool
+	useEtcd                 bool
+	SuperVerboseMessages    bool
 }
 
 type EntryUpdate struct {
@@ -554,6 +554,10 @@ func (s *State) IncECCommits() {
 
 func (s *State) IncECommits() {
 	s.ECommits++
+}
+
+func (s *State) PickUpFromHash(msgHash string) {
+	s.NetworkOutMsgQueue().Enqueue(messages.NewInvalidDirectoryBlock(s, msgHash))
 }
 
 func (s *State) GetAckChange() error {
