@@ -267,6 +267,7 @@ func (s *State) ReviewHolding() {
 	s.DB.Trim()
 
 	s.ResendHolding = now
+
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
