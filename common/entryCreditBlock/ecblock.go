@@ -184,7 +184,6 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	x := buf.DeepCopyBytes()
-	fmt.Printf("x - %x\n", x)
 	buf = primitives.NewBuffer(x)
 
 	// Body of ECBlockEntries
@@ -192,8 +191,7 @@ func (e *ECBlock) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("p - %x\n", p)
-	err = buf.PushBytes(p)
+	err = buf.Push(p)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +227,6 @@ func UnmarshalECBlock(data []byte) (interfaces.IEntryCreditBlock, error) {
 }
 
 func (e *ECBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
-	fmt.Printf("UnmarshalBinaryData - %x\n", data)
 	buf := primitives.NewBuffer(data)
 
 	// Unmarshal Header
@@ -261,7 +258,6 @@ func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 	entries := e.GetBody().GetEntries()
 
 	for _, v := range entries {
-		fmt.Printf("ECID - %x\n", v.ECID())
 		err := buf.PushByte(v.ECID())
 		if err != nil {
 			return nil, err
@@ -277,7 +273,6 @@ func (e *ECBlock) marshalBodyBinary() ([]byte, error) {
 
 func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 	e.Init()
-	fmt.Printf("Data - %x\n", data)
 	buf := primitives.NewBuffer(data)
 
 	for i := uint64(0); i < e.GetHeader().GetObjectCount(); i++ {
@@ -285,7 +280,6 @@ func (e *ECBlock) unmarshalBodyBinaryData(data []byte) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("ID - %v\n", id)
 
 		switch id {
 		case ECIDServerIndexNumber:
