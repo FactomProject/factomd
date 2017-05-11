@@ -139,3 +139,41 @@ func Test_Replay(test *testing.T) {
 	fmt.Println("Simulation ran from", time.Unix(start.GetTimeSeconds(), 0), "to", time.Unix(now.GetTimeSeconds(), 0))
 
 }
+
+func TestMarshalUnmarshalReplay(t *testing.T) {
+	r := new(Replay)
+
+	b, err := r.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	r2 := new(Replay)
+
+	err = r2.UnmarshalBinary(b)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	if r.IsSameAs(r2) == false {
+		t.Errorf("R != R2")
+	}
+
+	for i := 0; i < 1000; i++ {
+		r = RandomReplay()
+
+		b, err = r.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		r2 = new(Replay)
+
+		err = r2.UnmarshalBinary(b)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if r.IsSameAs(r2) == false {
+			t.Errorf("R != R2")
+		}
+	}
+}

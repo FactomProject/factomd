@@ -12,6 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 // An Entry is the element which carries user data
@@ -29,6 +30,47 @@ type Entry struct {
 var _ interfaces.IEBEntry = (*Entry)(nil)
 var _ interfaces.DatabaseBatchable = (*Entry)(nil)
 var _ interfaces.BinaryMarshallable = (*Entry)(nil)
+
+func RandomEntry() interfaces.IEBEntry {
+	e := NewEntry()
+	e.Version = random.RandUInt8()
+	e.ChainID = primitives.RandomHash()
+	l := random.RandIntBetween(0, 20)
+	for i := 0; i < l; i++ {
+		e.ExtIDs = append(e.ExtIDs, *primitives.RandomByteSlice())
+	}
+	e.Content = *primitives.RandomByteSlice()
+	return e
+}
+
+func (c *Entry) IsSameAs(b interfaces.IEBEntry) bool {
+	if b == nil {
+		if c != nil {
+			return false
+		} else {
+			return true
+		}
+	}
+	a := b.(*Entry)
+	if c.Version != a.Version {
+		return false
+	}
+	if len(c.ExtIDs) != len(a.ExtIDs) {
+		return false
+	}
+	for i := range c.ExtIDs {
+		if c.ExtIDs[i].IsSameAs(&a.ExtIDs[i]) == false {
+			return false
+		}
+	}
+	if c.ChainID.IsSameAs(a.ChainID) == false {
+		return false
+	}
+	if c.Content.IsSameAs(&a.Content) == false {
+		return false
+	}
+	return true
+}
 
 // Returns the size of the entry subject to payment in K.  So anything up
 // to 1K returns 1, everything up to and including 2K returns 2, etc.
@@ -288,4 +330,45 @@ func NewEntry() *Entry {
 	e.ExtIDs = make([]primitives.ByteSlice, 0)
 	e.Content = primitives.ByteSlice{}
 	return e
+}
+
+func MarshalEntryList(list []interfaces.IEBEntry) ([]byte, error) {
+	b := primitives.NewBuffer(nil)
+	l := len(list)
+	b.PushVarInt(uint64(l))
+	for _, v := range list {
+		bin, err := v.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		err = b.PushBytes(bin)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return b.DeepCopyBytes(), nil
+}
+
+func UnmarshalEntryList(bin []byte) ([]interfaces.IEBEntry, []byte, error) {
+	b := primitives.NewBuffer(bin)
+
+	l, err := b.PopVarInt()
+	if err != nil {
+		return nil, nil, err
+	}
+	list := make([]interfaces.IEBEntry, int(l))
+	for i := range list {
+		e := NewEntry()
+		x, err := b.PopBytes()
+		if err != nil {
+			return nil, nil, err
+		}
+		err = e.UnmarshalBinary(x)
+		if err != nil {
+			return nil, nil, err
+		}
+		list[i] = e
+	}
+
+	return list, b.DeepCopyBytes(), nil
 }

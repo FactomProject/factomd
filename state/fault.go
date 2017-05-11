@@ -231,7 +231,7 @@ func precedingVMIndex(pl *ProcessList) int {
 
 func ToggleAuditOffline(pl *ProcessList, fc FaultCore) {
 	auditServerList := pl.State.GetAuditServers(fc.DBHeight)
-	var theAuditReplacement interfaces.IFctServer
+	var theAuditReplacement interfaces.IServer
 
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fc.AuditServerID) {

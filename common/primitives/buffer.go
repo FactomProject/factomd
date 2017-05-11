@@ -124,6 +124,18 @@ func (b *Buffer) PopUInt8() (uint8, error) {
 	return uint8(h), nil
 }
 
+func (b *Buffer) PushInt(i int) error {
+	return b.PushInt64(int64(i))
+}
+
+func (b *Buffer) PopInt() (int, error) {
+	i, err := b.PopInt64()
+	if err != nil {
+		return 0, err
+	}
+	return int(i), nil
+}
+
 func (b *Buffer) PopInt64() (int64, error) {
 	i, err := b.PopUInt64()
 	if err != nil {

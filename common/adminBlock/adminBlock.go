@@ -38,11 +38,11 @@ func (c *AdminBlock) Init() {
 	}
 }
 
-func (c *AdminBlock) IsSameAs(c2 interfaces.IAdminBlock) bool {
-	if !c.Header.IsSameAs(c2.GetHeader()) {
+func (a *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
+	if !a.Header.IsSameAs(b.GetHeader()) {
 		return false
 	}
-	if len(c.ABEntries) != len(c2.GetABEntries()) {
+	if len(a.ABEntries) != len(b.GetABEntries()) {
 		return false
 	}
 	return true

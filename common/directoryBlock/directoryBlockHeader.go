@@ -43,6 +43,49 @@ func (h *DBlockHeader) Init() {
 	}
 }
 
+func (a *DBlockHeader) IsSameAs(b interfaces.IDirectoryBlockHeader) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	bb, ok := b.(*DBlockHeader)
+	if ok == false {
+		return false
+	}
+
+	if a.Version != bb.Version {
+		return false
+	}
+	if a.NetworkID != bb.NetworkID {
+		return false
+	}
+
+	if a.BodyMR.IsSameAs(bb.BodyMR) == false {
+		return false
+	}
+	if a.PrevKeyMR.IsSameAs(bb.PrevKeyMR) == false {
+		return false
+	}
+	if a.PrevFullHash.IsSameAs(bb.PrevFullHash) == false {
+		return false
+	}
+
+	if a.Timestamp != bb.Timestamp {
+		return false
+	}
+	if a.DBHeight != bb.DBHeight {
+		return false
+	}
+	if a.BlockCount != bb.BlockCount {
+		return false
+	}
+
+	return true
+}
+
 func (h *DBlockHeader) GetVersion() byte {
 	return h.Version
 }

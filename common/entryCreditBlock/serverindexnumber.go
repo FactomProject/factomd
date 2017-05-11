@@ -24,6 +24,28 @@ var _ interfaces.BinaryMarshallable = (*ServerIndexNumber)(nil)
 var _ interfaces.ShortInterpretable = (*ServerIndexNumber)(nil)
 var _ interfaces.IECBlockEntry = (*ServerIndexNumber)(nil)
 
+func (a *ServerIndexNumber) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	if a.ECID() != b.ECID() {
+		return false
+	}
+
+	bb, ok := b.(*ServerIndexNumber)
+	if ok == false {
+		return false
+	}
+	if a.ServerIndexNumber != bb.ServerIndexNumber {
+		return false
+	}
+
+	return true
+}
+
 func (e *ServerIndexNumber) String() string {
 	var out primitives.Buffer
 	out.WriteString(fmt.Sprintf(" %-20s\n", "ServerIndexNumber"))

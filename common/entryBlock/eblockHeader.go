@@ -37,6 +37,44 @@ func (e *EBlockHeader) Init() {
 	}
 }
 
+func (a *EBlockHeader) IsSameAs(b interfaces.IEntryBlockHeader) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	bb, ok := b.(*EBlockHeader)
+	if ok == false {
+		return false
+	}
+
+	if a.ChainID.IsSameAs(bb.ChainID) == false {
+		return false
+	}
+	if a.BodyMR.IsSameAs(bb.BodyMR) == false {
+		return false
+	}
+	if a.PrevKeyMR.IsSameAs(bb.PrevKeyMR) == false {
+		return false
+	}
+	if a.PrevFullHash.IsSameAs(bb.PrevFullHash) == false {
+		return false
+	}
+	if a.EBSequence != bb.EBSequence {
+		return false
+	}
+	if a.DBHeight != bb.DBHeight {
+		return false
+	}
+	if a.EntryCount != bb.EntryCount {
+		return false
+	}
+
+	return true
+}
+
 // NewEBlockHeader initializes a new empty Entry Block Header.
 func NewEBlockHeader() *EBlockHeader {
 	e := new(EBlockHeader)
