@@ -210,7 +210,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	}
 
 	if f.UsingEtcd() {
-		if msg.Type() == constants.INVALID_DIRECTORY_BLOCK_MSG {
+		if msg.Type() == constants.ETCD_HASH_PICKUP_MSG {
 			f.PickUpFromHash(msg.GetHash().String())
 			return nil
 		}

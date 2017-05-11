@@ -51,8 +51,8 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		msg = new(FactoidTransaction)
 	case constants.HEARTBEAT_MSG:
 		msg = new(Heartbeat)
-	case constants.INVALID_DIRECTORY_BLOCK_MSG:
-		msg = new(InvalidDirectoryBlock)
+	case constants.ETCD_HASH_PICKUP_MSG:
+		msg = new(EtcdHashPickup)
 	case constants.MISSING_MSG:
 		msg = new(MissingMsg)
 	case constants.MISSING_MSG_RESPONSE:
@@ -122,8 +122,8 @@ func MessageName(Type byte) string {
 		return "HeartBeat"
 	case constants.INVALID_ACK_MSG:
 		return "Invalid Ack"
-	case constants.INVALID_DIRECTORY_BLOCK_MSG:
-		return "Invalid Directory Block"
+	case constants.ETCD_HASH_PICKUP_MSG:
+		return "Etcd Hash Pickup"
 	case constants.MISSING_MSG:
 		return "Missing Msg"
 	case constants.MISSING_MSG_RESPONSE:

@@ -557,7 +557,7 @@ func (s *State) IncECommits() {
 }
 
 func (s *State) PickUpFromHash(msgHash string) {
-	s.NetworkOutMsgQueue().Enqueue(messages.NewInvalidDirectoryBlock(s, msgHash))
+	s.NetworkOutMsgQueue().Enqueue(messages.NewEtcdHashPickup(s, msgHash))
 }
 
 func (s *State) GetAckChange() error {

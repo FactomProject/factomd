@@ -92,8 +92,8 @@ func (q NetOutMsgQueue) Heartbeat(increment bool) {
 	TotalMessageQueueNetOutMsgHeartbeat.Inc()
 }
 
-func (q NetOutMsgQueue) InvalidDBlock(increment bool) {
-	TotalMessageQueueNetOutMsgInvalidDB.Inc()
+func (q NetOutMsgQueue) EtcdHashPickup(increment bool) {
+	TotalMessageQueueNetOutMsgEtcdHashPickup.Inc()
 }
 
 func (q NetOutMsgQueue) MissingMsg(increment bool) {

@@ -166,13 +166,13 @@ func (q InMsgMSGQueue) Heartbeat(increment bool) {
 	TotalMessageQueueInMsgHeartbeat.Inc()
 }
 
-func (q InMsgMSGQueue) InvalidDBlock(increment bool) {
+func (q InMsgMSGQueue) EtcdHashPickup(increment bool) {
 	if !increment {
-		CurrentMessageQueueInMsgInvalidDB.Dec()
+		CurrentMessageQueueInMsgEtcdHashPickup.Dec()
 		return
 	}
-	CurrentMessageQueueInMsgInvalidDB.Inc()
-	TotalMessageQueueInMsgInvalidDB.Inc()
+	CurrentMessageQueueInMsgEtcdHashPickup.Inc()
+	TotalMessageQueueInMsgEtcdHashPickup.Inc()
 }
 
 func (q InMsgMSGQueue) MissingMsg(increment bool) {

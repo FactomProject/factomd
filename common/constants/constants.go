@@ -22,7 +22,7 @@ const (
 	FACTOID_TRANSACTION_MSG                   // 9
 	HEARTBEAT_MSG                             // 10
 	INVALID_ACK_MSG                           // 11
-	INVALID_DIRECTORY_BLOCK_MSG               // 12
+	ETCD_HASH_PICKUP_MSG                      // 12
 
 	REVEAL_ENTRY_MSG      // 13
 	REQUEST_BLOCK_MSG     // 14
