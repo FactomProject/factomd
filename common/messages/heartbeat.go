@@ -273,7 +273,7 @@ func (m *Heartbeat) FollowerExecute(state interfaces.IState) {
 	for _, auditServer := range state.GetAuditServers(state.GetLeaderHeight()) {
 		if auditServer.GetChainID().IsSameAs(m.IdentityChainID) {
 			if m.IdentityChainID.IsSameAs(state.GetIdentityChainID()) {
-				if m.SecretNumber != state.GetSalt(m.Timestamp) {
+				if m.SecretNumber != state.GetSalt(m.Timestamp) && m.Timestamp.GetTimeSeconds() > state.GetBootTime() {
 					panic("We have seen a heartbeat using our Identity that isn't ours")
 				}
 			}
