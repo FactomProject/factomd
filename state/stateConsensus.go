@@ -59,7 +59,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			(!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-			if len(vm.List) == 0 && now-s.BootTime > 20 {
+			if len(vm.List) == 0 && now-s.BootTime > 30 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				s.XReview = append(s.XReview, msg)
 			} else {
@@ -137,7 +137,7 @@ func (s *State) Process() (progress bool) {
 	if s.Leader {
 		sinceBoot := s.GetTimestamp().GetTimeSeconds() - s.BootTime
 		vm = s.LeaderPL.VMs[s.LeaderVMIndex]
-		if vm.Height == 0 && sinceBoot > 20 {
+		if vm.Height == 0 && sinceBoot > 30 {
 			s.SendDBSig(s.LeaderPL.DBHeight, s.LeaderVMIndex)
 		}
 	}
@@ -1371,7 +1371,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
-			if s.Leader {
+			sinceBoot := s.GetTimestamp().GetTimeSeconds() - s.BootTime
+
+			if s.Leader && sinceBoot > 30 {
 				// dbstate is already set.
 				dbs := new(messages.DirectoryBlockSignature)
 				db := dbstate.DirectoryBlock

@@ -480,6 +480,10 @@ func (s *State) SetDelay(delay int64) {
 	s.Delay = delay
 }
 
+func (s *State) GetBootTime() int64 {
+	return s.BootTime
+}
+
 func (s *State) GetDropRate() int {
 	return s.DropRate
 }
