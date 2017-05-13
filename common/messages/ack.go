@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -152,64 +151,88 @@ func (m *Ack) GetSignature() interfaces.IFullSignature {
 	return m.Signature
 }
 
-func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *Ack) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
-	m.VMIndex, newData = int(newData[0]), newData[1:]
+	t, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.VMIndex = int(t)
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	copy(m.Salt[:], newData[:8])
-	newData = newData[8:]
+	bs, err := buf.PopLen(8)
+	if err != nil {
+		return nil, err
+	}
+	copy(m.Salt[:], bs)
 
-	m.SaltNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.SaltNumber, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
 	m.MessageHash = new(primitives.Hash)
-	newData, err = m.MessageHash.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.MessageHash)
 	if err != nil {
 		return nil, err
 	}
-
-	newData, err = m.GetFullMsgHash().UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.GetFullMsgHash())
 	if err != nil {
 		return nil, err
 	}
 
 	m.LeaderChainID = new(primitives.Hash)
-	newData, err = m.LeaderChainID.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.LeaderChainID)
 	if err != nil {
 		return nil, err
 	}
 
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.Minute, newData = newData[0], newData[1:]
+	m.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.Height, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.Minute, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
 
 	if m.SerialHash == nil {
-		m.SerialHash = primitives.NewHash(constants.ZERO_HASH)
+		m.SerialHash = primitives.NewZeroHash()
 	}
-	newData, err = m.SerialHash.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.SerialHash)
 	if err != nil {
 		return nil, err
 	}
 
 	if AckBalanceHash {
-		m.DataAreaSize, newData = primitives.DecodeVarInt(newData)
+		m.DataAreaSize, err = buf.PopVarInt()
+		if err != nil {
+			return nil, err
+		}
 		if m.DataAreaSize > 0 {
-			das := newData[:int(m.DataAreaSize)]
+			das, err := buf.PopLen(int(m.DataAreaSize))
+			if err != nil {
+				return nil, err
+			}
+			m.DataArea = make([]byte, len(das))
+			copy(m.DataArea, das)
 
 			lenb := uint64(0)
 			for len(das) > 0 {
@@ -221,19 +244,17 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 				}
 				das = das[lenb:]
 			}
-			m.DataArea = append(m.DataArea[:0], newData[:m.DataAreaSize]...)
-			newData = newData[int(m.DataAreaSize):]
 		}
 	}
 
-	if len(newData) > 0 {
+	if buf.Len() > 0 {
 		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Ack) UnmarshalBinary(data []byte) error {
@@ -242,52 +263,67 @@ func (m *Ack) UnmarshalBinary(data []byte) error {
 }
 
 func (m *Ack) MarshalForSignature() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	buf.Write(m.Salt[:8])
-	binary.Write(&buf, binary.BigEndian, m.SaltNumber)
-
-	data, err = m.MessageHash.MarshalBinary()
+	err = buf.PushByte(byte(m.VMIndex))
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
 
-	data, err = m.GetFullMsgHash().MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
 
-	data, err = m.LeaderChainID.MarshalBinary()
+	err = buf.Push(m.Salt[:8])
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.Height)
-	binary.Write(&buf, binary.BigEndian, m.Minute)
-
-	data, err = m.SerialHash.MarshalBinary()
+	err = buf.PushUInt32(m.SaltNumber)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushBinaryMarshallable(m.MessageHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.GetFullMsgHash())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.LeaderChainID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.Height)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(m.Minute)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(m.SerialHash)
+	if err != nil {
+		return nil, err
+	}
 
 	if AckBalanceHash {
 		if m.BalanceHash == nil {
-			primitives.EncodeVarInt(&buf, 0)
+			err = buf.PushVarInt(0)
+			if err != nil {
+				return nil, err
+			}
 			m.DataArea = nil
 		} else {
 
@@ -299,29 +335,33 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 
 			// Write out the size of said data, and then the data.
 			m.DataAreaSize = uint64(len(area.Bytes()))
-			primitives.EncodeVarInt(&buf, m.DataAreaSize)
-			buf.Write(area.Bytes())
+			primitives.EncodeVarInt(buf, m.DataAreaSize)
+			err = buf.Push(area.Bytes())
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *Ack) MarshalBinary() (data []byte, err error) {
+func (m *Ack) MarshalBinary() ([]byte, error) {
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
 	}
-	sig := m.GetSignature()
+	buf := primitives.NewBuffer(resp)
 
+	sig := m.GetSignature()
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		err := buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
 	}
-	return resp, nil
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Ack) String() string {

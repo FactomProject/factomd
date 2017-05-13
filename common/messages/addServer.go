@@ -6,7 +6,6 @@ package messages
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -121,40 +120,41 @@ func (m *AddServerMsg) VerifySignature() (bool, error) {
 }
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+	buf := primitives.NewBuffer(data)
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	m.ServerChainID = new(primitives.Hash)
-	newData, err = m.ServerChainID.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.ServerChainID)
 	if err != nil {
 		return nil, err
 	}
 
-	m.ServerType = int(newData[0])
-	newData = newData[1:]
+	t, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.ServerType = int(t)
 
-	if len(newData) > 32 {
+	if buf.Len() > 32 {
 		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
@@ -163,43 +163,45 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
-	var buf primitives.Buffer
-
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	buf := primitives.NewBuffer(nil)
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
 
-	data, err = m.ServerChainID.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, uint8(m.ServerType))
+	err = buf.PushBinaryMarshallable(m.ServerChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(byte(m.ServerType))
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
 func (m *AddServerMsg) MarshalBinary() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
 	data, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.Push(data)
+	if err != nil {
+		return nil, err
+	}
 
 	if m.Signature != nil {
-		data, err = m.Signature.MarshalBinary()
+		err = buf.PushBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(data)
 	}
 
 	return buf.DeepCopyBytes(), nil
@@ -217,7 +219,6 @@ func (m *AddServerMsg) String() string {
 		m.ServerChainID.Bytes()[:3],
 		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
-
 }
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {
