@@ -98,48 +98,51 @@ func (f *P2PProxy) UsingEtcdExclusive() bool {
 // Here we filter messages by type (only sending ProcessList-able messages)
 // Messages are sent into etcd as marshaled byte-slices
 func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
-	if msg.Type() < 16 || (msg.Type() > 21 && msg.Type() < 25) {
+	if msg.Type() == constants.HEARTBEAT_MSG || (msg.Type() > 15 && msg.Type() < 22) || msg.Type() > 24 {
 		/* Let's ignore these message types:
-		MISSING_MSG           // 16
-		MISSING_DATA          // 17
-		DATA_RESPONSE         // 18
-		MISSING_MSG_RESPONSE  //19
-		DBSTATE_MSG          // 20
-		DBSTATE_MISSING_MSG  // 21
+		HEARTBEAT_MSG			// 10
+		MISSING_MSG				// 16
+		MISSING_DATA			// 17
+		DATA_RESPONSE			// 18
+		MISSING_MSG_RESPONSE	// 19
+		DBSTATE_MSG				// 20
+		DBSTATE_MISSING_MSG		// 21
 
-		BOUNCE_MSG      // 25
-		BOUNCEREPLY_MSG // 26
-		MISSING_ENTRY_BLOCKS //27
-		ENTRY_BLOCK_RESPONSE //28
+		BOUNCE_MSG				// 25
+		BOUNCEREPLY_MSG			// 26
+		MISSING_ENTRY_BLOCKS	// 27
+		ENTRY_BLOCK_RESPONSE	// 28
 		*/
-		if msg.Type() == constants.EOM_MSG {
-			eomMsg := msg.(*messages.EOM)
-			if eomMsg.DBHeight > f.blockLeaseIdx {
-				f.blockLeaseIdx = eomMsg.DBHeight
-				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
-			}
-		}
-		if msg.Type() == constants.ACK_MSG {
-			ackMsg := msg.(*messages.Ack)
-			if ackMsg.DBHeight > f.blockLeaseIdx {
-				f.blockLeaseIdx = ackMsg.DBHeight
-				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
-			}
-		}
-		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-			dbsigMsg := msg.(*messages.DirectoryBlockSignature)
-			if dbsigMsg.DBHeight > f.blockLeaseIdx {
-				f.blockLeaseIdx = dbsigMsg.DBHeight
-				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
-			}
-		}
+		return fmt.Errorf("Not an etcd message-type")
+	}
 
-		msgBytes, err := msg.MarshalBinary()
-		if err == nil {
-			return f.EtcdManager.SendIntoEtcd(msgBytes)
+	if msg.Type() == constants.EOM_MSG {
+		eomMsg := msg.(*messages.EOM)
+		if eomMsg.DBHeight > f.blockLeaseIdx {
+			f.blockLeaseIdx = eomMsg.DBHeight
+			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
 		}
 	}
-	return fmt.Errorf("Not an etcd message-type")
+	if msg.Type() == constants.ACK_MSG {
+		ackMsg := msg.(*messages.Ack)
+		if ackMsg.DBHeight > f.blockLeaseIdx {
+			f.blockLeaseIdx = ackMsg.DBHeight
+			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+		}
+	}
+	if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+		dbsigMsg := msg.(*messages.DirectoryBlockSignature)
+		if dbsigMsg.DBHeight > f.blockLeaseIdx {
+			f.blockLeaseIdx = dbsigMsg.DBHeight
+			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+		}
+	}
+
+	msgBytes, err := msg.MarshalBinary()
+	if err == nil {
+		return f.EtcdManager.SendIntoEtcd(msgBytes)
+	}
+	return err
 }
 
 func (f *P2PProxy) Reinitiate() error {

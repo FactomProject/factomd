@@ -617,7 +617,7 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 // Return the number of times we have tripped an ask for this request.
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
 	if p.State.UsingEtcd() {
-		msgHashString := "0000000000000000000000000000000000000000"
+		msgHashString := "0000000000000000000000000000000000000000000000000000000000000000"
 		if len(p.VMs) > 0 {
 			vm := p.VMs[vmIndex]
 			if len(vm.List) > 0 && len(vm.List) > height && height > 0 {
