@@ -146,29 +146,29 @@ func dot(dot string) {
 }
 
 func silence(component string, format string, v ...interface{}) {
-	log(Silence, component, format, v...)
+	logP(Silence, component, format, v...)
 }
 func significant(component string, format string, v ...interface{}) {
-	log(Significant, component, format, v...)
+	logP(Significant, component, format, v...)
 }
 func logfatal(component string, format string, v ...interface{}) {
-	log(Fatal, component, format, v...)
+	logP(Fatal, component, format, v...)
 }
 func logerror(component string, format string, v ...interface{}) {
-	log(Errors, component, format, v...)
+	logP(Errors, component, format, v...)
 }
 func note(component string, format string, v ...interface{}) {
-	log(Notes, component, format, v...)
+	logP(Notes, component, format, v...)
 }
 func debug(component string, format string, v ...interface{}) {
-	log(Debugging, component, format, v...)
+	logP(Debugging, component, format, v...)
 }
 func verbose(component string, format string, v ...interface{}) {
-	log(Verbose, component, format, v...)
+	logP(Verbose, component, format, v...)
 }
 
-// log is the base log function to produce parsable log output for mass metrics consumption
-func log(level uint8, component string, format string, v ...interface{}) {
+// logP is the base log function to produce parsable log output for mass metrics consumption
+func logP(level uint8, component string, format string, v ...interface{}) {
 	message := strings.Replace(fmt.Sprintf(format, v...), ",", "-", -1) // Make CSV parsable.
 	// levelStr := LoggingLevels[level]
 	// host, _ := os.Hostname()

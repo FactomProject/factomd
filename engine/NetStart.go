@@ -373,6 +373,8 @@ func NetStart(s *state.State) {
 			SeedURL:                  seedURL,
 			SpecialPeers:             specialPeers,
 			ConnectionMetricsChannel: connectionMetricsChannel,
+			LogPath:                  s.LogPath,
+			LogLevel:                 s.LogLevel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkControler = p2pNetwork
