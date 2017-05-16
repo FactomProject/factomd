@@ -148,3 +148,27 @@ func checkLevelf(f *FLogger, out *bytes.Buffer, lvl Level) bool {
 	}
 	return true
 }
+
+func BenchmarkZeroFormat(b *testing.B) {
+	buf := new(bytes.Buffer)
+	l := New(buf, "debug", "testing")
+	doBenchmark(b, l, "zero")
+}
+
+func BenchmarkSingleFormat(b *testing.B) {
+	buf := new(bytes.Buffer)
+	l := New(buf, "debug", "testing")
+	doBenchmark(b, l, "%s", "single")
+}
+
+func BenchmarkDoubleFormat(b *testing.B) {
+	buf := new(bytes.Buffer)
+	l := New(buf, "debug", "testing")
+	doBenchmark(b, l, "%s, %s", "single", "double")
+}
+
+func doBenchmark(b *testing.B, logger *FLogger, format string, args ...interface{}) {
+	for i := 0; i < b.N; i++ {
+		logger.Debugf(format, args)
+	}
+}
