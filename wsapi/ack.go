@@ -7,6 +7,7 @@ package wsapi
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -18,6 +19,9 @@ import (
 )
 
 func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallFctAck.Observe(float64(time.Since(n).Nanoseconds()))
+
 	ackReq := new(AckRequest)
 	err := MapToObject(params, ackReq)
 	if err != nil {
@@ -95,6 +99,9 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEntryAck.Observe(float64(time.Since(n).Nanoseconds()))
+
 	ackReq := new(AckRequest)
 
 	err := MapToObject(params, ackReq)
