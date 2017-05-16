@@ -35,6 +35,7 @@ var Servers map[int]*web.Server
 var ServersMutex sync.Mutex
 
 func Start(state interfaces.IState) {
+	RegisterPrometheus()
 	var server *web.Server
 
 	ServersMutex.Lock()
