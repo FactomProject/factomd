@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"strings"
@@ -107,44 +106,50 @@ func (m *BounceReply) GetSignature() interfaces.IFullSignature {
 	return nil
 }
 
-func (m *BounceReply) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-
+func (m *BounceReply) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	m.SetPeer2Peer(true)
+	buf := primitives.NewBuffer(data)
 
-	newData = data
-
-	if newData[0] != m.Type() {
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, errors.New("Invalid Message type")
 	}
-	newData = newData[1:]
 
-	m.Name = string(newData[:32])
-	newData = newData[32:]
+	h, err := buf.PopLen(32)
+	if err != nil {
+		return nil, err
+	}
+	m.Name = string(h)
 
-	m.Number, newData = int32(binary.BigEndian.Uint32(newData[0:4])), newData[4:]
+	n, err := buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.Number = int32(n)
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	numTS, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
-	for i := uint32(0); i < numTS; i++ {
+	n, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	for i := uint32(0); i < n; i++ {
 		ts := new(primitives.Timestamp)
-		newData, err = ts.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(ts)
 		if err != nil {
 			return nil, err
 		}
 		m.Stamps = append(m.Stamps, ts)
 	}
-	return
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *BounceReply) UnmarshalBinary(data []byte) error {
@@ -153,32 +158,33 @@ func (m *BounceReply) UnmarshalBinary(data []byte) error {
 }
 
 func (m *BounceReply) MarshalForSignature() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	var buff [32]byte
-
-	copy(buff[:32], []byte(fmt.Sprintf("%32s", m.Name)))
-	buf.Write(buff[:])
-
-	binary.Write(&buf, binary.BigEndian, m.Number)
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, int32(len(m.Stamps)))
-
+	err = buf.Push([]byte(fmt.Sprintf("%32s", m.Name)))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(uint32(m.Number))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(uint32(len(m.Stamps)))
+	if err != nil {
+		return nil, err
+	}
 	for _, ts := range m.Stamps {
-		data, err := ts.MarshalBinary()
+		err = buf.PushBinaryMarshallable(ts)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(data)
 	}
 
 	return buf.DeepCopyBytes(), nil

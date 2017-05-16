@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -154,47 +153,49 @@ func (e *DataResponse) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *DataResponse) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *DataResponse) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	m.DataType = int(newData[0])
-	newData = newData[1:]
+	t, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.DataType = int(t)
 
-	m.DataHash = primitives.NewHash(constants.ZERO_HASH)
-	newData, err = m.DataHash.UnmarshalBinaryData(newData)
+	m.DataHash = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.DataHash)
 	if err != nil {
 		return nil, err
 	}
 	switch m.DataType {
 	case 0:
-		entryAttempt, err := attemptEntryUnmarshal(newData)
+		ebe := entryBlock.NewEntry()
+		err = buf.PopBinaryMarshallable(ebe)
 		if err != nil {
 			return nil, err
-		} else {
-			m.DataObject = entryAttempt
 		}
+		m.DataObject = ebe
 	case 1:
-		eblockAttempt, err := attemptEBlockUnmarshal(newData)
+		eb := entryBlock.NewEBlock()
+		err = buf.PopBinaryMarshallable(eb)
 		if err != nil {
 			return nil, err
-		} else {
-			m.DataObject = eblockAttempt
 		}
+		m.DataObject = eb
 	default:
 		return nil, fmt.Errorf("DataResponse's DataType not supported for unmarshalling yet")
 	}
@@ -208,59 +209,31 @@ func (m *DataResponse) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func attemptEntryUnmarshal(data []byte) (entry interfaces.IEBEntry, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Bytes do not represent an entry")
-		}
-	}()
-
-	entry, err = entryBlock.UnmarshalEntry(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return entry, nil
-}
-
-func attemptEBlockUnmarshal(data []byte) (eblock interfaces.IEntryBlock, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Bytes do not represent an eblock: %v\n", r)
-		}
-	}()
-
-	eblock, err = entryBlock.UnmarshalEBlock(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return eblock, nil
-}
-
 func (m *DataResponse) MarshalBinary() ([]byte, error) {
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushByte(m.Type())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
-
-	binary.Write(&buf, binary.BigEndian, uint8(m.DataType))
-
-	if d, err := m.DataHash.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushByte(byte(m.DataType))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.DataHash)
+	if err != nil {
+		return nil, err
 	}
 
 	if m.DataObject != nil {
-		d, err := m.DataObject.MarshalBinary()
+		err = buf.PushBinaryMarshallable(m.DataObject)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(d)
 	}
 
 	return buf.DeepCopyBytes(), nil

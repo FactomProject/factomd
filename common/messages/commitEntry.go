@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -119,33 +118,27 @@ func (m *CommitEntryMsg) VerifySignature() (bool, error) {
 }
 
 func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+	buf := primitives.NewBuffer(data)
+	t, err := buf.PopByte()
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
-	ce := entryCreditBlock.NewCommitEntry()
-	newData, err = ce.UnmarshalBinaryData(newData)
+	m.CommitEntry = entryCreditBlock.NewCommitEntry()
+	err = buf.PopBinaryMarshallable(m.CommitEntry)
 	if err != nil {
 		return nil, err
 	}
-	m.CommitEntry = ce
 
-	if len(newData) > 0 {
+	if buf.Len() > 0 {
 		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return newData, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *CommitEntryMsg) UnmarshalBinary(data []byte) error {
@@ -153,35 +146,37 @@ func (m *CommitEntryMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *CommitEntryMsg) MarshalForSignature() (data []byte, err error) {
-	var buf primitives.Buffer
+func (m *CommitEntryMsg) MarshalForSignature() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	data, err = m.CommitEntry.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushBinaryMarshallable(m.CommitEntry)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
+func (m *CommitEntryMsg) MarshalBinary() ([]byte, error) {
+	h, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
 	}
-	sig := m.GetSignature()
+	buf := primitives.NewBuffer(h)
 
+	sig := m.GetSignature()
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		err = buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
 	}
-	return resp, nil
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *CommitEntryMsg) String() string {

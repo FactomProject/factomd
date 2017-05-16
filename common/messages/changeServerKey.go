@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -141,53 +140,53 @@ func (m *ChangeServerKeyMsg) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
 
-func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Add Server Message: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+	t, err := buf.PopByte()
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	m.IdentityChainID = new(primitives.Hash)
-	newData, err = m.IdentityChainID.UnmarshalBinaryData(newData)
+	m.IdentityChainID = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.IdentityChainID)
 	if err != nil {
 		return nil, err
 	}
 
-	m.AdminBlockChange = newData[0]
-	newData = newData[1:]
-
-	m.KeyType = newData[0]
-	newData = newData[1:]
-
-	m.KeyPriority = newData[0]
-	newData = newData[1:]
-
-	m.Key = new(primitives.Hash)
-	newData, err = m.Key.UnmarshalBinaryData(newData)
+	m.AdminBlockChange, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.KeyType, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.KeyPriority, err = buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(newData) > 32 {
+	m.Key = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	if buf.Len() > 32 {
 		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *ChangeServerKeyMsg) UnmarshalBinary(data []byte) error {
@@ -196,32 +195,38 @@ func (m *ChangeServerKeyMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *ChangeServerKeyMsg) MarshalForSignature() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = m.IdentityChainID.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, uint8(m.AdminBlockChange))
-	binary.Write(&buf, binary.BigEndian, uint8(m.KeyType))
-	binary.Write(&buf, binary.BigEndian, uint8(m.KeyPriority))
-
-	data, err = m.Key.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.IdentityChainID)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+
+	err = buf.PushByte(m.AdminBlockChange)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(m.KeyType)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(m.KeyPriority)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(m.Key)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
