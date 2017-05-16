@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -211,70 +210,72 @@ func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
 
-func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
+func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	newData = data
-	if newData[0] != m.Type() {
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	// TimeStamp
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
+	}
+	m.SysHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.SysHash = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.SysHash)
 	if err != nil {
 		return nil, err
 	}
 
-	m.SysHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	hash := new(primitives.Hash)
-	newData, err = hash.UnmarshalBinaryData(newData)
+	m.DBHeight, err = buf.PopUInt32()
 	if err != nil {
 		return nil, err
 	}
-	m.SysHash = hash
-
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.VMIndex, newData = int(newData[0]), newData[1:]
-
-	header := directoryBlock.NewDBlockHeader()
-	newData, err = header.UnmarshalBinaryData(newData)
+	t, err = buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
-	m.DirectoryBlockHeader = header
+	m.VMIndex = int(t)
 
-	hash = new(primitives.Hash)
-	newData, err = hash.UnmarshalBinaryData(newData)
+	m.DirectoryBlockHeader = directoryBlock.NewDBlockHeader()
+	err = buf.PopBinaryMarshallable(m.DirectoryBlockHeader)
 	if err != nil {
 		return nil, err
 	}
-	m.ServerIdentityChainID = hash
+
+	m.ServerIdentityChainID = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.ServerIdentityChainID)
+	if err != nil {
+		return nil, err
+	}
 
 	//if len(newData) > 0 {
-	sig := new(primitives.Signature)
-	newData, err = sig.UnmarshalBinaryData(newData)
+	m.DBSignature = new(primitives.Signature)
+	err = buf.PopBinaryMarshallable(m.DBSignature)
 	if err != nil {
 		return nil, err
 	}
-	m.DBSignature = sig
 	//}
 
-	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
+	if buf.Len() > 0 {
+		m.Signature = new(primitives.Signature)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
-		m.Signature = sig
 	}
 
-	return nil, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
@@ -283,75 +284,83 @@ func (m *DirectoryBlockSignature) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
-	if m.DirectoryBlockHeader == nil {
-		m.DirectoryBlockHeader = directoryBlock.NewDBlockHeader()
-	}
+	buf := primitives.NewBuffer(nil)
 
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, m.SysHeight)
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SysHeight)
+	if err != nil {
+		return nil, err
+	}
 	if m.SysHash == nil {
 		m.SysHash = primitives.NewZeroHash()
 	}
-	hash, err := m.SysHash.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.SysHash)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(hash)
-
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, byte(m.VMIndex))
-
-	header, err := m.DirectoryBlockHeader.MarshalBinary()
+	err = buf.PushUInt32(m.DBHeight)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(header)
-
-	hash, err = m.ServerIdentityChainID.MarshalBinary()
+	err = buf.PushByte(byte(m.VMIndex))
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(hash)
+	if m.DirectoryBlockHeader == nil {
+		m.DirectoryBlockHeader = directoryBlock.NewDBlockHeader()
+	}
+	err = buf.PushBinaryMarshallable(m.DirectoryBlockHeader)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.ServerIdentityChainID)
+	if err != nil {
+		return nil, err
+	}
 
 	if m.DBSignature != nil {
-		dbSig, err := m.DBSignature.MarshalBinary()
+		err = buf.PushBinaryMarshallable(m.DBSignature)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(dbSig)
 	} else {
 		blankSig := make([]byte, constants.SIGNATURE_LENGTH)
-		buf.Write(blankSig)
-		buf.Write(blankSig[:32])
+		err = buf.Push(blankSig)
+		if err != nil {
+			return nil, err
+		}
+		err = buf.Push(blankSig[:32])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
-	var sig interfaces.IFullSignature
-	resp, err := m.MarshalForSignature()
-	if err == nil {
-		sig = m.GetSignature()
+func (m *DirectoryBlockSignature) MarshalBinary() ([]byte, error) {
+	h, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
 	}
+	buf := primitives.NewBuffer(h)
+	sig := m.GetSignature()
 
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		err = buf.PushBinaryMarshallable(sig)
 		if err != nil {
-			return resp, nil
+			return nil, err
 		}
-		return append(resp, sigBytes...), nil
 	}
-	return resp, nil
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DirectoryBlockSignature) String() string {

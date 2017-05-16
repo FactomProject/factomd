@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -149,49 +148,51 @@ func (e *EntryBlockResponse) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *EntryBlockResponse) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *EntryBlockResponse) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Peer2Peer = true // This is always a Peer2peer message
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	m.EBlockCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.EBlockCount, err = buf.PopUInt32()
 
 	for i := 0; i < int(m.EBlockCount); i++ {
 		eBlock := entryBlock.NewEBlock()
-		newData, err = eBlock.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(eBlock)
 		if err != nil {
 			return nil, err
 		}
 		m.EBlocks = append(m.EBlocks, eBlock)
 	}
 
-	m.EntryCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.EntryCount, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
 	for i := 0; i < int(m.EntryCount); i++ {
 		entry := entryBlock.NewEntry()
-		newData, err = entry.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(entry)
 		if err != nil {
 			return nil, err
 		}
 		m.Entries = append(m.Entries, entry)
 	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EntryBlockResponse) UnmarshalBinary(data []byte) error {
@@ -200,35 +201,36 @@ func (m *EntryBlockResponse) UnmarshalBinary(data []byte) error {
 }
 
 func (m *EntryBlockResponse) MarshalForSignature() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
+	if err != nil {
+		return nil, err
+	}
 
 	m.EBlockCount = uint32(len(m.EBlocks))
-	binary.Write(&buf, binary.BigEndian, m.EBlockCount)
+	err = buf.PushUInt32(m.EBlockCount)
+	if err != nil {
+		return nil, err
+	}
 	for _, eb := range m.EBlocks {
-		bin, err := eb.MarshalBinary()
+		err = buf.PushBinaryMarshallable(eb)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(bin)
 	}
 
 	m.EntryCount = uint32(len(m.Entries))
-	binary.Write(&buf, binary.BigEndian, m.EntryCount)
+	err = buf.PushUInt32(m.EntryCount)
 	for _, e := range m.Entries {
-		bin, err := e.MarshalBinary()
+		err = buf.PushBinaryMarshallable(e)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(bin)
 	}
 
 	return buf.DeepCopyBytes(), nil

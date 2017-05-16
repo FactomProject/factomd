@@ -48,11 +48,6 @@ type FullServerFault struct {
 	LastMatch     int64
 }
 
-type SigList struct {
-	Length uint32
-	List   []interfaces.IFullSignature
-}
-
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
 
@@ -299,43 +294,6 @@ func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
 	}
 
 	return buf.DeepCopyBytes(), nil
-}
-
-func (sl *SigList) MarshalBinary() (data []byte, err error) {
-	var buf primitives.Buffer
-
-	binary.Write(&buf, binary.BigEndian, uint32(sl.Length))
-
-	for _, individualSig := range sl.List {
-		if d, err := individualSig.MarshalBinary(); err != nil {
-			return nil, err
-		} else {
-			buf.Write(d)
-		}
-	}
-
-	return buf.DeepCopyBytes(), nil
-}
-
-func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
-		}
-	}()
-
-	newData = data
-	sl.Length, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
-	for i := sl.Length; i > 0; i-- {
-		tempSig := new(primitives.Signature)
-		newData, err = tempSig.UnmarshalBinaryData(newData)
-		if err != nil {
-			return nil, err
-		}
-		sl.List = append(sl.List, tempSig)
-	}
-	return newData, nil
 }
 
 func (m *FullServerFault) MarshalBinary() (data []byte, err error) {
@@ -648,6 +606,55 @@ func (a *FullServerFault) ToAdminBlockEntry() *adminBlock.ServerFault {
 	sf.SignatureList.List = a.SignatureList.List
 
 	return sf
+}
+
+type SigList struct {
+	Length uint32
+	List   []interfaces.IFullSignature
+}
+
+var _ interfaces.BinaryMarshallable = (*SigList)(nil)
+
+func (sl *SigList) MarshalBinary() (data []byte, err error) {
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, uint32(sl.Length))
+
+	for _, individualSig := range sl.List {
+		if d, err := individualSig.MarshalBinary(); err != nil {
+			return nil, err
+		} else {
+			buf.Write(d)
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (sl *SigList) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error unmarshalling SigList in Full Server Fault: %v", r)
+		}
+	}()
+
+	newData = data
+	sl.Length, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+
+	for i := sl.Length; i > 0; i-- {
+		tempSig := new(primitives.Signature)
+		newData, err = tempSig.UnmarshalBinaryData(newData)
+		if err != nil {
+			return nil, err
+		}
+		sl.List = append(sl.List, tempSig)
+	}
+	return newData, nil
+}
+
+func (sl *SigList) UnmarshalBinary(data []byte) error {
+	_, err := sl.UnmarshalBinaryData(data)
+	return err
 }
 
 //*******************************************************************************

@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -180,30 +179,35 @@ func (e *DBStateMissing) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *DBStateMissing) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block State Missing Message: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *DBStateMissing) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Peer2Peer = true // This is always a Peer2peer message
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	m.DBHeightStart, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.DBHeightEnd, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.DBHeightStart, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.DBHeightEnd, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
@@ -212,19 +216,24 @@ func (m *DBStateMissing) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DBStateMissing) MarshalForSignature() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	binary.Write(&buf, binary.BigEndian, m.DBHeightStart)
-	binary.Write(&buf, binary.BigEndian, m.DBHeightEnd)
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.DBHeightStart)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.DBHeightEnd)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }

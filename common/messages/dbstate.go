@@ -6,7 +6,6 @@ package messages
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
@@ -438,81 +437,82 @@ func (e *DBStateMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *DBStateMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block State Message: %v", r)
-		}
-	}()
+func (m *DBStateMsg) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	newData = data
-	if newData[0] != m.Type() {
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Peer2Peer = true
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
-
 	m.DirectoryBlock = new(directoryBlock.DirectoryBlock)
-	newData, err = m.DirectoryBlock.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.DirectoryBlock)
 	if err != nil {
 		return nil, err
 	}
-
 	m.AdminBlock = new(adminBlock.AdminBlock)
-	newData, err = m.AdminBlock.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.AdminBlock)
 	if err != nil {
 		return nil, err
 	}
-
 	m.FactoidBlock = new(factoid.FBlock)
-	newData, err = m.FactoidBlock.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.FactoidBlock)
 	if err != nil {
 		return nil, err
 	}
-
 	m.EntryCreditBlock = entryCreditBlock.NewECBlock()
-	newData, err = m.EntryCreditBlock.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.EntryCreditBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	eBlockCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
+	eBlockCount, err := buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 	for i := uint32(0); i < eBlockCount; i++ {
 		eBlock := entryBlock.NewEBlock()
-		newData, err = eBlock.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(eBlock)
 		if err != nil {
-			panic(err.Error())
+			return nil, err
 		}
 		m.EBlocks = append(m.EBlocks, eBlock)
 	}
 
-	entryCount, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
+	entryCount, err := buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 	for i := uint32(0); i < entryCount; i++ {
-		var entrySize uint32
-		entrySize, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-		entry := entryBlock.NewEntry()
-		newData, err = newData[int(entrySize):], entry.UnmarshalBinary(newData[:int(entrySize)])
+		entrySize, err := buf.PopUInt32()
 		if err != nil {
-			panic(err.Error())
+			return nil, err
+		}
+		entry := entryBlock.NewEntry()
+		h, err := buf.PopLen(int(entrySize))
+		err = entry.UnmarshalBinary(h)
+		if err != nil {
+			return nil, err
 		}
 		m.Entries = append(m.Entries, entry)
 	}
 
-	newData, err = m.SignatureList.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(&m.SignatureList)
 	if err != nil {
 		return nil, err
 	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
@@ -521,67 +521,66 @@ func (m *DBStateMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *DBStateMsg) MarshalBinary() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = m.DirectoryBlock.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = m.AdminBlock.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.DirectoryBlock)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = m.FactoidBlock.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.AdminBlock)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = m.EntryCreditBlock.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.FactoidBlock)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushBinaryMarshallable(m.EntryCreditBlock)
+	if err != nil {
+		return nil, err
+	}
 
-	eBlockCount := uint32(len(m.EBlocks))
-	binary.Write(&buf, binary.BigEndian, eBlockCount)
+	err = buf.PushUInt32(uint32(len(m.EBlocks)))
+	if err != nil {
+		return nil, err
+	}
 	for _, eb := range m.EBlocks {
-		bin, err := eb.MarshalBinary()
+		err = buf.PushBinaryMarshallable(eb)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(bin)
 	}
 
-	entryCount := uint32(len(m.Entries))
-	binary.Write(&buf, binary.BigEndian, entryCount)
+	err = buf.PushUInt32(uint32(len(m.Entries)))
+	if err != nil {
+		return nil, err
+	}
 	for _, e := range m.Entries {
 		bin, err := e.MarshalBinary()
 		if err != nil || bin == nil || len(bin) == 0 {
 			return nil, err
 		}
-		entrySize := uint32(len(bin))
-		binary.Write(&buf, binary.BigEndian, entrySize)
-		buf.Write(bin)
+		err = buf.PushUInt32(uint32(len(bin)))
+		if err != nil {
+			return nil, err
+		}
+		err = buf.Push(bin)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	if d, err := m.SignatureList.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(&m.SignatureList)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
 
 	return buf.DeepCopyBytes(), nil
