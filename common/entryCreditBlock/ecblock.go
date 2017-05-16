@@ -7,7 +7,6 @@ package entryCreditBlock
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -373,8 +372,8 @@ func NextECBlock(prev interfaces.IEntryCreditBlock) (interfaces.IEntryCreditBloc
 
 	// Handle the really unusual case of the first block.
 	if prev == nil {
-		e.GetHeader().SetPrevHeaderHash(primitives.NewHash(constants.ZERO_HASH))
-		e.GetHeader().SetPrevFullHash(primitives.NewHash(constants.ZERO_HASH))
+		e.GetHeader().SetPrevHeaderHash(primitives.NewZeroHash())
+		e.GetHeader().SetPrevFullHash(primitives.NewZeroHash())
 		e.GetHeader().SetDBHeight(0)
 	} else {
 		v, err := prev.HeaderHash()

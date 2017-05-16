@@ -156,7 +156,7 @@ func (m *MissingMsg) MarshalBinary() ([]byte, error) {
 	buf.Write(data)
 
 	if m.Asking == nil {
-		m.Asking = primitives.NewHash(constants.ZERO_HASH)
+		m.Asking = primitives.NewZeroHash()
 	}
 	data, err = m.Asking.MarshalBinary()
 	if err != nil {

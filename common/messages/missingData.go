@@ -93,7 +93,7 @@ func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 		return nil, err
 	}
 
-	m.RequestHash = primitives.NewHash(constants.ZERO_HASH)
+	m.RequestHash = primitives.NewZeroHash()
 	newData, err = m.RequestHash.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err

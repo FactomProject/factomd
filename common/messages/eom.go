@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -176,57 +175,72 @@ func (m *EOM) VerifySignature() (bool, error) {
 	return VerifyMessage(m)
 }
 
-func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *EOM) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	m.ChainID = primitives.NewHash(constants.ZERO_HASH)
-	newData, err = m.ChainID.UnmarshalBinaryData(newData)
+	m.ChainID = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.ChainID)
 	if err != nil {
 		return nil, err
 	}
 
-	m.Minute, newData = newData[0], newData[1:]
-
+	m.Minute, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
 	if m.Minute < 0 || m.Minute >= 10 {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
 
-	m.VMIndex = int(newData[0])
-	newData = newData[1:]
-	m.FactoidVM = uint8(newData[0]) == 1
-	newData = newData[1:]
+	t, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.VMIndex = int(t)
+	t, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.FactoidVM = (t == 1)
 
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.SysHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.SysHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
-	m.SysHash = primitives.NewHash(constants.ZERO_HASH)
-	newData, err = m.SysHash.UnmarshalBinaryData(newData)
+	m.SysHash = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.SysHash)
+	if err != nil {
+		return nil, err
+	}
 
-	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
+	if buf.Len() > 0 {
+		m.Signature = new(primitives.Signature)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
-		m.Signature = sig
 	}
 
-	return data, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOM) UnmarshalBinary(data []byte) error {
@@ -234,59 +248,77 @@ func (m *EOM) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *EOM) MarshalForSignature() (data []byte, err error) {
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
+func (m *EOM) MarshalForSignature() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
 
-	if d, err := m.ChainID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-
-	binary.Write(&buf, binary.BigEndian, m.Minute)
-	binary.Write(&buf, binary.BigEndian, uint8(m.VMIndex))
-	if m.FactoidVM {
-		binary.Write(&buf, binary.BigEndian, uint8(1))
-	} else {
-		binary.Write(&buf, binary.BigEndian, uint8(0))
-	}
-	return buf.DeepCopyBytes(), nil
-}
-
-func (m *EOM) MarshalBinary() (data []byte, err error) {
-	var buf primitives.Buffer
-	resp, err := m.MarshalForSignature()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(resp)
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.ChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(m.Minute)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(byte(m.VMIndex))
+	if err != nil {
+		return nil, err
+	}
 
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.SysHeight)
+	if m.FactoidVM {
+		err = buf.PushByte(1)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = buf.PushByte(0)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (m *EOM) MarshalBinary() ([]byte, error) {
+	h, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	buf := primitives.NewBuffer(h)
+
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SysHeight)
+	if err != nil {
+		return nil, err
+	}
 
 	if m.SysHash == nil {
-		m.SysHash = primitives.NewHash(constants.ZERO_HASH)
+		m.SysHash = primitives.NewZeroHash()
 	}
-	if d, err := m.SysHash.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(m.SysHash)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
 
 	sig := m.GetSignature()
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		err = buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(sigBytes)
 	}
+
 	return buf.DeepCopyBytes(), nil
 }
 
