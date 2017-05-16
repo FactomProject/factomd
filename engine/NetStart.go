@@ -82,7 +82,7 @@ func NetStart(s *state.State) {
 	fastPtr := flag.Bool("fast", false, "If true, factomd will fast-boot from a file.")
 	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
-	logLvlPtr := flag.String("loglvl", "notice", "Set log level to either: debug, info, notice, warning, error, critical, alert, emergency or none")
+	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: debug, info, notice, warning, error, critical, alert, emergency or none")
 	logSTDOutPtr := flag.Bool("logstdout", false, "Use to set logging to stdout")
 
 	flag.Parse()
