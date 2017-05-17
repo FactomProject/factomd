@@ -5,9 +5,9 @@
 package state_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 
 	//"github.com/FactomProject/factomd/common/constants"
 	//"github.com/FactomProject/factomd/common/primitives"
@@ -135,6 +135,11 @@ func TestClone(t *testing.T) {
 	if s3.GetFactomNodeName() != "xFNode02" {
 		t.Error("Factom Node Name incorrect")
 	}
+}
+
+func TestPrintState(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	PrintState(s)
 }
 
 /*
