@@ -78,3 +78,25 @@ func TestAuthorityType(t *testing.T) {
 		t.Error("GetAuthorityServerType isn't 1 even though authority is Audit")
 	}
 }
+
+func TestAuthorityRemoval(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
+	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+
+	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
+	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
+	s.Authorities[index].Status = 1
+
+	if !s.RemoveAuthority(primitives.NewZeroHash()) {
+		t.Error("First call to RemoveAuthority unexpectedly failed")
+	}
+
+	if s.RemoveAuthority(primitives.NewZeroHash()) {
+		t.Error("Second call to RemoveAuthority unexpectedly passed")
+	}
+
+	if s.GetAuthorityServerType(primitives.NewZeroHash()) >= 0 {
+		t.Error("GetAuthorityServerType (after removal) >= 0")
+	}
+}
