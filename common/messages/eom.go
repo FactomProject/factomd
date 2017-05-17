@@ -211,11 +211,10 @@ func (m *EOM) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	m.VMIndex = int(t)
-	t, err = buf.PopByte()
+	m.FactoidVM, err = buf.PopBool()
 	if err != nil {
 		return nil, err
 	}
-	m.FactoidVM = (t == 1)
 
 	m.DBHeight, err = buf.PopUInt32()
 	if err != nil {
@@ -272,16 +271,9 @@ func (m *EOM) MarshalForSignature() ([]byte, error) {
 		return nil, err
 	}
 
-	if m.FactoidVM {
-		err = buf.PushByte(1)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		err = buf.PushByte(0)
-		if err != nil {
-			return nil, err
-		}
+	err = buf.PushBool(m.FactoidVM)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil

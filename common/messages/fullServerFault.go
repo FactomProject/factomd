@@ -176,142 +176,143 @@ func (m *FullServerFault) Type() byte {
 	return constants.FULL_SERVER_FAULT_MSG
 }
 
-func (m *FullServerFault) MarshalCore() (data []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
-		}
-	}()
+func (m *FullServerFault) MarshalCore() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
 
-	var buf primitives.Buffer
-
-	if d, err := m.ServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-
-	buf.WriteByte(m.VMIndex)
-	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
-	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
-	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-
-	return buf.DeepCopyBytes(), nil
-}
-
-func (m *FullServerFault) MarshalForSF() (data []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
-		}
-	}()
-
-	var buf primitives.Buffer
-
-	if d, err := m.ServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-
-	buf.WriteByte(m.VMIndex)
-	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
-	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
-	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-
-	return buf.DeepCopyBytes(), nil
-}
-
-func (m *FullServerFault) MarshalForSignature() (data []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error marshalling Invalid Server Fault: %v", r)
-		}
-	}()
-
-	var buf primitives.Buffer
-
-	buf.Write([]byte{m.Type()})
-
-	if m.ClearFault {
-		binary.Write(&buf, binary.BigEndian, uint8(1))
-	} else {
-		binary.Write(&buf, binary.BigEndian, uint8(0))
-	}
-
-	if d, err := m.ServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-
-	buf.WriteByte(m.VMIndex)
-	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
-	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
-	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
-
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
-
-	sh, err := m.SSerialHash.MarshalBinary()
+	err := buf.PushBinaryMarshallable(m.ServerID)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(sh)
-
-	if d, err := m.SignatureList.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(m.AuditServerID)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushByte(m.VMIndex)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.Height)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SystemHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *FullServerFault) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
+func (m *FullServerFault) MarshalForSF() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBinaryMarshallable(m.ServerID)
 	if err != nil {
 		return nil, err
 	}
+	err = buf.PushBinaryMarshallable(m.AuditServerID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(m.VMIndex)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.Height)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SystemHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (m *FullServerFault) MarshalForSignature() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushByte(m.Type())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(m.ClearFault)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.ServerID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.AuditServerID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(m.VMIndex)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.Height)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SystemHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.SSerialHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(&m.SignatureList)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (m *FullServerFault) MarshalBinary() ([]byte, error) {
+	h, err := m.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	buf := primitives.NewBuffer(h)
 
 	sig := m.GetSignature()
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
 	}
 
-	return resp, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 // Make this stuff easier to read.
@@ -326,68 +327,81 @@ func Unmarshall(thing interfaces.BinaryMarshallable, err error, data []byte) ([]
 //
 //                               UnmarshalBinaryData for FullServerFault
 //
-func (m *FullServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Server Fault: %v", r)
-		}
-	}()
+func (m *FullServerFault) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	newData = data
-	if newData[0] != m.Type() {
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
-	m.ClearFault = uint8(newData[0]) == 1
-
-	newData = newData[1:]
-
-	if m.ServerID == nil {
-		m.ServerID = primitives.NewZeroHash()
-	}
-
-	newData, err = Unmarshall(m.ServerID, err, newData)
-
-	if m.AuditServerID == nil {
-		m.AuditServerID = primitives.NewZeroHash()
-	}
-	newData, err = m.AuditServerID.UnmarshalBinaryData(newData)
+	m.ClearFault, err = buf.PopBool()
 	if err != nil {
 		return nil, err
 	}
 
-	m.VMIndex, newData = newData[0], newData[1:]
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.SystemHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	if m.ServerID == nil {
+		m.ServerID = primitives.NewZeroHash()
+	}
+	err = buf.PopBinaryMarshallable(m.ServerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if m.AuditServerID == nil {
+		m.AuditServerID = primitives.NewZeroHash()
+	}
+	err = buf.PopBinaryMarshallable(m.AuditServerID)
+	if err != nil {
+		return nil, err
+	}
+
+	m.VMIndex, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.Height, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.SystemHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	m.SSerialHash = primitives.NewZeroHash()
-	newData, err = m.SSerialHash.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.SSerialHash)
 	if err != nil {
 		return nil, err
 	}
 
-	newData, err = m.SignatureList.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(&m.SignatureList)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(newData) > 0 {
+	if buf.Len() > 0 {
 		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return newData, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *FullServerFault) UnmarshalBinary(data []byte) error {

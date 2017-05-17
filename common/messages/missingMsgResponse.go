@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -88,37 +87,37 @@ func (m *MissingMsgResponse) Type() byte {
 	return constants.MISSING_MSG_RESPONSE
 }
 
-func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("%s", "Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	b, newData := newData[0], newData[1:]
+	t, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
 
-	if b == 1 {
+	if t == 1 {
 		m.AckResponse = new(Ack)
-		newData, err = m.AckResponse.UnmarshalBinaryData(newData)
-
+		err = buf.PopBinaryMarshallable(m.AckResponse)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	mr, err := UnmarshalMessage(newData)
-
+	rest, mr, err := UnmarshalMessageData(buf.DeepCopyBytes())
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +125,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 
 	m.Peer2Peer = true // Always a peer2peer request.
 
-	return data, nil
+	return rest, nil
 }
 
 func (m *MissingMsgResponse) UnmarshalBinary(data []byte) error {
@@ -135,34 +134,37 @@ func (m *MissingMsgResponse) UnmarshalBinary(data []byte) error {
 }
 
 func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
+	if err != nil {
+		return nil, err
+	}
 
 	if m.AckResponse == nil {
-		buf.WriteByte(0)
-	} else {
-		buf.WriteByte(1)
-
-		ackData, err := m.AckResponse.MarshalBinary()
+		err = buf.PushByte(0)
 		if err != nil {
 			return nil, err
 		}
-		buf.Write(ackData)
+	} else {
+		err = buf.PushByte(1)
+		if err != nil {
+			return nil, err
+		}
+		err = buf.PushBinaryMarshallable(m.AckResponse)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	msgData, err := m.MsgResponse.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.MsgResponse)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(msgData)
 
 	var mmm MissingMsgResponse
 

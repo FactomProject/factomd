@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -165,33 +164,29 @@ func NewRevealEntryMsg() *RevealEntryMsg {
 	return new(RevealEntryMsg)
 }
 
-func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("%s", "Invalid Message type")
 	}
-	newData = newData[1:]
 
-	t := new(primitives.Timestamp)
-	newData, err = t.UnmarshalBinaryData(newData)
+	m.Timestamp = new(primitives.Timestamp)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
-	m.Timestamp = t
-
-	e := entryBlock.NewEntry()
-	newData, err = e.UnmarshalBinaryData(newData)
+	m.Entry = entryBlock.NewEntry()
+	err = buf.PopBinaryMarshallable(m.Entry)
 	if err != nil {
 		return nil, err
 	}
-	m.Entry = e
 
-	return newData, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
@@ -199,23 +194,21 @@ func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
-	var buf primitives.Buffer
+func (m *RevealEntryMsg) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err = t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = m.Entry.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushBinaryMarshallable(m.Entry)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }

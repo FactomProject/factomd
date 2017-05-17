@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -108,52 +107,53 @@ func (m *Heartbeat) Type() byte {
 	return constants.HEARTBEAT_MSG
 }
 
-func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *Heartbeat) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	m.SecretNumber, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-
-	hash := new(primitives.Hash)
-
-	newData, err = hash.UnmarshalBinaryData(newData)
+	m.SecretNumber, err = buf.PopUInt32()
 	if err != nil {
 		return nil, err
 	}
-	m.DBlockHash = hash
-
-	hash = new(primitives.Hash)
-	newData, err = hash.UnmarshalBinaryData(newData)
+	m.DBHeight, err = buf.PopUInt32()
 	if err != nil {
 		return nil, err
 	}
-	m.IdentityChainID = hash
 
-	if len(newData) > 0 {
-		sig := new(primitives.Signature)
-		newData, err = sig.UnmarshalBinaryData(newData)
+	m.DBlockHash = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.DBlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	m.IdentityChainID = primitives.NewZeroHash()
+	err = buf.PopBinaryMarshallable(m.IdentityChainID)
+	if err != nil {
+		return nil, err
+	}
+
+	if buf.Len() > 0 {
+		m.Signature = new(primitives.Signature)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
-		m.Signature = sig
 	}
 
-	return nil, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Heartbeat) UnmarshalBinary(data []byte) error {
@@ -161,51 +161,56 @@ func (m *Heartbeat) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
+func (m *Heartbeat) MarshalForSignature() ([]byte, error) {
 	if m.DBlockHash == nil || m.IdentityChainID == nil {
 		return nil, fmt.Errorf("Message is incomplete")
 	}
 
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+	buf := primitives.NewBuffer(nil)
+	err := buf.PushByte(m.Type())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
-
-	binary.Write(&buf, binary.BigEndian, m.SecretNumber)
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-
-	if d, err := m.DBlockHash.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
-
-	if d, err := m.IdentityChainID.MarshalBinary(); err != nil {
+	err = buf.PushUInt32(m.SecretNumber)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.DBlockHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.IdentityChainID)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
+func (m *Heartbeat) MarshalBinary() ([]byte, error) {
+	h, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
 	}
+	buf := primitives.NewBuffer(h)
+
 	sig := m.GetSignature()
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		err := buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
 	}
-	return resp, nil
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *Heartbeat) String() string {

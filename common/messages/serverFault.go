@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -73,139 +72,155 @@ func (m *ServerFault) Type() byte {
 	return constants.FED_SERVER_FAULT_MSG
 }
 
-func (m *ServerFault) MarshalForSignature() (data []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error marshalling Server Fault Core: %v", r)
-		}
-	}()
+func (m *ServerFault) MarshalForSignature() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
 
-	var buf primitives.Buffer
-
-	if d, err := m.ServerID.MarshalBinary(); err != nil {
+	err := buf.PushBinaryMarshallable(m.ServerID)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
-	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(m.AuditServerID)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
-
-	buf.WriteByte(m.VMIndex)
-	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
-	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
-	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
-
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+	err = buf.PushByte(m.VMIndex)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.Height)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SystemHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ServerFault) PreMarshalBinary() (data []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error marshalling Invalid Server Fault: %v", r)
-		}
-	}()
+func (m *ServerFault) PreMarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
 
-	var buf primitives.Buffer
-
-	buf.Write([]byte{m.Type()})
-	if d, err := m.ServerID.MarshalBinary(); err != nil {
+	err := buf.PushByte(m.Type())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
-	if d, err := m.AuditServerID.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(m.ServerID)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
 	}
-
-	buf.WriteByte(m.VMIndex)
-	binary.Write(&buf, binary.BigEndian, uint32(m.DBHeight))
-	binary.Write(&buf, binary.BigEndian, uint32(m.Height))
-	binary.Write(&buf, binary.BigEndian, uint32(m.SystemHeight))
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+	err = buf.PushBinaryMarshallable(m.AuditServerID)
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushByte(m.VMIndex)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.Height)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SystemHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
 func (m *ServerFault) MarshalBinary() (data []byte, err error) {
-	resp, err := m.PreMarshalBinary()
+	h, err := m.PreMarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	sig := m.GetSignature()
+	buf := primitives.NewBuffer(h)
 
+	sig := m.GetSignature()
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		err = buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
 	}
 
-	return resp, nil
+	return buf.DeepCopyBytes(), nil
 }
 
-func (m *ServerFault) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling With Signatures Invalid Server Fault: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *ServerFault) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
-	newData, err = m.ServerID.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.ServerID)
 	if err != nil {
 		return nil, err
 	}
 	if m.AuditServerID == nil {
 		m.AuditServerID = primitives.NewZeroHash()
 	}
-	newData, err = m.AuditServerID.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.AuditServerID)
 	if err != nil {
 		return nil, err
 	}
-
-	m.VMIndex, newData = newData[0], newData[1:]
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.Height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.SystemHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	m.VMIndex, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.Height, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.SystemHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(newData) > 0 {
+	if buf.Len() > 0 {
 		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return newData, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *ServerFault) UnmarshalBinary(data []byte) error {

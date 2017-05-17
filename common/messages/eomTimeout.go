@@ -93,35 +93,34 @@ func (m *EOMTimeout) Type() byte {
 	return constants.EOM_TIMEOUT_MSG
 }
 
-func (m *EOMTimeout) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Eom Timeout: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *EOMTimeout) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	//TODO: expand
 
-	if len(newData) > 0 {
+	if buf.Len() > 0 {
 		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(m.Signature)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return newData, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOMTimeout) UnmarshalBinary(data []byte) error {
@@ -129,13 +128,16 @@ func (m *EOMTimeout) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *EOMTimeout) MarshalForSignature() (data []byte, err error) {
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+func (m *EOMTimeout) MarshalForSignature() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushByte(m.Type())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
 	}
 
 	//TODO: expand
@@ -144,20 +146,21 @@ func (m *EOMTimeout) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *EOMTimeout) MarshalBinary() (data []byte, err error) {
-	resp, err := m.MarshalForSignature()
+	h, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
 	}
-	sig := m.GetSignature()
+	buf := primitives.NewBuffer(h)
 
+	sig := m.GetSignature()
 	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
+		err = buf.PushBinaryMarshallable(sig)
 		if err != nil {
 			return nil, err
 		}
-		return append(resp, sigBytes...), nil
 	}
-	return resp, nil
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *EOMTimeout) String() string {

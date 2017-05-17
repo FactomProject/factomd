@@ -75,33 +75,32 @@ func (m *MissingData) Type() byte {
 	return constants.MISSING_DATA
 }
 
-func (m *MissingData) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *MissingData) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	m.RequestHash = primitives.NewZeroHash()
-	newData, err = m.RequestHash.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.RequestHash)
 	if err != nil {
 		return nil, err
 	}
 
 	m.Peer2Peer = true // Always a peer2peer request.
 
-	return data, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *MissingData) UnmarshalBinary(data []byte) error {
@@ -110,18 +109,19 @@ func (m *MissingData) UnmarshalBinary(data []byte) error {
 }
 
 func (m *MissingData) MarshalBinary() ([]byte, error) {
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		buf.Write(d)
-	}
+	buf := primitives.NewBuffer(nil)
 
-	if d, err := m.RequestHash.MarshalBinary(); err != nil {
+	err := buf.PushByte(m.Type())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(m.RequestHash)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil

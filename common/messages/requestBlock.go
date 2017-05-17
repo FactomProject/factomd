@@ -74,27 +74,26 @@ func (m *RequestBlock) Type() byte {
 	return constants.REQUEST_BLOCK_MSG
 }
 
-func (m *RequestBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling RequestBlock: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *RequestBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	//TODO: expand
 
-	return newData, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *RequestBlock) UnmarshalBinary(data []byte) error {
@@ -102,13 +101,15 @@ func (m *RequestBlock) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *RequestBlock) MarshalForSignature() (data []byte, err error) {
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+func (m *RequestBlock) MarshalForSignature() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+	err := buf.PushByte(m.Type())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+	err = buf.PushBinaryMarshallable(m.Timestamp)
+	if err != nil {
+		return nil, err
 	}
 
 	//TODO: expand

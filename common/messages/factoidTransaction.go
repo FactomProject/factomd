@@ -140,37 +140,36 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 
 }
 
-func (m *FactoidTransaction) UnmarshalTransData(datax []byte) (newData []byte, err error) {
-	newData = datax
-	defer func() {
-		return
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Transaction Factoid: %v", r)
-		}
-	}()
+func (m *FactoidTransaction) UnmarshalTransData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 
 	m.Transaction = new(factoid.Transaction)
-	newData, err = m.Transaction.UnmarshalBinaryData(newData)
+	err := buf.PopBinaryMarshallable(m.Transaction)
+	if err != nil {
+		return nil, err
+	}
 
-	return newData, err
+	return buf.DeepCopyBytes(), nil
 }
 
-func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	newData = data
+func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
-		}
-	}()
-	if newData[0] != m.Type() {
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Transaction = new(factoid.Transaction)
-	newData, err = m.Transaction.UnmarshalBinaryData(newData)
-	return newData, err
+	err = buf.PopBinaryMarshallable(m.Transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
@@ -178,14 +177,16 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 	return err
 }
 
-func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
-	var buf primitives.Buffer
-	buf.Write([]byte{m.Type()})
-
-	if d, err := m.Transaction.MarshalBinary(); err != nil {
+func (m *FactoidTransaction) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+	err := buf.PushByte(m.Type())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(d)
+	}
+
+	err = buf.PushBinaryMarshallable(m.Transaction)
+	if err != nil {
+		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil

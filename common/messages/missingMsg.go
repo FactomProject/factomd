@@ -5,7 +5,6 @@
 package messages
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -97,45 +96,60 @@ func (m *MissingMsg) Type() byte {
 	return constants.MISSING_MSG
 }
 
-func (m *MissingMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != m.Type() {
+func (m *MissingMsg) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+
+	t, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if t != m.Type() {
 		return nil, fmt.Errorf("%s", "Invalid Message type")
 	}
-	newData = newData[1:]
 
 	m.Timestamp = new(primitives.Timestamp)
-	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Timestamp)
 	if err != nil {
 		return nil, err
 	}
 
 	m.Asking = new(primitives.Hash)
-	newData, err = m.Asking.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(m.Asking)
 	if err != nil {
 		return nil, err
 	}
 
-	m.VMIndex, newData = int(newData[0]), newData[1:]
-	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	m.SystemHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	t, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	m.VMIndex = int(t)
+
+	m.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	m.SystemHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
 	// Get all the missing messages...
-	lenl, newData := binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	lenl, err := buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 	for i := 0; i < int(lenl); i++ {
-		var height uint32
-		height, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+		height, err := buf.PopUInt32()
+		if err != nil {
+			return nil, err
+		}
 		m.ProcessListHeight = append(m.ProcessListHeight, height)
 	}
 
 	m.Peer2Peer = true // Always a peer2peer request.
 
-	return data, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *MissingMsg) UnmarshalBinary(data []byte) error {
@@ -144,38 +158,49 @@ func (m *MissingMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *MissingMsg) MarshalBinary() ([]byte, error) {
-	var buf primitives.Buffer
+	buf := primitives.NewBuffer(nil)
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushBinaryMarshallable(m.GetTimestamp())
+	if err != nil {
+		return nil, err
+	}
 
 	if m.Asking == nil {
 		m.Asking = primitives.NewZeroHash()
 	}
-	data, err = m.Asking.MarshalBinary()
+	err = buf.PushBinaryMarshallable(m.Asking)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	buf.WriteByte(uint8(m.VMIndex))
-	binary.Write(&buf, binary.BigEndian, m.DBHeight)
-	binary.Write(&buf, binary.BigEndian, m.SystemHeight)
-
-	binary.Write(&buf, binary.BigEndian, uint32(len(m.ProcessListHeight)))
-	for _, h := range m.ProcessListHeight {
-		binary.Write(&buf, binary.BigEndian, h)
+	err = buf.PushByte(byte(m.VMIndex))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(m.SystemHeight)
+	if err != nil {
+		return nil, err
 	}
 
-	bb := buf.DeepCopyBytes()
+	err = buf.PushUInt32(uint32(len(m.ProcessListHeight)))
+	if err != nil {
+		return nil, err
+	}
+	for _, h := range m.ProcessListHeight {
+		err = buf.PushUInt32(h)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return bb, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (m *MissingMsg) String() string {
