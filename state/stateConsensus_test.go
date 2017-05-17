@@ -22,6 +22,7 @@ var _ = ESAsking
 
 func TestHolding(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()
+	s.SuperVerboseMessages = true
 
 	msgs := makeXBounces(100)
 	for _, m := range msgs {

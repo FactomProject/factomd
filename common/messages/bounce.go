@@ -258,14 +258,21 @@ func (m *Bounce) String() string {
 	for i := 0; i < len(m.Stamps)-1; i++ {
 		sum += m.Stamps[i+1].GetTimeMilli() - m.Stamps[i].GetTimeMilli()
 	}
-	elapse := primitives.NewTimestampNow().GetTimeMilli() - m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+	var elapse int64
+	if len(m.Stamps) > 0 {
+		elapse = primitives.NewTimestampNow().GetTimeMilli() - m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+	}
 	sum += elapse
 	sign := " "
 	if sum < 0 {
 		sign = "-"
 		sum = sum * -1
 	}
-	avg := sum / (int64(len(m.Stamps)))
+	divisor := (int64(len(m.Stamps)))
+	if divisor == 0 {
+		divisor = 1
+	}
+	avg := sum / divisor
 	str = str + fmt.Sprintf("Last Hop Took %3d.%03d Average Hop: %s%3d.%03d Hash: %x", elapse/1000, elapse%1000, sign, avg/1000, avg%1000, m.GetHash().Bytes()[:4])
 	return str
 }
