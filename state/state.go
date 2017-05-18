@@ -338,8 +338,8 @@ type State struct {
 	HighestCompletedTorrent uint32
 	useEtcd                 bool
 	SuperVerboseMessages    bool
-	FastBoot         bool
-	FastBootLocation string
+	FastBoot                bool
+	FastBootLocation        string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -483,6 +483,10 @@ func (s *State) GetDelay() int64 {
 
 func (s *State) SetDelay(delay int64) {
 	s.Delay = delay
+}
+
+func (s *State) GetBootTime() int64 {
+	return s.BootTime
 }
 
 func (s *State) GetDropRate() int {
