@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"sort"
 
+	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/meta"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
