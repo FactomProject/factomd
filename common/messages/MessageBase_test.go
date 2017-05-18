@@ -47,3 +47,27 @@ func TestMessageBase(t *testing.T) {
 		}
 	}
 }
+
+func TestPutAndGetAck(t *testing.T) {
+	eom := newEOM()
+	ack := newAck()
+	eom.PutAck(ack)
+	if eom.Ack == nil {
+		t.Error("Ack is nil after PutAck called")
+	}
+	if !eom.GetAck().GetHash().IsSameAs(ack.GetHash()) {
+		t.Error("GetAck returned a different Ack than PutAck put")
+	}
+}
+
+func TestNoResend(t *testing.T) {
+	eom := newEOM()
+	eom.SetNoResend(true)
+	if !eom.GetNoResend() {
+		t.Error("NoResend is false after being set to true")
+	}
+	eom.SetNoResend(false)
+	if eom.GetNoResend() {
+		t.Error("NoResend is true after being set to false")
+	}
+}

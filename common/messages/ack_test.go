@@ -112,18 +112,6 @@ func TestSignAndVerifyAck(t *testing.T) {
 	}
 }
 
-func TestPutAndGetAck(t *testing.T) {
-	eom := newEOM()
-	ack := newAck()
-	eom.PutAck(ack)
-	if eom.Ack == nil {
-		t.Error("Ack is nil after PutAck called")
-	}
-	if !eom.GetAck().GetHash().IsSameAs(ack.GetHash()) {
-		t.Error("GetAck returned a different Ack than PutAck put")
-	}
-}
-
 func newAck() *Ack {
 	ack := new(Ack)
 	ack.Timestamp = primitives.NewTimestampNow()
