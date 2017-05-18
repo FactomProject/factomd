@@ -142,11 +142,20 @@ func (u *UploadController) handleErrors() {
 
 // Only called once to set the torrent flag.
 func (s *State) SetUseTorrent(setVal bool) {
-	s.useDBStateManager = setVal
+	s.useTorrents = setVal
 }
 
 func (s *State) UsingTorrent() bool {
-	return s.useDBStateManager
+	return s.useTorrents
+}
+
+// Only called once to set the torrent flag.
+func (s *State) SetTorrentUploader(setVal bool) {
+	s.torrentUploader = setVal
+}
+
+func (s *State) TorrentUploader() bool {
+	return s.torrentUploader
 }
 
 /*****************
@@ -221,7 +230,7 @@ func (s *State) uploadDBState(sequence uint32) error {
 			}
 			fullData = append(fullData, data...)
 		}
-		if s.IsLeader() {
+		if s.IsLeader() || s.TorrentUploader() {
 			err := s.DBStateManager.UploadDBStateBytes(fullData, true)
 			if err != nil {
 				return fmt.Errorf("[TorrentUpload] Torrent failed to upload: %s\n", err.Error())

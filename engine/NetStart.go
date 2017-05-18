@@ -91,6 +91,7 @@ func NetStart(s *state.State) {
 
 	// 	Torrent Plugin
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
+	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
 
 	flag.Parse()
 
@@ -539,6 +540,7 @@ func NetStart(s *state.State) {
 
 	// Initate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
+	fnodes[0].State.SetTorrentUploader(*torUploader)
 	if *tormanager {
 		fnodes[0].State.SetUseTorrent(true)
 		manager, err := LaunchDBStateManagePlugin(*pluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), *memProfileRate)
