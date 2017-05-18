@@ -26,6 +26,10 @@ type Timestamp uint64 //in miliseconds
 var _ interfaces.BinaryMarshallable = (*Timestamp)(nil)
 var _ interfaces.Timestamp = (*Timestamp)(nil)
 
+func (a *Timestamp) IsSameAs(b interfaces.Timestamp) bool {
+	return a.GetTimeMilliUInt64() == b.GetTimeMilliUInt64()
+}
+
 func NewTimestampNow() *Timestamp {
 	t := new(Timestamp)
 	t.SetTimeNow()

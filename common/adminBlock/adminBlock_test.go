@@ -256,7 +256,7 @@ func TestAddFederatedServerSigningKey(t *testing.T) {
 		se := new(AddFederatedServerSigningKey)
 		se.IdentityChainID = primitives.RandomHash()
 		priv := primitives.RandomPrivateKey()
-		se.PublicKey = *priv.(*primitives.PrivateKey).Pub
+		se.PublicKey = *priv.Pub
 		testVector = append(testVector, se)
 	}
 	ab := new(AdminBlock)

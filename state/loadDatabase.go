@@ -39,7 +39,12 @@ func LoadDatabase(s *State) {
 	t := time.Now()
 
 	//msg, err := s.LoadDBState(blkCnt)
-	for i := 0; i <= int(blkCnt); i++ {
+	start := s.GetDBHeightComplete()
+	if start > 10 {
+		start = start - 10
+	}
+
+	for i := int(start); i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {
 			since := time.Since(t)
 			ss := float64(since.Nanoseconds()) / 1000000000

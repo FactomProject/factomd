@@ -23,6 +23,23 @@ var _ interfaces.Printable = (*DBEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBEntry)(nil)
 var _ interfaces.IDBEntry = (*DBEntry)(nil)
 
+func (a *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	if a.ChainID.IsSameAs(b.GetChainID()) == false {
+		return false
+	}
+	if a.KeyMR.IsSameAs(b.GetKeyMR()) == false {
+		return false
+	}
+	return true
+}
+
 func (c *DBEntry) GetChainID() interfaces.IHash {
 	return c.ChainID
 }

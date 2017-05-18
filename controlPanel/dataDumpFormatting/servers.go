@@ -68,7 +68,7 @@ func MyNodeInfo(copyDS state.DisplayState) string {
 	return prt
 }
 
-func returnStatString(i int) string {
+func returnStatString(i uint8) string {
 	var stat string
 	switch i {
 	case 0:

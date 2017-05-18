@@ -21,6 +21,7 @@ type IEntryCreditBlock interface {
 	GetEntryByHash(hash IHash) IECBlockEntry
 
 	UpdateState(IState) error
+	IsSameAs(IEntryCreditBlock) bool
 }
 
 type IECBlockHeader interface {
@@ -42,6 +43,7 @@ type IECBlockHeader interface {
 	SetObjectCount(uint64)
 	GetBodySize() uint64
 	SetBodySize(uint64)
+	IsSameAs(IECBlockHeader) bool
 }
 
 type IECBlockBody interface {
@@ -49,6 +51,7 @@ type IECBlockBody interface {
 	GetEntries() []IECBlockEntry
 	SetEntries([]IECBlockEntry)
 	AddEntry(IECBlockEntry)
+	IsSameAs(IECBlockBody) bool
 }
 
 type IECBlockEntry interface {
@@ -64,4 +67,5 @@ type IECBlockEntry interface {
 	GetEntryHash() IHash
 	GetSigHash() IHash
 	GetTimestamp() Timestamp
+	IsSameAs(IECBlockEntry) bool
 }

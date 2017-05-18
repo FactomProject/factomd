@@ -54,7 +54,7 @@ func (im *IdentityManager) FedServerCount() int {
 	defer im.Mutex.RUnlock()
 	answer := 0
 	for _, v := range im.Authorities {
-		if v.Type() == constants.IDENTITY_FEDERATED_SERVER {
+		if v.Type() == int(constants.IDENTITY_FEDERATED_SERVER) {
 			answer++
 		}
 	}
@@ -66,7 +66,7 @@ func (im *IdentityManager) AuditServerCount() int {
 	defer im.Mutex.RUnlock()
 	answer := 0
 	for _, v := range im.Authorities {
-		if v.Type() == constants.IDENTITY_AUDIT_SERVER {
+		if v.Type() == int(constants.IDENTITY_AUDIT_SERVER) {
 			answer++
 		}
 	}

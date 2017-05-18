@@ -172,6 +172,8 @@ func (db *Overlay) Clear(bucket []byte) error {
 }
 
 func (db *Overlay) Close() (err error) {
+	db.BatchSemaphore.Lock()
+	defer db.BatchSemaphore.Unlock()
 	return db.DB.Close()
 }
 

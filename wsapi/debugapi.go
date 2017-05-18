@@ -147,7 +147,7 @@ func HandleAuditServers(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		AuditServers []interfaces.IFctServer
+		AuditServers []interfaces.IServer
 	}
 	r := new(ret)
 
@@ -284,7 +284,7 @@ func HandleFedServers(
 	*primitives.JSONError,
 ) {
 	type ret struct {
-		FederatedServers []interfaces.IFctServer
+		FederatedServers []interfaces.IServer
 	}
 	r := new(ret)
 

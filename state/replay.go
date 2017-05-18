@@ -6,12 +6,14 @@ package state
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 const Range = 60                // Double this for the period we protect, i.e. 120 means +/- 120 minutes
@@ -25,6 +27,120 @@ type Replay struct {
 	Buckets  [numBuckets]map[[32]byte]int
 	Basetime int // hours since 1970
 	Center   int // Hour of the current time.
+}
+
+var _ interfaces.BinaryMarshallable = (*Replay)(nil)
+
+func RandomReplay() *Replay {
+	r := new(Replay)
+
+	for i := 0; i < numBuckets; i++ {
+		l2 := random.RandIntBetween(0, 50)
+		m := map[[32]byte]int{}
+		for j := 0; j < l2; j++ {
+			h := primitives.RandomHash()
+			m[h.Fixed()] = random.RandInt()
+		}
+		r.Buckets[i] = m
+	}
+
+	r.Basetime = random.RandInt()
+	r.Center = random.RandInt()
+
+	return r
+}
+
+func (r *Replay) Init() {
+	for i := range r.Buckets {
+		if r.Buckets[i] == nil {
+			r.Buckets[i] = map[[32]byte]int{}
+		}
+	}
+}
+
+func (a *Replay) IsSameAs(b *Replay) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	a.Init()
+	b.Init()
+
+	if len(a.Buckets) != len(b.Buckets) {
+		return false
+	}
+	for i := range a.Buckets {
+		if len(a.Buckets[i]) != len(b.Buckets[i]) {
+			return false
+		}
+		for k := range a.Buckets[i] {
+			if a.Buckets[i][k] != b.Buckets[i][k] {
+				return false
+			}
+		}
+	}
+
+	if a.Basetime != b.Basetime {
+		return false
+	}
+	if a.Center != b.Center {
+		return false
+	}
+	return true
+}
+
+func (r *Replay) MarshalBinary() ([]byte, error) {
+	r.Init()
+	b := primitives.NewBuffer(nil)
+
+	for _, v := range r.Buckets {
+		err := PushBucketMap(b, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := b.PushInt(r.Basetime)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushInt(r.Center)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.DeepCopyBytes(), nil
+}
+
+func (r *Replay) UnmarshalBinaryData(p []byte) ([]byte, error) {
+	r.Init()
+	b := primitives.NewBuffer(p)
+
+	for i := 0; i < numBuckets; i++ {
+		m, err := PopBucketMap(b)
+		if err != nil {
+			return nil, err
+		}
+		r.Buckets[i] = m
+	}
+	var err error
+	r.Basetime, err = b.PopInt()
+	if err != nil {
+		return nil, err
+	}
+	r.Center, err = b.PopInt()
+	if err != nil {
+		return nil, err
+	}
+
+	return b.DeepCopyBytes(), nil
+}
+
+func (r *Replay) UnmarshalBinary(p []byte) error {
+	_, err := r.UnmarshalBinaryData(p)
+	return err
 }
 
 func (r *Replay) Save() *Replay {
@@ -177,4 +293,54 @@ func (r *Replay) Clear(mask int, hash [32]byte) {
 			}
 		}
 	}
+}
+
+func PushBucketMap(b *primitives.Buffer, m map[[32]byte]int) error {
+	l := len(m)
+	err := b.PushVarInt(uint64(l))
+	if err != nil {
+		return err
+	}
+
+	keys := [][32]byte{}
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(ByKey(keys))
+
+	for _, k := range keys {
+		err = b.Push(k[:])
+		if err != nil {
+			return err
+		}
+		err = b.PushInt(m[k])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func PopBucketMap(buf *primitives.Buffer) (map[[32]byte]int, error) {
+	m := map[[32]byte]int{}
+	k := make([]byte, 32)
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(l); i++ {
+		var b [32]byte
+		err = buf.Pop(k)
+		if err != nil {
+			return nil, err
+		}
+		copy(b[:], k)
+		v, err := buf.PopInt()
+		if err != nil {
+			return nil, err
+		}
+		m[b] = v
+	}
+	return m, nil
 }

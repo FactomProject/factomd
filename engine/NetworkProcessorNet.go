@@ -87,13 +87,13 @@ func Peers(fnode *FactomNode) {
 					//if state.GetOut() {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}
-					//in := "PeerIn"
-					//if msg.IsPeer2Peer() {
-					//	in = "P2P In"
-					//}
-					//nme := fmt.Sprintf("%s %d", in, i+1)
+					in := "PeerIn"
+					if msg.IsPeer2Peer() {
+						in = "P2P In"
+					}
+					nme := fmt.Sprintf("%s %d", in, i+1)
 
-					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
+					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
 					// Ignore messages if there are too many.
 					if fnode.State.InMsgQueue().Length() < 9000 {
@@ -151,7 +151,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						if p < 0 {
 							p = rand.Int() % len(fnode.Peers)
 						}
-						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 						if !fnode.State.GetNetStateOff() {
 							fnode.Peers[p].Send(msg)
 							if fnode.State.MessageTally {
@@ -168,7 +168,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						// Don't resend to the node that sent it to you.
 						if i != p || wt > 1 {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+							fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							if !fnode.State.GetNetStateOff() {
 								peer.Send(msg)
 								if fnode.State.MessageTally {

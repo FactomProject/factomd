@@ -184,7 +184,10 @@ func HexToHash(hexStr string) (h interfaces.IHash, err error) {
 
 // Compare two Hashes
 func (a *Hash) IsSameAs(b interfaces.IHash) bool {
-	if b == nil {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
 		return false
 	}
 

@@ -32,7 +32,7 @@ var (
 //			0 	--> Audit Server
 //			1	--> Federated
 func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
-	getReturnStatInt := func(stat int) int {
+	getReturnStatInt := func(stat uint8) int {
 		if stat == constants.IDENTITY_PENDING_FEDERATED_SERVER || stat == constants.IDENTITY_FEDERATED_SERVER {
 			return 1
 		}
@@ -807,7 +807,7 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 	return false
 }
 
-func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo int, st *State) {
+func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo uint8, st *State) {
 	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
 		return
