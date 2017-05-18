@@ -23,7 +23,7 @@ func (s *State) StartTorrentSyncing() error {
 	var done uint32 = 0
 	for {
 		// Leaders do not need to sync torrents, they need to upload
-		if s.IsLeader() {
+		if s.IsLeader() || s.TorrentUploader() {
 			// If we have not uploaded a height we have completed, increment done and upload
 			if done < s.EntryDBHeightComplete {
 				for done < s.EntryDBHeightComplete {
