@@ -79,7 +79,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			fmt.Println("SVM exMsg Holding2:", msg.String(), msg.GetHash().String()[:10])
 		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
-		if !msg.SentInvlaid() {
+		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
 			s.networkInvalidMsgQueue <- msg
 		}

@@ -71,3 +71,15 @@ func TestNoResend(t *testing.T) {
 		t.Error("NoResend is true after being set to false")
 	}
 }
+
+func TestSentInvalid(t *testing.T) {
+	eom := newEOM()
+	eom.MarkSentInvalid(true)
+	if !eom.SentInvalid() {
+		t.Error("SentInvalid is false after being set to true")
+	}
+	eom.MarkSentInvalid(false)
+	if eom.SentInvalid() {
+		t.Error("SentInvalid is true after being set to false")
+	}
+}
