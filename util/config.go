@@ -116,7 +116,7 @@ DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
 ExportData                            = false
 ExportDataSubpath                     = "database/export/"
-FastBoot							  = false
+FastBoot							  = true
 FastBootLocation					  = ""
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = MAIN
@@ -298,6 +298,10 @@ func ReadConfig(filename string) *FactomdConfig {
 		cfg.App.HomeDir = GetHomeDir() + "/.factom/m2/"
 	} else {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
+	}
+
+	if len(cfg.App.FastBootLocation) < 1 {
+		cfg.App.FastBootLocation = cfg.App.HomeDir
 	}
 
 	switch cfg.App.Network {

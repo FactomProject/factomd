@@ -567,10 +567,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.DBStates.TimeToAsk = nil
 
 	if dbstatemsg.IsLocal() {
-		if s.FastBoot {
+		if s.StateSaverStruct.FastBoot {
 			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
 
-			err := SaveDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+			err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
 			if err != nil {
 				panic(err)
 			}
