@@ -2,14 +2,14 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package meta_test
+package identity_test
 
 import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/common/meta"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
 )

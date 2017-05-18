@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/meta"
