@@ -191,11 +191,16 @@ func TestEtcdImpl(t *testing.T) {
 		t.Error("Should be true")
 	}
 
+	err = mc.PickUpFromHash("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08")
+	if err != nil {
+		t.Error(err)
+	}
+
 	// Client closed
 	client.Close()
 	err = mc.SendIntoEtcd(nil)
 	if err == nil {
-		t.Error("Stream closed, this should fail")
+		t.Error("Stream closed, SendIntoEtcd should fail")
 	}
 
 	v = mc.GetData()
@@ -205,19 +210,24 @@ func TestEtcdImpl(t *testing.T) {
 
 	err = mc.Reinitiate()
 	if err == nil {
-		t.Error("Stream closed, this should fail")
+		t.Error("Stream closed, Reinitiate should fail")
 	}
 
 	err = mc.NewBlockLease(0)
 	if err == nil {
-		t.Error("Stream closed, this should fail")
+		t.Error("Stream closed, NewBlockLease should fail")
 	}
 
 	b, err = mc.Ready()
 	if err == nil {
-		t.Error("Stream closed, this should fail")
+		t.Error("Stream closed, Ready should fail")
 	}
 	if b {
 		t.Error("Should be false")
+	}
+
+	err = mc.PickUpFromHash("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08")
+	if err == nil {
+		t.Error("Stream closed, PickUpFromHash should fail")
 	}
 }
