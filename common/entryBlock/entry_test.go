@@ -8,7 +8,9 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives/random"
 )
 
 /*
@@ -195,4 +197,34 @@ func newEntry() *Entry {
 		panic(err)
 	}
 	return e
+}
+
+func TestMarshalUnmarshalEntryList(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		l := random.RandIntBetween(0, 30)
+		es := []interfaces.IEBEntry{}
+		for j := 0; j < l; j++ {
+			es = append(es, RandomEntry())
+		}
+		b, err := MarshalEntryList(es)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		list, rest, err := UnmarshalEntryList(b)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if len(rest) > 0 {
+			t.Errorf("Too much data returned - %x", rest)
+		}
+		if len(list) != len(es) {
+			t.Errorf("Wrong amount of entries returned - %v vs %v", len(list), len(es))
+			continue
+		}
+		for i := range list {
+			if list[i].IsSameAs(es[i]) == false {
+				t.Errorf("Entries are not the same - %v vs %v", list[i], es[i])
+			}
+		}
+	}
 }

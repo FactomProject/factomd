@@ -93,9 +93,9 @@ type ProcessList struct {
 	DirectoryBlock   interfaces.IDirectoryBlock
 
 	// Number of Servers acknowledged by Factom
-	Matryoshka   []interfaces.IHash      // Reverse Hash
-	AuditServers []interfaces.IFctServer // List of Audit Servers
-	FedServers   []interfaces.IFctServer // List of Federated Servers
+	Matryoshka   []interfaces.IHash   // Reverse Hash
+	AuditServers []interfaces.IServer // List of Audit Servers
+	FedServers   []interfaces.IServer // List of Federated Servers
 
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
@@ -246,7 +246,7 @@ func (p *ProcessList) VMIndexFor(hash []byte) int {
 	return r
 }
 
-func SortServers(servers []interfaces.IFctServer) []interfaces.IFctServer {
+func SortServers(servers []interfaces.IServer) []interfaces.IServer {
 	for i := 0; i < len(servers)-1; i++ {
 		done := true
 		for j := 0; j < len(servers)-1-i; j++ {
@@ -310,7 +310,7 @@ func (p *ProcessList) SortDBSigs() {
 }
 
 // Returns the Federated Server responsible for this hash in this minute
-func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer {
+func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IServer {
 	vs := p.VMIndexFor(hash)
 	if vs < 0 {
 		return nil
@@ -436,7 +436,7 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
-	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.FedServers[i] = &Server{ChainID: identityChainID, Online: true}
 	//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	p.MakeMap()
@@ -460,7 +460,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
-	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.AuditServers[i] = &Server{ChainID: identityChainID, Online: true}
 	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	return i
@@ -1280,8 +1280,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.State = state.(*State)
 
 	// Make a copy of the previous FedServers
-	pl.FedServers = make([]interfaces.IFctServer, 0)
-	pl.AuditServers = make([]interfaces.IFctServer, 0)
+	pl.FedServers = make([]interfaces.IServer, 0)
+	pl.AuditServers = make([]interfaces.IServer, 0)
 	pl.Requests = make(map[[32]byte]*Request)
 	//pl.Requests = make(map[[20]byte]*Request)
 

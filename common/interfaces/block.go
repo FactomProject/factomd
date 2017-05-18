@@ -71,4 +71,5 @@ type IFBlock interface {
 	GetCoinbaseTimestamp() Timestamp
 
 	GetNewInstance() IFBlock // Get a new instance of this object
+	IsSameAs(IFBlock) bool
 }

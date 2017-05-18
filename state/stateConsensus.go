@@ -609,6 +609,17 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStates.LastBegin = int(dbheight)
 	}
 	s.DBStates.TimeToAsk = nil
+
+	if dbstatemsg.IsLocal() {
+		if s.FastBoot {
+			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
+
+			err := SaveDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
@@ -705,7 +716,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		}
 
 		for i, missing := range s.MissingEntryBlocks {
-			eb := missing.ebhash
+			eb := missing.EBHash
 			if !eb.IsSameAs(ebKeyMR) {
 				continue
 			}
@@ -1656,7 +1667,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	}
 
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
-	var theAuditReplacement interfaces.IFctServer
+	var theAuditReplacement interfaces.IServer
 
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {

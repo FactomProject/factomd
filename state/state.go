@@ -338,7 +338,11 @@ type State struct {
 	HighestCompletedTorrent uint32
 	useEtcd                 bool
 	SuperVerboseMessages    bool
+	FastBoot         bool
+	FastBootLocation string
 }
+
+var _ interfaces.IState = (*State)(nil)
 
 type EntryUpdate struct {
 	Hash      interfaces.IHash
@@ -481,10 +485,6 @@ func (s *State) SetDelay(delay int64) {
 	s.Delay = delay
 }
 
-func (s *State) GetBootTime() int64 {
-	return s.BootTime
-}
-
 func (s *State) GetDropRate() int {
 	return s.DropRate
 }
@@ -561,10 +561,6 @@ func (s *State) IncECommits() {
 	s.ECommits++
 }
 
-func (s *State) PickUpFromHash(msgHash string) {
-	s.NetworkOutMsgQueue().Enqueue(messages.NewEtcdHashPickup(s, msgHash))
-}
-
 func (s *State) GetAckChange() error {
 	change, err := util.GetChangeAcksHeight(s.filename)
 	if err != nil {
@@ -630,6 +626,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.RpcPass = cfg.App.FactomdRpcPass
 		s.EtcdAddress = cfg.App.EtcdAddress
 		s.EtcdUUID = cfg.App.EtcdUUID
+		s.FastBoot = cfg.App.FastBoot
+		s.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -868,6 +866,13 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.starttime = time.Now()
+
+	if s.FastBoot {
+		err := LoadDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
@@ -1658,7 +1663,7 @@ func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
-func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.FedServers
@@ -1666,7 +1671,7 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.AuditServers
@@ -1674,9 +1679,9 @@ func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IServer {
 	allAuditServers := s.GetAuditServers(dbheight)
-	var onlineAuditServers []interfaces.IFctServer
+	var onlineAuditServers []interfaces.IServer
 
 	for _, server := range allAuditServers {
 		if server.IsOnline() {

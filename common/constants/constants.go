@@ -105,7 +105,7 @@ const (
 	//NETWORK constants
 	//==================
 	VERSION_0               = byte(0)
-	FACTOMD_VERSION         = 4002000
+	FACTOMD_VERSION         = 4002001
 	MAIN_NETWORK_ID  uint32 = 0xFA92E5A2
 	TEST_NETWORK_ID  uint32 = 0xFA92E5A3
 	LOCAL_NETWORK_ID uint32 = 0xFA92E5A4
@@ -163,14 +163,14 @@ const (
 // Identity Status Types
 //---------------------------------------------------------------------
 const (
-	IDENTITY_UNASSIGNED               int = iota // 0
-	IDENTITY_FEDERATED_SERVER                    // 1
-	IDENTITY_AUDIT_SERVER                        // 2
-	IDENTITY_FULL                                // 3
-	IDENTITY_PENDING_FEDERATED_SERVER            // 4
-	IDENTITY_PENDING_AUDIT_SERVER                // 5
-	IDENTITY_PENDING_FULL                        // 6
-	IDENTITY_SKELETON                            // 7 - Skeleton Identity
+	IDENTITY_UNASSIGNED               uint8 = iota // 0
+	IDENTITY_FEDERATED_SERVER                      // 1
+	IDENTITY_AUDIT_SERVER                          // 2
+	IDENTITY_FULL                                  // 3
+	IDENTITY_PENDING_FEDERATED_SERVER              // 4
+	IDENTITY_PENDING_AUDIT_SERVER                  // 5
+	IDENTITY_PENDING_FULL                          // 6
+	IDENTITY_SKELETON                              // 7 - Skeleton Identity
 )
 
 //---------------------------------------------------------------------

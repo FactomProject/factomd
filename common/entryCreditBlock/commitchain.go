@@ -29,7 +29,6 @@ type CommitChain struct {
 	Credits     uint8
 	ECPubKey    *primitives.ByteSlice32
 	Sig         *primitives.ByteSlice64
-	SigHash     interfaces.IHash
 }
 
 var _ interfaces.Printable = (*CommitChain)(nil)
@@ -57,9 +56,50 @@ func (e *CommitChain) Init() {
 	if e.Sig == nil {
 		e.Sig = new(primitives.ByteSlice64)
 	}
-	if e.SigHash == nil {
-		e.SigHash = primitives.NewZeroHash()
+}
+
+func (a *CommitChain) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
 	}
+	if a.ECID() != b.ECID() {
+		return false
+	}
+
+	bb, ok := b.(*CommitChain)
+	if ok == false {
+		return false
+	}
+
+	if a.Version != bb.Version {
+		return false
+	}
+	if a.MilliTime.IsSameAs(bb.MilliTime) == false {
+		return false
+	}
+	if a.ChainIDHash.IsSameAs(bb.ChainIDHash) == false {
+		return false
+	}
+	if a.Weld.IsSameAs(bb.Weld) == false {
+		return false
+	}
+	if a.EntryHash.IsSameAs(bb.EntryHash) == false {
+		return false
+	}
+	if a.Credits != bb.Credits {
+		return false
+	}
+	if a.ECPubKey.IsSameAs(bb.ECPubKey) == false {
+		return false
+	}
+	if a.Sig.IsSameAs(bb.Sig) == false {
+		return false
+	}
+
+	return true
 }
 
 func (e *CommitChain) String() string {
@@ -93,21 +133,6 @@ func NewCommitChain() *CommitChain {
 
 func (a *CommitChain) GetEntryHash() interfaces.IHash {
 	return a.EntryHash
-}
-
-func (a *CommitChain) IsSameAs(b *CommitChain) bool {
-	if b == nil {
-		return false
-	}
-	bin1, err := a.MarshalBinary()
-	if err != nil {
-		return false
-	}
-	bin2, err := b.MarshalBinary()
-	if err != nil {
-		return false
-	}
-	return primitives.AreBytesEqual(bin1, bin2)
 }
 
 func (e *CommitChain) Hash() interfaces.IHash {
@@ -162,8 +187,7 @@ func (c *CommitChain) GetHash() interfaces.IHash {
 
 func (c *CommitChain) GetSigHash() interfaces.IHash {
 	data := c.CommitMsg()
-	c.SigHash = primitives.Sha(data)
-	return c.SigHash
+	return primitives.Sha(data)
 }
 
 func (c *CommitChain) MarshalBinarySig() ([]byte, error) {

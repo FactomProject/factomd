@@ -24,6 +24,28 @@ var _ interfaces.BinaryMarshallable = (*MinuteNumber)(nil)
 var _ interfaces.ShortInterpretable = (*MinuteNumber)(nil)
 var _ interfaces.IECBlockEntry = (*MinuteNumber)(nil)
 
+func (a *MinuteNumber) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	if a.ECID() != b.ECID() {
+		return false
+	}
+
+	bb, ok := b.(*MinuteNumber)
+	if ok == false {
+		return false
+	}
+	if a.Number != bb.Number {
+		return false
+	}
+
+	return true
+}
+
 func (e *MinuteNumber) Hash() interfaces.IHash {
 	bin, err := e.MarshalBinary()
 	if err != nil {

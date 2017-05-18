@@ -28,6 +28,8 @@ type FactomdConfig struct {
 		DirectoryBlockInSeconds                int
 		ExportData                             bool
 		ExportDataSubpath                      string
+		FastBoot                               bool
+		FastBootLocation                       string
 		NodeMode                               string
 		IdentityChainID                        string
 		LocalServerPrivKey                     string
@@ -116,6 +118,8 @@ DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
 ExportData                            = false
 ExportDataSubpath                     = "database/export/"
+FastBoot							  = false
+FastBootLocation					  = ""
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = MAIN
 PeersFile            = "peers.json"
