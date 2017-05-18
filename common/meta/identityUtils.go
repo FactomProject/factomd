@@ -67,7 +67,7 @@ func (e *AnchorSigningKey) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
-	err = buf.PushBytes(e.SigningKey[:])
+	err = buf.Push(e.SigningKey[:])
 	if err != nil {
 		return nil, err
 	}
