@@ -24,8 +24,8 @@ type ECBlockHeader struct {
 	BodySize            uint64
 }
 
-var _ = fmt.Print
 var _ interfaces.Printable = (*ECBlockHeader)(nil)
+var _ interfaces.IECBlockHeader = (*ECBlockHeader)(nil)
 
 func (c *ECBlockHeader) Init() {
 	if c.BodyHash == nil {
@@ -40,6 +40,44 @@ func (c *ECBlockHeader) Init() {
 	if c.HeaderExpansionArea == nil {
 		c.HeaderExpansionArea = make([]byte, 0)
 	}
+}
+
+func (a *ECBlockHeader) IsSameAs(b interfaces.IECBlockHeader) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	bb, ok := b.(*ECBlockHeader)
+	if ok == false {
+		return false
+	}
+
+	if a.BodyHash.IsSameAs(bb.BodyHash) {
+		return false
+	}
+	if a.PrevHeaderHash.IsSameAs(bb.PrevHeaderHash) {
+		return false
+	}
+	if a.PrevFullHash.IsSameAs(bb.PrevFullHash) {
+		return false
+	}
+	if a.DBHeight != bb.DBHeight {
+		return false
+	}
+	if primitives.AreBytesEqual(a.HeaderExpansionArea, bb.HeaderExpansionArea) == false {
+		return false
+	}
+	if a.ObjectCount != bb.ObjectCount {
+		return false
+	}
+	if a.BodySize != bb.BodySize {
+		return false
+	}
+
+	return true
 }
 
 func (e *ECBlockHeader) String() string {

@@ -19,6 +19,7 @@ func (state *State) ValidatorLoop() {
 		case <-state.ShutdownChan:
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
 			state.DB.Close()
+			StopSaving()
 			fmt.Println(state.GetFactomNodeName(), "closed")
 			return
 		default:
@@ -51,14 +52,13 @@ func (state *State) ValidatorLoop() {
 				default:
 				}
 
-				select {
-				case msg = <-state.InMsgQueue():
-					// Get message from the timer or input queue
+				msg = state.InMsgQueue().Dequeue()
+				if msg != nil {
 					state.JournalMessage(msg)
 					break loop
-				default:
+				} else {
 					// No messages? Sleep for a bit
-					for i := 0; i < 10 && len(state.InMsgQueue()) == 0; i++ {
+					for i := 0; i < 10 && state.InMsgQueue().Length() == 0; i++ {
 						time.Sleep(10 * time.Millisecond)
 					}
 				}

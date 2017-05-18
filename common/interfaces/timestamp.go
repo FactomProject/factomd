@@ -24,4 +24,5 @@ type Timestamp interface {
 	GetTimeSecondsUInt32() uint32
 	MarshalBinary() ([]byte, error)
 	String() string
+	IsSameAs(Timestamp) bool
 }

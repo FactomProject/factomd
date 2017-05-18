@@ -110,6 +110,10 @@ func SimControl(listenTo int) {
 						copyOver(fnodes[listenTo].State)
 						break
 					}
+					if b[1] == 'f' {
+						fundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
+						break
+					}
 				}
 				if listenTo < 0 || listenTo > len(fnodes) {
 					break
@@ -537,14 +541,35 @@ func SimControl(listenTo int) {
 
 			case 'y' == b[0]:
 				if listenTo >= 0 && listenTo < len(fnodes) {
-					f := fnodes[listenTo]
-					fmt.Println("Holding:")
-					for k := range f.State.Holding {
-						v := f.State.Holding[k]
-						if v != nil {
-							os.Stderr.WriteString((v.String()) + "\n")
-						} else {
-							os.Stderr.WriteString("<nul>\n")
+					if len(b) == 1 || b[1] == 'h' {
+						f := fnodes[listenTo]
+						fmt.Println("Holding:")
+						for k := range f.State.Holding {
+							v := f.State.Holding[k]
+							if v != nil {
+								os.Stderr.WriteString((v.String()) + "\n")
+							} else {
+								os.Stderr.WriteString("<nul>\n")
+							}
+						}
+					} else if b[1] == 'c' {
+						f := fnodes[listenTo]
+						fmt.Println("Commits:")
+						for _, c := range f.State.Commits {
+							if c != nil {
+								os.Stderr.WriteString("  " + (c.String()))
+								cc, ok1 := c.(*messages.CommitChainMsg)
+								cm, ok2 := c.(*messages.CommitEntryMsg)
+								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
+									os.Stderr.WriteString(" cc MATCH!\n")
+								} else if ok2 && f.State.Holding[cm.CommitEntry.EntryHash.Fixed()] != nil {
+									os.Stderr.WriteString(" ce MATCH!\n")
+								} else {
+									os.Stderr.WriteString(" no match\n")
+								}
+							} else {
+								os.Stderr.WriteString("<nul>\n")
+							}
 						}
 					}
 				}
@@ -584,7 +609,7 @@ func SimControl(listenTo int) {
 					break
 				}
 
-				fnodes[listenTo].State.InMsgQueue() <- msg
+				fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 				os.Stderr.WriteString(fmt.Sprintln("Attempting to remove", fnodes[listenTo].State.GetFactomNodeName(), "as a server"))
 
 				fallthrough
@@ -617,7 +642,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a audit server,", err.Error()))
 						break
 					}
-					fnodes[listenTo].State.InMsgQueue() <- msg
+					fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Audit Server"))
 				}
 				fallthrough
@@ -661,7 +686,7 @@ func SimControl(listenTo int) {
 						os.Stderr.WriteString(fmt.Sprintln("Could not make a leader,", err.Error()))
 						break
 					}
-					fnodes[listenTo].State.InMsgQueue() <- msg
+					fnodes[listenTo].State.InMsgQueue().Enqueue(msg)
 					os.Stderr.WriteString(fmt.Sprintln("Attempting to make", fnodes[listenTo].State.GetFactomNodeName(), "a Leader"))
 				}
 				fallthrough
@@ -1042,7 +1067,7 @@ func SimControl(listenTo int) {
 		}
 	}
 }
-func returnStatString(i int) string {
+func returnStatString(i uint8) string {
 	var stat string
 	switch i {
 	case 0:

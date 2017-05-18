@@ -140,15 +140,16 @@ type State struct {
 	timerMsgQueue          chan interfaces.IMsg
 	TimeOffset             interfaces.Timestamp
 	MaxTimeOffset          interfaces.Timestamp
-	networkOutMsgQueue     chan interfaces.IMsg
+	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             chan interfaces.IMsg
+	inMsgQueue             InMsgMSGQueue
 	apiQueue               chan interfaces.IMsg
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
-	ShutdownChan           chan int // For gracefully halting Factom
-	JournalFile            string
-	Journaling             bool
+
+	ShutdownChan chan int // For gracefully halting Factom
+	JournalFile  string
+	Journaling   bool
 
 	serverPrivKey         *primitives.PrivateKey
 	serverPubKey          *primitives.PublicKey
@@ -221,11 +222,11 @@ type State struct {
 	// Maps
 	// ====
 	// For Follower
-	resendHolding interfaces.Timestamp           // Timestamp to gate resending holding to neighbors
-	Holding       map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview       []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks          map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits       map[[32]byte][]interfaces.IMsg // Commit Messages
+	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
+	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
+	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits       map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -326,27 +327,17 @@ type State struct {
 	FERPrioritySetHeight uint32
 
 	AckChange uint32
+
+	FastBoot         bool
+	FastBootLocation string
 }
+
+var _ interfaces.IState = (*State)(nil)
 
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
 }
-
-type MissingEntryBlock struct {
-	ebhash   interfaces.IHash
-	dbheight uint32
-}
-
-type MissingEntry struct {
-	Cnt       int
-	LastTime  time.Time
-	EBHash    interfaces.IHash
-	EntryHash interfaces.IHash
-	DBHeight  uint32
-}
-
-var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState := new(State)
@@ -608,6 +599,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
+		s.FastBoot = cfg.App.FastBoot
+		s.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -725,15 +718,15 @@ func (s *State) Init() {
 	s.TimeOffset = new(primitives.Timestamp)                   //interfaces.Timestamp(int64(rand.Int63() % int64(time.Microsecond*10)))
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
-	s.networkOutMsgQueue = make(chan interfaces.IMsg, 1000) //Messages to be broadcast to the network
-	s.inMsgQueue = make(chan interfaces.IMsg, 10000)        //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 100)            //incoming message queue from the API
-	s.ackQueue = make(chan interfaces.IMsg, 100)            //queue of Leadership messages
-	s.msgQueue = make(chan interfaces.IMsg, 400)            //queue of Follower messages
-	s.ShutdownChan = make(chan int, 1)                      //Channel to gracefully shut down.
-	s.MissingEntries = make(chan *MissingEntry, 1000)       //Entries I discover are missing from the database
-	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)      //Handles entry hashes and updating Commit maps.
-	s.WriteEntry = make(chan interfaces.IEBEntry, 3000)     //Entries to be written to the database
+	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
+	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.apiQueue = make(chan interfaces.IMsg, 100)        //incoming message queue from the API
+	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
+	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
+	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
+	s.MissingEntries = make(chan *MissingEntry, 1000)   //Entries I discover are missing from the database
+	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
+	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
 
 	er := os.MkdirAll(s.LogPath, 0777)
 	if er != nil {
@@ -753,7 +746,7 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte][]interfaces.IMsg)
+	s.Commits = make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -845,6 +838,13 @@ func (s *State) Init() {
 	}
 	// end of FER removal
 	s.starttime = time.Now()
+
+	if s.FastBoot {
+		err := LoadDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
@@ -1042,7 +1042,7 @@ func (s *State) LoadDBState(dbheight uint32) (interfaces.IMsg, error) {
 
 	nextABlock, err := s.DB.FetchABlockByHeight(dbheight + 1)
 	if err != nil || nextABlock == nil {
-		pl := s.ProcessLists.Get(dbheight)
+		pl := s.ProcessLists.GetSafe(dbheight + 1)
 		if pl == nil {
 			dbkl, err := s.DB.FetchDBlockByHeight(dbheight)
 			if err != nil || dbkl == nil {
@@ -1630,7 +1630,7 @@ func (s *State) RemoveAuditServer(dbheight uint32, hash interfaces.IHash) {
 	s.ProcessLists.Get(dbheight).RemoveAuditServerHash(hash)
 }
 
-func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetFedServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.FedServers
@@ -1638,7 +1638,7 @@ func (s *State) GetFedServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetAuditServers(dbheight uint32) []interfaces.IServer {
 	pl := s.ProcessLists.Get(dbheight)
 	if pl != nil {
 		return pl.AuditServers
@@ -1646,9 +1646,9 @@ func (s *State) GetAuditServers(dbheight uint32) []interfaces.IFctServer {
 	return nil
 }
 
-func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IFctServer {
+func (s *State) GetOnlineAuditServers(dbheight uint32) []interfaces.IServer {
 	allAuditServers := s.GetAuditServers(dbheight)
-	var onlineAuditServers []interfaces.IFctServer
+	var onlineAuditServers []interfaces.IServer
 
 	for _, server := range allAuditServers {
 		if server.IsOnline() {
@@ -1795,11 +1795,11 @@ func (s *State) NetworkInvalidMsgQueue() chan interfaces.IMsg {
 	return s.networkInvalidMsgQueue
 }
 
-func (s *State) NetworkOutMsgQueue() chan interfaces.IMsg {
+func (s *State) NetworkOutMsgQueue() interfaces.IQueue {
 	return s.networkOutMsgQueue
 }
 
-func (s *State) InMsgQueue() chan interfaces.IMsg {
+func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 

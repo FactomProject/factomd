@@ -13,9 +13,13 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
 )
@@ -55,6 +59,388 @@ type DBState struct {
 	NextTimestamp     interfaces.Timestamp
 }
 
+var _ interfaces.BinaryMarshallable = (*DBState)(nil)
+
+func (dbs *DBState) Init() {
+	/*
+		if dbs.SaveStruct == nil {
+			dbs.SaveStruct = new(SaveState)
+		}
+	*/
+
+	if dbs.DBHash == nil {
+		dbs.DBHash = primitives.NewZeroHash()
+	}
+	if dbs.ABHash == nil {
+		dbs.ABHash = primitives.NewZeroHash()
+	}
+	if dbs.FBHash == nil {
+		dbs.FBHash = primitives.NewZeroHash()
+	}
+	if dbs.ECHash == nil {
+		dbs.ECHash = primitives.NewZeroHash()
+	}
+
+	if dbs.DirectoryBlock == nil {
+		dbs.DirectoryBlock = directoryBlock.NewDirectoryBlock(nil)
+	}
+	if dbs.AdminBlock == nil {
+		dbs.AdminBlock = adminBlock.NewAdminBlock(nil)
+	}
+	if dbs.FactoidBlock == nil {
+		dbs.FactoidBlock = factoid.NewFBlock(nil)
+	}
+	if dbs.EntryCreditBlock == nil {
+		dbs.EntryCreditBlock = entryCreditBlock.NewECBlock()
+	}
+
+	if dbs.Added == nil {
+		dbs.Added = primitives.NewTimestampFromMilliseconds(0)
+	}
+	if dbs.NextTimestamp == nil {
+		dbs.NextTimestamp = primitives.NewTimestampFromMilliseconds(0)
+	}
+}
+
+func (a *DBState) IsSameAs(b *DBState) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	if a.IsNew != b.IsNew {
+		return false
+	}
+
+	if a.SaveStruct != nil {
+		if a.SaveStruct.IsSameAs(b.SaveStruct) == false {
+			return false
+		}
+	} else {
+		if b.SaveStruct != nil {
+			return false
+		}
+	}
+
+	if a.DBHash.IsSameAs(b.DBHash) == false {
+		return false
+	}
+	if a.ABHash.IsSameAs(b.ABHash) == false {
+		return false
+	}
+	if a.FBHash.IsSameAs(b.FBHash) == false {
+		return false
+	}
+	if a.ECHash.IsSameAs(b.ECHash) == false {
+		return false
+	}
+
+	if a.DirectoryBlock.IsSameAs(b.DirectoryBlock) == false {
+		return false
+	}
+	if a.AdminBlock.IsSameAs(b.AdminBlock) == false {
+		return false
+	}
+	if a.FactoidBlock.IsSameAs(b.FactoidBlock) == false {
+		return false
+	}
+	if a.EntryCreditBlock.IsSameAs(b.EntryCreditBlock) == false {
+		return false
+	}
+
+	if len(a.EntryBlocks) != len(b.EntryBlocks) {
+		return false
+	}
+	for i := range a.EntryBlocks {
+		if a.EntryBlocks[i].IsSameAs(b.EntryBlocks[i]) == false {
+			return false
+		}
+	}
+
+	if len(a.Entries) != len(b.Entries) {
+		return false
+	}
+	for i := range a.Entries {
+		if a.Entries[i].IsSameAs(b.Entries[i]) == false {
+			return false
+		}
+	}
+
+	if a.Repeat != b.Repeat {
+		return false
+	}
+	if a.ReadyToSave != b.ReadyToSave {
+		return false
+	}
+	if a.Locked != b.Locked {
+		return false
+	}
+	if a.Signed != b.Signed {
+		return false
+	}
+	if a.Saved != b.Saved {
+		return false
+	}
+
+	if a.Added.IsSameAs(b.Added) == false {
+		return false
+	}
+
+	if a.FinalExchangeRate != b.FinalExchangeRate {
+		return false
+	}
+
+	if a.NextTimestamp.IsSameAs(b.NextTimestamp) == false {
+		return false
+	}
+
+	return true
+}
+
+func (dbs *DBState) MarshalBinary() ([]byte, error) {
+	dbs.Init()
+	b := primitives.NewBuffer(nil)
+
+	err := b.PushBool(dbs.IsNew)
+	if err != nil {
+		return nil, err
+	}
+
+	if dbs.SaveStruct == nil {
+		err = b.PushBool(false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = b.PushBool(true)
+		if err != nil {
+			return nil, err
+		}
+		err = b.PushBinaryMarshallable(dbs.SaveStruct)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = b.PushBinaryMarshallable(dbs.DBHash)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.ABHash)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.FBHash)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.ECHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBinaryMarshallable(dbs.DirectoryBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.AdminBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.FactoidBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.EntryCreditBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	l := len(dbs.EntryBlocks)
+	err = b.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range dbs.EntryBlocks {
+		err = b.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	h, err := entryBlock.MarshalEntryList(dbs.Entries)
+	if err != nil {
+		return nil, err
+	}
+	err = b.Push(h)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBool(dbs.Repeat)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.ReadyToSave)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Locked)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Signed)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBool(dbs.Saved)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.PushBinaryMarshallable(dbs.Added)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushUInt64(dbs.FinalExchangeRate)
+	if err != nil {
+		return nil, err
+	}
+	err = b.PushBinaryMarshallable(dbs.NextTimestamp)
+	if err != nil {
+		return nil, err
+	}
+	return b.DeepCopyBytes(), nil
+}
+
+func (dbs *DBState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	dbs.Init()
+
+	dbs.EntryBlocks = []interfaces.IEntryBlock{}
+	dbs.Entries = []interfaces.IEBEntry{}
+
+	newData = p
+	b := primitives.NewBuffer(p)
+
+	dbs.IsNew, err = b.PopBool()
+	if err != nil {
+		return
+	}
+
+	ok, err := b.PopBool()
+	if err != nil {
+		return
+	}
+
+	if ok == true {
+		dbs.SaveStruct = new(SaveState)
+		err = b.PopBinaryMarshallable(dbs.SaveStruct)
+		if err != nil {
+			return
+		}
+	}
+
+	err = b.PopBinaryMarshallable(dbs.DBHash)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.ABHash)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.FBHash)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.ECHash)
+	if err != nil {
+		return
+	}
+
+	err = b.PopBinaryMarshallable(dbs.DirectoryBlock)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.AdminBlock)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.FactoidBlock)
+	if err != nil {
+		return
+	}
+	err = b.PopBinaryMarshallable(dbs.EntryCreditBlock)
+	if err != nil {
+		return
+	}
+
+	l, err := b.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		eb := entryBlock.NewEBlock()
+		err = b.PopBinaryMarshallable(eb)
+		if err != nil {
+			return
+		}
+		dbs.EntryBlocks = append(dbs.EntryBlocks, eb)
+	}
+
+	entries, rest, err := entryBlock.UnmarshalEntryList(b.DeepCopyBytes())
+	if err != nil {
+		return
+	}
+	dbs.Entries = entries
+	b = primitives.NewBuffer(rest)
+
+	dbs.Repeat, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.ReadyToSave, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Locked, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Signed, err = b.PopBool()
+	if err != nil {
+		return
+	}
+	dbs.Saved, err = b.PopBool()
+	if err != nil {
+		return
+	}
+
+	err = b.PopBinaryMarshallable(dbs.Added)
+	if err != nil {
+		return
+	}
+
+	dbs.FinalExchangeRate, err = b.PopUInt64()
+	if err != nil {
+		return
+	}
+
+	err = b.PopBinaryMarshallable(dbs.NextTimestamp)
+	if err != nil {
+		return
+	}
+
+	newData = b.DeepCopyBytes()
+	return
+}
+
+func (dbs *DBState) UnmarshalBinary(p []byte) error {
+	_, err := dbs.UnmarshalBinaryData(p)
+	return err
+}
+
 type DBStateList struct {
 	SrcNetwork bool // True if I got this block from the network.
 
@@ -67,6 +453,191 @@ type DBStateList struct {
 	Base          uint32
 	Complete      uint32
 	DBStates      []*DBState
+}
+
+var _ interfaces.BinaryMarshallable = (*DBStateList)(nil)
+
+func (dbsl *DBStateList) Init() {
+	if dbsl.TimeToAsk == nil {
+		dbsl.TimeToAsk = primitives.NewTimestampFromMilliseconds(0)
+	}
+}
+
+func (a *DBStateList) IsSameAs(b *DBStateList) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	if a.SrcNetwork != b.SrcNetwork {
+		return false
+	}
+
+	if a.LastEnd != b.LastEnd {
+		return false
+	}
+	if a.LastBegin != b.LastBegin {
+		return false
+	}
+	if a.TimeToAsk.IsSameAs(b.TimeToAsk) == false {
+		return false
+	}
+	if a.ProcessHeight != b.ProcessHeight {
+		return false
+	}
+	if a.SavedHeight != b.SavedHeight {
+		return false
+	}
+
+	//State    *State
+	if a.Base != b.Base {
+		return false
+	}
+	if a.Complete != b.Complete {
+		return false
+	}
+
+	if len(a.DBStates) != len(b.DBStates) {
+		return false
+	}
+	for i := range a.DBStates {
+		if a.DBStates[i].IsSameAs(b.DBStates[i]) == false {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (dbsl *DBStateList) MarshalBinary() ([]byte, error) {
+	dbsl.Init()
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushBool(dbsl.SrcNetwork)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(uint32(dbsl.LastEnd))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(uint32(dbsl.LastBegin))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(dbsl.TimeToAsk)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(dbsl.ProcessHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(dbsl.SavedHeight)
+	if err != nil {
+		return nil, err
+	}
+	//TODO: handle State
+	err = buf.PushUInt32(dbsl.Base)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(dbsl.Complete)
+	if err != nil {
+		return nil, err
+	}
+	l := len(dbsl.DBStates)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range dbsl.DBStates {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (dbsl *DBStateList) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	dbsl.Init()
+	dbsl.DBStates = []*DBState{}
+	newData = p
+
+	buf := primitives.NewBuffer(p)
+
+	dbsl.SrcNetwork, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	x, err := buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.LastEnd = int(x)
+	x, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.LastBegin = int(x)
+
+	err = buf.PopBinaryMarshallable(dbsl.TimeToAsk)
+	if err != nil {
+		return
+	}
+	dbsl.ProcessHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.SavedHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	//TODO: handle State
+	dbsl.Base, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	dbsl.Complete, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		dbs := new(DBState)
+		err = buf.PopBinaryMarshallable(dbs)
+		if err != nil {
+			return
+		}
+		dbsl.DBStates = append(dbsl.DBStates, dbs)
+
+	}
+
+	newData = buf.DeepCopyBytes()
+
+	for i := len(dbsl.DBStates) - 1; i >= 0; i-- {
+		if dbsl.DBStates[i].SaveStruct != nil {
+			dbsl.DBStates[i].SaveStruct.RestoreFactomdState(dbsl.State)
+			break
+		}
+	}
+
+	return
+}
+
+func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
+	_, err := dbsl.UnmarshalBinaryData(p)
+	return err
 }
 
 // Validate this directory block given the next Directory Block.  Need to check the
@@ -103,6 +674,10 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 	if d == nil {
 		//state.AddStatus(fmt.Sprintf("DBState.ValidNext: rtn 0 dbstate is nil or not saved dbht: %d", dbheight))
 		// Must be out of order.  Can't make the call if valid or not yet.
+		return 0
+	}
+
+	if !next.IsInDB && !next.IgnoreSigs && next.ValidateSignatures(state) != 1 {
 		return 0
 	}
 
@@ -202,7 +777,7 @@ func (ds *DBState) String() string {
 func (list *DBStateList) GetHighestCompletedBlk() uint32 {
 	ht := list.Base
 	for i, dbstate := range list.DBStates {
-		if dbstate != nil && (dbstate.Locked || dbstate.Saved) {
+		if dbstate != nil && dbstate.Locked {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
@@ -242,7 +817,7 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 }
 
 // a contains b, returns true
-func containsServer(haystack []interfaces.IFctServer, needle interfaces.IFctServer) bool {
+func containsServer(haystack []interfaces.IServer, needle interfaces.IServer) bool {
 	for _, hay := range haystack {
 		if needle.GetChainID().IsSameAs(hay.GetChainID()) {
 			return true
@@ -536,38 +1111,22 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	s := list.State
 	// Time out commits every now and again.
 	now := s.GetTimestamp()
-	for k := range s.Commits {
-		var keep []interfaces.IMsg
-		commits := s.Commits[k]
-
-		// Check to see if an entry Reveal has negated any pending commits.  All commits to the same EntryReveal
-		// are discarded after we have recorded said Entry Reveal
-		if len(commits) == 0 {
-			delete(s.Commits, k)
-		} else {
-			{
-				c, ok := s.Commits[k][0].(*messages.CommitChainMsg)
-				if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
-					delete(s.Commits, k)
-					continue
-				}
-			}
-			c, ok := s.Commits[k][0].(*messages.CommitEntryMsg)
-			if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+	for k, msg := range s.Commits {
+		{
+			c, ok := msg.(*messages.CommitChainMsg)
+			if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
 				delete(s.Commits, k)
 				continue
 			}
 		}
-
-		for _, v := range commits {
-			_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), now)
-			if ok {
-				keep = append(keep, v)
-			}
+		c, ok := msg.(*messages.CommitEntryMsg)
+		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+			delete(s.Commits, k)
+			continue
 		}
-		if len(keep) > 0 {
-			s.Commits[k] = keep
-		} else {
+
+		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+		if !ok {
 			delete(s.Commits, k)
 		}
 	}

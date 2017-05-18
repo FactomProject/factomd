@@ -98,7 +98,7 @@ func CheckTimestamp(time []byte, timeEntered int64) bool {
 	}
 }
 
-func statusIsFedOrAudit(status int) bool {
+func statusIsFedOrAudit(status uint8) bool {
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_AUDIT_SERVER ||
 		status == constants.IDENTITY_PENDING_FEDERATED_SERVER ||

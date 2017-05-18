@@ -30,7 +30,10 @@ var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 var _ Signable = (*CommitChainMsg)(nil)
 
 func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
-	if b == nil {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
 		return false
 	}
 
@@ -107,7 +110,7 @@ func (m *CommitChainMsg) Validate(state interfaces.IState) int {
 	ebal := state.GetFactoidState().GetECBalance(*m.CommitChain.ECPubKey)
 	v := int(ebal) - int(m.CommitChain.Credits)
 	if v < 0 {
-		return -1
+		return 0
 	}
 
 	return 1

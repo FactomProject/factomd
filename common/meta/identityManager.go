@@ -30,19 +30,23 @@ type IdentityManagerWithoutMutex struct {
 	OldEntries []*OldEntry
 }
 
-func (im *IdentityManager) SetSkeletonKey(key string) {
+func (im *IdentityManager) SetSkeletonKey(key string) error {
 	auth := new(Authority)
-	auth.SigningKey.UnmarshalText([]byte(key))
+	err := auth.SigningKey.UnmarshalText([]byte(key))
+	if err != nil {
+		return err
+	}
 	auth.Status = constants.IDENTITY_FEDERATED_SERVER
 
 	im.SetAuthority(primitives.NewZeroHash(), auth)
+	return nil
 }
 
-func (im *IdentityManager) SetSkeletonKeyMainNet() {
+func (im *IdentityManager) SetSkeletonKeyMainNet() error {
 	//Skeleton key:
 	//"0000000000000000000000000000000000000000000000000000000000000000":"0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a"
 
-	im.SetSkeletonKey("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
+	return im.SetSkeletonKey("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
 }
 
 func (im *IdentityManager) FedServerCount() int {
@@ -50,7 +54,7 @@ func (im *IdentityManager) FedServerCount() int {
 	defer im.Mutex.RUnlock()
 	answer := 0
 	for _, v := range im.Authorities {
-		if v.Type() == constants.IDENTITY_FEDERATED_SERVER {
+		if v.Type() == int(constants.IDENTITY_FEDERATED_SERVER) {
 			answer++
 		}
 	}
@@ -62,7 +66,7 @@ func (im *IdentityManager) AuditServerCount() int {
 	defer im.Mutex.RUnlock()
 	answer := 0
 	for _, v := range im.Authorities {
-		if v.Type() == constants.IDENTITY_AUDIT_SERVER {
+		if v.Type() == int(constants.IDENTITY_AUDIT_SERVER) {
 			answer++
 		}
 	}

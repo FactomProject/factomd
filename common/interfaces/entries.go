@@ -14,6 +14,7 @@ type IEBEntry interface {
 	ExternalIDs() [][]byte
 	GetContent() []byte
 	GetChainIDHash() IHash
+	IsSameAs(IEBEntry) bool
 }
 
 type IEntry interface {

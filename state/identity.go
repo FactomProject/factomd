@@ -32,7 +32,7 @@ var (
 //			0 	--> Audit Server
 //			1	--> Federated
 func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
-	getReturnStatInt := func(stat int) int {
+	getReturnStatInt := func(stat uint8) int {
 		if stat == constants.IDENTITY_PENDING_FEDERATED_SERVER || stat == constants.IDENTITY_FEDERATED_SERVER {
 			return 1
 		}
@@ -547,7 +547,7 @@ func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 				if err != nil {
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
-				st.InMsgQueue() <- msg
+				st.InMsgQueue().Enqueue(msg)
 			}
 		} else {
 			return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -616,7 +616,7 @@ func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
 				//log.Printfln("DEBUG: MHash ChangeServer Message Sent")
-				st.InMsgQueue() <- msg
+				st.InMsgQueue().Enqueue(msg)
 				//}
 			}
 		} else {
@@ -712,7 +712,7 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 				if err != nil {
 					return errors.New("New Block Signing key for identity [" + chainID.String()[:10] + "] Error: cannot sign msg")
 				}
-				st.InMsgQueue() <- msg
+				st.InMsgQueue().Enqueue(msg)
 			}
 		} else {
 			return errors.New("New Anchor key for identity [" + chainID.String()[:10] + "] is invalid. Bad signiture")
@@ -807,7 +807,7 @@ func (st *State) VerifyIsAuthority(cid interfaces.IHash) bool {
 	return false
 }
 
-func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo int, st *State) {
+func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo uint8, st *State) {
 	IdentityIndex := st.isIdentityChain(ChainID)
 	if IdentityIndex == -1 {
 		return
