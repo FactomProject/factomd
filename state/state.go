@@ -552,6 +552,10 @@ func (s *State) IncECommits() {
 	s.ECommits++
 }
 
+func (s *State) PickUpFromHash(msgHash string) {
+	s.NetworkOutMsgQueue().Enqueue(messages.NewEtcdHashPickup(s, msgHash))
+}
+
 func (s *State) GetAckChange() error {
 	change, err := util.GetChangeAcksHeight(s.filename)
 	if err != nil {
