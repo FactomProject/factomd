@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"fmt"
+
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -108,6 +109,18 @@ func TestSignAndVerifyAck(t *testing.T) {
 	}
 	if valid == false {
 		t.Error("Signature 2 is not valid")
+	}
+}
+
+func TestPutAndGetAck(t *testing.T) {
+	eom := newEOM()
+	ack := newAck()
+	eom.PutAck(ack)
+	if eom.Ack == nil {
+		t.Error("Ack is nil after PutAck called")
+	}
+	if !eom.GetAck().GetHash().IsSameAs(ack.GetHash()) {
+		t.Error("GetAck returned a different Ack than PutAck put")
 	}
 }
 
