@@ -349,19 +349,6 @@ type EntryUpdate struct {
 	Timestamp interfaces.Timestamp
 }
 
-type MissingEntryBlock struct {
-	ebhash   interfaces.IHash
-	dbheight uint32
-}
-
-type MissingEntry struct {
-	Cnt       int
-	LastTime  time.Time
-	EBHash    interfaces.IHash
-	EntryHash interfaces.IHash
-	DBHeight  uint32
-}
-
 var _ interfaces.IState = (*State)(nil)
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
