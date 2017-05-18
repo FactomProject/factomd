@@ -231,7 +231,7 @@ func precedingVMIndex(pl *ProcessList) int {
 
 func ToggleAuditOffline(pl *ProcessList, fc FaultCore) {
 	auditServerList := pl.State.GetAuditServers(fc.DBHeight)
-	var theAuditReplacement interfaces.IFctServer
+	var theAuditReplacement interfaces.IServer
 
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fc.AuditServerID) {
@@ -367,7 +367,7 @@ func (s *State) FollowerExecuteSFault(m interfaces.IMsg) {
 		// If no such ProcessList exists, or if we don't consider
 		// the VM in this ServerFault message to be at fault,
 		// do not proceed with regularFaultExecution
-		s.Holding[m.GetRepeatHash().Fixed()] = m
+		s.Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
 
@@ -448,7 +448,7 @@ func (s *State) matchFault(sf *messages.ServerFault) {
 	if sf != nil {
 		sf.Sign(s.serverPrivKey)
 		sf.SendOut(s, sf)
-		s.InMsgQueue() <- sf
+		s.InMsgQueue().Enqueue(sf)
 	}
 }
 
@@ -461,7 +461,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	pl := s.ProcessLists.Get(fullFault.DBHeight)
 
 	if pl == nil {
-		s.Holding[m.GetHash().Fixed()] = m
+		s.Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
 

@@ -33,6 +33,38 @@ func (e *IncreaseBalance) Init() {
 	}
 }
 
+func (a *IncreaseBalance) IsSameAs(b interfaces.IECBlockEntry) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+	if a.ECID() != b.ECID() {
+		return false
+	}
+
+	bb, ok := b.(*IncreaseBalance)
+	if ok == false {
+		return false
+	}
+
+	if a.ECPubKey.IsSameAs(bb.ECPubKey) == false {
+		return false
+	}
+	if a.TXID.IsSameAs(bb.TXID) == false {
+		return false
+	}
+	if a.Index != bb.Index {
+		return false
+	}
+	if a.NumEC != bb.NumEC {
+		return false
+	}
+
+	return true
+}
+
 func (e *IncreaseBalance) String() string {
 	e.Init()
 	var out primitives.Buffer

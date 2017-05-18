@@ -9,6 +9,15 @@ type DBStateSent struct {
 	Sent     Timestamp
 }
 
+// IQueue is the interface returned by returning queue functions
+type IQueue interface {
+	Length() int
+	Cap() int
+	Enqueue(msg IMsg)
+	Dequeue() IMsg
+	BlockingDequeue() IMsg
+}
+
 // Holds the state information for factomd.  This does imply that we will be
 // using accessors to access state information in the consensus algorithm.
 // This is a bit tedious, but does provide single choke points where information
@@ -49,11 +58,11 @@ type IState interface {
 	AddDBSig(dbheight uint32, chainID IHash, sig IFullSignature)
 	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
-	GetFedServers(uint32) []IFctServer
+	GetFedServers(uint32) []IServer
 	RemoveFedServer(uint32, IHash)
 	AddAuditServer(uint32, IHash) int
-	GetAuditServers(uint32) []IFctServer
-	GetOnlineAuditServers(uint32) []IFctServer
+	GetAuditServers(uint32) []IServer
+	GetOnlineAuditServers(uint32) []IServer
 
 	//RPC
 	GetRpcUser() string
@@ -91,7 +100,7 @@ type IState interface {
 	// Network Processor
 	TickerQueue() chan int
 	TimerMsgQueue() chan IMsg
-	NetworkOutMsgQueue() chan IMsg
+	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
 	// Journalling
@@ -99,10 +108,10 @@ type IState interface {
 	GetJournalMessages() [][]byte
 
 	// Consensus
-	APIQueue() chan IMsg   // Input Queue from the API
-	InMsgQueue() chan IMsg // Read by Validate
-	AckQueue() chan IMsg   // Leader Queue
-	MsgQueue() chan IMsg   // Follower Queue
+	APIQueue() chan IMsg // Input Queue from the API
+	InMsgQueue() IQueue  // Read by Validate
+	AckQueue() chan IMsg // Leader Queue
+	MsgQueue() chan IMsg // Follower Queue
 
 	// Lists and Maps
 	// =====

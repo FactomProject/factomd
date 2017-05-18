@@ -5,12 +5,10 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"hash"
-
 	"time"
-
-	"errors"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -185,17 +183,21 @@ emptyLoop:
 
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
-	for _, msg := range s.XReview {
-		if !room() {
-			break
+skipreview:
+	for {
+		for _, msg := range s.XReview {
+			if !room() {
+				break skipreview
+			}
+			if msg == nil {
+				continue
+			}
+			process <- msg
+			progress = s.executeMsg(vm, msg) || progress
 		}
-		if msg == nil {
-			continue
-		}
-		process <- msg
-		progress = s.executeMsg(vm, msg) || progress
+		s.XReview = s.XReview[:0]
+		break
 	}
-	s.XReview = s.XReview[:0]
 
 	for len(process) > 0 {
 		msg := <-process
@@ -236,30 +238,32 @@ func (s *State) ReviewHolding() {
 		return
 	}
 
-	if len(s.inMsgQueue) > 10 {
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
 	}
 
 	now := s.GetTimestamp()
-	if s.resendHolding == nil {
-		s.resendHolding = now
+	if s.ResendHolding == nil {
+		s.ResendHolding = now
 	}
-	if now.GetTimeMilli()-s.resendHolding.GetTimeMilli() < 300 {
+	if now.GetTimeMilli()-s.ResendHolding.GetTimeMilli() < 300 {
 		return
 	}
 
 	s.DB.Trim()
 
-	s.resendHolding = now
+	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
 	s.XReview = make([]interfaces.IMsg, 0)
 
 	highest := s.GetHighestKnownBlock()
+	saved := s.GetHighestSavedBlk()
 
-	for k := range s.Holding {
-		v := s.Holding[k]
+	for k, v := range s.Holding {
 
-		saved := s.GetHighestSavedBlk()
+		if int(highest)-int(saved) > 1000 {
+			delete(s.Holding, k)
+		}
 
 		mm, ok := v.(*messages.MissingMsgResponse)
 		if ok {
@@ -283,7 +287,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		eom, ok := v.(*messages.EOM)
-		if ok && ((eom.DBHeight < saved-1 && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
+		if ok && ((eom.DBHeight <= saved && saved > 0) || (eom.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}
@@ -295,7 +299,7 @@ func (s *State) ReviewHolding() {
 		}
 
 		dbsigmsg, ok := v.(*messages.DirectoryBlockSignature)
-		if ok && ((dbsigmsg.DBHeight < saved-1 && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
+		if ok && ((dbsigmsg.DBHeight <= saved && saved > 0) || (dbsigmsg.DBHeight < highest-3 && highest > 2)) {
 			delete(s.Holding, k)
 			continue
 		}
@@ -316,6 +320,7 @@ func (s *State) ReviewHolding() {
 			if v.Validate(s) == 1 {
 				s.ResendCnt++
 				v.SendOut(s, v)
+				continue
 			}
 		}
 
@@ -324,23 +329,8 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		// Only reprocess up to 200 Entry Reveals per round.  Keeps entry reveals from hiding all the good stuff like
-		// EOM messages, DBSigs, Missing data messages, etc.  You know, the stuff we have to do BEFORE we can deal
-		// with Entry Reveal messages.  Note we are adding them to the end anyway, so this is more about not blocking
-		// the next round of processing.
-		entryCnt := 0
-		// Pointless to review a Reveal Entry;  it will be pulled into play when its commit
-		// comes around.
-		if re, ok := v.(*messages.RevealEntryMsg); ok {
-			if s.Commits[re.Entry.GetHash().Fixed()] != nil && entryCnt < 200 {
-				s.XReview = append(s.XReview, v)
-				delete(s.Holding, k)
-				entryCnt++
-			}
-		} else {
-			s.XReview = append(s.XReview, v)
-			delete(s.Holding, k)
-		}
+		s.XReview = append(s.XReview, v)
+		delete(s.Holding, k)
 	}
 }
 
@@ -575,12 +565,23 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		s.DBStates.LastBegin = int(dbheight)
 	}
 	s.DBStates.TimeToAsk = nil
+
+	if dbstatemsg.IsLocal() {
+		if s.FastBoot {
+			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
+
+			err := SaveDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// Just ignore missing messages for a period after going off line or starting up.
-	if s.IgnoreMissing {
+	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
 		return
 	}
 
@@ -671,7 +672,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 		}
 
 		for i, missing := range s.MissingEntryBlocks {
-			eb := missing.ebhash
+			eb := missing.EBHash
 			if !eb.IsSameAs(ebKeyMR) {
 				continue
 			}
@@ -704,7 +705,7 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 	// Don't respond to missing messages if we are behind.
-	if len(s.inMsgQueue) > 100 {
+	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
 	}
 
@@ -721,7 +722,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-		s.NetworkOutMsgQueue() <- msgResponse
+		s.NetworkOutMsgQueue().Enqueue(msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
 	}
@@ -734,7 +735,7 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			s.NetworkOutMsgQueue() <- msgResponse
+			s.NetworkOutMsgQueue().Enqueue(msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true
 		}
@@ -792,7 +793,6 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		delete(s.Holding, m.GetRepeatHash().Fixed())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -883,7 +883,6 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		delete(s.Holding, m.GetRepeatHash().Fixed())
 		delete(s.Holding, m.GetMsgHash().Fixed())
 		return
 	}
@@ -920,14 +919,18 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	re := m.(*messages.RevealEntryMsg)
 	eh := re.Entry.GetHash()
 
-	commit, rtn := re.ValidateRTN(s)
+	rtn := re.Validate(s)
 
 	switch rtn {
 	case 0:
 		m.FollowerExecute(s)
+		return
 	case -1:
 		return
 	}
+
+	commit := s.NextCommit(eh)
+
 	now := s.GetTimestamp()
 	// If we have already recorded a Reveal Entry with this hash in this period, just ignore.
 	if _, v := s.Replay.Valid(constants.REVEAL_REPLAY, eh.Fixed(), s.GetLeaderTimestamp(), now); !v {
@@ -944,8 +947,8 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 	// If it was added, then get rid of the matching Commit.
 	if s.Acks[m.GetMsgHash().Fixed()] != nil {
-		m.FollowerExecute(s)
 		s.PutCommit(eh, commit)
+		m.FollowerExecute(s)
 	} else {
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
@@ -1024,8 +1027,6 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
-	} else {
-		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot process Commit Chain")
 
@@ -1048,8 +1049,6 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			delete(s.Holding, h.Fixed())
 		}
 		return true
-	} else {
-		fmt.Println(e)
 	}
 	//s.AddStatus("Cannot Process Commit Entry")
 
@@ -1356,19 +1355,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Saving = true
 		}
 
-		for k := range s.Commits {
-			vs := s.Commits[k]
-			if len(vs) == 0 {
-				delete(s.Commits, k)
-				continue
-			}
-			v, ok := vs[0].(interfaces.IMsg)
-			if ok {
+		for k, v := range s.Commits {
+			if v != nil {
 				_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
 				if !ok {
-					copy(vs, vs[1:])
-					vs[len(vs)-1] = nil
-					s.Commits[k] = vs[:len(vs)-1]
+					delete(s.Commits, k)
 				}
 			}
 		}
@@ -1479,37 +1470,38 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Set Leader Timestamp to: %v %d", dbs.GetTimestamp().String(), dbs.GetTimestamp().GetTimeMilli()))
 			s.SetLeaderTimestamp(dbs.GetTimestamp())
 		}
-		dbstate := s.GetDBState(dbheight - 1)
 
-		if dbstate == nil {
-			//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
+		dblk, err := s.DB.FetchDBlockByHeight(dbheight - 1)
+		if err != nil || dblk == nil {
+			dbstate := s.GetDBState(dbheight - 1)
+			if dbstate == nil || !(!dbstate.IsNew || dbstate.Locked || dbstate.Saved) {
+				//s.AddStatus(fmt.Sprintf("ProcessingDBSig(): The prior dbsig %d is nil", dbheight-1))
+				return false
+			}
+			dblk = dbstate.DirectoryBlock
+		}
+
+		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
+			pl.IncrementDiffSigTally()
 			return false
 		}
 
-		if !dbs.DirectoryBlockHeader.GetBodyMR().IsSameAs(dbstate.DirectoryBlock.GetHeader().GetBodyMR()) {
-			//fmt.Println(s.FactomNodeName, "JUST COMPARED", dbs.DirectoryBlockHeader.GetBodyMR().String()[:10], " : ", dbstate.DirectoryBlock.GetHeader().GetBodyMR().String()[:10])
-			pl.IncrementDiffSigTally()
-		}
-
 		// Adds DB Sig to be added to Admin block if passes sig checks
-		allChecks := false
 		data, err := dbs.DirectoryBlockHeader.MarshalBinary()
 		if err != nil {
-			//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Marshal binary errored"))
-		} else {
-			if !dbs.DBSignature.Verify(data) {
-				//s.AddStatus(fmt.Sprint("Debug: DBSig Signature Error, Verify errored"))
-			} else {
-				if valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight); err == nil && valid == 1 {
-					allChecks = true
-				}
-			}
+			return false
+		}
+		if !dbs.DBSignature.Verify(data) {
+			return false
 		}
 
-		if allChecks {
-			dbs.Matches = true
-			s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
+		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
+		if err != nil || valid != 1 {
+			return false
 		}
+
+		dbs.Matches = true
+		s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
 
 		dbs.Processed = true
 		s.DBSigProcessed++
@@ -1529,10 +1521,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if len(vm.List) > 0 {
 				tdbsig, ok := vm.List[0].(*messages.DirectoryBlockSignature)
 				if !ok || !tdbsig.Matches {
-					fails++
-					vm.List[0] = nil
-					vm.Height = 0
 					s.DBSigProcessed--
+					return false
 				}
 			}
 		}
@@ -1545,21 +1535,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		// disagree with us, null our entry out.  Otherwise toss our DBState and ask for one from
 		// our neighbors.
 		if !s.KeepMismatch && !pl.CheckDiffSigTally() {
-			s.DBSigFails++
-			//s.AddStatus(fmt.Sprintf("DBSig Failure KeepMismatch %v", s.KeepMismatch))
-			if pl != nil {
-				pl.Reset()
-				s.DBSig = false
-			}
-			msg := messages.NewDBStateMissing(s, uint32(dbheight-1), uint32(dbheight-1))
-
-			if msg != nil {
-				s.RunLeader = false
-				s.StartDelay = s.GetTimestamp().GetTimeMilli()
-				s.NetworkOutMsgQueue() <- msg
-			}
 			return false
 		}
+
 		s.ReviewHolding()
 		s.Saving = false
 		s.DBSigDone = true
@@ -1636,7 +1614,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 	}
 
 	auditServerList := s.GetAuditServers(fullFault.DBHeight)
-	var theAuditReplacement interfaces.IFctServer
+	var theAuditReplacement interfaces.IServer
 
 	for _, auditServer := range auditServerList {
 		if auditServer.GetChainID().IsSameAs(fullFault.AuditServerID) {
@@ -1855,11 +1833,14 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	pl := s.ProcessLists.Get(dbheight)
-	if pl == nil {
-		return nil
+	if dbheight <= s.GetHighestSavedBlk()+1 {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return nil
+		}
+		return pl.GetNewEBlocks(hash)
 	}
-	return pl.GetNewEBlocks(hash)
+	return nil
 }
 
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
@@ -1874,31 +1855,24 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
-	cs := s.Commits[hash.Fixed()]
-	if cs == nil {
-		return nil
-	}
-
-	if len(cs) == 0 {
-		delete(s.Commits, hash.Fixed())
-		return nil
-	}
-
-	r := cs[0]
-
-	copy(cs[:], cs[1:])
-	cs[len(cs)-1] = nil
-	s.Commits[hash.Fixed()] = cs[:len(cs)-1]
-
-	return r
+	c := s.Commits[hash.Fixed()]
+	return c
 }
 
 func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
-	cs := s.Commits[hash.Fixed()]
-	if cs == nil {
-		cs = make([]interfaces.IMsg, 0)
+	e, ok1 := s.Commits[hash.Fixed()].(*messages.CommitEntryMsg)
+	m, ok1b := msg.(*messages.CommitEntryMsg)
+	ec, ok2 := s.Commits[hash.Fixed()].(*messages.CommitChainMsg)
+	mc, ok2b := msg.(*messages.CommitEntryMsg)
+
+	// Keep the most entry credits.
+
+	switch {
+	case ok1 && ok1b && e.CommitEntry.Credits > m.CommitEntry.Credits:
+	case ok2 && ok2b && ec.CommitChain.Credits > mc.CommitEntry.Credits:
+	default:
+		s.Commits[hash.Fixed()] = msg
 	}
-	s.Commits[hash.Fixed()] = append(cs, msg)
 }
 
 func (s *State) GetHighestAck() uint32 {

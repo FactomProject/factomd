@@ -5,9 +5,12 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // Because we have to go back to a previous state should the network be partictoned and we are on a separate
@@ -24,8 +27,8 @@ type SaveState struct {
 	// DBState settings are fixed and cannot change going forward.  Any DBState objects higher than the
 	// DBHeight here must be tossed and reconstructed.
 
-	FedServers   []interfaces.IFctServer
-	AuditServers []interfaces.IFctServer
+	FedServers   []interfaces.IServer
+	AuditServers []interfaces.IServer
 
 	// The old balances must be restored
 	FactoidBalancesP map[[32]byte]int64
@@ -65,10 +68,10 @@ type SaveState struct {
 
 	LeaderTimestamp interfaces.Timestamp
 
-	Holding map[[32]byte]interfaces.IMsg   // Hold Messages
-	XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
-	Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+	Holding map[[32]byte]interfaces.IMsg // Hold Messages
+	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
 
@@ -100,6 +103,189 @@ type SaveState struct {
 	FERPrioritySetHeight uint32
 }
 
+var _ interfaces.BinaryMarshallable = (*SaveState)(nil)
+var _ interfaces.Printable = (*SaveState)(nil)
+
+func (ss *SaveState) Init() {
+	if ss.FactoidBalancesP == nil {
+		ss.FactoidBalancesP = map[[32]byte]int64{}
+	}
+	if ss.ECBalancesP == nil {
+		ss.ECBalancesP = map[[32]byte]int64{}
+	}
+	if ss.Holding == nil {
+		ss.Holding = map[[32]byte]interfaces.IMsg{}
+	}
+	if ss.Acks == nil {
+		ss.Acks = map[[32]byte]interfaces.IMsg{}
+	}
+	if ss.Commits == nil {
+		ss.Commits = map[[32]byte]interfaces.IMsg{}
+	}
+	if ss.InvalidMessages == nil {
+		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
+	}
+}
+
+func (a *SaveState) IsSameAs(b *SaveState) bool {
+	if a == nil || b == nil {
+		if a == nil && b == nil {
+			return true
+		}
+		return false
+	}
+
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+
+	//FedServers   []interfaces.IServer
+	//AuditServers []interfaces.IServer
+
+	if len(a.FactoidBalancesP) != len(b.FactoidBalancesP) {
+		return false
+	}
+	for k := range a.FactoidBalancesP {
+		if a.FactoidBalancesP[k] != b.FactoidBalancesP[k] {
+			return false
+		}
+	}
+	if len(a.ECBalancesP) != len(b.ECBalancesP) {
+		return false
+	}
+	for k := range a.ECBalancesP {
+		if a.ECBalancesP[k] != b.ECBalancesP[k] {
+			return false
+		}
+	}
+
+	//Identities           []*Identity
+	//Authorities          []*Authority
+	if a.AuthorityServerCount != b.AuthorityServerCount {
+		return false
+	}
+
+	if a.LLeaderHeight != b.LLeaderHeight {
+		return false
+	}
+	if a.Leader != b.Leader {
+		return false
+	}
+	if a.LeaderVMIndex != b.LeaderVMIndex {
+		return false
+	}
+	//LeaderPL      *ProcessList
+	if a.CurrentMinute != b.CurrentMinute {
+		return false
+	}
+
+	if a.EOMsyncing != b.EOMsyncing {
+		return false
+	}
+
+	if a.EOM != b.EOM {
+		return false
+	}
+	if a.EOMLimit != b.EOMLimit {
+		return false
+	}
+	if a.EOMProcessed != b.EOMProcessed {
+		return false
+	}
+	if a.EOMDone != b.EOMDone {
+		return false
+	}
+	if a.EOMMinute != b.EOMMinute {
+		return false
+	}
+	if a.EOMSys != b.EOMSys {
+		return false
+	}
+
+	if a.DBSig != b.DBSig {
+		return false
+	}
+	if a.DBSigLimit != b.DBSigLimit {
+		return false
+	}
+	if a.DBSigProcessed != b.DBSigProcessed {
+		return false
+	}
+	if a.DBSigDone != b.DBSigDone {
+		return false
+	}
+	if a.DBSigSys != b.DBSigSys {
+		return false
+	}
+
+	if a.Newblk != b.Newblk {
+		return false
+	}
+	if a.Saving != b.Saving {
+		return false
+	}
+	if a.Syncing != b.Syncing {
+		return false
+	}
+
+	//Replay *Replay
+
+	if a.LeaderTimestamp.IsSameAs(b.LeaderTimestamp) == false {
+		return false
+	}
+
+	//Holding map[[32]byte]interfaces.IMsg
+	//XReview []interfaces.IMsg
+	//Acks    map[[32]byte]interfaces.IMsg
+	//Commits map[[32]byte][]interfaces.IMsg
+
+	//InvalidMessages map[[32]byte]interfaces.IMsg
+
+	if a.EntryBlockDBHeightComplete != b.EntryBlockDBHeightComplete {
+		return false
+	}
+	if a.EntryBlockDBHeightProcessing != b.EntryBlockDBHeightProcessing {
+		return false
+	}
+	//MissingEntryBlocks []MissingEntryBlock
+
+	if a.EntryDBHeightComplete != b.EntryDBHeightComplete {
+		return false
+	}
+	if a.EntryHeightComplete != b.EntryHeightComplete {
+		return false
+	}
+	if a.EntryDBHeightProcessing != b.EntryDBHeightProcessing {
+		return false
+	}
+	//MissingEntries []MissingEntry
+
+	if a.FactoshisPerEC != b.FactoshisPerEC {
+		return false
+	}
+	if a.FERChainId != b.FERChainId {
+		return false
+	}
+	if a.ExchangeRateAuthorityPublicKey != b.ExchangeRateAuthorityPublicKey {
+		return false
+	}
+
+	if a.FERChangeHeight != b.FERChangeHeight {
+		return false
+	}
+	if a.FERChangePrice != b.FERChangePrice {
+		return false
+	}
+	if a.FERPriority != b.FERPriority {
+		return false
+	}
+	if a.FERPrioritySetHeight != b.FERPrioritySetHeight {
+		return false
+	}
+
+	return true
+}
+
 func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss = new(SaveState)
 	ss.DBHeight = d.DirectoryBlock.GetHeader().GetDBHeight()
@@ -109,10 +295,13 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 		return nil
 	}
 
-	// If the timestamp is over a day old, then there is really no point in saving the state of
-	// historical data.
-	if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
-		return nil
+	//Only check if we're not loading from the database
+	if state.DBFinished == true {
+		// If the timestamp is over a day old, then there is really no point in saving the state of
+		// historical data.
+		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
+			return nil
+		}
 	}
 
 	// state.AddStatus(fmt.Sprintf("Save state at dbht: %d", ss.DBHeight))
@@ -175,10 +364,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//	ss.Acks[k] = state.Acks[k]
 	//}
 
-	ss.Commits = make(map[[32]byte][]interfaces.IMsg)
-	for k := range state.Commits {
-		var c []interfaces.IMsg
-		ss.Commits[k] = append(c, state.Commits[k]...)
+	ss.Commits = make(map[[32]byte]interfaces.IMsg)
+	for k, c := range state.Commits {
+		ss.Commits[k] = c
 	}
 
 	ss.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
@@ -194,11 +382,18 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	ss.FERChangePrice = state.FERChangePrice
 	ss.FERPriority = state.FERPriority
 	ss.FERPrioritySetHeight = state.FERPrioritySetHeight
+
+	/*
+		err := SaveTheState(ss)
+		if err != nil {
+			panic(err)
+		}
+	*/
+
 	return
 }
 
 func (ss *SaveState) TrimBack(state *State, d *DBState) {
-
 	pdbstate := d
 	d = state.DBStates.Get(int(ss.DBHeight + 1))
 	if pdbstate == nil {
@@ -257,18 +452,20 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	state.Replay = pss.Replay.Save()
 
 	return
-	pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
-	pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)
+	/*
+		pl.FedServers = append(pl.FedServers[0:], ppl.FedServers...)
+		pl.AuditServers = append(pl.AuditServers[0:], ppl.AuditServers...)
 
-	//state.Identities = append(state.Identities[:0], pss.Identities...)
-	//state.Authorities = append(state.Authorities[:0], pss.Authorities...)
-	//state.AuthorityServerCount = pss.AuthorityServerCount
+		//state.Identities = append(state.Identities[:0], pss.Identities...)
+		//state.Authorities = append(state.Authorities[:0], pss.Authorities...)
+		//state.AuthorityServerCount = pss.AuthorityServerCount
 
-	state.Holding = make(map[[32]byte]interfaces.IMsg)
-	for k := range ss.Holding {
-		state.Holding[k] = pss.Holding[k]
-	}
-	state.XReview = append(state.XReview[:0], pss.XReview...)
+		state.Holding = make(map[[32]byte]interfaces.IMsg)
+		for k := range ss.Holding {
+			state.Holding[k] = pss.Holding[k]
+		}
+		state.XReview = append(state.XReview[:0], pss.XReview...)
+	*/
 
 	/**
 	ss.EOMsyncing = state.EOMsyncing
@@ -333,7 +530,7 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	**/
 }
 
-func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
+func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 	// We trim away the ProcessList under construction (and any others) so we can
 	// rebuild afresh.
 	index := int(state.ProcessLists.DBHeightBase) - int(ss.DBHeight)
@@ -373,19 +570,21 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.Replay = ss.Replay.Save()
 	state.LeaderTimestamp = ss.LeaderTimestamp
 
-	pl.FedServers = append(pl.FedServers[:0], ss.FedServers...)
-	pl.AuditServers = append(pl.AuditServers[:0], ss.AuditServers...)
+	pl.FedServers = []interfaces.IServer{}
+	pl.AuditServers = []interfaces.IServer{}
+	pl.FedServers = append(pl.FedServers, ss.FedServers...)
+	pl.AuditServers = append(pl.AuditServers, ss.AuditServers...)
 
 	state.FactoidBalancesPMutex.Lock()
 	state.FactoidBalancesP = make(map[[32]byte]int64, 0)
-	for k := range state.FactoidBalancesP {
+	for k := range ss.FactoidBalancesP {
 		state.FactoidBalancesP[k] = ss.FactoidBalancesP[k]
 	}
 	state.FactoidBalancesPMutex.Unlock()
 
 	state.ECBalancesPMutex.Lock()
 	state.ECBalancesP = make(map[[32]byte]int64, 0)
-	for k := range state.ECBalancesP {
+	for k := range ss.ECBalancesP {
 		state.ECBalancesP[k] = ss.ECBalancesP[k]
 	}
 	state.ECBalancesPMutex.Unlock()
@@ -428,10 +627,9 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 		state.Acks[k] = ss.Acks[k]
 	}
 
-	state.Commits = make(map[[32]byte][]interfaces.IMsg)
-	for k := range ss.Commits {
-		var c []interfaces.IMsg
-		state.Commits[k] = append(c, ss.Commits[k]...)
+	state.Commits = make(map[[32]byte]interfaces.IMsg)
+	for k, c := range ss.Commits {
+		state.Commits[k] = c
 	}
 
 	state.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
@@ -447,4 +645,624 @@ func (ss *SaveState) RestoreFactomdState(state *State, d *DBState) {
 	state.FERChangePrice = ss.FERChangePrice
 	state.FERPriority = ss.FERPriority
 	state.FERPrioritySetHeight = ss.FERPrioritySetHeight
+}
+
+func (ss *SaveState) MarshalBinary() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
+
+	err := buf.PushUInt32(ss.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	l := len(ss.FedServers)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.FedServers {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	l = len(ss.AuditServers)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.AuditServers {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = PushBalanceMap(buf, ss.FactoidBalancesP)
+	if err != nil {
+		return nil, err
+	}
+
+	err = PushBalanceMap(buf, ss.ECBalancesP)
+	if err != nil {
+		return nil, err
+	}
+
+	l = len(ss.Identities)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.Identities {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	l = len(ss.Authorities)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.Authorities {
+		err = buf.PushBinaryMarshallable(v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushVarInt(uint64(ss.AuthorityServerCount))
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(ss.LLeaderHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.Leader)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.LeaderVMIndex))
+	if err != nil {
+		return nil, err
+	}
+	//TODO: handle LeaderPL      *ProcessList
+	err = buf.PushVarInt(uint64(ss.CurrentMinute))
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.EOMsyncing)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.EOM)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EOMLimit))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EOMProcessed))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.EOMDone)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EOMMinute))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.EOMSys)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.DBSig)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.DBSigLimit))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.DBSigProcessed))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.DBSigDone)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.DBSigSys)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBool(ss.Newblk)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.Saving)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBool(ss.Syncing)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(ss.Replay)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushBinaryMarshallable(ss.LeaderTimestamp)
+	if err != nil {
+		return nil, err
+	}
+	/*
+		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
+		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+
+		InvalidMessages map[[32]byte]interfaces.IMsg
+	*/
+
+	err = buf.PushUInt32(ss.EntryBlockDBHeightComplete)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.EntryBlockDBHeightProcessing)
+	if err != nil {
+		return nil, err
+	}
+	l = len(ss.MissingEntryBlocks)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.MissingEntryBlocks {
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushUInt32(ss.EntryDBHeightComplete)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(uint64(ss.EntryHeightComplete))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.EntryDBHeightProcessing)
+	if err != nil {
+		return nil, err
+	}
+	l = len(ss.MissingEntries)
+	err = buf.PushVarInt(uint64(l))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range ss.MissingEntries {
+		err = buf.PushBinaryMarshallable(&v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = buf.PushVarInt(ss.FactoshisPerEC)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushString(ss.FERChainId)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushString(ss.ExchangeRateAuthorityPublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(ss.FERChangeHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt64(ss.FERChangePrice)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.FERPriority)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(ss.FERPrioritySetHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.DeepCopyBytes(), nil
+}
+
+func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
+	ss.FactoidBalancesP = map[[32]byte]int64{}
+	ss.ECBalancesP = map[[32]byte]int64{}
+	ss.Holding = map[[32]byte]interfaces.IMsg{}
+	ss.Acks = map[[32]byte]interfaces.IMsg{}
+	ss.Commits = map[[32]byte]interfaces.IMsg{}
+	ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
+
+	ss.FedServers = []interfaces.IServer{}
+	ss.AuditServers = []interfaces.IServer{}
+
+	ss.Identities = []*Identity{}
+	ss.Authorities = []*Authority{}
+
+	newData = p
+	buf := primitives.NewBuffer(p)
+
+	ss.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Server)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.FedServers = append(ss.FedServers, s)
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Server)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.AuditServers = append(ss.AuditServers, s)
+	}
+
+	ss.FactoidBalancesP, err = PopBalanceMap(buf)
+	if err != nil {
+		return
+	}
+
+	ss.ECBalancesP, err = PopBalanceMap(buf)
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Identity)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.Identities = append(ss.Identities, s)
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(Authority)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.Authorities = append(ss.Authorities, s)
+	}
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.AuthorityServerCount = int(l)
+
+	ss.LLeaderHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.Leader, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.LeaderVMIndex = int(l)
+
+	//TODO: handle LeaderPL      *ProcessList
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.CurrentMinute = int(l)
+
+	ss.EOMsyncing, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.EOM, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EOMLimit = int(l)
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EOMProcessed = int(l)
+
+	ss.EOMDone, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EOMMinute = int(l)
+
+	ss.EOMSys, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	ss.DBSig, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.DBSigLimit = int(l)
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.DBSigProcessed = int(l)
+
+	ss.DBSigDone, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.DBSigSys, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	ss.Newblk, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.Saving, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+	ss.Syncing, err = buf.PopBool()
+	if err != nil {
+		return
+	}
+
+	ss.Replay = new(Replay)
+	err = buf.PopBinaryMarshallable(ss.Replay)
+	if err != nil {
+		return
+	}
+
+	ss.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(0)
+	err = buf.PopBinaryMarshallable(ss.LeaderTimestamp)
+	if err != nil {
+		return
+	}
+
+	/*
+		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
+		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
+
+		InvalidMessages map[[32]byte]interfaces.IMsg
+	*/
+
+	ss.EntryBlockDBHeightComplete, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.EntryBlockDBHeightProcessing, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(MissingEntryBlock)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.MissingEntryBlocks = append(ss.MissingEntryBlocks, *s)
+	}
+
+	ss.EntryDBHeightComplete, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.EntryHeightComplete = int(l)
+
+	ss.EntryDBHeightProcessing, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
+		s := new(MissingEntry)
+		err = buf.PopBinaryMarshallable(s)
+		if err != nil {
+			return
+		}
+		ss.MissingEntries = append(ss.MissingEntries, *s)
+	}
+
+	ss.FactoshisPerEC, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	ss.FERChainId, err = buf.PopString()
+	if err != nil {
+		return
+	}
+	ss.ExchangeRateAuthorityPublicKey, err = buf.PopString()
+	if err != nil {
+		return
+	}
+
+	ss.FERChangeHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.FERChangePrice, err = buf.PopUInt64()
+	if err != nil {
+		return
+	}
+	ss.FERPriority, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+	ss.FERPrioritySetHeight, err = buf.PopUInt32()
+	if err != nil {
+		return
+	}
+
+	newData = buf.DeepCopyBytes()
+	return
+}
+
+func (ss *SaveState) UnmarshalBinary(p []byte) error {
+	_, err := ss.UnmarshalBinaryData(p)
+	return err
+}
+
+func (e *SaveState) String() string {
+	str, _ := e.JSONString()
+	return str
+}
+
+func (e *SaveState) JSONByte() ([]byte, error) {
+	return primitives.EncodeJSON(e)
+}
+
+func (e *SaveState) JSONString() (string, error) {
+	return primitives.EncodeJSONString(e)
+}
+
+func PushBalanceMap(b *primitives.Buffer, m map[[32]byte]int64) error {
+	l := len(m)
+	err := b.PushVarInt(uint64(l))
+	if err != nil {
+		return err
+	}
+
+	keys := [][32]byte{}
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(ByKey(keys))
+
+	for _, k := range keys {
+		err = b.Push(k[:])
+		if err != nil {
+			return err
+		}
+		err = b.PushInt64(m[k])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type ByKey [][32]byte
+
+func (f ByKey) Len() int {
+	return len(f)
+}
+func (f ByKey) Less(i, j int) bool {
+	return bytes.Compare(f[i][:], f[j][:]) < 0
+}
+func (f ByKey) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+func PopBalanceMap(buf *primitives.Buffer) (map[[32]byte]int64, error) {
+	m := map[[32]byte]int64{}
+	k := make([]byte, 32)
+	l, err := buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(l); i++ {
+		var b [32]byte
+		err = buf.Pop(k)
+		if err != nil {
+			return nil, err
+		}
+		copy(b[:], k)
+		v, err := buf.PopInt64()
+		if err != nil {
+			return nil, err
+		}
+		m[b] = v
+	}
+	return m, nil
 }
