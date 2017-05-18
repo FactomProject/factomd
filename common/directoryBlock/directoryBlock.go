@@ -108,6 +108,7 @@ func (c *DirectoryBlock) GetEntrySigHashes() []interfaces.IHash {
 	return nil
 }
 
+//bubble sort
 func (c *DirectoryBlock) Sort() {
 	done := false
 	for i := 3; !done && i < len(c.DBEntries)-1; i++ {
