@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
-	. "github.com/FactomProject/factomd/common/meta"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 

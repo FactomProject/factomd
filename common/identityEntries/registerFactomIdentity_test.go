@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package meta_test
+package identityEntries_test
 
 import (
 	"encoding/hex"
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/meta"
+	. "github.com/FactomProject/factomd/common/identityEntries"
 )
 
 func TestRegisterFactomIdentityStructure(t *testing.T) {
