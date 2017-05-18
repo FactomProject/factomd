@@ -160,8 +160,10 @@ func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s
 				// Exit conditions: If empty, quit. If length == 1 and first/only byte it 0x00
 				for !(man.IsBufferEmpty() || (len(data) == 1 && data[0] == 0x00)) {
 					// If we have too much to process, do not spam inqueue, let the plugin hold it
-					for inQueue.Length() > 400 {
-						time.Sleep(100 * time.Millisecond)
+					if inQueue.Length() > 1000 {
+						for inQueue.Length() > 500 {
+							time.Sleep(100 * time.Millisecond)
+						}
 					}
 					data = man.FetchFromBuffer()
 					dbMsg := new(messages.DBStateMsg)

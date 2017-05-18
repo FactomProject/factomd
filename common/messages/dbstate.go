@@ -134,8 +134,8 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
-//  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
+// NOTE! Do no return 0, that sticks this message in the holding map, vs the DBStateList
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
@@ -182,10 +182,6 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 				return -1
 			}
 		}
-	}
-
-	if m.ValidateSignatures(state) != 1 {
-		return 0
 	}
 
 	return 1
@@ -303,7 +299,7 @@ ValidSignatures: // Goto here if signatures pass
 	}
 
 	for _, e := range m.Entries {
-		if v, ok := ents[e.GetHash().String()]; !ok || v {
+		if _, ok := ents[e.GetHash().String()]; !ok {
 			return -1
 		}
 		ents[e.GetHash().String()] = true

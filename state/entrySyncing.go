@@ -47,7 +47,6 @@ func (s *State) MakeMissingEntryRequests() {
 	MissingEntryMap := make(map[[32]byte]*MissingEntry)
 
 	for {
-
 		now := time.Now()
 
 		newrequest := 0
@@ -104,7 +103,15 @@ func (s *State) MakeMissingEntryRequests() {
 					et.LastTime = now.Add(time.Duration((rand.Int() % 5000)) * time.Millisecond)
 					continue
 				}
-				if now.Unix()-et.LastTime.Unix() > 5 && sent < 100 {
+
+				max := 100
+				// If using torrent and the saved height is more than 750 behind, let torrent do it's work, and don't send out
+				// missing message requests
+				if s.UsingTorrent() && s.GetLeaderHeight() > 1000 && s.GetHighestSavedBlk() < s.GetLeaderHeight()-750 {
+					max = 1
+				}
+
+				if now.Unix()-et.LastTime.Unix() > 5 && sent < max {
 					sent++
 					entryRequest := messages.NewMissingData(s, et.EntryHash)
 					entryRequest.SendOut(s, entryRequest)

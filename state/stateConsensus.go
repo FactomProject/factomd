@@ -73,6 +73,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		if s.SuperVerboseMessages {
 			fmt.Println("SVM exMsg Holding1:", msg.String(), msg.GetHash().String()[:10])
 		}
+
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 	default:
 		if s.SuperVerboseMessages {
@@ -343,7 +344,6 @@ func (s *State) ReviewHolding() {
 			delete(s.Holding, k)
 			continue
 		}
-
 		s.XReview = append(s.XReview, v)
 		delete(s.Holding, k)
 	}
