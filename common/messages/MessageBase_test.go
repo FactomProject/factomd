@@ -83,3 +83,39 @@ func TestSentInvalid(t *testing.T) {
 		t.Error("SentInvalid is true after being set to false")
 	}
 }
+
+func TestIsStalled(t *testing.T) {
+	eom := newEOM()
+	eom.SetStall(true)
+	if !eom.IsStalled() {
+		t.Error("IsStalled is false after being set to true")
+	}
+	eom.SetStall(false)
+	if eom.IsStalled() {
+		t.Error("IsStalled is true after being set to false")
+	}
+}
+
+func TestOrigin(t *testing.T) {
+	eom := newEOM()
+	eom.SetOrigin(123)
+	if eom.GetOrigin() != 123 {
+		t.Error("SetOrigin/GetOrigin mismatch")
+	}
+	eom.SetOrigin(321)
+	if eom.GetOrigin() != 321 {
+		t.Error("SetOrigin/GetOrigin mismatch")
+	}
+}
+
+func TestNetworkOrigin(t *testing.T) {
+	eom := newEOM()
+	eom.SetNetworkOrigin("FNode00")
+	if eom.GetNetworkOrigin() != "FNode00" {
+		t.Error("SetNetworkOrigin/GetNetworkOrigin mismatch")
+	}
+	eom.SetNetworkOrigin("FNode123")
+	if eom.GetNetworkOrigin() != "FNode123" {
+		t.Error("SetNetworkOrigin/GetNetworkOrigin mismatch")
+	}
+}
