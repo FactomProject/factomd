@@ -116,8 +116,8 @@ DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
 ExportData                            = false
 ExportDataSubpath                     = "database/export/"
-FastBoot							  = true
-FastBootLocation					  = ""
+FastBoot                              = false
+FastBootLocation                      = ""
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = MAIN
 PeersFile            = "peers.json"
