@@ -1833,7 +1833,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	if dbheight <= s.GetHighestSavedBlk()+1 {
+	if dbheight <= s.GetHighestSavedBlk()+2 {
 		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
 			return nil
