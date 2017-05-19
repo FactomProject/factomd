@@ -30,13 +30,6 @@ func has(s *State, entry interfaces.IHash) bool {
 
 var _ = fmt.Print
 
-func fetchByTorrent(s *State, height uint32) {
-	err := s.GetMissingDBState(height)
-	if err != nil {
-		fmt.Println("DEBUG: Error in torrent retrieve: " + err.Error())
-	}
-}
-
 // This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
 // them if it finds entries in the missing lists.
 func (s *State) MakeMissingEntryRequests() {
