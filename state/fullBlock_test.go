@@ -1,6 +1,8 @@
 package state_test
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -8,9 +10,11 @@ import (
 	"github.com/FactomProject/factomd/testHelper"
 )
 
+var _ = fmt.Sprint
+
 func TestUInt32Bytes(t *testing.T) {
 	var i uint32 = 0
-	for ; i < 10000; i++ {
+	for ; i < 1000; i++ {
 		a := uint32(random.RandInt())
 		data, err := Uint32ToBytes(a)
 		if err != nil {
@@ -41,6 +45,7 @@ func TestWholeBlocks(t *testing.T) {
 			t.Error(err)
 		}
 		all = append(all, data...)
+		r := bytes.NewReader(data)
 
 		newData, err := b.UnmarshalBinaryData(data)
 		if err != nil {
@@ -52,12 +57,26 @@ func TestWholeBlocks(t *testing.T) {
 		}
 
 		if !a.IsSameAs(b) {
-			t.Error("Should be same")
+			t.Error("[Slice] Should be same")
 		}
+
+		c := NewWholeBlock()
+		_, err = c.UnmarshalBinaryDataBuffer(r, 0)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !a.IsSameAs(c) {
+			t.Error("[Buffer] Should be same")
+		}
+		var _ = r
+
 	}
 
+	var off int64 = 0
+	ra := bytes.NewReader(all)
 	// Test block of binary unmarshal into individual blocks
-	for _, a := range blocks {
+	for i, a := range blocks {
 		b := NewWholeBlock()
 		all, err = b.UnmarshalBinaryData(all)
 		if err != nil {
@@ -65,12 +84,26 @@ func TestWholeBlocks(t *testing.T) {
 		}
 
 		if !a.IsSameAs(b) {
-			t.Error("Should be same")
+			t.Error("[Slice] Should be same")
 		}
+
+		c := NewWholeBlock()
+		n, err := c.UnmarshalBinaryDataBuffer(ra, int(off))
+		if err != nil {
+			t.Errorf("Block: %d, Offset: %d :: %s", i, off, err.Error())
+		}
+		off += n
+		if !a.IsSameAs(c) {
+			t.Error("[Buffer] Should be same")
+		}
+
 	}
 	if len(all) > 0 {
 		t.Error("Bytes left over")
 	}
+
+	var _ = off
+	var _ = ra
 }
 
 func makeDBStateList(l int) []*WholeBlock {

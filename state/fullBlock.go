@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -75,12 +76,12 @@ func (wb *WholeBlock) AddIEBEntry(e interfaces.IEBEntry) {
 }
 
 func (a *WholeBlock) IsSameAs(b *WholeBlock) (resp bool) {
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			resp = false
 			return
 		}
-	}()*/
+	}()
 
 	if !a.DBlock.GetHash().IsSameAs(b.DBlock.GetHash()) {
 		return false
@@ -245,6 +246,109 @@ func (wb *WholeBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+func (wb *WholeBlock) UnmarshalBinaryDataBuffer(buffer io.ReadSeeker, whence int) (off int64, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("A panic has occurred while unmarshaling: %s", r)
+			return
+		}
+	}()
+
+	var n int
+
+	d := new(directoryBlock.DirectoryBlock)
+	n, err = unmarshalBufferHelper(d, buffer, off, whence)
+	if err != nil {
+		return
+	}
+	wb.DBlock = d
+	off += int64(n)
+
+	a := new(adminBlock.AdminBlock)
+	n, err = unmarshalBufferHelper(a, buffer, off, whence)
+	if err != nil {
+		return
+	}
+	wb.ABlock = a
+	off += int64(n)
+
+	f := new(factoid.FBlock)
+	n, err = unmarshalBufferHelper(f, buffer, off, whence)
+	if err != nil {
+		return
+	}
+	wb.FBlock = f
+	off += int64(n)
+
+	ec := entryCreditBlock.NewECBlock()
+	n, err = unmarshalBufferHelper(ec, buffer, off, whence)
+	if err != nil {
+		return
+	}
+	wb.ECBlock = ec
+	off += int64(n)
+
+	// Eblocks
+	u, err := readIntFromBuffer(buffer, off, whence)
+	if err != nil {
+		return
+	}
+	wb.EBlocks = make([]interfaces.IEntryBlock, u)
+	off += int64(4)
+
+	for i := range wb.EBlocks {
+		eb := entryBlock.NewEBlock()
+
+		n, err = unmarshalBufferHelper(eb, buffer, off, whence)
+		if err != nil {
+			return
+		}
+		wb.EBlocks[i] = eb
+		off += int64(n)
+
+	}
+
+	// Entries
+	u, err = readIntFromBuffer(buffer, off, whence)
+	if err != nil {
+		return
+	}
+	wb.Entries = make([]interfaces.IEBEntry, u)
+	off += int64(4)
+
+	for i := range wb.Entries {
+		e := entryBlock.NewEntry()
+		n, err = unmarshalBufferHelper(e, buffer, off, whence)
+		if err != nil {
+			return
+		}
+		wb.Entries[i] = e
+		off += int64(n)
+
+	}
+
+	// Signatures
+	u, err = readIntFromBuffer(buffer, off, whence)
+	if err != nil {
+		return
+	}
+	wb.SigList = make([]interfaces.IFullSignature, u)
+	off += int64(4)
+
+	for i := range wb.SigList {
+		s := new(primitives.Signature)
+		n, err = unmarshalBufferHelper(s, buffer, off, whence)
+		if err != nil {
+			return
+		}
+		wb.SigList[i] = s
+		off += int64(n)
+
+	}
+
+	return
+}
+
 func (wb *WholeBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -335,6 +439,73 @@ func (wb *WholeBlock) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	}
 
 	return
+}
+
+func readIntFromBuffer(r io.ReadSeeker, off int64, whence int) (u uint32, err error) {
+	off += int64(whence)
+	_, err = r.Seek(off, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	length := make([]byte, 4)
+	n, err := r.Read(length)
+	if err != nil {
+		return 0, err
+	}
+	if n != 4 {
+		return 0, fmt.Errorf("Expected 4 bytes, only found %d", n)
+	}
+
+	u, err = BytesToUint32(length)
+	if err != nil {
+		return 0, err
+	}
+
+	return u, nil
+}
+
+var printItPlease bool = false
+
+func unmarshalBufferHelper(obj interfaces.BinaryMarshallable, r io.ReadSeeker, off int64, whence int) (int, error) {
+	off += int64(whence)
+	_, err := r.Seek(off, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	length := make([]byte, 4)
+	n, err := r.Read(length)
+	if err != nil {
+		return 0, err
+	}
+	if n != 4 {
+		return 0, fmt.Errorf("Expected 4 bytes, only found %d", n)
+	}
+
+	u, err := BytesToUint32(length)
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = r.Seek(off+4, 0)
+	if err != nil {
+		return 0, err
+	}
+	marData := make([]byte, u)
+	m, err := r.Read(marData)
+	if err != nil {
+		return 0, err
+	}
+	if uint32(m) != u {
+		return 0, fmt.Errorf("Expected %d bytes, only found %d", u, n)
+	}
+
+	err = obj.UnmarshalBinary(marData)
+	if err != nil {
+		return 0, err
+	}
+	return n + m, nil
 }
 
 // unmarshalHelper prepends it's []byte length for unmarshaler
