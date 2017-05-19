@@ -246,7 +246,7 @@ func (wb *WholeBlock) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-func (wb *WholeBlock) UnmarshalBinaryDataBuffer(buffer io.ReadSeeker, whence int) (off int64, err error) {
+func (wb *WholeBlock) UnmarshalBinaryDataBuffer(buffer io.ReadSeeker, whence int) (read int64, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("A panic has occurred while unmarshaling: %s", r)
@@ -254,6 +254,7 @@ func (wb *WholeBlock) UnmarshalBinaryDataBuffer(buffer io.ReadSeeker, whence int
 		}
 	}()
 
+	var off int64
 	var n int
 
 	d := new(directoryBlock.DirectoryBlock)
@@ -346,7 +347,7 @@ func (wb *WholeBlock) UnmarshalBinaryDataBuffer(buffer io.ReadSeeker, whence int
 
 	}
 
-	return
+	return off, nil
 }
 
 func (wb *WholeBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
