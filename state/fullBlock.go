@@ -495,7 +495,7 @@ func unmarshalBufferHelper(obj interfaces.BinaryMarshallable, r io.ReadSeeker, o
 	}
 	marData := make([]byte, u)
 	m, err := r.Read(marData)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return 0, err
 	}
 	if uint32(m) != u {
