@@ -186,3 +186,31 @@ func newEntryBlock() *EBlock {
 	}
 	return e
 }
+func TestSameAs(t *testing.T) {
+	//block 1000
+	eblock1kbytes, _ := hex.DecodeString("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e6041611c693d62887530c5420a48f2ea2d6038745fc493d6b1e531232805dd2149614ef537df0c73df748b12d508b4334fe8d2832a4cd6ea24f64a3363839bd0efa46e835bfed10ded0d756d7ccafd44830cc942799fca43f2505e9d024b0a9dd3c00000221000003e800000002b24d4ee9e2184673a4d7de6fdac1288ea00b7856940341122c34bd50a662340a0000000000000000000000000000000000000000000000000000000000000009")
+	eb1k, err := UnmarshalEBlock(eblock1kbytes)
+	if err != nil {
+		t.Errorf("eb unmarshall failed")
+	}
+
+	eblock1k1bytes, _ := hex.DecodeString("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604f1a3fee8d61b407ae8c43f0ef91c5bc21f9faf560ccc6167f0ae31d13c8e4628f08c42bc44c09ac26c349bef8ee80d2ffb018cfa3e769107b2413792fa9bd64200f9ce481c4e389a83461f5ebff43e10cad5d55e15d58c3afd4fc16006b9519500000222000003e900000002f3dffaa3e03b5520e5876ff1efedf16eacd69620e2d37344c73fd72e478464df0000000000000000000000000000000000000000000000000000000000000004")
+	eb1k1, err := UnmarshalEBlock(eblock1k1bytes)
+	if err != nil {
+		t.Errorf("eb unmarshall failed")
+	}
+
+	if eb1k.IsSameAs(eb1k1) {
+		t.Errorf("entry block same as comparison failed")
+	}
+
+	eb1kclone, err := UnmarshalEBlock(eblock1kbytes)
+	if err != nil {
+		t.Errorf("eb unmarshall failed")
+	}
+
+	if !eb1k.IsSameAs(eb1kclone) {
+		t.Errorf("entry block same as comparison failed")
+	}
+	//fmt.Println(db1k1)
+}
