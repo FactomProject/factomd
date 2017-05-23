@@ -124,19 +124,19 @@ func TestMiscCC(t *testing.T) {
 	expected := fmt.Sprint("db5884280d38c9f037139841253e256ba2fee183dfde1a6936b5773f1284fc40")
 	got := fmt.Sprint(cc.GetEntryHash())
 	if expected != got {
-		t.Errorf("Commit Chain comparison failed")
+		t.Errorf("Commit Chain comparison failed - %v vs %v", expected, got)
 	}
 
 	expected = fmt.Sprint("c09a488f1a070332fb51b6519d49744ec5fc4335e1ab8f7002e0fa5ce7bb4c7b")
 	got = fmt.Sprint(cc.Hash())
 	if expected != got {
-		t.Errorf("Commit Chain comparison failed")
+		t.Errorf("Commit Chain comparison failed - %v vs %v", expected, got)
 	}
 
-	expected = fmt.Sprint("2016-03-18 15:57:10")
-	got = fmt.Sprint(cc.GetTimestamp())
+	expected = fmt.Sprint("2016-03-18 20:57:10")
+	got = cc.GetTimestamp().UTCString()
 	if expected != got {
-		t.Errorf("Commit Chain comparison failed")
+		t.Errorf("Commit Chain comparison failed - %v vs %v", expected, got)
 	}
 
 	ccbytes_badsig, _ := hex.DecodeString("0001538b8480e3c5be4e952b9c5e711e1d5022580f1a600f24daa7302387dc547280162443524a3016ce3104cafd88c48545abbd4dd98e90d870039f436c0efd572c58371f06dcdb5884280d38c9f037139841253e256ba2fee183dfde1a6936b5773f1284fc400b9b7cfddf8f8209b10249dfc60e1cf5ff9252b1a1e0c5db178d3f616695b99b8eeaa83e3e1e0af73e47832127ed9e729649c8d17eb14f6c49db810a7d20a09cc68ff9ca017caa1fcc513c9b579f6e4d91c262aa70621de851559a1e80ab674b00")
