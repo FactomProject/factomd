@@ -19,12 +19,12 @@ func (NetOutQueueRatePrometheus) SetCompleteWeightedAvg(v float64) {
 }
 func (NetOutQueueRatePrometheus) SetCompleteTotalAvg(v float64) { NetOutTotalCompleteQueueRate.Set(v) }
 
-// NetOutMsgQueue counts incoming and outgoing messages for inmsg queue
+// NetOutMsgQueue counts incoming and outgoing messages for netout queue
 type NetOutMsgQueue chan interfaces.IMsg
 
 func NewNetOutMsgQueue(capacity int) NetOutMsgQueue {
 	channel := make(chan interfaces.IMsg, capacity)
-	rc := NewRateCalculator(new(InMsgQueueRatePrometheus))
+	rc := NewRateCalculator(new(NetOutQueueRatePrometheus))
 	go rc.Start()
 	NetOutMsgQueueRateKeeper = rc
 
