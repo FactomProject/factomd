@@ -10,8 +10,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
-	ed "github.com/FactomProject/ed25519"
 )
 
 const (
@@ -57,6 +55,10 @@ func (e *CommitChain) Init() {
 	}
 }
 
+//this function only checks if everything in the item is identical.
+// It does not catch if the private key holder has created a malleated version
+//which is functionally identical in come cases from the protocol perspective,
+//but would fail comparison here
 func (a *CommitChain) IsSameAs(b interfaces.IECBlockEntry) bool {
 	if a == nil || b == nil {
 		if a == nil && b == nil {
@@ -104,15 +106,15 @@ func (a *CommitChain) IsSameAs(b interfaces.IECBlockEntry) bool {
 func (e *CommitChain) String() string {
 	e.Init()
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitChain"))
+	out.WriteString(fmt.Sprintf(" %s\n", "CommitChain"))
 	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "MilliTime", e.MilliTime))
+	out.WriteString(fmt.Sprintf("   %-20s %s\n", "MilliTime", e.MilliTime))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ChainIDHash", e.ChainIDHash.Bytes()[:3]))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Weld", e.Weld.Bytes()[:3]))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Credits", e.Credits))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Credits", e.Credits))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Sig", e.Sig[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Sig", e.Sig[:3]))
 
 	return (string)(out.DeepCopyBytes())
 }
@@ -172,11 +174,16 @@ func (c *CommitChain) GetTimestamp() interfaces.Timestamp {
 func (c *CommitChain) IsValid() bool {
 	c.Init()
 	//double check the credits in the commit
-	if c.Credits < 10 || c.Version != 0 {
+	if c.Credits < 11 || c.Version != 0 {
 		return false
 	}
 
-	return ed.VerifyCanonical((*[32]byte)(c.ECPubKey), c.CommitMsg(), (*[64]byte)(c.Sig))
+	//if there were no errors in processing the signature, formatting or if didn't validate
+	if nil == c.ValidateSignatures() {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (c *CommitChain) GetHash() interfaces.IHash {

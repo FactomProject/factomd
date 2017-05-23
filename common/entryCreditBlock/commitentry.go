@@ -7,10 +7,7 @@ package entryCreditBlock
 import (
 	"encoding/binary"
 	"fmt"
-	"time"
 
-	ed "github.com/FactomProject/ed25519"
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -55,6 +52,10 @@ func (e *CommitEntry) Init() {
 	*/
 }
 
+//this function only checks if everything in the item is identical.
+// It does not catch if the private key holder has created a malleated version
+//which is functionally identical in come cases from the protocol perspective,
+//but would fail comparison here
 func (a *CommitEntry) IsSameAs(b interfaces.IECBlockEntry) bool {
 	if a == nil || b == nil {
 		if a == nil && b == nil {
@@ -95,13 +96,13 @@ func (a *CommitEntry) IsSameAs(b interfaces.IECBlockEntry) bool {
 
 func (e *CommitEntry) String() string {
 	var out primitives.Buffer
-	out.WriteString(fmt.Sprintf(" %-20s\n", "CommitEntry"))
+	out.WriteString(fmt.Sprintf(" %s\n", "CommitEntry"))
 	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Version", e.Version))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "MilliTime", e.MilliTime))
+	out.WriteString(fmt.Sprintf("   %-20s %s\n", "MilliTime", e.MilliTime))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "EntryHash", e.EntryHash.Bytes()[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Credits", e.Credits))
+	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Credits", e.Credits))
 	out.WriteString(fmt.Sprintf("   %-20s %x\n", "ECPubKey", e.ECPubKey[:3]))
-	out.WriteString(fmt.Sprintf("   %-20s %d\n", "Sig", e.Sig[:3]))
+	out.WriteString(fmt.Sprintf("   %-20s %x\n", "Sig", e.Sig[:3]))
 
 	return (string)(out.DeepCopyBytes())
 }
@@ -155,22 +156,18 @@ func (c *CommitEntry) GetTimestamp() interfaces.Timestamp {
 	return primitives.NewTimestampFromMilliseconds(milli)
 }
 
-// InTime checks the CommitEntry.MilliTime and returns true if the timestamp is
-// whitin +/- 12 hours of the current time.
-func (c *CommitEntry) InTime() bool {
-	now := time.Now()
-	sec := c.GetTimestamp().GetTimeSeconds()
-	t := time.Unix(sec, 0)
-
-	return t.After(now.Add(-constants.COMMIT_TIME_WINDOW*time.Hour)) && t.Before(now.Add(constants.COMMIT_TIME_WINDOW*time.Hour))
-}
-
 func (c *CommitEntry) IsValid() bool {
 	//double check the credits in the commit
 	if c.Credits < 1 || c.Version != 0 {
 		return false
 	}
-	return ed.VerifyCanonical((*[32]byte)(c.ECPubKey), c.CommitMsg(), (*[64]byte)(c.Sig))
+
+	//if there were no errors in processing the signature, formatting or if didn't validate
+	if nil == c.ValidateSignatures() {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (c *CommitEntry) GetHash() interfaces.IHash {
