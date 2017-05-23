@@ -372,53 +372,53 @@ var (
 
 	// InMsgQueue Rates
 	InMsgTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_inmsg_queue_arrival_avg_total_inmsg",
+		Name: "factomd_state_queue_arrival_avg_total_inmsg",
 		Help: "Total avg of inmsg queue arrival rate",
 	})
 
 	InMsgInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_inmsg_queue_arrival_avg_instant_inmsg",
+		Name: "factomd_state_queue_arrival_avg_instant_inmsg",
 		Help: "Instant avg of inmsg queue arrival rate",
 	})
 
 	InMsgTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_inmsg_queue_complete_avg_total_inmsg",
+		Name: "factomd_state_queue_complete_avg_total_inmsg",
 		Help: "Total avg of inmsg queue complete rate",
 	})
 
 	InMsgInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_inmsg_queue_complete_avg_instant_inmsg",
+		Name: "factomd_state_queue_complete_avg_instant_inmsg",
 		Help: "Instant avg of inmsg queue complete rate",
 	})
 
 	InMsgQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_inmsg_queue_backup_inmsg",
+		Name: "factomd_state_queue_backup_inmsg",
 		Help: "Backup of queue",
 	})
 
 	// NetOut Rates
 	NetOutTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_netout_queue_arrival_avg_total_inmsg",
+		Name: "factomd_state_queue_arrival_avg_total_netout",
 		Help: "Total avg of inmsg queue arrival rate",
 	})
 
 	NetOutInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_netout_queue_arrival_avg_instant_inmsg",
+		Name: "factomd_state_queue_arrival_avg_instant_netout",
 		Help: "Instant avg of inmsg queue arrival rate",
 	})
 
 	NetOutTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_netout_queue_complete_avg_total_inmsg",
+		Name: "factomd_state_queue_complete_avg_total_netout",
 		Help: "Total avg of inmsg queue complete rate",
 	})
 
 	NetOutInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_netout_queue_complete_avg_instant_inmsg",
+		Name: "factomd_state_queue_complete_avg_instant_netout",
 		Help: "Instant avg of inmsg queue complete rate",
 	})
 
 	NetOutQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_netout_queue_backup_inmsg",
+		Name: "factomd_state_queue_backup_netout",
 		Help: "Backup of queue",
 	})
 )
