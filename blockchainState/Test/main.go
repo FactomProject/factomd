@@ -66,7 +66,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 	}
 	bl, err := LoadBL()
 	if err != nil {
-		panic(err)
+		//panic(err)
 	}
 	if bl == nil {
 		bl = new(BalanceLedger)
@@ -105,7 +105,7 @@ func CheckDatabase(db interfaces.IDatabase) {
 			panic(err)
 		}
 
-		if i%10000 == 0 {
+		if i%5000 == 0 {
 			//periodically save and reload BS
 			bin, err := bs.MarshalBinaryData()
 			if err != nil {
@@ -117,7 +117,8 @@ func CheckDatabase(db interfaces.IDatabase) {
 				panic(err)
 			}
 			fmt.Printf("Successfully saved and loaded BS\n")
-			if i <= 70000 {
+			//if true {
+			if i <= 85000 {
 				err = SaveBS(bs)
 				if err != nil {
 					panic(err)
@@ -274,7 +275,7 @@ func LoadBL() (*BalanceLedger, error) {
 	}
 	bl := new(BalanceLedger)
 	bl.Init()
-	err = bl.UnmarshalBinaryData(b)
+	err = bl.UnmarshalBinary(b)
 	if err != nil {
 		return nil, err
 	}

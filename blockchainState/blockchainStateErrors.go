@@ -123,6 +123,20 @@ func (bs *BlockchainState) HandlePreBlockErrors(dBlockHash interfaces.IHash) err
 		ecHash, _ := primitives.NewShaHashFromStr("d11473f4a0cb0595e7c1dce8708dc01de0972f55e314e68bd656b0a0b96be5a8")
 		bs.PushCommit(eHash, ecHash)
 		break
+	case "6ae2f4e9004e17e5b6cfd94f3d5f5e9400c8429726c337b32c423061ef774e11": //87773
+		eHash, _ := primitives.NewShaHashFromStr("d1335521b746f90738e295410c5dad6671b6f1e581ccda84e0db61fd71dec383")
+		ecHash, _ := primitives.NewShaHashFromStr("1ec55a5855f7019e7664e1eb3f3394d6b4ea841d0db8097870122949774eacf9")
+		bs.PushCommit(eHash, ecHash)
+		eHash, _ = primitives.NewShaHashFromStr("24e3b883c6ab9d0098abea28ad940b8aca6c91e05e1d8ced9deaf93ee7a49e53")
+		ecHash, _ = primitives.NewShaHashFromStr("e452d922a12b02e2846c4c0b27721c0ff81abf47baebf01ca51b27287f9836f6")
+		bs.PushCommit(eHash, ecHash)
+		eHash, _ = primitives.NewShaHashFromStr("82ccce2ff58cd2cd07e573bab1d10ac527c9dce27c18de81f15db1cae95333a1")
+		ecHash, _ = primitives.NewShaHashFromStr("edea12a5fbaae936f2bda1f2eb8e6b75f84b189f6d466a97d2662b2dd8c42ffe")
+		bs.PushCommit(eHash, ecHash)
+		eHash, _ = primitives.NewShaHashFromStr("31bec811693e5fd144570e5db89d99c46714e26bc2e33113a9a34bab5d4211e4")
+		ecHash, _ = primitives.NewShaHashFromStr("bf6f83dbe09fc0642e04d84402b39343da35b2622d6dd575cee31805d9fab157at")
+		bs.PushCommit(eHash, ecHash)
+		break
 	}
 
 	//Pre-revealed entries

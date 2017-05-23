@@ -9,8 +9,8 @@ import (
 	"encoding/gob"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/meta"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -44,7 +44,7 @@ type BlockchainState struct {
 
 	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
 
-	IdentityManager meta.IdentityManager
+	IdentityManager identity.IdentityManager
 }
 
 func NewBSMainNet() *BlockchainState {
