@@ -40,19 +40,19 @@ func TestMiscEC(t *testing.T) {
 	expected := fmt.Sprint("249f6eed5336f91eb6b506b1f4683c0e03aa8d8c59cf54299b945d41a73b44e9")
 	got := fmt.Sprint(ec.GetEntryHash())
 	if expected != got {
-		t.Errorf("Entry Commit comparison failed")
+		t.Errorf("Entry Commit comparison failed - %v vs %v", expected, got)
 	}
 
 	expected = fmt.Sprint("9c406b5f2bf32f9cad3cb44b1dbcd6513d35979e6795984cc4f00e604a540c19")
 	got = fmt.Sprint(ec.Hash())
 	if expected != got {
-		t.Errorf("Entry Commit comparison failed")
+		t.Errorf("Entry Commit comparison failed - %v vs %v", expected, got)
 	}
 
-	expected = fmt.Sprint("2016-03-18 15:52:08")
-	got = fmt.Sprint(ec.GetTimestamp())
+	expected = fmt.Sprint("2016-03-18 20:52:08")
+	got = ec.GetTimestamp().UTCString()
 	if expected != got {
-		t.Errorf("Entry Commit comparison failed")
+		t.Errorf("Entry Commit comparison failed - %v vs %v", expected, got)
 	}
 
 	ecbytes_badsig, _ := hex.DecodeString("0001538b7fe6fd249f6eed5336f91eb6b506b1f4683c0e03aa8d8c59cf54299b945d41a73b44e90117ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7dc38e2fc16991f2705244c83cc36e5b4ca796dbbf168601b55d6fc34187a8de061b096f3266f3f6dd986e3f2150a1b14ada29cc9c0fc3a1d1a1875f11dc6cfd00")
