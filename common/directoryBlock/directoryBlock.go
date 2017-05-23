@@ -108,6 +108,7 @@ func (c *DirectoryBlock) GetEntrySigHashes() []interfaces.IHash {
 	return nil
 }
 
+//bubble sort
 func (c *DirectoryBlock) Sort() {
 	done := false
 	for i := 3; !done && i < len(c.DBEntries)-1; i++ {
@@ -157,7 +158,6 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 }
 
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
-
 	keyMR, err := c.BuildKeyMerkleRoot()
 	if err != nil {
 		panic("Failed to build the key MR")
@@ -247,33 +247,32 @@ func (e *DirectoryBlock) String() string {
 
 }
 
-func (b *DirectoryBlock) MarshalBinary() (data []byte, err error) {
+func (b *DirectoryBlock) MarshalBinary() ([]byte, error) {
 	b.Init()
-	var buf primitives.Buffer
-
 	b.Sort()
-
-	b.BuildBodyMR()
-
-	data, err = b.GetHeader().MarshalBinary()
+	_, err := b.BuildBodyMR()
 	if err != nil {
-		return
+		return nil, err
 	}
-	buf.Write(data)
+
+	buf := primitives.NewBuffer(nil)
+
+	err = buf.PushBinaryMarshallable(b.GetHeader())
+	if err != nil {
+		return nil, err
+	}
 
 	for i := uint32(0); i < b.Header.GetBlockCount(); i++ {
-		data, err = b.GetDBEntries()[i].MarshalBinary()
+		err = buf.PushBinaryMarshallable(b.GetDBEntries()[i])
 		if err != nil {
-			return
+			return nil, err
 		}
-		buf.Write(data)
 	}
 
 	return buf.DeepCopyBytes(), err
 }
 
 func (b *DirectoryBlock) BuildBodyMR() (interfaces.IHash, error) {
-
 	count := uint32(len(b.GetDBEntries()))
 	b.GetHeader().SetBlockCount(count)
 	if count == 0 {
@@ -348,20 +347,13 @@ func UnmarshalDBlock(data []byte) (interfaces.IDirectoryBlock, error) {
 	return dBlock, nil
 }
 
-func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block: %v", r)
-		}
-	}()
-
-	newData = data
-
+func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 	var fbh interfaces.IDirectoryBlockHeader = new(DBlockHeader)
 
-	newData, err = fbh.UnmarshalBinaryData(newData)
+	err := buf.PopBinaryMarshallable(fbh)
 	if err != nil {
-		return
+		return nil, err
 	}
 	b.SetHeader(fbh)
 
@@ -369,18 +361,18 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	entries := make([]interfaces.IDBEntry, count)
 	for i := uint32(0); i < count; i++ {
 		entries[i] = new(DBEntry)
-		newData, err = entries[i].UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(entries[i])
 		if err != nil {
-			return
+			return nil, err
 		}
 	}
 
 	err = b.SetDBEntries(entries)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (h *DirectoryBlock) GetTimestamp() interfaces.Timestamp {

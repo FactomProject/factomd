@@ -62,6 +62,13 @@ func TestStaticECBlockUnmarshal(t *testing.T) {
 		t.Errorf("Wrong hash - %v vs %v", h.String(), expected)
 	}
 
+	b, err := ecb.MarshalBinary()
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if primitives.AreBytesEqual(b, data) == false {
+		t.Errorf("Blocks are not identical - %x vs %x", data, b)
+	}
 }
 
 func TestECBlockMarshal(t *testing.T) {

@@ -4,6 +4,9 @@ import (
 	"crypto/rand"
 	"github.com/FactomProject/ed25519"
 	//"github.com/FactomProject/factomd/common/factoid/wallet"
+	"encoding/hex"
+	"fmt"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/testHelper"
 	"testing"
@@ -110,3 +113,18 @@ func TestAnchor(t *testing.T) {
 	anchor := CreateFirstAnchorEntry()
 	t.Errorf("%x", anchor.ChainID.Bytes())
 }*/
+
+func TestNewCommitChain(t *testing.T) {
+	j := new(entryBlock.EBlock)
+	//block 1000
+	eblock1kbytes, _ := hex.DecodeString("df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e6041611c693d62887530c5420a48f2ea2d6038745fc493d6b1e531232805dd2149614ef537df0c73df748b12d508b4334fe8d2832a4cd6ea24f64a3363839bd0efa46e835bfed10ded0d756d7ccafd44830cc942799fca43f2505e9d024b0a9dd3c00000221000003e800000002b24d4ee9e2184673a4d7de6fdac1288ea00b7856940341122c34bd50a662340a0000000000000000000000000000000000000000000000000000000000000009")
+	j.UnmarshalBinary(eblock1kbytes)
+	k := NewCommitChain(j)
+	m, _ := k.MarshalBinary()
+	//fmt.Printf("%x\n",m)
+	anticipated_commit := "010000000000e8aaec8504394192fc7f6129a024ec5919d38a3967955aa7bbb3ac0ff0879266937015fcc30d961f985ab8a8b5132273fa3fc72a246a68bce1d95cc8c6fdeb183cb24d4ee9e2184673a4d7de6fdac1288ea00b7856940341122c34bd50a662340a013b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29eb46be4cfa8f1e056565aae7d600ac1be4f2cc143333cbbff784b9efb1e8c86a79c333c1f748a45cee507cfabc5de59f6a41b7e83a0af0821de564dc99836b0b"
+	cf := fmt.Sprintf("%x", m)
+	if anticipated_commit != cf {
+		t.Errorf("testhelper NewCommitChain comparison failed")
+	}
+}

@@ -5,7 +5,6 @@
 package factoid
 
 import (
-	"encoding/binary"
 	"fmt"
 	"runtime/debug"
 	"time"
@@ -425,51 +424,61 @@ func (t *Transaction) GetRCD(i int) (interfaces.IRCD, error) {
 
 // UnmarshalBinary assumes that the Binary is all good.  We do error
 // out if there isn't enough data, or the transaction is too large.
-func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	// To catch memory errors, I capture the panic and turn it into
-	// a reported error.
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling transaction: %v", r)
-		}
-	}()
+func (t *Transaction) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	v, data := primitives.DecodeVarInt(data)
+	v, err := buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
 	if v != t.GetVersion() {
 		return nil, fmt.Errorf("Wrong Transaction Version encountered. Expected %v and found %v", t.GetVersion(), v)
 	}
-	hd, data := binary.BigEndian.Uint32(data[:]), data[4:]
-	ld, data := binary.BigEndian.Uint16(data[:]), data[2:]
+
+	hd, err := buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	ld, err := buf.PopUInt16()
+	if err != nil {
+		return nil, err
+	}
 	t.MilliTimestamp = (uint64(hd) << 16) + uint64(ld)
 
-	numInputs := int(data[0])
-	data = data[1:]
-	numOutputs := int(data[0])
-	data = data[1:]
-	numOutECs := int(data[0])
-	data = data[1:]
+	numInputs, err := buf.PopUInt8()
+	if err != nil {
+		return nil, err
+	}
+	numOutputs, err := buf.PopUInt8()
+	if err != nil {
+		return nil, err
+	}
+	numOutECs, err := buf.PopUInt8()
+	if err != nil {
+		return nil, err
+	}
 
-	t.Inputs = make([]interfaces.ITransAddress, numInputs, numInputs)
-	t.Outputs = make([]interfaces.ITransAddress, numOutputs, numOutputs)
-	t.OutECs = make([]interfaces.ITransAddress, numOutECs, numOutECs)
+	t.Inputs = make([]interfaces.ITransAddress, int(numInputs), int(numInputs))
+	t.Outputs = make([]interfaces.ITransAddress, int(numOutputs), int(numOutputs))
+	t.OutECs = make([]interfaces.ITransAddress, int(numOutECs), int(numOutECs))
 
 	for i, _ := range t.Inputs {
 		t.Inputs[i] = new(TransAddress)
-		data, err = t.Inputs[i].UnmarshalBinaryData(data)
-		if err != nil || t.Inputs[i] == nil {
+		err = buf.PopBinaryMarshallable(t.Inputs[i])
+		if err != nil {
 			return nil, err
 		}
 	}
 	for i, _ := range t.Outputs {
 		t.Outputs[i] = new(TransAddress)
-		data, err = t.Outputs[i].UnmarshalBinaryData(data)
+		err = buf.PopBinaryMarshallable(t.Outputs[i])
 		if err != nil {
 			return nil, err
 		}
 	}
 	for i, _ := range t.OutECs {
 		t.OutECs[i] = new(TransAddress)
-		data, err = t.OutECs[i].UnmarshalBinaryData(data)
+		err = buf.PopBinaryMarshallable(t.OutECs[i])
 		if err != nil {
 			return nil, err
 		}
@@ -479,20 +488,23 @@ func (t *Transaction) UnmarshalBinaryData(data []byte) (newData []byte, err erro
 	t.SigBlocks = make([]interfaces.ISignatureBlock, len(t.Inputs))
 
 	for i := 0; i < len(t.Inputs); i++ {
-		t.RCDs[i] = CreateRCD(data)
-		data, err = t.RCDs[i].UnmarshalBinaryData(data)
+		b, err := buf.PeekByte()
 		if err != nil {
 			return nil, err
 		}
-
+		t.RCDs[i] = CreateRCD([]byte{b})
+		err = buf.PopBinaryMarshallable(t.RCDs[i])
+		if err != nil {
+			return nil, err
+		}
 		t.SigBlocks[i] = new(SignatureBlock)
-		data, err = t.SigBlocks[i].UnmarshalBinaryData(data)
+		err = buf.PopBinaryMarshallable(t.SigBlocks[i])
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return data, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
@@ -502,65 +514,76 @@ func (t *Transaction) UnmarshalBinary(data []byte) (err error) {
 
 // This is what Gets Signed.  Yet signature blocks are part of the transaction.
 // We don't include them here, and tack them on later.
-func (t *Transaction) MarshalBinarySig() (newData []byte, err error) {
-	var out primitives.Buffer
+func (t *Transaction) MarshalBinarySig() ([]byte, error) {
+	buf := primitives.NewBuffer(nil)
 
-	primitives.EncodeVarInt(&out, t.GetVersion())
+	err := buf.PushVarInt(t.GetVersion())
+	if err != nil {
+		return nil, err
+	}
 
 	hd := uint32(t.MilliTimestamp >> 16)
 	ld := uint16(t.MilliTimestamp & 0xFFFF)
-	binary.Write(&out, binary.BigEndian, uint32(hd))
-	binary.Write(&out, binary.BigEndian, uint16(ld))
 
-	out.WriteByte(byte(len(t.Inputs)))
-	out.WriteByte(byte(len(t.Outputs)))
-	out.WriteByte(byte(len(t.OutECs)))
+	err = buf.PushUInt32(hd)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt16(ld)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushByte(byte(len(t.Inputs)))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(byte(len(t.Outputs)))
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(byte(len(t.OutECs)))
+	if err != nil {
+		return nil, err
+	}
 
 	for _, input := range t.Inputs {
-		data, err := input.MarshalBinary()
+		err = buf.PushBinaryMarshallable(input)
 		if err != nil {
 			return nil, err
 		}
-		out.Write(data)
 	}
-
 	for _, output := range t.Outputs {
-		data, err := output.MarshalBinary()
+		err = buf.PushBinaryMarshallable(output)
 		if err != nil {
 			return nil, err
 		}
-		out.Write(data)
 	}
-
 	for _, outEC := range t.OutECs {
-		data, err := outEC.MarshalBinary()
+		err = buf.PushBinaryMarshallable(outEC)
 		if err != nil {
 			return nil, err
 		}
-		out.Write(data)
 	}
 
-	return out.DeepCopyBytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 // This just Marshals what gets signed, i.e. MarshalBinarySig(), then
 // Marshals the signatures and the RCDs for this transaction.
 func (t Transaction) MarshalBinary() ([]byte, error) {
-	var out primitives.Buffer
-
 	data, err := t.MarshalBinarySig()
 	if err != nil {
 		return nil, err
 	}
-	out.Write(data)
+	buf := primitives.NewBuffer(data)
 
 	for i, rcd := range t.RCDs {
 		// Write the RCD
-		data, err := rcd.MarshalBinary()
+		err = buf.PushBinaryMarshallable(rcd)
 		if err != nil {
 			return nil, err
 		}
-		out.Write(data)
 
 		// Then write its signature blocks.  This needs to be
 		// reworked so we use the information from the RCD block
@@ -570,14 +593,13 @@ func (t Transaction) MarshalBinary() ([]byte, error) {
 		if len(t.SigBlocks) <= i {
 			t.SigBlocks = append(t.SigBlocks, new(SignatureBlock))
 		}
-		data, err = t.SigBlocks[i].MarshalBinary()
+		err = buf.PushBinaryMarshallable(t.SigBlocks[i])
 		if err != nil {
 			return nil, err
 		}
-		out.Write(data)
 	}
 
-	return out.DeepCopyBytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 // Helper function for building transactions.  Add an input to

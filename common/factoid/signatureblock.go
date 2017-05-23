@@ -5,8 +5,6 @@
 package factoid
 
 import (
-	"fmt"
-
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -90,17 +88,14 @@ func (s SignatureBlock) GetSignatures() []interfaces.ISignature {
 }
 
 func (a SignatureBlock) MarshalBinary() ([]byte, error) {
-	var out primitives.Buffer
-
+	buf := primitives.NewBuffer(nil)
 	for _, sig := range a.GetSignatures() {
-		data, err := sig.MarshalBinary()
+		err := buf.PushBinaryMarshallable(sig)
 		if err != nil {
-			return nil, fmt.Errorf("Signature failed to Marshal in RCD_1")
+			return nil, err
 		}
-		out.Write(data)
 	}
-
-	return out.DeepCopyBytes(), nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
@@ -121,15 +116,15 @@ func (s SignatureBlock) CustomMarshalText() ([]byte, error) {
 	return out.DeepCopyBytes(), nil
 }
 
-func (s *SignatureBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (s *SignatureBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 	s.Signatures = make([]interfaces.ISignature, 1)
 	s.Signatures[0] = new(FactoidSignature)
-	data, err = s.Signatures[0].UnmarshalBinaryData(data)
+	err := buf.PopBinaryMarshallable(s.Signatures[0])
 	if err != nil {
-		return nil, fmt.Errorf("Failure to unmarshal Signature")
+		return nil, err
 	}
-
-	return data, nil
+	return buf.DeepCopyBytes(), nil
 }
 
 func NewSingleSignatureBlock(priv, data []byte) *SignatureBlock {
