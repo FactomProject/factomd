@@ -116,7 +116,7 @@ DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
 ExportData                            = false
 ExportDataSubpath                     = "database/export/"
-FastBoot                              = false
+FastBoot                              = true
 FastBootLocation                      = ""
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = MAIN
