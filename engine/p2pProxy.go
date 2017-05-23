@@ -213,6 +213,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	}
 
 	if f.UsingEtcd() {
+		etcdStart := time.Now()
 		if msg.Type() == constants.ETCD_HASH_PICKUP_MSG {
 			f.PickUpFromHash(msg.GetHash().String())
 			return nil
@@ -236,6 +237,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 				log.Println("SVM Send(etcd):", msg.String(), msg.GetHash().String()[:10])
 			}
 		}
+		EtcdSendOutTime.Observe(float64(time.Since(etcdStart).Nanoseconds()))
 	} //else {
 
 	if f.UsingEtcdExclusive() {

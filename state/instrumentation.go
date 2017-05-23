@@ -371,28 +371,54 @@ var (
 	})
 
 	// InMsgQueue Rates
-	TotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_total_inmsg",
+	InMsgTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_inmsg_queue_arrival_avg_total_inmsg",
 		Help: "Total avg of inmsg queue arrival rate",
 	})
 
-	InstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_instant_inmsg",
+	InMsgInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_inmsg_queue_arrival_avg_instant_inmsg",
 		Help: "Instant avg of inmsg queue arrival rate",
 	})
 
-	TotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_total_inmsg",
+	InMsgTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_inmsg_queue_complete_avg_total_inmsg",
 		Help: "Total avg of inmsg queue complete rate",
 	})
 
-	InstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_instant_inmsg",
+	InMsgInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_inmsg_queue_complete_avg_instant_inmsg",
 		Help: "Instant avg of inmsg queue complete rate",
 	})
 
-	QueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_backup_inmsg",
+	InMsgQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_inmsg_queue_backup_inmsg",
+		Help: "Backup of queue",
+	})
+
+	// NetOut Rates
+	NetOutTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_netout_queue_arrival_avg_total_inmsg",
+		Help: "Total avg of inmsg queue arrival rate",
+	})
+
+	NetOutInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_netout_queue_arrival_avg_instant_inmsg",
+		Help: "Instant avg of inmsg queue arrival rate",
+	})
+
+	NetOutTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_netout_queue_complete_avg_total_inmsg",
+		Help: "Total avg of inmsg queue complete rate",
+	})
+
+	NetOutInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_netout_queue_complete_avg_instant_inmsg",
+		Help: "Instant avg of inmsg queue complete rate",
+	})
+
+	NetOutQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_netout_queue_backup_inmsg",
 		Help: "Backup of queue",
 	})
 )
@@ -508,9 +534,16 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMisc)
 
 	// InMsgRate
-	prometheus.MustRegister(TotalArrivalQueueRate)
-	prometheus.MustRegister(InstantArrivalQueueRate)
-	prometheus.MustRegister(TotalCompleteQueueRate)
-	prometheus.MustRegister(InstantCompleteQueueRate)
-	prometheus.MustRegister(QueueBackupRate)
+	prometheus.MustRegister(InMsgTotalArrivalQueueRate)
+	prometheus.MustRegister(InMsgInstantArrivalQueueRate)
+	prometheus.MustRegister(InMsgTotalCompleteQueueRate)
+	prometheus.MustRegister(InMsgInstantCompleteQueueRate)
+	prometheus.MustRegister(InMsgQueueBackupRate)
+
+	// NetOutRate
+	prometheus.MustRegister(NetOutTotalArrivalQueueRate)
+	prometheus.MustRegister(NetOutInstantArrivalQueueRate)
+	prometheus.MustRegister(NetOutTotalCompleteQueueRate)
+	prometheus.MustRegister(NetOutInstantCompleteQueueRate)
+	prometheus.MustRegister(NetOutQueueBackupRate)
 }

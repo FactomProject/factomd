@@ -9,11 +9,13 @@ var inMsgQueueRateKeeper *RateCalculator
 // InMsgQueueRatePrometheus is for setting the appropriate prometheus calls
 type InMsgQueueRatePrometheus struct{}
 
-func (InMsgQueueRatePrometheus) SetArrivalWeightedAvg(v float64)  { InstantArrivalQueueRate.Set(v) }
-func (InMsgQueueRatePrometheus) SetArrivalTotalAvg(v float64)     { TotalArrivalQueueRate.Set(v) }
-func (InMsgQueueRatePrometheus) SetArrivalBackup(v float64)       { QueueBackupRate.Set(v) }
-func (InMsgQueueRatePrometheus) SetCompleteWeightedAvg(v float64) { InstantCompleteQueueRate.Set(v) }
-func (InMsgQueueRatePrometheus) SetCompleteTotalAvg(v float64)    { TotalCompleteQueueRate.Set(v) }
+func (InMsgQueueRatePrometheus) SetArrivalWeightedAvg(v float64) { InMsgInstantArrivalQueueRate.Set(v) }
+func (InMsgQueueRatePrometheus) SetArrivalTotalAvg(v float64)    { InMsgTotalArrivalQueueRate.Set(v) }
+func (InMsgQueueRatePrometheus) SetArrivalBackup(v float64)      { InMsgQueueBackupRate.Set(v) }
+func (InMsgQueueRatePrometheus) SetCompleteWeightedAvg(v float64) {
+	InMsgInstantCompleteQueueRate.Set(v)
+}
+func (InMsgQueueRatePrometheus) SetCompleteTotalAvg(v float64) { InMsgTotalCompleteQueueRate.Set(v) }
 
 // InMsgMSGQueue counts incoming and outgoing messages for inmsg queue
 type InMsgMSGQueue chan interfaces.IMsg

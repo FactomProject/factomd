@@ -20,6 +20,18 @@ var (
 		Name: "factomd_state_broadcast_in_drop_total",
 		Help: "How many messages are dropped due to full queues",
 	})
+
+	// Network Out Queue
+	NetworkOutTotalDequeue = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_netoutmsg_total_general",
+		Help: "Count of all messages being dequeued",
+	})
+
+	// Etcd
+	EtcdSendOutTime = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "factomd_state_etcd_send_ns",
+		Help: "Time it takes to complete an etcd send",
+	})
 )
 
 var registered = false
@@ -35,4 +47,10 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(RepeatMsgs)
 	prometheus.MustRegister(BroadInCastQueue)
 	prometheus.MustRegister(BroadCastInQueueDrop)
+
+	// NetOut
+	prometheus.MustRegister(NetworkOutTotalDequeue)
+
+	// Etcd
+	prometheus.MustRegister(EtcdSendOutTime)
 }
