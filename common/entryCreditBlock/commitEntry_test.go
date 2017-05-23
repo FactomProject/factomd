@@ -99,3 +99,26 @@ func TestStringEC(t *testing.T) {
 		t.Errorf("Entry Commit comparison failed")
 	}
 }
+
+func TestCommitEntryMarshalUnmarshalStatic(t *testing.T) {
+	ce := NewCommitEntry()
+	data, _ := hex.DecodeString("0001538b7fe6fd249f6eed5336f91eb6b506b1f4683c0e03aa8d8c59cf54299b945d41a73b44e90117ef7a21d1a616d65e6b73f3c6a7ad5c49340a6c2592872020ec60767ff00d7dc38e2fc16991f2705244c83cc36e5b4ca796dbbf168601b55d6fc34187a8de061b096f3266f3f6dd986e3f2150a1b14ada29cc9c0fc3a1d1a1875f11dc6cfd0b")
+	rest, err := ce.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if len(rest) > 0 {
+		t.Error("Returned extra data")
+	}
+	h := ce.GetHash()
+	expected := "9c406b5f2bf32f9cad3cb44b1dbcd6513d35979e6795984cc4f00e604a540c19"
+	if h.String() != expected {
+		t.Errorf("Wrong hash - %v vs %v", h.String(), expected)
+	}
+
+	h = ce.GetSigHash()
+	expected = "29be46067fa1aa19e139a9db305d46035e24c4ff1b77c58ccb66028e70e7d180"
+	if h.String() != expected {
+		t.Errorf("Wrong hash - %v vs %v", h.String(), expected)
+	}
+}

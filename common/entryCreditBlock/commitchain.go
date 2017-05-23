@@ -155,11 +155,11 @@ func (b *CommitChain) Interpret() string {
 // CommitMsg returns the binary marshaled message section of the CommitEntry
 // that is covered by the CommitEntry.Sig.
 func (c *CommitChain) CommitMsg() []byte {
-	p, err := c.MarshalBinary()
+	p, err := c.MarshalBinarySig()
 	if err != nil {
 		return []byte{byte(0)}
 	}
-	return p[:len(p)-64-32]
+	return p
 }
 
 // Return the timestamp
