@@ -9,15 +9,17 @@ var NetOutMsgQueueRateKeeper *RateCalculator
 // NetOutQueueRatePrometheus is for setting the appropriate prometheus calls
 type NetOutQueueRatePrometheus struct{}
 
-func (NetOutQueueRatePrometheus) SetArrivalWeightedAvg(v float64) {
+func (NetOutQueueRatePrometheus) SetArrivalInstantAvg(v float64) {
 	NetOutInstantArrivalQueueRate.Set(v)
 }
 func (NetOutQueueRatePrometheus) SetArrivalTotalAvg(v float64) { NetOutTotalArrivalQueueRate.Set(v) }
 func (NetOutQueueRatePrometheus) SetArrivalBackup(v float64)   { NetOutQueueBackupRate.Set(v) }
-func (NetOutQueueRatePrometheus) SetCompleteWeightedAvg(v float64) {
+func (NetOutQueueRatePrometheus) SetCompleteInstantAvg(v float64) {
 	NetOutInstantCompleteQueueRate.Set(v)
 }
 func (NetOutQueueRatePrometheus) SetCompleteTotalAvg(v float64) { NetOutTotalCompleteQueueRate.Set(v) }
+func (NetOutQueueRatePrometheus) SetMovingArrival(v float64)    { NetOutMovingArrivalQueueRate.Set(v) }
+func (NetOutQueueRatePrometheus) SetMovingComplete(v float64)   { NetOutMovingCompleteQueueRate.Set(v) }
 
 // NetOutMsgQueue counts incoming and outgoing messages for netout queue
 type NetOutMsgQueue chan interfaces.IMsg
