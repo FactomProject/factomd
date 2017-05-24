@@ -478,7 +478,7 @@ func (c *Connection) processReceives() {
 		for c.state == ConnectionOnline {
 			var message Parcel
 
-			c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
+			// c.conn.SetReadDeadline(time.Now().Add(NetworkDeadline))
 			err := c.decoder.Decode(&message)
 			switch {
 			case nil == err:
