@@ -212,6 +212,7 @@ func TestMovingAverage(t *testing.T) {
 		t.Fail()
 	}
 
+	a = NewMovingAverage(5)
 	nums := make([]float64, 1000)
 	index := 0
 
@@ -239,7 +240,7 @@ func TestMovingAverage(t *testing.T) {
 
 		if diff > 0.1 {
 			t.Errorf("Difference is %f at index %d. Found %f, exp %f. Total %f", diff, index, v, tv/total, total)
-			t.Log(nums[:index])
+			t.Log(nums[:index+1])
 		}
 	}
 }
