@@ -24,26 +24,39 @@ type RateCalculator struct {
 	arrival           *int32
 	completed         *int32
 	line              *int32
+
+	tickerTime time.Duration
 }
 
-func NewRateCalculator(p IPrometheusRateMethods) *RateCalculator {
+// NewRateCalculatorTime is good for unit tests, or if you want to change the measureing time
+func NewRateCalculatorTime(p IPrometheusRateMethods, td time.Duration) *RateCalculator {
 	r := new(RateCalculator)
 	r.prometheusMethods = p
 
 	r.arrival = new(int32)
 	r.completed = new(int32)
 	r.line = new(int32)
+	r.tickerTime = td
+
 	return r
+}
+
+func NewRateCalculator(p IPrometheusRateMethods) *RateCalculator {
+	return NewRateCalculatorTime(p, time.Duration(2*time.Second))
 }
 
 // Start begins instrumentation
 func (r *RateCalculator) Start() {
+	r.StartTime(time.Now())
+}
+
+// StartTime is good for unit tests
+func (r *RateCalculator) StartTime(start time.Time) {
 	var totalArrival int32 = 0
 	var totalComplete int32 = 0
-	start := time.Now()
 
+	ticker := time.NewTicker(r.tickerTime)
 	// Every 2 seconds caluclate the instant rate and adjust the total avg
-	ticker := time.NewTicker(time.Second * 2)
 	for _ = range ticker.C {
 		na, nc := int32(0), int32(0)
 
@@ -62,8 +75,8 @@ func (r *RateCalculator) Start() {
 		r.prometheusMethods.SetCompleteTotalAvg(float64(totalComplete) / totalTime)
 
 		// Calculate 2s Avg
-		r.prometheusMethods.SetArrivalWeightedAvg(float64(ca) / 2)
-		r.prometheusMethods.SetCompleteWeightedAvg(float64(cc) / 2)
+		r.prometheusMethods.SetArrivalWeightedAvg(float64(ca) / r.tickerTime.Seconds())
+		r.prometheusMethods.SetCompleteWeightedAvg(float64(cc) / r.tickerTime.Seconds())
 
 		// Set the backup
 		r.prometheusMethods.SetArrivalBackup(float64(cl))
