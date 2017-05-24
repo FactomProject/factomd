@@ -326,8 +326,7 @@ type State struct {
 
 	AckChange uint32
 
-	FastBoot         bool
-	FastBootLocation string
+	StateSaverStruct StateSaverStruct
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -435,6 +434,17 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
+
+	switch newState.DBType {
+	case "LDB":
+		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
+		newState.StateSaverStruct.FastBootLocation = newState.LdbPath
+		break
+	case "Bolt":
+		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
+		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
+		break
+	}
 
 	return newState
 }
@@ -602,8 +612,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
-		s.FastBoot = cfg.App.FastBoot
-		s.FastBootLocation = cfg.App.FastBootLocation
+		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
+		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -846,8 +856,8 @@ func (s *State) Init() {
 	// end of FER removal
 	s.starttime = time.Now()
 
-	if s.FastBoot {
-		err := LoadDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+	if s.StateSaverStruct.FastBoot {
+		err := s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
 		if err != nil {
 			panic(err)
 		}

@@ -567,10 +567,10 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	s.DBStates.TimeToAsk = nil
 
 	if dbstatemsg.IsLocal() {
-		if s.FastBoot {
+		if s.StateSaverStruct.FastBoot {
 			dbstate.SaveStruct = SaveFactomdState(s, dbstate)
 
-			err := SaveDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+			err := s.StateSaverStruct.SaveDBStateList(s.DBStates, s.Network)
 			if err != nil {
 				panic(err)
 			}
@@ -1833,7 +1833,7 @@ func (s *State) UpdateECs(ec interfaces.IEntryCreditBlock) {
 }
 
 func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces.IEntryBlock {
-	if dbheight <= s.GetHighestSavedBlk()+1 {
+	if dbheight <= s.GetHighestSavedBlk()+2 {
 		pl := s.ProcessLists.Get(dbheight)
 		if pl == nil {
 			return nil

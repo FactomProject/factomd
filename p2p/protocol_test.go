@@ -1,11 +1,34 @@
 package p2p_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/FactomProject/factomd/p2p"
 )
+
+func TestNetworkID(t *testing.T) {
+	var n NetworkID = MainNet
+	if n.String() != "MainNet" {
+		t.Errorf("Exp %s, got %s", "MainNet", n.String())
+	}
+
+	n = TestNet
+	if n.String() != "TestNet" {
+		t.Errorf("Exp %s, got %s", "TestNet", n.String())
+	}
+
+	n = LocalNet
+	if n.String() != "LocalNet" {
+		t.Errorf("Exp %s, got %s", "LocalNet", n.String())
+	}
+
+	n = 10
+	if n.String() != fmt.Sprintf("CustomNet ID: %x\n", 10) {
+		t.Errorf("Exp %s, got %s", fmt.Sprintf("CustomNet ID: %x\n", 10), n.String())
+	}
+}
 
 func TestBlockFreeChannelSend(t *testing.T) {
 	//BlockFreeChannelSend

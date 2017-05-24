@@ -79,7 +79,7 @@ func NetStart(s *state.State) {
 	rpcPasswordflag := flag.String("rpcpass", "", "Password to protect factomd local API. Ignored if rpcuser is blank")
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
-	fastPtr := flag.Bool("fast", false, "If true, factomd will fast-boot from a file.")
+	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
 	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: debug, info, notice, warning, error, critical, alert, emergency or none")
@@ -194,11 +194,13 @@ func NetStart(s *state.State) {
 		s.FactomdLocations += factomdLocations
 	}
 
-	if fast == true {
-		s.FastBoot = true
+	if fast == false {
+		s.StateSaverStruct.FastBoot = false
 	}
 	if fastLocationPtr != nil {
-		s.FastBootLocation = *fastLocationPtr
+		if *fastLocationPtr != "" {
+			s.StateSaverStruct.FastBootLocation = *fastLocationPtr
+		}
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -298,6 +300,8 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", deadline))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "fastBoot", s.StateSaverStruct.FastBoot))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "fastBoot folder", s.StateSaverStruct.FastBootLocation))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
