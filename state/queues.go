@@ -1,5 +1,20 @@
 package state
 
+//
+// Addressing Performance
+// 	IQueues replace channels and monitor enqueues and dequeues
+// 	with prometheus instrumentation. By tripping a prometheus call,
+// 	performance is lost, but compared to the insight gained, is worth it.
+// 	The performance does not affect our queue management.
+//
+// Benchmarks :: `go test -bench=. queues_test.go `
+// 	BenchmarkChannels-4            	20000000	        94.7 ns/op
+// 	BenchmarkQueues-4              	10000000	       153 ns/op
+// 	BenchmarkConcurentChannels-4   	10000000	       138 ns/op
+// 	BenchmarkConcurrentQueues-4    	 5000000	       251 ns/op
+// 	BenchmarkCompetingChannels-4   	 3000000	       360 ns/op
+// 	BenchmarkCompetingQueues-4     	 1000000	      1302 ns/op
+
 import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
