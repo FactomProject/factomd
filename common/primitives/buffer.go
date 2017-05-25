@@ -22,11 +22,28 @@ func (b *Buffer) DeepCopyBytes() []byte {
 
 func NewBuffer(buf []byte) *Buffer {
 	tmp := new(Buffer)
-	tmp.Buffer = *bytes.NewBuffer(buf)
+	c := make([]byte, len(buf))
+	copy(c, buf)
+	tmp.Buffer = *bytes.NewBuffer(c)
 	return tmp
 }
 
+func (b *Buffer) PeekByte() (byte, error) {
+	by, err := b.ReadByte()
+	if err != nil {
+		return by, err
+	}
+	err = b.UnreadByte()
+	if err != nil {
+		return by, err
+	}
+	return by, nil
+}
+
 func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error {
+	if bm == nil {
+		return fmt.Errorf("BinaryMarshallable is nil")
+	}
 	bin, err := bm.MarshalBinary()
 	if err != nil {
 		return err
@@ -93,6 +110,31 @@ func (b *Buffer) PushByte(h byte) error {
 
 func (b *Buffer) PushInt64(i int64) error {
 	return b.PushUInt64(uint64(i))
+}
+
+func (b *Buffer) PushUInt8(h uint8) error {
+	return b.PushByte(byte(h))
+}
+
+func (b *Buffer) PushUInt16(i uint16) error {
+	return binary.Write(b, binary.BigEndian, &i)
+}
+
+func (b *Buffer) PopUInt16() (uint16, error) {
+	var i uint16
+	err := binary.Read(b, binary.BigEndian, &i)
+	if err != nil {
+		return 0, err
+	}
+	return i, nil
+}
+
+func (b *Buffer) PopUInt8() (uint8, error) {
+	h, err := b.PopByte()
+	if err != nil {
+		return 0, err
+	}
+	return uint8(h), nil
 }
 
 func (b *Buffer) PushInt(i int) error {
@@ -168,6 +210,9 @@ func (b *Buffer) PopBytes() ([]byte, error) {
 	h := b.DeepCopyBytes()
 	l, rest := DecodeVarInt(h)
 
+	if int(l) > len(rest) {
+		return nil, fmt.Errorf("End of buffer")
+	}
 	answer := make([]byte, int(l))
 	copy(answer, rest)
 	remainder := rest[int(l):]
@@ -198,6 +243,9 @@ func (b *Buffer) Pop(h []byte) error {
 }
 
 func (b *Buffer) PopBinaryMarshallable(dst interfaces.BinaryMarshallable) error {
+	if dst == nil {
+		return fmt.Errorf("Destination is nil")
+	}
 	h := b.DeepCopyBytes()
 	rest, err := dst.UnmarshalBinaryData(h)
 	if err != nil {

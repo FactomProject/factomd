@@ -7,7 +7,6 @@ package directoryBlock
 import (
 	"fmt"
 
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
@@ -22,6 +21,15 @@ type DBEntry struct {
 var _ interfaces.Printable = (*DBEntry)(nil)
 var _ interfaces.BinaryMarshallable = (*DBEntry)(nil)
 var _ interfaces.IDBEntry = (*DBEntry)(nil)
+
+func (c *DBEntry) Init() {
+	if c.ChainID == nil {
+		c.ChainID = primitives.NewZeroHash()
+	}
+	if c.KeyMR == nil {
+		c.KeyMR = primitives.NewZeroHash()
+	}
+}
 
 func (a *DBEntry) IsSameAs(b interfaces.IDBEntry) bool {
 	if a == nil || b == nil {
@@ -56,48 +64,37 @@ func (c *DBEntry) SetKeyMR(keyMR interfaces.IHash) {
 	c.KeyMR = keyMR
 }
 
-func (e *DBEntry) MarshalBinary() (data []byte, err error) {
-	var buf primitives.Buffer
+func (e *DBEntry) MarshalBinary() ([]byte, error) {
+	e.Init()
+	buf := primitives.NewBuffer(nil)
 
-	data, err = e.ChainID.MarshalBinary()
+	err := buf.PushBinaryMarshallable(e.ChainID)
 	if err != nil {
-		return
+		return nil, err
 	}
-	buf.Write(data)
 
-	if e.KeyMR == nil {
-		data, err = primitives.NewHash(constants.ZERO_HASH).MarshalBinary()
-	} else {
-		data, err = e.KeyMR.MarshalBinary()
-	}
+	err = buf.PushBinaryMarshallable(e.KeyMR)
 	if err != nil {
-		return
+		return nil, err
 	}
-	buf.Write(data)
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *DBEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Directory Block Entry: %v", r)
-		}
-	}()
-	newData = data
-	e.ChainID = new(primitives.Hash)
-	newData, err = e.ChainID.UnmarshalBinaryData(newData)
+func (e *DBEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	e.Init()
+	buf := primitives.NewBuffer(data)
+
+	err := buf.PopBinaryMarshallable(e.ChainID)
 	if err != nil {
-		return
+		return nil, err
+	}
+	err = buf.PopBinaryMarshallable(e.KeyMR)
+	if err != nil {
+		return nil, err
 	}
 
-	e.KeyMR = new(primitives.Hash)
-	newData, err = e.KeyMR.UnmarshalBinaryData(newData)
-	if err != nil {
-		return
-	}
-
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *DBEntry) UnmarshalBinary(data []byte) (err error) {

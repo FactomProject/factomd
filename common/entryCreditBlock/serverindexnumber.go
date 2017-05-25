@@ -96,27 +96,22 @@ func (s *ServerIndexNumber) ECID() byte {
 }
 
 func (s *ServerIndexNumber) MarshalBinary() ([]byte, error) {
-	buf := new(primitives.Buffer)
-	buf.WriteByte(s.ServerIndexNumber)
+	buf := primitives.NewBuffer(nil)
+	err := buf.PushByte(s.ServerIndexNumber)
+	if err != nil {
+		return nil, err
+	}
 	return buf.DeepCopyBytes(), nil
 }
 
-func (s *ServerIndexNumber) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling ServerIndexNumber: %v", r)
-		}
-	}()
-
+func (s *ServerIndexNumber) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
-	var c byte
-	if c, err = buf.ReadByte(); err != nil {
-		return
-	} else {
-		s.ServerIndexNumber = c
+	var err error
+	s.ServerIndexNumber, err = buf.PopByte()
+	if err != nil {
+		return nil, err
 	}
-	newData = buf.DeepCopyBytes()
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (s *ServerIndexNumber) UnmarshalBinary(data []byte) (err error) {

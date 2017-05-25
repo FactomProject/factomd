@@ -1,7 +1,6 @@
 package adminBlock
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -59,45 +58,52 @@ func (e *AddAuditServer) Type() byte {
 	return constants.TYPE_ADD_AUDIT_SERVER
 }
 
-func (e *AddAuditServer) MarshalBinary() (data []byte, err error) {
+func (e *AddAuditServer) MarshalBinary() ([]byte, error) {
 	e.Init()
 	var buf primitives.Buffer
 
-	buf.Write([]byte{e.Type()})
-
-	data, err = e.IdentityChainID.MarshalBinary()
+	err := buf.PushByte(e.Type())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
 
-	binary.Write(&buf, binary.BigEndian, e.DBHeight)
+	err = buf.PushBinaryMarshallable(e.IdentityChainID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = buf.PushUInt32(e.DBHeight)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *AddAuditServer) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Add Federated Server Entry: %v", r)
-		}
-	}()
+func (e *AddAuditServer) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 
-	newData = data
-	if newData[0] != e.Type() {
+	b, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+
+	if b != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
-	newData = newData[1:]
 
 	e.IdentityChainID = new(primitives.Hash)
-	newData, err = e.IdentityChainID.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(e.IdentityChainID)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
-	e.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	e.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AddAuditServer) UnmarshalBinary(data []byte) (err error) {

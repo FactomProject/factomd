@@ -169,15 +169,22 @@ func (e *Entry) GetHash() interfaces.IHash {
 }
 
 func (e *Entry) MarshalBinary() ([]byte, error) {
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
 	// 1 byte Version
-	if err := binary.Write(buf, binary.BigEndian, e.Version); err != nil {
+	err := buf.PushByte(byte(e.Version))
+	if err != nil {
 		return nil, err
 	}
 
+	if e.ChainID == nil {
+		e.ChainID = primitives.NewZeroHash()
+	}
 	// 32 byte ChainID
-	buf.Write(e.ChainID.Bytes())
+	err = buf.PushBinaryMarshallable(e.ChainID)
+	if err != nil {
+		return nil, err
+	}
 
 	// ExtIDs
 	if ext, err := e.MarshalExtIDsBinary(); err != nil {
@@ -225,7 +232,8 @@ func UnmarshalEntry(data []byte) (interfaces.IEBEntry, error) {
 	return entry, nil
 }
 
-func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (e *Entry) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	var err error
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
@@ -233,21 +241,17 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	}()
 
 	buf := primitives.NewBuffer(data)
-	hash := make([]byte, 32)
 
 	// 1 byte Version
-	b, err := buf.ReadByte()
+	e.Version, err = buf.PopByte()
 	if err != nil {
 		return nil, err
-	} else {
-		e.Version = b
 	}
 
 	// 32 byte ChainID
 	e.ChainID = primitives.NewZeroHash()
-	if _, err = buf.Read(hash); err != nil {
-		return nil, err
-	} else if err = e.ChainID.SetBytes(hash); err != nil {
+	err = buf.PopBinaryMarshallable(e.ChainID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -295,7 +299,7 @@ func (e *Entry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		return nil, err
 	}
 
-	return
+	return nil, nil
 }
 
 func (e *Entry) UnmarshalBinary(data []byte) (err error) {

@@ -73,31 +73,39 @@ func (t *TransAddress) IsSameAs(add interfaces.ITransAddress) bool {
 	return true
 }
 
-func (t *TransAddress) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (t *TransAddress) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	if len(data) < 36 {
 		return nil, fmt.Errorf("Data source too short to UnmarshalBinary() an address: %d", len(data))
 	}
+	buf := primitives.NewBuffer(data)
+	var err error
 
-	t.Amount, data = primitives.DecodeVarInt(data)
+	t.Amount, err = buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
+
 	t.Address = new(Address)
+	err = buf.PopBinaryMarshallable(t.Address)
+	if err != nil {
+		return nil, err
+	}
 
-	data, err = t.Address.UnmarshalBinaryData(data)
-
-	return data, err
+	return buf.DeepCopyBytes(), nil
 }
 
 // MarshalBinary.  'nuff said
 func (a TransAddress) MarshalBinary() ([]byte, error) {
-	var out primitives.Buffer
-
-	err := primitives.EncodeVarInt(&out, a.Amount)
+	buf := primitives.NewBuffer(nil)
+	err := buf.PushVarInt(a.Amount)
 	if err != nil {
 		return nil, err
 	}
-	data, err := a.Address.MarshalBinary()
-	out.Write(data)
-
-	return out.DeepCopyBytes(), err
+	err = buf.PushBinaryMarshallable(a.Address)
+	if err != nil {
+		return nil, err
+	}
+	return buf.DeepCopyBytes(), nil
 }
 
 // Accessor. Default to a zero length string.  This is a debug

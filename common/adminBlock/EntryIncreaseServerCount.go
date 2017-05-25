@@ -31,31 +31,37 @@ func (e *IncreaseServerCount) Type() byte {
 	return constants.TYPE_ADD_SERVER_COUNT
 }
 
-func (e *IncreaseServerCount) MarshalBinary() (data []byte, err error) {
+func (e *IncreaseServerCount) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
 
-	buf.Write([]byte{e.Type()})
-	buf.Write([]byte{e.Amount})
+	err := buf.PushByte(e.Type())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(e.Amount)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *IncreaseServerCount) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Entry Increase Server Count: %v", r)
-		}
-	}()
-
-	newData = data
-	if newData[0] != e.Type() {
+func (e *IncreaseServerCount) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+	b, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if b != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
-	newData = newData[1:]
 
-	e.Amount, newData = newData[0], newData[1:]
+	e.Amount, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *IncreaseServerCount) UnmarshalBinary(data []byte) (err error) {

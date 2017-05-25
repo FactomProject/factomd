@@ -5,11 +5,10 @@
 package adminBlock
 
 import (
-	"encoding/binary"
+	"bytes"
 	"encoding/json"
 	"fmt"
 
-	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -120,60 +119,87 @@ func (b *ABlockHeader) SetPrevBackRefHash(BackRefHash interfaces.IHash) {
 }
 
 // Write out the ABlockHeader to binary.
-func (b *ABlockHeader) MarshalBinary() (data []byte, err error) {
+func (b *ABlockHeader) MarshalBinary() ([]byte, error) {
 	b.Init()
 	var buf primitives.Buffer
 
-	data, err = b.GetAdminChainID().MarshalBinary()
+	err := buf.PushBinaryMarshallable(b.GetAdminChainID())
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = b.PrevBackRefHash.MarshalBinary()
+	err = buf.PushBinaryMarshallable(b.PrevBackRefHash)
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
+	err = buf.PushUInt32(b.DBHeight)
+	if err != nil {
+		return nil, err
+	}
 
-	binary.Write(&buf, binary.BigEndian, b.DBHeight)
+	err = buf.PushVarInt(b.HeaderExpansionSize)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.Push(b.HeaderExpansionArea)
+	if err != nil {
+		return nil, err
+	}
 
-	primitives.EncodeVarInt(&buf, b.HeaderExpansionSize)
-	buf.Write(b.HeaderExpansionArea)
-
-	binary.Write(&buf, binary.BigEndian, b.MessageCount)
-	binary.Write(&buf, binary.BigEndian, b.BodySize)
+	err = buf.PushUInt32(b.MessageCount)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(b.BodySize)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), err
 }
 
-func (b *ABlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Admin Block Header: %v", r)
-		}
-	}()
-	newData = data
-	newData, err = b.GetAdminChainID().UnmarshalBinaryData(newData)
+func (b *ABlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+	h := primitives.NewZeroHash()
+	err := buf.PopBinaryMarshallable(h)
 	if err != nil {
-		return
+		return nil, err
+	}
+	if h.String() != "000000000000000000000000000000000000000000000000000000000000000a" {
+		return nil, fmt.Errorf("Block does not begin with the ABlock ChainID")
 	}
 
 	b.PrevBackRefHash = new(primitives.Hash)
-	newData, err = b.PrevBackRefHash.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(b.PrevBackRefHash)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	b.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
-	b.HeaderExpansionSize, newData = primitives.DecodeVarInt(newData)
-	b.HeaderExpansionArea, newData = newData[:b.HeaderExpansionSize], newData[b.HeaderExpansionSize:]
+	b.HeaderExpansionSize, err = buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
+	if b.HeaderExpansionSize > 0 {
+		b.HeaderExpansionArea, err = buf.PopLen(int(b.HeaderExpansionSize))
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	b.MessageCount, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	b.BodySize, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	b.MessageCount, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	b.BodySize, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 // Read in the binary into the ABlockHeader.

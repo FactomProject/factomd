@@ -53,41 +53,48 @@ func NewAddReplaceMatryoshkaHash(identityChainID interfaces.IHash, mHash interfa
 	return e
 }
 
-func (e *AddReplaceMatryoshkaHash) MarshalBinary() (data []byte, err error) {
+func (e *AddReplaceMatryoshkaHash) MarshalBinary() ([]byte, error) {
 	e.Init()
 	var buf primitives.Buffer
 
-	buf.Write([]byte{e.Type()})
-	buf.Write(e.IdentityChainID.Bytes())
-	buf.Write(e.MHash.Bytes())
+	err := buf.PushByte(e.Type())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.IdentityChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.MHash)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AddReplaceMatryoshkaHash) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Add Replace Matryoshka Hash: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != e.Type() {
+	buf := primitives.NewBuffer(data)
+	b, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if b != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
-	newData = newData[1:]
 
 	e.IdentityChainID = new(primitives.Hash)
-	newData, err = e.IdentityChainID.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(e.IdentityChainID)
 	if err != nil {
-		return
+		return nil, err
 	}
 	e.MHash = new(primitives.Hash)
-	newData, err = e.MHash.UnmarshalBinaryData(newData)
+	err = buf.PopBinaryMarshallable(e.MHash)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *AddReplaceMatryoshkaHash) UnmarshalBinary(data []byte) (err error) {

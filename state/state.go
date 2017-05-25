@@ -2209,7 +2209,7 @@ func (s *State) SetStringQueues() {
 		stps)
 
 	if s.Balancehash == nil {
-		s.Balancehash = primitives.NewHash(constants.ZERO_HASH)
+		s.Balancehash = primitives.NewZeroHash()
 	}
 
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))

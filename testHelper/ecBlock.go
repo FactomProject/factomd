@@ -81,9 +81,13 @@ func NewCommitChain(eBlock *entryBlock.EBlock) *entryCreditBlock.CommitChain {
 		panic(err)
 	}
 	commit.ChainIDHash = eBlock.GetHashOfChainIDHash()
-	commit.Weld = eBlock.GetWeldHashes()[0]
-	commit.EntryHash = eBlock.Body.EBEntries[0]
+	w := primitives.NewZeroHash()
+	eh0 := eBlock.GetEntryHashes()[0].Bytes()
+	cid := eBlock.GetHeader().GetChainID().Bytes()
+	w.SetBytes(primitives.DoubleSha(append(eh0, cid...)))
+	commit.Weld = w
 
+	commit.EntryHash = eBlock.Body.EBEntries[0]
 	bin, err := commit.MarshalBinary()
 	if err != nil {
 		panic(err)

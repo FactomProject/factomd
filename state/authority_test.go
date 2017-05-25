@@ -68,3 +68,22 @@ func TestHistoricKeyMarshalUnmarshal(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthorityMarshalUnmarshal(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		a := RandomAuthority()
+
+		h, err := a.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		a2 := new(Authority)
+		err = a2.UnmarshalBinary(h)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if a.IsSameAs(a2) == false {
+			t.Errorf("Authorities are not identical")
+		}
+	}
+}
