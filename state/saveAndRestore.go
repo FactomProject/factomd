@@ -159,8 +159,23 @@ func (a *SaveState) IsSameAs(b *SaveState) bool {
 		}
 	}
 
-	//Identities           []*Identity
-	//Authorities          []*Authority
+	if len(a.Identities) != len(b.Identities) {
+		return false
+	}
+	for i := range a.Identities {
+		if a.Identities[i].IsSameAs(b.Identities[i]) == false {
+			fmt.Printf("%v: %v vs %v\n", i, a.Identities[i].String(), b.Identities[i].String())
+			return false
+		}
+	}
+	if len(a.Authorities) != len(b.Authorities) {
+		return false
+	}
+	for i := range a.Authorities {
+		if a.Authorities[i].IsSameAs(b.Authorities[i]) == false {
+			return false
+		}
+	}
 	if a.AuthorityServerCount != b.AuthorityServerCount {
 		return false
 	}
@@ -1140,7 +1155,11 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	for i := 0; i < ss.EntryHeightComplete; i++ {
+	l, err = buf.PopVarInt()
+	if err != nil {
+		return
+	}
+	for i := 0; i < int(l); i++ {
 		s := new(MissingEntry)
 		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
