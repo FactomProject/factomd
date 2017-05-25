@@ -157,6 +157,22 @@ func (c *DirectoryBlock) GetEBlockDBEntries() []interfaces.IDBEntry {
 	return answer
 }
 
+func (c *DirectoryBlock) CheckDBEntries() error {
+	if len(c.DBEntries) < 3 {
+		return fmt.Errorf("Not enough entries - %v", len(c.DBEntries))
+	}
+	if c.DBEntries[0].GetChainID().String() != "000000000000000000000000000000000000000000000000000000000000000a" {
+		return fmt.Errorf("Invalid ChainID at position 0 - %v", c.DBEntries[0].GetChainID().String())
+	}
+	if c.DBEntries[1].GetChainID().String() != "000000000000000000000000000000000000000000000000000000000000000c" {
+		return fmt.Errorf("Invalid ChainID at position 1 - %v", c.DBEntries[1].GetChainID().String())
+	}
+	if c.DBEntries[2].GetChainID().String() != "000000000000000000000000000000000000000000000000000000000000000f" {
+		return fmt.Errorf("Invalid ChainID at position 2 - %v", c.DBEntries[2].GetChainID().String())
+	}
+	return nil
+}
+
 func (c *DirectoryBlock) GetKeyMR() interfaces.IHash {
 	keyMR, err := c.BuildKeyMerkleRoot()
 	if err != nil {
@@ -368,6 +384,11 @@ func (b *DirectoryBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	}
 
 	err = b.SetDBEntries(entries)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.CheckDBEntries()
 	if err != nil {
 		return nil, err
 	}

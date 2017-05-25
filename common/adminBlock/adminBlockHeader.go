@@ -5,10 +5,10 @@
 package adminBlock
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
-	"bytes"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -159,9 +159,13 @@ func (b *ABlockHeader) MarshalBinary() ([]byte, error) {
 
 func (b *ABlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	buf := primitives.NewBuffer(data)
-	err := buf.PopBinaryMarshallable(primitives.NewZeroHash())
+	h := primitives.NewZeroHash()
+	err := buf.PopBinaryMarshallable(h)
 	if err != nil {
 		return nil, err
+	}
+	if h.String() != "000000000000000000000000000000000000000000000000000000000000000a" {
+		return nil, fmt.Errorf("Block does not begin with the ABlock ChainID")
 	}
 
 	b.PrevBackRefHash = new(primitives.Hash)

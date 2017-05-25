@@ -210,6 +210,9 @@ func (b *Buffer) PopBytes() ([]byte, error) {
 	h := b.DeepCopyBytes()
 	l, rest := DecodeVarInt(h)
 
+	if int(l) > len(rest) {
+		return nil, fmt.Errorf("End of buffer")
+	}
 	answer := make([]byte, int(l))
 	copy(answer, rest)
 	remainder := rest[int(l):]

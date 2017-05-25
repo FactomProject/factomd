@@ -334,6 +334,11 @@ func (b *FBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
 			}
 			b.endOfPeriod[periodMark] = int(i)
 			periodMark++
+
+			by, err = buf.PeekByte()
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		trans := new(Transaction)
