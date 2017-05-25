@@ -20,15 +20,15 @@ func (s *State) StartTorrentSyncing() error {
 	}
 
 	// Upload we have done up to
-	var done uint32 = 0
+	var done uint32 = 1
 	for {
 		// Leaders do not need to sync torrents, they need to upload
 		if s.IsLeader() || s.TorrentUploader() {
 			// If we have not uploaded a height we have completed, increment done and upload
 			if done < s.EntryDBHeightComplete {
 				for done < s.EntryDBHeightComplete {
-					done++
 					s.UploadDBState(done)
+					done++
 				}
 			} else {
 				// If we did not just launch, and we are synced, and uploaded --> Long sleep

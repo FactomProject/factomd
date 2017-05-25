@@ -112,7 +112,6 @@ func (u *UploadController) handleErrors() {
 			return
 		case err := <-u.failedQueue:
 			// Just retry in 2 seconds? We can't not do this.
-			// fmt.Printf("UploadError %d: %s\n", err.Height, err.Err)
 			time.Sleep(10 * time.Second)
 			u.sendUploadQueue <- err.Sequence
 		}
@@ -160,7 +159,7 @@ func (s *State) uploadDBState(sequence uint32) error {
 		}
 
 		// If the file already exists on disk (from a previous run), then this
-		// skips us having to load all the data from the database and sending it over.
+		// skips us having to load all the data from the database and sending it over...
 		if s.DBStateManager.UploadIfOnDisk(base) {
 			return nil
 		}
