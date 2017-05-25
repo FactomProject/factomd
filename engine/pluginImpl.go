@@ -42,7 +42,7 @@ func (g *IManagerPluginRPC) CompletedHeightTo(height uint32) error {
 
 func (g *IManagerPluginRPC) UploadIfOnDisk(height uint32) bool {
 	var resp bool
-	err := g.client.Call("Plugin.UploadIfOnDisk", new(interface{}), &resp)
+	err := g.client.Call("Plugin.UploadIfOnDisk", height, &resp)
 	if err != nil {
 		return false
 	}

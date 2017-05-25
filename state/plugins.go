@@ -158,6 +158,13 @@ func (s *State) uploadDBState(sequence uint32) error {
 		for (s.EntryDBHeightComplete - 2) < base+BATCH_SIZE {
 			time.Sleep(2 * time.Second)
 		}
+
+		// If the file already exists on disk (from a previous run), then this
+		// skips us having to load all the data from the database and sending it over.
+		if s.DBStateManager.UploadIfOnDisk(base) {
+			return nil
+		}
+
 		fullData := make([]byte, 0)
 		var i uint32
 		for i = 0; i < BATCH_SIZE; i++ {
