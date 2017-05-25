@@ -214,3 +214,60 @@ func TestSameAs(t *testing.T) {
 	}
 	//fmt.Println(db1k1)
 }
+
+type TestEBlock struct {
+	Raw   string
+	KeyMR string
+	Hash  string
+}
+
+func TestMarshalUnmarshalStaticEBlock(t *testing.T) {
+	ts := []TestEBlock{}
+
+	t1 := TestEBlock{}
+	t1.Raw = "06a40590f536293bdecc3d7e69a5c21785c6ed454a59caf7b2e083a1a88ac85b900986feee6603c74fc3aa925d3de2371190fee36632bd2f1389cbaa6d62a98b78fe8619ef8af7ddae3de88a5063476d04467a576c4ff40abd157429e19f1748f43a6d9767a02dbbfbec86fe962552f22c55d4f6467dc8cf019d1d0ba06a88d40000f77b0001602100000002370054e235209bda68f934c8d4bd9d84edef4c03ebd890fe7686edca138f61880000000000000000000000000000000000000000000000000000000000000008"
+	t1.KeyMR = "1462592f58712147b62617c6fb37380a223cd32ef673345340e94521df3c9aca"
+	t1.Hash = "52794022b3da85b58df69cb842b85d45cda70771677fe0011f5af852eb30e930"
+	ts = append(ts, t1)
+
+	t2 := TestEBlock{}
+	t2.Raw = "df3ade9eec4b08d5379cc64270c30ea7315d8a8a1a69efe2b98a60ecdd69e604831da78a07e01a7495719c54a23861d7d2c25a3eac0b5bfda7d7715c6937c108e9a64a371c68e89f5a3e97f6512c3864fa73448b1907de9078f5a9dc0f4b2d0aecfb6f5aee8e04bde68a5b69a4cea55e8b4e7a3a8efbf75d45a6b686874c5bbe0000000d0000001900000004c480b681b113118876e2540b1f9791af555dc2cd9b5806451305167816281710c92715fe2262b22b1b6fad0f4fc81ff7ccf5f9d633fb6815db414ec023719a72c49b069dbc664c2f247b812160c4a902826483df2b47c27dfd2a95c4281dda790000000000000000000000000000000000000000000000000000000000000003"
+	t2.KeyMR = "78ac31584a1e526a3739d6eac5129f6a71aefa722792f9afe8b428f34a9f673c"
+	t2.Hash = "8180cef1efb75d39fb581c44688a43cae6a4ebab70d7abbe9f2d8864e230e75c"
+	ts = append(ts, t2)
+
+	for _, tBlock := range ts {
+		rawStr := tBlock.Raw
+		raw, err := hex.DecodeString(rawStr)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		f := new(EBlock)
+		rest, err := f.UnmarshalBinaryData(raw)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if len(rest) > 0 {
+			t.Errorf("Returned too much data - %x", rest)
+		}
+
+		b, err := f.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		if primitives.AreBytesEqual(raw, b) == false {
+			t.Errorf("Marshalled bytes are not equal - %x vs %x", raw, b)
+		}
+
+		//f.CalculateHashes()
+
+		if f.DatabasePrimaryIndex().String() != tBlock.KeyMR {
+			t.Errorf("Wrong PrimaryIndex - %v vs %v", f.DatabasePrimaryIndex().String(), tBlock.KeyMR)
+		}
+		if f.DatabaseSecondaryIndex().String() != tBlock.Hash {
+			t.Errorf("Wrong SecondaryIndex - %v vs %v", f.DatabaseSecondaryIndex().String(), tBlock.Hash)
+		}
+	}
+}
