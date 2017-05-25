@@ -1140,11 +1140,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		return
 	}
 
-	l, err = buf.PopVarInt()
-	if err != nil {
-		return
-	}
-	for i := 0; i < int(l); i++ {
+	for i := 0; i < ss.EntryHeightComplete; i++ {
 		s := new(MissingEntry)
 		err = buf.PopBinaryMarshallable(s)
 		if err != nil {
