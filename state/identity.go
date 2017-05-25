@@ -13,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 )
 
 var (
@@ -227,7 +226,7 @@ func (st *State) isIdentityChain(cid interfaces.IHash) int {
 // Eg. Only call from addserver or you don't want any messages being sent.
 func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
 	if eblk == nil {
-		log.Println("DEBUG: Identity Error, EBlock nil, disregard")
+		st.Logger.Infof("Initializing identity failed as eblock is nil")
 		return
 	}
 	cid := eblk.GetChainID()
@@ -265,21 +264,33 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 				registerIdentityAsServer(ent, height, st)
 			} else if string(ent.ExternalIDs()[1]) == "New Block Signing Key" {
 				if len(ent.ExternalIDs()) == 7 {
-					RegisterBlockSigningKey(ent, initial, height, st)
+					err := RegisterBlockSigningKey(ent, initial, height, st)
+					if err != nil {
+						st.Logger.Warning("Identity Error: Updating Matryoshka Hash failed on AppendExtIDs() - %s", err.Error())
+					}
 				}
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 				if len(ent.ExternalIDs()) == 9 {
-					RegisterAnchorSigningKey(ent, initial, height, st, "BTC")
+					err := RegisterAnchorSigningKey(ent, initial, height, st, "BTC")
+					if err != nil {
+						st.Logger.Warning("Identity Error: Updating Matryoshka Hash failed on AppendExtIDs() - %s", err.Error())
+					}
 				}
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 				if len(ent.ExternalIDs()) == 7 {
-					UpdateMatryoshkaHash(ent, initial, height, st)
+					err := UpdateMatryoshkaHash(ent, initial, height, st)
+					if err != nil {
+						st.Logger.Warning("Identity Error: Updating Matryoshka Hash failed on AppendExtIDs() - %s", err.Error())
+					}
 				}
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
 				addIdentity(ent, height, st)
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Server Management" {
 				if len(ent.ExternalIDs()) == 4 {
-					UpdateManagementKey(ent, height, st)
+					err := UpdateManagementKey(ent, height, st)
+					if err != nil {
+						st.Logger.Warning("Identity Error: Updating Matryoshka Hash failed on AppendExtIDs() - %s", err.Error())
+					}
 				}
 			}
 		}
@@ -580,7 +591,7 @@ func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 	sigmsg, err := AppendExtIDs(extIDs, 0, 4)
 	if err != nil {
 		//log.Printfln("Identity Error:", err)
-		return nil
+		return err
 	} else {
 		// Verify Signature
 		idKey := st.Identities[IdentityIndex].Key1
@@ -730,7 +741,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	err := st.AddIdentityFromChainID(chainID)
 	if err != nil {
-		log.Println(err.Error())
+		st.Logger.Warningf("Identity Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
 		return true
 	}
 
@@ -741,7 +752,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		zero := primitives.NewZeroHash()
 
 		if id.SigningKey == nil || id.SigningKey.IsSameAs(zero) {
-			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Block Signing Key associated to it")
+			st.Logger.Warningf("Identity Failed to process AddServerMessage for %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Block Signing Key associated to it")
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
@@ -751,7 +762,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		}
 
 		if id.AnchorKeys == nil {
-			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an BTC Anchor Key associated to it")
+			st.Logger.Warningf("Identity Failed to process AddServerMessage for %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an BTC Anchor Key associated to it")
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
@@ -765,7 +776,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		}
 
 		if id.MatryoshkaHash == nil || id.MatryoshkaHash.IsSameAs(zero) {
-			log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an Matryoshka Hash associated to it")
+			st.Logger.Warningf("Identity Failed to process AddServerMessage for %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Matryoshka Hash associated to it")
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
@@ -780,7 +791,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		}
 		st.Identities[index] = id
 	} else {
-		log.Println("New Fed/Audit server [" + chainID.String()[:10] + "] does not have an identity associated to it")
+		st.Logger.Warningf("Identity Failed to process AddServerMessage for %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
 		return true
 	}
 

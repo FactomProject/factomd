@@ -29,7 +29,6 @@ import (
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
@@ -244,7 +243,7 @@ type State struct {
 
 	// Database
 	DB     interfaces.DBOverlaySimple
-	Logger *logger.FLogger
+	Logger *log.FLogger
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -359,10 +358,15 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		config = true
 	}
 
+	if s.LogPath == "stdout" {
+		newState.LogPath = "stdout"
+	} else {
+		newState.LogPath = s.LogPath + "/Sim" + number
+	}
+
 	newState.FactomNodeName = s.Prefix + "FNode" + number
 	newState.FactomdVersion = s.FactomdVersion
 	newState.DropRate = s.DropRate
-	newState.LogPath = s.LogPath + "/Sim" + number
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.JournalFile = s.LogPath + "/journal" + number + ".log"
 	newState.Journaling = s.Journaling
@@ -715,9 +719,17 @@ func (s *State) Init() {
 	s.RunLeader = false
 	s.IgnoreMissing = true
 
-	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
-
-	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+	if s.LogPath == "stdout" {
+		wsapi.InitLogs(s.LogPath, s.LogLevel)
+		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+	} else {
+		er := os.MkdirAll(s.LogPath, 0777)
+		if er != nil {
+			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
+		}
+		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
+		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+	}
 
 	log.SetLevel(s.ConsoleLogLevel)
 
@@ -737,10 +749,6 @@ func (s *State) Init() {
 	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
 
-	er := os.MkdirAll(s.LogPath, 0777)
-	if er != nil {
-		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
-	}
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
 		if err != nil {
