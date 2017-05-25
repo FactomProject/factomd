@@ -22,7 +22,7 @@ type StateSaverStruct struct {
 }
 
 //To be increased whenever the data being saved changes from the last verion
-const version = 5
+const version = 6
 
 func (sss *StateSaverStruct) StopSaving() {
 	sss.Mutex.Lock()
