@@ -40,11 +40,11 @@ func (g *IManagerPluginRPC) CompletedHeightTo(height uint32) error {
 	return resp
 }
 
-func (g *IManagerPluginRPC) RequestMoreUploads() int {
-	var resp int
-	err := g.client.Call("Plugin.RequestMoreUploads", new(interface{}), &resp)
+func (g *IManagerPluginRPC) UploadIfOnDisk(height uint32) bool {
+	var resp bool
+	err := g.client.Call("Plugin.UploadIfOnDisk", new(interface{}), &resp)
 	if err != nil {
-		return -1
+		return false
 	}
 	return resp
 }
@@ -111,8 +111,8 @@ type IManagerPluginRPCServer struct {
 	Impl interfaces.IManagerController
 }
 
-func (s *IManagerPluginRPCServer) RequestMoreUploads(args interface{}, resp *int) error {
-	*resp = s.Impl.RequestMoreUploads()
+func (s *IManagerPluginRPCServer) UploadIfOnDisk(height uint32, resp *bool) error {
+	*resp = s.Impl.UploadIfOnDisk(height)
 	return nil
 }
 func (s *IManagerPluginRPCServer) Alive(args interface{}, resp *error) error {

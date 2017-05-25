@@ -88,35 +88,18 @@ func (u *UploadController) sortRequests() {
 func (s *State) uploadBlocks() {
 	u := s.Uploader
 	for {
-	backToTopUploadBlocks:
-		select {
+		select { // We will block if nothing is in queue and chill here
 		case <-u.quit:
 			u.quit <- 0
 			return
-		default:
-			readyFor := u.DBStateManager.RequestMoreUploads()
-			// Need to check if we are able to upload any blocks. If we cannot, we will wait
-			if readyFor == 0 { // Not ready for anything
-				time.Sleep(1 * time.Second)
-				goto backToTopUploadBlocks
-			} else if readyFor < 0 {
-				// This is a plugin crash....
-				return
-			} else {
-				// We can make some uploads. Only loop readyFor times
-				for i := 0; i < readyFor; i++ {
-					select { // We will block if nothing is in queue and chill here
-					case se := <-u.sendUploadQueue:
-						err := s.uploadDBState(se)
-						if err != nil {
-							u.failedQueue <- heightError{Height: se * BATCH_SIZE, Sequence: se, Err: err}
-						}
-					case <-u.quit:
-						u.quit <- 0
-						return
-					}
-				}
+		case se := <-u.sendUploadQueue:
+			err := s.uploadDBState(se)
+			if err != nil {
+				u.failedQueue <- heightError{Height: se * BATCH_SIZE, Sequence: se, Err: err}
 			}
+		case <-u.quit:
+			u.quit <- 0
+			return
 		}
 	}
 }

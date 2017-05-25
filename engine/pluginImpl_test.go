@@ -24,7 +24,7 @@ type FakeTorrent struct{}
 
 func (FakeTorrent) RetrieveDBStateByHeight(height uint32) error     { return nil }
 func (FakeTorrent) UploadDBStateBytes(data []byte, sign bool) error { return nil }
-func (FakeTorrent) RequestMoreUploads() int                         { return 0 }
+func (FakeTorrent) UploadIfOnDisk(height uint32) bool               { return true }
 func (FakeTorrent) CompletedHeightTo(height uint32) error           { return nil }
 func (FakeTorrent) IsBufferEmpty() bool                             { return true }
 func (FakeTorrent) FetchFromBuffer() []byte                         { return nil }
@@ -80,9 +80,9 @@ func TestTorrentImpl(t *testing.T) {
 		t.Error(err)
 	}
 
-	v := mc.RequestMoreUploads()
-	if v != 0 {
-		t.Error("Should be 0")
+	v := mc.UploadIfOnDisk()
+	if v != true {
+		t.Error("Should be true")
 	}
 
 	err = mc.CompletedHeightTo(0)
@@ -122,9 +122,9 @@ func TestTorrentImpl(t *testing.T) {
 		t.Error("Stream closed, this should fail")
 	}
 
-	v = mc.RequestMoreUploads()
-	if v != -1 {
-		t.Error("Should be -1")
+	v = mc.UploadIfOnDisk()
+	if v != true {
+		t.Error("Should be true")
 	}
 
 	err = mc.CompletedHeightTo(0)
