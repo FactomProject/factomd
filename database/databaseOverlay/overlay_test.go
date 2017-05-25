@@ -586,22 +586,20 @@ func TestDoesKeyExist(t *testing.T) {
 }
 
 func TestFetchAllBlockKeysFromBucket(t *testing.T) {
-	dbo := createOverlay()
-	defer dbo.Close()
+	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()
 
-	obj := NewDBTestObject()
-	bucket := []byte{0x01}
-
-	err := dbo.Insert(bucket, obj)
+	_, keys, err := dbo.GetAll(INCLUDED_IN, primitives.NewZeroHash())
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-
-	keys, err := dbo.FetchAllBlockKeysFromBucket(bucket)
-	if err != nil {
-		t.Errorf("%v", err)
+	if len(keys) != 150 {
+		t.Errorf("Invalid amount of keys returned - expected 150, got %v", len(keys))
 	}
-	if len(keys) == 0 {
-		t.Errorf("No keys returned")
+	for i := range keys {
+		for j := i + 1; j < len(keys); j++ {
+			if primitives.AreBytesEqual(keys[i], keys[j]) {
+				t.Errorf("Key %v is equal to key %v - %x", i, j, keys[i])
+			}
+		}
 	}
 }
