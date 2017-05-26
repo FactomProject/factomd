@@ -10,8 +10,11 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	. "github.com/FactomProject/factomd/database/leveldb"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 type TestData struct {
@@ -198,6 +201,35 @@ func TestDoesKeyExist(t *testing.T) {
 
 		if exists == true {
 			t.Errorf("Key does exist while it shouldn't")
+		}
+	}
+}
+
+func TestGetAll(t *testing.T) {
+	m, err := NewLevelDB(dbFilename, true)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	defer CleanupTest(t, m)
+
+	dbo := databaseOverlay.NewOverlay(m)
+	testHelper.PopulateTestDatabaseOverlay(dbo)
+
+	_, keys, err := dbo.GetAll(databaseOverlay.INCLUDED_IN, primitives.NewZeroHash())
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if len(keys) != 150 {
+		t.Errorf("Invalid amount of keys returned - expected 150, got %v", len(keys))
+	}
+	for i := range keys {
+		for j := i + 1; j < len(keys); j++ {
+			if primitives.AreBytesEqual(keys[i], keys[j]) {
+				t.Errorf("Key %v is equal to key %v - %x", i, j, keys[i])
+			}
+		}
+		if len(keys[i]) != 32 {
+			t.Errorf("Wrong key length at index %v - %v", i, len(keys[i]))
 		}
 	}
 }

@@ -82,6 +82,8 @@ func NetStart(s *state.State) {
 	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
 	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: debug, info, notice, warning, error, critical, alert, emergency or none")
+	logSTDOutPtr := flag.Bool("logstdout", false, "Use to set logging to stdout")
 
 	flag.Parse()
 
@@ -122,6 +124,8 @@ func NetStart(s *state.State) {
 	factomdTLS := *factomdTLSflag
 	factomdLocations := *factomdLocationsflag
 	fast := *fastPtr
+	logLvl := *logLvlPtr
+	logSTDOut := *logSTDOutPtr
 
 	messages.AckBalanceHash = ackbalanceHash
 	// Must add the prefix before loading the configuration.
@@ -133,6 +137,11 @@ func NetStart(s *state.State) {
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(timeOffset))
 	s.StartDelayLimit = startDelay * 1000
 	s.Journaling = journaling
+	s.LogLevel = logLvl
+
+	if logSTDOut {
+		s.LogPath = "stdout"
+	}
 
 	// Set the wait for entries flag
 	s.WaitForEntries = waitEntries
@@ -368,6 +377,8 @@ func NetStart(s *state.State) {
 			SeedURL:                  seedURL,
 			SpecialPeers:             specialPeers,
 			ConnectionMetricsChannel: connectionMetricsChannel,
+			LogPath:                  s.LogPath,
+			LogLevel:                 s.LogLevel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkControler = p2pNetwork
