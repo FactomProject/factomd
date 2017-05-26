@@ -857,9 +857,20 @@ func (s *State) Init() {
 	s.starttime = time.Now()
 
 	if s.StateSaverStruct.FastBoot {
-		err := s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
+		d, err := s.DB.FetchDBlockHead()
 		if err != nil {
 			panic(err)
+		}
+
+		if d == nil || d.GetDatabaseHeight() < 2000 {
+			//If we have less than 2k blocks, we wipe SaveState
+			//This is to ensure we don't accidentally keep SaveState while deleting a database
+			s.StateSaverStruct.DeleteSaveState(s.Network)
+		} else {
+			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }
