@@ -47,3 +47,32 @@ func TestRandInt64Between(t *testing.T) {
 		}
 	}
 }
+
+func TestRandIntBetween(t *testing.T) {
+	var min int = -100
+	var max int = 200
+
+	for i := 0; i < 1000; i++ {
+		r := RandIntBetween(min, max)
+		if r < min {
+			t.Errorf("Returned value smaller than min - %v < %v", r, min)
+		}
+		if r > max {
+			t.Errorf("Returned value greater than max - %v > %v", r, max)
+		}
+
+		if RandInt64Between(10, 0) != 0 {
+			t.Errorf("Returned a wrong value for invalid input")
+		}
+	}
+}
+
+func TestRandByteSlice(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		r := RandByteSlice()
+
+		if len(r) > 64 {
+			t.Errorf("Returned a wrong size")
+		}
+	}
+}
