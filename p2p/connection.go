@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/log"
 )
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
@@ -41,6 +42,7 @@ type Connection struct {
 	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
+	Logger          *log.FLogger
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -509,8 +511,10 @@ func (c *Connection) handleNetErrors(toss bool) {
 			default:
 				// Only go offline once per handleNetErrors call
 				if !toss && !done {
+					c.Logger.Errorf("%s : HandleNetErros Going Offline due to -- %s", c.peer.PeerIdent(), err.Error())
 					c.goOffline()
 				}
+
 				done = true
 			}
 		default:

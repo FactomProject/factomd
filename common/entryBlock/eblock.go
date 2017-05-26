@@ -67,25 +67,6 @@ func (c *EBlock) New() interfaces.BinaryMarshallableAndCopyable {
 	return NewEBlock()
 }
 
-func (e *EBlock) GetWelds() [][]byte {
-	e.Init()
-	var answer [][]byte
-	for _, entry := range e.GetEntryHashes() {
-		answer = append(answer, primitives.DoubleSha(append(entry.Bytes(), e.GetChainID().Bytes()...)))
-	}
-	return answer
-}
-
-func (e *EBlock) GetWeldHashes() []interfaces.IHash {
-	var answer []interfaces.IHash
-	for _, h := range e.GetWelds() {
-		hash := primitives.NewZeroHash()
-		hash.SetBytes(h)
-		answer = append(answer, hash)
-	}
-	return answer
-}
-
 func (c *EBlock) GetDatabaseHeight() uint32 {
 	return c.GetHeader().GetDBHeight()
 }
@@ -203,15 +184,16 @@ func (e *EBlock) KeyMR() (interfaces.IHash, error) {
 // MarshalBinary returns the serialized binary form of the Entry Block.
 func (e *EBlock) MarshalBinary() ([]byte, error) {
 	e.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
-	if err := e.BuildHeader(); err != nil {
+	err := e.BuildHeader()
+	if err != nil {
 		return nil, err
 	}
-	if p, err := e.GetHeader().MarshalBinary(); err != nil {
+
+	err = buf.PushBinaryMarshallable(e.GetHeader())
+	if err != nil {
 		return nil, err
-	} else {
-		buf.Write(p)
 	}
 
 	if p, err := e.marshalBodyBinary(); err != nil {
