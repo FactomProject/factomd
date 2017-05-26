@@ -61,7 +61,7 @@ func TestRandIntBetween(t *testing.T) {
 			t.Errorf("Returned value greater than max - %v > %v", r, max)
 		}
 
-		if RandInt64Between(10, 0) != 0 {
+		if RandIntBetween(10, 0) != 0 {
 			t.Errorf("Returned a wrong value for invalid input")
 		}
 	}
@@ -73,6 +73,67 @@ func TestRandByteSlice(t *testing.T) {
 
 		if len(r) > 64 {
 			t.Errorf("Returned a wrong size")
+		}
+	}
+}
+
+func TestRandNonEmptyByteSlice(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		r := RandNonEmptyByteSlice()
+
+		if len(r) > 64 || len(r) == 0 {
+			t.Errorf("Returned a wrong size %v", len(r))
+		}
+	}
+}
+
+func TestRandByteSliceOfLen(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		r := RandByteSliceOfLen(100)
+
+		if len(r) != 100 {
+			t.Errorf("Returned a wrong size %v", len(r))
+		}
+	}
+}
+
+func TestRandomString(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		r := RandomString()
+
+		if len(r) > 128 {
+			t.Errorf("Returned a wrong size %v", len(r))
+		}
+	}
+}
+
+func TestUintNumbers(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		r := RandUInt64()
+
+		if r < 0 {
+			t.Errorf("Returned a negative %v", r)
+		}
+	}
+	for i := 0; i < 1000; i++ {
+		s := RandUInt32()
+
+		if s < 0 {
+			t.Errorf("Returned a negative %v", s)
+		}
+	}
+	for i := 0; i < 1000; i++ {
+		u := RandUInt8()
+
+		if u < 0 {
+			t.Errorf("Returned a negative %v", u)
+		}
+	}
+	for i := 0; i < 1000; i++ {
+		v := RandByte()
+
+		if v < 0 {
+			t.Errorf("Returned a negative %v", v)
 		}
 	}
 }
