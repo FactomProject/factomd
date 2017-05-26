@@ -5,7 +5,6 @@
 package entryCreditBlock
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 
@@ -173,106 +172,113 @@ func (e *ECBlockHeader) JSONString() (string, error) {
 
 func (e *ECBlockHeader) MarshalBinary() ([]byte, error) {
 	e.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
 	// 32 byte ECChainID
-	buf.Write(e.GetECChainID().Bytes())
+	err := buf.PushBinaryMarshallable(e.GetECChainID())
+	if err != nil {
+		return nil, err
+	}
 
 	// 32 byte BodyHash
-	buf.Write(e.GetBodyHash().Bytes())
+	err = buf.PushBinaryMarshallable(e.GetBodyHash())
+	if err != nil {
+		return nil, err
+	}
 
 	// 32 byte Previous Header Hash
-	buf.Write(e.GetPrevHeaderHash().Bytes())
+	err = buf.PushBinaryMarshallable(e.GetPrevHeaderHash())
+	if err != nil {
+		return nil, err
+	}
 
 	// 32 byte Previous Full Hash
-	buf.Write(e.GetPrevFullHash().Bytes())
+	err = buf.PushBinaryMarshallable(e.GetPrevFullHash())
+	if err != nil {
+		return nil, err
+	}
 
 	// 4 byte Directory Block Height
-	if err := binary.Write(buf, binary.BigEndian, e.GetDBHeight()); err != nil {
+	err = buf.PushUInt32(e.GetDBHeight())
+	if err != nil {
 		return nil, err
 	}
 
 	// variable Header Expansion Size
-	if err := primitives.EncodeVarInt(buf,
-		uint64(len(e.GetHeaderExpansionArea()))); err != nil {
+	err = buf.PushVarInt(uint64(len(e.GetHeaderExpansionArea())))
+	if err != nil {
 		return nil, err
 	}
 
 	// varable byte Header Expansion Area
-	buf.Write(e.GetHeaderExpansionArea())
+	err = buf.Push(e.GetHeaderExpansionArea())
+	if err != nil {
+		return nil, err
+	}
 
 	// 8 byte Object Count
-	if err := binary.Write(buf, binary.BigEndian, e.GetObjectCount()); err != nil {
+	err = buf.PushUInt64(e.GetObjectCount())
+	if err != nil {
 		return nil, err
 	}
 
 	// 8 byte size of the Body
-	if err := binary.Write(buf, binary.BigEndian, e.GetBodySize()); err != nil {
+	err = buf.PushUInt64(e.GetBodySize())
+	if err != nil {
 		return nil, err
 	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling: %v", r)
-		}
-	}()
-
+func (e *ECBlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	e.Init()
 	buf := primitives.NewBuffer(data)
-	hash := make([]byte, 32)
 
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		if fmt.Sprintf("%x", hash) != "000000000000000000000000000000000000000000000000000000000000000c" {
-			err = fmt.Errorf("Invalid ChainID - %x", hash)
-			return
-		}
+	h := primitives.NewZeroHash()
+	err := buf.PopBinaryMarshallable(h)
+	if err != nil {
+		return nil, err
+	}
+	if h.String() != "000000000000000000000000000000000000000000000000000000000000000c" {
+		return nil, fmt.Errorf("Invalid ChainID - %s", h)
 	}
 
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.BodyHash.SetBytes(hash)
+	err = buf.PopBinaryMarshallable(e.BodyHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PopBinaryMarshallable(e.PrevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PopBinaryMarshallable(e.PrevFullHash)
+	if err != nil {
+		return nil, err
 	}
 
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.PrevHeaderHash.SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.PrevFullHash.SetBytes(hash)
-	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
-		return
+	e.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
 	}
 
 	// read the Header Expansion Area
-	hesize, tmp := primitives.DecodeVarInt(buf.DeepCopyBytes())
-	buf = primitives.NewBuffer(tmp)
-	e.HeaderExpansionArea = make([]byte, hesize)
-	if _, err = buf.Read(e.HeaderExpansionArea); err != nil {
-		return
+	hesize, err := buf.PopVarInt()
+	e.HeaderExpansionArea, err = buf.PopLen(int(hesize))
+	if err != nil {
+		return nil, err
 	}
 
-	if err = binary.Read(buf, binary.BigEndian, &e.ObjectCount); err != nil {
-		return
+	e.ObjectCount, err = buf.PopUInt64()
+	if err != nil {
+		return nil, err
+	}
+	e.BodySize, err = buf.PopUInt64()
+	if err != nil {
+		return nil, err
 	}
 
-	if err = binary.Read(buf, binary.BigEndian, &e.BodySize); err != nil {
-		return
-	}
-
-	newData = buf.DeepCopyBytes()
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *ECBlockHeader) UnmarshalBinary(data []byte) error {

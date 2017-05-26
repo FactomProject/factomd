@@ -30,30 +30,37 @@ func NewEndOfMinuteEntry(minuteNumber byte) *EndOfMinuteEntry {
 	return e
 }
 
-func (e *EndOfMinuteEntry) MarshalBinary() (data []byte, err error) {
+func (e *EndOfMinuteEntry) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
 
-	buf.Write([]byte{e.Type()})
-	buf.Write([]byte{e.MinuteNumber})
+	err := buf.PushByte(e.Type())
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushByte(e.MinuteNumber)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling End Of Minute: %v", r)
-		}
-	}()
-	newData = data
-	if newData[0] != e.Type() {
+func (e *EndOfMinuteEntry) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
+	b, err := buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
+	if b != e.Type() {
 		return nil, fmt.Errorf("Invalid Entry type")
 	}
-	newData = newData[1:]
 
-	e.MinuteNumber, newData = newData[0], newData[1:]
+	e.MinuteNumber, err = buf.PopByte()
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {

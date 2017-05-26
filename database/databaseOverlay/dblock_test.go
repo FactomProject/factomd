@@ -18,7 +18,8 @@ import (
 )
 
 func TestSaveLoadDBlockHead(t *testing.T) {
-	b1 := testHelper.CreateTestDirectoryBlock(nil)
+	blocks := testHelper.CreateTestBlockSet(nil)
+	b1 := blocks.DBlock
 
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
@@ -49,7 +50,8 @@ func TestSaveLoadDBlockHead(t *testing.T) {
 		t.Error("Blocks are not equal")
 	}
 
-	b2 := testHelper.CreateTestDirectoryBlock(b1)
+	blocks = testHelper.CreateTestBlockSet(blocks)
+	b2 := blocks.DBlock
 
 	err = dbo.SaveDirectoryBlockHead(b2)
 	if err != nil {
@@ -80,14 +82,14 @@ func TestSaveLoadDBlockHead(t *testing.T) {
 func TestSaveLoadDBlockChain(t *testing.T) {
 	blocks := []*DirectoryBlock{}
 	max := 10
-	var prev *DirectoryBlock = nil
+	var prev *testHelper.BlockSet = nil
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
 	for i := 0; i < max; i++ {
-		prev = testHelper.CreateTestDirectoryBlock(prev)
-		blocks = append(blocks, prev)
-		err := dbo.SaveDirectoryBlockHead(prev)
+		prev = testHelper.CreateTestBlockSet(prev)
+		blocks = append(blocks, prev.DBlock)
+		err := dbo.SaveDirectoryBlockHead(prev.DBlock)
 		if err != nil {
 			t.Error(err)
 		}

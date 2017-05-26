@@ -1,7 +1,6 @@
 package entryBlock
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -164,22 +163,35 @@ func (c *EBlockHeader) SetEntryCount(entryCount uint32) {
 // marshalHeaderBinary returns a serialized binary Entry Block Header
 func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 	e.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
-	buf.Write(e.ChainID.Bytes())
-	buf.Write(e.BodyMR.Bytes())
-	buf.Write(e.PrevKeyMR.Bytes())
-	buf.Write(e.PrevFullHash.Bytes())
-
-	if err := binary.Write(buf, binary.BigEndian, e.EBSequence); err != nil {
+	err := buf.PushBinaryMarshallable(e.ChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.BodyMR)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.PrevKeyMR)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(e.PrevFullHash)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, e.DBHeight); err != nil {
+	err = buf.PushUInt32(e.EBSequence)
+	if err != nil {
 		return nil, err
 	}
-
-	if err := binary.Write(buf, binary.BigEndian, e.EntryCount); err != nil {
+	err = buf.PushUInt32(e.DBHeight)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushUInt32(e.EntryCount)
+	if err != nil {
 		return nil, err
 	}
 
@@ -187,51 +199,41 @@ func (e *EBlockHeader) MarshalBinary() ([]byte, error) {
 }
 
 // unmarshalHeaderBinary builds the Entry Block Header from the serialized binary.
-func (e *EBlockHeader) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (e *EBlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 	e.Init()
 	buf := primitives.NewBuffer(data)
-	hash := make([]byte, 32)
-	newData = data
 
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.ChainID.SetBytes(hash)
+	err := buf.PopBinaryMarshallable(e.ChainID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PopBinaryMarshallable(e.BodyMR)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PopBinaryMarshallable(e.PrevKeyMR)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PopBinaryMarshallable(e.PrevFullHash)
+	if err != nil {
+		return nil, err
 	}
 
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.BodyMR.SetBytes(hash)
+	e.EBSequence, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	e.DBHeight, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
+	}
+	e.EntryCount, err = buf.PopUInt32()
+	if err != nil {
+		return nil, err
 	}
 
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.PrevKeyMR.SetBytes(hash)
-	}
-
-	if _, err = buf.Read(hash); err != nil {
-		return
-	} else {
-		e.PrevFullHash.SetBytes(hash)
-	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.EBSequence); err != nil {
-		return
-	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.DBHeight); err != nil {
-		return
-	}
-
-	if err = binary.Read(buf, binary.BigEndian, &e.EntryCount); err != nil {
-		return
-	}
-
-	newData = buf.DeepCopyBytes()
-
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (e *EBlockHeader) UnmarshalBinary(data []byte) (err error) {

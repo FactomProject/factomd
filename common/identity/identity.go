@@ -279,6 +279,7 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		e.AnchorKeys = append(e.AnchorKeys, ak)
 	}
 
+	newData = buf.DeepCopyBytes()
 	return
 }
 
