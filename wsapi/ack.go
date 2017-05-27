@@ -323,7 +323,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetSpecificACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
@@ -376,7 +376,7 @@ func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{},
 			return nil, NewInvalidParamsError()
 		}
 
-		status, txid, txTime, blockTime, err := state.GetACKStatus(h)
+		status, txid, txTime, blockTime, err := state.GetSpecificACKStatus(h)
 		if err != nil {
 			return nil, NewInternalError()
 		}
