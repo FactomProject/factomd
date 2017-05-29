@@ -7,6 +7,7 @@ package state
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/primitives"
@@ -69,6 +70,10 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	return nil
 }
 
+func (sss *StateSaverStruct) DeleteSaveState(networkName string) error {
+	return DeleteFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
+}
+
 func (sss *StateSaverStruct) LoadDBStateList(ss *DBStateList, networkName string) error {
 	b, err := LoadFromFile(NetworkIDToFilename(networkName, sss.FastBootLocation))
 	if err != nil {
@@ -114,4 +119,8 @@ func LoadFromFile(filename string) ([]byte, error) {
 		return nil, err
 	}
 	return b, nil
+}
+
+func DeleteFile(filename string) error {
+	return os.Remove(filename)
 }
