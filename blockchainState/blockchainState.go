@@ -22,21 +22,18 @@ const M2SWITCHHEIGHT uint32 = 70411 //TODO: double-check
 type BlockchainState struct {
 	NetworkID uint32
 
-	DBlockHeadKeyMR *primitives.Hash
-	DBlockHeadHash  *primitives.Hash
+	DBlockHead      *HashPair
 	DBlockHeight    uint32
 	DBlockTimestamp *primitives.Timestamp
 	DBlockHeader    []byte //For DBSignatureEntry
 
-	ECBlockHeadKeyMR *primitives.Hash
-	ECBlockHeadHash  *primitives.Hash
+	ECBlockHead *HashPair
 
-	FBlockHeadKeyMR *primitives.Hash
-	FBlockHeadHash  *primitives.Hash
+	FBlockHead *HashPair
 
 	ABlockHeadRefHash *primitives.Hash
 
-	BlockHeads map[string]*primitives.Hash
+	EBlockHeads map[string]*HashPair
 
 	ECBalances   map[string]uint64
 	FBalances    map[string]uint64
@@ -74,8 +71,8 @@ func (bs *BlockchainState) IsMainNet() bool {
 }
 
 func (bs *BlockchainState) Init() {
-	if bs.BlockHeads == nil {
-		bs.BlockHeads = map[string]*primitives.Hash{}
+	if bs.EBlockHeads == nil {
+		bs.EBlockHeads = map[string]*HashPair{}
 	}
 	if bs.ECBalances == nil {
 		bs.ECBalances = map[string]uint64{}
@@ -87,23 +84,14 @@ func (bs *BlockchainState) Init() {
 		bs.PendingCommits = map[string]*PendingCommit{}
 	}
 
-	if bs.DBlockHeadKeyMR == nil {
-		bs.DBlockHeadKeyMR = primitives.NewZeroHash().(*primitives.Hash)
+	if bs.DBlockHead == nil {
+		bs.DBlockHead = NewHashPair()
 	}
-	if bs.DBlockHeadHash == nil {
-		bs.DBlockHeadHash = primitives.NewZeroHash().(*primitives.Hash)
+	if bs.ECBlockHead == nil {
+		bs.ECBlockHead = NewHashPair()
 	}
-	if bs.ECBlockHeadKeyMR == nil {
-		bs.ECBlockHeadKeyMR = primitives.NewZeroHash().(*primitives.Hash)
-	}
-	if bs.ECBlockHeadHash == nil {
-		bs.ECBlockHeadHash = primitives.NewZeroHash().(*primitives.Hash)
-	}
-	if bs.FBlockHeadKeyMR == nil {
-		bs.FBlockHeadKeyMR = primitives.NewZeroHash().(*primitives.Hash)
-	}
-	if bs.FBlockHeadHash == nil {
-		bs.FBlockHeadHash = primitives.NewZeroHash().(*primitives.Hash)
+	if bs.FBlockHead == nil {
+		bs.FBlockHead = NewHashPair()
 	}
 	if bs.ABlockHeadRefHash == nil {
 		bs.ABlockHeadRefHash = primitives.NewZeroHash().(*primitives.Hash)

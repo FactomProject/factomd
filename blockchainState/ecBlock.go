@@ -15,11 +15,11 @@ import (
 func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) error {
 	bs.Init()
 
-	if bs.ECBlockHeadKeyMR.String() != ecBlock.GetHeader().GetPrevHeaderHash().String() {
-		return fmt.Errorf("Invalid ECBlock %v previous KeyMR - expected %v, got %v\n", ecBlock.DatabasePrimaryIndex().String(), bs.ECBlockHeadKeyMR.String(), ecBlock.GetHeader().GetPrevHeaderHash().String())
+	if bs.ECBlockHead.KeyMR.String() != ecBlock.GetHeader().GetPrevHeaderHash().String() {
+		return fmt.Errorf("Invalid ECBlock %v previous KeyMR - expected %v, got %v\n", ecBlock.DatabasePrimaryIndex().String(), bs.ECBlockHead.KeyMR.String(), ecBlock.GetHeader().GetPrevHeaderHash().String())
 	}
-	if bs.ECBlockHeadHash.String() != ecBlock.GetHeader().GetPrevFullHash().String() {
-		return fmt.Errorf("Invalid ECBlock %v previous hash - expected %v, got %v\n", ecBlock.DatabasePrimaryIndex().String(), bs.ECBlockHeadHash.String(), ecBlock.GetHeader().GetPrevFullHash().String())
+	if bs.ECBlockHead.Hash.String() != ecBlock.GetHeader().GetPrevFullHash().String() {
+		return fmt.Errorf("Invalid ECBlock %v previous hash - expected %v, got %v\n", ecBlock.DatabasePrimaryIndex().String(), bs.ECBlockHead.Hash.String(), ecBlock.GetHeader().GetPrevFullHash().String())
 	}
 
 	if bs.DBlockHeight > M2SWITCHHEIGHT {
@@ -29,8 +29,8 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 		}
 	}
 
-	bs.ECBlockHeadKeyMR = ecBlock.DatabasePrimaryIndex().(*primitives.Hash)
-	bs.ECBlockHeadHash = ecBlock.DatabaseSecondaryIndex().(*primitives.Hash)
+	bs.ECBlockHead.KeyMR = ecBlock.DatabasePrimaryIndex().(*primitives.Hash)
+	bs.ECBlockHead.Hash = ecBlock.DatabaseSecondaryIndex().(*primitives.Hash)
 
 	err := CheckECBlockMinuteNumbers(ecBlock)
 	if err != nil {

@@ -20,11 +20,11 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 			return fmt.Errorf("Invalid DBlock height - expected %v, got %v", bs.DBlockHeight+1, dBlock.GetDatabaseHeight())
 		}
 	}
-	if bs.DBlockHeadKeyMR.String() != dBlock.GetHeader().GetPrevKeyMR().String() {
-		return fmt.Errorf("Invalid DBlock %v previous KeyMR - expected %v, got %v", dBlock.DatabasePrimaryIndex().String(), bs.DBlockHeadKeyMR.String(), dBlock.GetHeader().GetPrevKeyMR().String())
+	if bs.DBlockHead.KeyMR.String() != dBlock.GetHeader().GetPrevKeyMR().String() {
+		return fmt.Errorf("Invalid DBlock %v previous KeyMR - expected %v, got %v", dBlock.DatabasePrimaryIndex().String(), bs.DBlockHead.KeyMR.String(), dBlock.GetHeader().GetPrevKeyMR().String())
 	}
-	if bs.DBlockHeadHash.String() != dBlock.GetHeader().GetPrevFullHash().String() {
-		return fmt.Errorf("Invalid DBlock %v previous hash - expected %v, got %v", dBlock.DatabasePrimaryIndex().String(), bs.DBlockHeadHash.String(), dBlock.GetHeader().GetPrevFullHash().String())
+	if bs.DBlockHead.Hash.String() != dBlock.GetHeader().GetPrevFullHash().String() {
+		return fmt.Errorf("Invalid DBlock %v previous hash - expected %v, got %v", dBlock.DatabasePrimaryIndex().String(), bs.DBlockHead.Hash.String(), dBlock.GetHeader().GetPrevFullHash().String())
 	}
 	if bs.NetworkID != dBlock.GetHeader().GetNetworkID() {
 		return fmt.Errorf("Invalid network ID - expected %v, got %v", bs.NetworkID, dBlock.GetHeader().GetNetworkID())
@@ -41,8 +41,8 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 		return err
 	}
 
-	bs.DBlockHeadKeyMR = dBlock.DatabasePrimaryIndex().(*primitives.Hash)
-	bs.DBlockHeadHash = dBlock.DatabaseSecondaryIndex().(*primitives.Hash)
+	bs.DBlockHead.KeyMR = dBlock.DatabasePrimaryIndex().(*primitives.Hash)
+	bs.DBlockHead.Hash = dBlock.DatabaseSecondaryIndex().(*primitives.Hash)
 	bs.DBlockHeight = dBlock.GetDatabaseHeight()
 	bs.DBlockTimestamp = dBlock.GetTimestamp().(*primitives.Timestamp)
 	bs.DBlockHeader, err = dBlock.GetHeader().MarshalBinary()
@@ -52,7 +52,7 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 
 	dbEntries := dBlock.GetDBEntries()
 	for _, v := range dbEntries {
-		bs.BlockHeads[v.GetChainID().String()] = v.GetKeyMR().(*primitives.Hash)
+		bs.EBlockHeads[v.GetChainID().String()].KeyMR = v.GetKeyMR().(*primitives.Hash)
 	}
 
 	return nil

@@ -38,7 +38,7 @@ func (bs *BlockchainState) PushCommit(entryHash interfaces.IHash, commitTxID int
 		bs.PendingCommits[entryHash.String()] = new(PendingCommit)
 	}
 	if MES.IsEntryMissing(entryHash.String()) {
-		MES.FoundMissing(entryHash.String(), commitTxID.String(), bs.DBlockHeadKeyMR.String(), bs.DBlockHeight)
+		MES.FoundMissing(entryHash.String(), commitTxID.String(), bs.DBlockHead.KeyMR.String(), bs.DBlockHeight)
 		return
 	}
 	bs.PendingCommits[entryHash.String()].PushCommit(commitTxID, bs.DBlockHeight)

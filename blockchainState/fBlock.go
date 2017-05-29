@@ -14,19 +14,19 @@ import (
 func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 	bs.Init()
 
-	if bs.FBlockHeadKeyMR.String() != fBlock.GetPrevKeyMR().String() {
-		return fmt.Errorf("Invalid FBlock %v previous KeyMR - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHeadKeyMR.String(), fBlock.GetPrevKeyMR().String())
+	if bs.FBlockHead.KeyMR.String() != fBlock.GetPrevKeyMR().String() {
+		return fmt.Errorf("Invalid FBlock %v previous KeyMR - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHead.KeyMR.String(), fBlock.GetPrevKeyMR().String())
 	}
-	if bs.FBlockHeadHash.String() != fBlock.GetPrevLedgerKeyMR().String() {
-		return fmt.Errorf("Invalid FBlock %v previous hash - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHeadHash.String(), fBlock.GetPrevLedgerKeyMR().String())
+	if bs.FBlockHead.Hash.String() != fBlock.GetPrevLedgerKeyMR().String() {
+		return fmt.Errorf("Invalid FBlock %v previous hash - expected %v, got %v\n", fBlock.DatabasePrimaryIndex().String(), bs.FBlockHead.Hash.String(), fBlock.GetPrevLedgerKeyMR().String())
 	}
 
 	if bs.DBlockHeight != fBlock.GetDatabaseHeight() {
 		return fmt.Errorf("Invalid FBlock height - expected %v, got %v", bs.DBlockHeight, fBlock.GetDatabaseHeight())
 	}
 
-	bs.FBlockHeadKeyMR = fBlock.DatabasePrimaryIndex().(*primitives.Hash)
-	bs.FBlockHeadHash = fBlock.DatabaseSecondaryIndex().(*primitives.Hash)
+	bs.FBlockHead.KeyMR = fBlock.DatabasePrimaryIndex().(*primitives.Hash)
+	bs.FBlockHead.Hash = fBlock.DatabaseSecondaryIndex().(*primitives.Hash)
 
 	transactions := fBlock.GetTransactions()
 	for _, v := range transactions {
