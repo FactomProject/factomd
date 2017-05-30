@@ -10,8 +10,9 @@ import (
 )
 
 type HashPair struct {
-	KeyMR *primitives.Hash
-	Hash  *primitives.Hash
+	KeyMR  *primitives.Hash
+	Hash   *primitives.Hash
+	Height uint32
 }
 
 var _ interfaces.BinaryMarshallable = (*HashPair)(nil)
@@ -19,6 +20,14 @@ var _ interfaces.BinaryMarshallable = (*HashPair)(nil)
 func NewHashPair() *HashPair {
 	hp := new(HashPair)
 	hp.Init()
+	return hp
+}
+
+func (e *HashPair) Copy() *HashPair {
+	hp := NewHashPair()
+	hp.KeyMR = e.KeyMR.Copy().(*primitives.Hash)
+	hp.Hash = e.Hash.Copy().(*primitives.Hash)
+	hp.Height = e.Height
 	return hp
 }
 
@@ -43,6 +52,10 @@ func (e *HashPair) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = buf.PushUInt32(e.Height)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
@@ -56,6 +69,10 @@ func (e *HashPair) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	err = buf.PopBinaryMarshallable(e.Hash)
+	if err != nil {
+		return nil, err
+	}
+	e.Height, err = buf.PopUInt32()
 	if err != nil {
 		return nil, err
 	}

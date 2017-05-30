@@ -29,6 +29,9 @@ func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, error) {
 		}
 		eb := entryBlock.NewEBlock()
 		eb.GetHeader().SetChainID(entries[0].GetChainID())
+		head := bm.BState.GetEBlockHead(entries[0].GetChainID().String())
+		eb.GetHeader().SetPrevKeyMR(head.KeyMR)
+		eb.GetHeader().SetPrevFullHash(head.Hash)
 		//...
 		eBlocks = append(eBlocks, eb)
 	}

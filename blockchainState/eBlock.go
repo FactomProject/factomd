@@ -11,6 +11,14 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+func (bs *BlockchainState) GetEBlockHead(chainID string) *HashPair {
+	hp := bs.EBlockHeads[chainID]
+	if hp == nil {
+		hp = NewHashPair()
+	}
+	return hp.Copy()
+}
+
 func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock, entries []interfaces.IEBEntry) error {
 	bs.Init()
 	chainIDs := map[string]string{}
@@ -58,8 +66,14 @@ func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock, entryMap
 	if bs.EBlockHeads[chainID].Hash.IsSameAs(eBlock.GetHeader().GetPrevFullHash()) == false {
 		return fmt.Errorf("Invalid PrevFullHash")
 	}
+	if eBlock.GetHeader().GetEBSequence() != 0 {
+		if bs.EBlockHeads[chainID].Height != eBlock.GetHeader().GetEBSequence()-1 {
+			return fmt.Errorf("Invalid Height - %v vs %v", bs.EBlockHeads[chainID].Height, eBlock.GetHeader().GetEBSequence()-1)
+		}
+	}
 	bs.EBlockHeads[chainID].KeyMR = eBlock.DatabasePrimaryIndex().(*primitives.Hash)
 	bs.EBlockHeads[chainID].Hash = eBlock.DatabaseSecondaryIndex().(*primitives.Hash)
+	bs.EBlockHeads[chainID].Height = eBlock.GetHeader().GetEBSequence()
 
 	eHashes := eBlock.GetEntryHashes()
 	eBlockHash := eBlock.GetHash()
