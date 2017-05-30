@@ -6,6 +6,7 @@ package blockMaker
 
 import (
 	"github.com/FactomProject/factomd/blockchainState"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 type BlockMaker struct {
@@ -21,5 +22,11 @@ type BlockMaker struct {
 	PendingECBEntries   []interfaces.IECBlockEntry
 	ProcessedECBEntries []interfaces.IECBlockEntry
 
-	BState blockchainState.BlockchainState
+	BState *blockchainState.BlockchainState
+}
+
+func NewBlockMaker() *BlockMaker {
+	bm := new(BlockMaker)
+	bm.BState = blockchainState.NewBSLocalNet()
+	return bm
 }

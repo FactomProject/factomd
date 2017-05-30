@@ -8,10 +8,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-func (ebm *EBlockMaker) BuildECBlock() (interfaces.IEntryCreditBlock, error) {
+func (bm *BlockMaker) BuildECBlock() (interfaces.IEntryCreditBlock, error) {
 	return nil, nil
 }
 
-func (ebm *EBlockMaker) ProcessECEntry(e interfaces.IECBlockEntry) error {
+func (bm *BlockMaker) ProcessECEntry(e interfaces.IECBlockEntry) error {
 	return nil
 }

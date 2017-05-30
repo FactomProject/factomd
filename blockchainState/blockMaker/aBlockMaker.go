@@ -8,10 +8,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-func (ebm *EBlockMaker) BuildABlock() (interfaces.IAdminBlock, error) {
+func (bm *BlockMaker) BuildABlock() (interfaces.IAdminBlock, error) {
 	return nil, nil
 }
 
-func (ebm *EBlockMaker) ProcessABEntry(e interfaces.IABEntry) error {
+func (bm *BlockMaker) ProcessABEntry(e interfaces.IABEntry) error {
 	return nil
 }

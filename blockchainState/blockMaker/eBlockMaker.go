@@ -32,12 +32,20 @@ func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, error) {
 		head := bm.BState.GetEBlockHead(entries[0].GetChainID().String())
 		eb.GetHeader().SetPrevKeyMR(head.KeyMR)
 		eb.GetHeader().SetPrevFullHash(head.Hash)
-		//...
+		eb.GetHeader().SetDBHeight(bm.BState.DBlockHeight + 1)
+
+		for _, v := range entries {
+			eb.AddEBEntry(v)
+		}
+
 		eBlocks = append(eBlocks, eb)
 	}
 	return eBlocks, nil
 }
 
 func (bm *BlockMaker) ProcessEBEntry(e interfaces.IEntry) error {
+	//TODO: handle minute markers
+	//TODO: do
+	bm.ProcessedEBEntries = append(bm.ProcessedEBEntries, e)
 	return nil
 }
