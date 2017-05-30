@@ -50,11 +50,6 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 		return err
 	}
 
-	dbEntries := dBlock.GetDBEntries()
-	for _, v := range dbEntries {
-		bs.EBlockHeads[v.GetChainID().String()].KeyMR = v.GetKeyMR().(*primitives.Hash)
-	}
-
 	return nil
 }
 

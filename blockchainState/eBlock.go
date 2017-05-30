@@ -8,10 +8,19 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func (bs *BlockchainState) ProcessEBlocks(eBlocks []interfaces.IEntryBlock, entries []interfaces.IEBEntry) error {
 	bs.Init()
+	chainIDs := map[string]string{}
+	for _, v := range eBlocks {
+		if chainIDs[v.GetChainID().String()] == "" {
+			chainIDs[v.GetChainID().String()] = "ok"
+		} else {
+			return fmt.Errorf("Duplicate chainID found - %v", v.GetChainID().String())
+		}
+	}
 	entryMap := map[string]interfaces.IEBEntry{}
 	for _, v := range entries {
 		entryMap[v.GetHash().String()] = v
@@ -38,6 +47,19 @@ func (bs *BlockchainState) ProcessEBlock(eBlock interfaces.IEntryBlock, entryMap
 	if err != nil {
 		return err
 	}
+
+	chainID := eBlock.GetChainID().String()
+	if bs.EBlockHeads[chainID] == nil {
+		bs.EBlockHeads[chainID] = NewHashPair()
+	}
+	if bs.EBlockHeads[chainID].KeyMR.IsSameAs(eBlock.GetHeader().GetPrevKeyMR()) == false {
+		return fmt.Errorf("Invalid PrevKeyMR")
+	}
+	if bs.EBlockHeads[chainID].Hash.IsSameAs(eBlock.GetHeader().GetPrevFullHash()) == false {
+		return fmt.Errorf("Invalid PrevFullHash")
+	}
+	bs.EBlockHeads[chainID].KeyMR = eBlock.DatabasePrimaryIndex().(*primitives.Hash)
+	bs.EBlockHeads[chainID].Hash = eBlock.DatabaseSecondaryIndex().(*primitives.Hash)
 
 	eHashes := eBlock.GetEntryHashes()
 	eBlockHash := eBlock.GetHash()
