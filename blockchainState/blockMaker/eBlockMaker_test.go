@@ -15,6 +15,7 @@ func TestBuildEBlocks(t *testing.T) {
 	eb, es := testHelper.CreateTestEntryBlock(nil)
 	eb.GetHeader().SetDBHeight(1)
 	bm := NewBlockMaker()
+	bm.BState.PushCommit(es[0].GetHash(), es[0].GetHash())
 	err := bm.ProcessEBEntry(es[0])
 	if err != nil {
 		t.Errorf("%v", err)
@@ -25,6 +26,7 @@ func TestBuildEBlocks(t *testing.T) {
 	}
 	if len(ebs) != 1 {
 		t.Errorf("Invalid amount of EBlocks created - %v", len(ebs))
+		t.FailNow()
 	}
 	if ebs[0].GetHash().IsSameAs(eb.GetHash()) == false {
 		t.Errorf("Wrong block hash - %v vs %v", ebs[0].GetHash(), eb.GetHash())

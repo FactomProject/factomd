@@ -151,6 +151,13 @@ func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 	return nil
 }
 
+func (bs *BlockchainState) CanProcessEntryHash(entry interfaces.IHash) bool {
+	if entry.IsMinuteMarker() == true {
+		return true
+	}
+	return bs.HasFreeCommit(entry)
+}
+
 func CheckEBlockMinuteNumbers(eBlock interfaces.IEntryBlock) error {
 	//Check whether MinuteNumbers are increasing
 	entries := eBlock.GetEntryHashes()

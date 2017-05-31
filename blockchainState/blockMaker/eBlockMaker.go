@@ -56,7 +56,11 @@ func (bm *BlockMaker) ProcessEBEntry(e interfaces.IEntry) error {
 	ebe := new(EBlockEntry)
 	ebe.Entry = e
 	ebe.Minute = bm.CurrentMinute
-	bm.ProcessedEBEntries = append(bm.ProcessedEBEntries, ebe)
+	if bm.BState.CanProcessEntryHash(e.GetHash()) == false {
+		bm.PendingEBEntries = append(bm.PendingEBEntries, ebe)
+	} else {
+		bm.ProcessedEBEntries = append(bm.ProcessedEBEntries, ebe)
+	}
 	return nil
 }
 
