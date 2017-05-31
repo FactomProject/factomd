@@ -28,6 +28,10 @@ func Peers(fnode *FactomNode) {
 	cnt := 0
 	ackHeight := uint32(0)
 	ignoreMsg := func(amsg interfaces.IMsg) bool {
+		// Stop uint32 underflow
+		if fnode.State.GetTrueLeaderHeight() < 25 {
+			return false
+		}
 		if fnode.State.GetHighestCompletedBlk() < fnode.State.GetTrueLeaderHeight()-25 {
 			switch amsg.Type() {
 			case constants.COMMIT_CHAIN_MSG:
