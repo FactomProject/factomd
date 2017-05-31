@@ -64,13 +64,13 @@ func (s *State) StartTorrentSyncing() error {
 
 		// If the first pass is caught up, work on the second pass
 		if upper-(BATCH_SIZE*2) < lower {
-			lower = s.EntryDBHeightComplete
+			lower = s.EntryDBHeightComplete + 1
 			// Reduce the allowed for second pass
 			allowed = 1250
 		}
 
-		// Make sure we don't overload holding.
-		if len(s.Holding) > 3000 || s.HighestCompletedTorrent > lower+3500 {
+		// Make sure we don't overload
+		if s.InMsgQueue().Length() > 3000 || s.HighestCompletedTorrent > lower+3500 {
 			if s.HighestCompletedTorrent > lower+500 {
 				allowed = 1000
 			} else {
@@ -124,7 +124,7 @@ func (s *State) StartTorrentSyncing() error {
 		}
 
 		if lower > s.EntryBlockDBHeightComplete {
-			s.DBStateManager.RetrieveDBStateByHeight(s.EntryDBHeightComplete)
+			s.DBStateManager.RetrieveDBStateByHeight(s.EntryDBHeightComplete + 1)
 		}
 		// This tells our plugin to ignore any heights below this for retrieval
 		s.DBStateManager.CompletedHeightTo(s.EntryDBHeightComplete)
