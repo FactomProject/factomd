@@ -7,6 +7,7 @@ package blockchainState
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"
@@ -42,6 +43,9 @@ type BlockchainState struct {
 	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
 
 	IdentityManager identity.IdentityManager
+
+	//Not marshallised
+	PendingECBalanceIncreases map[string]*PendingECBalanceIncrease
 }
 
 func NewBSMainNet() *BlockchainState {
@@ -96,6 +100,9 @@ func (bs *BlockchainState) Init() {
 	if bs.ABlockHeadRefHash == nil {
 		bs.ABlockHeadRefHash = primitives.NewZeroHash().(*primitives.Hash)
 	}
+	if bs.PendingECBalanceIncreases == nil {
+		bs.PendingECBalanceIncreases = map[string]*PendingECBalanceIncrease{}
+	}
 }
 
 func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aBlock interfaces.IAdminBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock,
@@ -133,6 +140,11 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aB
 	if err != nil {
 		return err
 	}
+
+	if len(bs.PendingECBalanceIncreases) > 0 {
+		return fmt.Errorf("Some ECBalanceIncreases have not been consumed! Amount: %v", len(bs.PendingECBalanceIncreases))
+	}
+
 	return nil
 }
 

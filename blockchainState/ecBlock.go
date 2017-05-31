@@ -52,7 +52,29 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 	switch v.ECID() {
 	case entryCreditBlock.ECIDBalanceIncrease:
 		e := v.(*entryCreditBlock.IncreaseBalance)
-		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] + e.NumEC
+
+		fTxID := e.TXID.String()
+		index := e.Index
+		key := fmt.Sprintf("%v:%v", fTxID, index)
+
+		if bs.PendingECBalanceIncreases[key] == nil {
+			return fmt.Errorf("EC Balance Increase exists without a proper factoid transaction")
+		}
+		if bs.PendingECBalanceIncreases[key].ECPubKey != e.ECPubKey.String() {
+			return fmt.Errorf("Invalid ECPubKey")
+		}
+		if bs.PendingECBalanceIncreases[key].FactoidTxID != fTxID {
+			return fmt.Errorf("Invalid FactoidTxID")
+		}
+		if bs.PendingECBalanceIncreases[key].Index != index {
+			return fmt.Errorf("Invalid Index")
+		}
+		if bs.PendingECBalanceIncreases[key].NumEC != e.NumEC {
+			return fmt.Errorf("Invalid NumEC - %v vs %v. FTxID: %v, ECTxID: %v", bs.PendingECBalanceIncreases[key].NumEC, e.NumEC, fTxID, e.GetHash())
+		}
+		delete(bs.PendingECBalanceIncreases, key)
+		//Already accounted for in the FBlock entry
+		//bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] + e.NumEC
 		break
 	case entryCreditBlock.ECIDEntryCommit:
 		e := v.(*entryCreditBlock.CommitEntry)

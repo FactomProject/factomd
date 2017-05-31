@@ -107,6 +107,7 @@ func IsSpecialBlock(chainID interfaces.IHash) bool {
 }
 
 func (bs *BlockchainState) ProcessSpecialBlock(eBlock interfaces.IEntryBlock, entryMap map[string]interfaces.IEBEntry) error {
+	bs.Init()
 	if IsSpecialBlock(eBlock.GetChainID()) == false {
 		return fmt.Errorf("Non-special block passed to ProcessSpecialBlock - %v", eBlock.GetHash().String())
 	}
@@ -152,6 +153,7 @@ func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 }
 
 func (bs *BlockchainState) CanProcessEntryHash(entry interfaces.IHash) bool {
+	bs.Init()
 	if entry.IsMinuteMarker() == true {
 		return true
 	}

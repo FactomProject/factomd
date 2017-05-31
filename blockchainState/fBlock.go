@@ -11,6 +11,13 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
+type PendingECBalanceIncrease struct {
+	ECPubKey    string
+	FactoidTxID string
+	Index       uint64
+	NumEC       uint64
+}
+
 func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 	bs.Init()
 
@@ -53,8 +60,27 @@ func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction)
 		bs.FBalances[w.GetAddress().String()] = bs.FBalances[w.GetAddress().String()] + w.GetAmount()
 	}
 	ecOut := tx.GetECOutputs()
-	for _, w := range ecOut {
+	for i, w := range ecOut {
 		bs.ECBalances[w.GetAddress().String()] = bs.ECBalances[w.GetAddress().String()] + w.GetAmount()
+
+		pb := new(PendingECBalanceIncrease)
+		pb.ECPubKey = w.GetAddress().String()
+		pb.FactoidTxID = tx.GetHash().String()
+		pb.Index = uint64(i)
+		pb.NumEC = w.GetAmount()
+
+		bs.PendingECBalanceIncreases[fmt.Sprintf("%v:%v", pb.FactoidTxID, pb.Index)] = pb
 	}
 	return nil
+}
+
+func (bs *BlockchainState) CanProcessFactoidTransaction(tx interfaces.ITransaction) bool {
+	bs.Init()
+	ins := tx.GetInputs()
+	for _, w := range ins {
+		if bs.FBalances[w.GetAddress().String()] < w.GetAmount() {
+			return false
+		}
+	}
+	return true
 }
