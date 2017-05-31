@@ -37,7 +37,7 @@ func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 
 	transactions := fBlock.GetTransactions()
 	for _, v := range transactions {
-		err := bs.ProcessFactoidTransaction(v)
+		err := bs.ProcessFactoidTransaction(v, fBlock.GetExchRate())
 		if err != nil {
 			return err
 		}
@@ -46,7 +46,7 @@ func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 	return nil
 }
 
-func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction) error {
+func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction, exchangeRate uint64) error {
 	bs.Init()
 	ins := tx.GetInputs()
 	for _, w := range ins {
@@ -61,13 +61,14 @@ func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction)
 	}
 	ecOut := tx.GetECOutputs()
 	for i, w := range ecOut {
-		bs.ECBalances[w.GetAddress().String()] = bs.ECBalances[w.GetAddress().String()] + w.GetAmount()
 
 		pb := new(PendingECBalanceIncrease)
 		pb.ECPubKey = w.GetAddress().String()
 		pb.FactoidTxID = tx.GetHash().String()
 		pb.Index = uint64(i)
-		pb.NumEC = w.GetAmount()
+		pb.NumEC = w.GetAmount() / exchangeRate
+
+		bs.ECBalances[w.GetAddress().String()] = bs.ECBalances[w.GetAddress().String()] + pb.NumEC
 
 		bs.PendingECBalanceIncreases[fmt.Sprintf("%v:%v", pb.FactoidTxID, pb.Index)] = pb
 	}
