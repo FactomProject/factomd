@@ -142,7 +142,12 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aB
 	}
 
 	if len(bs.PendingECBalanceIncreases) > 0 {
-		return fmt.Errorf("Some ECBalanceIncreases have not been consumed! Amount: %v", len(bs.PendingECBalanceIncreases))
+		fmt.Printf("Some ECBalanceIncreases have not been consumed! Amount: %v\n", len(bs.PendingECBalanceIncreases))
+		for k, v := range bs.PendingECBalanceIncreases {
+			fmt.Printf("%v - %v\n", k, v)
+		}
+		bs.PendingECBalanceIncreases = map[string]*PendingECBalanceIncrease{}
+		//return fmt.Errorf("Some ECBalanceIncreases have not been consumed! Amount: %v", len(bs.PendingECBalanceIncreases))
 	}
 
 	return nil
