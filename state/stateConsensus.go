@@ -485,7 +485,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 
 	// All DBStates that got here are valid, so just checking the DBlock hash works
 	dblock, err := s.DB.FetchDBlockByHeight(height)
-	if err != nil {
+	if err != nil || dblock == nil {
 		return // This is a werid case
 	}
 
