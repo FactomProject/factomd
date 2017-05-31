@@ -10,8 +10,8 @@ import (
 )
 
 type BlockMaker struct {
-	PendingEBEntries   []interfaces.IEntry
-	ProcessedEBEntries []interfaces.IEntry
+	PendingEBEntries   []*EBlockEntry
+	ProcessedEBEntries []*EBlockEntry
 
 	PendingFBEntries   []interfaces.ITransaction
 	ProcessedFBEntries []interfaces.ITransaction
@@ -23,10 +23,16 @@ type BlockMaker struct {
 	ProcessedECBEntries []interfaces.IECBlockEntry
 
 	BState *blockchainState.BlockchainState
+
+	CurrentMinute int
 }
 
 func NewBlockMaker() *BlockMaker {
 	bm := new(BlockMaker)
 	bm.BState = blockchainState.NewBSLocalNet()
 	return bm
+}
+
+func (bm *BlockMaker) SetCurrentMinute(m int) {
+	bm.CurrentMinute = m
 }

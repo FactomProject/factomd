@@ -28,7 +28,9 @@ func TestBuildEBlocks(t *testing.T) {
 	}
 	if ebs[0].GetHash().IsSameAs(eb.GetHash()) == false {
 		t.Errorf("Wrong block hash - %v vs %v", ebs[0].GetHash(), eb.GetHash())
-		t.Logf("%v", ebs[0])
-		t.Logf("%v", eb)
+		s, _ := ebs[0].JSONString()
+		t.Logf("%v", s)
+		s, _ = eb.JSONString()
+		t.Logf("%v", s)
 	}
 }

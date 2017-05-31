@@ -13,13 +13,17 @@ import (
 )
 
 func TestBlockchainState(t *testing.T) {
-	bs := new(BlockchainState)
+	bs := NewBSLocalNet()
 	blocks := testHelper.CreateFullTestBlockSet()
 	for _, v := range blocks {
-		err := bs.ProcessBlockSet(v.DBlock, v.FBlock, v.ECBlock, []interfaces.IEntryBlock{v.EBlock, v.AnchorEBlock})
+		entries := []interfaces.IEBEntry{}
+		for _, w := range v.Entries {
+			entries = append(entries, w)
+		}
+		err := bs.ProcessBlockSet(v.DBlock, v.ABlock, v.FBlock, v.ECBlock, []interfaces.IEntryBlock{v.EBlock, v.AnchorEBlock}, entries)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 	}
-	t.Errorf("%v", bs.String())
+	t.Logf("%v", bs.String())
 }

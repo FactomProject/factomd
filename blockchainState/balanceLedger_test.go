@@ -20,5 +20,5 @@ func TestBalanceLedger(t *testing.T) {
 			t.Errorf("%v", err)
 		}
 	}
-	t.Errorf("%v", bs.String())
+	t.Logf("%v", bs.String())
 }

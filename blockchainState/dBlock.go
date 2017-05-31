@@ -29,10 +29,12 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 	if bs.NetworkID != dBlock.GetHeader().GetNetworkID() {
 		return fmt.Errorf("Invalid network ID - expected %v, got %v", bs.NetworkID, dBlock.GetHeader().GetNetworkID())
 	}
-	checkpoint := constants.CheckPoints[dBlock.GetHeader().GetDBHeight()]
-	if checkpoint != "" {
-		if dBlock.DatabasePrimaryIndex().String() != checkpoint {
-			return fmt.Errorf("Invalid KeyMR for checkpoint - expected %v, got %v", checkpoint, dBlock.DatabasePrimaryIndex().String())
+	if bs.NetworkID == constants.MAIN_NETWORK_ID {
+		checkpoint := constants.CheckPoints[dBlock.GetHeader().GetDBHeight()]
+		if checkpoint != "" {
+			if dBlock.DatabasePrimaryIndex().String() != checkpoint {
+				return fmt.Errorf("Invalid KeyMR for checkpoint - expected %v, got %v", checkpoint, dBlock.DatabasePrimaryIndex().String())
+			}
 		}
 	}
 
