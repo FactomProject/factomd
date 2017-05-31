@@ -26,6 +26,28 @@ func NetworkProcessorNet(fnode *FactomNode) {
 
 func Peers(fnode *FactomNode) {
 	cnt := 0
+	ackHeight := uint32(0)
+	ignoreMsg := func(amsg interfaces.IMsg) bool {
+		if fnode.State.GetHighestCompletedBlk() < fnode.State.GetTrueLeaderHeight()-25 {
+			switch amsg.Type() {
+			case constants.COMMIT_CHAIN_MSG:
+				return true
+			case constants.REVEAL_ENTRY_MSG:
+				return true
+			case constants.COMMIT_ENTRY_MSG:
+				return true
+			case constants.EOM_MSG:
+				return true
+			case constants.ACK_MSG:
+				if amsg.(*messages.Ack).DBHeight <= ackHeight {
+					return true
+				}
+				ackHeight = amsg.(*messages.Ack).DBHeight
+			}
+		}
+		return false
+	}
+
 	for {
 		for i := 0; i < 100 && len(fnode.State.APIQueue()) > 0; i++ {
 			select {
@@ -97,7 +119,7 @@ func Peers(fnode *FactomNode) {
 					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
 					// Ignore messages if there are too many.
-					if fnode.State.InMsgQueue().Length() < 9000 {
+					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 
