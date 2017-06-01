@@ -29,10 +29,12 @@ func Peers(fnode *FactomNode) {
 	ackHeight := uint32(0)
 	ignoreMsg := func(amsg interfaces.IMsg) bool {
 		// Stop uint32 underflow
-		if fnode.State.GetTrueLeaderHeight() < 25 {
+		if fnode.State.GetTrueLeaderHeight() < 35 {
 			return false
 		}
-		if fnode.State.GetHighestCompletedBlk() < fnode.State.GetTrueLeaderHeight()-25 {
+		// If we are syncing up, then apply the filter
+		if fnode.State.GetHighestCompletedBlk() < fnode.State.GetTrueLeaderHeight()-35 {
+			// Discard all commits, reveals, and acks <= the highest ack height we have seen.
 			switch amsg.Type() {
 			case constants.COMMIT_CHAIN_MSG:
 				return true
@@ -46,6 +48,7 @@ func Peers(fnode *FactomNode) {
 				if amsg.(*messages.Ack).DBHeight <= ackHeight {
 					return true
 				}
+				// Set the highest ack height seen and allow through
 				ackHeight = amsg.(*messages.Ack).DBHeight
 			}
 		}
@@ -122,7 +125,7 @@ func Peers(fnode *FactomNode) {
 
 					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
-					// Ignore messages if there are too many.
+					// Ignore messages if there are too many or if they are ignored by the filter
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
