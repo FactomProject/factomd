@@ -72,6 +72,7 @@ func (pc *PendingCommit) HasFreeCommit() bool {
 
 func (pc *PendingCommit) PopCommit(dblockHeight uint32) error {
 	if len(pc.Commits) == 0 {
+		return nil
 		return fmt.Errorf("No commits found")
 	}
 	if int(dblockHeight-pc.Commits[0].DBlockHeight) > LatestReveal {

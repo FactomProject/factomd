@@ -140,7 +140,8 @@ func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 	if bs.HasFreeCommit(v) == true {
 
 	} else {
-		return fmt.Errorf("Non-committed entry found in an eBlock - %v, %v, %v, %v\n", bs.DBlockHead.KeyMR.String(), bs.DBlockHeight, block.String(), v.String())
+		fmt.Printf("Non-committed entry found in an eBlock - %v, %v, %v, %v\n", bs.DBlockHead.KeyMR.String(), bs.DBlockHeight, block.String(), v.String())
+		//return fmt.Errorf("Non-committed entry found in an eBlock - %v, %v, %v, %v", bs.DBlockHead.KeyMR.String(), bs.DBlockHeight, block.String(), v.String())
 		//MES.NewMissing(v.String(), bs.DBlockHeadKeyMR.String(), bs.DBlockHeight)
 	}
 	err := bs.PopCommit(v)

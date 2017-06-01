@@ -38,6 +38,9 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 	}
 
 	entries := ecBlock.GetEntries()
+	if bs.DBlockHeight > M2SWITCHHEIGHT {
+		entries = RemoveDuplicateECCommits(entries)
+	}
 	for _, v := range entries {
 		err := bs.ProcessECEntries(v)
 		if err != nil {
@@ -45,6 +48,34 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 		}
 	}
 	return nil
+}
+
+func RemoveDuplicateECCommits(entries []interfaces.IECBlockEntry) []interfaces.IECBlockEntry {
+	answer := []interfaces.IECBlockEntry{}
+	committed := map[string]string{}
+	for _, v := range entries {
+		switch v.ECID() {
+		case entryCreditBlock.ECIDEntryCommit:
+			e := v.(*entryCreditBlock.CommitEntry)
+			eHash := e.EntryHash.String()
+			if committed[eHash] == "" {
+				committed[eHash] = "ok"
+				answer = append(answer, v)
+			}
+			break
+		case entryCreditBlock.ECIDChainCommit:
+			e := v.(*entryCreditBlock.CommitChain)
+			eHash := e.EntryHash.String()
+			if committed[eHash] == "" {
+				committed[eHash] = "ok"
+				answer = append(answer, v)
+			}
+			break
+		default:
+			answer = append(answer, v)
+		}
+	}
+	return answer
 }
 
 func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
@@ -80,7 +111,7 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 		e := v.(*entryCreditBlock.CommitEntry)
 		if bs.ECBalances[e.ECPubKey.String()] < uint64(e.Credits) {
 			bs.ECBalances[e.ECPubKey.String()] = uint64(e.Credits)
-			fmt.Printf("Not enough ECs - %v:%v<%v\n", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
+			fmt.Printf("#%v Not enough ECs - %v:%v<%v\n", bs.DBlockHeight, e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			//return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 		}
 		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
@@ -90,7 +121,7 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 		e := v.(*entryCreditBlock.CommitChain)
 		if bs.ECBalances[e.ECPubKey.String()] < uint64(e.Credits) {
 			bs.ECBalances[e.ECPubKey.String()] = uint64(e.Credits)
-			fmt.Printf("Not enough ECs - %v:%v<%v\n", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
+			fmt.Printf("#%v Not enough ECs - %v:%v<%v\n", bs.DBlockHeight, e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			//return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 		}
 		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
