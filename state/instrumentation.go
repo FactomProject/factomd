@@ -183,6 +183,11 @@ var (
 		Help: "Instrumenting the inmsg queue",
 	})
 
+	TotalMessageQueueInMsgAll = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_all_inmsg",
+		Help: "Instrumenting the inmsg queue",
+	})
+
 	TotalMessageQueueInMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_queue_total_inmsg_eom",
 		Help: "Instrumenting the inmsg queue",
@@ -277,6 +282,11 @@ var (
 	})
 
 	//	NetworkOutMsg
+	TotalMessageQueueNetOutAll = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_all_netoutmsg",
+		Help: "Instrumenting the inmsg queue",
+	})
+
 	TotalMessageQueueNetOutMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_queue_total_netoutmsg_eom",
 		Help: "Instrumenting the netoutmsg queue",
@@ -484,6 +494,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(CurrentMessageQueueInMsgBounceResp)
 	prometheus.MustRegister(CurrentMessageQueueInMsgMisc)
 	//	InMsg Total
+	prometheus.MustRegister(TotalMessageQueueInMsgAll)
 	prometheus.MustRegister(TotalMessageQueueInMsgEOM)
 	prometheus.MustRegister(TotalMessageQueueInMsgACK)
 	prometheus.MustRegister(TotalMessageQueueInMsgAudFault)
@@ -509,6 +520,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueInMsgMisc)
 
 	// Net Out
+	prometheus.MustRegister(TotalMessageQueueNetOutAll)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOM)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgACK)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgAudFault)

@@ -70,6 +70,13 @@ func (q InMsgMSGQueue) BlockingDequeue() interfaces.IMsg {
 // A list of all possible messages and their prometheus incrementing/decrementing
 //
 
+func (q InMsgMSGQueue) All(increment bool) {
+	if !increment {
+		return
+	}
+	TotalMessageQueueInMsgAll.Inc()
+}
+
 func (q InMsgMSGQueue) EOM(increment bool) {
 	if !increment {
 		CurrentMessageQueueInMsgEOM.Dec()

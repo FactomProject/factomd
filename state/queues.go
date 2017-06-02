@@ -42,6 +42,7 @@ func (q GeneralMSGQueue) BlockingDequeue() interfaces.IMsg {
 //
 
 type IPrometheusChannel interface {
+	All(increment bool)
 	EOM(increment bool)
 	ACK(increment bool)
 	AudFault(increment bool)
@@ -72,6 +73,7 @@ func measureMessage(channel IPrometheusChannel, msg interfaces.IMsg, increment b
 	if msg == nil {
 		return
 	}
+	channel.All(increment)
 	switch msg.Type() {
 	case constants.EOM_MSG: // 1
 		channel.EOM(increment)

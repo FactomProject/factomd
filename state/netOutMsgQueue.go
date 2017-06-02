@@ -71,6 +71,10 @@ func (q NetOutMsgQueue) BlockingDequeue() interfaces.IMsg {
 // A list of all possible messages and their prometheus incrementing/decrementing
 //
 
+func (q NetOutMsgQueue) All(increment bool) {
+	TotalMessageQueueNetOutAll.Inc()
+}
+
 func (q NetOutMsgQueue) EOM(increment bool) {
 	TotalMessageQueueNetOutMsgEOM.Inc()
 }

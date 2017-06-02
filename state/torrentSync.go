@@ -56,7 +56,7 @@ func (s *State) StartTorrentSyncing() error {
 		}
 
 		// How many blocks ahead of the current we should request from the plugin
-		allowed := 2000
+		allowed := 3000
 
 		// Range of heights to request
 		lower := s.GetHighestSavedBlk() // dblock.GetDatabaseHeight()
@@ -66,15 +66,15 @@ func (s *State) StartTorrentSyncing() error {
 		if upper-(BATCH_SIZE*2) < lower {
 			lower = s.EntryDBHeightComplete + 1
 			// Reduce the allowed for second pass
-			allowed = 1250
+			allowed = 1750
 		}
 
 		// Make sure we don't overload
 		if s.InMsgQueue().Length() > 3000 || s.HighestCompletedTorrent > lower+3500 {
 			if s.HighestCompletedTorrent > lower+500 {
-				allowed = 1000
+				allowed = 1750
 			} else {
-				allowed = 1250
+				allowed = 2500
 			}
 		}
 
