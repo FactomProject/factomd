@@ -115,29 +115,29 @@ func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
 		*/
 		return fmt.Errorf("Not an etcd message-type")
 	}
-
-	if msg.Type() == constants.EOM_MSG {
-		eomMsg := msg.(*messages.EOM)
-		if eomMsg.DBHeight > f.blockLeaseIdx {
-			f.blockLeaseIdx = eomMsg.DBHeight
-			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+	/*
+		if msg.Type() == constants.EOM_MSG {
+			eomMsg := msg.(*messages.EOM)
+			if eomMsg.DBHeight > f.blockLeaseIdx {
+				f.blockLeaseIdx = eomMsg.DBHeight
+				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+			}
 		}
-	}
-	if msg.Type() == constants.ACK_MSG {
-		ackMsg := msg.(*messages.Ack)
-		if ackMsg.DBHeight > f.blockLeaseIdx {
-			f.blockLeaseIdx = ackMsg.DBHeight
-			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+		if msg.Type() == constants.ACK_MSG {
+			ackMsg := msg.(*messages.Ack)
+			if ackMsg.DBHeight > f.blockLeaseIdx {
+				f.blockLeaseIdx = ackMsg.DBHeight
+				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+			}
 		}
-	}
-	if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-		dbsigMsg := msg.(*messages.DirectoryBlockSignature)
-		if dbsigMsg.DBHeight > f.blockLeaseIdx {
-			f.blockLeaseIdx = dbsigMsg.DBHeight
-			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+		if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
+			dbsigMsg := msg.(*messages.DirectoryBlockSignature)
+			if dbsigMsg.DBHeight > f.blockLeaseIdx {
+				f.blockLeaseIdx = dbsigMsg.DBHeight
+				f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
+			}
 		}
-	}
-
+	*/
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
 		return f.EtcdManager.SendIntoEtcd(msgBytes)
