@@ -133,7 +133,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
 	if found == false {
-		log.Println(fmt.Sprintf("DirectoryBlockSignature: Fail dbht: %v Server not found %x %s",
+		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbht: %v Server not found %x %s",
 			state.GetLLeaderHeight(),
 			m.ServerIdentityChainID.Bytes()[3:5],
 			m.String()))
@@ -151,7 +151,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
-		return 0
+		return -1
 	}
 
 	marshalledMsg, _ := m.MarshalForSignature()
