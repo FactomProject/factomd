@@ -259,7 +259,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 	switch {
 	case !msg.IsPeer2Peer():
-		if f.UsingEtcd() && msg.Type() > 1 {
+		if f.UsingEtcd() && msg.Type() > 1 && msg.Type() != 7 {
 			return nil
 		}
 		message.PeerHash = p2p.BroadcastFlag
