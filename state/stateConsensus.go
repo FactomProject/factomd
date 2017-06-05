@@ -423,6 +423,9 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM FEM:", m.String(), ack.String())
+		}
 		pl.AddToProcessList(ack, m)
 	}
 }
@@ -442,6 +445,9 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 	if ack != nil {
 		pl := s.ProcessLists.Get(ack.DBHeight)
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM FEEOM:", m.String(), ack.String())
+		}
 		pl.AddToProcessList(ack, m)
 	}
 }
@@ -690,6 +696,9 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If I've seen both, put them in the process list.
 	if !okr && !okm {
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM FEMMR:", msg.String(), ack.String())
+		}
 		pl.AddToProcessList(ack, msg)
 	}
 
@@ -822,6 +831,9 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
+		if s.SuperVerboseMessages {
+			fmt.Println("SVM FERE:", m.String(), ack.String())
+		}
 		pl.AddToProcessList(ack, m)
 
 		msg := m.(*messages.RevealEntryMsg)
@@ -844,7 +856,9 @@ func (s *State) LeaderExecute(m interfaces.IMsg) {
 	ack := s.NewAck(m, nil).(*messages.Ack)
 	m.SetLeaderChainID(ack.GetLeaderChainID())
 	m.SetMinute(ack.Minute)
-
+	if s.SuperVerboseMessages {
+		fmt.Println("SVM LE:", m.String(), ack.String())
+	}
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
@@ -938,7 +952,9 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 
 	ack.SendOut(s, ack)
 	m.SendOut(s, m)
-
+	if s.SuperVerboseMessages {
+		fmt.Println("SVM LEDBS:", m.String(), ack.String())
+	}
 	s.ProcessLists.Get(ack.DBHeight).AddToProcessList(ack, m)
 }
 
