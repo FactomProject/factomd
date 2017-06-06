@@ -86,7 +86,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
-		fmt.Println("SVM REM 1", m.String())
 		return 0
 	}
 	//
@@ -95,7 +94,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
-		fmt.Println("SVM REMx 1", m.String())
 		return -1
 	}
 
@@ -105,7 +103,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
 		if m.Entry.KSize() > ECs {
-			fmt.Println("SVM REM 2", m.String())
 			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
 		}
 
@@ -126,7 +123,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		if eb == nil {
-			fmt.Println("SVM REM 3", m.String())
 			// No chain, we have to leave it be and maybe one will be made.
 			return 0
 		}
@@ -136,7 +132,6 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	m.IsEntry = false
 	ECs := int(m.commitChain.CommitChain.Credits)
 	if m.Entry.KSize()+10 > ECs {
-		fmt.Println("SVM REM 4", m.String())
 		return 0 // Wait for a commit that might fund us properly
 	}
 
