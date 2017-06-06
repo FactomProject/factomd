@@ -5,12 +5,13 @@
 package state_test
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	//"github.com/FactomProject/factomd/common/constants"
-	//"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/state"
@@ -135,6 +136,31 @@ func TestClone(t *testing.T) {
 	if s3.GetFactomNodeName() != "xFNode02" {
 		t.Error("Factom Node Name incorrect")
 	}
+}
+
+func TestLog(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	buf := new(bytes.Buffer)
+	s.Logger = log.New(buf, "debug", "unit_test")
+
+	var levels []string = []string{"debug", "info", "warning", "error"}
+	for _, l := range levels {
+		msg := "A test message"
+		s.Logf(l, "%s", msg)
+
+		data := buf.Next(buf.Len())
+		if !strings.Contains(string(data), msg) {
+			t.Error("Logf did not log the msg")
+		}
+
+		msg2 := "Another test message"
+		s.Log(l, msg2)
+		data = buf.Next(buf.Len())
+		if !strings.Contains(string(data), msg2) {
+			t.Error("Log did not log the msg for level", l)
+		}
+	}
+
 }
 
 /*
