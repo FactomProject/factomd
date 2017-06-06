@@ -287,10 +287,10 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 	switch trans.ECID() {
 	case entryCreditBlock.ECIDServerIndexNumber:
 		return nil
-
 	case entryCreditBlock.ECIDMinuteNumber:
 		return nil
-
+	case entryCreditBlock.ECIDBalanceIncrease:
+		return nil
 	case entryCreditBlock.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)

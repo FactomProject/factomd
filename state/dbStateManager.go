@@ -1069,8 +1069,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
-	fs.AddTransactionBlock(d.FactoidBlock)
-	fs.AddECBlock(d.EntryCreditBlock)
+	err := fs.AddTransactionBlock(d.FactoidBlock)
+	if err != nil {
+		panic(err)
+	}
+	err = fs.AddECBlock(d.EntryCreditBlock)
+	if err != nil {
+		panic(err)
+	}
 
 	list.State.Balancehash = fs.GetBalanceHash(false)
 
