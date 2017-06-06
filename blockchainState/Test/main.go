@@ -150,12 +150,12 @@ func CheckDatabase(db interfaces.IDatabase) {
 
 	MES.Print()
 
-	/*
-		fmt.Printf("Balances\n")
-		for _, v := range Balances {
-			fmt.Printf("%v\t%v\n", v.TxID, v.Delta)
+	fmt.Printf("Balances\n")
+	for k, v := range bs.ECBalances {
+		if v < 0 {
+			fmt.Printf("%v: %v\n", k, v)
 		}
-	*/
+	}
 }
 
 type BlockSet struct {

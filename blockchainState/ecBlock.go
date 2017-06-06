@@ -83,15 +83,8 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 			//fmt.Printf("#%v Not enough ECs - %v:%v<%v\n", bs.DBlockHeight, e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			//return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 		}
-		if e.ECPubKey.String() == LookingFor {
-			Balances = append(Balances, Balance{Delta: -int64(e.Credits), TxID: v.GetHash().String()})
-		}
 		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - int64(e.Credits)
 		bs.PushCommit(e.GetEntryHash(), v.Hash())
-
-		if e.ECPubKey.String() == LookingFor {
-			//fmt.Printf("%v\t%v\t%v\t%v\n", bs.DBlockHeight, v.GetHash().String(), e.Credits, bs.ECBalances[e.ECPubKey.String()])
-		}
 		break
 	case entryCreditBlock.ECIDChainCommit:
 		e := v.(*entryCreditBlock.CommitChain)
@@ -102,10 +95,6 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 		}
 		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - int64(e.Credits)
 		bs.PushCommit(e.GetEntryHash(), v.Hash())
-
-		if e.ECPubKey.String() == LookingFor {
-			//fmt.Printf("%v\t%v\t%v\t%v\n", bs.DBlockHeight, v.GetHash().String(), e.Credits, bs.ECBalances[e.ECPubKey.String()])
-		}
 		break
 	default:
 		break

@@ -61,20 +61,11 @@ func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction,
 	}
 	ecOut := tx.GetECOutputs()
 	for i, w := range ecOut {
-
 		pb := new(PendingECBalanceIncrease)
 		pb.ECPubKey = w.GetAddress().String()
 		pb.FactoidTxID = tx.GetHash().String()
 		pb.Index = uint64(i)
 		pb.NumEC = w.GetAmount() / exchangeRate
-
-		if pb.ECPubKey == LookingFor {
-			Balances = append(Balances, Balance{Delta: int64(pb.NumEC), TxID: pb.FactoidTxID})
-			fmt.Printf("%v\t%v\t%v\t%v\n", bs.DBlockHeight, pb.FactoidTxID, pb.NumEC, bs.ECBalances[w.GetAddress().String()]+int64(pb.NumEC))
-			if pb.FactoidTxID == "81cc0fc493395808c85bb6536d9c366f7dd20c4781644929c90954e24c1cc990" {
-				panic("end")
-			}
-		}
 
 		bs.ECBalances[w.GetAddress().String()] = bs.ECBalances[w.GetAddress().String()] + int64(pb.NumEC)
 
