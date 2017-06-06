@@ -202,7 +202,7 @@ func (f *P2PProxy) GetNameTo() string {
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if msg.Type() == constants.ACK_MSG {
 		if _, exists := f.NetworkAckReplayFilter.Get(msg.GetHash().String()); exists {
-			return nil
+			//return nil
 		}
 		f.NetworkAckReplayFilter.Set(msg.GetHash().String(), msg.String())
 	} else {
