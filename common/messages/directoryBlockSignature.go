@@ -162,6 +162,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return authorityLevel
 	}
 
+	raw, _ := m.MarshalBinary()
+	state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
 	m.SetValid()
 	return 1
 }
