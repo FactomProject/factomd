@@ -1608,6 +1608,7 @@ entryHashProcessing:
 			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
 			// If the save worked, then remove any commit that might be around.
 			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
+				TotalCommitsOutputs.Inc()
 				delete(s.Commits, e.Hash.Fixed())
 			}
 		default:

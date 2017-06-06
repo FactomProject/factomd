@@ -380,6 +380,128 @@ var (
 		Help: "Instrumenting the netoutmsg queue",
 	})
 
+	// MsgQueue chan
+	TotalMsgQueueInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_msgqueue_total_inputs",
+		Help: "Tally of total messages gone into MsgQueue (useful for rating)",
+	})
+	TotalMsgQueueOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_msgqueue_total_outputs",
+		Help: "Tally of total messages drained out of MsgQueue (useful for rating)",
+	})
+
+	// Holding Queue
+	TotalHoldingQueueInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_total_inputs",
+		Help: "Tally of total messages gone into Holding (useful for rating)",
+	})
+	TotalHoldingQueueOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_total_outputs",
+		Help: "Tally of total messages drained out of Holding (useful for rating)",
+	})
+	TotalHoldingQueueRecycles = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_total_recycles",
+		Help: "Tally of total messages recycled thru Holding (useful for rating)",
+	})
+	HoldingQueueDBSigInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_dbsig_inputs",
+		Help: "Tally of DBSig messages gone into Holding (useful for rating)",
+	})
+	HoldingQueueDBSigOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_dbsig_outputs",
+		Help: "Tally of DBSig messages drained out of Holding",
+	})
+	HoldingQueueCommitEntryInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitentry_inputs",
+		Help: "Tally of CommitEntry messages gone into Holding (useful for rating)",
+	})
+	HoldingQueueCommitEntryOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitentry_outputs",
+		Help: "Tally of CommitEntry messages drained out of Holding",
+	})
+	HoldingQueueCommitChainInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitchain_inputs",
+		Help: "Tally of CommitChain messages gone into Holding (useful for rating)",
+	})
+	HoldingQueueCommitChainOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitchain_outputs",
+		Help: "Tally of CommitChain messages drained out of Holding",
+	})
+	HoldingQueueRevealEntryInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_revealentry_inputs",
+		Help: "Tally of RevealEntry messages gone into Holding (useful for rating)",
+	})
+	HoldingQueueRevealEntryOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_revealentry_outputs",
+		Help: "Tally of RevealEntry messages drained out of Holding",
+	})
+
+	// Acks Queue
+	TotalAcksInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_acks_total_inputs",
+		Help: "Tally of total messages gone into Acks (useful for rating)",
+	})
+	TotalAcksOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_acks_total_outputs",
+		Help: "Tally of total messages drained out of Acks (useful for rating)",
+	})
+
+	// Commits map
+	TotalCommitsInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_commits_total_inputs",
+		Help: "Tally of total messages gone into Commits (useful for rating)",
+	})
+	TotalCommitsOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_commits_total_outputs",
+		Help: "Tally of total messages drained out of Commits (useful for rating)",
+	})
+
+	// XReview Queue
+	TotalXReviewQueueInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_xreview_queue_total_inputs",
+		Help: "Tally of total messages gone into XReview (useful for rating)",
+	})
+	TotalXReviewQueueOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_xreview_queue_total_outputs",
+		Help: "Tally of total messages drained out of XReview (useful for rating)",
+	})
+
+	// Executions
+	LeaderExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_leader_executions",
+		Help: "Tally of total messages executed via LeaderExecute",
+	})
+	FollowerExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_follower_executions",
+		Help: "Tally of total messages executed via FollowerExecute",
+	})
+	LeaderEOMExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_leader_eom_executions",
+		Help: "Tally of total messages executed via LeaderExecuteEOM",
+	})
+	FollowerEOMExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_follower_eom_executions",
+		Help: "Tally of total messages executed via FollowerExecuteEOM",
+	})
+	FollowerMissingMsgExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_follower_mm_executions",
+		Help: "Tally of total messages executed via FollowerExecuteMissingMsg",
+	})
+
+	// ProcessList
+	TotalProcessListInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_list_inputs",
+		Help: "Tally of total messages gone into ProcessLists (useful for rating)",
+	})
+	TotalProcessListProcesses = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_list_processes",
+		Help: "Tally of total messages processed from ProcessLists (useful for rating)",
+	})
+	TotalProcessEOMs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_eom_processes",
+		Help: "Tally of EOM messages processed from ProcessLists (useful for rating)",
+	})
+
 	// InMsgQueue Rates
 	InMsgTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_queue_arrival_avg_total_inmsg",
@@ -544,6 +666,47 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceMsg)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceResp)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMisc)
+
+	// MsgQueue chan
+	prometheus.MustRegister(TotalMsgQueueInputs)
+	prometheus.MustRegister(TotalMsgQueueOutputs)
+
+	// Holding
+	prometheus.MustRegister(TotalHoldingQueueInputs)
+	prometheus.MustRegister(TotalHoldingQueueOutputs)
+	prometheus.MustRegister(TotalHoldingQueueRecycles)
+	prometheus.MustRegister(HoldingQueueDBSigInputs)
+	prometheus.MustRegister(HoldingQueueDBSigOutputs)
+	prometheus.MustRegister(HoldingQueueCommitEntryInputs)
+	prometheus.MustRegister(HoldingQueueCommitEntryOutputs)
+	prometheus.MustRegister(HoldingQueueCommitChainInputs)
+	prometheus.MustRegister(HoldingQueueCommitChainOutputs)
+	prometheus.MustRegister(HoldingQueueRevealEntryInputs)
+	prometheus.MustRegister(HoldingQueueRevealEntryOutputs)
+
+	// Acks
+	prometheus.MustRegister(TotalAcksInputs)
+	prometheus.MustRegister(TotalAcksOutputs)
+
+	// Execution
+	prometheus.MustRegister(LeaderExecutions)
+	prometheus.MustRegister(FollowerExecutions)
+	prometheus.MustRegister(LeaderEOMExecutions)
+	prometheus.MustRegister(FollowerEOMExecutions)
+	prometheus.MustRegister(FollowerMissingMsgExecutions)
+
+	// ProcessList
+	prometheus.MustRegister(TotalProcessListInputs)
+	prometheus.MustRegister(TotalProcessListProcesses)
+	prometheus.MustRegister(TotalProcessEOMs)
+
+	// XReview Queue
+	prometheus.MustRegister(TotalXReviewQueueInputs)
+	prometheus.MustRegister(TotalXReviewQueueOutputs)
+
+	// Commits map
+	prometheus.MustRegister(TotalCommitsInputs)
+	prometheus.MustRegister(TotalCommitsOutputs)
 
 	// InMsgRate
 	prometheus.MustRegister(InMsgTotalArrivalQueueRate)

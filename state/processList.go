@@ -944,14 +944,13 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
-	if p.State.SuperVerboseMessages {
-		fmt.Printf("SVM AddToPL: %s / %s\n", m.String(), ack.String())
-	}
+	TotalProcessListInputs.Inc()
 
 	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
 		p.State.HighestAck = ack.DBHeight
 	}
 
+	TotalAcksInputs.Inc()
 	m.PutAck(ack)
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
@@ -982,6 +981,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, hint)
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, ack.String())
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
+		TotalHoldingQueueOutputs.Inc()
+		TotalAcksOutputs.Inc()
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
 	}
@@ -1028,6 +1029,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
+	TotalHoldingQueueOutputs.Inc()
+	TotalAcksOutputs.Inc()
 	delete(p.State.Acks, m.GetMsgHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
 
