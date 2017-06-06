@@ -12,7 +12,6 @@ import (
 	"time"
 
 	//"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/state"
@@ -146,7 +145,7 @@ func TestLog(t *testing.T) {
 
 	var levels []string = []string{"debug", "info", "warning", "error"}
 	for _, l := range levels {
-		msg := random.RandomString()
+		msg := "A test message"
 		s.Logf(l, "%s", msg)
 
 		data := buf.Next(buf.Len())
@@ -154,11 +153,11 @@ func TestLog(t *testing.T) {
 			t.Error("Logf did not log the msg")
 		}
 
-		msg2 := random.RandomString()
+		msg2 := "Another test message"
 		s.Log(l, msg2)
 		data = buf.Next(buf.Len())
 		if !strings.Contains(string(data), msg2) {
-			t.Error("Log did not log the msg")
+			t.Error("Log did not log the msg for level", l)
 		}
 	}
 
