@@ -20,6 +20,15 @@ const COMMITEXPIRATIONM2 uint32 = 20 //TODO: set properly
 
 const M2SWITCHHEIGHT uint32 = 70411 //TODO: double-check
 
+type Balance struct {
+	Delta int64
+	TxID  string
+}
+
+var Balances []Balance
+
+var LookingFor string = "c878656b554012d9d539f3250b28898fad8d299b59a292711194a0f810d9cf86"
+
 type BlockchainState struct {
 	NetworkID uint32
 
@@ -36,8 +45,8 @@ type BlockchainState struct {
 
 	EBlockHeads map[string]*HashPair
 
-	ECBalances   map[string]uint64
-	FBalances    map[string]uint64
+	ECBalances   map[string]int64
+	FBalances    map[string]int64
 	ExchangeRate uint64
 
 	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
@@ -79,10 +88,10 @@ func (bs *BlockchainState) Init() {
 		bs.EBlockHeads = map[string]*HashPair{}
 	}
 	if bs.ECBalances == nil {
-		bs.ECBalances = map[string]uint64{}
+		bs.ECBalances = map[string]int64{}
 	}
 	if bs.FBalances == nil {
-		bs.FBalances = map[string]uint64{}
+		bs.FBalances = map[string]int64{}
 	}
 	if bs.PendingCommits == nil {
 		bs.PendingCommits = map[string]*PendingCommit{}

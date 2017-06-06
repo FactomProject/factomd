@@ -38,9 +38,6 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 	}
 
 	entries := ecBlock.GetEntries()
-	if bs.DBlockHeight > M2SWITCHHEIGHT {
-		entries = RemoveDuplicateECCommits(entries)
-	}
 	for _, v := range entries {
 		err := bs.ProcessECEntries(v)
 		if err != nil {
@@ -48,34 +45,6 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 		}
 	}
 	return nil
-}
-
-func RemoveDuplicateECCommits(entries []interfaces.IECBlockEntry) []interfaces.IECBlockEntry {
-	answer := []interfaces.IECBlockEntry{}
-	committed := map[string]string{}
-	for _, v := range entries {
-		switch v.ECID() {
-		case entryCreditBlock.ECIDEntryCommit:
-			e := v.(*entryCreditBlock.CommitEntry)
-			eHash := e.EntryHash.String()
-			if committed[eHash] == "" {
-				committed[eHash] = "ok"
-				answer = append(answer, v)
-			}
-			break
-		case entryCreditBlock.ECIDChainCommit:
-			e := v.(*entryCreditBlock.CommitChain)
-			eHash := e.EntryHash.String()
-			if committed[eHash] == "" {
-				committed[eHash] = "ok"
-				answer = append(answer, v)
-			}
-			break
-		default:
-			answer = append(answer, v)
-		}
-	}
-	return answer
 }
 
 func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
@@ -109,23 +78,34 @@ func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
 		break
 	case entryCreditBlock.ECIDEntryCommit:
 		e := v.(*entryCreditBlock.CommitEntry)
-		if bs.ECBalances[e.ECPubKey.String()] < uint64(e.Credits) {
-			bs.ECBalances[e.ECPubKey.String()] = uint64(e.Credits)
-			fmt.Printf("#%v Not enough ECs - %v:%v<%v\n", bs.DBlockHeight, e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
+		if bs.ECBalances[e.ECPubKey.String()] < int64(e.Credits) {
+			//bs.ECBalances[e.ECPubKey.String()] = uint64(e.Credits)
+			//fmt.Printf("#%v Not enough ECs - %v:%v<%v\n", bs.DBlockHeight, e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			//return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 		}
-		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
+		if e.ECPubKey.String() == LookingFor {
+			Balances = append(Balances, Balance{Delta: -int64(e.Credits), TxID: v.GetHash().String()})
+		}
+		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - int64(e.Credits)
 		bs.PushCommit(e.GetEntryHash(), v.Hash())
+
+		if e.ECPubKey.String() == LookingFor {
+			//fmt.Printf("%v\t%v\t%v\t%v\n", bs.DBlockHeight, v.GetHash().String(), e.Credits, bs.ECBalances[e.ECPubKey.String()])
+		}
 		break
 	case entryCreditBlock.ECIDChainCommit:
 		e := v.(*entryCreditBlock.CommitChain)
-		if bs.ECBalances[e.ECPubKey.String()] < uint64(e.Credits) {
-			bs.ECBalances[e.ECPubKey.String()] = uint64(e.Credits)
-			fmt.Printf("#%v Not enough ECs - %v:%v<%v\n", bs.DBlockHeight, e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
+		if bs.ECBalances[e.ECPubKey.String()] < int64(e.Credits) {
+			//bs.ECBalances[e.ECPubKey.String()] = uint64(e.Credits)
+			//fmt.Printf("#%v Not enough ECs - %v:%v<%v\n", bs.DBlockHeight, e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			//return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 		}
-		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - uint64(e.Credits)
+		bs.ECBalances[e.ECPubKey.String()] = bs.ECBalances[e.ECPubKey.String()] - int64(e.Credits)
 		bs.PushCommit(e.GetEntryHash(), v.Hash())
+
+		if e.ECPubKey.String() == LookingFor {
+			//fmt.Printf("%v\t%v\t%v\t%v\n", bs.DBlockHeight, v.GetHash().String(), e.Credits, bs.ECBalances[e.ECPubKey.String()])
+		}
 		break
 	default:
 		break

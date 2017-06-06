@@ -50,14 +50,14 @@ func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction,
 	bs.Init()
 	ins := tx.GetInputs()
 	for _, w := range ins {
-		if bs.FBalances[w.GetAddress().String()] < w.GetAmount() {
+		if bs.FBalances[w.GetAddress().String()] < int64(w.GetAmount()) {
 			return fmt.Errorf("Not enough factoids")
 		}
-		bs.FBalances[w.GetAddress().String()] = bs.FBalances[w.GetAddress().String()] - w.GetAmount()
+		bs.FBalances[w.GetAddress().String()] = bs.FBalances[w.GetAddress().String()] - int64(w.GetAmount())
 	}
 	outs := tx.GetOutputs()
 	for _, w := range outs {
-		bs.FBalances[w.GetAddress().String()] = bs.FBalances[w.GetAddress().String()] + w.GetAmount()
+		bs.FBalances[w.GetAddress().String()] = bs.FBalances[w.GetAddress().String()] + int64(w.GetAmount())
 	}
 	ecOut := tx.GetECOutputs()
 	for i, w := range ecOut {
@@ -68,7 +68,15 @@ func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction,
 		pb.Index = uint64(i)
 		pb.NumEC = w.GetAmount() / exchangeRate
 
-		bs.ECBalances[w.GetAddress().String()] = bs.ECBalances[w.GetAddress().String()] + pb.NumEC
+		if pb.ECPubKey == LookingFor {
+			Balances = append(Balances, Balance{Delta: int64(pb.NumEC), TxID: pb.FactoidTxID})
+			fmt.Printf("%v\t%v\t%v\t%v\n", bs.DBlockHeight, pb.FactoidTxID, pb.NumEC, bs.ECBalances[w.GetAddress().String()]+int64(pb.NumEC))
+			if pb.FactoidTxID == "81cc0fc493395808c85bb6536d9c366f7dd20c4781644929c90954e24c1cc990" {
+				panic("end")
+			}
+		}
+
+		bs.ECBalances[w.GetAddress().String()] = bs.ECBalances[w.GetAddress().String()] + int64(pb.NumEC)
 
 		bs.PendingECBalanceIncreases[fmt.Sprintf("%v:%v", pb.FactoidTxID, pb.Index)] = pb
 	}
@@ -79,7 +87,7 @@ func (bs *BlockchainState) CanProcessFactoidTransaction(tx interfaces.ITransacti
 	bs.Init()
 	ins := tx.GetInputs()
 	for _, w := range ins {
-		if bs.FBalances[w.GetAddress().String()] < w.GetAmount() {
+		if bs.FBalances[w.GetAddress().String()] < int64(w.GetAmount()) {
 			return false
 		}
 	}

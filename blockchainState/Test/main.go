@@ -149,6 +149,13 @@ func CheckDatabase(db interfaces.IDatabase) {
 	fmt.Printf("TotalEntries - %v\n", TotalEntries)
 
 	MES.Print()
+
+	/*
+		fmt.Printf("Balances\n")
+		for _, v := range Balances {
+			fmt.Printf("%v\t%v\n", v.TxID, v.Delta)
+		}
+	*/
 }
 
 type BlockSet struct {
