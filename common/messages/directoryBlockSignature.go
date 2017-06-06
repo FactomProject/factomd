@@ -7,7 +7,6 @@ package messages
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -126,7 +125,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		log.Println(fmt.Sprintf("DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s", m.DBHeight, state.GetHighestSavedBlk(), m.String()))
+		state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s", m.DBHeight, state.GetHighestSavedBlk(), m.String())
 		return -1
 	}
 
@@ -147,7 +146,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
-		log.Println(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s", state.GetLLeaderHeight(), m.String()))
+		state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s", state.GetLLeaderHeight(), m.String())
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
@@ -158,7 +157,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	authorityLevel, err := state.VerifyAuthoritySignature(marshalledMsg, m.Signature.GetSignature(), m.DBHeight)
 	if err != nil || authorityLevel < 1 {
 		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
-		log.Println(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
+		state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String())
+		fmt.Println("ASDADDASAASASD")
 		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
 		return authorityLevel
 	}
