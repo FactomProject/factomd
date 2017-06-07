@@ -147,6 +147,8 @@ func (db *LevelDB) PutInBatch(records []interfaces.Record) error {
 
 	defer db.lbatch.Reset()
 
+	LevelDBPuts.Inc()
+
 	for _, v := range records {
 		ldbKey := CombineBucketAndKey(v.Bucket, v.Key)
 		hex, err := v.Data.MarshalBinary()

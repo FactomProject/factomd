@@ -13,7 +13,8 @@ type DataDump struct {
 		RawDump   string
 	}
 	DataDump2 struct {
-		RawDump string
+		RawDump  string
+		NextDump string
 	}
 	DataDump3 struct {
 		RawDump string
@@ -39,6 +40,7 @@ func GetDataDumps() []byte {
 	holder.DataDump1.RawDump = DsCopy.RawSummary
 
 	holder.DataDump2.RawDump = DsCopy.ProcessList
+	holder.DataDump2.NextDump = DsCopy.ProcessList2
 
 	holder.DataDump3.RawDump = DsCopy.PrintMap
 
