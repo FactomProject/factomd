@@ -1039,8 +1039,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
 	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
-	d.AdminBlock.UpdateState(list.State)
-	d.EntryCreditBlock.UpdateState(list.State)
+	err := d.AdminBlock.UpdateState(list.State)
+	if err != nil {
+		panic(err)
+	}
+	err = d.EntryCreditBlock.UpdateState(list.State)
+	if err != nil {
+		panic(err)
+	}
 
 	prt("pl 2st", pl)
 	prt("pln 2st", pln)
@@ -1069,7 +1075,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
-	err := fs.AddTransactionBlock(d.FactoidBlock)
+	err = fs.AddTransactionBlock(d.FactoidBlock)
 	if err != nil {
 		panic(err)
 	}
