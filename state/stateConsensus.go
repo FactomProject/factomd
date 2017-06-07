@@ -1167,7 +1167,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
 				raw, _ := dbs.MarshalBinary()
-				s.Logf("info", "DirectoryBlockSignature SENT LDBHT: %d %s\n RAW: %x", s.GetLeaderHeight(), dbs.String(), raw)
+				s.Logf("info", "DirectoryBlockSignature SENT V: %d LDBHT: %d %s\n RAW: %x", dbs.Validate(s), s.GetLeaderHeight(), dbs.String(), raw)
 			} else {
 				pl.Ask(vmIndex, 0, 0, 5)
 			}
