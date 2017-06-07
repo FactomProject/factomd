@@ -162,3 +162,45 @@ func TestMiscCC(t *testing.T) {
 		t.Errorf("Commit Chain comparison failed")
 	}
 }
+
+func TestCommitChainIsValid(t *testing.T) {
+	c := NewCommitChain()
+	c.Credits = 0
+	c.Init()
+	p, _ := primitives.NewPrivateKeyFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	err := c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+
+	if c.IsValid() {
+		t.Error("Credits are 0, should be invalid")
+	}
+
+	c.Credits = 11
+	err = c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+	if !c.IsValid() {
+		t.Error("Credits are 11, should be valid")
+	}
+
+	c.Credits = 20
+	err = c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+	if !c.IsValid() {
+		t.Error("Credits are 20, should be valid")
+	}
+
+	c.Credits = 21
+	err = c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+	if c.IsValid() {
+		t.Error("Credits are 21, should be invalid")
+	}
+}
