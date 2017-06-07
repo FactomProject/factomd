@@ -30,6 +30,7 @@ var _ = (*hash.Hash32)(nil)
 //***************************************************************
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		if s.SuperVerboseMessages {
@@ -89,6 +90,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			s.networkInvalidMsgQueue <- msg
 		}
 	}
+
+	executeMsgTime := time.Since(preExecuteMsgTime)
+	TotalExecuteMsgTime.Add(float64(executeMsgTime.Nanoseconds()))
 
 	return
 
@@ -164,6 +168,7 @@ func (s *State) Process() (progress bool) {
 
 	s.ReviewHolding()
 
+	preAckLoopTime := time.Now()
 	// Process acknowledgements if we have some.
 ackLoop:
 	for room() {
@@ -186,6 +191,11 @@ ackLoop:
 		}
 	}
 
+	ackLoopTime := time.Since(preAckLoopTime)
+	TotalAckLoopTime.Add(float64(ackLoopTime.Nanoseconds()))
+
+	preEmptyLoopTime := time.Now()
+
 	// Process inbound messages
 emptyLoop:
 	for room() {
@@ -199,7 +209,10 @@ emptyLoop:
 			break emptyLoop
 		}
 	}
+	emptyLoopTime := time.Since(preEmptyLoopTime)
+	TotalEmptyLoopTime.Add(float64(emptyLoopTime.Nanoseconds()))
 
+	preProcessXReviewTime := time.Now()
 	// Reprocess any stalled messages, but not so much compared inbound messages
 	// Process last first
 skipreview:
@@ -217,7 +230,10 @@ skipreview:
 		s.XReview = s.XReview[:0]
 		break
 	}
+	processXReviewTime := time.Since(preProcessXReviewTime)
+	TotalProcessXReviewTime.Add(float64(processXReviewTime.Nanoseconds()))
 
+	preProcessProcChanTime := time.Now()
 	for len(process) > 0 {
 		msg := <-process
 		s.executeMsg(vm, msg)
@@ -226,6 +242,9 @@ skipreview:
 		}
 		s.UpdateState()
 	}
+
+	processProcChanTime := time.Since(preProcessProcChanTime)
+	TotalProcessProcChanTime.Add(float64(processProcChanTime.Nanoseconds()))
 
 	return
 }
@@ -253,6 +272,7 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // review if this is a leader, and those messages are that leader's
 // responsibility
 func (s *State) ReviewHolding() {
+	preReviewHoldingTime := time.Now()
 	if len(s.XReview) > 0 {
 		return
 	}
@@ -363,6 +383,8 @@ func (s *State) ReviewHolding() {
 		TotalHoldingQueueOutputs.Inc()
 		delete(s.Holding, k)
 	}
+	reviewHoldingTime := time.Since(preReviewHoldingTime)
+	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.

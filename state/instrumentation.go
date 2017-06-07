@@ -553,6 +553,32 @@ var (
 		Name: "factomd_state_queue_backup_netout",
 		Help: "Backup of queue",
 	})
+
+	// Durations
+	TotalReviewHoldingTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_review_holding_time",
+		Help: "Time spent in ReviewHolding()",
+	})
+	TotalProcessXReviewTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_xreview_time",
+		Help: "Time spent Processing XReview",
+	})
+	TotalProcessProcChanTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_proc_chan_time",
+		Help: "Time spent Processing Process Chan",
+	})
+	TotalEmptyLoopTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_empty_loop_time",
+		Help: "Time spent in empty loop",
+	})
+	TotalAckLoopTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_ack_loop_time",
+		Help: "Time spent in ack loop",
+	})
+	TotalExecuteMsgTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_execute_msg_time",
+		Help: "Time spent in executeMsg",
+	})
 )
 
 var registered bool = false
@@ -721,4 +747,12 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(NetOutTotalCompleteQueueRate)
 	prometheus.MustRegister(NetOutInstantCompleteQueueRate)
 	prometheus.MustRegister(NetOutQueueBackupRate)
+
+	// Durations
+	prometheus.MustRegister(TotalReviewHoldingTime)
+	prometheus.MustRegister(TotalProcessXReviewTime)
+	prometheus.MustRegister(TotalProcessProcChanTime)
+	prometheus.MustRegister(TotalEmptyLoopTime)
+	prometheus.MustRegister(TotalAckLoopTime)
+	prometheus.MustRegister(TotalExecuteMsgTime)
 }

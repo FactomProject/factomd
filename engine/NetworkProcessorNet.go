@@ -90,6 +90,8 @@ func Peers(fnode *FactomNode) {
 				var msg interfaces.IMsg
 				var err error
 
+				preReceiveTime := time.Now()
+
 				if !fnode.State.GetNetStateOff() {
 					msg, err = peer.Recieve()
 				}
@@ -98,6 +100,9 @@ func Peers(fnode *FactomNode) {
 					// Recieve is not blocking; nothing to do, we get a nil.
 					break
 				}
+
+				receiveTime := time.Since(preReceiveTime)
+				TotalReceiveTime.Add(float64(receiveTime.Nanoseconds()))
 
 				cnt++
 
@@ -129,9 +134,6 @@ func Peers(fnode *FactomNode) {
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
-					if ok {
-						go reReceiveAck(fnode, msg)
-					}
 				} else {
 					RepeatMsgs.Inc()
 					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
@@ -142,15 +144,6 @@ func Peers(fnode *FactomNode) {
 			time.Sleep(50 * time.Millisecond)
 		}
 		cnt = 0
-	}
-}
-
-func reReceiveAck(fnode *FactomNode, msg interfaces.IMsg) {
-	for i := 0; i < 10; i++ {
-		if fnode.State.InMsgQueue().Length() < 9000 {
-			fnode.State.InMsgQueue().Enqueue(msg)
-		}
-		time.Sleep(time.Duration(rand.Int31n(1000)) * time.Millisecond)
 	}
 }
 
@@ -197,7 +190,10 @@ func NetworkOutputs(fnode *FactomNode) {
 						}
 						fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 						if !fnode.State.GetNetStateOff() {
+							preSendTime := time.Now()
 							fnode.Peers[p].Send(msg)
+							sendTime := time.Since(preSendTime)
+							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
 							if fnode.State.MessageTally {
 								fnode.State.TallySent(int(msg.Type()))
 							}
@@ -214,7 +210,10 @@ func NetworkOutputs(fnode *FactomNode) {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
 							fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							if !fnode.State.GetNetStateOff() {
+								preSendTime := time.Now()
 								peer.Send(msg)
+								sendTime := time.Since(preSendTime)
+								TotalSendTime.Add(float64(sendTime.Nanoseconds()))
 								if fnode.State.MessageTally {
 									fnode.State.TallySent(int(msg.Type()))
 								}

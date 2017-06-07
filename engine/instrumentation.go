@@ -42,6 +42,16 @@ var (
 		Name: "factomd_state_etcd_send_ns",
 		Help: "Time it takes to complete an etcd send",
 	})
+
+	// Send/Receive Times
+	TotalSendTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_total_send_time",
+		Help: "Time spent sending (nanoseconds)",
+	})
+	TotalReceiveTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_total_receive_time",
+		Help: "Time spent receiving (nanoseconds)",
+	})
 )
 
 var registered = false
@@ -67,4 +77,8 @@ func RegisterPrometheus() {
 
 	// Etcd
 	prometheus.MustRegister(EtcdSendOutTime)
+
+	// Send/Receive Times
+	prometheus.MustRegister(TotalSendTime)
+	prometheus.MustRegister(TotalReceiveTime)
 }
