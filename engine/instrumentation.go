@@ -21,6 +21,16 @@ var (
 		Help: "How many messages are dropped due to full queues",
 	})
 
+	// NetworkReplayFilter
+	TotalNetworkReplayFilter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_network_replay_filter_total",
+		Help: "Tally of total messages gone into NetworkReplayFilter",
+	})
+	TotalNetworkAckReplayFilter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_network_ack_replay_filter_total",
+		Help: "Tally of total messages gone into NetworkAckReplayFilter",
+	})
+
 	// Network Out Queue
 	NetworkOutTotalDequeue = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_queue_netoutmsg_total_general",
@@ -47,6 +57,10 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(RepeatMsgs)
 	prometheus.MustRegister(BroadInCastQueue)
 	prometheus.MustRegister(BroadCastInQueueDrop)
+
+	// NetworkReplayFilter
+	prometheus.MustRegister(TotalNetworkReplayFilter)
+	prometheus.MustRegister(TotalNetworkAckReplayFilter)
 
 	// NetOut
 	prometheus.MustRegister(NetworkOutTotalDequeue)

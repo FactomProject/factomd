@@ -203,10 +203,12 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if msg.Type() == constants.ACK_MSG {
 		if _, exists := f.NetworkAckReplayFilter.Get(msg.GetHash().String()); exists {
 			//return nil
+			TotalNetworkAckReplayFilter.Inc()
 		}
 		f.NetworkAckReplayFilter.Set(msg.GetHash().String(), msg.String())
 	} else {
 		if _, exists := f.NetworkReplayFilter.Get(msg.GetHash().String()); exists {
+			TotalNetworkReplayFilter.Inc()
 			return nil
 		}
 		f.NetworkReplayFilter.Set(msg.GetHash().String(), msg.String())
