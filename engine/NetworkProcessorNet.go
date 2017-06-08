@@ -134,6 +134,9 @@ func Peers(fnode *FactomNode) {
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
+					if ok {
+						go reReceiveAck(fnode, msg)
+					}
 				} else {
 					RepeatMsgs.Inc()
 					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
@@ -144,6 +147,15 @@ func Peers(fnode *FactomNode) {
 			time.Sleep(50 * time.Millisecond)
 		}
 		cnt = 0
+	}
+}
+
+func reReceiveAck(fnode *FactomNode, msg interfaces.IMsg) {
+	for i := 0; i < 10; i++ {
+		if fnode.State.InMsgQueue().Length() < 9000 {
+			fnode.State.InMsgQueue().Enqueue(msg)
+		}
+		time.Sleep(time.Duration(rand.Int31n(1000)) * time.Millisecond)
 	}
 }
 
