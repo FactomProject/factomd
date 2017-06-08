@@ -1764,6 +1764,31 @@ func (s *State) LogInfo(args ...interface{}) {
 	s.Logger.Info(args...)
 }
 
+func (s *State) Log(level string, message string) {
+	s.Logf(level, message)
+}
+
+func (s *State) Logf(level string, format string, args ...interface{}) {
+	switch level {
+	case "emergency":
+		s.Logger.Emergencyf(format, args...)
+	case "alert":
+		s.Logger.Alertf(format, args...)
+	case "critical":
+		s.Logger.Criticalf(format, args...)
+	case "error":
+		s.Logger.Errorf(format, args...)
+	case "warning":
+		s.Logger.Warningf(format, args...)
+	case "info":
+		s.Logger.Infof(format, args...)
+	case "debug":
+		s.Logger.Debugf(format, args...)
+	default:
+		s.Logger.Infof(format, args...)
+	}
+}
+
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
