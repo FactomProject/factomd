@@ -1333,7 +1333,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
-			if s.Leader {
+			pldbs := s.ProcessLists.Get(s.LLeaderHeight)
+			if s.Leader && !pldbs.DBSigAlreadySent {
 				// dbstate is already set.
 				dbs := new(messages.DirectoryBlockSignature)
 				db := dbstate.DirectoryBlock
@@ -1350,10 +1351,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				if err != nil {
 					panic(err)
 				}
+				pldbs.DBSigAlreadySent = true
+
 				dbs.LeaderExecute(s)
 
 			}
-
 			s.Saving = true
 		}
 
