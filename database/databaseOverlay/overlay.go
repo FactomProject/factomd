@@ -104,6 +104,8 @@ func init() {
 	ConstantNamesMap[string(INCLUDED_IN)] = "IncludedIn"
 
 	ConstantNamesMap[string(PAID_FOR)] = "PaidFor"
+
+	RegisterPrometheus()
 }
 
 type Overlay struct {
@@ -164,6 +166,7 @@ func (db *Overlay) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAnd
 }
 
 func (db *Overlay) Get(bucket, key []byte, destination interfaces.BinaryMarshallable) (interfaces.BinaryMarshallable, error) {
+	GetBucket(bucket)
 	return db.DB.Get(bucket, key, destination)
 }
 
