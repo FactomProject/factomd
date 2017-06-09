@@ -12,6 +12,7 @@ import (
 	"time"
 
 	//"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/state"
@@ -162,6 +163,28 @@ func TestLog(t *testing.T) {
 	}
 
 }
+
+func TestSetKeys(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	p, _ := primitives.NewPrivateKeyFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	s.SimSetNewKeys(p)
+
+	if s.SimGetSigKey() != p.PublicKeyString() {
+		t.Error("Public keys do not match")
+	}
+}
+
+/*
+func (s *State) SimSetNewKeys(p *primitives.PrivateKey) {
+	s.serverPrivKey = p
+	s.serverPubKey = p.Pub
+}
+
+func (s *State) SimGetSigKey() string {
+	return s.serverPrivKey.Pub.String()
+}
+
+*/
 
 /*
 func TestBootStrappingIdentity(t *testing.T) {
