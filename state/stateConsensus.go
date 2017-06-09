@@ -1495,6 +1495,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
+			if s.LogBits&1 == 0 {
+				s.Logf("info", "%s %s", pre, dblk.String())
+				s.LogBits = s.LogBits | 1
+			}
 			pl.IncrementDiffSigTally()
 			s.Logf("info", "%s  %s", pre, " -- return false [5]")
 			return false

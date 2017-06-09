@@ -87,7 +87,7 @@ func (m *EOM) GetHash() interfaces.IHash {
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalForSignature()
+		data, err := m.MarshalBinary()
 		if err != nil {
 			return nil
 		}
