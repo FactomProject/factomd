@@ -369,10 +369,8 @@ func (f *P2PProxy) SweepEtcd() {
 	for {
 		newMsgBytes = f.EtcdManager.GetData()
 		if newMsgBytes != nil && len(newMsgBytes) > 0 {
-			removed := p2p.BlockFreeChannelSend(f.BroadcastIn, newMsgBytes)
+			f.BroadcastIn <- newMsgBytes
 			BroadInCastQueue.Inc()
-			BroadInCastQueue.Add(float64(-1 * removed))
-			BroadCastInQueueDrop.Add(float64(removed))
 		} else {
 			time.Sleep(50 * time.Millisecond)
 		}
