@@ -9,7 +9,9 @@ import (
 
 	"encoding/hex"
 	"fmt"
+
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestUnmarshalNilCommitEntry(t *testing.T) {
@@ -120,5 +122,47 @@ func TestCommitEntryMarshalUnmarshalStatic(t *testing.T) {
 	expected = "29be46067fa1aa19e139a9db305d46035e24c4ff1b77c58ccb66028e70e7d180"
 	if h.String() != expected {
 		t.Errorf("Wrong hash - %v vs %v", h.String(), expected)
+	}
+}
+
+func TestCommitEntryIsValid(t *testing.T) {
+	c := NewCommitEntry()
+	c.Credits = 0
+	c.Init()
+	p, _ := primitives.NewPrivateKeyFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	err := c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+
+	if c.IsValid() {
+		t.Error("Credits are 0, should be invalid")
+	}
+
+	c.Credits = 10
+	err = c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+	if !c.IsValid() {
+		t.Error("Credits are 10, should be valid")
+	}
+
+	c.Credits = 1
+	err = c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+	if !c.IsValid() {
+		t.Error("Credits are 1, should be valid")
+	}
+
+	c.Credits = 11
+	err = c.Sign(p.Key[:])
+	if err != nil {
+		t.Error(err)
+	}
+	if c.IsValid() {
+		t.Error("Credits are 11, should be invalid")
 	}
 }

@@ -382,6 +382,10 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 		}
 	}
 
+	if !commit.IsValid() {
+		return nil, NewInvalidCommitChainError()
+	}
+
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
 	state.APIQueue() <- msg
@@ -418,6 +422,10 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 		}
 	}
 
+	if !commit.IsValid() {
+		return nil, NewInvalidCommitEntryError()
+	}
+
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
 	state.APIQueue() <- msg
@@ -448,6 +456,10 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 		if err != nil {
 			return nil, NewInvalidEntryError()
 		}
+	}
+
+	if !entry.IsValid() {
+		return nil, NewInvalidEntryError()
 	}
 
 	msg := new(messages.RevealEntryMsg)
