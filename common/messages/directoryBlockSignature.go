@@ -86,7 +86,14 @@ func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.ISta
 }
 
 func (m *DirectoryBlockSignature) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	if m.RepeatHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.RepeatHash = primitives.Sha(data)
+	}
+	return m.RepeatHash
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
@@ -94,12 +101,13 @@ func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
 }
 
 func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
-	data, _ := m.MarshalBinary()
-	if data == nil {
-		return nil
+	if m.MsgHash == nil {
+		data, _ := m.MarshalForSignature()
+		if data == nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
 	}
-	m.MsgHash = primitives.Sha(data)
-
 	return m.MsgHash
 }
 
