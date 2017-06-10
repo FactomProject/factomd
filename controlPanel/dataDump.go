@@ -13,7 +13,8 @@ type DataDump struct {
 		RawDump   string
 	}
 	DataDump2 struct {
-		RawDump string
+		RawDump  string
+		NextDump string
 	}
 	DataDump3 struct {
 		RawDump string

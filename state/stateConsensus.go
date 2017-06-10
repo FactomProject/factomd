@@ -1166,6 +1166,8 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
+				raw, _ := dbs.MarshalBinary()
+				s.Logf("info", "DirectoryBlockSignature SENT V: %d LDBHT: %d %s\n RAW: %x", dbs.Validate(s), s.GetLeaderHeight(), dbs.String(), raw)
 			} else {
 				pl.Ask(vmIndex, 0, 0, 5)
 			}
@@ -1331,7 +1333,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			// network, then no dbsig exists.  This code doesn't execute, and so we have no dbsig.  In that case, on
 			// the next EOM, we see the block hasn't been signed, and we sign the block (Thats the call to SendDBSig()
 			// above).
-			if s.Leader {
+			pldbs := s.ProcessLists.Get(s.LLeaderHeight)
+			if s.Leader && !pldbs.DBSigAlreadySent {
 				// dbstate is already set.
 				dbs := new(messages.DirectoryBlockSignature)
 				db := dbstate.DirectoryBlock
@@ -1348,10 +1351,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				if err != nil {
 					panic(err)
 				}
+				pldbs.DBSigAlreadySent = true
+
 				dbs.LeaderExecute(s)
-
+				raw, _ := dbs.MarshalBinary()
+				s.Logf("info", "DirectoryBlockSignature SENT V: %d LDBHT: %d %s\n RAW: %x", dbs.Validate(s), s.GetLeaderHeight(), dbs.String(), raw)
 			}
-
 			s.Saving = true
 		}
 
@@ -1398,7 +1403,6 @@ func (s *State) CheckForIDChange() {
 // is then that we push it out to the rest of the network.  Otherwise, if we are not the
 // leader for the signature, it marks the sig complete for that list
 func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
-
 	//s.AddStatus(fmt.Sprintf("ProcessDBSig: %s ", msg.String()))
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
