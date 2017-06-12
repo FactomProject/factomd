@@ -4,8 +4,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-var NetOutMsgQueueRateKeeper *RateCalculator
-
 // NetOutQueueRatePrometheus is for setting the appropriate prometheus calls
 type NetOutQueueRatePrometheus struct{}
 
@@ -26,10 +24,6 @@ type NetOutMsgQueue chan interfaces.IMsg
 
 func NewNetOutMsgQueue(capacity int) NetOutMsgQueue {
 	channel := make(chan interfaces.IMsg, capacity)
-	rc := NewRateCalculator(new(NetOutQueueRatePrometheus))
-	go rc.Start()
-	NetOutMsgQueueRateKeeper = rc
-
 	return channel
 }
 
@@ -45,7 +39,7 @@ func (q NetOutMsgQueue) Cap() int {
 
 // Enqueue adds item to channel and instruments based on type
 func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
-	NetOutMsgQueueRateKeeper.Arrival()
+	//NetOutMsgQueueRateKeeper.Arrival()
 	measureMessage(q, m, true)
 	q <- m
 }
@@ -55,7 +49,7 @@ func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
 func (q NetOutMsgQueue) Dequeue() interfaces.IMsg {
 	select {
 	case v := <-q:
-		NetOutMsgQueueRateKeeper.Complete()
+		//NetOutMsgQueueRateKeeper.Complete()
 		return v
 	default:
 		return nil
@@ -65,13 +59,17 @@ func (q NetOutMsgQueue) Dequeue() interfaces.IMsg {
 // BlockingDequeue will block until it retrieves from queue
 func (q NetOutMsgQueue) BlockingDequeue() interfaces.IMsg {
 	v := <-q
-	NetOutMsgQueueRateKeeper.Complete()
+	//NetOutMsgQueueRateKeeper.Complete()
 	return v
 }
 
 //
 // A list of all possible messages and their prometheus incrementing/decrementing
 //
+
+func (q NetOutMsgQueue) General(increment bool) {
+	TotalMessageQueueNetOutMsgGeneral.Inc()
+}
 
 func (q NetOutMsgQueue) EOM(increment bool) {
 	TotalMessageQueueNetOutMsgEOM.Inc()
