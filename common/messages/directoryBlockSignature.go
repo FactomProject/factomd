@@ -102,7 +102,7 @@ func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
 
 func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, _ := m.MarshalForSignature()
+		data, _ := m.MarshalBinary()
 		if data == nil {
 			return nil
 		}

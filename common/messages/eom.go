@@ -78,14 +78,7 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 }
 
 func (m *EOM) GetRepeatHash() interfaces.IHash {
-	if m.RepeatHash == nil {
-		data, err := m.MarshalBinary()
-		if err != nil {
-			return nil
-		}
-		m.RepeatHash = primitives.Sha(data)
-	}
-	return m.RepeatHash
+	return m.GetMsgHash()
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
@@ -94,7 +87,7 @@ func (m *EOM) GetHash() interfaces.IHash {
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalForSignature()
+		data, err := m.MarshalBinary()
 		if err != nil {
 			return nil
 		}
@@ -119,10 +112,6 @@ func (m *EOM) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
-	if m.IsLocal() {
-		return 1
-	}
-
 	// Ignore old EOM
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1
@@ -131,6 +120,10 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
+	}
+
+	if m.IsLocal() {
+		return 1
 	}
 
 	// Check signature
