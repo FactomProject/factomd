@@ -112,6 +112,10 @@ func (m *EOM) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *EOM) Validate(state interfaces.IState) int {
+	if m.IsLocal() {
+		return 1
+	}
+
 	// Ignore old EOM
 	if m.DBHeight <= state.GetHighestSavedBlk() {
 		return -1
@@ -120,10 +124,6 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	found, _ := state.GetVirtualServers(m.DBHeight, int(m.Minute), m.ChainID)
 	if !found { // Only EOM from federated servers are valid.
 		return -1
-	}
-
-	if m.IsLocal() {
-		return 1
 	}
 
 	// Check signature

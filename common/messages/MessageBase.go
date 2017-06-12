@@ -24,7 +24,6 @@ type MessageBase struct {
 
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cache of the hash of a message
-	RepeatHash    interfaces.IHash // Cache of the hash of a message
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
