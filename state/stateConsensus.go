@@ -1422,7 +1422,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
 
 	if uint32(pl.System.Height) >= dbs.SysHeight {
-		s.Logf("info", "%s  %s", pre, " -- return true [2]")
 		s.DBSigSys = true
 	}
 
@@ -1498,9 +1497,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 			if s.LogBits&1 == 0 {
 				s.Logf("info", "%s %s", pre, dblk.String())
 				s.LogBits = s.LogBits | 1
+				s.Logf("info", "%s  %s", pre, " -- return false [5]")
 			}
 			pl.IncrementDiffSigTally()
-			s.Logf("info", "%s  %s", pre, " -- return false [5]")
 			return false
 		}
 
