@@ -204,25 +204,26 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 	ds.RawSummary = prt
 
-	b := s.GetHighestCompletedBlk()
-	h := b
-	pl := s.ProcessLists.Get(b + 1)
+	b := s.GetHighestCompletedBlk() + 1
+	pl := s.ProcessLists.Get(b)
 	if pl == nil {
-		h = b
+		b--
 		pl = s.ProcessLists.Get(b)
 		if pl == nil {
-			h = b
 			if b > 1 {
-				pl = s.ProcessLists.Get(b - 1)
+				b--
+				pl = s.ProcessLists.Get(b)
 			}
 		}
 	}
 
 	var pl2 *ProcessList
-	if h > 3 {
-		pl2 = s.ProcessLists.GetSafe(h - 1)
+	if b > 3 {
+		b--
+		pl2 = s.ProcessLists.GetSafe(b)
 		if pl == nil {
-			pl2 = s.ProcessLists.GetSafe(h - 2)
+			b--
+			pl2 = s.ProcessLists.GetSafe(b)
 		}
 	}
 
