@@ -129,9 +129,11 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	// Check signature
 	eomSigned, err := m.VerifySignature()
 	if err != nil {
+		state.Logf("warning", "[EOM Validate (1)] Failed to verify signature. Err: %s -- Msg: %s", err.Error(), m.String())
 		return -1
 	}
 	if !eomSigned {
+		state.Logf("warning", "[EOM Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
 		return -1
 	}
 	return 1

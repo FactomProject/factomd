@@ -1483,6 +1483,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
+			s.Logf("warning", "[Process DBSig] Failed to process, DBlocks do not match. LHeight: %d, MHeight: %d, Expected-Body-Mr: %x, Got: %x, Msg: %s",
+				s.GetLeaderHeight(), dbs.DBHeight, dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed(), dbs.String())
 			return false
 		}
 
@@ -1497,6 +1499,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
 		if err != nil || valid != 1 {
+			s.Logf("warning", "[Process DBSig] Failed to process, invalid authority signatures. LHeight: %d, MHeight: %d, PubKey: %x, Msg: %s",
+				s.GetLeaderHeight(), dbs.DBHeight, dbs.Signature.GetKey(), dbs.String())
 			return false
 		}
 
