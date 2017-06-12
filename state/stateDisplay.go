@@ -45,10 +45,9 @@ type DisplayState struct {
 	PLEntry   []EntryTransaction
 
 	// DataDump
-	RawSummary   string
-	PrintMap     string
-	ProcessList  string
-	ProcessList2 string
+	RawSummary  string
+	PrintMap    string
+	ProcessList string
 }
 
 type FactoidTransaction struct {
