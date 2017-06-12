@@ -212,12 +212,18 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 		pl = s.ProcessLists.Get(b)
 		if pl == nil {
 			h = b
-			s.ProcessLists.Get(b - 1)
+			if b > 1 {
+				pl = s.ProcessLists.Get(b - 1)
+			}
 		}
 	}
-	pl2 := s.ProcessLists.Get(h - 1)
-	if pl == nil {
-		pl2 = s.ProcessLists.Get(h - 2)
+
+	var pl2 *ProcessList
+	if h > 3 {
+		pl2 = s.ProcessLists.GetSafe(h - 1)
+		if pl == nil {
+			pl2 = s.ProcessLists.GetSafe(h - 2)
+		}
 	}
 
 	if pl != nil && pl.FedServers != nil {
