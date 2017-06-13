@@ -842,6 +842,11 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		s.EOMMinute = int(s.CurrentMinute)
 	}
 
+	if vm.EomMinuteIssued >= s.CurrentMinute+1 {
+		//os.Stderr.WriteString(fmt.Sprintf("Bump detected %s minute %2d\n", s.FactomNodeName, s.CurrentMinute))
+		return
+	}
+
 	//_, vmindex := pl.GetVirtualServers(s.EOMMinute, s.IdentityChainID)
 
 	eom.DBHeight = s.LLeaderHeight
@@ -849,6 +854,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
 	// a simple assignment works.
 	eom.Minute = byte(s.CurrentMinute)
+	vm.EomMinuteIssued = s.CurrentMinute + 1
 	eom.Sign(s)
 	eom.MsgHash = nil
 	ack := s.NewAck(m, nil).(*messages.Ack)
@@ -1166,8 +1172,6 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
-				raw, _ := dbs.MarshalBinary()
-				s.Logf("info", "DirectoryBlockSignature SENT V: %d LDBHT: %d %s\n RAW: %x", dbs.Validate(s), s.GetLeaderHeight(), dbs.String(), raw)
 			} else {
 				pl.Ask(vmIndex, 0, 0, 5)
 			}
@@ -1206,9 +1210,11 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	if s.EOMDone && s.EOMSys {
 		dbstate := s.GetDBState(dbheight - 1)
 		if dbstate == nil {
+			//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d DBState == nil: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
 			return false
 		}
 		if !dbstate.Saved {
+			//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d DBState not saved: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
 			return false
 		}
 
@@ -1241,6 +1247,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		for _, vm := range pl.VMs {
 			vm.Synced = false
 		}
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d First EOM processed: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
 		return false
 	}
 
@@ -1257,11 +1264,15 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Process this EOM: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
 		return false
 	}
 
 	allfaults := s.LeaderPL.System.Height >= s.LeaderPL.SysHighest
 
+	//if !allfaults {
+	//	os.Stderr.WriteString(fmt.Sprintf("%s dbht %d min %d Don't have all faults\n", s.FactomNodeName, e.DBHeight, e.Minute))
+	//}
 	// After all EOM markers are processed, Claim we are done.  Now we can unwind
 	if allfaults && s.EOMProcessed == s.EOMLimit && !s.EOMDone {
 
@@ -1354,8 +1365,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				pldbs.DBSigAlreadySent = true
 
 				dbs.LeaderExecute(s)
-				raw, _ := dbs.MarshalBinary()
-				s.Logf("info", "DirectoryBlockSignature SENT V: %d LDBHT: %d %s\n RAW: %x", dbs.Validate(s), s.GetLeaderHeight(), dbs.String(), raw)
 			}
 			s.Saving = true
 		}
@@ -1375,6 +1384,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				delete(s.Acks, k)
 			}
 		}
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Saving: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
+	} else {
+		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Do nothing: return on s.EOM(%v) && int(e.Minute(%v)) > s.EOMMinute(%v)", e.VMIndex, s.EOM, e.Minute, s.EOMMinute))
 	}
 
 	return false
