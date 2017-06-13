@@ -11,10 +11,14 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
+
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = log.Printf
+
+// eLogger is for EOM Messages and extends mLogger
+var eLogger = mLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
 	MessageBase
@@ -128,14 +132,23 @@ func (m *EOM) Validate(state interfaces.IState) int {
 
 	// Check signature
 	eomSigned, err := m.VerifySignature()
-	if err != nil {
-		state.Logf("warning", "[EOM Validate (1)] Failed to verify signature. Err: %s -- Msg: %s", err.Error(), m.String())
+	if err != nil || !eomSigned {
+		vlog := func(format string, args ...interface{}) {
+			eLogger.WithFields(log.Fields{"func": "validate", "msgheight": m.DBHeight, "min": m.Minute, "lheight": state.GetLeaderHeight()}).Errorf(format, args...)
+		}
+
+		if err != nil {
+			vlog("[1] Failed to verify signature. Err: %s -- Msg: %s", err.Error(), m.String())
+		}
+		if !eomSigned {
+			vlog("[1] Failed to verify, not signed. Msg: %s", m.String())
+		}
 		return -1
 	}
-	if !eomSigned {
-		state.Logf("warning", "[EOM Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
-		return -1
-	}
+	// if !eomSigned {
+	// 	state.Logf("warning", "[EOM Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
+	// 	return -1
+	// }
 	return 1
 }
 

@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -25,6 +26,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = fmt.Print
@@ -82,7 +85,7 @@ func NetStart(s *state.State) {
 	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
 	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
-	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: debug, info, notice, warning, error, critical, alert, emergency or none")
+	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	logFilePtr := flag.Bool("logfile", false, "Use to set logging to use a file rather than stdout")
 
 	flag.Parse()
@@ -138,6 +141,24 @@ func NetStart(s *state.State) {
 	s.StartDelayLimit = startDelay * 1000
 	s.Journaling = journaling
 	s.LogLevel = logLvl
+
+	log.SetOutput(os.Stdout)
+	switch s.LogLevel {
+	case "none":
+		log.SetOutput(ioutil.Discard)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warning":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	case "panic":
+		log.SetLevel(log.PanicLevel)
+	}
 
 	if !logFile {
 		s.LogPath = "stdout"
