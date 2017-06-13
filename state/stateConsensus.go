@@ -17,7 +17,13 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// consenLogger is the general logger for all consensus related logs. You can add additional fields,
+// or create more context loggers off of this
+var consenLogger = stateLogger.WithFields(log.Fields{"subpack": "consensus"})
 
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
@@ -1685,6 +1691,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 					fullFault.ServerID.String()[4:12],
 					fullFault.AuditServerID.String()[4:12])
 				pl.State.AddAuthorityDelta(authorityDeltaString)
+
+				consenLogger.WithFields(log.Fields{"dbht": fullFault.DBHeight, "sysht": fullFault.SystemHeight,
+					"server": fullFault.ServerID.String()[4:12], "audit": fullFault.AuditServerID.String()[4:12]}).Info("Full fault success")
 				//s.AddStatus(authorityDeltaString)
 
 				pl.State.LastFaultAction = time.Now().Unix()

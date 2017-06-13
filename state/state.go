@@ -28,13 +28,18 @@ import (
 	"github.com/FactomProject/factomd/database/boltdb"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
 	"errors"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// stateLogger is the general logger for all state related logs. You can add additional fields,
+// or create more context loggers off of this
+var stateLogger = log.WithFields(log.Fields{"package": "state"})
 
 var _ = fmt.Print
 
@@ -245,7 +250,6 @@ type State struct {
 
 	// Database
 	DB     interfaces.DBOverlaySimple
-	Logger *log.FLogger
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -723,17 +727,15 @@ func (s *State) Init() {
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
-		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	} else {
 		er := os.MkdirAll(s.LogPath, 0777)
 		if er != nil {
 			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 		}
 		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
-		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	}
-
-	log.SetLevel(s.ConsoleLogLevel)
 
 	s.ControlPanelChannel = make(chan DisplayState, 20)
 	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
@@ -1762,32 +1764,28 @@ func (s *State) initServerKeys() {
 	s.serverPubKey = s.serverPrivKey.Pub
 }
 
-func (s *State) LogInfo(args ...interface{}) {
-	s.Logger.Info(args...)
-}
-
 func (s *State) Log(level string, message string) {
-	s.Logf(level, message)
+	stateLogger.Info(message)
 }
 
 func (s *State) Logf(level string, format string, args ...interface{}) {
 	switch level {
 	case "emergency":
-		s.Logger.Emergencyf(format, args...)
+		stateLogger.Panicf(format, args...)
 	case "alert":
-		s.Logger.Alertf(format, args...)
+		stateLogger.Panicf(format, args...)
 	case "critical":
-		s.Logger.Criticalf(format, args...)
+		stateLogger.Panicf(format, args...)
 	case "error":
-		s.Logger.Errorf(format, args...)
+		stateLogger.Errorf(format, args...)
 	case "warning":
-		s.Logger.Warningf(format, args...)
+		stateLogger.Warningf(format, args...)
 	case "info":
-		s.Logger.Infof(format, args...)
+		stateLogger.Infof(format, args...)
 	case "debug":
-		s.Logger.Debugf(format, args...)
+		stateLogger.Debugf(format, args...)
 	default:
-		s.Logger.Infof(format, args...)
+		stateLogger.Infof(format, args...)
 	}
 }
 

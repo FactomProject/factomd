@@ -19,8 +19,13 @@ import (
 	"unicode"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// p2pLogger is the general logger for all p2p related logs. You can add additional fields,
+// or create more context loggers off of this
+var p2pLogger = log.WithFields(log.Fields{"package": "p2p"})
 
 // Controller manages the peer to peer network.
 type Controller struct {
@@ -53,9 +58,6 @@ type Controller struct {
 	lastPeerRequest            time.Time       // Last time we asked peers about the peers they know about.
 	specialPeersString         string          // configuration set special peers
 	partsAssembler             *PartsAssembler // a data structure that assembles full messages from received message parts
-
-	// Logger
-	Logger *log.FLogger
 }
 
 type ControllerInit struct {
@@ -194,7 +196,6 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.partsAssembler = new(PartsAssembler).Init()
 	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
 	c.discovery = *discovery
-	c.Logger = log.NewLogFromConfig(ci.LogPath, ci.LogLevel, "Networking")
 	// Set this to the past so we will do peer management almost right away after starting up.
 	note("ctrlr", "\n\n\n\n\nController.Init(%s) Controller is: %+v\n\n", ci.Port, c)
 	return c
@@ -549,7 +550,6 @@ func (c *Controller) handleCommand(command interface{}) {
 	case CommandDialPeer: // parameter is the peer address
 		parameters := command.(CommandDialPeer)
 		conn := new(Connection).Init(parameters.peer, parameters.persistent)
-		conn.Logger = c.Logger
 		conn.Start()
 
 		c.connections[conn.peer.Hash] = conn
@@ -563,7 +563,6 @@ func (c *Controller) handleCommand(command interface{}) {
 		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
 		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
-		connection.Logger = c.Logger
 		connection.Start()
 
 		c.connections[connection.peer.Hash] = connection
