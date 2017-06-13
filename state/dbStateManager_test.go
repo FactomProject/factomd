@@ -68,6 +68,7 @@ func TestSaveDBState(t *testing.T) {
 	msgs, adds := createTestDBStateList(total, s)
 	for i, m := range msgs {
 		i6 := int64(i)
+		m.JSONByte()
 		// Execute 5 times
 		for ii := 0; ii < 5; ii++ {
 			s.FollowerExecuteDBState(m)

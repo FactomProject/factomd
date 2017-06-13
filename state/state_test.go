@@ -13,11 +13,11 @@ import (
 
 	//"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = log.Print
@@ -142,7 +142,9 @@ func TestClone(t *testing.T) {
 func TestLog(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
 	buf := new(bytes.Buffer)
-	s.Logger = log.New(buf, "debug", "unit_test")
+	//s.Logger = log.New(buf, "debug", "unit_test")
+	log.SetOutput(buf)
+	log.SetLevel(log.DebugLevel)
 
 	var levels []string = []string{"debug", "info", "warning", "error"}
 	for _, l := range levels {
