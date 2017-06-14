@@ -648,6 +648,9 @@ func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
+	// If we are syncing DBSigs or EOM, and we apply a DBState, we wipe out the variables used for syncing
+	// so it is better if we are the leader to just wait for the sync to complete.  And then the dbstate might
+	// not even be necessary
 	if state.Leader && state.Syncing {
 		return 0
 	}
