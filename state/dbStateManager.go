@@ -648,6 +648,10 @@ func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
+	if state.Leader && state.Syncing {
+		return 0
+	}
+
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 
