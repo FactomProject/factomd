@@ -82,7 +82,14 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 }
 
 func (m *EOM) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	if m.RepeatHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.RepeatHash = primitives.Sha(data)
+	}
+	return m.RepeatHash
 }
 
 func (m *EOM) GetHash() interfaces.IHash {
@@ -91,7 +98,7 @@ func (m *EOM) GetHash() interfaces.IHash {
 
 func (m *EOM) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
-		data, err := m.MarshalBinary()
+		data, err := m.MarshalForSignature()
 		if err != nil {
 			return nil
 		}
