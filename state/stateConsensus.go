@@ -1137,6 +1137,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbheight, "lheight": s.GetLeaderHeight(), "vm": vmIndex})
 
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
@@ -1175,6 +1176,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 					panic(err)
 				}
 
+				dbslog.Infof("Send DBSig, %s", dbs.String())
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
@@ -1187,8 +1189,8 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
-
 	e := msg.(*messages.EOM)
+	// plog := consenLogger.WithFields(log.Fields{"func": "ProcessEOM", "msgheight": e.DBHeight, "lheight": s.GetLeaderHeight(), "min", e.Minute})
 
 	if s.Syncing && !s.EOM {
 		//s.AddStatus(fmt.Sprintf("EOM PROCESS: vm %2d Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", e.VMIndex, s.Syncing, s.EOM))
@@ -1370,6 +1372,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				pldbs.DBSigAlreadySent = true
 
+				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "vm": dbs.VMIndex})
+				dbslog.Infof("Send DBSig, %s", dbs.String())
+
 				dbs.LeaderExecute(s)
 			}
 			s.Saving = true
@@ -1424,6 +1429,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	//s.AddStatus(fmt.Sprintf("ProcessDBSig: %s ", msg.String()))
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
+	//vlog makes logging anything in Validate() easier
+	plog := consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight()})
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
 		//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)",
@@ -1505,8 +1512,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
-			s.Logf("warning", "[Process DBSig] Failed to process, DBlocks do not match. LHeight: %d, MHeight: %d, Expected-Body-Mr: %x, Got: %x, Msg: %s",
-				s.GetLeaderHeight(), dbs.DBHeight, dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed(), dbs.String())
+			plog.WithField("msg", dbs.String()).Errorf("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
+				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
 			return false
 		}
 
@@ -1521,8 +1528,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
 		if err != nil || valid != 1 {
-			s.Logf("warning", "[Process DBSig] Failed to process, invalid authority signatures. LHeight: %d, MHeight: %d, PubKey: %x, Msg: %s",
-				s.GetLeaderHeight(), dbs.DBHeight, dbs.Signature.GetKey(), dbs.String())
+			plog.WithField("msg", dbs.String()).Errorf("Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			return false
 		}
 

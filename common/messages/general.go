@@ -21,6 +21,7 @@ import (
 var mLogger = log.WithFields(log.Fields{"package": "messages"})
 
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
+	mLogger.Error("TEST")
 	_, msg, err := UnmarshalMessageData(data)
 	return msg, err
 }
