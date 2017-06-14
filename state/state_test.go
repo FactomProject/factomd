@@ -24,7 +24,8 @@ var _ = log.Print
 var _ = util.ReadConfig
 
 func TestInit(t *testing.T) {
-	testHelper.CreateEmptyTestState()
+	s := testHelper.CreateEmptyTestState()
+	PrintState(s)
 }
 
 func TestSecretCode(t *testing.T) {
