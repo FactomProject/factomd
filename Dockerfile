@@ -21,8 +21,8 @@ ARG GOOS=linux
 RUN go install
 
 # Setup the cache directory
-RUN mkdir -p $HOME/.factom/m2
-COPY factomd.conf $HOME/.factom/m2/factomd.conf
+RUN mkdir -p /root/.factom/m2
+COPY factomd.conf /root/.factom/m2/factomd.conf
 
 ENTRYPOINT ["/go/bin/factomd"]
 
