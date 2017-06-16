@@ -1468,7 +1468,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	// Put the stuff that executes per DBSignature here
-	if !dbs.Processed {
+	if !vm.Synced {
 
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 
@@ -1523,7 +1523,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbs.Matches = true
 		s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
 
-		dbs.Processed = true
 		s.DBSigProcessed++
 		//fmt.Println(fmt.Sprintf("Process DBSig %10s vm %2v DBSigProcessed++ (%2d)", s.FactomNodeName, dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
