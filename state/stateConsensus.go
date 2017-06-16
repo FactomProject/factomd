@@ -1255,13 +1255,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	// What I do for each EOM
-	if !e.Processed {
+	if !vm.Synced {
 
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
-		e.Processed = true
 		vm.Synced = true
 		markNoFault(pl, msg.GetVMIndex())
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
