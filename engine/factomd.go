@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Print
@@ -28,7 +29,7 @@ var _ = fmt.Print
 // Since we are tracking code changes, then there is no need to delete the binary to use the latest message
 var Build string
 
-func Factomd(params *FactomParams, listenToStdin bool) {
+func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	log.Print("//////////////////////// Copyright 2017 Factom Foundation")
 	log.Print("//////////////////////// Use of this source code is governed by the MIT")
 	log.Print("//////////////////////// license that can be found in the LICENSE file.")
@@ -47,10 +48,12 @@ func Factomd(params *FactomParams, listenToStdin bool) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	state0 := new(state.State)
+	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	fmt.Println("len(Args)", len(os.Args))
 
-	NetStart(state0, params, listenToStdin)
+	go NetStart(state0, params, listenToStdin)
+	return state0
 }
 
 func isCompilerVersionOK() bool {

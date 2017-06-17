@@ -8,10 +8,17 @@ import (
 	"os"
 
 	"github.com/FactomProject/factomd/engine"
+	"time"
+	"fmt"
 )
 
 func main() {
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := engine.ParseCmdLine(os.Args)
-	engine.Factomd(params, true)
+	state := engine.Factomd(params, true)
+	for state.Running() {
+		time.Sleep(time.Second)
+	}
+	fmt.Println("Waiting to Shut Down")
+	time.Sleep(time.Second * 5)
 }

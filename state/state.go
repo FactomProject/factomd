@@ -24,7 +24,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
-	//"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/database/boltdb"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
@@ -39,13 +38,12 @@ import (
 var _ = fmt.Print
 
 type State struct {
-	filename string
 
-	NetworkControler *p2p.Controller
-
-	Salt interfaces.IHash
-
-	Cfg interfaces.IFactomConfig
+	IsRunning         bool
+	filename 					string
+	NetworkControler  *p2p.Controller
+	Salt 							interfaces.IHash
+	Cfg 							interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -336,6 +334,10 @@ var _ interfaces.IState = (*State)(nil)
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
+}
+
+func (s *State) Running() bool {
+	return s.IsRunning
 }
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
