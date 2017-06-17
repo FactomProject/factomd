@@ -134,7 +134,11 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
 
+	runCmd("9")
+	runCmd("x")
 	runCmd("8")
+
+
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -156,7 +160,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	runCmd("w")
 
-	runCmd("g101")
+	runCmd("/")
 
 	runCmd("a1")
 	runCmd("e1")
@@ -171,26 +175,17 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("r")
 	time.Sleep(5 * time.Second)
 	runCmd("r")
-	runCmd("9")
-	runCmd("x")
-	waitBlocks(fn1.State, 3)
+	waitBlocks(fn1.State, 1)
 
 	runCmd("T10")
 	t.Log("Run to a dbht of 10")
-	state0.DirectoryBlockInSeconds = 4
-	for state0.LLeaderHeight < 8 {
-		time.Sleep(time.Second)
-	}
-	for state0.CurrentMinute < 1 {
-		time.Sleep(time.Second)
-	}
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
 	}
 
-	time.Sleep(15 * time.Second)
+	time.Sleep(10 * time.Second)
 	if state0.LLeaderHeight > 10 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
