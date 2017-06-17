@@ -14,10 +14,10 @@ func main() {
 
 	args := append([]string{},
 		"-enablenet=false",
-		"-logPort=37000",
-		"-port=37001",
-		"-ControlPanelPort=37002",
-		"-networkPort=37003",
+		"-logPort=37006",
+		"-port=37007",
+		"-ControlPanelPort=37008",
+		"-networkPort=37009",
 		"-startdelay=100")
 
 	params := engine.ParseCmdLine(args)
