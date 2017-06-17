@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
 
+	"github.com/FactomProject/factom"
+	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
 )
@@ -24,7 +28,7 @@ func main() {
 	UsingAPI = *useApi
 
 	fmt.Println("Usage:")
-	fmt.Println("CorrectChainHeads level/bolt DBFileLocation")
+	fmt.Println("CorrectChainHeads level/bolt/api DBFileLocation")
 	fmt.Println("Program will fix chainheads")
 
 	if len(flag.Args()) < 2 {
@@ -36,10 +40,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if os.Args[1] == "api" {
+		UsingAPI = true
+	}
+
 	var reader Fetcher
 
 	if UsingAPI {
-
+		reader = NewAPIReader(os.Args[2])
 	} else {
 		levelBolt := os.Args[1]
 
@@ -75,7 +83,8 @@ func FindHeads(f Fetcher) {
 	for ; height > 0; height-- {
 		dblock, err = f.FetchDBlockByHeight(height)
 		if err != nil {
-			fmt.Println("Error fetching height %d", height)
+			fmt.Printf("Error fetching height %d: %s\n", height, err.Error())
+			continue
 		}
 
 		eblockEnts := dblock.GetEBlockDBEntries()
@@ -90,7 +99,7 @@ func FindHeads(f Fetcher) {
 				fmt.Printf("Error getting chainhead for %s\n", eblk.GetChainID().String())
 			} else {
 				if !ch.IsSameAs(eblk.GetKeyMR()) {
-					fmt.Println("ERROR: Chainhead found: %s, Expected %s :: For Chain: %s at height %d",
+					fmt.Printf("ERROR: Chainhead found: %s, Expected %s :: For Chain: %s at height %d\n",
 						ch.String(), eblk.GetKeyMR().String(), eblk.GetChainID().String(), height)
 				}
 			}
@@ -109,7 +118,7 @@ func FindHeads(f Fetcher) {
 type Fetcher interface {
 	FetchDBlockHead() (interfaces.IDirectoryBlock, error)
 	FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirectoryBlock, error)
-	FetchDBlock(hash interfaces.IHash) (interfaces.IDirectoryBlock, error)
+	//FetchDBlock(hash interfaces.IHash) (interfaces.IDirectoryBlock, error)
 	FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error)
 }
 
@@ -128,4 +137,62 @@ func NewDBReader(levelBolt string, path string) *databaseOverlay.Overlay {
 	dbo := databaseOverlay.NewOverlay(dbase)
 
 	return dbo
+}
+
+type APIReader struct {
+	location string
+}
+
+func NewAPIReader(loc string) *APIReader {
+	a := new(APIReader)
+	a.location = loc
+	factom.SetFactomdServer(loc)
+
+	return a
+}
+
+func (a *APIReader) FetchDBlockHead() (interfaces.IDirectoryBlock, error) {
+	head, err := factom.GetDBlockHead()
+	if err != nil {
+		return nil, err
+	}
+	raw, err := factom.GetRaw(head)
+	if err != nil {
+		return nil, err
+	}
+	return rawBytesToblock(raw)
+}
+
+func (a *APIReader) FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirectoryBlock, error) {
+	raw, err := factom.GetBlockByHeightRaw("d", int64(dBlockHeight))
+	if err != nil {
+		return nil, err
+	}
+
+	return rawRespToBlock(raw.RawData)
+}
+
+func (a *APIReader) FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error) {
+	resp, err := factom.GetChainHead(chainID.String())
+	if err != nil {
+		return nil, err
+	}
+	return primitives.HexToHash(resp)
+}
+
+func rawBytesToblock(raw []byte) (interfaces.IDirectoryBlock, error) {
+	dblock := directoryBlock.NewDirectoryBlock(nil)
+	err := dblock.UnmarshalBinary(raw)
+	if err != nil {
+		return nil, err
+	}
+	return dblock, nil
+}
+
+func rawRespToBlock(raw string) (interfaces.IDirectoryBlock, error) {
+	by, err := hex.DecodeString(raw)
+	if err != nil {
+		return nil, err
+	}
+	return rawBytesToblock(by)
 }
