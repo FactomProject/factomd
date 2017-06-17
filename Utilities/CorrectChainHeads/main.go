@@ -19,6 +19,7 @@ import (
 
 var CheckFloating bool
 var UsingAPI bool
+var FixIt bool
 
 const level string = "level"
 const bolt string = "bolt"
@@ -27,11 +28,13 @@ func main() {
 	var (
 		useApi        = flag.Bool("api", false, "Use API instead")
 		checkFloating = flag.Bool("floating", false, "Check Floating")
+		fix           = flag.Bool("fix", false, "Actually fix head")
 	)
 
 	flag.Parse()
 	UsingAPI = *useApi
 	CheckFloating = *checkFloating
+	FixIt = *fix
 
 	fmt.Println("Usage:")
 	fmt.Println("CorrectChainHeads level/bolt/api DBFileLocation")
@@ -173,6 +176,9 @@ func FindHeads(f Fetcher) {
 					fmt.Printf("ERROR: Chainhead found: %s, Expected %s :: For Chain: %s at height %d\n",
 						ch.String(), eblk.GetKeyMR().String(), eblk.GetChainID().String(), height)
 					errCount++
+					if FixIt {
+						f.SetChainHeads([]interfaces.IHash{eblk.GetKeyMR()}, []interfaces.IHash{eblk.GetChainID()})
+					}
 				}
 			}
 		}
@@ -210,7 +216,7 @@ func FindHeads(f Fetcher) {
 			}
 		}
 	}
-	fmt.Printf("%d Errors found", errCount)
+	fmt.Printf("%d Errors found checking for bad links\n", errCount)
 
 }
 
@@ -220,6 +226,7 @@ type Fetcher interface {
 	//FetchDBlock(hash interfaces.IHash) (interfaces.IDirectoryBlock, error)
 	FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error)
 	FetchEBlock(hash interfaces.IHash) (interfaces.IEntryBlock, error)
+	SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error
 }
 
 func NewDBReader(levelBolt string, path string) *databaseOverlay.Overlay {
@@ -248,6 +255,10 @@ func NewAPIReader(loc string) *APIReader {
 	factom.SetFactomdServer(loc)
 
 	return a
+}
+
+func (a *APIReader) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) error {
+	return nil
 }
 
 func (a *APIReader) FetchEBlock(hash interfaces.IHash) (interfaces.IEntryBlock, error) {
