@@ -196,7 +196,7 @@ func FindHeads(f Fetcher) {
 	}
 	doPrint = false
 
-	fmt.Printf("%d Chains found", len(chainHeads))
+	fmt.Printf("%d Chains found in %f seconds", len(chainHeads), time.Since(start).Seconds())
 	errCount = 0
 	if CheckFloating {
 		fmt.Println("Checking all EBLK links")
