@@ -17,6 +17,7 @@ import (
 	"github.com/FactomProject/factomd/database/hybridDB"
 )
 
+var CheckFloating bool
 var UsingAPI bool
 
 const level string = "level"
@@ -24,11 +25,13 @@ const bolt string = "bolt"
 
 func main() {
 	var (
-		useApi = flag.Bool("api", false, "Use API instead")
+		useApi        = flag.Bool("api", false, "Use API instead")
+		checkFloating = flag.Bool("floating", false, "Check Floating")
 	)
 
 	flag.Parse()
 	UsingAPI = *useApi
+	CheckFloating = *checkFloating
 
 	fmt.Println("Usage:")
 	fmt.Println("CorrectChainHeads level/bolt/api DBFileLocation")
@@ -98,7 +101,7 @@ func FindHeads(f Fetcher) {
 	}
 	start := time.Now()
 
-	doPrint := true
+	doPrint := CheckFloating
 	go func() {
 		for {
 			if !doPrint {
@@ -126,32 +129,34 @@ func FindHeads(f Fetcher) {
 		eblockEnts := dblock.GetEBlockDBEntries()
 
 		total += len(eblockEnts)
-		for i := 0; i < len(eblockEnts); i++ {
-			wg.Add(1)
-			atomic.AddInt32(waiting, 1)
-			go func(eb interfaces.IDBEntry) {
-				defer wg.Done()
-				defer atomic.AddInt32(waiting, -1)
-				<-permission
-				defer func() {
-					permission <- true
-					atomic.AddInt32(done, 1)
-				}()
-				eblkF, err := f.FetchEBlock(eb.GetKeyMR())
-				if err != nil {
-					fmt.Printf("Error getting eblock %s for %s\n", eb.GetKeyMR().String(), eb.GetChainID().String())
-					return
-				}
-				kmr, err := eblkF.KeyMR()
-				if err != nil {
-					fmt.Printf("Error getting eblock keymr %s for %s\n", eb.GetKeyMR().String(), eb.GetChainID().String())
-					return
-				}
+		if CheckFloating {
+			for i := 0; i < len(eblockEnts); i++ {
+				wg.Add(1)
+				atomic.AddInt32(waiting, 1)
+				go func(eb interfaces.IDBEntry) {
+					defer wg.Done()
+					defer atomic.AddInt32(waiting, -1)
+					<-permission
+					defer func() {
+						permission <- true
+						atomic.AddInt32(done, 1)
+					}()
+					eblkF, err := f.FetchEBlock(eb.GetKeyMR())
+					if err != nil {
+						fmt.Printf("Error getting eblock %s for %s\n", eb.GetKeyMR().String(), eb.GetChainID().String())
+						return
+					}
+					kmr, err := eblkF.KeyMR()
+					if err != nil {
+						fmt.Printf("Error getting eblock keymr %s for %s\n", eb.GetKeyMR().String(), eb.GetChainID().String())
+						return
+					}
 
-				allEblockLock.Lock()
-				allEblks[kmr.String()] = eblkF.GetHeader().GetPrevKeyMR()
-				allEblockLock.Unlock()
-			}(eblockEnts[i])
+					allEblockLock.Lock()
+					allEblks[kmr.String()] = eblkF.GetHeader().GetPrevKeyMR()
+					allEblockLock.Unlock()
+				}(eblockEnts[i])
+			}
 		}
 
 		for _, eblk := range eblockEnts {
@@ -180,7 +185,9 @@ func FindHeads(f Fetcher) {
 		var _ = dblock
 	}
 
-	wg.Wait()
+	if CheckFloating {
+		wg.Wait()
+	}
 	doPrint = false
 
 	fmt.Printf("%d Chains found", len(chainHeads))
