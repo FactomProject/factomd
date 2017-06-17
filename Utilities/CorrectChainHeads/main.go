@@ -46,22 +46,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	if os.Args[1] == "api" {
+	if flag.Args()[0] == "api" {
 		UsingAPI = true
 	}
 
 	var reader Fetcher
 
 	if UsingAPI {
-		reader = NewAPIReader(os.Args[2])
+		reader = NewAPIReader(flag.Args()[1])
 	} else {
-		levelBolt := os.Args[1]
+		levelBolt := flag.Args()[0]
 
 		if levelBolt != level && levelBolt != bolt {
 			fmt.Println("\nFirst argument should be `level` or `bolt`")
 			os.Exit(1)
 		}
-		path := os.Args[2]
+		path := flag.Args()[1]
 		reader = NewDBReader(levelBolt, path)
 	}
 
@@ -191,6 +191,7 @@ func FindHeads(f Fetcher) {
 	doPrint = false
 
 	fmt.Printf("%d Chains found", len(chainHeads))
+	errCount = 0
 	if CheckFloating {
 		fmt.Println("Checking all EBLK links")
 		for k, h := range chainHeads {
@@ -202,12 +203,15 @@ func FindHeads(f Fetcher) {
 				}
 				p, ok := allEblks[prev.String()]
 				if !ok {
+					errCount++
 					fmt.Printf("Error finding Eblock %s for chain %s\n", h.String(), k)
 				}
 				prev = p
 			}
 		}
 	}
+	fmt.Printf("%d Errors found", errCount)
+
 }
 
 type Fetcher interface {
