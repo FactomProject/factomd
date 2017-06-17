@@ -133,7 +133,7 @@ func FindHeads(f Fetcher) {
 			for i := 0; i < len(eblockEnts); i++ {
 				wg.Add(1)
 				atomic.AddInt32(waiting, 1)
-				go func(eb interfaces.IDBEntry) {
+				func(eb interfaces.IDBEntry) {
 					defer wg.Done()
 					defer atomic.AddInt32(waiting, -1)
 					<-permission
@@ -179,7 +179,7 @@ func FindHeads(f Fetcher) {
 		if height%500 == 0 {
 			d := atomic.LoadInt32(done)
 			ps := float64(top-height) / time.Since(start).Seconds()
-			fmt.Printf("Currently on %d our of %d at %.3fp/s. %d Eblocks, %d done. %d ChainHeads so far. %d Are bad\n", height, top, ps, total, d, len(chainHeads), errCount)
+			fmt.Printf("Currently on %d out of %d at %.3fp/s. %d Eblocks, %d done. %d ChainHeads so far. %d Are bad\n", height, top, ps, total, d, len(chainHeads), errCount)
 		}
 
 		var _ = dblock
@@ -191,22 +191,23 @@ func FindHeads(f Fetcher) {
 	doPrint = false
 
 	fmt.Printf("%d Chains found", len(chainHeads))
-	fmt.Println("Checking all EBLK links")
-	for k, h := range chainHeads {
-		var prev interfaces.IHash
-		prev = h
-		for {
-			if prev.IsZero() {
-				break
+	if CheckFloating {
+		fmt.Println("Checking all EBLK links")
+		for k, h := range chainHeads {
+			var prev interfaces.IHash
+			prev = h
+			for {
+				if prev.IsZero() {
+					break
+				}
+				p, ok := allEblks[prev.String()]
+				if !ok {
+					fmt.Printf("Error finding Eblock %s for chain %s\n", h.String(), k)
+				}
+				prev = p
 			}
-			p, ok := allEblks[prev.String()]
-			if !ok {
-				fmt.Printf("Error finding Eblock %s for chain %s\n", h.String(), k)
-			}
-			prev = p
 		}
 	}
-
 }
 
 type Fetcher interface {
