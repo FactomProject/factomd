@@ -5,6 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/FactomProject/factom"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -67,6 +70,9 @@ func main() {
 func FindHeads(f Fetcher) {
 	chainHeads := make(map[string]interfaces.IHash)
 
+	var allEblockLock sync.Mutex
+	allEblks := make(map[string]interfaces.IHash)
+
 	var err error
 	var dblock interfaces.IDirectoryBlock
 
@@ -79,8 +85,38 @@ func FindHeads(f Fetcher) {
 	dblock = head
 	top := height
 	fmt.Println("Starting at", height)
+	errCount := 0
+	waiting := new(int32)
+	done := new(int32)
+	total := 0
+
+	var wg sync.WaitGroup
+	allowedSimulataneous := 1000
+	permission := make(chan bool, allowedSimulataneous)
+	for i := 0; i < allowedSimulataneous; i++ {
+		permission <- true
+	}
+	start := time.Now()
+
+	doPrint := true
+	go func() {
+		for {
+			if !doPrint {
+				return
+			}
+			time.Sleep(10 * time.Second)
+			v := atomic.LoadInt32(waiting)
+			d := atomic.LoadInt32(done)
+			fmt.Printf("%d are still waiting. %d Done. Permission: %d\n", v, d, len(permission))
+		}
+	}()
 
 	for ; height > 0; height-- {
+		v := atomic.LoadInt32(waiting)
+		for v > 50000 {
+			time.Sleep(1 * time.Second)
+		}
+
 		dblock, err = f.FetchDBlockByHeight(height)
 		if err != nil {
 			fmt.Printf("Error fetching height %d: %s\n", height, err.Error())
@@ -88,6 +124,36 @@ func FindHeads(f Fetcher) {
 		}
 
 		eblockEnts := dblock.GetEBlockDBEntries()
+
+		total += len(eblockEnts)
+		for i := 0; i < len(eblockEnts); i++ {
+			wg.Add(1)
+			atomic.AddInt32(waiting, 1)
+			go func(eb interfaces.IDBEntry) {
+				defer wg.Done()
+				defer atomic.AddInt32(waiting, -1)
+				<-permission
+				defer func() {
+					permission <- true
+					atomic.AddInt32(done, 1)
+				}()
+				eblkF, err := f.FetchEBlock(eb.GetKeyMR())
+				if err != nil {
+					fmt.Printf("Error getting eblock %s for %s\n", eb.GetKeyMR().String(), eb.GetChainID().String())
+					return
+				}
+				kmr, err := eblkF.KeyMR()
+				if err != nil {
+					fmt.Printf("Error getting eblock keymr %s for %s\n", eb.GetKeyMR().String(), eb.GetChainID().String())
+					return
+				}
+
+				allEblockLock.Lock()
+				allEblks[kmr.String()] = eblkF.GetHeader().GetPrevKeyMR()
+				allEblockLock.Unlock()
+			}(eblockEnts[i])
+		}
+
 		for _, eblk := range eblockEnts {
 			if _, ok := chainHeads[eblk.GetChainID().String()]; ok {
 				// Chainhead already exists
@@ -101,17 +167,38 @@ func FindHeads(f Fetcher) {
 				if !ch.IsSameAs(eblk.GetKeyMR()) {
 					fmt.Printf("ERROR: Chainhead found: %s, Expected %s :: For Chain: %s at height %d\n",
 						ch.String(), eblk.GetKeyMR().String(), eblk.GetChainID().String(), height)
+					errCount++
 				}
 			}
 		}
-		if height%1000 == 0 {
-			fmt.Printf("Currently on %d our of %d. %d ChainHeads so far\n", height, top, len(chainHeads))
+		if height%500 == 0 {
+			d := atomic.LoadInt32(done)
+			ps := float64(top-height) / time.Since(start).Seconds()
+			fmt.Printf("Currently on %d our of %d at %.3fp/s. %d Eblocks, %d done. %d ChainHeads so far. %d Are bad\n", height, top, ps, total, d, len(chainHeads), errCount)
 		}
 
 		var _ = dblock
 	}
 
+	wg.Wait()
+	doPrint = false
+
 	fmt.Printf("%d Chains found", len(chainHeads))
+	fmt.Println("Checking all EBLK links")
+	for k, h := range chainHeads {
+		var prev interfaces.IHash
+		prev = h
+		for {
+			if prev.IsZero() {
+				break
+			}
+			p, ok := allEblks[prev.String()]
+			if !ok {
+				fmt.Printf("Error finding Eblock %s for chain %s\n", h.String(), k)
+			}
+			prev = p
+		}
+	}
 
 }
 
@@ -120,6 +207,7 @@ type Fetcher interface {
 	FetchDBlockByHeight(dBlockHeight uint32) (interfaces.IDirectoryBlock, error)
 	//FetchDBlock(hash interfaces.IHash) (interfaces.IDirectoryBlock, error)
 	FetchHeadIndexByChainID(chainID interfaces.IHash) (interfaces.IHash, error)
+	FetchEBlock(hash interfaces.IHash) (interfaces.IEntryBlock, error)
 }
 
 func NewDBReader(levelBolt string, path string) *databaseOverlay.Overlay {
@@ -135,7 +223,6 @@ func NewDBReader(levelBolt string, path string) *databaseOverlay.Overlay {
 	}
 
 	dbo := databaseOverlay.NewOverlay(dbase)
-
 	return dbo
 }
 
@@ -149,6 +236,10 @@ func NewAPIReader(loc string) *APIReader {
 	factom.SetFactomdServer(loc)
 
 	return a
+}
+
+func (a *APIReader) FetchEBlock(hash interfaces.IHash) (interfaces.IEntryBlock, error) {
+	return nil, fmt.Errorf("Not implemented for api")
 }
 
 func (a *APIReader) FetchDBlockHead() (interfaces.IDirectoryBlock, error) {
