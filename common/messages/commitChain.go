@@ -102,6 +102,7 @@ func (m *CommitChainMsg) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *CommitChainMsg) Validate(state interfaces.IState) int {
+	return -1
 	if !m.validsig && !m.CommitChain.IsValid() {
 		return -1
 	}

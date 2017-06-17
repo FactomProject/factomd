@@ -201,6 +201,7 @@ func (m *CommitEntryMsg) String() string {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
+	return -1
 	if !m.validsig && !m.CommitEntry.IsValid() {
 		return -1
 	}
