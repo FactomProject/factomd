@@ -82,19 +82,19 @@ func (m *RevealEntryMsg) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 // Also return the matching commit, if 1 (Don't put it back into the Commit List)
-func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, int) {
+func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	commit := state.NextCommit(m.Entry.GetHash())
 
 	if commit == nil {
-		return nil, 0
+		return 0
 	}
 	//
 	// Make sure one of the two proper commits got us here.
 	var okChain, okEntry bool
 	m.commitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
-	if !okChain && !okEntry { // Discard any invalid entries in the map.  Should never happen.
-		return m.ValidateRTN(state)
+	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
+		return -1
 	}
 
 	// Now make sure the proper amount of credits were paid to record the entry.
@@ -102,8 +102,13 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 	if okEntry {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
+		// Any entry over 10240 bytes will be rejected
+		if m.Entry.KSize() > 10 {
+			return -1
+		}
+
 		if m.Entry.KSize() > ECs {
-			return m.ValidateRTN(state) // Discard commits that are not funded properly.
+			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
@@ -123,28 +128,19 @@ func (m *RevealEntryMsg) ValidateRTN(state interfaces.IState) (interfaces.IMsg, 
 		}
 
 		if eb == nil {
-			// If we don't have a chain, put the commit back.  Don't want to lose it.
-			state.PutCommit(m.Entry.GetHash(), commit)
-			return nil, 0
+			// No chain, we have to leave it be and maybe one will be made.
+			return 0
 		}
-	} else {
-		m.IsEntry = false
-		ECs := int(m.commitChain.CommitChain.Credits)
-		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
-			return m.ValidateRTN(state)
-		}
+		return 1
 	}
 
-	return commit, 1
-}
-
-func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
-	commit, rtn := m.ValidateRTN(state)
-	if rtn == 1 {
-		// Don't lose the commit that validates the entry
-		state.PutCommit(m.Entry.GetHash(), commit)
+	m.IsEntry = false
+	ECs := int(m.commitChain.CommitChain.Credits)
+	if m.Entry.KSize()+10 > ECs {
+		return 0 // Wait for a commit that might fund us properly
 	}
-	return rtn
+
+	return 1
 }
 
 // Returns true if this is a message for this server to execute as

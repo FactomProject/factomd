@@ -19,6 +19,7 @@ func (state *State) ValidatorLoop() {
 		case <-state.ShutdownChan:
 			fmt.Println("Closing the Database on", state.GetFactomNodeName())
 			state.DB.Close()
+			state.StateSaverStruct.StopSaving()
 			fmt.Println(state.GetFactomNodeName(), "closed")
 			return
 		default:

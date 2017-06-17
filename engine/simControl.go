@@ -580,22 +580,18 @@ func SimControl(listenTo int, listenStdin bool) {
 					} else if b[1] == 'c' {
 						f := fnodes[ListenTo]
 						fmt.Println("Commits:")
-						for _, v := range f.State.Commits {
-							if v != nil && len(v) > 0 {
-								os.Stderr.WriteString("[\n")
-								for _, c := range v {
-									os.Stderr.WriteString("  " + (c.String()))
-									cc, ok1 := c.(*messages.CommitChainMsg)
-									cm, ok2 := c.(*messages.CommitEntryMsg)
-									if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
-										os.Stderr.WriteString(" cc MATCH!\n")
-									} else if ok2 && f.State.Holding[cm.CommitEntry.EntryHash.Fixed()] != nil {
-										os.Stderr.WriteString(" ce MATCH!\n")
-									} else {
-										os.Stderr.WriteString(" no match\n")
-									}
+						for _, c := range f.State.Commits {
+							if c != nil {
+								os.Stderr.WriteString("  " + (c.String()))
+								cc, ok1 := c.(*messages.CommitChainMsg)
+								cm, ok2 := c.(*messages.CommitEntryMsg)
+								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
+									os.Stderr.WriteString(" cc MATCH!\n")
+								} else if ok2 && f.State.Holding[cm.CommitEntry.EntryHash.Fixed()] != nil {
+									os.Stderr.WriteString(" ce MATCH!\n")
+								} else {
+									os.Stderr.WriteString(" no match\n")
 								}
-								os.Stderr.WriteString("]\n")
 							} else {
 								os.Stderr.WriteString("<nul>\n")
 							}
@@ -1096,7 +1092,7 @@ func SimControl(listenTo int, listenStdin bool) {
 		}
 	}
 }
-func returnStatString(i int) string {
+func returnStatString(i uint8) string {
 	var stat string
 	switch i {
 	case 0:

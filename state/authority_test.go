@@ -12,7 +12,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	//. "github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
@@ -48,5 +48,42 @@ func TestAuthoritySignature(t *testing.T) {
 	server, err := s.Authorities[0].VerifySignature(msg, sig.GetSignature())
 	if !server || err != nil {
 		t.Error("Authority Test Failed when checking sigs")
+	}
+}
+
+func TestHistoricKeyMarshalUnmarshal(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		hk := RandomHistoricKey()
+		h, err := hk.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		hk2 := new(HistoricKey)
+		err = hk2.UnmarshalBinary(h)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if hk.IsSameAs(hk2) == false {
+			t.Errorf("Historic keys are not identical")
+		}
+	}
+}
+
+func TestAuthorityMarshalUnmarshal(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		a := RandomAuthority()
+
+		h, err := a.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		a2 := new(Authority)
+		err = a2.UnmarshalBinary(h)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if a.IsSameAs(a2) == false {
+			t.Errorf("Authorities are not identical")
+		}
 	}
 }

@@ -4,7 +4,22 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-// NetOutMsgQueue counts incoming and outgoing messages for inmsg queue
+// NetOutQueueRatePrometheus is for setting the appropriate prometheus calls
+type NetOutQueueRatePrometheus struct{}
+
+func (NetOutQueueRatePrometheus) SetArrivalInstantAvg(v float64) {
+	NetOutInstantArrivalQueueRate.Set(v)
+}
+func (NetOutQueueRatePrometheus) SetArrivalTotalAvg(v float64) { NetOutTotalArrivalQueueRate.Set(v) }
+func (NetOutQueueRatePrometheus) SetArrivalBackup(v float64)   { NetOutQueueBackupRate.Set(v) }
+func (NetOutQueueRatePrometheus) SetCompleteInstantAvg(v float64) {
+	NetOutInstantCompleteQueueRate.Set(v)
+}
+func (NetOutQueueRatePrometheus) SetCompleteTotalAvg(v float64) { NetOutTotalCompleteQueueRate.Set(v) }
+func (NetOutQueueRatePrometheus) SetMovingArrival(v float64)    { NetOutMovingArrivalQueueRate.Set(v) }
+func (NetOutQueueRatePrometheus) SetMovingComplete(v float64)   { NetOutMovingCompleteQueueRate.Set(v) }
+
+// NetOutMsgQueue counts incoming and outgoing messages for netout queue
 type NetOutMsgQueue chan interfaces.IMsg
 
 func NewNetOutMsgQueue(capacity int) NetOutMsgQueue {
@@ -24,6 +39,7 @@ func (q NetOutMsgQueue) Cap() int {
 
 // Enqueue adds item to channel and instruments based on type
 func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
+	//NetOutMsgQueueRateKeeper.Arrival()
 	measureMessage(q, m, true)
 	q <- m
 }
@@ -33,6 +49,7 @@ func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
 func (q NetOutMsgQueue) Dequeue() interfaces.IMsg {
 	select {
 	case v := <-q:
+		//NetOutMsgQueueRateKeeper.Complete()
 		return v
 	default:
 		return nil
@@ -42,12 +59,17 @@ func (q NetOutMsgQueue) Dequeue() interfaces.IMsg {
 // BlockingDequeue will block until it retrieves from queue
 func (q NetOutMsgQueue) BlockingDequeue() interfaces.IMsg {
 	v := <-q
+	//NetOutMsgQueueRateKeeper.Complete()
 	return v
 }
 
 //
 // A list of all possible messages and their prometheus incrementing/decrementing
 //
+
+func (q NetOutMsgQueue) General(increment bool) {
+	TotalMessageQueueNetOutMsgGeneral.Inc()
+}
 
 func (q NetOutMsgQueue) EOM(increment bool) {
 	TotalMessageQueueNetOutMsgEOM.Inc()
@@ -92,8 +114,8 @@ func (q NetOutMsgQueue) Heartbeat(increment bool) {
 	TotalMessageQueueNetOutMsgHeartbeat.Inc()
 }
 
-func (q NetOutMsgQueue) InvalidDBlock(increment bool) {
-	TotalMessageQueueNetOutMsgInvalidDB.Inc()
+func (q NetOutMsgQueue) EtcdHashPickup(increment bool) {
+	TotalMessageQueueNetOutMsgEtcdHashPickup.Inc()
 }
 
 func (q NetOutMsgQueue) MissingMsg(increment bool) {

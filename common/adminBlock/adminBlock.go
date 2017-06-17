@@ -39,11 +39,11 @@ func (c *AdminBlock) Init() {
 	}
 }
 
-func (c *AdminBlock) IsSameAs(c2 interfaces.IAdminBlock) bool {
-	if !c.Header.IsSameAs(c2.GetHeader()) {
+func (a *AdminBlock) IsSameAs(b interfaces.IAdminBlock) bool {
+	if !a.Header.IsSameAs(b.GetHeader()) {
 		return false
 	}
-	if len(c.ABEntries) != len(c2.GetABEntries()) {
+	if len(a.ABEntries) != len(b.GetABEntries()) {
 		return false
 	}
 	return true
@@ -320,23 +320,20 @@ func (b *AdminBlock) MarshalBinary() ([]byte, error) {
 	// Marshal all the entries into their own thing (need the size)
 	var buf2 primitives.Buffer
 	for _, v := range b.ABEntries {
-		data, err := v.MarshalBinary()
+		err := buf2.PushBinaryMarshallable(v)
 		if err != nil {
 			return nil, err
 		}
-		buf2.Write(data)
 	}
 
 	b.GetHeader().SetMessageCount(uint32(len(b.ABEntries)))
 	b.GetHeader().SetBodySize(uint32(buf2.Len()))
 
-	data, err := b.GetHeader().MarshalBinary()
+	var buf primitives.Buffer
+	err := buf.PushBinaryMarshallable(b.GetHeader())
 	if err != nil {
 		return nil, err
 	}
-
-	var buf primitives.Buffer
-	buf.Write(data)
 
 	// Write the Body out
 	buf.Write(buf2.DeepCopyBytes())
@@ -354,23 +351,22 @@ func UnmarshalABlock(data []byte) (interfaces.IAdminBlock, error) {
 	return block, nil
 }
 
-func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling Admin Block: %v", r)
-		}
-	}()
-	newData = data
+func (b *AdminBlock) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	buf := primitives.NewBuffer(data)
 	h := new(ABlockHeader)
-	newData, err = h.UnmarshalBinaryData(newData)
+	err := buf.PopBinaryMarshallable(h)
 	if err != nil {
-		return
+		return nil, err
 	}
 	b.Header = h
 
 	b.ABEntries = make([]interfaces.IABEntry, int(b.GetHeader().GetMessageCount()))
 	for i := uint32(0); i < b.GetHeader().GetMessageCount(); i++ {
-		switch newData[0] {
+		t, err := buf.PeekByte()
+		if err != nil {
+			return nil, err
+		}
+		switch t {
 		case constants.TYPE_MINUTE_NUM:
 			b.ABEntries[i] = new(EndOfMinuteEntry)
 		case constants.TYPE_DB_SIGNATURE:
@@ -394,15 +390,16 @@ func (b *AdminBlock) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		case constants.TYPE_SERVER_FAULT:
 			b.ABEntries[i] = new(ServerFault)
 		default:
-			fmt.Printf("AB UNDEFINED ENTRY %x for block %v\n", newData[0], b.GetHeader().GetDBHeight())
+			fmt.Printf("AB UNDEFINED ENTRY %x for block %v\n", t, b.GetHeader().GetDBHeight())
 			panic("Undefined Admin Block Entry Type")
 		}
-		newData, err = b.ABEntries[i].UnmarshalBinaryData(newData)
+		err = buf.PopBinaryMarshallable(b.ABEntries[i])
 		if err != nil {
-			return
+			return nil, err
 		}
 	}
-	return
+
+	return buf.DeepCopyBytes(), nil
 }
 
 // Read in the binary into the Admin block.

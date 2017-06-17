@@ -7,7 +7,6 @@ package engine
 import (
 	"bytes"
 	"encoding/binary"
-	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -119,6 +118,14 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		s.FactomdLocations += p.factomdLocations
 	}
 
+	if p.fast == false {
+		s.StateSaverStruct.FastBoot = false
+	}
+	if p.fastLocation != "" {
+		s.StateSaverStruct.FastBootLocation = p.fastLocation
+	}
+	
+
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")
 	fmt.Println(">>>>>>>>>>>>>>>>")
@@ -184,7 +191,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.Init()
 	s.SetDropRate(p.DropRate)
 
-	mLog.init(p.RuntimeLog, p.Cnt)
+	mLog.Init(p.RuntimeLog, p.Cnt)
 
 	setupFirstAuthority(s)
 

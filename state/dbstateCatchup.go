@@ -11,13 +11,22 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	now := list.State.GetTimestamp()
 
 	hs := int(list.State.GetHighestSavedBlk())
-	hk := int(list.State.GetHighestKnownBlock())
+	hk := int(list.State.GetHighestAck())
+	if list.State.GetHighestKnownBlock() > uint32(hk+2) {
+		hk = int(list.State.GetHighestKnownBlock())
+	}
+
 	begin := hs + 1
 	end := hk
 
 	ask := func() {
 
-		if list.TimeToAsk != nil && hk-hs > 2 && now.GetTime().After(list.TimeToAsk.GetTime()) {
+		tolerance := 1
+		if list.State.Leader {
+			tolerance = 2
+		}
+
+		if list.TimeToAsk != nil && hk-hs > tolerance && now.GetTime().After(list.TimeToAsk.GetTime()) {
 
 			// Find the first dbstate we don't have.
 			for i, v := range list.State.DBStatesReceived {
@@ -80,7 +89,7 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 	}
 
 	// return if we are caught up, and clear our timer
-	if end-begin <= 1 {
+	if end-begin < 1 {
 		list.TimeToAsk = nil
 		return
 	}

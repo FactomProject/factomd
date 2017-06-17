@@ -43,6 +43,8 @@ type FactomParams struct {
 	factomdTLS               bool
 	factomdLocations         string
 	memProfileRate           int
+	fast                     bool
+	fastLocation             string
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -87,6 +89,9 @@ func ParseCmdLine(args []string) *FactomParams {
 	ControlPanelPortOverridePtr := flag.Int("ControlPanelPort", 0, "Port for control panel webserver;  Default 8090")
 	networkPortOverridePtr := flag.Int("networkPort", 0, "Port for p2p network; default 8110")
 
+	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
+	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -126,5 +131,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.factomdTLS = *factomdTLSflag
 	p.factomdLocations = *factomdLocationsflag
 	p.memProfileRate = *memProfileRate
+	p.fast = *fastPtr
+	p.fastLocation = *fastLocationPtr
 	return p
 }

@@ -31,9 +31,8 @@ type DirectoryBlockSignature struct {
 	SysHash     interfaces.IHash
 
 	//Not marshalled
-	Matches   bool
-	Processed bool
-	hash      interfaces.IHash
+	Matches bool
+	hash    interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
@@ -86,7 +85,14 @@ func (e *DirectoryBlockSignature) Process(dbheight uint32, state interfaces.ISta
 }
 
 func (m *DirectoryBlockSignature) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	if m.RepeatHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.RepeatHash = primitives.Sha(data)
+	}
+	return m.RepeatHash
 }
 
 func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
@@ -94,12 +100,13 @@ func (m *DirectoryBlockSignature) GetHash() interfaces.IHash {
 }
 
 func (m *DirectoryBlockSignature) GetMsgHash() interfaces.IHash {
-	data, _ := m.MarshalForSignature()
-	if data == nil {
-		return nil
+	if m.MsgHash == nil {
+		data, _ := m.MarshalForSignature()
+		if data == nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
 	}
-	m.MsgHash = primitives.Sha(data)
-
 	return m.MsgHash
 }
 
@@ -119,8 +126,14 @@ func (m *DirectoryBlockSignature) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-	if m.DBHeight < state.GetHighestSavedBlk() {
-		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s", m.DBHeight, state.GetHighestSavedBlk(), m.String()))
+
+	if m.IsValid() {
+		return 1
+	}
+
+	raw, _ := m.MarshalBinary()
+	if m.DBHeight <= state.GetHighestSavedBlk() {
+		state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
 		return -1
 	}
 
@@ -135,12 +148,13 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	if m.IsLocal() {
+		m.SetValid()
 		return 1
 	}
 
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
-		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s", state.GetLLeaderHeight(), m.String()))
+		state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
@@ -151,10 +165,13 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	authorityLevel, err := state.VerifyAuthoritySignature(marshalledMsg, m.Signature.GetSignature(), m.DBHeight)
 	if err != nil || authorityLevel < 1 {
 		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
+		state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
-		return -1
+		return authorityLevel
 	}
 
+	state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
+	m.SetValid()
 	return 1
 }
 

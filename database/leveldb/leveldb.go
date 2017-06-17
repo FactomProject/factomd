@@ -147,6 +147,8 @@ func (db *LevelDB) PutInBatch(records []interfaces.Record) error {
 
 	defer db.lbatch.Reset()
 
+	LevelDBPuts.Inc()
+
 	for _, v := range records {
 		ldbKey := CombineBucketAndKey(v.Bucket, v.Key)
 		hex, err := v.Data.MarshalBinary()
@@ -242,7 +244,9 @@ func (db *LevelDB) GetAll(bucket []byte, sample interfaces.BinaryMarshallableAnd
 		if err != nil {
 			return nil, nil, err
 		}
-		keys = append(keys, iter.Key()[len(ldbKey):])
+		k := make([]byte, len(iter.Key())-len(ldbKey))
+		copy(k, iter.Key()[len(ldbKey):])
+		keys = append(keys, k)
 		answer = append(answer, tmp)
 	}
 	iter.Release()

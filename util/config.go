@@ -28,6 +28,8 @@ type FactomdConfig struct {
 		DirectoryBlockInSeconds                int
 		ExportData                             bool
 		ExportDataSubpath                      string
+		FastBoot                               bool
+		FastBootLocation                       string
 		NodeMode                               string
 		IdentityChainID                        string
 		LocalServerPrivKey                     string
@@ -114,6 +116,8 @@ DataStorePath                         = "data/export"
 DirectoryBlockInSeconds               = 6
 ExportData                            = false
 ExportDataSubpath                     = "database/export/"
+FastBoot                              = true
+FastBootLocation                      = ""
 ; --------------- Network: MAIN | TEST | LOCAL
 Network                               = MAIN
 PeersFile            = "peers.json"
@@ -294,6 +298,10 @@ func ReadConfig(filename string) *FactomdConfig {
 		cfg.App.HomeDir = GetHomeDir() + "/.factom/m2/"
 	} else {
 		cfg.App.HomeDir = cfg.App.HomeDir + "/.factom/m2/"
+	}
+
+	if len(cfg.App.FastBootLocation) < 1 {
+		cfg.App.FastBootLocation = cfg.App.HomeDir
 	}
 
 	switch cfg.App.Network {

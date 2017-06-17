@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -27,6 +28,8 @@ import (
 const API_VERSION string = "2.0"
 
 func HandleV2(ctx *web.Context) {
+	n := time.Now()
+	defer HandleV2APICallGeneral.Observe(float64(time.Since(n).Nanoseconds()))
 	ServersMutex.Lock()
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	ServersMutex.Unlock()
@@ -168,6 +171,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 }
 
 func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallDBlockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
 	heightRequest := new(HeightRequest)
 	err := MapToObject(params, heightRequest)
 	if err != nil {
@@ -202,6 +208,9 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallECBlockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
 	heightRequest := new(HeightRequest)
 	err := MapToObject(params, heightRequest)
 	if err != nil {
@@ -236,6 +245,9 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 }
 
 func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallFblockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
 	heightRequest := new(HeightRequest)
 	err := MapToObject(params, heightRequest)
 	if err != nil {
@@ -270,6 +282,9 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallABlockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
+
 	heightRequest := new(HeightRequest)
 	err := MapToObject(params, heightRequest)
 	if err != nil {
@@ -348,6 +363,9 @@ func ObjectToJStruct(source interface{}) (*JStruct, error) {
 }
 
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallCommitChain.Observe(float64(time.Since(n).Nanoseconds()))
+
 	commitChainMsg := new(MessageRequest)
 	err := MapToObject(params, commitChainMsg)
 	if err != nil {
@@ -362,6 +380,10 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 		if err != nil {
 			return nil, NewInvalidCommitChainError()
 		}
+	}
+
+	if !commit.IsValid() {
+		return nil, NewInvalidCommitChainError()
 	}
 
 	msg := new(messages.CommitChainMsg)
@@ -381,6 +403,9 @@ func HandleV2RevealChain(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallCommitEntry.Observe(float64(time.Since(n).Nanoseconds()))
+
 	commitEntryMsg := new(MessageRequest)
 	err := MapToObject(params, commitEntryMsg)
 	if err != nil {
@@ -397,6 +422,10 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 		}
 	}
 
+	if !commit.IsValid() {
+		return nil, NewInvalidCommitEntryError()
+	}
+
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
 	state.APIQueue() <- msg
@@ -410,6 +439,9 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallRevealEntry.Observe(float64(time.Since(n).Nanoseconds()))
+
 	e := new(EntryRequest)
 	err := MapToObject(params, e)
 	if err != nil {
@@ -426,6 +458,10 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 		}
 	}
 
+	if !entry.IsValid() {
+		return nil, NewInvalidEntryError()
+	}
+
 	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
@@ -439,6 +475,9 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 }
 
 func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallDBlockHead.Observe(float64(time.Since(n).Nanoseconds()))
+
 	h := new(DirectoryBlockHeadResponse)
 	d := state.GetDirectoryBlockByHeight(state.GetHighestSavedBlk())
 	h.KeyMR = d.GetKeyMR().String()
@@ -446,6 +485,9 @@ func HandleV2DirectoryBlockHead(state interfaces.IState, params interface{}) (in
 }
 
 func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallRawData.Observe(float64(time.Since(n).Nanoseconds()))
+
 	hashkey := new(HashRequest)
 	err := MapToObject(params, hashkey)
 	if err != nil {
@@ -499,6 +541,9 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 }
 
 func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallReceipt.Observe(float64(time.Since(n).Nanoseconds()))
+
 	hashkey := new(HashRequest)
 	err := MapToObject(params, hashkey)
 	if err != nil {
@@ -524,6 +569,9 @@ func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, 
 }
 
 func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallDBlock.Observe(float64(time.Since(n).Nanoseconds()))
+
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)
 	if err != nil {
@@ -561,6 +609,9 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+
 	keymr := new(KeyMRRequest)
 	err := MapToObject(params, keymr)
 	if err != nil {
@@ -630,6 +681,9 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEntry.Observe(float64(time.Since(n).Nanoseconds()))
+
 	hashkey := new(HashRequest)
 	err := MapToObject(params, hashkey)
 	if err != nil {
@@ -669,6 +723,9 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 }
 
 func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallChainHead.Observe(float64(time.Since(n).Nanoseconds()))
+
 	chainid := new(ChainIDRequest)
 	err := MapToObject(params, chainid)
 	if err != nil {
@@ -710,6 +767,9 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallECBal.Observe(float64(time.Since(n).Nanoseconds()))
+
 	ecadr := new(AddressRequest)
 	err := MapToObject(params, ecadr)
 	if err != nil {
@@ -744,6 +804,9 @@ func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (in
 }
 
 func HandleV2EntryCreditRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallECRate.Observe(float64(time.Since(n).Nanoseconds()))
+
 	resp := new(EntryCreditRateResponse)
 	resp.Rate = int64(state.GetPredictiveFER())
 
@@ -751,6 +814,9 @@ func HandleV2EntryCreditRate(state interfaces.IState, params interface{}) (inter
 }
 
 func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallFctTx.Observe(float64(time.Since(n).Nanoseconds()))
+
 	t := new(TransactionRequest)
 	err := MapToObject(params, t)
 	if err != nil {
@@ -781,6 +847,9 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 }
 
 func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallFABal.Observe(float64(time.Since(n).Nanoseconds()))
+
 	fadr := new(AddressRequest)
 	err := MapToObject(params, fadr)
 	if err != nil {
@@ -811,6 +880,9 @@ func HandleV2FactoidBalance(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallHeights.Observe(float64(time.Since(n).Nanoseconds()))
+
 	h := new(HeightsResponse)
 
 	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
@@ -825,6 +897,9 @@ func HandleV2Heights(state interfaces.IState, params interface{}) (interface{}, 
 }
 
 func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallPendingEntries.Observe(float64(time.Since(n).Nanoseconds()))
+
 	chainid := new(ChainIDRequest)
 	err := MapToObject(params, chainid)
 	if err != nil {
@@ -836,6 +911,9 @@ func HandleV2GetPendingEntries(state interfaces.IState, params interface{}) (int
 }
 
 func HandleV2GetPendingTransactions(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallPendingTxs.Observe(float64(time.Since(n).Nanoseconds()))
+
 	fadr := new(AddressRequest)
 	err := MapToObject(params, fadr)
 	if err != nil {
@@ -848,6 +926,9 @@ func HandleV2GetPendingTransactions(state interfaces.IState, params interface{})
 }
 
 func HandleV2Properties(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallProp.Observe(float64(time.Since(n).Nanoseconds()))
+
 	vtos := func(f int) string {
 		v0 := f / 1000000000
 		v1 := (f % 1000000000) / 1000000
@@ -864,6 +945,9 @@ func HandleV2Properties(state interfaces.IState, params interface{}) (interface{
 }
 
 func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallSendRaw.Observe(float64(time.Since(n).Nanoseconds()))
+
 	r := new(SendRawMessageRequest)
 	err := MapToObject(params, r)
 	if err != nil {
@@ -888,6 +972,9 @@ func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallTransaction.Observe(float64(time.Since(n).Nanoseconds()))
+
 	hashkey := new(HashRequest)
 	err := MapToObject(params, hashkey)
 	if err != nil {
@@ -980,6 +1067,9 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 }
 
 func HandleV2TransactionRate(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallTpsRate.Observe(float64(time.Since(n).Nanoseconds()))
+
 	r := new(TransactionRateResponse)
 
 	// total	: Transaction rate over entire life of node

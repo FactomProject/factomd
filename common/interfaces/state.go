@@ -35,6 +35,8 @@ type IState interface {
 	GetIdentityChainID() IHash
 	SetIdentityChainID(IHash)
 	Sign([]byte) IFullSignature
+	Log(level string, message string)
+	Logf(level string, format string, args ...interface{})
 
 	GetDBStatesSent() []*DBStateSent
 	SetDBStatesSent([]*DBStateSent)
@@ -58,11 +60,11 @@ type IState interface {
 	AddDBSig(dbheight uint32, chainID IHash, sig IFullSignature)
 	AddPrefix(string)
 	AddFedServer(uint32, IHash) int
-	GetFedServers(uint32) []IFctServer
+	GetFedServers(uint32) []IServer
 	RemoveFedServer(uint32, IHash)
 	AddAuditServer(uint32, IHash) int
-	GetAuditServers(uint32) []IFctServer
-	GetOnlineAuditServers(uint32) []IFctServer
+	GetAuditServers(uint32) []IServer
+	GetOnlineAuditServers(uint32) []IServer
 
 	//RPC
 	GetRpcUser() string
@@ -255,6 +257,7 @@ type IState interface {
 
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
+	GetSpecificACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)

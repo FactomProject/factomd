@@ -69,7 +69,8 @@ func TestSetupANetwork(t *testing.T) {
 		"-logPort=37000",
 		"-port=37001",
 		"-ControlPanelPort=37002",
-		"-networkPort=37003")
+		"-networkPort=37003",
+	  "-startdelay=1")
 
 	params := ParseCmdLine(args)
 	go Factomd(params, false)
@@ -94,8 +95,8 @@ func TestSetupANetwork(t *testing.T) {
 
 	waitMinutes(n0.State, 1)
 
+	runCmd("1")
 	runCmd("l")
-	runCmd("")
 	runCmd("")
 	runCmd("")
 

@@ -36,15 +36,19 @@ func LoadDatabase(s *State) {
 		blkCnt = head.GetHeader().GetDBHeight()
 	}
 
-	t := time.Now()
+	last := time.Now()
 
 	//msg, err := s.LoadDBState(blkCnt)
-	for i := 0; i <= int(blkCnt); i++ {
+	start := s.GetDBHeightComplete()
+	if start > 10 {
+		start = start - 10
+	}
+
+	for i := int(start); i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {
-			since := time.Since(t)
-			ss := float64(since.Nanoseconds()) / 1000000000
-			bps := float64(i) / ss
+			bps := float64(1000) / time.Since(last).Seconds()
 			os.Stderr.WriteString(fmt.Sprintf("%20s Loading Block %7d / %v. Blocks per second %8.2f\n", s.FactomNodeName, i, blkCnt, bps))
+			last = time.Now()
 		}
 
 		msg, err := s.LoadDBState(uint32(i))

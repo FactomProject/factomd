@@ -163,7 +163,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 			ID: tid,
 			// Can you believe there isn't a 'RandomPrivateKey' that returns a private key.
 			// Well this works
-			Key: *(primitives.RandomPrivateKey().(*primitives.PrivateKey)),
+			Key: *primitives.RandomPrivateKey(),
 		}
 	}
 
@@ -249,6 +249,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 
 		msg := NewDBStateMsg(timestamp, set.DBlock, set.ABlock, set.FBlock, set.ECBlock, nil, nil, dbSigList)
 		m := msg.(*DBStateMsg)
+		m.IgnoreSigs = true
 		if i%2 == 0 {
 			if i%6 == 0 {
 				if msg.Validate(state) < 0 {
@@ -292,7 +293,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 			ID: tid,
 			// Can you believe there isn't a 'RandomPrivateKey' that returns a private key.
 			// Well this works
-			Key: *(primitives.RandomPrivateKey().(*primitives.PrivateKey)),
+			Key: *primitives.RandomPrivateKey(),
 		}
 	}
 
@@ -306,6 +307,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 	prev.FBlock = fblk
 	prev.ECBlock = ecblk
 	genDBState := NewDBStateMsg(state.GetTimestamp(), prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
+	genDBState.(*DBStateMsg).IgnoreSigs = true
 	state.FollowerExecuteDBState(genDBState)
 	// Ok Geneis set
 

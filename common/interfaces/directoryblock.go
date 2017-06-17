@@ -29,6 +29,7 @@ type IDirectoryBlock interface {
 	SetABlockHash(aBlock IAdminBlock) error
 	SetECBlockHash(ecBlock IEntryCreditBlock) error
 	SetFBlockHash(fBlock IFBlock) error
+	IsSameAs(IDirectoryBlock) bool
 }
 
 type IDirectoryBlockHeader interface {
@@ -51,6 +52,7 @@ type IDirectoryBlockHeader interface {
 	SetNetworkID(uint32)
 	GetTimestamp() Timestamp
 	SetTimestamp(Timestamp)
+	IsSameAs(IDirectoryBlockHeader) bool
 }
 
 type IDBEntry interface {
@@ -60,4 +62,5 @@ type IDBEntry interface {
 	SetChainID(IHash)
 	GetKeyMR() IHash
 	SetKeyMR(IHash)
+	IsSameAs(IDBEntry) bool
 }

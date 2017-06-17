@@ -115,8 +115,8 @@ func TestSaveDBState(t *testing.T) {
 }
 
 // Will verify a directory blc
-func verifyBlocks(s *State, dbstates []interfaces.IMsg) []error {
-	errs := make([]error, 0)
+func verifyBlocks(s *State, dbstates []interfaces.IMsg) []string {
+	errs := make([]string, 0)
 	for i, m := range dbstates {
 		var _ = i
 		if i%1000 == 0 {
@@ -126,12 +126,12 @@ func verifyBlocks(s *State, dbstates []interfaces.IMsg) []error {
 		dbs := m.(*messages.DBStateMsg)
 		err := foundByHeight(s, dbs)
 		if err != nil {
-			errs = append(errs, err)
+			errs = append(errs, err.Error()+" foundByHeight failed")
 		}
 
 		err = foundByKeyMR(s, dbs)
 		if err != nil {
-			errs = append(errs, err)
+			errs = append(errs, err.Error()+" foundByKeyMR failed")
 		}
 	}
 
@@ -271,6 +271,7 @@ func createTestDBStateList(blockCount int, s *State) ([]interfaces.IMsg, []inter
 		if i == 0 {
 			dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
 			msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
+			msg.(*messages.DBStateMsg).IgnoreSigs = true
 			prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)
 			prev.ABlock = ablk.(*adminBlock.AdminBlock)
 			prev.FBlock = fblk
@@ -303,6 +304,7 @@ func createTestDBStateList(blockCount int, s *State) ([]interfaces.IMsg, []inter
 		prev.DBlock.SetDBEntries(ents)
 
 		answer[i] = messages.NewDBStateMsg(timestamp, prev.DBlock, prev.ABlock, prev.FBlock, prev.ECBlock, nil, nil, nil)
+		answer[i].(*messages.DBStateMsg).IgnoreSigs = true
 	}
 	return answer, adds
 }

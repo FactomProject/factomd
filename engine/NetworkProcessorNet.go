@@ -26,6 +26,63 @@ func NetworkProcessorNet(fnode *FactomNode) {
 
 func Peers(fnode *FactomNode) {
 	cnt := 0
+
+	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
+	ackHeight := uint32(0)
+	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
+	// factom to focus on syncing. The following msgs will be ignored:
+	//		Acks:
+	//				Ignore acks below the ackheight, which is set if we get an ack at a height higher than
+	//			  	the ackheight. This is because Acks are for the current block, which we are not at,
+	//				but acks also serve as an indicator as to which height the network is on. So we allow
+	//				1 ack through to set out leader height.
+	//
+	//		Commit/Reveals:
+	//				These fill up our holding map because we are not getting acks. If we have things in the
+	//				holding map, that increases the amount of time it takes to process the holding map, slowing
+	//				down our inmsg queue draining.
+	//
+	//		EOMs:
+	//				Only helpful at the latest height
+	//
+	//		MissingData:
+	//				We should fufill some of these requests, but we should also focus on ourselves while we are syncing.
+	//				If our inmsg queue has too many msgs, then don't help others.
+	ignoreMsg := func(amsg interfaces.IMsg) bool {
+		// Stop uint32 underflow
+		if fnode.State.GetTrueLeaderHeight() < 35 {
+			return false
+		}
+		// If we are syncing up, then apply the filter
+		if fnode.State.GetHighestCompletedBlk() < fnode.State.GetTrueLeaderHeight()-35 {
+			// Discard all commits, reveals, and acks <= the highest ack height we have seen.
+			switch amsg.Type() {
+			case constants.COMMIT_CHAIN_MSG:
+				return true
+			case constants.REVEAL_ENTRY_MSG:
+				return true
+			case constants.COMMIT_ENTRY_MSG:
+				return true
+			case constants.EOM_MSG:
+				return true
+			case constants.MISSING_DATA:
+				if !fnode.State.DBFinished {
+					return true
+				} else if fnode.State.InMsgQueue().Length() > 4000 {
+					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
+					return true
+				}
+			case constants.ACK_MSG:
+				if amsg.(*messages.Ack).DBHeight <= ackHeight {
+					return true
+				}
+				// Set the highest ack height seen and allow through
+				ackHeight = amsg.(*messages.Ack).DBHeight
+			}
+		}
+		return false
+	}
+
 	for {
 		for i := 0; i < 100 && len(fnode.State.APIQueue()) > 0; i++ {
 			select {
@@ -87,16 +144,16 @@ func Peers(fnode *FactomNode) {
 					//if state.GetOut() {
 					//	fnode.State.Println("In Comming!! ",msg)
 					//}
-					//in := "PeerIn"
-					//if msg.IsPeer2Peer() {
-					//	in = "P2P In"
-					//}
-					//nme := fmt.Sprintf("%s %d", in, i+1)
+					in := "PeerIn"
+					if msg.IsPeer2Peer() {
+						in = "P2P In"
+					}
+					nme := fmt.Sprintf("%s %d", in, i+1)
 
-					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), nme, true, msg)
+					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
 					// Ignore messages if there are too many.
-					if fnode.State.InMsgQueue().Length() < 9000 {
+					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 
@@ -151,7 +208,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						if p < 0 {
 							p = rand.Int() % len(fnode.Peers)
 						}
-						fnode.MLog.add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 						if !fnode.State.GetNetStateOff() {
 							fnode.Peers[p].Send(msg)
 							if fnode.State.MessageTally {
@@ -168,7 +225,7 @@ func NetworkOutputs(fnode *FactomNode) {
 						// Don't resend to the node that sent it to you.
 						if i != p || wt > 1 {
 							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+							fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
 							if !fnode.State.GetNetStateOff() {
 								peer.Send(msg)
 								if fnode.State.MessageTally {

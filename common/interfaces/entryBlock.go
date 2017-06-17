@@ -39,6 +39,7 @@ type IEntryBlock interface {
 	GetEntrySigHashes() []IHash
 	GetHash() IHash
 	HeaderHash() (IHash, error)
+	IsSameAs(IEntryBlock) bool
 }
 
 type IEntryBlockHeader interface {
@@ -60,6 +61,7 @@ type IEntryBlockHeader interface {
 	SetDBHeight(uint32)
 	SetEBSequence(uint32)
 	SetEntryCount(uint32)
+	IsSameAs(IEntryBlockHeader) bool
 }
 
 type IEBlockBody interface {
@@ -69,4 +71,5 @@ type IEBlockBody interface {
 	AddEndOfMinuteMarker(m byte)
 	GetEBEntries() []IHash
 	MR() IHash
+	IsSameAs(IEBlockBody) bool
 }

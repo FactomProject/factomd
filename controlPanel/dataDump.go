@@ -13,7 +13,8 @@ type DataDump struct {
 		RawDump   string
 	}
 	DataDump2 struct {
-		RawDump string
+		RawDump  string
+		PrevDump string
 	}
 	DataDump3 struct {
 		RawDump string
@@ -29,7 +30,7 @@ type DataDump struct {
 	}
 }
 
-func getDataDumps() []byte {
+func GetDataDumps() []byte {
 	holder := new(DataDump)
 	DisplayStateMutex.RLock()
 	DsCopy := DisplayState.Clone()
@@ -39,6 +40,7 @@ func getDataDumps() []byte {
 	holder.DataDump1.RawDump = DsCopy.RawSummary
 
 	holder.DataDump2.RawDump = DsCopy.ProcessList
+	holder.DataDump2.PrevDump = DsCopy.ProcessList2
 
 	holder.DataDump3.RawDump = DsCopy.PrintMap
 

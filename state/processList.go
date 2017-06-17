@@ -92,9 +92,9 @@ type ProcessList struct {
 	DirectoryBlock   interfaces.IDirectoryBlock
 
 	// Number of Servers acknowledged by Factom
-	Matryoshka   []interfaces.IHash      // Reverse Hash
-	AuditServers []interfaces.IFctServer // List of Audit Servers
-	FedServers   []interfaces.IFctServer // List of Federated Servers
+	Matryoshka   []interfaces.IHash   // Reverse Hash
+	AuditServers []interfaces.IServer // List of Audit Servers
+	FedServers   []interfaces.IServer // List of Federated Servers
 
 	// AmINegotiator is just used for displaying an "N" next to a node
 	// that is the assigned negotiator for a particular processList
@@ -128,11 +128,12 @@ type DBSig struct {
 }
 
 type VM struct {
-	List         []interfaces.IMsg // Lists of acknowledged messages
-	ListAck      []*messages.Ack   // Acknowledgements
-	Height       int               // Height of messages that have been processed
-	LeaderMinute int               // Where the leader is in acknowledging messages
-	Synced       bool              // Is this VM synced yet?
+	List            []interfaces.IMsg // Lists of acknowledged messages
+	ListAck         []*messages.Ack   // Acknowledgements
+	Height          int               // Height of messages that have been processed
+	EomMinuteIssued int               // Last Minute Issued on this VM (from the leader, when we are the leader)
+	LeaderMinute    int               // Where the leader is in acknowledging messages
+	Synced          bool              // Is this VM synced yet?
 	//faultingEOM           int64             // Faulting for EOM because it is too late
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.
@@ -245,7 +246,7 @@ func (p *ProcessList) VMIndexFor(hash []byte) int {
 	return r
 }
 
-func SortServers(servers []interfaces.IFctServer) []interfaces.IFctServer {
+func SortServers(servers []interfaces.IServer) []interfaces.IServer {
 	for i := 0; i < len(servers)-1; i++ {
 		done := true
 		for j := 0; j < len(servers)-1-i; j++ {
@@ -309,7 +310,7 @@ func (p *ProcessList) SortDBSigs() {
 }
 
 // Returns the Federated Server responsible for this hash in this minute
-func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IFctServer {
+func (p *ProcessList) FedServerFor(minute int, hash []byte) interfaces.IServer {
 	vs := p.VMIndexFor(hash)
 	if vs < 0 {
 		return nil
@@ -422,6 +423,9 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		return i
 	}
+	if i < 0 {
+		return i
+	}
 	// If an audit server, it gets promoted
 	auditFound, _ := p.GetAuditServerIndexHash(identityChainID)
 	if auditFound {
@@ -430,7 +434,7 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
-	p.FedServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.FedServers[i] = &Server{ChainID: identityChainID, Online: true}
 	//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	p.MakeMap()
@@ -454,7 +458,7 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 	}
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
-	p.AuditServers[i] = &interfaces.Server{ChainID: identityChainID, Online: true}
+	p.AuditServers[i] = &Server{ChainID: identityChainID, Online: true}
 	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.AddAuditServer Server added at index %d %x at height %d", i, identityChainID.Bytes()[2:6], p.DBHeight))
 
 	return i
@@ -582,6 +586,8 @@ func (p *ProcessList) CheckDiffSigTally() bool {
 	// If the majority of VMs' signatures do not match our
 	// saved block, we discard that block from our database.
 	if p.diffSigTally > 0 && p.diffSigTally > (len(p.FedServers)/2) {
+		fmt.Println("**** dbstate diffSigTally", p.diffSigTally, "len/2", len(p.FedServers)/2)
+
 		// p.State.DB.Delete([]byte(databaseOverlay.DIRECTORYBLOCK), p.State.ProcessLists.Lists[0].DirectoryBlock.GetKeyMR().Bytes())
 		return false
 	}
@@ -616,7 +622,7 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 		return 0
 	}
 
-	if now-r.sent >= waitSeconds*1000+500 {
+	if now-r.sent >= waitSeconds*1000+500 && p.State.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
 
 		// The System (handling full faults) is a special VM.  Let's guess it first.
@@ -828,7 +834,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 	// Make sure we have a list, and punt if we don't.
 	if p == nil {
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 
@@ -853,7 +859,7 @@ func (p *ProcessList) AddToSystemList(m interfaces.IMsg) bool {
 		//	p.System.Height,
 		//	int(fullFault.SystemHeight),
 		//	fullFault.String()))
-		p.State.Holding[m.GetRepeatHash().Fixed()] = m
+		p.State.Holding[m.GetMsgHash().Fixed()] = m
 		return false
 	}
 
@@ -917,6 +923,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
+	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
+		p.State.HighestAck = ack.DBHeight
+	}
+
 	m.PutAck(ack)
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
@@ -937,10 +947,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
 			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
-	}
-
-	if _, ok := m.(*messages.MissingMsg); ok {
-		panic("This shouldn't happen")
 	}
 
 	toss := func(hint string) {
@@ -991,9 +997,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
-	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
-	delete(p.State.Acks, ack.GetHash().Fixed())
+	delete(p.State.Acks, m.GetMsgHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
 
 	// Both the ack and the message hash to the same GetHash()
@@ -1232,8 +1237,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	pl.State = state.(*State)
 
 	// Make a copy of the previous FedServers
-	pl.FedServers = make([]interfaces.IFctServer, 0)
-	pl.AuditServers = make([]interfaces.IFctServer, 0)
+	pl.FedServers = make([]interfaces.IServer, 0)
+	pl.AuditServers = make([]interfaces.IServer, 0)
 	pl.Requests = make(map[[32]byte]*Request)
 	//pl.Requests = make(map[[20]byte]*Request)
 

@@ -94,6 +94,9 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 	h4 := h2
 	if includeTemp {
 		pl := fs.State.ProcessLists.Get(fs.DBHeight)
+		if pl == nil {
+			return primitives.NewZeroHash()
+		}
 		pl.ECBalancesTMutex.Lock()
 		pl.FactoidBalancesTMutex.Lock()
 		h3 = GetMapHash(fs.DBHeight, pl.FactoidBalancesT)
@@ -278,12 +281,6 @@ func (fs *FactoidState) GetFactoidBalance(address [32]byte) int64 {
 
 func (fs *FactoidState) GetECBalance(address [32]byte) int64 {
 	return fs.State.GetE(true, address)
-}
-
-func (fs *FactoidState) ResetBalances() {
-	fs.State.FactoidBalancesP = map[[32]byte]int64{}
-	fs.State.ECBalancesP = map[[32]byte]int64{}
-	fs.State.NumTransactions = 0
 }
 
 func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEntry) error {

@@ -5,6 +5,7 @@
 package entryBlock_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"testing"
 
@@ -53,6 +54,50 @@ func TestEBlockHeaderMisc(t *testing.T) {
 	}
 	if h.GetEntryCount() != 2 {
 		t.Errorf("Invalid GetEntryCount - %v", h.GetEntryCount())
+	}
+
+	data, err := h.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	h2 := new(EBlockHeader)
+	nd, err := h2.UnmarshalBinaryData(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(nd) > 0 {
+		t.Errorf("Should be no bytes left, found %d", len(nd))
+	}
+
+	if h.String() != h2.String() {
+		t.Error("Strings should be the same")
+	}
+
+	j1, err := h.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	j2, err := h2.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if j1 != j2 {
+		t.Error("JsonStrings should be the same")
+	}
+
+	jb1, err := h.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	jb2, err := h2.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if bytes.Compare(jb1, jb2) != 0 {
+		t.Error("JsonBytes should be the same")
 	}
 }
 

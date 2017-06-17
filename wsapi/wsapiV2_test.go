@@ -15,6 +15,11 @@ import (
 	. "github.com/FactomProject/factomd/wsapi"
 )
 
+func TestRegisterPrometheus(t *testing.T) {
+	RegisterPrometheus()
+	RegisterPrometheus()
+}
+
 func TestHandleV2GetRaw(t *testing.T) {
 	type RawData struct {
 		Hash1 string
