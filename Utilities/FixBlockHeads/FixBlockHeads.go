@@ -118,8 +118,7 @@ func FixBlockHeads(dbo *databaseOverlay.Overlay) error {
 			if err != nil {
 				return err
 			}
-			copy(prevs, prevs[1:])
-			//prevs = prevs[1:]
+			prevs = prevs[1:]
 		}
 	}
 
