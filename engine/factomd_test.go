@@ -73,7 +73,7 @@ func TestSetupANetwork(t *testing.T) {
 	  "-startdelay=1")
 
 	params := ParseCmdLine(args)
-	go Factomd(params, false)
+	state0 := Factomd(params, false).(*state.State)
 	time.Sleep(3 * time.Second)
 
 	t.Log("Allocated 10 nodes")
@@ -81,19 +81,18 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatal("Should have allocated 10 nodes")
 		t.Fail()
 	}
-	n0 := GetFnodes()[0]
 
 	runCmd("s")
 	runCmd("9")
 	runCmd("x")
 	runCmd("8")
 	runCmd("")
-	waitBlocks(n0.State, 1)
+	waitBlocks(state0, 1)
 	runCmd("g10")
-	waitBlocks(n0.State, 1)
+	waitBlocks(state0, 1)
 	// Allocate 4 leaders
 
-	waitMinutes(n0.State, 1)
+	waitMinutes(state0, 1)
 
 	runCmd("1")
 	runCmd("l")
@@ -105,8 +104,8 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("")
 	runCmd("")
 
-	waitBlocks(n0.State, 1)
-	waitMinutes(n0.State, 1)
+	waitBlocks(state0, 1)
+	waitMinutes(state0, 1)
 
 	leadercnt := 0
 	auditcnt := 0
@@ -178,11 +177,11 @@ func TestSetupANetwork(t *testing.T) {
 
 	runCmd("T10")
 	t.Log("Run to a dbht of 10")
-	n0.State.DirectoryBlockInSeconds = 4
-	for n0.State.LLeaderHeight < 8 {
+	state0.DirectoryBlockInSeconds = 4
+	for state0.LLeaderHeight < 8 {
 		time.Sleep(time.Second)
 	}
-	for n0.State.CurrentMinute < 1 {
+	for state0.CurrentMinute < 1 {
 		time.Sleep(time.Second)
 	}
 
@@ -192,7 +191,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	time.Sleep(15 * time.Second)
-	if n0.State.LLeaderHeight > 10 {
+	if state0.LLeaderHeight > 10 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 }
