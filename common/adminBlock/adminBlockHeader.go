@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"errors"
 )
 
 // Admin Block Header
@@ -53,6 +54,9 @@ func (e *ABlockHeader) IsSameAs(e2 interfaces.IABlockHeader) bool {
 func (e *ABlockHeader) Init() {
 	if e.PrevBackRefHash == nil {
 		e.PrevBackRefHash = primitives.NewZeroHash()
+	}
+	if e.HeaderExpansionSize == 0 {
+		e.HeaderExpansionArea = make([]byte, 0)
 	}
 }
 
@@ -165,7 +169,7 @@ func (b *ABlockHeader) UnmarshalBinaryData(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	if h.String() != "000000000000000000000000000000000000000000000000000000000000000a" {
-		return nil, fmt.Errorf("Block does not begin with the ABlock ChainID")
+		return nil, errors.New("Block does not begin with the ABlock ChainID")
 	}
 
 	b.PrevBackRefHash = new(primitives.Hash)
