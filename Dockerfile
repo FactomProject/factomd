@@ -18,7 +18,7 @@ RUN glide install -v
 ARG GOOS=linux
 
 # Build and install factomd
-RUN go install
+RUN go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`" 
 
 # Setup the cache directory
 RUN mkdir -p /root/.factom/m2
