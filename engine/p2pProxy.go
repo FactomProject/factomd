@@ -235,6 +235,8 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 			}
 		} else {
 			// Send was successful (err was nil)
+			EtcdSendCount.Inc()
+
 			if f.SuperVerboseMessages {
 				log.Println("SVM Send(etcd):", msg.String(), msg.GetHash().String()[:10])
 			}
@@ -275,6 +277,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if msg.IsPeer2Peer() && 1 < f.debugMode {
 		log.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
 	}
+	NonEtcdSendCount.Inc()
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
 	//}
 
@@ -298,6 +301,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 							log.Println("SVM Receive(etcd):", msg.String(), msg.GetHash().String()[:10])
 						}
 					}
+					EtcdGetCount.Inc()
 					return msg, err
 				}
 			}
@@ -331,6 +335,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				//	fmt.Printf(".")
 				//}
 				f.bytesIn += len(fmessage.Message)
+				NonEtcdGetCount.Inc()
 				return msg, err
 			default:
 				//fmt.Printf("Garbage on f.BroadcastIn. %+v", data)

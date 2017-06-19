@@ -42,6 +42,24 @@ var (
 		Name: "factomd_state_etcd_send_ns",
 		Help: "Time it takes to complete an etcd send",
 	})
+	EtcdSendCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_etcd_send_count",
+		Help: "Count of all messages sent through etcd",
+	})
+	EtcdGetCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_etcd_get_count",
+		Help: "Count of all messages got through etcd",
+	})
+
+	// Non-etcd
+	NonEtcdSendCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_non_etcd_send_count",
+		Help: "Count of all messages sent NOT through etcd",
+	})
+	NonEtcdGetCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_non_etcd_get_count",
+		Help: "Count of all messages got NOT through etcd",
+	})
 
 	// Send/Receive Times
 	TotalSendTime = prometheus.NewCounter(prometheus.CounterOpts{
@@ -77,6 +95,12 @@ func RegisterPrometheus() {
 
 	// Etcd
 	prometheus.MustRegister(EtcdSendOutTime)
+	prometheus.MustRegister(EtcdSendCount)
+	prometheus.MustRegister(EtcdGetCount)
+
+	// Non-etcd
+	prometheus.MustRegister(NonEtcdSendCount)
+	prometheus.MustRegister(NonEtcdGetCount)
 
 	// Send/Receive Times
 	prometheus.MustRegister(TotalSendTime)
