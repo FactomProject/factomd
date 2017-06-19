@@ -143,6 +143,30 @@ func TestSimpleDBStateMsgValidate(t *testing.T) {
 	delete(constants.CheckPoints, state.GetHighestSavedBlk()+1)
 }
 
+func TestDBStateDataValidate(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	msg := newDBStateMsg()
+
+	if v := msg.ValidateData(state); v != 1 {
+		t.Errorf("Validate data should be 1, found %d", v)
+	}
+
+	// Invalidate it
+	eblock, _ := testHelper.CreateTestEntryBlock(nil)
+	msg.EBlocks = append(msg.EBlocks, eblock)
+	if v := msg.ValidateData(state); v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
+	msg2 := newDBStateMsg()
+	fmt.Println(msg.Entries)
+	msg2.Entries = append(msg2.Entries, msg.Entries...)
+	if v := msg2.ValidateData(state); v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
+}
+
 // Test known conditions
 //		All sign
 //		Half + 1 Sign
