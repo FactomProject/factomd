@@ -535,6 +535,12 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	}
 
+	// If we have a process list at the height of a DBState, then get rid of any entry blocks we might have had.
+	pl := s.ProcessLists.Get(dbheight)
+	if pl != nil {
+		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock, 0)
+	}
+
 	if dbstatemsg.IsInDB == false {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
 		dbstate.ReadyToSave = true
@@ -1255,13 +1261,12 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	// What I do for each EOM
-	if !e.Processed {
+	if !vm.Synced {
 
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
-		e.Processed = true
 		vm.Synced = true
 		markNoFault(pl, msg.GetVMIndex())
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
@@ -1468,7 +1473,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	// Put the stuff that executes per DBSignature here
-	if !dbs.Processed {
+	if !vm.Synced {
 
 		if s.LLeaderHeight > 0 && s.GetHighestCompletedBlk()+1 < s.LLeaderHeight {
 
@@ -1523,7 +1528,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		dbs.Matches = true
 		s.AddDBSig(dbheight, dbs.ServerIdentityChainID, dbs.DBSignature)
 
-		dbs.Processed = true
 		s.DBSigProcessed++
 		//fmt.Println(fmt.Sprintf("Process DBSig %10s vm %2v DBSigProcessed++ (%2d)", s.FactomNodeName, dbs.VMIndex, s.DBSigProcessed))
 		vm.Synced = true
