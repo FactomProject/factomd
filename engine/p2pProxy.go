@@ -144,7 +144,7 @@ func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
 		sha := sha256.New()
 		sha.Write(msgBytes)
 		msgHashString := fmt.Sprintf("%x", sha.Sum(nil))
-		fmt.Printf("Fetcd sending: %s\n", msgHashString)
+		fmt.Printf("Fetcd sending: %s\n(%s)\n", msg.String(), msgHashString)
 
 		return f.EtcdManager.SendIntoEtcd(msgBytes)
 	} else {
@@ -307,7 +307,11 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 						if err != nil {
 							log.Println("SVM err:", err.Error())
 						} else {
-							log.Println("SVM Receive(etcd):", msg.String(), msg.GetHash().String()[:10])
+							sha := sha256.New()
+							sha.Write(dataBytes)
+							msgHashString := fmt.Sprintf("%x", sha.Sum(nil))
+
+							log.Println("SVM Receive(etcd):", msgHashString, msg.String(), msg.GetHash().String()[:10])
 						}
 					}
 					EtcdGetCount.Inc()
