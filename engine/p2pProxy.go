@@ -6,6 +6,7 @@ package engine
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"os"
@@ -140,8 +141,16 @@ func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
 
 	msgBytes, err := msg.MarshalBinary()
 	if err == nil {
+		sha := sha256.New()
+		sha.Write(msgBytes)
+		msgHashString := fmt.Sprintf("%x", sha.Sum(nil))
+		fmt.Printf("Fetcd sending: %s\n", msgHashString)
+
 		return f.EtcdManager.SendIntoEtcd(msgBytes)
+	} else {
+		fmt.Println("Justin Fetcd ERROR:", err)
 	}
+
 	return err
 }
 
