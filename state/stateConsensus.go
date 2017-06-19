@@ -1137,7 +1137,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
-	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbheight, "lheight": s.GetLeaderHeight(), "vm": vmIndex})
+	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig()", "msgheight": dbheight, "lheight": s.GetLeaderHeight(), "vm": vmIndex})
 
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
@@ -1372,7 +1372,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				pldbs.DBSigAlreadySent = true
 
-				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "vm": dbs.VMIndex})
+				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig()", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "vm": dbs.VMIndex})
 				dbslog.Infof("Send DBSig, %s", dbs.String())
 
 				dbs.LeaderExecute(s)
@@ -1430,7 +1430,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	//vlog makes logging anything in Validate() easier
-	plog := consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight()})
+	plog := consenLogger.WithFields(log.Fields{"func": "ProcessDBSig()", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight()})
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
 		//s.AddStatus(fmt.Sprintf("ProcessDBSig(): Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)",

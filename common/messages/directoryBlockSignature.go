@@ -134,7 +134,7 @@ func (m *DirectoryBlockSignature) Type() byte {
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	//vlog makes logging anything in Validate() easier
 	vlog := func(format string, args ...interface{}) {
-		dLogger.WithFields(log.Fields{"func": "validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()}).Errorf(format, args...)
+		dLogger.WithFields(log.Fields{"func": "Validate()", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()}).Errorf(format, args...)
 	}
 
 	if m.IsValid() {

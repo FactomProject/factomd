@@ -232,7 +232,7 @@ func (st *State) isIdentityChain(cid interfaces.IHash) int {
 // Eg. Only call from addserver or you don't want any messages being sent.
 func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
 	if eblk == nil {
-		identLogger.WithField("func", "LoadIDByEBlk").Info("Initializing identity failed as eblock is nil")
+		identLogger.WithField("func", "LoadIdentityByEntryBlock()").Info("Initializing identity failed as eblock is nil")
 		return
 	}
 	cid := eblk.GetChainID()
@@ -252,6 +252,7 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
 }
 
 func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, initial bool) {
+	flog := identLogger.WithField("func", "LoadIdentityByEntry()")
 	if ent == nil {
 		return
 	}
@@ -272,21 +273,21 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 				if len(ent.ExternalIDs()) == 7 {
 					err := RegisterBlockSigningKey(ent, initial, height, st)
 					if err != nil {
-						identLogger.WithFields(log.Fields{"func": "LoadIdentByEnt"}).Warningf("RegisterBlkSigKey - %s", err.Error())
+						flog.Warningf("RegisterBlkSigKey - %s", err.Error())
 					}
 				}
 			} else if string(ent.ExternalIDs()[1]) == "New Bitcoin Key" {
 				if len(ent.ExternalIDs()) == 9 {
 					err := RegisterAnchorSigningKey(ent, initial, height, st, "BTC")
 					if err != nil {
-						identLogger.WithFields(log.Fields{"func": "LoadIdentByEnt"}).Warningf("RegisterAnchorKey - %s", err.Error())
+						flog.Warningf("RegisterAnchorKey - %s", err.Error())
 					}
 				}
 			} else if string(ent.ExternalIDs()[1]) == "New Matryoshka Hash" {
 				if len(ent.ExternalIDs()) == 7 {
 					err := UpdateMatryoshkaHash(ent, initial, height, st)
 					if err != nil {
-						identLogger.WithFields(log.Fields{"func": "LoadIdentByEnt"}).Warningf("UpdateMatryoshka - %s", err.Error())
+						flog.Warningf("UpdateMatryoshka - %s", err.Error())
 					}
 				}
 			} else if len(ent.ExternalIDs()) > 1 && string(ent.ExternalIDs()[1]) == "Identity Chain" {
@@ -295,7 +296,7 @@ func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, init
 				if len(ent.ExternalIDs()) == 4 {
 					err := UpdateManagementKey(ent, height, st)
 					if err != nil {
-						identLogger.WithFields(log.Fields{"func": "LoadIdentByEnt"}).Warningf("ManageKey - %s", err.Error())
+						flog.Warningf("ManageKey - %s", err.Error())
 					}
 				}
 			}
@@ -739,6 +740,7 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 
 // Called by AddServer Message
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
+	flog := identLogger.WithField("func", "ProcessIdentityToAdminBlock()")
 	var matryoshkaHash interfaces.IHash
 	var blockSigningKey [32]byte
 	var btcKey [20]byte
@@ -747,7 +749,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 	err := st.AddIdentityFromChainID(chainID)
 	if err != nil {
-		identLogger.WithFields(log.Fields{"func": "ProcessIDToABlk"}).Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
+		flog.Errorf("Failed to process AddServerMessage for %s : %s", chainID.String()[:10], err.Error())
 		return true
 	}
 
@@ -758,7 +760,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		zero := primitives.NewZeroHash()
 
 		if id.SigningKey == nil || id.SigningKey.IsSameAs(zero) {
-			identLogger.WithFields(log.Fields{"func": "ProcessIDToABlk"}).Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Block Signing Key associated to it")
+			flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Block Signing Key associated to it")
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
@@ -768,7 +770,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		}
 
 		if id.AnchorKeys == nil {
-			identLogger.WithFields(log.Fields{"func": "ProcessIDToABlk"}).Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an BTC Anchor Key associated to it")
+			flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an BTC Anchor Key associated to it")
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
@@ -782,7 +784,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		}
 
 		if id.MatryoshkaHash == nil || id.MatryoshkaHash.IsSameAs(zero) {
-			identLogger.WithFields(log.Fields{"func": "ProcessIDToABlk"}).Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Matryoshka Key associated to it")
+			flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Matryoshka Key associated to it")
 			if !statusIsFedOrAudit(id.Status) {
 				st.removeIdentity(index)
 			}
@@ -797,7 +799,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		}
 		st.Identities[index] = id
 	} else {
-		identLogger.WithFields(log.Fields{"func": "ProcessIDToABlk"}).Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
+		flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an identity associated to it")
 		return true
 	}
 
