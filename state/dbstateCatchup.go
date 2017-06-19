@@ -21,7 +21,12 @@ func (list *DBStateList) Catchup(justDoIt bool) {
 
 	ask := func() {
 
-		if list.TimeToAsk != nil && hk-hs > 1 && now.GetTime().After(list.TimeToAsk.GetTime()) {
+		tolerance := 1
+		if list.State.Leader {
+			tolerance = 2
+		}
+
+		if list.TimeToAsk != nil && hk-hs > tolerance && now.GetTime().After(list.TimeToAsk.GetTime()) {
 
 			// Find the first dbstate we don't have.
 			for i, v := range list.State.DBStatesReceived {
