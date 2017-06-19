@@ -288,6 +288,9 @@ type IEtcdPluginRPCServer struct {
 
 func (s *IEtcdPluginRPCServer) SendIntoEtcd(args *SendIntoEtcdArgs, resp *ErrorData) error {
 	err := s.Impl.SendIntoEtcd(args.Msg)
+	if err != nil {
+		return err
+	}
 	resp.Error = err
 	return nil
 }
