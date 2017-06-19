@@ -290,11 +290,6 @@ func (m *DBStateMsg) ValidateData(state interfaces.IState) int {
 		}
 	}
 
-	// Same number of Eblocks and DBlock Eblocks
-	if len(m.EBlocks) != len(eblocks) {
-		return -1
-	}
-
 	// Loop over eblocks and see if they fall in the map
 	for _, eb := range m.EBlocks {
 		keymr, err := eb.KeyMR()
