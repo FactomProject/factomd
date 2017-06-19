@@ -1291,10 +1291,10 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			for _, e := range eb.GetEntryHashes() {
 				allowedEntries[e.String()] = struct{}{}
 			}
+		} else {
+			list.State.Logf("error", "Error putting entries in allowedmap, as Eblock is not in Dblock")
 		}
 	}
-
-	entries := d.DirectoryBlock.GetEBlockDBEntries()
 
 	// Info from DBState
 	if len(d.EntryBlocks) > 0 {
