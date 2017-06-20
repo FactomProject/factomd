@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -159,8 +160,8 @@ func TestDBStateDataValidate(t *testing.T) {
 	}
 
 	msg2 := newDBStateMsg()
-	fmt.Println(msg.Entries)
-	msg2.Entries = append(msg2.Entries, msg.Entries...)
+	e := entryBlock.NewEntry()
+	msg2.Entries = append(msg2.Entries, e)
 	if v := msg2.ValidateData(state); v != -1 {
 		t.Errorf("Should be -1, found %d", v)
 	}
