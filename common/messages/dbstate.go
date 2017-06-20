@@ -259,8 +259,8 @@ func (m *DBStateMsg) ValidateData(state interfaces.IState) int {
 	// Checking the content of the DBState against the directoryblock contained
 	// Map of Entries and Eblocks in this DBState dblock
 	// A value of true indicates a repeat. Repeats are not enforce though
-	eblocks := make(map[string]bool) //, len(m.EBlocks))
-	ents := make(map[string]bool)    //, len(m.Entries))
+	eblocks := make(map[[32]byte]bool) //, len(m.EBlocks))
+	ents := make(map[[32]byte]bool)    //, len(m.Entries))
 
 	// Ensure blocks in the DBlock matches blocks in DBState
 	for _, b := range m.DirectoryBlock.GetEBlockDBEntries() {
@@ -286,7 +286,7 @@ func (m *DBStateMsg) ValidateData(state interfaces.IState) int {
 			}
 		default: // EBLOCK
 			// Eblocks in the DBlock. Not only check if the Eblocks in DBState list are good, but also entries
-			eblocks[b.GetKeyMR().String()] = false
+			eblocks[b.GetKeyMR().Fixed()] = false
 		}
 	}
 
@@ -298,23 +298,23 @@ func (m *DBStateMsg) ValidateData(state interfaces.IState) int {
 		}
 
 		// If the eblock does not exist in our map, it doesn't exist in the directory block
-		if _, ok := eblocks[keymr.String()]; !ok {
+		if _, ok := eblocks[keymr.Fixed()]; !ok {
 			return -1
 		}
-		eblocks[keymr.String()] = true
+		eblocks[keymr.Fixed()] = true
 
 		for _, e := range eb.GetEntryHashes() {
-			ents[e.String()] = false
+			ents[e.Fixed()] = false
 		}
 	}
 
 	for _, e := range m.Entries {
 		// Although we can check for repeated entries, a directory block is allowed to contain duplicate entries
 		// So just check if the entry is in the DBlock
-		if _, ok := ents[e.GetHash().String()]; !ok {
+		if _, ok := ents[e.GetHash().Fixed()]; !ok {
 			return -1
 		}
-		ents[e.GetHash().String()] = true
+		ents[e.GetHash().Fixed()] = true
 	}
 
 	return 1
