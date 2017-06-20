@@ -648,6 +648,13 @@ func (dbsl *DBStateList) UnmarshalBinary(p []byte) error {
 //
 func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 
+	// If we are syncing DBSigs or EOM, and we apply a DBState, we wipe out the variables used for syncing
+	// so it is better if we are the leader to just wait for the sync to complete.  And then the dbstate might
+	// not even be necessary
+	if state.Leader && state.Syncing {
+		return 0
+	}
+
 	dirblk := next.DirectoryBlock
 	dbheight := dirblk.GetHeader().GetDBHeight()
 
@@ -963,7 +970,45 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	}
 
 	d.DirectoryBlock.BuildBodyMR()
-	d.DirectoryBlock.MarshalBinary()
+	dblockData, _ := d.DirectoryBlock.MarshalBinary()
+
+	// If leader, write to file for debugging purposes
+	if list.State.IsLeader() {
+		// Print All to StdOut
+		f, err := os.OpenFile("lastblock.txt", os.O_CREATE|os.O_RDWR, 0777)
+		if err != nil {
+			fmt.Println("Could not open `lastblock.txt`:", err.Error())
+		} else {
+			f.WriteString(fmt.Sprintf("--- Height %d ---\n", d.DirectoryBlock.GetDatabaseHeight()))
+			f.WriteString("\n--- Directory Block ---\n")
+			f.WriteString(hex.EncodeToString(dblockData))
+
+			ablkData, err := d.AdminBlock.MarshalBinary()
+			f.WriteString(fmt.Sprintf("\n--- Admin Block Err: %v---\n", err))
+			f.WriteString(hex.EncodeToString(ablkData))
+
+			fblkData, err := d.FactoidBlock.MarshalBinary()
+			f.WriteString(fmt.Sprintf("\n--- Factoid Block Err: %v---\n", err))
+			f.WriteString(hex.EncodeToString(fblkData))
+
+			ecblkData, err := d.EntryCreditBlock.MarshalBinary()
+			f.WriteString(fmt.Sprintf("\n--- ECBlock Block Err: %v---\n", err))
+			f.WriteString(hex.EncodeToString(ecblkData))
+
+			for i, eb := range d.EntryBlocks {
+				ebData, err := eb.MarshalBinary()
+				f.WriteString(fmt.Sprintf("\n--- Eblock %d Block Err: %v---\n", i, err))
+				f.WriteString(hex.EncodeToString(ebData))
+			}
+
+			for i, e := range d.Entries {
+				eData, err := e.MarshalBinary()
+				f.WriteString(fmt.Sprintf("\n--- Entry %d Block Err: %v---\n", i, err))
+				f.WriteString(hex.EncodeToString(eData))
+			}
+
+		}
+	}
 
 	progress = true
 	d.IsNew = false

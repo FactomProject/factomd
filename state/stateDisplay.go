@@ -46,9 +46,10 @@ type DisplayState struct {
 	PLEntry   []EntryTransaction
 
 	// DataDump
-	RawSummary  string
-	PrintMap    string
-	ProcessList string
+	RawSummary   string
+	PrintMap     string
+	ProcessList  string
+	ProcessList2 string
 }
 
 type FactoidTransaction struct {
@@ -204,17 +205,39 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 	ds.RawSummary = prt
 
-	b := s.GetHighestSavedBlk()
-	pl := s.ProcessLists.Get(b + 1)
+	b := s.GetHighestCompletedBlk() + 1
+	pl := s.ProcessLists.Get(b)
 	if pl == nil {
+		b--
 		pl = s.ProcessLists.Get(b)
+		if pl == nil {
+			if b > 1 {
+				b--
+				pl = s.ProcessLists.Get(b)
+			}
+		}
 	}
+
+	var pl2 *ProcessList
+	if b > 3 {
+		b--
+		pl2 = s.ProcessLists.GetSafe(b)
+		if pl == nil {
+			b--
+			pl2 = s.ProcessLists.GetSafe(b)
+		}
+	}
+
 	if pl != nil && pl.FedServers != nil {
 		ds.PrintMap = pl.PrintMap()
 		ds.ProcessList = pl.String()
 	} else {
 		ds.PrintMap = ""
 		ds.ProcessList = ""
+	}
+
+	if pl2 != nil {
+		ds.ProcessList2 = pl2.String()
 	}
 
 	return ds, nil

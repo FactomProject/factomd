@@ -153,6 +153,10 @@ func (e *Entry) IsValid() bool {
 		return false
 	}
 
+	if e.KSize() > 10 {
+		return false
+	}
+
 	return true
 }
 
