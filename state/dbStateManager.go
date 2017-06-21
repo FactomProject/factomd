@@ -970,6 +970,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 	}
 
 	d.DirectoryBlock.BuildBodyMR()
+	d.DirectoryBlock.MarshalBinary()
 
 	progress = true
 	d.IsNew = false
