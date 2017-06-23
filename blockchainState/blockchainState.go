@@ -43,9 +43,6 @@ type BlockchainState struct {
 	PendingCommits map[string]*PendingCommit //entry hash: current DBlock height
 
 	IdentityManager identity.IdentityManager
-
-	//Not marshallised
-	PendingECBalanceIncreases map[string]*PendingECBalanceIncrease
 }
 
 func NewBSMainNet() *BlockchainState {
@@ -100,9 +97,6 @@ func (bs *BlockchainState) Init() {
 	if bs.ABlockHeadRefHash == nil {
 		bs.ABlockHeadRefHash = primitives.NewZeroHash().(*primitives.Hash)
 	}
-	if bs.PendingECBalanceIncreases == nil {
-		bs.PendingECBalanceIncreases = map[string]*PendingECBalanceIncrease{}
-	}
 }
 
 func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aBlock interfaces.IAdminBlock, fBlock interfaces.IFBlock, ecBlock interfaces.IEntryCreditBlock,
@@ -139,17 +133,6 @@ func (bs *BlockchainState) ProcessBlockSet(dBlock interfaces.IDirectoryBlock, aB
 	err = bs.HandlePostBlockErrors(dBlock.DatabasePrimaryIndex())
 	if err != nil {
 		return err
-	}
-
-	if len(bs.PendingECBalanceIncreases) > 0 {
-		/*
-			fmt.Printf("Some ECBalanceIncreases have not been consumed! Amount: %v\n", len(bs.PendingECBalanceIncreases))
-			for k, v := range bs.PendingECBalanceIncreases {
-				fmt.Printf("%v - %v\n", k, v)
-			}
-		*/
-		bs.PendingECBalanceIncreases = map[string]*PendingECBalanceIncrease{}
-		//return fmt.Errorf("Some ECBalanceIncreases have not been consumed! Amount: %v", len(bs.PendingECBalanceIncreases))
 	}
 
 	return nil
