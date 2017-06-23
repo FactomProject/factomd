@@ -5,12 +5,14 @@
 package state_test
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	//"github.com/FactomProject/factomd/common/constants"
-	//"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/state"
@@ -39,6 +41,23 @@ func TestSecretCode(t *testing.T) {
 		t.Error("Secret Number bad match")
 	}
 	fmt.Printf("Secret Numbers %x %x %x\n", num1, num2, num3)
+}
+
+func TestStateKeys(t *testing.T) {
+	s := testHelper.CreateEmptyTestState()
+	sec := primitives.RandomPrivateKey()
+	s.SimSetNewKeys(sec)
+	act := s.GetServerPrivateKey()
+	if act.PublicKeyString() != sec.PublicKeyString() {
+		t.Error("Public key is not correct")
+	}
+
+	if act.PrivateKeyString() != sec.PrivateKeyString() {
+		t.Error("Public key is not correct")
+	}
+
+	var _ = s.GetStatus()
+
 }
 
 /*
@@ -136,6 +155,53 @@ func TestClone(t *testing.T) {
 		t.Error("Factom Node Name incorrect")
 	}
 }
+
+func TestLog(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	buf := new(bytes.Buffer)
+	s.Logger = log.New(buf, "debug", "unit_test")
+
+	var levels []string = []string{"debug", "info", "warning", "error"}
+	for _, l := range levels {
+		msg := "A test message"
+		s.Logf(l, "%s", msg)
+
+		data := buf.Next(buf.Len())
+		if !strings.Contains(string(data), msg) {
+			t.Error("Logf did not log the msg")
+		}
+
+		msg2 := "Another test message"
+		s.Log(l, msg2)
+		data = buf.Next(buf.Len())
+		if !strings.Contains(string(data), msg2) {
+			t.Error("Log did not log the msg for level", l)
+		}
+	}
+
+}
+
+func TestSetKeys(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	p, _ := primitives.NewPrivateKeyFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	s.SimSetNewKeys(p)
+
+	if s.SimGetSigKey() != p.PublicKeyString() {
+		t.Error("Public keys do not match")
+	}
+}
+
+/*
+func (s *State) SimSetNewKeys(p *primitives.PrivateKey) {
+	s.serverPrivKey = p
+	s.serverPubKey = p.Pub
+}
+
+func (s *State) SimGetSigKey() string {
+	return s.serverPrivKey.Pub.String()
+}
+
+*/
 
 /*
 func TestBootStrappingIdentity(t *testing.T) {
