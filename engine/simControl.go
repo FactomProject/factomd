@@ -507,6 +507,18 @@ func SimControl(listenTo int, listenStdin bool) {
 					fmt.Println("No Parms found.")
 					break
 				}
+				if 's' == b[1] {
+					// We return the hash of the private key because we just want to be able to compare it for debugging purposes, not actually expose it.
+					os.Stderr.WriteString(fmt.Sprintf("%20s %64s %64s %64s\n", "Node Name", "Chain ID", "Public Key", "Hash of Private Key"))
+					for _, fn := range fnodes {
+						os.Stderr.WriteString(fmt.Sprintf("%20s %s %s %s \n",
+							fn.State.FactomNodeName,
+							fn.State.IdentityChainID.String(),
+							fn.State.GetServerPublicKey().String(),
+							primitives.Sha((*fn.State.GetServerPrivateKey().Key)[:]).String()))
+					}
+					break
+				}
 
 				parms := strings.Split(string(b[1:]), ".")
 				if len(parms) >= 2 {
@@ -1047,6 +1059,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				os.Stderr.WriteString("fN            Show Factoid block  			 N. Indicate node eg:\"f5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("dN            Show Directory block			 N. Indicate node eg:\"d5\" to shows blocks for that node.\n")
 				os.Stderr.WriteString("D             Print a Directory Block for blocks in DBStates.\n")
+				os.Stderr.WriteString("ks            Print the ChainIDs, Public keys, and hash of Private Keys of all nodes\n")
 				os.Stderr.WriteString("kN.M          Show Entry Block and Chain Head.  N is the directory block, and M is the Entry in that block.\n")
 				os.Stderr.WriteString("                 So K3.6 gets the directory block at height 3, and prints the entry at index 6.\n")
 				os.Stderr.WriteString("y             Dump what is in the Holding Map.  Can crash, but oh well.\n")
