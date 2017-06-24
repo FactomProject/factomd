@@ -508,6 +508,14 @@ func SimControl(listenTo int, listenStdin bool) {
 					break
 				}
 				if 's' == b[1] {
+					getName := func(chainID interfaces.IHash) string {
+						for _, fn := range fnodes {
+							if fn.State.IdentityChainID.Fixed() == chainID.Fixed() {
+								return fn.State.FactomNodeName
+							}
+						}
+						return ""
+					}
 					// We return the hash of the private key because we just want to be able to compare it for debugging purposes, not actually expose it.
 					os.Stderr.WriteString(fmt.Sprintf("%20s %64s %64s %64s\n", "Node Name", "Chain ID", "Public Key", "Hash of Private Key"))
 					for _, fn := range fnodes {
@@ -516,6 +524,18 @@ func SimControl(listenTo int, listenStdin bool) {
 							fn.State.IdentityChainID.String(),
 							fn.State.GetServerPublicKey().String(),
 							primitives.Sha((*fn.State.GetServerPrivateKey().Key)[:]).String()))
+					}
+					s := fnodes[ListenTo].State
+					pl := s.ProcessLists.Get(s.GetDBHeightComplete() + 1)
+					if pl != nil {
+						os.Stderr.WriteString(fmt.Sprintf("%30s %s\n", "", "Federated Servers"))
+						for _, ser := range pl.FedServers {
+							os.Stderr.WriteString(fmt.Sprintf("%30s %s\n", getName(ser.GetChainID()), ser.GetChainID().String()))
+						}
+						os.Stderr.WriteString(fmt.Sprintf("%30s %s\n", "", "Audit Servers"))
+						for _, ser := range pl.AuditServers {
+							os.Stderr.WriteString(fmt.Sprintf("%30s %s\n", getName(ser.GetChainID()), ser.GetChainID().String()))
+						}
 					}
 					break
 				}
