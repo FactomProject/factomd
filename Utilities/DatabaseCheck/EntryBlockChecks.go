@@ -43,6 +43,5 @@ func CheckEntryBlocks(db interfaces.DBOverlaySimple, convertNames bool) error {
 		}
 		fmt.Println(dblk.String())
 	}
-return nil
+	return nil
 }
-

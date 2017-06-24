@@ -45,8 +45,6 @@ func GetFnodes() []*FactomNode {
 	return fnodes
 }
 
-
-
 func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	s.PortNumber = 8088
@@ -124,7 +122,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	if p.fastLocation != "" {
 		s.StateSaverStruct.FastBootLocation = p.fastLocation
 	}
-	
 
 	fmt.Println(">>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>> Net Sim Start!")

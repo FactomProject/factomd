@@ -70,7 +70,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-port=37001",
 		"-ControlPanelPort=37002",
 		"-networkPort=37003",
-	  "-startdelay=1")
+		"-startdelay=1")
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -138,8 +138,6 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("x")
 	runCmd("8")
 
-
-
 	time.Sleep(100 * time.Millisecond)
 
 	fn2 := GetFocus()
@@ -173,12 +171,9 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("yh")
 	runCmd("yc")
 	runCmd("r")
-	time.Sleep(5 * time.Second)
-	runCmd("r")
 	waitBlocks(fn1.State, 1)
-
-	runCmd("T10")
-	t.Log("Run to a dbht of 10")
+	runCmd("r")
+	waitBlocks(fn1.State, 2)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {

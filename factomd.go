@@ -7,9 +7,9 @@ package main
 import (
 	"os"
 
+	"fmt"
 	"github.com/FactomProject/factomd/engine"
 	"time"
-	"fmt"
 )
 
 func main() {

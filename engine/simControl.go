@@ -307,7 +307,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						ABlock := dsmsg.AdminBlock
 						os.Stderr.WriteString(fmt.Sprintln(ABlock.String()))
 					} else {
-						pl := f.State.ProcessLists.Get(uint32(ht))
+						pl := f.State.ProcessLists.GetSafe(uint32(ht))
 						if pl == nil || pl.AdminBlock == nil {
 							os.Stderr.WriteString(fmt.Sprintln("Could not find this Admin block"))
 						} else {
@@ -339,7 +339,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						ECBlock := dsmsg.EntryCreditBlock
 						os.Stderr.WriteString(fmt.Sprint(ECBlock.String()))
 					} else {
-						pl := f.State.ProcessLists.Get(uint32(ht))
+						pl := f.State.ProcessLists.GetSafe(uint32(ht))
 						if pl == nil || pl.EntryCreditBlock == nil {
 							os.Stderr.WriteString(fmt.Sprintln("Could not find this Entry Credit Block"))
 						} else {
@@ -403,7 +403,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						DBlock := dsmsg.DirectoryBlock
 						os.Stderr.WriteString(fmt.Sprint(DBlock.String()))
 					} else {
-						pl := f.State.ProcessLists.Get(uint32(ht))
+						pl := f.State.ProcessLists.GetSafe(uint32(ht))
 						if pl == nil || pl.DirectoryBlock == nil {
 							os.Stderr.WriteString(fmt.Sprintln("Could not find this directory block"))
 						} else {
