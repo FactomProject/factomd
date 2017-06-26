@@ -79,6 +79,10 @@ var (
 
 	// Queues
 	//	InMsg
+	TotalMessageQueueInMsgGeneral = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_general_inmsg",
+		Help: "Instrumenting the netoutmsg queue",
+	})
 	CurrentMessageQueueInMsgEOM = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_queue_current_inmsg_eom",
 		Help: "Instrumenting the inmsg queue",
@@ -266,6 +270,10 @@ var (
 	})
 
 	//	NetworkOutMsg
+	TotalMessageQueueNetOutMsgGeneral = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_general_netoutmsg",
+		Help: "Instrumenting the netoutmsg queue",
+	})
 	TotalMessageQueueNetOutMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_queue_total_netoutmsg_eom",
 		Help: "Instrumenting the netoutmsg queue",
@@ -555,4 +563,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(NetOutQueueBackupRate)
 	prometheus.MustRegister(NetOutMovingArrivalQueueRate)
 	prometheus.MustRegister(NetOutMovingCompleteQueueRate)
+
+	prometheus.MustRegister(TotalMessageQueueInMsgGeneral)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneral)
 }

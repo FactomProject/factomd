@@ -84,7 +84,7 @@ func NetStart(s *state.State) {
 	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
 	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: debug, info, notice, warning, error, critical, alert, emergency or none")
-	logSTDOutPtr := flag.Bool("logstdout", false, "Use to set logging to stdout")
+	logFilePtr := flag.Bool("logfile", false, "Use to set logging to use a file rather than stdout")
 
 	flag.Parse()
 
@@ -126,7 +126,7 @@ func NetStart(s *state.State) {
 	factomdLocations := *factomdLocationsflag
 	fast := *fastPtr
 	logLvl := *logLvlPtr
-	logSTDOut := *logSTDOutPtr
+	logFile := *logFilePtr
 
 	messages.AckBalanceHash = ackbalanceHash
 	// Must add the prefix before loading the configuration.
@@ -140,7 +140,7 @@ func NetStart(s *state.State) {
 	s.Journaling = journaling
 	s.LogLevel = logLvl
 
-	if logSTDOut {
+	if !logFile {
 		s.LogPath = "stdout"
 	}
 

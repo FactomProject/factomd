@@ -62,6 +62,8 @@ type State struct {
 	ExportData        bool
 	ExportDataSubpath string
 
+	LogBits int64 // Bit zero is for logging the Directory Block on DBSig [5]
+
 	DBStatesSent            []*interfaces.DBStateSent
 	DBStatesReceivedBase    int
 	DBStatesReceived        []*messages.DBStateMsg
@@ -1763,6 +1765,31 @@ func (s *State) initServerKeys() {
 
 func (s *State) LogInfo(args ...interface{}) {
 	s.Logger.Info(args...)
+}
+
+func (s *State) Log(level string, message string) {
+	s.Logf(level, message)
+}
+
+func (s *State) Logf(level string, format string, args ...interface{}) {
+	switch level {
+	case "emergency":
+		s.Logger.Emergencyf(format, args...)
+	case "alert":
+		s.Logger.Alertf(format, args...)
+	case "critical":
+		s.Logger.Criticalf(format, args...)
+	case "error":
+		s.Logger.Errorf(format, args...)
+	case "warning":
+		s.Logger.Warningf(format, args...)
+	case "info":
+		s.Logger.Infof(format, args...)
+	case "debug":
+		s.Logger.Debugf(format, args...)
+	default:
+		s.Logger.Infof(format, args...)
+	}
 }
 
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {

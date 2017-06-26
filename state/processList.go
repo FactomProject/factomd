@@ -128,11 +128,12 @@ type DBSig struct {
 }
 
 type VM struct {
-	List         []interfaces.IMsg // Lists of acknowledged messages
-	ListAck      []*messages.Ack   // Acknowledgements
-	Height       int               // Height of messages that have been processed
-	LeaderMinute int               // Where the leader is in acknowledging messages
-	Synced       bool              // Is this VM synced yet?
+	List            []interfaces.IMsg // Lists of acknowledged messages
+	ListAck         []*messages.Ack   // Acknowledgements
+	Height          int               // Height of messages that have been processed
+	EomMinuteIssued int               // Last Minute Issued on this VM (from the leader, when we are the leader)
+	LeaderMinute    int               // Where the leader is in acknowledging messages
+	Synced          bool              // Is this VM synced yet?
 	//faultingEOM           int64             // Faulting for EOM because it is too late
 	heartBeat   int64 // Just ping ever so often if we have heard nothing.
 	Signed      bool  // We have signed the previous block.

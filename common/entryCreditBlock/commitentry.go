@@ -158,7 +158,7 @@ func (c *CommitEntry) GetTimestamp() interfaces.Timestamp {
 
 func (c *CommitEntry) IsValid() bool {
 	//double check the credits in the commit
-	if c.Credits < 1 || c.Version != 0 {
+	if c.Credits < 1 || c.Version != 0 || c.Credits > 10 {
 		return false
 	}
 
