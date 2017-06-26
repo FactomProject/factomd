@@ -29,7 +29,6 @@ import (
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/factomd/logger"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
@@ -61,6 +60,8 @@ type State struct {
 	CloneDBType       string
 	ExportData        bool
 	ExportDataSubpath string
+
+	LogBits int64 // Bit zero is for logging the Directory Block on DBSig [5]
 
 	DBStatesSent            []*interfaces.DBStateSent
 	DBStatesReceivedBase    int
@@ -247,7 +248,7 @@ type State struct {
 
 	// Database
 	DB     interfaces.DBOverlaySimple
-	Logger *logger.FLogger
+	Logger *log.FLogger
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -330,6 +331,7 @@ type State struct {
 
 	AckChange uint32
 
+	StateSaverStruct StateSaverStruct
 	// Plugins
 	useTorrents             bool
 	torrentUploader         bool
@@ -373,10 +375,15 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 		config = true
 	}
 
+	if s.LogPath == "stdout" {
+		newState.LogPath = "stdout"
+	} else {
+		newState.LogPath = s.LogPath + "/Sim" + number
+	}
+
 	newState.FactomNodeName = s.Prefix + "FNode" + number
 	newState.FactomdVersion = s.FactomdVersion
 	newState.DropRate = s.DropRate
-	newState.LogPath = s.LogPath + "/Sim" + number
 	newState.LdbPath = s.LdbPath + "/Sim" + number
 	newState.JournalFile = s.LogPath + "/journal" + number + ".log"
 	newState.Journaling = s.Journaling
@@ -444,6 +451,17 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.factomdTLSKeyFile = s.factomdTLSKeyFile
 	newState.factomdTLSCertFile = s.factomdTLSCertFile
 	newState.FactomdLocations = s.FactomdLocations
+
+	switch newState.DBType {
+	case "LDB":
+		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
+		newState.StateSaverStruct.FastBootLocation = newState.LdbPath
+		break
+	case "Bolt":
+		newState.StateSaverStruct.FastBoot = s.StateSaverStruct.FastBoot
+		newState.StateSaverStruct.FastBootLocation = newState.BoltDBPath
+		break
+	}
 
 	return newState
 }
@@ -619,6 +637,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.ControlPanelPort = cfg.App.ControlPanelPort
 		s.RpcUser = cfg.App.FactomdRpcUser
 		s.RpcPass = cfg.App.FactomdRpcPass
+		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
+		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
 		s.EtcdAddress = cfg.App.EtcdAddress
 		s.EtcdUUID = cfg.App.EtcdUUID
 		s.FastBoot = cfg.App.FastBoot
@@ -729,9 +749,17 @@ func (s *State) Init() {
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 
-	wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
-
-	s.Logger = logger.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+	if s.LogPath == "stdout" {
+		wsapi.InitLogs(s.LogPath, s.LogLevel)
+		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+	} else {
+		er := os.MkdirAll(s.LogPath, 0777)
+		if er != nil {
+			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
+		}
+		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
+		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+	}
 
 	log.SetLevel(s.ConsoleLogLevel)
 
@@ -751,10 +779,6 @@ func (s *State) Init() {
 	s.UpdateEntryHash = make(chan *EntryUpdate, 10000)  //Handles entry hashes and updating Commit maps.
 	s.WriteEntry = make(chan interfaces.IEBEntry, 3000) //Entries to be written to the database
 
-	er := os.MkdirAll(s.LogPath, 0777)
-	if er != nil {
-		// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
-	}
 	if s.Journaling {
 		f, err := os.Create(s.JournalFile)
 		if err != nil {
@@ -862,10 +886,21 @@ func (s *State) Init() {
 	// end of FER removal
 	s.starttime = time.Now()
 
-	if s.FastBoot {
-		err := LoadDBStateList(s.DBStates, s.Network, s.FastBootLocation)
+	if s.StateSaverStruct.FastBoot {
+		d, err := s.DB.FetchDBlockHead()
 		if err != nil {
 			panic(err)
+		}
+
+		if d == nil || d.GetDatabaseHeight() < 2000 {
+			//If we have less than 2k blocks, we wipe SaveState
+			//This is to ensure we don't accidentally keep SaveState while deleting a database
+			s.StateSaverStruct.DeleteSaveState(s.Network)
+		} else {
+			err = s.StateSaverStruct.LoadDBStateList(s.DBStates, s.Network)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }
@@ -1760,6 +1795,31 @@ func (s *State) LogInfo(args ...interface{}) {
 	s.Logger.Info(args...)
 }
 
+func (s *State) Log(level string, message string) {
+	s.Logf(level, message)
+}
+
+func (s *State) Logf(level string, format string, args ...interface{}) {
+	switch level {
+	case "emergency":
+		s.Logger.Emergencyf(format, args...)
+	case "alert":
+		s.Logger.Alertf(format, args...)
+	case "critical":
+		s.Logger.Criticalf(format, args...)
+	case "error":
+		s.Logger.Errorf(format, args...)
+	case "warning":
+		s.Logger.Warningf(format, args...)
+	case "info":
+		s.Logger.Infof(format, args...)
+	case "debug":
+		s.Logger.Debugf(format, args...)
+	default:
+		s.Logger.Infof(format, args...)
+	}
+}
+
 func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 	return s.AuditHeartBeats
 }
@@ -2224,7 +2284,7 @@ func (s *State) SetStringQueues() {
 		stps)
 
 	if s.Balancehash == nil {
-		s.Balancehash = primitives.NewHash(constants.ZERO_HASH)
+		s.Balancehash = primitives.NewZeroHash()
 	}
 
 	str = str + fmt.Sprintf(" %d/%d", list.System.Height, len(list.System.List))

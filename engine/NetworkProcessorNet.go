@@ -26,7 +26,28 @@ func NetworkProcessorNet(fnode *FactomNode) {
 
 func Peers(fnode *FactomNode) {
 	cnt := 0
+
+	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
+	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
+	// factom to focus on syncing. The following msgs will be ignored:
+	//		Acks:
+	//				Ignore acks below the ackheight, which is set if we get an ack at a height higher than
+	//			  	the ackheight. This is because Acks are for the current block, which we are not at,
+	//				but acks also serve as an indicator as to which height the network is on. So we allow
+	//				1 ack through to set out leader height.
+	//
+	//		Commit/Reveals:
+	//				These fill up our holding map because we are not getting acks. If we have things in the
+	//				holding map, that increases the amount of time it takes to process the holding map, slowing
+	//				down our inmsg queue draining.
+	//
+	//		EOMs:
+	//				Only helpful at the latest height
+	//
+	//		MissingData:
+	//				We should fufill some of these requests, but we should also focus on ourselves while we are syncing.
+	//				If our inmsg queue has too many msgs, then don't help others.
 	ignoreMsg := func(amsg interfaces.IMsg) bool {
 		// Stop uint32 underflow
 		if fnode.State.GetTrueLeaderHeight() < 35 {
@@ -44,6 +65,13 @@ func Peers(fnode *FactomNode) {
 				return true
 			case constants.EOM_MSG:
 				return true
+			case constants.MISSING_DATA:
+				if !fnode.State.DBFinished {
+					return true
+				} else if fnode.State.InMsgQueue().Length() > 4000 {
+					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
+					return true
+				}
 			case constants.ACK_MSG:
 				if amsg.(*messages.Ack).DBHeight <= ackHeight {
 					return true
@@ -130,7 +158,7 @@ func Peers(fnode *FactomNode) {
 
 					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
-					// Ignore messages if there are too many or if they are ignored by the filter
+					// Ignore messages if there are too many.
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}

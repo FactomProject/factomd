@@ -4,27 +4,12 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-var inMsgQueueRateKeeper *RateCalculator
-
-// InMsgQueueRatePrometheus is for setting the appropriate prometheus calls
-type InMsgQueueRatePrometheus struct{}
-
-func (InMsgQueueRatePrometheus) SetArrivalWeightedAvg(v float64) { InMsgInstantArrivalQueueRate.Set(v) }
-func (InMsgQueueRatePrometheus) SetArrivalTotalAvg(v float64)    { InMsgTotalArrivalQueueRate.Set(v) }
-func (InMsgQueueRatePrometheus) SetArrivalBackup(v float64)      { InMsgQueueBackupRate.Set(v) }
-func (InMsgQueueRatePrometheus) SetCompleteWeightedAvg(v float64) {
-	InMsgInstantCompleteQueueRate.Set(v)
-}
-func (InMsgQueueRatePrometheus) SetCompleteTotalAvg(v float64) { InMsgTotalCompleteQueueRate.Set(v) }
 
 // InMsgMSGQueue counts incoming and outgoing messages for inmsg queue
 type InMsgMSGQueue chan interfaces.IMsg
 
 func NewInMsgQueue(capacity int) InMsgMSGQueue {
 	channel := make(chan interfaces.IMsg, capacity)
-	rc := NewRateCalculator(new(InMsgQueueRatePrometheus))
-	go rc.Start()
-	inMsgQueueRateKeeper = rc
 	return channel
 }
 
@@ -40,7 +25,7 @@ func (q InMsgMSGQueue) Cap() int {
 
 // Enqueue adds item to channel and instruments based on type
 func (q InMsgMSGQueue) Enqueue(m interfaces.IMsg) {
-	inMsgQueueRateKeeper.Arrival()
+	//inMsgQueueRateKeeper.Arrival()
 	measureMessage(q, m, true)
 	q <- m
 }
@@ -51,7 +36,7 @@ func (q InMsgMSGQueue) Dequeue() interfaces.IMsg {
 	select {
 	case v := <-q:
 		measureMessage(q, v, false)
-		inMsgQueueRateKeeper.Complete()
+		//inMsgQueueRateKeeper.Complete()
 		return v
 	default:
 		return nil
@@ -62,7 +47,7 @@ func (q InMsgMSGQueue) Dequeue() interfaces.IMsg {
 func (q InMsgMSGQueue) BlockingDequeue() interfaces.IMsg {
 	v := <-q
 	measureMessage(q, v, false)
-	inMsgQueueRateKeeper.Complete()
+	//inMsgQueueRateKeeper.Complete()
 	return v
 }
 
@@ -70,11 +55,11 @@ func (q InMsgMSGQueue) BlockingDequeue() interfaces.IMsg {
 // A list of all possible messages and their prometheus incrementing/decrementing
 //
 
-func (q InMsgMSGQueue) All(increment bool) {
+func (q InMsgMSGQueue) General(increment bool) {
 	if !increment {
 		return
 	}
-	TotalMessageQueueInMsgAll.Inc()
+	TotalMessageQueueInMsgGeneral.Inc()
 }
 
 func (q InMsgMSGQueue) EOM(increment bool) {

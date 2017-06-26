@@ -13,6 +13,7 @@ import (
 var _ = fmt.Println
 
 func TestQueues(t *testing.T) {
+	var _, _ = NewInMsgQueue(0), NewNetOutMsgQueue(0)
 	RegisterPrometheus()
 	RegisterPrometheus()
 	channel := make(chan interfaces.IMsg, 1000)
@@ -160,4 +161,84 @@ func checkLensAndCap(channel chan interfaces.IMsg, qs []interfaces.IQueue) bool 
 		}
 	}
 	return true
+}
+
+// Only 1 write/read thread
+
+func BenchmarkChannels(b *testing.B) {
+	c := make(chan interfaces.IMsg, 1000)
+	for i := 0; i < b.N; i++ {
+		c <- nil
+		<-c
+	}
+}
+
+func BenchmarkQueues(b *testing.B) {
+	c := NewInMsgQueue(1000)
+	for i := 0; i < b.N; i++ {
+		c.Enqueue(nil)
+		c.Dequeue()
+	}
+}
+
+// 2 threads write/read, but 1 thread is not aggressively adding
+
+func BenchmarkConcurentChannels(b *testing.B) {
+	c := make(chan interfaces.IMsg, 1000)
+	go func() {
+		for true {
+			c <- nil
+			<-c
+			time.Sleep(10 * time.Nanosecond)
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		c <- nil
+		<-c
+	}
+}
+
+func BenchmarkConcurrentQueues(b *testing.B) {
+	c := NewInMsgQueue(1000)
+	go func() {
+		for true {
+			c.Enqueue(nil)
+			c.Dequeue()
+			time.Sleep(10 * time.Nanosecond)
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		c.Enqueue(nil)
+		c.Dequeue()
+	}
+}
+
+// 2 threads aggressively reading/writing
+
+func BenchmarkCompetingChannels(b *testing.B) {
+	c := make(chan interfaces.IMsg, 1000)
+	go func() {
+		for true {
+			c <- nil
+			<-c
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		c <- nil
+		<-c
+	}
+}
+
+func BenchmarkCompetingQueues(b *testing.B) {
+	c := NewInMsgQueue(1000)
+	go func() {
+		for true {
+			c.Enqueue(nil)
+			c.Dequeue()
+		}
+	}()
+	for i := 0; i < b.N; i++ {
+		c.Enqueue(nil)
+		c.Dequeue()
+	}
 }

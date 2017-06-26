@@ -19,8 +19,20 @@ func (s *State) IsStateFullySynced() bool {
 	return s.ProcessLists.DBHeightBase < ll.DBHeight
 }
 
-//returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
+// GetACKStatus also checks the oldmsgs map
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
+	return s.getACKStatus(hash, true)
+}
+
+// GetSpecificACKStatus does NOT check the oldmsgs map. This is because the processlists map for entries and entry blocks is
+// updated after the oldmsgs. This means an EntryACK will returns TransactionACK, but GetChain will return not found
+// To fix this, for some calls (entries) we don't want to check the oldmsgs.
+func (s *State) GetSpecificACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
+	return s.getACKStatus(hash, false)
+}
+
+//returns status, proper transaction ID, transaction timestamp, block timestamp, and an error
+func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
 	msg := s.GetInvalidMsg(hash)
 	if msg != nil {
 		return constants.AckStatusInvalid, hash, nil, nil, nil
@@ -36,10 +48,13 @@ func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, inte
 
 		for _, pl := range s.ProcessLists.Lists {
 			//pl := s.ProcessLists.LastList()
-			m := pl.GetOldMsgs(hash)
-			if m != nil || pl.DirectoryBlock == nil {
-				return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
+			if useOldMsgs {
+				m := pl.GetOldMsgs(hash)
+				if m != nil || pl.DirectoryBlock == nil {
+					return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
+				}
 			}
+
 			ts := pl.DirectoryBlock.GetHeader().GetTimestamp()
 
 			keys := pl.GetKeysNewEntries()

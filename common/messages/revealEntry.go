@@ -102,6 +102,11 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	if okEntry {
 		m.IsEntry = true
 		ECs := int(m.commitEntry.CommitEntry.Credits)
+		// Any entry over 10240 bytes will be rejected
+		if m.Entry.KSize() > 10 {
+			return -1
+		}
+
 		if m.Entry.KSize() > ECs {
 			return 0 // not enough payments on the EC to reveal this entry.  Return 0 to wait on another commit
 		}

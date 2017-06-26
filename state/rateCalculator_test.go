@@ -16,6 +16,9 @@ type Exposer struct {
 
 	CWA float64
 	CTA float64
+
+	CMA float64
+	AMA float64
 }
 
 func NewExposer() *Exposer {
@@ -23,7 +26,7 @@ func NewExposer() *Exposer {
 	return e
 }
 
-func (k *Exposer) SetArrivalWeightedAvg(v float64) {
+func (k *Exposer) SetArrivalInstantAvg(v float64) {
 	k.AWA = v
 }
 
@@ -35,8 +38,16 @@ func (k *Exposer) SetArrivalBackup(v float64) {
 	k.ABU = v
 }
 
-func (k *Exposer) SetCompleteWeightedAvg(v float64) {
+func (k *Exposer) SetCompleteInstantAvg(v float64) {
 	k.CWA = v
+}
+
+func (k *Exposer) SetMovingArrival(v float64) {
+	k.AMA = v
+}
+
+func (k *Exposer) SetMovingComplete(v float64) {
+	k.CMA = v
 }
 
 func (k *Exposer) SetCompleteTotalAvg(v float64) {
@@ -164,4 +175,72 @@ func retry(awa, abu, cwa float64, e *Exposer, amt int) error {
 		time.Sleep(1 * time.Millisecond)
 	}
 	return err
+}
+
+func TestMovingAverage(t *testing.T) {
+	a := NewMovingAverage(5)
+	if a.Avg() != 0 {
+		t.Fail()
+	}
+	a.Add(2)
+	if a.Avg() < 1.999 || a.Avg() > 2.001 {
+		t.Fail()
+	}
+	a.Add(4)
+	a.Add(2)
+	if a.Avg() < 2.665 || a.Avg() > 2.667 {
+		t.Fail()
+	}
+	a.Add(4)
+	a.Add(2)
+	if a.Avg() < 2.799 || a.Avg() > 2.801 {
+		t.Fail()
+	}
+
+	// This one will go into the first slot again
+	// evicting the first value
+	a.Add(10)
+	if a.Avg() < 4.399 || a.Avg() > 4.401 {
+		t.Fail()
+	}
+
+	for i := 0; i < 10; i++ {
+		a.Add(0)
+	}
+
+	if a.Avg() < 0-0.1 || a.Avg() > 0.+0.1 {
+		t.Fail()
+	}
+
+	a = NewMovingAverage(5)
+	nums := make([]float64, 1000)
+	index := 0
+
+	for i := 0; i < 1000; i++ {
+		nums[i] = float64(random.RandIntBetween(0, 60000))
+	}
+
+	for ; index < 1000; index++ {
+		a.Add(nums[index])
+		v := a.Avg()
+		tv := float64(0)
+		total := float64(0)
+		for sub := index; sub >= 0; sub-- {
+			if total >= 5 || sub < 0 {
+				break
+			}
+			total++
+			tv += nums[sub]
+		}
+
+		diff := v - (tv / total)
+		if diff < 0 {
+			diff = -1 * diff
+		}
+
+		if diff > 0.1 {
+			t.Errorf("Difference is %f at index %d. Found %f, exp %f. Total %f", diff, index, v, tv/total, total)
+			t.Log(nums[:index+1])
+		}
+	}
 }

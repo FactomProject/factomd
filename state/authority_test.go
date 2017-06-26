@@ -69,52 +69,21 @@ func TestHistoricKeyMarshalUnmarshal(t *testing.T) {
 	}
 }
 
-func TestAuthorityType(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
-	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
-	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
+func TestAuthorityMarshalUnmarshal(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		a := RandomAuthority()
 
-	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
-	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
-	s.Authorities[index].Status = 1
-
-	if s.Authorities[index].Type() != 1 {
-		t.Error("Authority's Type isn't Leader even though Status is 1")
-	}
-
-	if s.GetAuthorityServerType(primitives.NewZeroHash()) != 0 {
-		t.Error("GetAuthorityServerType isn't 0 even though authority is Leader")
-	}
-
-	s.Authorities[index].Status = 2
-
-	if s.Authorities[index].Type() != 0 {
-		t.Error("Authority's Type isn't Audit even though Status is 0")
-	}
-
-	if s.GetAuthorityServerType(primitives.NewZeroHash()) != 1 {
-		t.Error("GetAuthorityServerType isn't 1 even though authority is Audit")
-	}
-}
-
-func TestAuthorityRemoval(t *testing.T) {
-	s := testHelper.CreateAndPopulateTestState()
-	idindex := s.CreateBlankFactomIdentity(primitives.NewZeroHash())
-	s.Identities[idindex].ManagementChainID = primitives.NewZeroHash()
-
-	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
-	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
-	s.Authorities[index].Status = 1
-
-	if !s.RemoveAuthority(primitives.NewZeroHash()) {
-		t.Error("First call to RemoveAuthority unexpectedly failed")
-	}
-
-	if s.RemoveAuthority(primitives.NewZeroHash()) {
-		t.Error("Second call to RemoveAuthority unexpectedly passed")
-	}
-
-	if s.GetAuthorityServerType(primitives.NewZeroHash()) >= 0 {
-		t.Error("GetAuthorityServerType (after removal) >= 0")
+		h, err := a.MarshalBinary()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		a2 := new(Authority)
+		err = a2.UnmarshalBinary(h)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if a.IsSameAs(a2) == false {
+			t.Errorf("Authorities are not identical")
+		}
 	}
 }

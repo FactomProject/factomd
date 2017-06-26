@@ -90,6 +90,10 @@ var (
 
 	// Queues
 	//	InMsg
+	TotalMessageQueueInMsgGeneral = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_general_inmsg",
+		Help: "Instrumenting the netoutmsg queue",
+	})
 	CurrentMessageQueueInMsgEOM = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_queue_current_inmsg_eom",
 		Help: "Instrumenting the inmsg queue",
@@ -282,11 +286,10 @@ var (
 	})
 
 	//	NetworkOutMsg
-	TotalMessageQueueNetOutAll = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_all_netoutmsg",
-		Help: "Instrumenting the inmsg queue",
+	TotalMessageQueueNetOutMsgGeneral = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_general_netoutmsg",
+		Help: "Instrumenting the netoutmsg queue",
 	})
-
 	TotalMessageQueueNetOutMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_queue_total_netoutmsg_eom",
 		Help: "Instrumenting the netoutmsg queue",
@@ -502,58 +505,6 @@ var (
 		Help: "Tally of EOM messages processed from ProcessLists (useful for rating)",
 	})
 
-	// InMsgQueue Rates
-	InMsgTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_total_inmsg",
-		Help: "Total avg of inmsg queue arrival rate",
-	})
-
-	InMsgInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_instant_inmsg",
-		Help: "Instant avg of inmsg queue arrival rate",
-	})
-
-	InMsgTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_total_inmsg",
-		Help: "Total avg of inmsg queue complete rate",
-	})
-
-	InMsgInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_instant_inmsg",
-		Help: "Instant avg of inmsg queue complete rate",
-	})
-
-	InMsgQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_backup_inmsg",
-		Help: "Backup of queue",
-	})
-
-	// NetOut Rates
-	NetOutTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_total_netout",
-		Help: "Total avg of inmsg queue arrival rate",
-	})
-
-	NetOutInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_instant_netout",
-		Help: "Instant avg of inmsg queue arrival rate",
-	})
-
-	NetOutTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_total_netout",
-		Help: "Total avg of inmsg queue complete rate",
-	})
-
-	NetOutInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_instant_netout",
-		Help: "Instant avg of inmsg queue complete rate",
-	})
-
-	NetOutQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_backup_netout",
-		Help: "Backup of queue",
-	})
-
 	// Durations
 	TotalReviewHoldingTime = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "factomd_state_review_holding_time",
@@ -668,7 +619,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueInMsgMisc)
 
 	// Net Out
-	prometheus.MustRegister(TotalMessageQueueNetOutAll)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneral)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOM)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgACK)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgAudFault)
@@ -692,6 +643,8 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceMsg)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceResp)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMisc)
+	prometheus.MustRegister(TotalMessageQueueInMsgGeneral)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneral)
 
 	// MsgQueue chan
 	prometheus.MustRegister(TotalMsgQueueInputs)
@@ -733,20 +686,6 @@ func RegisterPrometheus() {
 	// Commits map
 	prometheus.MustRegister(TotalCommitsInputs)
 	prometheus.MustRegister(TotalCommitsOutputs)
-
-	// InMsgRate
-	prometheus.MustRegister(InMsgTotalArrivalQueueRate)
-	prometheus.MustRegister(InMsgInstantArrivalQueueRate)
-	prometheus.MustRegister(InMsgTotalCompleteQueueRate)
-	prometheus.MustRegister(InMsgInstantCompleteQueueRate)
-	prometheus.MustRegister(InMsgQueueBackupRate)
-
-	// NetOutRate
-	prometheus.MustRegister(NetOutTotalArrivalQueueRate)
-	prometheus.MustRegister(NetOutInstantArrivalQueueRate)
-	prometheus.MustRegister(NetOutTotalCompleteQueueRate)
-	prometheus.MustRegister(NetOutInstantCompleteQueueRate)
-	prometheus.MustRegister(NetOutQueueBackupRate)
 
 	// Durations
 	prometheus.MustRegister(TotalReviewHoldingTime)

@@ -117,52 +117,50 @@ func (b *IncreaseBalance) Interpret() string {
 
 func (b *IncreaseBalance) MarshalBinary() ([]byte, error) {
 	b.Init()
-	buf := new(primitives.Buffer)
+	buf := primitives.NewBuffer(nil)
 
-	buf.Write(b.ECPubKey[:])
-
-	buf.Write(b.TXID.Bytes())
-
-	primitives.EncodeVarInt(buf, b.Index)
-
-	primitives.EncodeVarInt(buf, b.NumEC)
+	err := buf.PushBinaryMarshallable(b.ECPubKey)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushBinaryMarshallable(b.TXID)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(b.Index)
+	if err != nil {
+		return nil, err
+	}
+	err = buf.PushVarInt(b.NumEC)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.DeepCopyBytes(), nil
 }
 
-func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error unmarshalling IncreaseBalance: %v", r)
-		}
-	}()
-
+func (b *IncreaseBalance) UnmarshalBinaryData(data []byte) ([]byte, error) {
+	b.Init()
 	buf := primitives.NewBuffer(data)
-	hash := make([]byte, 32)
 
-	_, err = buf.Read(hash)
+	err := buf.PopBinaryMarshallable(b.ECPubKey)
 	if err != nil {
-		return
+		return nil, err
 	}
-	b.ECPubKey = new(primitives.ByteSlice32)
-	copy(b.ECPubKey[:], hash)
-
-	_, err = buf.Read(hash)
+	err = buf.PopBinaryMarshallable(b.TXID)
 	if err != nil {
-		return
+		return nil, err
 	}
-	if b.TXID == nil {
-		b.TXID = primitives.NewZeroHash()
+	b.Index, err = buf.PopVarInt()
+	if err != nil {
+		return nil, err
 	}
-	b.TXID.SetBytes(hash)
+	b.NumEC, err = buf.PopVarInt()
+	if err != nil {
+		return nil, err
+	}
 
-	tmp := make([]byte, 0)
-	b.Index, tmp = primitives.DecodeVarInt(buf.DeepCopyBytes())
-
-	b.NumEC, tmp = primitives.DecodeVarInt(tmp)
-
-	newData = tmp
-	return
+	return buf.DeepCopyBytes(), nil
 }
 
 func (b *IncreaseBalance) UnmarshalBinary(data []byte) (err error) {

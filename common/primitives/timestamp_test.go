@@ -191,5 +191,8 @@ func TestTimestampMisc(t *testing.T) {
 		if ts.GetTimeMilliUInt64() != ts5.GetTimeMilliUInt64() {
 			t.Errorf("Timestamps are not identical")
 		}
+		if ts.UTCString() != ts5.UTCString() {
+			t.Errorf("Timestamps are not identical")
+		}
 	}
 }
