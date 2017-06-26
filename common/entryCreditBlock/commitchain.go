@@ -174,7 +174,7 @@ func (c *CommitChain) GetTimestamp() interfaces.Timestamp {
 func (c *CommitChain) IsValid() bool {
 	c.Init()
 	//double check the credits in the commit
-	if c.Credits < 11 || c.Version != 0 {
+	if c.Credits < 11 || c.Version != 0 || c.Credits > 20 {
 		return false
 	}
 

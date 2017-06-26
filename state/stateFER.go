@@ -29,12 +29,12 @@ func (this *State) ProcessRecentFERChainEntries() {
 	//  Get the first eblock from the FERChain
 	entryBlock, err := this.DB.FetchEBlockHead(FERChainHash)
 	if err != nil {
-		this.Logger.Infof("FER Chain head found to be nil", this.FERChainId)
+		this.Logger.Debugf("FER Chain head found to be nil", this.FERChainId)
 		// this.Println("Couldn't find the FER chain for id ", this.FERChainId)
 		return
 	}
 	if entryBlock == nil {
-		this.Logger.Info("FER Chain head found to be nil")
+		this.Logger.Debug("FER Chain head found to be nil")
 		// this.Println("FER Chain head found to be nil")
 		return
 	}

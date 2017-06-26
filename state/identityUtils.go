@@ -372,7 +372,7 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	}
 
 	newData = buf.DeepCopyBytes()
-  
+
 	return
 }
 

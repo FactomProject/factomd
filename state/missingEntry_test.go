@@ -22,11 +22,22 @@ func TestMissingEntryBlockMarshalUnmarshal(t *testing.T) {
 		if err != nil {
 			t.Errorf("%v", err)
 		}
+
 		if len(rest) > 0 {
 			t.Errorf("Returned too much data")
 		}
 		if s.IsSameAs(s2) == false {
 			t.Errorf("MissingEntryBlocks are not the same")
+		}
+
+		if i == 0 {
+			err := s2.UnmarshalBinary(b)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+			if s.IsSameAs(s2) == false {
+				t.Errorf("MissingEntryBlocks are not the same")
+			}
 		}
 	}
 }

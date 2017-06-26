@@ -28,7 +28,6 @@ type EOM struct {
 	FactoidVM bool
 
 	//Not marshalled
-	Processed  bool
 	hash       interfaces.IHash
 	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
 }
@@ -77,7 +76,14 @@ func (e *EOM) Process(dbheight uint32, state interfaces.IState) bool {
 }
 
 func (m *EOM) GetRepeatHash() interfaces.IHash {
-	return m.GetMsgHash()
+	if m.RepeatHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.RepeatHash = primitives.Sha(data)
+	}
+	return m.RepeatHash
 }
 
 func (m *EOM) GetHash() interfaces.IHash {

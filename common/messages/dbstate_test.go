@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -141,6 +142,30 @@ func TestSimpleDBStateMsgValidate(t *testing.T) {
 	}
 
 	delete(constants.CheckPoints, state.GetHighestSavedBlk()+1)
+}
+
+func TestDBStateDataValidate(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	msg := newDBStateMsg()
+
+	if v := msg.ValidateData(state); v != 1 {
+		t.Errorf("Validate data should be 1, found %d", v)
+	}
+
+	// Invalidate it
+	eblock, _ := testHelper.CreateTestEntryBlock(nil)
+	msg.EBlocks = append(msg.EBlocks, eblock)
+	if v := msg.ValidateData(state); v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
+	msg2 := newDBStateMsg()
+	e := entryBlock.NewEntry()
+	msg2.Entries = append(msg2.Entries, e)
+	if v := msg2.ValidateData(state); v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
 }
 
 // Test known conditions

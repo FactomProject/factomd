@@ -5,12 +5,52 @@
 package primitives_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"testing"
 
 	"github.com/FactomProject/ed25519"
 	. "github.com/FactomProject/factomd/common/primitives"
 )
+
+func TestInit(t *testing.T) {
+	p := new(PrivateKey)
+	p.Init()
+	if p.Public() == nil {
+		t.Error("Should not be nil")
+	}
+
+	if p.Key == nil {
+		t.Error("Should not be nil")
+	}
+
+	_, err := p.CustomMarshalText2("")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if bytes.Compare(p.Public(), make([]byte, 32)) != 0 {
+		t.Error("Should be the same")
+	}
+}
+
+func TestBadHex(t *testing.T) {
+	_, err := NewPrivateKeyFromHex("notgoodhex")
+	if err == nil {
+		t.Error("Should error on invalid hex characters")
+	}
+
+	_, err = NewPrivateKeyFromHex("")
+	if err == nil {
+		t.Error("Should error on no character")
+	}
+
+	_, err = NewPrivateKeyFromHex("aa")
+	if err == nil {
+		t.Error("Should error on no character")
+	}
+
+}
 
 func TestUnmarshalNilPublicKey(t *testing.T) {
 	defer func() {
