@@ -535,12 +535,6 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	}
 
-	// If we have a process list at the height of a DBState, then get rid of any entry blocks we might have had.
-	pl := s.ProcessLists.Get(dbheight)
-	if pl != nil {
-		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock, 0)
-	}
-
 	if dbstatemsg.IsInDB == false {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
 		dbstate.ReadyToSave = true
