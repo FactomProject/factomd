@@ -619,7 +619,6 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueInMsgMisc)
 
 	// Net Out
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneral)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOM)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgACK)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgAudFault)
