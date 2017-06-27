@@ -286,7 +286,10 @@ type IState interface {
 	GetMissingEntryCount() uint32
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
+	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
+	GetCurrentMinuteStartTime() int64
+	GetCurrentTime() int64
 	GetDelay() int64
 	SetDelay(int64)
 	GetDropRate() int
