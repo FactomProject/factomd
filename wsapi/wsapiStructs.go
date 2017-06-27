@@ -61,6 +61,15 @@ type HeightsResponse struct {
 	EntryBlockDBHeightComplete   int64 `json:"entryblockdbheightcomplete"`
 }
 
+type CurrentMinuteResponse struct {
+	LeaderHeight            int64 `json:"leaderheight"`
+	Minute                  int64 `json:"minute"`
+	CurrentBlockStartTime   int64 `json:"currentblockstarttime"`
+	CurrentMinuteStartTime  int64 `json:"currentminutestarttime"`
+	CurrentTime             int64 `json:"currenttime"`
+	DirectoryBlockInSeconds int64 `json:"directoryblockinseconds"`
+}
+
 type RawDataResponse struct {
 	Data string `json:"data"`
 	//TODO: add
