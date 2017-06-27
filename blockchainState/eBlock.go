@@ -147,8 +147,6 @@ func (bs *BlockchainState) ProcessEntryHash(v, block interfaces.IHash) error {
 	err := bs.PopCommit(v)
 	if err != nil {
 		return err
-		//fmt.Printf("Error - %v\n", err)
-		//panic("")
 	}
 	return nil
 }

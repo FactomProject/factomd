@@ -40,7 +40,7 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 
 	entries := ecBlock.GetEntries()
 	for _, v := range entries {
-		err := bs.ProcessECEntries(v)
+		err := bs.ProcessECEntry(v)
 		if err != nil {
 			return err
 		}
@@ -48,7 +48,7 @@ func (bs *BlockchainState) ProcessECBlock(ecBlock interfaces.IEntryCreditBlock) 
 	return nil
 }
 
-func (bs *BlockchainState) ProcessECEntries(v interfaces.IECBlockEntry) error {
+func (bs *BlockchainState) ProcessECEntry(v interfaces.IECBlockEntry) error {
 	bs.Init()
 	switch v.ECID() {
 	case entryCreditBlock.ECIDBalanceIncrease:

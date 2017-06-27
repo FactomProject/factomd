@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, error) {
@@ -51,12 +52,10 @@ func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, error) {
 }
 
 func (bm *BlockMaker) ProcessEBEntry(e interfaces.IEntry) error {
-	//TODO: handle minute markers
-	//TODO: do
 	ebe := new(EBlockEntry)
 	ebe.Entry = e
 	ebe.Minute = bm.CurrentMinute
-	if bm.BState.CanProcessEntryHash(e.GetHash()) == false {
+	if bm.BState.ProcessEntryHash(e.GetHash(), primitives.NewZeroHash()) != nil {
 		bm.PendingEBEntries = append(bm.PendingEBEntries, ebe)
 	} else {
 		bm.ProcessedEBEntries = append(bm.ProcessedEBEntries, ebe)

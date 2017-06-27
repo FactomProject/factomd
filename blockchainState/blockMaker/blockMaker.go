@@ -19,8 +19,8 @@ type BlockMaker struct {
 	PendingABEntries   []interfaces.IABEntry
 	ProcessedABEntries []interfaces.IABEntry
 
-	PendingECBEntries   []interfaces.IECBlockEntry
-	ProcessedECBEntries []interfaces.IECBlockEntry
+	PendingECBEntries   []*ECBlockEntry
+	ProcessedECBEntries []*ECBlockEntry
 
 	BState *blockchainState.BlockchainState
 
