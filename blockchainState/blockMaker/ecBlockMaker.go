@@ -5,13 +5,41 @@
 package blockMaker
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 func (bm *BlockMaker) BuildECBlock() (interfaces.IEntryCreditBlock, error) {
-	return nil, nil
+	sort.Sort(ECBlockEntryByMinute(bm.ProcessedECBEntries))
+
+	ecBlock := entryCreditBlock.NewECBlock()
+	ecBlock.GetHeader().SetPrevFullHash(bm.BState.ECBlockHead.Hash)
+	ecBlock.GetHeader().SetPrevHeaderHash(bm.BState.ECBlockHead.KeyMR)
+	ecBlock.GetHeader().SetDBHeight(bm.BState.ECBlockHead.Height + 1)
+
+	minute := 0
+	for _, v := range bm.ProcessedECBEntries {
+		for ; minute < v.Minute; minute++ {
+			e := entryCreditBlock.NewMinuteNumber(uint8(minute + 1))
+			ecBlock.GetBody().AddEntry(e)
+		}
+		ecBlock.GetBody().AddEntry(v.Entry)
+	}
+	for ; minute < 9; minute++ {
+		e := entryCreditBlock.NewMinuteNumber(uint8(minute + 1))
+		ecBlock.GetBody().AddEntry(e)
+	}
+
+	err := ecBlock.BuildHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	return ecBlock, nil
 }
 
 func (bm *BlockMaker) ProcessECEntry(e interfaces.IECBlockEntry) error {
