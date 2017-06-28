@@ -21,6 +21,7 @@ func (state *State) ValidatorLoop() {
 			state.DB.Close()
 			state.StateSaverStruct.StopSaving()
 			fmt.Println(state.GetFactomNodeName(), "closed")
+			state.IsRunning = false
 			return
 		default:
 		}
