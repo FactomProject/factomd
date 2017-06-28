@@ -17,11 +17,12 @@ import (
 var _ = debug.PrintStack
 
 type Transaction struct {
-	// Not marshalled
-	Txid interfaces.IHash `json:"txid"`
+	// Not marshalled in MarshalBinary()
+	Txid        interfaces.IHash `json:"txid"`
+	BlockHeight uint32           `json:"blockheight"`
+	sigValid    bool
 
-	// Marshalled
-
+	// Marshalled in MarshalBinary()
 	// version     uint64         Version of transaction. Hardcoded, naturally.
 	MilliTimestamp uint64 `json:"millitimestamp"`
 	// #inputs     uint8          number of inputs
@@ -32,10 +33,6 @@ type Transaction struct {
 	OutECs    []interfaces.ITransAddress   `json:"outecs"`
 	RCDs      []interfaces.IRCD            `json:"rcds"`
 	SigBlocks []interfaces.ISignatureBlock `json:"sigblocks"`
-
-	// Not marshalled
-	BlockHeight uint32 `json:"blockheight"`
-	sigValid    bool
 }
 
 var _ interfaces.ITransaction = (*Transaction)(nil)
