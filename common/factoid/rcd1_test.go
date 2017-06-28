@@ -31,15 +31,37 @@ func TestUnmarshalNilRCD_1(t *testing.T) {
 	}
 }
 
+func TestJSONMarshal(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	a := newRCD_1()
+	s, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if s[:2] != "01" {
+		t.Error("Not prepended by rcd type")
+	}
+
+	if len(s) != 66 {
+		t.Error("Not the correct length")
+	}
+}
+
 type zeroReader1 struct{}
 
 var zero1 zeroReader1
 
 func (zeroReader1) Read(buf []byte) (int, error) {
 	//if r==nil { r = rand.New(rand.NewSource(time.Now().Unix())) }
-	if r == nil {
-		r = rand.New(rand.NewSource(1))
-	}
+	//if r == nil {
+	r := rand.New(rand.NewSource(1))
+	//}
 	for i := range buf {
 		buf[i] = byte(r.Int())
 	}

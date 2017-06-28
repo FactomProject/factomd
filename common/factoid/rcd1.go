@@ -6,6 +6,7 @@ package factoid
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/ed25519"
@@ -13,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
+
+var _ json.SyntaxError
 
 /**************************
  * RCD_1 Simple Signature
@@ -46,6 +49,10 @@ func (e *RCD_1) JSONByte() ([]byte, error) {
 
 func (e *RCD_1) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
+}
+
+func (e *RCD_1) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprintf("%x", append([]byte{0x01}, e.PublicKey[:]...)))
 }
 
 func (b RCD_1) String() string {
