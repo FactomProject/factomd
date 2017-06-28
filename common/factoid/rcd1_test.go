@@ -44,11 +44,11 @@ func TestJSONMarshal(t *testing.T) {
 		t.Error(err)
 	}
 
-	if s[:2] != "01" {
-		t.Error("Not prepended by rcd type")
+	if s[1:3] != "01" {
+		t.Errorf("Not prepended by rcd type, found %s", s)
 	}
 
-	if len(s) != 66 {
+	if len(s) != 68 {
 		t.Error("Not the correct length")
 	}
 }
