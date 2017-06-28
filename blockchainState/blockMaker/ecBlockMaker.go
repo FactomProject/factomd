@@ -5,7 +5,6 @@
 package blockMaker
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -17,8 +16,8 @@ func (bm *BlockMaker) BuildECBlock() (interfaces.IEntryCreditBlock, error) {
 	sort.Sort(ECBlockEntryByMinute(bm.ProcessedECBEntries))
 
 	ecBlock := entryCreditBlock.NewECBlock()
-	ecBlock.GetHeader().SetPrevFullHash(bm.BState.ECBlockHead.Hash)
 	ecBlock.GetHeader().SetPrevHeaderHash(bm.BState.ECBlockHead.KeyMR)
+	ecBlock.GetHeader().SetPrevFullHash(bm.BState.ECBlockHead.Hash)
 	ecBlock.GetHeader().SetDBHeight(bm.BState.ECBlockHead.Height + 1)
 
 	minute := 0

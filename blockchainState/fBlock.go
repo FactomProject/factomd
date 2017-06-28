@@ -42,6 +42,13 @@ func (bs *BlockchainState) ProcessFBlock(fBlock interfaces.IFBlock) error {
 func (bs *BlockchainState) ProcessFactoidTransaction(tx interfaces.ITransaction, exchangeRate uint64) error {
 	bs.Init()
 	ins := tx.GetInputs()
+	//First iterate over the inputs to make sure they have enough money before anything gets applied
+	for _, w := range ins {
+		if bs.FBalances[w.GetAddress().String()] < int64(w.GetAmount()) {
+			return fmt.Errorf("Not enough factoids")
+		}
+	}
+	//Then apply balances
 	for _, w := range ins {
 		if bs.FBalances[w.GetAddress().String()] < int64(w.GetAmount()) {
 			return fmt.Errorf("Not enough factoids")
