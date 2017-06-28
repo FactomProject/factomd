@@ -398,3 +398,55 @@ func TestHandleV2GetTranasction(t *testing.T) {
 		}
 	}
 }
+
+func TestJSONString(t *testing.T) {
+	eblock := new(EBlock)
+	eblock.Header.BlockSequenceNumber = 5
+	eblock.Header.ChainID = "Findthis"
+
+	if s, err := eblock.JSONString(); err != nil {
+		t.Error(err)
+	} else {
+		if !strings.Contains(s, "Findthis") {
+			t.Error("Missing chainID")
+		}
+	}
+
+	e := new(EntryStruct)
+	e.ChainID = "Findthis"
+	if s, err := e.JSONString(); err != nil {
+		t.Error(err)
+	} else {
+		if !strings.Contains(s, "Findthis") {
+			t.Error("Missing chainID")
+		}
+	}
+
+	c := new(CHead)
+	c.ChainHead = "Findthis"
+	if s, err := c.JSONString(); err != nil {
+		t.Error(err)
+	} else {
+		if !strings.Contains(s, "Findthis") {
+			t.Error("Missing chainID")
+		}
+	}
+
+	d := new(DBlock)
+	d.Header.PrevBlockKeyMR = "Findthis"
+	if s, err := d.JSONString(); err != nil {
+		t.Error(err)
+	} else {
+		if !strings.Contains(s, "Findthis") {
+			t.Error("Missing chainID")
+		}
+	}
+
+	// 	Header struct {
+	// 	BlockSequenceNumber int64  `json:"blocksequencenumber"`
+	// 	ChainID             string `json:"chainid"`
+	// 	PrevKeyMR           string `json:"prevkeymr"`
+	// 	Timestamp           int64  `json:"timestamp"`
+	// 	DBHeight            int64  `json:"dbheight"`
+	// } `json:"header"`)
+}
