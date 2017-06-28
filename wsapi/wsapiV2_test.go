@@ -441,12 +441,4 @@ func TestJSONString(t *testing.T) {
 			t.Error("Missing chainID")
 		}
 	}
-
-	// 	Header struct {
-	// 	BlockSequenceNumber int64  `json:"blocksequencenumber"`
-	// 	ChainID             string `json:"chainid"`
-	// 	PrevKeyMR           string `json:"prevkeymr"`
-	// 	Timestamp           int64  `json:"timestamp"`
-	// 	DBHeight            int64  `json:"dbheight"`
-	// } `json:"header"`)
 }

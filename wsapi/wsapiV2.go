@@ -295,6 +295,7 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	return resp, nil
 }
 
+// correctLowerCasedStringToOriginal will replace the matching ToLowered(original) with the original
 func correctLowerCasedStringToOriginal(j []byte, original string) []byte {
 	return []byte(strings.Replace(string(j), strings.ToLower(original), original, -1))
 }
