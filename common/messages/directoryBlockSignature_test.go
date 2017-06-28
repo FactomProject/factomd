@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestUnmarshalNilDirectoryBlockSignature(t *testing.T) {
@@ -71,7 +73,7 @@ func TestMarshalUnmarshalDirectoryBlockSignature(t *testing.T) {
 }
 
 func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
-	dbs := newSignedDirectoryBlockSignature()
+	dbs, _, _ := newSignedDirectoryBlockSignature()
 
 	hex, err := dbs.MarshalBinary()
 	if err != nil {
@@ -111,9 +113,48 @@ func TestSignAndVerifyDirectoryBlockSignature(t *testing.T) {
 	}
 }
 
+func TestInvalidSignature(t *testing.T) {
+	s := testHelper.CreateEmptyTestState()
+	m, a, key := newSignedDirectoryBlockSignature()
+	s.Authorities = append(s.Authorities, a)
+
+	data, err := m.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+	m2 := new(DirectoryBlockSignature)
+	err = m2.UnmarshalBinary(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	s.ProcessLists.Get(s.PLProcessHeight).AddFedServer(m.ServerIdentityChainID)
+
+	v := m.Validate(s)
+	// Should be 0 as the authority set is unknown
+	if v != 1 {
+		t.Errorf("Expected 1, found %d", v)
+	}
+	m.Sigvalid = false
+
+	// Now an invalid sig
+	m2.DBHeight = m.DBHeight + 1
+	err = m2.Sign(key)
+	if err != nil {
+		panic(err)
+	}
+
+	m.Signature = m2.Signature
+	v = m.Validate(s)
+
+	if v != -1 {
+		t.Errorf("Expected -1, found %d", v)
+	}
+}
+
 func newDirectoryBlockSignature() *DirectoryBlockSignature {
 	dbs := new(DirectoryBlockSignature)
-	dbs.DBHeight = 123456
+	dbs.DBHeight = 123
 	//hash, _ := primitives.NewShaHashFromStr("cbd3d09db6defdc25dfc7d57f3479b339a077183cd67022e6d1ef6c041522b40")
 	//dbs.DirectoryBlockKeyMR = hash
 	hash, _ := primitives.NewShaHashFromStr("a077183cd67022e6d1ef6c041522b40cbd3d09db6defdc25dfc7d57f3479b339")
@@ -123,7 +164,7 @@ func newDirectoryBlockSignature() *DirectoryBlockSignature {
 	return dbs
 }
 
-func newSignedDirectoryBlockSignature() *DirectoryBlockSignature {
+func newSignedDirectoryBlockSignature() (*DirectoryBlockSignature, *state.Authority, *primitives.PrivateKey) {
 	dbs := newDirectoryBlockSignature()
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
@@ -133,5 +174,9 @@ func newSignedDirectoryBlockSignature() *DirectoryBlockSignature {
 	if err != nil {
 		panic(err)
 	}
-	return dbs
+
+	a := new(state.Authority)
+	a.SigningKey = *(key.Pub)
+	a.AuthorityChainID = dbs.ServerIdentityChainID
+	return dbs, a, key
 }
