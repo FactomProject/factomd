@@ -15,8 +15,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-var _ json.SyntaxError
-
 /**************************
  * RCD_1 Simple Signature
  **************************/
@@ -51,6 +49,7 @@ func (e *RCD_1) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
+// MarshalJSON will prepend the RCD type
 func (e *RCD_1) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fmt.Sprintf("%x", append([]byte{0x01}, e.PublicKey[:]...)))
 }
