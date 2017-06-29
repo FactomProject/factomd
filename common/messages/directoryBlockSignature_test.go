@@ -204,6 +204,19 @@ func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
 	}
 }
 
+//BenchmarkValidateMakingFunction tests the creating of the logger function and NOT using it.
+//
+//  1000000	      1312 ns/op
+func BenchmarkValidateMakingInstantiateNoUse(b *testing.B) {
+	s := testHelper.CreateEmptyTestState()
+	m, _, _ := newSignedDirectoryBlockSignature()
+	for i := 0; i < b.N; i++ {
+		//m.Validate(s)
+		vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
+		var _ = vlog
+	}
+}
+
 //BenchmarkValidateMakingFunctionUse tests the creating of the log function and using it.
 //
 // To ioutil.Discard

@@ -85,3 +85,95 @@ panic
 ```
 
 Run as json formatted `factomd -logjson`
+
+## Some tricks
+
+Logging is expensive. String formatting is expensive. If you want to use the same fields in every error log message in a function, you will have to instantiate it so every error message is within the same scope as the log instantiation. Example:
+
+```golang
+func Foo() {
+	// 1300ns cost
+	funcLogger := log.WithField("func":"Foo")
+
+	err := doSomething()
+	if err != nil {
+		funcLogger.Error("Something bad")
+	}
+
+	err := doSomethingElse()
+	if err != nil {
+		funcLogger.Error("Something else bad")
+	}
+}
+```
+
+The problem here is that errors are infrequent, but every call has to instantiat the logger. This is wasted expense, but can be minimized. Instead of instantiating a logger, you can instantiate a function. That way, the logger is only instantiated if the function is called (AKA only the error case). In the normal case, the cost is drastically reduced.
+
+### Soltuion:
+
+```golang
+func Foo() {
+	// 1.99ns cost
+	funcLogger := func(format string, args ...interface{}) {
+		log.WithField("func":"Foo").Errorf(format, args...)
+	}
+
+	err := doSomething()
+	if err != nil {
+		funcLogger("Something bad")
+	}
+
+	err := doSomethingElse()
+	if err != nil {
+		funcLogger("Something else bad")
+	}
+}
+```
+
+
+### Benchmarks
+
+```golang
+//BenchmarkValidateMakingFunction tests the creating of the log FUNCTION and NOT using it.
+// 2000000000	         1.99 ns/op
+func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
+	s := testHelper.CreateEmptyTestState()
+	m, _, _ := newSignedDirectoryBlockSignature()
+	for i := 0; i < b.N; i++ {
+		vlog := func(format string, args ...interface{}) {
+			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
+		}
+		var _ = vlog
+	}
+}
+
+//BenchmarkValidateMakingFunction tests the creating of the log function and NOT using it.
+//  1000000	      1312 ns/op
+func BenchmarkValidateMakingInstantiateNoUse(b *testing.B) {
+	s := testHelper.CreateEmptyTestState()
+	m, _, _ := newSignedDirectoryBlockSignature()
+	for i := 0; i < b.N; i++ {
+		vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
+		var _ = vlog
+	}
+}
+
+//BenchmarkValidateMakingFunctionUse tests the creating of the log function and using it.
+//
+// To ioutil.Discard
+//  100000	     27277 ns/op
+//
+// Printing to stdout
+//  30000	     60523 ns/op
+func BenchmarkValidateMakingFunctionUse(b *testing.B) {
+	s := testHelper.CreateEmptyTestState()
+	m, _, _ := newSignedDirectoryBlockSignature()
+	log.SetOutput(ioutil.Discard)
+	for i := 0; i < b.N; i++ {
+		vlog := func(format string, args ...interface{}) {
+			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
+		}
+		vlog("%s", "hello")
+	}
+}
+```

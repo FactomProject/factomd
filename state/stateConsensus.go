@@ -1433,7 +1433,10 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
 	//vlog makes logging anything in Validate() easier
-	plog := consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight()})
+	//		The instantiation as a function makes it almost no overhead if you do not use it
+	plog := func(format string, args ...interface{}) {
+		consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
+	}
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
 		//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)", s.FactomNodeName,
@@ -1515,7 +1518,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
-			plog.WithField("msg", dbs.String()).Errorf("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
+			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
 				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
 			return false
 		}
@@ -1531,7 +1534,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
 		if err != nil || valid != 1 {
-			plog.WithField("msg", dbs.String()).Errorf("Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
+			plog("Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			return false
 		}
 
