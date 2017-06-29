@@ -131,49 +131,37 @@ func Foo() {
 ```
 
 
-### Benchmarks
+### Benchmarks (See common/messages/directoryBlockSignature_test.go for actual code to benchmark it)
 
 ```golang
-//BenchmarkValidateMakingFunction tests the creating of the log FUNCTION and NOT using it.
+// Operations           Time per op
 // 2000000000	         1.99 ns/op
-func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
-	s := testHelper.CreateEmptyTestState()
-	m, _, _ := newSignedDirectoryBlockSignature()
-	for i := 0; i < b.N; i++ {
-		vlog := func(format string, args ...interface{}) {
-			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
-		}
-		var _ = vlog
+func Foo(m *msg) {
+	// Instantiating a function, rather than a logger
+	vlog := func(format string, args ...interface{}) {
+		log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
 	}
 }
 
-//BenchmarkValidateMakingFunction tests the creating of the log function and NOT using it.
+// Operations     Time per op
 //  1000000	      1312 ns/op
-func BenchmarkValidateMakingInstantiateNoUse(b *testing.B) {
-	s := testHelper.CreateEmptyTestState()
-	m, _, _ := newSignedDirectoryBlockSignature()
-	for i := 0; i < b.N; i++ {
-		vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
-		var _ = vlog
-	}
+func Foo(m *msg) {
+	// Instantiating a logger
+	vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
 }
 
-//BenchmarkValidateMakingFunctionUse tests the creating of the log function and using it.
+// Comparing printing to std to ioutil.Discard
 //
 // To ioutil.Discard
 //  100000	     27277 ns/op
 //
 // Printing to stdout
 //  30000	     60523 ns/op
-func BenchmarkValidateMakingFunctionUse(b *testing.B) {
-	s := testHelper.CreateEmptyTestState()
-	m, _, _ := newSignedDirectoryBlockSignature()
-	log.SetOutput(ioutil.Discard)
-	for i := 0; i < b.N; i++ {
-		vlog := func(format string, args ...interface{}) {
-			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
-		}
-		vlog("%s", "hello")
+func Foo(m *msg) {
+	// Actually printing a log
+	vlog := func(format string, args ...interface{}) {
+		log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
 	}
+	vlog("%s", "hello")
 }
 ```
