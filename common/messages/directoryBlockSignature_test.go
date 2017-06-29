@@ -194,7 +194,7 @@ func newSignedDirectoryBlockSignature() (*DirectoryBlockSignature, *state.Author
 // 2000000000	         1.99 ns/op
 func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
 	s := testHelper.CreateEmptyTestState()
-	m := newSignedDirectoryBlockSignature()
+	m, _, _ := newSignedDirectoryBlockSignature()
 	for i := 0; i < b.N; i++ {
 		//m.Validate(s)
 		vlog := func(format string, args ...interface{}) {
@@ -214,7 +214,7 @@ func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
 
 func BenchmarkValidateMakingFunctionUse(b *testing.B) {
 	s := testHelper.CreateEmptyTestState()
-	m := newSignedDirectoryBlockSignature()
+	m, _, _ := newSignedDirectoryBlockSignature()
 	log.SetOutput(ioutil.Discard)
 	for i := 0; i < b.N; i++ {
 		//m.Validate(s)
