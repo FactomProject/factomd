@@ -781,6 +781,7 @@ func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interfa
 	h.CurrentBlockStartTime = state.GetCurrentBlockStartTime()
 	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
 	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
+	h.StallDetected = state.IsStalled()
 
 	//h.LastBlockTime = state.GetTimestamp
 	return h, nil

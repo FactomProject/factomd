@@ -1501,6 +1501,36 @@ func (s *State) IncEntries() {
 	s.NewEntries++
 }
 
+func (s *State) IsStalled() bool {
+	fmt.Println(time.Now().UnixNano() - s.CurrentMinuteStartTime)
+	if s.Syncing {
+		return false
+	}
+
+	if s.GetHighestKnownBlock() < s.GetTrueLeaderHeight()-2 {
+		fmt.Println("Block Height Stall Message")
+		return true
+	}
+
+	if s.CurrentMinuteStartTime == 0 { //0 while syncing.
+		return false
+	}
+
+	//use 1/10 of the block time times 1.5 in seconds as a timeout on the 'minutes'
+	var stalltime float64
+
+	stalltime = float64(int64(s.GetDirectoryBlockInSeconds()) / 10)
+	stalltime = stalltime * 1.5 * 10000000000
+
+	if float64(s.CurrentMinuteStartTime) < float64(time.Now().UnixNano())-stalltime { //-90 seconds was arbitrary
+		fmt.Println("Seconds Stall Message:")
+		fmt.Println(time.Now().UnixNano() - s.CurrentMinuteStartTime)
+		return true
+	}
+
+	return false
+}
+
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
 	result, _, err := s.LoadDataByHash(hash)
 	if result != nil && err == nil {

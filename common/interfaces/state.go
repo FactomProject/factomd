@@ -290,6 +290,7 @@ type IState interface {
 	GetCurrentMinute() int
 	GetCurrentMinuteStartTime() int64
 	GetCurrentTime() int64
+	IsStalled() bool
 	GetDelay() int64
 	SetDelay(int64)
 	GetDropRate() int

@@ -68,6 +68,7 @@ type CurrentMinuteResponse struct {
 	CurrentMinuteStartTime  int64 `json:"currentminutestarttime"`
 	CurrentTime             int64 `json:"currenttime"`
 	DirectoryBlockInSeconds int64 `json:"directoryblockinseconds"`
+	StallDetected           bool  `json:"stalldetected"`
 }
 
 type RawDataResponse struct {
