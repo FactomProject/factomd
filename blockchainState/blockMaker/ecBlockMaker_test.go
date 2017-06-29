@@ -33,11 +33,8 @@ func TestBuildECBlocks(t *testing.T) {
 			if err != nil {
 				t.Errorf("%v", err)
 			}
-			t.Logf("Len of entries - %v", len(bm.ProcessedECBEntries))
 		}
 	}
-
-	t.Logf("Len of entries - %v", len(bm.ProcessedECBEntries))
 
 	ecb2, err := bm.BuildECBlock()
 	if err != nil {

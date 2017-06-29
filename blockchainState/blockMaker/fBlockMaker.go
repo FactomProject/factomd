@@ -34,7 +34,7 @@ func (bm *BlockMaker) BuildFBlock() (interfaces.IFBlock, error) {
 	return fb, nil
 }
 
-func (bm *BlockMaker) ProcessFBEntry(e interfaces.ITransaction) error {
+func (bm *BlockMaker) ProcessFactoidTransaction(e interfaces.ITransaction) error {
 	if bm.BState.ProcessFactoidTransaction(e, bm.BState.ExchangeRate) != nil {
 		bm.PendingFBEntries = append(bm.PendingFBEntries, e)
 	} else {
