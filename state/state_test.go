@@ -44,6 +44,23 @@ func TestSecretCode(t *testing.T) {
 	fmt.Printf("Secret Numbers %x %x %x\n", num1, num2, num3)
 }
 
+func TestStateKeys(t *testing.T) {
+	s := testHelper.CreateEmptyTestState()
+	sec := primitives.RandomPrivateKey()
+	s.SimSetNewKeys(sec)
+	act := s.GetServerPrivateKey()
+	if act.PublicKeyString() != sec.PublicKeyString() {
+		t.Error("Public key is not correct")
+	}
+
+	if act.PrivateKeyString() != sec.PrivateKeyString() {
+		t.Error("Public key is not correct")
+	}
+
+	var _ = s.GetStatus()
+
+}
+
 /*
 func TestDirBlockHead(t *testing.T) {
 	state := testHelper.CreateAndPopulateTestState()

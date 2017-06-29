@@ -36,9 +36,8 @@ type DirectoryBlockSignature struct {
 	SysHash     interfaces.IHash
 
 	//Not marshalled
-	Matches   bool
-	Processed bool
-	hash      interfaces.IHash
+	Matches bool
+	hash    interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)

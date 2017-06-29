@@ -962,6 +962,7 @@ func (list *DBStateList) FixupLinks(p *DBState, d *DBState) (progress bool) {
 		d.DirectoryBlock.AddEntry(eb.GetChainID(), key)
 	}
 
+	// These two lines are crucial. They init/sort the dblock
 	d.DirectoryBlock.BuildBodyMR()
 	d.DirectoryBlock.MarshalBinary()
 
@@ -1226,29 +1227,82 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	pl := list.State.ProcessLists.Get(uint32(dbheight))
 
+	allowedEBlocks := make(map[[32]byte]struct{})
+	allowedEntries := make(map[[32]byte]struct{})
+
+	// Eblocks from DBlock
+	for _, eb := range d.DirectoryBlock.GetEBlockDBEntries() {
+		allowedEBlocks[eb.GetKeyMR().Fixed()] = struct{}{}
+	}
+
+	// Go through eblocks to build allowed entry map
+	for _, eb := range d.EntryBlocks {
+		keymr, err := eb.KeyMR()
+		if err != nil {
+			// I am not sure how we got to this point
+			continue
+		}
+		// If its a good eblock, add it's entries to the allowed
+		if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
+			for _, e := range eb.GetEntryHashes() {
+				allowedEntries[e.Fixed()] = struct{}{}
+			}
+		} else {
+			list.State.Logf("error", "Error putting entries in allowedmap, as Eblock is not in Dblock")
+		}
+	}
+
+	// Info from DBState
 	if len(d.EntryBlocks) > 0 {
 		for _, eb := range d.EntryBlocks {
-			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-				panic(err.Error())
+			keymr, err := eb.KeyMR()
+			if err != nil {
+				continue
+			}
+			// If it's in the DBlock
+			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
+				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
+					panic(err.Error())
+				}
+			} else {
+				list.State.Logf("error", "Error saving eblock from dbstate, eblock not allowed")
 			}
 		}
 		for _, e := range d.Entries {
-			if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
-				panic(err.Error())
+			// If it's in the DBlock
+			if _, ok := allowedEntries[e.GetHash().Fixed()]; ok {
+				if err := list.State.DB.InsertEntryMultiBatch(e); err != nil {
+					panic(err.Error())
+				}
+			} else {
+				list.State.Logf("error", "Error saving entry from dbstate, entry not allowed")
 			}
 		}
 	}
 
+	// Info from ProcessList
 	if pl != nil {
 		for _, eb := range pl.NewEBlocks {
-			if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
-				panic(err.Error())
+			keymr, err := eb.KeyMR()
+			if err != nil {
+				continue
 			}
-
-			for _, e := range eb.GetBody().GetEBEntries() {
-				if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+			if _, ok := allowedEBlocks[keymr.Fixed()]; ok {
+				if err := list.State.DB.ProcessEBlockMultiBatch(eb, true); err != nil {
 					panic(err.Error())
 				}
+
+				for _, e := range eb.GetBody().GetEBEntries() {
+					if _, ok := allowedEntries[e.Fixed()]; ok {
+						if err := list.State.DB.InsertEntryMultiBatch(pl.GetNewEntry(e.Fixed())); err != nil {
+							panic(err.Error())
+						}
+					} else {
+						list.State.Logf("error", "Error saving entry from process list, entry not allowed")
+					}
+				}
+			} else {
+				list.State.Logf("error", "Error saving eblock from process list, eblock not allowed")
 			}
 		}
 		pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)

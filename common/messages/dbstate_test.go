@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -143,6 +144,30 @@ func TestSimpleDBStateMsgValidate(t *testing.T) {
 	delete(constants.CheckPoints, state.GetHighestSavedBlk()+1)
 }
 
+func TestDBStateDataValidate(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	msg := newDBStateMsg()
+
+	if v := msg.ValidateData(state); v != 1 {
+		t.Errorf("Validate data should be 1, found %d", v)
+	}
+
+	// Invalidate it
+	eblock, _ := testHelper.CreateTestEntryBlock(nil)
+	msg.EBlocks = append(msg.EBlocks, eblock)
+	if v := msg.ValidateData(state); v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
+	msg2 := newDBStateMsg()
+	e := entryBlock.NewEntry()
+	msg2.Entries = append(msg2.Entries, e)
+	if v := msg2.ValidateData(state); v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
+}
+
 // Test known conditions
 //		All sign
 //		Half + 1 Sign
@@ -218,6 +243,7 @@ func TestSignedDBStateValidate(t *testing.T) {
 		}
 
 		d := set.DBlock
+		// state.ProcessLists.Get(d.GetDatabaseHeight()).FedServers = make([]interfaces.IServer, 0)
 		tot := 0
 		for c := start; c < end; c++ {
 			tot++
@@ -252,17 +278,17 @@ func TestSignedDBStateValidate(t *testing.T) {
 		m.IgnoreSigs = true
 		if i%2 == 0 {
 			if i%6 == 0 {
-				if msg.Validate(state) < 0 {
-					t.Errorf("Should be valid, found %d", msg.Validate(state))
+				if m.ValidateSignatures(state) < 0 {
+					t.Errorf("[0] Should be valid, found %d", m.ValidateSignatures(state))
 				}
 			} else {
-				if msg.Validate(state) != 0 {
-					t.Errorf("Should be invalid")
+				if m.ValidateSignatures(state) > 0 {
+					t.Errorf("%s Should be invalid %d, Sigs: %d, Feds: %d", "s", m.ValidateSignatures(state), len(m.SignatureList.List), len(state.ProcessLists.Get(d.GetDatabaseHeight()).FedServers))
 				}
 			}
 		} else {
-			if msg.Validate(state) < 0 {
-				t.Errorf("Should be valid, found %d", msg.Validate(state))
+			if m.ValidateSignatures(state) < 0 && len(m.SignatureList.List) > (len(state.ProcessLists.Get(d.GetDatabaseHeight()).FedServers)/2)+1 {
+				t.Errorf("[2] %s Should be valid %d, Sigs: %d, Feds: %d", "s", m.ValidateSignatures(state), len(m.SignatureList.List), len(state.ProcessLists.Get(d.GetDatabaseHeight()).FedServers))
 			}
 		}
 
@@ -313,18 +339,19 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 
 	timestamp := primitives.NewTimestampNow()
 
-	totalFed := 0
-	totalRemove := 0
-
 	for i := 1; i < 100; i++ {
+		totalFed := 0
+		totalRemove := 0
 		timestamp.SetTime(uint64(i * 1000 * 60 * 60 * 6))
 		var signers []SmallIdentity
 
 		a := testHelper.CreateTestAdminBlock(prev.ABlock)
+		state.ProcessLists.Get(a.GetDatabaseHeight()).Clear()
+		state.ProcessLists.Get(a.GetDatabaseHeight()).FedServers = make([]interfaces.IServer, 0)
 		for ia := 0; ia < len(ids); ia++ {
 			switch random.RandIntBetween(0, 4) {
 			case 1: // Signing Fed
-				if totalFed >= 63 {
+				if totalFed >= 60 {
 					continue
 				}
 				state.ProcessLists.Get(a.GetDatabaseHeight()).AddFedServer(ids[ia].ID)
@@ -334,7 +361,7 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 				signers = append(signers, ids[ia])
 				totalFed++
 			case 2: // Not signing Fed
-				if totalFed >= 63 {
+				if totalFed >= 60 {
 					continue
 				}
 				state.ProcessLists.Get(a.GetDatabaseHeight()).AddFedServer(ids[ia].ID)
@@ -343,7 +370,13 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 
 				totalFed++
 			case 3:
-				a.RemoveFederatedServer(ids[ia].ID)
+				if totalRemove > totalFed {
+					break
+				}
+				err := a.RemoveFederatedServer(ids[ia].ID)
+				if err != nil {
+					t.Error(err)
+				}
 				totalRemove++
 			}
 		}
@@ -359,28 +392,30 @@ func TestPropSignedDBStateValidate(t *testing.T) {
 		// DBState
 		var dbSigList []interfaces.IFullSignature
 		for _, s := range signers {
-			data, _ := d.GetHeader().MarshalBinary()
+			data, e := d.GetHeader().MarshalBinary()
+			if e != nil {
+				t.Error(e)
+			}
 			dbSigList = append(dbSigList, s.Key.Sign(data))
-			continue
 		}
 
 		msg := NewDBStateMsg(timestamp, set.DBlock, set.ABlock, set.FBlock, set.ECBlock, nil, nil, dbSigList)
 		m := msg.(*DBStateMsg)
 
-		v := msg.Validate(state)
-		need := ((totalFed - totalRemove) / 2) + 1
-		if len(signers) > need {
-			if v < 0 {
-				t.Error("Should be valid")
-			}
-		} else {
-			if v != 0 {
-				t.Errorf("Should be invalid. V:%d Signers: %d, Feds: %d, Rem: %d", v, len(signers), totalFed, totalRemove)
-			}
+		if m.SigTally(state) != len(signers) {
+			t.Errorf("%s TallySig found %d, should be %d", m.DirectoryBlock.GetKeyMR().String()[:5], m.SigTally(state), len(signers))
 		}
 
-		if m.SigTally(state) != len(signers) {
-			t.Errorf("TallySig found %d, should be %d", m.SigTally(state), len(signers))
+		v := m.ValidateSignatures(state)
+		need := ((totalFed - totalRemove) / 2) + 1
+		if len(signers) >= need {
+			if v < 0 {
+				t.Error(m.DirectoryBlock.GetKeyMR().String()[:5], "Should be valid", len(signers), totalFed, totalRemove, len(m.SignatureList.List), len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight())))
+			}
+		} else {
+			if v > 0 {
+				t.Errorf("Should be invalid. V:%d Signers: %d, Feds: %d, Rem: %d, Sigs: %d, SFed: %d", v, len(signers), totalFed, totalRemove, len(m.SignatureList.List), len(state.GetFedServers(m.DirectoryBlock.GetDatabaseHeight())))
+			}
 		}
 		var _ = msg
 	}
@@ -416,6 +451,7 @@ func createBlockFromAdmin(a *adminBlock.AdminBlock, prev *testHelper.BlockSet, s
 	// DBlock
 	d := testHelper.CreateTestDirectoryBlockWithNetworkID(prev.DBlock, st.GetNetworkID())
 	err = d.SetDBEntries(dbEntries)
+	d.MarshalBinary()
 
 	s.DBlock = d
 	s.ABlock = a

@@ -136,6 +136,8 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
+// NOTE! Do no return 0, that sticks this message in the holding map, vs the DBStateList
+// 			ValidateSignatures is called when actually applying the DBState.
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
@@ -183,15 +185,10 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
-	if m.ValidateSignatures(state) != 1 {
-		return 0
-	}
-
 	return 1
 }
 
 func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
-
 	// Validate Signatures
 
 	// If this is the next block that we need, we can validate it by signatures. If it is a past block
@@ -225,13 +222,20 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			}
 		}
 
-		// It does not pass the signatures. Should we return -1?
-		return 0
+		// It does not pass have enough signatures. It will not obtain more signatures.
+		return -1
 	} else { // Alternative to signatures passing by checking our DB
+
+		// This is a future block. We cannot determine at this time
+		if m.DirectoryBlock.GetDatabaseHeight() > state.GetHighestSavedBlk()+1 {
+			return 0
+		}
+
 		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
 		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)
 		if next == nil {
-			// Do not have the next directory block, so we cannot tell by this method
+			// Do not have the next directory block, so we cannot tell by this method.
+			// We should have this dblock though, so maybe we should return -1?
 			return 0
 		}
 		// If the prevKeyMr of the next matches this one, we know it is valid.
@@ -244,6 +248,75 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 
 	}
 ValidSignatures: // Goto here if signatures pass
+
+	// ValidateData will ensure all the data given matches the DBlock
+	return m.ValidateData(state)
+}
+
+// ValidateData will check the data attached to the DBState against the directory block it contains.
+// This is ensure no additional junk is attached to a valid DBState
+func (m *DBStateMsg) ValidateData(state interfaces.IState) int {
+	// Checking the content of the DBState against the directoryblock contained
+	// Map of Entries and Eblocks in this DBState dblock
+	// A value of true indicates a repeat. Repeats are not enforce though
+	eblocks := make(map[[32]byte]bool) //, len(m.EBlocks))
+	ents := make(map[[32]byte]bool)    //, len(m.Entries))
+
+	// Ensure blocks in the DBlock matches blocks in DBState
+	for _, b := range m.DirectoryBlock.GetEBlockDBEntries() {
+		switch {
+		case bytes.Compare(b.GetChainID().Bytes(), constants.ADMIN_CHAINID) == 0:
+			// Validate ABlock
+			goodKeyMr, err := m.AdminBlock.GetKeyMR()
+			if err != nil {
+				return -1
+			}
+			if !b.GetKeyMR().IsSameAs(goodKeyMr) {
+				return -1
+			}
+		case bytes.Compare(b.GetChainID().Bytes(), constants.FACTOID_CHAINID) == 0:
+			// Validate FBlock
+			if !b.GetKeyMR().IsSameAs(m.FactoidBlock.GetKeyMR()) {
+				return -1
+			}
+		case bytes.Compare(b.GetChainID().Bytes(), constants.EC_CHAINID) == 0:
+			// Validate ECBlock
+			if !b.GetKeyMR().IsSameAs(m.EntryCreditBlock.GetHash()) {
+				return -1
+			}
+		default: // EBLOCK
+			// Eblocks in the DBlock. Not only check if the Eblocks in DBState list are good, but also entries
+			eblocks[b.GetKeyMR().Fixed()] = false
+		}
+	}
+
+	// Loop over eblocks and see if they fall in the map
+	for _, eb := range m.EBlocks {
+		keymr, err := eb.KeyMR()
+		if err != nil {
+			return -1
+		}
+
+		// If the eblock does not exist in our map, it doesn't exist in the directory block
+		if _, ok := eblocks[keymr.Fixed()]; !ok {
+			return -1
+		}
+		eblocks[keymr.Fixed()] = true
+
+		for _, e := range eb.GetEntryHashes() {
+			ents[e.Fixed()] = false
+		}
+	}
+
+	for _, e := range m.Entries {
+		// Although we can check for repeated entries, a directory block is allowed to contain duplicate entries
+		// So just check if the entry is in the DBlock
+		if _, ok := ents[e.GetHash().Fixed()]; !ok {
+			return -1
+		}
+		ents[e.GetHash().Fixed()] = true
+	}
+
 	return 1
 }
 

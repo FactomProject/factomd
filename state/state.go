@@ -23,9 +23,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	//"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/database/boltdb"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
 	"github.com/FactomProject/factomd/p2p"
@@ -44,13 +43,12 @@ var stateLogger = log.WithFields(log.Fields{"package": "state"})
 var _ = fmt.Print
 
 type State struct {
-	filename string
-
+	Logger           *log.Entry
+	IsRunning        bool
+	filename         string
 	NetworkControler *p2p.Controller
-
-	Salt interfaces.IHash
-
-	Cfg interfaces.IFactomConfig
+	Salt             interfaces.IHash
+	Cfg              interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -340,6 +338,10 @@ var _ interfaces.IState = (*State)(nil)
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
+}
+
+func (s *State) Running() bool {
+	return s.IsRunning
 }
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
@@ -877,6 +879,8 @@ func (s *State) Init() {
 			}
 		}
 	}
+
+	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
@@ -1765,27 +1769,28 @@ func (s *State) initServerKeys() {
 }
 
 func (s *State) Log(level string, message string) {
-	stateLogger.Info(message)
+	stateLogger.WithFields(s.Logger.Data).Info(message)
 }
 
 func (s *State) Logf(level string, format string, args ...interface{}) {
+	llog := stateLogger.WithFields(s.Logger.Data)
 	switch level {
 	case "emergency":
-		stateLogger.Panicf(format, args...)
+		llog.Panicf(format, args...)
 	case "alert":
-		stateLogger.Panicf(format, args...)
+		llog.Panicf(format, args...)
 	case "critical":
-		stateLogger.Panicf(format, args...)
+		llog.Panicf(format, args...)
 	case "error":
-		stateLogger.Errorf(format, args...)
-	case "warning":
+		llog.Errorf(format, args...)
+	case "llog":
 		stateLogger.Warningf(format, args...)
 	case "info":
-		stateLogger.Infof(format, args...)
+		llog.Infof(format, args...)
 	case "debug":
-		stateLogger.Debugf(format, args...)
+		llog.Debugf(format, args...)
 	default:
-		stateLogger.Infof(format, args...)
+		llog.Infof(format, args...)
 	}
 }
 
