@@ -132,9 +132,7 @@ func (m *DirectoryBlockSignature) Type() byte {
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	//vlog makes logging anything in Validate() easier
-	vlog := func(format string, args ...interface{}) {
-		dLogger.WithFields(log.Fields{"func": "Validate()", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()}).Errorf(format, args...)
-	}
+	vlog := dLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
 
 	if m.IsValid() {
 		return 1
@@ -142,7 +140,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 	raw, _ := m.MarshalBinary()
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
+		vlog.Errorf("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
 		// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
 		return -1
 	}
@@ -164,7 +162,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
-		vlog("[2] Verify Sig Failed %s -- RAW: %x", m.String(), raw)
+		vlog.Errorf("[2] Verify Sig Failed %s -- RAW: %x", m.String(), raw)
 		// state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		// if there is an error during signature verification
 		// or if the signature is invalid
@@ -176,7 +174,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	authorityLevel, err := state.VerifyAuthoritySignature(marshalledMsg, m.Signature.GetSignature(), m.DBHeight)
 	if err != nil || authorityLevel < 1 {
 		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
-		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
+		vlog.Errorf("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
 		//state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		// state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
 		return authorityLevel

@@ -232,7 +232,7 @@ func (st *State) isIdentityChain(cid interfaces.IHash) int {
 // Eg. Only call from addserver or you don't want any messages being sent.
 func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
 	if eblk == nil {
-		identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntryBlock()").Info("Initializing identity failed as eblock is nil")
+		identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntryBlock").Info("Initializing identity failed as eblock is nil")
 		return
 	}
 	cid := eblk.GetChainID()
@@ -252,7 +252,7 @@ func LoadIdentityByEntryBlock(eblk interfaces.IEntryBlock, st *State) {
 }
 
 func LoadIdentityByEntry(ent interfaces.IEBEntry, st *State, height uint32, initial bool) {
-	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntry()")
+	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "LoadIdentityByEntry")
 	if ent == nil {
 		return
 	}
@@ -740,7 +740,7 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 
 // Called by AddServer Message
 func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype int) bool {
-	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "ProcessIdentityToAdminBlock()")
+	flog := identLogger.WithFields(st.Logger.Data).WithField("func", "ProcessIdentityToAdminBlock")
 	var matryoshkaHash interfaces.IHash
 	var blockSigningKey [32]byte
 	var btcKey [20]byte
