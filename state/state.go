@@ -1502,13 +1502,13 @@ func (s *State) IncEntries() {
 }
 
 func (s *State) IsStalled() bool {
-	fmt.Println(time.Now().UnixNano() - s.CurrentMinuteStartTime)
 	if s.Syncing {
 		return false
 	}
 
-	if s.GetHighestKnownBlock() < s.GetTrueLeaderHeight()-2 {
-		fmt.Println("Block Height Stall Message")
+	// If we are under height 3, then we won't say stalled by height.
+	lh := s.GetTrueLeaderHeight()
+	if lh >= 3 && s.GetHighestSavedBlk() < lh-3 {
 		return true
 	}
 
@@ -1520,11 +1520,8 @@ func (s *State) IsStalled() bool {
 	var stalltime float64
 
 	stalltime = float64(int64(s.GetDirectoryBlockInSeconds()) / 10)
-	stalltime = stalltime * 1.5 * 10000000000
-
+	stalltime = stalltime * 1.5 * 1e9
 	if float64(s.CurrentMinuteStartTime) < float64(time.Now().UnixNano())-stalltime { //-90 seconds was arbitrary
-		fmt.Println("Seconds Stall Message:")
-		fmt.Println(time.Now().UnixNano() - s.CurrentMinuteStartTime)
 		return true
 	}
 
