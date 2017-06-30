@@ -36,13 +36,14 @@ func (bs *BlockchainState) ProcessABlock(aBlock interfaces.IAdminBlock, dBlock i
 	}
 
 	for _, v := range aBlock.GetABEntries() {
-		err = bs.IdentityManager.ProcessABlockEntry(v)
-		if err != nil {
-			return err
-		}
+		bs.ProcessABlockEntry(v)
 	}
 
 	return nil
+}
+
+func (bs *BlockchainState) ProcessABlockEntry(e interfaces.IABEntry) error {
+	return bs.IdentityManager.ProcessABlockEntry(e)
 }
 
 func CheckABlockMinuteNumbers(aBlock interfaces.IAdminBlock) error {
