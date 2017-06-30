@@ -843,6 +843,7 @@ func (s *State) Init() {
 	switch s.Network {
 	case "MAIN":
 		s.NetworkNumber = constants.NETWORK_MAIN
+		s.DirectoryBlockInSeconds = 600
 	case "TEST":
 		s.NetworkNumber = constants.NETWORK_TEST
 	case "LOCAL":
@@ -1502,10 +1503,6 @@ func (s *State) IncEntries() {
 }
 
 func (s *State) IsStalled() bool {
-	if s.Syncing {
-		return false
-	}
-
 	// If we are under height 3, then we won't say stalled by height.
 	lh := s.GetTrueLeaderHeight()
 	if lh >= 3 && s.GetHighestSavedBlk() < lh-3 {
@@ -1519,8 +1516,10 @@ func (s *State) IsStalled() bool {
 	//use 1/10 of the block time times 1.5 in seconds as a timeout on the 'minutes'
 	var stalltime float64
 
-	stalltime = float64(int64(s.GetDirectoryBlockInSeconds()) / 10)
+	stalltime = float64(int64(s.GetDirectoryBlockInSeconds())) / 10
 	stalltime = stalltime * 1.5 * 1e9
+	fmt.Println("STALL 2", s.CurrentMinuteStartTime/1e9, time.Now().UnixNano()/1e9, stalltime/1e9, (float64(time.Now().UnixNano())-stalltime)/1e9)
+
 	if float64(s.CurrentMinuteStartTime) < float64(time.Now().UnixNano())-stalltime { //-90 seconds was arbitrary
 		return true
 	}

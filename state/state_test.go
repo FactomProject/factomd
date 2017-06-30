@@ -251,11 +251,6 @@ func TestBootStrappingIdentity(t *testing.T) {
 
 func TestIsStalled(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()
-	s.Syncing = true
-	if s.IsStalled() {
-		t.Error("No stall when syncing")
-	}
-
 	s.Syncing = false
 	s.ProcessLists.DBHeightBase = 20
 	if !s.IsStalled() {

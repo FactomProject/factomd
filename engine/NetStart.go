@@ -288,7 +288,7 @@ func NetStart(s *state.State) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", peers))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", exclusive))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", blkTime))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", s.DirectoryBlockInSeconds))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", faultTimeout))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "runtimeLog", runtimeLog))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", rotate))
@@ -336,6 +336,7 @@ func NetStart(s *state.State) {
 		seedURL = s.MainSeedURL
 		networkPort = s.MainNetworkPort
 		specialPeers = s.MainSpecialPeers
+		s.DirectoryBlockInSeconds = 600
 	case "TEST", "test":
 		networkID = p2p.TestNet
 		seedURL = s.TestSeedURL
