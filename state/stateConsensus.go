@@ -1432,7 +1432,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	//fmt.Println(fmt.Sprintf("ProcessDBSig: %10s %s ", s.FactomNodeName, msg.String()))
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
-	//vlog makes logging anything in Validate() easier
+	//plog makes logging anything in ProcessDBSig() easier
 	//		The instantiation as a function makes it almost no overhead if you do not use it
 	plog := func(format string, args ...interface{}) {
 		consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
