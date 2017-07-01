@@ -45,6 +45,8 @@ type FactomParams struct {
 	memProfileRate           int
 	fast                     bool
 	fastLocation             string
+	loglvl                   string
+	logjson                  bool
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -92,6 +94,9 @@ func ParseCmdLine(args []string) *FactomParams {
 	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
 	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
 
+	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
+	logJsonPtr := flag.Bool("logjson", false, "Use to set logging to use a json formatting")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -133,5 +138,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.memProfileRate = *memProfileRate
 	p.fast = *fastPtr
 	p.fastLocation = *fastLocationPtr
+	p.loglvl = *logLvlPtr
+	p.logjson = *logJsonPtr
 	return p
 }

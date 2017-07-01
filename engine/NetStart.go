@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -24,6 +25,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = fmt.Print
@@ -60,6 +63,28 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.timeOffset))
 	s.StartDelayLimit = p.startDelay * 1000
 	s.Journaling = p.Journaling
+
+	log.SetOutput(os.Stdout)
+	switch p.loglvl {
+	case "none":
+		log.SetOutput(ioutil.Discard)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warning":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	case "panic":
+		log.SetLevel(log.PanicLevel)
+	}
+
+	if p.logjson {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
 
 	// Set the wait for entries flag
 	s.WaitForEntries = p.WaitEntries
@@ -227,7 +252,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
 	}
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "TCP port", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "pprof port", logPort))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "pprof port", logPort))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "Control Panel port", s.ControlPanelPort))
 
 	//************************************************
