@@ -25,7 +25,8 @@ func TestBuildABlock(t *testing.T) {
 		}
 	}
 
-	ab2, err := bm.BuildABlockWithHeaderExpansionArea(ab.GetHeader().GetHeaderExpansionArea())
+	bm.SetABlockHeaderExpansionArea(ab.GetHeader().GetHeaderExpansionArea())
+	ab2, err := bm.BuildABlock()
 	if err != nil {
 		t.Errorf("%v", err)
 	}

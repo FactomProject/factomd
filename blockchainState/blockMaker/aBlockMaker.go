@@ -9,6 +9,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+func (bm *BlockMaker) SetABlockHeaderExpansionArea(b []byte) {
+	bm.ABlockHeaderExpansionArea = b
+}
+
 func (bm *BlockMaker) BuildABlock() (interfaces.IAdminBlock, error) {
 	ab := adminBlock.NewAdminBlock(nil)
 	ab.GetHeader().SetPrevBackRefHash(bm.BState.ABlockHeadRefHash)
@@ -21,15 +25,10 @@ func (bm *BlockMaker) BuildABlock() (interfaces.IAdminBlock, error) {
 		}
 	}
 
-	return ab, nil
-}
-
-func (bm *BlockMaker) BuildABlockWithHeaderExpansionArea(hea []byte) (interfaces.IAdminBlock, error) {
-	ab, err := bm.BuildABlock()
-	if err != nil {
-		return nil, err
+	if len(bm.ABlockHeaderExpansionArea) > 0 {
+		ab.GetHeader().SetHeaderExpansionArea(bm.ABlockHeaderExpansionArea)
 	}
-	ab.GetHeader().SetHeaderExpansionArea(hea)
+
 	return ab, nil
 }
 

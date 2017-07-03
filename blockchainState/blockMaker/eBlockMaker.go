@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, error) {
+func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, []interfaces.IEBEntry, error) {
 	sortedEntries := map[string][]*EBlockEntry{}
 	sort.Sort(EBlockEntryByMinute(bm.ProcessedEBEntries))
 	for _, v := range bm.ProcessedEBEntries {
@@ -25,6 +25,7 @@ func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, error) {
 	}
 	sort.Strings(keys)
 	eBlocks := []interfaces.IEntryBlock{}
+	ebEntries := []interfaces.IEBEntry{}
 	for _, k := range keys {
 		entries := sortedEntries[k]
 		if len(entries) == 0 {
@@ -43,12 +44,16 @@ func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, error) {
 				eb.AddEndOfMinuteMarker(uint8(minute + 1))
 				minute = v.Minute
 			}
-			eb.AddEBEntry(v.Entry)
+			err := eb.AddEBEntry(v.Entry)
+			if err != nil {
+				return nil, nil, err
+			}
+			ebEntries = append(ebEntries, v.Entry)
 		}
 		eb.AddEndOfMinuteMarker(uint8(minute + 1))
 		eBlocks = append(eBlocks, eb)
 	}
-	return eBlocks, nil
+	return eBlocks, ebEntries, nil
 }
 
 func (bm *BlockMaker) ProcessEBEntry(e interfaces.IEntry) error {

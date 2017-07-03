@@ -20,7 +20,7 @@ func TestBuildEBlocks(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	ebs, err := bm.BuildEBlocks()
+	ebs, _, err := bm.BuildEBlocks()
 	if err != nil {
 		t.Errorf("%v", err)
 	}

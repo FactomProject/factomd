@@ -24,6 +24,8 @@ type BlockMaker struct {
 
 	BState *blockchainState.BlockchainState
 
+	ABlockHeaderExpansionArea []byte
+
 	CurrentMinute int
 }
 
