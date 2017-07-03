@@ -116,6 +116,7 @@ func (b *ABlockHeader) SetDBHeight(dbheight uint32) {
 
 func (b *ABlockHeader) SetHeaderExpansionArea(area []byte) {
 	b.HeaderExpansionArea = area
+	b.HeaderExpansionSize = uint64(len(area))
 }
 
 func (b *ABlockHeader) SetPrevBackRefHash(BackRefHash interfaces.IHash) {

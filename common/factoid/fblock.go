@@ -183,9 +183,7 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 
 	out.Write(constants.FACTOID_CHAINID)
 
-	if b.BodyMR == nil {
-		b.BodyMR = new(primitives.Hash)
-	}
+	b.BodyMR = b.GetBodyMR()
 	data, err := b.BodyMR.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -225,7 +223,8 @@ func (b *FBlock) MarshalHeader() ([]byte, error) {
 
 	binary.Write(&out, binary.BigEndian, uint32(len(transdata))) // write out its length
 
-	return out.DeepCopyBytes(), nil
+	h := out.DeepCopyBytes()
+	return h, nil
 }
 
 // Write out the block
