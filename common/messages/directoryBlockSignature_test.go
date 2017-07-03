@@ -5,6 +5,7 @@
 package messages_test
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -13,7 +14,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
+
+	log "github.com/FactomProject/logrus"
 )
+
+var _ = log.Println
 
 func TestUnmarshalNilDirectoryBlockSignature(t *testing.T) {
 	defer func() {
@@ -166,6 +171,7 @@ func newDirectoryBlockSignature() *DirectoryBlockSignature {
 
 func newSignedDirectoryBlockSignature() (*DirectoryBlockSignature, *state.Authority, *primitives.PrivateKey) {
 	dbs := newDirectoryBlockSignature()
+	dbs.SetValid()
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {
 		panic(err)
@@ -179,4 +185,55 @@ func newSignedDirectoryBlockSignature() (*DirectoryBlockSignature, *state.Author
 	a.SigningKey = *(key.Pub)
 	a.AuthorityChainID = dbs.ServerIdentityChainID
 	return dbs, a, key
+}
+
+// go test -bench=. directoryBlockSignature_test.go  -v
+
+//BenchmarkValidateMakingFunction tests the creating of the log function and NOT using it.
+//
+// 2000000000	         1.99 ns/op
+func BenchmarkValidateMakingFunctionNoUse(b *testing.B) {
+	s := testHelper.CreateEmptyTestState()
+	m, _, _ := newSignedDirectoryBlockSignature()
+	for i := 0; i < b.N; i++ {
+		//m.Validate(s)
+		vlog := func(format string, args ...interface{}) {
+			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
+		}
+		var _ = vlog
+	}
+}
+
+//BenchmarkValidateMakingFunction tests the creating of the logger function and NOT using it.
+//
+//  1000000	      1312 ns/op
+func BenchmarkValidateMakingInstantiateNoUse(b *testing.B) {
+	s := testHelper.CreateEmptyTestState()
+	m, _, _ := newSignedDirectoryBlockSignature()
+	for i := 0; i < b.N; i++ {
+		//m.Validate(s)
+		vlog := log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()})
+		var _ = vlog
+	}
+}
+
+//BenchmarkValidateMakingFunctionUse tests the creating of the log function and using it.
+//
+// To ioutil.Discard
+//  100000	     27277 ns/op
+//
+// Printing to stdout
+//  30000	     60523 ns/op
+
+func BenchmarkValidateMakingFunctionUse(b *testing.B) {
+	s := testHelper.CreateEmptyTestState()
+	m, _, _ := newSignedDirectoryBlockSignature()
+	log.SetOutput(ioutil.Discard)
+	for i := 0; i < b.N; i++ {
+		//m.Validate(s)
+		vlog := func(format string, args ...interface{}) {
+			log.WithFields(log.Fields{"msgheight": m.DBHeight, "lheight": s.GetLeaderHeight()}).Errorf(format, args...)
+		}
+		vlog("%s", "hello")
+	}
 }
