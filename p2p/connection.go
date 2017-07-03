@@ -13,8 +13,13 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// conLogger is the general logger for all connection related logs. You can add additional fields,
+// or create more context loggers off of this
+var conLogger = p2pLogger.WithFields(log.Fields{"subpack": "connection"})
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
 // via two channels, send and recieve.  These channels take structs of type ConnectionCommand or ConnectionParcel
@@ -42,7 +47,7 @@ type Connection struct {
 	isPersistent    bool              // Persistent connections we always redail.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
-	Logger          *log.FLogger
+	Logger          *log.Entry
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -199,6 +204,8 @@ func (c *Connection) commonInit(peer Peer) {
 	c.timeLastMetrics = time.Now()
 	c.timeLastAttempt = time.Now()
 	c.timeLastStatus = time.Now()
+
+	c.Logger = conLogger.WithField("peer", c.peer.PeerFixedIdent())
 }
 
 func (c *Connection) Start() {
@@ -511,7 +518,9 @@ func (c *Connection) handleNetErrors(toss bool) {
 			default:
 				// Only go offline once per handleNetErrors call
 				if !toss && !done {
-					c.Logger.Errorf("%s : HandleNetErros Going Offline due to -- %s", c.peer.PeerIdent(), err.Error())
+					if err != nil {
+						c.Logger.WithField("func", "HandleNetErrors").Errorf("Going offline due to -- %s", err.Error())
+					}
 					c.goOffline()
 				}
 
