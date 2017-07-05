@@ -535,10 +535,12 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	// All DBStates that got here are valid, so just checking the DBlock hash works
 	dblock, err := s.DB.FetchDBlockByHeight(height)
 	if err != nil || dblock == nil {
+		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Warnf("Dblock fetched is nil")
 		return // This is a werid case
 	}
 
 	if !dbmsg.DirectoryBlock.GetHash().IsSameAs(dblock.GetHash()) {
+		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Bad DBState. DBlock does not match found")
 		return // Bad DBlock
 	}
 
@@ -550,6 +552,7 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	}
 	err = s.DB.ExecuteMultiBatch()
 	if err != nil {
+		consenLogger.WithFields(log.Fields{"func": "ExecuteEntriesInDBState", "height": height}).Errorf("Was unable to execute multibatch")
 		return
 	}
 }
