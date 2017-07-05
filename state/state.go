@@ -1503,13 +1503,13 @@ func (s *State) IncEntries() {
 }
 
 func (s *State) IsStalled() bool {
-	// if currentminutestarttime =0 we are syncing still.  Ignore the rest of the checks
 	if s.CurrentMinuteStartTime == 0 { //0 while syncing.
 		return false
 	}
 
 	// If we are under height 3, then we won't say stalled by height.
 	lh := s.GetTrueLeaderHeight()
+
 	if lh >= 3 && s.GetHighestSavedBlk() < lh-3 {
 		return true
 	}

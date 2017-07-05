@@ -776,6 +776,7 @@ func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interfa
 	h := new(CurrentMinuteResponse)
 
 	h.LeaderHeight = int64(state.GetTrueLeaderHeight())
+	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
 	h.Minute = int64(state.GetCurrentMinute())
 	h.CurrentTime = n.UnixNano()
 	h.CurrentBlockStartTime = state.GetCurrentBlockStartTime()

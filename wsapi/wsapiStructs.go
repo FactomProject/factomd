@@ -63,6 +63,7 @@ type HeightsResponse struct {
 
 type CurrentMinuteResponse struct {
 	LeaderHeight            int64 `json:"leaderheight"`
+	DirectoryBlockHeight    int64 `json:"directoryblockheight"`
 	Minute                  int64 `json:"minute"`
 	CurrentBlockStartTime   int64 `json:"currentblockstarttime"`
 	CurrentMinuteStartTime  int64 `json:"currentminutestarttime"`
