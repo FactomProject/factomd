@@ -135,4 +135,6 @@ imports:
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
+- name: github.com/FactomProject/logrus
+  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 testImports: []

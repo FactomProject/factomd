@@ -278,10 +278,29 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	if err != nil {
 		return nil, NewInternalError()
 	}
+
+	// Correct any addresses that get ToLowered()
+	for _, t := range block.GetTransactions() {
+		for _, a := range t.GetInputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+		for _, a := range t.GetOutputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+		for _, a := range t.GetECOutputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+	}
+
 	resp.FBlock = b
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
+}
+
+// correctLowerCasedStringToOriginal will replace the matching ToLowered(original) with the original
+func correctLowerCasedStringToOriginal(j []byte, original string) []byte {
+	return []byte(strings.Replace(string(j), strings.ToLower(original), original, -1))
 }
 
 func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
