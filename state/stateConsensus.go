@@ -911,8 +911,14 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	cc := m.(*messages.CommitChainMsg)
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.isHighestCommit(cc.CommitChain.EntryHash, m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+
+	s.LeaderExecute(m)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
@@ -921,8 +927,14 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	ce := m.(*messages.CommitEntryMsg)
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.isHighestCommit(ce.CommitEntry.EntryHash, m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+
+	s.LeaderExecute(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
@@ -1899,7 +1911,9 @@ func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
 	return c
 }
 
-func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
+// isHighestCommit will determine if the commit given has more entry credits than the current
+// commit in the commit hashmap. If there is no prior commit, this will also return true.
+func (s *State) isHighestCommit(hash interfaces.IHash, msg interfaces.IMsg) bool {
 	e, ok1 := s.Commits[hash.Fixed()].(*messages.CommitEntryMsg)
 	m, ok1b := msg.(*messages.CommitEntryMsg)
 	ec, ok2 := s.Commits[hash.Fixed()].(*messages.CommitChainMsg)
@@ -1911,6 +1925,13 @@ func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
 	case ok1 && ok1b && e.CommitEntry.Credits > m.CommitEntry.Credits:
 	case ok2 && ok2b && ec.CommitChain.Credits > mc.CommitEntry.Credits:
 	default:
+		return true
+	}
+	return false
+}
+
+func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
+	if s.isHighestCommit(hash, msg) {
 		s.Commits[hash.Fixed()] = msg
 	}
 }
