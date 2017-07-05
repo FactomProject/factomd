@@ -933,7 +933,6 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 		// This commit is not higher than any previous, so we can discard it and prevent a double spend
 		return
 	}
-
 	s.LeaderExecute(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
@@ -1917,14 +1916,15 @@ func (s *State) isHighestCommit(hash interfaces.IHash, msg interfaces.IMsg) bool
 	e, ok1 := s.Commits[hash.Fixed()].(*messages.CommitEntryMsg)
 	m, ok1b := msg.(*messages.CommitEntryMsg)
 	ec, ok2 := s.Commits[hash.Fixed()].(*messages.CommitChainMsg)
-	mc, ok2b := msg.(*messages.CommitEntryMsg)
+	mc, ok2b := msg.(*messages.CommitChainMsg)
 
-	// Keep the most entry credits.
-
+	// Keep the most entry credits. If the current (e,ec) is >=, then the message is not
+	// the highest.
 	switch {
-	case ok1 && ok1b && e.CommitEntry.Credits > m.CommitEntry.Credits:
-	case ok2 && ok2b && ec.CommitChain.Credits > mc.CommitEntry.Credits:
+	case ok1 && ok1b && e.CommitEntry.Credits >= m.CommitEntry.Credits:
+	case ok2 && ok2b && ec.CommitChain.Credits >= mc.CommitChain.Credits:
 	default:
+		// Returns true when new commit is greater than old, or if old does not exist
 		return true
 	}
 	return false
