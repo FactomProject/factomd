@@ -189,6 +189,10 @@ type State struct {
 	OutputAllowed   bool
 	CurrentMinute   int
 
+	// These are the start times for blocks and minutes
+	CurrentMinuteStartTime int64
+	CurrentBlockStartTime  int64
+
 	EOMsyncing bool
 
 	EOM          bool // Set to true when the first EOM is encountered
@@ -537,8 +541,20 @@ func (s *State) GetFactomdLocations() string {
 	return s.FactomdLocations
 }
 
+func (s *State) GetCurrentBlockStartTime() int64 {
+	return s.CurrentBlockStartTime
+}
+
 func (s *State) GetCurrentMinute() int {
 	return s.CurrentMinute
+}
+
+func (s *State) GetCurrentMinuteStartTime() int64 {
+	return s.CurrentMinuteStartTime
+}
+
+func (s *State) GetCurrentTime() int64 {
+	return time.Now().UnixNano()
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -831,6 +847,7 @@ func (s *State) Init() {
 	switch s.Network {
 	case "MAIN":
 		s.NetworkNumber = constants.NETWORK_MAIN
+		s.DirectoryBlockInSeconds = 600
 	case "TEST":
 		s.NetworkNumber = constants.NETWORK_TEST
 	case "LOCAL":
@@ -1489,6 +1506,32 @@ func (s *State) IncEntryChains() {
 
 func (s *State) IncEntries() {
 	s.NewEntries++
+}
+
+func (s *State) IsStalled() bool {
+	if s.CurrentMinuteStartTime == 0 { //0 while syncing.
+		return false
+	}
+
+	// If we are under height 3, then we won't say stalled by height.
+	lh := s.GetTrueLeaderHeight()
+
+	if lh >= 3 && s.GetHighestSavedBlk() < lh-3 {
+		return true
+	}
+
+	//use 1/10 of the block time times 1.5 in seconds as a timeout on the 'minutes'
+	var stalltime float64
+
+	stalltime = float64(int64(s.GetDirectoryBlockInSeconds())) / 10
+	stalltime = stalltime * 1.5 * 1e9
+	//fmt.Println("STALL 2", s.CurrentMinuteStartTime/1e9, time.Now().UnixNano()/1e9, stalltime/1e9, (float64(time.Now().UnixNano())-stalltime)/1e9)
+
+	if float64(s.CurrentMinuteStartTime) < float64(time.Now().UnixNano())-stalltime { //-90 seconds was arbitrary
+		return true
+	}
+
+	return false
 }
 
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
