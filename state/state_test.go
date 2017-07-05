@@ -215,7 +215,7 @@ func TestBootStrappingIdentity(t *testing.T) {
 		t.Errorf("Bootstrap Identity Mismatch on MAIN")
 	}
 	key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
-	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
+	if !state.GetNetworkBootStrapKey().IsSameAs(key) {IsInPendingEntryList
 		t.Errorf("Bootstrap Identity Key Mismatch on MAIN")
 	}
 
@@ -256,6 +256,7 @@ func TestIsStalled(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()
 	s.Syncing = false
 	s.ProcessLists.DBHeightBase = 20
+	s.CurrentMinuteStartTime = time.Now().UnixNano()
 	if !s.IsStalled() {
 		t.Error("Should be stalled as we are behind: Stalled:", s.IsStalled())
 	}
