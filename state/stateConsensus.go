@@ -536,10 +536,15 @@ func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 		return // Bad DBlock
 	}
 
+	s.DB.StartMultiBatch()
 	for _, e := range dbmsg.Entries {
 		if exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, e.GetHash().Bytes()); !exists {
 			s.DB.InsertEntryMultiBatch(e)
 		}
+	}
+	err = s.DB.ExecuteMultiBatch()
+	if err != nil {
+		return
 	}
 }
 
