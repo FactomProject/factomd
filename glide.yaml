@@ -73,3 +73,6 @@ import:
   - prometheus
 - package: github.com/wunderlist/ttlcache
   version: master
+
+- package: github.com/FactomProject/logrus
+  version: v1.0.0

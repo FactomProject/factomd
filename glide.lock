@@ -150,20 +150,6 @@ imports:
   subpackages:
   - pbkdf2
   - ripemd160
-- name: golang.org/x/net
-  version: 007e530097ad7f954752df63046b4036f98ba6a6
-  subpackages:
-  - websocket
-- name: golang.org/x/sys
-  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
-  subpackages:
-  - unix
-- name: gopkg.in/gcfg.v1
-  version: 27e4946190b4a327b539185f2b5b1f7c84730728
-  subpackages:
-  - scanner
-  - token
-  - types
-- name: gopkg.in/warnings.v0
-  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
+- name: github.com/FactomProject/logrus
+  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 testImports: []

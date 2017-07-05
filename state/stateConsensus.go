@@ -18,7 +18,13 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// consenLogger is the general logger for all consensus related logs. You can add additional fields,
+// or create more context loggers off of this
+var consenLogger = stateLogger.WithFields(log.Fields{"subpack": "consensus"})
 
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
@@ -1257,6 +1263,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbheight, "lheight": s.GetLeaderHeight(), "vm": vmIndex})
 
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
@@ -1294,7 +1301,8 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				if err != nil {
 					panic(err)
 				}
-				dbs.SendOut(s, dbs)
+
+				dbslog.Infof("Send DBSig, %s", dbs.String())
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
@@ -1309,6 +1317,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	TotalProcessEOMs.Inc()
 	e := msg.(*messages.EOM)
+	// plog := consenLogger.WithFields(log.Fields{"func": "ProcessEOM", "msgheight": e.DBHeight, "lheight": s.GetLeaderHeight(), "min", e.Minute})
 
 	if s.Syncing && !s.EOM {
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", s.FactomNodeName, e.VMIndex, s.Syncing, s.EOM))
@@ -1490,6 +1499,9 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				pldbs.DBSigAlreadySent = true
 
+				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "vm": dbs.VMIndex})
+				dbslog.Infof("Send DBSig, %s", dbs.String())
+
 				dbs.LeaderExecute(s)
 			}
 			s.Saving = true
@@ -1546,6 +1558,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	//fmt.Println(fmt.Sprintf("ProcessDBSig: %10s %s ", s.FactomNodeName, msg.String()))
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
+	//plog makes logging anything in ProcessDBSig() easier
+	//		The instantiation as a function makes it almost no overhead if you do not use it
+	plog := func(format string, args ...interface{}) {
+		consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
+	}
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
 		//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)", s.FactomNodeName,
@@ -1627,6 +1644,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
+			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
+				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
 			return false
 		}
 
@@ -1641,6 +1660,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
 		if err != nil || valid != 1 {
+			plog("Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			return false
 		}
 
@@ -1824,6 +1844,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 					fullFault.ServerID.String()[4:12],
 					fullFault.AuditServerID.String()[4:12])
 				pl.State.AddAuthorityDelta(authorityDeltaString)
+
+				consenLogger.WithFields(log.Fields{"dbht": fullFault.DBHeight, "sysht": fullFault.SystemHeight,
+					"server": fullFault.ServerID.String()[4:12], "audit": fullFault.AuditServerID.String()[4:12]}).Info("Full fault success")
 				//s.AddStatus(authorityDeltaString)
 
 				pl.State.LastFaultAction = time.Now().Unix()
