@@ -19,6 +19,94 @@ func (s *State) IsStateFullySynced() bool {
 	return s.ProcessLists.DBHeightBase < ll.DBHeight
 }
 
+// GetEntryCommitAckByTXID will fetch the status of a commit by TxID
+func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blktime interfaces.Timestamp, commit interfaces.IMsg, entryhash interfaces.IHash) {
+	// Check Database for commit
+	ecblkHash, err := s.DB.FetchIncludedIn(hash)
+	if err == nil && ecblkHash != nil {
+		status = constants.AckStatusDBlockConfirmed
+
+		// Look for the entry
+		ecblk, err := s.DB.FetchECBlock(ecblkHash)
+		if err == nil && ecblk != nil {
+			// Found the ECBlock. We can find the transaction
+			for _, e := range ecblk.GetEntries() {
+				if e.GetHash().IsSameAs(hash) {
+					// Found the entryhash
+					entryhash = e.GetEntryHash()
+				}
+			}
+		}
+
+		// Get the time
+		dblkHash, err := s.DB.FetchIncludedIn(ecblkHash)
+		if err == nil && dblkHash != nil {
+			dblk, err := s.DB.FetchDBlock(dblkHash)
+			if err == nil && dblk != nil {
+				blktime = dblk.GetTimestamp()
+			}
+		}
+
+		// Found in DB, so return
+		return
+	}
+
+	// Not found in the DB, we can check the highest PL
+	pl := s.ProcessLists.GetSafe(s.PLProcessHeight)
+	if pl != nil {
+		// We will search the processlist for the commit
+		// TODO: Is this thread safe?
+		for _, v := range pl.VMs {
+			for _, m := range v.List {
+				switch m.Type() {
+				case constants.COMMIT_CHAIN_MSG:
+					cc, ok := m.(*messages.CommitChainMsg)
+					if ok {
+						if cc.CommitChain.GetSigHash().IsSameAs(hash) {
+							// Msg found in the latest processlist
+							status = constants.AckStatusACK
+							commit = cc
+							entryhash = cc.CommitChain.EntryHash
+							return
+						}
+					}
+				case constants.COMMIT_ENTRY_MSG:
+					ce, ok := m.(*messages.CommitEntryMsg)
+					if ok {
+						if ce.CommitEntry.GetSigHash().IsSameAs(hash) {
+							// Msg found in the latest processlist
+							status = constants.AckStatusACK
+							commit = ce
+							entryhash = ce.CommitEntry.EntryHash
+							return
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// If it was found in the PL or DBlock, it would return. All that is left is the holding map
+	_, commit = s.FetchEntryRevealAndCommitFromHolding(hash)
+	if commit != nil { // Found in holding
+		switch commit.Type() {
+		case constants.COMMIT_CHAIN_MSG:
+			cc, ok := commit.(*messages.CommitChainMsg)
+			if ok {
+				entryhash = cc.CommitChain.EntryHash
+				status = constants.AckStatusNotConfirmed
+			}
+		case constants.COMMIT_ENTRY_MSG:
+			ce, ok := commit.(*messages.CommitEntryMsg)
+			if ok {
+				entryhash = ce.CommitEntry.EntryHash
+				status = constants.AckStatusNotConfirmed
+			}
+		}
+	}
+	return
+}
+
 // GetEntryCommitAck will fetch the status of a entrycommit by ENTRYHASH. The places it checks are:
 //		CommitMap 	--> This indicates if the entry made it into the processlist within the last 4 hrs
 //		Last PL		--> Check if still in a processList
@@ -53,6 +141,8 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 						if cc.CommitChain.EntryHash.IsSameAs(hash) {
 							// Msg found in the latest processlist
 							status = constants.AckStatusACK
+							commit = cc
+							return
 						}
 					}
 				case constants.COMMIT_ENTRY_MSG:
@@ -61,15 +151,17 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 						if ce.CommitEntry.EntryHash.IsSameAs(hash) {
 							// Msg found in the latest processlist
 							status = constants.AckStatusACK
+							commit = ce
+							return
 						}
 					}
 				}
 			}
 		}
-	} else if pl == nil && status == constants.AckStatusACK {
-		// If no processlist was found, but the commit was found earlier, that means
-		// the commit is in the database
-		status = constants.AckStatusDBlockConfirmed
+	}
+
+	// By this point we are either : Unknown or DBlock. Ack would exit earlier
+	if status == constants.AckStatusDBlockConfirmed {
 		return
 	}
 
@@ -97,11 +189,6 @@ func (s *State) GetEntryRevealAck(hash interfaces.IHash) (status int, blktime in
 	// We begin as unknown
 	status = constants.AckStatusUnknown
 
-	if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, hash.Fixed()) {
-		// This means the entry was recently in a processlist. It could be saved to disk
-		status = constants.AckStatusACK
-	}
-
 	// Fetch the EBlock
 	eblk, err := s.DB.FetchIncludedIn(hash)
 	if err == nil && eblk != nil {
@@ -123,8 +210,9 @@ func (s *State) GetEntryRevealAck(hash interfaces.IHash) (status int, blktime in
 	}
 
 	// Not found in the database. Check if it was found in the processlist
-	if status == constants.AckStatusACK {
-		// We found it in the processlists though, so return.
+	if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, hash.Fixed()) {
+		// It has been in the PL, so return
+		status = constants.AckStatusACK
 		return
 	}
 

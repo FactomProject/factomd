@@ -260,8 +260,10 @@ type IState interface {
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 	GetSpecificACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 
+	// Acks with ChainIDs so you can select which hash type
 	GetEntryCommitAckByEntryHash(hash IHash) (status int, commit IMsg)
 	GetEntryRevealAck(hash IHash) (status int, blktime Timestamp, commit IMsg)
+	GetEntryCommitAckByTXID(hash IHash) (status int, blktime Timestamp, commit IMsg, entryhash IHash)
 
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
