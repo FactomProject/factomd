@@ -259,6 +259,10 @@ type IState interface {
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 	GetSpecificACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
+
+	GetEntryCommitAckByEntryHash(hash IHash) (status int, commit IMsg)
+	GetEntryRevealAck(hash IHash) (status int, blktime Timestamp, commit IMsg)
+
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)

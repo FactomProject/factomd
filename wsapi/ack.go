@@ -92,11 +92,121 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 		break
 	default:
 		return nil, NewInternalError()
-		break
 	}
 
 	return answer, nil
 }
+
+// HandleV2ACKWithChain is the ack call with a given chainID. The chainID serves as a directive on what type
+// of hash we are given, and we can act appropriately.
+func HandleV2ACKWithChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEntryAck.Observe(float64(time.Since(n).Nanoseconds()))
+
+	ackReq := new(EntryAckWithChainRequest)
+	err := MapToObject(params, ackReq)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	if len(ackReq.ChainID) != 64 {
+		return nil, NewCustomInvalidParamsError("ChainID must be 64 hex encoded characters")
+	}
+
+	chainid, err := hex.DecodeString(ackReq.ChainID)
+	if err != nil {
+		return nil, NewCustomInvalidParamsError("ChainID must be 64 hex encoded characters")
+	}
+	var _ = chainid
+
+	hash, err := primitives.HexToHash(ackReq.Hash)
+	if err != nil {
+		return nil, NewCustomInvalidParamsError("Hash must be 64 hex encoded characters")
+	}
+
+	answer := new(EntryStatus)
+	switch ackReq.ChainID {
+	case hex.EncodeToString(constants.EC_CHAINID):
+		// This is an entry commit
+	case hex.EncodeToString(constants.FACTOID_CHAINID):
+		// This is a factoid transaction
+	case hex.EncodeToString(constants.ADMIN_CHAINID):
+		return nil, NewCustomInvalidParamsError("ChainID cannot be admin chain")
+	default:
+		// This is an entry
+		revStatus, revBlktime, commit := state.GetEntryRevealAck(hash)
+		answer.EntryHash = hash.String()
+		answer.EntryData.Status = constants.AckStatusString(revStatus)
+		if revBlktime != nil {
+			answer.EntryData.BlockDate = revBlktime.GetTime().Unix()
+			answer.EntryData.BlockDateString = revBlktime.String()
+		}
+
+		if commit != nil {
+			// This means it was found in the holding queue
+			answer.CommitData.Status = constants.AckStatusString(constants.AckStatusNotConfirmed)
+		} else {
+			var status int
+			// This means we have not found the commit yet
+			status, commit = state.GetEntryCommitAckByEntryHash(hash)
+			answer.CommitData.Status = constants.AckStatusString(status)
+		}
+
+		if commit != nil {
+			answer.CommitData.TransactionDateString = commit.GetTimestamp().String()
+			answer.CommitData.TransactionDate = commit.GetTimestamp().GetTime().Unix()
+
+			ce, ok := commit.(*messages.CommitEntryMsg)
+			if ok {
+				answer.CommitTxID = ce.CommitEntry.GetSigHash().String()
+			}
+			cc, ok := commit.(*messages.CommitChainMsg)
+			if ok {
+				answer.CommitTxID = cc.CommitChain.GetSigHash().String()
+			}
+		}
+	}
+
+	return answer, nil
+}
+
+// HandleV2EntryACK will return the status of an entryhash or commit hash. We will assume the input is an entry hash, as with that
+// the reveal and/or commit can be found. This is also beneficial as if the commit was rejected because a commit already exists,
+// calling the entry-ack with the entryhash can find the exisiting commit.
+// 		Order of search
+//			Searching the Reveal
+//				- ReplayFilter (_____________)
+//					- Checking the replay filter tells us if an entry was recently submitted into the blockchain
+//				- Check ProcessList (TransAck)
+//					- Check NewEntry map
+//					- Linear Search (Also check commits while going through, could save us a pass later)
+//						- A non-processed reveal/commit will not be in the newentry map
+//				- Check the Database (DblockConfirmed)
+//					- We check the database last, despite it being the highest level of confirmation
+//			Searching for the Commit
+//				- Holding
+//				- ProcessList (TransAck)
+//					- Commit Map
+//					- Linear search
+//
+// func handleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+// 	n := time.Now()
+// 	defer HandleV2APICallEntryAck.Observe(float64(time.Since(n).Nanoseconds()))
+
+// 	ackReq := new(AckRequest)
+
+// 	err := MapToObject(params, ackReq)
+
+// 	if err != nil {
+// 		return nil, NewInvalidParamsError()
+// 	}
+
+// 	if ackReq.TxID == "" && ackReq.FullTransaction == "" {
+// 		return nil, NewInvalidParamsError()
+// 	}
+
+// 	return nil, nil
+// }
 
 func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
@@ -460,6 +570,11 @@ func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID str
 type AckRequest struct {
 	TxID            string `json:"txid,omitempty"`
 	FullTransaction string `json:"fulltransaction,omitempty"`
+}
+
+type EntryAckWithChainRequest struct {
+	Hash    string `json:"hash,omitempty"`
+	ChainID string `json:"chainid,omitempty"`
 }
 
 type FactoidTxStatus struct {
