@@ -412,7 +412,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	// If this fails, a commit with greater payment already exists
 	if !state.IsHighestCommit(msg.CommitChain.GetEntryHash(), msg) {
-		return nil, NewCustomError("Repeated Commit", "A commit with equal or greater payment already exists")
+		return nil, NewRepeatCommitError("A commit with equal or greater payment already exists")
 	}
 
 	state.APIQueue() <- msg
@@ -458,7 +458,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	// If this fails, a commit with greater payment already exists
 	if !state.IsHighestCommit(msg.CommitEntry.GetEntryHash(), msg) {
-		return nil, NewCustomError("Repeated Commit", "A commit with equal or greater payment already exists")
+		return nil, NewRepeatCommitError("A commit with equal or greater payment already exists")
 	}
 
 	state.APIQueue() <- msg

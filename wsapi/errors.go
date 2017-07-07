@@ -47,9 +47,6 @@ func NewCustomInternalError(data interface{}) *primitives.JSONError {
 func NewCustomInvalidParamsError(data interface{}) *primitives.JSONError {
 	return primitives.NewJSONError(-32602, "Invalid params", data)
 }
-func NewCustomError(msg string, data interface{}) *primitives.JSONError {
-	return primitives.NewJSONError(-32000, msg, data)
-}
 
 /*******************************************************************/
 
@@ -96,4 +93,7 @@ func NewMissingChainHeadError() *primitives.JSONError {
 }
 func NewReceiptError() *primitives.JSONError {
 	return primitives.NewJSONError(-32010, "Receipt creation error", nil)
+}
+func NewRepeatCommitError(data interface{}) *primitives.JSONError {
+	return primitives.NewJSONError(-32011, "Repeated Commit", data)
 }
