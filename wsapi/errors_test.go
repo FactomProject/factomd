@@ -112,9 +112,8 @@ func TestErrors(t *testing.T) {
 		t.Error("Code or message is wrong for NewReceiptError")
 	}
 
-	je = NewRepeatCommitError()
+	je = NewRepeatCommitError("")
 	if je.Code != -32011 || je.Message != "Repeated Commit" {
 		t.Error("Code or message is wrong for NewReceiptError")
 	}
-
 }
