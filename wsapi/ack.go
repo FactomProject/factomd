@@ -92,6 +92,10 @@ func HandleV2ACKWithChain(state interfaces.IState, params interface{}) (interfac
 		return nil, NewInvalidParamsError()
 	}
 
+	if len(ackReq.ChainID) == 1 && (ackReq.ChainID == "c" || ackReq.ChainID == "f") {
+		ackReq.ChainID = "000000000000000000000000000000000000000000000000000000000000000" + ackReq.ChainID
+	}
+
 	if len(ackReq.ChainID) != 64 {
 		return nil, NewCustomInvalidParamsError("ChainID must be 64 hex encoded characters")
 	}
