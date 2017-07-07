@@ -1181,7 +1181,6 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 //  This is what fills the HoldingMap while locking it against a read while building
 func (s *State) fillHoldingMap() {
 	// once a second is often enough to rebuild the Ack list exposed to api
-
 	if s.HoldingLast < time.Now().Unix() {
 
 		localMap := make(map[[32]byte]interfaces.IMsg)

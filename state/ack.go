@@ -21,6 +21,7 @@ func (s *State) IsStateFullySynced() bool {
 
 // GetEntryCommitAckByTXID will fetch the status of a commit by TxID
 func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blktime interfaces.Timestamp, commit interfaces.IMsg, entryhash interfaces.IHash) {
+	status = constants.AckStatusUnknown
 	// Check Database for commit
 	ecblkHash, err := s.DB.FetchIncludedIn(hash)
 	if err == nil && ecblkHash != nil {
@@ -128,31 +129,41 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 	}
 
 	// Check if the commit is in the the latest processlist
-	pl := s.ProcessLists.GetSafe(s.PLProcessHeight)
-	if pl != nil {
-		// We will search the processlist for the commit
-		// TODO: Is this thread safe?
-		for _, v := range pl.VMs {
-			for _, m := range v.List {
-				switch m.Type() {
-				case constants.COMMIT_CHAIN_MSG:
-					cc, ok := m.(*messages.CommitChainMsg)
-					if ok {
-						if cc.CommitChain.EntryHash.IsSameAs(hash) {
-							// Msg found in the latest processlist
-							status = constants.AckStatusACK
-							commit = cc
-							return
+	for i := uint32(0); i < 2; i++ {
+		// Also have to check the prior PL if we are in minute 0
+		if i == 1 && s.GetCurrentMinute() != 0 {
+			continue
+		}
+		if s.PLProcessHeight < i {
+			// If i == 1 and PLHeight is 0, we don't want uint32 underflow
+			continue
+		}
+		pl := s.ProcessLists.GetSafe(s.PLProcessHeight - i)
+		if pl != nil {
+			// We will search the processlist for the commit
+			// TODO: Is this thread safe?
+			for _, v := range pl.VMs {
+				for _, m := range v.List {
+					switch m.Type() {
+					case constants.COMMIT_CHAIN_MSG:
+						cc, ok := m.(*messages.CommitChainMsg)
+						if ok {
+							if cc.CommitChain.EntryHash.IsSameAs(hash) {
+								// Msg found in the latest processlist
+								status = constants.AckStatusACK
+								commit = cc
+								return
+							}
 						}
-					}
-				case constants.COMMIT_ENTRY_MSG:
-					ce, ok := m.(*messages.CommitEntryMsg)
-					if ok {
-						if ce.CommitEntry.EntryHash.IsSameAs(hash) {
-							// Msg found in the latest processlist
-							status = constants.AckStatusACK
-							commit = ce
-							return
+					case constants.COMMIT_ENTRY_MSG:
+						ce, ok := m.(*messages.CommitEntryMsg)
+						if ok {
+							if ce.CommitEntry.EntryHash.IsSameAs(hash) {
+								// Msg found in the latest processlist
+								status = constants.AckStatusACK
+								commit = ce
+								return
+							}
 						}
 					}
 				}

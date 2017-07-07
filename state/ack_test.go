@@ -8,11 +8,17 @@ import (
 	"testing"
 	//"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	. "github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
-	//. "github.com/FactomProject/factomd/state"
 )
+
+var _ interfaces.IMsg
+var _ = NewProcessList
 
 func TestIsStateFullySynced(t *testing.T) {
 	s1_good := CreateAndPopulateTestState()
@@ -176,5 +182,60 @@ func TestFetchEntryByHash(t *testing.T) {
 				t.Error("Mismatched entry")
 			}
 		}
+	}
+}
+
+func TestUnkownAcks(t *testing.T) {
+	// All random unknown hashes
+	s := CreateAndPopulateTestState()
+	status, _, _, _ := s.GetEntryCommitAckByTXID(primitives.RandomHash())
+	if status != constants.AckStatusUnknown {
+		t.Error("Should be unknown")
+	}
+
+	status, _ = s.GetEntryCommitAckByEntryHash(primitives.RandomHash())
+	if status != constants.AckStatusUnknown {
+		t.Error("Should be unknown")
+	}
+
+	status, _, _ = s.GetEntryRevealAck(primitives.RandomHash())
+	if status != constants.AckStatusUnknown {
+		t.Error("Should be unknown")
+	}
+
+	r, c := s.FetchEntryRevealAndCommitFromHolding(primitives.RandomHash())
+	if r != nil || c != nil {
+		t.Error("Should be nils")
+	}
+}
+
+func TestDblockConf(t *testing.T) {
+	// All random unknown hashes
+	s := CreateAndPopulateTestState()
+	commit := messages.NewCommitEntryMsg()
+	commit.CommitEntry = entryCreditBlock.NewCommitEntry()
+	commit.CommitEntry.Credits = 2
+	commit.CommitEntry.Init()
+	eh := commit.CommitEntry.Hash()
+	commit.CommitEntry.EntryHash = eh
+	s.Commits.Put(eh.Fixed(), commit)
+	s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), primitives.NewTimestampNow(), primitives.NewTimestampNow())
+
+	status, _ := s.GetEntryCommitAckByEntryHash(eh)
+	if status != constants.AckStatusDBlockConfirmed {
+		t.Errorf("Should be DblockConf, found %s", constants.AckStatusString(status))
+	}
+
+	status, _, _ = s.GetEntryRevealAck(eh)
+	if status != constants.AckStatusACK {
+		t.Errorf("Should be TransAck, found %s", constants.AckStatusString(status))
+	}
+
+	s.Holding[eh.Fixed()] = commit
+	s.HoldingLast = 0
+	s.UpdateState()
+	_, c := s.FetchEntryRevealAndCommitFromHolding(eh)
+	if c == nil {
+		t.Error("Should be found")
 	}
 }
