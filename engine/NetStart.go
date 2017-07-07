@@ -282,6 +282,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		seedURL = s.MainSeedURL
 		networkPort = s.MainNetworkPort
 		specialPeers = s.MainSpecialPeers
+		s.DirectoryBlockInSeconds = 600
 	case "TEST", "test":
 		networkID = p2p.TestNet
 		seedURL = s.TestSeedURL

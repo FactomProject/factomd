@@ -80,6 +80,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "commit-entry":
 		resp, jsonError = HandleV2CommitEntry(state, params)
 		break
+	case "current-minute":
+		resp, jsonError = HandleV2CurrentMinute(state, params)
+		break
 	case "directory-block":
 		resp, jsonError = HandleV2DirectoryBlock(state, params)
 		break
@@ -797,6 +800,25 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	}
 
 	return c, nil
+}
+
+func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallHeights.Observe(float64(time.Since(n).Nanoseconds()))
+
+	h := new(CurrentMinuteResponse)
+
+	h.LeaderHeight = int64(state.GetTrueLeaderHeight())
+	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
+	h.Minute = int64(state.GetCurrentMinute())
+	h.CurrentTime = n.UnixNano()
+	h.CurrentBlockStartTime = state.GetCurrentBlockStartTime()
+	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
+	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
+	h.StallDetected = state.IsStalled()
+
+	//h.LastBlockTime = state.GetTimestamp
+	return h, nil
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
