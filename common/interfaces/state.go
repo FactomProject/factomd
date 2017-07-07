@@ -265,6 +265,9 @@ type IState interface {
 	GetEntryRevealAck(hash IHash) (status int, blktime Timestamp, commit IMsg)
 	GetEntryCommitAckByTXID(hash IHash) (status int, blktime Timestamp, commit IMsg, entryhash IHash)
 
+	// Used in API to reject commits properly and inform user
+	IsHighestCommit(hash IHash, msg IMsg) bool
+
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
