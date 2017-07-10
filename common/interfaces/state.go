@@ -264,6 +264,7 @@ type IState interface {
 	GetEntryCommitAckByEntryHash(hash IHash) (status int, commit IMsg)
 	GetEntryRevealAck(hash IHash) (status int, blktime Timestamp, commit IMsg)
 	GetEntryCommitAckByTXID(hash IHash) (status int, blktime Timestamp, commit IMsg, entryhash IHash)
+	IsPendingChainHead(chainID IHash) bool
 
 	// Used in API to reject commits properly and inform user
 	IsHighestCommit(hash IHash, msg IMsg) bool

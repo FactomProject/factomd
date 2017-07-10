@@ -71,7 +71,7 @@ type SaveState struct {
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	Commits *CommitMap                   // map[[32]byte]interfaces.IMsg // Commit Messages
+	Commits *SafeMsgMap                  // map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
 
@@ -120,7 +120,7 @@ func (ss *SaveState) Init() {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = NewCommitMap() // map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap() // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
@@ -915,7 +915,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	ss.ECBalancesP = map[[32]byte]int64{}
 	ss.Holding = map[[32]byte]interfaces.IMsg{}
 	ss.Acks = map[[32]byte]interfaces.IMsg{}
-	ss.Commits = NewCommitMap()
+	ss.Commits = NewSafeMsgMap()
 	ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 
 	ss.FedServers = []interfaces.IServer{}

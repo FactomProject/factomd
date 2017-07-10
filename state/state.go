@@ -233,7 +233,11 @@ type State struct {
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	Commits       *CommitMap                   //  map[[32]byte]interfaces.IMsg // Commit Messages
+	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
+	// Chains that are executed, but not processed. There is a small window of a pending chain that the ack
+	// will pass and the chainhead will fail. This covers that window. This is only used by WSAPI,
+	// do not use it anywhere internally.
+	PendingChainHeads *SafeMsgMap //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -785,7 +789,8 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = NewCommitMap() //make(map[[32]byte]interfaces.IMsg)
+	s.Commits = NewSafeMsgMap() //make(map[[32]byte]interfaces.IMsg)
+	s.PendingChainHeads = NewSafeMsgMap()
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -898,6 +903,14 @@ func (s *State) Init() {
 	}
 
 	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
+}
+
+// IsPendingChainHead returns if a chainhead is about to be updated (In PL)
+func (s *State) IsPendingChainHead(chainid interfaces.IHash) bool {
+	if s.PendingChainHeads.Get(chainid.Fixed()) != nil {
+		return true
+	}
+	return false
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {

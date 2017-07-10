@@ -8,44 +8,44 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 )
 
-// CommitMap is a threadsafe map[[32]byte]interfaces.IMsg
-type CommitMap struct {
+// SafeMsgMap is a threadsafe map[[32]byte]interfaces.IMsg
+type SafeMsgMap struct {
 	msgmap map[[32]byte]interfaces.IMsg
 	sync.RWMutex
 }
 
-func NewCommitMap() *CommitMap {
-	m := new(CommitMap)
+func NewSafeMsgMap() *SafeMsgMap {
+	m := new(SafeMsgMap)
 	m.msgmap = make(map[[32]byte]interfaces.IMsg)
 
 	return m
 }
 
-func (m *CommitMap) Get(key [32]byte) (msg interfaces.IMsg) {
+func (m *SafeMsgMap) Get(key [32]byte) (msg interfaces.IMsg) {
 	m.RLock()
 	defer m.RUnlock()
 	return m.msgmap[key]
 }
 
-func (m *CommitMap) Put(key [32]byte, msg interfaces.IMsg) {
+func (m *SafeMsgMap) Put(key [32]byte, msg interfaces.IMsg) {
 	m.Lock()
 	m.msgmap[key] = msg
 	m.Unlock()
 }
 
-func (m *CommitMap) Delete(key [32]byte) (msg interfaces.IMsg, found bool) {
+func (m *SafeMsgMap) Delete(key [32]byte) (msg interfaces.IMsg, found bool) {
 	m.Lock()
 	delete(m.msgmap, key)
 	m.Unlock()
 	return
 }
 
-func (m *CommitMap) Len() int {
+func (m *SafeMsgMap) Len() int {
 	return len(m.msgmap)
 }
 
-func (m *CommitMap) Copy() *CommitMap {
-	m2 := NewCommitMap()
+func (m *SafeMsgMap) Copy() *SafeMsgMap {
+	m2 := NewSafeMsgMap()
 
 	m.RLock()
 	for k, v := range m.msgmap {
@@ -56,14 +56,21 @@ func (m *CommitMap) Copy() *CommitMap {
 	return m2
 }
 
-// GetRaw is used in testing and simcontrol. Do no use this in production
-func (m *CommitMap) GetRaw() map[[32]byte]interfaces.IMsg {
-	raw := m.Copy()
-	return raw.msgmap
+// Reset will delete all elements
+func (m *SafeMsgMap) Reset() {
+	m.Lock()
+	if len(m.msgmap) > 0 {
+		m.msgmap = make(map[[32]byte]interfaces.IMsg)
+	}
+	m.Unlock()
 }
 
+//
+// Used if a Commit Map
+//
+
 // Cleanup will clean old elements out from the commit map.
-func (m *CommitMap) Cleanup(s *State) {
+func (m *SafeMsgMap) Cleanup(s *State) {
 	m.Lock()
 	// Time out commits every now and again. Also check for entries that have been revealed
 	now := s.GetTimestamp()
@@ -89,7 +96,8 @@ func (m *CommitMap) Cleanup(s *State) {
 	m.Unlock()
 }
 
-func (m *CommitMap) RemoveExpired(s *State) {
+// RemoveExpired is used when treating this as a commit map. Do not
+func (m *SafeMsgMap) RemoveExpired(s *State) {
 	m.Lock()
 	// Time out commits every now and again.
 	for k, v := range m.msgmap {
@@ -101,4 +109,14 @@ func (m *CommitMap) RemoveExpired(s *State) {
 		}
 	}
 	m.Unlock()
+}
+
+//
+// For tests
+//
+
+// GetRaw is used in testing and simcontrol. Do no use this in production
+func (m *SafeMsgMap) GetRaw() map[[32]byte]interfaces.IMsg {
+	raw := m.Copy()
+	return raw.msgmap
 }

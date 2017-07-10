@@ -786,6 +786,13 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 		c.ChainInProcessList = true
 	}
 
+	// This checks the race condition that something is added to the process list, but not executed
+	if !c.ChainInProcessList {
+		if state.IsPendingChainHead(h) {
+			c.ChainInProcessList = true
+		}
+	}
+
 	// get the chain head from the database
 	mr, err := dbase.FetchHeadIndexByChainID(h)
 	if err != nil {
