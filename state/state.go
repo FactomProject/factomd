@@ -1218,7 +1218,6 @@ func (s *State) fillAcksMap() {
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
-	fmt.Println("GetPendingEntries")
 	resp := make([]interfaces.IPendingEntry, 0)
 	pls := s.ProcessLists.Lists
 	var cc messages.CommitChainMsg
