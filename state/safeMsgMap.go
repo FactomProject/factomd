@@ -1,12 +1,15 @@
 package state
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
+
+var _ = fmt.Println
 
 // SafeMsgMap is a threadsafe map[[32]byte]interfaces.IMsg
 type SafeMsgMap struct {

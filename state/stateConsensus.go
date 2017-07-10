@@ -1110,7 +1110,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 		// Put it in our list of new Entry Blocks for this Directory Block
 		s.PutNewEBlocks(dbheight, chainID, eb)
 		s.PutNewEntries(dbheight, myhash, msg.Entry)
-		s.PendingChainHeads.Delete(chainID.Fixed())
 
 		s.IncEntryChains()
 		s.IncEntries()
@@ -1140,7 +1139,6 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 	// Put it in our list of new Entry Blocks for this Directory Block
 	s.PutNewEBlocks(dbheight, chainID, eb)
 	s.PutNewEntries(dbheight, myhash, msg.Entry)
-	s.PendingChainHeads.Delete(chainID.Fixed())
 
 	// Monitor key changes for fed/audit servers
 	LoadIdentityByEntry(msg.Entry, s, dbheight, false)
@@ -1398,7 +1396,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		s.Commits.RemoveExpired(s)
-		s.PendingChainHeads.Reset()
 		// for k, v := range s.Commits {
 		// 	if v != nil {
 		// 		_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
@@ -1899,9 +1896,27 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 	return nil
 }
 
+func (s *State) IsNewOrPendingEBlocks(dbheight uint32, hash interfaces.IHash) bool {
+	if dbheight <= s.GetHighestSavedBlk()+2 {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return false
+		}
+		eblk := pl.GetNewEBlocks(hash)
+		if eblk != nil {
+			return true
+		}
+
+		return pl.IsPendingChainHead(hash)
+	}
+	return false
+}
+
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
 	pl := s.ProcessLists.Get(dbheight)
 	pl.AddNewEBlocks(hash, eb)
+	// We no longer need them in this map, as they are in the other
+	pl.PendingChainHeads.Delete(hash.Fixed())
 }
 
 func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {

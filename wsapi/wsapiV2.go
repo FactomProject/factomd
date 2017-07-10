@@ -780,17 +780,10 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	// get the pending chain head from the current or previous process list in
 	// the state
 	lh := state.GetLeaderHeight()
-	pend1 := state.GetNewEBlocks(lh, h)
-	pend2 := state.GetNewEBlocks(lh-1, h)
-	if pend1 != nil || pend2 != nil {
+	pend1 := state.IsNewOrPendingEBlocks(lh, h)
+	pend2 := state.IsNewOrPendingEBlocks(lh-1, h)
+	if pend1 || pend2 {
 		c.ChainInProcessList = true
-	}
-
-	// This checks the race condition that something is added to the process list, but not executed
-	if !c.ChainInProcessList {
-		if state.IsPendingChainHead(h) {
-			c.ChainInProcessList = true
-		}
 	}
 
 	// get the chain head from the database

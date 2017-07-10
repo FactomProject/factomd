@@ -214,21 +214,24 @@ func (s *State) GetEntryRevealAck(hash interfaces.IHash) (status int, blktime in
 	// Fetch the EBlock
 	eblk, err := s.DB.FetchIncludedIn(hash)
 	if err == nil && eblk != nil {
-		// This means the entry was found in the database
-		status = constants.AckStatusDBlockConfirmed
-		dblk, err := s.DB.FetchIncludedIn(eblk)
-		if err != nil {
+		// Ensure that it was found in an eblock, not an ecblock.
+		if eblock, err := s.DB.FetchEBlock(eblk); eblock != nil && err == nil {
+			// This means the entry was found in the database
+			status = constants.AckStatusDBlockConfirmed
+			dblk, err := s.DB.FetchIncludedIn(eblk)
+			if err != nil {
+				return
+			}
+
+			dBlock, err := s.DB.FetchDBlock(dblk)
+			if err != nil {
+				return
+			}
+			blktime = dBlock.GetTimestamp()
+
+			// Exit as it was found in the blockchain, and we have the time
 			return
 		}
-
-		dBlock, err := s.DB.FetchDBlock(dblk)
-		if err != nil {
-			return
-		}
-		blktime = dBlock.GetTimestamp()
-
-		// Exit as it was found in the blockchain, and we have the time
-		return
 	}
 
 	// Not found in the database. Check if it was found in the processlist

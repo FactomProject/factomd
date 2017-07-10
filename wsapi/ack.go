@@ -106,6 +106,20 @@ func HandleV2ACKWithChain(state interfaces.IState, params interface{}) (interfac
 	}
 	var _ = chainid
 
+	if ackReq.Hash == "" {
+		// If it is a factoid transaction, it will be handled by the factoidack handler
+		if ackReq.FullTransaction != "" && ackReq.FullTransaction != "000000000000000000000000000000000000000000000000000000000000000f" {
+			ehash, commithash := DecodeTransactionToHashes(ackReq.FullTransaction)
+			if ackReq.ChainID == "000000000000000000000000000000000000000000000000000000000000000c" {
+				// Take the commit hash
+				ackReq.Hash = commithash
+			} else {
+				// Take the entry hash
+				ackReq.Hash = ehash
+			}
+		}
+	}
+
 	hash, err := primitives.HexToHash(ackReq.Hash)
 	if err != nil {
 		return nil, NewCustomInvalidParamsError("Hash must be 64 hex encoded characters")
@@ -141,6 +155,7 @@ func HandleV2ACKWithChain(state interfaces.IState, params interface{}) (interfac
 		// This is a factoid transaction, just use the old implementation for now
 		otherAckReq := new(AckRequest)
 		otherAckReq.TxID = ackReq.Hash
+		otherAckReq.FullTransaction = ackReq.FullTransaction
 		return HandleV2FactoidACK(state, otherAckReq)
 	case hex.EncodeToString(constants.ADMIN_CHAINID):
 		return nil, NewCustomInvalidParamsError("ChainID cannot be admin chain")
@@ -202,6 +217,7 @@ func handleAckByEntryHash(hash interfaces.IHash, state interfaces.IState) (inter
 			answer.CommitTxID = cc.CommitChain.GetSigHash().String()
 		}
 	}
+
 	return answer, nil
 }
 
@@ -608,8 +624,9 @@ type AckRequest struct {
 }
 
 type EntryAckWithChainRequest struct {
-	Hash    string `json:"hash,omitempty"`
-	ChainID string `json:"chainid,omitempty"`
+	Hash            string `json:"hash,omitempty"`
+	ChainID         string `json:"chainid,omitempty"`
+	FullTransaction string `json:"fulltransaction,omitempty"`
 }
 
 type FactoidTxStatus struct {
