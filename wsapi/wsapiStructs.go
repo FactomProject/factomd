@@ -16,21 +16,25 @@ type FactoidSubmitResponse struct {
 }
 
 type CommitChainResponse struct {
-	Message string `json:"message"`
-	TxID    string `json:"txid"`
+	Message   string `json:"message"`
+	TxID      string `json:"txid"`
+	EntryHash string `json:"entryhash,omitempty"`
+	ChainID   string `json:"chainid,omitempty"`
 }
 
 type RevealChainResponse struct {
 }
 
 type CommitEntryResponse struct {
-	Message string `json:"message"`
-	TxID    string `json:"txid"`
+	Message   string `json:"message"`
+	TxID      string `json:"txid"`
+	EntryHash string `json:"entryhash,omitempty"`
 }
 
 type RevealEntryResponse struct {
 	Message   string `json:"message"`
 	EntryHash string `json:"entryhash"`
+	ChainID   string `json:"chainid,omitempty"`
 }
 
 type DirectoryBlockResponse struct {

@@ -424,6 +424,8 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
 	resp.TxID = commit.GetSigHash().String()
+	resp.EntryHash = commit.GetEntryHash().String()
+	resp.ChainID = commit.ChainIDHash.String()
 
 	return resp, nil
 }
@@ -470,6 +472,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
 	resp.TxID = commit.GetSigHash().String()
+	resp.EntryHash = commit.EntryHash.String()
 
 	return resp, nil
 }
@@ -506,6 +509,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
 	resp.EntryHash = entry.GetHash().String()
+	resp.ChainID = entry.ChainID.String()
 
 	return resp, nil
 }
