@@ -77,12 +77,12 @@ func TestUnmarshalNilAdminBlock(t *testing.T) {
 	a := new(AdminBlock)
 	err := a.UnmarshalBinary(nil)
 	if err == nil {
-		t.Errorf("Error is nil when it shouldn't be")
+		t.Error("Error is nil when it shouldn't be")
 	}
 
 	err = a.UnmarshalBinary([]byte{})
 	if err == nil {
-		t.Errorf("Error is nil when it shouldn't be")
+		t.Error("Error is nil when it shouldn't be")
 	}
 }
 
@@ -96,34 +96,34 @@ func TestNilFunctions(t *testing.T) {
 	a := new(AdminBlock)
 
 	if a.UpdateState(nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddDBSig(nil, nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddFedServer(nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddAuditServer(nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.RemoveFederatedServer(nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddMatryoshkaHash(nil, nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddFederatedServerSigningKey(nil, [32]byte{}) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddFederatedServerBitcoinAnchorKey(nil, 0, 0, [20]byte{}) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddEntry(nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 	if a.AddServerFault(nil) == nil {
-		t.Errorf("No error returned")
+		t.Error("No error returned")
 	}
 }
 
@@ -145,10 +145,10 @@ func TestAddDBSig(t *testing.T) {
 	}
 	for i := range testVector {
 		if ab.ABEntries[i].(*DBSignatureEntry).IdentityAdminChainID.String() != testVector[i].IdentityAdminChainID.String() {
-			t.Errorf("Invalid IdentityAdminChainID")
+			t.Error("Invalid IdentityAdminChainID")
 		}
 		if ab.ABEntries[i].(*DBSignatureEntry).PrevDBSig.IsSameAs(&testVector[i].PrevDBSig) == false {
-			t.Errorf("Invalid PrevDBSig")
+			t.Error("Invalid PrevDBSig")
 		}
 	}
 }
@@ -169,10 +169,10 @@ func TestAddFedServer(t *testing.T) {
 	}
 	for i := range testVector {
 		if ab.ABEntries[i].(*AddFederatedServer).IdentityChainID.String() != testVector[i].String() {
-			t.Errorf("Invalid IdentityChainID")
+			t.Error("Invalid IdentityChainID")
 		}
 		if ab.ABEntries[i].(*AddFederatedServer).DBHeight != uint32(i+1) {
-			t.Errorf("Invalid DBHeight")
+			t.Error("Invalid DBHeight")
 		}
 	}
 }
@@ -193,10 +193,10 @@ func TestAddAuditServer(t *testing.T) {
 	}
 	for i := range testVector {
 		if ab.ABEntries[i].(*AddAuditServer).IdentityChainID.String() != testVector[i].String() {
-			t.Errorf("Invalid IdentityChainID")
+			t.Error("Invalid IdentityChainID")
 		}
 		if ab.ABEntries[i].(*AddAuditServer).DBHeight != uint32(i+1) {
-			t.Errorf("Invalid DBHeight")
+			t.Error("Invalid DBHeight")
 		}
 	}
 }
@@ -217,10 +217,10 @@ func TestRemoveFederatedServer(t *testing.T) {
 	}
 	for i := range testVector {
 		if ab.ABEntries[i].(*RemoveFederatedServer).IdentityChainID.String() != testVector[i].String() {
-			t.Errorf("Invalid IdentityChainID")
+			t.Error("Invalid IdentityChainID")
 		}
 		if ab.ABEntries[i].(*RemoveFederatedServer).DBHeight != uint32(i+1) {
-			t.Errorf("Invalid DBHeight")
+			t.Error("Invalid DBHeight")
 		}
 	}
 }
@@ -242,10 +242,10 @@ func TestAddMatryoshkaHash(t *testing.T) {
 	}
 	for i := range testVector {
 		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
-			t.Errorf("Invalid IdentityChainID")
+			t.Error("Invalid IdentityChainID")
 		}
 		if ab.ABEntries[i].(*AddReplaceMatryoshkaHash).MHash.String() != testVector[i].MHash.String() {
-			t.Errorf("Invalid MHash")
+			t.Error("Invalid MHash")
 		}
 	}
 }
@@ -268,10 +268,10 @@ func TestAddFederatedServerSigningKey(t *testing.T) {
 	}
 	for i := range testVector {
 		if ab.ABEntries[i].(*AddFederatedServerSigningKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
-			t.Errorf("Invalid IdentityChainID")
+			t.Error("Invalid IdentityChainID")
 		}
 		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerSigningKey).PublicKey[:], testVector[i].PublicKey[:]) == false {
-			t.Errorf("Invalid PublicKey")
+			t.Error("Invalid PublicKey")
 		}
 	}
 }
@@ -299,16 +299,16 @@ func TestAddFederatedServerBitcoinAnchorKey(t *testing.T) {
 	}
 	for i := range testVector {
 		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).IdentityChainID.String() != testVector[i].IdentityChainID.String() {
-			t.Errorf("Invalid IdentityChainID")
+			t.Error("Invalid IdentityChainID")
 		}
 		if primitives.AreBytesEqual(ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).ECDSAPublicKey[:], testVector[i].ECDSAPublicKey[:]) == false {
-			t.Errorf("Invalid ECDSAPublicKey")
+			t.Error("Invalid ECDSAPublicKey")
 		}
 		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyPriority != byte(i%256) {
-			t.Errorf("Invalid KeyPriority")
+			t.Error("Invalid KeyPriority")
 		}
 		if ab.ABEntries[i].(*AddFederatedServerBitcoinAnchorKey).KeyType != byte(256-i%256) {
-			t.Errorf("Invalid KeyType")
+			t.Error("Invalid KeyType")
 		}
 	}
 }
@@ -451,6 +451,19 @@ func TestAdminBlockMarshalUnmarshal(t *testing.T) {
 				t.Logf("%X vs %X", entryOne, entryTwo)
 				t.Error("ABEntries are not identical")
 			}
+		}
+		str1, err1 := block.JSONString()
+		str2, err2 := block2.JSONString()
+		if err1 != nil || err2 != nil || str1 != str2 {
+			t.Errorf("JSON doesn't match. %d", b)
+		}
+		b1, err1 := block.JSONByte()
+		b2, err2 := block.JSONByte()
+		if err1 != nil || err2 != nil || bytes.Compare(b1, b2) != 0 {
+			t.Errorf("JSON Byte doesn't match. %d", b)
+		}
+		if block.String() != block2.String() {
+			t.Errorf("String representation doesn't match %d", b)
 		}
 	}
 }
@@ -733,7 +746,7 @@ func TestAddServerFault(t *testing.T) {
 			continue
 		}
 		if i == 0 {
-			t.Errorf("SF entry is at position 0 when it shouldn't be")
+			t.Error("SF entry is at position 0 when it shouldn't be")
 			continue
 		}
 		if block.ABEntries[i-1].Type() != constants.TYPE_SERVER_FAULT {
@@ -744,14 +757,14 @@ func TestAddServerFault(t *testing.T) {
 		cur := block.ABEntries[i].(*ServerFault)
 
 		if prev.Timestamp.GetTimeMilliUInt64() > cur.Timestamp.GetTimeMilliUInt64() {
-			t.Errorf("Wrong order by Timestamp")
+			t.Error("Wrong order by Timestamp")
 			continue
 		}
 		if prev.Timestamp.GetTimeMilliUInt64() < cur.Timestamp.GetTimeMilliUInt64() {
 			continue
 		}
 		if prev.VMIndex > cur.VMIndex {
-			t.Errorf("Wrong order by VMIndex")
+			t.Error("Wrong order by VMIndex")
 			continue
 		}
 	}
@@ -759,6 +772,7 @@ func TestAddServerFault(t *testing.T) {
 
 func createTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
+	block.(*AdminBlock).Init()
 	block.SetHeader(createTestAdminHeader())
 	/**
 	p, _ := hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
@@ -781,6 +795,7 @@ func createTestAdminBlock() (block interfaces.IAdminBlock) {
 
 func createSmallTestAdminBlock() (block interfaces.IAdminBlock) {
 	block = new(AdminBlock)
+	block.(*AdminBlock).Init()
 	block.SetHeader(createSmallTestAdminHeader())
 	block.GetHeader().SetMessageCount(uint32(len(block.GetABEntries())))
 	return block

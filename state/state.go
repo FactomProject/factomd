@@ -23,29 +23,32 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/database/databaseOverlay"
-	//"github.com/FactomProject/factomd/database/hybridDB"
 	"github.com/FactomProject/factomd/database/boltdb"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
 	"errors"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// stateLogger is the general logger for all state related logs. You can add additional fields,
+// or create more context loggers off of this
+var stateLogger = log.WithFields(log.Fields{"package": "state"})
 
 var _ = fmt.Print
 
 type State struct {
-	filename string
-
+	Logger           *log.Entry
+	IsRunning        bool
+	filename         string
 	NetworkControler *p2p.Controller
-
-	Salt interfaces.IHash
-
-	Cfg interfaces.IFactomConfig
+	Salt             interfaces.IHash
+	Cfg              interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -186,6 +189,10 @@ type State struct {
 	OutputAllowed   bool
 	CurrentMinute   int
 
+	// These are the start times for blocks and minutes
+	CurrentMinuteStartTime int64
+	CurrentBlockStartTime  int64
+
 	EOMsyncing bool
 
 	EOM          bool // Set to true when the first EOM is encountered
@@ -245,7 +252,6 @@ type State struct {
 
 	// Database
 	DB     interfaces.DBOverlaySimple
-	Logger *log.FLogger
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -336,6 +342,10 @@ var _ interfaces.IState = (*State)(nil)
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
+}
+
+func (s *State) Running() bool {
+	return s.IsRunning
 }
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
@@ -531,8 +541,20 @@ func (s *State) GetFactomdLocations() string {
 	return s.FactomdLocations
 }
 
+func (s *State) GetCurrentBlockStartTime() int64 {
+	return s.CurrentBlockStartTime
+}
+
 func (s *State) GetCurrentMinute() int {
 	return s.CurrentMinute
+}
+
+func (s *State) GetCurrentMinuteStartTime() int64 {
+	return s.CurrentMinuteStartTime
+}
+
+func (s *State) GetCurrentTime() int64 {
+	return time.Now().UnixNano()
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -723,17 +745,15 @@ func (s *State) Init() {
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
-		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	} else {
 		er := os.MkdirAll(s.LogPath, 0777)
 		if er != nil {
 			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 		}
 		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
-		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	}
-
-	log.SetLevel(s.ConsoleLogLevel)
 
 	s.ControlPanelChannel = make(chan DisplayState, 20)
 	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
@@ -827,6 +847,7 @@ func (s *State) Init() {
 	switch s.Network {
 	case "MAIN":
 		s.NetworkNumber = constants.NETWORK_MAIN
+		s.DirectoryBlockInSeconds = 600
 	case "TEST":
 		s.NetworkNumber = constants.NETWORK_TEST
 	case "LOCAL":
@@ -875,6 +896,8 @@ func (s *State) Init() {
 			}
 		}
 	}
+
+	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
@@ -1328,7 +1351,6 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
 	var flgFound bool
-
 	var currentHeightComplete = s.GetDBHeightComplete()
 	resp := make([]interfaces.IPendingTransaction, 0)
 	pls := s.ProcessLists.Lists
@@ -1346,6 +1368,14 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					} else {
 						tmp.Status = "AckStatusACK"
 					}
+
+					tmp.Inputs = tran.GetInputs()
+					tmp.Outputs = tran.GetOutputs()
+					tmp.ECOutputs = tran.GetECOutputs()
+					ecrate := s.GetPredictiveFER()
+					ecrate, _ = tran.CalculateFee(ecrate)
+					tmp.Fees = ecrate
+
 					if params.(string) == "" {
 						flgFound = true
 					} else {
@@ -1385,7 +1415,12 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			tmp.TransactionID = tempTran.GetSigHash()
 			tmp.Status = "AckStatusNotConfirmed"
 			flgFound = tempTran.HasUserAddress(params.(string))
-
+			tmp.Inputs = tempTran.GetInputs()
+			tmp.Outputs = tempTran.GetOutputs()
+			tmp.ECOutputs = tempTran.GetECOutputs()
+			ecrate := s.GetPredictiveFER()
+			ecrate, _ = tempTran.CalculateFee(ecrate)
+			tmp.Fees = ecrate
 			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
 				for _, pt := range resp {
@@ -1483,6 +1518,32 @@ func (s *State) IncEntryChains() {
 
 func (s *State) IncEntries() {
 	s.NewEntries++
+}
+
+func (s *State) IsStalled() bool {
+	if s.CurrentMinuteStartTime == 0 { //0 while syncing.
+		return false
+	}
+
+	// If we are under height 3, then we won't say stalled by height.
+	lh := s.GetTrueLeaderHeight()
+
+	if lh >= 3 && s.GetHighestSavedBlk() < lh-3 {
+		return true
+	}
+
+	//use 1/10 of the block time times 1.5 in seconds as a timeout on the 'minutes'
+	var stalltime float64
+
+	stalltime = float64(int64(s.GetDirectoryBlockInSeconds())) / 10
+	stalltime = stalltime * 1.5 * 1e9
+	//fmt.Println("STALL 2", s.CurrentMinuteStartTime/1e9, time.Now().UnixNano()/1e9, stalltime/1e9, (float64(time.Now().UnixNano())-stalltime)/1e9)
+
+	if float64(s.CurrentMinuteStartTime) < float64(time.Now().UnixNano())-stalltime { //-90 seconds was arbitrary
+		return true
+	}
+
+	return false
 }
 
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
@@ -1762,32 +1823,29 @@ func (s *State) initServerKeys() {
 	s.serverPubKey = s.serverPrivKey.Pub
 }
 
-func (s *State) LogInfo(args ...interface{}) {
-	s.Logger.Info(args...)
-}
-
 func (s *State) Log(level string, message string) {
-	s.Logf(level, message)
+	stateLogger.WithFields(s.Logger.Data).Info(message)
 }
 
 func (s *State) Logf(level string, format string, args ...interface{}) {
+	llog := stateLogger.WithFields(s.Logger.Data)
 	switch level {
 	case "emergency":
-		s.Logger.Emergencyf(format, args...)
+		llog.Panicf(format, args...)
 	case "alert":
-		s.Logger.Alertf(format, args...)
+		llog.Panicf(format, args...)
 	case "critical":
-		s.Logger.Criticalf(format, args...)
+		llog.Panicf(format, args...)
 	case "error":
-		s.Logger.Errorf(format, args...)
-	case "warning":
-		s.Logger.Warningf(format, args...)
+		llog.Errorf(format, args...)
+	case "llog":
+		stateLogger.Warningf(format, args...)
 	case "info":
-		s.Logger.Infof(format, args...)
+		llog.Infof(format, args...)
 	case "debug":
-		s.Logger.Debugf(format, args...)
+		llog.Debugf(format, args...)
 	default:
-		s.Logger.Infof(format, args...)
+		llog.Infof(format, args...)
 	}
 }
 

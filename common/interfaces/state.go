@@ -24,6 +24,7 @@ type IQueue interface {
 // can be logged about the execution of Factom.  Also ensures that we do not
 // accidentally
 type IState interface {
+	Running() bool // Returns true as long as this Factomd instance is running.
 	// Server
 	GetFactomNodeName() string
 	GetSalt(Timestamp) uint32 // A secret number computed from a TS that tests if a message was issued from this server or not
@@ -286,7 +287,11 @@ type IState interface {
 	GetMissingEntryCount() uint32
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
+	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
+	GetCurrentMinuteStartTime() int64
+	GetCurrentTime() int64
+	IsStalled() bool
 	GetDelay() int64
 	SetDelay(int64)
 	GetDropRate() int

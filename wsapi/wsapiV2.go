@@ -80,6 +80,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "commit-entry":
 		resp, jsonError = HandleV2CommitEntry(state, params)
 		break
+	case "current-minute":
+		resp, jsonError = HandleV2CurrentMinute(state, params)
+		break
 	case "directory-block":
 		resp, jsonError = HandleV2DirectoryBlock(state, params)
 		break
@@ -275,10 +278,29 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	if err != nil {
 		return nil, NewInternalError()
 	}
+
+	// Correct any addresses that get ToLowered()
+	for _, t := range block.GetTransactions() {
+		for _, a := range t.GetInputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+		for _, a := range t.GetOutputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+		for _, a := range t.GetECOutputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+	}
+
 	resp.FBlock = b
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
+}
+
+// correctLowerCasedStringToOriginal will replace the matching ToLowered(original) with the original
+func correctLowerCasedStringToOriginal(j []byte, original string) []byte {
+	return []byte(strings.Replace(string(j), strings.ToLower(original), original, -1))
 }
 
 func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -764,6 +786,25 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	}
 
 	return c, nil
+}
+
+func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallHeights.Observe(float64(time.Since(n).Nanoseconds()))
+
+	h := new(CurrentMinuteResponse)
+
+	h.LeaderHeight = int64(state.GetTrueLeaderHeight())
+	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
+	h.Minute = int64(state.GetCurrentMinute())
+	h.CurrentTime = n.UnixNano()
+	h.CurrentBlockStartTime = state.GetCurrentBlockStartTime()
+	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
+	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
+	h.StallDetected = state.IsStalled()
+
+	//h.LastBlockTime = state.GetTimestamp
+	return h, nil
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
