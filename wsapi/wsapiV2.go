@@ -386,6 +386,11 @@ func ObjectToJStruct(source interface{}) (*JStruct, error) {
 	return dst, nil
 }
 
+type RepeatedEntryMessage struct {
+	Information string `json:"info"`
+	EntryHash   string `json:"entryhash"`
+}
+
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallCommitChain.Observe(float64(time.Since(n).Nanoseconds()))
@@ -415,7 +420,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	// If this fails, a commit with greater payment already exists
 	if !state.IsHighestCommit(msg.CommitChain.GetEntryHash(), msg) {
-		return nil, NewRepeatCommitError("A commit with equal or greater payment already exists")
+		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitChain.GetEntryHash().String()})
 	}
 
 	state.APIQueue() <- msg
@@ -463,7 +468,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	// If this fails, a commit with greater payment already exists
 	if !state.IsHighestCommit(msg.CommitEntry.GetEntryHash(), msg) {
-		return nil, NewRepeatCommitError("A commit with equal or greater payment already exists")
+		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitEntry.GetEntryHash().String()})
 	}
 
 	state.APIQueue() <- msg
