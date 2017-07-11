@@ -20,6 +20,11 @@ func (s *State) IsStateFullySynced() bool {
 }
 
 // GetEntryCommitAckByTXID will fetch the status of a commit by TxID
+//	Searches this order:
+//		Database	--> Check if it made it to blockchain
+//		PL			-->	See if it is still in the processlist
+//		PL - 1		-->	Only if min 0, because then it's not in DB yet, but still in this PL
+//		Holding 	--> See if it is in holding
 func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blktime interfaces.Timestamp, commit interfaces.IMsg, entryhash interfaces.IHash) {
 	status = constants.AckStatusUnknown
 	// Check Database for commit
@@ -27,7 +32,7 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 	if err == nil && ecblkHash != nil {
 		status = constants.AckStatusDBlockConfirmed
 
-		// Look for the entry
+		// See if it is a commit txid. If not found, then it is not
 		ecblk, err := s.DB.FetchECBlock(ecblkHash)
 		if err == nil && ecblk != nil {
 			// Found the ECBlock. We can find the transaction
@@ -38,18 +43,18 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 					break
 				}
 			}
-		}
 
-		// Get the time
-		dblkHash, err := s.DB.FetchIncludedIn(ecblkHash)
-		if err == nil && dblkHash != nil {
-			dblk, err := s.DB.FetchDBlock(dblkHash)
-			if err == nil && dblk != nil {
-				blktime = dblk.GetTimestamp()
+			// Get the time
+			dblkHash, err := s.DB.FetchIncludedIn(ecblkHash)
+			if err == nil && dblkHash != nil {
+				dblk, err := s.DB.FetchDBlock(dblkHash)
+				if err == nil && dblk != nil {
+					blktime = dblk.GetTimestamp()
+				}
 			}
-		}
 
-		// Found in DB, so return
+			// Found in DB, so return
+		}
 		return
 	}
 
