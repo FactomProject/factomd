@@ -1350,7 +1350,6 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
 	var flgFound bool
-
 	var currentHeightComplete = s.GetDBHeightComplete()
 	resp := make([]interfaces.IPendingTransaction, 0)
 	pls := s.ProcessLists.Lists
@@ -1368,6 +1367,14 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					} else {
 						tmp.Status = "AckStatusACK"
 					}
+
+					tmp.Inputs = tran.GetInputs()
+					tmp.Outputs = tran.GetOutputs()
+					tmp.ECOutputs = tran.GetECOutputs()
+					ecrate := s.GetPredictiveFER()
+					ecrate, _ = tran.CalculateFee(ecrate)
+					tmp.Fees = ecrate
+
 					if params.(string) == "" {
 						flgFound = true
 					} else {
@@ -1407,7 +1414,12 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			tmp.TransactionID = tempTran.GetSigHash()
 			tmp.Status = "AckStatusNotConfirmed"
 			flgFound = tempTran.HasUserAddress(params.(string))
-
+			tmp.Inputs = tempTran.GetInputs()
+			tmp.Outputs = tempTran.GetOutputs()
+			tmp.ECOutputs = tempTran.GetECOutputs()
+			ecrate := s.GetPredictiveFER()
+			ecrate, _ = tempTran.CalculateFee(ecrate)
+			tmp.Fees = ecrate
 			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
 				for _, pt := range resp {
