@@ -30,10 +30,9 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 	// Check Database for commit
 	ecblkHash, err := s.DB.FetchIncludedIn(hash)
 	if err == nil && ecblkHash != nil {
-		status = constants.AckStatusDBlockConfirmed
-
 		// See if it is a commit txid. If not found, then it is not
 		ecblk, err := s.DB.FetchECBlock(ecblkHash)
+		status = constants.AckStatusDBlockConfirmed
 		if err == nil && ecblk != nil {
 			// Found the ECBlock. We can find the transaction
 			for _, e := range ecblk.GetEntries() {
@@ -54,8 +53,8 @@ func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blkt
 			}
 
 			// Found in DB, so return
+			return
 		}
-		return
 	}
 
 	for i := uint32(0); i < 2; i++ {
@@ -136,14 +135,6 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 	// We begin as unknown
 	status = constants.AckStatusUnknown
 
-	c := s.Commits.Get(hash.Fixed())
-	if c != nil {
-		// The commit was found and valid. We will change this to AckStatus if found
-		// in the latest processlist
-		status = constants.AckStatusDBlockConfirmed
-		commit = c
-	}
-
 	// Check if the commit is in the the latest processlist
 	for i := uint32(0); i < 2; i++ {
 		// Also have to check the prior PL if we are in minute 0
@@ -187,8 +178,13 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 		}
 	}
 
-	// By this point we are either : Unknown or DBlock. Ack would exit earlier
-	if status == constants.AckStatusDBlockConfirmed {
+	// If found in commit map, and not in PL, it is in the DB
+	c := s.Commits.Get(hash.Fixed())
+	if c != nil {
+		// The commit was found and valid. We will change this to AckStatus if found
+		// in the latest processlist
+		status = constants.AckStatusDBlockConfirmed
+		commit = c
 		return
 	}
 
@@ -212,7 +208,7 @@ func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int,
 //		status 		= Status of reveal from possible ack responses
 // 		blktime		= The time of the block if found in the database, nil if not found in blockchain
 //		commit		 = Only returned if found from holding. This will be empty if found in dbase or in processlist
-func (s *State) GetEntryRevealAck(hash interfaces.IHash) (status int, blktime interfaces.Timestamp, commit interfaces.IMsg) {
+func (s *State) GetEntryRevealAckByEntryHash(hash interfaces.IHash) (status int, blktime interfaces.Timestamp, commit interfaces.IMsg) {
 	// We begin as unknown
 	status = constants.AckStatusUnknown
 

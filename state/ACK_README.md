@@ -119,16 +119,15 @@ The ChainID in the Request will be the facotoid chain, `000000000000000000000000
 
 `state.GetEntryCommitAckByEntryHash(entryhash)`
 
-1. Check state commitmap --> If found set status to `DBlockConfirmed`, but do not exit
-2. Check topmost PL --> If found, set status to `TransactionACK` and exit
-3. If at min 0, check topmost PL-1 --> If found, set status to `TransactionACK` and exit
-4. If `status == DBlockConfirmed` --> Exit
-5. Check Holding Map ---> If found, exit with `NotConfirmed`
-6. Exit as `Unknown`
+1. Check topmost PL --> If found, set status to `TransactionACK` and exit
+2. If at min 0, check topmost PL-1 --> If found, set status to `TransactionACK` and exit
+3. Check state commitmap --> If found set status to `DBlockConfirmed`, but do not exit
+4. Check Holding Map ---> If found, exit with `NotConfirmed`
+5. Exit as `Unknown`
 
 ### Search Entry Reveal by EntryHash
 
-`state.GetEntryRevealAck(entryhash)`
+`state.GetEntryRevealAckByEntryHash(entryhash)`
 
 1. Check Database --> If found, exit with `DBlockConfirmed`
 2. Check replay filter with mask --> If found, exit with `TransactionACK`

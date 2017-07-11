@@ -262,7 +262,7 @@ type IState interface {
 
 	// Acks with ChainIDs so you can select which hash type
 	GetEntryCommitAckByEntryHash(hash IHash) (status int, commit IMsg)
-	GetEntryRevealAck(hash IHash) (status int, blktime Timestamp, commit IMsg)
+	GetEntryRevealAckByEntryHash(hash IHash) (status int, blktime Timestamp, commit IMsg)
 	GetEntryCommitAckByTXID(hash IHash) (status int, blktime Timestamp, commit IMsg, entryhash IHash)
 	IsNewOrPendingEBlocks(dbheight uint32, hash IHash) bool
 

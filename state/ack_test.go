@@ -198,7 +198,7 @@ func TestUnkownAcks(t *testing.T) {
 		t.Error("Should be unknown")
 	}
 
-	status, _, _ = s.GetEntryRevealAck(primitives.RandomHash())
+	status, _, _ = s.GetEntryRevealAckByEntryHash(primitives.RandomHash())
 	if status != constants.AckStatusUnknown {
 		t.Error("Should be unknown")
 	}
@@ -226,7 +226,7 @@ func TestDblockConf(t *testing.T) {
 		t.Errorf("Should be DblockConf, found %s", constants.AckStatusString(status))
 	}
 
-	status, _, _ = s.GetEntryRevealAck(eh)
+	status, _, _ = s.GetEntryRevealAckByEntryHash(eh)
 	if status != constants.AckStatusACK {
 		t.Errorf("Should be TransAck, found %s", constants.AckStatusString(status))
 	}
