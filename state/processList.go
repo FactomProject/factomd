@@ -1022,11 +1022,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
-	// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
-	// on the api. MUST BE BEFORE THE REPLAY FILTER (which is in ExecuteRevealEntry, below AddToProcessList())
-	if re, ok := m.(*messages.RevealEntryMsg); ok {
-		p.PendingChainHeads.Put(re.Entry.GetChainID().Fixed(), m)
-	}
 	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
