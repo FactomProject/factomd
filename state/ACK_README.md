@@ -22,7 +22,7 @@ The ChainID can be either:
    * This signals the hash is a factoid txid
 3. Anything else (given it is 64 hex characters)
    * This signals the hash is an entry hash
-4. `000000000000000000000000000000000000000000000000000000000000000a` Will be rejected
+4. `000000000000000000000000000000000000000000000000000000000000000a` Is the only hash to be rejected, as AdminBlock is not allowed
 
 
 ## Status List
@@ -40,7 +40,7 @@ The various statuses are as follows
 
 ### For Commit TxIDs (Entry Credit Chain)
 
-Responses can vary depending on the status of the commit, which will always be found in `commitdata`. Commits may not enter the network if the entry has already been payed for within a 2hr window, because of this it is recommended to always search entries by their entryhash, rather than the corrosponding commit.
+Responses can vary depending on the status of the commit, which will always be found in `commitdata`. Commits may not enter the network if the entry has already been payed for within a 2hr window, because of this it is recommended to always search entries by their **entryhash**, rather than the corrosponding commit. Use the entry-credit chain, `000000000000000000000000000000000000000000000000000000000000000c` or `c` for short, for the request chainid
 
 ```json
 {  
@@ -78,6 +78,25 @@ The ChainID in the Request will be the ChainID the entry is located within. Resp
          "blockdatestring":"2017-07-07 10:19:00",
          "status":"DBlockConfirmed"
       }
+   }
+}
+```
+
+### For Factoid Transaction by txid 
+
+The ChainID in the Request will be the facotoid chain, `000000000000000000000000000000000000000000000000000000000000000f` or `f` for short. Responses are the same as the `factoid-ack` call.
+
+```json
+{  
+   "jsonrpc":"2.0",
+   "id":0,
+   "result":{  
+      "txid":"f1d9919829fa71ce18caf1bd8659cce8a06c0026d3f3fffc61054ebb25ebeaa0",
+      "transactiondate":1441138021975,
+      "transactiondatestring":"2015-09-01 15:07:01",
+      "blockdate":1441137600000,
+      "blockdatestring":"2015-09-01 15:00:00",
+      "status":"DBlockConfirmed"
    }
 }
 ```
