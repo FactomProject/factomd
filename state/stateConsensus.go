@@ -1307,6 +1307,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		s.CurrentMinute++
+		s.CurrentMinuteStartTime = time.Now().UnixNano()
 
 		switch {
 		case s.CurrentMinute < 10:
