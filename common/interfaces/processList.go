@@ -45,6 +45,7 @@ type IProcessList interface {
 	ContainsDBSig(serverID IHash) bool
 	AddDBSig(serverID IHash, sig IFullSignature)
 	String() string
+	IsPendingChainHead(chainID IHash) bool
 }
 
 type IRequest interface {

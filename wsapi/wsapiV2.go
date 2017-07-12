@@ -159,6 +159,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleAuthorities(state, params)
 	case "tps-rate":
 		resp, jsonError = HandleV2TransactionRate(state, params)
+	case "ack":
+		resp, jsonError = HandleV2ACKWithChain(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -384,6 +386,11 @@ func ObjectToJStruct(source interface{}) (*JStruct, error) {
 	return dst, nil
 }
 
+type RepeatedEntryMessage struct {
+	Information string `json:"info"`
+	EntryHash   string `json:"entryhash"`
+}
+
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallCommitChain.Observe(float64(time.Since(n).Nanoseconds()))
@@ -410,12 +417,20 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
+
+	// If this fails, a commit with greater payment already exists
+	if !state.IsHighestCommit(msg.CommitChain.GetEntryHash(), msg) {
+		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitChain.GetEntryHash().String()})
+	}
+
 	state.APIQueue() <- msg
 	state.IncECCommits()
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
 	resp.TxID = commit.GetSigHash().String()
+	resp.EntryHash = commit.GetEntryHash().String()
+	resp.ChainID = commit.ChainIDHash.String()
 
 	return resp, nil
 }
@@ -450,12 +465,19 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
+
+	// If this fails, a commit with greater payment already exists
+	if !state.IsHighestCommit(msg.CommitEntry.GetEntryHash(), msg) {
+		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitEntry.GetEntryHash().String()})
+	}
+
 	state.APIQueue() <- msg
 	state.IncECommits()
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
 	resp.TxID = commit.GetSigHash().String()
+	resp.EntryHash = commit.EntryHash.String()
 
 	return resp, nil
 }
@@ -492,6 +514,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
 	resp.EntryHash = entry.GetHash().String()
+	resp.ChainID = entry.ChainID.String()
 
 	return resp, nil
 }
@@ -766,9 +789,9 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	// get the pending chain head from the current or previous process list in
 	// the state
 	lh := state.GetLeaderHeight()
-	pend1 := state.GetNewEBlocks(lh, h)
-	pend2 := state.GetNewEBlocks(lh-1, h)
-	if pend1 != nil || pend2 != nil {
+	pend1 := state.IsNewOrPendingEBlocks(lh, h)
+	pend2 := state.IsNewOrPendingEBlocks(lh-1, h)
+	if pend1 || pend2 {
 		c.ChainInProcessList = true
 	}
 
