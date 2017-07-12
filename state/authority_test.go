@@ -146,20 +146,6 @@ func TestVerify(t *testing.T) {
 
 }
 
-/*
-type Authority struct {
-	AuthorityChainID  interfaces.IHash
-	ManagementChainID interfaces.IHash
-	MatryoshkaHash    interfaces.IHash
-	SigningKey        primitives.PublicKey
-	Status            uint8
-	AnchorKeys        []AnchorSigningKey
-
-	KeyHistory []HistoricKey
-}
-
-*/
-
 func TestSameAuth(t *testing.T) {
 	a := RandomAuthority()
 	d, _ := a.MarshalBinary()
