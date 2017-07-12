@@ -612,7 +612,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					} else if b[1] == 'c' {
 						f := fnodes[ListenTo]
 						fmt.Println("Commits:")
-						for _, c := range f.State.Commits {
+						for _, c := range f.State.Commits.GetRaw() {
 							if c != nil {
 								os.Stderr.WriteString("  " + (c.String()))
 								cc, ok1 := c.(*messages.CommitChainMsg)
