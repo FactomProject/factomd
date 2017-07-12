@@ -514,6 +514,12 @@ func startServers(load bool) {
 }
 
 func setupFirstAuthority(s *state.State) {
+	if len(s.Authorities) > 0 {
+		//Don't initialize first authority if we are loading during fast boot
+		//And there are already authorities present
+		return
+	}
+
 	var id state.Identity
 	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
 		id.IdentityChainID = networkIdentity
