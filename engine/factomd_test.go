@@ -145,6 +145,7 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
 
+	runCmd("i")
 	// Test block recording lengths and error checking for pprof
 	runCmd("b100")
 
