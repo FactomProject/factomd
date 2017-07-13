@@ -23,7 +23,7 @@ import (
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
 // or create more context loggers off of this
-var consenLogger = stateLogger.WithFields(log.Fields{"subpack": "consensus"})
+var consenLogger = packageLogger.WithFields(log.Fields{"subpack": "consensus"})
 
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)

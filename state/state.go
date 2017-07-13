@@ -36,9 +36,9 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-// stateLogger is the general logger for all state related logs. You can add additional fields,
+// packageLogger is the general logger for all package related logs. You can add additional fields,
 // or create more context loggers off of this
-var stateLogger = log.WithFields(log.Fields{"package": "state"})
+var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
 var _ = fmt.Print
 
@@ -1823,11 +1823,11 @@ func (s *State) initServerKeys() {
 }
 
 func (s *State) Log(level string, message string) {
-	stateLogger.WithFields(s.Logger.Data).Info(message)
+	packageLogger.WithFields(s.Logger.Data).Info(message)
 }
 
 func (s *State) Logf(level string, format string, args ...interface{}) {
-	llog := stateLogger.WithFields(s.Logger.Data)
+	llog := packageLogger.WithFields(s.Logger.Data)
 	switch level {
 	case "emergency":
 		llog.Panicf(format, args...)
@@ -1838,7 +1838,7 @@ func (s *State) Logf(level string, format string, args ...interface{}) {
 	case "error":
 		llog.Errorf(format, args...)
 	case "llog":
-		stateLogger.Warningf(format, args...)
+		llog.Warningf(format, args...)
 	case "info":
 		llog.Infof(format, args...)
 	case "debug":

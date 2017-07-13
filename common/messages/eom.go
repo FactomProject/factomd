@@ -17,8 +17,8 @@ import (
 
 var _ = log.Printf
 
-// eLogger is for EOM Messages and extends mLogger
-var eLogger = mLogger.WithFields(log.Fields{"message": "EOM"})
+// eLogger is for EOM Messages and extends packageLogger
+var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
 	MessageBase

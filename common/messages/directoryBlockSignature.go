@@ -16,8 +16,8 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-// dLogger is for DirectoryBlockSignature Messages and extends mLogger
-var dLogger = mLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
+// dLogger is for DirectoryBlockSignature Messages and extends packageLogger
+var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
 
 type DirectoryBlockSignature struct {
 	MessageBase

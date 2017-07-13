@@ -45,15 +45,15 @@ ERRO[0000] Failed to validate                            dbheight=5 func=Validat
 This code is annoying and repitive. So we use some shortcuts to make it a little easier. You can create and reuse a logger with defined fields, so each package will have something like this:
 
 ```
-var stateLogger = log.WithFields(log.Fields{"package": "state"})
+var packageLogger = log.WithFields(log.Fields{"package": "state"})
 ```
 
-To make a new log within a function extending the stateLogger, simply do:
+To make a new log within a function extending the packageLogger, simply do:
 
 ```
 func Foo() {
 	// If only adding a single field, you can do 'WithField', and define that one field
-	fooLogger := stateLogger.WithField("func","Foo")
+	fooLogger := packageLogger.WithField("func","Foo")
 	...
 	fooLogger.Error("Something bad happened!")
 }
@@ -63,7 +63,7 @@ If a function has many log printouts, we can define the function logger with mor
 
 ```
 func (m *message) Validate() {
-	vlog := stateLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
+	vlog := packageLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
 	...
 	vlog.Error("Failed!")
 	vlog.Info("Just something you should know")
