@@ -1220,7 +1220,6 @@ func (s *State) fillAcksMap() {
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
 	fmt.Println("GetPendingEntries")
 	resp := make([]interfaces.IPendingEntry, 0)
-	repeatmap := make(map[[32]byte]interfaces.IPendingEntry)
 	pls := s.ProcessLists.Lists
 	var cc messages.CommitChainMsg
 	var ce messages.CommitEntryMsg
@@ -1251,11 +1250,8 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 
-							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
-								//if util.IsInPendingEntryList(resp, tmp) {
-								// If not already there
+							if util.IsInPendingEntryList(resp, tmp) {
 								resp = append(resp, tmp)
-								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
 						} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 							enb, err := plmsg.MarshalBinary()
