@@ -1,10 +1,26 @@
 package wsapi_test
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/wsapi"
 )
+
+func getResp(err *primitives.JSONError) string {
+	resp := primitives.NewJSON2Response()
+	resp.ID = nil
+	resp.Error = err
+
+	js := resp.String()
+
+	var buf bytes.Buffer
+	json.Indent(&buf, []byte(js), "", "\t")
+	return string(buf.Bytes())
+}
 
 func TestErrors(t *testing.T) {
 	je := NewParseError()
@@ -111,5 +127,12 @@ func TestErrors(t *testing.T) {
 	if je.Code != -32010 || je.Message != "Receipt creation error" {
 		t.Error("Code or message is wrong for NewReceiptError")
 	}
+
+	je = NewRepeatCommitError("")
+	if je.Code != -32011 || je.Message != "Repeated Commit" {
+		t.Error("Code or message is wrong for NewReceiptError")
+	}
+
+	fmt.Println(getResp(je))
 
 }

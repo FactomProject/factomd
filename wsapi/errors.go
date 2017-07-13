@@ -94,3 +94,6 @@ func NewMissingChainHeadError() *primitives.JSONError {
 func NewReceiptError() *primitives.JSONError {
 	return primitives.NewJSONError(-32010, "Receipt creation error", nil)
 }
+func NewRepeatCommitError(data interface{}) *primitives.JSONError {
+	return primitives.NewJSONError(-32011, "Repeated Commit", data)
+}

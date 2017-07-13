@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
-	"github.com/FactomProject/factomd/common/constants"
+	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -1108,29 +1108,30 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	///////////////////////////////
 	// Cleanup Tasks
 	///////////////////////////////
+	list.State.Commits.Cleanup(list.State)
 
-	s := list.State
-	// Time out commits every now and again.
-	now := s.GetTimestamp()
-	for k, msg := range s.Commits {
-		{
-			c, ok := msg.(*messages.CommitChainMsg)
-			if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
-				delete(s.Commits, k)
-				continue
-			}
-		}
-		c, ok := msg.(*messages.CommitEntryMsg)
-		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
-			delete(s.Commits, k)
-			continue
-		}
+	// s := list.State
+	// // Time out commits every now and again.
+	// now := s.GetTimestamp()
+	// for k, msg := range s.Commits {
+	// 	{
+	// 		c, ok := msg.(*messages.CommitChainMsg)
+	// 		if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
+	// 			delete(s.Commits, k)
+	// 			continue
+	// 		}
+	// 	}
+	// 	c, ok := msg.(*messages.CommitEntryMsg)
+	// 	if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+	// 		delete(s.Commits, k)
+	// 		continue
+	// 	}
 
-		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
-		if !ok {
-			delete(s.Commits, k)
-		}
-	}
+	// 	_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+	// 	if !ok {
+	// 		delete(s.Commits, k)
+	// 	}
+	// }
 
 	return
 }

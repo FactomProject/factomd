@@ -789,7 +789,12 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, m)
 
 		msg := m.(*messages.RevealEntryMsg)
-		delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+		// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
+		// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
+		pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 
@@ -911,8 +916,14 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	cc := m.(*messages.CommitChainMsg)
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.IsHighestCommit(cc.CommitChain.EntryHash, m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+
+	s.LeaderExecute(m)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
@@ -921,8 +932,13 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	ce := m.(*messages.CommitEntryMsg)
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.IsHighestCommit(ce.CommitEntry.EntryHash, m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+	s.LeaderExecute(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
@@ -967,7 +983,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	} else {
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
-		delete(s.Commits, eh.Fixed())
+		s.Commits.Delete(eh.Fixed()) // delete(s.Commits, eh.Fixed())
 	}
 }
 
@@ -1077,7 +1093,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 	chainID := msg.Entry.GetChainID()
 
-	delete(s.Commits, msg.Entry.GetHash().Fixed())
+	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
 
 	eb := s.GetNewEBlocks(dbheight, chainID)
 	eb_db := s.GetNewEBlocks(dbheight-1, chainID)
@@ -1384,14 +1400,15 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.Saving = true
 		}
 
-		for k, v := range s.Commits {
-			if v != nil {
-				_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-				if !ok {
-					delete(s.Commits, k)
-				}
-			}
-		}
+		s.Commits.RemoveExpired(s)
+		// for k, v := range s.Commits {
+		// 	if v != nil {
+		// 		_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		// 		if !ok {
+		// 			delete(s.Commits, k)
+		// 		}
+		// 	}
+		// }
 
 		for k := range s.Acks {
 			v := s.Acks[k].(*messages.Ack)
@@ -1884,9 +1901,27 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 	return nil
 }
 
+func (s *State) IsNewOrPendingEBlocks(dbheight uint32, hash interfaces.IHash) bool {
+	if dbheight <= s.GetHighestSavedBlk()+2 {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return false
+		}
+		eblk := pl.GetNewEBlocks(hash)
+		if eblk != nil {
+			return true
+		}
+
+		return pl.IsPendingChainHead(hash)
+	}
+	return false
+}
+
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
 	pl := s.ProcessLists.Get(dbheight)
 	pl.AddNewEBlocks(hash, eb)
+	// We no longer need them in this map, as they are in the other
+	pl.PendingChainHeads.Delete(hash.Fixed())
 }
 
 func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {
@@ -1896,23 +1931,33 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
-	c := s.Commits[hash.Fixed()]
+	c := s.Commits.Get(hash.Fixed()) //  s.Commits[hash.Fixed()]
 	return c
 }
 
-func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
-	e, ok1 := s.Commits[hash.Fixed()].(*messages.CommitEntryMsg)
+// IsHighestCommit will determine if the commit given has more entry credits than the current
+// commit in the commit hashmap. If there is no prior commit, this will also return true.
+func (s *State) IsHighestCommit(hash interfaces.IHash, msg interfaces.IMsg) bool {
+	e, ok1 := s.Commits.Get(hash.Fixed()).(*messages.CommitEntryMsg)
 	m, ok1b := msg.(*messages.CommitEntryMsg)
-	ec, ok2 := s.Commits[hash.Fixed()].(*messages.CommitChainMsg)
-	mc, ok2b := msg.(*messages.CommitEntryMsg)
+	ec, ok2 := s.Commits.Get(hash.Fixed()).(*messages.CommitChainMsg)
+	mc, ok2b := msg.(*messages.CommitChainMsg)
 
-	// Keep the most entry credits.
-
+	// Keep the most entry credits. If the current (e,ec) is >=, then the message is not
+	// the highest.
 	switch {
-	case ok1 && ok1b && e.CommitEntry.Credits > m.CommitEntry.Credits:
-	case ok2 && ok2b && ec.CommitChain.Credits > mc.CommitEntry.Credits:
+	case ok1 && ok1b && e.CommitEntry.Credits >= m.CommitEntry.Credits:
+	case ok2 && ok2b && ec.CommitChain.Credits >= mc.CommitChain.Credits:
 	default:
-		s.Commits[hash.Fixed()] = msg
+		// Returns true when new commit is greater than old, or if old does not exist
+		return true
+	}
+	return false
+}
+
+func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
+	if s.IsHighestCommit(hash, msg) {
+		s.Commits.Put(hash.Fixed(), msg)
 	}
 }
 
