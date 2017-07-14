@@ -17,7 +17,13 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// consenLogger is the general logger for all consensus related logs. You can add additional fields,
+// or create more context loggers off of this
+var consenLogger = stateLogger.WithFields(log.Fields{"subpack": "consensus"})
 
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
@@ -783,7 +789,12 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, m)
 
 		msg := m.(*messages.RevealEntryMsg)
-		delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
+
+		// This is so the api can determine if a chainhead is about to be updated. It fixes a race condition
+		// on the api. MUST BE BEFORE THE REPLAY FILTER ADD
+		pl.PendingChainHeads.Put(msg.Entry.GetChainID().Fixed(), msg)
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, msg.Entry.GetHash().Fixed(), msg.Timestamp, s.GetTimestamp())
 
@@ -905,8 +916,14 @@ func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	cc := m.(*messages.CommitChainMsg)
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.IsHighestCommit(cc.CommitChain.EntryHash, m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+
+	s.LeaderExecute(m)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
@@ -915,8 +932,13 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 }
 
 func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
-	s.LeaderExecute(m)
 	ce := m.(*messages.CommitEntryMsg)
+	// Check if this commit has more entry credits than any previous that we have.
+	if !s.IsHighestCommit(ce.CommitEntry.EntryHash, m) {
+		// This commit is not higher than any previous, so we can discard it and prevent a double spend
+		return
+	}
+	s.LeaderExecute(m)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
 		s.XReview = append(s.XReview, re)
@@ -961,7 +983,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 	} else {
 		// Okay the Reveal has been recorded.  Record this as an entry that cannot be duplicated.
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
-		delete(s.Commits, eh.Fixed())
+		s.Commits.Delete(eh.Fixed()) // delete(s.Commits, eh.Fixed())
 	}
 }
 
@@ -1071,7 +1093,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 
 	chainID := msg.Entry.GetChainID()
 
-	delete(s.Commits, msg.Entry.GetHash().Fixed())
+	s.Commits.Delete(msg.Entry.GetHash().Fixed()) // delete(s.Commits, msg.Entry.GetHash().Fixed())
 
 	eb := s.GetNewEBlocks(dbheight, chainID)
 	eb_db := s.GetNewEBlocks(dbheight-1, chainID)
@@ -1134,6 +1156,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
+	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbheight, "lheight": s.GetLeaderHeight(), "vm": vmIndex})
 
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
@@ -1172,6 +1195,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 					panic(err)
 				}
 
+				dbslog.Infof("Send DBSig, %s", dbs.String())
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
@@ -1184,8 +1208,8 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 
 // TODO: Should fault the server if we don't have the proper sequence of EOM messages.
 func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
-
 	e := msg.(*messages.EOM)
+	// plog := consenLogger.WithFields(log.Fields{"func": "ProcessEOM", "msgheight": e.DBHeight, "lheight": s.GetLeaderHeight(), "min", e.Minute})
 
 	if s.Syncing && !s.EOM {
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Will Not Process: return on s.Syncing(%v) && !s.EOM(%v)", s.FactomNodeName, e.VMIndex, s.Syncing, s.EOM))
@@ -1299,6 +1323,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 
 		s.CurrentMinute++
+		s.CurrentMinuteStartTime = time.Now().UnixNano()
 
 		switch {
 		case s.CurrentMinute < 10:
@@ -1367,19 +1392,23 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				pldbs.DBSigAlreadySent = true
 
+				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "vm": dbs.VMIndex})
+				dbslog.Infof("Send DBSig, %s", dbs.String())
+
 				dbs.LeaderExecute(s)
 			}
 			s.Saving = true
 		}
 
-		for k, v := range s.Commits {
-			if v != nil {
-				_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-				if !ok {
-					delete(s.Commits, k)
-				}
-			}
-		}
+		s.Commits.RemoveExpired(s)
+		// for k, v := range s.Commits {
+		// 	if v != nil {
+		// 		_, ok := s.Replay.Valid(constants.TIME_TEST, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
+		// 		if !ok {
+		// 			delete(s.Commits, k)
+		// 		}
+		// 	}
+		// }
 
 		for k := range s.Acks {
 			v := s.Acks[k].(*messages.Ack)
@@ -1421,6 +1450,11 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	//fmt.Println(fmt.Sprintf("ProcessDBSig: %10s %s ", s.FactomNodeName, msg.String()))
 
 	dbs := msg.(*messages.DirectoryBlockSignature)
+	//plog makes logging anything in ProcessDBSig() easier
+	//		The instantiation as a function makes it almost no overhead if you do not use it
+	plog := func(format string, args ...interface{}) {
+		consenLogger.WithFields(log.Fields{"func": "ProcessDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "msg": msg.String()}).Errorf(format, args...)
+	}
 	// Don't process if syncing an EOM
 	if s.Syncing && !s.DBSig {
 		//fmt.Println(fmt.Sprintf("ProcessDBSig(): %10s Will Not Process: dbht: %d return on s.Syncing(%v) && !s.DBSig(%v)", s.FactomNodeName,
@@ -1502,6 +1536,8 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		if dbs.DirectoryBlockHeader.GetBodyMR().Fixed() != dblk.GetHeader().GetBodyMR().Fixed() {
 			pl.IncrementDiffSigTally()
+			plog("Failed. DBlocks do not match Expected-Body-Mr: %x, Got: %x",
+				dblk.GetHeader().GetBodyMR().Fixed(), dbs.DirectoryBlockHeader.GetBodyMR().Fixed())
 			return false
 		}
 
@@ -1516,6 +1552,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 
 		valid, err := s.VerifyAuthoritySignature(data, dbs.DBSignature.GetSignature(), dbs.DBHeight)
 		if err != nil || valid != 1 {
+			plog("Failed. Invalid Auth Sig: Pubkey: %x", dbs.Signature.GetKey())
 			return false
 		}
 
@@ -1699,6 +1736,9 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 					fullFault.ServerID.String()[4:12],
 					fullFault.AuditServerID.String()[4:12])
 				pl.State.AddAuthorityDelta(authorityDeltaString)
+
+				consenLogger.WithFields(log.Fields{"dbht": fullFault.DBHeight, "sysht": fullFault.SystemHeight,
+					"server": fullFault.ServerID.String()[4:12], "audit": fullFault.AuditServerID.String()[4:12]}).Info("Full fault success")
 				//s.AddStatus(authorityDeltaString)
 
 				pl.State.LastFaultAction = time.Now().Unix()
@@ -1861,9 +1901,27 @@ func (s *State) GetNewEBlocks(dbheight uint32, hash interfaces.IHash) interfaces
 	return nil
 }
 
+func (s *State) IsNewOrPendingEBlocks(dbheight uint32, hash interfaces.IHash) bool {
+	if dbheight <= s.GetHighestSavedBlk()+2 {
+		pl := s.ProcessLists.Get(dbheight)
+		if pl == nil {
+			return false
+		}
+		eblk := pl.GetNewEBlocks(hash)
+		if eblk != nil {
+			return true
+		}
+
+		return pl.IsPendingChainHead(hash)
+	}
+	return false
+}
+
 func (s *State) PutNewEBlocks(dbheight uint32, hash interfaces.IHash, eb interfaces.IEntryBlock) {
 	pl := s.ProcessLists.Get(dbheight)
 	pl.AddNewEBlocks(hash, eb)
+	// We no longer need them in this map, as they are in the other
+	pl.PendingChainHeads.Delete(hash.Fixed())
 }
 
 func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfaces.IEntry) {
@@ -1873,23 +1931,33 @@ func (s *State) PutNewEntries(dbheight uint32, hash interfaces.IHash, e interfac
 
 // Returns the oldest, not processed, Commit received
 func (s *State) NextCommit(hash interfaces.IHash) interfaces.IMsg {
-	c := s.Commits[hash.Fixed()]
+	c := s.Commits.Get(hash.Fixed()) //  s.Commits[hash.Fixed()]
 	return c
 }
 
-func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
-	e, ok1 := s.Commits[hash.Fixed()].(*messages.CommitEntryMsg)
+// IsHighestCommit will determine if the commit given has more entry credits than the current
+// commit in the commit hashmap. If there is no prior commit, this will also return true.
+func (s *State) IsHighestCommit(hash interfaces.IHash, msg interfaces.IMsg) bool {
+	e, ok1 := s.Commits.Get(hash.Fixed()).(*messages.CommitEntryMsg)
 	m, ok1b := msg.(*messages.CommitEntryMsg)
-	ec, ok2 := s.Commits[hash.Fixed()].(*messages.CommitChainMsg)
-	mc, ok2b := msg.(*messages.CommitEntryMsg)
+	ec, ok2 := s.Commits.Get(hash.Fixed()).(*messages.CommitChainMsg)
+	mc, ok2b := msg.(*messages.CommitChainMsg)
 
-	// Keep the most entry credits.
-
+	// Keep the most entry credits. If the current (e,ec) is >=, then the message is not
+	// the highest.
 	switch {
-	case ok1 && ok1b && e.CommitEntry.Credits > m.CommitEntry.Credits:
-	case ok2 && ok2b && ec.CommitChain.Credits > mc.CommitEntry.Credits:
+	case ok1 && ok1b && e.CommitEntry.Credits >= m.CommitEntry.Credits:
+	case ok2 && ok2b && ec.CommitChain.Credits >= mc.CommitChain.Credits:
 	default:
-		s.Commits[hash.Fixed()] = msg
+		// Returns true when new commit is greater than old, or if old does not exist
+		return true
+	}
+	return false
+}
+
+func (s *State) PutCommit(hash interfaces.IHash, msg interfaces.IMsg) {
+	if s.IsHighestCommit(hash, msg) {
+		s.Commits.Put(hash.Fixed(), msg)
 	}
 }
 

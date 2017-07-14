@@ -70,6 +70,11 @@ var (
 		Help: "Time it takes to compelete a heights",
 	})
 
+	HandleV2APICallCurrentMinute = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "factomd_wsapi_v2_api_call_minute_ns",
+		Help: "Time it takes to compelete a minute",
+	})
+
 	HandleV2APICallProp = prometheus.NewSummary(prometheus.SummaryOpts{
 		Name: "factomd_wsapi_v2_api_call_prop_ns",
 		Help: "Time it takes to compelete a prop",

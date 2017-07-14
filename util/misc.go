@@ -55,3 +55,4 @@ func EntryCost(b []byte) (uint8, error) {
 
 	return n, nil
 }
+

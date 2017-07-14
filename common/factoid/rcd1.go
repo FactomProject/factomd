@@ -6,6 +6,7 @@ package factoid
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/FactomProject/ed25519"
@@ -46,6 +47,11 @@ func (e *RCD_1) JSONByte() ([]byte, error) {
 
 func (e *RCD_1) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
+}
+
+// MarshalJSON will prepend the RCD type
+func (e *RCD_1) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprintf("%x", append([]byte{0x01}, e.PublicKey[:]...)))
 }
 
 func (b RCD_1) String() string {

@@ -13,18 +13,19 @@ import (
 
 	//"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 	"github.com/FactomProject/factomd/util"
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = log.Print
 var _ = util.ReadConfig
 
 func TestInit(t *testing.T) {
-	testHelper.CreateEmptyTestState()
+	s := testHelper.CreateEmptyTestState()
+	PrintState(s)
 }
 
 func TestSecretCode(t *testing.T) {
@@ -159,7 +160,9 @@ func TestClone(t *testing.T) {
 func TestLog(t *testing.T) {
 	s := testHelper.CreateAndPopulateTestState()
 	buf := new(bytes.Buffer)
-	s.Logger = log.New(buf, "debug", "unit_test")
+	//s.Logger = log.New(buf, "debug", "unit_test")
+	log.SetOutput(buf)
+	log.SetLevel(log.DebugLevel)
 
 	var levels []string = []string{"debug", "info", "warning", "error"}
 	for _, l := range levels {
@@ -212,7 +215,7 @@ func TestBootStrappingIdentity(t *testing.T) {
 		t.Errorf("Bootstrap Identity Mismatch on MAIN")
 	}
 	key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
-	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
+	if !state.GetNetworkBootStrapKey().IsSameAs(key) {IsInPendingEntryList
 		t.Errorf("Bootstrap Identity Key Mismatch on MAIN")
 	}
 
@@ -248,3 +251,36 @@ func TestBootStrappingIdentity(t *testing.T) {
 
 }
 */
+
+func TestIsStalled(t *testing.T) {
+	s := testHelper.CreateEmptyTestState()
+	s.Syncing = false
+	s.ProcessLists.DBHeightBase = 20
+	s.CurrentMinuteStartTime = time.Now().UnixNano()
+	if !s.IsStalled() {
+		t.Error("Should be stalled as we are behind: Stalled:", s.IsStalled())
+	}
+
+	s.CurrentMinuteStartTime = 0
+	s.ProcessLists.DBHeightBase = 0
+
+	if s.IsStalled() {
+		t.Error("When current minute start is 0, should not say stalled")
+	}
+
+	n := time.Now()
+	then := n.Add(-1600 * time.Millisecond)
+	s.CurrentMinuteStartTime = then.UnixNano()
+	s.DirectoryBlockInSeconds = 10
+
+	if !s.IsStalled() {
+		t.Error("Should be stalled as 1.6x blktime behind")
+	}
+
+	then = time.Now().Add(-1200 * time.Millisecond)
+	s.CurrentMinuteStartTime = then.UnixNano()
+	if s.IsStalled() {
+		t.Error("Should not be stalled as 1.2x blktime behind")
+	}
+
+}
