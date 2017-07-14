@@ -1219,6 +1219,7 @@ func (s *State) fillAcksMap() {
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
 	resp := make([]interfaces.IPendingEntry, 0)
+	repeatmap := make(map[[32]byte]interfaces.IPendingEntry)
 	pls := s.ProcessLists.Lists
 	var cc messages.CommitChainMsg
 	var ce messages.CommitEntryMsg
@@ -1248,9 +1249,11 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							} else {
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
-
-							if util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
+								//if util.IsInPendingEntryList(resp, tmp) {
+								// If not already there
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
 						} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 							enb, err := plmsg.MarshalBinary()
@@ -1270,8 +1273,11 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 
-							if !util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
+								//if util.IsInPendingEntryList(resp, tmp) {
+								// If not already there
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
 						} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
 							enb, err := plmsg.MarshalBinary()
@@ -1290,8 +1296,16 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 
-							if !util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
+								//if util.IsInPendingEntryList(resp, tmp) {
+								// If not already there
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
+							} else {
+								//If it is in there, it may not know the chainid because it was from a commit
+								if repeatmap[tmp.EntryHash.Fixed()].ChainID == nil {
+									repeatmap[tmp.EntryHash.Fixed()] = tmp
+								}
 							}
 						}
 					}
