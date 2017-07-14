@@ -1250,8 +1250,6 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
-								//if util.IsInPendingEntryList(resp, tmp) {
-								// If not already there
 								resp = append(resp, tmp)
 								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
@@ -1274,8 +1272,6 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							}
 
 							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
-								//if util.IsInPendingEntryList(resp, tmp) {
-								// If not already there
 								resp = append(resp, tmp)
 								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
@@ -1297,8 +1293,6 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							}
 
 							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
-								//if util.IsInPendingEntryList(resp, tmp) {
-								// If not already there
 								resp = append(resp, tmp)
 								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							} else {
@@ -1330,9 +1324,11 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 			tmp.ChainID = re.Entry.GetChainID()
 			tmp.Status = "AckStatusNotConfirmed"
-			if !util.IsInPendingEntryList(resp, tmp) {
+			if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 				resp = append(resp, tmp)
+				repeatmap[tmp.EntryHash.Fixed()] = tmp
 			}
+
 		}
 	}
 
