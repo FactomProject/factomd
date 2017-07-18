@@ -164,7 +164,7 @@ func (s *State) FetchHoldingMessageByHash(hash interfaces.IHash) (int, byte, int
 			}
 			//	case h.Type() == constants.HEARTBEAT_MSG :
 			//	case h.Type() == constants.INVALID_ACK_MSG :
-			//	case h.Type() == constants.ETCD_HASH_PICKUP_MSG :
+			//	case h.Type() == constants.INVALID_DIRECTORY_BLOCK_MSG :
 		case h.Type() == constants.REVEAL_ENTRY_MSG:
 			var rm messages.RevealEntryMsg
 			enb, err := h.MarshalBinary()

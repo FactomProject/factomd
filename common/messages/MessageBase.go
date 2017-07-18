@@ -70,10 +70,10 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	switch msg.(interface{}).(type) {
 	//case ServerFault:
 	//	go resend(state, msg, 20, 1)
-	//case FullServerFault:
-	//	go resend(state, msg, 2, 5)
-	//case ServerFault:
-	//	go resend(state, msg, 2, 5)
+	case FullServerFault:
+		go resend(state, msg, 2, 5)
+	case ServerFault:
+		go resend(state, msg, 2, 5)
 	default:
 		go resend(state, msg, 1, 0)
 	}

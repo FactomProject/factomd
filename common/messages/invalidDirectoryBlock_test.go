@@ -12,14 +12,14 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
-func TestUnmarshalNilEtcdHashPickup(t *testing.T) {
+func TestUnmarshalNilInvalidDirectoryBlock(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Panic caught during the test - %v", r)
 		}
 	}()
 
-	a := new(EtcdHashPickup)
+	a := new(InvalidDirectoryBlock)
 	err := a.UnmarshalBinary(nil)
 	if err == nil {
 		t.Errorf("Error is nil when it shouldn't be")
@@ -31,8 +31,8 @@ func TestUnmarshalNilEtcdHashPickup(t *testing.T) {
 	}
 }
 
-func TestMarshalUnmarshalEtcdHashPickup(t *testing.T) {
-	msg := newEtcdHashPickup()
+func TestMarshalUnmarshalInvalidDirectoryBlock(t *testing.T) {
+	msg := newInvalidDirectoryBlock()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
@@ -47,11 +47,11 @@ func TestMarshalUnmarshalEtcdHashPickup(t *testing.T) {
 	str := msg2.String()
 	t.Logf("str - %v", str)
 
-	if msg2.Type() != constants.ETCD_HASH_PICKUP_MSG {
+	if msg2.Type() != constants.INVALID_DIRECTORY_BLOCK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	hex2, err := msg2.(*EtcdHashPickup).MarshalBinary()
+	hex2, err := msg2.(*InvalidDirectoryBlock).MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,13 +64,13 @@ func TestMarshalUnmarshalEtcdHashPickup(t *testing.T) {
 		}
 	}
 
-	if msg.IsSameAs(msg2.(*EtcdHashPickup)) != true {
-		t.Errorf("EtcdHashPickup messages are not identical")
+	if msg.IsSameAs(msg2.(*InvalidDirectoryBlock)) != true {
+		t.Errorf("InvalidDirectoryBlock messages are not identical")
 	}
 }
 
-func TestSignAndVerifyEtcdHashPickup(t *testing.T) {
-	msg := newSignedEtcdHashPickup()
+func TestSignAndVerifyInvalidDirectoryBlock(t *testing.T) {
+	msg := newSignedInvalidDirectoryBlock()
 	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
@@ -95,11 +95,11 @@ func TestSignAndVerifyEtcdHashPickup(t *testing.T) {
 		t.Error(err)
 	}
 
-	if msg2.Type() != constants.ETCD_HASH_PICKUP_MSG {
+	if msg2.Type() != constants.INVALID_DIRECTORY_BLOCK_MSG {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	valid, err = msg2.(*EtcdHashPickup).VerifySignature()
+	valid, err = msg2.(*InvalidDirectoryBlock).VerifySignature()
 	if err != nil {
 		t.Error(err)
 	}
@@ -108,16 +108,15 @@ func TestSignAndVerifyEtcdHashPickup(t *testing.T) {
 	}
 }
 
-func newEtcdHashPickup() *EtcdHashPickup {
-	ehp := new(EtcdHashPickup)
-	ehp.Timestamp = primitives.NewTimestampNow()
-	ehp.RequestHash = primitives.NewZeroHash()
+func newInvalidDirectoryBlock() *InvalidDirectoryBlock {
+	eom := new(InvalidDirectoryBlock)
+	eom.Timestamp = primitives.NewTimestampNow()
 
-	return ehp
+	return eom
 }
 
-func newSignedEtcdHashPickup() *EtcdHashPickup {
-	ack := newEtcdHashPickup()
+func newSignedInvalidDirectoryBlock() *InvalidDirectoryBlock {
+	ack := newInvalidDirectoryBlock()
 
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
 	if err != nil {

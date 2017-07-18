@@ -21,15 +21,3 @@ func TestSetAndGetUseTorrent(t *testing.T) {
 		t.Error("State not using torrents despite having been set to true")
 	}
 }
-
-func TestSetAndGetUseEtcd(t *testing.T) {
-	state := testHelper.CreateAndPopulateTestState()
-	if state.UsingEtcd() {
-		t.Error("State unexpectedly using Etcd without having been set to true")
-	}
-
-	state.SetUseEtcd(true)
-	if !state.UsingEtcd() {
-		t.Error("State not using Etcd despite having been set to true")
-	}
-}

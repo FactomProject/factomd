@@ -2,6 +2,7 @@ package engine
 
 import (
 	"flag"
+
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -49,8 +50,6 @@ type FactomParams struct {
 	logjson                  bool
 	svm                      bool
 	pluginPath               string
-	useEtcd                  bool
-	etcdExclusive            bool
 	torManage                bool
 	torUpload                bool
 }
@@ -108,10 +107,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	// Plugins
 	pluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
 
-	// 	Etcd Plugin
-	useEtcd := flag.Bool("etcd", false, "If true, use etcd along with the default p2p network for current-block messages.")
-	etcdExclusive := flag.Bool("etcd-exclusive", false, "If true, use etcd _instead of_ the default p2p network for current-block messages.")
-
 	// 	Torrent Plugin
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
@@ -162,8 +157,6 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	p.svm = *superVerboseMessages
 	p.pluginPath = *pluginPath
-	p.useEtcd = *useEtcd
-	p.etcdExclusive = *etcdExclusive
 	p.torManage = *tormanager
 	p.torUpload = *torUploader
 

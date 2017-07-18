@@ -143,8 +143,6 @@ imports:
   - model
 - name: github.com/prometheus/procfs
   version: abf152e5f3e97f2fafac028d2cc06c1feb87ffa5
-- name: github.com/wunderlist/ttlcache
-  version: fa8f18d5e019f6bdf076153e60dccf2c6fc7ccf5
 - name: golang.org/x/crypto
   version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
   subpackages:

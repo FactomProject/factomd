@@ -142,9 +142,9 @@ func Peers(fnode *FactomNode) {
 					fmt.Println("ERROR recieving message on", fnode.State.FactomNodeName+":", err)
 					break
 				}
-				_, ok := msg.(*messages.Ack)
+
 				msg.SetOrigin(i + 1)
-				if ok || fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
@@ -162,9 +162,6 @@ func Peers(fnode *FactomNode) {
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
-					/*if ok {
-						go reReceiveAck(fnode, msg)
-					}*/
 				} else {
 					RepeatMsgs.Inc()
 					//fnode.MLog.add2(fnode, false, peer.GetNameTo(), "PeerIn", false, msg)
@@ -177,15 +174,6 @@ func Peers(fnode *FactomNode) {
 		cnt = 0
 	}
 }
-
-/*func reReceiveAck(fnode *FactomNode, msg interfaces.IMsg) {
-	for i := 0; i < 10; i++ {
-		if fnode.State.InMsgQueue().Length() < 9000 {
-			fnode.State.InMsgQueue().Enqueue(msg)
-		}
-		time.Sleep(time.Duration(rand.Int31n(1000)) * time.Millisecond)
-	}
-}*/
 
 func NetworkOutputs(fnode *FactomNode) {
 	for {

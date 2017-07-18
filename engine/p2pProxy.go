@@ -6,7 +6,6 @@ package engine
 
 import (
 	"bufio"
-	"crypto/sha256"
 	"fmt"
 	"log"
 	"os"
@@ -14,14 +13,10 @@ import (
 
 	// "github.com/FactomProject/factomd/common/constants"
 
-	"strings"
-
-	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
-	"github.com/wunderlist/ttlcache"
 )
 
 var _ = fmt.Print
@@ -47,15 +42,7 @@ type P2PProxy struct {
 	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
 	bytesIn   int // bandwidth recieved by application from network
 
-	// If this is true, outbound messages will be sent out
-	// via Etcd (as well as sent out over the p2p network normally)
-	useEtcd                bool
-	useEtcdExclusive       bool
-	blockLeaseIdx          uint32
-	EtcdManager            interfaces.IEtcdManager
-	SuperVerboseMessages   bool
-	NetworkReplayFilter    *ttlcache.Cache
-	NetworkAckReplayFilter *ttlcache.Cache
+	SuperVerboseMessages bool
 }
 
 type factomMessage struct {
@@ -79,92 +66,6 @@ func (e *factomMessage) String() string {
 }
 
 var _ interfaces.IPeer = (*P2PProxy)(nil)
-
-func (f *P2PProxy) SetUseEtcd(setVal bool) {
-	f.useEtcd = setVal
-}
-
-func (f *P2PProxy) SetUseEtcdExclusive(setVal bool) {
-	f.useEtcdExclusive = setVal
-}
-
-func (f *P2PProxy) UsingEtcd() bool {
-	return f.useEtcd
-}
-
-func (f *P2PProxy) UsingEtcdExclusive() bool {
-	return f.useEtcdExclusive
-}
-
-// Here we filter messages by type (only sending ProcessList-able messages)
-// Messages are sent into etcd as marshaled byte-slices
-func (f *P2PProxy) SendIntoEtcd(msg interfaces.IMsg) error {
-	if msg.Type() == constants.HEARTBEAT_MSG || (msg.Type() > 15 && msg.Type() < 22) || msg.Type() > 24 {
-		/* Let's ignore these message types:
-		HEARTBEAT_MSG			// 10
-		MISSING_MSG				// 16
-		MISSING_DATA			// 17
-		DATA_RESPONSE			// 18
-		MISSING_MSG_RESPONSE	// 19
-		DBSTATE_MSG				// 20
-		DBSTATE_MISSING_MSG		// 21
-
-		BOUNCE_MSG				// 25
-		BOUNCEREPLY_MSG			// 26
-		MISSING_ENTRY_BLOCKS	// 27
-		ENTRY_BLOCK_RESPONSE	// 28
-		*/
-		return fmt.Errorf("Not an etcd message-type")
-	}
-
-	if msg.Type() == constants.EOM_MSG {
-		eomMsg := msg.(*messages.EOM)
-		if eomMsg.DBHeight > f.blockLeaseIdx {
-			f.blockLeaseIdx = eomMsg.DBHeight
-			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
-		}
-	}
-	if msg.Type() == constants.ACK_MSG {
-		ackMsg := msg.(*messages.Ack)
-		if ackMsg.DBHeight > f.blockLeaseIdx {
-			f.blockLeaseIdx = ackMsg.DBHeight
-			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
-		}
-	}
-	if msg.Type() == constants.DIRECTORY_BLOCK_SIGNATURE_MSG {
-		dbsigMsg := msg.(*messages.DirectoryBlockSignature)
-		if dbsigMsg.DBHeight > f.blockLeaseIdx {
-			f.blockLeaseIdx = dbsigMsg.DBHeight
-			f.EtcdManager.NewBlockLease(f.blockLeaseIdx)
-		}
-	}
-
-	msgBytes, err := msg.MarshalBinary()
-	if err == nil {
-		sha := sha256.New()
-		sha.Write(msgBytes)
-		msgHashString := fmt.Sprintf("%x", sha.Sum(nil))
-		fmt.Printf("Fetcd sending: %s\n(%s)\n", msg.String(), msgHashString)
-
-		return f.EtcdManager.SendIntoEtcd(msgBytes)
-	} else {
-		fmt.Println("Justin Fetcd ERROR:", err)
-	}
-
-	return err
-}
-
-func (f *P2PProxy) Reinitiate() error {
-	return f.EtcdManager.Reinitiate()
-}
-
-func (f *P2PProxy) NewBlockLease(blockHeight uint32) error {
-	return f.EtcdManager.NewBlockLease(blockHeight)
-}
-
-func (f *P2PProxy) PickUpFromHash(messageHash string) error {
-	return f.EtcdManager.PickUpFromHash(messageHash)
-}
 
 func (f *P2PProxy) Weight() int {
 	// should return the number of connections this peer represents.  For now, just say a lot
@@ -190,9 +91,6 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
 	f.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
 	f.logging = make(chan interface{}, p2p.StandardChannelSize)
-	f.blockLeaseIdx = 0
-	f.NetworkReplayFilter = ttlcache.NewCache(20 * time.Minute)
-	f.NetworkAckReplayFilter = ttlcache.NewCache(20 * time.Minute)
 
 	return f
 }
@@ -209,62 +107,14 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	if msg.Type() == constants.ACK_MSG {
-		if _, exists := f.NetworkAckReplayFilter.Get(msg.GetHash().String()); exists {
-			//return nil
-			TotalNetworkAckReplayFilter.Inc()
-		}
-		f.NetworkAckReplayFilter.Set(msg.GetHash().String(), msg.String())
-	} else {
-		if _, exists := f.NetworkReplayFilter.Get(msg.GetHash().String()); exists {
-			TotalNetworkReplayFilter.Inc()
-			return nil
-		}
-		f.NetworkReplayFilter.Set(msg.GetHash().String(), msg.String())
-	}
-
-	if f.UsingEtcd() {
-		etcdStart := time.Now()
-		if msg.Type() == constants.ETCD_HASH_PICKUP_MSG {
-			f.PickUpFromHash(msg.GetHash().String())
-			return nil
-		}
-		err := f.SendIntoEtcd(msg)
-		if err != nil {
-			if f.SuperVerboseMessages {
-				if !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "etcd message-type") {
-					log.Println(err)
-				}
-			}
-			if strings.Contains(err.Error(), "connection is shut down") {
-				err := f.EtcdManager.Reinitiate()
-				if err != nil {
-					log.Println("Tried to reinitiate plugin on failed send; err:", err)
-				}
-			}
-		} else {
-			// Send was successful (err was nil)
-			EtcdSendCount.Inc()
-
-			if f.SuperVerboseMessages {
-				log.Println("SVM Send(etcd):", msg.String(), msg.GetHash().String()[:10])
-			}
-		}
-		EtcdSendOutTime.Observe(float64(time.Since(etcdStart).Nanoseconds()))
-	} //else {
-
-	if f.UsingEtcdExclusive() {
-		return nil
-	}
-
 	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		log.Println("ERROR on Send: ", err)
 		return err
 	}
-	if f.SuperVerboseMessages && !f.UsingEtcd() {
-		log.Println("SVM Send(old):", msg.String(), msg.GetHash().String()[:10])
+	if f.SuperVerboseMessages {
+		log.Println("SVM Send:", msg.String(), msg.GetHash().String()[:10])
 	}
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
@@ -272,9 +122,6 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 	switch {
 	case !msg.IsPeer2Peer():
-		if f.UsingEtcd() && msg.Type() > 1 && msg.Type() != 7 {
-			return nil
-		}
 		message.PeerHash = p2p.BroadcastFlag
 		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
 	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
@@ -286,9 +133,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	if msg.IsPeer2Peer() && 1 < f.debugMode {
 		log.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
 	}
-	NonEtcdSendCount.Inc()
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
-	//}
 
 	return nil
 }
@@ -299,45 +144,18 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
 			BroadInCastQueue.Dec()
-			if f.UsingEtcd() {
-				dataBytes, areActuallyBytes := data.([]byte)
-				if areActuallyBytes {
-					msg, err := messages.UnmarshalMessage(dataBytes)
-					if f.SuperVerboseMessages {
-						if err != nil {
-							log.Println("SVM err:", err.Error())
-						} else {
-							sha := sha256.New()
-							sha.Write(dataBytes)
-							msgHashString := fmt.Sprintf("%x", sha.Sum(nil))
 
-							log.Println("SVM Receive(etcd):", msgHashString, msg.String(), msg.GetHash().String()[:10])
-						}
-					}
-					EtcdGetCount.Inc()
-					return msg, err
-				}
-			}
-
-			if f.UsingEtcdExclusive() {
-				return nil, nil
-			}
-
-			//else {
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
-				/*if f.UsingEtcd() && (err != nil || msg.Type() < 2) {
-					return nil, err
-				}*/
 
 				if f.SuperVerboseMessages {
 					if err != nil {
 						log.Println("SVM err:", err.Error())
 					} else {
-						log.Println("SVM Receive(old):", msg.String())
+						log.Println("SVM Receive:", msg.String())
 					}
 				}
 				if nil == err {
@@ -348,12 +166,10 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				//	fmt.Printf(".")
 				//}
 				f.bytesIn += len(fmessage.Message)
-				NonEtcdGetCount.Inc()
 				return msg, err
 			default:
 				//fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 			}
-			//}
 		}
 	default:
 	}
@@ -382,27 +198,10 @@ func (f *P2PProxy) Len() int {
 	return len(f.BroadcastIn)
 }
 
-func (f *P2PProxy) SweepEtcd() {
-	var newMsgBytes []byte
-	for {
-		newMsgBytes = f.EtcdManager.GetData()
-		if newMsgBytes != nil && len(newMsgBytes) > 0 {
-			f.BroadcastIn <- newMsgBytes
-			BroadInCastQueue.Inc()
-		} else {
-			time.Sleep(50 * time.Millisecond)
-		}
-
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (p *P2PProxy) StartProxy() {
-	if p.UsingEtcd() {
-		go p.SweepEtcd()
-	}
 	if 1 < p.debugMode {
 		go p.ManageLogging()
 	}

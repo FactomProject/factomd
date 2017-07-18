@@ -616,25 +616,6 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 
 // Return the number of times we have tripped an ask for this request.
 func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) int {
-	if p.State.UsingEtcd() {
-		/*msgHashString := "0000000000000000000000000000000000000000000000000000000000000000"
-		if len(p.VMs) > 0 {
-			vm := p.VMs[vmIndex]
-			if len(vm.List) > 0 && len(vm.List) > height && height > 0 {
-				attemptMessage := vm.List[height-1]
-				if attemptMessage != nil {
-					prevMsgBytes, err := attemptMessage.MarshalBinary()
-					if err == nil {
-						sha := sha256.New()
-						sha.Write(prevMsgBytes)
-						msgHashString = fmt.Sprintf("%x", sha.Sum(nil))
-					}
-				}
-			}
-		}
-		p.State.PickUpFromHash(msgHashString)*/
-		return 1
-	}
 	now := p.State.GetTimestamp().GetTimeMilli()
 
 	r := p.GetRequest(now, vmIndex, len(p.VMs[0].List), waitSeconds)
@@ -956,24 +937,22 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
 	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
-		if !(p.State.UsingEtcd() && ack.Timestamp.GetTimeSeconds() < p.State.BootTime) {
-			now := p.State.GetTimestamp()
-			if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
-				// Us and too old?  Just ignore.
-				return
-			}
-			// When using etcd, we allow acks with salt mismatches if they existed before we booted
-			num := p.State.GetSalt(ack.Timestamp)
-			if num != ack.SaltNumber {
-				os.Stderr.WriteString(fmt.Sprintf("This  AckHash    %x\n", ack.GetHash().Bytes()))
-				os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
-				os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
-				os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
-				os.Stderr.WriteString(fmt.Sprintf("Ack   ChainID    %x\n", ack.LeaderChainID.Bytes()))
-				os.Stderr.WriteString(fmt.Sprintf("Ack   Salt       %x\n", ack.Salt))
-				os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
-				panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
-			}
+		now := p.State.GetTimestamp()
+		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
+			// Us and too old?  Just ignore.
+			return
+		}
+
+		num := p.State.GetSalt(ack.Timestamp)
+		if num != ack.SaltNumber {
+			os.Stderr.WriteString(fmt.Sprintf("This  AckHash    %x\n", ack.GetHash().Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
+			os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
+			os.Stderr.WriteString(fmt.Sprintf("Ack   ChainID    %x\n", ack.LeaderChainID.Bytes()))
+			os.Stderr.WriteString(fmt.Sprintf("Ack   Salt       %x\n", ack.Salt))
+			os.Stderr.WriteString(fmt.Sprintf("Ack   SaltNumber %x\n for this ack", ack.SaltNumber))
+			panic("There are two leaders configured with the same Identity in this network!  This is a configuration problem!")
 		}
 	}
 

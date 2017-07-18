@@ -70,7 +70,7 @@ type IPrometheusChannel interface {
 	EOMTimeout(increment bool)
 	FactTx(increment bool)
 	Heartbeat(increment bool)
-	EtcdHashPickup(increment bool)
+	InvalidDirectoryBlock(increment bool)
 	MissingMsg(increment bool)
 	MissingMsgResp(increment bool)
 	MissingData(increment bool)
@@ -113,8 +113,8 @@ func measureMessage(channel IPrometheusChannel, msg interfaces.IMsg, increment b
 		channel.FactTx(increment)
 	case constants.HEARTBEAT_MSG: // 11
 		channel.Heartbeat(increment)
-	case constants.ETCD_HASH_PICKUP_MSG: // 12
-		channel.EtcdHashPickup(increment)
+	case constants.INVALID_DIRECTORY_BLOCK_MSG: // 12
+		channel.InvalidDirectoryBlock(increment)
 	case constants.MISSING_MSG: // 13
 		channel.MissingMsg(increment)
 	case constants.MISSING_MSG_RESPONSE: // 14

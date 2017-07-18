@@ -96,8 +96,6 @@ type State struct {
 	CustomNetworkID         []byte
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
-	EtcdAddress             string
-	EtcdUUID                string
 
 	IdentityChainID      interfaces.IHash // If this node has an identity, this is it
 	Identities           []*Identity      // Identities of all servers in management chain
@@ -340,7 +338,6 @@ type State struct {
 	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
 	DBStateManager          interfaces.IManagerController
 	HighestCompletedTorrent uint32
-	useEtcd                 bool
 	SuperVerboseMessages    bool
 	FastBoot                bool
 	FastBootLocation        string
@@ -574,10 +571,6 @@ func (s *State) IncECommits() {
 	s.ECommits++
 }
 
-func (s *State) PickUpFromHash(msgHash string) {
-	s.NetworkOutMsgQueue().Enqueue(messages.NewEtcdHashPickup(s, msgHash))
-}
-
 func (s *State) GetAckChange() error {
 	change, err := util.GetChangeAcksHeight(s.filename)
 	if err != nil {
@@ -643,8 +636,6 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.RpcPass = cfg.App.FactomdRpcPass
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
-		s.EtcdAddress = cfg.App.EtcdAddress
-		s.EtcdUUID = cfg.App.EtcdUUID
 		s.FastBoot = cfg.App.FastBoot
 		s.FastBootLocation = cfg.App.FastBootLocation
 

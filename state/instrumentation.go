@@ -138,8 +138,8 @@ var (
 		Name: "factomd_state_queue_current_inmsg_heatbeat",
 		Help: "Instrumenting the inmsg queue",
 	})
-	CurrentMessageQueueInMsgEtcdHashPickup = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_etcdhashpickup",
+	CurrentMessageQueueInMsgInvalidDirectoryBlock = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_inmsg_invaliddblock",
 		Help: "Instrumenting the inmsg queue",
 	})
 	CurrentMessageQueueInMsgMissingMsg = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -236,8 +236,8 @@ var (
 		Name: "factomd_state_queue_total_inmsg_heatbeat",
 		Help: "Instrumenting the inmsg queue",
 	})
-	TotalMessageQueueInMsgEtcdHashPickup = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_etcdhashpickup",
+	TotalMessageQueueInMsgInvalidDirectoryBlock = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_inmsg_invaliddblock",
 		Help: "Instrumenting the inmsg queue",
 	})
 	TotalMessageQueueInMsgMissingMsg = prometheus.NewCounter(prometheus.CounterOpts{
@@ -334,8 +334,8 @@ var (
 		Name: "factomd_state_queue_total_netoutmsg_heatbeat",
 		Help: "Instrumenting the netoutmsg queue",
 	})
-	TotalMessageQueueNetOutMsgEtcdHashPickup = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_etcdhashpickup",
+	TotalMessageQueueNetOutMsgInvalidDirectoryBlock = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_total_netoutmsg_invaliddblock",
 		Help: "Instrumenting the netoutmsg queue",
 	})
 	TotalMessageQueueNetOutMsgMissingMsg = prometheus.NewCounter(prometheus.CounterOpts{
@@ -580,7 +580,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(CurrentMessageQueueInMsgEOMTimeout)
 	prometheus.MustRegister(CurrentMessageQueueInMsgFactTX)
 	prometheus.MustRegister(CurrentMessageQueueInMsgHeartbeat)
-	prometheus.MustRegister(CurrentMessageQueueInMsgEtcdHashPickup)
+	prometheus.MustRegister(CurrentMessageQueueInMsgInvalidDirectoryBlock)
 	prometheus.MustRegister(CurrentMessageQueueInMsgMissingMsg)
 	prometheus.MustRegister(CurrentMessageQueueInMsgMissingMsgResp)
 	prometheus.MustRegister(CurrentMessageQueueInMsgMissingData)
@@ -605,7 +605,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueInMsgEOMTimeout)
 	prometheus.MustRegister(TotalMessageQueueInMsgFactTX)
 	prometheus.MustRegister(TotalMessageQueueInMsgHeartbeat)
-	prometheus.MustRegister(TotalMessageQueueInMsgEtcdHashPickup)
+	prometheus.MustRegister(TotalMessageQueueInMsgInvalidDirectoryBlock)
 	prometheus.MustRegister(TotalMessageQueueInMsgMissingMsg)
 	prometheus.MustRegister(TotalMessageQueueInMsgMissingMsgResp)
 	prometheus.MustRegister(TotalMessageQueueInMsgMissingData)
@@ -630,7 +630,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOMTimeout)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgFactTX)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgHeartbeat)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgEtcdHashPickup)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgInvalidDirectoryBlock)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingMsg)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingMsgResp)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingData)

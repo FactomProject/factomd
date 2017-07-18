@@ -238,12 +238,3 @@ func (s *State) GetMissingDBState(height uint32) error {
 func (s *State) SetDBStateManagerCompletedHeight(height uint32) error {
 	return s.DBStateManager.CompletedHeightTo(height)
 }
-
-// Only called once to set the etcd flag.
-func (s *State) SetUseEtcd(setVal bool) {
-	s.useEtcd = setVal
-}
-
-func (s *State) UsingEtcd() bool {
-	return s.useEtcd
-}

@@ -326,48 +326,15 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
+		fnodes[0].State.NetworkControler = p2pNetwork
+		p2pNetwork.StartNetwork()
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
+		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 		if p.svm {
 			p2pProxy.SuperVerboseMessages = true
 			fnodes[0].State.SuperVerboseMessages = true
-		}
-
-		if p.useEtcd {
-			etcdManager, err := LaunchEtcdPlugin(p.pluginPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
-			if err != nil {
-				fmt.Printf("Encountered an error while trying to use Etcd plugin: %s (trying one more time)\n", err.Error())
-				time.Sleep(3 * time.Second)
-				etcdManager, err = LaunchEtcdPlugin(p.pluginPath, fnodes[0].State.EtcdAddress, fnodes[0].State.EtcdUUID, "factom")
-				if err != nil {
-					fmt.Printf("Encountered an error while trying to use Etcd plugin (again): %s\n", err.Error())
-					panic("Plugin manager not working")
-				}
-			}
-			p2pProxy.EtcdManager = etcdManager
-			p2pProxy.SetUseEtcd(true)
-			fnodes[0].State.SetUseEtcd(true)
-			if p.etcdExclusive {
-				p2pProxy.SetUseEtcdExclusive(true)
-			}
-
-			etcdWaitStart := time.Now()
-			etcdReady := false
-			for !etcdReady {
-				etcdReady, err = etcdManager.Ready()
-				if err != nil {
-					fmt.Printf("Etcd wait err: %s\n", err.Error())
-				}
-				time.Sleep(time.Second)
-			}
-			etcdWaitElapsed := time.Since(etcdWaitStart)
-			fmt.Printf("Etcd wait took: %s\n", etcdWaitElapsed)
-		} //else {
-		if !p.etcdExclusive {
-			p2pNetwork.StartNetwork()
-			// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
-			p2pProxy.FromNetwork = p2pNetwork.FromNetwork
-			p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 		}
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
@@ -381,11 +348,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
 		p2pNetwork.DialSpecialPeersString(p.Peers)
-		if p.useEtcd {
-			p2pProxy.SetWeight(100)
-		} else {
-			go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
-		}
+
+		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
 	switch p.Net {

@@ -130,7 +130,7 @@ func tripAllMessages(q interfaces.IQueue) {
 	EnAndDeQueue(q, new(messages.DirectoryBlockSignature))
 	EnAndDeQueue(q, new(messages.EOMTimeout))
 	EnAndDeQueue(q, new(messages.Heartbeat))
-	EnAndDeQueue(q, new(messages.EtcdHashPickup))
+	EnAndDeQueue(q, new(messages.InvalidDirectoryBlock))
 	EnAndDeQueue(q, new(messages.MissingMsg))
 	EnAndDeQueue(q, new(messages.MissingMsgResponse))
 	EnAndDeQueue(q, new(messages.MissingData))
