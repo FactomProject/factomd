@@ -39,7 +39,7 @@ var managerHandshakeConfig = plugin.HandshakeConfig{
 func LaunchDBStateManagePlugin(path string, inQueue interfaces.IQueue, s *state.State, sigKey *primitives.PrivateKey, memProfileRate int) (interfaces.IManagerController, error) {
 	// So we don't get debug logs. Comment this out if you want to keep plugin
 	// logs
-	//log.SetOutput(ioutil.Discard)
+	log.SetOutput(ioutil.Discard)
 
 	// We're a host! Start by launching the plugin process.
 	client := plugin.NewClient(&plugin.ClientConfig{
