@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
 #import addresses
-factom-cli  importaddress Fs2DNirmGDtnAZGXqca3XHkukTNMxoMGFFQxJA3bAjJnKzzsZBMH
-factom-cli  importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa
-factom-cli  importaddress Es2Zp56srDCV1QBFreSqYNSEkLSys2sj54L5qE3M88dWnoVL9sEf
-factom-cli  importaddress Es38CboJYYSovciHHtigHiv9kkKf5uzAAQjBst5QYcgt9a4m6ywv
-factom-cli  importaddress Es2aZZDjHdnnLzLWnDmNMRQFxTuRGsBsR7Gx96wBLNAWYQWoTFeH
-factom-cli  importaddress Es3p1AND3WwwTNNNPHLNy6LC8RQTE9YUE2zPYvXHPFLz5siAwT1H
-factom-cli  importaddress Es37igANtD8Z44pdXnNX4M5GJEsNLAk84MVVvrvnWRtBoacYmtdN
-factom-cli  importaddress Es3yR6MB1CcmAqNjdQjrDza4W4bwgksEGRn95Cgqu38SxoXUJFSG
-factom-cli  importaddress Es4Mzp5ULbHw8eF4ZsxCRGFdhk8x2NbBEh1qor8aYoTxBmUP2TM4
-factom-cli  importaddress Es2tsKCLkXNMFVMT5GxiEVQz6KXdConW65cU3YTJokAHxPyYdWpA
-factom-cli  importaddress Es3e762q6TyqsyCtDai2RzzyUefWkoW3fdawyeK8CYfeYdhK1zz1
-factom-cli  importaddress Es2eDGnHNi8sTGtMyQSZV7HQX6yJXH8pnDnruS99vSzCD3vJwJoo
-factom-cli  importaddress Es3t4CtTPUuhBd41FB4BaVfH4Q2y7Qbs8xqk5MQ2x2KwR1r6eK2B
-factom-cli  importaddress Es3FV5JhfSxBbgfVPBKoziU3VcxYq4hgiXNiC3d9RgMvEvNCm3Jj
-factom-cli  importaddress Es3EfnjhS65agfy1cDoqUTxjicU3sL9cYxujwLzP1vnhHn9BjVvM
-factom-cli  importaddress Es3PQb6fVpLV2FbjrtxQXGGK6x9NmRiiDzjxhZEMXsVzh9efX5Cs
-factom-cli  importaddress Es2bSy4z5GFr4854fw6ZmQJM58xoYzuU7TfUt216ic7h4BQnGNqF
-factom-cli  importaddress Es3Bevp66wUp5NotP5a9SB2sBLj18uMvb3sqeJRUaDveJsgjanmm
-factom-cli  importaddress Es2azYxtCLskkvApoEMPAngqLXytpFyeVjikfLgundkQZPHTm31G
-factom-cli  importaddress Es34frQyDvxQDPeo7ZRFUxQjhkfSECFYh8GzNuczAL5JDtuuBbzG
-factom-cli  importaddress Es2hhDhFbWB1F2qGmhHZpgGX6WqYASELApeLpFAecrgaRUAAZwRd
+factom-cli  -s=10.41.0.5:8808 importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5XbmHEZVRLkMdD9qCK
+factom-cli  -s=10.41.0.5:8088 importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa
+factom-cli  -s=10.41.0.5:8088 importaddress Es2Zp56srDCV1QBFreSqYNSEkLSys2sj54L5qE3M88dWnoVL9sEf
+factom-cli  -s=10.41.0.5:8088 importaddress Es38CboJYYSovciHHtigHiv9kkKf5uzAAQjBst5QYcgt9a4m6ywv
+factom-cli  -s=10.41.0.5:8088 importaddress Es2aZZDjHdnnLzLWnDmNMRQFxTuRGsBsR7Gx96wBLNAWYQWoTFeH
+factom-cli  -s=10.41.0.5:8088 importaddress Es3p1AND3WwwTNNNPHLNy6LC8RQTE9YUE2zPYvXHPFLz5siAwT1H
+factom-cli  -s=10.41.0.5:8088 importaddress Es37igANtD8Z44pdXnNX4M5GJEsNLAk84MVVvrvnWRtBoacYmtdN
+factom-cli  -s=10.41.0.5:8088 importaddress Es3yR6MB1CcmAqNjdQjrDza4W4bwgksEGRn95Cgqu38SxoXUJFSG
+factom-cli  -s=10.41.0.5:8088 importaddress Es4Mzp5ULbHw8eF4ZsxCRGFdhk8x2NbBEh1qor8aYoTxBmUP2TM4
+factom-cli  -s=10.41.0.5:8088 importaddress Es2tsKCLkXNMFVMT5GxiEVQz6KXdConW65cU3YTJokAHxPyYdWpA
+factom-cli  -s=10.41.0.5:8088 importaddress Es3e762q6TyqsyCtDai2RzzyUefWkoW3fdawyeK8CYfeYdhK1zz1
+factom-cli  -s=10.41.0.5:8088 importaddress Es2eDGnHNi8sTGtMyQSZV7HQX6yJXH8pnDnruS99vSzCD3vJwJoo
+factom-cli  -s=10.41.0.5:8088 importaddress Es3t4CtTPUuhBd41FB4BaVfH4Q2y7Qbs8xqk5MQ2x2KwR1r6eK2B
+factom-cli  -s=10.41.0.5:8088 importaddress Es3FV5JhfSxBbgfVPBKoziU3VcxYq4hgiXNiC3d9RgMvEvNCm3Jj
+factom-cli  -s=10.41.0.5:8088 importaddress Es3EfnjhS65agfy1cDoqUTxjicU3sL9cYxujwLzP1vnhHn9BjVvM
+factom-cli  -s=10.41.0.5:8088 importaddress Es3PQb6fVpLV2FbjrtxQXGGK6x9NmRiiDzjxhZEMXsVzh9efX5Cs
+factom-cli  -s=10.41.0.5:8088 importaddress Es2bSy4z5GFr4854fw6ZmQJM58xoYzuU7TfUt216ic7h4BQnGNqF
+factom-cli  -s=10.41.0.5:8088 importaddress Es3Bevp66wUp5NotP5a9SB2sBLj18uMvb3sqeJRUaDveJsgjanmm
+factom-cli  -s=10.41.0.5:8088 importaddress Es2azYxtCLskkvApoEMPAngqLXytpFyeVjikfLgundkQZPHTm31G
+factom-cli  -s=10.41.0.5:8088 importaddress Es34frQyDvxQDPeo7ZRFUxQjhkfSECFYh8GzNuczAL5JDtuuBbzG
+factom-cli  -s=10.41.0.5:8088 importaddress Es2hhDhFbWB1F2qGmhHZpgGX6WqYASELApeLpFAecrgaRUAAZwRd
 
 #assign public keys to variables
 ec[0]=EC1nje9iEd4k3hzHad4Qty7fAxKdji9Ep4ZjnRiTAcSrEDL1drU4
@@ -48,16 +48,16 @@ ec[19]=EC3hNsEBBzFvf58pw1omVgrBobA6S4kEE4656uqdfk4ex7811vwr
 #transfer funds to each of the entry credit address
 for ((i=0; i < 20; i++)); do
 echo $i
-factom-cli newtx t1
-factom-cli addtxinput t1 FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb 10
-factom-cli addtxecoutput t1 ${ec[i]} 10
+factom-cli -s=10.41.0.5:8088  newtx t1
+factom-cli -s=10.41.0.5:8088  addtxinput t1 FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q 10
+factom-cli -s=10.41.0.5:8088  addtxecoutput t1 ${ec[i]} 10
 
-factom-cli addtxfee t1 FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb
-factom-cli signtx t1
-factom-cli sendtx t1
+factom-cli -s=10.41.0.5:8088  addtxfee t1 FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
+factom-cli -s=10.41.0.5:8088  signtx t1
+factom-cli -s=10.41.0.5:8088 sendtx t1
 #echo remove t1
 #factom-cli rmtx t1
-#sleep .2s
+#sleep .2s FA3EPZYqodgyEGXNMbiZKE5TS2x2J9wF8J9MvPZb52iGR78xMgCb
 done
 factom-cli listaddresses
 
@@ -65,7 +65,7 @@ factom-cli listaddresses
 for ((i=0; i < 20; i++)); do
 echo ${ec[i]}
 noise=$(dd if=/dev/urandom bs=9K count=1 2> /dev/null)
-echo "$noise" | factom-cli addchain -n testing$i -n factom ${ec[i]}
+echo "$noise" | factom-cli -s=10.41.0.5:8088 addchain -n testing$i -n factom ${ec[i]}
 #sleep .2s
 done
 
