@@ -70,8 +70,8 @@ type SaveState struct {
 
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgements
-	Commits map[[32]byte]interfaces.IMsg // Commit Messages
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits *SafeMsgMap                  // map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
 
@@ -120,7 +120,7 @@ func (ss *SaveState) Init() {
 		ss.Acks = map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.Commits == nil {
-		ss.Commits = map[[32]byte]interfaces.IMsg{}
+		ss.Commits = NewSafeMsgMap() // map[[32]byte]interfaces.IMsg{}
 	}
 	if ss.InvalidMessages == nil {
 		ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
@@ -371,6 +371,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//for k := range state.Holding {
 	//ss.Holding[k] = state.Holding[k]
 	//}
+
 	ss.XReview = append(ss.XReview, state.XReview...)
 
 	ss.Acks = make(map[[32]byte]interfaces.IMsg)
@@ -378,10 +379,10 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//	ss.Acks[k] = state.Acks[k]
 	//}
 
-	ss.Commits = make(map[[32]byte]interfaces.IMsg)
-	for k, c := range state.Commits {
-		ss.Commits[k] = c
-	}
+	ss.Commits = state.Commits.Copy()
+	// for k, c := range state.Commits {
+	// 	ss.Commits[k] = c
+	// }
 
 	ss.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
 	for k := range state.InvalidMessages {
@@ -503,6 +504,7 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	for k := range ss.Holding {
 		state.Holding[k] = pss.Holding[k]
 	}
+	state.XReview = append(state.XReview[:0], pss.XReview...)
 
 	state.Acks = make(map[[32]byte]interfaces.IMsg)
 	for k := range pss.Acks {
@@ -633,7 +635,6 @@ func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 	for k := range ss.Holding {
 		state.Holding[k] = ss.Holding[k]
 	}
-
 	state.XReview = append(state.XReview[:0], ss.XReview...)
 
 	state.Acks = make(map[[32]byte]interfaces.IMsg)
@@ -641,10 +642,10 @@ func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 		state.Acks[k] = ss.Acks[k]
 	}
 
-	state.Commits = make(map[[32]byte]interfaces.IMsg)
-	for k, c := range ss.Commits {
-		state.Commits[k] = c
-	}
+	state.Commits = ss.Commits.Copy() // make(map[[32]byte]interfaces.IMsg)
+	// for k, c := range ss.Commits {
+	// 	state.Commits[k] = c
+	// }
 
 	state.InvalidMessages = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.InvalidMessages {
@@ -914,7 +915,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	ss.ECBalancesP = map[[32]byte]int64{}
 	ss.Holding = map[[32]byte]interfaces.IMsg{}
 	ss.Acks = map[[32]byte]interfaces.IMsg{}
-	ss.Commits = map[[32]byte]interfaces.IMsg{}
+	ss.Commits = NewSafeMsgMap()
 	ss.InvalidMessages = map[[32]byte]interfaces.IMsg{}
 
 	ss.FedServers = []interfaces.IServer{}

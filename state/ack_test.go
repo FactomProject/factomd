@@ -9,12 +9,14 @@ import (
 	//"time"
 
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
+	. "github.com/FactomProject/factomd/state"
 	. "github.com/FactomProject/factomd/testHelper"
-	//. "github.com/FactomProject/factomd/state"
+
 )
+
+var _ interfaces.IMsg
+var _ = NewProcessList
 
 func TestIsStateFullySynced(t *testing.T) {
 	s1_good := CreateAndPopulateTestState()
@@ -178,28 +180,5 @@ func TestFetchEntryByHash(t *testing.T) {
 				t.Error("Mismatched entry")
 			}
 		}
-	}
-}
-
-func newEOM(s *state.State) *messages.EOM {
-	eom := new(messages.EOM)
-	eom.Timestamp = primitives.NewTimestampFromMilliseconds(0xFF22100122FF)
-	eom.Minute = 3
-	eom.ChainID = s.IdentityChainID
-	eom.DBHeight = s.LLeaderHeight
-
-	return eom
-}
-
-func TestNewAck(t *testing.T) {
-	s := CreateAndPopulateTestState()
-	eom := newEOM(s)
-	ackMsg := s.NewAck(eom, primitives.NewZeroHash())
-	ack, ok := ackMsg.(*messages.Ack)
-	if !ok {
-		t.Error("NewAck() created a non-ack message")
-	}
-	if eom.DBHeight != ack.DBHeight {
-		t.Errorf("EOM DBheight does not match ack DBHeight: %d %d\n", eom.DBHeight, ack.DBHeight)
 	}
 }

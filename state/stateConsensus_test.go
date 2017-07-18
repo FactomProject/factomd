@@ -5,72 +5,46 @@
 package state_test
 
 import (
-	"fmt"
 	"testing"
-	"time"
 
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 )
 
-var _ = time.Now
-var _ = fmt.Print
-var _ = ESAsking
+var _ = NewProcessList
 
-func TestHolding(t *testing.T) {
-	s := testHelper.CreateEmptyTestState()
-	s.SuperVerboseMessages = true
+func TestIsHighestCommit(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
 
-	msgs := makeXBounces(100)
-	for _, m := range msgs {
-		m.SetValid(0)
-		s.MsgQueue() <- m
+	commit := newCom()
+	eh := commit.CommitEntry.EntryHash
+
+	if !s.IsHighestCommit(eh, commit) {
+		t.Error("Should be the highest, as it does not exist")
 	}
 
-	s.Process()
-	if len(s.Holding)+len(s.XReview) != 100 {
-		t.Errorf("Holding should have 100 elements, found %d and %d in XReview", len(s.Holding), len(s.XReview))
+	s.Commits.Put(eh.Fixed(), commit)
+	if s.IsHighestCommit(eh, commit) {
+		t.Error("Should not be the highest")
 	}
 
-	for _, m := range msgs {
-		if m.Processed() {
-			t.Error("Should not be processed but is")
-		}
-	}
+	commit2 := newCom()
+	commit2.CommitEntry.Credits++
 
-	for _, m := range msgs {
-		m.SetValid(1)
-	}
-
-	time.Sleep(300 * time.Millisecond)
-	s.ReviewHolding()
-	s.Process()
-	if len(s.Holding)+len(s.XReview) != 0 {
-		t.Errorf("Holding should have 0 elements, found %d and %d in XReview", len(s.Holding), len(s.XReview))
-	}
-
-	for _, m := range msgs {
-		if !m.Processed() {
-			t.Error("Should be processed but is not")
-		}
+	if !s.IsHighestCommit(eh, commit2) {
+		t.Error("Should be the highest, as it is greater than the previous")
 	}
 }
 
-func makeXBounces(x int) []*messages.Bounce {
-	arr := make([]*messages.Bounce, x)
-	for i := range arr {
-		arr[i] = makeBounce()
-	}
-	return arr
-}
+func newCom() *messages.CommitEntryMsg {
+	commit := messages.NewCommitEntryMsg()
+	commit.CommitEntry = entryCreditBlock.NewCommitEntry()
+	commit.CommitEntry.Credits = 2
+	commit.CommitEntry.Init()
+	eh := commit.CommitEntry.Hash()
+	commit.CommitEntry.EntryHash = eh
 
-func makeBounce() *messages.Bounce {
-	b := new(messages.Bounce)
-	b.Timestamp = primitives.NewTimestampNow()
-	b.Stamps = nil
-	b.Name = random.RandomString()
-	return b
+	return commit
 }

@@ -75,6 +75,11 @@ type ProcessList struct {
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock *sync.Mutex
 
+	// Chains that are executed, but not processed. There is a small window of a pending chain that the ack
+	// will pass and the chainhead will fail. This covers that window. This is only used by WSAPI,
+	// do not use it anywhere internally.
+	PendingChainHeads *SafeMsgMap
+
 	OldAcks     map[[32]byte]interfaces.IMsg
 	oldackslock *sync.Mutex
 
@@ -1302,6 +1307,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.MakeMap()
 
+	pl.PendingChainHeads = NewSafeMsgMap()
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	pl.oldmsgslock = new(sync.Mutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
@@ -1334,4 +1340,12 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	}
 
 	return pl
+}
+
+// IsPendingChainHead returns if a chainhead is about to be updated (In PL)
+func (p *ProcessList) IsPendingChainHead(chainid interfaces.IHash) bool {
+	if p.PendingChainHeads.Get(chainid.Fixed()) != nil {
+		return true
+	}
+	return false
 }

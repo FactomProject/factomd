@@ -220,7 +220,7 @@ func TestBootStrappingIdentity(t *testing.T) {
 		t.Errorf("Bootstrap Identity Mismatch on MAIN")
 	}
 	key, _ := primitives.HexToHash("0426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a")
-	if !state.GetNetworkBootStrapKey().IsSameAs(key) {
+	if !state.GetNetworkBootStrapKey().IsSameAs(key) {IsInPendingEntryList
 		t.Errorf("Bootstrap Identity Key Mismatch on MAIN")
 	}
 
@@ -256,3 +256,36 @@ func TestBootStrappingIdentity(t *testing.T) {
 
 }
 */
+
+func TestIsStalled(t *testing.T) {
+	s := testHelper.CreateEmptyTestState()
+	s.Syncing = false
+	s.ProcessLists.DBHeightBase = 20
+	s.CurrentMinuteStartTime = time.Now().UnixNano()
+	if !s.IsStalled() {
+		t.Error("Should be stalled as we are behind: Stalled:", s.IsStalled())
+	}
+
+	s.CurrentMinuteStartTime = 0
+	s.ProcessLists.DBHeightBase = 0
+
+	if s.IsStalled() {
+		t.Error("When current minute start is 0, should not say stalled")
+	}
+
+	n := time.Now()
+	then := n.Add(-1600 * time.Millisecond)
+	s.CurrentMinuteStartTime = then.UnixNano()
+	s.DirectoryBlockInSeconds = 10
+
+	if !s.IsStalled() {
+		t.Error("Should be stalled as 1.6x blktime behind")
+	}
+
+	then = time.Now().Add(-1200 * time.Millisecond)
+	s.CurrentMinuteStartTime = then.UnixNano()
+	if s.IsStalled() {
+		t.Error("Should not be stalled as 1.2x blktime behind")
+	}
+
+}

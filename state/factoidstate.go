@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sort"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -369,6 +370,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	fs.UpdateTransaction(true, t)
 
 	fs.DBHeight++
+	fs.State.CurrentBlockStartTime = time.Now().UnixNano()
 }
 
 // Returns an error message about what is wrong with the transaction if it is

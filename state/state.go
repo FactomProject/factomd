@@ -190,6 +190,10 @@ type State struct {
 	OutputAllowed   bool
 	CurrentMinute   int
 
+	// These are the start times for blocks and minutes
+	CurrentMinuteStartTime int64
+	CurrentBlockStartTime  int64
+
 	EOMsyncing bool
 
 	EOM          bool // Set to true when the first EOM is encountered
@@ -229,8 +233,8 @@ type State struct {
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
-	Commits       map[[32]byte]interfaces.IMsg // Commit Messages
+	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -551,8 +555,20 @@ func (s *State) GetFactomdLocations() string {
 	return s.FactomdLocations
 }
 
+func (s *State) GetCurrentBlockStartTime() int64 {
+	return s.CurrentBlockStartTime
+}
+
 func (s *State) GetCurrentMinute() int {
 	return s.CurrentMinute
+}
+
+func (s *State) GetCurrentMinuteStartTime() int64 {
+	return s.CurrentMinuteStartTime
+}
+
+func (s *State) GetCurrentTime() int64 {
+	return time.Now().UnixNano()
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -786,7 +802,7 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = NewSafeMsgMap() //make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -848,6 +864,7 @@ func (s *State) Init() {
 	switch s.Network {
 	case "MAIN":
 		s.NetworkNumber = constants.NETWORK_MAIN
+		s.DirectoryBlockInSeconds = 600
 	case "TEST":
 		s.NetworkNumber = constants.NETWORK_TEST
 	case "LOCAL":
@@ -1369,6 +1386,14 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					} else {
 						tmp.Status = "AckStatusACK"
 					}
+
+					tmp.Inputs = tran.GetInputs()
+					tmp.Outputs = tran.GetOutputs()
+					tmp.ECOutputs = tran.GetECOutputs()
+					ecrate := s.GetPredictiveFER()
+					ecrate, _ = tran.CalculateFee(ecrate)
+					tmp.Fees = ecrate
+
 					if params.(string) == "" {
 						flgFound = true
 					} else {
@@ -1408,7 +1433,12 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			tmp.TransactionID = tempTran.GetSigHash()
 			tmp.Status = "AckStatusNotConfirmed"
 			flgFound = tempTran.HasUserAddress(params.(string))
-
+			tmp.Inputs = tempTran.GetInputs()
+			tmp.Outputs = tempTran.GetOutputs()
+			tmp.ECOutputs = tempTran.GetECOutputs()
+			ecrate := s.GetPredictiveFER()
+			ecrate, _ = tempTran.CalculateFee(ecrate)
+			tmp.Fees = ecrate
 			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
 				for _, pt := range resp {
@@ -1506,6 +1536,32 @@ func (s *State) IncEntryChains() {
 
 func (s *State) IncEntries() {
 	s.NewEntries++
+}
+
+func (s *State) IsStalled() bool {
+	if s.CurrentMinuteStartTime == 0 { //0 while syncing.
+		return false
+	}
+
+	// If we are under height 3, then we won't say stalled by height.
+	lh := s.GetTrueLeaderHeight()
+
+	if lh >= 3 && s.GetHighestSavedBlk() < lh-3 {
+		return true
+	}
+
+	//use 1/10 of the block time times 1.5 in seconds as a timeout on the 'minutes'
+	var stalltime float64
+
+	stalltime = float64(int64(s.GetDirectoryBlockInSeconds())) / 10
+	stalltime = stalltime * 1.5 * 1e9
+	//fmt.Println("STALL 2", s.CurrentMinuteStartTime/1e9, time.Now().UnixNano()/1e9, stalltime/1e9, (float64(time.Now().UnixNano())-stalltime)/1e9)
+
+	if float64(s.CurrentMinuteStartTime) < float64(time.Now().UnixNano())-stalltime { //-90 seconds was arbitrary
+		return true
+	}
+
+	return false
 }
 
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
@@ -1638,8 +1694,7 @@ entryHashProcessing:
 			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
 			// If the save worked, then remove any commit that might be around.
 			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
-				TotalCommitsOutputs.Inc()
-				delete(s.Commits, e.Hash.Fixed())
+				s.Commits.Delete(e.Hash.Fixed())
 			}
 		default:
 			break entryHashProcessing

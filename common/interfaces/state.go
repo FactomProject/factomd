@@ -259,6 +259,16 @@ type IState interface {
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 	GetSpecificACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
+
+	// Acks with ChainIDs so you can select which hash type
+	GetEntryCommitAckByEntryHash(hash IHash) (status int, commit IMsg)
+	GetEntryRevealAckByEntryHash(hash IHash) (status int, blktime Timestamp, commit IMsg)
+	GetEntryCommitAckByTXID(hash IHash) (status int, blktime Timestamp, commit IMsg, entryhash IHash)
+	IsNewOrPendingEBlocks(dbheight uint32, hash IHash) bool
+
+	// Used in API to reject commits properly and inform user
+	IsHighestCommit(hash IHash, msg IMsg) bool
+
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
@@ -287,7 +297,11 @@ type IState interface {
 	GetMissingEntryCount() uint32
 	GetEntryBlockDBHeightProcessing() uint32
 	GetEntryBlockDBHeightComplete() uint32
+	GetCurrentBlockStartTime() int64
 	GetCurrentMinute() int
+	GetCurrentMinuteStartTime() int64
+	GetCurrentTime() int64
+	IsStalled() bool
 	GetDelay() int64
 	SetDelay(int64)
 	GetDropRate() int
