@@ -617,6 +617,7 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueInMsgBounceMsg)
 	prometheus.MustRegister(TotalMessageQueueInMsgBounceResp)
 	prometheus.MustRegister(TotalMessageQueueInMsgMisc)
+	prometheus.MustRegister(TotalMessageQueueInMsgGeneral)
 
 	// Net Out
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOM)
@@ -642,27 +643,6 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceMsg)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceResp)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgMisc)
-	prometheus.MustRegister(TotalMessageQueueInMsgGeneral)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneral)
-
-	// MsgQueue chan
-	prometheus.MustRegister(TotalMsgQueueInputs)
-	prometheus.MustRegister(TotalMsgQueueOutputs)
-
-	// Holding
-	prometheus.MustRegister(TotalHoldingQueueInputs)
-	prometheus.MustRegister(TotalHoldingQueueOutputs)
-	prometheus.MustRegister(TotalHoldingQueueRecycles)
-	prometheus.MustRegister(HoldingQueueDBSigInputs)
-	prometheus.MustRegister(HoldingQueueDBSigOutputs)
-	prometheus.MustRegister(HoldingQueueCommitEntryInputs)
-	prometheus.MustRegister(HoldingQueueCommitEntryOutputs)
-	prometheus.MustRegister(HoldingQueueCommitChainInputs)
-	prometheus.MustRegister(HoldingQueueCommitChainOutputs)
-	prometheus.MustRegister(HoldingQueueRevealEntryInputs)
-	prometheus.MustRegister(HoldingQueueRevealEntryOutputs)
-
-	prometheus.MustRegister(TotalMessageQueueInMsgGeneral)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneral)
 
 	// MsgQueue chan

@@ -70,7 +70,7 @@ func TestTorrentImpl(t *testing.T) {
 		t.Error(err)
 	}
 
-	v := mc.UploadIfOnDisk()
+	v := mc.UploadIfOnDisk(0)
 	if v != true {
 		t.Error("Should be true")
 	}
@@ -110,11 +110,6 @@ func TestTorrentImpl(t *testing.T) {
 	err = mc.UploadDBStateBytes(nil, true)
 	if err == nil {
 		t.Error("Stream closed, this should fail")
-	}
-
-	v = mc.UploadIfOnDisk()
-	if v != true {
-		t.Error("Should be true")
 	}
 
 	err = mc.CompletedHeightTo(0)
