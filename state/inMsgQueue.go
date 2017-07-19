@@ -24,7 +24,6 @@ func (q InMsgMSGQueue) Cap() int {
 
 // Enqueue adds item to channel and instruments based on type
 func (q InMsgMSGQueue) Enqueue(m interfaces.IMsg) {
-	//inMsgQueueRateKeeper.Arrival()
 	measureMessage(TotalMessageQueueInMsgGeneralVec, m, true)
 	measureMessage(CurrentMessageQueueInMsgGeneralVec, m, true)
 	q <- m
@@ -36,7 +35,6 @@ func (q InMsgMSGQueue) Dequeue() interfaces.IMsg {
 	select {
 	case v := <-q:
 		measureMessage(CurrentMessageQueueInMsgGeneralVec, v, false)
-		//inMsgQueueRateKeeper.Complete()
 		return v
 	default:
 		return nil
@@ -47,6 +45,5 @@ func (q InMsgMSGQueue) Dequeue() interfaces.IMsg {
 func (q InMsgMSGQueue) BlockingDequeue() interfaces.IMsg {
 	v := <-q
 	measureMessage(CurrentMessageQueueInMsgGeneralVec, v, false)
-	//inMsgQueueRateKeeper.Complete()
 	return v
 }

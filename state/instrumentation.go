@@ -4,32 +4,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var messageTypes = []string{
-	"EOM",
-	"ACK",
-	"AudFault",
-	"FedFault",
-	"FullFault",
-	"CommitChain",
-	"CommitEntry",
-	"DBSig",
-	"EOMTimeout",
-	"FactTx",
-	"Heartbeat",
-	"EtcdHashPickup",
-	"MissingMsg",
-	"MissingMsgResp",
-	"MissingData",
-	"MissingDataResp",
-	"RevealEntry",
-	"ReqBlock",
-	"DBStateMissing",
-	"DBState",
-	"Bounce",
-	"BounceReply",
-	"Misc",
-}
-
 var (
 	// 		Example
 	//stateRandomCounter = prometheus.NewCounter(prometheus.CounterOpts{
@@ -103,6 +77,7 @@ var (
 		Help: "Total transactions over life of node weighted for last 3 seconds",
 	})
 
+	// Queues
 	CurrentMessageQueueInMsgGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "factomd_state_queue_current_general_inmsg_vec",
 		Help: "Instrumenting the current  inmsg queue ",
@@ -111,6 +86,16 @@ var (
 	TotalMessageQueueInMsgGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "factomd_state_queue_total_general_inmsg_vec",
 		Help: "Instrumenting the inmsg queue ",
+	}, []string{"message"})
+
+	CurrentMessageQueueApiGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_general_api_vec",
+		Help: "Instrumenting the current API queue ",
+	}, []string{"message"})
+
+	TotalMessageQueueApiGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_total_general_api_vec",
+		Help: "Instrumenting the API queue ",
 	}, []string{"message"})
 
 	TotalMessageQueueNetOutMsgGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -151,8 +136,9 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(InstantTransactionPerSecond)
 
 	// Queues
-
 	prometheus.MustRegister(CurrentMessageQueueInMsgGeneralVec)
 	prometheus.MustRegister(TotalMessageQueueInMsgGeneralVec)
 	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneralVec)
+	prometheus.MustRegister(CurrentMessageQueueApiGeneralVec)
+	prometheus.MustRegister(TotalMessageQueueApiGeneralVec)
 }
