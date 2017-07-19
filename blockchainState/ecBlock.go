@@ -57,7 +57,7 @@ func (bs *BlockchainState) ProcessECEntry(v interfaces.IECBlockEntry) error {
 	case entryCreditBlock.ECIDEntryCommit:
 		e := v.(*entryCreditBlock.CommitEntry)
 		if bs.ECBalances[e.ECPubKey.String()] < int64(e.Credits) {
-			if bs.NetworkID != constants.MAIN_NETWORK_ID || bs.DBlockHeight > 93719 {
+			if bs.NetworkID != constants.MAIN_NETWORK_ID { //|| bs.DBlockHeight > 93719 {
 				return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			}
 		}
@@ -67,7 +67,7 @@ func (bs *BlockchainState) ProcessECEntry(v interfaces.IECBlockEntry) error {
 	case entryCreditBlock.ECIDChainCommit:
 		e := v.(*entryCreditBlock.CommitChain)
 		if bs.ECBalances[e.ECPubKey.String()] < int64(e.Credits) {
-			if bs.NetworkID != constants.MAIN_NETWORK_ID || bs.DBlockHeight > 93719 {
+			if bs.NetworkID != constants.MAIN_NETWORK_ID { //|| bs.DBlockHeight > 93719 {
 				return fmt.Errorf("Not enough ECs - %v:%v<%v", e.ECPubKey.String(), bs.ECBalances[e.ECPubKey.String()], uint64(e.Credits))
 			}
 		}

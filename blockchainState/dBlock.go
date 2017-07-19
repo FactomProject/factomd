@@ -51,6 +51,7 @@ func (bs *BlockchainState) ProcessDBlock(dBlock interfaces.IDirectoryBlock) erro
 	if err != nil {
 		return err
 	}
+	bs.DBlockList = append(bs.DBlockList, dBlock.GetHash().(*primitives.Hash))
 
 	return nil
 }

@@ -26,7 +26,8 @@ type BlockchainState struct {
 	DBlockHead      *HashPair
 	DBlockHeight    uint32
 	DBlockTimestamp *primitives.Timestamp
-	DBlockHeader    []byte //For DBSignatureEntry
+	DBlockHeader    []byte             //For DBSignatureEntry
+	DBlockList      []*primitives.Hash //For indexing blocks by height in case of network forks
 
 	ECBlockHead *HashPair
 
