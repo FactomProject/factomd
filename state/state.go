@@ -1342,6 +1342,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 									for k, _ := range resp {
 										if resp[k].EntryHash.IsSameAs(tmp.EntryHash) {
 											if tmp.ChainID != nil {
+
 												resp[k].ChainID = tmp.ChainID
 											}
 										}
