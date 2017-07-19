@@ -1331,7 +1331,6 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							} else {
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
-
 							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
 								repeatmap[tmp.EntryHash.Fixed()] = tmp
@@ -1341,8 +1340,10 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 									repeatmap[tmp.EntryHash.Fixed()] = tmp
 									// now update your response entry
 									for k, _ := range resp {
-										if resp[k].EntryHash == tmp.EntryHash {
-											resp[k].ChainID = tmp.ChainID
+										if resp[k].EntryHash.IsSameAs(tmp.EntryHash) {
+											if tmp.ChainID != nil {
+												resp[k].ChainID = tmp.ChainID
+											}
 										}
 									}
 								}
