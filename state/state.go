@@ -1299,6 +1299,12 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 								//If it is in there, it may not know the chainid because it was from a commit
 								if repeatmap[tmp.EntryHash.Fixed()].ChainID == nil {
 									repeatmap[tmp.EntryHash.Fixed()] = tmp
+									// now update your response entry
+									for k, _ := range resp {
+										if resp[k].EntryHash == tmp.EntryHash {
+											resp[k].ChainID = tmp.ChainID
+										}
+									}
 								}
 							}
 						}
