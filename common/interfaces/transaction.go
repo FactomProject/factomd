@@ -90,4 +90,8 @@ type ITransaction interface {
 type IPendingTransaction struct {
 	TransactionID IHash
 	Status        string
+	Inputs        []ITransAddress
+	Outputs       []ITransAddress
+	ECOutputs     []ITransAddress
+	Fees          uint64
 }

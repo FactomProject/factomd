@@ -4,21 +4,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
-// NetOutQueueRatePrometheus is for setting the appropriate prometheus calls
-type NetOutQueueRatePrometheus struct{}
-
-func (NetOutQueueRatePrometheus) SetArrivalInstantAvg(v float64) {
-	NetOutInstantArrivalQueueRate.Set(v)
-}
-func (NetOutQueueRatePrometheus) SetArrivalTotalAvg(v float64) { NetOutTotalArrivalQueueRate.Set(v) }
-func (NetOutQueueRatePrometheus) SetArrivalBackup(v float64)   { NetOutQueueBackupRate.Set(v) }
-func (NetOutQueueRatePrometheus) SetCompleteInstantAvg(v float64) {
-	NetOutInstantCompleteQueueRate.Set(v)
-}
-func (NetOutQueueRatePrometheus) SetCompleteTotalAvg(v float64) { NetOutTotalCompleteQueueRate.Set(v) }
-func (NetOutQueueRatePrometheus) SetMovingArrival(v float64)    { NetOutMovingArrivalQueueRate.Set(v) }
-func (NetOutQueueRatePrometheus) SetMovingComplete(v float64)   { NetOutMovingCompleteQueueRate.Set(v) }
-
 // NetOutMsgQueue counts incoming and outgoing messages for netout queue
 type NetOutMsgQueue chan interfaces.IMsg
 
@@ -114,8 +99,8 @@ func (q NetOutMsgQueue) Heartbeat(increment bool) {
 	TotalMessageQueueNetOutMsgHeartbeat.Inc()
 }
 
-func (q NetOutMsgQueue) EtcdHashPickup(increment bool) {
-	TotalMessageQueueNetOutMsgEtcdHashPickup.Inc()
+func (q NetOutMsgQueue) InvalidDirectoryBlock(increment bool) {
+	TotalMessageQueueNetOutMsgInvalidDirectoryBlock.Inc()
 }
 
 func (q NetOutMsgQueue) MissingMsg(increment bool) {

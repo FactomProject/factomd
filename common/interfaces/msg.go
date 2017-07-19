@@ -102,7 +102,7 @@ type IMsg interface {
 
 	// Stall handling
 	MarkSentInvalid(bool)
-	SentInvlaid() bool
+	SentInvalid() bool
 
 	IsStalled() bool
 	SetStall(bool)

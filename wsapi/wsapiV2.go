@@ -80,6 +80,9 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "commit-entry":
 		resp, jsonError = HandleV2CommitEntry(state, params)
 		break
+	case "current-minute":
+		resp, jsonError = HandleV2CurrentMinute(state, params)
+		break
 	case "directory-block":
 		resp, jsonError = HandleV2DirectoryBlock(state, params)
 		break
@@ -156,6 +159,8 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 		resp, jsonError = HandleAuthorities(state, params)
 	case "tps-rate":
 		resp, jsonError = HandleV2TransactionRate(state, params)
+	case "ack":
+		resp, jsonError = HandleV2ACKWithChain(state, params)
 	default:
 		jsonError = NewMethodNotFoundError()
 		break
@@ -275,10 +280,29 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	if err != nil {
 		return nil, NewInternalError()
 	}
+
+	// Correct any addresses that get ToLowered()
+	for _, t := range block.GetTransactions() {
+		for _, a := range t.GetInputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+		for _, a := range t.GetOutputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+		for _, a := range t.GetECOutputs() {
+			b.data = correctLowerCasedStringToOriginal(b.data, a.GetUserAddress())
+		}
+	}
+
 	resp.FBlock = b
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
+}
+
+// correctLowerCasedStringToOriginal will replace the matching ToLowered(original) with the original
+func correctLowerCasedStringToOriginal(j []byte, original string) []byte {
+	return []byte(strings.Replace(string(j), strings.ToLower(original), original, -1))
 }
 
 func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -362,6 +386,11 @@ func ObjectToJStruct(source interface{}) (*JStruct, error) {
 	return dst, nil
 }
 
+type RepeatedEntryMessage struct {
+	Information string `json:"info"`
+	EntryHash   string `json:"entryhash"`
+}
+
 func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallCommitChain.Observe(float64(time.Since(n).Nanoseconds()))
@@ -388,12 +417,20 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitChainMsg)
 	msg.CommitChain = commit
+
+	// If this fails, a commit with greater payment already exists
+	if !state.IsHighestCommit(msg.CommitChain.GetEntryHash(), msg) {
+		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitChain.GetEntryHash().String()})
+	}
+
 	state.APIQueue() <- msg
 	state.IncECCommits()
 
 	resp := new(CommitChainResponse)
 	resp.Message = "Chain Commit Success"
 	resp.TxID = commit.GetSigHash().String()
+	resp.EntryHash = commit.GetEntryHash().String()
+	resp.ChainID = commit.ChainIDHash.String()
 
 	return resp, nil
 }
@@ -428,12 +465,19 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 
 	msg := new(messages.CommitEntryMsg)
 	msg.CommitEntry = commit
+
+	// If this fails, a commit with greater payment already exists
+	if !state.IsHighestCommit(msg.CommitEntry.GetEntryHash(), msg) {
+		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitEntry.GetEntryHash().String()})
+	}
+
 	state.APIQueue() <- msg
 	state.IncECommits()
 
 	resp := new(CommitEntryResponse)
 	resp.Message = "Entry Commit Success"
 	resp.TxID = commit.GetSigHash().String()
+	resp.EntryHash = commit.EntryHash.String()
 
 	return resp, nil
 }
@@ -470,6 +514,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
 	resp.EntryHash = entry.GetHash().String()
+	resp.ChainID = entry.ChainID.String()
 
 	return resp, nil
 }
@@ -744,9 +789,9 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	// get the pending chain head from the current or previous process list in
 	// the state
 	lh := state.GetLeaderHeight()
-	pend1 := state.GetNewEBlocks(lh, h)
-	pend2 := state.GetNewEBlocks(lh-1, h)
-	if pend1 != nil || pend2 != nil {
+	pend1 := state.IsNewOrPendingEBlocks(lh, h)
+	pend2 := state.IsNewOrPendingEBlocks(lh-1, h)
+	if pend1 || pend2 {
 		c.ChainInProcessList = true
 	}
 
@@ -764,6 +809,25 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	}
 
 	return c, nil
+}
+
+func HandleV2CurrentMinute(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallHeights.Observe(float64(time.Since(n).Nanoseconds()))
+
+	h := new(CurrentMinuteResponse)
+
+	h.LeaderHeight = int64(state.GetTrueLeaderHeight())
+	h.DirectoryBlockHeight = int64(state.GetHighestSavedBlk())
+	h.Minute = int64(state.GetCurrentMinute())
+	h.CurrentTime = n.UnixNano()
+	h.CurrentBlockStartTime = state.GetCurrentBlockStartTime()
+	h.CurrentMinuteStartTime = int64(state.GetCurrentMinuteStartTime())
+	h.DirectoryBlockInSeconds = int64(state.GetDirectoryBlockInSeconds())
+	h.StallDetected = state.IsStalled()
+
+	//h.LastBlockTime = state.GetTimestamp
+	return h, nil
 }
 
 func HandleV2EntryCreditBalance(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {

@@ -134,8 +134,9 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
-//  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
+// NOTE! Do no return 0, that sticks this message in the holding map, vs the DBStateList
+// 			ValidateSignatures is called when actually applying the DBState.
 func (m *DBStateMsg) Validate(state interfaces.IState) int {
 	// No matter what, a block has to have what a block has to have.
 	if m.DirectoryBlock == nil || m.AdminBlock == nil || m.FactoidBlock == nil || m.EntryCreditBlock == nil {
@@ -162,7 +163,8 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete())) // Difference from the working height (completed+1)
+	// Difference of completed blocks, rather than just highest DBlock (might be missing entries)
+	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete()))
 
 	// Look at saved heights if not too far from what we have saved.
 	if diff < -1 {
@@ -183,21 +185,10 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		}
 	}
 
-	// Check the signatures on the DBstate
-	if v := m.ValidateSignatures(state); v != 1 {
-		return v
-	}
-
-	// Ensure the data matches the DBlock it sends us
-	if v := m.ValidateData(state); v != 1 {
-		return v
-	}
-
 	return 1
 }
 
 func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
-
 	// Validate Signatures
 
 	// If this is the next block that we need, we can validate it by signatures. If it is a past block
@@ -231,15 +222,23 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			}
 		}
 
-		// It does not pass the signatures. Should we return -1?
-		return 0
+		// It does not pass have enough signatures. It will not obtain more signatures.
+		return -1
 	} else { // Alternative to signatures passing by checking our DB
+
+		// This is a future block. We cannot determine at this time
+		if m.DirectoryBlock.GetDatabaseHeight() > state.GetHighestSavedBlk()+1 {
+			return 0
+		}
+
 		// This block is not the next block we need. Check this block +1 and check it's prevKeyMr
 		next := state.GetDirectoryBlockByHeight(m.DirectoryBlock.GetDatabaseHeight() + 1)
 		if next == nil {
-			// Do not have the next directory block, so we cannot tell by this method
+			// Do not have the next directory block, so we cannot tell by this method.
+			// We should have this dblock though, so maybe we should return -1?
 			return 0
 		}
+
 		// If the prevKeyMr of the next matches this one, we know it is valid.
 		if next.GetHeader().GetPrevKeyMR().IsSameAs(m.DirectoryBlock.GetKeyMR()) {
 			goto ValidSignatures
@@ -247,10 +246,11 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			// The KeyMR does not match, this block is invalid
 			return -1
 		}
-
 	}
 ValidSignatures: // Goto here if signatures pass
-	return 1
+
+	// ValidateData will ensure all the data given matches the DBlock
+	return m.ValidateData(state)
 }
 
 // ValidateData will check the data attached to the DBState against the directory block it contains.
@@ -452,6 +452,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			}
 		}
 	}
+
 	return validSigCount
 }
 

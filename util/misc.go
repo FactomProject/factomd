@@ -61,11 +61,21 @@ func IsInPendingEntryList(list []interfaces.IPendingEntry, entry interfaces.IPen
 	if len(list) == 0 {
 		return false
 	}
-	for _, ent := range list {
-		if entry.ChainID != nil && entry.EntryHash != nil {
-			if entry.EntryHash.IsSameAs(ent.EntryHash) {
-				if entry.ChainID.IsSameAs(ent.ChainID) {
-					return true
+	for k, ent := range list {
+
+		if entry.ChainID != nil {
+
+			if entry.EntryHash != nil {
+
+				if entry.EntryHash.IsSameAs(ent.EntryHash) {
+					if list[k].ChainID == nil {
+						// this is the only time we have these two data items at the same time.  if you already have a chain commit, you don't know the chain on it
+						// update the chain IDless entry with a chain ID instead of adding another that knows chainid and entryhash
+						list[k].ChainID = entry.ChainID
+					}
+					if entry.ChainID.IsSameAs(ent.ChainID) {
+						return true
+					}
 				}
 			}
 		}

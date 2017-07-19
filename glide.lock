@@ -32,7 +32,7 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: 16ac9ff6a8b3b5fb3766d8770fbc892f6641905d
+  version: d9c26423fbe8fb95ddbbab776beaff7931bf6b1f
   subpackages:
   - wallet
   - wallet/wsapi
@@ -135,4 +135,10 @@ imports:
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
+- name: github.com/FactomProject/logrus
+  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
+- name: github.com/hashicorp/go-plugin
+  version: 8cf118f7a2f0c7ef1c82f66d4f6ac77c7e27dc12
+- name: github.com/hashicorp/yamux
+  version: d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd
 testImports: []
