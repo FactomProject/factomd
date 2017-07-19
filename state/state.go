@@ -175,6 +175,7 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+	BootTime        int64 // Time in seconds that we last booted
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
@@ -336,6 +337,15 @@ type State struct {
 	AckChange uint32
 
 	StateSaverStruct StateSaverStruct
+	// Plugins
+	useTorrents             bool
+	torrentUploader         bool
+	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
+	DBStateManager          interfaces.IManagerController
+	HighestCompletedTorrent uint32
+	SuperVerboseMessages    bool
+	FastBoot                bool
+	FastBootLocation        string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -484,6 +494,10 @@ func (s *State) GetDelay() int64 {
 
 func (s *State) SetDelay(delay int64) {
 	s.Delay = delay
+}
+
+func (s *State) GetBootTime() int64 {
+	return s.BootTime
 }
 
 func (s *State) GetDropRate() int {
@@ -639,6 +653,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.RpcPass = cfg.App.FactomdRpcPass
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
+		s.FastBoot = cfg.App.FastBoot
+		s.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -743,6 +759,7 @@ func (s *State) Init() {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 	s.IgnoreMissing = true
+	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -1199,6 +1216,7 @@ func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {
 //  This is what fills the HoldingMap while locking it against a read while building
 func (s *State) fillHoldingMap() {
 	// once a second is often enough to rebuild the Ack list exposed to api
+
 	if s.HoldingLast < time.Now().Unix() {
 
 		localMap := make(map[[32]byte]interfaces.IMsg)
@@ -1351,6 +1369,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
 	var flgFound bool
+
 	var currentHeightComplete = s.GetDBHeightComplete()
 	resp := make([]interfaces.IPendingTransaction, 0)
 	pls := s.ProcessLists.Lists

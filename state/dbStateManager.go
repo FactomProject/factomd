@@ -677,8 +677,9 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if !next.IsInDB && !next.IgnoreSigs && next.ValidateSignatures(state) != 1 {
-		return 0
+	valid := next.ValidateSignatures(state)
+	if !next.IsInDB && !next.IgnoreSigs && valid != 1 {
+		return valid
 	}
 
 	// Get the keymr of the Previous DBState
@@ -1360,6 +1361,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
+
 	return
 }
 

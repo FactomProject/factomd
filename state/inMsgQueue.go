@@ -4,6 +4,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
+
 // InMsgMSGQueue counts incoming and outgoing messages for inmsg queue
 type InMsgMSGQueue chan interfaces.IMsg
 
@@ -159,13 +160,13 @@ func (q InMsgMSGQueue) Heartbeat(increment bool) {
 	TotalMessageQueueInMsgHeartbeat.Inc()
 }
 
-func (q InMsgMSGQueue) EtcdHashPickup(increment bool) {
+func (q InMsgMSGQueue) InvalidDirectoryBlock(increment bool) {
 	if !increment {
-		CurrentMessageQueueInMsgEtcdHashPickup.Dec()
+		CurrentMessageQueueInMsgInvalidDirectoryBlock.Dec()
 		return
 	}
-	CurrentMessageQueueInMsgEtcdHashPickup.Inc()
-	TotalMessageQueueInMsgEtcdHashPickup.Inc()
+	CurrentMessageQueueInMsgInvalidDirectoryBlock.Inc()
+	TotalMessageQueueInMsgInvalidDirectoryBlock.Inc()
 }
 
 func (q InMsgMSGQueue) MissingMsg(increment bool) {
