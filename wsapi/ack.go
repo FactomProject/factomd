@@ -71,32 +71,193 @@ func HandleV2FactoidACK(state interfaces.IState, params interface{}) (interface{
 			answer.BlockDateString = blockTime.String()
 		}
 	}
-	switch status {
-	case constants.AckStatusInvalid:
-		answer.Status = AckStatusInvalid
-		break
-	case constants.AckStatusUnknown:
-		answer.Status = AckStatusUnknown
-		break
-	case constants.AckStatusNotConfirmed:
-		answer.Status = AckStatusNotConfirmed
-		break
-	case constants.AckStatusACK:
-		answer.Status = AckStatusACK
-		break
-	case constants.AckStatus1Minute:
-		answer.Status = AckStatus1Minute
-		break
-	case constants.AckStatusDBlockConfirmed:
-		answer.Status = AckStatusDBlockConfirmed
-		break
-	default:
+
+	answer.Status = constants.AckStatusString(status)
+	if answer.Status == "na" {
 		return nil, NewInternalError()
-		break
 	}
 
 	return answer, nil
 }
+
+// HandleV2ACKWithChain is the ack call with a given chainID. The chainID serves as a directive on what type
+// of hash we are given, and we can act appropriately.
+func HandleV2ACKWithChain(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEntryAck.Observe(float64(time.Since(n).Nanoseconds()))
+
+	ackReq := new(EntryAckWithChainRequest)
+	err := MapToObject(params, ackReq)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	if len(ackReq.ChainID) == 1 && (ackReq.ChainID == "c" || ackReq.ChainID == "f") {
+		ackReq.ChainID = "000000000000000000000000000000000000000000000000000000000000000" + ackReq.ChainID
+	}
+
+	if len(ackReq.ChainID) != 64 {
+		return nil, NewCustomInvalidParamsError("ChainID must be 64 hex encoded characters")
+	}
+
+	chainid, err := hex.DecodeString(ackReq.ChainID)
+	if err != nil {
+		return nil, NewCustomInvalidParamsError("ChainID must be 64 hex encoded characters")
+	}
+	var _ = chainid
+
+	if ackReq.Hash == "" {
+		// If it is a factoid transaction, it will be handled by the factoidack handler
+		if ackReq.FullTransaction != "" && ackReq.FullTransaction != "000000000000000000000000000000000000000000000000000000000000000f" {
+			ehash, commithash := DecodeTransactionToHashes(ackReq.FullTransaction)
+			if ackReq.ChainID == "000000000000000000000000000000000000000000000000000000000000000c" {
+				// Take the commit hash
+				ackReq.Hash = commithash
+			} else {
+				// Take the entry hash
+				ackReq.Hash = ehash
+			}
+		}
+	}
+
+	hash, err := primitives.HexToHash(ackReq.Hash)
+	if err != nil {
+		return nil, NewCustomInvalidParamsError("Hash must be 64 hex encoded characters")
+	}
+
+	answer := new(EntryStatus)
+	switch ackReq.ChainID {
+	case hex.EncodeToString(constants.EC_CHAINID):
+		// This is an entry commit
+		answer.CommitTxID = hash.String()
+		status, blktime, com, entryhash := state.GetEntryCommitAckByTXID(hash)
+		if blktime != nil {
+			// If we have a block time, we can set that
+			answer.CommitData.BlockDate = blktime.GetTime().Unix()
+			answer.CommitData.BlockDateString = blktime.String()
+			if entryhash != nil {
+				// Looks like we found it's entryhash partner
+				answer.EntryHash = entryhash.String()
+				answer.EntryData.Status = constants.AckStatusString(status)
+				answer.EntryData.BlockDate = blktime.GetTime().Unix()
+				answer.EntryData.BlockDateString = blktime.String()
+			}
+		}
+
+		if com != nil {
+			answer.CommitData.TransactionDate = com.GetTimestamp().GetTime().Unix()
+			answer.CommitData.TransactionDateString = com.GetTimestamp().String()
+		}
+
+		answer.CommitData.Status = constants.AckStatusString(status)
+		return answer, nil
+	case hex.EncodeToString(constants.FACTOID_CHAINID):
+		// This is a factoid transaction, just use the old implementation for now
+		otherAckReq := new(AckRequest)
+		otherAckReq.TxID = ackReq.Hash
+		otherAckReq.FullTransaction = ackReq.FullTransaction
+		return HandleV2FactoidACK(state, otherAckReq)
+	case hex.EncodeToString(constants.ADMIN_CHAINID):
+		return nil, NewCustomInvalidParamsError("ChainID cannot be admin chain")
+	}
+
+	// If the chainid is not one of the special ones, that means the hash is an entry-hash
+	// Will make a second function because of it's length
+	return handleAckByEntryHash(hash, state)
+}
+
+// handleAckByEntryHash assumes the hash given is an entryhash
+func handleAckByEntryHash(hash interfaces.IHash, state interfaces.IState) (interface{}, *primitives.JSONError) {
+	answer := new(EntryStatus)
+	// This is an entry
+	revStatus, revBlktime, commit := state.GetEntryRevealAckByEntryHash(hash)
+	answer.EntryHash = hash.String()
+	answer.EntryData.Status = constants.AckStatusString(revStatus)
+	if revBlktime != nil {
+		answer.EntryData.BlockDate = revBlktime.GetTime().Unix()
+		answer.EntryData.BlockDateString = revBlktime.String()
+	}
+
+	// If the reveal entry is found in the blockchain, that mean the reveal is in there too. We don't want to bother looking
+	// anywhere else
+	if revStatus == constants.AckStatusDBlockConfirmed {
+		txid, err := state.FetchPaidFor(hash)
+		if err == nil && txid != nil {
+			answer.CommitTxID = txid.String()
+			answer.CommitData.Status = constants.AckStatusString(constants.AckStatusDBlockConfirmed)
+		}
+
+		// Now we will exit, as any commit found below will be less than dblock confirmed.
+		return answer, nil
+	}
+
+	// Continue here is not DBlockConfirmed
+
+	if commit != nil {
+		// This means it was found in the holding queue
+		answer.CommitData.Status = constants.AckStatusString(constants.AckStatusNotConfirmed)
+	} else {
+		var status int
+		// This means we have not found the commit yet
+		status, commit = state.GetEntryCommitAckByEntryHash(hash)
+		answer.CommitData.Status = constants.AckStatusString(status)
+	}
+
+	// If we found the commit, either by holding or by other means, set the variables on the response.
+	if commit != nil {
+		answer.CommitData.TransactionDateString = commit.GetTimestamp().String()
+		answer.CommitData.TransactionDate = commit.GetTimestamp().GetTime().Unix()
+
+		ce, ok := commit.(*messages.CommitEntryMsg)
+		if ok {
+			answer.CommitTxID = ce.CommitEntry.GetSigHash().String()
+		}
+		cc, ok := commit.(*messages.CommitChainMsg)
+		if ok {
+			answer.CommitTxID = cc.CommitChain.GetSigHash().String()
+		}
+	}
+
+	return answer, nil
+}
+
+// HandleV2EntryACK will return the status of an entryhash or commit hash. We will assume the input is an entry hash, as with that
+// the reveal and/or commit can be found. This is also beneficial as if the commit was rejected because a commit already exists,
+// calling the entry-ack with the entryhash can find the exisiting commit.
+// 		Order of search
+//			Searching the Reveal
+//				- ReplayFilter (_____________)
+//					- Checking the replay filter tells us if an entry was recently submitted into the blockchain
+//				- Check ProcessList (TransAck)
+//					- Check NewEntry map
+//					- Linear Search (Also check commits while going through, could save us a pass later)
+//						- A non-processed reveal/commit will not be in the newentry map
+//				- Check the Database (DblockConfirmed)
+//					- We check the database last, despite it being the highest level of confirmation
+//			Searching for the Commit
+//				- Holding
+//				- ProcessList (TransAck)
+//					- Commit Map
+//					- Linear search
+//
+// func handleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+// 	n := time.Now()
+// 	defer HandleV2APICallEntryAck.Observe(float64(time.Since(n).Nanoseconds()))
+
+// 	ackReq := new(AckRequest)
+
+// 	err := MapToObject(params, ackReq)
+
+// 	if err != nil {
+// 		return nil, NewInvalidParamsError()
+// 	}
+
+// 	if ackReq.TxID == "" && ackReq.FullTransaction == "" {
+// 		return nil, NewInvalidParamsError()
+// 	}
+
+// 	return nil, nil
+// }
 
 func HandleV2EntryACK(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
@@ -459,6 +620,12 @@ func DecodeTransactionToHashes(fullTransaction string) (eTxID string, ecTxID str
 
 type AckRequest struct {
 	TxID            string `json:"txid,omitempty"`
+	FullTransaction string `json:"fulltransaction,omitempty"`
+}
+
+type EntryAckWithChainRequest struct {
+	Hash            string `json:"hash,omitempty"`
+	ChainID         string `json:"chainid,omitempty"`
 	FullTransaction string `json:"fulltransaction,omitempty"`
 }
 

@@ -65,6 +65,8 @@ func (e *RCD_2) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
+// TODO: Fix Json marshaling of RCD_2. Right now the RCD type
+// is not included in the json marshal.
 func (e *RCD_2) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
