@@ -223,7 +223,7 @@ func (m *AddServerMsg) String() string {
 }
 
 func (m *AddServerMsg) LogFields() log.Fields {
-	return log.Fields{"catagory": "message", "server": m.ServerChainID.String()[4:12],
+	return log.Fields{"category": "message", "server": m.ServerChainID.String()[4:12],
 		"hash": m.GetHash().String()[:6]}
 }
 

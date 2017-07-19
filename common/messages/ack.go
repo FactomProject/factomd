@@ -338,7 +338,7 @@ func (m *Ack) String() string {
 }
 
 func (m *Ack) LogFields() log.Fields {
-	return log.Fields{"catagory": "message", "dheight": m.DBHeight, "vm": m.VMIndex,
+	return log.Fields{"category": "message", "dheight": m.DBHeight, "vm": m.VMIndex,
 		"vmheight": m.Height, "server": m.LeaderChainID.String()[4:12],
 		"hash": m.GetHash().String()[:6]}
 }
