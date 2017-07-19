@@ -194,6 +194,11 @@ func TestSetKeys(t *testing.T) {
 	}
 }
 
+func TestPrintState(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	PrintState(s)
+}
+
 /*
 func (s *State) SimSetNewKeys(p *primitives.PrivateKey) {
 	s.serverPrivKey = p

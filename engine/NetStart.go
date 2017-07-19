@@ -317,6 +317,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		if 0 < p.NetworkPortOverride {
 			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 		}
+
 		ci := p2p.ControllerInit{
 			Port:                     networkPort,
 			PeersFile:                s.PeersFile,
@@ -329,10 +330,15 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkControler = p2pNetwork
 		p2pNetwork.StartNetwork()
-		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+
+		if p.svm {
+			p2pProxy.SuperVerboseMessages = true
+			fnodes[0].State.SuperVerboseMessages = true
+		}
+
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(p.Netdebug)
 		if 0 < p.Netdebug {
@@ -344,6 +350,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
 		p2pNetwork.DialSpecialPeersString(p.Peers)
+
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
@@ -453,6 +460,21 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 
 	}
+
+	// Initate dbstate plugin if enabled. Only does so for first node,
+	// any more nodes on sim control will use default method
+	fnodes[0].State.SetTorrentUploader(p.torUpload)
+	if p.torManage {
+		fnodes[0].State.SetUseTorrent(true)
+		manager, err := LaunchDBStateManagePlugin(p.pluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.memProfileRate)
+		if err != nil {
+			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
+		}
+		fnodes[0].State.DBStateManager = manager
+	} else {
+		fnodes[0].State.SetUseTorrent(false)
+	}
+
 	if p.Journal != "" {
 		go LoadJournal(s, p.Journal)
 		startServers(false)

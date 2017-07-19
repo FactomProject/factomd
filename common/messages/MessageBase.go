@@ -54,7 +54,6 @@ func (m *MessageBase) PutAck(ack interfaces.IMsg) {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
-
 	// Dont' resend if we are behind
 	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
 		return
@@ -102,7 +101,7 @@ func (m *MessageBase) MarkSentInvalid(b bool) {
 	m.MarkInvalid = b
 }
 
-func (m *MessageBase) SentInvlaid() bool {
+func (m *MessageBase) SentInvalid() bool {
 	return m.MarkInvalid
 }
 
