@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //Structure to request missing messages in a node's process list
@@ -129,6 +131,10 @@ func (m *MissingData) MarshalBinary() ([]byte, error) {
 
 func (m *MissingData) String() string {
 	return fmt.Sprintf("MissingData: [%x]", m.RequestHash.Bytes()[:5])
+}
+
+func (m *MissingData) LogFields() log.Fields {
+	return log.Fields{}
 }
 
 // Validate the message, given the state.  Three possible results:

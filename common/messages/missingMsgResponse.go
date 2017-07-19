@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //Structure to request missing messages in a node's process list
@@ -183,6 +185,12 @@ func (m *MissingMsgResponse) String() string {
 		return fmt.Sprint("MissingMsgResponse (no Ack) <-- ", m.MsgResponse.String())
 	}
 	return fmt.Sprintf("MissingMsgResponse <-- DBHeight:%3d vm=%3d PL Height:%3d msgHash[%x]", ack.DBHeight, ack.VMIndex, ack.Height, m.GetMsgHash().Bytes()[:3])
+}
+
+func (m *MissingMsgResponse) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "missingmsgresponse",
+		"ackhash": m.Ack.GetMsgHash().String()[:10],
+		"msghash": m.MsgResponse.GetMsgHash().String()[:10]}
 }
 
 func (m *MissingMsgResponse) ChainID() []byte {
