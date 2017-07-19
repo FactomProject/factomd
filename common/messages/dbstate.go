@@ -134,7 +134,6 @@ func (m *DBStateMsg) GetTimestamp() interfaces.Timestamp {
 
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
-//  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 // NOTE! Do no return 0, that sticks this message in the holding map, vs the DBStateList
 // 			ValidateSignatures is called when actually applying the DBState.
@@ -164,7 +163,8 @@ func (m *DBStateMsg) Validate(state interfaces.IState) int {
 		return -1
 	}
 
-	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete())) // Difference from the working height (completed+1)
+	// Difference of completed blocks, rather than just highest DBlock (might be missing entries)
+	diff := int(dbheight) - (int(state.GetEntryDBHeightComplete()))
 
 	// Look at saved heights if not too far from what we have saved.
 	if diff < -1 {
@@ -238,6 +238,7 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			// We should have this dblock though, so maybe we should return -1?
 			return 0
 		}
+
 		// If the prevKeyMr of the next matches this one, we know it is valid.
 		if next.GetHeader().GetPrevKeyMR().IsSameAs(m.DirectoryBlock.GetKeyMR()) {
 			goto ValidSignatures
@@ -245,7 +246,6 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 			// The KeyMR does not match, this block is invalid
 			return -1
 		}
-
 	}
 ValidSignatures: // Goto here if signatures pass
 
@@ -452,6 +452,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 			}
 		}
 	}
+
 	return validSigCount
 }
 

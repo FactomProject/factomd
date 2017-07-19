@@ -7,10 +7,12 @@ package engine
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	// "github.com/FactomProject/factomd/common/constants"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -39,6 +41,8 @@ type P2PProxy struct {
 	NumPeers  int
 	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
 	bytesIn   int // bandwidth recieved by application from network
+
+	SuperVerboseMessages bool
 }
 
 type factomMessage struct {
@@ -87,6 +91,7 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
 	f.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
 	f.logging = make(chan interface{}, p2p.StandardChannelSize)
+
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -105,8 +110,11 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
-		fmt.Println("ERROR on Send: ", err)
+		log.Println("ERROR on Send: ", err)
 		return err
+	}
+	if f.SuperVerboseMessages {
+		log.Println("SVM Send:", msg.String(), msg.GetHash().String()[:10])
 	}
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
@@ -123,9 +131,10 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
 	}
 	if msg.IsPeer2Peer() && 1 < f.debugMode {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
+		log.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
+
 	return nil
 }
 
@@ -135,22 +144,31 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
 			BroadInCastQueue.Dec()
+
 			switch data.(type) {
 			case factomMessage:
 				fmessage := data.(factomMessage)
-				//f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
+				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
+
+				if f.SuperVerboseMessages {
+					if err != nil {
+						log.Println("SVM err:", err.Error())
+					} else {
+						log.Println("SVM Receive:", msg.String())
+					}
+				}
 				if nil == err {
 					msg.SetNetworkOrigin(fmessage.PeerHash)
 				}
-				// if 1 < f.debugMode {
-				// 	f.logMessage(msg, true) // NODE_TALK_FIX
-				// 	fmt.Printf(".")
-				// }
+				//if 1 < f.debugMode {
+				//	f.logMessage(msg, true) // NODE_TALK_FIX
+				//	fmt.Printf(".")
+				//}
 				f.bytesIn += len(fmessage.Message)
 				return msg, err
 			default:
-				// fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
+				//fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 			}
 		}
 	default:
