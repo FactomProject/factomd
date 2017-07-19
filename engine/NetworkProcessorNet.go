@@ -84,16 +84,16 @@ func Peers(fnode *FactomNode) {
 	}
 
 	for {
-		for i := 0; i < 100 && len(fnode.State.APIQueue()) > 0; i++ {
-			select {
-			case msg := <-fnode.State.APIQueue():
+		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
+			msg := fnode.State.APIQueue().Dequeue()
+			if msg != nil {
 				if msg == nil {
-					break
+					continue
 				}
 				repeatHash := msg.GetRepeatHash()
 				if repeatHash == nil {
 					fmt.Println("dddd ERROR!", msg.String())
-					break
+					continue
 				}
 				cnt++
 				msg.SetOrigin(0)
@@ -107,8 +107,6 @@ func Peers(fnode *FactomNode) {
 				} else {
 					RepeatMsgs.Inc()
 				}
-			default:
-
 			}
 		}
 

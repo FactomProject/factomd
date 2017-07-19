@@ -111,7 +111,7 @@ type IState interface {
 	GetJournalMessages() [][]byte
 
 	// Consensus
-	APIQueue() chan IMsg // Input Queue from the API
+	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
 	AckQueue() chan IMsg // Leader Queue
 	MsgQueue() chan IMsg // Follower Queue
