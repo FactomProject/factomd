@@ -269,7 +269,7 @@ func (m *ChangeServerKeyMsg) String() string {
 }
 
 func (m *ChangeServerKeyMsg) LogFields() log.Fields {
-	return log.Fields{"catagory": "message", "server": m.IdentityChainID.String()[4:12],
+	return log.Fields{"category": "message", "server": m.IdentityChainID.String()[4:12],
 		"hash": m.GetHash().String()[:6]}
 }
 

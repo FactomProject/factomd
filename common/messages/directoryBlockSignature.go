@@ -388,7 +388,7 @@ func (m *DirectoryBlockSignature) String() string {
 }
 
 func (a *DirectoryBlockSignature) LogFields() log.Fields {
-	return log.Fields{"catagory": "message", "dheight": a.DBHeight, "vm": a.VMIndex,
+	return log.Fields{"category": "message", "dheight": a.DBHeight, "vm": a.VMIndex,
 		"server": a.ServerIdentityChainID.String()[4:12], "prevkeymr": a.DirectoryBlockHeader.GetPrevKeyMR().String()[:6],
 		"hash": a.GetHash().String()[:6]}
 }
