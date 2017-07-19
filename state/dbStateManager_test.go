@@ -1,12 +1,8 @@
 package state_test
 
 import (
-	"bytes"
-	"encoding/hex"
 	"fmt"
-	"os"
-	"testing"
-
+	"bytes"
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -46,74 +42,6 @@ func newState() *State {
 	return s
 }
 
-func TestSaveDBState(t *testing.T) {
-	// Init
-	s := newState()
-	LoadDatabase(s)
-
-	// sec := FB3B471B1DCDADFEB856BD0B02D8BF49ACE0EDD372A3D9F2A95B78EC12A324D6
-	// add := 646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc428
-
-	pub, _ := hex.DecodeString("646f3e8750c550e4582eca5047546ffef89c13a175985e320232bacac81cc428")
-
-	var fixedpub [32]byte
-	copy(fixedpub[:], pub[:32])
-	fmt.Printf("%x\n", fixedpub[:])
-
-	// Create blocks
-	fee := int64(11000)
-	total := 400
-	initBal := int64(2000000000000)
-	per := (10000 + fee*2) * 5
-	msgs, adds := createTestDBStateList(total, s)
-	for i, m := range msgs {
-		i6 := int64(i)
-		m.JSONByte()
-		// Execute 5 times
-		for ii := 0; ii < 5; ii++ {
-			s.FollowerExecuteDBState(m)
-		}
-
-		if i != 0 && s.FactoidState.GetFactoidBalance(fixedpub) != initBal-((i6)*per) {
-			t.Errorf("Balance should be %d, found %d", initBal-((i6)*per), s.FactoidState.GetFactoidBalance(fixedpub))
-		}
-		//fmt.Println(s.FactoidState.GetFactoidBalance(fixedpub))
-	}
-
-	for _, a := range adds {
-		var fixed [32]byte
-		copy(fixed[:32], a.Bytes()[:])
-		if s.FactoidState.GetFactoidBalance(fixed) != 10000*5 {
-			t.Errorf("Balance should be %d, found %d", 10000, s.FactoidState.GetFactoidBalance(fixed))
-		}
-	}
-
-	// Verify blocks
-	errs := verifyBlocks(s, msgs)
-	if errs != nil {
-		for _, e := range errs {
-			t.Error(e)
-		}
-	}
-
-	err := s.DB.Close()
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-
-	// Double Check DB
-	s = newState()
-	errs = verifyBlocks(s, msgs)
-	if errs != nil {
-		for _, e := range errs {
-			t.Error(e)
-		}
-	}
-
-	// Cleanup
-	os.RemoveAll("unit-test-db/")
-}
 
 // Will verify a directory blc
 func verifyBlocks(s *State, dbstates []interfaces.IMsg) []string {
