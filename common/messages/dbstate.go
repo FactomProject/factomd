@@ -18,6 +18,8 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 // Communicate a Directory Block State
@@ -670,6 +672,16 @@ func (m *DBStateMsg) String() string {
 		m.FactoidBlock.GetHash().Bytes()[:3],
 		m.EntryCreditBlock.GetHash().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
+}
+
+func (m *DBStateMsg) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "dbstate",
+		"dbheight":    m.DirectoryBlock.GetHeader().GetDBHeight(),
+		"dblockhash":  m.DirectoryBlock.GetKeyMR().String()[:6],
+		"ablockhash":  m.AdminBlock.GetHash().String()[:6],
+		"fblockhash":  m.FactoidBlock.GetHash().String()[:6],
+		"ecblockhash": m.EntryCreditBlock.GetHash().String()[:6],
+		"hash":        m.GetHash().String()[:6]}
 }
 
 func NewDBStateMsg(timestamp interfaces.Timestamp,

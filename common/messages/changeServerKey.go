@@ -269,8 +269,8 @@ func (m *ChangeServerKeyMsg) String() string {
 }
 
 func (m *ChangeServerKeyMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "server": m.IdentityChainID.String()[4:12],
-		"hash": m.GetHash().String()[:6]}
+	return log.Fields{"category": "message", "messagetype": "changeserverkey",
+		"server": m.IdentityChainID.String()[4:12], "hash": m.GetHash().String()[:6]}
 }
 
 func (m *ChangeServerKeyMsg) IsSameAs(b *ChangeServerKeyMsg) bool {

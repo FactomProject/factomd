@@ -387,10 +387,13 @@ func (m *DirectoryBlockSignature) String() string {
 
 }
 
-func (a *DirectoryBlockSignature) LogFields() log.Fields {
-	return log.Fields{"category": "message", "dheight": a.DBHeight, "vm": a.VMIndex,
-		"server": a.ServerIdentityChainID.String()[4:12], "prevkeymr": a.DirectoryBlockHeader.GetPrevKeyMR().String()[:6],
-		"hash": a.GetHash().String()[:6]}
+func (m *DirectoryBlockSignature) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "dbsig",
+		"dbheight":  m.DBHeight,
+		"vm":        m.VMIndex,
+		"server":    m.ServerIdentityChainID.String()[:6],
+		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String()[:6],
+		"hash":      m.GetHash().String()[:6]}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

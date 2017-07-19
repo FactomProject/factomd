@@ -333,7 +333,7 @@ func (m *EOM) String() string {
 }
 
 func (m *EOM) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "EOM", "dheight": m.DBHeight, "vm": m.VMIndex,
+	return log.Fields{"category": "message", "messagetype": "eom", "dbheight": m.DBHeight, "vm": m.VMIndex,
 		"minute": m.Minute, "chainid": m.ChainID.String()[4:12], "sysheight": m.SysHeight,
 		"hash": m.GetMsgHash().String()[:6]}
 }
