@@ -93,4 +93,7 @@ func TestConnectionLoopBack(t *testing.T) {
 	if c1.IsOnline() {
 		t.Error("Should not be online as we have same nodeID")
 	}
+
+	con1.Close()
+	con2.Close()
 }
