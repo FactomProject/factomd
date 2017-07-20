@@ -295,7 +295,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 	case entryCreditBlock.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
-		if (fs.DBHeight > 93719 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
+		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
 			return fmt.Errorf("Not enough ECs to cover a commit")
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
@@ -305,7 +305,7 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
-		if (fs.DBHeight > 93719 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
+		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
 			return fmt.Errorf("Not enough ECs to cover a commit")
 		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
