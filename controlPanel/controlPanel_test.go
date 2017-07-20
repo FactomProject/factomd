@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
-	//"github.com/FactomProject/factomd/state"
-	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 	//"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/testHelper"
 )
@@ -26,15 +26,13 @@ func TestFactoidHas(t *testing.T) {
 	}
 
 	for i := 0; i < len(rc.FactoidTransactions); i++ {
-		h, _ := primitives.HexToHash(rc.FactoidTransactions[i].TxID)
-		if !rc.ContainsTrans(h) {
+		if !rc.ContainsTrans(rc.FactoidTransactions[i].TxID) {
 			t.Error("This should be true")
 		}
 	}
 
 	for i := 0; i < len(rc.Entries); i++ {
-		h, _ := primitives.HexToHash(rc.Entries[i].Hash)
-		if !rc.ContainsEntry(h) {
+		if !rc.ContainsEntry(rc.Entries[i].Hash) {
 			t.Error("This should be true")
 		}
 	}
@@ -90,4 +88,18 @@ func PopulateConnectionChan(total uint32, connections chan interface{}) {
 		temp["{"+peer.PeerAddress+"}"] = *peer
 	}
 	connections <- temp
+}
+
+func TestDataDump(t *testing.T) {
+	s := CreateAndPopulateTestState()
+	ds, err := state.DeepStateDisplayCopy(s)
+	if err != nil {
+		t.Error(err)
+	}
+
+	DisplayState = *ds
+	d := GetDataDumps()
+	if len(d) == 0 {
+		t.Error("No data")
+	}
 }

@@ -33,6 +33,7 @@ func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
 func (q NetOutMsgQueue) Dequeue() interfaces.IMsg {
 	select {
 	case v := <-q:
+		//NetOutMsgQueueRateKeeper.Complete()
 		return v
 	default:
 		return nil
@@ -42,5 +43,6 @@ func (q NetOutMsgQueue) Dequeue() interfaces.IMsg {
 // BlockingDequeue will block until it retrieves from queue
 func (q NetOutMsgQueue) BlockingDequeue() interfaces.IMsg {
 	v := <-q
+	//NetOutMsgQueueRateKeeper.Complete()
 	return v
 }

@@ -166,21 +166,18 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 
 func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	var buf primitives.Buffer
+	buf.Write([]byte{m.Type()})
+	if d, err := m.Timestamp.MarshalBinary(); err != nil {
+		return nil, err
+	} else {
+		buf.Write(d)
+	}
 
-	binary.Write(&buf, binary.BigEndian, m.Type())
-
-	t := m.GetTimestamp()
-	data, err := t.MarshalBinary()
+	d, err := m.ServerChainID.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	buf.Write(data)
-
-	data, err = m.ServerChainID.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	buf.Write(data)
+	buf.Write(d)
 
 	binary.Write(&buf, binary.BigEndian, uint8(m.ServerType))
 

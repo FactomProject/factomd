@@ -92,3 +92,31 @@ func TestAddFederatedServerMarshalUnmarshal(t *testing.T) {
 		t.Errorf("Invalid DBHeight")
 	}
 }
+
+func TestAddFedServerMisc(t *testing.T) {
+	a := new(AddFederatedServer)
+	if a.String() != "    E:                        AddFedServer --   IdentityChainID     0000     DBHeight        0" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"IdentityChainID\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"DBHeight\":0}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"IdentityChainID\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"DBHeight\":0}" {
+		t.Error("Unexpected JSON bytes:", as)
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}

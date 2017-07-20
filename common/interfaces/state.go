@@ -306,8 +306,13 @@ type IState interface {
 	SetDelay(int64)
 	GetDropRate() int
 	SetDropRate(int)
+	GetBootTime() int64
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
+
+	// Plugins
+	UsingTorrent() bool
+	GetMissingDBState(height uint32) error
 }
