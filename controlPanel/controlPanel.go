@@ -471,18 +471,18 @@ type LastDirectoryBlockTransactions struct {
 	LastHeightChecked uint32
 }
 
-func (d *LastDirectoryBlockTransactions) ContainsEntry(hash interfaces.IHash) bool {
+func (d *LastDirectoryBlockTransactions) ContainsEntry(hash string) bool {
 	for _, entry := range d.Entries {
-		if entry.Hash == hash.String() {
+		if entry.Hash == hash {
 			return true
 		}
 	}
 	return false
 }
 
-func (d *LastDirectoryBlockTransactions) ContainsTrans(txid interfaces.IHash) bool {
+func (d *LastDirectoryBlockTransactions) ContainsTrans(txid string) bool {
 	for _, trans := range d.FactoidTransactions {
-		if trans.TxID == txid.String() {
+		if trans.TxID == txid {
 			return true
 		}
 	}
@@ -567,14 +567,7 @@ func getRecentTransactions(time.Time) {
 		e := new(EntryHolder)
 		e.Hash = entry.EntryHash
 		e.ChainID = "Processing"
-		has := false
-		for _, ent := range RecentTransactions.Entries {
-			if ent.Hash == e.Hash {
-				has = true
-				break
-			}
-		}
-		if !has {
+		if !RecentTransactions.ContainsEntry(e.Hash) {
 			RecentTransactions.Entries = append(RecentTransactions.Entries, *e)
 		}
 	}
@@ -583,18 +576,15 @@ func getRecentTransactions(time.Time) {
 		if fTrans.TotalInputs == 0 {
 			continue
 		}
-		txhash, err := primitives.HexToHash(fTrans.TxID)
-		if err == nil {
-			if !RecentTransactions.ContainsTrans(txhash) {
-				RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
-					TxID         string
-					Hash         string
-					TotalInput   string
-					Status       string
-					TotalInputs  int
-					TotalOutputs int
-				}{fTrans.TxID, fTrans.Hash, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
-			}
+		if !RecentTransactions.ContainsTrans(fTrans.TxID) {
+			RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
+				TxID         string
+				Hash         string
+				TotalInput   string
+				Status       string
+				TotalInputs  int
+				TotalOutputs int
+			}{fTrans.TxID, fTrans.Hash, fTrans.TotalInput, "Processing", fTrans.TotalInputs, fTrans.TotalOutputs})
 		}
 	}
 	DisplayStateMutex.RUnlock()
@@ -622,7 +612,7 @@ func getRecentTransactions(time.Time) {
 				totalOutputs := len(trans.GetECOutputs())
 				totalOutputs = totalOutputs + len(trans.GetOutputs())
 				inputStr := fmt.Sprintf("%f", float64(input)/1e8)
-				if !RecentTransactions.ContainsTrans(trans.GetHash()) {
+				if !RecentTransactions.ContainsTrans(trans.GetSigHash().String()) {
 					RecentTransactions.FactoidTransactions = append(RecentTransactions.FactoidTransactions, struct {
 						TxID         string
 						Hash         string
@@ -731,7 +721,7 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 					break
 				}
 				for _, hash := range eblk.GetEntryHashes() {
-					if RecentTransactions.ContainsEntry(hash) {
+					if RecentTransactions.ContainsEntry(hash.String()) {
 						continue
 					}
 					e := getEntry(hash.String())
@@ -755,7 +745,7 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 					}
 					transList := fblk.GetTransactions()
 					for _, trans := range transList {
-						if RecentTransactions.ContainsTrans(trans.GetSigHash()) {
+						if RecentTransactions.ContainsTrans(trans.GetSigHash().String()) {
 							continue
 						}
 						if trans != nil {
