@@ -20,6 +20,32 @@ var (
 		Name: "factomd_state_broadcast_in_drop_total",
 		Help: "How many messages are dropped due to full queues",
 	})
+
+	// NetworkReplayFilter
+	TotalNetworkReplayFilter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_network_replay_filter_total",
+		Help: "Tally of total messages gone into NetworkReplayFilter",
+	})
+	TotalNetworkAckReplayFilter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_network_ack_replay_filter_total",
+		Help: "Tally of total messages gone into NetworkAckReplayFilter",
+	})
+
+	// Network Out Queue
+	NetworkOutTotalDequeue = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_queue_netoutmsg_total_general",
+		Help: "Count of all messages being dequeued",
+	})
+
+	// Send/Receive Times
+	TotalSendTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_total_send_time",
+		Help: "Time spent sending (nanoseconds)",
+	})
+	TotalReceiveTime = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_total_receive_time",
+		Help: "Time spent receiving (nanoseconds)",
+	})
 )
 
 var registered = false
@@ -35,4 +61,15 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(RepeatMsgs)
 	prometheus.MustRegister(BroadInCastQueue)
 	prometheus.MustRegister(BroadCastInQueueDrop)
+
+	// NetworkReplayFilter
+	prometheus.MustRegister(TotalNetworkReplayFilter)
+	prometheus.MustRegister(TotalNetworkAckReplayFilter)
+
+	// NetOut
+	prometheus.MustRegister(NetworkOutTotalDequeue)
+
+	// Send/Receive Times
+	prometheus.MustRegister(TotalSendTime)
+	prometheus.MustRegister(TotalReceiveTime)
 }
