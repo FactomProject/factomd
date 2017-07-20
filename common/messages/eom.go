@@ -140,7 +140,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	eomSigned, err := m.VerifySignature()
 	if err != nil || !eomSigned {
 		vlog := func(format string, args ...interface{}) {
-			eLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "min": m.Minute, "lheight": state.GetLeaderHeight()}).Errorf(format, args...)
+			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
 		}
 
 		if err != nil {

@@ -72,6 +72,15 @@ func (m *message) Validate() {
 }
 ```
 
+Defining fields can also be a little repetitive, even if it's only once per function. To make things even easier, some interfaces (like messages) have a function called `LogFields()`. That function will return the log fields to pass into your logger, which essentially acts as a `String()` function, putting the message fields into logrus defined fields. 
+
+```
+var m interface.IMsg
+log.WithFields(m.LogFields()).Info("Logging is easy!")
+```
+
+
+
 ## Levels
 
 Run factomd with `factomd -loglvl=info`
@@ -109,7 +118,7 @@ func Foo() {
 
 The problem here is that errors are infrequent, but every call has to instantiat the logger. This is wasted expense, but can be minimized. Instead of instantiating a logger, you can instantiate a function. That way, the logger is only instantiated if the function is called (AKA only the error case). In the normal case, the cost is drastically reduced.
 
-### Soltuion:
+### Solution:
 
 ```golang
 func Foo() {
