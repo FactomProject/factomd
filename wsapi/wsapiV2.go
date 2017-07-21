@@ -531,7 +531,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitChain.GetEntryHash().String()})
 	}
 
-	state.APIQueue() <- msg
+	state.APIQueue().Enqueue(msg)
 	state.IncECCommits()
 
 	resp := new(CommitChainResponse)
@@ -579,7 +579,7 @@ func HandleV2CommitEntry(state interfaces.IState, params interface{}) (interface
 		return nil, NewRepeatCommitError(RepeatedEntryMessage{"A commit with equal or greater payment already exists", msg.CommitEntry.GetEntryHash().String()})
 	}
 
-	state.APIQueue() <- msg
+	state.APIQueue().Enqueue(msg)
 	state.IncECommits()
 
 	resp := new(CommitEntryResponse)
@@ -617,7 +617,7 @@ func HandleV2RevealEntry(state interfaces.IState, params interface{}) (interface
 	msg := new(messages.RevealEntryMsg)
 	msg.Entry = entry
 	msg.Timestamp = state.GetTimestamp()
-	state.APIQueue() <- msg
+	state.APIQueue().Enqueue(msg)
 
 	resp := new(RevealEntryResponse)
 	resp.Message = "Entry Reveal Success"
@@ -1009,7 +1009,7 @@ func HandleV2FactoidSubmit(state interfaces.IState, params interface{}) (interfa
 
 	state.IncFCTSubmits()
 
-	state.APIQueue() <- msg
+	state.APIQueue().Enqueue(msg)
 
 	resp := new(FactoidSubmitResponse)
 	resp.Message = "Successfully submitted the transaction"
@@ -1135,7 +1135,7 @@ func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	state.APIQueue() <- msg
+	state.APIQueue().Enqueue(msg)
 
 	resp := new(SendRawMessageResponse)
 	resp.Message = "Successfully sent the message"

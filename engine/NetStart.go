@@ -52,6 +52,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
+	logPort = p.LogPort
 
 	messages.AckBalanceHash = p.AckbalanceHash
 	// Must add the prefix before loading the configuration.
@@ -205,7 +206,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
-	go StartProfiler(p.memProfileRate)
 	go StartProfiler(p.memProfileRate)
 
 	s.AddPrefix(p.prefix)
