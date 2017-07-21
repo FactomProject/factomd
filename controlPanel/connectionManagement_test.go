@@ -107,6 +107,22 @@ func TestTallyTotals(t *testing.T) {
 	AllConnectionsString()
 }
 
+func PopulateConnectionChan(total uint32, connections chan interface{}) {
+	time.Sleep(3 * time.Second)
+	var i uint32
+	temp := make(map[string]p2p.ConnectionMetrics)
+	for i = 0; i < total; i++ {
+		peer := NewSeededP2PConnection(i)
+		if i%2 == 0 {
+			peer.MomentConnected = time.Now().Add(-(time.Duration(i)) * time.Hour)
+		} else {
+			peer.MomentConnected = time.Now().Add(-(time.Duration(i)) * time.Minute)
+		}
+		temp["{"+peer.PeerAddress+"}"] = *peer
+	}
+	connections <- temp
+}
+
 // Absurd map accessing
 func TestConcurrency(t *testing.T) {
 	cm := NewConnectionsMap()

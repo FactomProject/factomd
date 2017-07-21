@@ -52,6 +52,7 @@ type FactomParams struct {
 	pluginPath               string
 	torManage                bool
 	torUpload                bool
+	disableSimControl        bool
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -104,6 +105,8 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
 
+	disableSimControlPtr := flag.Bool("nosim", false, "Using this flag disables sim control")
+
 	// Plugins
 	pluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
 
@@ -154,6 +157,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.fastLocation = *fastLocationPtr
 	p.loglvl = *logLvlPtr
 	p.logjson = *logJsonPtr
+	p.disableSimControl = *disableSimControlPtr
 
 	p.svm = *superVerboseMessages
 	p.pluginPath = *pluginPath
