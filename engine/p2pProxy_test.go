@@ -21,3 +21,27 @@ func TestFactomMessage(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestMiscP2Pproxy(t *testing.T) {
+	p2pTestProxy := new(P2PProxy).Init("FNodeTest", "P2P Network").(*P2PProxy)
+
+	if p2pTestProxy.Weight() != 0 {
+		t.Error("Weight should be 0 on newly-initialized p2pProxy instance")
+	}
+
+	if p2pTestProxy.Len() != 0 {
+		t.Error("Len should be 0 on newly-initialized p2pProxy instance")
+	}
+
+	p2pTestProxy.SetWeight(2)
+	if p2pTestProxy.Weight() != 2 {
+		t.Error("Weight should be 2 on after calling p2pProxy.SetWeight(2)")
+	}
+
+	nameFrom := p2pTestProxy.GetNameFrom()
+	if nameFrom != "FNodeTest" {
+		t.Errorf("GetNameFrom was %s instead of FNodeTest\n", nameFrom)
+	}
+
+	p2pTestProxy.InstantaneousStatusReport([]*FactomNode{})
+}
