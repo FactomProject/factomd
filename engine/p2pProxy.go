@@ -28,8 +28,8 @@ type P2PProxy struct {
 	ToName   string
 	FromName string
 	// Channels that define the connection:
-	BroadcastOut chan interface{} // factomMessage ToNetwork from factomd
-	BroadcastIn  chan interface{} // factomMessage FromNetwork for Factomd
+	BroadcastOut chan interface{} // FactomMessage ToNetwork from factomd
+	BroadcastIn  chan interface{} // FactomMessage FromNetwork for Factomd
 
 	ToNetwork   chan interface{} // p2p.Parcel From p2pProxy to the p2p Controller
 	FromNetwork chan interface{} // p2p.Parcel Parcels from the network for the application
@@ -45,22 +45,22 @@ type P2PProxy struct {
 	SuperVerboseMessages bool
 }
 
-type factomMessage struct {
+type FactomMessage struct {
 	Message  []byte
 	PeerHash string
 	AppHash  string
 	AppType  string
 }
 
-func (e *factomMessage) JSONByte() ([]byte, error) {
+func (e *FactomMessage) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *factomMessage) JSONString() (string, error) {
+func (e *FactomMessage) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *factomMessage) String() string {
+func (e *FactomMessage) String() string {
 	str, _ := e.JSONString()
 	return str
 }
@@ -119,7 +119,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 	appType := fmt.Sprintf("%d", msg.Type())
-	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+	message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 	switch {
 	case !msg.IsPeer2Peer():
 		message.PeerHash = p2p.BroadcastFlag
@@ -146,8 +146,8 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 			BroadInCastQueue.Dec()
 
 			switch data.(type) {
-			case factomMessage:
-				fmessage := data.(factomMessage)
+			case FactomMessage:
+				fmessage := data.(FactomMessage)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 
@@ -290,8 +290,8 @@ func (p *P2PProxy) ManageLogging() {
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {
 		switch data.(type) {
-		case factomMessage:
-			fmessage := data.(factomMessage)
+		case FactomMessage:
+			fmessage := data.(FactomMessage)
 			// Wrap it in a parcel and send it out channel ToNetwork.
 			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
 			for _, parcel := range parcels {
@@ -317,7 +317,7 @@ func (f *P2PProxy) ManageInChannel() {
 		case p2p.Parcel:
 			parcel := data.(p2p.Parcel)
 			f.trace(parcel.Header.AppHash, parcel.Header.AppType, "P2PProxy.ManageInChannel()", "M")
-			message := factomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
+			message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
 			removed := p2p.BlockFreeChannelSend(f.BroadcastIn, message)
 			BroadInCastQueue.Inc()
 			BroadInCastQueue.Add(float64(-1 * removed))
