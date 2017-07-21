@@ -177,6 +177,20 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("r")
 	waitBlocks(fn1.State, 2)
 
+	// General (random) output-oriented commands
+	runCmd("r")
+	runCmd("V")
+	runCmd("p")
+	runCmd("p")
+	runCmd("m")
+	runCmd("m")
+	runCmd("M")
+	runCmd("M")
+	runCmd("v")
+	runCmd("v")
+	runCmd("ih")
+	runCmd("v15")
+
 	// FaultTest
 	t.Log("Running automated fault test")
 	runCmd("Vt")
