@@ -92,6 +92,15 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	case "entry-block":
 		resp, jsonError = HandleV2EntryBlock(state, params)
 		break
+	case "admin-block":
+		resp, jsonError = HandleV2AdminBlock(state, params)
+		break
+	case "factoid-block":
+		resp, jsonError = HandleV2FactoidBlock(state, params)
+		break
+	case "entrycredit-block":
+		resp, jsonError = HandleV2EntryCreditBlock(state, params)
+		break
 	case "entry":
 		resp, jsonError = HandleV2Entry(state, params)
 		break
@@ -212,6 +221,35 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 	return resp, nil
 }
 
+func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+
+	keymr := new(KeyMRRequest)
+	err := MapToObject(params, keymr)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	h, err := primitives.HexToHash(keymr.KeyMR)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchECBlock(h)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	return ecBlockToResp(block)
+}
+
 func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallECBlockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
@@ -233,6 +271,10 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 		return nil, NewBlockNotFoundError()
 	}
 
+	return ecBlockToResp(block)
+}
+
+func ecBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives.JSONError) {
 	raw, err := block.MarshalBinary()
 	if err != nil {
 		return nil, NewInternalError()
@@ -247,6 +289,35 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 	resp.RawData = hex.EncodeToString(raw)
 
 	return resp, nil
+}
+
+func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+
+	keymr := new(KeyMRRequest)
+	err := MapToObject(params, keymr)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	h, err := primitives.HexToHash(keymr.KeyMR)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchFBlock(h)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	return fBlockToResp(block)
 }
 
 func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -270,6 +341,10 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
+	return fBlockToResp(block)
+}
+
+func fBlockToResp(block interfaces.IFBlock) (interface{}, *primitives.JSONError) {
 	raw, err := block.MarshalBinary()
 	if err != nil {
 		return nil, NewInternalError()
@@ -305,6 +380,35 @@ func correctLowerCasedStringToOriginal(j []byte, original string) []byte {
 	return []byte(strings.Replace(string(j), strings.ToLower(original), original, -1))
 }
 
+func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
+	n := time.Now()
+	defer HandleV2APICallEblock.Observe(float64(time.Since(n).Nanoseconds()))
+
+	keymr := new(KeyMRRequest)
+	err := MapToObject(params, keymr)
+	if err != nil {
+		return nil, NewInvalidParamsError()
+	}
+
+	h, err := primitives.HexToHash(keymr.KeyMR)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+
+	dbase := state.GetAndLockDB()
+	defer state.UnlockDB()
+
+	block, err := dbase.FetchABlock(h)
+	if err != nil {
+		return nil, NewInvalidHashError()
+	}
+	if block == nil {
+		return nil, NewBlockNotFoundError()
+	}
+
+	return aBlockToResp(block)
+}
+
 func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallABlockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
@@ -326,6 +430,10 @@ func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
+	return aBlockToResp(block)
+}
+
+func aBlockToResp(block interfaces.IAdminBlock) (interface{}, *primitives.JSONError) {
 	raw, err := block.MarshalBinary()
 	if err != nil {
 		return nil, NewInternalError()
