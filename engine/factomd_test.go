@@ -74,6 +74,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
 
 	t.Log("Allocated 10 nodes")
