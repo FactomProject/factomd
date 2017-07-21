@@ -177,6 +177,12 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("r")
 	waitBlocks(fn1.State, 2)
 
+	// FaultTest
+	t.Log("Running automated fault test")
+	runCmd("Vt")
+	time.Sleep(20 * time.Second)
+	runCmd("Vt")
+
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
 		fn.State.ShutdownChan <- 1
