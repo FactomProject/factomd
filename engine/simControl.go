@@ -7,6 +7,7 @@ package engine
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
@@ -49,6 +50,13 @@ func GetLine(listenToStdin bool) string {
 			if _, err = os.Stdin.Read(l); err == nil {
 				return string(l)
 			} else {
+				if err == io.EOF {
+					fmt.Printf("Error reading from std, sleeping for 5s: %s\n", err.Error())
+					time.Sleep(5 * time.Second)
+				} else {
+					fmt.Printf("Error reading from std, sleeping for 1s: %s\n", err.Error())
+					time.Sleep(1 * time.Second)
+				}
 				continue
 			}
 		}
