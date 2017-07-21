@@ -59,11 +59,60 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
+	ExecuteAllBlocksFromDatabases(s)
 	s.UpdateState()
 	go s.ValidatorLoop()
 	time.Sleep(30 * time.Millisecond)
 
 	return s
+}
+
+func ExecuteAllBlocksFromDatabases(s *state.State) {
+	timestamp := primitives.NewTimestampNow()
+	i := uint32(0)
+	for {
+		timestamp.SetTimeSeconds(timestamp.GetTimeSeconds() + 60)
+
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
+
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
+					}
+				}
+			}
+		}
+
+		dbs := messages.NewDBStateMsg(timestamp, d, a, f, ec, eblocks, entries, nil)
+		dbs.(*messages.DBStateMsg).IgnoreSigs = true
+
+		s.FollowerExecuteDBState(dbs)
+		i++
+	}
 }
 
 func CreateTestDBStateList() []interfaces.IMsg {
@@ -289,6 +338,12 @@ func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
 func CreateTestAdminBlock(prev *adminBlock.AdminBlock) *adminBlock.AdminBlock {
 	block := new(adminBlock.AdminBlock)
 	block.SetHeader(CreateTestAdminHeader(prev))
+	if prev == nil {
+		h, _ := primitives.HexToHash("38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9")
+		block.AddFedServer(h)
+		p := primitives.PubKeyFromString("cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a")
+		block.AddFederatedServerSigningKey(h, p)
+	}
 	block.GetHeader().SetMessageCount(uint32(len(block.GetABEntries())))
 	return block
 }
