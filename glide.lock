@@ -32,14 +32,14 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: d9c26423fbe8fb95ddbbab776beaff7931bf6b1f
+  version: e7e415550cf08b64fe17b9ae943f817fb97fb89a
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-cli
-  version: dd188078a49816a028fc161275269bd3436a4848
+  version: ebc008ad32d8b5883dfb3210792dcd6ff1833f4b
 - name: github.com/FactomProject/factom-walletd
-  version: 54ec6b35e86bc1430fb5c0bd8a30a8ad40fd9941
+  version: 2db4b4b68cf5800e12cfb7702382e49be0e19f09
 - name: github.com/FactomProject/fctwallet
   version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
 - name: github.com/FactomProject/fsnotify
