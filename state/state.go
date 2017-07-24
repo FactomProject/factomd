@@ -36,9 +36,9 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-// stateLogger is the general logger for all state related logs. You can add additional fields,
+// packageLogger is the general logger for all package related logs. You can add additional fields,
 // or create more context loggers off of this
-var stateLogger = log.WithFields(log.Fields{"package": "state"})
+var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
 var _ = fmt.Print
 
@@ -146,7 +146,7 @@ type State struct {
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             InMsgMSGQueue
-	apiQueue               chan interfaces.IMsg
+	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
 
@@ -780,7 +780,7 @@ func (s *State) Init() {
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 100)        //incoming message queue from the API
+	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
@@ -1842,11 +1842,11 @@ func (s *State) initServerKeys() {
 }
 
 func (s *State) Log(level string, message string) {
-	stateLogger.WithFields(s.Logger.Data).Info(message)
+	packageLogger.WithFields(s.Logger.Data).Info(message)
 }
 
 func (s *State) Logf(level string, format string, args ...interface{}) {
-	llog := stateLogger.WithFields(s.Logger.Data)
+	llog := packageLogger.WithFields(s.Logger.Data)
 	switch level {
 	case "emergency":
 		llog.Panicf(format, args...)
@@ -1857,7 +1857,7 @@ func (s *State) Logf(level string, format string, args ...interface{}) {
 	case "error":
 		llog.Errorf(format, args...)
 	case "llog":
-		stateLogger.Warningf(format, args...)
+		llog.Warningf(format, args...)
 	case "info":
 		llog.Infof(format, args...)
 	case "debug":
@@ -1934,7 +1934,7 @@ func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 
-func (s *State) APIQueue() chan interfaces.IMsg {
+func (s *State) APIQueue() interfaces.IQueue {
 	return s.apiQueue
 }
 
