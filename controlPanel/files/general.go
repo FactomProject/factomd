@@ -12,8 +12,8 @@ import (
 
 // This is the general handler. The files are split into two catagories to speed
 // up globbing. Templates are usually parsed with a '*', and had to cycle through all
-// static files as well. This handler will decide which catagory the user is looking for
-// and only search within that catagory. Now can add more static files without affecting
+// static files as well. This handler will decide which category the user is looking for
+// and only search within that category. Now can add more static files without affecting
 // performance.
 
 type staticFilesFile struct {
