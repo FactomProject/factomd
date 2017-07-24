@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestUnmarshalNilMissingMsg(t *testing.T) {
@@ -67,6 +68,30 @@ func TestMarshalUnmarshalMissingMsg(t *testing.T) {
 	if msg.IsSameAs(msg2.(*MissingMsg)) != true {
 		t.Error("MissingMsg messages are not identical")
 	}
+}
+
+func TestValidateMissingMsg(t *testing.T) {
+	msg := newMissingMsg()
+	s := testHelper.CreateEmptyTestState()
+
+	msg.Asking = nil
+	v := msg.Validate(s)
+	if v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
+	msg.Asking = primitives.NewZeroHash()
+	v = msg.Validate(s)
+	if v != -1 {
+		t.Errorf("Should be -1, found %d", v)
+	}
+
+	msg.Asking = primitives.RandomHash()
+	v = msg.Validate(s)
+	if v != 1 {
+		t.Errorf("Should be 1, found %d", v)
+	}
+
 }
 
 func newMissingMsg() *MissingMsg {

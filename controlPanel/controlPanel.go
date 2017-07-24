@@ -81,6 +81,13 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 	}
 }
 
+func InitTemplates() {
+	TemplateMutex.Lock()
+	templates = files.CustomParseGlob(nil, "templates/general/*.html")
+	templates = template.Must(templates, nil)
+	TemplateMutex.Unlock()
+}
+
 // Main function. This intiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
@@ -123,10 +130,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	GitAndVer.Version = vtos(statePointer.GetFactomdVersion())
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
-	TemplateMutex.Lock()
-	templates = files.CustomParseGlob(nil, "templates/general/*.html")
-	templates = template.Must(templates, nil)
-	TemplateMutex.Unlock()
+	InitTemplates()
 
 	// Updated Globals. A seperate GoRoutine updates these, we just initialize
 	RecentTransactions = new(LastDirectoryBlockTransactions)
@@ -264,7 +268,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		searchResult.Type = r.FormValue("type")
 	}
 	searchResult.Input = r.FormValue("input")
-	handleSearchResult(searchResult, w)
+	HandleSearchResult(searchResult, w)
 }
 
 var batchQueried = false

@@ -4,22 +4,30 @@
 
 package state_test
 
-/*
 import (
 	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/state"
-	"testing"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 var _ = fmt.Print
 
-func TestFedServer(t *testing.T) {
-	state := new(State)
-	pls := NewProcessLists(state)
-	pl := pls.Get(0)
+func TestProcessListString(t *testing.T) {
+	// The string function is called in some unit tests, and lines that show offline nodes is sometimes hit. This
+	// ensures coverage is consistent, despite it just being a String() call
+	state := testHelper.CreateEmptyTestState()
+	pl := NewProcessList(state, nil, 1)
+	pl.VMs[0].List = append(pl.VMs[0].List, nil)
 	pl.AddFedServer(primitives.NewHash([]byte("one")))
-	pl.AddFedServer(primitives.NewHash([]byte("two")))
+	pl.AddAuditServer(primitives.NewHash([]byte("two")))
 	pl.AddFedServer(primitives.NewHash([]byte("three")))
+
+	for _, f := range pl.FedServers {
+		f.SetOnline(false)
+	}
+
+	var _ = pl.String()
 }
-*/
