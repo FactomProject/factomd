@@ -95,6 +95,7 @@ func TestDataDump(t *testing.T) {
 }
 
 func TestSearching(t *testing.T) {
+	var err error
 	InitTemplates()
 	s := CreateAndPopulateTestState()
 	StatePointer = s
@@ -114,34 +115,37 @@ func TestSearching(t *testing.T) {
 		}
 
 		if len(d.GetEBlockDBEntries()) > 0 {
-			eb := d.GetEBlockDBEntries()[0]
-			eblock, err := s.DB.FetchEBlock(eb.GetKeyMR())
-			if err != nil {
-				t.Error(err)
-				t.FailNow()
-			}
+			for _, ebhash := range d.GetEBlockDBEntries() {
+				eblock, err := s.DB.FetchEBlock(ebhash.GetKeyMR())
+				if err != nil {
+					t.Error(err)
+					t.FailNow()
+				}
 
-			e, err = s.DB.FetchEntry(eblock.GetEntryHashes()[0])
-			if err != nil {
-				t.Error(err)
-				t.FailNow()
+				for _, ehash := range eblock.GetEntryHashes() {
+					e, err = s.DB.FetchEntry(ehash)
+					if err != nil {
+						t.Error(err)
+						t.FailNow()
+					}
+
+					c.Input = e.GetHash().String()
+					content, err := searchfor(c)
+					if err != nil {
+						t.Error(err)
+						t.FailNow()
+					}
+
+					if !strings.Contains(string(content), e.GetChainID().String()) {
+						t.Error("Does not contain correct content")
+					}
+				}
 			}
 		}
 	}
 
-	c.Input = e.GetHash().String()
-	content, err := searchfor(c)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-
-	if !strings.Contains(string(content), e.GetChainID().String()) {
-		t.Error("Does not contain correct content")
-	}
-
 	c.Input = primitives.RandomHash().String()
-	content, err = searchfor(c)
+	content, err := searchfor(c)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
