@@ -223,7 +223,8 @@ func TestUpdateECTransactionWithNegativeBalance(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	fs.(*FactoidState).DBHeight = 93720
+
+	fs.(*FactoidState).DBHeight = 97887
 	err = fs.UpdateECTransaction(true, cc)
 	if err == nil {
 		t.Errorf("No error returned when it should be")
@@ -250,7 +251,7 @@ func TestUpdateECTransactionWithNegativeBalance(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	fs.(*FactoidState).DBHeight = 93720
+	fs.(*FactoidState).DBHeight = 97887
 	err = fs.UpdateECTransaction(true, ce)
 	if err == nil {
 		t.Errorf("No error returned when it should be")
