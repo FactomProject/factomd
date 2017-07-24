@@ -181,6 +181,7 @@ func (c *CommitEntry) GetSigHash() interfaces.IHash {
 }
 
 func (c *CommitEntry) MarshalBinarySig() ([]byte, error) {
+	c.Init()
 	buf := primitives.NewBuffer(nil)
 
 	// 1 byte Version
