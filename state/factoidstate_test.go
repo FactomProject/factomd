@@ -11,10 +11,13 @@ import (
 	"testing"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 var fs interfaces.IFactoidState
@@ -190,6 +193,192 @@ func TestGetMapHash(t *testing.T) {
 	}
 }
 
+func TestUpdateECTransactionWithNegativeBalance(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	fs := s.FactoidState
+
+	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	s.PutE(true, add1.Fixed(), 10)
+
+	add1bs := primitives.StringToByteSlice32("0000000000000000000000000000000000000000000000000000000000000001")
+	cc := new(entryCreditBlock.CommitChain)
+	cc.ECPubKey = add1bs
+	cc.Credits = 10
+
+	err = fs.UpdateECTransaction(true, cc)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	err = fs.UpdateECTransaction(true, cc)
+	if err == nil {
+		t.Errorf("No error returned when it should be")
+	}
+	s.NetworkNumber = constants.NETWORK_MAIN
+	err = fs.UpdateECTransaction(true, cc)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	fs.(*FactoidState).DBHeight = 97887
+	err = fs.UpdateECTransaction(true, cc)
+	if err == nil {
+		t.Errorf("No error returned when it should be")
+	}
+
+	s = testHelper.CreateAndPopulateTestState()
+	fs = s.FactoidState
+	s.PutE(true, add1.Fixed(), 10)
+
+	ce := new(entryCreditBlock.CommitEntry)
+	ce.ECPubKey = add1bs
+	ce.Credits = 10
+
+	err = fs.UpdateECTransaction(true, ce)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	err = fs.UpdateECTransaction(true, ce)
+	if err == nil {
+		t.Errorf("No error returned when it should be")
+	}
+	s.NetworkNumber = constants.NETWORK_MAIN
+	err = fs.UpdateECTransaction(true, ce)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	fs.(*FactoidState).DBHeight = 97887
+	err = fs.UpdateECTransaction(true, ce)
+	if err == nil {
+		t.Errorf("No error returned when it should be")
+	}
+
+	s.PutE(true, add1.Fixed(), 0)
+}
+
+func TestUpdateTransactionWithNegativeBalance(t *testing.T) {
+	s := testHelper.CreateAndPopulateTestState()
+	fs := s.FactoidState
+
+	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	s.PutF(true, add1.Fixed(), 10)
+
+	//add1bs := primitives.StringToByteSlice32("0000000000000000000000000000000000000000000000000000000000000001")
+
+	ft := new(factoid.Transaction)
+	ta := new(factoid.TransAddress)
+	ta.Address = add1
+	ta.Amount = 10
+	ta.UserAddress = "abc"
+	ft.Inputs = []interfaces.ITransAddress{ta}
+
+	err = fs.UpdateTransaction(true, ft)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	err = fs.UpdateTransaction(true, ft)
+	if err == nil {
+		t.Errorf("No error returned when it should be")
+	}
+}
+
+/*
+func TestUpdateECTransaction(t *testing.T) {
+	fs.SetFactoshisPerEC(1)
+	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	add1bs := primitives.StringToByteSlice32("0000000000000000000000000000000000000000000000000000000000000001")
+
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
+		return
+	}
+
+	var tx interfaces.IECBlockEntry
+	tx = new(entryCreditBlock.ServerIndexNumber)
+
+	err = fs.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
+	}
+
+	tx = new(entryCreditBlock.MinuteNumber)
+
+	err = fs.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
+		return
+	}
+
+	//Proper processing
+	cc := new(entryCreditBlock.CommitChain)
+	cc.ECPubKey = add1bs
+	cc.Credits = 100
+	tx = cc
+
+	err = fs.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if fs.GetECBalance(add1.Fixed()) != -100 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
+		return
+	}
+
+	ib := new(entryCreditBlock.IncreaseBalance)
+	ib.ECPubKey = add1bs
+	ib.NumEC = 100
+	tx = ib
+
+	err = fs.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if fs.GetECBalance(add1.Fixed()) != 0 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
+		return
+	}
+
+	ce := new(entryCreditBlock.CommitEntry)
+	ce.ECPubKey = add1bs
+	ce.Credits = 100
+	tx = ce
+
+	err = fs.UpdateECTransaction(tx)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if fs.GetECBalance(add1.Fixed()) != -100 {
+		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
+		return
+	}
+
+}
+*/
+
 /*
 func TestBalances(t *testing.T) {
 	s := testHelper.CreateEmptyTestState()
@@ -313,91 +502,6 @@ func TestBalances(t *testing.T) {
 	}
 }
 
-func TestUpdateECTransaction(t *testing.T) {
-	fs.SetFactoshisPerEC(1)
-	add1, err := primitives.HexToHash("0000000000000000000000000000000000000000000000000000000000000001")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	add1bs := primitives.StringToByteSlice32("0000000000000000000000000000000000000000000000000000000000000001")
-
-	if fs.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
-		return
-	}
-
-	var tx interfaces.IECBlockEntry
-	tx = new(entryCreditBlock.ServerIndexNumber)
-
-	err = fs.UpdateECTransaction(tx)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if fs.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
-	}
-
-	tx = new(entryCreditBlock.MinuteNumber)
-
-	err = fs.UpdateECTransaction(tx)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if fs.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
-		return
-	}
-
-	//Proper processing
-	cc := new(entryCreditBlock.CommitChain)
-	cc.ECPubKey = add1bs
-	cc.Credits = 100
-	tx = cc
-
-	err = fs.UpdateECTransaction(tx)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if fs.GetECBalance(add1.Fixed()) != -100 {
-		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
-		return
-	}
-
-	ib := new(entryCreditBlock.IncreaseBalance)
-	ib.ECPubKey = add1bs
-	ib.NumEC = 100
-	tx = ib
-
-	err = fs.UpdateECTransaction(tx)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if fs.GetECBalance(add1.Fixed()) != 0 {
-		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
-		return
-	}
-
-	ce := new(entryCreditBlock.CommitEntry)
-	ce.ECPubKey = add1bs
-	ce.Credits = 100
-	tx = ce
-
-	err = fs.UpdateECTransaction(tx)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if fs.GetECBalance(add1.Fixed()) != -100 {
-		t.Errorf("Invalid address balance - %v", fs.GetECBalance(add1.Fixed()))
-		return
-	}
-
-}
 
 
 import (
