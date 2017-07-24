@@ -123,6 +123,73 @@ func PopulateConnectionChan(total uint32, connections chan interface{}) {
 	connections <- temp
 }
 
+func TestAccessors(t *testing.T) {
+	cm := NewConnectionsMap()
+
+	// Test Disconnect
+	for count := uint32(0); count < 2; count++ {
+		peer := NewSeededP2PConnection(count)
+		cm.Disconnect(peer.PeerAddress, peer)
+	}
+
+	for count := uint32(0); count < 2; count++ {
+		cp := cm.GetDisconnectedCopy()
+		if len(cp) != 2 {
+			t.Error("Should have 2 Disconnections")
+		}
+	}
+
+	// Test Connect
+	for count := uint32(0); count < 2; count++ {
+		peer := NewSeededP2PConnection(count)
+		cm.AddConnection(peer.PeerAddress, *peer)
+	}
+
+	for count := uint32(0); count < 2; count++ {
+		cp := cm.GetConnectedCopy()
+		if len(cp) != 2 {
+			t.Error("Should have 2 connections")
+		}
+
+		dp := cm.GetDisconnectedCopy()
+		if len(dp) != 0 {
+			t.Error("Should have 0 Disconnections")
+		}
+	}
+
+	// Connect with nil, but exists in disconnections
+	for count := uint32(0); count < 2; count++ {
+		peer := NewSeededP2PConnection(count)
+		cm.Disconnect(peer.PeerAddress, peer)
+	}
+
+	for count := uint32(0); count < 2; count++ {
+		peer := NewSeededP2PConnection(count)
+		cm.Connect(peer.PeerAddress, nil)
+	}
+
+	for count := uint32(0); count < 2; count++ {
+		cp := cm.GetConnectedCopy()
+		if len(cp) != 2 {
+			t.Error("Should have 2 Connections")
+		}
+	}
+
+	// Disconnect with nil, but exists in connections
+	for count := uint32(0); count < 2; count++ {
+		peer := NewSeededP2PConnection(count)
+		cm.Disconnect(peer.PeerAddress, nil)
+	}
+
+	for count := uint32(0); count < 2; count++ {
+		cp := cm.GetDisconnectedCopy()
+		if len(cp) != 2 {
+			t.Error("Should have 2 Connections")
+		}
+	}
+
+}
+
 // Absurd map accessing
 func TestConcurrency(t *testing.T) {
 	cm := NewConnectionsMap()
@@ -130,6 +197,7 @@ func TestConcurrency(t *testing.T) {
 	var count uint32
 	for count = 0; count < 100; count++ {
 		peer := NewSeededP2PConnection(count)
+
 		connectionMap[peer.PeerAddress] = *peer
 	}
 	var i uint32
