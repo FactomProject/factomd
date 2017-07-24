@@ -36,6 +36,23 @@ func CreateEmptyTestState() *state.State {
 }
 
 func CreateAndPopulateTestState() *state.State {
+	s := createAndPopulateTestState()
+	go s.ValidatorLoop()
+	time.Sleep(30 * time.Millisecond)
+
+	return s
+}
+
+func CreatePopulateAndExecuteTestState() *state.State {
+	s := createAndPopulateTestState()
+	ExecuteAllBlocksFromDatabases(s)
+	go s.ValidatorLoop()
+	time.Sleep(30 * time.Millisecond)
+
+	return s
+}
+
+func createAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
@@ -59,10 +76,7 @@ func CreateAndPopulateTestState() *state.State {
 	}*/
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
-	ExecuteAllBlocksFromDatabases(s)
 	s.UpdateState()
-	go s.ValidatorLoop()
-	time.Sleep(30 * time.Millisecond)
 
 	return s
 }
