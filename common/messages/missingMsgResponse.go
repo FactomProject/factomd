@@ -128,7 +128,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 
 	m.Peer2Peer = true // Always a peer2peer request.
 
-	return data, nil
+	return
 }
 
 func (m *MissingMsgResponse) UnmarshalBinary(data []byte) error {
