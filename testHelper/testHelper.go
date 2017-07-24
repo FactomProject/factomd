@@ -81,9 +81,10 @@ func createAndPopulateTestState() *state.State {
 	return s
 }
 
-func ExecuteAllBlocksFromDatabases(s *state.State) {
+func GetAllDBStateMsgsFromDatabase(s *state.State) []interfaces.IMsg {
 	timestamp := primitives.NewTimestampNow()
 	i := uint32(0)
+	var msgs []interfaces.IMsg
 	for {
 		timestamp.SetTimeSeconds(timestamp.GetTimeSeconds() + 60)
 
@@ -91,6 +92,7 @@ func ExecuteAllBlocksFromDatabases(s *state.State) {
 		if err != nil || d == nil {
 			break
 		}
+
 		a, err := s.DB.FetchABlockByHeight(i)
 		if err != nil || a == nil {
 			break
@@ -122,10 +124,18 @@ func ExecuteAllBlocksFromDatabases(s *state.State) {
 		}
 
 		dbs := messages.NewDBStateMsg(timestamp, d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgs = append(msgs, dbs)
+	}
+	return msgs
+}
+
+func ExecuteAllBlocksFromDatabases(s *state.State) {
+	msgs := GetAllDBStateMsgsFromDatabase(s)
+	for _, dbs := range msgs {
 		dbs.(*messages.DBStateMsg).IgnoreSigs = true
 
 		s.FollowerExecuteDBState(dbs)
-		i++
 	}
 }
 

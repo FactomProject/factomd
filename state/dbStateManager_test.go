@@ -1,8 +1,10 @@
 package state_test
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
+	"testing"
+
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
@@ -18,31 +20,6 @@ var _ = fmt.Printf
 var _ = factoid.GetGenesisFBlock
 var _ = constants.SIGNATURE_LENGTH
 
-func newState() *State {
-	s := new(State)
-	s.LoadConfig("", "")
-	// Set custom config options
-	s.Network = "CUSTOM"
-	s.CustomNetworkID = []byte("unit-test")
-
-	// DB Type to test
-	s.DBType = "LDB"
-
-	// Path so we can celanup any created files
-	s.LogPath = "unit-test-db/"
-	s.LdbPath = "unit-test-db/"
-	s.BoltDBPath = "unit-test-db/"
-
-	// So it starts...
-	s.CustomBootstrapIdentity = "38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9"
-	s.CustomBootstrapKey = "cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a"
-
-	s.Init()
-	s.Network = "CUSTOM"
-	return s
-}
-
-
 // Will verify a directory blc
 func verifyBlocks(s *State, dbstates []interfaces.IMsg) []string {
 	errs := make([]string, 0)
@@ -54,13 +31,14 @@ func verifyBlocks(s *State, dbstates []interfaces.IMsg) []string {
 
 		dbs := m.(*messages.DBStateMsg)
 		err := foundByHeight(s, dbs)
+		ht := fmt.Sprintf("%d", dbs.DirectoryBlock.GetDatabaseHeight())
 		if err != nil {
-			errs = append(errs, err.Error()+" foundByHeight failed")
+			errs = append(errs, err.Error()+" foundByHeight failed for ht: "+ht)
 		}
 
 		err = foundByKeyMR(s, dbs)
 		if err != nil {
-			errs = append(errs, err.Error()+" foundByKeyMR failed")
+			errs = append(errs, err.Error()+" foundByKeyMR failed for ht: "+ht)
 		}
 	}
 
@@ -140,6 +118,31 @@ func foundByKeyMR(s *State, msg *messages.DBStateMsg) error {
 	}
 
 	return nil
+}
+
+func TestSaveDBState(t *testing.T) {
+	// Init
+	s := testHelper.CreatePopulateAndExecuteTestState()
+	msgs := testHelper.GetAllDBStateMsgsFromDatabase(s)
+
+	// Verify blocks
+	errs := verifyBlocks(s, msgs)
+	if errs != nil {
+		for _, e := range errs {
+			t.Error(e)
+		}
+	}
+
+	// Double Check DB
+	errs = verifyBlocks(s, msgs)
+	if errs != nil {
+		for _, e := range errs {
+			t.Error(e)
+		}
+	}
+
+	// Cleanup
+	// os.RemoveAll("unit-test-db/")
 }
 
 // Compare all blocks and spit out a good error
