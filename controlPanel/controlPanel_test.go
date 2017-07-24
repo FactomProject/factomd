@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/controlPanel"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
 	//"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	//"github.com/FactomProject/factomd/common/primitives/random"
@@ -144,8 +146,29 @@ func TestSearching(t *testing.T) {
 		}
 	}
 
-	c.Input = primitives.RandomHash().String()
+	// Insert a special crafted entry
+	entry := entryBlock.NewEntry()
+	var one primitives.ByteSlice
+	one.Bytes = []byte{0xFF, 0x00}
+	entry.ExtIDs = []primitives.ByteSlice{one}
+	entry.GetHash()
+
+	db := s.DB.(*databaseOverlay.Overlay)
+	db.InsertEntry(entry)
+
+	c.Input = entry.GetHash().String()
 	content, err := searchfor(c)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	if !strings.Contains(string(content), entry.GetChainID().String()) {
+		t.Error("Does not contain correct content")
+	}
+
+	c.Input = primitives.RandomHash().String()
+	content, err = searchfor(c)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -154,6 +177,25 @@ func TestSearching(t *testing.T) {
 	if !strings.Contains(string(content), "It seems there has been an error while ") {
 		t.Error("Does not contain correct content")
 	}
+}
+
+// Trip some code that is sometimes tested in other unit tests. These lines don't have
+func TestRequest(t *testing.T) {
+	LastRequest = time.Time{}
+
+	SetRequestMutex(true)
+	RequestData()
+	if time.Since(LastRequest).Seconds() < 1 {
+		t.Error("Should have not updated the time")
+	}
+
+	SetRequestMutex(false)
+	RequestData()
+	if time.Since(LastRequest).Seconds() > 1 {
+		t.Error("Should have updated the time")
+	}
+
+	RequestData()
 }
 
 func searchfor(ss *SearchedStruct) ([]byte, error) {

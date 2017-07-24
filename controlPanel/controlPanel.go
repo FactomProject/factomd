@@ -75,7 +75,7 @@ func DisplayStateDrain(channel chan state.DisplayState) {
 			DisplayState = ds
 			DisplayStateMutex.Unlock()
 		default:
-			requestData()
+			RequestData()
 			time.Sleep(1000 * time.Millisecond)
 		}
 	}
@@ -271,15 +271,12 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	HandleSearchResult(searchResult, w)
 }
 
-var batchQueried = false
-
 // Batches Json in []byte form to an array of json []byte objects
 func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 	if false == checkControlPanelPassword(w, r) {
 		return
 	}
-	requestData()
-	batchQueried = true
+	RequestData()
 	if r.Method != "GET" {
 		return
 	}
@@ -289,12 +286,10 @@ func factomdBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	items := strings.Split(batch, ",")
 	for _, item := range items {
-		data := factomdQuery(item, "")
+		data := factomdQuery(item, "", true)
 		batchData = append(batchData, data...)
 		batchData = append(batchData, []byte(`,`)...)
 	}
-
-	batchQueried = false
 
 	batchData = batchData[:len(batchData)-1]
 	batchData = append(batchData, []byte(`]`)...)
@@ -315,14 +310,18 @@ func factomdHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	item := r.FormValue("item")   // Item wanted
 	value := r.FormValue("value") // Optional argument
-	data := factomdQuery(item, value)
+	data := factomdQuery(item, value, false)
 	w.Write([]byte(data))
 }
 
 // Flag to tell if data is already being requested
 var requestMutex bool = false
 
-func requestData() {
+func SetRequestMutex(set bool) {
+	requestMutex = set
+}
+
+func RequestData() {
 	if requestMutex {
 		return
 	}
@@ -336,9 +335,9 @@ func requestData() {
 	requestMutex = false
 }
 
-func factomdQuery(item string, value string) []byte {
+func factomdQuery(item string, value string, batchQueried bool) []byte {
 	if !batchQueried {
-		requestData()
+		RequestData()
 	}
 	switch item {
 	case "myHeight":
