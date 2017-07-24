@@ -101,6 +101,10 @@ func TestTallyTotals(t *testing.T) {
 		t.Errorf("Peer Quality does not match %d", cm.Totals.PeerQualityAvg)
 	}
 	cm.Lock.Unlock()
+
+	AllConnections = cm
+	SortedConnectionString()
+	AllConnectionsString()
 }
 
 // Absurd map accessing

@@ -16,9 +16,9 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-// mLogger is the general logger for all message related logs. You can add additional fields,
+// packageLogger is the general logger for all message related logs. You can add additional fields,
 // or create more context loggers off of this
-var mLogger = log.WithFields(log.Fields{"package": "messages"})
+var packageLogger = log.WithFields(log.Fields{"package": "messages"})
 
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	_, msg, err := UnmarshalMessageData(data)

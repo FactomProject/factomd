@@ -74,6 +74,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
 
 	t.Log("Allocated 10 nodes")
@@ -175,6 +176,12 @@ func TestSetupANetwork(t *testing.T) {
 	waitBlocks(fn1.State, 1)
 	runCmd("r")
 	waitBlocks(fn1.State, 2)
+
+	// FaultTest
+	t.Log("Running automated fault test")
+	runCmd("Vt")
+	time.Sleep(20 * time.Second)
+	runCmd("Vt")
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {

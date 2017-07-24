@@ -4,6 +4,10 @@
 
 package interfaces
 
+import (
+	log "github.com/FactomProject/logrus"
+)
+
 /**************************
  * IRCD  Interface for Redeem Condition Datastructures (RCD)
  *
@@ -108,4 +112,7 @@ type IMsg interface {
 	SetStall(bool)
 	Resend(IState) bool
 	Expire(IState) bool
+
+	// Equivalent to String() for logging
+	LogFields() log.Fields
 }

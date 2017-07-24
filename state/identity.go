@@ -21,7 +21,7 @@ import (
 
 // identLogger is the general logger for all identity related logs. You can add additional fields,
 // or create more context loggers off of this
-var identLogger = stateLogger.WithFields(log.Fields{"subpack": "identity"})
+var identLogger = packageLogger.WithFields(log.Fields{"subpack": "identity"})
 
 var (
 	TWELVE_HOURS_S uint64 = 12 * 60 * 60
