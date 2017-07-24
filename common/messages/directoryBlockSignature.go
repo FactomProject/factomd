@@ -16,8 +16,8 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-// dLogger is for DirectoryBlockSignature Messages and extends mLogger
-var dLogger = mLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
+// dLogger is for DirectoryBlockSignature Messages and extends packageLogger
+var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
 
 type DirectoryBlockSignature struct {
 	MessageBase
@@ -385,6 +385,15 @@ func (m *DirectoryBlockSignature) String() string {
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
+}
+
+func (m *DirectoryBlockSignature) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "dbsig",
+		"dbheight":  m.DBHeight,
+		"vm":        m.VMIndex,
+		"server":    m.ServerIdentityChainID.String()[:6],
+		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String()[:6],
+		"hash":      m.GetHash().String()[:6]}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

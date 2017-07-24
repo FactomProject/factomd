@@ -24,7 +24,7 @@ import (
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
 // or create more context loggers off of this
-var consenLogger = stateLogger.WithFields(log.Fields{"subpack": "consensus"})
+var consenLogger = packageLogger.WithFields(log.Fields{"subpack": "consensus"})
 
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
@@ -1259,7 +1259,7 @@ func (s *State) ProcessRevealEntry(dbheight uint32, m interfaces.IMsg) bool {
 // that is missing the DBSig.  If the DBSig isn't our responsiblity, then
 // this call will do nothing.  Assumes the state for the leader is set properly
 func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
-	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbheight, "lheight": s.GetLeaderHeight(), "vm": vmIndex})
+	dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig"})
 
 	ht := s.GetHighestSavedBlk()
 	if dbheight <= ht || s.EOM {
@@ -1298,7 +1298,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 					panic(err)
 				}
 
-				dbslog.Infof("Send DBSig, %s", dbs.String())
+				dbslog.WithFields(dbs.LogFields()).Infof("Send DBSig")
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
@@ -1496,8 +1496,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				pldbs.DBSigAlreadySent = true
 
-				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "msgheight": dbs.DBHeight, "lheight": s.GetLeaderHeight(), "vm": dbs.VMIndex})
-				dbslog.Infof("Send DBSig, %s", dbs.String())
+				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight()}).WithFields(dbs.LogFields())
+				dbslog.Infof("Send DBSig")
 
 				dbs.LeaderExecute(s)
 			}
