@@ -31,6 +31,11 @@ func TestUnmarshalNil(t *testing.T) {
 	if err == nil {
 		t.Errorf("Error is nil when it shouldn't be")
 	}
+
+	_, _, err = UnmarshalMessageData([]byte{0xFF})
+	if err == nil {
+		t.Errorf("Error is nil when it shouldn't be")
+	}
 }
 
 func TestUnmarshalMsgTypes(t *testing.T) {
