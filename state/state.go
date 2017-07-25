@@ -36,9 +36,9 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-// stateLogger is the general logger for all state related logs. You can add additional fields,
+// packageLogger is the general logger for all package related logs. You can add additional fields,
 // or create more context loggers off of this
-var stateLogger = log.WithFields(log.Fields{"package": "state"})
+var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
 var _ = fmt.Print
 
@@ -146,7 +146,7 @@ type State struct {
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             InMsgMSGQueue
-	apiQueue               chan interfaces.IMsg
+	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
 
@@ -174,6 +174,7 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+	BootTime        int64 // Time in seconds that we last booted
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
@@ -233,7 +234,7 @@ type State struct {
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	Commits       map[[32]byte]interfaces.IMsg // Commit Messages
+	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -335,6 +336,15 @@ type State struct {
 	AckChange uint32
 
 	StateSaverStruct StateSaverStruct
+	// Plugins
+	useTorrents             bool
+	torrentUploader         bool
+	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
+	DBStateManager          interfaces.IManagerController
+	HighestCompletedTorrent uint32
+	SuperVerboseMessages    bool
+	FastBoot                bool
+	FastBootLocation        string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -483,6 +493,10 @@ func (s *State) GetDelay() int64 {
 
 func (s *State) SetDelay(delay int64) {
 	s.Delay = delay
+}
+
+func (s *State) GetBootTime() int64 {
+	return s.BootTime
 }
 
 func (s *State) GetDropRate() int {
@@ -638,6 +652,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.RpcPass = cfg.App.FactomdRpcPass
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
+		s.FastBoot = cfg.App.FastBoot
+		s.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -742,6 +758,7 @@ func (s *State) Init() {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 	s.IgnoreMissing = true
+	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
@@ -763,7 +780,7 @@ func (s *State) Init() {
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 100)        //incoming message queue from the API
+	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
@@ -785,7 +802,7 @@ func (s *State) Init() {
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = NewSafeMsgMap() //make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -1351,6 +1368,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPendingTransaction {
 	var flgFound bool
+
 	var currentHeightComplete = s.GetDBHeightComplete()
 	resp := make([]interfaces.IPendingTransaction, 0)
 	pls := s.ProcessLists.Lists
@@ -1676,7 +1694,7 @@ entryHashProcessing:
 			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
 			// If the save worked, then remove any commit that might be around.
 			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
-				delete(s.Commits, e.Hash.Fixed())
+				s.Commits.Delete(e.Hash.Fixed())
 			}
 		default:
 			break entryHashProcessing
@@ -1824,11 +1842,11 @@ func (s *State) initServerKeys() {
 }
 
 func (s *State) Log(level string, message string) {
-	stateLogger.WithFields(s.Logger.Data).Info(message)
+	packageLogger.WithFields(s.Logger.Data).Info(message)
 }
 
 func (s *State) Logf(level string, format string, args ...interface{}) {
-	llog := stateLogger.WithFields(s.Logger.Data)
+	llog := packageLogger.WithFields(s.Logger.Data)
 	switch level {
 	case "emergency":
 		llog.Panicf(format, args...)
@@ -1839,7 +1857,7 @@ func (s *State) Logf(level string, format string, args ...interface{}) {
 	case "error":
 		llog.Errorf(format, args...)
 	case "llog":
-		stateLogger.Warningf(format, args...)
+		llog.Warningf(format, args...)
 	case "info":
 		llog.Infof(format, args...)
 	case "debug":
@@ -1916,7 +1934,7 @@ func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 
-func (s *State) APIQueue() chan interfaces.IMsg {
+func (s *State) APIQueue() interfaces.IQueue {
 	return s.apiQueue
 }
 

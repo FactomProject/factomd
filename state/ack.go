@@ -19,6 +19,243 @@ func (s *State) IsStateFullySynced() bool {
 	return s.ProcessLists.DBHeightBase < ll.DBHeight
 }
 
+// GetEntryCommitAckByTXID will fetch the status of a commit by TxID
+//	Searches this order:
+//		Database	--> Check if it made it to blockchain
+//		PL			-->	See if it is still in the processlist
+//		PL - 1		-->	Only if min 0, because then it's not in DB yet, but still in this PL
+//		Holding 	--> See if it is in holding
+func (s *State) GetEntryCommitAckByTXID(hash interfaces.IHash) (status int, blktime interfaces.Timestamp, commit interfaces.IMsg, entryhash interfaces.IHash) {
+	status = constants.AckStatusUnknown
+	// Check Database for commit
+	ecblkHash, err := s.DB.FetchIncludedIn(hash)
+	if err == nil && ecblkHash != nil {
+		// See if it is a commit txid. If not found, then it is not
+		ecblk, err := s.DB.FetchECBlock(ecblkHash)
+		status = constants.AckStatusDBlockConfirmed
+		if err == nil && ecblk != nil {
+			// Found the ECBlock. We can find the transaction
+			for _, e := range ecblk.GetEntries() {
+				if e.GetHash().IsSameAs(hash) {
+					// Found the entryhash
+					entryhash = e.GetEntryHash()
+					break
+				}
+			}
+
+			// Get the time
+			dblkHash, err := s.DB.FetchIncludedIn(ecblkHash)
+			if err == nil && dblkHash != nil {
+				dblk, err := s.DB.FetchDBlock(dblkHash)
+				if err == nil && dblk != nil {
+					blktime = dblk.GetTimestamp()
+				}
+			}
+
+			// Found in DB, so return
+			return
+		}
+	}
+
+	for i := uint32(0); i < 2; i++ {
+		// Also have to check the prior PL if we are in minute 0
+		if i == 1 && s.GetCurrentMinute() != 0 {
+			continue
+		}
+		if s.PLProcessHeight < i {
+			// If i == 1 and PLHeight is 0, we don't want uint32 underflow
+			continue
+		}
+		// Not found in the DB, we can check the highest PL
+		pl := s.ProcessLists.GetSafe(s.PLProcessHeight - i)
+		if pl != nil {
+			// We will search the processlist for the commit
+			// TODO: Is this thread safe?
+			for _, v := range pl.VMs {
+				for _, m := range v.List {
+					switch m.Type() {
+					case constants.COMMIT_CHAIN_MSG:
+						cc, ok := m.(*messages.CommitChainMsg)
+						if ok {
+							if cc.CommitChain.GetSigHash().IsSameAs(hash) {
+								// Msg found in the latest processlist
+								status = constants.AckStatusACK
+								commit = cc
+								entryhash = cc.CommitChain.EntryHash
+								return
+							}
+						}
+					case constants.COMMIT_ENTRY_MSG:
+						ce, ok := m.(*messages.CommitEntryMsg)
+						if ok {
+							if ce.CommitEntry.GetSigHash().IsSameAs(hash) {
+								// Msg found in the latest processlist
+								status = constants.AckStatusACK
+								commit = ce
+								entryhash = ce.CommitEntry.EntryHash
+								return
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// If it was found in the PL or DBlock, it would return. All that is left is the holding map
+	_, commit = s.FetchEntryRevealAndCommitFromHolding(hash)
+	if commit != nil { // Found in holding
+		switch commit.Type() {
+		case constants.COMMIT_CHAIN_MSG:
+			cc, ok := commit.(*messages.CommitChainMsg)
+			if ok {
+				entryhash = cc.CommitChain.EntryHash
+				status = constants.AckStatusNotConfirmed
+			}
+		case constants.COMMIT_ENTRY_MSG:
+			ce, ok := commit.(*messages.CommitEntryMsg)
+			if ok {
+				entryhash = ce.CommitEntry.EntryHash
+				status = constants.AckStatusNotConfirmed
+			}
+		}
+	}
+	return
+}
+
+// GetEntryCommitAck will fetch the status of a entrycommit by ENTRYHASH. The places it checks are:
+//		CommitMap 	--> This indicates if the entry made it into the processlist within the last 4 hrs
+//		Last PL		--> Check if still in a processList
+//		Holding 	--> See if it is in holding
+//
+//	Returns:
+//		status 		= Status of reveal from possible ack responses
+//		commit 		= The commit message
+func (s *State) GetEntryCommitAckByEntryHash(hash interfaces.IHash) (status int, commit interfaces.IMsg) {
+	// We begin as unknown
+	status = constants.AckStatusUnknown
+
+	// Check if the commit is in the the latest processlist
+	for i := uint32(0); i < 2; i++ {
+		// Also have to check the prior PL if we are in minute 0
+		if i == 1 && s.GetCurrentMinute() != 0 {
+			continue
+		}
+		if s.PLProcessHeight < i {
+			// If i == 1 and PLHeight is 0, we don't want uint32 underflow
+			continue
+		}
+		pl := s.ProcessLists.GetSafe(s.PLProcessHeight - i)
+		if pl != nil {
+			// We will search the processlist for the commit
+			// TODO: Is this thread safe?
+			for _, v := range pl.VMs {
+				for _, m := range v.List {
+					switch m.Type() {
+					case constants.COMMIT_CHAIN_MSG:
+						cc, ok := m.(*messages.CommitChainMsg)
+						if ok {
+							if cc.CommitChain.EntryHash.IsSameAs(hash) {
+								// Msg found in the latest processlist
+								status = constants.AckStatusACK
+								commit = cc
+								return
+							}
+						}
+					case constants.COMMIT_ENTRY_MSG:
+						ce, ok := m.(*messages.CommitEntryMsg)
+						if ok {
+							if ce.CommitEntry.EntryHash.IsSameAs(hash) {
+								// Msg found in the latest processlist
+								status = constants.AckStatusACK
+								commit = ce
+								return
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// If found in commit map, and not in PL, it is in the DB
+	c := s.Commits.Get(hash.Fixed())
+	if c != nil {
+		// The commit was found and valid. We will change this to AckStatus if found
+		// in the latest processlist
+		status = constants.AckStatusDBlockConfirmed
+		commit = c
+		return
+	}
+
+	// At this point, we have the status of unkown. Any DBlock or Ack level has been covered above.
+	// If 'c' is not nil, then commit was found in the holding map.
+	_, c = s.FetchEntryRevealAndCommitFromHolding(hash)
+	if c != nil {
+		status = constants.AckStatusNotConfirmed
+		commit = c
+	}
+
+	return
+}
+
+// GetEntryRevealAck will fetch the status of a entryreveal. The places it checks are:
+//		ReplayMap	--> This indicates if the entry made it into the processlist within the last 4 hrs
+//		Database	-->	Check if it made it to blockchain
+//		Holding		-->	See if it is in holding. Will also look for commit if it finds that
+//
+//	Returns:
+//		status 		= Status of reveal from possible ack responses
+// 		blktime		= The time of the block if found in the database, nil if not found in blockchain
+//		commit		 = Only returned if found from holding. This will be empty if found in dbase or in processlist
+func (s *State) GetEntryRevealAckByEntryHash(hash interfaces.IHash) (status int, blktime interfaces.Timestamp, commit interfaces.IMsg) {
+	// We begin as unknown
+	status = constants.AckStatusUnknown
+
+	// Fetch the EBlock
+	eblk, err := s.DB.FetchIncludedIn(hash)
+	if err == nil && eblk != nil {
+		// Ensure that it was found in an eblock, not an ecblock.
+		if eblock, err := s.DB.FetchEBlock(eblk); eblock != nil && err == nil {
+			// This means the entry was found in the database
+			status = constants.AckStatusDBlockConfirmed
+			dblk, err := s.DB.FetchIncludedIn(eblk)
+			if err != nil {
+				return
+			}
+
+			dBlock, err := s.DB.FetchDBlock(dblk)
+			if err != nil {
+				return
+			}
+			blktime = dBlock.GetTimestamp()
+
+			// Exit as it was found in the blockchain, and we have the time
+			return
+		}
+	}
+
+	// Not found in the database. Check if it was found in the processlist
+	if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, hash.Fixed()) {
+		// It has been in the PL, so return
+		status = constants.AckStatusACK
+		return
+	}
+
+	// Not found in the database or the processlist. We can still check holding.
+	// If 'r' is not nil, then reveal was found in the holding map. Also return the
+	// commit msg if we had to look this far, it could save someone else calling us a lookup
+	r, c := s.FetchEntryRevealAndCommitFromHolding(hash)
+	if r != nil {
+		status = constants.AckStatusNotConfirmed
+		if c != nil {
+			commit = c
+		}
+	}
+
+	return
+}
+
 // GetACKStatus also checks the oldmsgs map
 func (s *State) GetACKStatus(hash interfaces.IHash) (int, interfaces.IHash, interfaces.Timestamp, interfaces.Timestamp, error) {
 	return s.getACKStatus(hash, true)
@@ -128,6 +365,51 @@ func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, inter
 
 	return constants.AckStatusDBlockConfirmed, hash, nil, dBlock.GetHeader().GetTimestamp(), nil
 
+}
+
+// FetchEntryRevealAndCommitFromHolding will look for the commit and reveal for a given hash.
+// It will check the hash as an entryhash and a txid, and return any reveals that match the entryhash
+// and any commits that match the entryhash or txid
+//
+//		Returns
+//			reveal = The reveal message if found
+//			commit = The commit message if found
+func (s *State) FetchEntryRevealAndCommitFromHolding(hash interfaces.IHash) (reveal interfaces.IMsg, commit interfaces.IMsg) {
+	q := s.LoadHoldingMap()
+	for _, h := range q {
+		switch {
+		case h.Type() == constants.COMMIT_CHAIN_MSG:
+			cm, ok := h.(*messages.CommitChainMsg)
+			if ok {
+				if cm.CommitChain.EntryHash.IsSameAs(hash) {
+					commit = cm
+				}
+
+				if hash.IsSameAs(cm.CommitChain.GetSigHash()) {
+					commit = cm
+				}
+			}
+		case h.Type() == constants.COMMIT_ENTRY_MSG:
+			cm, ok := h.(*messages.CommitEntryMsg)
+			if ok {
+				if cm.CommitEntry.EntryHash.IsSameAs(hash) {
+					commit = cm
+				}
+
+				if hash.IsSameAs(cm.CommitEntry.GetSigHash()) {
+					commit = cm
+				}
+			}
+		case h.Type() == constants.REVEAL_ENTRY_MSG:
+			rm, ok := h.(*messages.RevealEntryMsg)
+			if ok {
+				if rm.Entry.GetHash().IsSameAs(hash) {
+					reveal = rm
+				}
+			}
+		}
+	}
+	return
 }
 
 func (s *State) FetchHoldingMessageByHash(hash interfaces.IHash) (int, byte, interfaces.IMsg, error) {

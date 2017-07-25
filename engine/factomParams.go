@@ -2,6 +2,7 @@ package engine
 
 import (
 	"flag"
+
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -47,6 +48,11 @@ type FactomParams struct {
 	fastLocation             string
 	loglvl                   string
 	logjson                  bool
+	svm                      bool
+	pluginPath               string
+	torManage                bool
+	torUpload                bool
+	disableSimControl        bool
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -97,6 +103,17 @@ func ParseCmdLine(args []string) *FactomParams {
 	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	logJsonPtr := flag.Bool("logjson", false, "Use to set logging to use a json formatting")
 
+	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
+
+	disableSimControlPtr := flag.Bool("nosim", false, "Using this flag disables sim control")
+
+	// Plugins
+	pluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
+
+	// 	Torrent Plugin
+	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
+	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -140,5 +157,12 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.fastLocation = *fastLocationPtr
 	p.loglvl = *logLvlPtr
 	p.logjson = *logJsonPtr
+	p.disableSimControl = *disableSimControlPtr
+
+	p.svm = *superVerboseMessages
+	p.pluginPath = *pluginPath
+	p.torManage = *tormanager
+	p.torUpload = *torUploader
+
 	return p
 }

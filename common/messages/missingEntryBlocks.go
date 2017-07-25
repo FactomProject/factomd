@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //Requests entry blocks from a range of DBlocks
@@ -207,6 +209,12 @@ func (m *MissingEntryBlocks) MarshalBinary() ([]byte, error) {
 
 func (m *MissingEntryBlocks) String() string {
 	return fmt.Sprintf("MissingEntryBlocks: %d-%d", m.DBHeightStart, m.DBHeightEnd)
+}
+
+func (m *MissingEntryBlocks) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "missingentryblocks",
+		"dbheightstart": m.DBHeightStart,
+		"dbheightend":   m.DBHeightEnd}
 }
 
 func NewMissingEntryBlocks(state interfaces.IState, dbheightStart uint32, dbheightEnd uint32) interfaces.IMsg {

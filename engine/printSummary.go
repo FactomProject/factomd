@@ -118,7 +118,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.Commits))
+			list = list + fmt.Sprintf(" %3d", f.State.Commits.Len())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Commits", list)
 
@@ -156,7 +156,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.APIQueue()))
+			list = list + fmt.Sprintf(" %3d", f.State.APIQueue().Length())
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
 

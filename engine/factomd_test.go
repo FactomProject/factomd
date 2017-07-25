@@ -74,6 +74,7 @@ func TestSetupANetwork(t *testing.T) {
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
 
 	t.Log("Allocated 10 nodes")
@@ -91,8 +92,15 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("g10")
 	waitBlocks(state0, 1)
 	// Allocate 4 leaders
+	runCmd("g1")
+	waitMinutes(state0,2)
+	runCmd("g1")
+	waitMinutes(state0, 3)
+	runCmd("g1")
+	waitMinutes(state0, 4)
+	runCmd("g1")
+	waitMinutes(state0, 5)
 
-	waitMinutes(state0, 1)
 
 	runCmd("1")
 	runCmd("l")
@@ -133,7 +141,23 @@ func TestSetupANetwork(t *testing.T) {
 	if fn1.State.FactomNodeName != "FNode07" {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
-
+	runCmd("g1")
+	waitMinutes(state0, 3)
+	runCmd("g1")
+	waitMinutes(state0, 4)
+	runCmd("g1")
+	waitMinutes(state0, 5)
+	runCmd("g1")
+	waitMinutes(state0, 6)
+	waitBlocks(state0,1)
+	waitMinutes(state0, 2)
+	runCmd("g1")
+	waitMinutes(state0, 3)
+	runCmd("g1")
+	waitMinutes(state0, 4)
+	runCmd("g1")
+	waitMinutes(state0, 5)
+	waitBlocks(state0,1)
 	runCmd("9")
 	runCmd("x")
 	runCmd("8")
@@ -145,6 +169,7 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
 
+	runCmd("i")
 	// Test block recording lengths and error checking for pprof
 	runCmd("b100")
 
@@ -171,9 +196,29 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("yh")
 	runCmd("yc")
 	runCmd("r")
-	waitBlocks(fn1.State, 1)
+	waitMinutes(state0, 3)
+	runCmd("g1")
+	waitMinutes(state0, 4)
+	runCmd("g1")
+	waitMinutes(state0, 5)
+	runCmd("g1")
+	waitMinutes(state0, 6)
 	runCmd("r")
-	waitBlocks(fn1.State, 2)
+	waitBlocks(fn1.State, 1)
+	waitMinutes(state0, 2)
+	runCmd("g1")
+	waitMinutes(state0, 3)
+	runCmd("g1")
+	waitMinutes(state0, 4)
+	runCmd("g1")
+	waitMinutes(state0, 5)
+	waitBlocks(fn1.State, 1)
+
+	// FaultTest
+	t.Log("Running automated fault test")
+	runCmd("Vt")
+	time.Sleep(20 * time.Second)
+	runCmd("Vt")
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {

@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //A placeholder structure for messages
@@ -166,6 +168,10 @@ func (m *SignatureTimeout) Sign(key interfaces.Signer) error {
 
 func (m *SignatureTimeout) String() string {
 	return "Signature Timeout"
+}
+
+func (m *SignatureTimeout) LogFields() log.Fields {
+	return log.Fields{}
 }
 
 func (m *SignatureTimeout) DBHeight() int {

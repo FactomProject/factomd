@@ -7,10 +7,12 @@ package engine
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	// "github.com/FactomProject/factomd/common/constants"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -26,8 +28,8 @@ type P2PProxy struct {
 	ToName   string
 	FromName string
 	// Channels that define the connection:
-	BroadcastOut chan interface{} // factomMessage ToNetwork from factomd
-	BroadcastIn  chan interface{} // factomMessage FromNetwork for Factomd
+	BroadcastOut chan interface{} // FactomMessage ToNetwork from factomd
+	BroadcastIn  chan interface{} // FactomMessage FromNetwork for Factomd
 
 	ToNetwork   chan interface{} // p2p.Parcel From p2pProxy to the p2p Controller
 	FromNetwork chan interface{} // p2p.Parcel Parcels from the network for the application
@@ -39,24 +41,26 @@ type P2PProxy struct {
 	NumPeers  int
 	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
 	bytesIn   int // bandwidth recieved by application from network
+
+	SuperVerboseMessages bool
 }
 
-type factomMessage struct {
+type FactomMessage struct {
 	Message  []byte
 	PeerHash string
 	AppHash  string
 	AppType  string
 }
 
-func (e *factomMessage) JSONByte() ([]byte, error) {
+func (e *FactomMessage) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *factomMessage) JSONString() (string, error) {
+func (e *FactomMessage) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *factomMessage) String() string {
+func (e *FactomMessage) String() string {
 	str, _ := e.JSONString()
 	return str
 }
@@ -87,6 +91,7 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 	f.BroadcastOut = make(chan interface{}, p2p.StandardChannelSize)
 	f.BroadcastIn = make(chan interface{}, p2p.StandardChannelSize)
 	f.logging = make(chan interface{}, p2p.StandardChannelSize)
+
 	return f
 }
 func (f *P2PProxy) SetDebugMode(netdebug int) {
@@ -105,13 +110,16 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
-		fmt.Println("ERROR on Send: ", err)
+		log.Println("ERROR on Send: ", err)
 		return err
+	}
+	if f.SuperVerboseMessages {
+		log.Println("SVM Send:", msg.String(), msg.GetHash().String()[:10])
 	}
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 	appType := fmt.Sprintf("%d", msg.Type())
-	message := factomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
+	message := FactomMessage{Message: data, PeerHash: msg.GetNetworkOrigin(), AppHash: hash, AppType: appType}
 	switch {
 	case !msg.IsPeer2Peer():
 		message.PeerHash = p2p.BroadcastFlag
@@ -123,9 +131,10 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
 	}
 	if msg.IsPeer2Peer() && 1 < f.debugMode {
-		fmt.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
+		log.Printf("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
 	}
 	p2p.BlockFreeChannelSend(f.BroadcastOut, message)
+
 	return nil
 }
 
@@ -135,22 +144,31 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
 			BroadInCastQueue.Dec()
+
 			switch data.(type) {
-			case factomMessage:
-				fmessage := data.(factomMessage)
-				//f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
+			case FactomMessage:
+				fmessage := data.(FactomMessage)
+				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
+
+				if f.SuperVerboseMessages {
+					if err != nil {
+						log.Println("SVM err:", err.Error())
+					} else {
+						log.Println("SVM Receive:", msg.String())
+					}
+				}
 				if nil == err {
 					msg.SetNetworkOrigin(fmessage.PeerHash)
 				}
-				// if 1 < f.debugMode {
-				// 	f.logMessage(msg, true) // NODE_TALK_FIX
-				// 	fmt.Printf(".")
-				// }
+				//if 1 < f.debugMode {
+				//	f.logMessage(msg, true) // NODE_TALK_FIX
+				//	fmt.Printf(".")
+				//}
 				f.bytesIn += len(fmessage.Message)
 				return msg, err
 			default:
-				// fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
+				//fmt.Printf("Garbage on f.BroadcastIn. %+v", data)
 			}
 		}
 	default:
@@ -272,8 +290,8 @@ func (p *P2PProxy) ManageLogging() {
 func (f *P2PProxy) ManageOutChannel() {
 	for data := range f.BroadcastOut {
 		switch data.(type) {
-		case factomMessage:
-			fmessage := data.(factomMessage)
+		case FactomMessage:
+			fmessage := data.(FactomMessage)
 			// Wrap it in a parcel and send it out channel ToNetwork.
 			parcels := p2p.ParcelsForPayload(p2p.CurrentNetwork, fmessage.Message)
 			for _, parcel := range parcels {
@@ -299,7 +317,7 @@ func (f *P2PProxy) ManageInChannel() {
 		case p2p.Parcel:
 			parcel := data.(p2p.Parcel)
 			f.trace(parcel.Header.AppHash, parcel.Header.AppType, "P2PProxy.ManageInChannel()", "M")
-			message := factomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
+			message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
 			removed := p2p.BlockFreeChannelSend(f.BroadcastIn, message)
 			BroadInCastQueue.Inc()
 			BroadInCastQueue.Add(float64(-1 * removed))
@@ -321,35 +339,39 @@ func (f *P2PProxy) PeriodicStatusReport(fnodes []*FactomNode) {
 	time.Sleep(p2p.NetworkStatusInterval) // wait for things to spin up
 	for {
 		time.Sleep(p2p.NetworkStatusInterval)
-		fmt.Println("\n\n\n")
-		fmt.Println("-------------------------------------------------------------------------------")
-		fmt.Println(" Periodic Status Report")
-		fmt.Println("-------------------------------------------------------------------------------")
-		for _, f := range fnodes {
-			f.State.Status = 1
-		}
-		time.Sleep(100 * time.Millisecond)
-		for _, f := range fnodes {
-			fmt.Printf("%s \n\n", f.State.ShortString())
-		}
-		now := time.Now().Format("01/02/2006 15:04:05")
-		listenTo := 0
-		if listenTo >= 0 && listenTo < len(fnodes) {
-			fmt.Printf("%s:\n", now)
-			fmt.Printf("      InMsgQueue             %d\n", fnodes[listenTo].State.InMsgQueue().Length())
-			fmt.Printf("      AckQueue               %d\n", len(fnodes[listenTo].State.AckQueue()))
-			fmt.Printf("      MsgQueue               %d\n", len(fnodes[listenTo].State.MsgQueue()))
-			fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
-			fmt.Printf("      NetworkOutMsgQueue     %d\n", fnodes[listenTo].State.NetworkOutMsgQueue().Length())
-			fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))
-			fmt.Printf("      HoldingQueue           %d\n", len(fnodes[listenTo].State.Holding))
-		}
-		fmt.Printf("      ToNetwork Queue:       %d\n", len(f.ToNetwork))
-		fmt.Printf("      FromNetwork Queue:     %d\n", len(f.FromNetwork))
-		fmt.Printf("      BroadcastOut Queue:    %d\n", len(f.BroadcastOut))
-		fmt.Printf("      BroadcastIn Queue:     %d\n", len(f.BroadcastIn))
-		fmt.Printf("      Weight:                %d\n", f.NumPeers)
-		fmt.Println("-------------------------------------------------------------------------------")
-		fmt.Println("-------------------------------------------------------------------------------")
+		f.InstantaneousStatusReport(fnodes)
 	}
+}
+
+func (f *P2PProxy) InstantaneousStatusReport(fnodes []*FactomNode) {
+	fmt.Println("\n\n\n")
+	fmt.Println("-------------------------------------------------------------------------------")
+	fmt.Println(" Periodic Status Report")
+	fmt.Println("-------------------------------------------------------------------------------")
+	for _, f := range fnodes {
+		f.State.Status = 1
+	}
+	time.Sleep(100 * time.Millisecond)
+	for _, f := range fnodes {
+		fmt.Printf("%s \n\n", f.State.ShortString())
+	}
+	now := time.Now().Format("01/02/2006 15:04:05")
+	listenTo := 0
+	if listenTo >= 0 && listenTo < len(fnodes) {
+		fmt.Printf("%s:\n", now)
+		fmt.Printf("      InMsgQueue             %d\n", fnodes[listenTo].State.InMsgQueue().Length())
+		fmt.Printf("      AckQueue               %d\n", len(fnodes[listenTo].State.AckQueue()))
+		fmt.Printf("      MsgQueue               %d\n", len(fnodes[listenTo].State.MsgQueue()))
+		fmt.Printf("      TimerMsgQueue          %d\n", len(fnodes[listenTo].State.TimerMsgQueue()))
+		fmt.Printf("      NetworkOutMsgQueue     %d\n", fnodes[listenTo].State.NetworkOutMsgQueue().Length())
+		fmt.Printf("      NetworkInvalidMsgQueue %d\n", len(fnodes[listenTo].State.NetworkInvalidMsgQueue()))
+		fmt.Printf("      HoldingQueue           %d\n", len(fnodes[listenTo].State.Holding))
+	}
+	fmt.Printf("      ToNetwork Queue:       %d\n", len(f.ToNetwork))
+	fmt.Printf("      FromNetwork Queue:     %d\n", len(f.FromNetwork))
+	fmt.Printf("      BroadcastOut Queue:    %d\n", len(f.BroadcastOut))
+	fmt.Printf("      BroadcastIn Queue:     %d\n", len(f.BroadcastIn))
+	fmt.Printf("      Weight:                %d\n", f.NumPeers)
+	fmt.Println("-------------------------------------------------------------------------------")
+	fmt.Println("-------------------------------------------------------------------------------")
 }

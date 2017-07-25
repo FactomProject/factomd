@@ -320,7 +320,7 @@ func messageLists(fnodes []*State) string {
 
 	list = ""
 	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.APIQueue()))
+		list = list + fmt.Sprintf(" %3d", f.APIQueue().Length())
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "APIQueue", list)
 

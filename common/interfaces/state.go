@@ -111,7 +111,7 @@ type IState interface {
 	GetJournalMessages() [][]byte
 
 	// Consensus
-	APIQueue() chan IMsg // Input Queue from the API
+	APIQueue() IQueue    // Input Queue from the API
 	InMsgQueue() IQueue  // Read by Validate
 	AckQueue() chan IMsg // Leader Queue
 	MsgQueue() chan IMsg // Follower Queue
@@ -259,6 +259,16 @@ type IState interface {
 	//For ACK
 	GetACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
 	GetSpecificACKStatus(hash IHash) (int, IHash, Timestamp, Timestamp, error)
+
+	// Acks with ChainIDs so you can select which hash type
+	GetEntryCommitAckByEntryHash(hash IHash) (status int, commit IMsg)
+	GetEntryRevealAckByEntryHash(hash IHash) (status int, blktime Timestamp, commit IMsg)
+	GetEntryCommitAckByTXID(hash IHash) (status int, blktime Timestamp, commit IMsg, entryhash IHash)
+	IsNewOrPendingEBlocks(dbheight uint32, hash IHash) bool
+
+	// Used in API to reject commits properly and inform user
+	IsHighestCommit(hash IHash, msg IMsg) bool
+
 	FetchPaidFor(hash IHash) (IHash, error)
 	FetchFactoidTransactionByHash(hash IHash) (ITransaction, error)
 	FetchECTransactionByHash(hash IHash) (IECBlockEntry, error)
@@ -296,8 +306,13 @@ type IState interface {
 	SetDelay(int64)
 	GetDropRate() int
 	SetDropRate(int)
+	GetBootTime() int64
 
 	// Access to Holding Queue
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
+
+	// Plugins
+	UsingTorrent() bool
+	GetMissingDBState(height uint32) error
 }
