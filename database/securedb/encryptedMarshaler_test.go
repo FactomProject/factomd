@@ -14,14 +14,51 @@ import (
 
 func TestEncryptedMarshaler(t *testing.T) {
 	var o interfaces.BinaryMarshallable
+	var err error
+	var ems []*EncryptedMarshaler
+	var hashes []interfaces.BinaryMarshallable
 
+	key := primitives.RandomHash().Bytes()
 	// Test with IHash
 	for i := 0; i < 10; i++ {
-		k := primitives.RandomHash().Bytes()
 		o = primitives.RandomHash()
-		m := NewEncryptedMarshaler(k, o)
-		d := NewEncryptedMarshaler(k, new(primitives.Hash))
+		m := NewEncryptedMarshaler(key, o)
+		d := NewEncryptedMarshaler(key, new(primitives.Hash))
 		testEM(m, d, o, t)
+		ems = append(ems, m)
+		hashes = append(hashes, o)
+	}
+
+	allData := []byte{}
+	for _, e := range ems {
+		data, err := e.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+		}
+
+		allData = append(allData, data...)
+	}
+
+	for _, h := range hashes {
+		e2 := NewEncryptedMarshaler(key, new(primitives.Hash))
+		allData, err = e2.UnmarshalBinaryData(allData)
+		if err != nil {
+			t.Error(err)
+		}
+
+		d1, err := e2.Original.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+		}
+
+		d2, err := h.MarshalBinary()
+		if err != nil {
+			t.Error(err)
+		}
+
+		if bytes.Compare(d1, d2) != 0 {
+			t.Error("Byte stream unmarshal failed")
+		}
 	}
 
 	// Test addresses
