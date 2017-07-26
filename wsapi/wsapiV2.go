@@ -299,8 +299,6 @@ func ecBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives
 		return nil, NewInternalError()
 	}
 	resp.ECBlock.HeaderHash = tmpHash
-	resp.ECBlock.PrevBodyHash = block.GetHeader().GetBodyHash()
-	resp.ECBlock.KeyMR = block.GetHash()
 	return resp, nil
 }
 
