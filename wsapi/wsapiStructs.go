@@ -96,6 +96,18 @@ type EntryBlockResponse struct {
 	EntryList []EntryAddr `json:"entrylist"`
 }
 
+type EntryCreditBlockResponse struct {
+	ECBlock struct {
+		Header       interfaces.IECBlockHeader
+		Body         interfaces.IECBlockBody
+		KeyMR        interfaces.IHash `json:"keymr"`
+		HeaderHash   interfaces.IHash `json:"headerhash"`
+		FullHash     interfaces.IHash `json:"fullhash"`
+		PrevBodyHash interfaces.IHash `json:"previousbodyhash"`
+	} `json:"ecblock"`
+	RawData string `json:"rawdata"`
+}
+
 type EntryResponse struct {
 	ChainID string   `json:"chainid"`
 	Content string   `json:"content"`

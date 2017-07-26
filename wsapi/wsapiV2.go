@@ -181,6 +181,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
+
 	return jsonResp, nil
 }
 
@@ -280,14 +281,26 @@ func ecBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives
 		return nil, NewInternalError()
 	}
 
-	resp := new(BlockHeightResponse)
-	b, err := ObjectToJStruct(block)
+	resp := new(EntryCreditBlockResponse)
+
 	if err != nil {
 		return nil, NewInternalError()
 	}
-	resp.ECBlock = b
+	resp.ECBlock.Body = block.GetBody()
+	resp.ECBlock.Header = block.GetHeader()
 	resp.RawData = hex.EncodeToString(raw)
-
+	tmpHash, err := block.GetFullHash()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ECBlock.FullHash = tmpHash
+	tmpHash, err = block.HeaderHash()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ECBlock.HeaderHash = tmpHash
+	resp.ECBlock.PrevBodyHash = block.GetHeader().GetBodyHash()
+	resp.ECBlock.KeyMR = block.GetHash()
 	return resp, nil
 }
 
