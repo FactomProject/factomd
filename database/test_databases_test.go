@@ -49,21 +49,30 @@ var dbFilename = "testdb"
 func TestAllDatabases(t *testing.T) {
 	// Secure Bolt
 	for i := 0; i < 5; i++ {
-		m := securedb.NewEncryptedDB(dbFilename, "Bolt", random.RandomString())
+		m, err := securedb.NewEncryptedDB(dbFilename, "Bolt", random.RandomString())
+		if err != nil {
+			t.Error(err)
+		}
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
 
 	// Secure LDB
 	for i := 0; i < 5; i++ {
-		m := securedb.NewEncryptedDB(dbFilename, "LDB", random.RandomString())
+		m, err := securedb.NewEncryptedDB(dbFilename, "LDB", random.RandomString())
+		if err != nil {
+			t.Error(err)
+		}
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
 
 	// Secure Map
 	for i := 0; i < 5; i++ {
-		m := securedb.NewEncryptedDB(dbFilename, "Map", random.RandomString())
+		m, err := securedb.NewEncryptedDB(dbFilename, "Map", random.RandomString())
+		if err != nil {
+			t.Error(err)
+		}
 		testDB(t, m, i)
 		CleanupTest(t, m)
 	}
