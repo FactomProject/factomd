@@ -47,15 +47,12 @@ func (e *EncryptedMarshaler) UnmarshalBinaryData(cipherData []byte) (newData []b
 		return nil, fmt.Errorf("No object given")
 	}
 
-	fmt.Println(len(cipherData))
-
 	l, err := bytesToUint32(cipherData[:4])
 	if err != nil {
 		return nil, err
 	}
 
 	newData = cipherData[l+4:]
-	fmt.Println(l, len(cipherData))
 
 	plainData, err := Decrypt(cipherData[4:l+4], e.EncryptionKey)
 	if err != nil {
