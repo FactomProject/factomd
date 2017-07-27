@@ -248,7 +248,7 @@ func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (inte
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ecBlockToResp(block)
+	return ECBlockToResp(block)
 }
 
 func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -272,10 +272,10 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ecBlockToResp(block)
+	return ECBlockToResp(block)
 }
 
-func ecBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives.JSONError) {
+func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives.JSONError) {
 	raw, err := block.MarshalBinary()
 	if err != nil {
 		return nil, NewInternalError()
