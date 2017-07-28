@@ -7,4 +7,10 @@ package systemState
 import ()
 
 type SystemState struct {
+	MessageHoldingQueue MessageHoldingQueue
+	BStateHandler       *BStateHandler
+}
+
+func (ss *SystemState) Init() {
+	ss.BStateHandler.InitMainNet()
 }

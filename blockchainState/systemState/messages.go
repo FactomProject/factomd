@@ -114,6 +114,14 @@ func (ss *SystemState) ProcessAckMessage(msg interfaces.IMsg) error {
 	if msg.Type() != constants.ACK_MSG {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
+
+	ss.MessageHoldingQueue.AddAck(msg)
+	msg2 := ss.MessageHoldingQueue.GetMessage(msg.GetHash())
+	if msg2 != nil {
+		//If we have acked a message we know about, time to process it
+		return ss.ProcessMessage(msg2)
+	}
+
 	return nil
 }
 
@@ -156,6 +164,13 @@ func (ss *SystemState) ProcessCommitChainMessage(msg interfaces.IMsg) error {
 	if msg.Type() != constants.COMMIT_CHAIN_MSG {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
+
+	ss.MessageHoldingQueue.AddMessage(msg)
+
+	if ss.MessageHoldingQueue.IsAcked(msg.GetHash()) {
+		//TODO: process properly
+	}
+
 	return nil
 }
 
@@ -163,6 +178,13 @@ func (ss *SystemState) ProcessCommitEntryMessage(msg interfaces.IMsg) error {
 	if msg.Type() != constants.COMMIT_ENTRY_MSG {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
+
+	ss.MessageHoldingQueue.AddMessage(msg)
+
+	if ss.MessageHoldingQueue.IsAcked(msg.GetHash()) {
+		//TODO: process properly
+	}
+
 	return nil
 }
 
@@ -177,7 +199,7 @@ func (ss *SystemState) ProcessDBStateMessage(msg interfaces.IMsg) error {
 	if msg.Type() != constants.DBSTATE_MSG {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
-	return nil
+	return ss.BStateHandler.HandleDBStateMsg(msg)
 }
 
 func (ss *SystemState) ProcessDBStateMissingMessage(msg interfaces.IMsg) error {
@@ -198,6 +220,13 @@ func (ss *SystemState) ProcessEntryBlockResponseMessage(msg interfaces.IMsg) err
 	if msg.Type() != constants.ENTRY_BLOCK_RESPONSE {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
+
+	ss.MessageHoldingQueue.AddMessage(msg)
+
+	if ss.MessageHoldingQueue.IsAcked(msg.GetHash()) {
+		//TODO: process properly
+	}
+
 	return nil
 }
 
@@ -205,6 +234,13 @@ func (ss *SystemState) ProcessEOMMessage(msg interfaces.IMsg) error {
 	if msg.Type() != constants.EOM_MSG {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
+
+	ss.MessageHoldingQueue.AddMessage(msg)
+
+	if ss.MessageHoldingQueue.IsAcked(msg.GetHash()) {
+		//TODO: process properly
+	}
+
 	return nil
 }
 
@@ -219,6 +255,13 @@ func (ss *SystemState) ProcessFactoidTransactionMessage(msg interfaces.IMsg) err
 	if msg.Type() != constants.FACTOID_TRANSACTION_MSG {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
+
+	ss.MessageHoldingQueue.AddMessage(msg)
+
+	if ss.MessageHoldingQueue.IsAcked(msg.GetHash()) {
+		//TODO: process properly
+	}
+
 	return nil
 }
 
@@ -296,6 +339,13 @@ func (ss *SystemState) ProcessRevealEntryMessage(msg interfaces.IMsg) error {
 	if msg.Type() != constants.REVEAL_ENTRY_MSG {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
+
+	ss.MessageHoldingQueue.AddMessage(msg)
+
+	if ss.MessageHoldingQueue.IsAcked(msg.GetHash()) {
+		//TODO: process properly
+	}
+
 	return nil
 }
 

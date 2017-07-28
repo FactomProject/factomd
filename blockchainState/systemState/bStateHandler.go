@@ -29,14 +29,11 @@ type BStateHandler struct {
 	FullySynched bool
 }
 
-func NewBStateHandler() *BStateHandler {
-	bh := new(BStateHandler)
-
-	BStateHandler.MainBState = blockchainState.NewBSMainNet()
-
-	return bh
+func (bh *BStateHandler) InitMainNet() {
+	if bh.MainBState == nil {
+		bh.MainBState = blockchainState.NewBSMainNet()
+	}
 }
-
 func (bh *BStateHandler) HandleDBStateMsg(msg interfaces.IMsg) error {
 	if msg.Type() != constants.DBSTATE_MSG {
 		return fmt.Errorf("Invalid message type")
@@ -142,4 +139,19 @@ func (bh *BStateHandler) SaveBlockSetToDB(dBlock interfaces.IDirectoryBlock, aBl
 	if err != nil {
 		return err
 	}
+}
+
+func (bh *BStateHandler) HandleCommitChainMsg() error {
+
+	return nil
+}
+
+func (bh *BStateHandler) HandleCommitEntryMsg() error {
+
+	return nil
+}
+
+func (bh *BStateHandler) HandleRevealEntryMsg() error {
+
+	return nil
 }
