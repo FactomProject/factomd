@@ -9,24 +9,57 @@ import (
 	. "github.com/FactomProject/factomd/database/securedb"
 )
 
+func TestGetKey(t *testing.T) {
+	for i := 0; i < 15; i++ {
+		pass := random.RandomString()
+		salt := random.RandByteSliceOfLen(100)
+		key := sha256.Sum256(salt)
+		saltedKey, err := GetKey(pass, key[:])
+		if err != nil {
+			t.Error(err)
+		}
+
+		saltedKey2, err := GetKey(pass, key[:])
+		if err != nil {
+			t.Error(err)
+		}
+
+		if bytes.Compare(saltedKey, saltedKey2) != 0 {
+			t.Error("Different keys, but same password")
+		}
+
+		key = sha256.Sum256(random.RandByteSliceOfLen(100))
+		saltedKey3, err := GetKey(pass, key[:])
+		if err != nil {
+			t.Error(err)
+		}
+
+		if bytes.Compare(saltedKey, saltedKey3) == 0 {
+			t.Error("Different salts, but same password")
+		}
+	}
+}
+
 func TestEncryption(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		text := random.RandByteSliceOfLen(100)
 		key := sha256.Sum256(text)
-		saltedKey := GetKey(random.RandomString(), key[:])
+		saltedKey, _ := GetKey(random.RandomString(), key[:])
 
 		ciphertext, err := Encrypt(text, saltedKey[:])
 		if err != nil {
 			t.Error(err)
 		}
 
-		plaintext, err := Decrypt(ciphertext, saltedKey[:])
-		if err != nil {
-			t.Error(err)
-		}
+		for i := 0; i < 10; i++ {
+			plaintext, err := Decrypt(ciphertext, saltedKey[:])
+			if err != nil {
+				t.Error(err)
+			}
 
-		if bytes.Compare(plaintext, text) != 0 {
-			t.Error("Encyption did not produce the same result")
+			if bytes.Compare(plaintext, text) != 0 {
+				t.Error("Encyption did not produce the same result")
+			}
 		}
 	}
 }

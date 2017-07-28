@@ -4,15 +4,24 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/scrypt"
 	"io"
 	//"log"
 )
 
-func GetKey(password string, salt []byte) [32]byte {
-	return sha256.Sum256(append([]byte(password), salt...))
+func GetKey(password string, salt []byte) ([]byte, error) {
+	key, err := scrypt.Key([]byte(password), salt, 16384, 8, 1, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(key) != 32 {
+		return nil, fmt.Errorf("Keylength must be 32 bytes. Found %d", len(key))
+	}
+
+	return key, err
 }
 
 func checkKey(key []byte) error {

@@ -32,9 +32,6 @@ type EncryptedDB struct {
 	// Metadata includes salt
 	metadata *SecureDBMetaData
 
-	// password is cached
-	password string
-
 	// encryptionkey is a hash of the password and salt
 	encryptionkey []byte
 }
@@ -48,8 +45,7 @@ func NewEncryptedDB(filename, dbtype, password string) (*EncryptedDB, error) {
 	e := new(EncryptedDB)
 	e.Init(filename, dbtype)
 
-	e.password = password
-	err := e.InitSecureDB()
+	err := e.initSecureDB(password)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +54,7 @@ func NewEncryptedDB(filename, dbtype, password string) (*EncryptedDB, error) {
 }
 
 // InitSecureDB will init the Salt and metadata
-func (db *EncryptedDB) InitSecureDB() error {
+func (db *EncryptedDB) initSecureDB(password string) error {
 	m := new(SecureDBMetaData)
 	v, err := db.db.Get(EncyptedMetaData, EncyptedMetaData, m)
 	if err != nil {
@@ -72,8 +68,12 @@ func (db *EncryptedDB) InitSecureDB() error {
 		db.metadata = m
 	}
 
-	key := GetKey(db.password, db.metadata.Salt.Bytes)
-	db.encryptionkey = key[:]
+	key, err := GetKey(password, db.metadata.Salt.Bytes)
+	if err != nil {
+		return err
+	}
+
+	db.encryptionkey = key
 
 	if len(db.metadata.Challenge.Bytes) == 0 {
 		// Create challenge
