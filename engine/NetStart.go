@@ -206,7 +206,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
-	go StartProfiler(p.memProfileRate)
+	go StartProfiler(p.memProfileRate, p.exposeProfiling)
 
 	s.AddPrefix(p.prefix)
 	s.SetOut(false)

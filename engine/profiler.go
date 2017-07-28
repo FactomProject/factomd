@@ -17,10 +17,14 @@ import (
 // StartProfiler runs the go pprof tool
 // `go tool pprof http://localhost:6060/debug/pprof/profile`
 // https://golang.org/pkg/net/http/pprof/
-func StartProfiler(mpr int) {
+func StartProfiler(mpr int, expose bool) {
 	_ = log.Print
 	runtime.MemProfileRate = mpr
-	log.Println(http.ListenAndServe(fmt.Sprintf("localhost:%s", logPort), nil))
+	pre := "localhost"
+	if expose {
+		pre = ""
+	}
+	log.Println(http.ListenAndServe(fmt.Sprintf("%s:%s", pre, logPort), nil))
 	//runtime.SetBlockProfileRate(100000)
 }
 
