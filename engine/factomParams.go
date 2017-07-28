@@ -53,6 +53,7 @@ type FactomParams struct {
 	torManage                bool
 	torUpload                bool
 	disableSimControl        bool
+	exposeProfiling          bool
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -91,6 +92,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+	exposeProfilePtr := flag.Bool("exp", false, "Setting this exposes the profiling port to outside localhost.")
 
 	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
 	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
@@ -158,6 +160,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.loglvl = *logLvlPtr
 	p.logjson = *logJsonPtr
 	p.disableSimControl = *disableSimControlPtr
+	p.exposeProfiling = *exposeProfilePtr
 
 	p.svm = *superVerboseMessages
 	p.pluginPath = *pluginPath
