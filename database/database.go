@@ -4,4 +4,4 @@
 
 package database
 
-// Goveralls fails if this file isn't here, as there 'is no buildable go files', yet unit test exist
+// Coveralls fails if this file isn't here, as there 'is no buildable go files', yet unit test exist
