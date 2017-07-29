@@ -146,6 +146,7 @@ type State struct {
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             InMsgMSGQueue
+	elections              InMsgMSGQueue
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
@@ -780,6 +781,7 @@ func (s *State) Init() {
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.elections = NewInMsgQueue(10000)                  //incoming message queue for factom application messages
 	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
@@ -1932,6 +1934,10 @@ func (s *State) NetworkOutMsgQueue() interfaces.IQueue {
 
 func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
+}
+
+func (s *State) Elections() interfaces.IQueue {
+	return s.elections
 }
 
 func (s *State) APIQueue() interfaces.IQueue {

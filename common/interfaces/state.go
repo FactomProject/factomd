@@ -115,6 +115,7 @@ type IState interface {
 	InMsgQueue() IQueue  // Read by Validate
 	AckQueue() chan IMsg // Leader Queue
 	MsgQueue() chan IMsg // Follower Queue
+	Elections() IQueue
 
 	// Lists and Maps
 	// =====

@@ -22,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/common/messages/elections"
 )
 
 var _ = fmt.Print
@@ -439,6 +440,11 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server %x was an audit server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveAuditServerHash(identityChainID)
 	}
+
+	// Inform Elections of a new leader
+	addLeaderMsg := new(elections.AddLeaderInternal)
+	p.State.elections.Enqueue(addLeaderMsg)
+
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
 	p.FedServers[i] = &Server{ChainID: identityChainID, Online: true}

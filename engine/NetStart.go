@@ -26,6 +26,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"github.com/FactomProject/factomd/elections"
 	log "github.com/FactomProject/logrus"
 )
 
@@ -534,6 +535,7 @@ func startServers(load bool) {
 		go fnode.State.GoSyncEntries()
 		go Timer(fnode.State)
 		go fnode.State.ValidatorLoop()
+		go elections.Run(fnode.State)
 	}
 }
 
