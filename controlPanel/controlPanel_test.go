@@ -2,16 +2,24 @@ package controlPanel_test
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/FactomProject/factomd/common/entryBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	. "github.com/FactomProject/factomd/controlPanel"
-	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/database/databaseOverlay"
+	//"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	//"github.com/FactomProject/factomd/common/primitives/random"
 	. "github.com/FactomProject/factomd/testHelper"
 )
+
+var _ = time.Now()
 
 var _ = fmt.Sprintf("")
 
@@ -74,22 +82,6 @@ func TestControlPanel(t *testing.T) {
 	}
 }
 
-func PopulateConnectionChan(total uint32, connections chan interface{}) {
-	time.Sleep(3 * time.Second)
-	var i uint32
-	temp := make(map[string]p2p.ConnectionMetrics)
-	for i = 0; i < total; i++ {
-		peer := NewSeededP2PConnection(i)
-		if i%2 == 0 {
-			peer.MomentConnected = time.Now().Add(-(time.Duration(i)) * time.Hour)
-		} else {
-			peer.MomentConnected = time.Now().Add(-(time.Duration(i)) * time.Minute)
-		}
-		temp["{"+peer.PeerAddress+"}"] = *peer
-	}
-	connections <- temp
-}
-
 func TestDataDump(t *testing.T) {
 	s := CreateAndPopulateTestState()
 	ds, err := state.DeepStateDisplayCopy(s)
@@ -102,4 +94,112 @@ func TestDataDump(t *testing.T) {
 	if len(d) == 0 {
 		t.Error("No data")
 	}
+}
+
+func TestSearching(t *testing.T) {
+	var err error
+	InitTemplates()
+	s := CreateAndPopulateTestState()
+	StatePointer = s
+
+	c := new(SearchedStruct)
+	c.Type = "entry"
+	c.Input = ""
+
+	// Search for an entry
+	var e interfaces.IEBEntry
+	i := uint32(0)
+	for e == nil {
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if len(d.GetEBlockDBEntries()) > 0 {
+			for _, ebhash := range d.GetEBlockDBEntries() {
+				eblock, err := s.DB.FetchEBlock(ebhash.GetKeyMR())
+				if err != nil {
+					t.Error(err)
+					t.FailNow()
+				}
+
+				for _, ehash := range eblock.GetEntryHashes() {
+					e, err = s.DB.FetchEntry(ehash)
+					if err != nil {
+						t.Error(err)
+						t.FailNow()
+					}
+
+					c.Input = e.GetHash().String()
+					content, err := searchfor(c)
+					if err != nil {
+						t.Error(err)
+						t.FailNow()
+					}
+
+					if !strings.Contains(string(content), e.GetChainID().String()) {
+						t.Error("Does not contain correct content")
+					}
+				}
+			}
+		}
+	}
+
+	// Insert a special crafted entry
+	entry := entryBlock.NewEntry()
+	var one primitives.ByteSlice
+	one.Bytes = []byte{0xFF, 0x00}
+	entry.ExtIDs = []primitives.ByteSlice{one}
+	entry.GetHash()
+
+	db := s.DB.(*databaseOverlay.Overlay)
+	db.InsertEntry(entry)
+
+	c.Input = entry.GetHash().String()
+	content, err := searchfor(c)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	if !strings.Contains(string(content), entry.GetChainID().String()) {
+		t.Error("Does not contain correct content")
+	}
+
+	c.Input = primitives.RandomHash().String()
+	content, err = searchfor(c)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+
+	if !strings.Contains(string(content), "It seems there has been an error while ") {
+		t.Error("Does not contain correct content")
+	}
+}
+
+// Trip some code that is sometimes tested in other unit tests. These lines don't have
+func TestRequest(t *testing.T) {
+	LastRequest = time.Time{}
+
+	SetRequestMutex(true)
+	RequestData()
+	if time.Since(LastRequest).Seconds() < 1 {
+		t.Error("Should have not updated the time")
+	}
+
+	SetRequestMutex(false)
+	RequestData()
+	if time.Since(LastRequest).Seconds() > 1 {
+		t.Error("Should have updated the time")
+	}
+
+	RequestData()
+}
+
+func searchfor(ss *SearchedStruct) ([]byte, error) {
+	w := httptest.NewRecorder()
+	HandleSearchResult(ss, w)
+	return ioutil.ReadAll(w.Body)
 }
