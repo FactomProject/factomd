@@ -6,7 +6,6 @@ package blockMaker
 
 import (
 	"sort"
-	"strings"
 
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -15,7 +14,6 @@ import (
 
 func (bm *BlockMaker) BuildEBlocks() ([]interfaces.IEntryBlock, []interfaces.IEBEntry, error) {
 	sortedEntries := map[string][]*EBlockEntry{}
-	sort.Sort(EBlockEntryByMinute(bm.ProcessedEBEntries))
 	for _, v := range bm.ProcessedEBEntries {
 		sortedEntries[v.Entry.GetChainID().String()] = append(sortedEntries[v.Entry.GetChainID().String()], v)
 	}
@@ -71,22 +69,4 @@ func (bm *BlockMaker) ProcessEBEntry(e interfaces.IEntry) error {
 type EBlockEntry struct {
 	Entry  interfaces.IEntry
 	Minute int
-}
-
-type EBlockEntryByMinute []*EBlockEntry
-
-func (f EBlockEntryByMinute) Len() int {
-	return len(f)
-}
-func (f EBlockEntryByMinute) Less(i, j int) bool {
-	if f[i].Minute < f[j].Minute {
-		return true
-	}
-	if f[i].Minute > f[j].Minute {
-		return false
-	}
-	return strings.Compare(f[i].Entry.GetHash().String(), f[j].Entry.GetHash().String()) < 0
-}
-func (f EBlockEntryByMinute) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
 }

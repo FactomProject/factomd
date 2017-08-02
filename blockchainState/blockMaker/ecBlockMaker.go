@@ -5,16 +5,11 @@
 package blockMaker
 
 import (
-	"sort"
-	"strings"
-
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 func (bm *BlockMaker) BuildECBlock() (interfaces.IEntryCreditBlock, error) {
-	sort.Sort(ECBlockEntryByMinute(bm.ProcessedECBEntries))
-
 	ecBlock := entryCreditBlock.NewECBlock()
 	ecBlock.GetHeader().SetPrevHeaderHash(bm.BState.ECBlockHead.KeyMR)
 	ecBlock.GetHeader().SetPrevFullHash(bm.BState.ECBlockHead.Hash)
@@ -56,22 +51,4 @@ func (bm *BlockMaker) ProcessECEntry(e interfaces.IECBlockEntry) error {
 type ECBlockEntry struct {
 	Entry  interfaces.IECBlockEntry
 	Minute int
-}
-
-type ECBlockEntryByMinute []*ECBlockEntry
-
-func (f ECBlockEntryByMinute) Len() int {
-	return len(f)
-}
-func (f ECBlockEntryByMinute) Less(i, j int) bool {
-	if f[i].Minute < f[j].Minute {
-		return true
-	}
-	if f[i].Minute > f[j].Minute {
-		return false
-	}
-	return strings.Compare(f[i].Entry.GetHash().String(), f[j].Entry.GetHash().String()) < 0
-}
-func (f ECBlockEntryByMinute) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
 }

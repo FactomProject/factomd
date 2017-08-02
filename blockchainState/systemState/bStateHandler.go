@@ -34,6 +34,7 @@ func (bh *BStateHandler) InitMainNet() {
 		bh.MainBState = blockchainState.NewBSMainNet()
 	}
 }
+
 func (bh *BStateHandler) HandleDBStateMsg(msg interfaces.IMsg) error {
 	if msg.Type() != constants.DBSTATE_MSG {
 		return fmt.Errorf("Invalid message type")
