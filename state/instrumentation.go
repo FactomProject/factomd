@@ -237,27 +237,27 @@ var (
 	})
 
 	// Durations
-	TotalReviewHoldingTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalReviewHoldingTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_review_holding_time",
 		Help: "Time spent in ReviewHolding()",
 	})
-	TotalProcessXReviewTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalProcessXReviewTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_process_xreview_time",
 		Help: "Time spent Processing XReview",
 	})
-	TotalProcessProcChanTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalProcessProcChanTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_process_proc_chan_time",
 		Help: "Time spent Processing Process Chan",
 	})
-	TotalEmptyLoopTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalEmptyLoopTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_empty_loop_time",
 		Help: "Time spent in empty loop",
 	})
-	TotalAckLoopTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalAckLoopTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_ack_loop_time",
 		Help: "Time spent in ack loop",
 	})
-	TotalExecuteMsgTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalExecuteMsgTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_execute_msg_time",
 		Help: "Time spent in executeMsg",
 	})

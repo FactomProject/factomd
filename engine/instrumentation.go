@@ -38,11 +38,11 @@ var (
 	})
 
 	// Send/Receive Times
-	TotalSendTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalSendTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_total_send_time",
 		Help: "Time spent sending (nanoseconds)",
 	})
-	TotalReceiveTime = prometheus.NewCounter(prometheus.CounterOpts{
+	TotalReceiveTime = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_total_receive_time",
 		Help: "Time spent receiving (nanoseconds)",
 	})
