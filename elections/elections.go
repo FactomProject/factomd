@@ -20,6 +20,8 @@ func Run(state *state.State) {
 	e.Output = state.InMsgQueue()
 	for {
 		msg := e.Input.Dequeue()
-		fmt.Println("eeee", msg.String())
+		if msg != nil {
+			fmt.Println("eeee", msg.String())
+		}
 	}
 }

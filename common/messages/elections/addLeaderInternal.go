@@ -7,31 +7,27 @@ package elections
 import (
 	"fmt"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/constants"
 	log "github.com/FactomProject/logrus"
-
 )
-
 
 //General acknowledge message
 type AddLeaderInternal struct {
 	messages.MessageBase
-	NewLeader   interfaces.IHash     // Hash of message acknowledged
-	DBHeight    uint32               // Directory Block Height that owns this ack
-	Height      uint32               // Height of this ack in this process list
+	NewLeader   interfaces.IHash // Hash of message acknowledged
+	DBHeight    uint32           // Directory Block Height that owns this ack
+	Height      uint32           // Height of this ack in this process list
 	MessageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)
 
-
 func (m *AddLeaderInternal) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "addleaderinternal", "dbheight": m.DBHeight, "newleader": m.NewLeader.String()[4:12]}
 }
-
 
 func (m *AddLeaderInternal) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -55,7 +51,6 @@ func (m *AddLeaderInternal) GetMsgHash() interfaces.IHash {
 func (m *AddLeaderInternal) Type() byte {
 	return constants.INTERNALADDLEADER
 }
-
 
 func (m *AddLeaderInternal) Validate(state interfaces.IState) int {
 	return 1
@@ -89,7 +84,6 @@ func (e *AddLeaderInternal) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-
 func (m *AddLeaderInternal) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -109,7 +103,10 @@ func (m *AddLeaderInternal) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *AddLeaderInternal) String() string {
-	return fmt.Sprintf("%20s %x dbheight %d","Add Leader Internal", m.LeaderChainID.Bytes(), m.DBHeight)
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
+	return fmt.Sprintf("%20s %x dbheight %d", "Add Leader Internal", m.LeaderChainID.Bytes(), m.DBHeight)
 }
 
 func (a *AddLeaderInternal) IsSameAs(b *AddLeaderInternal) bool {
