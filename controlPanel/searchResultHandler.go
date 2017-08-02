@@ -24,7 +24,7 @@ import (
 
 var _ = htemp.HTMLEscaper("sdf")
 
-func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
+func HandleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	// Functions able to be used within the html
 	funcMap := template.FuncMap{
 		"truncate": func(s string) string {

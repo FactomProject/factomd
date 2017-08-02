@@ -93,14 +93,13 @@ func TestSetupANetwork(t *testing.T) {
 	waitBlocks(state0, 1)
 	// Allocate 4 leaders
 	runCmd("g1")
-	waitMinutes(state0,2)
+	waitMinutes(state0, 2)
 	runCmd("g1")
 	waitMinutes(state0, 3)
 	runCmd("g1")
 	waitMinutes(state0, 4)
 	runCmd("g1")
 	waitMinutes(state0, 5)
-
 
 	runCmd("1")
 	runCmd("l")
@@ -149,7 +148,7 @@ func TestSetupANetwork(t *testing.T) {
 	waitMinutes(state0, 5)
 	runCmd("g1")
 	waitMinutes(state0, 6)
-	waitBlocks(state0,1)
+	waitBlocks(state0, 1)
 	waitMinutes(state0, 2)
 	runCmd("g1")
 	waitMinutes(state0, 3)
@@ -157,7 +156,7 @@ func TestSetupANetwork(t *testing.T) {
 	waitMinutes(state0, 4)
 	runCmd("g1")
 	waitMinutes(state0, 5)
-	waitBlocks(state0,1)
+	waitBlocks(state0, 1)
 	runCmd("9")
 	runCmd("x")
 	runCmd("8")
