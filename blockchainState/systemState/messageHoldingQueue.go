@@ -51,12 +51,12 @@ func (mhq *MessageHoldingQueue) AddMessage(msg interfaces.IMsg) {
 	mhq.Messages[msg.GetHash().String()] = msg
 }
 
-func (mhq *MessageHoldingQueue) IsAcked(msg interfaces.IMsg) bool {
+func (mhq *MessageHoldingQueue) IsAcked(h interfaces.IHash) bool {
 	mhq.Init()
 	mhq.Semaphore.RLock()
 	defer mhq.Semaphore.RUnlock()
 
-	ack := mhq.Acks[msg.GetHash().String()]
+	ack := mhq.Acks[h.String()]
 	if ack != nil {
 		return true
 	}

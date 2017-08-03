@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/blockchainState"
 	"github.com/FactomProject/factomd/blockchainState/blockMaker"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 )
