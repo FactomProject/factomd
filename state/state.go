@@ -1258,7 +1258,6 @@ func (s *State) fillAcksMap() {
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
-	fmt.Println("GetPendingEntries")
 	resp := make([]interfaces.IPendingEntry, 0)
 	pls := s.ProcessLists.Lists
 	var cc messages.CommitChainMsg
@@ -1285,9 +1284,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 							tmp.ChainID = cc.CommitChain.ChainIDHash
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = "AckStatusACK"
+								tmp.Status = constants.AckStatusACKString
 							} else {
-								tmp.Status = "AckStatusDBlockConfirmed"
+								tmp.Status = constants.AckStatusDBlockConfirmedString
 							}
 
 							if util.IsInPendingEntryList(resp, tmp) {
@@ -1306,9 +1305,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 							tmp.ChainID = nil
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = "AckStatusACK"
+								tmp.Status = constants.AckStatusACKString
 							} else {
-								tmp.Status = "AckStatusDBlockConfirmed"
+								tmp.Status = constants.AckStatusDBlockConfirmedString
 							}
 
 							if !util.IsInPendingEntryList(resp, tmp) {
@@ -1326,9 +1325,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							tmp.EntryHash = re.Entry.GetHash()
 							tmp.ChainID = re.Entry.GetChainID()
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = "AckStatusACK"
+								tmp.Status = constants.AckStatusACKString
 							} else {
-								tmp.Status = "AckStatusDBlockConfirmed"
+								tmp.Status = constants.AckStatusDBlockConfirmedString
 							}
 
 							if !util.IsInPendingEntryList(resp, tmp) {
@@ -1356,7 +1355,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 			tmp.EntryHash = re.Entry.GetHash()
 
 			tmp.ChainID = re.Entry.GetChainID()
-			tmp.Status = "AckStatusNotConfirmed"
+			tmp.Status = constants.AckStatusNotConfirmedString
 			if !util.IsInPendingEntryList(resp, tmp) {
 				resp = append(resp, tmp)
 			}
@@ -1382,9 +1381,9 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					var tmp interfaces.IPendingTransaction
 					tmp.TransactionID = tran.GetSigHash()
 					if tran.GetBlockHeight() > 0 {
-						tmp.Status = "AckStatusDBlockConfirmed"
+						tmp.Status = constants.AckStatusDBlockConfirmedString
 					} else {
-						tmp.Status = "AckStatusACK"
+						tmp.Status = constants.AckStatusACKString
 					}
 
 					tmp.Inputs = tran.GetInputs()
@@ -1431,7 +1430,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			tempTran := rm.GetTransaction()
 			var tmp interfaces.IPendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
-			tmp.Status = "AckStatusNotConfirmed"
+			tmp.Status = constants.AckStatusNotConfirmedString
 			flgFound = tempTran.HasUserAddress(params.(string))
 			tmp.Inputs = tempTran.GetInputs()
 			tmp.Outputs = tempTran.GetOutputs()
