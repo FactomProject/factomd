@@ -1385,6 +1385,14 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// What I do for each EOM
 	if !vm.Synced {
 
+		//InMsg := new(elections.EomSigInternal)
+		//InMsg.NName = s.FactomNodeName
+		//InMsg.DBHeight = p.DBHeight
+		//InMsg.Height = vm.Height
+		//InMsg.LocalOnly = true
+		//InMsg.ServerID = e.LeaderChainID
+		//s.elections.Enqueue(InMsg)
+
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
 		s.EOMProcessed++

@@ -17,7 +17,8 @@ import (
 //General acknowledge message
 type AddLeaderInternal struct {
 	messages.MessageBase
-	NewLeader   interfaces.IHash // Hash of message acknowledged
+	NName       string
+	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
 	Height      uint32           // Height of this ack in this process list
 	MessageHash interfaces.IHash
@@ -25,8 +26,12 @@ type AddLeaderInternal struct {
 
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)
 
+func (m *AddLeaderInternal) GetServerID() interfaces.IHash {
+	return m.ServerID
+}
+
 func (m *AddLeaderInternal) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "addleaderinternal", "dbheight": m.DBHeight, "newleader": m.NewLeader.String()[4:12]}
+	return log.Fields{"category": "message", "messagetype": "addleaderinternal", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
 func (m *AddLeaderInternal) GetRepeatHash() interfaces.IHash {
@@ -106,7 +111,7 @@ func (m *AddLeaderInternal) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %x dbheight %d", "Add Leader Internal", m.LeaderChainID.Bytes(), m.DBHeight)
+	return fmt.Sprintf("%20s %x %10s dbheight %d", "Add Leader Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
 }
 
 func (a *AddLeaderInternal) IsSameAs(b *AddLeaderInternal) bool {

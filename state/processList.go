@@ -442,8 +442,12 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 
 	// Inform Elections of a new leader
-	addLeaderMsg := new(elections.AddLeaderInternal)
-	p.State.elections.Enqueue(addLeaderMsg)
+	//	InMsg := new(elections.AddLeaderInternal)
+	//	InMsg.NName = p.State.FactomNodeName
+	//	InMsg.DBHeight = p.DBHeight
+	//	InMsg.LocalOnly = true
+	//	InMsg.ServerID = identityChainID
+	//	p.State.elections.Enqueue(InMsg)
 
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])
@@ -469,6 +473,14 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddAuditServer Server %x was a fed server at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
 		p.RemoveFedServerHash(identityChainID)
 	}
+
+	InMsg := new(elections.AddAuditInternal)
+	InMsg.NName = p.State.FactomNodeName
+	InMsg.DBHeight = p.DBHeight
+	InMsg.LocalOnly = true
+	InMsg.ServerID = identityChainID
+	p.State.elections.Enqueue(InMsg)
+
 	p.AuditServers = append(p.AuditServers, nil)
 	copy(p.AuditServers[i+1:], p.AuditServers[i:])
 	p.AuditServers[i] = &Server{ChainID: identityChainID, Online: true}
@@ -484,6 +496,14 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 		p.RemoveAuditServerHash(identityChainID) // SOF-201
 		return
 	}
+
+	InMsg := new(elections.RemoveLeaderInternal)
+	InMsg.NName = p.State.FactomNodeName
+	InMsg.DBHeight = p.DBHeight
+	InMsg.LocalOnly = true
+	InMsg.ServerID = identityChainID
+	p.State.elections.Enqueue(InMsg)
+
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
 	p.MakeMap()
 	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveFedServer: Removing Server %x", identityChainID.Bytes()[3:8]))
@@ -495,6 +515,14 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 	if !found {
 		return
 	}
+
+	InMsg := new(elections.RemoveAuditInternal)
+	InMsg.NName = p.State.FactomNodeName
+	InMsg.DBHeight = p.DBHeight
+	InMsg.LocalOnly = true
+	InMsg.ServerID = identityChainID
+	p.State.elections.Enqueue(InMsg)
+
 	p.AuditServers = append(p.AuditServers[:i], p.AuditServers[i+1:]...)
 	//p.State.AddStatus(fmt.Sprintf("PROCESSLIST.RemoveAuditServer: Removing Audit Server %x", identityChainID.Bytes()[3:8]))
 }
