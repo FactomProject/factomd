@@ -442,12 +442,12 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 
 	// Inform Elections of a new leader
-	//	InMsg := new(elections.AddLeaderInternal)
-	//	InMsg.NName = p.State.FactomNodeName
-	//	InMsg.DBHeight = p.DBHeight
-	//	InMsg.LocalOnly = true
-	//	InMsg.ServerID = identityChainID
-	//	p.State.elections.Enqueue(InMsg)
+	InMsg := new(elections.AddLeaderInternal)
+	InMsg.NName = p.State.FactomNodeName
+	InMsg.DBHeight = p.DBHeight
+	InMsg.LocalOnly = true
+	InMsg.ServerID = identityChainID
+	p.State.elections.Enqueue(InMsg)
 
 	p.FedServers = append(p.FedServers, nil)
 	copy(p.FedServers[i+1:], p.FedServers[i:])

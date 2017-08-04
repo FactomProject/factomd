@@ -19,6 +19,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 
+	"github.com/FactomProject/factomd/common/messages/elections"
 	log "github.com/FactomProject/logrus"
 )
 
@@ -1385,13 +1386,14 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	// What I do for each EOM
 	if !vm.Synced {
 
-		//InMsg := new(elections.EomSigInternal)
-		//InMsg.NName = s.FactomNodeName
-		//InMsg.DBHeight = p.DBHeight
-		//InMsg.Height = vm.Height
-		//InMsg.LocalOnly = true
-		//InMsg.ServerID = e.LeaderChainID
-		//s.elections.Enqueue(InMsg)
+		InMsg := new(elections.EomSigInternal)
+		InMsg.NName = s.FactomNodeName
+		InMsg.DBHeight = e.DBHeight
+		InMsg.Minute = uint32(e.Minute)
+		InMsg.Height = uint32(vm.Height)
+		InMsg.LocalOnly = true
+		InMsg.ServerID = e.ChainID
+		s.elections.Enqueue(InMsg)
 
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Process Once: !e.Processed(%v) EOM: %s", s.FactomNodeName, e.VMIndex, e.Processed, e.String()))
 		vm.LeaderMinute++
