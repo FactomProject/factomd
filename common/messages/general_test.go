@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -94,4 +95,79 @@ func testUnmarshalMsg(m interfaces.IMsg) error {
 	}
 
 	return nil
+}
+
+func TestMessageNames(t *testing.T) {
+	if MessageName(constants.EOM_MSG) != "EOM" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.ACK_MSG) != "Ack" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.AUDIT_SERVER_FAULT_MSG) != "Audit Server Fault" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.FED_SERVER_FAULT_MSG) != "Fed Server Fault" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.FULL_SERVER_FAULT_MSG) != "Full Server Fault" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.COMMIT_CHAIN_MSG) != "Commit Chain" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.COMMIT_ENTRY_MSG) != "Commit Entry" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.DIRECTORY_BLOCK_SIGNATURE_MSG) != "Directory Block Signature" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.EOM_TIMEOUT_MSG) != "EOM Timeout" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.FACTOID_TRANSACTION_MSG) != "Factoid Transaction" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.HEARTBEAT_MSG) != "HeartBeat" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.INVALID_ACK_MSG) != "Invalid Ack" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.INVALID_DIRECTORY_BLOCK_MSG) != "Invalid Directory Block" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.MISSING_MSG) != "Missing Msg" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.MISSING_MSG_RESPONSE) != "Missing Msg Response" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.MISSING_DATA) != "Missing Data" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.DATA_RESPONSE) != "Data Response" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.REVEAL_ENTRY_MSG) != "Reveal Entry" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.REQUEST_BLOCK_MSG) != "Request Block" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.SIGNATURE_TIMEOUT_MSG) != "Signature Timeout" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.DBSTATE_MISSING_MSG) != "DBState Missing" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.DBSTATE_MSG) != "DBState" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.BOUNCE_MSG) != "Bounce Message" {
+		t.Error("EOM MessageName incorrect")
+	}
+	if MessageName(constants.BOUNCEREPLY_MSG) != "Bounce Reply Message" {
+		t.Error("EOM MessageName incorrect")
+	}
 }
