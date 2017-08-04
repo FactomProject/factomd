@@ -13,7 +13,7 @@ var (
 		Name: "factomd_database_leveldb_puts",
 		Help: "Count puts to the database",
 	})
-	LevelDBCacheblock = prometheus.NewCounter(prometheus.CounterOpts{
+	LevelDBCacheblock = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_database_leveldb_cacheblock",
 		Help: "Memory used by Level DB for caching",
 	})
