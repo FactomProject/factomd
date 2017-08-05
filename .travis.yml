@@ -1,16 +1,48 @@
+sudo: required
+dist: trusty
+
 language: go
+
 go:
-        - 1.8
+  - tip
+
+addons:
+  ssh_known_hosts:
+  - github.com
+
+matrix:
+  include:
+    - env: ITEM=BUILD_ALPINE # Make sure stuff builds
+    - env: ITEM=BUILD_AND_TEST # See if we can create the testnet
+
 before_install:
-        - go get github.com/mattn/goveralls
+  # Setup to install the latest docker
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update -qqy
+
 install:
-        - go get -v github.com/Masterminds/glide
-        - cd $GOPATH/src/github.com/Masterminds/glide && git checkout tags/v0.12.3 && go install && cd -
-        - glide install
+  # Install the latest docker
+  - sudo apt-get install -y docker-ce
+
+before_script:
+  # Make sure that everything builds
+  - env
+  - if [ "$ITEM" = "BUILD_ALPINE" ]; then docker build -t factomd -f Dockerfile.alpine .; fi
+  - if [ "$ITEM" = "BUILD_AND_TEST" ]; then docker build -t factomd .; fi
+
 script:
-        - go build -v
-        - go test -v $(glide nv)
-        - travis_wait 30 $GOPATH/bin/goveralls -service=travis-ci -ignore=$(paste -sd, .coverignore)
+  # Make sure that everything builds
+  - if [ "$ITEM" = "BUILD_ALPINE" ]; then echo "Build successful"; fi
+  - if [ "$ITEM" = "BUILD_AND_TEST" ]; then docker run --rm -e COVERALLS_TOKEN --privileged=true --entrypoint='/go/bin/goveralls' factomd  -v -service=travis-ci -ignore=$(paste -sd, .coverignore); fi
+
 notifications:
-        slack:
-                secure: c8wuYqAHxEhIPBcCoM0IzoPQaBA5pqqi5jFRHsMu98VlHoKEiyjTGtNp2E7I5Y0jmxg1fEFZNsfRe0qC6X+XgcLuBCvsbFVeImtLP5sDZh3+FgfvQM+rh4VpgUENuIEpMCjXkJVzXAxEmWve3GLrhmdlP8PBxCbiwnUBe4kpbYeWZNcNXC4bZGxslNQBC/EHcrzW2zvRoMvBRhfPCbNea/XD/+6yK6tujOJ61HA9h3+Ys8FIAfyYy5XmNctKQKE6MOo6sh9Ou/OSlVM8JajG+FPDoYbk/MMnakAL41pQbZZjCYB9xI1y58zslTlv0FxmKsqml9qffb5veNpVYpdljOpegA3u4TGaLdTCpzJxibpuGVJWzUKHO2y59y54DPK275mOZCVL88SfKuUsFNER3Y6z0uZR3lLfsK5cmh5rPLyFCoPW9QvgT+nSUP/ueS629RgvyVWRXMpEin2P38v+4FqBrQMJ1fjAnecFxT9ztot0YyUsYqfzVnvaaQbXG6hAvCcc+iE5N0ObqqUhFGdiRa8IbsuOU1pL1uGeVSZXTvbb7Gh1TP1KPAb+vbeJygg6VYxHTJZIbF58yo7myqfprq6WBocYQh1C2/hhBfE4cE1su8vNZMex9cSk7fbK2WM9vYGe5g/rtWfx0EGK/16qOnOdCnrG7fnPq/R1REh8bvk=
+  email: false
+  slack:
+    rooms:
+      secure: NWnjaMvUZDAUFFES58Ci45oHpSDWOW5/sk2RBcK6K4v/YSi+FWG46S1rsGJZ3HcwPWjKY40EXLfn8JiGH/zM+ApUCRVACnsEvENPOvlY3HEUIqkIfMLX2KPQLE39X1PvbXfZ0z8sCKrSkqRGMD0RHieWcwTH4Dp4j5cG1lljGlDIIGADQ0PaWeVzQie3+P1Ljbmw/KSeItB6A7Fon+0H47tKQiwctoH2cFycAciwRk8B8RM8UMDjGf2M/7+1GQ08K9OU7II8dVqEnyk/q+iv6gyQoQn8lS8rrgG/AHfSMOf2tCJ3HPwFwhalV7sotZk+lJggsYMJand4++rNVj2MB/msBBx11FxHHW1jKfboC8B+bj9VyLehLO7gU4V0bpn2s/9Xs5g82PxcAgWSmxw4o/Cv60QTmVu13k6tInTi7ebVwLp2oX5DyNUfmJJl4kkDWazoAlxzVtKeuBJVvwkXpVAuxsivqODPxpWe1Sr4XXmU36S6syzmobWMbnmAoX7b7HPq0p0iy7JQiPvIAhqW4bEsA0TfNBisGgFpepAcH5q1zzJAWGJrW3Crl9RWOJhpCWh+eV7F3t5yeW+KCmXcXgxeKV2shNW8IWJ4Zu24ztxg1Uo3g7eayButGNdzu4/fjj9iHzV0Ip1WGNEF0FvwcsJV1YRSyZSE0ArV0wOjUxQ=
+    on_success: change
+    on_failure: always
+env:
+  global:
+    secure: HEZ9A3kFdryH2FZaEJ2WuqznQ6/Hnjv9dHyy5mAd107y9uqpivE1Bi+94hFn7fdphFdVTDPMzUAT7px984Z9+Sal0gJzRs6foCL8UUP3K+bDopWUdHM9WjK+fjnHCf/ZDPvluJcO90g6XOM/H46hDOuRA7pQLT7iEeRksjZ7Q1p7mLqItIwtKhGQAdelx/X9uGemleNTC1JcvMJTxHZlek8rVN6x5mI/t3psB6LYI4cksze4YVAE2HAFS3I/C4vRtccLfIjaoOWpCWjuBJAzkvsI+r2cDaq4fIxLyJbAB5ZGOJEgSzYKl2cfgEIFRn3nW9MjLNSdgESIqTURyBPlmGetsw29BN5syCQYjFE6DeDKbgh8aVHCfxs/VqtQvar1A542ejllSLSdrMdTSsgrv6B0ICWe3GqyQ+0Zs22jqvm3LhY8hTXrQBwizogFBngLrm3VSWGB0IVhqRa27Q4o+fZW+JMrW9NwddCIeX6BW1wEq8AkZC22+jk+cpGRKCyIYAKnQKRs4fE3lUAJBWQjaYVNfdW4CBR/RKfz7vi4wAeSwzQg+Hj3uRhzl+M2jG9Rohw+GSismARXEZIANBRiCTHVF6/KW/nV9mDaPvX851m8k4Qz0R8fL/yM4p4Ka2S4ZyKdDhnPnejsBb/EUr6NMqxN+/oFftHne6sU2y0d+kc=
