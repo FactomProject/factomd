@@ -331,6 +331,9 @@ func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interfac
 	return fBlockToResp(block)
 }
 
+// Cached response for genesis fblock
+var gensisFBlockCache interface{}
+
 func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallFblockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
@@ -339,6 +342,15 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	err := MapToObject(params, heightRequest)
 	if err != nil {
 		return nil, NewInvalidParamsError()
+	}
+
+	// The gensis FBlock is a very expensive call (>1s) because of the string manipulation
+	// To counter this, we will cache that response for quicker returns, only doing that manipulation one.
+	if heightRequest.Height == 0 {
+		if gensisFBlockCache != nil {
+			GensisFblockCall.Inc()
+			return gensisFBlockCache, nil
+		}
 	}
 
 	dbase := state.GetAndLockDB()
@@ -352,7 +364,17 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
-	return fBlockToResp(block)
+	resp, jerr := fBlockToResp(block)
+	if err != nil {
+		return nil, jerr
+	}
+
+	// Cache the gensis block if it is nil
+	if gensisFBlockCache == nil && heightRequest.Height == 0 {
+		gensisFBlockCache = resp
+	}
+
+	return resp, nil
 }
 
 func fBlockToResp(block interfaces.IFBlock) (interface{}, *primitives.JSONError) {
