@@ -60,4 +60,6 @@ func TestProcessListMisc(t *testing.T) {
 	if !wasReset {
 		t.Error("Process List Reset did not work")
 	}
+
+	pl.TrimVMList(0, 0)
 }
