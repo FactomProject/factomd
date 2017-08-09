@@ -42,13 +42,13 @@ var InputChan = make(chan string) // Get commands here
 func GetLine(listenToStdin bool) string {
 
 	if listenToStdin {
-		l := make([]byte, 100)
+		line := make([]byte, 100)
 		var err error
 		// When running as a detatched process, this routine becomes a very tight loop and starves other goroutines.
 		// So, we will sleep before letting it check to see if Stdin has been reconnected
 		for {
-			if _, err = os.Stdin.Read(l); err == nil {
-				return string(l)
+			if _, err = os.Stdin.Read(line); err == nil {
+				return string(line)
 			} else {
 				if err == io.EOF {
 					fmt.Printf("Error reading from std, sleeping for 5s: %s\n", err.Error())
