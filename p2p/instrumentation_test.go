@@ -8,4 +8,5 @@ import (
 
 func TestRegisterPrometheus(t *testing.T) {
 	RegisterPrometheus()
+	RegisterPrometheus()
 }
