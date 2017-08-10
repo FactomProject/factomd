@@ -670,23 +670,6 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	return r.requestCnt
 }
 
-func getLeaderMin(p *ProcessList) int {
-	leaderMin := 0
-	for _, vm := range p.VMs {
-		if vm.LeaderMinute > leaderMin {
-			leaderMin = vm.LeaderMinute
-		}
-	}
-	if leaderMin >= 10 {
-		leaderMin = 0
-	}
-	leaderMin--
-	if leaderMin < 0 {
-		leaderMin = 0
-	}
-	return leaderMin
-}
-
 func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
 	if !(uint32(len(p.VMs[vmIndex].List)) > height) {
 		p.VMs[vmIndex].List = p.VMs[vmIndex].List[:height]

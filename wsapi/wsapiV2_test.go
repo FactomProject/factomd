@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -449,5 +450,32 @@ func TestJSONString(t *testing.T) {
 		if !strings.Contains(s, "Findthis") {
 			t.Error("Missing chainID")
 		}
+	}
+}
+
+func Test_ecBlockToResp(t *testing.T) {
+	type args struct {
+		block interfaces.IEntryCreditBlock
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  interface{}
+		want1 *primitives.JSONError
+	}{
+
+	// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got, got1 := ECBlockToResp(tt.args.block)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ecBlockToResp() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("ecBlockToResp() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
 	}
 }

@@ -21,3 +21,14 @@ func TestSetAndGetUseTorrent(t *testing.T) {
 		t.Error("State not using torrents despite having been set to true")
 	}
 }
+func TestSetAndGetTorrentUploader(t *testing.T) {
+	state := testHelper.CreateAndPopulateTestState()
+	if state.TorrentUploader() {
+		t.Error("State unexpectedly using TorrentUploader without having been set to true")
+	}
+
+	state.SetTorrentUploader(true)
+	if !state.TorrentUploader() {
+		t.Error("State not using TorrentUploader despite having been set to true")
+	}
+}
