@@ -149,6 +149,11 @@ func (db *Overlay) ExecuteMultiBatch() error {
 	return db.PutInBatch(db.MultiBatch)
 }
 
+func (db *Overlay) CancelMultiBatch() {
+	db.MultiBatch = nil
+	db.BatchSemaphore.Unlock()
+}
+
 func (db *Overlay) PutInBatch(records []interfaces.Record) error {
 	return db.DB.PutInBatch(records)
 }

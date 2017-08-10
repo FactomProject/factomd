@@ -45,6 +45,7 @@ type DBOverlaySimple interface {
 	FetchDirBlockInfoByKeyMR(hash IHash) (IDirBlockInfo, error)
 	SetExportData(path string)
 	StartMultiBatch()
+	CancelMultiBatch()
 	Trim()
 	FetchAllEntriesByChainID(chainID IHash) ([]IEBEntry, error)
 }
@@ -58,6 +59,7 @@ type DBOverlay interface {
 	SetExportData(path string)
 
 	StartMultiBatch()
+	CancelMultiBatch()
 	PutInMultiBatch(records []Record)
 	ExecuteMultiBatch() error
 	GetEntryType(hash IHash) (IHash, error)

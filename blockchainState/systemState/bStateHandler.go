@@ -106,22 +106,25 @@ func (bh *BStateHandler) SaveBlockSetToDB(dBlock interfaces.IDirectoryBlock, aBl
 	ecBlock interfaces.IEntryCreditBlock, eBlocks []interfaces.IEntryBlock, entries []interfaces.IEBEntry) error {
 
 	bh.DB.StartMultiBatch()
-	//TODO: cancel multi batch on error
 
 	err := bh.DB.ProcessDBlockMultiBatch(dBlock)
 	if err != nil {
+		bh.DB.CancelMultiBatch()
 		return err
 	}
 	err = bh.DB.ProcessABlockMultiBatch(aBlock)
 	if err != nil {
+		bh.DB.CancelMultiBatch()
 		return err
 	}
 	err = bh.DB.ProcessFBlockMultiBatch(fBlock)
 	if err != nil {
+		bh.DB.CancelMultiBatch()
 		return err
 	}
 	err = bh.DB.ProcessECBlockMultiBatch(ecBlock)
 	if err != nil {
+		bh.DB.CancelMultiBatch()
 		return err
 	}
 	for _, e := range eBlocks {
@@ -133,6 +136,7 @@ func (bh *BStateHandler) SaveBlockSetToDB(dBlock interfaces.IDirectoryBlock, aBl
 	for _, e := range entries {
 		err = bh.DB.InsertEntryMultiBatch(e)
 		if err != nil {
+			bh.DB.CancelMultiBatch()
 			return err
 		}
 	}
