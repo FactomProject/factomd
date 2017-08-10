@@ -308,6 +308,9 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			}
 		}
 		for _, h := range block.ECBlock.GetEntryHashes() {
+			if h.IsMinuteMarker() == true {
+				continue
+			}
 			hashkey := new(HashRequest)
 			hashkey.Hash = h.String()
 
@@ -338,6 +341,9 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			}
 		}
 		for _, tx := range block.EBlock.GetEntryHashes() {
+			if tx.IsMinuteMarker() == true {
+				continue
+			}
 			hashkey := new(HashRequest)
 			hashkey.Hash = tx.String()
 
@@ -368,6 +374,9 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			}
 		}
 		for _, tx := range block.AnchorEBlock.GetEntryHashes() {
+			if tx.IsMinuteMarker() == true {
+				continue
+			}
 			hashkey := new(HashRequest)
 			hashkey.Hash = tx.String()
 

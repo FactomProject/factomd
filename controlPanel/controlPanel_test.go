@@ -125,6 +125,9 @@ func TestSearching(t *testing.T) {
 				}
 
 				for _, ehash := range eblock.GetEntryHashes() {
+					if ehash.IsMinuteMarker() == true {
+						continue
+					}
 					e, err = s.DB.FetchEntry(ehash)
 					if err != nil {
 						t.Error(err)

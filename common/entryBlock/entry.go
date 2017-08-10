@@ -116,9 +116,13 @@ func (c *Entry) DatabaseSecondaryIndex() interfaces.IHash {
 // NewChainID generates a ChainID from an entry. ChainID = primitives.Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
 func NewChainID(e interfaces.IEBEntry) interfaces.IHash {
+	return ExternalIDsToChainID(e.ExternalIDs())
+}
+
+func ExternalIDsToChainID(extIDs [][]byte) interfaces.IHash {
 	id := new(primitives.Hash)
 	sum := sha256.New()
-	for _, v := range e.ExternalIDs() {
+	for _, v := range extIDs {
 		x := sha256.Sum256(v)
 		sum.Write(x[:])
 	}

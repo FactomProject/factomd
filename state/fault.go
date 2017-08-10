@@ -243,36 +243,6 @@ func ToggleAuditOffline(pl *ProcessList, fc FaultCore) {
 	}
 }
 
-// couldIFullFault is our check to see if there are any negotiations
-// ongoing for a particular VM (leader), and if so, have we gathered
-// enough ServerFaults (+the Audit Pledge) to issue a FullFault message
-// and conclude the faulting process ourselves
-func couldIFullFault(pl *ProcessList, vmIndex int) bool {
-	leaderMin := getLeaderMin(pl)
-	faultedFed := pl.ServerMap[leaderMin][vmIndex]
-	id := pl.FedServers[faultedFed].GetChainID()
-	stringid := id.String()
-
-	currentFault := pl.CurrentFault()
-
-	if currentFault.IsNil() {
-		return false
-	}
-
-	if !currentFault.AmINegotiator {
-		faultedServerFromFaultState := currentFault.ServerID.String()
-		if faultedServerFromFaultState == stringid {
-			if currentFault.PledgeDone && currentFault.HasEnoughSigs(pl.State) {
-				// if the above 2 conditions are satisfied, we could issue
-				// a FullFault message (if we were the negotiator for this fault)
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 func CraftFault(pl *ProcessList, vmIndex int, height int) *messages.ServerFault {
 	// TODO: if I am the Leader being faulted, I should respond by sending out
 	// a MissingMsgResponse to everyone for the msg I'm being faulted for

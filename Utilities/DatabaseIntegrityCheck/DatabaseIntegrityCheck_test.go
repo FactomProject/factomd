@@ -12,7 +12,7 @@ import (
 
 func TestCheckDatabaseFromDBO(t *testing.T) {
 	dbo := testHelper.CreateAndPopulateTestDatabaseOverlay()
-	CheckDatabase(dbo.DB)
+	CheckDatabase(dbo)
 }
 
 func TestCheckDatabaseFromState(t *testing.T) {
