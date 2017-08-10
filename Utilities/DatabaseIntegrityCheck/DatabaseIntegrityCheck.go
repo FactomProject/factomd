@@ -50,15 +50,15 @@ func main() {
 		}
 	}
 
-	CheckDatabase(dbase)
+	dbo := databaseOverlay.NewOverlay(dbase)
+	CheckDatabase(dbo)
+	//CheckMinuteNumbers(dbo)
 }
 
-func CheckDatabase(db interfaces.IDatabase) {
-	if db == nil {
+func CheckDatabase(dbo interfaces.DBOverlay) {
+	if dbo == nil {
 		return
 	}
-
-	dbo := databaseOverlay.NewOverlay(db)
 
 	dBlock, err := dbo.FetchDBlockHead()
 	if err != nil {

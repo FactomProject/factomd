@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //Requests entry blocks from a range of DBlocks
@@ -236,6 +238,11 @@ func (m *EntryBlockResponse) MarshalForSignature() ([]byte, error) {
 
 func (m *EntryBlockResponse) MarshalBinary() ([]byte, error) {
 	return m.MarshalForSignature()
+}
+
+func (m *EntryBlockResponse) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "entryblockresponse",
+		"hash": m.GetMsgHash().String()[:6]}
 }
 
 func (m *EntryBlockResponse) String() string {

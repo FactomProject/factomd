@@ -207,6 +207,10 @@ func (h *Hash) IsMinuteMarker() bool {
 	return false
 }
 
+func (h *Hash) ToMinute() byte {
+	return h[constants.HASH_LENGTH-1]
+}
+
 func (e *Hash) JSONByte() ([]byte, error) {
 	return EncodeJSON(e)
 }
