@@ -1,0 +1,103 @@
+version: 2
+
+jobs:
+  test:
+    working_directory: /go/src/github.com/FactomProject/factomd
+    docker:
+      - image: circleci/golang:1.8
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - factomd-go-build-cache-{{ checksum "glide.lock" }}
+
+      - run:
+          name: Get glide
+          command: |
+            go get -v github.com/Masterminds/glide
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+
+      - run:
+          name: Get goveralls
+          command: |
+            go get github.com/mattn/goveralls
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+
+      - run:
+          name: Get the dependencies
+          command: |
+            glide install
+
+      - run:
+          name: Build and install the executable
+          command: go install -v
+
+      - run:
+          name: Run tests!
+          command: go test -v $(glide nv)
+
+
+      - save_cache:
+          key: factomd-go-build-cache-{{ checksum "glide.lock" }}
+          paths:
+            - vendor
+
+  coveralls:
+    working_directory: /go/src/github.com/FactomProject/factomd
+    docker:
+      - image: circleci/golang:1.8
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - factomd-go-coveralls-cache-{{ checksum "glide.lock" }}
+
+      - run:
+          name: Get glide
+          command: |
+            go get -v github.com/Masterminds/glide
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+
+      - run:
+          name: Get goveralls
+          command: |
+            go get github.com/mattn/goveralls
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+
+      - run:
+          name: Get the dependencies
+          command: |
+            glide install
+
+      - run:
+          name: Build and install the executable
+          command: go install -v
+
+      - run:
+          name: Coveralls!
+          command: goveralls -v -ignore=$(paste -sd, .coverignore) -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+
+      - save_cache:
+          key: factomd-go-coveralls-cache-{{ checksum "glide.lock" }}
+          paths:
+            - vendor
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - "test"
+      - "coveralls"
