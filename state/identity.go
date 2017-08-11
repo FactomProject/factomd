@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/identity"
+	. "github.com/FactomProject/factomd/common/identityEntries"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -674,7 +676,7 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 	oneAsk.BlockChain = BlockChain
 	oneAsk.KeyLevel = extIDs[3][0]
 	oneAsk.KeyType = extIDs[4][0]
-	oneAsk.Key = extIDs[5]
+	copy(oneAsk.SigningKey[:], extIDs[5])
 
 	contains := false
 	for i := 0; i < len(ask); i++ {
@@ -778,7 +780,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		} else {
 			for _, aKey := range id.AnchorKeys {
 				if strings.Compare(aKey.BlockChain, "BTC") == 0 {
-					copy(btcKey[:20], aKey.Key[:20])
+					copy(btcKey[:20], aKey.SigningKey[:20])
 				}
 			}
 		}

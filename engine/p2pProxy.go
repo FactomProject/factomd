@@ -216,7 +216,7 @@ func (p *P2PProxy) stopProxy() {
 	}
 }
 
-type messageLog struct {
+type MessageLog struct {
 	Hash     string // string(GetMsgHash().Bytes())
 	Received bool   // true if logging a recieved message, false if sending
 	Time     int64
@@ -224,15 +224,15 @@ type messageLog struct {
 	Mtype    byte   /// message type (types defined in constants.go)
 }
 
-func (e *messageLog) JSONByte() ([]byte, error) {
+func (e *MessageLog) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *messageLog) JSONString() (string, error) {
+func (e *MessageLog) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (e *messageLog) String() string {
+func (e *MessageLog) String() string {
 	str, _ := e.JSONString()
 	return str
 }
@@ -244,7 +244,7 @@ func (p *P2PProxy) logMessage(msg interfaces.IMsg, received bool) {
 		// }
 		hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 		time := time.Now().Unix()
-		ml := messageLog{Hash: hash, Received: received, Time: time, Mtype: msg.Type(), Target: msg.GetNetworkOrigin()}
+		ml := MessageLog{Hash: hash, Received: received, Time: time, Mtype: msg.Type(), Target: msg.GetNetworkOrigin()}
 		p2p.BlockFreeChannelSend(p.logging, ml)
 	}
 }
@@ -263,8 +263,8 @@ func (p *P2PProxy) ManageLogging() {
 	for {
 		item := <-p.logging
 		switch item.(type) {
-		case messageLog:
-			message := item.(messageLog)
+		case MessageLog:
+			message := item.(MessageLog)
 			elapsedMinutes := int(time.Since(start).Minutes())
 			line := fmt.Sprintf("%d, %s, %t, %d, %s, %d\n", message.Mtype, message.Hash, message.Received, message.Time, message.Target, elapsedMinutes)
 			_, err := p.logWriter.Write([]byte(line))

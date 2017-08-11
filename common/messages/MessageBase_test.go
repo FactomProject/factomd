@@ -29,6 +29,12 @@ func TestMessageBase(t *testing.T) {
 			t.Errorf("Hashes are not equal")
 		}
 
+		mb.SetFullMsgHash(hash)
+		fmh := mb.GetFullMsgHash()
+		if fmh.IsSameAs(hash) == false {
+			t.Errorf("FullMsgHashes are not equal")
+		}
+
 		i := random.RandInt()
 		mb.SetVMIndex(i)
 		if mb.GetVMIndex() != i {
