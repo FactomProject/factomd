@@ -22,6 +22,7 @@ type IEntryCreditBlock interface {
 
 	UpdateState(IState) error
 	IsSameAs(IEntryCreditBlock) bool
+	BuildHeader() error
 }
 
 type IECBlockHeader interface {

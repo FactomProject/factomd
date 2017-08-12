@@ -39,12 +39,12 @@ func (a *MissingMsgResponse) IsSameAs(b *MissingMsgResponse) bool {
 		return false
 	}
 
-	if a.MsgResponse.GetHash() != b.MsgResponse.GetHash() {
-		fmt.Println("MissingMsgResponse IsNotSameAs because GetHash mismatch")
+	if !a.MsgResponse.GetHash().IsSameAs(b.MsgResponse.GetHash()) {
+		fmt.Println("MissingMsgResponse IsNotSameAs because MsgResp GetHash mismatch")
 		return false
 	}
 
-	if a.AckResponse.GetHash() != b.AckResponse.GetHash() {
+	if !a.AckResponse.GetHash().IsSameAs(b.AckResponse.GetHash()) {
 		fmt.Println("MissingMsgResponse IsNotSameAs because Ack GetHash mismatch")
 		return false
 	}
@@ -119,7 +119,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 		}
 	}
 
-	mr, err := UnmarshalMessage(newData)
+	newData, mr, err := UnmarshalMessageData(newData)
 
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 
 	m.Peer2Peer = true // Always a peer2peer request.
 
-	return data, nil
+	return
 }
 
 func (m *MissingMsgResponse) UnmarshalBinary(data []byte) error {

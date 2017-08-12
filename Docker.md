@@ -52,25 +52,42 @@ In all cases, you can startup with additional flags by passing them at the end o
 So yeah, you want to get your binary _out_ of the container. To do so, you basically mount your target into the container, and copy the binary over, like so
 
 
-`docker run --rm --entrypoint='' -v <FULLY_QUALIFIED_PATH_TO_TARGET_DIRECTORY>:/destination factomd_container /bin/cp /go/bin/factomd /destination`
+```
+docker run --rm --entrypoint='' \
+	-v <FULLY_QUALIFIED_PATH_TO_TARGET_DIRECTORY>:/destination factomd_container \
+	/bin/cp /go/bin/factomd /destination
+```
 
 e.g.
 
-`docker run --rm --entrypoint='' -v /tmp:/destination factomd_container /bin/cp /go/bin/factomd /destination`
+```
+docker run --rm --entrypoint='' \
+-v /tmp:/destination factomd_container \
+/bin/cp /go/bin/factomd /destination
+```
 
 which will copy the binary to `/tmp/factomd`
 
-**Note** : You should replace ** factomd_container** with whatever you called it in the **build** section above  e.g. **factomd**, **foo**, etc.
+**Note** : You should replace **factomd_container** with whatever you called it in the  [build](#build) section above  e.g. **factomd**, **foo**, etc.
 
 #### Cross-Compile
 If you cross-compiled to a different target, your binary will be in `/go/bin/<target>/factomd`.  e.g. If you built with `--build-arg GOOS=darwin`, then you can copy out the binary with
 
-`docker run --rm --entrypoint='' -v <FULLY_QUALIFIED_PATH_TO_TARGET_DIRECTORY>:/destination factomd_container /bin/cp /go/bin/darwin_amd64/factomd /destination`
+```
+docker run --rm --entrypoint='' \
+-v <FULLY_QUALIFIED_PATH_TO_TARGET_DIRECTORY>:/destination \
+factomd_container \
+/bin/cp /go/bin/darwin_amd64/factomd /destination
+```
 
 e.g.
 
-`docker run --rm --entrypoint='' -v /tmp:/destination factomd_container /bin/cp /go/bin/darwin_amd64/factomd /destination` 
+```
+docker run --rm --entrypoint='' 
+-v /tmp:/destination factomd_container \
+/bin/cp /go/bin/darwin_amd64/factomd /destination
+``` 
 
 which will copy the darwin_amd64 version of the binary to `/tmp/factomd`
 
-**Note** : You should replace ** factomd_container** with whatever you called it in the **build** section above  e.g. **factomd**, **foo**, etc.
+**Note** : You should replace **factomd_container** with whatever you called it in the **build** section above  e.g. **factomd**, **foo**, etc.

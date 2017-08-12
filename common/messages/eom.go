@@ -247,7 +247,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		m.Signature = sig
 	}
 
-	return data, nil
+	return
 }
 
 func (m *EOM) UnmarshalBinary(data []byte) error {

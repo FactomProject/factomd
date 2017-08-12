@@ -181,6 +181,7 @@ func HandleV2Request(state interfaces.IState, j *primitives.JSON2Request) (*prim
 	jsonResp := primitives.NewJSON2Response()
 	jsonResp.ID = j.ID
 	jsonResp.Result = resp
+
 	return jsonResp, nil
 }
 
@@ -247,7 +248,7 @@ func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (inte
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ecBlockToResp(block)
+	return ECBlockToResp(block)
 }
 
 func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
@@ -271,23 +272,33 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 		return nil, NewBlockNotFoundError()
 	}
 
-	return ecBlockToResp(block)
+	return ECBlockToResp(block)
 }
 
-func ecBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives.JSONError) {
+func ECBlockToResp(block interfaces.IEntryCreditBlock) (interface{}, *primitives.JSONError) {
 	raw, err := block.MarshalBinary()
 	if err != nil {
 		return nil, NewInternalError()
 	}
 
-	resp := new(BlockHeightResponse)
-	b, err := ObjectToJStruct(block)
+	resp := new(EntryCreditBlockResponse)
+
 	if err != nil {
 		return nil, NewInternalError()
 	}
-	resp.ECBlock = b
+	resp.ECBlock.Body = block.GetBody()
+	resp.ECBlock.Header = block.GetHeader()
 	resp.RawData = hex.EncodeToString(raw)
-
+	tmpHash, err := block.GetFullHash()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ECBlock.FullHash = tmpHash
+	tmpHash, err = block.HeaderHash()
+	if err != nil {
+		return nil, NewInternalError()
+	}
+	resp.ECBlock.HeaderHash = tmpHash
 	return resp, nil
 }
 
@@ -320,6 +331,9 @@ func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interfac
 	return fBlockToResp(block)
 }
 
+// Cached response for genesis fblock
+var gensisFBlockCache interface{}
+
 func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interface{}, *primitives.JSONError) {
 	n := time.Now()
 	defer HandleV2APICallFblockByHeight.Observe(float64(time.Since(n).Nanoseconds()))
@@ -328,6 +342,15 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	err := MapToObject(params, heightRequest)
 	if err != nil {
 		return nil, NewInvalidParamsError()
+	}
+
+	// The gensis FBlock is a very expensive call (>1s) because of the string manipulation
+	// To counter this, we will cache that response for quicker returns, only doing that manipulation one.
+	if heightRequest.Height == 0 {
+		if gensisFBlockCache != nil {
+			GensisFblockCall.Inc()
+			return gensisFBlockCache, nil
+		}
 	}
 
 	dbase := state.GetAndLockDB()
@@ -341,7 +364,17 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 		return nil, NewBlockNotFoundError()
 	}
 
-	return fBlockToResp(block)
+	resp, jerr := fBlockToResp(block)
+	if err != nil {
+		return nil, jerr
+	}
+
+	// Cache the gensis block if it is nil
+	if gensisFBlockCache == nil && heightRequest.Height == 0 {
+		gensisFBlockCache = resp
+	}
+
+	return resp, nil
 }
 
 func fBlockToResp(block interfaces.IFBlock) (interface{}, *primitives.JSONError) {

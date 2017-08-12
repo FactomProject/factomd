@@ -58,3 +58,50 @@ func TestBounceAttributes(t *testing.T) {
 		t.Error("Processed should be true")
 	}
 }
+
+func TestBounceMisc(t *testing.T) {
+	b := new(Bounce)
+
+	b.Process(1, nil)
+	if !b.Processed() {
+		t.Error("Processed should be true")
+	}
+
+	err := b.Sign(nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	nilSig := b.GetSignature()
+	if nilSig != nil {
+		t.Error("Bounce signature should be nil")
+	}
+
+	_, err = b.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = b.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+
+	sigVer, err := b.VerifySignature()
+	if err != nil {
+		t.Error(err)
+	}
+	if !sigVer {
+		t.Error("VerifySignature should be true")
+	}
+
+	b2 := new(Bounce)
+	if !b.IsSameAs(b2) {
+		t.Error("Bounces should always be considered the same")
+	}
+
+	b2.LeaderExecute(nil)
+	if !b2.Processed() {
+		t.Error("Processed should be true")
+	}
+}

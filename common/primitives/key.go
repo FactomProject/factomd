@@ -6,6 +6,7 @@ package primitives
 
 import (
 	"crypto/rand"
+	"encoding"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -126,6 +127,7 @@ func (pk *PrivateKey) PublicKeyString() string {
 type PublicKey [ed25519.PublicKeySize]byte
 
 var _ interfaces.Verifier = (*PublicKey)(nil)
+var _ encoding.TextMarshaler = (*PublicKey)(nil)
 
 func (c *PublicKey) Copy() (*PublicKey, error) {
 	h := new(PublicKey)

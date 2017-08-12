@@ -1,9 +1,12 @@
 package adminBlock_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	. "github.com/FactomProject/factomd/common/adminBlock"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/state"
 )
 
 func TestDBSignatureEntryGetHash(t *testing.T) {
@@ -63,5 +66,28 @@ func TestDBSEMisc(t *testing.T) {
 	}
 	if dbse.Interpret() != "" {
 		t.Fail()
+	}
+}
+
+func TestDBSEGenesisBlock(t *testing.T) {
+	str := "0100000000000000000000000000000000000000000000000000000000000000000426a802617848d4d16d87830fc521f4d136bb2d0c352850919c2679f189613a83efbcbed19b5842e5aa06e66c41d8b61826d95d50c1cbc8bd5373f986c370547133462a9ffa0dcff025a6ad26747c95f1bdd88e2596fc8c6eaa8a2993c72c05"
+	h, _ := hex.DecodeString(str)
+	dbse := new(DBSignatureEntry)
+	err := dbse.UnmarshalBinary(h)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	dBlock, _, _, _ := state.GenerateGenesisBlocks(constants.MAIN_NETWORK_ID)
+	if dBlock == nil {
+		t.Errorf("DBlock is nil")
+		t.FailNow()
+	}
+
+	bin, _ := dBlock.GetHeader().MarshalBinary()
+
+	t.Logf("%x", bin)
+	if dbse.PrevDBSig.Verify(bin) == false {
+		t.Errorf("Invalid signature")
 	}
 }

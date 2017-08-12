@@ -26,6 +26,7 @@ type IAdminBlock interface {
 	RemoveFederatedServer(IHash) error
 	SetABEntries([]IABEntry)
 	SetHeader(IABlockHeader)
+	AddEntry(IABEntry) error
 
 	AddABEntry(e IABEntry) error
 	AddAuditServer(IHash) error

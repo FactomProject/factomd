@@ -151,6 +151,9 @@ func (be *BlockExtractor) ExportEChain(chainID string, db interfaces.DBOverlay) 
 		height := block.GetDatabaseHeight()
 		entryHashes := block.GetBody().GetEBEntries()
 		for _, hash := range entryHashes {
+			if hash.IsMinuteMarker() {
+				continue
+			}
 			entry, err := db.FetchEntry(hash)
 			if err != nil {
 				return err
