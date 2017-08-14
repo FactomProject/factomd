@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 var _ = log.Printf
@@ -21,7 +22,7 @@ var _ = log.Printf
 var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	Minute    byte
 

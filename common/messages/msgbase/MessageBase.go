@@ -2,13 +2,14 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package messages
+package msgbase
 
 import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 type MessageBase struct {
@@ -67,12 +68,12 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	}
 	m.ResendCnt++
 
-	switch msg.(interface{}).(type) {
+	switch msg.Type() {
 	//case ServerFault:
 	//	go resend(state, msg, 20, 1)
-	case FullServerFault:
+	case constants.FULL_SERVER_FAULT_MSG:
 		go resend(state, msg, 2, 5)
-	case ServerFault:
+	case constants.FED_SERVER_FAULT_MSG:
 		go resend(state, msg, 2, 5)
 	default:
 		go resend(state, msg, 1, 0)

@@ -14,12 +14,13 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 // Communicate a Directory Block State
 
 type DataResponse struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	DataType   int // 0 = Entry, 1 = EntryBlock

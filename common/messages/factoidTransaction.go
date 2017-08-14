@@ -13,11 +13,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //A placeholder structure for messages
 type FactoidTransaction struct {
-	MessageBase
+	msgbase.MessageBase
 	Transaction interfaces.ITransaction
 
 	//No signature!

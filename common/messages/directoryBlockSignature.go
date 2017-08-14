@@ -14,13 +14,14 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 // dLogger is for DirectoryBlockSignature Messages and extends packageLogger
 var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
 
 type DirectoryBlockSignature struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 	DBHeight  uint32
 	//DirectoryBlockKeyMR   interfaces.IHash

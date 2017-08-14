@@ -13,11 +13,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //A placeholder structure for messages
 type ServerFault struct {
-	MessageBase
+	msgbase.MessageBase
 
 	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of FullServerFault messages

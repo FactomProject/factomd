@@ -8,25 +8,53 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/FactomProject/logrus"
+
+	"github.com/FactomProject/goleveldb/leveldb/errors"
 )
 
 //General acknowledge message
 type VolunteerAudit struct {
-	messages.MessageBase
+	msgbase.MessageBase
 	NName       string           // Server name
 	ServerIdx   int              // Index of Server replacing
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
 	Minute      byte
 	Height      uint32 // Height of this ack in this process list
-	MessageHash interfaces.IHash
+	messageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*VolunteerAudit)(nil)
+
+func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
+	b,ok := msg.(*VolunteerAudit)
+	if !ok {
+		return false
+	}
+	if a.NName != b.NName {
+		return false
+	}
+	if a.ServerIdx != b.ServerIdx {
+		return false
+	}
+	if a.ServerID.Fixed() != b.ServerID.Fixed() {
+		return false
+	}
+	if a.DBHeight != b.DBHeight {
+		return false
+	}
+	if a.Minute != b.Minute {
+		return false
+	}
+	if a.Height != b.Height {
+		return false
+	}
+	return true
+}
 
 func (m *VolunteerAudit) GetServerID() interfaces.IHash {
 	return m.ServerID
@@ -42,7 +70,7 @@ func (m *VolunteerAudit) GetRepeatHash() interfaces.IHash {
 
 // We have to return the haswh of the underlying message.
 func (m *VolunteerAudit) GetHash() interfaces.IHash {
-	return m.MessageHash
+	return m.messageHash
 }
 
 func (m *VolunteerAudit) GetTimestamp() interfaces.Timestamp {
@@ -97,27 +125,39 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+
 	buf := primitives.NewBuffer(data)
+	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERAUDIT {
+		return nil, errors.New("Not a Volunteer Audit type")
+	}
+
 	if m.NName, err = buf.PopString(); err != nil {
+		fmt.Println("1")
 		return nil, err
 	}
 	if m.ServerIdx, err = buf.PopInt(); err != nil {
+		fmt.Println("2")
 		return nil, err
 	}
 	ServerID, e := buf.PopBytes()
 	if e != nil {
+		fmt.Println("3")
 		return nil, err
 	}
 	m.ServerID = primitives.NewHash(ServerID)
 	if m.DBHeight, err = buf.PopUInt32(); err != nil {
+		fmt.Println("4")
 		return nil, err
 	}
 	if m.Minute, err = buf.PopByte(); err != nil {
+		fmt.Println("5")
 		return nil, err
 	}
 	if m.Height, err = buf.PopUInt32(); err != nil {
+		fmt.Println("6")
 		return nil, err
 	}
+	fmt.Println("8")
 	return buf.PopBytes()
 }
 
@@ -130,6 +170,9 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 
 	var buf primitives.Buffer
 
+	if e:= buf.PushByte(constants.VOLUNTEERAUDIT); e != nil {
+		return nil,e
+	}
 	if e := buf.PushString(m.NName); e != nil {
 		return nil, e
 	}
@@ -148,7 +191,7 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushUInt32(m.Height); e != nil {
 		return nil, e
 	}
-	return buf.PopBytes()
+	return buf.DeepCopyBytes(),nil
 }
 
 func (m *VolunteerAudit) String() string {
@@ -158,6 +201,4 @@ func (m *VolunteerAudit) String() string {
 	return fmt.Sprintf("%20s %x %10s dbheight %d", "Add Audit Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
 }
 
-func (a *VolunteerAudit) IsSameAs(b *VolunteerAudit) bool {
-	return true
-}
+

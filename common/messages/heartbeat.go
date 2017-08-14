@@ -13,11 +13,12 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //A placeholder structure for messages
 type Heartbeat struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp       interfaces.Timestamp
 	SecretNumber    uint32
 	DBHeight        uint32

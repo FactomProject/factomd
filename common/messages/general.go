@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/elections"
 )
 
 // packageLogger is the general logger for all message related logs. You can add additional fields,
@@ -87,6 +88,8 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		msg = new(Bounce)
 	case constants.BOUNCEREPLY_MSG:
 		msg = new(BounceReply)
+	case constants.VOLUNTEERAUDIT:
+		msg = new(elections.VolunteerAudit)
 	default:
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])

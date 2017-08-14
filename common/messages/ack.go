@@ -11,13 +11,13 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	log "github.com/FactomProject/logrus"
 )
 
 //General acknowledge message
 type Ack struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
 	Salt        [8]byte              // Eight bytes of the salt
 	SaltNumber  uint32               // Secret Number used to detect multiple servers with the same ID

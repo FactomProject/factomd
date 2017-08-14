@@ -9,14 +9,14 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //General acknowledge message
 type TimeoutInternal struct {
-	messages.MessageBase
+	msgbase.MessageBase
 	NName       string
 	DBHeight    int
 	Minute      int

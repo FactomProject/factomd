@@ -13,12 +13,13 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 // Communicate a Admin Block Change
 
 type ChangeServerKeyMsg struct {
-	MessageBase
+	msgbase.MessageBase
 	Timestamp        interfaces.Timestamp // Message Timestamp
 	IdentityChainID  interfaces.IHash     // ChainID of new server
 	AdminBlockChange byte

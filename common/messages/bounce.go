@@ -17,10 +17,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 type Bounce struct {
-	MessageBase
+	msgbase.MessageBase
 	Name      string
 	Number    int32
 	Timestamp interfaces.Timestamp
