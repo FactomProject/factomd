@@ -28,14 +28,31 @@ type MessageBase struct {
 	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
-	resend        int64 // Time to resend (milliseconds)
-	expire        int64 // Time to expire (milliseconds)
+
+	resend int64 // Time to resend (milliseconds)
+	expire int64 // Time to expire (milliseconds)
 
 	Ack interfaces.IMsg
 
 	Stalled     bool // This message is currently stalled
 	MarkInvalid bool
 	Sigvalid    bool
+}
+
+func (m *MessageBase) SetResendTime(t interfaces.Timestamp) {
+	m.resend = t.GetTimeMilli()
+}
+
+func (m *MessageBase) GetResendTime() interfaces.Timestamp {
+	return primitives.NewTimestampFromMilliseconds(uint64(m.resend))
+}
+
+func (m *MessageBase) SetExpireTime(t interfaces.Timestamp) {
+	m.expire = t.GetTimeMilli()
+}
+
+func (m *MessageBase) GetExpireTime() interfaces.Timestamp {
+	return primitives.NewTimestampFromMilliseconds(uint64(m.expire))
 }
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
@@ -106,7 +123,7 @@ func (m *MessageBase) SentInvalid() bool {
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
-func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
+func (m *MessageBase) Resend(s interfaces.IState) bool {
 	now := s.GetTimestamp().GetTimeMilli()
 	if m.resend == 0 {
 		m.resend = now
@@ -120,15 +137,15 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
-func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
-	now := s.GetTimestamp().GetTimeMilli()
+func (m *MessageBase) Expire(t interfaces.Timestamp) bool {
+	now := t.GetTimeMilli()
 	if m.expire == 0 {
 		m.expire = now
 	}
 	if now-m.expire > 5*60*1000 { // Keep messages for some length before giving up.
-		rtn = true
+		return true
 	}
-	return
+	return false
 }
 
 func (m *MessageBase) IsStalled() bool {

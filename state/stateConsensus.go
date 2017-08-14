@@ -353,7 +353,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.Expire(s) {
+		if v.Expire(s.GetTimestamp()) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)

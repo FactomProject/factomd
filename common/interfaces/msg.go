@@ -111,8 +111,13 @@ type IMsg interface {
 	IsStalled() bool
 	SetStall(bool)
 	Resend(IState) bool
-	Expire(IState) bool
+	Expire(Timestamp) bool
 
 	// Equivalent to String() for logging
 	LogFields() log.Fields
+
+	SetResendTime(t Timestamp)
+	GetResendTime() Timestamp
+	SetExpireTime(t Timestamp)
+	GetExpireTime() Timestamp
 }
