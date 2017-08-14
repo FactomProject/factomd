@@ -105,7 +105,7 @@ const (
 	//NETWORK constants
 	//==================
 	VERSION_0               = byte(0)
-	FACTOMD_VERSION         = 4002006
+	FACTOMD_VERSION         = 4002007
 	MAIN_NETWORK_ID  uint32 = 0xFA92E5A2
 	TEST_NETWORK_ID  uint32 = 0xFA92E5A3
 	LOCAL_NETWORK_ID uint32 = 0xFA92E5A4
