@@ -249,8 +249,8 @@ func Run(s *state.State) {
 					V.NName = e.Name
 					V.ServerIdx = e.electing
 					V.ServerID = e.ServerID
-					V.DBHeight = e.DBHeight
-					V.Minute = e.Minute
+					V.DBHeight = uint32(e.DBHeight)
+					V.Minute = byte(e.Minute)
 					V.SendOut(s, V)
 				}
 			}
