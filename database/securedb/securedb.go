@@ -19,7 +19,7 @@ import (
 
 var (
 	// Bucket for all db metadata
-	EncyptedMetaData = []byte("EncyptedDBMetatData")
+	EncyptedMetaData = []byte("EncyptedDBMetaData")
 
 	challenge = []byte("Challenge")
 )
