@@ -13,8 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 
-	log "github.com/FactomProject/logrus"
 	"github.com/FactomProject/factomd/common/messages/elections"
+	log "github.com/FactomProject/logrus"
 )
 
 // packageLogger is the general logger for all message related logs. You can add additional fields,

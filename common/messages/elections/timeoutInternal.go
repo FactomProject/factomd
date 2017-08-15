@@ -9,9 +9,9 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/FactomProject/logrus"
-	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //General acknowledge message
@@ -53,7 +53,7 @@ func (m *TimeoutInternal) GetMsgHash() interfaces.IHash {
 }
 
 func (m *TimeoutInternal) Type() byte {
-	return constants.INTERNALADDLEADER
+	return constants.INTERNALTIMEOUT
 }
 
 func (m *TimeoutInternal) Validate(state interfaces.IState) int {

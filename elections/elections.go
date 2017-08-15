@@ -25,12 +25,16 @@ type Elections struct {
 	Minute    int
 	Input     interfaces.IQueue
 	Output    interfaces.IQueue
+	round     []int
 	electing  int
 }
 
-func Order(servers []interfaces.IServer, dbheight int, minute int, serverIdx int) (priority []interfaces.IHash) {
+// Creates an order for all servers by using a certain hash function.  The list of unordered hashes (in the same order
+// as the slice of servers) is returned.
+func Order(servers []interfaces.IServer, dbheight int, minute int, serverIdx int, round int) (priority []interfaces.IHash) {
 	for _, s := range servers {
 		var data []byte
+		data = append(data, byte(round>>24), byte(round>>16), byte(round>>8), byte(round))
 		data = append(data, byte(dbheight>>24), byte(dbheight>>16), byte(dbheight>>8), byte(dbheight))
 		data = append(data, byte(minute))
 		data = append(data, byte(serverIdx>>8), byte(serverIdx))
@@ -187,6 +191,7 @@ func Run(s *state.State) {
 					break messages
 				}
 			}
+			e.round = e.round[:0] // Get rid of any previous round counting.
 			fmt.Printf("eee %20s %10s across %d leaders \n", "Sync Complete", e.Name, len(e.sync))
 		case *elections.TimeoutInternal:
 
@@ -210,6 +215,13 @@ func Run(s *state.State) {
 				break messages
 			}
 
+			for len(e.round) < e.electing {
+				e.round = append(e.round, 0)
+			}
+
+			// New timeout, new round of elections.
+			e.round[e.electing]++
+
 			fmt.Printf("eee %20s %10s on #%d leaders \n", "Timeout", e.Name, cnt)
 			fmt.Println("eee", e.Name)
 
@@ -220,7 +232,8 @@ func Run(s *state.State) {
 				break messages
 			}
 
-			e.apriority = Order(e.Audit, e.DBHeight, e.Minute, e.electing)
+			// Get the priority order list of audit servers in the priority order
+			e.apriority = Order(e.Audit, e.DBHeight, e.Minute, e.electing, e.round[e.electing])
 
 			idx := e.LeaderIndex(e.ServerID)
 			// We are a leader
@@ -230,10 +243,19 @@ func Run(s *state.State) {
 
 			idx = e.AuditIndex(e.ServerID)
 			if idx >= 0 {
-
+				auditIdx := MaxIdx(e.apriority)
+				if idx == auditIdx {
+					V := new(elections.VolunteerAudit)
+					V.NName = e.Name
+					V.ServerIdx = e.electing
+					V.ServerID = e.ServerID
+					V.DBHeight = e.DBHeight
+					V.Minute = e.Minute
+					V.SendOut(s, V)
+				}
 			}
-
+		case *elections.VolunteerAudit:
+			fmt.Printf("eee %s\n", msg.String())
 		}
-
 	}
 }

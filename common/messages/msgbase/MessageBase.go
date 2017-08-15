@@ -7,9 +7,9 @@ package msgbase
 import (
 	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/constants"
 )
 
 type MessageBase struct {

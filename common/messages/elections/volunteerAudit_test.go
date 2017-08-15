@@ -10,9 +10,9 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/elections"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/messages"
 )
 
 func TestUnmarshalfolunteerAudit_test(t *testing.T) {
@@ -45,7 +45,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 			t.Error(err)
 		}
 
-		fmt.Printf("Hex: %x\n",hex)
+		fmt.Printf("Hex: %x\n", hex)
 
 		va2, err := messages.UnmarshalMessage(hex)
 		if err != nil {
@@ -67,12 +67,11 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 		}
 	}
 	va := new(VolunteerAudit)
-	va.Minute=5
-	va.NName="bob"
-	va.DBHeight=10
-	va.Height=7
+	va.Minute = 5
+	va.NName = "bob"
+	va.DBHeight = 10
+	va.Height = 7
 	va.ServerID = primitives.Sha([]byte("leader"))
-	va.ServerIdx =3
-	test(va,"1")
+	va.ServerIdx = 3
+	test(va, "1")
 }
-
