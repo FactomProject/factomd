@@ -121,3 +121,10 @@ type IMsg interface {
 	SetExpireTime(t Timestamp)
 	GetExpireTime() Timestamp
 }
+
+type IMessageWithEntry interface {
+	//Intended to be used for messages that contain an entry / commit / tx
+	IMsg
+
+	GetEntryChainID() IHash
+}

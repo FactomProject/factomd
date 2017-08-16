@@ -40,6 +40,11 @@ type EOM struct {
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
 var _ interfaces.IMsg = (*EOM)(nil)
+var _ interfaces.IMessageWithEntry = (*EOM)(nil)
+
+func (a *EOM) GetEntryChainID() interfaces.IHash {
+	return a.ChainID
+}
 
 func (a *EOM) IsSameAs(b *EOM) bool {
 	if b == nil {

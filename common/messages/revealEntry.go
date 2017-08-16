@@ -33,6 +33,11 @@ type RevealEntryMsg struct {
 }
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
+var _ interfaces.IMessageWithEntry = (*RevealEntryMsg)(nil)
+
+func (a *RevealEntryMsg) GetEntryChainID() interfaces.IHash {
+	return a.Entry.GetChainID()
+}
 
 func (m *RevealEntryMsg) IsSameAs(msg interfaces.IMsg) bool {
 	m2, ok := msg.(*RevealEntryMsg)

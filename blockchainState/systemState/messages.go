@@ -115,6 +115,12 @@ func (ss *SystemState) ProcessAckMessage(msg interfaces.IMsg) error {
 		return fmt.Errorf("Invalid message type forwarded for processing")
 	}
 
+	if ss.MessageHoldingQueue.IsAcked(msg.GetHash()) == true {
+		//Nothing to do, the message is already acked
+		//TODO: double-check
+		return nil
+	}
+
 	ss.MessageHoldingQueue.AddAck(msg)
 	msg2 := ss.MessageHoldingQueue.GetMessage(msg.GetHash())
 	if msg2 != nil {

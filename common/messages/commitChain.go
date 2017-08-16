@@ -30,6 +30,12 @@ type CommitChainMsg struct {
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
 var _ Signable = (*CommitChainMsg)(nil)
+var _ interfaces.IMessageWithEntry = (*CommitChainMsg)(nil)
+
+func (a *CommitChainMsg) GetEntryChainID() interfaces.IHash {
+	h, _ := primitives.HexToHash("000000000000000000000000000000000000000000000000000000000000000c")
+	return h
+}
 
 func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 	if a == nil || b == nil {

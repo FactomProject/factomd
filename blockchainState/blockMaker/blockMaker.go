@@ -7,20 +7,16 @@ package blockMaker
 import (
 	"github.com/FactomProject/factomd/blockchainState"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 type BlockMaker struct {
-	PendingEBEntries   []*EBlockEntry
-	ProcessedEBEntries []*EBlockEntry
-
-	PendingFBEntries   []interfaces.ITransaction
-	ProcessedFBEntries []interfaces.ITransaction
-
-	PendingABEntries   []interfaces.IABEntry
-	ProcessedABEntries []interfaces.IABEntry
-
-	PendingECBEntries   []*ECBlockEntry
+	ProcessedEBEntries  []*EBlockEntry
+	ProcessedFBEntries  []interfaces.ITransaction
+	ProcessedABEntries  []interfaces.IABEntry
 	ProcessedECBEntries []*ECBlockEntry
+
+	PendingMessages map[string]PendingMessages
 
 	BState *blockchainState.BlockchainState
 
@@ -37,4 +33,22 @@ func NewBlockMaker() *BlockMaker {
 
 func (bm *BlockMaker) SetCurrentMinute(m int) {
 	bm.CurrentMinute = m
+}
+
+type MsgAckPair struct {
+	Message interfaces.IMsg
+	Ack     interfaces.IMsg
+}
+
+type PendingMessages struct {
+	DBHeight uint32
+
+	LatestHeight uint32
+	LatestAck    interfaces.IMsg
+
+	PendingPairs []MsgAckPair
+}
+
+func (bm *BlockMaker) ProcessAckedMessage(msg interfaces.IMessageWithEntry, ack *messages.Ack) {
+
 }

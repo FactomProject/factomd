@@ -28,6 +28,12 @@ type FactoidTransaction struct {
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
+var _ interfaces.IMessageWithEntry = (*FactoidTransaction)(nil)
+
+func (a *FactoidTransaction) GetEntryChainID() interfaces.IHash {
+	h, _ := primitives.HexToHash("000000000000000000000000000000000000000000000000000000000000000f")
+	return h
+}
 
 func (a *FactoidTransaction) IsSameAs(b *FactoidTransaction) bool {
 	if b == nil {
