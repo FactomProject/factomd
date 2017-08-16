@@ -10,9 +10,9 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
+	"github.com/FactomProject/factomd/common/identity"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
 
 	log "github.com/FactomProject/logrus"
@@ -169,7 +169,7 @@ func newDirectoryBlockSignature() *DirectoryBlockSignature {
 	return dbs
 }
 
-func newSignedDirectoryBlockSignature() (*DirectoryBlockSignature, *state.Authority, *primitives.PrivateKey) {
+func newSignedDirectoryBlockSignature() (*DirectoryBlockSignature, *identity.Authority, *primitives.PrivateKey) {
 	dbs := newDirectoryBlockSignature()
 	dbs.SetValid()
 	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
@@ -181,7 +181,7 @@ func newSignedDirectoryBlockSignature() (*DirectoryBlockSignature, *state.Author
 		panic(err)
 	}
 
-	a := new(state.Authority)
+	a := new(identity.Authority)
 	a.SigningKey = *(key.Pub)
 	a.AuthorityChainID = dbs.ServerIdentityChainID
 	return dbs, a, key

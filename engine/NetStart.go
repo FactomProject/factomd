@@ -16,6 +16,7 @@ import (
 
 	"bufio"
 
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -540,13 +541,13 @@ func startServers(load bool) {
 }
 
 func setupFirstAuthority(s *state.State) {
+	var id identity.Identity
 	if len(s.Authorities) > 0 {
 		//Don't initialize first authority if we are loading during fast boot
 		//And there are already authorities present
 		return
 	}
 
-	var id state.Identity
 	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
 		id.IdentityChainID = networkIdentity
 	} else {
@@ -570,7 +571,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Status = 1
 	s.Identities = append(s.Identities, &id)
 
-	var auth state.Authority
+	var auth identity.Authority
 	auth.Status = 1
 	auth.SigningKey = primitives.PubKeyFromString(id.SigningKey.String())
 	auth.MatryoshkaHash = primitives.NewZeroHash()

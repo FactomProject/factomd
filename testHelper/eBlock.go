@@ -37,6 +37,7 @@ func CreateTestEntryBlock(p interfaces.IEntryBlock) (*entryBlock.EBlock, []*entr
 		e.Header.SetChainID(prev.GetHeader().GetChainID())
 		entry := CreateTestEntry(e.Header.GetDBHeight())
 		e.AddEBEntry(entry)
+		e.AddEndOfMinuteMarker(uint8(e.GetDatabaseHeight()%10 + 1))
 		entries = append(entries, entry)
 	} else {
 		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
@@ -45,6 +46,7 @@ func CreateTestEntryBlock(p interfaces.IEntryBlock) (*entryBlock.EBlock, []*entr
 
 		entry := CreateFirstTestEntry()
 		e.AddEBEntry(entry)
+		e.AddEndOfMinuteMarker(uint8(e.GetDatabaseHeight()%10 + 1))
 		entries = append(entries, entry)
 	}
 
@@ -77,6 +79,7 @@ func CreateTestEntryBlockWithContentN(p interfaces.IEntryBlock, content uint32) 
 		e.Header.SetChainID(prev.GetHeader().GetChainID())
 		entry := CreateTestEntry(content)
 		e.AddEBEntry(entry)
+		e.AddEndOfMinuteMarker(uint8(e.GetDatabaseHeight()%10 + 1))
 		entries = append(entries, entry)
 	} else {
 		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
@@ -85,6 +88,7 @@ func CreateTestEntryBlockWithContentN(p interfaces.IEntryBlock, content uint32) 
 
 		entry := CreateFirstTestEntry()
 		e.AddEBEntry(entry)
+		e.AddEndOfMinuteMarker(uint8(e.GetDatabaseHeight()%10 + 1))
 		entries = append(entries, entry)
 	}
 
@@ -120,6 +124,7 @@ func CreateTestAnchorEntryBlock(p interfaces.IEntryBlock, prevDBlock *directoryB
 		e.Header.SetChainID(prev.GetHeader().GetChainID())
 		entry := CreateTestAnchorEnry(prevDBlock)
 		e.AddEBEntry(entry)
+		e.AddEndOfMinuteMarker(uint8(e.GetDatabaseHeight()%10 + 1))
 		entries = append(entries, entry)
 	} else {
 		e.Header.SetPrevKeyMR(primitives.NewZeroHash())
@@ -128,6 +133,7 @@ func CreateTestAnchorEntryBlock(p interfaces.IEntryBlock, prevDBlock *directoryB
 
 		entry := CreateFirstAnchorEntry()
 		e.AddEBEntry(entry)
+		e.AddEndOfMinuteMarker(uint8(e.GetDatabaseHeight()%10 + 1))
 		entries = append(entries, entry)
 	}
 
