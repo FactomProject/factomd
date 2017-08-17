@@ -320,6 +320,11 @@ func ReadConfig(filename string) *FactomdConfig {
 }
 
 func GetHomeDir() string {
+	factomhome := os.Getenv("FACTOM_HOME")
+	if factomhome != "" {
+		return factomhome
+	}
+
 	// Get the OS specific home directory via the Go standard lib.
 	var homeDir string
 	usr, err := user.Current()

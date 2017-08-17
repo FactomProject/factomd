@@ -16,6 +16,7 @@ import (
 
 	"bufio"
 
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -52,6 +53,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
+	logPort = p.LogPort
 
 	messages.AckBalanceHash = p.AckbalanceHash
 	// Must add the prefix before loading the configuration.
@@ -205,8 +207,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
-	go StartProfiler(p.memProfileRate)
-	go StartProfiler(p.memProfileRate)
+	go StartProfiler(p.memProfileRate, p.exposeProfiling)
 
 	s.AddPrefix(p.prefix)
 	s.SetOut(false)
@@ -494,7 +495,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 	// Listen for commands:
-	SimControl(p.ListenTo, listenToStdin)
+	if !p.disableSimControl {
+		SimControl(p.ListenTo, listenToStdin)
+	}
 }
 
 //**********************************************************************
@@ -536,13 +539,13 @@ func startServers(load bool) {
 }
 
 func setupFirstAuthority(s *state.State) {
+	var id identity.Identity
 	if len(s.Authorities) > 0 {
 		//Don't initialize first authority if we are loading during fast boot
 		//And there are already authorities present
 		return
 	}
 
-	var id state.Identity
 	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
 		id.IdentityChainID = networkIdentity
 	} else {
@@ -566,7 +569,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Status = 1
 	s.Identities = append(s.Identities, &id)
 
-	var auth state.Authority
+	var auth identity.Authority
 	auth.Status = 1
 	auth.SigningKey = primitives.PubKeyFromString(id.SigningKey.String())
 	auth.MatryoshkaHash = primitives.NewZeroHash()

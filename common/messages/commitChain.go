@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //A placeholder structure for messages
@@ -236,4 +238,11 @@ func (m *CommitChainMsg) String() string {
 		m.CommitChain.EntryHash.Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 	return str
+}
+
+func (m *CommitChainMsg) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "commitchain", "vmindex": m.VMIndex,
+		"server":      m.LeaderChainID.String()[4:12],
+		"commitchain": m.CommitChain.EntryHash.String()[:6],
+		"hash":        m.GetHash().String()[:6]}
 }

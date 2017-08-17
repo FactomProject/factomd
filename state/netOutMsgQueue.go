@@ -24,8 +24,7 @@ func (q NetOutMsgQueue) Cap() int {
 
 // Enqueue adds item to channel and instruments based on type
 func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
-	//NetOutMsgQueueRateKeeper.Arrival()
-	measureMessage(q, m, true)
+	measureMessage(TotalMessageQueueNetOutMsgGeneralVec, m, true)
 	q <- m
 }
 
@@ -46,103 +45,4 @@ func (q NetOutMsgQueue) BlockingDequeue() interfaces.IMsg {
 	v := <-q
 	//NetOutMsgQueueRateKeeper.Complete()
 	return v
-}
-
-//
-// A list of all possible messages and their prometheus incrementing/decrementing
-//
-
-func (q NetOutMsgQueue) General(increment bool) {
-	TotalMessageQueueNetOutMsgGeneral.Inc()
-}
-
-func (q NetOutMsgQueue) EOM(increment bool) {
-	TotalMessageQueueNetOutMsgEOM.Inc()
-}
-
-func (q NetOutMsgQueue) ACK(increment bool) {
-	TotalMessageQueueNetOutMsgACK.Inc()
-}
-
-func (q NetOutMsgQueue) AudFault(increment bool) {
-	TotalMessageQueueNetOutMsgAudFault.Inc()
-}
-func (q NetOutMsgQueue) FedFault(increment bool) {
-	TotalMessageQueueNetOutMsgFedFault.Inc()
-}
-
-func (q NetOutMsgQueue) FullFault(increment bool) {
-	TotalMessageQueueNetOutMsgFullFault.Inc()
-}
-
-func (q NetOutMsgQueue) CommitChain(increment bool) {
-	TotalMessageQueueNetOutMsgCommitChain.Inc()
-}
-
-func (q NetOutMsgQueue) CommitEntry(increment bool) {
-	TotalMessageQueueNetOutMsgCommitEntry.Inc()
-}
-
-func (q NetOutMsgQueue) DBSig(increment bool) {
-	TotalMessageQueueNetOutMsgDBSig.Inc()
-}
-
-func (q NetOutMsgQueue) EOMTimeout(increment bool) {
-	TotalMessageQueueNetOutMsgEOMTimeout.Inc()
-}
-
-func (q NetOutMsgQueue) FactTx(increment bool) {
-	TotalMessageQueueNetOutMsgFactTX.Inc()
-}
-
-func (q NetOutMsgQueue) Heartbeat(increment bool) {
-	TotalMessageQueueNetOutMsgHeartbeat.Inc()
-}
-
-func (q NetOutMsgQueue) InvalidDirectoryBlock(increment bool) {
-	TotalMessageQueueNetOutMsgInvalidDirectoryBlock.Inc()
-}
-
-func (q NetOutMsgQueue) MissingMsg(increment bool) {
-	TotalMessageQueueNetOutMsgMissingMsg.Inc()
-}
-
-func (q NetOutMsgQueue) MissingMsgResp(increment bool) {
-	TotalMessageQueueNetOutMsgMissingMsgResp.Inc()
-}
-
-func (q NetOutMsgQueue) MissingData(increment bool) {
-	TotalMessageQueueNetOutMsgMissingData.Inc()
-}
-
-func (q NetOutMsgQueue) MissingDataResp(increment bool) {
-	TotalMessageQueueNetOutMsgMissingDataResp.Inc()
-}
-
-func (q NetOutMsgQueue) RevealEntry(increment bool) {
-	TotalMessageQueueNetOutMsgRevealEntry.Inc()
-}
-
-func (q NetOutMsgQueue) DBStateMissing(increment bool) {
-	TotalMessageQueueNetOutMsgDbStateMissing.Inc()
-}
-
-func (q NetOutMsgQueue) DBState(increment bool) {
-	TotalMessageQueueNetOutMsgDbState.Inc()
-}
-
-func (q NetOutMsgQueue) Bounce(increment bool) {
-	TotalMessageQueueNetOutMsgBounceMsg.Inc()
-}
-
-func (q NetOutMsgQueue) BounceReply(increment bool) {
-	TotalMessageQueueNetOutMsgBounceResp.Inc()
-}
-
-func (q NetOutMsgQueue) ReqBlock(increment bool) {
-	TotalMessageQueueNetOutMsgReqBlock.Inc()
-}
-
-func (q NetOutMsgQueue) Misc(increment bool) {
-	TotalMessageQueueNetOutMsgMisc.Inc()
 }

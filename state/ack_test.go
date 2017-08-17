@@ -167,6 +167,9 @@ func TestFetchEntryByHash(t *testing.T) {
 
 	for _, block := range blocks {
 		for _, h := range block.EBlock.GetEntryHashes() {
+			if h.IsMinuteMarker() == true {
+				continue
+			}
 			// get the entry from the database
 			dentry, err := s1.FetchEntryByHash(h)
 			if err != nil {

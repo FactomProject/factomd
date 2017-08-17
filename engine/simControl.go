@@ -7,6 +7,7 @@ package engine
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
@@ -49,6 +50,13 @@ func GetLine(listenToStdin bool) string {
 			if _, err = os.Stdin.Read(l); err == nil {
 				return string(l)
 			} else {
+				if err == io.EOF {
+					fmt.Printf("Error reading from std, sleeping for 5s: %s\n", err.Error())
+					time.Sleep(5 * time.Second)
+				} else {
+					fmt.Printf("Error reading from std, sleeping for 1s: %s\n", err.Error())
+					time.Sleep(1 * time.Second)
+				}
 				continue
 			}
 		}
@@ -847,7 +855,7 @@ func SimControl(listenTo int, listenStdin bool) {
 								os.Stderr.WriteString(fmt.Sprint("Key 4: ", ident.Key4, "\n"))
 								os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
 								for _, a := range ident.AnchorKeys {
-									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key))
+									os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 								}
 							}
 						} else if show == 1 {
@@ -858,7 +866,7 @@ func SimControl(listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprint("Signing Key: ", ident.SigningKey, "\n"))
 						} else if show == 4 {
 							for _, a := range ident.AnchorKeys {
-								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key))
+								os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 							}
 						}
 					}
@@ -966,7 +974,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					os.Stderr.WriteString(fmt.Sprint("Matryoshka Hash: ", i.MatryoshkaHash, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Signing Key: ", i.SigningKey.String(), "\n"))
 					for _, a := range i.AnchorKeys {
-						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.Key))
+						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
 				}
 			case 'q' == b[0]:

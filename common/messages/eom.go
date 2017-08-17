@@ -17,8 +17,8 @@ import (
 
 var _ = log.Printf
 
-// eLogger is for EOM Messages and extends mLogger
-var eLogger = mLogger.WithFields(log.Fields{"message": "EOM"})
+// eLogger is for EOM Messages and extends packageLogger
+var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
 	MessageBase
@@ -140,7 +140,7 @@ func (m *EOM) Validate(state interfaces.IState) int {
 	eomSigned, err := m.VerifySignature()
 	if err != nil || !eomSigned {
 		vlog := func(format string, args ...interface{}) {
-			eLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "min": m.Minute, "lheight": state.GetLeaderHeight()}).Errorf(format, args...)
+			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
 		}
 
 		if err != nil {
@@ -247,7 +247,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		m.Signature = sig
 	}
 
-	return data, nil
+	return
 }
 
 func (m *EOM) UnmarshalBinary(data []byte) error {
@@ -330,4 +330,10 @@ func (m *EOM) String() string {
 		m.ChainID.Bytes()[:4],
 		m.GetMsgHash().Bytes()[:3],
 		local)
+}
+
+func (m *EOM) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "eom", "dbheight": m.DBHeight, "vm": m.VMIndex,
+		"minute": m.Minute, "chainid": m.ChainID.String()[4:12], "sysheight": m.SysHeight,
+		"hash": m.GetMsgHash().String()[:6]}
 }
