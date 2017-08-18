@@ -13,55 +13,55 @@ var (
 	//
 
 	// Entry Syncing Controller
-	ESMissingQueue = prometheus.NewCounter(prometheus.CounterOpts{
+	ESMissingQueue = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_missing_entry_queue",
 		Help: "Number of known missing entries in our queue to find.",
 	})
-	ESMissing = prometheus.NewCounter(prometheus.CounterOpts{
+	ESMissing = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_missing_entries",
 		Help: "Number of known missing entries",
 	})
-	ESFound = prometheus.NewCounter(prometheus.CounterOpts{
+	ESFound = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_found_entries",
 		Help: "Number of known missing entries found.",
 	})
-	ESAsking = prometheus.NewCounter(prometheus.CounterOpts{
+	ESAsking = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_asking_missing_entries",
 		Help: "Number we are asking for of the known missing entries.",
 	})
-	ESHighestAsking = prometheus.NewCounter(prometheus.CounterOpts{
+	ESHighestAsking = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_highest_asking_entries",
 		Help: "Highest entry DBHeight which has has a request made.",
 	})
-	ESHighestMissing = prometheus.NewCounter(prometheus.CounterOpts{
+	ESHighestMissing = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_highest_missing_entries",
 		Help: "Highest DBHeight of the entries we know are missing.",
 	})
-	ESFirstMissing = prometheus.NewCounter(prometheus.CounterOpts{
+	ESFirstMissing = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_first_missing_entries",
 		Help: "First DBHeight with a missing entry",
 	})
-	ESDBHTComplete = prometheus.NewCounter(prometheus.CounterOpts{
+	ESDBHTComplete = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_entry_dbheight_complete",
 		Help: "First DBHeight with a missing entry",
 	})
-	ESAvgRequests = prometheus.NewCounter(prometheus.CounterOpts{
+	ESAvgRequests = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_average_requests",
 		Help: "Average number of times we have had to request a missing entry",
 	})
-	HighestAck = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestAck = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_ack",
 		Help: "Acknowledgement with the highest directory block height",
 	})
-	HighestKnown = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestKnown = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_known",
 		Help: "Highest known block (which can be different than the highest ack)",
 	})
-	HighestSaved = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestSaved = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_saved",
 		Help: "Highest saved block to the database",
 	})
-	HighestCompleted = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestCompleted = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_completed",
 		Help: "Highest completed block, which may or may not be saved to the database",
 	})

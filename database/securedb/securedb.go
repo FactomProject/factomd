@@ -5,21 +5,20 @@
 package securedb
 
 import (
-	"bytes"
 	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
-
-	"github.com/FactomProject/factomd/database/boltdb"
-	"github.com/FactomProject/factomd/database/leveldb"
-	"github.com/FactomProject/factomd/database/mapdb"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/database/boltdb"
+	"github.com/FactomProject/factomd/database/leveldb"
+	"github.com/FactomProject/factomd/database/mapdb"
 )
 
 var (
 	// Bucket for all db metadata
-	EncyptedMetaData = []byte("EncyptedDBMetatData")
+	EncyptedMetaData = []byte("EncyptedDBMetaData")
 
 	challenge = []byte("Challenge")
 )
@@ -97,7 +96,7 @@ func (db *EncryptedDB) initSecureDB(password string) error {
 			return err
 		}
 
-		if bytes.Compare(plainText, challenge) != 0 {
+		if subtle.ConstantTimeCompare(plainText, challenge) == 0 {
 			return fmt.Errorf("Wrong password given for this database")
 		}
 	}

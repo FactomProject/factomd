@@ -172,3 +172,15 @@ func doBenchmark(b *testing.B, logger *FLogger, format string, args ...interface
 		logger.Debugf(format, args)
 	}
 }
+func TestPrints(t *testing.T) {
+	SetLevel("standard")
+	Print("Standard log test Print")
+	Println("Standard log test Println")
+	Printf("Standard log test %s\n", "Printf")
+	Printfln("Standard log test %s", "Printfln")
+	Debug("Debug log call %d", 1)
+	PrintStack()
+	SetLevel("debug")
+	Print("Debug log test Print")
+	UnsetTestLogger()
+}

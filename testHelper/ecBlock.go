@@ -13,7 +13,6 @@ import (
 func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlocks []*entryBlock.EBlock, height int) []interfaces.IECBlockEntry {
 	ecEntries := []interfaces.IECBlockEntry{}
 	ecEntries = append(ecEntries, entryCreditBlock.NewServerIndexNumber2(uint8(height%10+1)))
-	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(0))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(1))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(2))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(3))
@@ -23,6 +22,7 @@ func createECEntriesfromBlocks(fBlock interfaces.IFBlock, eBlocks []*entryBlock.
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(7))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(8))
 	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(9))
+	ecEntries = append(ecEntries, entryCreditBlock.NewMinuteNumber(10))
 
 	trans := fBlock.GetTransactions()
 	for _, t := range trans {
