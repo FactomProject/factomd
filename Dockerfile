@@ -17,13 +17,16 @@ COPY glide.yaml glide.lock ./
 # Install dependencies
 RUN glide install -v
 
+# Get goveralls for testing/coverage
+RUN go get github.com/mattn/goveralls
+
 # Populate the rest of the source
 COPY . .
 
 ARG GOOS=linux
 
 # Build and install factomd
-RUN go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`" 
+RUN go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`"
 
 # Setup the cache directory
 RUN mkdir -p /root/.factom/m2

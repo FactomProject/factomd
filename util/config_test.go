@@ -180,3 +180,12 @@ WalletdLocation                       = "localhost:8089"
 	}
 
 }
+
+func TestReadConfig(t *testing.T) {
+	fconfig := ReadConfig("")
+	if fconfig == nil {
+		t.Error("Empty string ReadConfig() should result in a non-nil config")
+	}
+	fconfig.String()
+	GetConfigFilename("")
+}

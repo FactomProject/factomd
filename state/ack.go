@@ -603,7 +603,6 @@ func (s *State) FetchEntryByHash(hash interfaces.IHash) (interfaces.IEBEntry, er
 		for _, key := range keys {
 			tx := pl.GetNewEntry(key)
 			if hash.IsSameAs(tx.GetHash()) {
-				fmt.Println("returningProcesslist hash")
 				return tx, nil
 			}
 		}
