@@ -1134,17 +1134,8 @@ func HandleV2Properties(state interfaces.IState, params interface{}) (interface{
 	n := time.Now()
 	defer HandleV2APICallProp.Observe(float64(time.Since(n).Nanoseconds()))
 
-	vtos := func(f int) string {
-		v0 := f / 1000000000
-		v1 := (f % 1000000000) / 1000000
-		v2 := (f % 1000000) / 1000
-		v3 := f % 1000
-
-		return fmt.Sprintf("%d.%d.%d.%d", v0, v1, v2, v3)
-	}
-
 	p := new(PropertiesResponse)
-	p.FactomdVersion = vtos(state.GetFactomdVersion())
+	p.FactomdVersion = state.GetFactomdVersion()
 	p.ApiVersion = API_VERSION
 	return p, nil
 }

@@ -53,7 +53,7 @@ type State struct {
 
 	Prefix            string
 	FactomNodeName    string
-	FactomdVersion    int
+	FactomdVersion    string
 	LogPath           string
 	LdbPath           string
 	BoltDBPath        string
@@ -819,7 +819,6 @@ func (s *State) Init() {
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
-	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
@@ -1849,7 +1848,7 @@ func (s *State) GetMessageTalliesReceived(i int) int {
 	return s.MessageTalliesReceived[i]
 }
 
-func (s *State) GetFactomdVersion() int {
+func (s *State) GetFactomdVersion() string {
 	return s.FactomdVersion
 }
 
