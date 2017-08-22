@@ -21,7 +21,7 @@ jobs:
           keys:
             - v4-factomd-cache-{{ checksum "glide.lock" }}
 
-      # Load the image if the cache hit
+      # Load the images if the cache hit
       - run:
           name: Load Docker image layer cache
           command: |
@@ -75,7 +75,7 @@ jobs:
             fi
 
             docker logout
-            
+
       - run:
           name: Save the image cache
           command: |
