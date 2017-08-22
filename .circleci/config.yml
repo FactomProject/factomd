@@ -37,11 +37,8 @@ jobs:
       - run:
           name: Get Version
           command: |
-            export VERSION=`grep FACTOMD_VERSION common/constants/constants.go | awk '{print $3}'`
-            bash -c 'ONE=${VERSION::(-6)} && \
-            TWO=${VERSION:(-6):(3)} && \
-            THREE=${VERSION:(-3)} && \
-            TAG="0.$(($ONE * 1)).$(($TWO * 1)).$(($THREE * 1))" && \
+            export VERSION=`cat VERSION`
+            TAG="$VERSION" && \
             echo "export TAG=$TAG" >> $BASH_ENV'
 
       # Need to source $bash_env 'cos this is alpine (and sh)
@@ -120,11 +117,8 @@ jobs:
       - run:
           name: Get Version
           command: |
-            export VERSION=`grep FACTOMD_VERSION common/constants/constants.go | awk '{print $3}'`
-            bash -c 'ONE=${VERSION::(-6)} && \
-            TWO=${VERSION:(-6):(3)} && \
-            THREE=${VERSION:(-3)} && \
-            TAG="0.$(($ONE * 1)).$(($TWO * 1)).$(($THREE * 1))" && \
+            export VERSION=`cat VERSION`
+            TAG="$VERSION" && \
             echo "export TAG=$TAG" >> $BASH_ENV'
 
       # Need to source $bash_env 'cos this is alpine (and sh)
