@@ -183,8 +183,11 @@ workflows:
   version: 2
   build:
     jobs:
+      - test
       - build:
           context: org-global
-      - test
+          requires:
+            - test
       - coveralls
-
+          requires:
+            - test
