@@ -1372,13 +1372,8 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 			tmp.EntryHash = re.Entry.GetHash()
 
 			tmp.ChainID = re.Entry.GetChainID()
-<<<<<<< HEAD
 			tmp.Status = constants.AckStatusNotConfirmedString
-			if !util.IsInPendingEntryList(resp, tmp) {
-=======
-			tmp.Status = "AckStatusNotConfirmed"
 			if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
->>>>>>> develop
 				resp = append(resp, tmp)
 				repeatmap[tmp.EntryHash.Fixed()] = tmp
 			}
