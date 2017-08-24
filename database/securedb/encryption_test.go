@@ -1,8 +1,8 @@
 package securedb_test
 
 import (
-	"bytes"
 	"crypto/sha256"
+	"crypto/subtle"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/primitives/random"
@@ -24,7 +24,7 @@ func TestGetKey(t *testing.T) {
 			t.Error(err)
 		}
 
-		if bytes.Compare(saltedKey, saltedKey2) != 0 {
+		if subtle.ConstantTimeCompare(saltedKey, saltedKey2) == 0 {
 			t.Error("Different keys, but same password")
 		}
 
@@ -34,7 +34,7 @@ func TestGetKey(t *testing.T) {
 			t.Error(err)
 		}
 
-		if bytes.Compare(saltedKey, saltedKey3) == 0 {
+		if subtle.ConstantTimeCompare(saltedKey, saltedKey3) == 1 {
 			t.Error("Different salts, but same password")
 		}
 	}
@@ -57,7 +57,7 @@ func TestEncryption(t *testing.T) {
 				t.Error(err)
 			}
 
-			if bytes.Compare(plaintext, text) != 0 {
+			if subtle.ConstantTimeCompare(plaintext, text) == 0 {
 				t.Error("Encyption did not produce the same result")
 			}
 		}
