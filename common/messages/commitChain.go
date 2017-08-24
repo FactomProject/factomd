@@ -21,15 +21,12 @@ type CommitChainMsg struct {
 	MessageBase
 	CommitChain *entryCreditBlock.CommitChain
 
-	Signature interfaces.IFullSignature
-
 	// Not marshaled... Just used by the leader
 	count    int
 	validsig bool
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
-var _ Signable = (*CommitChainMsg)(nil)
 var _ interfaces.IMessageWithEntry = (*CommitChainMsg)(nil)
 
 func (a *CommitChainMsg) GetEntryChainID() interfaces.IHash {
@@ -50,15 +47,6 @@ func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 	}
 	if a.CommitChain != nil {
 		if a.CommitChain.IsSameAs(b.CommitChain) == false {
-			return false
-		}
-	}
-
-	if a.Signature == nil && b.Signature != nil {
-		return false
-	}
-	if a.Signature != nil {
-		if a.Signature.IsSameAs(b.Signature) == false {
 			return false
 		}
 	}
@@ -151,23 +139,6 @@ func (e *CommitChainMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *CommitChainMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
-	if err != nil {
-		return err
-	}
-	m.Signature = signature
-	return nil
-}
-
-func (m *CommitChainMsg) GetSignature() interfaces.IFullSignature {
-	return m.Signature
-}
-
-func (m *CommitChainMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
-}
-
 func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -186,14 +157,6 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		return nil, err
 	}
 	m.CommitChain = cc
-
-	if len(newData) > 0 {
-		m.Signature = new(primitives.Signature)
-		newData, err = m.Signature.UnmarshalBinaryData(newData)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	return newData, nil
 }
@@ -221,15 +184,6 @@ func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
-	}
-	sig := m.GetSignature()
-
-	if sig != nil {
-		sigBytes, err := sig.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-		return append(resp, sigBytes...), nil
 	}
 	return resp, nil
 }

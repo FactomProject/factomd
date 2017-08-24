@@ -79,26 +79,13 @@ func TestMarshalUnmarshalCommitChain(t *testing.T) {
 }
 
 func TestSignAndVerifyCommitChain(t *testing.T) {
-	msg := newSignedCommitChain()
+	msg := newCommitChain()
 
 	hex, err := msg.MarshalBinary()
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf("Marshalled - %x", hex)
-
-	t.Logf("Sig - %x", *msg.Signature.GetSignature())
-	if len(*msg.Signature.GetSignature()) == 0 {
-		t.Error("Signature not present")
-	}
-
-	valid, err := msg.VerifySignature()
-	if err != nil {
-		t.Error(err)
-	}
-	if valid == false {
-		t.Error("Signature is not valid")
-	}
 
 	msg2, err := UnmarshalMessage(hex)
 	if err != nil {
@@ -109,13 +96,6 @@ func TestSignAndVerifyCommitChain(t *testing.T) {
 		t.Error("Invalid message type unmarshalled")
 	}
 
-	valid, err = msg2.(*CommitChainMsg).VerifySignature()
-	if err != nil {
-		t.Error(err)
-	}
-	if valid == false {
-		t.Error("Signature 2 is not valid")
-	}
 }
 
 func newCommitChain() *CommitChainMsg {
@@ -143,21 +123,6 @@ func newCommitChain() *CommitChainMsg {
 
 	msg.CommitChain = cc
 	//msg.Timestamp = primitives.NewTimestampNow()
-
-	return msg
-}
-
-func newSignedCommitChain() *CommitChainMsg {
-	msg := newCommitChain()
-
-	key, err := primitives.NewPrivateKeyFromHex("07c0d52cb74f4ca3106d80c4a70488426886bccc6ebc10c6bafb37bf8a65f4c38cee85c62a9e48039d4ac294da97943c2001be1539809ea5f54721f0c5477a0a")
-	if err != nil {
-		panic(err)
-	}
-	err = msg.Sign(key)
-	if err != nil {
-		panic(err)
-	}
 
 	return msg
 }
