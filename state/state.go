@@ -1452,7 +1452,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			tempTran := rm.GetTransaction()
 			var tmp interfaces.IPendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
-			tmp.Status = constants.AckStatusNotConfirmedString
+			tmp.Status = "AckStatusNotConfirmed"
 			flgFound = tempTran.HasUserAddress(params.(string))
 			tmp.Inputs = tempTran.GetInputs()
 			tmp.Outputs = tempTran.GetOutputs()
