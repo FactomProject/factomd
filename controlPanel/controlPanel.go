@@ -119,15 +119,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	GitAndVer = new(GitBuildAndVersion)
 	GitAndVer.GitBuild = gitBuild
-	vtos := func(f int) string {
-		v0 := f / 1000000000
-		v1 := (f % 1000000000) / 1000000
-		v2 := (f % 1000000) / 1000
-		v3 := f % 1000
-
-		return fmt.Sprintf("%d.%d.%d.%d", v0, v1, v2, v3)
-	}
-	GitAndVer.Version = vtos(statePointer.GetFactomdVersion())
+	GitAndVer.Version = statePointer.GetFactomdVersion()
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
 	InitTemplates()

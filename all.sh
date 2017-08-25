@@ -113,7 +113,7 @@ compileFactomdGitHash() {
 		glide install
     go clean
     #rm $GOPATH/bin/$1
-    go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`" || cerr=1
+    go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=`cat VERSION`" || cerr=1
     cd $current
     return $cerr
 }
