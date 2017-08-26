@@ -155,6 +155,8 @@ func MessageName(Type byte) string {
 		return "Bounce Message"
 	case constants.BOUNCEREPLY_MSG:
 		return "Bounce Reply Message"
+	case constants.VOLUNTEERAUDIT:
+		return "Volunteer Audit"
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}

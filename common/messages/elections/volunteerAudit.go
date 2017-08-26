@@ -16,14 +16,19 @@ import (
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 )
 
+var _ = fmt.Print
+
 //General acknowledge message
 type VolunteerAudit struct {
 	msgbase.MessageBase
-	NName       string           // Server name
-	ServerIdx   int              // Index of Server replacing
-	ServerID    interfaces.IHash // Volunteer Server ChainID
-	DBHeight    uint32           // Directory Block Height that owns this ack
-	Minute      byte
+	TS          interfaces.Timestamp // Message Timestamp
+	NName       string               // Server name
+	ServerIdx   uint32               // Index of Server replacing
+	ServerID    interfaces.IHash     // Volunteer Server ChainID
+	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
+	DBHeight    uint32               // Directory Block Height that owns this ack
+	Minute      byte                 // Minute (-1 for dbsig)
+	Round       int                  // Voting Round
 	messageHash interfaces.IHash
 }
 
@@ -34,6 +39,9 @@ func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
 	if !ok {
 		return false
 	}
+	if a.TS.GetTimeMilli() != b.TS.GetTimeMilli() {
+		return false
+	}
 	if a.NName != b.NName {
 		return false
 	}
@@ -41,6 +49,9 @@ func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
 		return false
 	}
 	if a.ServerID.Fixed() != b.ServerID.Fixed() {
+		return false
+	}
+	if a.Weight.Fixed() != b.Weight.Fixed() {
 		return false
 	}
 	if a.DBHeight != b.DBHeight {
@@ -66,15 +77,20 @@ func (m *VolunteerAudit) GetRepeatHash() interfaces.IHash {
 
 // We have to return the haswh of the underlying message.
 func (m *VolunteerAudit) GetHash() interfaces.IHash {
-	return m.messageHash
+	return m.GetMsgHash()
 }
 
 func (m *VolunteerAudit) GetTimestamp() interfaces.Timestamp {
-	return primitives.NewTimestampNow()
+	return m.TS
 }
 
 func (m *VolunteerAudit) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
+		data, err := m.MarshalBinary()
+		if err != nil {
+			return nil
+		}
+		m.MsgHash = primitives.Sha(data)
 	}
 	return m.MsgHash
 }
@@ -99,7 +115,8 @@ func (m *VolunteerAudit) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *VolunteerAudit) FollowerExecute(state interfaces.IState) {
-
+	fmt.Printf("eee  %10s %s\n", state.GetFactomNodeName(), m.String())
+	state.Elections().Enqueue(m)
 }
 
 // Acknowledgements do not go into the process list.
@@ -124,33 +141,31 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}()
 
 	buf := primitives.NewBuffer(data)
+
 	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERAUDIT {
 		return nil, errors.New("Not a Volunteer Audit type")
 	}
-
+	if m.TS, err = buf.PopTimestamp(); err != nil {
+		return nil, err
+	}
 	if m.NName, err = buf.PopString(); err != nil {
-		fmt.Println("1")
 		return nil, err
 	}
-	if m.ServerIdx, err = buf.PopInt(); err != nil {
-		fmt.Println("2")
+	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
-	ServerID, e := buf.PopBytes()
-	if e != nil {
-		fmt.Println("3")
+		if m.ServerID, err = buf.PopIHash(); err != nil {
+			return nil, err
+		}
+	if m.Weight, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
-	m.ServerID = primitives.NewHash(ServerID)
 	if m.DBHeight, err = buf.PopUInt32(); err != nil {
-		fmt.Println("4")
 		return nil, err
 	}
 	if m.Minute, err = buf.PopByte(); err != nil {
-		fmt.Println("5")
 		return nil, err
 	}
-	fmt.Println("8")
 	return buf.PopBytes()
 }
 
@@ -166,13 +181,19 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(constants.VOLUNTEERAUDIT); e != nil {
 		return nil, e
 	}
+	if e := buf.PushTimestamp(m.TS); e != nil {
+		return nil, e
+	}
 	if e := buf.PushString(m.NName); e != nil {
 		return nil, e
 	}
-	if e := buf.PushInt(m.ServerIdx); e != nil {
+	if e := buf.PushUInt32(m.ServerIdx); e != nil {
 		return nil, e
 	}
-	if e := buf.PushBytes(m.ServerID.Bytes()); e != nil {
+	if e := buf.PushIHash(m.ServerID); e != nil {
+		return nil, e
+	}
+	if e := buf.PushIHash(m.Weight); e != nil {
 		return nil, e
 	}
 	if e := buf.PushUInt32(m.DBHeight); e != nil {
@@ -188,5 +209,12 @@ func (m *VolunteerAudit) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %10s %x %10s dbheight %d", "Volunteer Audit", m.NName, m.ServerID.Bytes(), m.NName, m.DBHeight)
+	return fmt.Sprintf("%20s %10s %x %10s server Index: %d round: %d dbheight: %d minute: %d ",
+		"Volunteer Audit",
+		m.NName,
+		m.ServerID.Bytes()[2:5],
+		m.NName,
+		m.DBHeight,
+		m.Minute,
+		m.ServerIdx)
 }

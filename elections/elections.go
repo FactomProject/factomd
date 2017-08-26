@@ -115,7 +115,6 @@ func Fault(e *Elections, dbheight int, minute int) {
 	timeout := new(elections.TimeoutInternal)
 	timeout.Minute = minute
 	timeout.DBHeight = dbheight
-	fmt.Println("\neee Timeout triggered ", e.Name)
 	e.Input.Enqueue(timeout)
 
 }
@@ -177,7 +176,6 @@ func Run(s *state.State) {
 				// Start our timer to timeout this sync
 				go Fault(e, int(as.DBHeight), int(as.Minute))
 
-				fmt.Printf("eee %20s %10s at DBHeight %d Minute %d\n", "Sync Starting", e.Name, as.DBHeight, as.Minute)
 				e.DBHeight = int(as.DBHeight)
 				e.Minute = int(as.Minute)
 				e.sync = make([]bool, len(e.Federated))
@@ -192,7 +190,6 @@ func Run(s *state.State) {
 				}
 			}
 			e.round = e.round[:0] // Get rid of any previous round counting.
-			fmt.Printf("eee %20s %10s across %d leaders \n", "Sync Complete", e.Name, len(e.sync))
 		case *elections.TimeoutInternal:
 
 			as := msg.(*elections.TimeoutInternal)
@@ -215,7 +212,7 @@ func Run(s *state.State) {
 				break messages
 			}
 
-			for len(e.round) < e.electing {
+			for len(e.round) <= e.electing {
 				e.round = append(e.round, 0)
 			}
 
@@ -231,6 +228,7 @@ func Run(s *state.State) {
 				go Fault(e, int(as.DBHeight), int(as.Minute))
 				break messages
 			}
+			fmt.Printf("eee %10s %s\n", e.Name, "Fault!")
 
 			// Get the priority order list of audit servers in the priority order
 			e.apriority = Order(e.Audit, e.DBHeight, e.Minute, e.electing, e.round[e.electing])
@@ -243,6 +241,7 @@ func Run(s *state.State) {
 
 			idx = e.AuditIndex(e.ServerID)
 			if idx >= 0 {
+				fmt.Printf("eee %10s %s\n", e.Name, "I'm an Audit Server")
 				auditIdx := MaxIdx(e.apriority)
 				if idx == auditIdx {
 					V := new(elections.VolunteerAudit)
@@ -251,6 +250,7 @@ func Run(s *state.State) {
 					V.ServerID = e.ServerID
 					V.DBHeight = uint32(e.DBHeight)
 					V.Minute = byte(e.Minute)
+					fmt.Printf("eee %10s %s %s\n", e.Name, "I'm an Audit Server and I Volunteer", V.String())
 					V.SendOut(s, V)
 				}
 			}

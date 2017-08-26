@@ -39,10 +39,13 @@ type MessageBase struct {
 	Sigvalid    bool
 }
 
-func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
+func (m *MessageBase) Resend_(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for i := 0; i < cnt; i++ {
 		state.NetworkOutMsgQueue().Enqueue(msg)
 		time.Sleep(time.Duration(delay) * time.Second)
+		if m.NoResend {
+			return
+		}
 	}
 }
 
@@ -59,9 +62,6 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
 		return
 	}
-	if m.NoResend {
-		return
-	}
 
 	if m.ResendCnt > 4 {
 		return
@@ -72,11 +72,11 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	//case ServerFault:
 	//	go resend(state, msg, 20, 1)
 	case constants.FULL_SERVER_FAULT_MSG:
-		go resend(state, msg, 2, 5)
+		go m.Resend_(state, msg, 2, 5)
 	case constants.FED_SERVER_FAULT_MSG:
-		go resend(state, msg, 2, 5)
+		go m.Resend_(state, msg, 2, 5)
 	default:
-		go resend(state, msg, 1, 0)
+		go m.Resend_(state, msg, 1, 0)
 	}
 }
 

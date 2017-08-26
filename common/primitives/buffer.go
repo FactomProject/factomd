@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/goleveldb/leveldb/errors"
 )
 
 type Buffer struct {
@@ -60,6 +61,7 @@ func (b *Buffer) PushString(s string) error {
 }
 
 func (b *Buffer) PushBytes(h []byte) error {
+
 	l := uint64(len(h))
 	err := EncodeVarInt(b, l)
 	if err != nil {
@@ -72,6 +74,10 @@ func (b *Buffer) PushBytes(h []byte) error {
 	}
 
 	return nil
+}
+
+func (b *Buffer) PushIHash(h interfaces.IHash) error {
+	return b.PushBytes(h.Bytes())
 }
 
 func (b *Buffer) Push(h []byte) error {
@@ -98,6 +104,10 @@ func (b *Buffer) PushBool(boo bool) error {
 		_, err = b.Write([]byte{0x00})
 	}
 	return err
+}
+
+func (b *Buffer) PushTimestamp(ts interfaces.Timestamp) error {
+	return b.PushInt64(ts.GetTimeMilli())
 }
 
 func (b *Buffer) PushVarInt(vi uint64) error {
@@ -198,6 +208,14 @@ func (b *Buffer) PopBool() (bool, error) {
 	return boo > 0, nil
 }
 
+func (b *Buffer) PopTimestamp() (interfaces.Timestamp, error) {
+	ts, err := b.PopInt64()
+	if err != nil {
+		return nil,err
+	}
+	return NewTimestampFromMilliseconds(uint64(ts)), nil
+}
+
 func (b *Buffer) PopString() (string, error) {
 	h, err := b.PopBytes()
 	if err != nil {
@@ -207,22 +225,28 @@ func (b *Buffer) PopString() (string, error) {
 }
 
 func (b *Buffer) PopBytes() ([]byte, error) {
-	h := b.DeepCopyBytes()
-	l, rest := DecodeVarInt(h)
-
-	if int(l) > len(rest) {
-		return nil, fmt.Errorf("End of buffer")
+	l,err := b.PopVarInt()
+	if err != nil {
+		return nil,err
 	}
-	answer := make([]byte, int(l))
-	copy(answer, rest)
-	remainder := rest[int(l):]
 
-	b.Reset()
-	_, err := b.Write(remainder)
+	answer := make([]byte, int(l))
+	if b.Len() < int(l) {
+		return nil,errors.New(fmt.Sprintf("End of Buffer Looking for %d but only have %d",l,b.Len()))
+	}
+	al,err := b.Read(answer)
+	if al != int(l) {
+		return nil, errors.New("2End of Buffer")
+	}
+	return answer, nil
+}
+
+func (b *Buffer) PopIHash() (interfaces.IHash, error){
+	bb, err := b.PopBytes()
 	if err != nil {
 		return nil, err
 	}
-	return answer, nil
+	return NewHash(bb), nil
 }
 
 func (b *Buffer) PopLen(l int) ([]byte, error) {

@@ -25,12 +25,12 @@ func TestUnmarshalfolunteerAudit_test(t *testing.T) {
 	a := new(VolunteerAudit)
 	err := a.UnmarshalBinary(nil)
 	if err == nil {
-		t.Errorf("Error is nil when it shouldn't be")
+		t.Error("Error is nil when it shouldn't be")
 	}
 
 	err = a.UnmarshalBinary([]byte{})
 	if err == nil {
-		t.Errorf("Error is nil when it shouldn't be")
+		t.Error("Error is nil when it shouldn't be")
 	}
 }
 
@@ -44,8 +44,6 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-
-		fmt.Printf("Hex: %x\n", hex)
 
 		va2, err := messages.UnmarshalMessage(hex)
 		if err != nil {
@@ -70,8 +68,9 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 	va.Minute = 5
 	va.NName = "bob"
 	va.DBHeight = 10
-	va.Height = 7
 	va.ServerID = primitives.Sha([]byte("leader"))
+	va.Weight = primitives.Sha([]byte("Weight"))
 	va.ServerIdx = 3
+	va.TS = primitives.NewTimestampNow()
 	test(va, "1")
 }
