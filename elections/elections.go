@@ -27,6 +27,9 @@ type Elections struct {
 	Output    interfaces.IQueue
 	round     []int
 	electing  int
+
+	LeaderElecting  int // This is the federated Server we are electing, if we are a leader
+	LeaderVolunteer int // This is the volunteer that we expect
 }
 
 // Creates an order for all servers by using a certain hash function.  The list of unordered hashes (in the same order
@@ -212,6 +215,9 @@ func Run(s *state.State) {
 				break messages
 			}
 
+			// If we don't have all our sync messages, we will have to come back around and see if all is well.
+			go Fault(e, int(as.DBHeight), int(as.Minute))
+
 			for len(e.round) <= e.electing {
 				e.round = append(e.round, 0)
 			}
@@ -219,13 +225,16 @@ func Run(s *state.State) {
 			// New timeout, new round of elections.
 			e.round[e.electing]++
 
-			fmt.Printf("eee %20s %10s on #%d leaders \n", "Timeout", e.Name, cnt)
-			fmt.Println("eee", e.Name)
+			fmt.Printf("eee %20s Server Index: %d Round: %d %10s on #%d leaders \n",
+				"Timeout",
+				e.electing,
+				e.round[e.electing],
+				e.Name,
+				cnt)
 
 			// Can we see a majority of the federated servers?
 			if cnt > len(e.Federated)/2 {
 				// Reset the timeout and give up if we can't see a majority.
-				go Fault(e, int(as.DBHeight), int(as.Minute))
 				break messages
 			}
 			fmt.Printf("eee %10s %s\n", e.Name, "Fault!")
@@ -245,17 +254,21 @@ func Run(s *state.State) {
 				auditIdx := MaxIdx(e.apriority)
 				if idx == auditIdx {
 					V := new(elections.VolunteerAudit)
+					V.TS = primitives.NewTimestampNow()
 					V.NName = e.Name
 					V.ServerIdx = uint32(e.electing)
 					V.ServerID = e.ServerID
+					V.Weight = e.apriority[idx]
 					V.DBHeight = uint32(e.DBHeight)
 					V.Minute = byte(e.Minute)
+					V.Round = e.round[e.electing]
 					fmt.Printf("eee %10s %s %s\n", e.Name, "I'm an Audit Server and I Volunteer", V.String())
 					V.SendOut(s, V)
 				}
 			}
 		case *elections.VolunteerAudit:
 			fmt.Printf("eee %s\n", msg.String())
+
 		}
 	}
 }

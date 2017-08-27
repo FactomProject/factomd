@@ -211,7 +211,7 @@ func (b *Buffer) PopBool() (bool, error) {
 func (b *Buffer) PopTimestamp() (interfaces.Timestamp, error) {
 	ts, err := b.PopInt64()
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return NewTimestampFromMilliseconds(uint64(ts)), nil
 }
@@ -225,23 +225,23 @@ func (b *Buffer) PopString() (string, error) {
 }
 
 func (b *Buffer) PopBytes() ([]byte, error) {
-	l,err := b.PopVarInt()
+	l, err := b.PopVarInt()
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	answer := make([]byte, int(l))
 	if b.Len() < int(l) {
-		return nil,errors.New(fmt.Sprintf("End of Buffer Looking for %d but only have %d",l,b.Len()))
+		return nil, errors.New(fmt.Sprintf("End of Buffer Looking for %d but only have %d", l, b.Len()))
 	}
-	al,err := b.Read(answer)
+	al, err := b.Read(answer)
 	if al != int(l) {
 		return nil, errors.New("2End of Buffer")
 	}
 	return answer, nil
 }
 
-func (b *Buffer) PopIHash() (interfaces.IHash, error){
+func (b *Buffer) PopIHash() (interfaces.IHash, error) {
 	bb, err := b.PopBytes()
 	if err != nil {
 		return nil, err

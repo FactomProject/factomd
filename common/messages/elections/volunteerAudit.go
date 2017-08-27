@@ -154,9 +154,9 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
-		if m.ServerID, err = buf.PopIHash(); err != nil {
-			return nil, err
-		}
+	if m.ServerID, err = buf.PopIHash(); err != nil {
+		return nil, err
+	}
 	if m.Weight, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
@@ -209,12 +209,13 @@ func (m *VolunteerAudit) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %10s %x %10s server Index: %d round: %d dbheight: %d minute: %d ",
+	return fmt.Sprintf("%20s %10s ID: %x WT: %x server Index: %d round: %d dbheight: %d minute: %d ",
 		"Volunteer Audit",
 		m.NName,
 		m.ServerID.Bytes()[2:5],
-		m.NName,
+		m.Weight.Bytes()[2:5],
+		m.ServerIdx,
+		m.Round,
 		m.DBHeight,
-		m.Minute,
-		m.ServerIdx)
+		m.Minute)
 }

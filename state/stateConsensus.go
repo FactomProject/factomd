@@ -921,54 +921,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 		return
 	}
 
-	// The zero based minute for the message is equal to
-	// the one based "LastMinute".  This way we know we are
-	// generating minutes in order.
-
-	eom := m.(*messages.EOM)
-	pl := s.ProcessLists.Get(s.LLeaderHeight)
-	vm := pl.VMs[s.LeaderVMIndex]
-
-	// Put the System Height and Serial Hash into the EOM
-	eom.SysHeight = uint32(pl.System.Height)
-	if pl.System.Height > 1 {
-		ff, ok := pl.System.List[pl.System.Height-1].(*messages.FullServerFault)
-		if ok {
-			eom.SysHash = ff.GetSerialHash()
-		}
-	}
-
-	if s.Syncing && vm.Synced {
-		return
-	} else if !s.Syncing {
-		s.Syncing = true
-		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s LeaderExecuteEOM: !s.EOM(%v)", s.FactomNodeName, s.EOM))
-		s.EOM = true
-		s.EOMsyncing = true
-		s.EOMProcessed = 0
-		for _, vm := range pl.VMs {
-			vm.Synced = false
-		}
-		s.EOMLimit = len(pl.FedServers)
-		s.EOMMinute = int(s.CurrentMinute)
-	}
-
-	if vm.EomMinuteIssued >= s.CurrentMinute+1 {
-		//os.Stderr.WriteString(fmt.Sprintf("Bump detected %s minute %2d\n", s.FactomNodeName, s.CurrentMinute))
-		return
-	}
-
-	//_, vmindex := pl.GetVirtualServers(s.EOMMinute, s.IdentityChainID)
-
-	eom.DBHeight = s.LLeaderHeight
-	eom.VMIndex = s.LeaderVMIndex
-	// eom.Minute is zerobased, while LeaderMinute is 1 based.  So
-	// a simple assignment works.
-	eom.Minute = byte(s.CurrentMinute)
-	vm.EomMinuteIssued = s.CurrentMinute + 1
-	eom.Sign(s)
-	eom.MsgHash = nil
-	ack := s.NewAck(m, nil).(*messages.Ack)
+	eom, ack := s.CreateEOM(m, s.LeaderVMIndex)
 
 	TotalAcksInputs.Inc()
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
