@@ -246,7 +246,7 @@ func Run(s *state.State) {
 				if idx == auditIdx {
 					V := new(elections.VolunteerAudit)
 					V.NName = e.Name
-					V.ServerIdx = e.electing
+					V.ServerIdx = uint32(e.electing)
 					V.ServerID = e.ServerID
 					V.DBHeight = uint32(e.DBHeight)
 					V.Minute = byte(e.Minute)
