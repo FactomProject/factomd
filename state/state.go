@@ -53,7 +53,7 @@ type State struct {
 
 	Prefix            string
 	FactomNodeName    string
-	FactomdVersion    int
+	FactomdVersion    string
 	LogPath           string
 	LdbPath           string
 	BoltDBPath        string
@@ -819,7 +819,6 @@ func (s *State) Init() {
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
-	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
@@ -1259,8 +1258,8 @@ func (s *State) fillAcksMap() {
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
-	fmt.Println("GetPendingEntries")
 	resp := make([]interfaces.IPendingEntry, 0)
+	repeatmap := make(map[[32]byte]interfaces.IPendingEntry)
 	pls := s.ProcessLists.Lists
 	var cc messages.CommitChainMsg
 	var ce messages.CommitEntryMsg
@@ -1290,9 +1289,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							} else {
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
-
-							if util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
 						} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 							enb, err := plmsg.MarshalBinary()
@@ -1312,8 +1311,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 
-							if !util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
 						} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
 							enb, err := plmsg.MarshalBinary()
@@ -1331,9 +1331,23 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							} else {
 								tmp.Status = "AckStatusDBlockConfirmed"
 							}
-
-							if !util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
+							} else {
+								//If it is in there, it may not know the chainid because it was from a commit
+								if repeatmap[tmp.EntryHash.Fixed()].ChainID == nil {
+									repeatmap[tmp.EntryHash.Fixed()] = tmp
+									// now update your response entry
+									for k, _ := range resp {
+										if resp[k].EntryHash.IsSameAs(tmp.EntryHash) {
+											if tmp.ChainID != nil {
+
+												resp[k].ChainID = tmp.ChainID
+											}
+										}
+									}
+								}
 							}
 						}
 					}
@@ -1357,10 +1371,15 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 			tmp.EntryHash = re.Entry.GetHash()
 
 			tmp.ChainID = re.Entry.GetChainID()
+
 			tmp.Status = "AckStatusNotConfirmed"
-			if !util.IsInPendingEntryList(resp, tmp) {
+
+			if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
+
 				resp = append(resp, tmp)
+				repeatmap[tmp.EntryHash.Fixed()] = tmp
 			}
+
 		}
 	}
 
@@ -1829,7 +1848,7 @@ func (s *State) GetMessageTalliesReceived(i int) int {
 	return s.MessageTalliesReceived[i]
 }
 
-func (s *State) GetFactomdVersion() int {
+func (s *State) GetFactomdVersion() string {
 	return s.FactomdVersion
 }
 

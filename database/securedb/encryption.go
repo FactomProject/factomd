@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/scrypt"
 	"io"
-	//"log"
 )
 
 func GetKey(password string, salt []byte) ([]byte, error) {
