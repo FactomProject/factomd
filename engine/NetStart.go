@@ -493,10 +493,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
-	// Listen for commands:
-	if !p.disableSimControl {
-		SimControl(p.ListenTo, listenToStdin)
-	}
+
+	SimControl(p.ListenTo, listenToStdin)
+
 }
 
 //**********************************************************************
