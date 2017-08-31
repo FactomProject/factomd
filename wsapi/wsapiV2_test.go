@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
+	"time"
 )
 
 func TestRegisterPrometheus(t *testing.T) {
@@ -97,6 +98,7 @@ func TestHandleV2GetRaw(t *testing.T) {
 		data.Hash = v.Hash1
 		req := primitives.NewJSON2Request("raw-data", 1, data)
 
+		time.Sleep(time.Millisecond * 100)
 		resp, err := v2Request(req)
 		if err != nil {
 			t.Errorf("%v", err)
