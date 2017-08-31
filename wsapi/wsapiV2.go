@@ -571,7 +571,7 @@ func HandleV2CommitChain(state interfaces.IState, params interface{}) (interface
 	resp.Message = "Chain Commit Success"
 	resp.TxID = commit.GetSigHash().String()
 	resp.EntryHash = commit.GetEntryHash().String()
-	resp.ChainID = commit.ChainIDHash.String()
+	resp.ChainIDHash = commit.ChainIDHash.String()
 
 	return resp, nil
 }

@@ -16,10 +16,10 @@ type FactoidSubmitResponse struct {
 }
 
 type CommitChainResponse struct {
-	Message   string `json:"message"`
-	TxID      string `json:"txid"`
-	EntryHash string `json:"entryhash,omitempty"`
-	ChainID   string `json:"chainid,omitempty"`
+	Message     string `json:"message"`
+	TxID        string `json:"txid"`
+	EntryHash   string `json:"entryhash,omitempty"`
+	ChainIDHash string `json:"chainidhash,omitempty"`
 }
 
 type RevealChainResponse struct {
