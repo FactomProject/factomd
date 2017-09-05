@@ -1,4 +1,4 @@
-FROM golang:1.8.3
+FROM golang:1.9
 
 # Get git
 RUN apt-get update \
