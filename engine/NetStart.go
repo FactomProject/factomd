@@ -5,16 +5,14 @@
 package engine
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"time"
-
-	"math"
-
-	"bufio"
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -66,6 +64,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.timeOffset))
 	s.StartDelayLimit = p.startDelay * 1000
 	s.Journaling = p.Journaling
+	s.FactomdVersion = FactomdVersion
 
 	log.SetOutput(os.Stdout)
 	switch p.loglvl {
@@ -495,10 +494,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
-	// Listen for commands:
-	if !p.disableSimControl {
-		SimControl(p.ListenTo, listenToStdin)
-	}
+
+	SimControl(p.ListenTo, listenToStdin)
+
 }
 
 //**********************************************************************

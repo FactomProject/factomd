@@ -44,7 +44,7 @@ type IState interface {
 
 	GetDirectoryBlockInSeconds() int
 	SetDirectoryBlockInSeconds(int)
-	GetFactomdVersion() int
+	GetFactomdVersion() string
 	GetDBHeightComplete() uint32
 	DatabaseContains(hash IHash) bool
 	SetOut(bool)  // Output is turned on if set to true

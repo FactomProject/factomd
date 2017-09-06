@@ -53,7 +53,7 @@ type State struct {
 
 	Prefix            string
 	FactomNodeName    string
-	FactomdVersion    int
+	FactomdVersion    string
 	LogPath           string
 	LdbPath           string
 	BoltDBPath        string
@@ -821,7 +821,6 @@ func (s *State) Init() {
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
-	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
@@ -1288,9 +1287,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 							tmp.ChainID = cc.CommitChain.ChainIDHash
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = constants.AckStatusACKString
+								tmp.Status = "AckStatusACK"
 							} else {
-								tmp.Status = constants.AckStatusDBlockConfirmedString
+								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
@@ -1309,9 +1308,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 							tmp.ChainID = nil
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = constants.AckStatusACKString
+								tmp.Status = "AckStatusACK"
 							} else {
-								tmp.Status = constants.AckStatusDBlockConfirmedString
+								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 
 							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
@@ -1330,9 +1329,9 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							tmp.EntryHash = re.Entry.GetHash()
 							tmp.ChainID = re.Entry.GetChainID()
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = constants.AckStatusACKString
+								tmp.Status = "AckStatusACK"
 							} else {
-								tmp.Status = constants.AckStatusDBlockConfirmedString
+								tmp.Status = "AckStatusDBlockConfirmed"
 							}
 							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
@@ -1375,7 +1374,7 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 			tmp.ChainID = re.Entry.GetChainID()
 
-			tmp.Status = constants.AckStatusNotConfirmedString
+			tmp.Status = "AckStatusNotConfirmed"
 
 			if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 
@@ -1405,9 +1404,9 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					var tmp interfaces.IPendingTransaction
 					tmp.TransactionID = tran.GetSigHash()
 					if tran.GetBlockHeight() > 0 {
-						tmp.Status = constants.AckStatusDBlockConfirmedString
+						tmp.Status = "AckStatusDBlockConfirmed"
 					} else {
-						tmp.Status = constants.AckStatusACKString
+						tmp.Status = "AckStatusACK"
 					}
 
 					tmp.Inputs = tran.GetInputs()
@@ -1454,7 +1453,7 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			tempTran := rm.GetTransaction()
 			var tmp interfaces.IPendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
-			tmp.Status = constants.AckStatusNotConfirmedString
+			tmp.Status = "AckStatusNotConfirmed"
 			flgFound = tempTran.HasUserAddress(params.(string))
 			tmp.Inputs = tempTran.GetInputs()
 			tmp.Outputs = tempTran.GetOutputs()
@@ -1851,7 +1850,7 @@ func (s *State) GetMessageTalliesReceived(i int) int {
 	return s.MessageTalliesReceived[i]
 }
 
-func (s *State) GetFactomdVersion() int {
+func (s *State) GetFactomdVersion() string {
 	return s.FactomdVersion
 }
 
