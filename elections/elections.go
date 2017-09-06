@@ -1,7 +1,6 @@
 package elections
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/elections"
@@ -32,32 +31,6 @@ type Elections struct {
 	LeaderVolunteer int // This is the volunteer that we expect
 }
 
-// Creates an order for all servers by using a certain hash function.  The list of unordered hashes (in the same order
-// as the slice of servers) is returned.
-func Order(servers []interfaces.IServer, dbheight int, minute int, serverIdx int, round int) (priority []interfaces.IHash) {
-	for _, s := range servers {
-		var data []byte
-		data = append(data, byte(round>>24), byte(round>>16), byte(round>>8), byte(round))
-		data = append(data, byte(dbheight>>24), byte(dbheight>>16), byte(dbheight>>8), byte(dbheight))
-		data = append(data, byte(minute))
-		data = append(data, byte(serverIdx>>8), byte(serverIdx))
-		data = append(data, s.GetChainID().Bytes()...)
-		hash := primitives.Sha(data)
-		priority = append(priority, hash)
-	}
-	return
-}
-
-// Returns the index of the maximum priority entry
-func MaxIdx(priority []interfaces.IHash) (idx int) {
-	for i, v := range priority {
-		if bytes.Compare(v.Bytes(), priority[idx].Bytes()) > 0 {
-			idx = i
-		}
-	}
-	return
-}
-
 func (e *Elections) Print() {
 	str := fmt.Sprintf("%s  dbht %d", e.Name, e.DBHeight)
 	str += fmt.Sprintf("  %s\n", "Federated Servers")
@@ -71,9 +44,6 @@ func (e *Elections) Print() {
 	fmt.Println(str)
 }
 
-type AuthMsg interface {
-	GetServerID() interfaces.IHash
-}
 
 // Returns the index of the given server. -1 if it isn't a Federated Server
 func (e *Elections) LeaderIndex(server interfaces.IHash) int {
@@ -95,23 +65,6 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 	return -1
 }
 
-func sort(serv []interfaces.IServer) {
-	for i := 0; i < len(serv)-1; i++ {
-		allgood := true
-		for j := 0; j < len(serv)-1-i; j++ {
-			if bytes.Compare(serv[j].GetChainID().Bytes(), serv[j+1].GetChainID().Bytes()) > 0 {
-				s := serv[j]
-				serv[j] = serv[j+1]
-				serv[j+1] = s
-				allgood = false
-			}
-		}
-		if allgood {
-			return
-		}
-	}
-}
-
 func Fault(e *Elections, dbheight int, minute int) {
 	time.Sleep(5 * time.Second)
 
@@ -131,17 +84,14 @@ func Run(s *state.State) {
 	for {
 		msg := e.Input.BlockingDequeue()
 		fmt.Println(msg.String())
+		msg.(interfaces.IElections).ElectionProcess(s,e)
+
 	messages:
 		switch msg.(type) {
 		case *elections.AddAuditInternal:
-			as := msg.(*elections.AddAuditInternal)
-			e.Audit = append(e.Audit, &state.Server{ChainID: as.GetServerID(), Online: true})
-			sort(e.Audit)
-			e.Print()
 		case *elections.AddLeaderInternal:
 			as := msg.(*elections.AddLeaderInternal)
-			e.Federated = append(e.Federated, &state.Server{ChainID: as.GetServerID(), Online: true})
-			sort(e.Federated)
+
 			e.Print()
 		case *elections.RemoveAuditInternal:
 			as := msg.(*elections.RemoveAuditInternal)

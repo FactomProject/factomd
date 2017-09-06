@@ -11,7 +11,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/state"
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/elections"
 )
 
 //General acknowledge message
@@ -25,6 +27,15 @@ type AddLeaderInternal struct {
 }
 
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)
+
+func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elections interfaces.IElections) {
+	e, ok := elections.(*elections.Elections)
+	if !ok {
+		panic("Invalid elections object")
+	}
+	e.Federated = append(e.Federated, &state.Server{ChainID: m.ServerID, Online: true})
+	Sort(e.Federated)
+}
 
 func (m *AddLeaderInternal) GetServerID() interfaces.IHash {
 	return m.ServerID

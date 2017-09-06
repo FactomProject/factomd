@@ -116,3 +116,9 @@ type IMsg interface {
 	// Equivalent to String() for logging
 	LogFields() log.Fields
 }
+
+// Internal Messaging supporting Elections
+type IMsgInternal interface {
+	IMsg
+	ProcessElections(IState,IElections)
+}

@@ -12,6 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 )
 
 //General acknowledge message
@@ -26,8 +28,13 @@ type AddAuditInternal struct {
 
 var _ interfaces.IMsg = (*AddAuditInternal)(nil)
 
-func (m *AddAuditInternal) GetServerID() interfaces.IHash {
-	return m.ServerID
+func (m *AddAuditInternal) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
+	e, ok := elections.(*elections.Elections)
+	if !ok {
+		panic("Invalid elections object")
+	}
+	e.Audit = append(e.Audit, &state.Server{ChainID: m.ServerID, Online: true})
+	Sort(e.Audit)
 }
 
 func (m *AddAuditInternal) LogFields() log.Fields {

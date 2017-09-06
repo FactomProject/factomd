@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/elections"
 )
 
 //General acknowledge message
@@ -24,6 +25,13 @@ type TimeoutInternal struct {
 }
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
+
+func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
+	e, ok := elections.(*elections.Elections)
+	if !ok {
+		panic("Invalid elections object")
+	}
+}
 
 func (m *TimeoutInternal) GetServerID() interfaces.IHash {
 	return nil

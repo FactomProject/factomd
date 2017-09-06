@@ -14,6 +14,7 @@ import (
 	log "github.com/FactomProject/logrus"
 
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+	"github.com/FactomProject/factomd/elections"
 )
 
 var _ = fmt.Print
@@ -130,6 +131,13 @@ func (e *VolunteerAudit) JSONByte() ([]byte, error) {
 
 func (e *VolunteerAudit) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
+}
+
+func (m *VolunteerAudit) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
+	e, ok := elections.(*elections.Elections)
+	if !ok {
+		panic("Invalid elections object")
+	}
 }
 
 func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
