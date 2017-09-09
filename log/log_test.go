@@ -180,6 +180,7 @@ func TestPrints(t *testing.T) {
 	Printfln("Standard log test %s", "Printfln")
 	Debug("Debug log call %d", 1)
 	PrintStack()
+	Print("note: the above printout is not an error, this is just printing out a stack trace.")
 	SetLevel("debug")
 	Print("Debug log test Print")
 	UnsetTestLogger()
