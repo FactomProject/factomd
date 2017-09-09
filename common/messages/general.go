@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 
-	"github.com/FactomProject/factomd/common/messages/elections"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	log "github.com/FactomProject/logrus"
 )
 
@@ -89,7 +89,7 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 	case constants.BOUNCEREPLY_MSG:
 		msg = new(BounceReply)
 	case constants.VOLUNTEERAUDIT:
-		msg = new(elections.VolunteerAudit)
+		msg = new(electionMsgs.VolunteerAudit)
 	default:
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])

@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package elections_test
+package electionMsgs_test
 
 import (
 	"testing"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
-	. "github.com/FactomProject/factomd/common/messages/elections"
+	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 )
 

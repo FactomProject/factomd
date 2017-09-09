@@ -3,7 +3,7 @@ package elections
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages/elections"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 	"time"
@@ -44,7 +44,6 @@ func (e *Elections) Print() {
 	fmt.Println(str)
 }
 
-
 // Returns the index of the given server. -1 if it isn't a Federated Server
 func (e *Elections) LeaderIndex(server interfaces.IHash) int {
 	for i, b := range e.Federated {
@@ -68,7 +67,7 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 func Fault(e *Elections, dbheight int, minute int) {
 	time.Sleep(5 * time.Second)
 
-	timeout := new(elections.TimeoutInternal)
+	timeout := new(electionMsgs.TimeoutInternal)
 	timeout.Minute = minute
 	timeout.DBHeight = dbheight
 	e.Input.Enqueue(timeout)
@@ -84,17 +83,14 @@ func Run(s *state.State) {
 	for {
 		msg := e.Input.BlockingDequeue()
 		fmt.Println(msg.String())
-		msg.(interfaces.IElections).ElectionProcess(s,e)
+		msg.(interfaces.IElections).ElectionProcess(s, e)
 
 	messages:
 		switch msg.(type) {
-		case *elections.AddAuditInternal:
-		case *elections.AddLeaderInternal:
-			as := msg.(*elections.AddLeaderInternal)
-
-			e.Print()
-		case *elections.RemoveAuditInternal:
-			as := msg.(*elections.RemoveAuditInternal)
+		case *electionMsgs.AddAuditInternal:
+		case *electionMsgs.AddLeaderInternal:
+		case *electionMsgs.RemoveAuditInternal:
+			as := msg.(*electionMsgs.RemoveAuditInternal)
 			idx := 0
 			for i, s := range e.Audit {
 				idx = i
@@ -106,8 +102,8 @@ func Run(s *state.State) {
 				e.Audit = append(e.Audit[:idx], e.Audit[idx+1:]...)
 			}
 			e.Print()
-		case *elections.RemoveLeaderInternal:
-			as := msg.(*elections.RemoveLeaderInternal)
+		case *electionMsgs.RemoveLeaderInternal:
+			as := msg.(*electionMsgs.RemoveLeaderInternal)
 			idx := 0
 			for i, s := range e.Federated {
 				idx = i
@@ -119,8 +115,8 @@ func Run(s *state.State) {
 				e.Federated = append(e.Federated[:idx], e.Federated[idx+1:]...)
 			}
 			e.Print()
-		case *elections.EomSigInternal:
-			as := msg.(*elections.EomSigInternal)
+		case *electionMsgs.EomSigInternal:
+			as := msg.(*electionMsgs.EomSigInternal)
 			if int(as.DBHeight) > e.DBHeight || int(as.Minute) > e.Minute {
 
 				// Set our Identity Chain (Just in case it has changed.)
@@ -143,9 +139,9 @@ func Run(s *state.State) {
 				}
 			}
 			e.round = e.round[:0] // Get rid of any previous round counting.
-		case *elections.TimeoutInternal:
+		case *electionMsgs.TimeoutInternal:
 
-			as := msg.(*elections.TimeoutInternal)
+			as := msg.(*electionMsgs.TimeoutInternal)
 			if e.DBHeight > as.DBHeight || e.Minute > as.Minute {
 				break messages
 			}
@@ -203,7 +199,7 @@ func Run(s *state.State) {
 				fmt.Printf("eee %10s %s\n", e.Name, "I'm an Audit Server")
 				auditIdx := MaxIdx(e.apriority)
 				if idx == auditIdx {
-					V := new(elections.VolunteerAudit)
+					V := new(electionMsgs.VolunteerAudit)
 					V.TS = primitives.NewTimestampNow()
 					V.NName = e.Name
 					V.ServerIdx = uint32(e.electing)
@@ -216,7 +212,7 @@ func Run(s *state.State) {
 					V.SendOut(s, V)
 				}
 			}
-		case *elections.VolunteerAudit:
+		case *electionMsgs.VolunteerAudit:
 			fmt.Printf("eee %s\n", msg.String())
 
 		}

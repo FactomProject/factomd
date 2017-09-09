@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package elections
+package electionMsgs
 
 import (
 	"fmt"
@@ -117,7 +117,7 @@ func (m *VolunteerAudit) LeaderExecute(state interfaces.IState) {
 
 func (m *VolunteerAudit) FollowerExecute(state interfaces.IState) {
 	fmt.Printf("eee  %10s %s\n", state.GetFactomNodeName(), m.String())
-	state.Elections().Enqueue(m)
+	state.ElectionsQueue().Enqueue(m)
 }
 
 // Acknowledgements do not go into the process list.
