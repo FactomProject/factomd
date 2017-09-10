@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package messages
+package msgbase
 
 //https://docs.google.com/spreadsheets/d/1wy9JDEqyM2uRYhZ6Y1e9C3hIDm2prIILebztQ5BGlr8/edit#gid=1997221100
 
@@ -162,13 +162,7 @@ func MessageName(Type byte) string {
 	}
 }
 
-type Signable interface {
-	Sign(interfaces.Signer) error
-	MarshalForSignature() ([]byte, error)
-	GetSignature() interfaces.IFullSignature
-	IsValid() bool // Signature already checked
-	SetValid()     // Mark as validated so we don't have to repeat.
-}
+
 
 func SignSignable(s Signable, key interfaces.Signer) (interfaces.IFullSignature, error) {
 	toSign, err := s.MarshalForSignature()

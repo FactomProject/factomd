@@ -38,7 +38,7 @@ type Ack struct {
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
-var _ Signable = (*Ack)(nil)
+var _ messages.Signable = (*Ack)(nil)
 var AckBalanceHash = true
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {

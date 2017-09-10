@@ -122,7 +122,7 @@ type State struct {
 	HoldingMap   map[[32]byte]interfaces.IMsg
 
 	// Elections are managed through the Elections Structure
-	Elections interfaces.IElections
+	EFactory interfaces.IElectionsFactory
 
 	//  pending entry/transaction api calls for the ack queue do not have proper scope
 	//  This is used to create a temporary, correctly scoped ackqueue snapshot for the calls on demand

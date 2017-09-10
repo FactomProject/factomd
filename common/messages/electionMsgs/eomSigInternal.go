@@ -11,8 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
-	log "github.com/FactomProject/logrus"
 	"github.com/FactomProject/factomd/elections"
+	log "github.com/FactomProject/logrus"
 )
 
 //General acknowledge message
@@ -27,7 +27,6 @@ type EomSigInternal struct {
 }
 
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
-
 
 func (m *EomSigInternal) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
 	e, ok := elections.(*elections.Elections)

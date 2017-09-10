@@ -13,8 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	log "github.com/FactomProject/logrus"
 
-	"github.com/FactomProject/goleveldb/leveldb/errors"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/goleveldb/leveldb/errors"
 )
 
 var _ = fmt.Print

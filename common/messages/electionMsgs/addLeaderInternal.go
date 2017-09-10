@@ -11,9 +11,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/FactomProject/logrus"
-	"github.com/FactomProject/factomd/elections"
 )
 
 //General acknowledge message

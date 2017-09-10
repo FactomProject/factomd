@@ -22,7 +22,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
-	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 )
 
 var _ = fmt.Print
@@ -442,12 +441,11 @@ func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
 	}
 
 	// Inform Elections of a new leader
-	InMsg := p.State.Ele
-	InMsg := new(electionMsgs.AddLeaderInternal)
-	InMsg.NName = p.State.FactomNodeName
-	InMsg.DBHeight = p.DBHeight
-	InMsg.LocalOnly = true
-	InMsg.ServerID = identityChainID
+	InMsg := p.State.EFactory.NewAddLeaderInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
 	p.State.electionsQueue.Enqueue(InMsg)
 
 	p.FedServers = append(p.FedServers, nil)
@@ -475,11 +473,11 @@ func (p *ProcessList) AddAuditServer(identityChainID interfaces.IHash) int {
 		p.RemoveFedServerHash(identityChainID)
 	}
 
-	InMsg := new(electionMsgs.AddAuditInternal)
-	InMsg.NName = p.State.FactomNodeName
-	InMsg.DBHeight = p.DBHeight
-	InMsg.LocalOnly = true
-	InMsg.ServerID = identityChainID
+	InMsg := p.State.EFactory.NewAddAuditInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
 	p.State.electionsQueue.Enqueue(InMsg)
 
 	p.AuditServers = append(p.AuditServers, nil)
@@ -498,11 +496,11 @@ func (p *ProcessList) RemoveFedServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 
-	InMsg := new(electionMsgs.RemoveLeaderInternal)
-	InMsg.NName = p.State.FactomNodeName
-	InMsg.DBHeight = p.DBHeight
-	InMsg.LocalOnly = true
-	InMsg.ServerID = identityChainID
+	InMsg := p.State.EFactory.NewRemoveLeaderInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
 	p.State.electionsQueue.Enqueue(InMsg)
 
 	p.FedServers = append(p.FedServers[:i], p.FedServers[i+1:]...)
@@ -517,11 +515,11 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 
-	InMsg := new(electionMsgs.RemoveAuditInternal)
-	InMsg.NName = p.State.FactomNodeName
-	InMsg.DBHeight = p.DBHeight
-	InMsg.LocalOnly = true
-	InMsg.ServerID = identityChainID
+	InMsg := p.State.EFactory.NewAddAuditInternal(
+		p.State.FactomNodeName,
+		p.DBHeight,
+		identityChainID,
+	)
 	p.State.electionsQueue.Enqueue(InMsg)
 
 	p.AuditServers = append(p.AuditServers[:i], p.AuditServers[i+1:]...)

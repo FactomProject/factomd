@@ -78,7 +78,7 @@ func Run(s *state.State) {
 
 	e := new(Elections)
 	e.Name = s.FactomNodeName
-	e.Input = s.Elections()
+	e.Input = s.EFactory()
 	e.Output = s.InMsgQueue()
 	for {
 		msg := e.Input.BlockingDequeue()
