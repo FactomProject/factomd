@@ -42,7 +42,7 @@ type DirectoryBlockSignature struct {
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
-var _ Signable = (*DirectoryBlockSignature)(nil)
+var _ interfaces.Signable = (*DirectoryBlockSignature)(nil)
 
 func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	if b == nil {
@@ -209,7 +209,7 @@ func (m *DirectoryBlockSignature) Sign(key interfaces.Signer) error {
 		return err
 	}
 
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (m *DirectoryBlockSignature) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *DirectoryBlockSignature) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

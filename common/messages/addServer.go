@@ -107,7 +107,7 @@ func (e *AddServerMsg) JSONString() (string, error) {
 }
 
 func (m *AddServerMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (m *AddServerMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *AddServerMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *AddServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

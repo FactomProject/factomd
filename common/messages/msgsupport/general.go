@@ -161,31 +161,3 @@ func MessageName(Type byte) string {
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}
 }
-
-func SignSignable(s Signable, key interfaces.Signer) (interfaces.IFullSignature, error) {
-	toSign, err := s.MarshalForSignature()
-	if err != nil {
-		return nil, err
-	}
-	sig := key.Sign(toSign)
-	return sig, nil
-}
-
-func VerifyMessage(s Signable) (bool, error) {
-	if s.IsValid() {
-		return true, nil
-	}
-	toSign, err := s.MarshalForSignature()
-	if err != nil {
-		return false, err
-	}
-	sig := s.GetSignature()
-	if sig == nil {
-		return false, fmt.Errorf("%s", "Message signature is nil")
-	}
-	if sig.Verify(toSign) {
-		s.SetValid()
-		return true, nil
-	}
-	return false, errors.New("Signarue is invalid")
-}

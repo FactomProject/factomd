@@ -39,7 +39,7 @@ type EOM struct {
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
-var _ Signable = (*EOM)(nil)
+var _ interfaces.Signable = (*EOM)(nil)
 var _ interfaces.IMsg = (*EOM)(nil)
 
 func (a *EOM) IsSameAs(b *EOM) bool {
@@ -182,7 +182,7 @@ func (e *EOM) JSONString() (string, error) {
 }
 
 func (m *EOM) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (m *EOM) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *EOM) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

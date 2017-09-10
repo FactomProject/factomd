@@ -13,12 +13,11 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	log "github.com/FactomProject/logrus"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 //General acknowledge message
 type TimeoutInternal struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 	NName       string
 	DBHeight    int
 	Minute      int

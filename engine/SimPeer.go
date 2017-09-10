@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"math/rand"
 	"time"
 )
@@ -151,9 +152,9 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 	if f.Delayed != nil && now-f.Delayed.sent > f.DelayUse {
 		data := f.Delayed.data
 		f.Delayed = nil
-		msg, err := messages.UnmarshalMessage(data)
+		msg, err := msgsupport.UnmarshalMessage(data)
 		if err != nil {
-			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], messages.MessageName(data[0]))
+			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], msgsupport.MessageName(data[0]))
 		}
 
 		f.bytesIn += len(data)

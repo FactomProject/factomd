@@ -16,7 +16,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/database/leveldb"
@@ -25,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/elections"
 	log "github.com/FactomProject/logrus"
 )

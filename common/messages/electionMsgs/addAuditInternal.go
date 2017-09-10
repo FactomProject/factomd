@@ -12,13 +12,12 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
-	"github.com/FactomProject/factomd/state"
 	log "github.com/FactomProject/logrus"
 )
 
 //General acknowledge message
 type AddAuditInternal struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 	NName       string
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
@@ -29,8 +28,8 @@ type AddAuditInternal struct {
 var _ interfaces.IMsg = (*AddAuditInternal)(nil)
 var _ interfaces.IElectionMsg = (*AddAuditInternal)(nil)
 
-func (m *AddAuditInternal) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
-	e, ok := elections.(*elections.Elections)
+func (m *AddAuditInternal) ElectionProcess(state interfaces.IState, elect interfaces.IElections) {
+	e, ok := elect.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")
 	}

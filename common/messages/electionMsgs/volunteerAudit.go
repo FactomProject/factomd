@@ -21,7 +21,7 @@ var _ = fmt.Print
 
 //General acknowledge message
 type VolunteerAudit struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 	TS          interfaces.Timestamp // Message Timestamp
 	NName       string               // Server name
 	ServerIdx   uint32               // Index of Server replacing

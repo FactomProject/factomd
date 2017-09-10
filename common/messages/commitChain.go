@@ -30,7 +30,7 @@ type CommitChainMsg struct {
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
-var _ Signable = (*CommitChainMsg)(nil)
+var _ interfaces.Signable = (*CommitChainMsg)(nil)
 
 func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 	if a == nil || b == nil {
@@ -147,7 +147,7 @@ func (e *CommitChainMsg) JSONString() (string, error) {
 }
 
 func (m *CommitChainMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (m *CommitChainMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *CommitChainMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

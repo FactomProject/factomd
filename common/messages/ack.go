@@ -40,6 +40,7 @@ type Ack struct {
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ interfaces.Signable = (*Ack)(nil)
 var AckBalanceHash = true
+var packageLogger = log.WithFields(log.Fields{"package": "messages"})
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -70,7 +71,7 @@ func (m *Ack) GetTimestamp() interfaces.Timestamp {
 }
 
 func (m *Ack) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 // Validate the message, given the state.  Three possible results:
@@ -142,7 +143,7 @@ func (e *Ack) JSONString() (string, error) {
 }
 
 func (m *Ack) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}

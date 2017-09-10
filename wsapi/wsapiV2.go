@@ -1154,7 +1154,7 @@ func HandleV2SendRawMessage(state interfaces.IState, params interface{}) (interf
 		return nil, NewInvalidParamsError()
 	}
 
-	_, msg, err := messages.UnmarshalMessageData(data)
+	_, msg, err := messages.General.UnmarshalMessageData(data)
 	if err != nil {
 		return nil, NewInvalidParamsError()
 	}

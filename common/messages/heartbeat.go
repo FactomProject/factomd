@@ -18,7 +18,7 @@ import (
 
 //A placeholder structure for messages
 type Heartbeat struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 	Timestamp       interfaces.Timestamp
 	SecretNumber    uint32
 	DBHeight        uint32
@@ -33,7 +33,7 @@ type Heartbeat struct {
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
-var _ Signable = (*Heartbeat)(nil)
+var _ interfaces.Signable = (*Heartbeat)(nil)
 
 func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 	if b == nil {
@@ -302,7 +302,7 @@ func (e *Heartbeat) JSONString() (string, error) {
 }
 
 func (m *Heartbeat) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -315,5 +315,5 @@ func (m *Heartbeat) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *Heartbeat) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }

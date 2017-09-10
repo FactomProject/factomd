@@ -5,6 +5,8 @@
 package msgbase
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -218,4 +220,32 @@ func (m *MessageBase) GetMinute() byte {
 
 func (m *MessageBase) SetMinute(minute byte) {
 	m.Minute = minute
+}
+
+func VerifyMessage(s interfaces.Signable) (bool, error) {
+	if s.IsValid() {
+		return true, nil
+	}
+	toSign, err := s.MarshalForSignature()
+	if err != nil {
+		return false, err
+	}
+	sig := s.GetSignature()
+	if sig == nil {
+		return false, fmt.Errorf("%s", "Message signature is nil")
+	}
+	if sig.Verify(toSign) {
+		s.SetValid()
+		return true, nil
+	}
+	return false, errors.New("Signarue is invalid")
+}
+
+func SignSignable(s interfaces.Signable, key interfaces.Signer) (interfaces.IFullSignature, error) {
+	toSign, err := s.MarshalForSignature()
+	if err != nil {
+		return nil, err
+	}
+	sig := key.Sign(toSign)
+	return sig, nil
 }

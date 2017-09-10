@@ -34,7 +34,7 @@ type CommitEntryMsg struct {
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
-var _ Signable = (*CommitEntryMsg)(nil)
+var _ interfaces.Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if a == nil || b == nil {
@@ -105,7 +105,7 @@ func (m *CommitEntryMsg) Type() byte {
 }
 
 func (m *CommitEntryMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (m *CommitEntryMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *CommitEntryMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

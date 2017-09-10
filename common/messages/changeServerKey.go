@@ -31,7 +31,7 @@ type ChangeServerKeyMsg struct {
 }
 
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
-var _ Signable = (*ChangeServerKeyMsg)(nil)
+var _ interfaces.Signable = (*ChangeServerKeyMsg)(nil)
 
 func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -128,7 +128,7 @@ func (e *ChangeServerKeyMsg) JSONString() (string, error) {
 }
 
 func (m *ChangeServerKeyMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (m *ChangeServerKeyMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *ChangeServerKeyMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *ChangeServerKeyMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

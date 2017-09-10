@@ -18,7 +18,7 @@ import (
 
 //Structure to request missing messages in a node's process list
 type MissingMsgResponse struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 
 	Timestamp   interfaces.Timestamp
 	AckResponse interfaces.IMsg
@@ -29,6 +29,8 @@ type MissingMsgResponse struct {
 	//Not marshalled
 	hash interfaces.IHash
 }
+
+var General interfaces.IGeneralMsg
 
 var _ interfaces.IMsg = (*MissingMsgResponse)(nil)
 
@@ -120,7 +122,7 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 		}
 	}
 
-	newData, mr, err := UnmarshalMessageData(newData)
+	newData, mr, err := General.UnmarshalMessageData(newData)
 
 	if err != nil {
 		return nil, err

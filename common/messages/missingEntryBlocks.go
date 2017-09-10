@@ -19,7 +19,7 @@ import (
 //Requests entry blocks from a range of DBlocks
 
 type MissingEntryBlocks struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	DBHeightStart uint32 // First block missing

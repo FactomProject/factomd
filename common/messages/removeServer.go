@@ -20,7 +20,7 @@ import (
 // Communicate a Directory Block State
 
 type RemoveServerMsg struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
 	ServerType    int                  // 0 = Federated, 1 = Audit
@@ -29,7 +29,7 @@ type RemoveServerMsg struct {
 }
 
 var _ interfaces.IMsg = (*RemoveServerMsg)(nil)
-var _ Signable = (*RemoveServerMsg)(nil)
+var _ interfaces.Signable = (*RemoveServerMsg)(nil)
 
 func (m *RemoveServerMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -112,7 +112,7 @@ func (e *RemoveServerMsg) JSONString() (string, error) {
 }
 
 func (m *RemoveServerMsg) Sign(key interfaces.Signer) error {
-	signature, err := SignSignable(m, key)
+	signature, err := msgbase.SignSignable(m, key)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (m *RemoveServerMsg) GetSignature() interfaces.IFullSignature {
 }
 
 func (m *RemoveServerMsg) VerifySignature() (bool, error) {
-	return VerifyMessage(m)
+	return msgbase.VerifyMessage(m)
 }
 
 func (m *RemoveServerMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

@@ -2,12 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package messages_test
+package msgbase_test
 
 import (
 	"testing"
 
-	. "github.com/FactomProject/factomd/common/messages"
+	. "github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 )
