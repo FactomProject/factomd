@@ -1,6 +1,9 @@
 package interfaces
 
 type IElections interface {
+}
+
+type IElectionMsg interface {
 	ElectionProcess(IState, IElections)
 }
 
@@ -10,4 +13,5 @@ type IElectionsFactory interface {
 	NewRemoveLeaderInternal(name string, dbheight uint32, serverID IHash) IMsg
 	NewRemoveAuditInternal(name string, dbheight uint32, serverID IHash) IMsg
 	NewEomSigInternal(name string, dbheight uint32, minute uint32, height uint32, serverID IHash) IMsg
+	String()
 }

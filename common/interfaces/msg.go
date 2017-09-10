@@ -120,5 +120,5 @@ type IMsg interface {
 // Internal Messaging supporting Elections
 type IMsgInternal interface {
 	IMsg
-	ProcessElections(IState, IElections)
+	ProcessElections(IState, IElectionMsg)
 }

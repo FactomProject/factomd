@@ -21,7 +21,7 @@ var _ = fmt.Print
 
 //General acknowledge message
 type VolunteerAudit struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	TS          interfaces.Timestamp // Message Timestamp
 	NName       string               // Server name
 	ServerIdx   uint32               // Index of Server replacing
@@ -31,6 +31,10 @@ type VolunteerAudit struct {
 	Minute      byte                 // Minute (-1 for dbsig)
 	Round       int                  // Voting Round
 	messageHash interfaces.IHash
+}
+
+func (m *VolunteerAudit) ElectionProcess(state interfaces.IState, elections interfaces.IElectionMsg) {
+	fmt.Printf("eee %s\n", m.String())
 }
 
 var _ interfaces.IMsg = (*VolunteerAudit)(nil)
@@ -131,13 +135,6 @@ func (e *VolunteerAudit) JSONByte() ([]byte, error) {
 
 func (e *VolunteerAudit) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
-}
-
-func (m *VolunteerAudit) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
-	e, ok := elections.(*elections.Elections)
-	if !ok {
-		panic("Invalid elections object")
-	}
 }
 
 func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err error) {

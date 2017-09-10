@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/elections"
+	"time"
 )
 
 func Sort(serv []interfaces.IServer) {
@@ -47,4 +49,14 @@ func MaxIdx(priority []interfaces.IHash) (idx int) {
 		}
 	}
 	return
+}
+
+func Fault(e *elections.Elections, dbheight int, minute int) {
+	time.Sleep(5 * time.Second)
+
+	timeout := new(TimeoutInternal)
+	timeout.Minute = minute
+	timeout.DBHeight = dbheight
+	e.Input.Enqueue(timeout)
+
 }

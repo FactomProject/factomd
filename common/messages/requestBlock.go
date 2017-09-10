@@ -17,7 +17,7 @@ import (
 
 //A placeholder structure for messages
 type RequestBlock struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	//TODO: figure whether this should be signed or not?

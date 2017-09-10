@@ -17,7 +17,7 @@ import (
 
 //General acknowledge message
 type EomSigInternal struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	NName       string
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
@@ -33,6 +33,29 @@ func (m *EomSigInternal) ElectionProcess(state interfaces.IState, elections inte
 	if !ok {
 		panic("Invalid elections object")
 	}
+	if int(as.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
+
+		// Set our Identity Chain (Just in case it has changed.)
+		e.ServerID = s.IdentityChainID
+
+		// Start our timer to timeout this sync
+		go Fault(e, int(m.DBHeight), int(as.Minute))
+
+		e.DBHeight = int(as.DBHeight)
+		e.Minute = int(m.Minute)
+		e.sync = make([]bool, len(e.Federated))
+	}
+	idx := e.LeaderIndex(m.ServerID)
+	if idx >= 0 {
+		e.Sync[idx] = true
+	}
+	for _, b := range e.Sync {
+		if !b {
+			return
+		}
+	}
+	e.Round = e.Round[:0] // Get rid of any previous round counting.
+
 }
 
 func (m *EomSigInternal) GetServerID() interfaces.IHash {

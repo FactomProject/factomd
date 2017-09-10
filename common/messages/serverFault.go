@@ -18,7 +18,7 @@ import (
 
 //A placeholder structure for messages
 type ServerFault struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 
 	// The following 5 fields represent the "Core" of the message
 	// This should match the Core of FullServerFault messages

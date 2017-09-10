@@ -18,7 +18,7 @@ import (
 
 //A placeholder structure for messages
 type Heartbeat struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	Timestamp       interfaces.Timestamp
 	SecretNumber    uint32
 	DBHeight        uint32

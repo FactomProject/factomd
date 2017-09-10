@@ -1,7 +1,7 @@
 package interfaces
 
 type IMsgFactory interface {
-	UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err error)
+	UnmarshalMessageData(data []byte) (newdata []byte, msg IMsg, err error)
 	MessageName(Type byte) string
 	SignSignable(s Signable, key Signer) (IFullSignature, error)
 	VerifyMessage(s Signable) (bool, error)

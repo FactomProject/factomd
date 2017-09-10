@@ -18,7 +18,7 @@ import (
 
 //Structure to request missing messages in a node's process list
 type MissingMsg struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 
 	Timestamp         interfaces.Timestamp
 	Asking            interfaces.IHash

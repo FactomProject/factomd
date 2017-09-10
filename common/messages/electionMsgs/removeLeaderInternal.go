@@ -17,7 +17,7 @@ import (
 
 //General acknowledge message
 type RemoveLeaderInternal struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	NName       string
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
@@ -31,6 +31,16 @@ func (m *RemoveLeaderInternal) ElectionProcess(state interfaces.IState, election
 	e, ok := elections.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")
+	}
+	idx := 0
+	for i, s := range e.Federated {
+		idx = i
+		if s.GetChainID().IsSameAs(m.GetServerID()) {
+			break
+		}
+	}
+	if idx < len(e.Federated) {
+		e.Federated = append(e.Federated[:idx], e.Federated[idx+1:]...)
 	}
 }
 

@@ -20,7 +20,7 @@ import (
 // Communicate a Directory Block State
 
 type RemoveServerMsg struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	Timestamp     interfaces.Timestamp // Message Timestamp
 	ServerChainID interfaces.IHash     // ChainID of new server
 	ServerType    int                  // 0 = Federated, 1 = Audit

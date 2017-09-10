@@ -17,7 +17,7 @@ import (
 
 //General acknowledge message
 type RemoveAuditInternal struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	NName       string
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
@@ -31,6 +31,16 @@ func (m *RemoveAuditInternal) ElectionProcess(state interfaces.IState, elections
 	e, ok := elections.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")
+	}
+	idx := 0
+	for i, s := range e.Audit {
+		idx = i
+		if s.GetChainID().IsSameAs(m.GetServerID()) {
+			break
+		}
+	}
+	if idx < len(e.Audit) {
+		e.Audit = append(e.Audit[:idx], e.Audit[idx+1:]...)
 	}
 }
 

@@ -17,7 +17,7 @@ import (
 
 //A placeholder structure for messages
 type InvalidDirectoryBlock struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	Timestamp interfaces.Timestamp
 
 	Signature interfaces.IFullSignature

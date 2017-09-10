@@ -18,7 +18,7 @@ import (
 
 //General acknowledge message
 type AddAuditInternal struct {
-	msgbase.MessageBase
+	msgBase.MessageBase
 	NName       string
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
@@ -27,6 +27,7 @@ type AddAuditInternal struct {
 }
 
 var _ interfaces.IMsg = (*AddAuditInternal)(nil)
+var _ interfaces.IElectionMsg = (*AddAuditInternal)(nil)
 
 func (m *AddAuditInternal) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
 	e, ok := elections.(*elections.Elections)
