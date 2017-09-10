@@ -26,8 +26,8 @@ type TimeoutInternal struct {
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
 
-func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elections interfaces.IElectionMsg) {
-	e, ok := elections.(*elections.Elections)
+func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elect interfaces.IElections) {
+	e, ok := elect.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")
 	}
@@ -98,7 +98,7 @@ func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elections int
 			V.Minute = byte(e.Minute)
 			V.Round = e.Round[e.Electing]
 			fmt.Printf("eee %10s %s %s\n", e.Name, "I'm an Audit Server and I Volunteer", V.String())
-			V.SendOut(s, V)
+			V.SendOut(state, V)
 		}
 	}
 }

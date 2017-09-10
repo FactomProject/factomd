@@ -28,7 +28,7 @@ type AddLeaderInternal struct {
 
 var _ interfaces.IMsg = (*AddLeaderInternal)(nil)
 
-func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interfaces.IElectionMsg) {
+func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interfaces.IElections) {
 	e, ok := elect.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")

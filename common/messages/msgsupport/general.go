@@ -7,12 +7,12 @@ package msgsupport
 //https://docs.google.com/spreadsheets/d/1wy9JDEqyM2uRYhZ6Y1e9C3hIDm2prIILebztQ5BGlr8/edit#gid=1997221100
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
 	log "github.com/FactomProject/logrus"
 )
@@ -37,57 +37,51 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 
 	switch messageType {
 	case constants.EOM_MSG:
-		msg = new(EOM)
+		msg = new(messages.EOM)
 	case constants.ACK_MSG:
-		msg = new(Ack)
+		msg = new(messages.Ack)
 	case constants.AUDIT_SERVER_FAULT_MSG:
-		msg = new(AuditServerFault)
+		msg = new(messages.AuditServerFault)
 	case constants.FED_SERVER_FAULT_MSG:
-		msg = new(ServerFault)
+		msg = new(messages.ServerFault)
 	case constants.FULL_SERVER_FAULT_MSG:
-		msg = new(FullServerFault)
+		msg = new(messages.FullServerFault)
 	case constants.COMMIT_CHAIN_MSG:
-		msg = new(CommitChainMsg)
+		msg = new(messages.CommitChainMsg)
 	case constants.COMMIT_ENTRY_MSG:
-		msg = new(CommitEntryMsg)
+		msg = new(messages.CommitEntryMsg)
 	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-		msg = new(DirectoryBlockSignature)
-	case constants.EOM_TIMEOUT_MSG:
-		msg = new(EOMTimeout)
+		msg = new(messages.DirectoryBlockSignature)
 	case constants.FACTOID_TRANSACTION_MSG:
-		msg = new(FactoidTransaction)
+		msg = new(messages.FactoidTransaction)
 	case constants.HEARTBEAT_MSG:
-		msg = new(Heartbeat)
-	case constants.INVALID_DIRECTORY_BLOCK_MSG:
-		msg = new(InvalidDirectoryBlock)
+		msg = new(messages.Heartbeat)
 	case constants.MISSING_MSG:
-		msg = new(MissingMsg)
+		msg = new(messages.MissingMsg)
 	case constants.MISSING_MSG_RESPONSE:
-		msg = new(MissingMsgResponse)
+		msg = new(messages.MissingMsgResponse)
 	case constants.MISSING_DATA:
-		msg = new(MissingData)
+		msg = new(messages.MissingData)
 	case constants.DATA_RESPONSE:
-		msg = new(DataResponse)
+		msg = new(messages.DataResponse)
 	case constants.REVEAL_ENTRY_MSG:
-		msg = new(RevealEntryMsg)
+		msg = new(messages.RevealEntryMsg)
 	case constants.REQUEST_BLOCK_MSG:
-		msg = new(RequestBlock)
-	case constants.SIGNATURE_TIMEOUT_MSG:
-		msg = new(SignatureTimeout)
+		msg = new(messages.RequestBlock)
 	case constants.DBSTATE_MISSING_MSG:
-		msg = new(DBStateMissing)
+		msg = new(messages.DBStateMissing)
 	case constants.DBSTATE_MSG:
-		msg = new(DBStateMsg)
+		msg = new(messages.DBStateMsg)
 	case constants.ADDSERVER_MSG:
-		msg = new(AddServerMsg)
+		msg = new(messages.AddServerMsg)
 	case constants.CHANGESERVER_KEY_MSG:
-		msg = new(ChangeServerKeyMsg)
+		msg = new(messages.ChangeServerKeyMsg)
 	case constants.REMOVESERVER_MSG:
-		msg = new(RemoveServerMsg)
+		msg = new(messages.RemoveServerMsg)
 	case constants.BOUNCE_MSG:
-		msg = new(Bounce)
+		msg = new(messages.Bounce)
 	case constants.BOUNCEREPLY_MSG:
-		msg = new(BounceReply)
+		msg = new(messages.BounceReply)
 	case constants.VOLUNTEERAUDIT:
 		msg = new(electionMsgs.VolunteerAudit)
 	default:
@@ -160,4 +154,22 @@ func MessageName(Type byte) string {
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}
+}
+
+// GeneralFactory is used to get around package import loops.
+type GeneralFactory struct {
+}
+
+var _ interfaces.IGeneralMsg = (*GeneralFactory)(nil)
+
+func (GeneralFactory) MessageName(Type byte) string {
+	return MessageName(Type)
+}
+
+func (GeneralFactory) UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err error) {
+	return UnmarshalMessageData(data)
+}
+
+func (GeneralFactory) UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
+	return UnmarshalMessage(data)
 }

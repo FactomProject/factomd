@@ -17,7 +17,7 @@ import (
 
 //General acknowledge message
 type RemoveLeaderInternal struct {
-	msgBase.MessageBase
+	msgbase.MessageBase
 	NName       string
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
@@ -27,8 +27,8 @@ type RemoveLeaderInternal struct {
 
 var _ interfaces.IMsg = (*RemoveLeaderInternal)(nil)
 
-func (m *RemoveLeaderInternal) ElectionProcess(state interfaces.IState, elections interfaces.IElections) {
-	e, ok := elections.(*elections.Elections)
+func (m *RemoveLeaderInternal) ElectionProcess(state interfaces.IState, elect interfaces.IElections) {
+	e, ok := elect.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")
 	}

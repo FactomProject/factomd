@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 	log "github.com/FactomProject/logrus"
 )
 
@@ -28,22 +29,23 @@ type EomSigInternal struct {
 
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
 
-func (m *EomSigInternal) ElectionProcess(state interfaces.IState, elect interfaces.IElections) {
+func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e, ok := elect.(*elections.Elections)
+	s := is.(*state.State)
 	if !ok {
 		panic("Invalid elections object")
 	}
-	if int(as.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
+	if int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
 
 		// Set our Identity Chain (Just in case it has changed.)
 		e.ServerID = s.IdentityChainID
 
 		// Start our timer to timeout this sync
-		go Fault(e, int(m.DBHeight), int(as.Minute))
+		go Fault(e, int(m.DBHeight), int(m.Minute))
 
-		e.DBHeight = int(as.DBHeight)
+		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
-		e.sync = make([]bool, len(e.Federated))
+		e.Sync = make([]bool, len(e.Federated))
 	}
 	idx := e.LeaderIndex(m.ServerID)
 	if idx >= 0 {

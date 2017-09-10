@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 	log "github.com/FactomProject/logrus"
 )
 
@@ -28,7 +29,7 @@ type AddAuditInternal struct {
 var _ interfaces.IMsg = (*AddAuditInternal)(nil)
 var _ interfaces.IElectionMsg = (*AddAuditInternal)(nil)
 
-func (m *AddAuditInternal) ElectionProcess(state interfaces.IState, elect interfaces.IElections) {
+func (m *AddAuditInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e, ok := elect.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")

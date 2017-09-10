@@ -63,7 +63,6 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 }
 
 func Run(s *state.State) {
-
 	e := new(Elections)
 	e.Name = s.FactomNodeName
 	e.Input = s.ElectionsQueue()

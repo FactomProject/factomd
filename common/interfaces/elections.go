@@ -14,5 +14,4 @@ type IElectionsFactory interface {
 	NewRemoveLeaderInternal(name string, dbheight uint32, serverID IHash) IMsg
 	NewRemoveAuditInternal(name string, dbheight uint32, serverID IHash) IMsg
 	NewEomSigInternal(name string, dbheight uint32, minute uint32, height uint32, serverID IHash) IMsg
-	String() string
 }

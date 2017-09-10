@@ -25,6 +25,8 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/elections"
 	log "github.com/FactomProject/logrus"
 )
@@ -526,7 +528,9 @@ func startServers(load bool) {
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()
+			messages.General = new(msgsupport.GeneralFactory)
 		}
+		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 		go NetworkProcessorNet(fnode)
 		if load {
 			go state.LoadDatabase(fnode.State)

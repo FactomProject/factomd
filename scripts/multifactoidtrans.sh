@@ -31,7 +31,7 @@ factom-cli addtxoutput -q t1 $fct2 .001
 factom-cli addtxfee    -q t1 $big
 factom-cli signtx -q t1
 factom-cli sendtx -q -f t1
-sleep .3
+sleep .4
 
 factom-cli newtx -q t1
 factom-cli addtxinput  -q t1 $big .001
@@ -39,7 +39,7 @@ factom-cli addtxoutput -q t1 $fct3 .001
 factom-cli addtxfee    -q t1 $big
 factom-cli signtx -q t1
 factom-cli sendtx -q -f t1
-sleep .3
+sleep .4
 
 factom-cli newtx -q t1
 factom-cli addtxinput  -q t1 $big .001
@@ -47,7 +47,7 @@ factom-cli addtxoutput -q t1 $fct4 .001
 factom-cli addtxfee    -q t1 $big
 factom-cli signtx -q t1
 factom-cli sendtx -q -f t1
-sleep .3
+sleep .4
 
 factom-cli newtx -q t1
 factom-cli addtxinput  -q t1 $big .001
@@ -55,7 +55,7 @@ factom-cli addtxoutput -q t1 $fct5 .001
 factom-cli addtxfee    -q t1 $big
 factom-cli signtx -q t1
 factom-cli sendtx -q -f t1
-sleep .3
+sleep .4
 
 factom-cli newtx -q t1
 factom-cli addtxinput  -q t1 $big .001
@@ -64,7 +64,7 @@ factom-cli addtxfee    -q t1 $big
 factom-cli signtx -q t1
 factom-cli sendtx -q -f t1
 
-sleep .3
+sleep .4
 
 done
 

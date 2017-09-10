@@ -11,10 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
-	log "github.com/FactomProject/logrus"
-
-	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = fmt.Print
