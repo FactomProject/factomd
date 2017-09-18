@@ -635,7 +635,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 			dbstatemsg.DirectoryBlock.GetHeader().GetTimestamp())
 		// If not the coinbase TX, and we are past 100,000, and the TX is not valid,then we don't accept this block.
 		if i > 0 && // Don't test the coinbase TX
-			(dbheight < 2000 || dbheight > 100000) && // Test the first 2000 blks, so we can unit test, then after
+			((dbheight > 0 && dbheight < 2000) || dbheight > 100000) && // Test the first 2000 blks, so we can unit test, then after
 			!valid { // 100K for the running system.  If a TX isn't valid, ignore.
 			return //Totally ignore the block if it has a double spend.
 		}
