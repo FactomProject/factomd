@@ -74,6 +74,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
+	FReplay                 *Replay
 	DropRate                int
 	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
@@ -799,6 +800,7 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.FReplay = new(Replay)
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
