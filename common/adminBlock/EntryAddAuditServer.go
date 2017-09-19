@@ -10,8 +10,8 @@ import (
 
 // DB Signature Entry -------------------------
 type AddAuditServer struct {
-	IdentityChainID interfaces.IHash
-	DBHeight        uint32
+	IdentityChainID interfaces.IHash `json:"identitychainid"`
+	DBHeight        uint32           `json:"dbheight"`
 }
 
 var _ interfaces.IABEntry = (*AddAuditServer)(nil)

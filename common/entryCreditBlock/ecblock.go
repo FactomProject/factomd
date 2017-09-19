@@ -23,8 +23,8 @@ const (
 // of primarily Commits and Balance Increases with Minute Markers and Server
 // Markers distributed throughout.
 type ECBlock struct {
-	Header interfaces.IECBlockHeader
-	Body   interfaces.IECBlockBody
+	Header interfaces.IECBlockHeader `json:"header"`
+	Body   interfaces.IECBlockBody   `json:"body"`
 }
 
 var _ interfaces.Printable = (*ECBlock)(nil)

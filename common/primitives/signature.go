@@ -8,6 +8,7 @@ import (
 	//"encoding/hex"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -20,8 +21,8 @@ type DetachedPublicKey [ed25519.PublicKeySize]byte
 */
 //Signature has signed data and its corresponsing PublicKey
 type Signature struct {
-	Pub *PublicKey
-	Sig *ByteSliceSig
+	Pub *PublicKey    `json:"pub"`
+	Sig *ByteSliceSig `json:"sig"`
 }
 
 var _ interfaces.BinaryMarshallable = (*Signature)(nil)
