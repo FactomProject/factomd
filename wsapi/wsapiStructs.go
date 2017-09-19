@@ -114,7 +114,7 @@ type EntryResponse struct {
 
 type ChainHeadResponse struct {
 	ChainHead          string `json:"chainhead"`
-	ChainInProcessList bool   `json:"chaininprocesslist`
+	ChainInProcessList bool   `json:"chaininprocesslist"`
 }
 
 type EntryCreditBalanceResponse struct {
