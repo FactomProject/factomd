@@ -7,9 +7,9 @@ package messages_test
 import (
 	"testing"
 
+	"fmt"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/testHelper"
-	"fmt"
 	"strings"
 )
 
@@ -45,10 +45,9 @@ func TestNewEntryBlockResponse(t *testing.T) {
 	}
 	timeremoved := strings.Replace(response, timestamp, "", 1)
 	exampleTimeRemoved := "{\"FullMsgHash\":null,\"Origin\":0,\"NetworkOrigin\":\"\",\"Peer2Peer\":true,\"LocalOnly\":false,\"NoResend\":false,\"ResendCnt\":0,\"LeaderChainID\":null,\"MsgHash\":null,\"RepeatHash\":null,\"VMIndex\":0,\"VMHash\":null,\"Minute\":0,\"Ack\":null,\"Stalled\":false,\"MarkInvalid\":false,\"Sigvalid\":false,\"Timestamp\":,\"EBlockCount\":0,\"EBlocks\":null,\"EntryCount\":0,\"Entries\":null}"
-	if  timeremoved != exampleTimeRemoved {
+	if timeremoved != exampleTimeRemoved {
 		error := "Error entryblock message differed\n" + timeremoved + "\n" + exampleTimeRemoved
 		t.Errorf(error)
 	}
-
 
 }
