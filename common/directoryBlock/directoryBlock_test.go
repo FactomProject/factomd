@@ -420,8 +420,8 @@ func TestBuildBlock(t *testing.T) {
 
 	printout := db.String()
 	expectedString1 := fmt.Sprintf(`              keymr: %s
-             BodyMR: 01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
-           FullHash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
+             bodymr: 01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
+           fullhash: 857d121b40c0763cd310c68963d23ebf6fa4241ef6ba26861d9b80aa71c9f3a9
   version:         0
   networkid:       0
   bodymr:          01004ae2e96c0344a3c30a0704383c5c90ca2663921a9c1b8dc50658d52850a3
