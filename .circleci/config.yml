@@ -5,7 +5,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.8
+      - image: circleci/golang:1.9
 
     steps:
       - checkout
@@ -44,7 +44,7 @@ jobs:
   test:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.8
+      - image: circleci/golang:1.9
 
     steps:
       - checkout
@@ -89,7 +89,7 @@ jobs:
   coveralls:
     working_directory: /go/src/github.com/FactomProject/factomd
     docker:
-      - image: circleci/golang:1.8
+      - image: circleci/golang:1.9
 
     steps:
       - checkout
@@ -150,7 +150,7 @@ jobs:
       #   Hence, checksumming glide.lock
       - restore_cache:
           keys:
-            - v4-factomd-cache-{{ checksum "glide.lock" }}
+            - v5-factomd-cache-{{ checksum "glide.lock" }}
 
       # Load the images if the cache hit
       - run:
@@ -216,7 +216,7 @@ jobs:
             docker save -o /images/factomd.tar factomd $(docker history -q factomd |grep -v missing | grep -v none)
 
       - save_cache:
-          key: v4-factomd-cache-{{ checksum "glide.lock" }}
+          key: v5-factomd-cache-{{ checksum "glide.lock" }}
           paths:
             - /images
 
