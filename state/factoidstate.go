@@ -112,7 +112,10 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 		b = append(b, h3.Bytes()...)
 		b = append(b, h4.Bytes()...)
 	}
-	return primitives.Sha(b)
+	r := primitives.Sha(b)
+	// Debug aid for Balance Hashes
+	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
+	return r
 }
 
 // Reset this Factoid state to an empty state at a dbheight following the
