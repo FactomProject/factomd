@@ -340,6 +340,12 @@ type State struct {
 	AckChange uint32
 
 	StateSaverStruct StateSaverStruct
+
+	// ElasticSearch
+	ElasticSearch bool
+	ElasticURL    string
+	ElasticAuth   string
+
 	// Plugins
 	useTorrents             bool
 	torrentUploader         bool
@@ -920,15 +926,30 @@ func (s *State) Init() {
 	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
 
 	/* Set up ElasticSearch Hook for Logrus */
-	client, err := elastic.NewClient(elastic.SetURL("http://localhost:9200"))
-	if err != nil {
-		log.Panic(err)
+	if s.ElasticSearch {
+		var client *elastic.Client
+		var err error
+		elasticAuth := strings.Split(s.ElasticAuth, ":")
+		if len(elasticAuth) < 2 {
+			client, err = elastic.NewClient(elastic.SetURL(s.ElasticURL))
+			if err != nil {
+				log.Panic(err)
+			}
+		} else {
+			elasticUser := elasticAuth[0]
+			elasticPass := elasticAuth[1]
+			client, err = elastic.NewClient(elastic.SetURL(s.ElasticURL), elastic.SetBasicAuth(elasticUser, elasticPass), elastic.SetSniff(false))
+			if err != nil {
+				log.Panic(err)
+			}
+		}
+
+		hook, err := elogrus.NewElasticHook(client, "factom-elk", log.DebugLevel, "factomd")
+		if err != nil {
+			s.Logger.Logger.Panic(err)
+		}
+		s.Logger.Logger.Hooks.Add(hook)
 	}
-	hook, err := elogrus.NewElasticHook(client, "localhost", log.DebugLevel, "factomd")
-	if err != nil {
-		s.Logger.Logger.Panic(err)
-	}
-	s.Logger.Logger.Hooks.Add(hook)
 
 }
 

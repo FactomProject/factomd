@@ -206,6 +206,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
+	s.ElasticSearch = p.elasticSearch
+	s.ElasticURL = p.elasticURL
+	s.ElasticAuth = p.elasticAuth
+
 	go StartProfiler(p.memProfileRate, p.exposeProfiling)
 
 	s.AddPrefix(p.prefix)
