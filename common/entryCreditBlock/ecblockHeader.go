@@ -14,13 +14,13 @@ import (
 )
 
 type ECBlockHeader struct {
-	BodyHash            interfaces.IHash
-	PrevHeaderHash      interfaces.IHash
-	PrevFullHash        interfaces.IHash
-	DBHeight            uint32
-	HeaderExpansionArea []byte
-	ObjectCount         uint64
-	BodySize            uint64
+	BodyHash            interfaces.IHash `json:"bodyhash"`
+	PrevHeaderHash      interfaces.IHash `json:"prevheaderhash"`
+	PrevFullHash        interfaces.IHash `json:"prevfullhash"`
+	DBHeight            uint32           `json:"dbheight"`
+	HeaderExpansionArea []byte           `json:"headerexpansionarea"`
+	ObjectCount         uint64           `json:"objectcount"`
+	BodySize            uint64           `json:"bodysize"`
 }
 
 var _ interfaces.Printable = (*ECBlockHeader)(nil)
@@ -291,8 +291,8 @@ type ExpandedECBlockHeader ECBlockHeader
 func (e ECBlockHeader) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ExpandedECBlockHeader
-		ChainID   string
-		ECChainID string
+		ChainID   string `json:"chainid"`
+		ECChainID string `json:"ecchainid"`
 	}{
 		ExpandedECBlockHeader: ExpandedECBlockHeader(e),
 		ChainID:               "000000000000000000000000000000000000000000000000000000000000000c",

@@ -49,5 +49,4 @@ func TestNewEntryBlockResponse(t *testing.T) {
 		error := "Error entryblock message differed\n" + timeremoved + "\n" + exampleTimeRemoved
 		t.Errorf(error)
 	}
-
 }
