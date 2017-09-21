@@ -34,7 +34,10 @@ import (
 
 	"errors"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/Sirupsen/logrus"
+
+	elastic "gopkg.in/olivere/elastic.v5"
+	elogrus "gopkg.in/sohlich/elogrus.v2"
 )
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,
@@ -915,6 +918,18 @@ func (s *State) Init() {
 	}
 
 	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
+
+	/* Set up ElasticSearch Hook for Logrus */
+	client, err := elastic.NewClient(elastic.SetURL("http://localhost:9200"))
+	if err != nil {
+		log.Panic(err)
+	}
+	hook, err := elogrus.NewElasticHook(client, "localhost", log.DebugLevel, "factomd")
+	if err != nil {
+		s.Logger.Logger.Panic(err)
+	}
+	s.Logger.Logger.Hooks.Add(hook)
+
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {

@@ -25,7 +25,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 var _ = fmt.Print

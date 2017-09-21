@@ -19,7 +19,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
