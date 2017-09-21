@@ -10,10 +10,10 @@ import (
 
 // DB Signature Entry -------------------------
 type AddFederatedServerSigningKey struct {
-	IdentityChainID interfaces.IHash
-	KeyPriority     byte
-	PublicKey       primitives.PublicKey
-	DBHeight        uint32
+	IdentityChainID interfaces.IHash     `json:"identitychainid"`
+	KeyPriority     byte                 `json:"keypriority"`
+	PublicKey       primitives.PublicKey `json:"publickey"`
+	DBHeight        uint32               `json:"dbheight"`
 }
 
 var _ interfaces.IABEntry = (*AddFederatedServerSigningKey)(nil)

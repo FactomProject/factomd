@@ -14,8 +14,8 @@ import (
 var _ = fmt.Print
 
 type DBEntry struct {
-	ChainID interfaces.IHash
-	KeyMR   interfaces.IHash // Different MR in EBlockHeader
+	ChainID interfaces.IHash `json:"chainid"`
+	KeyMR   interfaces.IHash `json:"keymr"` // Different MR in EBlockHeader
 }
 
 var _ interfaces.Printable = (*DBEntry)(nil)
@@ -117,7 +117,7 @@ func (e *DBEntry) JSONString() (string, error) {
 
 func (e *DBEntry) String() string {
 	var out primitives.Buffer
-	out.WriteString("ChainID: " + e.GetChainID().String() + "\n")
-	out.WriteString("      KeyMR:   " + e.GetKeyMR().String() + "\n")
+	out.WriteString("chainid: " + e.GetChainID().String() + "\n")
+	out.WriteString("      keymr:   " + e.GetKeyMR().String() + "\n")
 	return (string)(out.DeepCopyBytes())
 }
