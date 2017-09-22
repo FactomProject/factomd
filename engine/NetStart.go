@@ -61,7 +61,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.LoadConfig(FactomConfigFilename, p.NetworkName)
 	s.OneLeader = p.rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.timeOffset))
-	s.StartDelayLimit = p.startDelay * 1000
+	s.StartDelayLimit = p.StartDelay * 1000
 	s.Journaling = p.Journaling
 	s.FactomdVersion = FactomdVersion
 
@@ -239,7 +239,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.timeOffset))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.keepMismatch))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.startDelay))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.StartDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", p.customNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.deadline))

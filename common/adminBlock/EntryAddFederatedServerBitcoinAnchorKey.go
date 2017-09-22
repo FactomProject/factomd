@@ -10,10 +10,10 @@ import (
 
 // DB Signature Entry -------------------------
 type AddFederatedServerBitcoinAnchorKey struct {
-	IdentityChainID interfaces.IHash
-	KeyPriority     byte
-	KeyType         byte //0=P2PKH 1=P2SH
-	ECDSAPublicKey  primitives.ByteSlice20
+	IdentityChainID interfaces.IHash       `json:"identitychainid"`
+	KeyPriority     byte                   `json:"keypriority"`
+	KeyType         byte                   `json:"keytype"` //0=P2PKH 1=P2SH
+	ECDSAPublicKey  primitives.ByteSlice20 `json:"ecdsapublickey"`
 }
 
 var _ interfaces.IABEntry = (*AddFederatedServerBitcoinAnchorKey)(nil)

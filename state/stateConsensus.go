@@ -625,6 +625,32 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		return
 	}
 
+	// Check all the transaction IDs (do not include signatures).  Only check, don't set flags.
+	for i, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
+		// Check the prior blocks for a replay.
+		_, valid := s.FReplay.Valid(
+			constants.BLOCK_REPLAY,
+			fct.GetSigHash().Fixed(),
+			fct.GetTimestamp(),
+			dbstatemsg.DirectoryBlock.GetHeader().GetTimestamp())
+		// If not the coinbase TX, and we are past 100,000, and the TX is not valid,then we don't accept this block.
+		if i > 0 && // Don't test the coinbase TX
+			((dbheight > 0 && dbheight < 2000) || dbheight > 100000) && // Test the first 2000 blks, so we can unit test, then after
+			!valid { // 100K for the running system.  If a TX isn't valid, ignore.
+			return //Totally ignore the block if it has a double spend.
+		}
+	}
+
+	// Only set the flag if we know the whole block is valid.  We know it is because we checked them all in the loop
+	// above
+	for _, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
+		s.FReplay.IsTSValid_(
+			constants.BLOCK_REPLAY,
+			fct.GetSigHash().Fixed(),
+			fct.GetTimestamp(),
+			dbstatemsg.DirectoryBlock.GetHeader().GetTimestamp())
+	}
+
 	if dbstatemsg.IsInDB == false {
 		//s.AddStatus(fmt.Sprintf("FollowerExecuteDBState(): dbstate added from network at ht %d", dbheight))
 		dbstate.ReadyToSave = true
@@ -1349,8 +1375,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 
-		s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
-
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", s.FactomNodeName, e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
@@ -1358,6 +1382,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.Syncing = false
 			s.EOMProcessed = 0
+			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 		}
 		s.SendHeartBeat()
 

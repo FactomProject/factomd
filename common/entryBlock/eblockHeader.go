@@ -10,13 +10,13 @@ import (
 // EBlockHeader holds relevent metadata about the Entry Block and the data
 // nessisary to verify the previous block in the Entry Block Chain.
 type EBlockHeader struct {
-	ChainID      interfaces.IHash
-	BodyMR       interfaces.IHash
-	PrevKeyMR    interfaces.IHash
-	PrevFullHash interfaces.IHash
-	EBSequence   uint32
-	DBHeight     uint32
-	EntryCount   uint32
+	ChainID      interfaces.IHash `json:"chainid"`
+	BodyMR       interfaces.IHash `json:"bodymr"`
+	PrevKeyMR    interfaces.IHash `json:"prevkeymr"`
+	PrevFullHash interfaces.IHash `json:"prevfullhash"`
+	EBSequence   uint32           `json:"ebsequence"`
+	DBHeight     uint32           `json:"dbheight"`
+	EntryCount   uint32           `json:"entrycount"`
 }
 
 var _ interfaces.Printable = (*EBlockHeader)(nil)

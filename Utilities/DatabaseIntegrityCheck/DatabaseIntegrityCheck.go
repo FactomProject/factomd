@@ -75,6 +75,9 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 	hashMap := map[string]string{}
 
 	var i int
+
+	fcthashes := make(map[[32]byte]int)
+	fcthashes2 := make(map[[32]byte]int)
 	for {
 		/*
 			if next.DBlock.GetDatabaseHeight()%1000 == 0 {
@@ -82,6 +85,11 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 			}
 		*/
 		prev := FetchBlockSet(dbo, next.DBlock.GetHeader().GetPrevKeyMR())
+
+		dbheight := next.DBlock.GetHeader().GetDBHeight()
+		if dbheight%1000 == 0 {
+			os.Stderr.WriteString(fmt.Sprintln("DBHeight ", dbheight))
+		}
 
 		hashMap[next.DBlock.DatabasePrimaryIndex().String()] = "OK"
 		err = directoryBlock.CheckBlockPairIntegrity(next.DBlock, prev.DBlock)
@@ -102,7 +110,25 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 		}
 
 		hashMap[next.FBlock.DatabasePrimaryIndex().String()] = "OK"
+
 		err = factoid.CheckBlockPairIntegrity(next.FBlock, prev.FBlock)
+		// Check to make sure no transactions exist that repeat the hash of the entire transaction
+		// This hash can be altered if a malleability attack is discovered and deployed.
+		for _, fct := range next.FBlock.GetEntryHashes() {
+			if fcthashes[fct.Fixed()] > 0 {
+				fmt.Printf("At %d (previous: %d) Duplicate FCT TxID detected of:\n%x\n", dbheight, fcthashes[fct.Fixed()], fct.Fixed())
+			}
+			fcthashes[fct.Fixed()] = int(dbheight)
+		}
+		// Check to make sure no transactions exist that repeat the hash of the transaction less the signatures.
+		// This is the hash that we use for the Transaction ID
+		for _, fct := range next.FBlock.GetEntrySigHashes() {
+			if fcthashes2[fct.Fixed()] > 0 {
+				fmt.Printf("At %d (previous: %d) Duplicate FCT (sig hash) detected:\n%x\n", dbheight, fcthashes2[fct.Fixed()], fct.Fixed())
+			}
+			fcthashes2[fct.Fixed()] = int(dbheight)
+		}
+
 		if err != nil {
 			fmt.Printf("Error for FBlock %v %v - %v\n", next.FBlock.GetDatabaseHeight(), next.FBlock.DatabasePrimaryIndex(), err)
 		}

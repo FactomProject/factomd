@@ -210,10 +210,10 @@ func TestExpandedECBlockHeader(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000c"`) {
+	if !strings.Contains(j, `"chainid":"000000000000000000000000000000000000000000000000000000000000000c"`) {
 		t.Error("Header does not contain ChainID")
 	}
-	if !strings.Contains(j, `"ECChainID":"000000000000000000000000000000000000000000000000000000000000000c"`) {
+	if !strings.Contains(j, `"ecchainid":"000000000000000000000000000000000000000000000000000000000000000c"`) {
 		t.Error("Header does not contain ECChainID")
 	}
 }
