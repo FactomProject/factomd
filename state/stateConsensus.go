@@ -1349,8 +1349,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			return false
 		}
 
-		s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
-
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d Done! s.EOMDone(%v) && s.EOMSys(%v)", s.FactomNodeName, e.VMIndex, s.EOMDone, s.EOMSys))
 		s.EOMProcessed--
 		if s.EOMProcessed <= 0 {
@@ -1358,6 +1356,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.EOMDone = false
 			s.Syncing = false
 			s.EOMProcessed = 0
+			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 		}
 		s.SendHeartBeat()
 
