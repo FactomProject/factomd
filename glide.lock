@@ -1,5 +1,5 @@
 hash: efce2af61ff556100f46a8f6e18fa73b39e1295ec12361d430cb213ec2804d38
-updated: 2017-07-28T16:42:12.636281671-05:00
+updated: 2017-09-22T15:16:35.635846115-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -36,14 +36,14 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: 0c1137ac599d08c5f14fcadf04ae6d8e60b16a71
+  version: 4aae917f015a1d2341fb605f5373e93fef873461
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-cli
-  version: bb3ab42e634db8f21fd59814b61801f803bbebcd
+  version: 31313ef3e7902b135f65272a07430aefeffec159
 - name: github.com/FactomProject/factom-walletd
-  version: eaf91534dedd53a2a012ee4290fa75fcda8ded5b
+  version: cec09b53f8fa1e7d11f8b5fb0efd3a273053a7ef
 - name: github.com/FactomProject/fctwallet
   version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
 - name: github.com/FactomProject/fsnotify

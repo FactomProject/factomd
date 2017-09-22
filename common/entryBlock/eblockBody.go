@@ -14,7 +14,7 @@ import (
 
 // EBlockBody is the series of Hashes that form the Entry Block Body.
 type EBlockBody struct {
-	EBEntries []interfaces.IHash
+	EBEntries []interfaces.IHash `json:"ebentries"`
 }
 
 var _ interfaces.Printable = (*EBlockBody)(nil)

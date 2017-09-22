@@ -237,10 +237,10 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type SearchedStruct struct {
-	Type    string      `json:"Type"`
+	Type    string      `json:"type"`
 	Content interface{} `json:"item"`
 
-	Input string
+	Input string `json:"input"`
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {

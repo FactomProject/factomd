@@ -16,7 +16,7 @@ import (
 // The default FactoidSignature doesn't care about indexing.  We will extend this
 // FactoidSignature for multisig
 type FactoidSignature struct {
-	Signature [constants.SIGNATURE_LENGTH]byte // The FactoidSignature
+	Signature [constants.SIGNATURE_LENGTH]byte `json:"signature"` // The FactoidSignature
 }
 
 var _ interfaces.ISignature = (*FactoidSignature)(nil)
