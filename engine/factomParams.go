@@ -56,56 +56,56 @@ type FactomParams struct {
 	Sim_Stdin                bool
 	exposeProfiling          bool
 }
-func (f *FactomParams) Init() {
-	f.AckbalanceHash           =true
-	f.EnableNet                =true
-	f.WaitEntries              =false
-	f.ListenTo                 =0
-	f.Cnt                      =1
-	f.Net                      ="tree"
-	f.Fnet                     =""
-	f.DropRate                 =0
-	f.Journal                  =""
-	f.Journaling               =false
-	f.Follower                 =false
-	f.Leader                   =true
-	f.Db                       =""
-	f.CloneDB                  =""
-	f.PortOverride             =0
-	f.Peers                    =""
-	f.NetworkName              =""
-	f.NetworkPortOverride      =0
-	f.ControlPanelPortOverride =0
-	f.LogPort                  ="6060"
-	f.BlkTime                  =0
-	f.FaultTimeout             =60
-	f.RuntimeLog               =false
-	f.Netdebug                 =0
-	f.Exclusive                =false
-	f.prefix                   =""
-	f.rotate                   =false
-	f.timeOffset               =0
-	f.keepMismatch             =false
-	f.StartDelay =10
-	f.deadline                 =1000
-	f.customNet                = primitives.Sha([]byte("")).Bytes()[:4]
-	f.rpcUser                  =""
-	f.rpcPassword              =""
-	f.factomdTLS               =false
-	f.factomdLocations         =""
-	f.memProfileRate           =512*1024
-	f.fast                     =true
-	f.fastLocation             =""
-	f.loglvl                   ="node"
-	f.logjson                  =false
-	f.svm                      =false
-	f.pluginPath               =""
-	f.torManage                =false
-	f.torUpload                =false
-	f.Sim_Stdin                =true
-	f.exposeProfiling =false
-}
 
+func (f *FactomParams) Init() {
+	f.AckbalanceHash = true
+	f.EnableNet = true
+	f.WaitEntries = false
+	f.ListenTo = 0
+	f.Cnt = 1
+	f.Net = "tree"
+	f.Fnet = ""
+	f.DropRate = 0
+	f.Journal = ""
+	f.Journaling = false
+	f.Follower = false
+	f.Leader = true
+	f.Db = ""
+	f.CloneDB = ""
+	f.PortOverride = 0
+	f.Peers = ""
+	f.NetworkName = ""
+	f.NetworkPortOverride = 0
+	f.ControlPanelPortOverride = 0
+	f.LogPort = "6060"
+	f.BlkTime = 0
+	f.FaultTimeout = 60
+	f.RuntimeLog = false
+	f.Netdebug = 0
+	f.Exclusive = false
+	f.prefix = ""
+	f.rotate = false
+	f.timeOffset = 0
+	f.keepMismatch = false
+	f.StartDelay = 10
+	f.deadline = 1000
+	f.customNet = primitives.Sha([]byte("")).Bytes()[:4]
+	f.rpcUser = ""
+	f.rpcPassword = ""
+	f.factomdTLS = false
+	f.factomdLocations = ""
+	f.memProfileRate = 512 * 1024
+	f.fast = true
+	f.fastLocation = ""
+	f.loglvl = "node"
+	f.logjson = false
+	f.svm = false
+	f.pluginPath = ""
+	f.torManage = false
+	f.torUpload = false
+	f.Sim_Stdin = true
+	f.exposeProfiling = false
+}
 
 func ParseCmdLine(args []string) *FactomParams {
 	p := new(FactomParams)
