@@ -17,13 +17,13 @@ import (
 
 // Admin Block Header
 type ABlockHeader struct {
-	PrevBackRefHash interfaces.IHash
-	DBHeight        uint32
+	PrevBackRefHash interfaces.IHash `json:"prevbackrefhash"`
+	DBHeight        uint32           `json:"dbheight"`
 
-	HeaderExpansionSize uint64
-	HeaderExpansionArea []byte
-	MessageCount        uint32
-	BodySize            uint32
+	HeaderExpansionSize uint64 `json:"headerexpansionsize"`
+	HeaderExpansionArea []byte `json:"headerexpansionarea"`
+	MessageCount        uint32 `json:"messagecount"`
+	BodySize            uint32 `json:"bodysize"`
 }
 
 var _ interfaces.Printable = (*ABlockHeader)(nil)
@@ -226,8 +226,8 @@ type ExpandedABlockHeader ABlockHeader
 func (e ABlockHeader) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ExpandedABlockHeader
-		AdminChainID string
-		ChainID      string
+		AdminChainID string `json:"adminchainid"`
+		ChainID      string `json:"chainid"`
 	}{
 		ExpandedABlockHeader: ExpandedABlockHeader(e),
 		AdminChainID:         "000000000000000000000000000000000000000000000000000000000000000a",
