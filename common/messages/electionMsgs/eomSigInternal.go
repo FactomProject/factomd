@@ -29,14 +29,32 @@ type EomSigInternal struct {
 
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
 
-func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	e, ok := elect.(*elections.Elections)
-	s := is.(*state.State)
-	if !ok {
-		panic("Invalid elections object")
-	}
-	if int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
+/*
+type Elections struct {
+	ServerID  interfaces.IHash
+	Name      string
+	Sync      []bool
+	Federated []interfaces.IServer
+	Audit     []interfaces.IServer
+	FPriority []interfaces.IHash
+	APriority []interfaces.IHash
+	DBHeight  int
+	Minute    int
+	Input     interfaces.IQueue
+	Output    interfaces.IQueue
+	Round     []int
+	Electing  int
 
+	LeaderElecting  int // This is the federated Server we are electing, if we are a leader
+	LeaderVolunteer int // This is the volunteer that we expect
+}
+*/
+
+func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+	e := elect.(*elections.Elections) // Could check, but a nil pointer error is just as good.
+	s := is.(*state.State)            // Same here.
+
+	if int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
 		// Set our Identity Chain (Just in case it has changed.)
 		e.ServerID = s.IdentityChainID
 
@@ -49,15 +67,17 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	}
 	idx := e.LeaderIndex(m.ServerID)
 	if idx >= 0 {
-		e.Sync[idx] = true
+		e.Sync[idx] = true // Mark the leader at idx as synced.
+	} else {
+		return // Not a server, just ignore the while thing.
 	}
 	for _, b := range e.Sync {
 		if !b {
-			return
+			return // If any leader is not yet synced, then return.
 		}
 	}
 	e.Round = e.Round[:0] // Get rid of any previous round counting.
-
+	fmt.Printf("eee EOM dbheight %5d %2d\n", e.DBHeight, e.Minute)
 }
 
 func (m *EomSigInternal) GetServerID() interfaces.IHash {
@@ -145,7 +165,7 @@ func (m *EomSigInternal) String() string {
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %x %10s dbheight %d", "EOM/DBSig Syncing", m.ServerID.Bytes(), m.NName, m.DBHeight)
+	return fmt.Sprintf(" %20s %x %10s dbheight %5d minute %2d", "EOM/DBSig Syncing", m.ServerID.Bytes(), m.NName, m.DBHeight, m.Minute)
 }
 
 func (a *EomSigInternal) IsSameAs(b *EomSigInternal) bool {

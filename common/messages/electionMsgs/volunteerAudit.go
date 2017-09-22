@@ -212,7 +212,7 @@ func (m *VolunteerAudit) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %10s ID: %x WT: %x server Index: %d round: %d dbheight: %d minute: %d ",
+	return fmt.Sprintf(" %20s %10s ID: %x WT: %x server Index: %d round: %d dbheight: %d minute: %d ",
 		"Volunteer Audit",
 		m.NName,
 		m.ServerID.Bytes()[2:5],

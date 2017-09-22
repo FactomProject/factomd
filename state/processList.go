@@ -515,7 +515,7 @@ func (p *ProcessList) RemoveAuditServerHash(identityChainID interfaces.IHash) {
 		return
 	}
 
-	InMsg := p.State.EFactory.NewAddAuditInternal(
+	InMsg := p.State.EFactory.NewRemoveAuditInternal(
 		p.State.FactomNodeName,
 		p.DBHeight,
 		identityChainID,

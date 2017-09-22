@@ -71,7 +71,7 @@ func Run(s *state.State) {
 		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
 		fmt.Println(msg.String())
 		msg.(interfaces.IElectionMsg).ElectionProcess(s, e)
-
+		fmt.Println("eee" + msg.String())
 		msg.ElectionProcess(s, e)
 
 	}

@@ -129,7 +129,7 @@ func (m *RemoveLeaderInternal) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %x %10s dbheight %d", "Remove Leader Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
+	return fmt.Sprintf(" %20s %x %10s dbheight %d", "Remove Leader Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
 }
 
 func (a *RemoveLeaderInternal) IsSameAs(b *RemoveLeaderInternal) bool {

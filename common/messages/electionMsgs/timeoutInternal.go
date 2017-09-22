@@ -188,7 +188,7 @@ func (m *TimeoutInternal) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %10s dbheight %d", "Add Audit Internal", m.NName, m.DBHeight)
+	return fmt.Sprintf(" %20s %10s dbheight %d", "Add Audit Internal", m.NName, m.DBHeight)
 }
 
 func (a *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {

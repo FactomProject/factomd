@@ -119,7 +119,7 @@ func (m *AddAuditInternal) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%20s %x %10s dbheight %d", "Add Audit Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
+	return fmt.Sprintf(" %20s %x %10s dbheight %d", "Add Audit Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
 }
 
 func (a *AddAuditInternal) IsSameAs(b *AddAuditInternal) bool {
