@@ -1077,6 +1077,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
+	fs.(*FactoidState).DBHeight = dbht
 	err = fs.AddTransactionBlock(d.FactoidBlock)
 	if err != nil {
 		panic(err)

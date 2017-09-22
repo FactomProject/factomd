@@ -9,8 +9,8 @@ import (
 )
 
 type RevealMatryoshkaHash struct {
-	IdentityChainID interfaces.IHash
-	MHash           interfaces.IHash
+	IdentityChainID interfaces.IHash `json:"identitychainid"`
+	MHash           interfaces.IHash `json:"mhash"`
 }
 
 var _ interfaces.Printable = (*RevealMatryoshkaHash)(nil)
