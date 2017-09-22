@@ -55,6 +55,9 @@ type FactomParams struct {
 	torUpload                bool
 	Sim_Stdin                bool
 	exposeProfiling          bool
+	elasticSearch            bool
+	elasticURL               string
+	elasticAuth              string
 }
 func (f *FactomParams) Init() {
 	f.AckbalanceHash           =true
@@ -168,6 +171,11 @@ func ParseCmdLine(args []string) *FactomParams {
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
 
+	// ElasticSearch connection (if used)
+	elasticSearchPtr := flag.Bool("elasticsearch", false, "If true, use ElasticSearch")
+	elasticUrlPtr := flag.String("elasticurl", "http://localhost:9200", "Endpoint URL for ElasticSearch")
+	elasticAuthPtr := flag.String("elasticauth", "elastic:password", "Authentication credentials for ElasticSearch")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -218,6 +226,10 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.pluginPath = *pluginPath
 	p.torManage = *tormanager
 	p.torUpload = *torUploader
+
+	p.elasticSearch = *elasticSearchPtr
+	p.elasticURL = *elasticUrlPtr
+	p.elasticAuth = *elasticAuthPtr
 
 	if *factomHomePtr != "" {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)

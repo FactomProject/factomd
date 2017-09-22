@@ -34,7 +34,10 @@ import (
 
 	"errors"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/Sirupsen/logrus"
+
+	elastic "gopkg.in/olivere/elastic.v5"
+	elogrus "gopkg.in/sohlich/elogrus.v2"
 )
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,
@@ -338,6 +341,12 @@ type State struct {
 	AckChange uint32
 
 	StateSaverStruct StateSaverStruct
+
+	// ElasticSearch
+	ElasticSearch bool
+	ElasticURL    string
+	ElasticAuth   string
+
 	// Plugins
 	useTorrents             bool
 	torrentUploader         bool
@@ -917,6 +926,33 @@ func (s *State) Init() {
 	}
 
 	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
+
+	/* Set up ElasticSearch Hook for Logrus */
+	if s.ElasticSearch {
+		var client *elastic.Client
+		var err error
+		elasticAuth := strings.Split(s.ElasticAuth, ":")
+		if len(elasticAuth) < 2 {
+			client, err = elastic.NewClient(elastic.SetURL(s.ElasticURL))
+			if err != nil {
+				log.Panic(err)
+			}
+		} else {
+			elasticUser := elasticAuth[0]
+			elasticPass := elasticAuth[1]
+			client, err = elastic.NewClient(elastic.SetURL(s.ElasticURL), elastic.SetBasicAuth(elasticUser, elasticPass), elastic.SetSniff(false))
+			if err != nil {
+				log.Panic(err)
+			}
+		}
+
+		hook, err := elogrus.NewElasticHook(client, "factom-elk", log.DebugLevel, "factomd")
+		if err != nil {
+			s.Logger.Logger.Panic(err)
+		}
+		s.Logger.Logger.Hooks.Add(hook)
+	}
+
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {

@@ -25,7 +25,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 var _ = fmt.Print
@@ -205,6 +205,10 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		pnet = p.Fnet
 		p.Net = "file"
 	}
+
+	s.ElasticSearch = p.elasticSearch
+	s.ElasticURL = p.elasticURL
+	s.ElasticAuth = p.elasticAuth
 
 	go StartProfiler(p.memProfileRate, p.exposeProfiling)
 
