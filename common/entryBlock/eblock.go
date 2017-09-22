@@ -15,8 +15,8 @@ import (
 // Root is written into the Directory Blocks. Each Entry Block represents all
 // of the entries for a paticular Chain during a 10 minute period.
 type EBlock struct {
-	Header interfaces.IEntryBlockHeader
-	Body   *EBlockBody
+	Header interfaces.IEntryBlockHeader `json:"header"`
+	Body   *EBlockBody                  `json:"body"`
 }
 
 var _ interfaces.Printable = (*EBlock)(nil)

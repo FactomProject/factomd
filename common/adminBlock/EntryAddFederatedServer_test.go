@@ -102,14 +102,14 @@ func TestAddFedServerMisc(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if as != "{\"IdentityChainID\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"DBHeight\":0}" {
+	if as != "{\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
 		t.Error("Unexpected JSON string:", as)
 	}
 	ab, err := a.JSONByte()
 	if err != nil {
 		t.Error(err)
 	}
-	if string(ab) != "{\"IdentityChainID\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"DBHeight\":0}" {
+	if string(ab) != "{\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
 		t.Error("Unexpected JSON bytes:", as)
 	}
 
