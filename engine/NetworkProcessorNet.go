@@ -97,7 +97,15 @@ func Peers(fnode *FactomNode) {
 				}
 				cnt++
 				msg.SetOrigin(0)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, repeatHash.Fixed(),
+
+				// Make sure message isn't a FCT transaction in a block
+				_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
+					msg.GetRepeatHash().Fixed(),
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp())
+
+				if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
+					repeatHash.Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
@@ -142,7 +150,15 @@ func Peers(fnode *FactomNode) {
 				}
 
 				msg.SetOrigin(i + 1)
-				if fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY, msg.GetRepeatHash().Fixed(),
+
+				// Make sure message isn't a FCT transaction in a block
+				_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
+					msg.GetRepeatHash().Fixed(),
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp())
+
+				if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
+					msg.GetRepeatHash().Fixed(),
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
