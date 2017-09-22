@@ -65,7 +65,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-network=LOCAL",
 		"-net=alot+",
 		"-enablenet=true",
-		"-blktime=10",
+		"-blktime=15",
 		"-count=10",
 		"-logPort=37000",
 		"-port=37001",
@@ -114,7 +114,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("o")
 	runCmd("")
 	runCmd("")
-	runCmd("T7")
+	runCmd("T10")
 
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
