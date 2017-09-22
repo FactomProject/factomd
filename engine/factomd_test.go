@@ -65,14 +65,14 @@ func TestSetupANetwork(t *testing.T) {
 		"-network=LOCAL",
 		"-net=alot+",
 		"-enablenet=true",
-		"-blktime=15",
+		"-blktime=10",
 		"-count=10",
 		"-logPort=37000",
 		"-port=37001",
 		"-ControlPanelPort=37002",
 		"-networkPort=37003",
 		"-startdelay=1",
-	   "faulttimeout=15")
+	   "faulttimeout=5")
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -114,6 +114,7 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("o")
 	runCmd("")
 	runCmd("")
+	runCmd("T7")
 
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
@@ -158,7 +159,7 @@ func TestSetupANetwork(t *testing.T) {
 	WaitMinutes(state0, 3)
 	runCmd("g1")
 	WaitMinutes(state0, 4)
-	runCmd("g80")
+	runCmd("g20")
 	WaitMinutes(state0, 2)
 	WaitBlocks(state0, 1)
 	runCmd("9")
@@ -232,7 +233,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Second)
-	if state0.LLeaderHeight > 11 {
+	if state0.LLeaderHeight > 13 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 }
