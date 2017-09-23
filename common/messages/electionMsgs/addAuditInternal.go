@@ -34,8 +34,10 @@ func (m *AddAuditInternal) ElectionProcess(is interfaces.IState, elect interface
 	if !ok {
 		panic("Invalid elections object")
 	}
-	e.Audit = append(e.Audit, &state.Server{ChainID: m.ServerID, Online: true})
-	Sort(e.Audit)
+	if e.AuditIndex(m.ServerID) < 0 {
+		e.Audit = append(e.Audit, &state.Server{ChainID: m.ServerID, Online: true})
+		Sort(e.Audit)
+	}
 }
 
 func (m *AddAuditInternal) LogFields() log.Fields {
@@ -119,7 +121,7 @@ func (m *AddAuditInternal) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf(" %20s %x %10s dbheight %d", "Add Audit Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
+	return fmt.Sprintf(" %10s %20s %x dbheight %5d", m.NName, "Add Audit Internal", m.ServerID.Bytes(), m.DBHeight)
 }
 
 func (a *AddAuditInternal) IsSameAs(b *AddAuditInternal) bool {

@@ -31,7 +31,7 @@ type VolunteerAudit struct {
 	messageHash interfaces.IHash
 }
 
-func (m *VolunteerAudit) ElectionProcess(state interfaces.IState, elections interfaces.IElectionMsg) {
+func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	fmt.Printf("eee %s\n", m.String())
 }
 

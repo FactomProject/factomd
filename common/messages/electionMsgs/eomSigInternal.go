@@ -66,6 +66,15 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		e.Sync = make([]bool, len(e.Federated))
 	}
 	idx := e.LeaderIndex(m.ServerID)
+	fmt.Printf("eee %10s %20s Idx %d len(sync) %d ServerID %x dbheight %5d %2d\n",
+		is.GetFactomNodeName(),
+		"EOM",
+		idx,
+		len(e.Sync),
+		m.ServerID.Bytes()[2:4],
+		e.DBHeight,
+		e.Minute)
+
 	if idx >= 0 {
 		e.Sync[idx] = true // Mark the leader at idx as synced.
 	} else {
@@ -77,7 +86,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		}
 	}
 	e.Round = e.Round[:0] // Get rid of any previous round counting.
-	fmt.Printf("eee EOM dbheight %5d %2d\n", e.DBHeight, e.Minute)
+	fmt.Printf("eee %10s %20s dbheight %5d %2d\n", is.GetFactomNodeName(), "EOM", e.DBHeight, e.Minute)
 }
 
 func (m *EomSigInternal) GetServerID() interfaces.IHash {
@@ -165,7 +174,7 @@ func (m *EomSigInternal) String() string {
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf(" %20s %x %10s dbheight %5d minute %2d", "EOM/DBSig Syncing", m.ServerID.Bytes(), m.NName, m.DBHeight, m.Minute)
+	return fmt.Sprintf(" %10s %20s %x dbheight %5d minute %2d", m.NName, "EOM", m.ServerID.Bytes(), m.DBHeight, m.Minute)
 }
 
 func (a *EomSigInternal) IsSameAs(b *EomSigInternal) bool {

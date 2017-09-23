@@ -7,21 +7,21 @@ type ElectionsFactory struct{}
 var _ interfaces.IElectionsFactory = (*ElectionsFactory)(nil)
 
 func (e *ElectionsFactory) NewAddLeaderInternal(name string, dbheight uint32, serverID interfaces.IHash) interfaces.IMsg {
-	msg := new(RemoveAuditInternal)
+	msg := new(AddLeaderInternal)
 	msg.NName = name
 	msg.DBHeight = dbheight
 	msg.ServerID = serverID
 	return msg
 }
 func (e *ElectionsFactory) NewAddAuditInternal(name string, dbheight uint32, serverID interfaces.IHash) interfaces.IMsg {
-	msg := new(RemoveAuditInternal)
+	msg := new(AddAuditInternal)
 	msg.NName = name
 	msg.DBHeight = dbheight
 	msg.ServerID = serverID
 	return msg
 }
 func (e *ElectionsFactory) NewRemoveLeaderInternal(name string, dbheight uint32, serverID interfaces.IHash) interfaces.IMsg {
-	msg := new(RemoveAuditInternal)
+	msg := new(RemoveLeaderInternal)
 	msg.NName = name
 	msg.DBHeight = dbheight
 	msg.ServerID = serverID

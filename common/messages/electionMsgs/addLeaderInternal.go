@@ -33,8 +33,10 @@ func (m *AddLeaderInternal) ElectionProcess(s interfaces.IState, elect interface
 	if !ok {
 		panic("Invalid elections object")
 	}
-	e.Federated = append(e.Federated, &state.Server{ChainID: m.ServerID, Online: true})
-	Sort(e.Federated)
+	if e.LeaderIndex(m.ServerID) < 0 {
+		e.Federated = append(e.Federated, &state.Server{ChainID: m.ServerID, Online: true})
+		Sort(e.Federated)
+	}
 }
 
 func (m *AddLeaderInternal) GetServerID() interfaces.IHash {
@@ -122,7 +124,7 @@ func (m *AddLeaderInternal) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf(" %20s %x %10s dbheight %d", "Add Leader Internal", m.ServerID.Bytes(), m.NName, m.DBHeight)
+	return fmt.Sprintf(" %10s %20s %x dbheight %5d", m.NName, "Add Leader Internal", m.ServerID.Bytes(), m.DBHeight)
 }
 
 func (a *AddLeaderInternal) IsSameAs(b *AddLeaderInternal) bool {

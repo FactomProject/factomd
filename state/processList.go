@@ -348,8 +348,6 @@ func (p *ProcessList) GetFedServerIndexHash(identityChainID interfaces.IHash) (b
 		return false, 0
 	}
 
-	p.SortFedServers()
-
 	scid := identityChainID.Bytes()
 
 	for i, fs := range p.FedServers {
@@ -368,8 +366,6 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 	if p == nil {
 		return false, 0
 	}
-
-	p.SortAuditServers()
 
 	scid := identityChainID.Bytes()
 
@@ -424,7 +420,6 @@ func (p *ProcessList) PrintMap() string {
 // Add the given serverChain to this processlist as a Federated Server, and return
 // the server index number of the added server
 func (p *ProcessList) AddFedServer(identityChainID interfaces.IHash) int {
-	p.SortFedServers()
 	found, i := p.GetFedServerIndexHash(identityChainID)
 	if found {
 		//p.State.AddStatus(fmt.Sprintf("ProcessList.AddFedServer Server already there %x at height %d", identityChainID.Bytes()[2:6], p.DBHeight))
