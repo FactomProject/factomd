@@ -9,16 +9,16 @@ import (
 )
 
 type ServerFault struct {
-	Timestamp interfaces.Timestamp
+	Timestamp interfaces.Timestamp `json:"timestamp"`
 	// The following 4 fields represent the "Core" of the message
 	// This should match the Core of ServerFault messages
-	ServerID      interfaces.IHash
-	AuditServerID interfaces.IHash
-	VMIndex       byte
-	DBHeight      uint32
-	Height        uint32
+	ServerID      interfaces.IHash `json:"serverid"`
+	AuditServerID interfaces.IHash `json:"auditserverid"`
+	VMIndex       byte             `json:"vmindex"`
+	DBHeight      uint32           `json:"dbheight"`
+	Height        uint32           `json:"height"`
 
-	SignatureList SigList
+	SignatureList SigList `json:"signaturelist"`
 }
 
 func (e *ServerFault) Init() {

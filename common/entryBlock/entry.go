@@ -18,10 +18,10 @@ import (
 // An Entry is the element which carries user data
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
-	Version uint8
-	ChainID interfaces.IHash
-	ExtIDs  []primitives.ByteSlice
-	Content primitives.ByteSlice
+	Version uint8                  `json:"version"`
+	ChainID interfaces.IHash       `json:"chainid"`
+	ExtIDs  []primitives.ByteSlice `json:"extids"`
+	Content primitives.ByteSlice   `json:"content"`
 
 	// cache
 	hash interfaces.IHash

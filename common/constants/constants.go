@@ -59,8 +59,9 @@ const (
 	// Replay
 	INTERNAL_REPLAY = 1
 	NETWORK_REPLAY  = 2
-	TIME_TEST       = 4 // Checks the time_stamp;  Don't put actual hashes into the map with this.
-	REVEAL_REPLAY   = 8 // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
+	TIME_TEST       = 4  // Checks the time_stamp;  Don't put actual hashes into the map with this.
+	REVEAL_REPLAY   = 8  // Checks for Reveal Entry Replays ... No duplicate Entries within our 4 hours!
+	BLOCK_REPLAY    = 16 // Ensures we don't add the same transaction to multiple blocks.
 
 	ADDRESS_LENGTH = 32 // Length of an Address or a Hash or Public Key
 	// length of a Private Key

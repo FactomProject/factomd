@@ -401,10 +401,10 @@ func TestAdminBlockHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	if strings.Contains(j, `"BackReferenceHash":"9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d"`) == false {
+	if strings.Contains(j, `"backreferencehash":"9515e5108c89ef004ff4fa01c6511f98c8c11f5c2976c4816f8bcfcc551a134d"`) == false {
 		t.Errorf("JSON printout does not contain the backreference hash - %v", j)
 	}
-	if strings.Contains(j, `"LookupHash":"f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5"`) == false {
+	if strings.Contains(j, `"lookuphash":"f10eefb55197e34f2875c1727c816fcf6564a44902b716a380f0961406ff92d5"`) == false {
 		t.Errorf("JSON printout does not contain the lookup hash - %v", j)
 	}
 }
@@ -672,10 +672,10 @@ func TestExpandedABlockHeader(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	if !strings.Contains(j, `"AdminChainID":"000000000000000000000000000000000000000000000000000000000000000a"`) {
+	if !strings.Contains(j, `"adminchainid":"000000000000000000000000000000000000000000000000000000000000000a"`) {
 		t.Error("Header does not contain AdminChainID")
 	}
-	if !strings.Contains(j, `"ChainID":"000000000000000000000000000000000000000000000000000000000000000a"`) {
+	if !strings.Contains(j, `"chainid":"000000000000000000000000000000000000000000000000000000000000000a"`) {
 		t.Error("Header does not contain ChainID")
 	}
 }
