@@ -380,19 +380,22 @@ func (p *ProcessList) GetAuditServerIndexHash(identityChainID interfaces.IHash) 
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers
 // but for now, we are just going to make it a function of the dbheight.
-func (p *ProcessList) MakeMap() {
-	n := len(p.FedServers)
-	if n > 0 {
-		indx := int(p.DBHeight*131) % n
-
+func MakeMap(numberFedServers int, dbheight uint32) (serverMap [10][64]int) {
+	if numberFedServers > 0 {
+		indx := int(dbheight*131) % numberFedServers
 		for i := 0; i < 10; i++ {
-			indx = (indx + 1) % n
-			for j := 0; j < len(p.FedServers); j++ {
-				p.ServerMap[i][j] = indx
-				indx = (indx + 1) % n
+			indx = (indx + 1) % numberFedServers
+			for j := 0; j < numberFedServers; j++ {
+				serverMap[i][j] = indx
+				indx = (indx + 1) % numberFedServers
 			}
 		}
 	}
+	return
+}
+
+func (p *ProcessList) MakeMap() {
+	p.ServerMap = MakeMap(len(p.FedServers), p.DBHeight)
 }
 
 // This function will be replaced by a calculation from the Matryoshka hashes from the servers

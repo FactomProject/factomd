@@ -58,12 +58,19 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		// Set our Identity Chain (Just in case it has changed.)
 		e.ServerID = s.IdentityChainID
 
-		// Start our timer to timeout this sync
-		go Fault(e, int(m.DBHeight), int(m.Minute))
-
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
 		e.Sync = make([]bool, len(e.Federated))
+
+		// Start our timer to timeout this sync
+		go Fault(e, int(m.DBHeight), int(m.Minute), 0)
+		fmt.Printf("eee %10s %20s m.DBHeight %d e.DBHeight %d m.Minute %d e.Minute \n",
+			is.GetFactomNodeName(),
+			"Start Fault",
+			m.DBHeight,
+			e.DBHeight,
+			m.Minute,
+			e.Minute)
 	}
 	idx := e.LeaderIndex(m.ServerID)
 	fmt.Printf("eee %10s %20s Idx %d len(sync) %d ServerID %x dbheight %5d %2d\n",

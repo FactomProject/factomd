@@ -27,6 +27,7 @@ type VolunteerAudit struct {
 	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
 	DBHeight    uint32               // Directory Block Height that owns this ack
 	Minute      byte                 // Minute (-1 for dbsig)
+	VM          int                  // Index of the VM we are volunteering to replace
 	Round       int                  // Voting Round
 	messageHash interfaces.IHash
 }
@@ -118,7 +119,7 @@ func (m *VolunteerAudit) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *VolunteerAudit) FollowerExecute(state interfaces.IState) {
-	fmt.Printf("eee  %10s %s\n", state.GetFactomNodeName(), m.String())
+	fmt.Printf("eee %10s %s\n", state.GetFactomNodeName(), m.String())
 	state.ElectionsQueue().Enqueue(m)
 }
 
@@ -212,7 +213,7 @@ func (m *VolunteerAudit) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf(" %20s %10s ID: %x WT: %x server Index: %d round: %d dbheight: %d minute: %d ",
+	return fmt.Sprintf("%s %10s ID: %x WT: %x server Index: %d round: %d dbheight: %d minute: %d ",
 		"Volunteer Audit",
 		m.NName,
 		m.ServerID.Bytes()[2:5],

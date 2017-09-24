@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
 	log "github.com/FactomProject/logrus"
+	"github.com/FactomProject/factomd/state"
 )
 
 //General acknowledge message
@@ -21,17 +22,53 @@ type TimeoutInternal struct {
 	NName       string
 	DBHeight    int
 	Minute      int
+	Round       int
 	MessageHash interfaces.IHash
 }
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
 
-func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elect interfaces.IElections) {
+/*
+type Elections struct {
+	ServerID  interfaces.IHash
+	Name      string
+	Sync      []bool
+	Federated []interfaces.IServer
+	Audit     []interfaces.IServer
+	FPriority []interfaces.IHash
+	APriority []interfaces.IHash
+	DBHeight  int
+	Minute    int
+	Input     interfaces.IQueue
+	Output    interfaces.IQueue
+	Round     []int
+	Electing  int
+
+	LeaderElecting  int // This is the federated Server we are electing, if we are a leader
+	LeaderVolunteer int // This is the volunteer that we expect
+}
+*/
+
+func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e, ok := elect.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")
 	}
+
+	// We have advanced, so do nothing.
 	if e.DBHeight > m.DBHeight || e.Minute > m.Minute {
+
+		fmt.Printf("eee %10s %20s e.DBHeight %d m.DBHeight %d e.Minute %d m.Minute %d m.Round %d\n",
+			e.State.GetFactomNodeName(),
+			"Close Timeout",
+			e.DBHeight,
+			m.DBHeight,
+			e.Minute,
+			m.Minute,
+			m.Round)
+
+		e.Round = e.Round[:0]
+		e.Electing = -1
 		return
 	}
 
@@ -46,12 +83,9 @@ func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elect interfa
 		}
 	}
 	// Hey, if all is well, then continue.
-	if cnt == 0 {
+	if e.Electing < 0 {
 		return
 	}
-
-	// If we don't have all our sync messages, we will have to come back around and see if all is well.
-	go Fault(e, int(m.DBHeight), int(m.Minute))
 
 	for len(e.Round) <= e.Electing {
 		e.Round = append(e.Round, 0)
@@ -60,19 +94,22 @@ func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elect interfa
 	// New timeout, new round of elections.
 	e.Round[e.Electing]++
 
-	fmt.Printf("eee %20s Server Index: %d Round: %d %10s on #%d leaders \n",
+	// If we don't have all our sync messages, we will have to come back around and see if all is well.
+	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
+
+	fmt.Printf("eee %10s %20s Server Index: %d Round: %d %10s\n",
+		e.State.GetFactomNodeName(),
 		"Timeout",
 		e.Electing,
 		e.Round[e.Electing],
-		e.Name,
-		cnt)
+		e.Name)
 
 	// Can we see a majority of the federated servers?
-	if cnt > len(e.Federated)/2 {
+	if cnt <= len(e.Federated)/2 {
 		// Reset the timeout and give up if we can't see a majority.
 		return
 	}
-	fmt.Printf("eee %10s %s\n", e.Name, "Fault!")
+	fmt.Printf("eee %10s %10s on %10s\n", e.State.GetFactomNodeName(), "Fault", e.Name)
 
 	// Get the priority order list of audit servers in the priority order
 	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
@@ -85,7 +122,8 @@ func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elect interfa
 
 	idx = e.AuditIndex(e.ServerID)
 	if idx >= 0 {
-		fmt.Printf("eee %10s %s\n", e.Name, "I'm an Audit Server")
+		serverMap := state.MakeMap(len(e.Federated), e.DBHeight)
+		fmt.Printf("eee %10s %20s\n", e.Name, "I'm an Audit Server")
 		auditIdx := MaxIdx(e.APriority)
 		if idx == auditIdx {
 			V := new(VolunteerAudit)
@@ -97,8 +135,8 @@ func (m *TimeoutInternal) ElectionProcess(state interfaces.IState, elect interfa
 			V.DBHeight = uint32(e.DBHeight)
 			V.Minute = byte(e.Minute)
 			V.Round = e.Round[e.Electing]
-			fmt.Printf("eee %10s %s %s\n", e.Name, "I'm an Audit Server and I Volunteer", V.String())
-			V.SendOut(state, V)
+			fmt.Printf("eee %10s %20s %s\n", e.Name, "I'm an Audit Server and I Volunteer", V.String())
+			V.SendOut(is, V)
 		}
 	}
 }
