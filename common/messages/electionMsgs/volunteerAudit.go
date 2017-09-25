@@ -27,13 +27,12 @@ type VolunteerAudit struct {
 	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
 	DBHeight    uint32               // Directory Block Height that owns this ack
 	Minute      byte                 // Minute (-1 for dbsig)
-	VM          int                  // Index of the VM we are volunteering to replace
 	Round       int                  // Voting Round
 	messageHash interfaces.IHash
 }
 
 func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	fmt.Printf("eee %s\n", m.String())
+	fmt.Printf("eee %10s %s\n", is.GetFactomNodeName(), m.String())
 }
 
 var _ interfaces.IMsg = (*VolunteerAudit)(nil)
@@ -59,6 +58,12 @@ func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
 		return false
 	}
 	if a.DBHeight != b.DBHeight {
+		return false
+	}
+	if a.VMIndex != b.VMIndex {
+		return false
+	}
+	if a.Round != b.Round {
 		return false
 	}
 	if a.Minute != b.Minute {
@@ -167,6 +172,12 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	if m.DBHeight, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
+	if m.VMIndex, err = buf.PopInt(); err != nil {
+		return nil, err
+	}
+	if m.Round, err = buf.PopInt(); err != nil {
+		return nil, err
+	}
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
@@ -203,6 +214,12 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushUInt32(m.DBHeight); e != nil {
 		return nil, e
 	}
+	if e := buf.PushInt(m.VMIndex); e != nil {
+		return nil, e
+	}
+	if e := buf.PushInt(m.Round); e != nil {
+		return nil, e
+	}
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
@@ -213,12 +230,13 @@ func (m *VolunteerAudit) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%s %10s ID: %x WT: %x server Index: %d round: %d dbheight: %d minute: %d ",
+	return fmt.Sprintf("%s %10s ID: %x WT: %x serverIdx: %d vmIdx: %d round: %d dbheight: %d minute: %d ",
 		"Volunteer Audit",
 		m.NName,
 		m.ServerID.Bytes()[2:5],
 		m.Weight.Bytes()[2:5],
 		m.ServerIdx,
+		m.VMIndex,
 		m.Round,
 		m.DBHeight,
 		m.Minute)

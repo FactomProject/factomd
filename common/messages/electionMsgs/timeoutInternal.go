@@ -12,14 +12,16 @@ import (
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/elections"
-	log "github.com/FactomProject/logrus"
 	"github.com/FactomProject/factomd/state"
+	log "github.com/FactomProject/logrus"
 )
+
+var _ = state.MakeMap
 
 //General acknowledge message
 type TimeoutInternal struct {
 	msgbase.MessageBase
-	NName       string
+	Name        string
 	DBHeight    int
 	Minute      int
 	Round       int
@@ -97,15 +99,16 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
 	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
 
-	fmt.Printf("eee %10s %20s Server Index: %d Round: %d %10s\n",
+	fmt.Printf("eee %10s %20s Server Index: %d Round: %d %10s Feds Faulting: %d\n",
 		e.State.GetFactomNodeName(),
 		"Timeout",
 		e.Electing,
 		e.Round[e.Electing],
-		e.Name)
+		e.Name,
+		cnt)
 
 	// Can we see a majority of the federated servers?
-	if cnt <= len(e.Federated)/2 {
+	if cnt >= (len(e.Federated)+1)/2 {
 		// Reset the timeout and give up if we can't see a majority.
 		return
 	}
@@ -114,19 +117,15 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	// Get the priority order list of audit servers in the priority order
 	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
 
-	idx := e.LeaderIndex(e.ServerID)
-	// We are a leader
+	idx := e.AuditIndex(e.ServerID)
 	if idx >= 0 {
-
-	}
-
-	idx = e.AuditIndex(e.ServerID)
-	if idx >= 0 {
-		serverMap := state.MakeMap(len(e.Federated), e.DBHeight)
-		fmt.Printf("eee %10s %20s\n", e.Name, "I'm an Audit Server")
+		serverMap := state.MakeMap(len(e.Federated), uint32(e.DBHeight))
+		vm := state.FedServerVM(serverMap, len(e.Federated), e.Minute, e.Electing)
+		fmt.Printf("eee %10s %20s %d\n", e.Name, "I'm an Audit Server", vm)
 		auditIdx := MaxIdx(e.APriority)
 		if idx == auditIdx {
 			V := new(VolunteerAudit)
+			V.VMIndex   = vm
 			V.TS = primitives.NewTimestampNow()
 			V.NName = e.Name
 			V.ServerIdx = uint32(e.Electing)
@@ -226,7 +225,11 @@ func (m *TimeoutInternal) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf(" %20s %10s dbheight %d", "Add Audit Internal", m.NName, m.DBHeight)
+	return fmt.Sprintf(" %20s %10s dbheight %d minute %d",
+		m.Name,
+		"Time Out",
+		m.DBHeight,
+		m.Minute)
 }
 
 func (a *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {

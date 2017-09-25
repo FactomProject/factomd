@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 )
 
+var _ = fmt.Print
+
 func Sort(serv []interfaces.IServer) {
 	for i := 0; i < len(serv)-1; i++ {
 		allgood := true
@@ -55,13 +57,13 @@ func MaxIdx(priority []interfaces.IHash) (idx int) {
 
 func Fault(e *elections.Elections, dbheight int, minute int, round int) {
 	/*
-	fmt.Printf("eee %10s %20s %20s dbheight %d minute %d round %d\n",
-		e.Name,
-		"Fault Start",
-		time.Now().String(),
-		dbheight,
-		minute,
-		round)
+		fmt.Printf("eee %10s %20s %20s dbheight %d minute %d round %d\n",
+			e.Name,
+			"Fault Start",
+			time.Now().String(),
+			dbheight,
+			minute,
+			round)
 	*/
 
 	time.Sleep(10 * time.Second)
