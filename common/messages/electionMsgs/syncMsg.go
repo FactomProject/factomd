@@ -5,14 +5,14 @@
 package electionMsgs
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
+	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/FactomProject/logrus"
 )
@@ -20,10 +20,10 @@ import (
 var _ = fmt.Print
 
 //General acknowledge message
-type VolunteerAudit struct {
+type SyncMsg struct {
 	msgbase.MessageBase
 	TS          interfaces.Timestamp // Message Timestamp
-	EOM         bool                 // True if an EOM, false if a DBSig
+	EOM         bool                 // True if EOM message, false if DBSig
 	Name        string               // Server name
 	ServerIdx   uint32               // Index of Server replacing
 	ServerID    interfaces.IHash     // Volunteer Server ChainID
@@ -31,24 +31,17 @@ type VolunteerAudit struct {
 	DBHeight    uint32               // Directory Block Height that owns this ack
 	Minute      byte                 // Minute (-1 for dbsig)
 	Round       int                  // Voting Round
-	Missing     interfaces.IMsg      // The Missing DBSig or EOM
-	Ack         interfaces.IMsg      // The acknowledgement for the missing message
 	messageHash interfaces.IHash
 }
 
-func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	e := elect.(*elections.Elections)
+func (m *SyncMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	fmt.Printf("eee %10s %s\n", is.GetFactomNodeName(), m.String())
-	idx := e.LeaderIndex(is.GetIdentityChainID())
-	if idx > 0 {
-
-	}
 }
 
-var _ interfaces.IMsg = (*VolunteerAudit)(nil)
+var _ interfaces.IMsg = (*SyncMsg)(nil)
 
-func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
-	b, ok := msg.(*VolunteerAudit)
+func (a *SyncMsg) IsSameAs(msg interfaces.IMsg) bool {
+	b, ok := msg.(*SyncMsg)
 	if !ok {
 		return false
 	}
@@ -82,36 +75,31 @@ func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
 	if a.Minute != b.Minute {
 		return false
 	}
-	binA, errA := a.MarshalBinary()
-	binB, errB := a.MarshalBinary()
-	if errA != nil || errB != nil || bytes.Compare(binA, binB) != 0 {
-		return false
-	}
 	return true
 }
 
-func (m *VolunteerAudit) GetServerID() interfaces.IHash {
+func (m *SyncMsg) GetServerID() interfaces.IHash {
 	return m.ServerID
 }
 
-func (m *VolunteerAudit) LogFields() log.Fields {
+func (m *SyncMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "VolunteerAudit", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *VolunteerAudit) GetRepeatHash() interfaces.IHash {
+func (m *SyncMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
 // We have to return the haswh of the underlying message.
-func (m *VolunteerAudit) GetHash() interfaces.IHash {
+func (m *SyncMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *VolunteerAudit) GetTimestamp() interfaces.Timestamp {
+func (m *SyncMsg) GetTimestamp() interfaces.Timestamp {
 	return m.TS
 }
 
-func (m *VolunteerAudit) GetMsgHash() interfaces.IHash {
+func (m *SyncMsg) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -122,43 +110,66 @@ func (m *VolunteerAudit) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *VolunteerAudit) Type() byte {
-	return constants.VOLUNTEERAUDIT
+func (m *SyncMsg) Type() byte {
+	return constants.SYNC_MSG
 }
 
-func (m *VolunteerAudit) Validate(state interfaces.IState) int {
+func (m *SyncMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *VolunteerAudit) ComputeVMIndex(state interfaces.IState) {
+func (m *SyncMsg) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Execute the leader functions of the given message
 // Leader, follower, do the same thing.
-func (m *VolunteerAudit) LeaderExecute(state interfaces.IState) {
+func (m *SyncMsg) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *VolunteerAudit) FollowerExecute(state interfaces.IState) {
-	state.ElectionsQueue().Enqueue(m)
+func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
+	fmt.Printf("eee %10s %20s %s\n",
+		is.GetFactomNodeName(),
+		"Sync Message",
+		m.String())
+	s := is.(*state.State)
+
+	eom := messages.General.CreateMsg(constants.EOM_MSG)
+	eom, ack := s.CreateEOM(eom, m.VMIndex)
+
+	va := new(VolunteerAudit)
+	va.Missing = eom
+	va.Ack = ack
+	va.VMIndex = m.VMIndex
+	va.TS = primitives.NewTimestampNow()
+	va.Name = m.Name
+	va.ServerIdx = uint32(m.ServerIdx)
+	va.ServerID = m.ServerID
+	va.Weight = m.Weight
+	va.DBHeight = m.DBHeight
+	va.Minute = m.Minute
+	va.Round = m.Round
+	fmt.Printf("eee %10s %20s %s\n", is.GetFactomNodeName(), "I'm an Audit Server Volunteer!", va.String())
+	va.SendOut(is, va)
+	is.ElectionsQueue().Enqueue(va)
 }
 
 // Acknowledgements do not go into the process list.
-func (e *VolunteerAudit) Process(dbheight uint32, state interfaces.IState) bool {
+func (e *SyncMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *VolunteerAudit) JSONByte() ([]byte, error) {
+func (e *SyncMsg) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *VolunteerAudit) JSONString() (string, error) {
+func (e *SyncMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *SyncMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		return
 		if r := recover(); r != nil {
@@ -167,95 +178,62 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}()
 
 	buf := primitives.NewBuffer(data)
-	cnt := 0
-	cnt++
-	fmt.Println("Here at", cnt)
-	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERAUDIT {
-		return nil, errors.New("Not a Volunteer Audit type")
+
+	if t, e := buf.PopByte(); e != nil || t != constants.SYNC_MSG {
+		return nil, errors.New("Not a Sync Message Audit type")
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.TS, err = buf.PopTimestamp(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
-	if m.Name, err = buf.PopString(); err != nil {
-		return nil, err
-	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.EOM, err = buf.PopBool(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
+	if m.Name, err = buf.PopString(); err != nil {
+		return nil, err
+	}
 	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.ServerID, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at 7 ", cnt)
 	if m.Weight, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.DBHeight, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.VMIndex, err = buf.PopInt(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.Round, err = buf.PopInt(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at 12 ", cnt)
-	if m.Missing, err = buf.PopMsg(); err != nil {
-		return nil, err
-	}
-	cnt++
-	fmt.Println("Here at", cnt)
-	if m.Ack, err = buf.PopMsg(); err != nil {
-		return nil, err
-	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	return buf.PopBytes()
 }
 
-func (m *VolunteerAudit) UnmarshalBinary(data []byte) error {
+func (m *SyncMsg) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
+func (m *SyncMsg) MarshalBinary() (data []byte, err error) {
+
 	var buf primitives.Buffer
 
-	if e := buf.PushByte(constants.VOLUNTEERAUDIT); e != nil {
+	if e := buf.PushByte(constants.SYNC_MSG); e != nil {
 		return nil, e
 	}
 	if e := buf.PushTimestamp(m.TS); e != nil {
 		return nil, e
 	}
-	if e := buf.PushString(m.Name); e != nil {
+	if e := buf.PushBool(m.EOM); e != nil {
 		return nil, e
 	}
-	if e := buf.PushBool(m.EOM); e != nil {
+	if e := buf.PushString(m.Name); e != nil {
 		return nil, e
 	}
 	if e := buf.PushUInt32(m.ServerIdx); e != nil {
@@ -279,23 +257,16 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
-	if e := buf.PushMsg(m.Ack); e != nil {
-		return nil, e
-	}
-	if e := buf.PushMsg(m.Missing); e != nil {
-		return nil, e
-	}
 	return buf.DeepCopyBytes(), nil
 }
 
-func (m *VolunteerAudit) String() string {
+func (m *SyncMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%19s %20s %20s ID: %x WT: %x serverIdx: %d vmIdx: %d round: %d dbheight: %d minute: %d ",
+	return fmt.Sprintf("%s %10s ID: %x WT: %x serverIdx: %d vmIdx: %d round: %d dbheight: %d minute: %d ",
+		"Sync Message",
 		m.Name,
-		"Volunteer Audit",
-		m.TS.String(),
 		m.ServerID.Bytes()[2:5],
 		m.Weight.Bytes()[2:5],
 		m.ServerIdx,

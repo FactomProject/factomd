@@ -296,7 +296,7 @@ func (b *Buffer) PopMsg() (msg interfaces.IMsg, err error) {
 	if err != nil {
 		return nil, err
 	}
-	used := len(h)-len(rest)
+	used := len(h) - len(rest)
 	_, err = b.Write(h[used:])
 	if err != nil {
 		return nil, err

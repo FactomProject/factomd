@@ -202,7 +202,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	var cnt int
 	x := func() {
 		cnt++
-		fmt.Println("EOM",cnt)
+		fmt.Println("EOM", cnt)
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -253,7 +253,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	m.SysHash = primitives.NewHash(constants.ZERO_HASH)
 	newData, err = m.SysHash.UnmarshalBinaryData(newData)
 
-	b, newData := newData[0],newData[1:]
+	b, newData := newData[0], newData[1:]
 	if b > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
@@ -325,7 +325,7 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 			return nil, err
 		}
 		buf.Write(sigBytes)
-	}else{
+	} else {
 		buf.WriteByte(0)
 	}
 	return buf.DeepCopyBytes(), nil

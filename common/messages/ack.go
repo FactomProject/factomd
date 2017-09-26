@@ -229,7 +229,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}
 
-	b,newData := newData[0],newData[1:]
+	b, newData := newData[0], newData[1:]
 
 	if b > 0 {
 		m.Signature = new(primitives.Signature)
@@ -320,14 +320,14 @@ func (m *Ack) MarshalBinary() (data []byte, err error) {
 	sig := m.GetSignature()
 
 	if sig != nil {
-		resp = append(resp,1)
+		resp = append(resp, 1)
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
 		return append(resp, sigBytes...), nil
-	}else{
-		resp = append(resp,0)
+	} else {
+		resp = append(resp, 0)
 	}
 	return resp, nil
 }

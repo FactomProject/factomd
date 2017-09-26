@@ -104,16 +104,16 @@ func (m *MissingMsgResponse) UnmarshalBinaryData(data []byte) (newData []byte, e
 
 	buf := primitives.NewBuffer(data)
 
-	b,err := buf.PopByte()
+	b, err := buf.PopByte()
 	if err != nil {
 		return nil, err
 	}
 	if b != m.Type() {
 		return nil, fmt.Errorf("%s", "Invalid Message type")
 	}
-	m.Timestamp,err = buf.PopTimestamp()
+	m.Timestamp, err = buf.PopTimestamp()
 
-	b,err = buf.PopByte()
+	b, err = buf.PopByte()
 	if err != nil {
 		return nil, err
 	}

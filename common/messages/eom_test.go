@@ -9,8 +9,8 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 func TestUnmarshalNilEOM(t *testing.T) {

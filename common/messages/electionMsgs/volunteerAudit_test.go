@@ -10,10 +10,10 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
 	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/common/messages"
 )
 
 func TestUnmarshalfolunteerAudit_test(t *testing.T) {

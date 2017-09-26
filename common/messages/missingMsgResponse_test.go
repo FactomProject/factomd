@@ -5,13 +5,13 @@
 package messages_test
 
 import (
-		"testing"
-"fmt"
+	"fmt"
+	"testing"
 
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
-	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
 
 var _ = fmt.Print
@@ -30,7 +30,7 @@ func TestBadUnmarshal(t *testing.T) {
 	}
 }
 
-func TestSomething(t *testing.T){
+func TestSomething(t *testing.T) {
 	General = new(msgsupport.GeneralFactory)
 	primitives.General = General
 
@@ -42,8 +42,8 @@ func TestSomething(t *testing.T){
 	buf.PushMsg(a)
 	buf.PushMsg(b)
 	buf2 := primitives.NewBuffer(buf.Bytes())
-	a2,_ := buf2.PopMsg()
-	b2,_ := buf2.PopMsg()
+	a2, _ := buf2.PopMsg()
+	b2, _ := buf2.PopMsg()
 
 	fmt.Println(a.String(), a2.String())
 	fmt.Println(b.String(), b2.String())
@@ -68,7 +68,7 @@ func TestMissingMessageResponseMarshaling(t *testing.T) {
 		}
 
 		m2 := new(MissingMsgResponse)
-		fmt.Printf("%x\n",d)
+		fmt.Printf("%x\n", d)
 		nd, err := m2.UnmarshalBinaryData(d)
 		if err != nil {
 			t.Error(err)
