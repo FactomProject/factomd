@@ -529,6 +529,7 @@ func startServers(load bool) {
 		if i > 0 {
 			fnode.State.Init()
 			messages.General = new(msgsupport.GeneralFactory)
+			primitives.General = messages.General
 		}
 		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 		go NetworkProcessorNet(fnode)

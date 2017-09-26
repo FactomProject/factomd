@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
 
 func TestUnmarshalNilDataResponse(t *testing.T) {
@@ -41,7 +42,7 @@ func TestMarshalUnmarshalDataResponse(t *testing.T) {
 		}
 		t.Logf("Marshalled - %x", hex)
 
-		msg2, err := UnmarshalMessage(hex)
+		msg2, err := msgsupport.UnmarshalMessage(hex)
 		if err != nil {
 			t.Error(err)
 		}

@@ -56,6 +56,10 @@ func (b *Buffer) PushBinaryMarshallable(bm interfaces.BinaryMarshallable) error 
 	return nil
 }
 
+func (b *Buffer) PushMsg(msg interfaces.IMsg) error {
+	return b.PushBinaryMarshallable(msg)
+}
+
 func (b *Buffer) PushString(s string) error {
 	return b.PushBytes([]byte(s))
 }
@@ -282,4 +286,20 @@ func (b *Buffer) PopBinaryMarshallable(dst interfaces.BinaryMarshallable) error 
 		return err
 	}
 	return nil
+}
+
+var General interfaces.IGeneralMsg
+
+func (b *Buffer) PopMsg() (msg interfaces.IMsg, err error) {
+	h := b.DeepCopyBytes()
+	rest, msg, err := General.UnmarshalMessageData(h)
+	if err != nil {
+		return nil, err
+	}
+	used := len(h)-len(rest)
+	_, err = b.Write(h[used:])
+	if err != nil {
+		return nil, err
+	}
+	return msg, err
 }

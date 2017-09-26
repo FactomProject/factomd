@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/factoid"
 	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
 
 func TestUnmarshalNilFactoidTransaction(t *testing.T) {
@@ -43,7 +44,7 @@ func TestMarshalUnmarshalFactoidTransaction(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Fatal(err)
 	}

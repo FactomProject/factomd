@@ -124,18 +124,19 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		fmt.Printf("eee %10s %20s %d\n", e.Name, "I'm an Audit Server", vm)
 		auditIdx := MaxIdx(e.APriority)
 		if idx == auditIdx {
-			V := new(VolunteerAudit)
-			V.VMIndex   = vm
-			V.TS = primitives.NewTimestampNow()
-			V.NName = e.Name
-			V.ServerIdx = uint32(e.Electing)
-			V.ServerID = e.ServerID
-			V.Weight = e.APriority[idx]
-			V.DBHeight = uint32(e.DBHeight)
-			V.Minute = byte(e.Minute)
-			V.Round = e.Round[e.Electing]
-			fmt.Printf("eee %10s %20s %s\n", e.Name, "I'm an Audit Server and I Volunteer", V.String())
-			V.SendOut(is, V)
+			Sync := new(SyncMsg)
+			Sync.SetLocal(true)
+			Sync.VMIndex = vm
+			Sync.TS = primitives.NewTimestampNow()
+			Sync.Name = e.Name
+			Sync.ServerIdx = uint32(e.Electing)
+			Sync.ServerID = e.ServerID
+			Sync.Weight = e.APriority[idx]
+			Sync.DBHeight = uint32(e.DBHeight)
+			Sync.Minute = byte(e.Minute)
+			Sync.Round = e.Round[e.Electing]
+			fmt.Printf("eee %10s %20s %s\n", e.Name, "I'm an Audit Server and go get my EOM", Sync.String())
+			is.InMsgQueue().Enqueue(Sync)
 		}
 	}
 }

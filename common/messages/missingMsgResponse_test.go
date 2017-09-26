@@ -5,12 +5,16 @@
 package messages_test
 
 import (
-	"testing"
+		"testing"
+"fmt"
 
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/testHelper"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
+
+var _ = fmt.Print
 
 func TestBadUnmarshal(t *testing.T) {
 	defer func() {
@@ -26,19 +30,36 @@ func TestBadUnmarshal(t *testing.T) {
 	}
 }
 
+func TestSomething(t *testing.T){
+	General = new(msgsupport.GeneralFactory)
+	primitives.General = General
+
+	a := new(Bounce)
+	a.Timestamp = primitives.NewTimestampNow()
+	b := NewSignedAck()
+
+	var buf primitives.Buffer
+	buf.PushMsg(a)
+	buf.PushMsg(b)
+	buf2 := primitives.NewBuffer(buf.Bytes())
+	a2,_ := buf2.PopMsg()
+	b2,_ := buf2.PopMsg()
+
+	fmt.Println(a.String(), a2.String())
+	fmt.Println(b.String(), b2.String())
+}
+
 func TestMissingMessageResponseMarshaling(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("Panic caught during the test - %v", r)
-		}
-	}()
+
+	General = new(msgsupport.GeneralFactory)
+	primitives.General = General
 
 	s := testHelper.CreateEmptyTestState()
 
 	for i := 0; i < 1; i++ {
 		b := new(Bounce)
 		b.Timestamp = primitives.NewTimestampNow()
-		m := NewMissingMsgResponse(s, b, newSignedAck())
+		m := NewMissingMsgResponse(s, b, NewSignedAck())
 		m.GetHash()
 		m.GetMsgHash()
 		d, err := m.MarshalBinary()
@@ -47,6 +68,7 @@ func TestMissingMessageResponseMarshaling(t *testing.T) {
 		}
 
 		m2 := new(MissingMsgResponse)
+		fmt.Printf("%x\n",d)
 		nd, err := m2.UnmarshalBinaryData(d)
 		if err != nil {
 			t.Error(err)

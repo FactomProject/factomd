@@ -199,47 +199,62 @@ func (m *EOM) VerifySignature() (bool, error) {
 }
 
 func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+	var cnt int
+	x := func() {
+		cnt++
+		fmt.Println("EOM",cnt)
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
 		}
 	}()
+
+	x()
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
 	newData = newData[1:]
+	x()
 
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
+	x()
 
 	m.ChainID = primitives.NewHash(constants.ZERO_HASH)
 	newData, err = m.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
+	x()
 
 	m.Minute, newData = newData[0], newData[1:]
+	x()
 
 	if m.Minute < 0 || m.Minute >= 10 {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
+	x()
 
 	m.VMIndex = int(newData[0])
 	newData = newData[1:]
 	m.FactoidVM = uint8(newData[0]) == 1
 	newData = newData[1:]
+	x()
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.SysHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
+	x()
 
 	m.SysHash = primitives.NewHash(constants.ZERO_HASH)
 	newData, err = m.SysHash.UnmarshalBinaryData(newData)
 
-	if len(newData) > 0 {
+	b, newData := newData[0],newData[1:]
+	if b > 0 {
 		sig := new(primitives.Signature)
 		newData, err = sig.UnmarshalBinaryData(newData)
 		if err != nil {
@@ -283,6 +298,7 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -303,11 +319,14 @@ func (m *EOM) MarshalBinary() (data []byte, err error) {
 
 	sig := m.GetSignature()
 	if sig != nil {
+		buf.WriteByte(1)
 		sigBytes, err := sig.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
 		buf.Write(sigBytes)
+	}else{
+		buf.WriteByte(0)
 	}
 	return buf.DeepCopyBytes(), nil
 }

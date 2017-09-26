@@ -26,6 +26,65 @@ func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {
 	return msg, err
 }
 
+func CreateMsg(messageType byte) interfaces.IMsg {
+	switch messageType {
+	case constants.EOM_MSG:
+		return new(messages.EOM)
+	case constants.ACK_MSG:
+		return new(messages.Ack)
+	case constants.AUDIT_SERVER_FAULT_MSG:
+		return new(messages.AuditServerFault)
+	case constants.FED_SERVER_FAULT_MSG:
+		return new(messages.ServerFault)
+	case constants.FULL_SERVER_FAULT_MSG:
+		return new(messages.FullServerFault)
+	case constants.COMMIT_CHAIN_MSG:
+		return new(messages.CommitChainMsg)
+	case constants.COMMIT_ENTRY_MSG:
+		return new(messages.CommitEntryMsg)
+	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+		return new(messages.DirectoryBlockSignature)
+	case constants.FACTOID_TRANSACTION_MSG:
+		return new(messages.FactoidTransaction)
+	case constants.HEARTBEAT_MSG:
+		return new(messages.Heartbeat)
+	case constants.MISSING_MSG:
+		return new(messages.MissingMsg)
+	case constants.MISSING_MSG_RESPONSE:
+		return new(messages.MissingMsgResponse)
+	case constants.MISSING_DATA:
+		return new(messages.MissingData)
+	case constants.DATA_RESPONSE:
+		return new(messages.DataResponse)
+	case constants.REVEAL_ENTRY_MSG:
+		return new(messages.RevealEntryMsg)
+	case constants.REQUEST_BLOCK_MSG:
+		return new(messages.RequestBlock)
+	case constants.DBSTATE_MISSING_MSG:
+		return new(messages.DBStateMissing)
+	case constants.DBSTATE_MSG:
+		return new(messages.DBStateMsg)
+	case constants.ADDSERVER_MSG:
+		return new(messages.AddServerMsg)
+	case constants.CHANGESERVER_KEY_MSG:
+		return new(messages.ChangeServerKeyMsg)
+	case constants.REMOVESERVER_MSG:
+		return new(messages.RemoveServerMsg)
+	case constants.BOUNCE_MSG:
+		return new(messages.Bounce)
+	case constants.BOUNCEREPLY_MSG:
+		return new(messages.BounceReply)
+	case constants.SYNC_MSG:
+		return new(electionMsgs.SyncMsg)
+	case constants.VOLUNTEERAUDIT:
+		return new(electionMsgs.VolunteerAudit)
+	case constants.LEADER_ACK_VOLUNTEER:
+		return new(electionMsgs.LeaderAck)
+	default:
+		return nil
+	}
+}
+
 func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err error) {
 	if data == nil {
 		return nil, nil, fmt.Errorf("No data provided")
@@ -34,57 +93,9 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		return nil, nil, fmt.Errorf("No data provided")
 	}
 	messageType := data[0]
-
-	switch messageType {
-	case constants.EOM_MSG:
-		msg = new(messages.EOM)
-	case constants.ACK_MSG:
-		msg = new(messages.Ack)
-	case constants.AUDIT_SERVER_FAULT_MSG:
-		msg = new(messages.AuditServerFault)
-	case constants.FED_SERVER_FAULT_MSG:
-		msg = new(messages.ServerFault)
-	case constants.FULL_SERVER_FAULT_MSG:
-		msg = new(messages.FullServerFault)
-	case constants.COMMIT_CHAIN_MSG:
-		msg = new(messages.CommitChainMsg)
-	case constants.COMMIT_ENTRY_MSG:
-		msg = new(messages.CommitEntryMsg)
-	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
-		msg = new(messages.DirectoryBlockSignature)
-	case constants.FACTOID_TRANSACTION_MSG:
-		msg = new(messages.FactoidTransaction)
-	case constants.HEARTBEAT_MSG:
-		msg = new(messages.Heartbeat)
-	case constants.MISSING_MSG:
-		msg = new(messages.MissingMsg)
-	case constants.MISSING_MSG_RESPONSE:
-		msg = new(messages.MissingMsgResponse)
-	case constants.MISSING_DATA:
-		msg = new(messages.MissingData)
-	case constants.DATA_RESPONSE:
-		msg = new(messages.DataResponse)
-	case constants.REVEAL_ENTRY_MSG:
-		msg = new(messages.RevealEntryMsg)
-	case constants.REQUEST_BLOCK_MSG:
-		msg = new(messages.RequestBlock)
-	case constants.DBSTATE_MISSING_MSG:
-		msg = new(messages.DBStateMissing)
-	case constants.DBSTATE_MSG:
-		msg = new(messages.DBStateMsg)
-	case constants.ADDSERVER_MSG:
-		msg = new(messages.AddServerMsg)
-	case constants.CHANGESERVER_KEY_MSG:
-		msg = new(messages.ChangeServerKeyMsg)
-	case constants.REMOVESERVER_MSG:
-		msg = new(messages.RemoveServerMsg)
-	case constants.BOUNCE_MSG:
-		msg = new(messages.Bounce)
-	case constants.BOUNCEREPLY_MSG:
-		msg = new(messages.BounceReply)
-	case constants.VOLUNTEERAUDIT:
-		msg = new(electionMsgs.VolunteerAudit)
-	default:
+fmt.Println("messagetype",messageType,MessageName(messageType))
+	msg = CreateMsg(messageType)
+	if msg == nil {
 		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
@@ -149,8 +160,12 @@ func MessageName(Type byte) string {
 		return "Bounce Message"
 	case constants.BOUNCEREPLY_MSG:
 		return "Bounce Reply Message"
+	case constants.SYNC_MSG:
+		return "Sync Msg"
 	case constants.VOLUNTEERAUDIT:
 		return "Volunteer Audit"
+	case constants.LEADER_ACK_VOLUNTEER:
+		return "Leader Ack Volunteer"
 	default:
 		return "Unknown:" + fmt.Sprintf(" %d", Type)
 	}
@@ -161,6 +176,10 @@ type GeneralFactory struct {
 }
 
 var _ interfaces.IGeneralMsg = (*GeneralFactory)(nil)
+
+func (GeneralFactory) CreateMsg(messageType byte) interfaces.IMsg {
+	return CreateMsg(messageType)
+}
 
 func (GeneralFactory) MessageName(Type byte) string {
 	return MessageName(Type)

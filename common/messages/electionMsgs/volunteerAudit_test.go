@@ -10,9 +10,10 @@ import (
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 func TestUnmarshalfolunteerAudit_test(t *testing.T) {
@@ -21,6 +22,9 @@ func TestUnmarshalfolunteerAudit_test(t *testing.T) {
 			t.Errorf("Panic caught during the test - %v", r)
 		}
 	}()
+
+	messages.General = new(msgsupport.GeneralFactory)
+	primitives.General = messages.General
 
 	a := new(VolunteerAudit)
 	err := a.UnmarshalBinary(nil)
@@ -45,7 +49,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 			t.Error(err)
 		}
 
-		va2, err := messages.UnmarshalMessage(hex)
+		va2, err := msgsupport.UnmarshalMessage(hex)
 		if err != nil {
 			t.Error(err)
 		}
@@ -64,13 +68,26 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 			fmt.Println(va2.String())
 		}
 	}
+
 	va := new(VolunteerAudit)
 	va.Minute = 5
-	va.NName = "bob"
+	va.Name = "bob"
 	va.DBHeight = 10
 	va.ServerID = primitives.Sha([]byte("leader"))
 	va.Weight = primitives.Sha([]byte("Weight"))
 	va.ServerIdx = 3
+	va.Missing = new(messages.EOM)
+	eom := va.Missing.(*messages.EOM)
+	eom.ChainID = primitives.NewHash([]byte("id"))
+	eom.LeaderChainID = primitives.NewHash([]byte("leader"))
+	eom.Timestamp = primitives.NewTimestampNow()
+
+	va.Ack = new(messages.Ack)
+	ack := va.Ack.(*messages.Ack)
+	ack.Timestamp = primitives.NewTimestampNow()
+	ack.LeaderChainID = primitives.NewHash([]byte("leader"))
+	ack.MessageHash = primitives.NewHash([]byte("msg"))
+	ack.SerialHash = primitives.NewHash([]byte("serial"))
 	va.TS = primitives.NewTimestampNow()
 	test(va, "1")
 }

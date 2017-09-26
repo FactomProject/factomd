@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/messages/msgsupport"
 )
 
 func TestUnmarshalNilCommitChainMsg(t *testing.T) {
@@ -43,7 +44,7 @@ func TestMarshalUnmarshalCommitChain(t *testing.T) {
 	}
 	t.Logf("Marshalled - %x", hex)
 
-	cc2, err := UnmarshalMessage(hex)
+	cc2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}
@@ -100,7 +101,7 @@ func TestSignAndVerifyCommitChain(t *testing.T) {
 		t.Error("Signature is not valid")
 	}
 
-	msg2, err := UnmarshalMessage(hex)
+	msg2, err := msgsupport.UnmarshalMessage(hex)
 	if err != nil {
 		t.Error(err)
 	}

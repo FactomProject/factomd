@@ -11,22 +11,20 @@ var _ = fmt.Print
 var _ = time.Tick
 
 type Elections struct {
-	ServerID        interfaces.IHash
-	Name            string
-	Sync            []bool
-	Federated       []interfaces.IServer
-	Audit           []interfaces.IServer
-	FPriority       []interfaces.IHash
-	APriority       []interfaces.IHash
-	DBHeight        int
-	Minute          int
-	Input           interfaces.IQueue
-	Output          interfaces.IQueue
-	Round           []int
-	Electing        int
-	LeaderElecting  int // This is the federated Server we are electing, if we are a leader
-	LeaderVolunteer int // This is the volunteer that we expect
-	State           interfaces.IState
+	ServerID  interfaces.IHash
+	Name      string
+	Sync      []bool
+	Federated []interfaces.IServer
+	Audit     []interfaces.IServer
+	FPriority []interfaces.IHash
+	APriority []interfaces.IHash
+	DBHeight  int
+	Minute    int
+	Input     interfaces.IQueue
+	Output    interfaces.IQueue
+	Round     []int
+	Electing  int // This is the federated Server index that we are looking to replace
+	State     interfaces.IState
 }
 
 func (e *Elections) String() string {

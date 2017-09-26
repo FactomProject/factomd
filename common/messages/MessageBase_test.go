@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package msgbase_test
+package messages_test
 
 import (
 	"testing"
@@ -56,7 +56,7 @@ func TestMessageBase(t *testing.T) {
 
 func TestPutAndGetAck(t *testing.T) {
 	eom := newEOM()
-	ack := newAck()
+	ack := NewAck()
 	eom.PutAck(ack)
 	if eom.Ack == nil {
 		t.Error("Ack is nil after PutAck called")
