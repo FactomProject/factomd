@@ -55,9 +55,8 @@ type FactomParams struct {
 	torUpload                bool
 	Sim_Stdin                bool
 	exposeProfiling          bool
-	elasticSearch            bool
-	elasticURL               string
-	elasticAuth              string
+	useLogstash              bool
+	logstashURL              string
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -121,10 +120,9 @@ func ParseCmdLine(args []string) *FactomParams {
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
 
-	// ElasticSearch connection (if used)
-	elasticSearchPtr := flag.Bool("elasticsearch", false, "If true, use ElasticSearch")
-	elasticUrlPtr := flag.String("elasticurl", "http://localhost:9200", "Endpoint URL for ElasticSearch")
-	elasticAuthPtr := flag.String("elasticauth", "elastic:password", "Authentication credentials for ElasticSearch")
+	// LogStash connection (if used)
+	logstash := flag.Bool("logstash", false, "If true, use LogStash")
+	logstashURL := flag.String("logurl", "localhost:9600", "Endpoint URL for LogStash")
 
 	flag.CommandLine.Parse(args)
 
@@ -177,9 +175,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.torManage = *tormanager
 	p.torUpload = *torUploader
 
-	p.elasticSearch = *elasticSearchPtr
-	p.elasticURL = *elasticUrlPtr
-	p.elasticAuth = *elasticAuthPtr
+	p.useLogstash = *logstash
+	p.logstashURL = *logstashURL
 
 	if *factomHomePtr != "" {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)

@@ -34,10 +34,9 @@ import (
 
 	"errors"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
-	elastic "gopkg.in/olivere/elastic.v5"
-	elogrus "gopkg.in/sohlich/elogrus.v2"
+	logrustash "github.com/cheshir/logrus-logstash-hook"
 )
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,
@@ -341,10 +340,9 @@ type State struct {
 
 	StateSaverStruct StateSaverStruct
 
-	// ElasticSearch
-	ElasticSearch bool
-	ElasticURL    string
-	ElasticAuth   string
+	// LogStash
+	UseLogstash bool
+	LogstashURL string
 
 	// Plugins
 	useTorrents             bool
@@ -925,32 +923,30 @@ func (s *State) Init() {
 
 	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
 
-	/* Set up ElasticSearch Hook for Logrus */
-	if s.ElasticSearch {
-		var client *elastic.Client
-		var err error
-		elasticAuth := strings.Split(s.ElasticAuth, ":")
-		if len(elasticAuth) < 2 {
-			client, err = elastic.NewClient(elastic.SetURL(s.ElasticURL))
-			if err != nil {
-				log.Panic(err)
-			}
-		} else {
-			elasticUser := elasticAuth[0]
-			elasticPass := elasticAuth[1]
-			client, err = elastic.NewClient(elastic.SetURL(s.ElasticURL), elastic.SetBasicAuth(elasticUser, elasticPass), elastic.SetSniff(false))
-			if err != nil {
-				log.Panic(err)
-			}
-		}
-
-		hook, err := elogrus.NewElasticHook(client, "factom-elk", log.DebugLevel, "factomd")
+	// Set up Logstash Hook for Logrus (if enabled)
+	if s.UseLogstash {
+		err := s.HookLogstash()
 		if err != nil {
-			s.Logger.Logger.Panic(err)
+			log.Fatal(err)
 		}
-		s.Logger.Logger.Hooks.Add(hook)
 	}
 
+}
+
+func (s *State) HookLogstash() error {
+	hook, err := logrustash.NewAsyncHook("tcp", s.LogstashURL, "factomdLogs")
+	if err != nil {
+		return err
+	}
+
+	hook.ReconnectBaseDelay = time.Second // Wait for one second before first reconnect.
+	hook.ReconnectDelayMultiplier = 2
+	hook.MaxReconnectRetries = 10
+
+	s.Logger.Level = log.DebugLevel
+	s.Logger.Logger.SetLevel(log.DebugLevel)
+	s.Logger.Logger.Hooks.Add(hook)
+	return nil
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {

@@ -34,7 +34,7 @@ func (this *State) ProcessRecentFERChainEntries() {
 		return
 	}
 	if entryBlock == nil {
-		packageLogger.Debug("FER Chain head found to be nil")
+		packageLogger.Info("FER Chain head found to be nil")
 		// this.Println("FER Chain head found to be nil")
 		return
 	}
