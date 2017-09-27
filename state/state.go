@@ -31,12 +31,11 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/logrustash"
 
 	"errors"
 
 	log "github.com/sirupsen/logrus"
-
-	logrustash "github.com/cheshir/logrus-logstash-hook"
 )
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,
