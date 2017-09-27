@@ -112,7 +112,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		// Reset the timeout and give up if we can't see a majority.
 		return
 	}
-	fmt.Printf("eee %10s %10s on %10s\n", e.State.GetFactomNodeName(), "Fault", e.Name)
 
 	// Get the priority order list of audit servers in the priority order
 	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
@@ -121,7 +120,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	if idx >= 0 {
 		serverMap := state.MakeMap(len(e.Federated), uint32(e.DBHeight))
 		vm := state.FedServerVM(serverMap, len(e.Federated), e.Minute, e.Electing)
-		fmt.Printf("eee %10s %20s %d\n", e.Name, "I'm an Audit Server", vm)
 		auditIdx := MaxIdx(e.APriority)
 		if idx == auditIdx {
 			Sync := new(SyncMsg)
@@ -135,7 +133,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.DBHeight = uint32(e.DBHeight)
 			Sync.Minute = byte(e.Minute)
 			Sync.Round = e.Round[e.Electing]
-			fmt.Printf("eee %10s %20s %s\n", e.Name, "I'm an Audit Server and go get my EOM", Sync.String())
 			is.InMsgQueue().Enqueue(Sync)
 		}
 	}
