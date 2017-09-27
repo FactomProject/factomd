@@ -120,9 +120,9 @@ func ParseCmdLine(args []string) *FactomParams {
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
 
-	// LogStash connection (if used)
-	logstash := flag.Bool("logstash", false, "If true, use LogStash")
-	logstashURL := flag.String("logurl", "localhost:9600", "Endpoint URL for LogStash")
+	// Logstash connection (if used)
+	logstash := flag.Bool("logstash", false, "If true, use Logstash")
+	logstashURL := flag.String("logurl", "localhost:9600", "Endpoint URL for Logstash")
 
 	flag.CommandLine.Parse(args)
 

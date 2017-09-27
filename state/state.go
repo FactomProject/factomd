@@ -340,7 +340,7 @@ type State struct {
 
 	StateSaverStruct StateSaverStruct
 
-	// LogStash
+	// Logstash
 	UseLogstash bool
 	LogstashURL string
 
