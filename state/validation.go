@@ -95,7 +95,7 @@ func (t *Timer) timer(state *State, min int) {
 	eom.ChainID = state.GetIdentityChainID()
 	eom.Sign(state)
 	eom.SetLocal(true)
-	consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": state.GetLeaderHeight()}).WithFields(eom.LogFields()).Infof("Generate EOM")
+	consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": state.GetLeaderHeight()}).WithFields(eom.LogFields()).Debug("Generate EOM")
 
 	state.TimerMsgQueue() <- eom
 }
