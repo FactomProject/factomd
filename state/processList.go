@@ -1023,7 +1023,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
-	plLogger.WithFields(log.Fields{"func": "AddToProcessList"}).WithFields(m.LogFields()).Info("Add To Process List")
+	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": p.State.GetFactomNodeName(), "plheight": ack.Height}).WithFields(m.LogFields()).Info("Add To Process List")
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {
