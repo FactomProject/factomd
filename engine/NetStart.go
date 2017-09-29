@@ -336,11 +336,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
-		if p.svm {
-			p2pProxy.SuperVerboseMessages = true
-			fnodes[0].State.SuperVerboseMessages = true
-		}
-
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(p.Netdebug)
 		if 0 < p.Netdebug {

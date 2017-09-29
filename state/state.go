@@ -349,7 +349,6 @@ type State struct {
 	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
 	DBStateManager          interfaces.IManagerController
 	HighestCompletedTorrent uint32
-	SuperVerboseMessages    bool
 	FastBoot                bool
 	FastBootLocation        string
 }

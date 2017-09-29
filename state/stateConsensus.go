@@ -39,9 +39,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		if s.SuperVerboseMessages {
-			fmt.Println("SVM exMsg (replay invalid):", msg.String(), msg.GetHash().String()[:10])
-		}
+		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
 		return
 	}
 	s.SetString()
@@ -1298,7 +1296,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 					panic(err)
 				}
 
-				dbslog.WithFields(dbs.LogFields()).Infof("Send DBSig")
+				dbslog.WithFields(dbs.LogFields()).Infof("Generate DBSig")
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
@@ -1497,7 +1495,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				pldbs.DBSigAlreadySent = true
 
 				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight()}).WithFields(dbs.LogFields())
-				dbslog.Infof("Send DBSig")
+				dbslog.Infof("Generate DBSig")
 
 				dbs.LeaderExecute(s)
 			}
