@@ -920,7 +920,7 @@ func (s *State) Init() {
 		}
 	}
 
-	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
+	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
 
 	// Set up Logstash Hook for Logrus (if enabled)
 	if s.UseLogstash {
@@ -942,8 +942,6 @@ func (s *State) HookLogstash() error {
 	hook.ReconnectDelayMultiplier = 2
 	hook.MaxReconnectRetries = 10
 
-	s.Logger.Level = log.DebugLevel
-	s.Logger.Logger.SetLevel(log.DebugLevel)
 	s.Logger.Logger.Hooks.Add(hook)
 	return nil
 }

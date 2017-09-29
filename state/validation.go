@@ -10,6 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	log "github.com/sirupsen/logrus"
 )
 
 func (state *State) ValidatorLoop() {
@@ -94,5 +95,9 @@ func (t *Timer) timer(state *State, min int) {
 	eom.ChainID = state.GetIdentityChainID()
 	eom.Sign(state)
 	eom.SetLocal(true)
+	eom.LogFields()
+	eomlog := consenLogger.WithFields(log.Fields{"func": "GenerateEOM", "lheight": state.GetLeaderHeight()}).WithFields(eom.LogFields())
+	eomlog.Infof("Generate EOM")
+
 	state.TimerMsgQueue() <- eom
 }
