@@ -241,6 +241,9 @@ func (m *CommitChainMsg) String() string {
 }
 
 func (m *CommitChainMsg) LogFields() log.Fields {
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
 	return log.Fields{"category": "message", "messagetype": "commitchain", "vmindex": m.VMIndex,
 		"server":      m.LeaderChainID.String(),
 		"commitchain": m.CommitChain.EntryHash.String(),
