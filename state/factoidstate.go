@@ -324,6 +324,8 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
+	fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+	fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
 	for _, input := range trans.GetInputs() {
 		adr := input.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
