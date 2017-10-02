@@ -276,7 +276,7 @@ func (m *DataResponse) String() string {
 
 func (m *DataResponse) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dataresponse", "datatype": m.DataType,
-		"datahash": m.DataHash.String()[:6]}
+		"datahash": m.DataHash.String()}
 }
 
 func NewDataResponse(state interfaces.IState, dataObject interfaces.BinaryMarshallable,

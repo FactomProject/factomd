@@ -189,8 +189,8 @@ func (m *MissingMsgResponse) String() string {
 
 func (m *MissingMsgResponse) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "missingmsgresponse",
-		"ackhash": m.Ack.GetMsgHash().String()[:10],
-		"msghash": m.MsgResponse.GetMsgHash().String()[:10]}
+		"ackhash": m.Ack.GetMsgHash().String(),
+		"msghash": m.MsgResponse.GetMsgHash().String()}
 }
 
 func (m *MissingMsgResponse) ChainID() []byte {

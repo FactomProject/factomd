@@ -230,9 +230,9 @@ func (m *RemoveServerMsg) String() string {
 
 func (m *RemoveServerMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "removeserver",
-		"server":     m.ServerChainID.String()[4:10],
+		"server":     m.ServerChainID.String(),
 		"servertype": m.ServerType,
-		"hash":       m.GetMsgHash().String()[:6]}
+		"hash":       m.GetMsgHash().String()}
 }
 
 func (m *RemoveServerMsg) IsSameAs(b *RemoveServerMsg) bool {

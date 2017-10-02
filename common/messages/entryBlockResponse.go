@@ -242,7 +242,7 @@ func (m *EntryBlockResponse) MarshalBinary() ([]byte, error) {
 
 func (m *EntryBlockResponse) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "entryblockresponse",
-		"hash": m.GetMsgHash().String()[:6]}
+		"hash": m.GetMsgHash().String()}
 }
 
 func (m *EntryBlockResponse) String() string {

@@ -220,8 +220,8 @@ func (m *AddServerMsg) String() string {
 }
 
 func (m *AddServerMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "addserver", "server": m.ServerChainID.String()[4:12],
-		"hash": m.GetHash().String()[:6]}
+	return log.Fields{"category": "message", "messagetype": "addserver", "server": m.ServerChainID.String(),
+		"hash": m.GetHash().String()}
 }
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {

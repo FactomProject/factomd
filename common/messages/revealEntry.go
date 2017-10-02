@@ -247,8 +247,8 @@ func (m *RevealEntryMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "revealentry",
 		"vm":         m.VMIndex,
 		"minute":     m.Minute,
-		"leaderid":   m.GetLeaderChainID().String()[4:10],
-		"entryhash":  m.Entry.GetHash().String()[:6],
-		"entrychain": m.Entry.GetChainID().String()[:6],
-		"hash":       m.GetHash().String()[:6]}
+		"leaderid":   m.GetLeaderChainID().String(),
+		"entryhash":  m.Entry.GetHash().String(),
+		"entrychain": m.Entry.GetChainID().String(),
+		"hash":       m.GetHash().String()}
 }

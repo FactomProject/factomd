@@ -242,7 +242,7 @@ func (m *CommitChainMsg) String() string {
 
 func (m *CommitChainMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "commitchain", "vmindex": m.VMIndex,
-		"server":      m.LeaderChainID.String()[4:12],
-		"commitchain": m.CommitChain.EntryHash.String()[:6],
-		"hash":        m.GetHash().String()[:6]}
+		"server":      m.LeaderChainID.String(),
+		"commitchain": m.CommitChain.EntryHash.String(),
+		"hash":        m.GetHash().String()}
 }

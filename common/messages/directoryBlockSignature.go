@@ -182,7 +182,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return authorityLevel
 	}
 
-	state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
+	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
+	dLogger.WithFields(m.LogFields()).Info("DirectoryBlockSignature Valid")
 	m.SetValid()
 	return 1
 }
@@ -391,9 +392,9 @@ func (m *DirectoryBlockSignature) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dbsig",
 		"dbheight":  m.DBHeight,
 		"vm":        m.VMIndex,
-		"server":    m.ServerIdentityChainID.String()[:6],
-		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String()[:6],
-		"hash":      m.GetHash().String()[:6]}
+		"server":    m.ServerIdentityChainID.String(),
+		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String(),
+		"hash":      m.GetHash().String()}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

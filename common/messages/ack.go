@@ -339,8 +339,8 @@ func (m *Ack) String() string {
 
 func (m *Ack) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "ack", "dbheight": m.DBHeight, "vm": m.VMIndex,
-		"vmheight": m.Height, "server": m.LeaderChainID.String()[4:12],
-		"hash": m.GetHash().String()[:6]}
+		"vmheight": m.Height, "server": m.LeaderChainID.String(),
+		"hash": m.GetHash().String()}
 }
 
 func (a *Ack) IsSameAs(b *Ack) bool {
