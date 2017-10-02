@@ -919,7 +919,7 @@ func (s *State) Init() {
 		}
 	}
 
-	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
+	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
 
 	// Set up Logstash Hook for Logrus (if enabled)
 	if s.UseLogstash {
