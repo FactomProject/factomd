@@ -11,10 +11,13 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages"
+	log "github.com/sirupsen/logrus"
 )
+
+var faultLogger = packageLogger.WithFields(log.Fields{"subpack": "fault"})
 
 type FaultCore struct {
 	// The following 5 fields represent the "Core" of the message
@@ -447,6 +450,7 @@ func (s *State) FollowerExecuteFullFault(m interfaces.IMsg) {
 	//	s.LLeaderHeight,
 	//	fullFault.String()))
 
+	faultLogger.WithField("func", "AddToSystemList").WithFields(fullFault.LogFields()).Warn("Add to System List")
 	pl.AddToSystemList(fullFault)
 }
 
@@ -517,5 +521,6 @@ func (s *State) DoReset() {
 	s.SetLeaderTimestamp(dbs.NextTimestamp)
 
 	s.DBStates.ProcessBlocks(dbs)
+	faultLogger.WithFields(log.Fields{"func": "Reset", "count": s.ResetTryCnt}).Warn("DoReset complete")
 	//s.AddStatus("RESET: Complete")
 }

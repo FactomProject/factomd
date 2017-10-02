@@ -1767,6 +1767,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
 			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault CLEARING: %s", fullFault.StringWithSigCnt(s)))
 			fullFault.SetAlreadyProcessed()
+			faultLogger.WithField("func", "ClearFault").WithFields(fullFault.LogFields()).Warn("Cleared")
 			return true
 		}
 	}
@@ -1855,6 +1856,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
 				fullFault.SetAlreadyProcessed()
+				faultLogger.WithField("func", "ProcessFault").WithFields(fullFault.LogFields()).Warn("Fault Processed (Leader Replaced)")
 				return true
 			}
 		}
