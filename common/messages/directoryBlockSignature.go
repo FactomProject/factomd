@@ -183,7 +183,7 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
-	dLogger.WithFields(m.LogFields()).Info("DirectoryBlockSignature Valid")
+	dLogger.WithFields(m.LogFields()).WithField("node-name", state.GetFactomNodeName()).Info("DirectoryBlockSignature Valid")
 	m.SetValid()
 	return 1
 }
