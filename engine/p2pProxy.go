@@ -116,7 +116,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 		return err
 	}
 
-	proxyLogger.WithFields(msg.LogFields()).Info("Send Message")
+	proxyLogger.WithFields(msg.LogFields()).WithField("node-name", f.GetNameFrom()).Info("Send Message")
 
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
@@ -156,7 +156,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				if err != nil {
 					proxyLogger.WithField("receive-error", err).Error()
 				} else {
-					proxyLogger.WithFields(msg.LogFields()).Info("Receive Message")
+					proxyLogger.WithFields(msg.LogFields()).WithField("node-name", f.GetNameFrom()).Info("Receive Message")
 				}
 
 				if nil == err {
