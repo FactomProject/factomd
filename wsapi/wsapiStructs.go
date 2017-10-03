@@ -60,9 +60,9 @@ type HeightsResponse struct {
 	LeaderHeight                 int64 `json:"leaderheight"`
 	EntryBlockHeight             int64 `json:"entryblockheight"`
 	EntryHeight                  int64 `json:"entryheight"`
-	MissingEntryCount            int64 `json:"missingentrycount"`
-	EntryBlockDBHeightProcessing int64 `json:"entryblockdbheightprocessing"`
-	EntryBlockDBHeightComplete   int64 `json:"entryblockdbheightcomplete"`
+	MissingEntryCount            int64 `json:"-"`
+	EntryBlockDBHeightProcessing int64 `json:"-"`
+	EntryBlockDBHeightComplete   int64 `json:"-"`
 }
 
 type CurrentMinuteResponse struct {
