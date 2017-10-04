@@ -5,6 +5,7 @@
 package messages_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -137,4 +138,37 @@ func newRevealEntryWithContentSizeX(size int) *RevealEntryMsg {
 	re.Entry = entry
 
 	return re
+}
+
+func newMaliciousRevealEntry() *RevealEntryMsg {
+	re := new(RevealEntryMsg)
+
+	entry := new(entryBlock.Entry)
+
+	entry.ExtIDs = make([]primitives.ByteSlice, 0, 5)
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("ThisDoes")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("NotHash")})
+	entry.ExtIDs = append(entry.ExtIDs, primitives.ByteSlice{Bytes: []byte("To5f5a0fa")})
+	entry.ChainID = new(primitives.Hash)
+	p, _ := hex.DecodeString("5f5a0fa853e7a84752fa90546915d4ab3c1e031e2cb785cfbcb2d93c211fea0b")
+	entry.ChainID.SetBytes(p)
+
+	entry.Content = primitives.ByteSlice{Bytes: []byte("1asdfadfasdf")}
+
+	re.Entry = entry
+
+	return re
+}
+
+func TestRevealMaliciousFirstEntryReveal(t *testing.T) {
+	testState := testHelper.CreateAndPopulateTestState()
+
+	m := newMaliciousRevealEntry()
+	goodEntry := newSignedCommitChain()
+
+	testState.PutCommit(m.Entry.GetHash(), goodEntry)
+
+	if m.Validate(testState) > -1 {
+		t.Error("Malicious RevealEntry message improperly considered valid (hash of extIDs does not match chainID)")
+	}
 }
