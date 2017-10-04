@@ -30,6 +30,8 @@ addentries() {
 	datafile=$(mktemp)
 	base64 /dev/urandom | head -c $datalen > $datafile
 
+	sleep 10s
+
 	echo "Entry Length " $datalen " bytes, file name: " $datafile
 
 	for ((i=0; i<nentries; i++)); do
@@ -46,7 +48,7 @@ echo "Start"
 
 for ((i=0; i<nchains; i++)); do
 	echo "create chain" $i
-	chainid=$(echo test $i $RANDOM | factom-cli -s=$factomd addchain -f -n test -n $i -n $RANDOM $ec1 | awk '/ChainID/{print $2}')
+	chainid=$(echo test $i $RANDOM | factom-cli -s=$factomd addchain -f  -n test -n $i -n $RANDOM $ec1 | awk '/ChainID/{print $2}')
 	addentries $chainid $i &
 	sleep 10
 done

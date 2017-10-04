@@ -110,16 +110,21 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 		}
 
 		hashMap[next.FBlock.DatabasePrimaryIndex().String()] = "OK"
+
 		err = factoid.CheckBlockPairIntegrity(next.FBlock, prev.FBlock)
+		// Check to make sure no transactions exist that repeat the hash of the entire transaction
+		// This hash can be altered if a malleability attack is discovered and deployed.
 		for _, fct := range next.FBlock.GetEntryHashes() {
 			if fcthashes[fct.Fixed()] > 0 {
-				fmt.Printf("At %d (previous: %d) Double Spends detected of:\n%x\n", dbheight, fcthashes[fct.Fixed()], fct.Fixed())
+				fmt.Printf("At %d (previous: %d) Duplicate FCT TxID detected of:\n%x\n", dbheight, fcthashes[fct.Fixed()], fct.Fixed())
 			}
 			fcthashes[fct.Fixed()] = int(dbheight)
 		}
+		// Check to make sure no transactions exist that repeat the hash of the transaction less the signatures.
+		// This is the hash that we use for the Transaction ID
 		for _, fct := range next.FBlock.GetEntrySigHashes() {
 			if fcthashes2[fct.Fixed()] > 0 {
-				fmt.Printf("At %d (previous: %d) Double Spends (sig hash) detected:\n%x\n", dbheight, fcthashes2[fct.Fixed()], fct.Fixed())
+				fmt.Printf("At %d (previous: %d) Duplicate FCT (sig hash) detected:\n%x\n", dbheight, fcthashes2[fct.Fixed()], fct.Fixed())
 			}
 			fcthashes2[fct.Fixed()] = int(dbheight)
 		}

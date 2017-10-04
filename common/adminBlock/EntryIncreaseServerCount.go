@@ -10,7 +10,7 @@ import (
 
 // DB Signature Entry -------------------------
 type IncreaseServerCount struct {
-	Amount byte
+	Amount byte `json:"amount"`
 }
 
 var _ interfaces.IABEntry = (*IncreaseServerCount)(nil)

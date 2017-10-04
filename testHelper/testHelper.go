@@ -31,6 +31,7 @@ func CreateEmptyTestState() *state.State {
 	s.EFactory = new(electionMsgs.ElectionsFactory)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
+	s.LogPath = "stdout"
 	s.Init()
 	s.Network = "LOCAL"
 	state.LoadDatabase(s)
@@ -70,6 +71,7 @@ func createAndPopulateTestState() *state.State {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", s.DirectoryBlockInSeconds))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+	s.LogPath = "stdout"
 
 	s.Init()
 	s.Network = "LOCAL"

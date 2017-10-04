@@ -287,8 +287,11 @@ func (s *State) getACKStatus(hash interfaces.IHash, useOldMsgs bool) (int, inter
 			//pl := s.ProcessLists.LastList()
 			if useOldMsgs {
 				m := pl.GetOldMsgs(hash)
-				if m != nil || pl.DirectoryBlock == nil {
+				if m != nil {
 					return constants.AckStatusACK, hash, m.GetTimestamp(), nil, nil
+				}
+				if pl.DirectoryBlock == nil { // can't use m.getTimestap, m might == nil
+					return constants.AckStatusACK, hash, nil, nil, nil
 				}
 			}
 
