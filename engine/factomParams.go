@@ -170,7 +170,7 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	// Logstash connection (if used)
 	logstash := flag.Bool("logstash", false, "If true, use Logstash")
-	logstashURL := flag.String("logurl", "localhost:9600", "Endpoint URL for Logstash")
+	logstashURL := flag.String("logurl", "localhost:8345", "Endpoint URL for Logstash")
 
 	flag.CommandLine.Parse(args)
 
