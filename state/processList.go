@@ -530,6 +530,12 @@ func (p *ProcessList) DeleteOldMsgs(key interfaces.IHash) {
 }
 
 func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
+	if p == nil {
+		return nil
+	}
+	if p.oldmsgslock == nil {
+		return nil
+	}
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
 	return p.OldMsgs[key.Fixed()]
