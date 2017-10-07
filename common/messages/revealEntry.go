@@ -142,13 +142,14 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 			return 0
 		}
 
-		checkHash := new(primitives.Hash)
+		originalHash := new(primitives.Hash)
 		sum := sha256.New()
 		for _, v := range m.Entry.ExternalIDs() {
 			x := sha256.Sum256(v)
 			sum.Write(x[:])
 		}
-		checkHash.SetBytes(sum.Sum(nil))
+		originalHash.SetBytes(sum.Sum(nil))
+		checkHash := primitives.Shad(originalHash.Bytes())
 
 		if !m.commitChain.CommitChain.ChainIDHash.IsSameAs(checkHash) { // Discard commits that don't have extIDs matching ChainIDHash
 			return -1
