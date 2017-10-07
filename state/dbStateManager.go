@@ -13,6 +13,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	// "github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -1333,6 +1334,15 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 
 	if err := list.State.DB.ExecuteMultiBatch(); err != nil {
 		panic(err.Error())
+	}
+
+	// Set the Block Replay flag for all these transactions we are saving to the database.
+	for _, fct := range d.FactoidBlock.GetTransactions() {
+		list.State.FReplay.IsTSValid_(
+			constants.BLOCK_REPLAY,
+			fct.GetSigHash().Fixed(),
+			fct.GetTimestamp(),
+			d.DirectoryBlock.GetHeader().GetTimestamp())
 	}
 
 	// Not activated.  Set to true if you want extra checking of the data saved to the database.
