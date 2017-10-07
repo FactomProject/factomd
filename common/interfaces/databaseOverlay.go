@@ -8,8 +8,6 @@
 
 package interfaces
 
-import ()
-
 //A simplified DBOverlay to make sure we are not calling functions that could cause problems
 type DBOverlaySimple interface {
 	Close() error
@@ -231,7 +229,7 @@ type DBOverlay interface {
 	// FetchDirBlockInfoByKeyMR gets a dirblock info block by keyMR from the database.
 	FetchDirBlockInfoByKeyMR(hash IHash) (IDirBlockInfo, error)
 
-	// FetchAllConfirmedDirBlockInfos gets all of the confiemed dirblock info blocks
+	// FetchAllConfirmedDirBlockInfos gets all of the confirmed dirblock info blocks
 	FetchAllConfirmedDirBlockInfos() ([]IDirBlockInfo, error)
 
 	// FetchAllUnconfirmedDirBlockInfos gets all of the unconfirmed dirblock info blocks
