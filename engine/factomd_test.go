@@ -114,10 +114,10 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("o")
 	runCmd("")
 	runCmd("")
-	runCmd("T10")
+	runCmd("T11")
 
 	WaitBlocks(state0, 1)
-	WaitMinutes(state0, 1)
+	WaitMinutes(state0, 2)
 
 	leadercnt := 0
 	auditcnt := 0
