@@ -43,7 +43,6 @@ func TestPushPopBalanceMap(t *testing.T) {
 	}
 }
 
-
 func TestSaveRestore(t *testing.T) {
 
 	ss := new(SaveState)
@@ -51,7 +50,7 @@ func TestSaveRestore(t *testing.T) {
 	ss.Init()
 	snil := (*SaveState)(nil)
 	snil2 := snil
-	if !snil.IsSameAs(snil2){
+	if !snil.IsSameAs(snil2) {
 		t.Error("Should be able to compare nils")
 	}
 	if snil.IsSameAs(ss) {
@@ -60,7 +59,7 @@ func TestSaveRestore(t *testing.T) {
 	if ss.IsSameAs(snil) {
 		t.Error("Should be able to compare a state with a nil")
 	}
-	if !ss.IsSameAs(ss){
+	if !ss.IsSameAs(ss) {
 		t.Error("One should be the same as one's self")
 	}
 }
