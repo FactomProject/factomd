@@ -98,10 +98,10 @@ type EntryBlockResponse struct {
 
 type EntryCreditBlockResponse struct {
 	ECBlock struct {
-		Header     interfaces.IECBlockHeader
-		Body       interfaces.IECBlockBody
-		HeaderHash interfaces.IHash `json:"headerhash"`
-		FullHash   interfaces.IHash `json:"fullhash"`
+		Header     interfaces.IECBlockHeader `json:"header"`
+		Body       interfaces.IECBlockBody   `json:"body"`
+		HeaderHash interfaces.IHash          `json:"headerhash"`
+		FullHash   interfaces.IHash          `json:"fullhash"`
 	} `json:"ecblock"`
 	RawData string `json:"rawdata"`
 }
