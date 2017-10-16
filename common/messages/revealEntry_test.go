@@ -12,12 +12,12 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
+	"github.com/FactomProject/factomd/common/interfaces"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/testHelper"
-	"github.com/FactomProject/factomd/common/interfaces"
 )
 
 var _ = fmt.Println
@@ -181,13 +181,13 @@ func TestRevealEntry2ChainID(t *testing.T) {
 		ChainID     interfaces.IHash
 	}
 
-	var workingTests [] *test
+	var workingTests []*test
 
 	at := new(test)
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("0"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("10307"))
-	h,_ := hex.DecodeString("3e66337d3d1262e13c557fde662a2fbd015410501cc8c3c8095bc182dfcf40f6")
+	h, _ := hex.DecodeString("3e66337d3d1262e13c557fde662a2fbd015410501cc8c3c8095bc182dfcf40f6")
 	at.ChainID = primitives.NewHash(h)
 	workingTests = append(workingTests, at)
 
@@ -195,7 +195,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("1"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("19484"))
-	h,_ = hex.DecodeString("e92ed553b45af51c2a124720e73edb4ab8c0d81176f0c5327c070a1ad823292b")
+	h, _ = hex.DecodeString("e92ed553b45af51c2a124720e73edb4ab8c0d81176f0c5327c070a1ad823292b")
 	at.ChainID = primitives.NewHash(h)
 	workingTests = append(workingTests, at)
 
@@ -203,7 +203,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("2"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("3151"))
-	h,_ = hex.DecodeString("548a349a671b12777c575c1f47465c29c6bd0822b2bfee8683db36087f353a02")
+	h, _ = hex.DecodeString("548a349a671b12777c575c1f47465c29c6bd0822b2bfee8683db36087f353a02")
 	at.ChainID = primitives.NewHash(h)
 	workingTests = append(workingTests, at)
 
@@ -211,7 +211,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("3"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("2062"))
-	h,_ = hex.DecodeString("7b226a7a4821b522f37e5fc3f6abe4f5e86bc1c3f5967e398d3212e6543af8b3")
+	h, _ = hex.DecodeString("7b226a7a4821b522f37e5fc3f6abe4f5e86bc1c3f5967e398d3212e6543af8b3")
 	at.ChainID = primitives.NewHash(h)
 	workingTests = append(workingTests, at)
 
@@ -219,7 +219,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("4"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("9417"))
-	h,_ = hex.DecodeString("8d1d56ab04de47e1b1b7f438269f01c951516c289abb7531c5bd427355910b05")
+	h, _ = hex.DecodeString("8d1d56ab04de47e1b1b7f438269f01c951516c289abb7531c5bd427355910b05")
 	at.ChainID = primitives.NewHash(h)
 	workingTests = append(workingTests, at)
 
@@ -227,7 +227,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("5"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("6697"))
-	h,_ = hex.DecodeString("2238ec3a3b1430057c29f35e6464d51b5cf1e72a73fb9e6bd0ecd90f7e65741f")
+	h, _ = hex.DecodeString("2238ec3a3b1430057c29f35e6464d51b5cf1e72a73fb9e6bd0ecd90f7e65741f")
 	at.ChainID = primitives.NewHash(h)
 	workingTests = append(workingTests, at)
 
@@ -238,12 +238,12 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	msg.CommitChain.CommitChain = new(entryCreditBlock.CommitChain)
 	for i, wt := range workingTests {
 		msg.CommitChain.CommitChain.ChainIDHash = primitives.Shad(wt.ChainID.Bytes())
-		if !CheckChainID(state,wt.ExternalIDs,msg){
-			t.Error("Failed to match the External IDs to the ChainID as expected, in test",i)
+		if !CheckChainID(state, wt.ExternalIDs, msg) {
+			t.Error("Failed to match the External IDs to the ChainID as expected, in test", i)
 		}
 	}
 
-	var failingTests [] *test
+	var failingTests []*test
 
 	// Different number of External IDs
 	at = new(test)
@@ -251,7 +251,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("0"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("10307"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte(""))
-	h,_ = hex.DecodeString("3e66337d3d1262e13c557fde662a2fbd015410501cc8c3c8095bc182dfcf40f6")
+	h, _ = hex.DecodeString("3e66337d3d1262e13c557fde662a2fbd015410501cc8c3c8095bc182dfcf40f6")
 	at.ChainID = primitives.NewHash(h)
 	failingTests = append(failingTests, at)
 
@@ -260,7 +260,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("2"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("19484"))
-	h,_ = hex.DecodeString("e92ed553b45af51c2a124720e73edb4ab8c0d81176f0c5327c070a1ad823292b")
+	h, _ = hex.DecodeString("e92ed553b45af51c2a124720e73edb4ab8c0d81176f0c5327c070a1ad823292b")
 	at.ChainID = primitives.NewHash(h)
 	failingTests = append(failingTests, at)
 
@@ -269,7 +269,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("2"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("3151"))
-	h,_ = hex.DecodeString("548a349a671b12777c575c1f47365c29c6bd0822b2bfee8683db36087f353a02")
+	h, _ = hex.DecodeString("548a349a671b12777c575c1f47365c29c6bd0822b2bfee8683db36087f353a02")
 	at.ChainID = primitives.NewHash(h)
 	failingTests = append(failingTests, at)
 
@@ -278,7 +278,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("3"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("2062"))
-	h,_ = hex.DecodeString("7b226afa4821b522f37e5fc3f6cbe4f5e86bc1c3f5967e398d3212e6543af8b3")
+	h, _ = hex.DecodeString("7b226afa4821b522f37e5fc3f6cbe4f5e86bc1c3f5967e398d3212e6543af8b3")
 	at.ChainID = primitives.NewHash(h)
 	failingTests = append(failingTests, at)
 
@@ -287,7 +287,7 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("test"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("4"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("94170"))
-	h,_ = hex.DecodeString("8d1d56ab04de47e1b1b7f438269f01c951516c289abb7531c5bd427355910b05")
+	h, _ = hex.DecodeString("8d1d56ab04de47e1b1b7f438269f01c951516c289abb7531c5bd427355910b05")
 	at.ChainID = primitives.NewHash(h)
 	failingTests = append(failingTests, at)
 
@@ -296,14 +296,14 @@ func TestRevealEntry2ChainID(t *testing.T) {
 	at.ExternalIDs = append(at.ExternalIDs, []byte("testing"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("5"))
 	at.ExternalIDs = append(at.ExternalIDs, []byte("6697"))
-	h,_ = hex.DecodeString("2238ec3a3b1430057c29f35e6464d51b5cf1e72a73fb9e6bd0ecd90f7e65741f")
+	h, _ = hex.DecodeString("2238ec3a3b1430057c29f35e6464d51b5cf1e72a73fb9e6bd0ecd90f7e65741f")
 	at.ChainID = primitives.NewHash(h)
 	failingTests = append(failingTests, at)
 
 	for i, wt := range failingTests {
 		msg.CommitChain.CommitChain.ChainIDHash = primitives.Shad(wt.ChainID.Bytes())
-		if CheckChainID(state,wt.ExternalIDs,msg){
-			t.Error("Failed to detect a missmatch in the External IDs to the ChainID as expected, in test",i)
+		if CheckChainID(state, wt.ExternalIDs, msg) {
+			t.Error("Failed to detect a missmatch in the External IDs to the ChainID as expected, in test", i)
 		}
 	}
 

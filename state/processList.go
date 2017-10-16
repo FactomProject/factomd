@@ -808,11 +808,29 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 				// If we can't process this entry (i.e. returns false) then we can't process any more.
 				p.NextHeightToProcess[i] = j + 1
 				msg := vm.List[j]
+
+				now := p.State.GetTimestamp()
+
+				if _, valid := p.State.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now); !valid {
+					vm.List[j] = nil // If we have seen this message, we don't process it again.  Ever.
+					break VMListLoop
+				}
+
 				if msg.Process(p.DBHeight, state) { // Try and Process this entry
 					vm.heartBeat = 0
 					vm.Height = j + 1 // Don't process it again if the process worked.
 
 					progress = true
+
+					// We have already tested and found m to be a new message.  We now record its hashes so later, we
+					// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
+					p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+					p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), now)
+
+					ack := vm.ListAck[j]
+					delete(p.State.Acks, ack.GetMsgHash().Fixed())
+					delete(p.State.Holding, msg.GetMsgHash().Fixed())
+
 				} else {
 					//p.State.AddStatus(fmt.Sprintf("processList.Process(): Could not process entry dbht: %d VM: %d  msg: [[%s]]", p.DBHeight, i, msg.String()))
 					break VMListLoop // Don't process further in this list, go to the next.
@@ -996,11 +1014,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// recorded, then we still treat it as if we recorded it.
 
 	vm.heartBeat = 0 // We have heard from this VM
-
-	// We have already tested and found m to be a new message.  We now record its hashes so later, we
-	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
-	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
-	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
 	TotalHoldingQueueOutputs.Inc()
 	TotalAcksOutputs.Inc()
