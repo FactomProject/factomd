@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	. "github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/testHelper"
 )
 
 func TestUnmarshalNilDBStateMissing(t *testing.T) {
@@ -108,4 +109,22 @@ func Testlimits(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestNewDBStateMissing(t *testing.T) {
+
+	s := testHelper.CreateEmptyTestState()
+
+	ndbs := NewDBStateMissing(s, 1, 100)
+
+	//fmt.Printf("asdf: %v\n", ndbs)
+	if ndbs.Validate(s) != 1 {
+		t.Errorf("NewDBStateMissing is marked invalid when it should be valid")
+	}
+
+	ndbs2 := NewDBStateMissing(s, 100, 1)
+	if ndbs2.Validate(s) != -1 {
+		t.Errorf("NewDBStateMissing is marked valid when it should be invalid")
+	}
+
 }
