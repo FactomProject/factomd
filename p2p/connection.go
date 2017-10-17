@@ -14,7 +14,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // conLogger is the general logger for all connection related logs. You can add additional fields,

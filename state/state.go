@@ -31,10 +31,11 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/logrustash"
 
 	"errors"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,
@@ -338,13 +339,17 @@ type State struct {
 	AckChange uint32
 
 	StateSaverStruct StateSaverStruct
+
+	// Logstash
+	UseLogstash bool
+	LogstashURL string
+
 	// Plugins
 	useTorrents             bool
 	torrentUploader         bool
 	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
 	DBStateManager          interfaces.IManagerController
 	HighestCompletedTorrent uint32
-	SuperVerboseMessages    bool
 	FastBoot                bool
 	FastBootLocation        string
 }
@@ -916,7 +921,30 @@ func (s *State) Init() {
 		}
 	}
 
-	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
+	s.Logger = log.WithFields(log.Fields{"node-name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()})
+
+	// Set up Logstash Hook for Logrus (if enabled)
+	if s.UseLogstash {
+		err := s.HookLogstash()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+}
+
+func (s *State) HookLogstash() error {
+	hook, err := logrustash.NewAsyncHook("tcp", s.LogstashURL, "factomdLogs")
+	if err != nil {
+		return err
+	}
+
+	hook.ReconnectBaseDelay = time.Second // Wait for one second before first reconnect.
+	hook.ReconnectDelayMultiplier = 2
+	hook.MaxReconnectRetries = 10
+
+	s.Logger.Logger.Hooks.Add(hook)
+	return nil
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {

@@ -7,7 +7,6 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"sync"
 
 	"encoding/binary"
@@ -22,10 +21,14 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
 var _ = log.Print
+
+var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
 type Request struct {
 	vmIndex    int    // VM Index
@@ -1026,19 +1029,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
 
-	if p.State.SuperVerboseMessages {
-		fmt.Printf("SVM Added To PL: %s / %s\n", m.String(), ack.String())
-		/*thisString := ""
-		for listIdx, msgInList := range vm.List {
-			if msgInList == nil {
-				thisString = "<nil>"
-			} else {
-				thisString = msgInList.String()
-			}
-			fmt.Printf("SVM ProcList (%d) / %s\n", listIdx, thisString)
-		}*/
-	}
-
+	plLogger.WithFields(log.Fields{"func": "AddToProcessList", "node-name": p.State.GetFactomNodeName(), "plheight": ack.Height, "dbheight": p.DBHeight}).WithFields(m.LogFields()).Info("Add To Process List")
 }
 
 func (p *ProcessList) ContainsDBSig(serverID interfaces.IHash) bool {

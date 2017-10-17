@@ -20,7 +20,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // packageLogger is the general logger for all p2p related logs. You can add additional fields,

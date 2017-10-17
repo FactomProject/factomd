@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -218,7 +218,7 @@ func (m *Heartbeat) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "heartbeat",
 		"vm":        m.VMIndex,
 		"dbheight":  m.DBHeight,
-		"server":    m.IdentityChainID.String()[4:10],
+		"server":    m.IdentityChainID.String(),
 		"timestamp": m.Timestamp.GetTimeSeconds()}
 }
 
