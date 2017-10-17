@@ -1,5 +1,5 @@
 hash: efce2af61ff556100f46a8f6e18fa73b39e1295ec12361d430cb213ec2804d38
-updated: 2017-09-22T15:16:35.635846115-05:00
+updated: 2017-10-17T16:37:41.819343298-05:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -36,14 +36,14 @@ imports:
   subpackages:
   - edwards25519
 - name: github.com/FactomProject/factom
-  version: 4aae917f015a1d2341fb605f5373e93fef873461
+  version: d4b86d75081c311144799f6909e4d6046cd31f93
   subpackages:
   - wallet
   - wallet/wsapi
 - name: github.com/FactomProject/factom-cli
   version: 31313ef3e7902b135f65272a07430aefeffec159
 - name: github.com/FactomProject/factom-walletd
-  version: cec09b53f8fa1e7d11f8b5fb0efd3a273053a7ef
+  version: d060b871e59c6e542a22911d99acf4038bd8dd67
 - name: github.com/FactomProject/fctwallet
   version: 97e19f8d1e251975480fa6f76eb2d9084b984a14
 - name: github.com/FactomProject/fsnotify
@@ -79,6 +79,8 @@ imports:
   - leveldb/util
 - name: github.com/FactomProject/logrus
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
+- name: github.com/FactomProject/logrustash
+  version: 9c7278ede46e1ccc03f0b17d6663730c340acb81
 - name: github.com/FactomProject/netki-go-partner-client
   version: 426acb535e66cc2f9e6226ae254555e3572fd142
 - name: github.com/FactomProject/serveridentity
@@ -119,21 +121,30 @@ imports:
 - name: github.com/prometheus/procfs
   version: abf152e5f3e97f2fafac028d2cc06c1feb87ffa5
 - name: golang.org/x/crypto
-  version: bed12803fa9663d7aa2c2346b0c634ad2dcd43b7
+  version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
   - pbkdf2
   - ripemd160
   - scrypt
+  - ssh/terminal
 - name: golang.org/x/net
-  version: 007e530097ad7f954752df63046b4036f98ba6a6
+  version: 1087133bc4af3073e18add999345c6ae75918503
   subpackages:
+  - context
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - lex/httplex
+  - trace
   - websocket
 - name: golang.org/x/sys
-  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
+  version: 8dbc5d05d6edcc104950cc299a1ce6641235bc86
   subpackages:
   - unix
+  - windows
 - name: gopkg.in/gcfg.v1
-  version: 27e4946190b4a327b539185f2b5b1f7c84730728
+  version: 298b7a6a3838f79debfaee8bd3bfb2b8d779e756
   subpackages:
   - scanner
   - token
