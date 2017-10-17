@@ -10,7 +10,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 func (state *State) ValidatorLoop() {

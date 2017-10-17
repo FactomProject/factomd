@@ -20,8 +20,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
+	//"github.com/FactomProject/factomd/database/databaseOverlay"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print

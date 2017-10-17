@@ -5,7 +5,7 @@
 package interfaces
 
 import (
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 /**************************
