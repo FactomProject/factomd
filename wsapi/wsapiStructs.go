@@ -60,9 +60,9 @@ type HeightsResponse struct {
 	LeaderHeight                 int64 `json:"leaderheight"`
 	EntryBlockHeight             int64 `json:"entryblockheight"`
 	EntryHeight                  int64 `json:"entryheight"`
-	MissingEntryCount            int64 `json:"missingentrycount"`
-	EntryBlockDBHeightProcessing int64 `json:"entryblockdbheightprocessing"`
-	EntryBlockDBHeightComplete   int64 `json:"entryblockdbheightcomplete"`
+	MissingEntryCount            int64 `json:"-"`
+	EntryBlockDBHeightProcessing int64 `json:"-"`
+	EntryBlockDBHeightComplete   int64 `json:"-"`
 }
 
 type CurrentMinuteResponse struct {
@@ -98,10 +98,10 @@ type EntryBlockResponse struct {
 
 type EntryCreditBlockResponse struct {
 	ECBlock struct {
-		Header     interfaces.IECBlockHeader
-		Body       interfaces.IECBlockBody
-		HeaderHash interfaces.IHash `json:"headerhash"`
-		FullHash   interfaces.IHash `json:"fullhash"`
+		Header     interfaces.IECBlockHeader `json:"header"`
+		Body       interfaces.IECBlockBody   `json:"body"`
+		HeaderHash interfaces.IHash          `json:"headerhash"`
+		FullHash   interfaces.IHash          `json:"fullhash"`
 	} `json:"ecblock"`
 	RawData string `json:"rawdata"`
 }

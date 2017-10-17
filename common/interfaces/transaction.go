@@ -88,10 +88,10 @@ type ITransaction interface {
 }
 
 type IPendingTransaction struct {
-	TransactionID IHash
-	Status        string
-	Inputs        []ITransAddress
-	Outputs       []ITransAddress
-	ECOutputs     []ITransAddress
-	Fees          uint64
+	TransactionID IHash           `json:"transactionid"`
+	Status        string          `json:"status"`
+	Inputs        []ITransAddress `json:"inputs"`
+	Outputs       []ITransAddress `json:"outputs"`
+	ECOutputs     []ITransAddress `json:"ecoutputs"`
+	Fees          uint64          `json:"fees"`
 }
