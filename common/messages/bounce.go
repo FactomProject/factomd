@@ -16,7 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/FactomProject/logrus"
 )
 
 type Bounce struct {

@@ -16,7 +16,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/FactomProject/logrus"
 )
 
 // identLogger is the general logger for all identity related logs. You can add additional fields,

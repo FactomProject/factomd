@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/FactomProject/logrus"
 )
 
 var faultLogger = packageLogger.WithFields(log.Fields{"subpack": "fault"})
