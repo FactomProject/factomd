@@ -214,14 +214,6 @@ func TestSaveRestore(t *testing.T) {
 		ss2.EOMDone = v
 	}
 	{
-		v := ss.DBHeight
-		ss2.DBHeight = v + 1
-		if ss.IsSameAs(ss2) {
-			t.Error("Note that we should be able to detect changes.")
-		}
-		ss2.DBHeight = v
-	}
-	{
 		v := ss.EOMMinute
 		ss2.EOMMinute = v + 1
 		if ss.IsSameAs(ss2) {
@@ -238,20 +230,164 @@ func TestSaveRestore(t *testing.T) {
 		ss2.EOMSys = v
 	}
 	{
-		v := ss.DBHeight
-		ss2.DBHeight = v + 1
+		v := ss.DBSig
+		ss2.DBSig = !v
 		if ss.IsSameAs(ss2) {
 			t.Error("Note that we should be able to detect changes.")
 		}
-		ss2.DBHeight = v
+		ss2.DBSig = v	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
 	}
 	{
-		v := ss.DBHeight
-		ss2.DBHeight = v + 1
+		v := ss.DBSigProcessed
+		ss2.DBSigProcessed = v+1
 		if ss.IsSameAs(ss2) {
 			t.Error("Note that we should be able to detect changes.")
 		}
-		ss2.DBHeight = v
+		ss2.DBSigProcessed = v
 	}
+	{
+		v := ss.DBSigDone
+		ss2.DBSigDone = !v
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigDone = v
+	}
+	{
+		v := ss.DBSigSys
+		ss2.DBSigSys = !v
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigSys = v
+	}
+	{
+		v := ss.Newblk
+		ss2.Newblk = !v
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.Newblk = v
+	}
+	{
+		v := ss.Saving
+		ss2.Saving = !v
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.Saving = v
+	}
+	{
+		v := ss.Syncing
+		ss2.Syncing = !v
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.Syncing = v
+	}
+	{
+		v := ss.LeaderTimestamp
+		ss2.LeaderTimestamp = primitives.NewTimestampFromMilliseconds(1000000)
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.LeaderTimestamp = v
+	}
+	{
+		v := ss.EntryBlockDBHeightComplete
+		ss2.EntryBlockDBHeightComplete = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.EntryBlockDBHeightComplete = v
+	}
+	{
+		v := ss.EntryBlockDBHeightProcessing
+		ss2.EntryBlockDBHeightProcessing = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.EntryBlockDBHeightProcessing = v
+	}
+	{
+		v := ss.EntryBlockDBHeightComplete
+		ss2.EntryBlockDBHeightComplete = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.EntryBlockDBHeightComplete = v
+	}
+	{
+		v := ss.EntryHeightComplete
+		ss2.EntryHeightComplete = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.EntryHeightComplete = v
+	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
+	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
+	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
+	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
+	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
+	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
+	}
+	{
+		v := ss.DBSigLimit
+		ss2.DBSigLimit = v + 1
+		if ss.IsSameAs(ss2) {
+			t.Error("Note that we should be able to detect changes.")
+		}
+		ss2.DBSigLimit = v
+	}
+
 
 }
