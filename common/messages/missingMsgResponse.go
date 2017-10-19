@@ -196,12 +196,12 @@ func (m *MissingMsgResponse) LogFields() log.Fields {
 		var ahash, mshash string
 		if m.Ack != nil {
 			ahash = m.Ack.GetMsgHash().String()
-		}else {
+		} else {
 			ahash = "nil"
 		}
 		if m.MsgResponse != nil {
 			mshash = m.MsgResponse.GetMsgHash().String()
-		}else {
+		} else {
 			mshash = "nil"
 		}
 		return log.Fields{"category": "message", "messagetype": "missingmsgresponse",
