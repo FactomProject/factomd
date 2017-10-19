@@ -14,8 +14,10 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-//A placeholder structure for messages
 type InvalidDirectoryBlock struct {
+	//****************************************
+	//*******This message is deprecated!******
+	//****************************************
 	MessageBase
 	Timestamp interfaces.Timestamp
 

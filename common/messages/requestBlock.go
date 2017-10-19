@@ -14,8 +14,10 @@ import (
 	log "github.com/FactomProject/logrus"
 )
 
-//A placeholder structure for messages
 type RequestBlock struct {
+	//****************************************
+	//*******This message is deprecated!******
+	//****************************************
 	MessageBase
 	Timestamp interfaces.Timestamp
 
