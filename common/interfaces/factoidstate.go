@@ -5,10 +5,6 @@
 package interfaces
 
 type IFactoidState interface {
-	// Get the wallet used to help manage the Factoid State in
-	// some applications.
-	GetWallet() ISCWallet
-	SetWallet(ISCWallet)
 
 	// Get the current transaction block
 	GetCurrentBlock() IFBlock

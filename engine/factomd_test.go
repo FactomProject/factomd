@@ -137,7 +137,7 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("found %d audit servers, expected 3", auditcnt)
 		t.Fail()
 	}
-	WaitMinutes(state0,2)
+	WaitMinutes(state0, 2)
 	runCmd("s")
 	fn1 := GetFocus()
 	if fn1.State.FactomNodeName != "FNode07" {

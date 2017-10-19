@@ -118,48 +118,11 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 	return r
 }
 
-// Reset this Factoid state to an empty state at a dbheight following the
-// given dbstate.
-func (fs *FactoidState) Reset(dbstate *DBState) {
-	ht := dbstate.DirectoryBlock.GetHeader().GetDBHeight()
-	if fs.DBHeight > ht+1 {
-		fs.DBHeight = ht
-
-		dbstate := fs.State.DBStates.Get(int(fs.DBHeight))
-
-		fBlock := factoid.NewFBlock(dbstate.FactoidBlock)
-		fBlock.SetExchRate(dbstate.FinalExchangeRate)
-
-		fs.CurrentBlock = fBlock
-
-		t := factoid.GetCoinbase(dbstate.NextTimestamp)
-
-		fs.State.FactoshisPerEC = dbstate.FinalExchangeRate
-		fs.State.LeaderTimestamp = dbstate.NextTimestamp
-
-		err := fs.CurrentBlock.AddCoinbase(t)
-		if err != nil {
-			panic(err.Error())
-		}
-		fs.UpdateTransaction(true, t)
-
-		fs.DBHeight++
-	}
-}
-
 func (fs *FactoidState) EndOfPeriod(period int) {
 	if period > 9 || period < 0 {
 		panic(fmt.Sprintf("Minute is out of range: %d", period))
 	}
 	fs.GetCurrentBlock().EndOfPeriod(period)
-}
-
-func (fs *FactoidState) GetWallet() interfaces.ISCWallet {
-	return fs.Wallet
-}
-
-func (fs *FactoidState) SetWallet(w interfaces.ISCWallet) {
-	fs.Wallet = w
 }
 
 func (fs *FactoidState) GetCurrentBlock() interfaces.IFBlock {
@@ -225,9 +188,9 @@ func (fs *FactoidState) ValidateTransactionAge(trans interfaces.ITransaction) er
 		return fmt.Errorf("Transaction is too old to be included in the current block")
 	}
 
-	if tstrans-tsblk > constants.TRANSACTION_POST_LIMIT {
-		//	return fmt.Errorf("Transaction is dated too far in the future to be included in the current block")
-	}
+	//if tstrans-tsblk > constants.TRANSACTION_POST_LIMIT {
+	//	return fmt.Errorf("Transaction is dated too far in the future to be included in the current block")
+	//}
 	return nil
 }
 
