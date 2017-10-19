@@ -267,3 +267,6 @@ workflows:
           requires:
             - test
             
+notify:
+  webhooks:
+    - url: https://hooks.zapier.com/hooks/catch/2398659/i8hgb6/ 
