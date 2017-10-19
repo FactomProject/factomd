@@ -14,6 +14,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 type Bounce struct {
@@ -24,6 +26,13 @@ type Bounce struct {
 	Stamps    []interfaces.Timestamp
 	Data      []byte
 	size      int
+
+	// Can set to be not valid
+	// If flag is set, that means the default
+	// was overwritten
+	setValid  bool
+	valid     int
+	processed bool
 }
 
 var _ interfaces.IMsg = (*Bounce)(nil)
@@ -73,11 +82,19 @@ func (m *Bounce) VerifySignature() (bool, error) {
 	return true, nil
 }
 
+func (m *Bounce) SetValid(v int) {
+	m.setValid = true
+	m.valid = v
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Bounce) Validate(state interfaces.IState) int {
+	if m.setValid {
+		return m.valid
+	}
 	return 1
 }
 
@@ -89,14 +106,21 @@ func (m *Bounce) ComputeVMIndex(state interfaces.IState) {
 // Execute the leader functions of the given message
 // Leader, follower, do the same thing.
 func (m *Bounce) LeaderExecute(state interfaces.IState) {
+	m.processed = true
 }
 
 func (m *Bounce) FollowerExecute(state interfaces.IState) {
+	m.processed = true
 }
 
 // Acknowledgements do not go into the process list.
 func (e *Bounce) Process(dbheight uint32, state interfaces.IState) bool {
+	e.processed = true
 	return true
+}
+
+func (e *Bounce) Processed() bool {
+	return e.processed
 }
 
 func (e *Bounce) JSONByte() ([]byte, error) {
@@ -256,16 +280,27 @@ func (m *Bounce) String() string {
 	for i := 0; i < len(m.Stamps)-1; i++ {
 		sum += m.Stamps[i+1].GetTimeMilli() - m.Stamps[i].GetTimeMilli()
 	}
-	elapse := primitives.NewTimestampNow().GetTimeMilli() - m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+	var elapse int64
+	if len(m.Stamps) > 0 {
+		elapse = primitives.NewTimestampNow().GetTimeMilli() - m.Stamps[len(m.Stamps)-1].GetTimeMilli()
+	}
 	sum += elapse
 	sign := " "
 	if sum < 0 {
 		sign = "-"
 		sum = sum * -1
 	}
-	avg := sum / (int64(len(m.Stamps)))
+	divisor := (int64(len(m.Stamps)))
+	if divisor == 0 {
+		divisor = 1
+	}
+	avg := sum / divisor
 	str = str + fmt.Sprintf("Last Hop Took %3d.%03d Average Hop: %s%3d.%03d Hash: %x", elapse/1000, elapse%1000, sign, avg/1000, avg%1000, m.GetHash().Bytes()[:4])
 	return str
+}
+
+func (m *Bounce) LogFields() log.Fields {
+	return log.Fields{}
 }
 
 func (a *Bounce) IsSameAs(b *Bounce) bool {

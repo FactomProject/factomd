@@ -24,7 +24,7 @@ import (
 
 var _ = htemp.HTMLEscaper("sdf")
 
-func handleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
+func HandleSearchResult(content *SearchedStruct, w http.ResponseWriter) {
 	// Functions able to be used within the html
 	funcMap := template.FuncMap{
 		"truncate": func(s string) string {
@@ -372,18 +372,18 @@ func getFblock(hash string) *FBlockHolder {
 
 type AblockHolder struct {
 	Header struct {
-		PrevBackRefHash     string `json:"PrevBackRefHash"`
-		DBHeight            int    `json:"DBHeight"`
-		HeaderExpansionSize int    `json:"HeaderExpansionSize"`
-		HeaderExpansionArea string `json:"HeaderExpansionArea"`
-		MessageCount        int    `json:"MessageCount"`
-		BodySize            int    `json:"BodySize"`
-		AdminChainID        string `json:"AdminChainID"`
-		ChainID             string `json:"ChainID"`
-	} `json:"Header"`
-	JsonABEntries     []interface{} `json:"ABEntries"`
-	BackReferenceHash string        `json:"BackReferenceHash"`
-	LookupHash        string        `json:"LookupHash"`
+		PrevBackRefHash     string `json:"prevbackrefhash"`
+		DBHeight            int    `json:"dbheight"`
+		HeaderExpansionSize int    `json:"headerexpansionsize"`
+		HeaderExpansionArea string `json:"headerexpansionarea"`
+		MessageCount        int    `json:"messagecount"`
+		BodySize            int    `json:"bodysize"`
+		AdminChainID        string `json:"adminchainid"`
+		ChainID             string `json:"chainid"`
+	} `json:"header"`
+	JsonABEntries     []interface{} `json:"abentries"`
+	BackReferenceHash string        `json:"backreferencehash"`
+	LookupHash        string        `json:"lookuphash"`
 
 	ABEntries []interfaces.IABEntry
 	ABDisplay []ABDisplayHolder
@@ -517,17 +517,17 @@ func getAblock(hash string) *AblockHolder {
 
 type EblockHolder struct {
 	Header struct {
-		ChainID      string `json:"ChainID"`
-		BodyMR       string `json:"BodyMR"`
-		PrevKeyMR    string `json:"PrevKeyMR"`
-		PrevFullHash string `json:"PrevFullHash"`
-		EBSequence   int    `json:"EBSequence"`
-		DBHeight     int    `json:"DBHeight"`
-		EntryCount   int    `json:"EntryCount"`
-	} `json:"Header"`
+		ChainID      string `json:"chainid"`
+		BodyMR       string `json:"bodymr"`
+		PrevKeyMR    string `json:"prevkeymr"`
+		PrevFullHash string `json:"prevfullhash"`
+		EBSequence   int    `json:"ebsequence"`
+		DBHeight     int    `json:"dbheight"`
+		EntryCount   int    `json:"entrycount"`
+	} `json:"header"`
 	Body struct {
-		EBEntries []string `json:"EBEntries"`
-	} `json:"Body"`
+		EBEntries []string `json:"ebentries"`
+	} `json:"body"`
 
 	KeyMR    string
 	BodyMR   string
@@ -597,24 +597,24 @@ func getEblock(hash string) *EblockHolder {
 
 type DblockHolder struct {
 	Header struct {
-		Version      int    `json:"Version"`
-		NetworkID    int    `json:"NetworkID"`
-		BodyMR       string `json:"BodyMR"`
-		PrevKeyMR    string `json:"PrevKeyMR"`
-		PrevFullHash string `json:"PrevFullHash"`
-		Timestamp    uint32 `json:"Timestamp"`
-		DBHeight     int    `json:"DBHeight"`
-		BlockCount   int    `json:"BlockCount"`
-		ChainID      string `json:"ChainID"`
+		Version      int    `json:"version"`
+		NetworkID    int    `json:"networkid"`
+		BodyMR       string `json:"bodymr"`
+		PrevKeyMR    string `json:"prevkeymr"`
+		PrevFullHash string `json:"prevfullhash"`
+		Timestamp    uint32 `json:"timestamp"`
+		DBHeight     int    `json:"dbheight"`
+		BlockCount   int    `json:"blockcount"`
+		ChainID      string `json:"chainid"`
 
 		FormatedTimeStamp string
-	} `json:"Header"`
+	} `json:"header"`
 	DBEntries []struct {
-		ChainID string `json:"ChainID"`
-		KeyMR   string `json:"KeyMR"`
-	} `json:"DBEntries"`
-	JsonDBHash interface{} `json:"DBHash"`
-	JsonKeyMR  interface{} `json:"KeyMR"`
+		ChainID string `json:"chainid"`
+		KeyMR   string `json:"keymr"`
+	} `json:"dbentries"`
+	JsonDBHash interface{} `json:"dbhash"`
+	JsonKeyMR  interface{} `json:"keymr"`
 
 	EBlocks    []EblockHolder
 	AdminBlock struct {
@@ -690,10 +690,10 @@ func getDblock(hash string) *DblockHolder {
 }
 
 type EntryHolder struct {
-	ChainID string   `json:"ChainID"`
-	Content string   `json:"Content"`
-	ExtIDs  []string `json:"ExtIDs"`
-	Version int      `json:"Version"`
+	ChainID string   `json:"chainid"`
+	Content string   `json:"content"`
+	ExtIDs  []string `json:"extids"`
+	Version int      `json:"version"`
 
 	Height        string
 	Hash          string

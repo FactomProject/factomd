@@ -1,0 +1,42 @@
+FROM golang:1.9-alpine  as builder
+
+# Get git
+RUN apk add --no-cache curl git
+
+# Get glide
+RUN go get github.com/Masterminds/glide
+
+# Where factomd sources will live
+WORKDIR $GOPATH/src/github.com/FactomProject/factomd
+
+# Get the dependencies
+COPY glide.yaml glide.lock ./
+
+# Install dependencies
+RUN glide install -v
+
+# Populate the rest of the source
+COPY . .
+
+ARG GOOS=linux
+
+# Build and install factomd
+RUN go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=`cat VERSION`"
+
+# Setup the cache directory
+RUN mkdir -p /root/.factom/m2
+COPY factomd.conf /root/.factom/m2/factomd.conf
+
+# Now squash everything
+FROM alpine:3.6
+
+# Get git
+RUN apk add --no-cache ca-certificates curl git
+
+RUN mkdir -p /root/.factom/m2 /go/bin
+COPY --from=builder /root/.factom/m2/factomd.conf /root/.factom/m2/factomd.conf
+COPY --from=builder /go/bin/factomd /go/bin/factomd
+
+ENTRYPOINT ["/go/bin/factomd"]
+
+EXPOSE 8088 8090 8108 8109 8110

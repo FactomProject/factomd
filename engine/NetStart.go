@@ -5,16 +5,16 @@
 package engine
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io/ioutil"
+	"math"
 	"os"
 	"time"
 
-	"math"
-
-	"bufio"
-
+	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -24,6 +24,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = fmt.Print
@@ -49,6 +51,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	s.PortNumber = 8088
 	s.ControlPanelPort = 8090
+	logPort = p.LogPort
 
 	messages.AckBalanceHash = p.AckbalanceHash
 	// Must add the prefix before loading the configuration.
@@ -58,8 +61,31 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.LoadConfig(FactomConfigFilename, p.NetworkName)
 	s.OneLeader = p.rotate
 	s.TimeOffset = primitives.NewTimestampFromMilliseconds(uint64(p.timeOffset))
-	s.StartDelayLimit = p.startDelay * 1000
+	s.StartDelayLimit = p.StartDelay * 1000
 	s.Journaling = p.Journaling
+	s.FactomdVersion = FactomdVersion
+
+	log.SetOutput(os.Stdout)
+	switch p.loglvl {
+	case "none":
+		log.SetOutput(ioutil.Discard)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warning":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	case "panic":
+		log.SetLevel(log.PanicLevel)
+	}
+
+	if p.logjson {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
 
 	// Set the wait for entries flag
 	s.WaitForEntries = p.WaitEntries
@@ -180,8 +206,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
-	go StartProfiler(p.memProfileRate)
-	go StartProfiler(p.memProfileRate)
+	go StartProfiler(p.memProfileRate, p.exposeProfiling)
 
 	s.AddPrefix(p.prefix)
 	s.SetOut(false)
@@ -214,7 +239,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "rotate", p.rotate))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "timeOffset", p.timeOffset))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "keepMismatch", p.keepMismatch))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.startDelay))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "startDelay", p.StartDelay))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %x\n", "customnet", p.customNet))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "deadline (ms)", p.deadline))
@@ -227,7 +252,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is set"))
 	}
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "TCP port", s.PortNumber))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "pprof port", logPort))
+	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "pprof port", logPort))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "Control Panel port", s.ControlPanelPort))
 
 	//************************************************
@@ -257,6 +282,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		seedURL = s.MainSeedURL
 		networkPort = s.MainNetworkPort
 		specialPeers = s.MainSpecialPeers
+		s.DirectoryBlockInSeconds = 600
 	case "TEST", "test":
 		networkID = p2p.TestNet
 		seedURL = s.TestSeedURL
@@ -290,6 +316,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		if 0 < p.NetworkPortOverride {
 			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 		}
+
 		ci := p2p.ControllerInit{
 			Port:                     networkPort,
 			PeersFile:                s.PeersFile,
@@ -302,10 +329,15 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkControler = p2pNetwork
 		p2pNetwork.StartNetwork()
-		// Setup the proxy (Which translates from network parcels to factom messages, handling addressing for directed messages)
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
+
+		if p.svm {
+			p2pProxy.SuperVerboseMessages = true
+			fnodes[0].State.SuperVerboseMessages = true
+		}
+
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(p.Netdebug)
 		if 0 < p.Netdebug {
@@ -317,6 +349,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
 		p2pNetwork.DialSpecialPeersString(p.Peers)
+
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
 
@@ -426,6 +459,21 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 
 	}
+
+	// Initate dbstate plugin if enabled. Only does so for first node,
+	// any more nodes on sim control will use default method
+	fnodes[0].State.SetTorrentUploader(p.torUpload)
+	if p.torManage {
+		fnodes[0].State.SetUseTorrent(true)
+		manager, err := LaunchDBStateManagePlugin(p.pluginPath, fnodes[0].State.InMsgQueue(), fnodes[0].State, fnodes[0].State.GetServerPrivateKey(), p.memProfileRate)
+		if err != nil {
+			panic("Encountered an error while trying to use torrent DBState manager: " + err.Error())
+		}
+		fnodes[0].State.DBStateManager = manager
+	} else {
+		fnodes[0].State.SetUseTorrent(false)
+	}
+
 	if p.Journal != "" {
 		go LoadJournal(s, p.Journal)
 		startServers(false)
@@ -445,8 +493,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	RegisterPrometheus()
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
-	// Listen for commands:
+
 	SimControl(p.ListenTo, listenToStdin)
+
 }
 
 //**********************************************************************
@@ -488,7 +537,13 @@ func startServers(load bool) {
 }
 
 func setupFirstAuthority(s *state.State) {
-	var id state.Identity
+	var id identity.Identity
+	if len(s.Authorities) > 0 {
+		//Don't initialize first authority if we are loading during fast boot
+		//And there are already authorities present
+		return
+	}
+
 	if networkIdentity := s.GetNetworkBootStrapIdentity(); networkIdentity != nil {
 		id.IdentityChainID = networkIdentity
 	} else {
@@ -512,7 +567,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Status = 1
 	s.Identities = append(s.Identities, &id)
 
-	var auth state.Authority
+	var auth identity.Authority
 	auth.Status = 1
 	auth.SigningKey = primitives.PubKeyFromString(id.SigningKey.String())
 	auth.MatryoshkaHash = primitives.NewZeroHash()

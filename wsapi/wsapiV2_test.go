@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/receipts"
 	"github.com/FactomProject/factomd/testHelper"
 	. "github.com/FactomProject/factomd/wsapi"
+	"time"
 )
 
 func TestRegisterPrometheus(t *testing.T) {
@@ -96,13 +98,14 @@ func TestHandleV2GetRaw(t *testing.T) {
 		data.Hash = v.Hash1
 		req := primitives.NewJSON2Request("raw-data", 1, data)
 
+		time.Sleep(time.Millisecond * 100)
 		resp, err := v2Request(req)
 		if err != nil {
 			t.Errorf("%v", err)
 		}
 
 		if strings.Contains(resp.String(), v.Raw) == false {
-			t.Errorf("Looking for %v", v.Hash1)
+			t.Errorf("Looking for %v", v.Hash1, "but got %v", v.Raw)
 			t.Errorf("GetRaw %v/%v from Hash1 failed - %v", i, len(toTest), resp.String())
 		}
 
@@ -307,6 +310,9 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			}
 		}
 		for _, h := range block.ECBlock.GetEntryHashes() {
+			if h.IsMinuteMarker() == true {
+				continue
+			}
 			hashkey := new(HashRequest)
 			hashkey.Hash = h.String()
 
@@ -337,6 +343,9 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			}
 		}
 		for _, tx := range block.EBlock.GetEntryHashes() {
+			if tx.IsMinuteMarker() == true {
+				continue
+			}
 			hashkey := new(HashRequest)
 			hashkey.Hash = tx.String()
 
@@ -367,6 +376,9 @@ func TestHandleV2GetTranasction(t *testing.T) {
 			}
 		}
 		for _, tx := range block.AnchorEBlock.GetEntryHashes() {
+			if tx.IsMinuteMarker() == true {
+				continue
+			}
 			hashkey := new(HashRequest)
 			hashkey.Hash = tx.String()
 
@@ -440,5 +452,32 @@ func TestJSONString(t *testing.T) {
 		if !strings.Contains(s, "Findthis") {
 			t.Error("Missing chainID")
 		}
+	}
+}
+
+func Test_ecBlockToResp(t *testing.T) {
+	type args struct {
+		block interfaces.IEntryCreditBlock
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  interface{}
+		want1 *primitives.JSONError
+	}{
+
+	// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got, got1 := ECBlockToResp(tt.args.block)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ecBlockToResp() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("ecBlockToResp() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
 	}
 }

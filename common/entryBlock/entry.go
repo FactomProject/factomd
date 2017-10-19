@@ -18,10 +18,10 @@ import (
 // An Entry is the element which carries user data
 // https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#entry
 type Entry struct {
-	Version uint8
-	ChainID interfaces.IHash
-	ExtIDs  []primitives.ByteSlice
-	Content primitives.ByteSlice
+	Version uint8                  `json:"version"`
+	ChainID interfaces.IHash       `json:"chainid"`
+	ExtIDs  []primitives.ByteSlice `json:"extids"`
+	Content primitives.ByteSlice   `json:"content"`
 
 	// cache
 	hash interfaces.IHash
@@ -116,9 +116,13 @@ func (c *Entry) DatabaseSecondaryIndex() interfaces.IHash {
 // NewChainID generates a ChainID from an entry. ChainID = primitives.Sha(Sha(ExtIDs[0]) +
 // Sha(ExtIDs[1] + ... + Sha(ExtIDs[n]))
 func NewChainID(e interfaces.IEBEntry) interfaces.IHash {
+	return ExternalIDsToChainID(e.ExternalIDs())
+}
+
+func ExternalIDsToChainID(extIDs [][]byte) interfaces.IHash {
 	id := new(primitives.Hash)
 	sum := sha256.New()
-	for _, v := range e.ExternalIDs() {
+	for _, v := range extIDs {
 		x := sha256.Sum256(v)
 		sum.Write(x[:])
 	}

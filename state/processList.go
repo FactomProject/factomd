@@ -75,6 +75,11 @@ type ProcessList struct {
 	OldMsgs     map[[32]byte]interfaces.IMsg
 	oldmsgslock *sync.Mutex
 
+	// Chains that are executed, but not processed. There is a small window of a pending chain that the ack
+	// will pass and the chainhead will fail. This covers that window. This is only used by WSAPI,
+	// do not use it anywhere internally.
+	PendingChainHeads *SafeMsgMap
+
 	OldAcks     map[[32]byte]interfaces.IMsg
 	oldackslock *sync.Mutex
 
@@ -325,6 +330,8 @@ func (p *ProcessList) GetVirtualServers(minute int, identityChainID interfaces.I
 		return false, -1
 	}
 
+	p.MakeMap()
+
 	for i := 0; i < len(p.FedServers); i++ {
 		fedix := p.ServerMap[minute][i]
 		if fedix == fedIndex {
@@ -523,6 +530,12 @@ func (p *ProcessList) DeleteOldMsgs(key interfaces.IHash) {
 }
 
 func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
+	if p == nil {
+		return nil
+	}
+	if p.oldmsgslock == nil {
+		return nil
+	}
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
 	return p.OldMsgs[key.Fixed()]
@@ -661,23 +674,6 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	}
 
 	return r.requestCnt
-}
-
-func getLeaderMin(p *ProcessList) int {
-	leaderMin := 0
-	for _, vm := range p.VMs {
-		if vm.LeaderMinute > leaderMin {
-			leaderMin = vm.LeaderMinute
-		}
-	}
-	if leaderMin >= 10 {
-		leaderMin = 0
-	}
-	leaderMin--
-	if leaderMin < 0 {
-		leaderMin = 0
-	}
-	return leaderMin
 }
 
 func (p *ProcessList) TrimVMList(height uint32, vmIndex int) {
@@ -923,10 +919,13 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
+	TotalProcessListInputs.Inc()
+
 	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
 		p.State.HighestAck = ack.DBHeight
 	}
 
+	TotalAcksInputs.Inc()
 	m.PutAck(ack)
 
 	// If this is us, make sure we ignore (if old or in the ignore period) or die because two instances are running.
@@ -937,8 +936,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 			// Us and too old?  Just ignore.
 			return
 		}
+
 		num := p.State.GetSalt(ack.Timestamp)
 		if num != ack.SaltNumber {
+			os.Stderr.WriteString(fmt.Sprintf("This  AckHash    %x\n", ack.GetHash().Bytes()))
 			os.Stderr.WriteString(fmt.Sprintf("This  ChainID    %x\n", p.State.IdentityChainID.Bytes()))
 			os.Stderr.WriteString(fmt.Sprintf("This  Salt       %x\n", p.State.Salt.Bytes()[:8]))
 			os.Stderr.WriteString(fmt.Sprintf("This  SaltNumber %x\n for this ack", num))
@@ -953,6 +954,8 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, hint)
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, ack.String())
 		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
+		TotalHoldingQueueOutputs.Inc()
+		TotalAcksOutputs.Inc()
 		delete(p.State.Holding, ack.GetHash().Fixed())
 		delete(p.State.Acks, ack.GetHash().Fixed())
 	}
@@ -997,7 +1000,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	// We have already tested and found m to be a new message.  We now record its hashes so later, we
 	// can detect that it has been recorded.  We don't care about the results of IsTSValid_ at this point.
 	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetRepeatHash().Fixed(), m.GetTimestamp(), now)
+	p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, m.GetMsgHash().Fixed(), m.GetTimestamp(), now)
 
+	TotalHoldingQueueOutputs.Inc()
+	TotalAcksOutputs.Inc()
 	delete(p.State.Acks, m.GetMsgHash().Fixed())
 	delete(p.State.Holding, m.GetMsgHash().Fixed())
 
@@ -1019,6 +1025,19 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.AddOldMsgs(m)
 	p.OldAcks[m.GetMsgHash().Fixed()] = ack
+
+	if p.State.SuperVerboseMessages {
+		fmt.Printf("SVM Added To PL: %s / %s\n", m.String(), ack.String())
+		/*thisString := ""
+		for listIdx, msgInList := range vm.List {
+			if msgInList == nil {
+				thisString = "<nil>"
+			} else {
+				thisString = msgInList.String()
+			}
+			fmt.Printf("SVM ProcList (%d) / %s\n", listIdx, thisString)
+		}*/
+	}
 
 }
 
@@ -1277,6 +1296,7 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.MakeMap()
 
+	pl.PendingChainHeads = NewSafeMsgMap()
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	pl.oldmsgslock = new(sync.Mutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
@@ -1309,4 +1329,12 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 	}
 
 	return pl
+}
+
+// IsPendingChainHead returns if a chainhead is about to be updated (In PL)
+func (p *ProcessList) IsPendingChainHead(chainid interfaces.IHash) bool {
+	if p.PendingChainHeads.Get(chainid.Fixed()) != nil {
+		return true
+	}
+	return false
 }

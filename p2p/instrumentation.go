@@ -21,12 +21,12 @@ var (
 		Help: "Number of current connections by address",
 	})
 
-	SentToPeers = prometheus.NewCounter(prometheus.CounterOpts{
+	SentToPeers = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_number_of_peers_broadcast",
 		Help: "Number of Peers to which we are broadcasting messages",
 	})
 
-	StartingPoint = prometheus.NewCounter(prometheus.CounterOpts{
+	StartingPoint = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_StartingPoint_peers_broadcast",
 		Help: "Number of msgs broadcasting",
 	})

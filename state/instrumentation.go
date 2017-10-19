@@ -13,55 +13,55 @@ var (
 	//
 
 	// Entry Syncing Controller
-	ESMissingQueue = prometheus.NewCounter(prometheus.CounterOpts{
+	ESMissingQueue = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_missing_entry_queue",
 		Help: "Number of known missing entries in our queue to find.",
 	})
-	ESMissing = prometheus.NewCounter(prometheus.CounterOpts{
+	ESMissing = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_missing_entries",
 		Help: "Number of known missing entries",
 	})
-	ESFound = prometheus.NewCounter(prometheus.CounterOpts{
+	ESFound = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_found_entries",
 		Help: "Number of known missing entries found.",
 	})
-	ESAsking = prometheus.NewCounter(prometheus.CounterOpts{
+	ESAsking = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_asking_missing_entries",
 		Help: "Number we are asking for of the known missing entries.",
 	})
-	ESHighestAsking = prometheus.NewCounter(prometheus.CounterOpts{
+	ESHighestAsking = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_highest_asking_entries",
 		Help: "Highest entry DBHeight which has has a request made.",
 	})
-	ESHighestMissing = prometheus.NewCounter(prometheus.CounterOpts{
+	ESHighestMissing = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_highest_missing_entries",
 		Help: "Highest DBHeight of the entries we know are missing.",
 	})
-	ESFirstMissing = prometheus.NewCounter(prometheus.CounterOpts{
+	ESFirstMissing = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_first_missing_entries",
 		Help: "First DBHeight with a missing entry",
 	})
-	ESDBHTComplete = prometheus.NewCounter(prometheus.CounterOpts{
+	ESDBHTComplete = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_entry_dbheight_complete",
 		Help: "First DBHeight with a missing entry",
 	})
-	ESAvgRequests = prometheus.NewCounter(prometheus.CounterOpts{
+	ESAvgRequests = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_es_average_requests",
 		Help: "Average number of times we have had to request a missing entry",
 	})
-	HighestAck = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestAck = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_ack",
 		Help: "Acknowledgement with the highest directory block height",
 	})
-	HighestKnown = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestKnown = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_known",
 		Help: "Highest known block (which can be different than the highest ack)",
 	})
-	HighestSaved = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestSaved = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_saved",
 		Help: "Highest saved block to the database",
 	})
-	HighestCompleted = prometheus.NewCounter(prometheus.CounterOpts{
+	HighestCompleted = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "factomd_state_highest_completed",
 		Help: "Highest completed block, which may or may not be saved to the database",
 	})
@@ -77,366 +77,189 @@ var (
 		Help: "Total transactions over life of node weighted for last 3 seconds",
 	})
 
+	// Torrent
+	stateTorrentSyncingLower = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_torrentsync_lower_gauge",
+		Help: "The lower limit of torrent sync",
+	})
+
+	stateTorrentSyncingUpper = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_torrentsync_upper_gauge",
+		Help: "The upper limit of torrent sync",
+	})
+
 	// Queues
-	//	InMsg
-	TotalMessageQueueInMsgGeneral = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_general_inmsg",
-		Help: "Instrumenting the netoutmsg queue",
+	CurrentMessageQueueInMsgGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_general_inmsg_vec",
+		Help: "Instrumenting the current  inmsg queue ",
+	}, []string{"message"})
+
+	TotalMessageQueueInMsgGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_total_general_inmsg_vec",
+		Help: "Instrumenting the inmsg queue ",
+	}, []string{"message"})
+
+	CurrentMessageQueueApiGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_current_general_api_vec",
+		Help: "Instrumenting the current API queue ",
+	}, []string{"message"})
+
+	TotalMessageQueueApiGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_total_general_api_vec",
+		Help: "Instrumenting the API queue ",
+	}, []string{"message"})
+
+	TotalMessageQueueNetOutMsgGeneralVec = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "factomd_state_queue_total_general_netoutmsg_vec",
+		Help: "Instrumenting the netoutmsg queue ",
+	}, []string{"message"})
+
+	// MsgQueue chan
+	TotalMsgQueueInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_msgqueue_total_inputs",
+		Help: "Tally of total messages gone into MsgQueue (useful for rating)",
 	})
-	CurrentMessageQueueInMsgEOM = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_eom",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgACK = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_ack",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgAudFault = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_audfault",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgFedFault = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_fedfault",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgFullFault = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_fullfault",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgCommitChain = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_commitchain",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgCommitEntry = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_commitentry",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgDBSig = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_dbsig",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgEOMTimeout = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_eomtimeout",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgFactTX = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_facttx",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgHeartbeat = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_heatbeat",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgEtcdHashPickup = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_etcdpickup",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgMissingMsg = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_mmsg",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgMissingMsgResp = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_mmsgresp",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgMissingData = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_missingdata",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgMissingDataResp = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_missingdataresp",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgRevealEntry = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_revealentry",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgReqBlock = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_reqblock",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgDbStateMissing = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_dbstatemissing",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgDbState = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_dbstate",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgBounceMsg = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_bounce",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgBounceResp = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_bounceresp",
-		Help: "Instrumenting the inmsg queue",
-	})
-	CurrentMessageQueueInMsgMisc = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_current_inmsg_misc",
-		Help: "Instrumenting the inmsg queue",
+	TotalMsgQueueOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_msgqueue_total_outputs",
+		Help: "Tally of total messages drained out of MsgQueue (useful for rating)",
 	})
 
-	TotalMessageQueueInMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_eom",
-		Help: "Instrumenting the inmsg queue",
+	// Holding Queue
+	TotalHoldingQueueInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_total_inputs",
+		Help: "Tally of total messages gone into Holding (useful for rating)",
 	})
-	TotalMessageQueueInMsgACK = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_ack",
-		Help: "Instrumenting the inmsg queue",
+	TotalHoldingQueueOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_total_outputs",
+		Help: "Tally of total messages drained out of Holding (useful for rating)",
 	})
-	TotalMessageQueueInMsgAudFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_audfault",
-		Help: "Instrumenting the inmsg queue",
+	TotalHoldingQueueRecycles = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_total_recycles",
+		Help: "Tally of total messages recycled thru Holding (useful for rating)",
 	})
-	TotalMessageQueueInMsgFedFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_fedfault",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueDBSigInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_dbsig_inputs",
+		Help: "Tally of DBSig messages gone into Holding (useful for rating)",
 	})
-	TotalMessageQueueInMsgFullFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_fullfault",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueDBSigOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_dbsig_outputs",
+		Help: "Tally of DBSig messages drained out of Holding",
 	})
-	TotalMessageQueueInMsgCommitChain = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_commitchain",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueCommitEntryInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitentry_inputs",
+		Help: "Tally of CommitEntry messages gone into Holding (useful for rating)",
 	})
-	TotalMessageQueueInMsgCommitEntry = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_commitentry",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueCommitEntryOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitentry_outputs",
+		Help: "Tally of CommitEntry messages drained out of Holding",
 	})
-	TotalMessageQueueInMsgDBSig = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_dbsig",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueCommitChainInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitchain_inputs",
+		Help: "Tally of CommitChain messages gone into Holding (useful for rating)",
 	})
-	TotalMessageQueueInMsgEOMTimeout = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_eomtimeout",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueCommitChainOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_commitchain_outputs",
+		Help: "Tally of CommitChain messages drained out of Holding",
 	})
-	TotalMessageQueueInMsgFactTX = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_facttx",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueRevealEntryInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_revealentry_inputs",
+		Help: "Tally of RevealEntry messages gone into Holding (useful for rating)",
 	})
-	TotalMessageQueueInMsgHeartbeat = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_heatbeat",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgEtcdHashPickup = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_etcdpickup",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgMissingMsg = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_mmsg",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgMissingMsgResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_mmsgresp",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgMissingData = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_missingdata",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgMissingDataResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_missingdataresp",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgRevealEntry = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_revealentry",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgReqBlock = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_reqblock",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgDbStateMissing = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_dbstatemissing",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgDbState = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_dbstate",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgBounceMsg = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_bounce",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgBounceResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_bounceresp",
-		Help: "Instrumenting the inmsg queue",
-	})
-	TotalMessageQueueInMsgMisc = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_inmsg_misc",
-		Help: "Instrumenting the inmsg queue",
+	HoldingQueueRevealEntryOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_holding_queue_revealentry_outputs",
+		Help: "Tally of RevealEntry messages drained out of Holding",
 	})
 
-	//	NetworkOutMsg
-	TotalMessageQueueNetOutMsgGeneral = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_general_netoutmsg",
-		Help: "Instrumenting the netoutmsg queue",
+	// Acks Queue
+	TotalAcksInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_acks_total_inputs",
+		Help: "Tally of total messages gone into Acks (useful for rating)",
 	})
-	TotalMessageQueueNetOutMsgEOM = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_eom",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgACK = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_ack",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgAudFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_audfault",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgFedFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_fedfault",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgFullFault = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_fullfault",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgCommitChain = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_commitchain",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgCommitEntry = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_commitentry",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgDBSig = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_dbsig",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgEOMTimeout = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_eomtimeout",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgFactTX = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_facttx",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgHeartbeat = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_heatbeat",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgEtcdHashPickup = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_etcdpickup",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgMissingMsg = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_mmsg",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgMissingMsgResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_mmsgresp",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgMissingData = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_missingdata",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgMissingDataResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_missingdataresp",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgRevealEntry = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_revealentry",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgReqBlock = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_reqblock",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgDbStateMissing = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_dbstatemissing",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgDbState = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_dbstate",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgBounceMsg = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_bounce",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgBounceResp = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_bounceresp",
-		Help: "Instrumenting the netoutmsg queue",
-	})
-	TotalMessageQueueNetOutMsgMisc = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "factomd_state_queue_total_netoutmsg_misc",
-		Help: "Instrumenting the netoutmsg queue",
+	TotalAcksOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_acks_total_outputs",
+		Help: "Tally of total messages drained out of Acks (useful for rating)",
 	})
 
-	// InMsgQueue Rates
-	InMsgTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_total_inmsg",
-		Help: "Total avg of inmsg queue arrival rate",
+	// Commits map
+	TotalCommitsInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_commits_total_inputs",
+		Help: "Tally of total messages gone into Commits (useful for rating)",
+	})
+	TotalCommitsOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_commits_total_outputs",
+		Help: "Tally of total messages drained out of Commits (useful for rating)",
 	})
 
-	InMsgInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_instant_inmsg",
-		Help: "Instant avg of inmsg queue arrival rate",
+	// XReview Queue
+	TotalXReviewQueueInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_xreview_queue_total_inputs",
+		Help: "Tally of total messages gone into XReview (useful for rating)",
+	})
+	TotalXReviewQueueOutputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_xreview_queue_total_outputs",
+		Help: "Tally of total messages drained out of XReview (useful for rating)",
 	})
 
-	InMsgMovingArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_moving_inmsg",
-		Help: "Moving avg of inmsg queue arrival rate",
+	// Executions
+	LeaderExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_leader_executions",
+		Help: "Tally of total messages executed via LeaderExecute",
+	})
+	FollowerExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_follower_executions",
+		Help: "Tally of total messages executed via FollowerExecute",
+	})
+	LeaderEOMExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_leader_eom_executions",
+		Help: "Tally of total messages executed via LeaderExecuteEOM",
+	})
+	FollowerEOMExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_follower_eom_executions",
+		Help: "Tally of total messages executed via FollowerExecuteEOM",
+	})
+	FollowerMissingMsgExecutions = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_follower_mm_executions",
+		Help: "Tally of total messages executed via FollowerExecuteMissingMsg",
 	})
 
-	InMsgTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_total_inmsg",
-		Help: "Total avg of inmsg queue complete rate",
+	// ProcessList
+	TotalProcessListInputs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_list_inputs",
+		Help: "Tally of total messages gone into ProcessLists (useful for rating)",
+	})
+	TotalProcessListProcesses = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_list_processes",
+		Help: "Tally of total messages processed from ProcessLists (useful for rating)",
+	})
+	TotalProcessEOMs = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "factomd_state_process_eom_processes",
+		Help: "Tally of EOM messages processed from ProcessLists (useful for rating)",
 	})
 
-	InMsgInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_instant_inmsg",
-		Help: "Instant avg of inmsg queue complete rate",
+	// Durations
+	TotalReviewHoldingTime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_review_holding_time",
+		Help: "Time spent in ReviewHolding()",
 	})
-
-	InMsgMovingCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_moving_inmsg",
-		Help: "Moving avg of inmsg queue complete rate",
+	TotalProcessXReviewTime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_process_xreview_time",
+		Help: "Time spent Processing XReview",
 	})
-
-	InMsgQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_backup_inmsg",
-		Help: "Backup of queue",
+	TotalProcessProcChanTime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_process_proc_chan_time",
+		Help: "Time spent Processing Process Chan",
 	})
-
-	// NetOut Rates
-	NetOutTotalArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_total_netout",
-		Help: "Total avg of inmsg queue arrival rate",
+	TotalEmptyLoopTime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_empty_loop_time",
+		Help: "Time spent in empty loop",
 	})
-
-	NetOutInstantArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_instant_netout",
-		Help: "Instant avg of inmsg queue arrival rate",
+	TotalAckLoopTime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_ack_loop_time",
+		Help: "Time spent in ack loop",
 	})
-
-	NetOutMovingArrivalQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_arrival_avg_moving_netout",
-		Help: "Moving avg of inmsg queue arrival rate",
-	})
-
-	NetOutTotalCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_total_netout",
-		Help: "Total avg of inmsg queue complete rate",
-	})
-
-	NetOutInstantCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_instant_netout",
-		Help: "Instant avg of inmsg queue complete rate",
-	})
-
-	NetOutMovingCompleteQueueRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_complete_avg_moving_netout",
-		Help: "Moving avg of inmsg queue complete rate",
-	})
-
-	NetOutQueueBackupRate = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "factomd_state_queue_backup_netout",
-		Help: "Backup of queue",
+	TotalExecuteMsgTime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "factomd_state_execute_msg_time",
+		Help: "Time spent in executeMsg",
 	})
 )
 
@@ -471,99 +294,63 @@ func RegisterPrometheus() {
 	prometheus.MustRegister(TotalTransactionPerSecond)
 	prometheus.MustRegister(InstantTransactionPerSecond)
 
+	// Torrent
+	prometheus.MustRegister(stateTorrentSyncingLower)
+	prometheus.MustRegister(stateTorrentSyncingUpper)
+
 	// Queues
-	//	InMsg Current
-	prometheus.MustRegister(CurrentMessageQueueInMsgEOM)
-	prometheus.MustRegister(CurrentMessageQueueInMsgACK)
-	prometheus.MustRegister(CurrentMessageQueueInMsgAudFault)
-	prometheus.MustRegister(CurrentMessageQueueInMsgFedFault)
-	prometheus.MustRegister(CurrentMessageQueueInMsgFullFault)
-	prometheus.MustRegister(CurrentMessageQueueInMsgCommitChain)
-	prometheus.MustRegister(CurrentMessageQueueInMsgCommitEntry)
-	prometheus.MustRegister(CurrentMessageQueueInMsgDBSig)
-	prometheus.MustRegister(CurrentMessageQueueInMsgEOMTimeout)
-	prometheus.MustRegister(CurrentMessageQueueInMsgFactTX)
-	prometheus.MustRegister(CurrentMessageQueueInMsgHeartbeat)
-	prometheus.MustRegister(CurrentMessageQueueInMsgEtcdHashPickup)
-	prometheus.MustRegister(CurrentMessageQueueInMsgMissingMsg)
-	prometheus.MustRegister(CurrentMessageQueueInMsgMissingMsgResp)
-	prometheus.MustRegister(CurrentMessageQueueInMsgMissingData)
-	prometheus.MustRegister(CurrentMessageQueueInMsgMissingDataResp)
-	prometheus.MustRegister(CurrentMessageQueueInMsgRevealEntry)
-	prometheus.MustRegister(CurrentMessageQueueInMsgReqBlock)
-	prometheus.MustRegister(CurrentMessageQueueInMsgDbStateMissing)
-	prometheus.MustRegister(CurrentMessageQueueInMsgDbState)
-	prometheus.MustRegister(CurrentMessageQueueInMsgBounceMsg)
-	prometheus.MustRegister(CurrentMessageQueueInMsgBounceResp)
-	prometheus.MustRegister(CurrentMessageQueueInMsgMisc)
-	//	InMsg Total
-	prometheus.MustRegister(TotalMessageQueueInMsgEOM)
-	prometheus.MustRegister(TotalMessageQueueInMsgACK)
-	prometheus.MustRegister(TotalMessageQueueInMsgAudFault)
-	prometheus.MustRegister(TotalMessageQueueInMsgFedFault)
-	prometheus.MustRegister(TotalMessageQueueInMsgFullFault)
-	prometheus.MustRegister(TotalMessageQueueInMsgCommitChain)
-	prometheus.MustRegister(TotalMessageQueueInMsgCommitEntry)
-	prometheus.MustRegister(TotalMessageQueueInMsgDBSig)
-	prometheus.MustRegister(TotalMessageQueueInMsgEOMTimeout)
-	prometheus.MustRegister(TotalMessageQueueInMsgFactTX)
-	prometheus.MustRegister(TotalMessageQueueInMsgHeartbeat)
-	prometheus.MustRegister(TotalMessageQueueInMsgEtcdHashPickup)
-	prometheus.MustRegister(TotalMessageQueueInMsgMissingMsg)
-	prometheus.MustRegister(TotalMessageQueueInMsgMissingMsgResp)
-	prometheus.MustRegister(TotalMessageQueueInMsgMissingData)
-	prometheus.MustRegister(TotalMessageQueueInMsgMissingDataResp)
-	prometheus.MustRegister(TotalMessageQueueInMsgRevealEntry)
-	prometheus.MustRegister(TotalMessageQueueInMsgReqBlock)
-	prometheus.MustRegister(TotalMessageQueueInMsgDbStateMissing)
-	prometheus.MustRegister(TotalMessageQueueInMsgDbState)
-	prometheus.MustRegister(TotalMessageQueueInMsgBounceMsg)
-	prometheus.MustRegister(TotalMessageQueueInMsgBounceResp)
-	prometheus.MustRegister(TotalMessageQueueInMsgMisc)
+	prometheus.MustRegister(CurrentMessageQueueInMsgGeneralVec)
+	prometheus.MustRegister(TotalMessageQueueInMsgGeneralVec)
+	prometheus.MustRegister(CurrentMessageQueueApiGeneralVec)
+	prometheus.MustRegister(TotalMessageQueueApiGeneralVec)
+	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneralVec)
 
-	// Net Out
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOM)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgACK)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgAudFault)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgFedFault)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgFullFault)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgCommitChain)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgCommitEntry)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgDBSig)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgEOMTimeout)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgFactTX)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgHeartbeat)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgEtcdHashPickup)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingMsg)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingMsgResp)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingData)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgMissingDataResp)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgRevealEntry)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgReqBlock)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgDbStateMissing)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgDbState)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceMsg)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgBounceResp)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgMisc)
+	// MsgQueue chan
+	prometheus.MustRegister(TotalMsgQueueInputs)
+	prometheus.MustRegister(TotalMsgQueueOutputs)
 
-	// InMsgRate
-	prometheus.MustRegister(InMsgTotalArrivalQueueRate)
-	prometheus.MustRegister(InMsgInstantArrivalQueueRate)
-	prometheus.MustRegister(InMsgTotalCompleteQueueRate)
-	prometheus.MustRegister(InMsgInstantCompleteQueueRate)
-	prometheus.MustRegister(InMsgQueueBackupRate)
-	prometheus.MustRegister(InMsgMovingArrivalQueueRate)
-	prometheus.MustRegister(InMsgMovingCompleteQueueRate)
+	// Holding
+	prometheus.MustRegister(TotalHoldingQueueInputs)
+	prometheus.MustRegister(TotalHoldingQueueOutputs)
+	prometheus.MustRegister(TotalHoldingQueueRecycles)
+	prometheus.MustRegister(HoldingQueueDBSigInputs)
+	prometheus.MustRegister(HoldingQueueDBSigOutputs)
+	prometheus.MustRegister(HoldingQueueCommitEntryInputs)
+	prometheus.MustRegister(HoldingQueueCommitEntryOutputs)
+	prometheus.MustRegister(HoldingQueueCommitChainInputs)
+	prometheus.MustRegister(HoldingQueueCommitChainOutputs)
+	prometheus.MustRegister(HoldingQueueRevealEntryInputs)
+	prometheus.MustRegister(HoldingQueueRevealEntryOutputs)
 
-	// NetOutRate
-	prometheus.MustRegister(NetOutTotalArrivalQueueRate)
-	prometheus.MustRegister(NetOutInstantArrivalQueueRate)
-	prometheus.MustRegister(NetOutTotalCompleteQueueRate)
-	prometheus.MustRegister(NetOutInstantCompleteQueueRate)
-	prometheus.MustRegister(NetOutQueueBackupRate)
-	prometheus.MustRegister(NetOutMovingArrivalQueueRate)
-	prometheus.MustRegister(NetOutMovingCompleteQueueRate)
+	// Acks
+	prometheus.MustRegister(TotalAcksInputs)
+	prometheus.MustRegister(TotalAcksOutputs)
 
-	prometheus.MustRegister(TotalMessageQueueInMsgGeneral)
-	prometheus.MustRegister(TotalMessageQueueNetOutMsgGeneral)
+	// Execution
+	prometheus.MustRegister(LeaderExecutions)
+	prometheus.MustRegister(FollowerExecutions)
+	prometheus.MustRegister(LeaderEOMExecutions)
+	prometheus.MustRegister(FollowerEOMExecutions)
+	prometheus.MustRegister(FollowerMissingMsgExecutions)
+
+	// ProcessList
+	prometheus.MustRegister(TotalProcessListInputs)
+	prometheus.MustRegister(TotalProcessListProcesses)
+	prometheus.MustRegister(TotalProcessEOMs)
+
+	// XReview Queue
+	prometheus.MustRegister(TotalXReviewQueueInputs)
+	prometheus.MustRegister(TotalXReviewQueueOutputs)
+
+	// Commits map
+	prometheus.MustRegister(TotalCommitsInputs)
+	prometheus.MustRegister(TotalCommitsOutputs)
+
+	// Durations
+	prometheus.MustRegister(TotalReviewHoldingTime)
+	prometheus.MustRegister(TotalProcessXReviewTime)
+	prometheus.MustRegister(TotalProcessProcChanTime)
+	prometheus.MustRegister(TotalEmptyLoopTime)
+	prometheus.MustRegister(TotalAckLoopTime)
+	prometheus.MustRegister(TotalExecuteMsgTime)
 }

@@ -1,0 +1,247 @@
+version: 2
+
+jobs:
+
+  build:
+    working_directory: /go/src/github.com/FactomProject/factomd
+    docker:
+      - image: circleci/golang:1.9
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+
+      - run:
+          name: Get glide
+          command: |
+            go get -v github.com/Masterminds/glide
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+      - run:
+          name: Get goveralls
+          command: |
+            go get github.com/mattn/goveralls
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+      - run:
+          name: Get the dependencies
+          command: |
+            glide install
+      - run:
+          name: Build and install the executable
+          command: go install -v
+
+      - save_cache:
+          key: v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+          paths:
+            - vendor
+
+  test:
+    working_directory: /go/src/github.com/FactomProject/factomd
+    docker:
+      - image: circleci/golang:1.9
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+
+      - run:
+          name: Get glide
+          command: |
+            go get -v github.com/Masterminds/glide
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+      - run:
+          name: Get goveralls
+          command: |
+            go get github.com/mattn/goveralls
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+      - run:
+          name: Get the dependencies
+          command: |
+            glide install
+      - run:
+          name: Build and install the executable
+          command: go install -v
+
+      - run:
+          name: Run tests!
+          no_output_timeout: 2400
+          command: go test -v $(glide nv)
+
+
+      - save_cache:
+          key: v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+          paths:
+            - vendor
+
+  coveralls:
+    working_directory: /go/src/github.com/FactomProject/factomd
+    docker:
+      - image: circleci/golang:1.9
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+
+      - run:
+          name: Get glide
+          command: |
+            go get -v github.com/Masterminds/glide
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+      - run:
+          name: Get goveralls
+          command: |
+            go get github.com/mattn/goveralls
+            cd $GOPATH/src/github.com/Masterminds/glide
+            git checkout tags/v0.12.3
+            go install
+      - run:
+          name: Get the dependencies
+          command: |
+            glide install
+      - run:
+          name: Build and install the executable
+          command: go install -v
+
+      - run:
+          name: Coveralls!
+          no_output_timeout: 2400
+          command: goveralls -v -ignore=$(paste -sd, .coverignore) -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+
+      - save_cache:
+          key: v1-factomd-go-build-cache-{{ checksum "glide.lock" }}
+          paths:
+            - vendor
+
+
+
+  # Docker builds
+  docker_build:
+    working_directory: /go/src/github.com/FactomProject/factomd
+
+    docker:
+      - image: docker:17.06.0-ce-git
+
+    steps:
+      - checkout
+
+      - setup_remote_docker:
+          version: 17.06.0-ce
+
+      # The main (only) thing we care about is caching the /vendor dir.
+      #   Hence, checksumming glide.lock
+      - restore_cache:
+          keys:
+            - v5-factomd-cache-{{ checksum "glide.lock" }}
+
+      # Load the images if the cache hit
+      - run:
+          name: Load Docker image layer cache
+          command: |
+            set +o pipefail
+            docker load -i /images/factomd-alpine.tar | true
+            docker load -i /images/factomd.tar | true
+
+      # Build the containers
+      - run:
+          name: Build the baseline images
+          command: |
+            docker build -t factomd-alpine -f Dockerfile.alpine .
+            docker build -t factomd -f Dockerfile .
+
+      # Push, depending on branch/tag
+      - run:
+          name: Push  master / develop to DockerHub
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+
+              # If there is a tag, use it
+              if [ "$CIRCLE_TAG" != "" ]; then
+                docker tag factomd-alpine factominc/factomd:${TAG}-alpine
+                docker push factominc/factomd:${TAG}-alpine
+                docker tag factomd factominc/factomd:${TAG}
+                docker push factominc/factomd:${TAG}
+              fi
+
+              # But tag it as alpine/latest anyhow
+              docker tag factomd-alpine factominc/factomd:alpine
+              docker push factominc/factomd:alpine
+              docker tag factomd factominc/factomd:latest
+              docker push factominc/factomd:latest
+
+            elif [ "${CIRCLE_BRANCH}" == "develop" ]; then
+
+              # If there is a tag, use it
+              if [ "$CIRCLE_TAG" != "" ]; then
+                docker tag factomd-alpine factominc/factomd:${TAG}-alpine-develop
+                docker push factominc/factomd:${TAG}-alpine-develop
+                docker tag factomd factominc/factomd:${TAG}-develop
+                docker push factominc/factomd:${TAG}-develop
+              fi
+
+              # But tag it as alpine-develop/develop anyhow
+              docker tag factomd-alpine factominc/factomd:alpine-develop
+              docker push factominc/factomd:alpine-develop
+              docker tag factomd factominc/factomd:develop
+              docker push factominc/factomd:develop
+            fi
+
+            docker logout
+
+      - run:
+          name: Save the image cache
+          command: |
+            mkdir -p /images
+            docker save -o /images/factomd-alpine.tar factomd-alpine $(docker history -q factomd-alpine |grep -v missing | grep -v none)
+            docker save -o /images/factomd.tar factomd $(docker history -q factomd |grep -v missing | grep -v none)
+
+      - save_cache:
+          key: v5-factomd-cache-{{ checksum "glide.lock" }}
+          paths:
+            - /images
+
+# The flow is
+#    build
+#      |
+#      ---------- test
+#                   |
+#                   ---------- coveralls
+#                   |
+#                   ---------- docker_build
+#
+#
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - coveralls:
+          requires:
+            - test
+      - docker_build:
+          context: org-global
+          requires:
+            - test

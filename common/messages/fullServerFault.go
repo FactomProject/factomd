@@ -13,6 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //A placeholder structure for messages
@@ -461,6 +463,18 @@ func (m *FullServerFault) StringWithSigCnt(s interfaces.IState) string {
 		m.GetHash().Bytes()[:3],
 		m.SigTally(s),
 		m.Timestamp.GetTimeSeconds())
+}
+
+func (m *FullServerFault) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "fullserverfault",
+		"vm":         m.VMIndex,
+		"dbheight":   m.DBHeight,
+		"leaderid":   m.ServerID.String()[4:10],
+		"auditid":    m.AuditServerID.String()[4:10],
+		"sysheight":  m.SystemHeight,
+		"clearfault": m.ClearFault,
+		"sigcount":   m.SignatureList.Length,
+		"hash":       m.GetHash().String()[:6]}
 }
 
 func (m *FullServerFault) GetDBHeight() uint32 {

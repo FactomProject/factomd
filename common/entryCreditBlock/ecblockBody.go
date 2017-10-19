@@ -12,7 +12,7 @@ import (
 )
 
 type ECBlockBody struct {
-	Entries []interfaces.IECBlockEntry
+	Entries []interfaces.IECBlockEntry `json:"entries"`
 }
 
 var _ = fmt.Print

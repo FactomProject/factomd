@@ -14,7 +14,7 @@ func TestLog(t *testing.T) {
 }
 
 func TestBadNew(t *testing.T) {
-	l := New(nil, "not_allowed", "testing")
+	l := New(nil, "warninggit c", "testing")
 	if l.Level() != WarningLvl {
 		t.Error("Should be set to warning")
 	}
@@ -171,4 +171,17 @@ func doBenchmark(b *testing.B, logger *FLogger, format string, args ...interface
 	for i := 0; i < b.N; i++ {
 		logger.Debugf(format, args)
 	}
+}
+func TestPrints(t *testing.T) {
+	SetLevel("standard")
+	Print("Standard log test Print")
+	Println("Standard log test Println")
+	Printf("Standard log test %s\n", "Printf")
+	Printfln("Standard log test %s", "Printfln")
+	Debug("Debug log call %d", 1)
+	PrintStack()
+	Print("note: the above printout is not an error, this is just printing out a stack trace.")
+	SetLevel("debug")
+	Print("Debug log test Print")
+	UnsetTestLogger()
 }

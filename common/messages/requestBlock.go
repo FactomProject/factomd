@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //A placeholder structure for messages
@@ -124,6 +126,10 @@ func (m *RequestBlock) MarshalBinary() (data []byte, err error) {
 
 func (m *RequestBlock) String() string {
 	return "Request Block"
+}
+
+func (m *RequestBlock) LogFields() log.Fields {
+	return log.Fields{}
 }
 
 func (m *RequestBlock) DBHeight() int {

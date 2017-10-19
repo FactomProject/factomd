@@ -6,9 +6,10 @@ package directoryBlock_test
 
 import (
 	"fmt"
+	"testing"
+
 	. "github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/primitives"
-	"testing"
 )
 
 func TestUnmarshalNilDBEntry(t *testing.T) {
@@ -141,8 +142,8 @@ func TestPrintsE(t *testing.T) {
 	dbe.SetKeyMR(h)
 	returnVal := dbe.String()
 
-	expectedString := `ChainID: 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71
-      KeyMR:   9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e
+	expectedString := `chainid: 3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71
+      keymr:   9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e
 `
 
 	if returnVal != expectedString {
@@ -154,7 +155,7 @@ func TestPrintsE(t *testing.T) {
 	returnVal, _ = dbe.JSONString()
 	//fmt.Println(returnVal)
 
-	expectedString = `{"ChainID":"3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71","KeyMR":"9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e"}`
+	expectedString = `{"chainid":"3e3eb61fb20e71d8211882075d404f5929618a189d23aba8c892b22228aa0d71","keymr":"9daad42e5efedf3075fa2cf51908babdb568f431a3c13b9a496ffbfb7160ad2e"}`
 	if returnVal != expectedString {
 		fmt.Println("got", returnVal)
 		fmt.Println("expected", expectedString)

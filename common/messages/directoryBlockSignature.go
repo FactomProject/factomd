@@ -11,7 +11,12 @@ import (
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// dLogger is for DirectoryBlockSignature Messages and extends packageLogger
+var dLogger = packageLogger.WithFields(log.Fields{"message": "DirectoryBlockSignature"})
 
 type DirectoryBlockSignature struct {
 	MessageBase
@@ -125,14 +130,19 @@ func (m *DirectoryBlockSignature) Type() byte {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
-
+	//vlog makes logging anything in Validate() easier
+	//		The instantiation as a function makes it almost no overhead if you do not use it
+	vlog := func(format string, args ...interface{}) {
+		dLogger.WithFields(log.Fields{"func": "Validate", "msgheight": m.DBHeight, "lheight": state.GetLeaderHeight()})
+	}
 	if m.IsValid() {
 		return 1
 	}
 
 	raw, _ := m.MarshalBinary()
 	if m.DBHeight <= state.GetHighestSavedBlk() {
-		state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
+		vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
+		// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
 		return -1
 	}
 
@@ -153,7 +163,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 	isVer, err := m.VerifySignature()
 	if err != nil || !isVer {
-		state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
+		vlog("[2] Verify Sig Failed %s -- RAW: %x", m.String(), raw)
+		// state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
 		// if there is an error during signature verification
 		// or if the signature is invalid
 		// the message is considered invalid
@@ -164,8 +175,9 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	authorityLevel, err := state.VerifyAuthoritySignature(marshalledMsg, m.Signature.GetSignature(), m.DBHeight)
 	if err != nil || authorityLevel < 1 {
 		//This authority is not a Fed Server (it's either an Audit or not an Authority at all)
-		state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
-		state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
+		vlog("Fail to Verify Sig (not from a Fed Server) %s -- RAW: %x", m.String(), raw)
+		//state.Logf("error", "DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s\n  [%s] RAW: %x", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), raw)
+		// state.AddStatus(fmt.Sprintf("DirectoryBlockSignature: Fail to Verify Sig (not from a Fed Server) dbht: %v %s", state.GetLLeaderHeight(), m.String()))
 		return authorityLevel
 	}
 
@@ -382,6 +394,15 @@ func (m *DirectoryBlockSignature) String() string {
 		m.DirectoryBlockHeader.GetPrevKeyMR().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 
+}
+
+func (m *DirectoryBlockSignature) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "dbsig",
+		"dbheight":  m.DBHeight,
+		"vm":        m.VMIndex,
+		"server":    m.ServerIdentityChainID.String()[:6],
+		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String()[:6],
+		"hash":      m.GetHash().String()[:6]}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 // Communicate a Directory Block State
@@ -164,11 +166,11 @@ func (m *AddServerMsg) UnmarshalBinary(data []byte) error {
 
 func (m *AddServerMsg) MarshalForSignature() ([]byte, error) {
 	buf := primitives.NewBuffer(nil)
+
 	err := buf.PushByte(m.Type())
 	if err != nil {
 		return nil, err
 	}
-
 	err = buf.PushBinaryMarshallable(m.GetTimestamp())
 	if err != nil {
 		return nil, err
@@ -219,6 +221,11 @@ func (m *AddServerMsg) String() string {
 		m.ServerChainID.Bytes()[:3],
 		&m.Timestamp,
 		m.GetMsgHash().Bytes()[:3])
+}
+
+func (m *AddServerMsg) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "addserver", "server": m.ServerChainID.String()[4:12],
+		"hash": m.GetHash().String()[:6]}
 }
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {

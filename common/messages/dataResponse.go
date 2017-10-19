@@ -11,6 +11,8 @@ import (
 	"github.com/FactomProject/factomd/common/entryBlock"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 // Communicate a Directory Block State
@@ -243,6 +245,11 @@ func (m *DataResponse) String() string {
 	return fmt.Sprintf("DataResponse Type: %2d Hash: %x\n",
 		m.DataType,
 		m.DataHash.Bytes())
+}
+
+func (m *DataResponse) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "dataresponse", "datatype": m.DataType,
+		"datahash": m.DataHash.String()[:6]}
 }
 
 func NewDataResponse(state interfaces.IState, dataObject interfaces.BinaryMarshallable,

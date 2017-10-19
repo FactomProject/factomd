@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //A placeholder structure for messages
@@ -173,6 +175,10 @@ func (m *InvalidDirectoryBlock) MarshalForSignature() ([]byte, error) {
 
 func (m *InvalidDirectoryBlock) String() string {
 	return "Invalid Directory Block"
+}
+
+func (m *InvalidDirectoryBlock) LogFields() log.Fields {
+	return log.Fields{}
 }
 
 func (m *InvalidDirectoryBlock) DBHeight() int {

@@ -18,12 +18,12 @@ const (
 )
 
 type CommitEntry struct {
-	Version   uint8
-	MilliTime *primitives.ByteSlice6
-	EntryHash interfaces.IHash
-	Credits   uint8
-	ECPubKey  *primitives.ByteSlice32
-	Sig       *primitives.ByteSlice64
+	Version   uint8                   `json:"version"`
+	MilliTime *primitives.ByteSlice6  `json:"millitime"`
+	EntryHash interfaces.IHash        `json:"entryhash"`
+	Credits   uint8                   `json:"credits"`
+	ECPubKey  *primitives.ByteSlice32 `json:"ecpubkey"`
+	Sig       *primitives.ByteSlice64 `json:"sig"`
 }
 
 var _ interfaces.Printable = (*CommitEntry)(nil)
@@ -181,6 +181,7 @@ func (c *CommitEntry) GetSigHash() interfaces.IHash {
 }
 
 func (c *CommitEntry) MarshalBinarySig() ([]byte, error) {
+	c.Init()
 	buf := primitives.NewBuffer(nil)
 
 	// 1 byte Version

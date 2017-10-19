@@ -13,7 +13,7 @@ import (
 var _ = Factomd
 
 // Wait so many blocks
-func waitBlocks(s *state.State, blks int) {
+func WaitBlocks(s *state.State, blks int) {
 	currentHeight := int(s.LLeaderHeight)
 	for int(s.LLeaderHeight) < currentHeight+blks {
 		time.Sleep(time.Second)
@@ -22,7 +22,7 @@ func waitBlocks(s *state.State, blks int) {
 
 // Wait to a given minute.  If we are == to the minute or greater, then
 // we first wait to the start of the next block.
-func waitMinutes(s *state.State, min int) {
+func WaitMinutes(s *state.State, min int) {
 	if s.CurrentMinute >= min {
 		for s.CurrentMinute > 0 {
 			time.Sleep(100 * time.Millisecond)
@@ -63,6 +63,7 @@ func TestSetupANetwork(t *testing.T) {
 	args := append([]string{},
 		"-db=Map",
 		"-network=LOCAL",
+		"-net=alot+",
 		"-enablenet=true",
 		"-blktime=15",
 		"-count=10",
@@ -70,10 +71,12 @@ func TestSetupANetwork(t *testing.T) {
 		"-port=37001",
 		"-ControlPanelPort=37002",
 		"-networkPort=37003",
-		"-startdelay=1")
+		"-startdelay=1",
+		"faulttimeout=5")
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
+	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
 
 	t.Log("Allocated 10 nodes")
@@ -87,12 +90,16 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("x")
 	runCmd("8")
 	runCmd("")
-	waitBlocks(state0, 1)
+	runCmd("F100")
+	runCmd("S10")
+	WaitBlocks(state0, 1)
+	runCmd("s")
 	runCmd("g10")
-	waitBlocks(state0, 1)
+	WaitBlocks(state0, 2)
 	// Allocate 4 leaders
-
-	waitMinutes(state0, 1)
+	runCmd("g1")
+	WaitMinutes(state0, 3)
+	runCmd("g1")
 
 	runCmd("1")
 	runCmd("l")
@@ -103,9 +110,11 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("o")
 	runCmd("")
 	runCmd("")
+	runCmd("T11")
 
-	waitBlocks(state0, 1)
-	waitMinutes(state0, 1)
+	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 1)
+	runCmd("s")
 
 	leadercnt := 0
 	auditcnt := 0
@@ -128,12 +137,28 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("found %d audit servers, expected 3", auditcnt)
 		t.Fail()
 	}
-
+	WaitMinutes(state0,2)
+	runCmd("s")
 	fn1 := GetFocus()
 	if fn1.State.FactomNodeName != "FNode07" {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
 	}
-
+	runCmd("g1")
+	WaitMinutes(state0, 3)
+	runCmd("g1")
+	WaitMinutes(state0, 4)
+	runCmd("g1")
+	WaitMinutes(state0, 5)
+	runCmd("g1")
+	WaitMinutes(state0, 6)
+	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 1)
+	runCmd("g1")
+	WaitMinutes(state0, 2)
+	runCmd("g1")
+	WaitMinutes(state0, 3)
+	runCmd("g20")
+	WaitBlocks(state0, 1)
 	runCmd("9")
 	runCmd("x")
 	runCmd("8")
@@ -145,6 +170,7 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("Expected FNode08, but got %s", fn1.State.FactomNodeName)
 	}
 
+	runCmd("i")
 	// Test block recording lengths and error checking for pprof
 	runCmd("b100")
 
@@ -171,9 +197,28 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("yh")
 	runCmd("yc")
 	runCmd("r")
-	waitBlocks(fn1.State, 1)
+	WaitMinutes(state0, 1)
+	runCmd("g1")
+	WaitMinutes(state0, 2)
+	runCmd("g1")
+	WaitMinutes(state0, 3)
+	runCmd("g1")
+	WaitMinutes(state0, 4)
 	runCmd("r")
-	waitBlocks(fn1.State, 2)
+	WaitBlocks(fn1.State, 1)
+	runCmd("2")
+	runCmd("x")
+	runCmd("s")
+	WaitMinutes(state0, 1)
+	runCmd("x")
+	runCmd("g1")
+	WaitMinutes(state0, 2)
+	runCmd("s")
+	runCmd("g1")
+	WaitMinutes(state0, 3)
+	runCmd("g1")
+	WaitMinutes(state0, 4)
+	WaitBlocks(fn1.State, 1)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {
@@ -181,7 +226,7 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	time.Sleep(10 * time.Second)
-	if state0.LLeaderHeight > 10 {
+	if state0.LLeaderHeight > 13 {
 		t.Fatal("Failed to shut down factomd via ShutdownChan")
 	}
 }

@@ -20,6 +20,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/adminBlock"
 	"github.com/FactomProject/factomd/common/constants"
+	. "github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -27,17 +28,23 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/leveldb"
 	"github.com/FactomProject/factomd/database/mapdb"
-	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
 	"errors"
+
+	log "github.com/FactomProject/logrus"
 )
+
+// packageLogger is the general logger for all package related logs. You can add additional fields,
+// or create more context loggers off of this
+var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
 var _ = fmt.Print
 
 type State struct {
+	Logger           *log.Entry
 	IsRunning        bool
 	filename         string
 	NetworkControler *p2p.Controller
@@ -46,7 +53,7 @@ type State struct {
 
 	Prefix            string
 	FactomNodeName    string
-	FactomdVersion    int
+	FactomdVersion    string
 	LogPath           string
 	LdbPath           string
 	BoltDBPath        string
@@ -67,6 +74,7 @@ type State struct {
 	DirectoryBlockInSeconds int
 	PortNumber              int
 	Replay                  *Replay
+	FReplay                 *Replay
 	DropRate                int
 	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
@@ -140,7 +148,7 @@ type State struct {
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
 	inMsgQueue             InMsgMSGQueue
-	apiQueue               chan interfaces.IMsg
+	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
 
@@ -168,6 +176,7 @@ type State struct {
 	StartDelayLimit int64
 	DBFinished      bool
 	RunLeader       bool
+	BootTime        int64 // Time in seconds that we last booted
 
 	// Ignore missing messages for a period to allow rebooting a network where your
 	// own messages from the previously executing network can confuse you.
@@ -182,6 +191,10 @@ type State struct {
 	OneLeader       bool
 	OutputAllowed   bool
 	CurrentMinute   int
+
+	// These are the start times for blocks and minutes
+	CurrentMinuteStartTime int64
+	CurrentBlockStartTime  int64
 
 	EOMsyncing bool
 
@@ -223,7 +236,7 @@ type State struct {
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
-	Commits       map[[32]byte]interfaces.IMsg // Commit Messages
+	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
 	InvalidMessagesMutex sync.RWMutex
@@ -242,7 +255,6 @@ type State struct {
 
 	// Database
 	DB     interfaces.DBOverlaySimple
-	Logger *log.FLogger
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -326,6 +338,15 @@ type State struct {
 	AckChange uint32
 
 	StateSaverStruct StateSaverStruct
+	// Plugins
+	useTorrents             bool
+	torrentUploader         bool
+	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
+	DBStateManager          interfaces.IManagerController
+	HighestCompletedTorrent uint32
+	SuperVerboseMessages    bool
+	FastBoot                bool
+	FastBootLocation        string
 }
 
 var _ interfaces.IState = (*State)(nil)
@@ -476,6 +497,10 @@ func (s *State) SetDelay(delay int64) {
 	s.Delay = delay
 }
 
+func (s *State) GetBootTime() int64 {
+	return s.BootTime
+}
+
 func (s *State) GetDropRate() int {
 	return s.DropRate
 }
@@ -532,8 +557,20 @@ func (s *State) GetFactomdLocations() string {
 	return s.FactomdLocations
 }
 
+func (s *State) GetCurrentBlockStartTime() int64 {
+	return s.CurrentBlockStartTime
+}
+
 func (s *State) GetCurrentMinute() int {
 	return s.CurrentMinute
+}
+
+func (s *State) GetCurrentMinuteStartTime() int64 {
+	return s.CurrentMinuteStartTime
+}
+
+func (s *State) GetCurrentTime() int64 {
+	return time.Now().UnixNano()
 }
 
 func (s *State) IncDBStateAnswerCnt() {
@@ -617,6 +654,8 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.RpcPass = cfg.App.FactomdRpcPass
 		s.StateSaverStruct.FastBoot = cfg.App.FastBoot
 		s.StateSaverStruct.FastBootLocation = cfg.App.FastBootLocation
+		s.FastBoot = cfg.App.FastBoot
+		s.FastBootLocation = cfg.App.FastBootLocation
 
 		s.FactomdTLSEnable = cfg.App.FactomdTlsEnabled
 		if cfg.App.FactomdTlsPrivateKey == "/full/path/to/factomdAPIpriv.key" {
@@ -721,20 +760,19 @@ func (s *State) Init() {
 	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
 	s.RunLeader = false
 	s.IgnoreMissing = true
+	s.BootTime = s.GetTimestamp().GetTimeSeconds()
 
 	if s.LogPath == "stdout" {
 		wsapi.InitLogs(s.LogPath, s.LogLevel)
-		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	} else {
 		er := os.MkdirAll(s.LogPath, 0777)
 		if er != nil {
 			// fmt.Println("Could not create " + s.LogPath + "\n error: " + er.Error())
 		}
 		wsapi.InitLogs(s.LogPath+s.FactomNodeName+".log", s.LogLevel)
-		s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
+		//s.Logger = log.NewLogFromConfig(s.LogPath, s.LogLevel, "State")
 	}
-
-	log.SetLevel(s.ConsoleLogLevel)
 
 	s.ControlPanelChannel = make(chan DisplayState, 20)
 	s.tickerQueue = make(chan int, 100)                        //ticks from a clock
@@ -744,7 +782,7 @@ func (s *State) Init() {
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
 	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
-	s.apiQueue = make(chan interfaces.IMsg, 100)        //incoming message queue from the API
+	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
 	s.ShutdownChan = make(chan int, 1)                  //Channel to gracefully shut down.
@@ -762,11 +800,12 @@ func (s *State) Init() {
 	}
 	// Set up struct to stop replay attacks
 	s.Replay = new(Replay)
+	s.FReplay = new(Replay)
 
 	// Set up maps for the followers
 	s.Holding = make(map[[32]byte]interfaces.IMsg)
 	s.Acks = make(map[[32]byte]interfaces.IMsg)
-	s.Commits = make(map[[32]byte]interfaces.IMsg)
+	s.Commits = NewSafeMsgMap() //make(map[[32]byte]interfaces.IMsg)
 
 	// Setup the FactoidState and Validation Service that holds factoid and entry credit balances
 	s.FactoidBalancesP = map[[32]byte]int64{}
@@ -782,7 +821,6 @@ func (s *State) Init() {
 	s.LastFaultAction = 0
 	s.LastTiebreak = 0
 	s.EOMfaultIndex = 0
-	s.FactomdVersion = constants.FACTOMD_VERSION
 
 	s.DBStates = new(DBStateList)
 	s.DBStates.State = s
@@ -828,6 +866,7 @@ func (s *State) Init() {
 	switch s.Network {
 	case "MAIN":
 		s.NetworkNumber = constants.NETWORK_MAIN
+		s.DirectoryBlockInSeconds = 600
 	case "TEST":
 		s.NetworkNumber = constants.NETWORK_TEST
 	case "LOCAL":
@@ -876,6 +915,8 @@ func (s *State) Init() {
 			}
 		}
 	}
+
+	s.Logger = log.WithFields(log.Fields{"name": s.GetFactomNodeName(), "identity": s.GetIdentityChainID().String()[:10]})
 }
 
 func (s *State) GetEntryBlockDBHeightComplete() uint32 {
@@ -1219,8 +1260,8 @@ func (s *State) fillAcksMap() {
 }
 
 func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry {
-	fmt.Println("GetPendingEntries")
 	resp := make([]interfaces.IPendingEntry, 0)
+	repeatmap := make(map[[32]byte]interfaces.IPendingEntry)
 	pls := s.ProcessLists.Lists
 	var cc messages.CommitChainMsg
 	var ce messages.CommitEntryMsg
@@ -1246,13 +1287,13 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 							tmp.ChainID = cc.CommitChain.ChainIDHash
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = "AckStatusACK"
+								tmp.Status = constants.AckStatusACKString
 							} else {
-								tmp.Status = "AckStatusDBlockConfirmed"
+								tmp.Status = constants.AckStatusDBlockConfirmedString
 							}
-
-							if util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
 						} else if plmsg.Type() == constants.COMMIT_ENTRY_MSG { //6
 							enb, err := plmsg.MarshalBinary()
@@ -1267,13 +1308,14 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 
 							tmp.ChainID = nil
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = "AckStatusACK"
+								tmp.Status = constants.AckStatusACKString
 							} else {
-								tmp.Status = "AckStatusDBlockConfirmed"
+								tmp.Status = constants.AckStatusDBlockConfirmedString
 							}
 
-							if !util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
 							}
 						} else if plmsg.Type() == constants.REVEAL_ENTRY_MSG { //13
 							enb, err := plmsg.MarshalBinary()
@@ -1287,13 +1329,27 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 							tmp.EntryHash = re.Entry.GetHash()
 							tmp.ChainID = re.Entry.GetChainID()
 							if pl.DBHeight > s.GetDBHeightComplete() {
-								tmp.Status = "AckStatusACK"
+								tmp.Status = constants.AckStatusACKString
 							} else {
-								tmp.Status = "AckStatusDBlockConfirmed"
+								tmp.Status = constants.AckStatusDBlockConfirmedString
 							}
-
-							if !util.IsInPendingEntryList(resp, tmp) {
+							if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
 								resp = append(resp, tmp)
+								repeatmap[tmp.EntryHash.Fixed()] = tmp
+							} else {
+								//If it is in there, it may not know the chainid because it was from a commit
+								if repeatmap[tmp.EntryHash.Fixed()].ChainID == nil {
+									repeatmap[tmp.EntryHash.Fixed()] = tmp
+									// now update your response entry
+									for k, _ := range resp {
+										if resp[k].EntryHash.IsSameAs(tmp.EntryHash) {
+											if tmp.ChainID != nil {
+
+												resp[k].ChainID = tmp.ChainID
+											}
+										}
+									}
+								}
 							}
 						}
 					}
@@ -1317,10 +1373,15 @@ func (s *State) GetPendingEntries(params interface{}) []interfaces.IPendingEntry
 			tmp.EntryHash = re.Entry.GetHash()
 
 			tmp.ChainID = re.Entry.GetChainID()
-			tmp.Status = "AckStatusNotConfirmed"
-			if !util.IsInPendingEntryList(resp, tmp) {
+
+			tmp.Status = constants.AckStatusNotConfirmedString
+
+			if _, ok := repeatmap[tmp.EntryHash.Fixed()]; !ok {
+
 				resp = append(resp, tmp)
+				repeatmap[tmp.EntryHash.Fixed()] = tmp
 			}
+
 		}
 	}
 
@@ -1343,10 +1404,18 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 					var tmp interfaces.IPendingTransaction
 					tmp.TransactionID = tran.GetSigHash()
 					if tran.GetBlockHeight() > 0 {
-						tmp.Status = "AckStatusDBlockConfirmed"
+						tmp.Status = constants.AckStatusDBlockConfirmedString
 					} else {
-						tmp.Status = "AckStatusACK"
+						tmp.Status = constants.AckStatusACKString
 					}
+
+					tmp.Inputs = tran.GetInputs()
+					tmp.Outputs = tran.GetOutputs()
+					tmp.ECOutputs = tran.GetECOutputs()
+					ecrate := s.GetPredictiveFER()
+					ecrate, _ = tran.CalculateFee(ecrate)
+					tmp.Fees = ecrate
+
 					if params.(string) == "" {
 						flgFound = true
 					} else {
@@ -1384,9 +1453,14 @@ func (s *State) GetPendingTransactions(params interface{}) []interfaces.IPending
 			tempTran := rm.GetTransaction()
 			var tmp interfaces.IPendingTransaction
 			tmp.TransactionID = tempTran.GetSigHash()
-			tmp.Status = "AckStatusNotConfirmed"
+			tmp.Status = constants.AckStatusNotConfirmedString
 			flgFound = tempTran.HasUserAddress(params.(string))
-
+			tmp.Inputs = tempTran.GetInputs()
+			tmp.Outputs = tempTran.GetOutputs()
+			tmp.ECOutputs = tempTran.GetECOutputs()
+			ecrate := s.GetPredictiveFER()
+			ecrate, _ = tempTran.CalculateFee(ecrate)
+			tmp.Fees = ecrate
 			if flgFound == true {
 				//working through multiple process lists.  Is this transaction already in the list?
 				for _, pt := range resp {
@@ -1484,6 +1558,32 @@ func (s *State) IncEntryChains() {
 
 func (s *State) IncEntries() {
 	s.NewEntries++
+}
+
+func (s *State) IsStalled() bool {
+	if s.CurrentMinuteStartTime == 0 { //0 while syncing.
+		return false
+	}
+
+	// If we are under height 3, then we won't say stalled by height.
+	lh := s.GetTrueLeaderHeight()
+
+	if lh >= 3 && s.GetHighestSavedBlk() < lh-3 {
+		return true
+	}
+
+	//use 1/10 of the block time times 1.5 in seconds as a timeout on the 'minutes'
+	var stalltime float64
+
+	stalltime = float64(int64(s.GetDirectoryBlockInSeconds())) / 10
+	stalltime = stalltime * 1.5 * 1e9
+	//fmt.Println("STALL 2", s.CurrentMinuteStartTime/1e9, time.Now().UnixNano()/1e9, stalltime/1e9, (float64(time.Now().UnixNano())-stalltime)/1e9)
+
+	if float64(s.CurrentMinuteStartTime) < float64(time.Now().UnixNano())-stalltime { //-90 seconds was arbitrary
+		return true
+	}
+
+	return false
 }
 
 func (s *State) DatabaseContains(hash interfaces.IHash) bool {
@@ -1616,7 +1716,7 @@ entryHashProcessing:
 			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
 			// If the save worked, then remove any commit that might be around.
 			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
-				delete(s.Commits, e.Hash.Fixed())
+				s.Commits.Delete(e.Hash.Fixed())
 			}
 		default:
 			break entryHashProcessing
@@ -1750,7 +1850,7 @@ func (s *State) GetMessageTalliesReceived(i int) int {
 	return s.MessageTalliesReceived[i]
 }
 
-func (s *State) GetFactomdVersion() int {
+func (s *State) GetFactomdVersion() string {
 	return s.FactomdVersion
 }
 
@@ -1763,32 +1863,29 @@ func (s *State) initServerKeys() {
 	s.serverPubKey = s.serverPrivKey.Pub
 }
 
-func (s *State) LogInfo(args ...interface{}) {
-	s.Logger.Info(args...)
-}
-
 func (s *State) Log(level string, message string) {
-	s.Logf(level, message)
+	packageLogger.WithFields(s.Logger.Data).Info(message)
 }
 
 func (s *State) Logf(level string, format string, args ...interface{}) {
+	llog := packageLogger.WithFields(s.Logger.Data)
 	switch level {
 	case "emergency":
-		s.Logger.Emergencyf(format, args...)
+		llog.Panicf(format, args...)
 	case "alert":
-		s.Logger.Alertf(format, args...)
+		llog.Panicf(format, args...)
 	case "critical":
-		s.Logger.Criticalf(format, args...)
+		llog.Panicf(format, args...)
 	case "error":
-		s.Logger.Errorf(format, args...)
-	case "warning":
-		s.Logger.Warningf(format, args...)
+		llog.Errorf(format, args...)
+	case "llog":
+		llog.Warningf(format, args...)
 	case "info":
-		s.Logger.Infof(format, args...)
+		llog.Infof(format, args...)
 	case "debug":
-		s.Logger.Debugf(format, args...)
+		llog.Debugf(format, args...)
 	default:
-		s.Logger.Infof(format, args...)
+		llog.Infof(format, args...)
 	}
 }
 
@@ -1859,7 +1956,7 @@ func (s *State) InMsgQueue() interfaces.IQueue {
 	return s.inMsgQueue
 }
 
-func (s *State) APIQueue() chan interfaces.IMsg {
+func (s *State) APIQueue() interfaces.IQueue {
 	return s.apiQueue
 }
 

@@ -16,21 +16,25 @@ type FactoidSubmitResponse struct {
 }
 
 type CommitChainResponse struct {
-	Message string `json:"message"`
-	TxID    string `json:"txid"`
+	Message     string `json:"message"`
+	TxID        string `json:"txid"`
+	EntryHash   string `json:"entryhash,omitempty"`
+	ChainIDHash string `json:"chainidhash,omitempty"`
 }
 
 type RevealChainResponse struct {
 }
 
 type CommitEntryResponse struct {
-	Message string `json:"message"`
-	TxID    string `json:"txid"`
+	Message   string `json:"message"`
+	TxID      string `json:"txid"`
+	EntryHash string `json:"entryhash,omitempty"`
 }
 
 type RevealEntryResponse struct {
 	Message   string `json:"message"`
 	EntryHash string `json:"entryhash"`
+	ChainID   string `json:"chainid,omitempty"`
 }
 
 type DirectoryBlockResponse struct {
@@ -56,9 +60,20 @@ type HeightsResponse struct {
 	LeaderHeight                 int64 `json:"leaderheight"`
 	EntryBlockHeight             int64 `json:"entryblockheight"`
 	EntryHeight                  int64 `json:"entryheight"`
-	MissingEntryCount            int64 `json:"missingentrycount"`
-	EntryBlockDBHeightProcessing int64 `json:"entryblockdbheightprocessing"`
-	EntryBlockDBHeightComplete   int64 `json:"entryblockdbheightcomplete"`
+	MissingEntryCount            int64 `json:"-"`
+	EntryBlockDBHeightProcessing int64 `json:"-"`
+	EntryBlockDBHeightComplete   int64 `json:"-"`
+}
+
+type CurrentMinuteResponse struct {
+	LeaderHeight            int64 `json:"leaderheight"`
+	DirectoryBlockHeight    int64 `json:"directoryblockheight"`
+	Minute                  int64 `json:"minute"`
+	CurrentBlockStartTime   int64 `json:"currentblockstarttime"`
+	CurrentMinuteStartTime  int64 `json:"currentminutestarttime"`
+	CurrentTime             int64 `json:"currenttime"`
+	DirectoryBlockInSeconds int64 `json:"directoryblockinseconds"`
+	StallDetected           bool  `json:"stalldetected"`
 }
 
 type RawDataResponse struct {
@@ -81,6 +96,16 @@ type EntryBlockResponse struct {
 	EntryList []EntryAddr `json:"entrylist"`
 }
 
+type EntryCreditBlockResponse struct {
+	ECBlock struct {
+		Header     interfaces.IECBlockHeader `json:"header"`
+		Body       interfaces.IECBlockBody   `json:"body"`
+		HeaderHash interfaces.IHash          `json:"headerhash"`
+		FullHash   interfaces.IHash          `json:"fullhash"`
+	} `json:"ecblock"`
+	RawData string `json:"rawdata"`
+}
+
 type EntryResponse struct {
 	ChainID string   `json:"chainid"`
 	Content string   `json:"content"`
@@ -89,7 +114,7 @@ type EntryResponse struct {
 
 type ChainHeadResponse struct {
 	ChainHead          string `json:"chainhead"`
-	ChainInProcessList bool   `json"chaininprocesslist`
+	ChainInProcessList bool   `json:"chaininprocesslist"`
 }
 
 type EntryCreditBalanceResponse struct {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
+	// "github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/directoryBlock"
 	"github.com/FactomProject/factomd/common/entryBlock"
@@ -677,8 +678,9 @@ func (d *DBState) ValidNext(state *State, next *messages.DBStateMsg) int {
 		return 0
 	}
 
-	if !next.IsInDB && !next.IgnoreSigs && next.ValidateSignatures(state) != 1 {
-		return 0
+	valid := next.ValidateSignatures(state)
+	if !next.IsInDB && !next.IgnoreSigs && valid != 1 {
+		return valid
 	}
 
 	// Get the keymr of the Previous DBState
@@ -1040,8 +1042,14 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	// ***** Apply the AdminBlock chainges to the next DBState
 	//
 	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
-	d.AdminBlock.UpdateState(list.State)
-	d.EntryCreditBlock.UpdateState(list.State)
+	err := d.AdminBlock.UpdateState(list.State)
+	if err != nil {
+		panic(err)
+	}
+	err = d.EntryCreditBlock.UpdateState(list.State)
+	if err != nil {
+		panic(err)
+	}
 
 	prt("pl 2st", pl)
 	prt("pln 2st", pln)
@@ -1070,8 +1078,15 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	}
 	// Process the Factoid End of Block
 	fs := list.State.GetFactoidState()
-	fs.AddTransactionBlock(d.FactoidBlock)
-	fs.AddECBlock(d.EntryCreditBlock)
+	fs.(*FactoidState).DBHeight = dbht
+	err = fs.AddTransactionBlock(d.FactoidBlock)
+	if err != nil {
+		panic(err)
+	}
+	err = fs.AddECBlock(d.EntryCreditBlock)
+	if err != nil {
+		panic(err)
+	}
 
 	list.State.Balancehash = fs.GetBalanceHash(false)
 
@@ -1108,29 +1123,30 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	///////////////////////////////
 	// Cleanup Tasks
 	///////////////////////////////
+	list.State.Commits.Cleanup(list.State)
 
-	s := list.State
-	// Time out commits every now and again.
-	now := s.GetTimestamp()
-	for k, msg := range s.Commits {
-		{
-			c, ok := msg.(*messages.CommitChainMsg)
-			if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
-				delete(s.Commits, k)
-				continue
-			}
-		}
-		c, ok := msg.(*messages.CommitEntryMsg)
-		if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
-			delete(s.Commits, k)
-			continue
-		}
+	// s := list.State
+	// // Time out commits every now and again.
+	// now := s.GetTimestamp()
+	// for k, msg := range s.Commits {
+	// 	{
+	// 		c, ok := msg.(*messages.CommitChainMsg)
+	// 		if ok && !s.NoEntryYet(c.CommitChain.EntryHash, now) {
+	// 			delete(s.Commits, k)
+	// 			continue
+	// 		}
+	// 	}
+	// 	c, ok := msg.(*messages.CommitEntryMsg)
+	// 	if ok && !s.NoEntryYet(c.CommitEntry.EntryHash, now) {
+	// 		delete(s.Commits, k)
+	// 		continue
+	// 	}
 
-		_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
-		if !ok {
-			delete(s.Commits, k)
-		}
-	}
+	// 	_, ok = s.Replay.Valid(constants.TIME_TEST, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
+	// 	if !ok {
+	// 		delete(s.Commits, k)
+	// 	}
+	// }
 
 	return
 }
@@ -1320,6 +1336,15 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
+	// Set the Block Replay flag for all these transactions we are saving to the database.
+	for _, fct := range d.FactoidBlock.GetTransactions() {
+		list.State.FReplay.IsTSValid_(
+			constants.BLOCK_REPLAY,
+			fct.GetSigHash().Fixed(),
+			fct.GetTimestamp(),
+			d.DirectoryBlock.GetHeader().GetTimestamp())
+	}
+
 	// Not activated.  Set to true if you want extra checking of the data saved to the database.
 	if false {
 		good := true
@@ -1359,6 +1384,7 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 	progress = true
 	d.ReadyToSave = false
 	d.Saved = true
+
 	return
 }
 

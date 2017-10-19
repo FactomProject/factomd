@@ -18,6 +18,8 @@ package state
 import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Returning this is non-instrumented way
@@ -52,90 +54,52 @@ func (q GeneralMSGQueue) BlockingDequeue() interfaces.IMsg {
 	return <-q
 }
 
-//
-// Can use custom structs to do instrumenting
-//
-
-type IPrometheusChannel interface {
-	General(increment bool)
-
-	EOM(increment bool)
-	ACK(increment bool)
-	AudFault(increment bool)
-	FedFault(increment bool)
-	FullFault(increment bool)
-	CommitChain(increment bool)
-	CommitEntry(increment bool)
-	DBSig(increment bool)
-	EOMTimeout(increment bool)
-	FactTx(increment bool)
-	Heartbeat(increment bool)
-	EtcdHashPickup(increment bool)
-	MissingMsg(increment bool)
-	MissingMsgResp(increment bool)
-	MissingData(increment bool)
-	MissingDataResp(increment bool)
-	RevealEntry(increment bool)
-	DBStateMissing(increment bool)
-	DBState(increment bool)
-	Bounce(increment bool)
-	BounceReply(increment bool)
-	ReqBlock(increment bool)
-	Misc(increment bool)
-}
-
 // measureMessage will increment/decrement prometheus based on type
-func measureMessage(channel IPrometheusChannel, msg interfaces.IMsg, increment bool) {
+func measureMessage(counter *prometheus.GaugeVec, msg interfaces.IMsg, increment bool) {
 	if msg == nil {
 		return
 	}
-	channel.General(increment)
-	switch msg.Type() {
-	case constants.EOM_MSG: // 1
-		channel.EOM(increment)
-	case constants.ACK_MSG: // 2
-		channel.ACK(increment)
-	case constants.AUDIT_SERVER_FAULT_MSG: // 3
-		channel.AudFault(increment)
-	case constants.FED_SERVER_FAULT_MSG: // 4
-		channel.FedFault(increment)
-	case constants.FULL_SERVER_FAULT_MSG: // 5
-		channel.FullFault(increment)
-	case constants.COMMIT_CHAIN_MSG: // 6
-		channel.CommitChain(increment)
-	case constants.COMMIT_ENTRY_MSG: // 7
-		channel.CommitEntry(increment)
-	case constants.DIRECTORY_BLOCK_SIGNATURE_MSG: // 8
-		channel.DBSig(increment)
-	case constants.EOM_TIMEOUT_MSG: // 9
-		channel.EOMTimeout(increment)
-	case constants.FACTOID_TRANSACTION_MSG: // 10
-		channel.FactTx(increment)
-	case constants.HEARTBEAT_MSG: // 11
-		channel.Heartbeat(increment)
-	case constants.INVALID_DIRECTORY_BLOCK_MSG: // 12
-		channel.EtcdHashPickup(increment)
-	case constants.MISSING_MSG: // 13
-		channel.MissingMsg(increment)
-	case constants.MISSING_MSG_RESPONSE: // 14
-		channel.MissingMsgResp(increment)
-	case constants.MISSING_DATA: // 15
-		channel.MissingData(increment)
-	case constants.DATA_RESPONSE: // 16
-		channel.MissingDataResp(increment)
-	case constants.REVEAL_ENTRY_MSG: // 17
-		channel.RevealEntry(increment)
-	case constants.REQUEST_BLOCK_MSG: // 18
-		channel.ReqBlock(increment)
-	case constants.DBSTATE_MISSING_MSG: // 19
-		channel.DBStateMissing(increment)
-	case constants.DBSTATE_MSG: // 20
-		channel.DBState(increment)
-	case constants.BOUNCE_MSG: // 21
-		channel.Bounce(increment)
-	case constants.BOUNCEREPLY_MSG: // 22
-		channel.BounceReply(increment)
-	default: // 23
-		channel.Misc(increment)
+	amt := float64(1)
+	if !increment {
+		amt = -1
+	}
+
+	if counter != nil {
+		switch msg.Type() {
+		case constants.EOM_MSG: // 1
+			counter.WithLabelValues("eom").Add(amt)
+		case constants.ACK_MSG: // 2
+			counter.WithLabelValues("ack").Add(amt)
+		case constants.FULL_SERVER_FAULT_MSG: // 5
+			counter.WithLabelValues("fault").Add(amt)
+		case constants.COMMIT_CHAIN_MSG: // 6
+			counter.WithLabelValues("commitchain").Add(amt)
+		case constants.COMMIT_ENTRY_MSG: // 7
+			counter.WithLabelValues("commitentry").Add(amt)
+		case constants.DIRECTORY_BLOCK_SIGNATURE_MSG: // 8
+			counter.WithLabelValues("dbsig").Add(amt)
+		case constants.FACTOID_TRANSACTION_MSG: // 10
+			counter.WithLabelValues("factoid").Add(amt)
+		case constants.HEARTBEAT_MSG: // 11
+			counter.WithLabelValues("heartbeat").Add(amt)
+		case constants.MISSING_MSG: // 13
+			counter.WithLabelValues("missingmsg").Add(amt)
+		case constants.MISSING_MSG_RESPONSE: // 14
+			counter.WithLabelValues("missingmsgresp").Add(amt)
+		case constants.MISSING_DATA: // 15
+			counter.WithLabelValues("missingdata").Add(amt)
+		case constants.DATA_RESPONSE: // 16
+			counter.WithLabelValues("dataresp").Add(amt)
+		case constants.REVEAL_ENTRY_MSG: // 17
+			counter.WithLabelValues("revealentry").Add(amt)
+		case constants.REQUEST_BLOCK_MSG: // 18
+			counter.WithLabelValues("requestblock").Add(amt)
+		case constants.DBSTATE_MISSING_MSG: // 19
+			counter.WithLabelValues("dbstatmissing").Add(amt)
+		case constants.DBSTATE_MSG: // 20
+			counter.WithLabelValues("dbstate").Add(amt)
+		default: // 23
+			counter.WithLabelValues("misc").Add(amt)
+		}
 	}
 }

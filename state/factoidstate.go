@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sort"
+	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/entryCreditBlock"
@@ -111,7 +112,10 @@ func (fs *FactoidState) GetBalanceHash(includeTemp bool) interfaces.IHash {
 		b = append(b, h3.Bytes()...)
 		b = append(b, h4.Bytes()...)
 	}
-	return primitives.Sha(b)
+	r := primitives.Sha(b)
+	// Debug aid for Balance Hashes
+	// fmt.Printf("%8d %x\n", fs.DBHeight, r.Bytes()[:16])
+	return r
 }
 
 // Reset this Factoid state to an empty state at a dbheight following the
@@ -235,43 +239,12 @@ func (fs *FactoidState) AddTransaction(index int, trans interfaces.ITransaction)
 	if err := fs.ValidateTransactionAge(trans); err != nil {
 		return err
 	}
+	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
+		return err
+	}
 	if err := fs.UpdateTransaction(true, trans); err != nil {
 		return err
 	}
-	if err := fs.CurrentBlock.AddTransaction(trans); err != nil {
-		if err != nil {
-			return err
-		}
-		// We assume validity has been done elsewhere.  We are maintaining the "seen" state of
-		// all transactions here.
-		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
-		fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY|constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
-
-		for index, eo := range trans.GetECOutputs() {
-			pl := fs.State.ProcessLists.Get(fs.DBHeight)
-			incBal := entryCreditBlock.NewIncreaseBalance()
-			v := eo.GetAddress().Fixed()
-			incBal.ECPubKey = (*primitives.ByteSlice32)(&v)
-			incBal.NumEC = eo.GetAmount() / fs.GetCurrentBlock().GetExchRate()
-			incBal.TXID = trans.GetSigHash()
-			incBal.Index = uint64(index)
-			entries := pl.EntryCreditBlock.GetEntries()
-			i := 0
-			// Find the end of the last IncreaseBalance in this minute
-			for i < len(entries) {
-				if _, ok := entries[i].(*entryCreditBlock.IncreaseBalance); ok {
-					break
-				}
-				i++
-			}
-			entries = append(entries, nil)
-			copy(entries[i+1:], entries[i:])
-			entries[i] = incBal
-			pl.EntryCreditBlock.GetBody().SetEntries(entries)
-		}
-
-	}
-
 	return nil
 }
 
@@ -287,13 +260,16 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 	switch trans.ECID() {
 	case entryCreditBlock.ECIDServerIndexNumber:
 		return nil
-
 	case entryCreditBlock.ECIDMinuteNumber:
 		return nil
-
+	case entryCreditBlock.ECIDBalanceIncrease:
+		return nil
 	case entryCreditBlock.ECIDChainCommit:
 		t := trans.(*entryCreditBlock.CommitChain)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
+		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
+			return fmt.Errorf("Not enough ECs to cover a commit")
+		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
@@ -301,6 +277,9 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 	case entryCreditBlock.ECIDEntryCommit:
 		t := trans.(*entryCreditBlock.CommitEntry)
 		v := fs.State.GetE(rt, t.ECPubKey.Fixed()) - int64(t.Credits)
+		if (fs.DBHeight > 97886 || fs.State.GetNetworkID() != constants.MAIN_NETWORK_ID) && v < 0 {
+			return fmt.Errorf("Not enough ECs to cover a commit")
+		}
 		fs.State.PutE(rt, t.ECPubKey.Fixed(), v)
 		fs.State.NumTransactions++
 		fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, t.GetSigHash(), t.GetTimestamp())
@@ -314,10 +293,16 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
+	fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+	fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
 	for _, input := range trans.GetInputs() {
 		adr := input.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
-		fs.State.PutF(rt, adr, oldv-int64(input.GetAmount()))
+		v := oldv - int64(input.GetAmount())
+		if v < 0 {
+			return fmt.Errorf("Not enough factoids to cover a transaction")
+		}
+		fs.State.PutF(rt, adr, v)
 	}
 	for _, output := range trans.GetOutputs() {
 		adr := output.GetAddress().Fixed()
@@ -369,6 +354,7 @@ func (fs *FactoidState) ProcessEndOfBlock(state interfaces.IState) {
 	fs.UpdateTransaction(true, t)
 
 	fs.DBHeight++
+	fs.State.CurrentBlockStartTime = time.Now().UnixNano()
 }
 
 // Returns an error message about what is wrong with the transaction if it is

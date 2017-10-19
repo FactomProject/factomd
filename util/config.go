@@ -231,8 +231,8 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsEnabled        %v", s.App.FactomdTlsEnabled))
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsPrivateKey     %v", s.App.FactomdTlsPrivateKey))
 	out.WriteString(fmt.Sprintf("\n    FactomdTlsPublicCert     %v", s.App.FactomdTlsPublicCert))
-	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          %v", s.App.FactomdRpcUser))
-	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          %v", s.App.FactomdRpcPass))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcUser          	%v", s.App.FactomdRpcUser))
+	out.WriteString(fmt.Sprintf("\n    FactomdRpcPass          	%v", s.App.FactomdRpcPass))
 	out.WriteString(fmt.Sprintf("\n    ChangeAcksHeight         %v", s.App.ChangeAcksHeight))
 
 	out.WriteString(fmt.Sprintf("\n  Log"))
@@ -320,6 +320,11 @@ func ReadConfig(filename string) *FactomdConfig {
 }
 
 func GetHomeDir() string {
+	factomhome := os.Getenv("FACTOM_HOME")
+	if factomhome != "" {
+		return factomhome
+	}
+
 	// Get the OS specific home directory via the Go standard lib.
 	var homeDir string
 	usr, err := user.Current()

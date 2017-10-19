@@ -10,6 +10,8 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+
+	log "github.com/FactomProject/logrus"
 )
 
 //A placeholder structure for messages
@@ -263,6 +265,18 @@ func (m *ServerFault) String() string {
 		m.SystemHeight,
 		sig[:3],
 		m.GetHash().Bytes()[:3])
+}
+
+func (m *ServerFault) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "serverfault",
+		"vm":        m.VMIndex,
+		"dbheight":  m.DBHeight,
+		"leaderid":  m.ServerID.String()[4:10],
+		"auditid":   m.AuditServerID.String()[4:10],
+		"sysheight": m.SystemHeight,
+		"signature": string(m.Signature.Bytes())[:6],
+		"corehash":  m.GetCoreHash().String()[:6],
+		"hash":      m.GetHash().String()[:6]}
 }
 
 func (m *ServerFault) GetDBHeight() uint32 {

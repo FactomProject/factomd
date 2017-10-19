@@ -6,7 +6,7 @@ echo "changing directory to factomd"
 cd "$GOPATH/src/github.com/FactomProject/factomd"
 rm "$GOPATH/bin/factomd"
 echo "Compiling..."
-go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD`"
+go install -ldflags "-X github.com/FactomProject/factomd/engine.Build=`git rev-parse HEAD` -X github.com/FactomProject/factomd/engine.FactomdVersion=`cat VERSION`"
 if [ $? -eq 0 ]; then
      echo "was binary updated? Current:`date`"
     ls -G -lh "$GOPATH/bin/factomd"

@@ -66,45 +66,45 @@ func Test_DB_With_Ten_Blks(t *testing.T) {
 func TestCreateFullTestBlockSet(t *testing.T) {
 	set := CreateFullTestBlockSet()
 	if set[BlockCount-1].DBlock.DatabasePrimaryIndex().String() != DBlockHeadPrimaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].DBlock.DatabasePrimaryIndex().String(), DBlockHeadPrimaryIndex)
+		t.Errorf("Wrong dblock hash - %v vs %v", set[BlockCount-1].DBlock.DatabasePrimaryIndex().String(), DBlockHeadPrimaryIndex)
 	}
 	if set[BlockCount-1].DBlock.DatabaseSecondaryIndex().String() != DBlockHeadSecondaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].DBlock.DatabaseSecondaryIndex().String(), DBlockHeadSecondaryIndex)
+		t.Errorf("Wrong dblock hash - %v vs %v", set[BlockCount-1].DBlock.DatabaseSecondaryIndex().String(), DBlockHeadSecondaryIndex)
 	}
 
 	if set[BlockCount-1].ABlock.DatabasePrimaryIndex().String() != ABlockHeadPrimaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ABlock.DatabasePrimaryIndex().String(), ABlockHeadPrimaryIndex)
+		t.Errorf("Wrong ablock hash - %v vs %v", set[BlockCount-1].ABlock.DatabasePrimaryIndex().String(), ABlockHeadPrimaryIndex)
 	}
 	if set[BlockCount-1].ABlock.DatabaseSecondaryIndex().String() != ABlockHeadSecondaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ABlock.DatabaseSecondaryIndex().String(), ABlockHeadSecondaryIndex)
+		t.Errorf("Wrong ablock hash - %v vs %v", set[BlockCount-1].ABlock.DatabaseSecondaryIndex().String(), ABlockHeadSecondaryIndex)
 	}
 
 	if set[BlockCount-1].ECBlock.DatabasePrimaryIndex().String() != ECBlockHeadPrimaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ECBlock.DatabasePrimaryIndex().String(), ECBlockHeadPrimaryIndex)
+		t.Errorf("Wrong ecblock hash - %v vs %v", set[BlockCount-1].ECBlock.DatabasePrimaryIndex().String(), ECBlockHeadPrimaryIndex)
 	}
 	if set[BlockCount-1].ECBlock.DatabaseSecondaryIndex().String() != ECBlockHeadSecondaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].ECBlock.DatabaseSecondaryIndex().String(), ECBlockHeadSecondaryIndex)
+		t.Errorf("Wrong ecblock hash - %v vs %v", set[BlockCount-1].ECBlock.DatabaseSecondaryIndex().String(), ECBlockHeadSecondaryIndex)
 	}
 
 	if set[BlockCount-1].FBlock.DatabasePrimaryIndex().String() != FBlockHeadPrimaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].FBlock.DatabasePrimaryIndex().String(), FBlockHeadPrimaryIndex)
+		t.Errorf("Wrong fblock hash - %v vs %v", set[BlockCount-1].FBlock.DatabasePrimaryIndex().String(), FBlockHeadPrimaryIndex)
 	}
 	if set[BlockCount-1].FBlock.DatabaseSecondaryIndex().String() != FBlockHeadSecondaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].FBlock.DatabaseSecondaryIndex().String(), FBlockHeadSecondaryIndex)
+		t.Errorf("Wrong fblock hash - %v vs %v", set[BlockCount-1].FBlock.DatabaseSecondaryIndex().String(), FBlockHeadSecondaryIndex)
 	}
 
 	if set[BlockCount-1].EBlock.GetChainID().String() != EBlockHeadPrimaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].EBlock.GetChainID().String(), EBlockHeadPrimaryIndex)
+		t.Errorf("Wrong eblock hash - %v vs %v", set[BlockCount-1].EBlock.GetChainID().String(), EBlockHeadPrimaryIndex)
 	}
 	if set[BlockCount-1].EBlock.DatabasePrimaryIndex().String() != EBlockHeadSecondaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].EBlock.DatabasePrimaryIndex().String(), EBlockHeadSecondaryIndex)
+		t.Errorf("Wrong eblock hash - %v vs %v", set[BlockCount-1].EBlock.DatabasePrimaryIndex().String(), EBlockHeadSecondaryIndex)
 	}
 
 	if set[BlockCount-1].AnchorEBlock.GetChainID().String() != AnchorBlockHeadPrimaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].AnchorEBlock.GetChainID().String(), AnchorBlockHeadPrimaryIndex)
+		t.Errorf("Wrong anblock hash - %v vs %v", set[BlockCount-1].AnchorEBlock.GetChainID().String(), AnchorBlockHeadPrimaryIndex)
 	}
 	if set[BlockCount-1].AnchorEBlock.DatabasePrimaryIndex().String() != AnchorBlockHeadSecondaryIndex {
-		t.Errorf("Wrong block hash - %v vs %v", set[BlockCount-1].AnchorEBlock.DatabasePrimaryIndex().String(), AnchorBlockHeadSecondaryIndex)
+		t.Errorf("Wrong anblock hash - %v vs %v", set[BlockCount-1].AnchorEBlock.DatabasePrimaryIndex().String(), AnchorBlockHeadSecondaryIndex)
 	}
 }
 

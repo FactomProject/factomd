@@ -10,10 +10,14 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/log"
+
+	log "github.com/FactomProject/logrus"
 )
 
 var _ = log.Printf
+
+// eLogger is for EOM Messages and extends packageLogger
+var eLogger = packageLogger.WithFields(log.Fields{"message": "EOM"})
 
 type EOM struct {
 	MessageBase
@@ -133,12 +137,23 @@ func (m *EOM) Validate(state interfaces.IState) int {
 
 	// Check signature
 	eomSigned, err := m.VerifySignature()
-	if err != nil {
+	if err != nil || !eomSigned {
+		vlog := func(format string, args ...interface{}) {
+			eLogger.WithFields(log.Fields{"func": "Validate", "lheight": state.GetLeaderHeight()}).WithFields(m.LogFields()).Errorf(format, args...)
+		}
+
+		if err != nil {
+			vlog("[1] Failed to verify signature. Err: %s -- Msg: %s", err.Error(), m.String())
+		}
+		if !eomSigned {
+			vlog("[1] Failed to verify, not signed. Msg: %s", m.String())
+		}
 		return -1
 	}
-	if !eomSigned {
-		return -1
-	}
+	// if !eomSigned {
+	// 	state.Logf("warning", "[EOM Validate (2)] Failed to verify signature. Msg: %s", err.Error(), m.String())
+	// 	return -1
+	// }
 	return 1
 }
 
@@ -339,4 +354,10 @@ func (m *EOM) String() string {
 		m.ChainID.Bytes()[:4],
 		m.GetMsgHash().Bytes()[:3],
 		local)
+}
+
+func (m *EOM) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "eom", "dbheight": m.DBHeight, "vm": m.VMIndex,
+		"minute": m.Minute, "chainid": m.ChainID.String()[4:12], "sysheight": m.SysHeight,
+		"hash": m.GetMsgHash().String()[:6]}
 }

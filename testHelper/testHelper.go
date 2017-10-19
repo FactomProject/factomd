@@ -29,6 +29,7 @@ func CreateEmptyTestState() *state.State {
 	s := new(state.State)
 	s.LoadConfig("", "")
 	s.Network = "LOCAL"
+	s.LogPath = "stdout"
 	s.Init()
 	s.Network = "LOCAL"
 	state.LoadDatabase(s)
@@ -36,6 +37,23 @@ func CreateEmptyTestState() *state.State {
 }
 
 func CreateAndPopulateTestState() *state.State {
+	s := createAndPopulateTestState()
+	go s.ValidatorLoop()
+	time.Sleep(30 * time.Millisecond)
+
+	return s
+}
+
+func CreatePopulateAndExecuteTestState() *state.State {
+	s := createAndPopulateTestState()
+	ExecuteAllBlocksFromDatabases(s)
+	go s.ValidatorLoop()
+	time.Sleep(30 * time.Millisecond)
+
+	return s
+}
+
+func createAndPopulateTestState() *state.State {
 	s := new(state.State)
 	s.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 	s.DB = CreateAndPopulateTestDatabaseOverlay()
@@ -50,6 +68,7 @@ func CreateAndPopulateTestState() *state.State {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "port", s.PortNumber))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", s.DirectoryBlockInSeconds))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "Network", s.Network))
+	s.LogPath = "stdout"
 
 	s.Init()
 	s.Network = "LOCAL"
@@ -60,10 +79,66 @@ func CreateAndPopulateTestState() *state.State {
 	s.SetFactoshisPerEC(1)
 	state.LoadDatabase(s)
 	s.UpdateState()
-	go s.ValidatorLoop()
-	time.Sleep(30 * time.Millisecond)
 
 	return s
+}
+
+func GetAllDBStateMsgsFromDatabase(s *state.State) []interfaces.IMsg {
+	timestamp := primitives.NewTimestampNow()
+	i := uint32(0)
+	var msgs []interfaces.IMsg
+	for {
+		timestamp.SetTimeSeconds(timestamp.GetTimeSeconds() + 60)
+
+		d, err := s.DB.FetchDBlockByHeight(i)
+		if err != nil || d == nil {
+			break
+		}
+
+		a, err := s.DB.FetchABlockByHeight(i)
+		if err != nil || a == nil {
+			break
+		}
+		f, err := s.DB.FetchFBlockByHeight(i)
+		if err != nil || f == nil {
+			break
+		}
+		ec, err := s.DB.FetchECBlockByHeight(i)
+		if err != nil || ec == nil {
+			break
+		}
+
+		var eblocks []interfaces.IEntryBlock
+		var entries []interfaces.IEBEntry
+
+		ebs := d.GetEBlockDBEntries()
+		for _, eb := range ebs {
+			eblock, _ := s.DB.FetchEBlock(eb.GetKeyMR())
+			if eblock != nil {
+				eblocks = append(eblocks, eblock)
+				for _, e := range eblock.GetEntryHashes() {
+					ent, _ := s.DB.FetchEntry(e)
+					if ent != nil {
+						entries = append(entries, ent)
+					}
+				}
+			}
+		}
+
+		dbs := messages.NewDBStateMsg(timestamp, d, a, f, ec, eblocks, entries, nil)
+		i++
+		msgs = append(msgs, dbs)
+	}
+	return msgs
+}
+
+func ExecuteAllBlocksFromDatabases(s *state.State) {
+	msgs := GetAllDBStateMsgsFromDatabase(s)
+	for _, dbs := range msgs {
+		dbs.(*messages.DBStateMsg).IgnoreSigs = true
+
+		s.FollowerExecuteDBState(dbs)
+	}
 }
 
 func CreateTestDBStateList() []interfaces.IMsg {
@@ -284,88 +359,4 @@ func CreateTestBlockSetWithNetworkID(prev *BlockSet, networkID uint32, transacti
 
 func CreateEmptyTestDatabaseOverlay() *databaseOverlay.Overlay {
 	return databaseOverlay.NewOverlay(new(mapdb.MapDB))
-}
-
-func CreateTestAdminBlock(prev *adminBlock.AdminBlock) *adminBlock.AdminBlock {
-	block := new(adminBlock.AdminBlock)
-	block.SetHeader(CreateTestAdminHeader(prev))
-	block.GetHeader().SetMessageCount(uint32(len(block.GetABEntries())))
-	return block
-}
-
-func CreateTestAdminHeader(prev *adminBlock.AdminBlock) *adminBlock.ABlockHeader {
-	header := new(adminBlock.ABlockHeader)
-
-	if prev == nil {
-		header.PrevBackRefHash = primitives.NewZeroHash()
-		header.DBHeight = 0
-	} else {
-		keyMR, err := prev.GetKeyMR()
-		if err != nil {
-			panic(err)
-		}
-		header.PrevBackRefHash = keyMR
-		header.DBHeight = prev.Header.GetDBHeight() + 1
-	}
-
-	header.HeaderExpansionSize = 5
-	header.HeaderExpansionArea = []byte{0x00, 0x01, 0x02, 0x03, 0x04}
-	header.MessageCount = 0
-	header.BodySize = 0
-
-	return header
-}
-
-func CreateTestDirectoryBlock(prevBlock *directoryBlock.DirectoryBlock) *directoryBlock.DirectoryBlock {
-	return CreateTestDirectoryBlockWithNetworkID(prevBlock, constants.LOCAL_NETWORK_ID)
-}
-
-func CreateTestDirectoryBlockWithNetworkID(prevBlock *directoryBlock.DirectoryBlock, networkID uint32) *directoryBlock.DirectoryBlock {
-	dblock := new(directoryBlock.DirectoryBlock)
-
-	dblock.SetHeader(CreateTestDirectoryBlockHeaderWithNetworkID(prevBlock, networkID))
-
-	de := new(directoryBlock.DBEntry)
-	de.ChainID = primitives.NewZeroHash()
-	de.KeyMR = primitives.NewZeroHash()
-
-	err := dblock.SetDBEntries(append(make([]interfaces.IDBEntry, 0, 5), de))
-	if err != nil {
-		panic(err)
-	}
-	//dblock.GetHeader().SetBlockCount(uint32(len(dblock.GetDBEntries())))
-
-	return dblock
-}
-
-func CreateTestDirectoryBlockHeader(prevBlock *directoryBlock.DirectoryBlock) *directoryBlock.DBlockHeader {
-	return CreateTestDirectoryBlockHeaderWithNetworkID(prevBlock, constants.LOCAL_NETWORK_ID)
-}
-
-func CreateTestDirectoryBlockHeaderWithNetworkID(prevBlock *directoryBlock.DirectoryBlock, networkID uint32) *directoryBlock.DBlockHeader {
-	header := new(directoryBlock.DBlockHeader)
-
-	header.SetBodyMR(primitives.Sha(primitives.NewZeroHash().Bytes()))
-	header.SetBlockCount(0)
-	header.SetNetworkID(networkID)
-
-	if prevBlock == nil {
-		header.SetDBHeight(0)
-		header.SetPrevFullHash(primitives.NewZeroHash())
-		header.SetPrevKeyMR(primitives.NewZeroHash())
-		header.SetTimestamp(primitives.NewTimestampFromMinutes(1234))
-	} else {
-		header.SetDBHeight(prevBlock.Header.GetDBHeight() + 1)
-		header.SetPrevFullHash(prevBlock.GetHash())
-		keyMR, err := prevBlock.BuildKeyMerkleRoot()
-		if err != nil {
-			panic(err)
-		}
-		header.SetPrevKeyMR(keyMR)
-		header.SetTimestamp(primitives.NewTimestampFromMinutes(prevBlock.Header.GetTimestamp().GetTimeMinutesUInt32() + 1))
-	}
-
-	header.SetVersion(1)
-
-	return header
 }

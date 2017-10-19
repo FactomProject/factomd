@@ -2,6 +2,8 @@ package engine
 
 import (
 	"flag"
+	"os"
+
 	"github.com/FactomProject/factomd/common/primitives"
 )
 
@@ -35,7 +37,7 @@ type FactomParams struct {
 	rotate                   bool
 	timeOffset               int
 	keepMismatch             bool
-	startDelay               int64
+	StartDelay               int64
 	deadline                 int
 	customNet                []byte
 	rpcUser                  string
@@ -45,6 +47,64 @@ type FactomParams struct {
 	memProfileRate           int
 	fast                     bool
 	fastLocation             string
+	loglvl                   string
+	logjson                  bool
+	svm                      bool
+	pluginPath               string
+	torManage                bool
+	torUpload                bool
+	Sim_Stdin                bool
+	exposeProfiling          bool
+}
+
+func (f *FactomParams) Init() {
+	f.AckbalanceHash = true
+	f.EnableNet = true
+	f.WaitEntries = false
+	f.ListenTo = 0
+	f.Cnt = 1
+	f.Net = "tree"
+	f.Fnet = ""
+	f.DropRate = 0
+	f.Journal = ""
+	f.Journaling = false
+	f.Follower = false
+	f.Leader = true
+	f.Db = ""
+	f.CloneDB = ""
+	f.PortOverride = 0
+	f.Peers = ""
+	f.NetworkName = ""
+	f.NetworkPortOverride = 0
+	f.ControlPanelPortOverride = 0
+	f.LogPort = "6060"
+	f.BlkTime = 0
+	f.FaultTimeout = 60
+	f.RuntimeLog = false
+	f.Netdebug = 0
+	f.Exclusive = false
+	f.prefix = ""
+	f.rotate = false
+	f.timeOffset = 0
+	f.keepMismatch = false
+	f.StartDelay = 10
+	f.deadline = 1000
+	f.customNet = primitives.Sha([]byte("")).Bytes()[:4]
+	f.rpcUser = ""
+	f.rpcPassword = ""
+	f.factomdTLS = false
+	f.factomdLocations = ""
+	f.memProfileRate = 512 * 1024
+	f.fast = true
+	f.fastLocation = ""
+	f.loglvl = "node"
+	f.logjson = false
+	f.svm = false
+	f.pluginPath = ""
+	f.torManage = false
+	f.torUpload = false
+	f.Sim_Stdin = true
+	f.exposeProfiling = false
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -83,6 +143,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	factomdTLSflag := flag.Bool("tls", false, "Set to true to require encrypted connections to factomd API and Control Panel") //to get tls, run as "factomd -tls=true"
 	factomdLocationsflag := flag.String("selfaddr", "", "comma seperated IPAddresses and DNS names of this factomd to use when creating a cert file")
 	memProfileRate := flag.Int("mpr", 512*1024, "Set the Memory Profile Rate to update profiling per X bytes allocated. Default 512K, set to 1 to profile everything, 0 to disable.")
+	exposeProfilePtr := flag.Bool("exposeprofiler", false, "Setting this exposes the profiling port to outside localhost.")
+	factomHomePtr := flag.String("factomhome", "", "Set the factom home directory. The .factom folder will be placed here if set, otherwise it will default to $HOME")
 
 	logportPtr := flag.String("logPort", "6060", "Port for pprof logging")
 	portOverridePtr := flag.Int("port", 0, "Port where we serve WSAPI;  default 8088")
@@ -91,6 +153,20 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	fastPtr := flag.Bool("fast", true, "If true, factomd will fast-boot from a file.")
 	fastLocationPtr := flag.String("fastlocation", "", "Directory to put the fast-boot file in.")
+
+	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
+	logJsonPtr := flag.Bool("logjson", false, "Use to set logging to use a json formatting")
+
+	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
+
+	sim_stdinPtr := flag.Bool("sim_stdin", true, "If true, sim control reads from stdin.")
+
+	// Plugins
+	pluginPath := flag.String("plugin", "", "Input the path to any plugin binaries")
+
+	// 	Torrent Plugin
+	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
+	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
 
 	flag.CommandLine.Parse(args)
 
@@ -123,7 +199,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.rotate = *rotatePtr
 	p.timeOffset = *timeOffsetPtr
 	p.keepMismatch = *keepMismatchPtr
-	p.startDelay = int64(*startDelayPtr)
+	p.StartDelay = int64(*startDelayPtr)
 	p.deadline = *deadlinePtr
 	p.customNet = primitives.Sha([]byte(*customNetPtr)).Bytes()[:4]
 	p.rpcUser = *rpcUserflag
@@ -133,5 +209,19 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.memProfileRate = *memProfileRate
 	p.fast = *fastPtr
 	p.fastLocation = *fastLocationPtr
+	p.loglvl = *logLvlPtr
+	p.logjson = *logJsonPtr
+	p.Sim_Stdin = *sim_stdinPtr
+	p.exposeProfiling = *exposeProfilePtr
+
+	p.svm = *superVerboseMessages
+	p.pluginPath = *pluginPath
+	p.torManage = *tormanager
+	p.torUpload = *torUploader
+
+	if *factomHomePtr != "" {
+		os.Setenv("FACTOM_HOME", *factomHomePtr)
+	}
+
 	return p
 }
