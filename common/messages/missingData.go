@@ -146,7 +146,8 @@ func (m *MissingData) Validate(state interfaces.IState) int {
 	return 1
 }
 
-func (m *MissingData) ComputeVMIndex(state interfaces.IState) {
+func (m *MissingData) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 func (m *MissingData) LeaderExecute(state interfaces.IState) {

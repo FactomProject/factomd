@@ -25,17 +25,12 @@ type MessageBase struct {
 	LeaderChainID interfaces.IHash
 	MsgHash       interfaces.IHash // Cache of the hash of a message
 	RepeatHash    interfaces.IHash // Cache of the hash of a message
-	VMIndex       int              // The Index of the VM responsible for this message.
 	VMHash        []byte           // Basis for selecting a VMIndex
 	Minute        byte
 	resend        int64 // Time to resend (milliseconds)
 	expire        int64 // Time to expire (milliseconds)
 
-	Ack interfaces.IMsg
-
-	Stalled     bool // This message is currently stalled
-	MarkInvalid bool
-	Sigvalid    bool
+	Sigvalid bool
 }
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
@@ -43,14 +38,6 @@ func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 		state.NetworkOutMsgQueue().Enqueue(msg)
 		time.Sleep(time.Duration(delay) * time.Second)
 	}
-}
-
-func (m *MessageBase) GetAck() interfaces.IMsg {
-	return m.Ack
-}
-
-func (m *MessageBase) PutAck(ack interfaces.IMsg) {
-	m.Ack = ack
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
@@ -95,16 +82,6 @@ func (m *MessageBase) SetValid() {
 	m.Sigvalid = true
 }
 
-// To suppress how many messages are sent to the NetworkInvalid Queue, we mark them, and only
-// send them once.
-func (m *MessageBase) MarkSentInvalid(b bool) {
-	m.MarkInvalid = b
-}
-
-func (m *MessageBase) SentInvalid() bool {
-	return m.MarkInvalid
-}
-
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
 func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 	now := s.GetTimestamp().GetTimeMilli()
@@ -129,13 +106,6 @@ func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
 		rtn = true
 	}
 	return
-}
-
-func (m *MessageBase) IsStalled() bool {
-	return m.Stalled
-}
-func (m *MessageBase) SetStall(b bool) {
-	m.Stalled = b
 }
 
 func (m *MessageBase) GetFullMsgHash() interfaces.IHash {
@@ -194,6 +164,7 @@ func (m *MessageBase) SetLeaderChainID(hash interfaces.IHash) {
 	m.LeaderChainID = hash
 }
 
+/*
 func (m *MessageBase) GetVMIndex() (index int) {
 	index = m.VMIndex
 	return
@@ -202,6 +173,7 @@ func (m *MessageBase) GetVMIndex() (index int) {
 func (m *MessageBase) SetVMIndex(index int) {
 	m.VMIndex = index
 }
+*/
 
 func (m *MessageBase) GetVMHash() []byte {
 	return m.VMHash

@@ -79,8 +79,8 @@ func (m *AddServerMsg) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *AddServerMsg) ComputeVMIndex(state interfaces.IState) {
-	m.VMIndex = state.ComputeVMIndex(constants.ADMIN_CHAINID)
+func (m *AddServerMsg) ComputeVMIndex(state interfaces.IState) int {
+	return state.ComputeVMIndex(constants.ADMIN_CHAINID)
 }
 
 // Execute the leader functions of the given message

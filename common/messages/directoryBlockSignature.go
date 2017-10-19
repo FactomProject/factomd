@@ -23,6 +23,7 @@ type DirectoryBlockSignature struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 	DBHeight  uint32
+	VMIndex   int // The Index of the VM responsible for this message.
 	//DirectoryBlockKeyMR   interfaces.IHash
 	DirectoryBlockHeader  interfaces.IDirectoryBlockHeader
 	ServerIdentityChainID interfaces.IHash
@@ -42,6 +43,14 @@ type DirectoryBlockSignature struct {
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
 var _ Signable = (*DirectoryBlockSignature)(nil)
+
+func (a *DirectoryBlockSignature) SetVMIndex(index int) {
+	a.VMIndex = index
+}
+
+func (a *DirectoryBlockSignature) GetVMIndex() int {
+	return a.VMIndex
+}
 
 func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	if b == nil {
@@ -189,7 +198,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *DirectoryBlockSignature) ComputeVMIndex(state interfaces.IState) {
+func (m *DirectoryBlockSignature) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

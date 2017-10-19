@@ -18,9 +18,6 @@ type IMsg interface {
 	Printable
 	BinaryMarshallable
 
-	GetAck() IMsg
-	PutAck(IMsg)
-
 	// Returns a byte indicating the type of message.
 	Type() byte
 
@@ -69,7 +66,7 @@ type IMsg interface {
 	Validate(IState) int
 
 	//Set the VMIndex for a message
-	ComputeVMIndex(IState)
+	ComputeVMIndex(IState) int
 
 	// Call here if the server is a leader
 	LeaderExecute(IState)
@@ -97,19 +94,13 @@ type IMsg interface {
 
 	// Some Messages need to be processed on certain VMs.  We set this and querry
 	// the indexes of these machines here.
-	GetVMIndex() int
-	SetVMIndex(int)
+	//GetVMIndex() int
+	//SetVMIndex(int)
 	GetVMHash() []byte
 	SetVMHash([]byte)
 	GetMinute() byte
 	SetMinute(byte)
 
-	// Stall handling
-	MarkSentInvalid(bool)
-	SentInvalid() bool
-
-	IsStalled() bool
-	SetStall(bool)
 	Resend(IState) bool
 	Expire(IState) bool
 

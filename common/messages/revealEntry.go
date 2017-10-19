@@ -168,8 +168,8 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *RevealEntryMsg) ComputeVMIndex(state interfaces.IState) {
-	m.VMIndex = state.ComputeVMIndex(m.Entry.GetChainID().Bytes())
+func (m *RevealEntryMsg) ComputeVMIndex(state interfaces.IState) int {
+	return state.ComputeVMIndex(m.Entry.GetChainID().Bytes())
 }
 
 // Execute the leader functions of the given message
@@ -252,9 +252,8 @@ func (m *RevealEntryMsg) String() string {
 	if m.GetLeaderChainID() == nil {
 		m.SetLeaderChainID(primitives.NewZeroHash())
 	}
-	str := fmt.Sprintf("%6s-VM%3d: Min:%4d          -- Leader[%x] Entry[%x] ChainID[%x] hash[%x]",
+	str := fmt.Sprintf("%6s: Min:%4d          -- Leader[%x] Entry[%x] ChainID[%x] hash[%x]",
 		"REntry",
-		m.VMIndex,
 		m.Minute,
 		m.GetLeaderChainID().Bytes()[:5],
 		m.Entry.GetHash().Bytes()[:3],
@@ -266,7 +265,6 @@ func (m *RevealEntryMsg) String() string {
 
 func (m *RevealEntryMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "revealentry",
-		"vm":         m.VMIndex,
 		"minute":     m.Minute,
 		"leaderid":   m.GetLeaderChainID().String()[4:10],
 		"entryhash":  m.Entry.GetHash().String()[:6],

@@ -24,6 +24,7 @@ type EOM struct {
 	MessageBase
 	Timestamp interfaces.Timestamp
 	Minute    byte
+	VMIndex   int // The Index of the VM responsible for this message.
 
 	DBHeight  uint32
 	SysHeight uint32
@@ -40,6 +41,10 @@ type EOM struct {
 //var _ interfaces.IConfirmation = (*EOM)(nil)
 var _ Signable = (*EOM)(nil)
 var _ interfaces.IMsg = (*EOM)(nil)
+
+func (a *EOM) GetVMIndex() int {
+	return a.VMIndex
+}
 
 func (a *EOM) IsSameAs(b *EOM) bool {
 	if b == nil {
@@ -160,7 +165,8 @@ func (m *EOM) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *EOM) ComputeVMIndex(state interfaces.IState) {
+func (m *EOM) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

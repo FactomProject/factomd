@@ -45,7 +45,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		return
 	}
 	s.SetString()
-	msg.ComputeVMIndex(s)
+	vmIndex := msg.ComputeVMIndex(s)
 
 	if s.IgnoreMissing {
 		now := s.GetTimestamp().GetTimeSeconds()
@@ -61,7 +61,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			!s.Saving &&
 			vm != nil && int(vm.Height) == len(vm.List) &&
 			(!s.Syncing || !vm.Synced) &&
-			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
+			(msg.IsLocal() || vmIndex == s.LeaderVMIndex) &&
 			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
@@ -82,10 +82,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
-		if !msg.SentInvalid() {
-			msg.MarkSentInvalid(true)
-			s.networkInvalidMsgQueue <- msg
-		}
 	}
 
 	executeMsgTime := time.Since(preExecuteMsgTime)
@@ -1356,7 +1352,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+	vm := s.ProcessLists.Get(dbheight).VMs[e.GetVMIndex()]
 
 	if uint32(pl.System.Height) >= e.SysHeight {
 		s.EOMSys = true
@@ -1415,7 +1411,7 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		s.EOMProcessed++
 		//fmt.Println(fmt.Sprintf("EOM PROCESS: %10s vm %2d EOMProcessed++ (%2d)", s.FactomNodeName, e.VMIndex, s.EOMProcessed))
 		vm.Synced = true
-		markNoFault(pl, msg.GetVMIndex())
+		markNoFault(pl, e.GetVMIndex())
 		if s.LeaderPL.SysHighest < int(e.SysHeight) {
 			s.LeaderPL.SysHighest = int(e.SysHeight)
 		}
@@ -1593,7 +1589,7 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 	}
 
 	pl := s.ProcessLists.Get(dbheight)
-	vm := s.ProcessLists.Get(dbheight).VMs[msg.GetVMIndex()]
+	vm := s.ProcessLists.Get(dbheight).VMs[dbs.GetVMIndex()]
 
 	if uint32(pl.System.Height) >= dbs.SysHeight {
 		s.DBSigSys = true
@@ -2231,7 +2227,7 @@ func (s *State) GetNewHash() interfaces.IHash {
 // call assumes all the pieces are in place to create a new acknowledgement
 func (s *State) NewAck(msg interfaces.IMsg, balanceHash interfaces.IHash) interfaces.IMsg {
 
-	vmIndex := msg.GetVMIndex()
+	vmIndex := msg.ComputeVMIndex(s)
 
 	msg.SetLeaderChainID(s.IdentityChainID)
 	ack := new(messages.Ack)

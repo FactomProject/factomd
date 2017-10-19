@@ -194,7 +194,8 @@ func (m *EOMTimeout) Validate(state interfaces.IState) int {
 	return 0
 }
 
-func (m *EOMTimeout) ComputeVMIndex(state interfaces.IState) {
+func (m *EOMTimeout) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

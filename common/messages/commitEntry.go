@@ -190,16 +190,15 @@ func (m *CommitEntryMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	str := fmt.Sprintf("%6s-VM%3d:                 -- EntryHash[%x] Hash[%x]",
+	str := fmt.Sprintf("%6s:                 -- EntryHash[%x] Hash[%x]",
 		"CEntry",
-		m.VMIndex,
 		m.CommitEntry.GetEntryHash().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 	return str
 }
 
 func (m *CommitEntryMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "commitentry", "vmindex": m.VMIndex,
+	return log.Fields{"category": "message", "messagetype": "commitentry",
 		"server":      m.LeaderChainID.String()[4:12],
 		"commitchain": m.CommitEntry.GetEntryHash().String()[:6],
 		"hash":        m.GetHash().String()[:6]}
@@ -222,8 +221,8 @@ func (m *CommitEntryMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-func (m *CommitEntryMsg) ComputeVMIndex(state interfaces.IState) {
-	m.VMIndex = state.ComputeVMIndex(constants.EC_CHAINID)
+func (m *CommitEntryMsg) ComputeVMIndex(state interfaces.IState) int {
+	return state.ComputeVMIndex(constants.EC_CHAINID)
 }
 
 // Execute the leader functions of the given message

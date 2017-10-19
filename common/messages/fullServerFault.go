@@ -58,6 +58,10 @@ type SigList struct {
 var _ interfaces.IMsg = (*FullServerFault)(nil)
 var _ Signable = (*FullServerFault)(nil)
 
+func (a *FullServerFault) GetVMIndex() int {
+	return int(a.VMIndex)
+}
+
 func (m *FullServerFault) GetAmINegotiator() bool {
 	return m.AmINegotiator
 }
@@ -601,7 +605,8 @@ func (m *FullServerFault) SigTally(state interfaces.IState) int {
 	return validSigCount
 }
 
-func (m *FullServerFault) ComputeVMIndex(state interfaces.IState) {
+func (m *FullServerFault) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

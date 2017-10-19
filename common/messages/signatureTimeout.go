@@ -198,7 +198,8 @@ func (m *SignatureTimeout) Validate(state interfaces.IState) int {
 	return 0
 }
 
-func (m *SignatureTimeout) ComputeVMIndex(state interfaces.IState) {
+func (m *SignatureTimeout) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 func (m *SignatureTimeout) LeaderExecute(state interfaces.IState) {

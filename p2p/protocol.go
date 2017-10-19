@@ -176,7 +176,7 @@ func logP(level uint8, component string, format string, v ...interface{}) {
 
 	now := time.Now().Format("2006-01-02 15:04:05")
 	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
-		fmt.Printf("%s, %s, %s \n", now, component, message)
+		//fmt.Printf("%s, %s, %s \n", now, component, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {

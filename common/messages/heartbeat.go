@@ -216,7 +216,6 @@ func (m *Heartbeat) String() string {
 
 func (m *Heartbeat) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "heartbeat",
-		"vm":        m.VMIndex,
 		"dbheight":  m.DBHeight,
 		"server":    m.IdentityChainID.String()[4:10],
 		"timestamp": m.Timestamp.GetTimeSeconds()}
@@ -271,7 +270,8 @@ func (m *Heartbeat) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *Heartbeat) ComputeVMIndex(state interfaces.IState) {
+func (m *Heartbeat) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

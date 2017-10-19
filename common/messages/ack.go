@@ -18,6 +18,7 @@ import (
 //General acknowledge message
 type Ack struct {
 	MessageBase
+	VMIndex     int                  // The Index of the VM responsible for this message.
 	Timestamp   interfaces.Timestamp // Timestamp of Ack by Leader
 	Salt        [8]byte              // Eight bytes of the salt
 	SaltNumber  uint32               // Secret Number used to detect multiple servers with the same ID
@@ -115,7 +116,8 @@ func (m *Ack) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *Ack) ComputeVMIndex(state interfaces.IState) {
+func (m *Ack) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

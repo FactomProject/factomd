@@ -112,8 +112,8 @@ func (m *FactoidTransaction) Validate(state interfaces.IState) int {
 	return 1
 }
 
-func (m *FactoidTransaction) ComputeVMIndex(state interfaces.IState) {
-	m.VMIndex = state.ComputeVMIndex(constants.FACTOID_CHAINID)
+func (m *FactoidTransaction) ComputeVMIndex(state interfaces.IState) int {
+	return state.ComputeVMIndex(constants.FACTOID_CHAINID)
 }
 
 // Execute the leader functions of the given message
@@ -194,15 +194,13 @@ func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (m *FactoidTransaction) String() string {
-	return fmt.Sprintf("Factoid VM %d Leader %x GetHash %x",
-		m.VMIndex,
+	return fmt.Sprintf("Factoid Leader %x GetHash %x",
 		m.GetLeaderChainID().Bytes()[:3],
 		m.GetHash().Bytes()[:3])
 }
 
 func (m *FactoidTransaction) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "factoidtx",
-		"vm":      m.VMIndex,
 		"chainid": m.GetLeaderChainID().String()[4:12],
 		"hash":    m.GetHash().String()[:6]}
 }

@@ -490,7 +490,9 @@ func (m *DBStateMsg) checkpointFix() int {
 	return returnAmt
 }
 
-func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) {}
+func (m *DBStateMsg) ComputeVMIndex(state interfaces.IState) int {
+	return 0
+}
 
 // Execute the leader functions of the given message
 func (m *DBStateMsg) LeaderExecute(state interfaces.IState) {

@@ -286,7 +286,8 @@ func (m *ServerFault) Validate(state interfaces.IState) int {
 	return 1
 }
 
-func (m *ServerFault) ComputeVMIndex(state interfaces.IState) {
+func (m *ServerFault) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

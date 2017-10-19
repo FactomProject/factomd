@@ -189,7 +189,7 @@ func (m *MissingMsgResponse) String() string {
 
 func (m *MissingMsgResponse) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "missingmsgresponse",
-		"ackhash": m.Ack.GetMsgHash().String()[:10],
+		"ackhash": m.AckResponse.GetMsgHash().String()[:10],
 		"msghash": m.MsgResponse.GetMsgHash().String()[:10]}
 }
 
@@ -215,7 +215,8 @@ func (m *MissingMsgResponse) Validate(state interfaces.IState) int {
 	return 1
 }
 
-func (m *MissingMsgResponse) ComputeVMIndex(state interfaces.IState) {
+func (m *MissingMsgResponse) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 func (m *MissingMsgResponse) LeaderExecute(state interfaces.IState) {

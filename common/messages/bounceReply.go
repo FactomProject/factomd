@@ -77,7 +77,8 @@ func (m *BounceReply) Validate(state interfaces.IState) int {
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *BounceReply) ComputeVMIndex(state interfaces.IState) {
+func (m *BounceReply) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 // Execute the leader functions of the given message

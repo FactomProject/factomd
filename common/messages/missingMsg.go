@@ -21,6 +21,7 @@ type MissingMsg struct {
 
 	Timestamp         interfaces.Timestamp
 	Asking            interfaces.IHash
+	VMIndex           int // The Index of the VM responsible for this message.
 	DBHeight          uint32
 	SystemHeight      uint32 // Might as well check for a missing Server Fault
 	ProcessListHeight []uint32
@@ -225,7 +226,8 @@ func (m *MissingMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
-func (m *MissingMsg) ComputeVMIndex(state interfaces.IState) {
+func (m *MissingMsg) ComputeVMIndex(state interfaces.IState) int {
+	return 0
 }
 
 func (m *MissingMsg) LeaderExecute(state interfaces.IState) {
