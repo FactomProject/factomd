@@ -188,14 +188,25 @@ func (m *MissingMsgResponse) String() string {
 }
 
 func (m *MissingMsgResponse) LogFields() log.Fields {
-	if m != nil {
-		return log.Fields{"category": "message", "messagetype": "missingmsgresponse",
-			"ackhash": m.Ack.GetMsgHash().String(),
-			"msghash": m.MsgResponse.GetMsgHash().String()}
-	} else {
+	if m == nil {
 		return log.Fields{"category": "message", "messagetype": "missingmsgresponse",
 			"ackhash": "nil",
 			"msghash": "nil"}
+	} else {
+		var ahash, mshash string
+		if m.Ack != nil {
+			ahash = m.Ack.GetMsgHash().String()
+		}else {
+			ahash = "nil"
+		}
+		if m.MsgResponse != nil {
+			mshash = m.MsgResponse.GetMsgHash().String()
+		}else {
+			mshash = "nil"
+		}
+		return log.Fields{"category": "message", "messagetype": "missingmsgresponse",
+			"ackhash": ahash,
+			"msghash": mshash}
 	}
 }
 
