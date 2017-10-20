@@ -1217,8 +1217,21 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 				d.DirectoryBlock.GetHeader().GetDBHeight(),
 				d.DirectoryBlock.GetKeyMR().Bytes()))
 		}
+
+		// Set the Block Replay flag for all these transactions that are already in the database.
+		for _, fct := range d.FactoidBlock.GetTransactions() {
+			list.State.FReplay.IsTSValid_(
+				constants.BLOCK_REPLAY,
+				fct.GetSigHash().Fixed(),
+				fct.GetTimestamp(),
+				d.DirectoryBlock.GetHeader().GetTimestamp())
+		}
+
 		return
 	}
+
+	// Past this point, we cannot Return without recording the transactions in the dbstate.  This is because we
+	// have marked them all as saved to disk!  So we gotta save them to disk.  Or panic trying.
 
 	// Only trim when we are really saving.
 	v := dbheight + int(list.State.IdentityChainID.Bytes()[4])
@@ -1336,15 +1349,6 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		panic(err.Error())
 	}
 
-	// Set the Block Replay flag for all these transactions we are saving to the database.
-	for _, fct := range d.FactoidBlock.GetTransactions() {
-		list.State.FReplay.IsTSValid_(
-			constants.BLOCK_REPLAY,
-			fct.GetSigHash().Fixed(),
-			fct.GetTimestamp(),
-			d.DirectoryBlock.GetHeader().GetTimestamp())
-	}
-
 	// Not activated.  Set to true if you want extra checking of the data saved to the database.
 	if false {
 		good := true
@@ -1378,6 +1382,15 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 		if !good {
 			return
 		}
+	}
+
+	// Set the Block Replay flag for all these transactions we are saving to the database.
+	for _, fct := range d.FactoidBlock.GetTransactions() {
+		list.State.FReplay.IsTSValid_(
+			constants.BLOCK_REPLAY,
+			fct.GetSigHash().Fixed(),
+			fct.GetTimestamp(),
+			d.DirectoryBlock.GetHeader().GetTimestamp())
 	}
 
 	list.SavedHeight = uint32(dbheight)
