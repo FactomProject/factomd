@@ -7,7 +7,6 @@ package engine
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -17,11 +16,15 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
 
 var ()
+
+var proxyLogger = packageLogger.WithFields(log.Fields{"subpack": "p2p-proxy"})
 
 type P2PProxy struct {
 	// A connection to this node:
@@ -41,8 +44,6 @@ type P2PProxy struct {
 	NumPeers  int
 	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
 	bytesIn   int // bandwidth recieved by application from network
-
-	SuperVerboseMessages bool
 }
 
 type FactomMessage struct {
@@ -110,12 +111,13 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
-		log.Println("ERROR on Send: ", err)
+		proxyLogger.WithField("send-error", err).Error()
+		//log.Println("ERROR on Send: ", err)
 		return err
 	}
-	if f.SuperVerboseMessages {
-		log.Println("SVM Send:", msg.String(), msg.GetHash().String()[:10])
-	}
+
+	proxyLogger.WithFields(msg.LogFields()).WithField("node-name", f.GetNameFrom()).Info("Send Message")
+
 	f.bytesOut += len(data)
 	hash := fmt.Sprintf("%x", msg.GetMsgHash().Bytes())
 	appType := fmt.Sprintf("%d", msg.Type())
@@ -151,13 +153,12 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 
-				if f.SuperVerboseMessages {
-					if err != nil {
-						log.Println("SVM err:", err.Error())
-					} else {
-						log.Println("SVM Receive:", msg.String())
-					}
+				if err != nil {
+					proxyLogger.WithField("receive-error", err).Error()
+				} else {
+					proxyLogger.WithFields(msg.LogFields()).WithField("node-name", f.GetNameFrom()).Info("Receive Message")
 				}
+
 				if nil == err {
 					msg.SetNetworkOrigin(fmessage.PeerHash)
 				}

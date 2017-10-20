@@ -11,7 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //Structure to request missing messages in a node's process list
@@ -135,7 +135,7 @@ func (m *MissingData) String() string {
 
 func (m *MissingData) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "missingdata",
-		"hash": m.GetHash().String()[:6], "requesthash": m.RequestHash.String()}
+		"hash": m.GetHash().String(), "requesthash": m.RequestHash.String()}
 }
 
 // Validate the message, given the state.  Three possible results:

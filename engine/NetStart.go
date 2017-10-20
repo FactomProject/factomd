@@ -25,7 +25,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
@@ -206,6 +206,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p.Net = "file"
 	}
 
+	s.UseLogstash = p.useLogstash
+	s.LogstashURL = p.logstashURL
+
 	go StartProfiler(p.memProfileRate, p.exposeProfiling)
 
 	s.AddPrefix(p.prefix)
@@ -332,11 +335,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-
-		if p.svm {
-			p2pProxy.SuperVerboseMessages = true
-			fnodes[0].State.SuperVerboseMessages = true
-		}
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
 		p2pProxy.SetDebugMode(p.Netdebug)

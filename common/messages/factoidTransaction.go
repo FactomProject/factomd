@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -203,8 +203,8 @@ func (m *FactoidTransaction) String() string {
 func (m *FactoidTransaction) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "factoidtx",
 		"vm":      m.VMIndex,
-		"chainid": m.GetLeaderChainID().String()[4:12],
-		"hash":    m.GetHash().String()[:6]}
+		"chainid": m.GetLeaderChainID().String(),
+		"hash":    m.GetHash().String()}
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

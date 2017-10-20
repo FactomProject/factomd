@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = log.Printf
@@ -334,6 +334,6 @@ func (m *EOM) String() string {
 
 func (m *EOM) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "eom", "dbheight": m.DBHeight, "vm": m.VMIndex,
-		"minute": m.Minute, "chainid": m.ChainID.String()[4:12], "sysheight": m.SysHeight,
-		"hash": m.GetMsgHash().String()[:6]}
+		"minute": m.Minute, "chainid": m.ChainID.String(), "sysheight": m.SysHeight,
+		"hash": m.GetMsgHash().String()}
 }
