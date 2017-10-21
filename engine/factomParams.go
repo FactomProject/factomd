@@ -55,6 +55,8 @@ type FactomParams struct {
 	torUpload                bool
 	Sim_Stdin                bool
 	exposeProfiling          bool
+	useLogstash              bool
+	logstashURL              string
 }
 
 func (f *FactomParams) Init() {
@@ -157,8 +159,6 @@ func ParseCmdLine(args []string) *FactomParams {
 	logLvlPtr := flag.String("loglvl", "none", "Set log level to either: none, debug, info, warning, error, fatal or panic")
 	logJsonPtr := flag.Bool("logjson", false, "Use to set logging to use a json formatting")
 
-	superVerboseMessages := flag.Bool("svm", false, "If true, print out every single message as you receive it.")
-
 	sim_stdinPtr := flag.Bool("sim_stdin", true, "If true, sim control reads from stdin.")
 
 	// Plugins
@@ -167,6 +167,10 @@ func ParseCmdLine(args []string) *FactomParams {
 	// 	Torrent Plugin
 	tormanager := flag.Bool("tormanage", false, "Use torrent dbstate manager. Must have plugin binary installed and in $PATH")
 	torUploader := flag.Bool("torupload", false, "Be a torrent uploader")
+
+	// Logstash connection (if used)
+	logstash := flag.Bool("logstash", false, "If true, use Logstash")
+	logstashURL := flag.String("logurl", "localhost:8345", "Endpoint URL for Logstash")
 
 	flag.CommandLine.Parse(args)
 
@@ -214,10 +218,12 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.Sim_Stdin = *sim_stdinPtr
 	p.exposeProfiling = *exposeProfilePtr
 
-	p.svm = *superVerboseMessages
 	p.pluginPath = *pluginPath
 	p.torManage = *tormanager
 	p.torUpload = *torUploader
+
+	p.useLogstash = *logstash
+	p.logstashURL = *logstashURL
 
 	if *factomHomePtr != "" {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)

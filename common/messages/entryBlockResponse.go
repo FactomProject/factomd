@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //Requests entry blocks from a range of DBlocks
@@ -242,7 +242,7 @@ func (m *EntryBlockResponse) MarshalBinary() ([]byte, error) {
 
 func (m *EntryBlockResponse) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "entryblockresponse",
-		"hash": m.GetMsgHash().String()[:6]}
+		"hash": m.GetMsgHash().String()}
 }
 
 func (m *EntryBlockResponse) String() string {

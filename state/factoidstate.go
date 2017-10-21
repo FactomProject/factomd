@@ -293,8 +293,8 @@ func (fs *FactoidState) UpdateECTransaction(rt bool, trans interfaces.IECBlockEn
 
 // Assumes validation has already been done.
 func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction) error {
-	fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
-	fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+
+	// First check all inputs are good.
 	for _, input := range trans.GetInputs() {
 		adr := input.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)
@@ -302,8 +302,18 @@ func (fs *FactoidState) UpdateTransaction(rt bool, trans interfaces.ITransaction
 		if v < 0 {
 			return fmt.Errorf("Not enough factoids to cover a transaction")
 		}
+	}
+	// Then update the state for all inputs.
+	for _, input := range trans.GetInputs() {
+		adr := input.GetAddress().Fixed()
+		oldv := fs.State.GetF(rt, adr)
+		v := oldv - int64(input.GetAmount())
 		fs.State.PutF(rt, adr, v)
 	}
+	// Then log that the transaction has been seen and processed.
+	fs.State.Replay.IsTSValid(constants.INTERNAL_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+	fs.State.Replay.IsTSValid(constants.NETWORK_REPLAY, trans.GetSigHash(), trans.GetTimestamp())
+
 	for _, output := range trans.GetOutputs() {
 		adr := output.GetAddress().Fixed()
 		oldv := fs.State.GetF(rt, adr)

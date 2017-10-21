@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
@@ -220,8 +220,8 @@ func (m *AddServerMsg) String() string {
 }
 
 func (m *AddServerMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "addserver", "server": m.ServerChainID.String()[4:12],
-		"hash": m.GetHash().String()[:6]}
+	return log.Fields{"category": "message", "messagetype": "addserver", "server": m.ServerChainID.String(),
+		"hash": m.GetHash().String()}
 }
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {

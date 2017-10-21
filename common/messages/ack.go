@@ -12,7 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //General acknowledge message
@@ -339,8 +339,8 @@ func (m *Ack) String() string {
 
 func (m *Ack) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "ack", "dbheight": m.DBHeight, "vm": m.VMIndex,
-		"vmheight": m.Height, "server": m.LeaderChainID.String()[4:12],
-		"hash": m.GetHash().String()[:6]}
+		"vmheight": m.Height, "server": m.LeaderChainID.String(),
+		"hash": m.GetHash().String()}
 }
 
 func (a *Ack) IsSameAs(b *Ack) bool {

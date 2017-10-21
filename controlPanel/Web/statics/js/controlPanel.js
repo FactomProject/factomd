@@ -140,8 +140,8 @@ function updateTransactions() {
           // Total
           $("#recent-entry-total").text("(" + $("#panEntries > #traxList > tbody > tr").length + ")")
           if ($("#panEntries #" + entry.Hash).length > 0) {
-            if($("#"+entry.Hash + " #chainID a").text() != entry.ChainID) {
-              $("#"+entry.Hash + " #chainID a").text(entry.ChainID)
+            if($("#"+entry.Hash + " #chainID a").text() != entry.chainid) {
+              $("#"+entry.Hash + " #chainID a").text(entry.chainid)
             }
             if ($("#"+entry.Hash + " #chainID a").text() != "Processing") {
               $("#"+entry.Hash + " #entry-entryhash a").attr("type", "entry")
@@ -153,7 +153,7 @@ function updateTransactions() {
             $("#panEntries > #traxList > tbody").prepend("\
             <tr id='" + entry.Hash + "'>\
                 <td id='entry-entryhash'><a id='factom-search-link' type='entryack'>" + entry.Hash + "</a></td>\
-                <td id='chainID'><a id='factom-search-link' type='chainhead'>" + entry.ChainID  + "</a></td>\
+                <td id='chainID'><a id='factom-search-link' type='chainhead'>" + entry.chainid  + "</a></td>\
                 <td id='eccost'>" + entry.ECCost + "</td>\
             </tr>")
             if ($("#panEntries > #traxList > tbody > tr").length > 100) {

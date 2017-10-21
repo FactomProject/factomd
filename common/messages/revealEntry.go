@@ -5,6 +5,7 @@
 package messages
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -28,7 +29,7 @@ type RevealEntryMsg struct {
 	hash        interfaces.IHash
 	chainIDHash interfaces.IHash
 	IsEntry     bool
-	commitChain *CommitChainMsg
+	CommitChain *CommitChainMsg
 	commitEntry *CommitEntryMsg
 }
 
@@ -79,6 +80,22 @@ func (m *RevealEntryMsg) Type() byte {
 	return constants.REVEAL_ENTRY_MSG
 }
 
+// Checks to make sure these External IDs actually produce a ChainID that machtes the Chain ID in
+// the CommitChainMsg
+func CheckChainID(state interfaces.IState, ExternalIDs [][]byte, msg *RevealEntryMsg) bool {
+	sum := sha256.New()
+	for _, v := range ExternalIDs {
+		x := sha256.Sum256(v)
+		sum.Write(x[:])
+	}
+	originalHash := sum.Sum(nil)
+	checkHash := primitives.Shad(originalHash)
+	if !msg.CommitChain.CommitChain.ChainIDHash.IsSameAs(checkHash) { // Discard commits that don't have extIDs matching ChainIDHash
+		return false
+	}
+	return true
+}
+
 // Validate the message, given the state.  Three possible results:
 //  < 0 -- Message is invalid.  Discard
 //  0   -- Cannot tell if message is Valid
@@ -93,7 +110,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	//
 	// Make sure one of the two proper commits got us here.
 	var okChain, okEntry bool
-	m.commitChain, okChain = commit.(*CommitChainMsg)
+	m.CommitChain, okChain = commit.(*CommitChainMsg)
 	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
 		return -1
@@ -134,12 +151,16 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 			return 0
 		}
 		return 1
-	}
+	} else {
+		m.IsEntry = false
+		ECs := int(m.CommitChain.CommitChain.Credits)
+		if m.Entry.KSize()+10 > ECs { // Discard commits that are not funded properly
+			return 0
+		}
 
-	m.IsEntry = false
-	ECs := int(m.commitChain.CommitChain.Credits)
-	if m.Entry.KSize()+10 > ECs {
-		return 0 // Wait for a commit that might fund us properly
+		if !CheckChainID(state, m.Entry.ExternalIDs(), m) {
+			return -1
+		}
 	}
 
 	return 1
@@ -247,8 +268,8 @@ func (m *RevealEntryMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "revealentry",
 		"vm":         m.VMIndex,
 		"minute":     m.Minute,
-		"leaderid":   m.GetLeaderChainID().String()[4:10],
-		"entryhash":  m.Entry.GetHash().String()[:6],
-		"entrychain": m.Entry.GetChainID().String()[:6],
-		"hash":       m.GetHash().String()[:6]}
+		"leaderid":   m.GetLeaderChainID().String(),
+		"entryhash":  m.Entry.GetHash().String(),
+		"entrychain": m.Entry.GetChainID().String(),
+		"hash":       m.GetHash().String()}
 }

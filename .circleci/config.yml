@@ -230,9 +230,10 @@ jobs:
 #                   ---------- docker_build
 #
 #
+
 workflows:
   version: 2
-  build:
+  commit-workflow:
     jobs:
       - build
       - test:
@@ -245,3 +246,27 @@ workflows:
           context: org-global
           requires:
             - test
+
+  scheduled-workflow:
+    triggers:
+      - schedule:
+          cron: "20 5 * * *"
+          filters:
+            branches:
+              only: develop
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - coveralls:
+          requires:
+            - test
+      - docker_build:
+          context: org-global
+          requires:
+            - test
+            
+notify:
+  webhooks:
+    - url: https://hooks.zapier.com/hooks/catch/2398659/i8hgb6/ 

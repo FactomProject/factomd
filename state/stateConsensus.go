@@ -19,7 +19,7 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
@@ -39,9 +39,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
-		if s.SuperVerboseMessages {
-			fmt.Println("SVM exMsg (replay invalid):", msg.String(), msg.GetHash().String()[:10])
-		}
+		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
 		return
 	}
 	s.SetString()
@@ -1000,6 +998,8 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
+	delete(s.Acks, ack.GetMsgHash().Fixed())
+	delete(s.Holding, m.GetMsgHash().Fixed())
 }
 
 func (s *State) LeaderExecuteDBSig(m interfaces.IMsg) {
@@ -1324,7 +1324,7 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 					panic(err)
 				}
 
-				dbslog.WithFields(dbs.LogFields()).Infof("Send DBSig")
+				dbslog.WithFields(dbs.LogFields()).WithFields(log.Fields{"lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).Infof("Generate DBSig")
 				dbs.LeaderExecute(s)
 				vm.Signed = true
 				pl.DBSigAlreadySent = true
@@ -1521,8 +1521,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 				}
 				pldbs.DBSigAlreadySent = true
 
-				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight()}).WithFields(dbs.LogFields())
-				dbslog.Infof("Send DBSig")
+				dbslog := consenLogger.WithFields(log.Fields{"func": "SendDBSig", "lheight": s.GetLeaderHeight(), "node-name": s.GetFactomNodeName()}).WithFields(dbs.LogFields())
+				dbslog.Infof("Generate DBSig")
 
 				dbs.LeaderExecute(s)
 			}
@@ -1794,6 +1794,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 			// but otherwise do nothing (we do not execute the actual demotion/promotion)
 			//s.AddStatus(fmt.Sprintf("PROCESS Full Fault CLEARING: %s", fullFault.StringWithSigCnt(s)))
 			fullFault.SetAlreadyProcessed()
+			faultLogger.WithField("func", "ClearFault").WithFields(fullFault.LogFields()).Warn("Cleared")
 			return true
 		}
 	}
@@ -1882,6 +1883,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 
 				fullFault.SetAlreadyProcessed()
+				faultLogger.WithField("func", "ProcessFault").WithFields(fullFault.LogFields()).Warn("Fault Processed (Leader Replaced)")
 				return true
 			}
 		}

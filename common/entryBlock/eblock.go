@@ -310,8 +310,7 @@ func (e *EBlock) String() string {
  * Support Routines
  *****************************************************/
 
-// NewEBlock returns a blank initialized Entry Block with all of its fields
-// zeroed.
+// NewEBlock returns a blank initialized Entry Block with all fields zeroed.
 func NewEBlock() *EBlock {
 	e := new(EBlock)
 	e.Header = NewEBlockHeader()
