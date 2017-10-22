@@ -9,7 +9,7 @@ import (
 )
 
 func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries) error {
-	err := db.ProcessBlockBatchWithoutHead(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
+	err := db.ProcessBlockBatchWithoutHead(FACTOIDBLOCK, nil, FACTOIDBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
 	}
@@ -17,7 +17,7 @@ func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries)
 }
 
 func (db *Overlay) ProcessFBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
-	err := db.ProcessBlockMultiBatchWithoutHead(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
+	err := db.ProcessBlockMultiBatchWithoutHead(FACTOIDBLOCK, nil, FACTOIDBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
 	}

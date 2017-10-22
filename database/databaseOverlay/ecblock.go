@@ -11,7 +11,7 @@ import (
 // ProcessECBlockBatch inserts the ECBlock and update all it's cbentries in DB
 func (db *Overlay) ProcessECBlockBatch(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
 	err := db.ProcessBlockBatchWithoutHead(ENTRYCREDITBLOCK,
-		ENTRYCREDITBLOCK_NUMBER,
+		nil,
 		ENTRYCREDITBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
@@ -25,7 +25,7 @@ func (db *Overlay) ProcessECBlockBatch(block interfaces.IEntryCreditBlock, check
 
 func (db *Overlay) ProcessECBlockMultiBatch(block interfaces.IEntryCreditBlock, checkForDuplicateEntries bool) error {
 	err := db.ProcessBlockMultiBatchWithoutHead(ENTRYCREDITBLOCK,
-		ENTRYCREDITBLOCK_NUMBER,
+		nil,
 		ENTRYCREDITBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err

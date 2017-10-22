@@ -34,12 +34,33 @@ func (db *Overlay) ProcessDBlockBatch(dblock interfaces.DatabaseBlockWithEntries
 	dbEntries := block.GetDBEntries()
 	keyMRs := []interfaces.IHash{}
 	chainIDs := []interfaces.IHash{}
+	numberBuckets := [][]byte{}
 	for _, v := range dbEntries {
 		keyMRs = append(keyMRs, v.GetKeyMR())
 		chainIDs = append(chainIDs, v.GetChainID())
+		switch v.GetChainID().String() {
+		case "000000000000000000000000000000000000000000000000000000000000000a":
+			numberBuckets = append(numberBuckets, ADMINBLOCK_NUMBER)
+		case "000000000000000000000000000000000000000000000000000000000000000f":
+			numberBuckets = append(numberBuckets, FACTOIDBLOCK_NUMBER)
+		case "000000000000000000000000000000000000000000000000000000000000000c":
+			numberBuckets = append(numberBuckets, ENTRYCREDITBLOCK_NUMBER)
+		default:
+			numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, v.GetChainID().Bytes()...)
+			numberBuckets = append(numberBuckets, numberBucket)
+		}
 	}
 
-	return db.SetChainHeads(keyMRs, chainIDs)
+	err = db.SetChainHeads(keyMRs, chainIDs)
+	if err != nil {
+		return err
+	}
+
+	err = db.SetChainNumbers(keyMRs, numberBuckets, dblock.GetDatabaseHeight())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *Overlay) ProcessDBlockBatchWithoutHead(dblock interfaces.DatabaseBlockWithEntries) error {
@@ -50,7 +71,34 @@ func (db *Overlay) ProcessDBlockBatchWithoutHead(dblock interfaces.DatabaseBlock
 		return err
 	}
 
-	return db.SaveIncludedInMultiFromBlock(dblock, false)
+	err = db.SaveIncludedInMultiFromBlock(dblock, false)
+	if err != nil {
+		return err
+	}
+	block := dblock.(interfaces.IDirectoryBlock)
+	dbEntries := block.GetDBEntries()
+	keyMRs := []interfaces.IHash{}
+	numberBuckets := [][]byte{}
+	for _, v := range dbEntries {
+		keyMRs = append(keyMRs, v.GetKeyMR())
+		switch v.GetChainID().String() {
+		case "000000000000000000000000000000000000000000000000000000000000000a":
+			numberBuckets = append(numberBuckets, ADMINBLOCK_NUMBER)
+		case "000000000000000000000000000000000000000000000000000000000000000f":
+			numberBuckets = append(numberBuckets, FACTOIDBLOCK_NUMBER)
+		case "000000000000000000000000000000000000000000000000000000000000000c":
+			numberBuckets = append(numberBuckets, ENTRYCREDITBLOCK_NUMBER)
+		default:
+			numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, v.GetChainID().Bytes()...)
+			numberBuckets = append(numberBuckets, numberBucket)
+		}
+	}
+
+	err = db.SetChainNumbers(keyMRs, numberBuckets, dblock.GetDatabaseHeight())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEntries) error {
@@ -69,12 +117,33 @@ func (db *Overlay) ProcessDBlockMultiBatch(dblock interfaces.DatabaseBlockWithEn
 	dbEntries := block.GetDBEntries()
 	keyMRs := []interfaces.IHash{}
 	chainIDs := []interfaces.IHash{}
+	numberBuckets := [][]byte{}
 	for _, v := range dbEntries {
 		keyMRs = append(keyMRs, v.GetKeyMR())
 		chainIDs = append(chainIDs, v.GetChainID())
+		switch v.GetChainID().String() {
+		case "000000000000000000000000000000000000000000000000000000000000000a":
+			numberBuckets = append(numberBuckets, ADMINBLOCK_NUMBER)
+		case "000000000000000000000000000000000000000000000000000000000000000f":
+			numberBuckets = append(numberBuckets, FACTOIDBLOCK_NUMBER)
+		case "000000000000000000000000000000000000000000000000000000000000000c":
+			numberBuckets = append(numberBuckets, ENTRYCREDITBLOCK_NUMBER)
+		default:
+			numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, v.GetChainID().Bytes()...)
+			numberBuckets = append(numberBuckets, numberBucket)
+		}
 	}
 
-	return db.SetChainHeadsMultiBatch(keyMRs, chainIDs)
+	err = db.SetChainHeadsMultiBatch(keyMRs, chainIDs)
+	if err != nil {
+		return err
+	}
+
+	err = db.SetChainNumbersMultiBatch(keyMRs, numberBuckets, dblock.GetDatabaseHeight())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // FetchHeightRange looks up a range of blocks by the start and ending

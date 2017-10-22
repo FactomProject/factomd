@@ -13,8 +13,7 @@ import (
 // ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
-	numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, eblock.GetChainID().Bytes()...)
-	err := db.ProcessBlockMultiBatchWithoutHead(ENTRYBLOCK, numberBucket, ENTRYBLOCK_SECONDARYINDEX, eblock)
+	err := db.ProcessBlockMultiBatchWithoutHead(ENTRYBLOCK, nil, ENTRYBLOCK_SECONDARYINDEX, eblock)
 	if err != nil {
 		return err
 	}
@@ -23,8 +22,7 @@ func (db *Overlay) ProcessEBlockBatch(eblock interfaces.DatabaseBlockWithEntries
 
 func (db *Overlay) ProcessEBlockMultiBatch(eblock interfaces.DatabaseBlockWithEntries, checkForDuplicateEntries bool) error {
 	//Each chain has its own number bucket, otherwise we would have conflicts
-	numberBucket := append(ENTRYBLOCK_CHAIN_NUMBER, eblock.GetChainID().Bytes()...)
-	err := db.ProcessBlockMultiBatchWithoutHead(ENTRYBLOCK, numberBucket, ENTRYBLOCK_SECONDARYINDEX, eblock)
+	err := db.ProcessBlockMultiBatchWithoutHead(ENTRYBLOCK, nil, ENTRYBLOCK_SECONDARYINDEX, eblock)
 	if err != nil {
 		return err
 	}

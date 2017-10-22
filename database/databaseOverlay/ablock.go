@@ -10,11 +10,11 @@ import (
 
 // ProcessABlockBatch inserts the AdminBlock
 func (db *Overlay) ProcessABlockBatch(block interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockBatchWithoutHead(ADMINBLOCK, ADMINBLOCK_NUMBER, ADMINBLOCK_SECONDARYINDEX, block)
+	return db.ProcessBlockBatchWithoutHead(ADMINBLOCK, nil, ADMINBLOCK_SECONDARYINDEX, block)
 }
 
 func (db *Overlay) ProcessABlockMultiBatch(block interfaces.DatabaseBatchable) error {
-	return db.ProcessBlockMultiBatchWithoutHead(ADMINBLOCK, ADMINBLOCK_NUMBER, ADMINBLOCK_SECONDARYINDEX, block)
+	return db.ProcessBlockMultiBatchWithoutHead(ADMINBLOCK, nil, ADMINBLOCK_SECONDARYINDEX, block)
 }
 
 func (db *Overlay) FetchABlock(hash interfaces.IHash) (interfaces.IAdminBlock, error) {
