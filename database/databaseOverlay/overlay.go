@@ -635,3 +635,17 @@ func (db *Overlay) SetChainHeads(primaryIndexes, chainIDs []interfaces.IHash) er
 
 	return db.PutInBatch(batch)
 }
+
+func (db *Overlay) SetChainHeadsMultiBatch(primaryIndexes, chainIDs []interfaces.IHash) error {
+	if len(primaryIndexes) != len(chainIDs) {
+		return fmt.Errorf("Mismatched array lengths - %v vs %v", len(primaryIndexes), len(chainIDs))
+	}
+
+	batch := []interfaces.Record{}
+	for i := range primaryIndexes {
+		batch = append(batch, interfaces.Record{CHAIN_HEAD, chainIDs[i].Bytes(), primaryIndexes[i]})
+	}
+
+	db.PutInMultiBatch(batch)
+	return nil
+}

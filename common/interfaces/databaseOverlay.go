@@ -37,7 +37,6 @@ type DBOverlaySimple interface {
 	ProcessDBlockMultiBatch(block DatabaseBlockWithEntries) error
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
-	ProcessEBlockMultiBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessECBlockMultiBatch(IEntryCreditBlock, bool) (err error)
 	ProcessFBlockMultiBatch(DatabaseBlockWithEntries) error
 	FetchDirBlockInfoByKeyMR(hash IHash) (IDirBlockInfo, error)
@@ -79,8 +78,6 @@ type DBOverlay interface {
 
 	// ProcessEBlockBatche inserts the EBlock and update all it's ebentries in DB
 	ProcessEBlockBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
-	ProcessEBlockBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
-	ProcessEBlockMultiBatchWithoutHead(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 	ProcessEBlockMultiBatch(eblock DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	FetchEBlock(IHash) (IEntryBlock, error)
@@ -97,7 +94,7 @@ type DBOverlay interface {
 	// FetchAllEBlocksByChain gets all of the blocks by chain id
 	FetchAllEBlocksByChain(IHash) ([]IEntryBlock, error)
 
-	SaveEBlockHead(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
+	SaveEBlock(block DatabaseBlockWithEntries, checkForDuplicateEntries bool) error
 
 	FetchEBlockHead(chainID IHash) (IEntryBlock, error)
 
@@ -151,7 +148,6 @@ type DBOverlay interface {
 
 	// ProcessECBlockBatch inserts the ECBlock and update all it's ecbentries in DB
 	ProcessECBlockBatch(IEntryCreditBlock, bool) (err error)
-	ProcessECBlockBatchWithoutHead(IEntryCreditBlock, bool) (err error)
 	ProcessECBlockMultiBatch(IEntryCreditBlock, bool) (err error)
 
 	FetchECBlock(IHash) (IEntryCreditBlock, error)
@@ -167,7 +163,7 @@ type DBOverlay interface {
 	FetchAllECBlocks() ([]IEntryCreditBlock, error)
 	FetchAllECBlockKeys() ([]IHash, error)
 
-	SaveECBlockHead(IEntryCreditBlock, bool) error
+	SaveECBlock(IEntryCreditBlock, bool) error
 
 	FetchECBlockHead() (IEntryCreditBlock, error)
 
@@ -175,7 +171,6 @@ type DBOverlay interface {
 
 	// ProcessABlockBatch inserts the AdminBlock
 	ProcessABlockBatch(block DatabaseBatchable) error
-	ProcessABlockBatchWithoutHead(block DatabaseBatchable) error
 	ProcessABlockMultiBatch(block DatabaseBatchable) error
 
 	FetchABlock(IHash) (IAdminBlock, error)
@@ -191,7 +186,7 @@ type DBOverlay interface {
 	FetchAllABlocks() ([]IAdminBlock, error)
 	FetchAllABlockKeys() ([]IHash, error)
 
-	SaveABlockHead(DatabaseBatchable) error
+	SaveABlock(DatabaseBatchable) error
 
 	FetchABlockHead() (IAdminBlock, error)
 
@@ -199,7 +194,6 @@ type DBOverlay interface {
 
 	// ProcessFBlockBatch inserts the Factoid
 	ProcessFBlockBatch(DatabaseBlockWithEntries) error
-	ProcessFBlockBatchWithoutHead(DatabaseBlockWithEntries) error
 	ProcessFBlockMultiBatch(DatabaseBlockWithEntries) error
 
 	FetchFBlock(IHash) (IFBlock, error)
@@ -213,7 +207,7 @@ type DBOverlay interface {
 	FetchAllFBlocks() ([]IFBlock, error)
 	FetchAllFBlockKeys() ([]IHash, error)
 
-	SaveFactoidBlockHead(fblock DatabaseBlockWithEntries) error
+	SaveFactoidBlock(fblock DatabaseBlockWithEntries) error
 
 	FetchFactoidBlockHead() (IFBlock, error)
 	FetchFBlockHead() (IFBlock, error)

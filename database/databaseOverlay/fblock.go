@@ -9,14 +9,6 @@ import (
 )
 
 func (db *Overlay) ProcessFBlockBatch(block interfaces.DatabaseBlockWithEntries) error {
-	err := db.ProcessBlockBatch(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
-	if err != nil {
-		return err
-	}
-	return db.SaveIncludedInMultiFromBlock(block, false)
-}
-
-func (db *Overlay) ProcessFBlockBatchWithoutHead(block interfaces.DatabaseBlockWithEntries) error {
 	err := db.ProcessBlockBatchWithoutHead(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
@@ -25,7 +17,7 @@ func (db *Overlay) ProcessFBlockBatchWithoutHead(block interfaces.DatabaseBlockW
 }
 
 func (db *Overlay) ProcessFBlockMultiBatch(block interfaces.DatabaseBlockWithEntries) error {
-	err := db.ProcessBlockMultiBatch(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
+	err := db.ProcessBlockMultiBatchWithoutHead(FACTOIDBLOCK, FACTOIDBLOCK_NUMBER, FACTOIDBLOCK_SECONDARYINDEX, block)
 	if err != nil {
 		return err
 	}
@@ -98,7 +90,7 @@ func toFactoidList(source []interfaces.BinaryMarshallableAndCopyable) []interfac
 	return answer
 }
 
-func (db *Overlay) SaveFactoidBlockHead(fblock interfaces.DatabaseBlockWithEntries) error {
+func (db *Overlay) SaveFactoidBlock(fblock interfaces.DatabaseBlockWithEntries) error {
 	return db.ProcessFBlockBatch(fblock)
 }
 
