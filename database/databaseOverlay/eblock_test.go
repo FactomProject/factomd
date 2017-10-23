@@ -93,11 +93,6 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 		}
 	}
 
-	chain, err := primitives.NewShaHash(prev.GetChainID().Bytes())
-	if err != nil {
-		t.Error(err)
-	}
-
 	current, err := dbo.FetchEBlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
@@ -133,24 +128,6 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 	}
 	if fetchedCount != max {
 		t.Errorf("Wrong number of entries fetched - %v vs %v", fetchedCount, max)
-	}
-
-	all, err := dbo.FetchAllEBlocksByChain(chain)
-	if err != nil {
-		t.Error(err)
-	}
-	if len(all) != max {
-		t.Errorf("Wrong number of entries fetched - %v vs %v", len(all), max)
-	}
-	for i := range all {
-		same, err := primitives.AreBinaryMarshallablesEqual(blocks[i], all[i])
-		if err != nil {
-			t.Error(err)
-		}
-		if same == false {
-			t.Error("Blocks fetched by all and original blocks are not identical")
-			t.Logf("\n%v\nvs\n%v", blocks[i].String(), all[i].String())
-		}
 	}
 }
 

@@ -208,6 +208,7 @@ type DBOverlay interface {
 	FetchAllFBlockKeys() ([]IHash, error)
 
 	SaveFactoidBlock(fblock DatabaseBlockWithEntries) error
+	SaveFBlock(fblock DatabaseBlockWithEntries) error
 
 	FetchFactoidBlockHead() (IFBlock, error)
 	FetchFBlockHead() (IFBlock, error)

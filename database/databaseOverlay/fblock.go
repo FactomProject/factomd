@@ -94,6 +94,10 @@ func (db *Overlay) SaveFactoidBlock(fblock interfaces.DatabaseBlockWithEntries) 
 	return db.ProcessFBlockBatch(fblock)
 }
 
+func (db *Overlay) SaveFBlock(fblock interfaces.DatabaseBlockWithEntries) error {
+	return db.ProcessFBlockBatch(fblock)
+}
+
 func (db *Overlay) FetchFBlockHead() (interfaces.IFBlock, error) {
 	return db.FetchFactoidBlockHead()
 }
