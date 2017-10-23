@@ -28,7 +28,7 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	head, err := dbo.FetchECBlockHead()
+	head, err := dbo.FetchECBlock(b1.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,7 +56,7 @@ func TestSaveLoadECBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	head, err = dbo.FetchECBlockHead()
+	head, err = dbo.FetchECBlock(b2.DatabaseSecondaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -93,7 +93,7 @@ func TestSaveLoadECBlockChain(t *testing.T) {
 		blocks = append(blocks, prev)
 	}
 
-	current, err := dbo.FetchECBlockHead()
+	current, err := dbo.FetchECBlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}

@@ -28,7 +28,7 @@ func TestSaveLoadFBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	head, err := dbo.FetchFactoidBlockHead()
+	head, err := dbo.FetchFBlock(b1.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,7 +56,7 @@ func TestSaveLoadFBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	head, err = dbo.FetchFactoidBlockHead()
+	head, err = dbo.FetchFBlock(b2.DatabaseSecondaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -93,7 +93,7 @@ func TestSaveLoadFBlockChain(t *testing.T) {
 		}
 	}
 
-	current, err := dbo.FetchFactoidBlockHead()
+	current, err := dbo.FetchFBlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}

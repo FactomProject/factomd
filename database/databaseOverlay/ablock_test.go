@@ -19,7 +19,7 @@ import (
 	"github.com/FactomProject/factomd/database/mapdb"
 )
 
-func TestSaveLoadABlockHead(t *testing.T) {
+func TestSaveLoadABlock(t *testing.T) {
 	b1 := testHelper.CreateTestAdminBlock(nil)
 
 	dbo := NewOverlay(new(mapdb.MapDB))
@@ -30,12 +30,12 @@ func TestSaveLoadABlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	head, err := dbo.FetchABlockHead()
+	head, err := dbo.FetchABlock(b1.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
 	if head == nil {
-		t.Error("DBlock head is nil")
+		t.Error("ABlock head is nil")
 	}
 
 	m1, err := b1.MarshalBinary()
@@ -58,12 +58,12 @@ func TestSaveLoadABlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	head, err = dbo.FetchABlockHead()
+	head, err = dbo.FetchABlock(b2.DatabaseSecondaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
 	if head == nil {
-		t.Error("DBlock head is nil")
+		t.Error("ABlock head is nil")
 	}
 
 	m1, err = b2.MarshalBinary()
@@ -96,7 +96,7 @@ func TestSaveLoadABlockChain(t *testing.T) {
 		}
 	}
 
-	current, err := dbo.FetchABlockHead()
+	current, err := dbo.FetchABlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}

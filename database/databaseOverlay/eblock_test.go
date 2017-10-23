@@ -20,20 +20,15 @@ import (
 func TestSaveLoadEBlockHead(t *testing.T) {
 	b1, _ := testHelper.CreateTestEntryBlock(nil)
 
-	chain, err := primitives.NewShaHash(b1.GetChainID().Bytes())
-	if err != nil {
-		t.Error(err)
-	}
-
 	dbo := NewOverlay(new(mapdb.MapDB))
 	defer dbo.Close()
 
-	err = dbo.SaveEBlock(b1, false)
+	err := dbo.SaveEBlock(b1, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	head, err := dbo.FetchEBlockHead(chain)
+	head, err := dbo.FetchEBlock(b1.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -61,7 +56,7 @@ func TestSaveLoadEBlockHead(t *testing.T) {
 		t.Error(err)
 	}
 
-	head, err = dbo.FetchEBlockHead(chain)
+	head, err = dbo.FetchEBlock(b2.DatabaseSecondaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
@@ -103,7 +98,7 @@ func TestSaveLoadEBlockChain(t *testing.T) {
 		t.Error(err)
 	}
 
-	current, err := dbo.FetchEBlockHead(chain)
+	current, err := dbo.FetchEBlock(prev.DatabasePrimaryIndex())
 	if err != nil {
 		t.Error(err)
 	}
