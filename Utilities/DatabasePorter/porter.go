@@ -443,7 +443,7 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay, fast bool, complet
 			if err != nil {
 				panic(err)
 			}
-			err = dbo.ProcessECBlockBatchWithoutHead(ecblock, true)
+			err = dbo.ProcessECBlockBatch(ecblock, true)
 			if err != nil {
 				panic(err)
 			}
@@ -476,7 +476,7 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay, fast bool, complet
 			if err != nil {
 				panic(err)
 			}
-			err = dbo.ProcessFBlockBatchWithoutHead(fBlock)
+			err = dbo.ProcessFBlockBatch(fBlock)
 			if err != nil {
 				panic(err)
 			}
@@ -509,7 +509,7 @@ func CheckDatabaseForMissingEntries(dbo interfaces.DBOverlay, fast bool, complet
 			if err != nil {
 				panic(err)
 			}
-			err = dbo.ProcessABlockBatchWithoutHead(aBlock)
+			err = dbo.ProcessABlockBatch(aBlock)
 			if err != nil {
 				panic(err)
 			}
@@ -587,7 +587,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				if err != nil {
 					panic(err)
 				}
-				err = dbo.ProcessABlockBatchWithoutHead(aBlock)
+				err = dbo.ProcessABlockBatch(aBlock)
 				if err != nil {
 					panic(err)
 				}
@@ -606,7 +606,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				if err != nil {
 					panic(err)
 				}
-				err = dbo.ProcessFBlockBatchWithoutHead(fBlock)
+				err = dbo.ProcessFBlockBatch(fBlock)
 				if err != nil {
 					panic(err)
 				}
@@ -625,7 +625,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 				if err != nil {
 					panic(err)
 				}
-				err = dbo.ProcessECBlockBatchWithoutHead(ecBlock, true)
+				err = dbo.ProcessECBlockBatch(ecBlock, true)
 				if err != nil {
 					panic(err)
 				}
@@ -644,7 +644,7 @@ func CheckDBlockEntries(dBlock interfaces.IDirectoryBlock, dbo interfaces.DBOver
 					if err != nil {
 						panic(err)
 					}
-					err = dbo.ProcessEBlockBatchWithoutHead(eBlock, true)
+					err = dbo.ProcessEBlockBatch(eBlock, true)
 					if err != nil {
 						panic(err)
 					}
