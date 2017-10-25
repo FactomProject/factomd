@@ -6,8 +6,8 @@ package state
 
 import (
 	"fmt"
-
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -24,7 +24,18 @@ func has(s *State, entry interfaces.IHash) bool {
 			time.Sleep(30 * time.Millisecond)
 		}
 	}
-	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
+	exists, err := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
+	if exists {
+		if err != nil {
+			os.Stderr.WriteString(fmt.Sprint("Error reading entry1", entry.String(), "\n"))
+			return false
+		}
+		entry, err2 := s.DB.FetchEntry(entry)
+		if err2 != nil || entry == nil {
+			os.Stderr.WriteString(fmt.Sprint("Error reading entry2", entry.String(), "\n"))
+			return false
+		}
+	}
 	return exists
 }
 
@@ -53,6 +64,9 @@ func (s *State) MakeMissingEntryRequests() {
 		for k := range MissingEntryMap {
 			if has(s, MissingEntryMap[k].EntryHash) {
 				found++
+				if found%1000 == 0 {
+					os.Stderr.WriteString(fmt.Sprintln("Found1:", found, MissingEntryMap[k].EntryHash.String(), s.EntryDBHeightComplete))
+				}
 				delete(MissingEntryMap, k)
 			} else {
 				cnt++
@@ -172,6 +186,8 @@ func (s *State) GoSyncEntries() {
 
 	lastfirstmissing := 0
 
+	found := 0
+
 	for {
 
 		ESMissing.Set(float64(len(missingMap)))
@@ -184,6 +200,10 @@ func (s *State) GoSyncEntries() {
 
 		for k := range missingMap {
 			if has(s, missingMap[k]) {
+				if found%1000 == 0 {
+					os.Stderr.WriteString(fmt.Sprintln("Found2:", found, missingMap[k].String(), s.EntryDBHeightComplete))
+				}
+				found++
 				delete(missingMap, k)
 			}
 		}
@@ -242,6 +262,10 @@ func (s *State) GoSyncEntries() {
 
 					// If I have the entry, then remove it from the Missing Entries list.
 					if has(s, entryhash) {
+						if found%1000 == 0 {
+							os.Stderr.WriteString(fmt.Sprintln("Found3:", found, entryhash.String(), s.EntryDBHeightComplete))
+						}
+						found++
 						delete(missingMap, entryhash.Fixed())
 						continue
 					}
