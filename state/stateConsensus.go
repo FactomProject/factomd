@@ -378,6 +378,7 @@ func (s *State) ReviewHolding() {
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
+	s.LenHolding = len(s.Holding)
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.

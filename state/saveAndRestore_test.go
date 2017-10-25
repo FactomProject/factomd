@@ -199,7 +199,7 @@ func TestSaveRestore(t *testing.T) {
 	}
 	{
 		v := ss.EOMProcessed
-		ss2.EOMProcessed = v+1
+		ss2.EOMProcessed = v + 1
 		if ss.IsSameAs(ss2) {
 			t.Error("Note that we should be able to detect changes.")
 		}
@@ -235,7 +235,8 @@ func TestSaveRestore(t *testing.T) {
 		if ss.IsSameAs(ss2) {
 			t.Error("Note that we should be able to detect changes.")
 		}
-		ss2.DBSig = v	}
+		ss2.DBSig = v
+	}
 	{
 		v := ss.DBSigLimit
 		ss2.DBSigLimit = v + 1
@@ -246,7 +247,7 @@ func TestSaveRestore(t *testing.T) {
 	}
 	{
 		v := ss.DBSigProcessed
-		ss2.DBSigProcessed = v+1
+		ss2.DBSigProcessed = v + 1
 		if ss.IsSameAs(ss2) {
 			t.Error("Note that we should be able to detect changes.")
 		}
@@ -388,6 +389,5 @@ func TestSaveRestore(t *testing.T) {
 		}
 		ss2.DBSigLimit = v
 	}
-
 
 }

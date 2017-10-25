@@ -32,6 +32,7 @@ var plLogger = packageLogger.WithFields(log.Fields{"subpack": "process-list"})
 
 type Request struct {
 	vmIndex    int    // VM Index
+	missingHt  int    // Height of the Missing Message we are looking for
 	vmheight   uint32 // Height in the Process List where we are missing a message
 	wait       int64  // How long to wait before we actually request
 	sent       int64  // Last time sent (zero means none have been sent)
@@ -43,7 +44,7 @@ var _ interfaces.IRequest = (*Request)(nil)
 func (r *Request) key() (thekey [32]byte) {
 	binary.BigEndian.PutUint32(thekey[0:4], uint32(r.vmIndex))
 	binary.BigEndian.PutUint64(thekey[5:13], uint64(r.wait))
-	binary.BigEndian.PutUint64(thekey[14:22], uint64(r.vmheight))
+	binary.BigEndian.PutUint64(thekey[14:22], uint64(r.missingHt))
 	return thekey
 }
 
@@ -616,6 +617,7 @@ func (p *ProcessList) GetRequest(now int64, vmIndex int, height int, waitSeconds
 	r.wait = waitSeconds
 	r.vmIndex = vmIndex
 	r.vmheight = uint32(height)
+	r.missingHt = height
 
 	if p.Requests[r.key()] == nil {
 		r.sent = now + 2000
@@ -639,7 +641,10 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 	}
 
 	if now-r.sent >= waitSeconds*1000+500 && p.State.inMsgQueue.Length() < constants.INMSGQUEUE_MED {
+		//os.Stderr.WriteString(fmt.Sprintln("VM", vmIndex, "Missing Height: ", height))
+
 		missingMsgRequest := messages.NewMissingMsg(p.State, r.vmIndex, p.DBHeight, r.vmheight)
+		missingMsgRequest.ProcessListHeight = missingMsgRequest.ProcessListHeight[:0] // Don't assume nothing has changed.
 
 		// The System (handling full faults) is a special VM.  Let's guess it first.
 		vm := &p.System
@@ -655,7 +660,6 @@ func (p *ProcessList) Ask(vmIndex int, height int, waitSeconds int64, tag int) i
 			}
 		}
 
-		missingMsgRequest.AddHeight(uint32(height))
 		// Okay, we are going to send one, so ask for all nil messages for this vm
 		for i := 0; i < len(vm.List); i++ {
 			if vm.List[i] == nil {

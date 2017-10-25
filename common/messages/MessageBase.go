@@ -5,6 +5,8 @@
 package messages
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -39,6 +41,11 @@ type MessageBase struct {
 }
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
+
+	if mm, ok := msg.(*MissingMsg); ok && state.GetFactomNodeName() == "FNode14" {
+		str := fmt.Sprintf("Missing Message %20s VM %02d Messages %v\n", state.GetFactomNodeName(), mm.VMIndex, mm.ProcessListHeight)
+		os.Stderr.WriteString(str)
+	}
 	for i := 0; i < cnt; i++ {
 		state.NetworkOutMsgQueue().Enqueue(msg)
 		time.Sleep(time.Duration(delay) * time.Second)
@@ -62,10 +69,9 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 		return
 	}
 
-	if m.ResendCnt > 4 {
+	if m.ResendCnt > 60 {
 		return
 	}
-	m.ResendCnt++
 
 	switch msg.(interface{}).(type) {
 	//case ServerFault:
@@ -106,13 +112,14 @@ func (m *MessageBase) SentInvalid() bool {
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
-func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
-	now := s.GetTimestamp().GetTimeMilli()
+func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
+	now := state.GetTimestamp().GetTimeMilli()
 	if m.resend == 0 {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 && s.NetworkOutMsgQueue().Length() < 1000 {
+	if now-m.resend > 20000 && state.NetworkOutMsgQueue().Length() < 1000 {
+		m.ResendCnt++
 		m.resend = now
 		return true
 	}
@@ -120,11 +127,24 @@ func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
 }
 
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
-func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
-	now := s.GetTimestamp().GetTimeMilli()
+func (m *MessageBase) Expire(state interfaces.IState) (rtn bool) {
+	now := state.GetTimestamp().GetTimeMilli()
 	if m.expire == 0 {
 		m.expire = now
 	}
+
+	if state.HoldingLen() > 1000 && m.ResendCnt > 4 {
+		return false
+	}
+
+	if state.HoldingLen() > 500 && m.ResendCnt > 8 {
+		return false
+	}
+
+	if state.HoldingLen() > 200 && m.ResendCnt > 16 {
+		return false
+	}
+
 	if now-m.expire > 60*60*1000 { // Keep messages for some length before giving up.
 		rtn = true
 	}

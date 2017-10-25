@@ -234,6 +234,7 @@ type State struct {
 	// ====
 	// For Follower
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
+	LenHolding    int                          // Length of the Holding Queue.  Kinda approximate to be concurrency safe
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
@@ -1230,6 +1231,11 @@ func (s *State) LoadSpecificMsgAndAck(dbheight uint32, vmIndex int, plistheight 
 		return nil, nil, fmt.Errorf("%s", "State process list does not include requested message/ack")
 	}
 	return msg, ackMsg, nil
+}
+
+// Returns the approximate length of the holding queue (as seen by the processing loop)
+func (s *State) HoldingLen() int {
+	return s.LenHolding
 }
 
 func (s *State) LoadHoldingMap() map[[32]byte]interfaces.IMsg {

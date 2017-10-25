@@ -245,7 +245,13 @@ func (e *MissingMsg) JSONString() (string, error) {
 }
 
 // AddHeight: Add a Missing Message Height to the request
+// Don't add duplicates.
 func (e *MissingMsg) AddHeight(h uint32) {
+	for _, oh := range e.ProcessListHeight {
+		if oh == h {
+			return
+		}
+	}
 	e.ProcessListHeight = append(e.ProcessListHeight, h)
 }
 
