@@ -972,9 +972,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	toss := func(hint string) {
-		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, hint)
-		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, ack.String())
-		fmt.Println("dddd TOSS in Process List", p.State.FactomNodeName, m.String())
 		TotalHoldingQueueOutputs.Inc()
 		TotalAcksOutputs.Inc()
 		delete(p.State.Holding, ack.GetHash().Fixed())
@@ -1000,10 +997,6 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 
 	if len(vm.List) > int(ack.Height) && vm.List[ack.Height] != nil {
 		if vm.List[ack.Height].GetMsgHash().IsSameAs(m.GetMsgHash()) {
-			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate   ", p.State.GetFactomNodeName(), m.String())
-			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate   ", p.State.GetFactomNodeName(), ack.String())
-			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate vm", p.State.GetFactomNodeName(), vm.List[ack.Height].String())
-			fmt.Printf("dddd %-30s %10s %s\n", "xxxxxxxxx PL Duplicate vm", p.State.GetFactomNodeName(), vm.ListAck[ack.Height].String())
 			toss("2")
 			return
 		}
