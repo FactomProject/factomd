@@ -3,6 +3,7 @@ package state_test
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/FactomProject/factomd/common/adminBlock"
@@ -121,6 +122,9 @@ func foundByKeyMR(s *State, msg *messages.DBStateMsg) error {
 }
 
 func TestSaveDBState(t *testing.T) {
+	// Cleanup
+	defer os.RemoveAll("unit-test-db/")
+
 	// Init
 	s := testHelper.CreatePopulateAndExecuteTestState()
 	msgs := testHelper.GetAllDBStateMsgsFromDatabase(s)
@@ -140,9 +144,6 @@ func TestSaveDBState(t *testing.T) {
 			t.Error(e)
 		}
 	}
-
-	// Cleanup
-	// os.RemoveAll("unit-test-db/")
 }
 
 // Compare all blocks and spit out a good error
