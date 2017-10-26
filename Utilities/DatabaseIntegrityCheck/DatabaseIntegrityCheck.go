@@ -300,7 +300,7 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 					}
 					if exists == true {
 						fmt.Printf("Missing entry %v!, but the key exists\n", eHash.String())
-					}else {
+					} else {
 						fmt.Printf("Missing entry %v!\n", eHash.String())
 					}
 				} else {
