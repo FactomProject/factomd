@@ -216,7 +216,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.Init()
 	s.SetDropRate(p.DropRate)
 
-	if p.Sync2 > 0 {
+	if p.Sync2 >= 0 {
 		s.EntryDBHeightComplete = uint32(p.Sync2)
 	}
 
