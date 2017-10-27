@@ -66,6 +66,8 @@ var (
 
 	//Which EC transaction paid for this Entry
 	PAID_FOR = []byte("PaidFor")
+
+	KEY_VALUE_STORE = []byte("KeyValueStore")
 )
 
 var ConstantNamesMap map[string]string
@@ -104,6 +106,7 @@ func init() {
 	ConstantNamesMap[string(INCLUDED_IN)] = "IncludedIn"
 
 	ConstantNamesMap[string(PAID_FOR)] = "PaidFor"
+	ConstantNamesMap[string(KEY_VALUE_STORE)] = "KeyValueStore"
 
 	RegisterPrometheus()
 }
