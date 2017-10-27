@@ -108,7 +108,7 @@ func (f *FactomParams) Init() {
 	f.torUpload = false
 	f.Sim_Stdin = true
 	f.exposeProfiling = false
-	f.Sync2 = 0
+	f.Sync2 = -1
 }
 
 func ParseCmdLine(args []string) *FactomParams {
