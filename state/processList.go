@@ -940,6 +940,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		return
 	}
 
+	if ack == nil || ack.GetMsgHash() == nil {
+		return
+	}
+
 	TotalProcessListInputs.Inc()
 
 	if ack.DBHeight > p.State.HighestAck && ack.Minute > 0 {
