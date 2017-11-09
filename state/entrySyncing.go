@@ -165,6 +165,11 @@ func (s *State) GoSyncEntries() {
 
 	// Once I have found all the entries, we quit searching so much for missing entries.
 	start := uint32(1)
+
+	if s.EntryDBHeightComplete > 0 {
+		start = s.EntryDBHeightComplete
+	}
+
 	entryMissing := 0
 
 	// If I find no missing entries, then the firstMissing will be -1
@@ -268,6 +273,16 @@ func (s *State) GoSyncEntries() {
 						entryMissing++
 						missingMap[entryhash.Fixed()] = entryhash
 						s.MissingEntries <- &v
+					}
+				}
+			}
+
+			if s.EntryDBHeightComplete%1000 == 0 {
+				if firstMissing < 0 {
+					//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
+					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
+					if err != nil {
+						fmt.Printf("ERROR: %v\n", err)
 					}
 				}
 			}
