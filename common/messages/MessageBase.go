@@ -41,11 +41,6 @@ type MessageBase struct {
 }
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
-
-	if mm, ok := msg.(*MissingMsg); ok && state.GetFactomNodeName() == "FNode14" {
-		str := fmt.Sprintf("Missing Message %20s VM %02d Messages %v\n", state.GetFactomNodeName(), mm.VMIndex, mm.ProcessListHeight)
-		os.Stderr.WriteString(str)
-	}
 	for i := 0; i < cnt; i++ {
 		state.NetworkOutMsgQueue().Enqueue(msg)
 		time.Sleep(time.Duration(delay) * time.Second)
@@ -69,9 +64,10 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 		return
 	}
 
-	if m.ResendCnt > 60 {
+	if m.ResendCnt > 4 {
 		return
 	}
+	m.ResendCnt++
 
 	switch msg.(interface{}).(type) {
 	//case ServerFault:
