@@ -926,7 +926,9 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
-
+		if pl == nil {
+			return
+		}
 		msg := m.(*messages.RevealEntryMsg)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())

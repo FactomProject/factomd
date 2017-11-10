@@ -235,14 +235,26 @@ workflows:
   version: 2
   commit-workflow:
     jobs:
-      - build
+      - build:
+          filters:
+            tags:
+              only: /.*/
       - test:
+          filters:
+            tags:
+              only: /.*/
           requires:
             - build
       - coveralls:
+          filters:
+            tags:
+              only: /.*/
           requires:
             - test
       - docker_build:
+          filters:
+            tags:
+              only: /.*/
           context: org-global
           requires:
             - test
