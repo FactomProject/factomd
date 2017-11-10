@@ -55,3 +55,9 @@ func randomIPendingEntry(nilSpot int) *interfaces.IPendingEntry {
 
 	return entry
 }
+
+
+func TestTrace(t *testing.T) {
+       Trace()
+       Trace("one string to print")
+}
