@@ -5,8 +5,6 @@
 package messages
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
