@@ -231,9 +231,6 @@ skipreview:
 	for len(process) > 0 {
 		msg := <-process
 		s.executeMsg(vm, msg)
-		if !msg.IsPeer2Peer() {
-			msg.SendOut(s, msg)
-		}
 		s.UpdateState()
 	}
 
@@ -270,6 +267,7 @@ func (s *State) ReviewHolding() {
 	if len(s.XReview) > 0 {
 		return
 	}
+	s.LenHolding = len(s.Holding)
 
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
@@ -378,7 +376,6 @@ func (s *State) ReviewHolding() {
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
-	s.LenHolding = len(s.Holding)
 }
 
 // Adds blocks that are either pulled locally from a database, or acquired from peers.

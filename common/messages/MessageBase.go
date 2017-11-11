@@ -112,37 +112,39 @@ func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 && state.NetworkOutMsgQueue().Length() < 1000 {
+	if now-m.resend > 20000 {
 		m.ResendCnt++
-		m.resend = now
-		return true
+		if state.NetworkOutMsgQueue().Length() < 1000 {
+			m.resend = now
+			return true
+		}
 	}
 	return false
 }
 
-// Try and Resend.  Return true if we should keep the message, false if we should give up.
+// Try and Resend.  Return false if we should keep the message, true if we should expire the message.
 func (m *MessageBase) Expire(state interfaces.IState) (rtn bool) {
 	now := state.GetTimestamp().GetTimeMilli()
 	if m.expire == 0 {
 		m.expire = now
 	}
-
 	if state.HoldingLen() > 1000 && m.ResendCnt > 4 {
-		return false
+		return true
 	}
 
 	if state.HoldingLen() > 500 && m.ResendCnt > 8 {
-		return false
+		return true
 	}
 
 	if state.HoldingLen() > 200 && m.ResendCnt > 16 {
-		return false
+		return true
 	}
 
 	if now-m.expire > 60*60*1000 { // Keep messages for some length before giving up.
-		rtn = true
+		return true
 	}
-	return
+
+	return false
 }
 
 func (m *MessageBase) IsStalled() bool {
