@@ -173,6 +173,11 @@ func (s *State) GoSyncEntries() {
 
 	// Once I have found all the entries, we quit searching so much for missing entries.
 	start := uint32(1)
+
+	if s.EntryDBHeightComplete > 0 {
+		start = s.EntryDBHeightComplete
+	}
+
 	entryMissing := 0
 
 	// If I find no missing entries, then the firstMissing will be -1

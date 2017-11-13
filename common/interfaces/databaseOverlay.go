@@ -45,6 +45,10 @@ type DBOverlaySimple interface {
 	StartMultiBatch()
 	Trim()
 	FetchAllEntriesByChainID(chainID IHash) ([]IEBEntry, error)
+	SaveKeyValueStore(kvs BinaryMarshallable, key []byte) error
+	FetchKeyValueStore(key []byte, dst BinaryMarshallable) (BinaryMarshallable, error)
+	SaveDatabaseEntryHeight(height uint32) error
+	FetchDatabaseEntryHeight() (uint32, error)
 }
 
 // Db defines a generic interface that is used to request and insert data into db
@@ -252,6 +256,12 @@ type DBOverlay interface {
 
 	FetchFactoidTransaction(hash IHash) (ITransaction, error)
 	FetchECTransaction(hash IHash) (IECBlockEntry, error)
+
+	//******************************KeyValueStore**********************************//
+	SaveKeyValueStore(kvs BinaryMarshallable, key []byte) error
+	FetchKeyValueStore(key []byte, dst BinaryMarshallable) (BinaryMarshallable, error)
+	SaveDatabaseEntryHeight(height uint32) error
+	FetchDatabaseEntryHeight() (uint32, error)
 }
 
 type ISCDatabaseOverlay interface {

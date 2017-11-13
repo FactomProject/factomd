@@ -57,6 +57,7 @@ type FactomParams struct {
 	exposeProfiling          bool
 	useLogstash              bool
 	logstashURL              string
+	Sync2                    int
 }
 
 func (f *FactomParams) Init() {
@@ -107,6 +108,7 @@ func (f *FactomParams) Init() {
 	f.torUpload = false
 	f.Sim_Stdin = true
 	f.exposeProfiling = false
+	f.Sync2 = -1
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -172,6 +174,8 @@ func ParseCmdLine(args []string) *FactomParams {
 	logstash := flag.Bool("logstash", false, "If true, use Logstash")
 	logstashURL := flag.String("logurl", "localhost:8345", "Endpoint URL for Logstash")
 
+	sync2Ptr := flag.Int("sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -224,6 +228,8 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	p.useLogstash = *logstash
 	p.logstashURL = *logstashURL
+
+	p.Sync2 = *sync2Ptr
 
 	if *factomHomePtr != "" {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)
