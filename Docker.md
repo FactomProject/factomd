@@ -2,6 +2,23 @@
 
 The factomd Docker Helper is a simple tool to help build and run factomd as a container
 
+## Quickstart Guide (public repository)
+
+#### To Run Main Net:
+1. `docker volume create factomd_volume`
+2. `docker run --rm -v factomd_volume:/root/.factom/m2 --entrypoint='' factominc/factomd /bin/cp factomd.conf /root/.factom/m2/factomd.conf`
+3. `docker run -di -p 8090:8090 -p 8108:8108 -v factomd_volume:/root/.factom/m2 --restart=always --name=factomd factominc/factomd`
+
+#### To Update & restart:
+1. `docker pull factominc/factomd`
+2. `docker stop factomd`
+3. `docker rm factomd`
+4. `docker run -di -p 8090:8090 -p 8108:8108 -v factomd_volume:/root/.factom/m2 --restart=always --name=factomd factominc/factomd`
+
+#### To View Web Status Page:
+  `http://<host>:8090`
+
+## Build from GitHub Source
 ## Prerequisites
 
 You must have at least Docker v17 installed on your system.
