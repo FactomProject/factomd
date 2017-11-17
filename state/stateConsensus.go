@@ -371,7 +371,6 @@ func (s *State) ReviewHolding() {
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
-		delete(s.Holding, k)
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
@@ -892,8 +891,6 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -904,7 +901,6 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -912,6 +908,11 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
+
+	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
+		m.SendOut(s, m)
+	}
+
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
@@ -1127,6 +1128,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(eh.Fixed()) // delete(s.Commits, eh.Fixed())
+		delete(s.Holding, eh.Fixed())
 	}
 }
 
