@@ -637,6 +637,26 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 	}
 
+	for _, ebs := range dbstatemsg.EBlocks {
+		blktime := dbstatemsg.DirectoryBlock.GetTimestamp()
+		for _, e := range ebs.GetEntryHashes() {
+			if e.IsMinuteMarker() {
+				continue
+			}
+			s.FReplay.IsTSValid_(
+				constants.BLOCK_REPLAY,
+				e.Fixed(),
+				blktime,
+				blktime)
+			s.Replay.IsTSValid_(
+				constants.INTERNAL_REPLAY,
+				e.Fixed(),
+				blktime,
+				blktime)
+
+		}
+	}
+
 	// Only set the flag if we know the whole block is valid.  We know it is because we checked them all in the loop
 	// above
 	for _, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
