@@ -231,9 +231,6 @@ skipreview:
 	for len(process) > 0 {
 		msg := <-process
 		s.executeMsg(vm, msg)
-		if !msg.IsPeer2Peer() {
-			msg.SendOut(s, msg)
-		}
 		s.UpdateState()
 	}
 
