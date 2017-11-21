@@ -35,6 +35,7 @@ type Ack struct {
 	authvalid   bool
 	Response    bool // A response to a missing data request
 	BalanceHash interfaces.IHash
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
@@ -310,6 +311,11 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err

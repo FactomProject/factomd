@@ -29,6 +29,7 @@ type Heartbeat struct {
 	//Not marshalled
 	hash     interfaces.IHash
 	sigvalid bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
@@ -116,6 +117,9 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
+
+	m.marshalCache = data
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -195,6 +199,11 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err

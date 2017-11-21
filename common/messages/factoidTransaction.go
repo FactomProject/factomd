@@ -25,6 +25,7 @@ type FactoidTransaction struct {
 	//Not marshalled
 	hash      interfaces.IHash
 	processed bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
@@ -165,6 +166,9 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
 	}()
+
+	m.marshalCache = data
+
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
@@ -181,6 +185,11 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 }
 
 func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 

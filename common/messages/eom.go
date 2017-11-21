@@ -35,6 +35,7 @@ type EOM struct {
 	//Not marshalled
 	hash       interfaces.IHash
 	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
+	marshalCache []byte
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -203,6 +204,9 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
 		}
 	}()
+
+	m.marshalCache = data
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -281,6 +285,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var buf primitives.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
