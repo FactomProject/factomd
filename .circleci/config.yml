@@ -132,13 +132,12 @@ jobs:
             - vendor
 
 
-
   # Docker builds
   docker_build:
     working_directory: /go/src/github.com/FactomProject/factomd
 
     docker:
-      - image: docker:17.06.0-ce-git
+      - image: factominc/elixir_python
 
     steps:
       - checkout
@@ -171,43 +170,72 @@ jobs:
       - run:
           name: Push  master / develop to DockerHub
           command: |
+
+           # Login to DockerHub
             docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+
+            # If there is a tag, use it
+            if [ "$CIRCLE_TAG" != "" ]; then
+              docker tag factomd factominc/factomd:${CIRCLE_TAG}
+              docker push factominc/factomd:${CIRCLE_TAG}
+              docker tag factomd-alpine factominc/factomd:${CIRCLE_TAG}-alpine
+              docker push factominc/factomd:${CIRCLE_TAG}-alpine
+            fi
 
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
 
-              # If there is a tag, use it
-              if [ "$CIRCLE_TAG" != "" ]; then
-                docker tag factomd-alpine factominc/factomd:${TAG}-alpine
-                docker push factominc/factomd:${TAG}-alpine
-                docker tag factomd factominc/factomd:${TAG}
-                docker push factominc/factomd:${TAG}
-              fi
-
-              # But tag it as alpine/latest anyhow
-              docker tag factomd-alpine factominc/factomd:alpine
-              docker push factominc/factomd:alpine
+              # Tag master as latest
               docker tag factomd factominc/factomd:latest
               docker push factominc/factomd:latest
+              docker tag factomd-alpine factominc/factomd:alpine
+              docker push factominc/factomd:alpine
+            fi
 
-            elif [ "${CIRCLE_BRANCH}" == "develop" ]; then
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
 
-              # If there is a tag, use it
-              if [ "$CIRCLE_TAG" != "" ]; then
-                docker tag factomd-alpine factominc/factomd:${TAG}-alpine-develop
-                docker push factominc/factomd:${TAG}-alpine-develop
-                docker tag factomd factominc/factomd:${TAG}-develop
-                docker push factominc/factomd:${TAG}-develop
-              fi
-
-              # But tag it as alpine-develop/develop anyhow
-              docker tag factomd-alpine factominc/factomd:alpine-develop
-              docker push factominc/factomd:alpine-develop
+              # Tag develop as develop anyhow
               docker tag factomd factominc/factomd:develop
               docker push factominc/factomd:develop
+              docker tag factomd-alpine factominc/factomd:alpine-develop
+              docker push factominc/factomd:alpine-develop
             fi
 
             docker logout
 
+      - run:
+          name: Push images to AWS ECR
+          command: |
+            # Login to AWS ECR
+            login="$(aws ecr get-login  --no-include-email --region $AWS_REGION)"
+            ${login}
+
+            # If there is a tag, use it
+            if [ "$CIRCLE_TAG" != "" ]; then
+              docker tag factomd ${AWS_REPO_BASE_URI}/factomd:${CIRCLE_TAG}
+              docker push ${AWS_REPO_BASE_URI}/factomd:${CIRCLE_TAG}
+              docker tag factomd-alpine ${AWS_REPO_BASE_URI}/factomd:${CIRCLE_TAG}-alpine
+              docker push ${AWS_REPO_BASE_URI}/factomd:${CIRCLE_TAG}-alpine
+            fi
+
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+
+              # Tag master as latest
+              docker tag factomd ${AWS_REPO_BASE_URI}/factomd:latest
+              docker push ${AWS_REPO_BASE_URI}/factomd:latest
+              docker tag factomd-alpine ${AWS_REPO_BASE_URI}/factomd:alpine
+              docker push ${AWS_REPO_BASE_URI}/factomd:alpine
+            fi
+
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+
+              # Tag develop as develop anyhow
+              docker tag factomd ${AWS_REPO_BASE_URI}/factomd:develop
+              docker push ${AWS_REPO_BASE_URI}/factomd:develop
+              docker tag factomd-alpine ${AWS_REPO_BASE_URI}/factomd:alpine-develop
+              docker push ${AWS_REPO_BASE_URI}/factomd:alpine-develop
+            fi
+
+            docker logout
       - run:
           name: Save the image cache
           command: |
@@ -278,7 +306,8 @@ workflows:
           context: org-global
           requires:
             - test
-            
+
 notify:
   webhooks:
-    - url: https://hooks.zapier.com/hooks/catch/2398659/i8hgb6/ 
+    - url: https://hooks.zapier.com/hooks/catch/2398659/i8hgb6/
+

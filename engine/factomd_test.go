@@ -72,7 +72,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-ControlPanelPort=37002",
 		"-networkPort=37003",
 		"-startdelay=1",
-		"faulttimeout=5")
+		"faulttimeout=15")
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -88,18 +88,15 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("s")
 	runCmd("9")
 	runCmd("x")
+	runCmd("w")
+	runCmd("10")
 	runCmd("8")
-	runCmd("")
-	runCmd("F100")
-	runCmd("S10")
+	runCmd("w")
 	WaitBlocks(state0, 1)
-	runCmd("s")
 	runCmd("g10")
-	WaitBlocks(state0, 2)
+	WaitBlocks(state0, 3)
 	// Allocate 4 leaders
-	runCmd("g1")
 	WaitMinutes(state0, 3)
-	runCmd("g1")
 
 	runCmd("1")
 	runCmd("l")
@@ -110,11 +107,9 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("o")
 	runCmd("")
 	runCmd("")
-	runCmd("T11")
 
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
-	runCmd("s")
 
 	leadercnt := 0
 	auditcnt := 0
@@ -138,7 +133,10 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fail()
 	}
 	WaitMinutes(state0, 2)
-	runCmd("s")
+	runCmd("F100")
+	runCmd("S10")
+	runCmd("g10")
+
 	fn1 := GetFocus()
 	if fn1.State.FactomNodeName != "FNode07" {
 		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
@@ -182,8 +180,6 @@ func TestSetupANetwork(t *testing.T) {
 
 	runCmd("/")
 
-	runCmd("w")
-
 	runCmd("/")
 
 	runCmd("a1")
@@ -199,25 +195,11 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("r")
 	WaitMinutes(state0, 1)
 	runCmd("g1")
-	WaitMinutes(state0, 2)
-	runCmd("g1")
-	WaitMinutes(state0, 3)
-	runCmd("g1")
-	WaitMinutes(state0, 4)
-	runCmd("r")
-	WaitBlocks(fn1.State, 1)
 	runCmd("2")
 	runCmd("x")
-	runCmd("s")
 	WaitMinutes(state0, 1)
 	runCmd("x")
-	runCmd("g1")
-	WaitMinutes(state0, 2)
-	runCmd("s")
-	runCmd("g1")
-	WaitMinutes(state0, 3)
-	runCmd("g1")
-	WaitMinutes(state0, 4)
+	runCmd("g3")
 	WaitBlocks(fn1.State, 1)
 
 	t.Log("Shutting down the network")
