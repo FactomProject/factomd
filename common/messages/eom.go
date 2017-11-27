@@ -33,8 +33,8 @@ type EOM struct {
 	FactoidVM bool
 
 	//Not marshalled
-	hash       interfaces.IHash
-	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
+	hash         interfaces.IHash
+	MarkerSent   bool // If we have set EOM markers on blocks like Factoid blocks and such.
 	marshalCache []byte
 }
 

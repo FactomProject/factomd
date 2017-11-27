@@ -23,8 +23,8 @@ type FactoidTransaction struct {
 	//No signature!
 
 	//Not marshalled
-	hash      interfaces.IHash
-	processed bool
+	hash         interfaces.IHash
+	processed    bool
 	marshalCache []byte
 }
 

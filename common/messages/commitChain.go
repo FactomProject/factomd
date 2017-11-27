@@ -24,8 +24,8 @@ type CommitChainMsg struct {
 	Signature interfaces.IFullSignature
 
 	// Not marshaled... Just used by the leader
-	count    int
-	validsig bool
+	count        int
+	validsig     bool
 	marshalCache []byte
 }
 

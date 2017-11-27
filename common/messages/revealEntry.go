@@ -26,11 +26,11 @@ type RevealEntryMsg struct {
 	//No signature!
 
 	//Not marshalled
-	hash        interfaces.IHash
-	chainIDHash interfaces.IHash
-	IsEntry     bool
-	CommitChain *CommitChainMsg
-	commitEntry *CommitEntryMsg
+	hash         interfaces.IHash
+	chainIDHash  interfaces.IHash
+	IsEntry      bool
+	CommitChain  *CommitChainMsg
+	commitEntry  *CommitEntryMsg
 	marshalCache []byte
 }
 

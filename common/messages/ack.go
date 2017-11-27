@@ -31,10 +31,10 @@ type Ack struct {
 
 	Signature interfaces.IFullSignature
 	//Not marshalled
-	hash        interfaces.IHash
-	authvalid   bool
-	Response    bool // A response to a missing data request
-	BalanceHash interfaces.IHash
+	hash         interfaces.IHash
+	authvalid    bool
+	Response     bool // A response to a missing data request
+	BalanceHash  interfaces.IHash
 	marshalCache []byte
 }
 

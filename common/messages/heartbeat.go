@@ -27,8 +27,8 @@ type Heartbeat struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash     interfaces.IHash
-	sigvalid bool
+	hash         interfaces.IHash
+	sigvalid     bool
 	marshalCache []byte
 }
 

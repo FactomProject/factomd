@@ -28,8 +28,8 @@ type CommitEntryMsg struct {
 	hash interfaces.IHash
 
 	// Not marshaled... Just used by the leader
-	count    int
-	validsig bool
+	count        int
+	validsig     bool
 	marshalCache []byte
 }
 
