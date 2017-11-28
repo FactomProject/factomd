@@ -112,7 +112,7 @@ func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 {
+	if now-m.resend > 15000 {
 		m.ResendCnt++
 		if state.NetworkOutMsgQueue().Length() < 1000 {
 			m.resend = now
@@ -128,15 +128,19 @@ func (m *MessageBase) Expire(state interfaces.IState) (rtn bool) {
 	if m.expire == 0 {
 		m.expire = now
 	}
-	if state.HoldingLen() > 1000 && m.ResendCnt > 4 {
+	if state.HoldingLen() > 1500 && m.ResendCnt > 4 {
 		return true
 	}
 
-	if state.HoldingLen() > 500 && m.ResendCnt > 8 {
+	if state.HoldingLen() > 1000 && m.ResendCnt > 8 {
 		return true
 	}
 
-	if state.HoldingLen() > 200 && m.ResendCnt > 16 {
+	if state.HoldingLen() > 500 && m.ResendCnt > 16 {
+		return true
+	}
+
+	if state.HoldingLen() > 200 && m.ResendCnt > 24 {
 		return true
 	}
 
