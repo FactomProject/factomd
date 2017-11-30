@@ -294,10 +294,10 @@ func (s *State) ReviewHolding() {
 
 	for k, v := range s.Holding {
 
-		switch v.Validate(s) {
-		case -1:
+		vf := v.Validate(s)
+		if vf < 0 {
+			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
-		case 0:
 			continue
 		}
 
@@ -358,6 +358,10 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
+		if vf == 0 {
+			continue
+		}
+
 		if v.Expire(s) {
 			s.ExpireCnt++
 			os.Stderr.WriteString(v.String() + "\n" + v.GetMsgHash().String() + "\n")
@@ -368,17 +372,11 @@ func (s *State) ReviewHolding() {
 
 		if v.Resend(s) {
 			if v.Validate(s) == 1 {
-				s.ResendCnt++
 				v.SendOut(s, v)
 				continue
 			}
 		}
 
-		if v.Validate(s) < 0 {
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
-		}
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()

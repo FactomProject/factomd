@@ -113,7 +113,7 @@ func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > secs*1000 { // now is in milliseconds.  x1000 makes it seconds
+	if now-m.resend > secs*10000 { // now is in milliseconds.  x1000 makes it seconds
 		m.ResendCnt += 10
 		if state.NetworkOutMsgQueue().Length() < 1000 {
 			m.resend = now
