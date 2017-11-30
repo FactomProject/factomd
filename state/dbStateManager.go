@@ -725,7 +725,7 @@ func (list *DBStateList) String() string {
 		rec = "?"
 		if ds != nil {
 			rec = "nil"
-			if ds.DirectoryBlock != nil {
+			if ds.DirectoryBlock != nil && ds.DirectoryBlock != nil {
 				rec = "x"
 
 				dblk, _ := list.State.GetAndLockDB().FetchDBlock(ds.DirectoryBlock.GetKeyMR())

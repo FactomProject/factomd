@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -26,6 +27,7 @@ import (
 // or create more context loggers off of this
 var consenLogger = packageLogger.WithFields(log.Fields{"subpack": "consensus"})
 
+var _ = os.Stderr
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
 
@@ -349,8 +351,15 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.Expire(s) {
+		expire := false
+		re, ok := v.(*messages.RevealEntryMsg)
+		if !ok || (ok && s.Commits.Get(re.GetHash().Fixed()) != nil) {
+			expire = v.Expire(s)
+		}
+
+		if expire {
 			s.ExpireCnt++
+			os.Stderr.WriteString(v.String() + "\n" + v.GetMsgHash().String() + "\n")
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue

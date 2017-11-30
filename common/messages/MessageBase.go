@@ -5,11 +5,16 @@
 package messages
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
+
+var _ = os.O_WRONLY
+var _ = fmt.Print
 
 type MessageBase struct {
 	FullMsgHash interfaces.IHash
@@ -124,27 +129,29 @@ func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 
 // Try and Resend.  Return false if we should keep the message, true if we should expire the message.
 func (m *MessageBase) Expire(state interfaces.IState) (rtn bool) {
-	now := state.GetTimestamp().GetTimeMilli()
-	if m.expire == 0 {
-		m.expire = now
-	}
-	if state.HoldingLen() > 1500 && m.ResendCnt > 4 {
+
+	if state.HoldingLen() > 1500 && m.ResendCnt > 20 {
+		os.Stderr.WriteString("Expire 1500\n")
 		return true
 	}
 
-	if state.HoldingLen() > 1000 && m.ResendCnt > 8 {
+	if state.HoldingLen() > 1000 && m.ResendCnt > 30 {
+		os.Stderr.WriteString("Expire 1000\n")
 		return true
 	}
 
-	if state.HoldingLen() > 500 && m.ResendCnt > 16 {
+	if state.HoldingLen() > 500 && m.ResendCnt > 40 {
+		os.Stderr.WriteString("Expire 500\n")
 		return true
 	}
 
-	if state.HoldingLen() > 200 && m.ResendCnt > 24 {
+	if state.HoldingLen() > 200 && m.ResendCnt > 50 {
+		os.Stderr.WriteString("Expire 200\n")
 		return true
 	}
 
-	if now-m.expire > 60*60*1000 { // Keep messages for some length before giving up.
+	if m.ResendCnt > 240 { // Keep messages for some length before giving up.
+		os.Stderr.WriteString("Expire hour\n")
 		return true
 	}
 

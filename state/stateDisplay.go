@@ -207,26 +207,6 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 
 	b := s.GetHighestCompletedBlk() + 1
 	pl := s.ProcessLists.Get(b)
-	if pl == nil {
-		b--
-		pl = s.ProcessLists.Get(b)
-		if pl == nil {
-			if b > 1 {
-				b--
-				pl = s.ProcessLists.Get(b)
-			}
-		}
-	}
-
-	var pl2 *ProcessList
-	if b > 3 {
-		b--
-		pl2 = s.ProcessLists.GetSafe(b)
-		if pl == nil {
-			b--
-			pl2 = s.ProcessLists.GetSafe(b)
-		}
-	}
 
 	if pl != nil && pl.FedServers != nil {
 		ds.PrintMap = pl.PrintMap()
@@ -234,10 +214,6 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	} else {
 		ds.PrintMap = ""
 		ds.ProcessList = ""
-	}
-
-	if pl2 != nil {
-		ds.ProcessList2 = pl2.String()
 	}
 
 	return ds, nil
