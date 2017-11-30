@@ -60,16 +60,10 @@ func (m *MessageBase) PutAck(ack interfaces.IMsg) {
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	// Dont' resend if we are behind
-	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
-		return
-	}
-	if m.NoResend {
+	if m.ResendCnt > 0 {
 		return
 	}
 
-	if m.ResendCnt > 4 {
-		return
-	}
 	m.ResendCnt++
 
 	switch msg.(interface{}).(type) {
@@ -110,6 +104,8 @@ func (m *MessageBase) SentInvalid() bool {
 	return m.MarkInvalid
 }
 
+const secs = 10 // How many seconds we are going to put between resends.
+
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
 func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 	now := state.GetTimestamp().GetTimeMilli()
@@ -117,8 +113,8 @@ func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 15000 {
-		m.ResendCnt++
+	if now-m.resend > secs*1000 { // now is in milliseconds.  x1000 makes it seconds
+		m.ResendCnt += 10
 		if state.NetworkOutMsgQueue().Length() < 1000 {
 			m.resend = now
 			return true
@@ -130,27 +126,36 @@ func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 // Try and Resend.  Return false if we should keep the message, true if we should expire the message.
 func (m *MessageBase) Expire(state interfaces.IState) (rtn bool) {
 
-	if state.HoldingLen() > 1500 && m.ResendCnt > 20 {
+	minutes := func(i int) int {
+		return i * 60 / secs
+	}
+
+	// queue is backing up, hold for 2 min
+	if state.HoldingLen() > 1500 && m.ResendCnt > minutes(2) {
 		os.Stderr.WriteString("Expire 1500\n")
 		return true
 	}
 
-	if state.HoldingLen() > 1000 && m.ResendCnt > 30 {
+	// Okay, a little worried, hold for 10 min
+	if state.HoldingLen() > 1000 && m.ResendCnt > minutes(10) {
 		os.Stderr.WriteString("Expire 1000\n")
 		return true
 	}
 
-	if state.HoldingLen() > 500 && m.ResendCnt > 40 {
+	// Not too worried, hold for 15
+	if state.HoldingLen() > 500 && m.ResendCnt > minutes(15) {
 		os.Stderr.WriteString("Expire 500\n")
 		return true
 	}
 
-	if state.HoldingLen() > 200 && m.ResendCnt > 50 {
+	// Just want to rush a bit, hold for 20
+	if state.HoldingLen() > 200 && m.ResendCnt > minutes(20) {
 		os.Stderr.WriteString("Expire 200\n")
 		return true
 	}
 
-	if m.ResendCnt > 240 { // Keep messages for some length before giving up.
+	// Not worried at all, hold for 60 minutes
+	if m.ResendCnt > minutes(60) { // Wait an hour
 		os.Stderr.WriteString("Expire hour\n")
 		return true
 	}

@@ -294,6 +294,13 @@ func (s *State) ReviewHolding() {
 
 	for k, v := range s.Holding {
 
+		switch v.Validate(s) {
+		case -1:
+			delete(s.Holding, k)
+		case 0:
+			continue
+		}
+
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
@@ -351,13 +358,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		expire := false
-		re, ok := v.(*messages.RevealEntryMsg)
-		if !ok || (ok && s.Commits.Get(re.GetHash().Fixed()) != nil) {
-			expire = v.Expire(s)
-		}
-
-		if expire {
+		if v.Expire(s) {
 			s.ExpireCnt++
 			os.Stderr.WriteString(v.String() + "\n" + v.GetMsgHash().String() + "\n")
 			TotalHoldingQueueOutputs.Inc()
@@ -927,16 +928,15 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
-		m.SendOut(s, m)
 		ack.SendOut(s, ack)
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
 		if pl == nil {
 			return
 		}
+		pl.AddToProcessList(ack, m)
 		msg := m.(*messages.RevealEntryMsg)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
