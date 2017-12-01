@@ -830,8 +830,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 					p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), now)
 					p.State.Replay.IsTSValid_(constants.INTERNAL_REPLAY, msg.GetMsgHash().Fixed(), msg.GetTimestamp(), now)
 
-					ack := vm.ListAck[j]
-					delete(p.State.Acks, ack.GetMsgHash().Fixed())
+					delete(p.State.Acks, msg.GetMsgHash().Fixed())
 					delete(p.State.Holding, msg.GetMsgHash().Fixed())
 
 				} else {
@@ -1034,6 +1033,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.ListAck = append(vm.ListAck, nil)
 	}
 
+	delete(p.State.Acks, m.GetMsgHash().Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack
 	p.AddOldMsgs(m)

@@ -923,10 +923,20 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
 		if pl == nil {
 			return
 		}
+
+		// Add the message and ack to the process list.
+		pl.AddToProcessList(ack, m)
+
+		// The message might not have gone in.  Make sure it did.  Get the list where it goes
+		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
+		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
+		if int(ack.Height) < len(list) || list[ack.Height] == nil {
+			return
+		}
+
 		msg := m.(*messages.RevealEntryMsg)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
@@ -1018,7 +1028,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
-	delete(s.Acks, ack.GetMsgHash().Fixed())
+	delete(s.Acks, ack.GetHash().Fixed())
 	delete(s.Holding, m.GetMsgHash().Fixed())
 }
 
