@@ -358,13 +358,8 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if vf == 0 {
-			continue
-		}
-
-		if v.Expire(s) {
+		if v.Expire(s, v) {
 			s.ExpireCnt++
-			os.Stderr.WriteString(v.String() + "\n" + v.GetMsgHash().String() + "\n")
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue

@@ -5,16 +5,11 @@
 package messages
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 )
-
-var _ = os.O_WRONLY
-var _ = fmt.Print
 
 type MessageBase struct {
 	FullMsgHash interfaces.IHash
@@ -124,39 +119,44 @@ func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
 }
 
 // Try and Resend.  Return false if we should keep the message, true if we should expire the message.
-func (m *MessageBase) Expire(state interfaces.IState) (rtn bool) {
+func (m *MessageBase) Expire(state interfaces.IState, msg interfaces.IMsg) (rtn bool) {
 
+	// minutes is a local fucntion that let's us estimate the time we have spent
+	// attempting to retry sending a message from the holding queue in minutes given
+	// how many seconds we wait between Resend() actually resending a message.
 	minutes := func(i int) int {
 		return i * 60 / secs
 	}
 
+	// If a message has not validated and our holding queue has some amount of
+	// pending messages, then toss non-validatable messages after 5 minutes.
+	vf := msg.Validate(state)
+	if state.HoldingLen() > 100 && vf == 0 && m.ResendCnt > minutes(5) {
+		return true
+	}
+
 	// queue is backing up, hold for 2 min
 	if state.HoldingLen() > 1500 && m.ResendCnt > minutes(2) {
-		os.Stderr.WriteString("Expire 1500\n")
 		return true
 	}
 
 	// Okay, a little worried, hold for 10 min
 	if state.HoldingLen() > 1000 && m.ResendCnt > minutes(10) {
-		os.Stderr.WriteString("Expire 1000\n")
 		return true
 	}
 
 	// Not too worried, hold for 15
 	if state.HoldingLen() > 500 && m.ResendCnt > minutes(15) {
-		os.Stderr.WriteString("Expire 500\n")
 		return true
 	}
 
 	// Just want to rush a bit, hold for 20
 	if state.HoldingLen() > 200 && m.ResendCnt > minutes(20) {
-		os.Stderr.WriteString("Expire 200\n")
 		return true
 	}
 
 	// Not worried at all, hold for 60 minutes
 	if m.ResendCnt > minutes(60) { // Wait an hour
-		os.Stderr.WriteString("Expire hour\n")
 		return true
 	}
 
