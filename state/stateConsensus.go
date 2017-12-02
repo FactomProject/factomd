@@ -761,30 +761,19 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
-	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
-	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 
 	if pl == nil {
 		return
 	}
+	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 
 	TotalAcksInputs.Inc()
-	s.Acks[ack.GetHash().Fixed()] = ack
 
-	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
-	if okr {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, ack)
-	}
 	if okm {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, msg)
+		msg.FollowerExecute(s)
 	}
 
-	// If I've seen both, put them in the process list.
-	if !okr && !okm {
-		pl.AddToProcessList(ack, msg)
-	}
+	ack.FollowerExecute(s)
 
 	s.MissingResponseAppliedCnt++
 
@@ -1208,6 +1197,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
+			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
@@ -1232,6 +1222,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
+			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)

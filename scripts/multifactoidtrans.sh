@@ -16,58 +16,60 @@ echo 4 $fct4
 echo 5 $fct5
 echo 6 $fct6
 
+tx=$(cat /dev/urandom | tr -cd 'a-f' | head -c 10)
+paws=.2
+
 big=FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
 
 #transfer funds to each of the entry credit address
-for ((i=0; i < 50000; i++)); do
-echo $i
+for ((i=0; i < 5000000; i+=50)); do
+echo Submitted $i transactions
 for ((j=0; j < 10; j++)); do
 
-factom-cli rmtx  t1 2>/dev/null
+factom-cli rmtx  $tx 2>/dev/null
 
-factom-cli newtx -q t1
-factom-cli addtxinput  -q t1 $big .001
-factom-cli addtxoutput -q t1 $fct2 .001
-factom-cli addtxfee    -q t1 $big
-factom-cli signtx -q t1
-factom-cli sendtx -q -f t1
-sleep 1
+factom-cli newtx -q $tx
+factom-cli addtxinput  -q $tx $big .001
+factom-cli addtxoutput -q $tx $fct2 .001
+factom-cli addtxfee    -q $tx $big
+factom-cli signtx -q $tx
+factom-cli sendtx -q -f $tx
+sleep $paws
 
-factom-cli newtx -q t1
-factom-cli addtxinput  -q t1 $big .001
-factom-cli addtxoutput -q t1 $fct3 .001
-factom-cli addtxfee    -q t1 $big
-factom-cli signtx -q t1
-factom-cli sendtx -q -f t1
-sleep 1
+factom-cli newtx -q $tx
+factom-cli addtxinput  -q $tx $big .001
+factom-cli addtxoutput -q $tx $fct3 .001
+factom-cli addtxfee    -q $tx $big
+factom-cli signtx -q $tx
+factom-cli sendtx -q -f $tx
+sleep $paws
 
-factom-cli newtx -q t1
-factom-cli addtxinput  -q t1 $big .001
-factom-cli addtxoutput -q t1 $fct4 .001
-factom-cli addtxfee    -q t1 $big
-factom-cli signtx -q t1
-factom-cli sendtx -q -f t1
-sleep 1
+factom-cli newtx -q $tx
+factom-cli addtxinput  -q $tx $big .001
+factom-cli addtxoutput -q $tx $fct4 .001
+factom-cli addtxfee    -q $tx $big
+factom-cli signtx -q $tx
+factom-cli sendtx -q -f $tx
+sleep $paws
 
-factom-cli newtx -q t1
-factom-cli addtxinput  -q t1 $big .001
-factom-cli addtxoutput -q t1 $fct5 .001
-factom-cli addtxfee    -q t1 $big
-factom-cli signtx -q t1
-factom-cli sendtx -q -f t1
-sleep 1
+factom-cli newtx -q $tx
+factom-cli addtxinput  -q $tx $big .001
+factom-cli addtxoutput -q $tx $fct5 .001
+factom-cli addtxfee    -q $tx $big
+factom-cli signtx -q $tx
+factom-cli sendtx -q -f $tx
+sleep $paws
 
-factom-cli newtx -q t1
-factom-cli addtxinput  -q t1 $big .001
-factom-cli addtxoutput -q t1 $fct6 .001
-factom-cli addtxfee    -q t1 $big
-factom-cli signtx -q t1
-factom-cli sendtx -q -f t1
+factom-cli newtx -q $tx
+factom-cli addtxinput  -q $tx $big .001
+factom-cli addtxoutput -q $tx $fct6 .001
+factom-cli addtxfee    -q $tx $big
+factom-cli signtx -q $tx
+factom-cli sendtx -q -f $tx
 
-sleep 1
+sleep $paws
 
 done
 
-factom-cli listaddresses
 done
 
