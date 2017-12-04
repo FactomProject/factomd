@@ -12,7 +12,7 @@ fa1=$(factom-cli -s=$factomd importaddress Fs3E9gV6DXsYzf7Fqx1fVBQPQXV695eP3k5Xb
 # This address is for a network with a production Genesis block
 #fa1=FA3RrKWJLQeDuzC9YzxcSwenU1qDzzwjR1uHMpp1SQbs8wH9Qbbr
 
-maxsleep=10
+maxsleep=15
 
 ec1=$(factom-cli -s=$factomd importaddress Es3LB2YW9bpdWmMnNQYb31kyPzqnecsNqmg5W4K7FKp4UP6omRTa)
 
@@ -58,5 +58,6 @@ done
 echo SLEEP "90 seconds before doing another set of chains."
 sleep $(( ( RANDOM % ($maxsleep*2) )  + 1 ))
 echo About ready ...
+sleep $maxsleep
 sleep $maxsleep
 

@@ -17,7 +17,7 @@ echo 5 $fct5
 echo 6 $fct6
 
 tx=$(cat /dev/urandom | tr -cd 'a-f' | head -c 10)
-paws=.2
+paws=.8
 
 big=FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
 
