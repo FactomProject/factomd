@@ -26,11 +26,12 @@ type RevealEntryMsg struct {
 	//No signature!
 
 	//Not marshalled
-	hash        interfaces.IHash
-	chainIDHash interfaces.IHash
-	IsEntry     bool
-	CommitChain *CommitChainMsg
-	CommitEntry *CommitEntryMsg
+	hash         interfaces.IHash
+	chainIDHash  interfaces.IHash
+	IsEntry      bool
+	CommitChain  *CommitChainMsg
+	commitEntry  *CommitEntryMsg
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
@@ -111,7 +112,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	// Make sure one of the two proper commits got us here.
 	var okChain, okEntry bool
 	m.CommitChain, okChain = commit.(*CommitChainMsg)
-	m.CommitEntry, okEntry = commit.(*CommitEntryMsg)
+	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
 		return -1
 	}
@@ -120,7 +121,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	// The chain must exist
 	if okEntry {
 		m.IsEntry = true
-		ECs := int(m.CommitEntry.CommitEntry.Credits)
+		ECs := int(m.commitEntry.CommitEntry.Credits)
 		// Any entry over 10240 bytes will be rejected
 		if m.Entry.KSize() > 10 {
 			return -1
@@ -199,6 +200,9 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+
+	m.marshalCache = data
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("%s", "Invalid Message type")
@@ -228,6 +232,11 @@ func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())

@@ -36,8 +36,9 @@ type DirectoryBlockSignature struct {
 	SysHash     interfaces.IHash
 
 	//Not marshalled
-	Matches bool
-	hash    interfaces.IHash
+	Matches      bool
+	hash         interfaces.IHash
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
@@ -241,6 +242,8 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		}
 	}()
 
+	m.marshalCache = data
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -361,6 +364,11 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var sig interfaces.IFullSignature
 	resp, err := m.MarshalForSignature()
 	if err == nil {

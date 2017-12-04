@@ -31,10 +31,11 @@ type Ack struct {
 
 	Signature interfaces.IFullSignature
 	//Not marshalled
-	hash        interfaces.IHash
-	authvalid   bool
-	Response    bool // A response to a missing data request
-	BalanceHash interfaces.IHash
+	hash         interfaces.IHash
+	authvalid    bool
+	Response     bool // A response to a missing data request
+	BalanceHash  interfaces.IHash
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
@@ -84,8 +85,8 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
-	msg, _ := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
-	if msg != nil {
+	_, err := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	if err != nil {
 		return -1
 	}
 
@@ -310,6 +311,11 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
