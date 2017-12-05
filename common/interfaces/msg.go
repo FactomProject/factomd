@@ -111,7 +111,7 @@ type IMsg interface {
 	IsStalled() bool
 	SetStall(bool)
 	Resend(IState) bool
-	Expire(IState) bool
+	Expire(IState, IMsg) bool
 
 	// Equivalent to String() for logging
 	LogFields() log.Fields

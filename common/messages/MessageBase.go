@@ -55,16 +55,10 @@ func (m *MessageBase) PutAck(ack interfaces.IMsg) {
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 	// Dont' resend if we are behind
-	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
-		return
-	}
-	if m.NoResend {
+	if m.ResendCnt > 0 {
 		return
 	}
 
-	if m.ResendCnt > 4 {
-		return
-	}
 	m.ResendCnt++
 
 	switch msg.(interface{}).(type) {
@@ -105,30 +99,68 @@ func (m *MessageBase) SentInvalid() bool {
 	return m.MarkInvalid
 }
 
+const secs = 10 // How many seconds we are going to put between resends.
+
 // Try and Resend.  Return true if we should keep the message, false if we should give up.
-func (m *MessageBase) Resend(s interfaces.IState) (rtn bool) {
-	now := s.GetTimestamp().GetTimeMilli()
+func (m *MessageBase) Resend(state interfaces.IState) (rtn bool) {
+	now := state.GetTimestamp().GetTimeMilli()
 	if m.resend == 0 {
 		m.resend = now
 		return false
 	}
-	if now-m.resend > 20000 && s.NetworkOutMsgQueue().Length() < 1000 {
-		m.resend = now
-		return true
+	if now-m.resend > secs*1000 { // now is in milliseconds.  x1000 makes it seconds
+		m.ResendCnt += 1
+		if state.NetworkOutMsgQueue().Length() < 1000 {
+			m.resend = now
+			return true
+		}
 	}
 	return false
 }
 
-// Try and Resend.  Return true if we should keep the message, false if we should give up.
-func (m *MessageBase) Expire(s interfaces.IState) (rtn bool) {
-	now := s.GetTimestamp().GetTimeMilli()
-	if m.expire == 0 {
-		m.expire = now
+// Try and Resend.  Return false if we should keep the message, true if we should expire the message.
+func (m *MessageBase) Expire(state interfaces.IState, msg interfaces.IMsg) (rtn bool) {
+
+	// minutes is a local fucntion that let's us estimate the time we have spent
+	// attempting to retry sending a message from the holding queue in minutes given
+	// how many seconds we wait between Resend() actually resending a message.
+	minutes := func(i int) int {
+		return i * 60 / secs
 	}
-	if now-m.expire > 5*60*1000 { // Keep messages for some length before giving up.
-		rtn = true
+
+	// If a message has not validated and our holding queue has some amount of
+	// pending messages, then toss non-validatable messages after 5 minutes.
+	vf := msg.Validate(state)
+	if state.HoldingLen() > 100 && vf == 0 && m.ResendCnt > minutes(5) {
+		return true
 	}
-	return
+
+	// queue is backing up, hold for 2 min
+	if state.HoldingLen() > 1500 && m.ResendCnt > minutes(2) {
+		return true
+	}
+
+	// Okay, a little worried, hold for 10 min
+	if state.HoldingLen() > 1000 && m.ResendCnt > minutes(10) {
+		return true
+	}
+
+	// Not too worried, hold for 15
+	if state.HoldingLen() > 500 && m.ResendCnt > minutes(15) {
+		return true
+	}
+
+	// Just want to rush a bit, hold for 20
+	if state.HoldingLen() > 200 && m.ResendCnt > minutes(20) {
+		return true
+	}
+
+	// Not worried at all, hold for 60 minutes
+	if m.ResendCnt > minutes(60) { // Wait an hour
+		return true
+	}
+
+	return false
 }
 
 func (m *MessageBase) IsStalled() bool {

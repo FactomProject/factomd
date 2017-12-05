@@ -309,6 +309,7 @@ type IState interface {
 	GetBootTime() int64
 
 	// Access to Holding Queue
+	HoldingLen() int
 	LoadHoldingMap() map[[32]byte]IMsg
 	LoadAcksMap() map[[32]byte]IMsg
 

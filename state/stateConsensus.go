@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -26,6 +27,7 @@ import (
 // or create more context loggers off of this
 var consenLogger = packageLogger.WithFields(log.Fields{"subpack": "consensus"})
 
+var _ = os.Stderr
 var _ = fmt.Print
 var _ = (*hash.Hash32)(nil)
 
@@ -267,6 +269,7 @@ func (s *State) ReviewHolding() {
 	if len(s.XReview) > 0 {
 		return
 	}
+	s.LenHolding = len(s.Holding)
 
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
@@ -290,6 +293,13 @@ func (s *State) ReviewHolding() {
 	saved := s.GetHighestSavedBlk()
 
 	for k, v := range s.Holding {
+
+		vf := v.Validate(s)
+		if vf < 0 {
+			TotalHoldingQueueOutputs.Inc()
+			delete(s.Holding, k)
+			continue
+		}
 
 		if int(highest)-int(saved) > 1000 {
 			TotalHoldingQueueOutputs.Inc()
@@ -348,7 +358,7 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 
-		if v.Expire(s) {
+		if v.Expire(s, v) {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
@@ -357,17 +367,11 @@ func (s *State) ReviewHolding() {
 
 		if v.Resend(s) {
 			if v.Validate(s) == 1 {
-				s.ResendCnt++
 				v.SendOut(s, v)
 				continue
 			}
 		}
 
-		if v.Validate(s) < 0 {
-			TotalHoldingQueueOutputs.Inc()
-			delete(s.Holding, k)
-			continue
-		}
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
@@ -917,16 +921,15 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
 	if ack != nil {
-		m.SendOut(s, m)
 		ack.SendOut(s, ack)
 		m.SetLeaderChainID(ack.GetLeaderChainID())
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
 		if pl == nil {
 			return
 		}
+		pl.AddToProcessList(ack, m)
 		msg := m.(*messages.RevealEntryMsg)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())

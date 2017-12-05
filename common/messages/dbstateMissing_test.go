@@ -21,6 +21,17 @@ func TestUnmarshalNilDBStateMissing(t *testing.T) {
 	}()
 
 	a := new(DBStateMissing)
+
+	h := a.GetRepeatHash()
+	if h == nil {
+		t.Error("Should be able to hash")
+	}
+	h = a.GetHash()
+	if h == nil {
+		t.Error("Should be able to hash")
+	}
+	a.ComputeVMIndex(nil)
+
 	err := a.UnmarshalBinary(nil)
 	if err == nil {
 		t.Errorf("Error is nil when it shouldn't be")
