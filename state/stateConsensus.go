@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -342,7 +343,8 @@ func (s *State) ReviewHolding() {
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-		if !ok {
+		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
+		if !ok || !ok2 {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -352,6 +354,7 @@ func (s *State) ReviewHolding() {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
+			os.Stderr.WriteString(fmt.Sprintln("FD336 ", v.String(), v.GetRepeatHash().String()))
 			continue
 		}
 
