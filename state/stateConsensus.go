@@ -469,6 +469,15 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 		return // This is an internal EOM message.  We are not a leader so ignore.
 	}
 
+	eom, ok := m.(*messages.EOM)
+	if !ok {
+		return
+	}
+
+	if eom.DBHeight == s.ProcessLists.Lists[0].DBHeight && int(eom.Minute) < s.CurrentMinute {
+		return
+	}
+
 	FollowerEOMExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
 	s.Holding[m.GetMsgHash().Fixed()] = m

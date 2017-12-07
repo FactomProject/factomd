@@ -85,8 +85,8 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
-	_, err := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
-	if err != nil {
+	msg, _ := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	if msg != nil {
 		return -1
 	}
 
