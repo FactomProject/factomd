@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"os"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
@@ -354,7 +353,6 @@ func (s *State) ReviewHolding() {
 			s.ExpireCnt++
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
-			os.Stderr.WriteString(fmt.Sprintln("FD336 ", v.String(), v.GetRepeatHash().String()))
 			continue
 		}
 
@@ -1212,6 +1210,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
+			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
@@ -1236,6 +1235,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
+			s.XReview = append(s.XReview, entry)
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
