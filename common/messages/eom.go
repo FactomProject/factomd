@@ -33,8 +33,9 @@ type EOM struct {
 	FactoidVM bool
 
 	//Not marshalled
-	hash       interfaces.IHash
-	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
+	hash         interfaces.IHash
+	MarkerSent   bool // If we have set EOM markers on blocks like Factoid blocks and such.
+	marshalCache []byte
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
@@ -247,6 +248,8 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		m.Signature = sig
 	}
 
+	m.marshalCache = data[:len(data)-len(newData)]
+
 	return
 }
 
@@ -281,6 +284,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var buf primitives.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
