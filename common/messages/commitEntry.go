@@ -128,8 +128,6 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}()
 
-	m.marshalCache = data
-
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -150,6 +148,8 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			return nil, err
 		}
 	}
+
+	m.marshalCache = data[: len(data)-len(newData)]
 
 	return newData, nil
 }
