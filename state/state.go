@@ -1742,7 +1742,8 @@ entryHashProcessing:
 		case e := <-s.UpdateEntryHash:
 			// Save the entry hash, and remove from commits IF this hash is valid in this current timeframe.
 			s.Replay.SetHashNow(constants.REVEAL_REPLAY, e.Hash.Fixed(), e.Timestamp)
-			// If the save worked, then remove any commit that might be around.
+			// If the SetHashNow worked, then we should prohibit any commit that might be pending.
+			// Remove any commit that might be around.
 			if !s.Replay.IsHashUnique(constants.REVEAL_REPLAY, e.Hash.Fixed()) {
 				s.Commits.Delete(e.Hash.Fixed())
 			}

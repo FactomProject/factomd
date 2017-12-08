@@ -30,7 +30,7 @@ type RevealEntryMsg struct {
 	chainIDHash interfaces.IHash
 	IsEntry     bool
 	CommitChain *CommitChainMsg
-	commitEntry *CommitEntryMsg
+	CommitEntry *CommitEntryMsg
 }
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
@@ -111,7 +111,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	// Make sure one of the two proper commits got us here.
 	var okChain, okEntry bool
 	m.CommitChain, okChain = commit.(*CommitChainMsg)
-	m.commitEntry, okEntry = commit.(*CommitEntryMsg)
+	m.CommitEntry, okEntry = commit.(*CommitEntryMsg)
 	if !okChain && !okEntry { // What is this trash doing here?  Not a commit at all!
 		return -1
 	}
@@ -120,7 +120,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 	// The chain must exist
 	if okEntry {
 		m.IsEntry = true
-		ECs := int(m.commitEntry.CommitEntry.Credits)
+		ECs := int(m.CommitEntry.CommitEntry.Credits)
 		// Any entry over 10240 bytes will be rejected
 		if m.Entry.KSize() > 10 {
 			return -1
