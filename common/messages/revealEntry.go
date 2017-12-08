@@ -221,7 +221,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	m.Entry = e
 
-	m.marshalCache = data[: len(data)-len(newData)]
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return newData, nil
 }

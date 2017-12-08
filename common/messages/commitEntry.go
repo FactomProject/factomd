@@ -149,7 +149,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}
 
-	m.marshalCache = data[: len(data)-len(newData)]
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return newData, nil
 }

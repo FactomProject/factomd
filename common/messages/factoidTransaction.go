@@ -175,7 +175,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)
 
-	m.marshalCache = data[: len(data)-len(newData)]
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return newData, err
 }

@@ -249,7 +249,7 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		m.Signature = sig
 	}
 
-	m.marshalCache = data[: len(data)-len(newData)]
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return
 }
