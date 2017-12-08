@@ -26,11 +26,12 @@ type RevealEntryMsg struct {
 	//No signature!
 
 	//Not marshalled
-	hash        interfaces.IHash
-	chainIDHash interfaces.IHash
-	IsEntry     bool
-	CommitChain *CommitChainMsg
-	commitEntry *CommitEntryMsg
+	hash         interfaces.IHash
+	chainIDHash  interfaces.IHash
+	IsEntry      bool
+	CommitChain  *CommitChainMsg
+	commitEntry  *CommitEntryMsg
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*RevealEntryMsg)(nil)
@@ -199,6 +200,7 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("%s", "Invalid Message type")
@@ -219,6 +221,8 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}
 	m.Entry = e
 
+	m.marshalCache = data[:len(data)-len(newData)]
+
 	return newData, nil
 }
 
@@ -228,6 +232,11 @@ func (m *RevealEntryMsg) UnmarshalBinary(data []byte) error {
 }
 
 func (m *RevealEntryMsg) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var buf primitives.Buffer
 
 	binary.Write(&buf, binary.BigEndian, m.Type())

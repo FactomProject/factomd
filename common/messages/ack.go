@@ -31,10 +31,11 @@ type Ack struct {
 
 	Signature interfaces.IFullSignature
 	//Not marshalled
-	hash        interfaces.IHash
-	authvalid   bool
-	Response    bool // A response to a missing data request
-	BalanceHash interfaces.IHash
+	hash         interfaces.IHash
+	authvalid    bool
+	Response     bool // A response to a missing data request
+	BalanceHash  interfaces.IHash
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
@@ -160,6 +161,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -235,6 +237,9 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			return nil, err
 		}
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
+
 	return
 }
 
@@ -310,6 +315,11 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err

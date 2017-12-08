@@ -28,8 +28,9 @@ type CommitEntryMsg struct {
 	hash interfaces.IHash
 
 	// Not marshaled... Just used by the leader
-	count    int
-	validsig bool
+	count        int
+	validsig     bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
@@ -126,6 +127,7 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling Commit entry Message: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -146,6 +148,8 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			return nil, err
 		}
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return newData, nil
 }
@@ -170,6 +174,11 @@ func (m *CommitEntryMsg) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
