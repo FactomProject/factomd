@@ -201,8 +201,6 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}()
 
-	m.marshalCache = data
-
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("%s", "Invalid Message type")
@@ -222,6 +220,8 @@ func (m *RevealEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		return nil, err
 	}
 	m.Entry = e
+
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return newData, nil
 }

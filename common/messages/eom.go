@@ -204,9 +204,6 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
 		}
 	}()
-
-	m.marshalCache = data
-
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -250,6 +247,8 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 		m.Signature = sig
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return
 }
