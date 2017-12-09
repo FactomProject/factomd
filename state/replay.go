@@ -168,6 +168,7 @@ func Minutes(unix int64) int {
 
 // Returns false if the hash is too old, or is already a
 // member of the set.  Timestamp is in seconds.
+// Does not add the hash to the buckets!
 func (r *Replay) Valid(mask int, hash [32]byte, timestamp interfaces.Timestamp, systemtime interfaces.Timestamp) (index int, valid bool) {
 	now := Minutes(systemtime.GetTimeSeconds())
 	t := Minutes(timestamp.GetTimeSeconds())

@@ -611,8 +611,9 @@ func SimControl(listenTo int, listenStdin bool) {
 						fmt.Println("Holding:")
 						for k := range f.State.Holding {
 							v := f.State.Holding[k]
+							vf := v.Validate(f.State)
 							if v != nil {
-								os.Stderr.WriteString((v.String()) + "\n")
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d\n", v.String(), vf))
 							} else {
 								os.Stderr.WriteString("<nul>\n")
 							}
@@ -620,9 +621,10 @@ func SimControl(listenTo int, listenStdin bool) {
 					} else if b[1] == 'c' {
 						f := fnodes[ListenTo]
 						fmt.Println("Commits:")
-						for _, c := range f.State.Commits.GetRaw() {
+						for k, c := range f.State.Commits.GetRaw() {
 							if c != nil {
-								os.Stderr.WriteString("  " + (c.String()))
+								vf := c.Validate(f.State)
+								os.Stderr.WriteString(fmt.Sprintf("%s v %d %x\n", c.String(), vf, k))
 								cc, ok1 := c.(*messages.CommitChainMsg)
 								cm, ok2 := c.(*messages.CommitEntryMsg)
 								if ok1 && f.State.Holding[cc.CommitChain.EntryHash.Fixed()] != nil {
