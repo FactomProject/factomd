@@ -14,8 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -57,7 +56,7 @@ type SigList struct {
 }
 
 var _ interfaces.IMsg = (*FullServerFault)(nil)
-var _ interfaces.Signable = (*FullServerFault)(nil)
+var _ Signable = (*FullServerFault)(nil)
 
 func (m *FullServerFault) GetAmINegotiator() bool {
 	return m.AmINegotiator
@@ -498,12 +497,12 @@ func (m *FullServerFault) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "fullserverfault",
 		"vm":         m.VMIndex,
 		"dbheight":   m.DBHeight,
-		"leaderid":   m.ServerID.String()[4:10],
-		"auditid":    m.AuditServerID.String()[4:10],
+		"leaderid":   m.ServerID.String(),
+		"auditid":    m.AuditServerID.String(),
 		"sysheight":  m.SystemHeight,
 		"clearfault": m.ClearFault,
 		"sigcount":   m.SignatureList.Length,
-		"hash":       m.GetHash().String()[:6]}
+		"hash":       m.GetHash().String()}
 }
 
 func (m *FullServerFault) GetDBHeight() uint32 {

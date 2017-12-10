@@ -13,7 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -257,12 +257,12 @@ func (m *ServerFault) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "serverfault",
 		"vm":        m.VMIndex,
 		"dbheight":  m.DBHeight,
-		"leaderid":  m.ServerID.String()[4:10],
-		"auditid":   m.AuditServerID.String()[4:10],
+		"leaderid":  m.ServerID.String(),
+		"auditid":   m.AuditServerID.String(),
 		"sysheight": m.SystemHeight,
-		"signature": string(m.Signature.Bytes())[:6],
-		"corehash":  m.GetCoreHash().String()[:6],
-		"hash":      m.GetHash().String()[:6]}
+		"signature": string(m.Signature.Bytes()),
+		"corehash":  m.GetCoreHash().String(),
+		"hash":      m.GetHash().String()}
 }
 
 func (m *ServerFault) GetDBHeight() uint32 {

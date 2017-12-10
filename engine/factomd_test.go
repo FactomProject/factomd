@@ -72,7 +72,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-ControlPanelPort=37002",
 		"-networkPort=37003",
 		"-startdelay=1",
-		"faulttimeout=5")
+		"faulttimeout=15")
 
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
@@ -88,22 +88,15 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("s")
 	runCmd("9")
 	runCmd("x")
+	runCmd("w")
+	runCmd("10")
 	runCmd("8")
-	runCmd("")
-	runCmd("F100")
-	runCmd("S10")
+	runCmd("w")
 	WaitBlocks(state0, 1)
 	runCmd("g10")
-	WaitBlocks(state0, 1)
+	WaitBlocks(state0, 3)
 	// Allocate 4 leaders
-	runCmd("g1")
-	WaitMinutes(state0, 2)
-	runCmd("g1")
 	WaitMinutes(state0, 3)
-	runCmd("g1")
-	WaitMinutes(state0, 4)
-	runCmd("g1")
-	WaitMinutes(state0, 5)
 
 	runCmd("1")
 	runCmd("l")
@@ -114,7 +107,6 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("o")
 	runCmd("")
 	runCmd("")
-	runCmd("T10")
 
 	WaitBlocks(state0, 1)
 	WaitMinutes(state0, 1)
@@ -140,6 +132,10 @@ func TestSetupANetwork(t *testing.T) {
 		t.Fatalf("found %d audit servers, expected 3", auditcnt)
 		t.Fail()
 	}
+	WaitMinutes(state0, 2)
+	runCmd("F100")
+	runCmd("S10")
+	runCmd("g10")
 
 	fn1 := GetFocus()
 	if fn1.State.FactomNodeName != "FNode07" {
@@ -154,13 +150,12 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("g1")
 	WaitMinutes(state0, 6)
 	WaitBlocks(state0, 1)
+	WaitMinutes(state0, 1)
+	runCmd("g1")
 	WaitMinutes(state0, 2)
 	runCmd("g1")
 	WaitMinutes(state0, 3)
-	runCmd("g1")
-	WaitMinutes(state0, 4)
 	runCmd("g20")
-	WaitMinutes(state0, 2)
 	WaitBlocks(state0, 1)
 	runCmd("9")
 	runCmd("x")
@@ -185,8 +180,6 @@ func TestSetupANetwork(t *testing.T) {
 
 	runCmd("/")
 
-	runCmd("w")
-
 	runCmd("/")
 
 	runCmd("a1")
@@ -200,32 +193,14 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("yh")
 	runCmd("yc")
 	runCmd("r")
-	WaitMinutes(state0, 3)
+	WaitMinutes(state0, 1)
 	runCmd("g1")
-	WaitMinutes(state0, 4)
-	runCmd("g1")
-	WaitMinutes(state0, 5)
-	runCmd("g1")
-	WaitMinutes(state0, 6)
-	runCmd("r")
-	WaitBlocks(fn1.State, 1)
 	runCmd("2")
 	runCmd("x")
-	WaitMinutes(state0, 2)
+	WaitMinutes(state0, 1)
 	runCmd("x")
-	runCmd("g1")
-	WaitMinutes(state0, 3)
-	runCmd("g1")
-	WaitMinutes(state0, 4)
-	runCmd("g1")
-	WaitMinutes(state0, 5)
-	WaitBlocks(fn1.State, 3)
-
-	// FaultTest
-	t.Log("Running automated fault test")
-	runCmd("Vt")
-	time.Sleep(20 * time.Second)
-	runCmd("Vt")
+	runCmd("g3")
+	WaitBlocks(fn1.State, 1)
 
 	t.Log("Shutting down the network")
 	for _, fn := range GetFnodes() {

@@ -13,8 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -29,12 +28,13 @@ type CommitEntryMsg struct {
 	hash interfaces.IHash
 
 	// Not marshaled... Just used by the leader
-	count    int
-	validsig bool
+	count        int
+	validsig     bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
-var _ interfaces.Signable = (*CommitEntryMsg)(nil)
+var _ Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if a == nil || b == nil {
@@ -148,6 +148,8 @@ func (m *CommitEntryMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		}
 	}
 
+	m.marshalCache = data[:len(data)-len(newData)]
+
 	return newData, nil
 }
 
@@ -171,6 +173,11 @@ func (m *CommitEntryMsg) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *CommitEntryMsg) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -200,10 +207,13 @@ func (m *CommitEntryMsg) String() string {
 }
 
 func (m *CommitEntryMsg) LogFields() log.Fields {
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
 	return log.Fields{"category": "message", "messagetype": "commitentry", "vmindex": m.VMIndex,
-		"server":      m.LeaderChainID.String()[4:12],
-		"commitchain": m.CommitEntry.GetEntryHash().String()[:6],
-		"hash":        m.GetHash().String()[:6]}
+		"server":      m.LeaderChainID.String(),
+		"commitchain": m.CommitEntry.GetEntryHash().String(),
+		"hash":        m.GetHash().String()}
 }
 
 // Validate the message, given the state.  Three possible results:

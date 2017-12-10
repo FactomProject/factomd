@@ -23,7 +23,7 @@ type IEntry interface {
 }
 
 type IPendingEntry struct {
-	EntryHash IHash
-	ChainID   IHash
-	Status    string
+	EntryHash IHash  `json:"entryhash"`
+	ChainID   IHash  `json:"chainid"`
+	Status    string `json:"status"`
 }

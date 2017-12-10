@@ -12,7 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
-	log "github.com/FactomProject/logrus"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //General acknowledge message
@@ -31,16 +32,16 @@ type Ack struct {
 
 	Signature interfaces.IFullSignature
 	//Not marshalled
-	hash        interfaces.IHash
-	authvalid   bool
-	Response    bool // A response to a missing data request
-	BalanceHash interfaces.IHash
+	hash         interfaces.IHash
+	authvalid    bool
+	Response     bool // A response to a missing data request
+	BalanceHash  interfaces.IHash
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*Ack)(nil)
 var _ interfaces.Signable = (*Ack)(nil)
 var AckBalanceHash = true
-var packageLogger = log.WithFields(log.Fields{"package": "messages"})
 
 func (m *Ack) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -85,8 +86,8 @@ func (m *Ack) Validate(state interfaces.IState) int {
 	}
 
 	// Only new acks are valid. Of course, the VMIndex has to be valid too.
-	_, err := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
-	if err != nil {
+	msg, _ := state.GetMsg(m.VMIndex, int(m.DBHeight), int(m.Height))
+	if msg != nil {
 		return -1
 	}
 
@@ -161,6 +162,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -238,6 +240,9 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 			return nil, err
 		}
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
+
 	return
 }
 
@@ -313,6 +318,11 @@ func (m *Ack) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *Ack) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -345,8 +355,8 @@ func (m *Ack) String() string {
 
 func (m *Ack) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "ack", "dbheight": m.DBHeight, "vm": m.VMIndex,
-		"vmheight": m.Height, "server": m.LeaderChainID.String()[4:12],
-		"hash": m.GetHash().String()[:6]}
+		"vmheight": m.Height, "server": m.LeaderChainID.String(),
+		"hash": m.GetHash().String()}
 }
 
 func (a *Ack) IsSameAs(b *Ack) bool {

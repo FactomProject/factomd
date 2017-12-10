@@ -12,8 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Admin Block Change
@@ -31,7 +30,7 @@ type ChangeServerKeyMsg struct {
 }
 
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
-var _ interfaces.Signable = (*ChangeServerKeyMsg)(nil)
+var _ Signable = (*ChangeServerKeyMsg)(nil)
 
 func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -271,7 +270,7 @@ func (m *ChangeServerKeyMsg) String() string {
 
 func (m *ChangeServerKeyMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "changeserverkey",
-		"server": m.IdentityChainID.String()[4:12], "hash": m.GetHash().String()[:6]}
+		"server": m.IdentityChainID.String(), "hash": m.GetHash().String()}
 }
 
 func (m *ChangeServerKeyMsg) IsSameAs(b *ChangeServerKeyMsg) bool {

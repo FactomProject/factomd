@@ -12,8 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = log.Printf
@@ -34,12 +33,13 @@ type EOM struct {
 	FactoidVM bool
 
 	//Not marshalled
-	hash       interfaces.IHash
-	MarkerSent bool // If we have set EOM markers on blocks like Factoid blocks and such.
+	hash         interfaces.IHash
+	MarkerSent   bool // If we have set EOM markers on blocks like Factoid blocks and such.
+	marshalCache []byte
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
-var _ interfaces.Signable = (*EOM)(nil)
+var _ Signable = (*EOM)(nil)
 var _ interfaces.IMsg = (*EOM)(nil)
 
 func (a *EOM) IsSameAs(b *EOM) bool {
@@ -199,56 +199,42 @@ func (m *EOM) VerifySignature() (bool, error) {
 }
 
 func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
-	var cnt int
-	x := func() {
-		cnt++
-		fmt.Println("EOM", cnt)
-	}
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling EOM message: %v", r)
 		}
 	}()
-
-	x()
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
 	newData = newData[1:]
-	x()
 
 	m.Timestamp = new(primitives.Timestamp)
 	newData, err = m.Timestamp.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	x()
 
 	m.ChainID = primitives.NewHash(constants.ZERO_HASH)
 	newData, err = m.ChainID.UnmarshalBinaryData(newData)
 	if err != nil {
 		return nil, err
 	}
-	x()
 
 	m.Minute, newData = newData[0], newData[1:]
-	x()
 
 	if m.Minute < 0 || m.Minute >= 10 {
 		return nil, fmt.Errorf("Minute number is out of range")
 	}
-	x()
 
 	m.VMIndex = int(newData[0])
 	newData = newData[1:]
 	m.FactoidVM = uint8(newData[0]) == 1
 	newData = newData[1:]
-	x()
 
 	m.DBHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
 	m.SysHeight, newData = binary.BigEndian.Uint32(newData[0:4]), newData[4:]
-	x()
 
 	m.SysHash = primitives.NewHash(constants.ZERO_HASH)
 	newData, err = m.SysHash.UnmarshalBinaryData(newData)
@@ -262,6 +248,8 @@ func (m *EOM) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 		m.Signature = sig
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return
 }
@@ -299,6 +287,11 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 func (m *EOM) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
+	var buf primitives.Buffer
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -354,6 +347,6 @@ func (m *EOM) String() string {
 
 func (m *EOM) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "eom", "dbheight": m.DBHeight, "vm": m.VMIndex,
-		"minute": m.Minute, "chainid": m.ChainID.String()[4:12], "sysheight": m.SysHeight,
-		"hash": m.GetMsgHash().String()[:6]}
+		"minute": m.Minute, "chainid": m.ChainID.String(), "sysheight": m.SysHeight,
+		"hash": m.GetMsgHash().String()}
 }

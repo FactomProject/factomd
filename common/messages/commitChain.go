@@ -13,8 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -25,12 +24,13 @@ type CommitChainMsg struct {
 	Signature interfaces.IFullSignature
 
 	// Not marshaled... Just used by the leader
-	count    int
-	validsig bool
+	count        int
+	validsig     bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
-var _ interfaces.Signable = (*CommitChainMsg)(nil)
+var _ Signable = (*CommitChainMsg)(nil)
 
 func (a *CommitChainMsg) IsSameAs(b *CommitChainMsg) bool {
 	if a == nil || b == nil {
@@ -169,6 +169,7 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling Commit Chain Message: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -189,6 +190,8 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			return nil, err
 		}
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return newData, nil
 }
@@ -213,6 +216,11 @@ func (m *CommitChainMsg) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -242,8 +250,11 @@ func (m *CommitChainMsg) String() string {
 }
 
 func (m *CommitChainMsg) LogFields() log.Fields {
+	if m.LeaderChainID == nil {
+		m.LeaderChainID = primitives.NewZeroHash()
+	}
 	return log.Fields{"category": "message", "messagetype": "commitchain", "vmindex": m.VMIndex,
-		"server":      m.LeaderChainID.String()[4:12],
-		"commitchain": m.CommitChain.EntryHash.String()[:6],
-		"hash":        m.GetHash().String()[:6]}
+		"server":      m.LeaderChainID.String(),
+		"commitchain": m.CommitChain.EntryHash.String(),
+		"hash":        m.GetHash().String()}
 }

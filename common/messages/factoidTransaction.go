@@ -12,8 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -24,8 +23,9 @@ type FactoidTransaction struct {
 	//No signature!
 
 	//Not marshalled
-	hash      interfaces.IHash
-	processed bool
+	hash         interfaces.IHash
+	processed    bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*FactoidTransaction)(nil)
@@ -166,6 +166,7 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 			err = fmt.Errorf("Error unmarshalling Factoid: %v", r)
 		}
 	}()
+
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
 	}
@@ -173,6 +174,9 @@ func (m *FactoidTransaction) UnmarshalBinaryData(data []byte) (newData []byte, e
 
 	m.Transaction = new(factoid.Transaction)
 	newData, err = m.Transaction.UnmarshalBinaryData(newData)
+
+	m.marshalCache = data[:len(data)-len(newData)]
+
 	return newData, err
 }
 
@@ -182,6 +186,11 @@ func (m *FactoidTransaction) UnmarshalBinary(data []byte) error {
 }
 
 func (m *FactoidTransaction) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var buf primitives.Buffer
 	buf.Write([]byte{m.Type()})
 
@@ -204,8 +213,8 @@ func (m *FactoidTransaction) String() string {
 func (m *FactoidTransaction) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "factoidtx",
 		"vm":      m.VMIndex,
-		"chainid": m.GetLeaderChainID().String()[4:12],
-		"hash":    m.GetHash().String()[:6]}
+		"chainid": m.GetLeaderChainID().String(),
+		"hash":    m.GetHash().String()}
 }
 
 func (e *FactoidTransaction) JSONByte() ([]byte, error) {

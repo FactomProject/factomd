@@ -14,7 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Communicate a Directory Block State
@@ -29,7 +29,7 @@ type AddServerMsg struct {
 }
 
 var _ interfaces.IMsg = (*AddServerMsg)(nil)
-var _ interfaces.Signable = (*AddServerMsg)(nil)
+var _ Signable = (*AddServerMsg)(nil)
 
 func (m *AddServerMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
@@ -221,8 +221,8 @@ func (m *AddServerMsg) String() string {
 }
 
 func (m *AddServerMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "addserver", "server": m.ServerChainID.String()[4:12],
-		"hash": m.GetHash().String()[:6]}
+	return log.Fields{"category": "message", "messagetype": "addserver", "server": m.ServerChainID.String(),
+		"hash": m.GetHash().String()}
 }
 
 func (m *AddServerMsg) IsSameAs(b *AddServerMsg) bool {

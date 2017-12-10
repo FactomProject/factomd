@@ -12,8 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //A placeholder structure for messages
@@ -28,12 +27,13 @@ type Heartbeat struct {
 	Signature interfaces.IFullSignature
 
 	//Not marshalled
-	hash     interfaces.IHash
-	sigvalid bool
+	hash         interfaces.IHash
+	sigvalid     bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*Heartbeat)(nil)
-var _ interfaces.Signable = (*Heartbeat)(nil)
+var _ Signable = (*Heartbeat)(nil)
 
 func (a *Heartbeat) IsSameAs(b *Heartbeat) bool {
 	if b == nil {
@@ -117,6 +117,7 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 			err = fmt.Errorf("Error unmarshalling HeartBeat: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -155,6 +156,8 @@ func (m *Heartbeat) UnmarshalBinaryData(data []byte) (newData []byte, err error)
 		}
 		m.Signature = sig
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return nil, nil
 }
@@ -196,6 +199,11 @@ func (m *Heartbeat) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *Heartbeat) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
@@ -219,7 +227,7 @@ func (m *Heartbeat) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "heartbeat",
 		"vm":        m.VMIndex,
 		"dbheight":  m.DBHeight,
-		"server":    m.IdentityChainID.String()[4:10],
+		"server":    m.IdentityChainID.String(),
 		"timestamp": m.Timestamp.GetTimeSeconds()}
 }
 

@@ -13,8 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/common/messages/msgbase"
-	log "github.com/FactomProject/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // dLogger is for DirectoryBlockSignature Messages and extends packageLogger
@@ -37,12 +36,13 @@ type DirectoryBlockSignature struct {
 	SysHash     interfaces.IHash
 
 	//Not marshalled
-	Matches bool
-	hash    interfaces.IHash
+	Matches      bool
+	hash         interfaces.IHash
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
-var _ interfaces.Signable = (*DirectoryBlockSignature)(nil)
+var _ Signable = (*DirectoryBlockSignature)(nil)
 
 func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	if b == nil {
@@ -183,7 +183,8 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 		return authorityLevel
 	}
 
-	state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
+	//state.Logf("info", "DirectoryBlockSignature: VALID  dbht: %v %s. MsgHash: %s\n [%s] RAW: %x ", state.GetLLeaderHeight(), m.String(), m.GetMsgHash().String(), m.GetMsgHash().String(), raw)
+	dLogger.WithFields(m.LogFields()).WithField("node-name", state.GetFactomNodeName()).Info("DirectoryBlockSignature Valid")
 	m.SetValid()
 	return 1
 }
@@ -297,6 +298,8 @@ func (m *DirectoryBlockSignature) UnmarshalBinaryData(data []byte) (newData []by
 		m.Signature = sig
 	}
 
+	m.marshalCache = data[:len(data)-len(newData)]
+
 	return nil, nil
 }
 
@@ -361,6 +364,11 @@ func (m *DirectoryBlockSignature) MarshalForSignature() ([]byte, error) {
 }
 
 func (m *DirectoryBlockSignature) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	var sig interfaces.IFullSignature
 	resp, err := m.MarshalForSignature()
 	if err == nil {
@@ -392,9 +400,9 @@ func (m *DirectoryBlockSignature) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dbsig",
 		"dbheight":  m.DBHeight,
 		"vm":        m.VMIndex,
-		"server":    m.ServerIdentityChainID.String()[:6],
-		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String()[:6],
-		"hash":      m.GetHash().String()[:6]}
+		"server":    m.ServerIdentityChainID.String(),
+		"prevkeymr": m.DirectoryBlockHeader.GetPrevKeyMR().String(),
+		"hash":      m.GetHash().String()}
 }
 
 func (e *DirectoryBlockSignature) JSONByte() ([]byte, error) {

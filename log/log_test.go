@@ -14,7 +14,7 @@ func TestLog(t *testing.T) {
 }
 
 func TestBadNew(t *testing.T) {
-	l := New(nil, "not_allowed", "testing")
+	l := New(nil, "warninggit c", "testing")
 	if l.Level() != WarningLvl {
 		t.Error("Should be set to warning")
 	}
