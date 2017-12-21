@@ -185,6 +185,8 @@ func (s *State) GoSyncEntries() {
 
 	lastfirstmissing := 0
 
+	found := 0
+
 	for {
 
 		ESMissing.Set(float64(len(missingMap)))
@@ -197,6 +199,7 @@ func (s *State) GoSyncEntries() {
 
 		for k := range missingMap {
 			if has(s, missingMap[k]) {
+				found++
 				delete(missingMap, k)
 			}
 		}
@@ -255,6 +258,7 @@ func (s *State) GoSyncEntries() {
 
 					// If I have the entry, then remove it from the Missing Entries list.
 					if has(s, entryhash) {
+						found++
 						delete(missingMap, entryhash.Fixed())
 						continue
 					}
