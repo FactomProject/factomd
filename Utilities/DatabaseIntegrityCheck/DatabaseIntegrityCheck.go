@@ -287,13 +287,22 @@ func CheckDatabase(dbo interfaces.DBOverlay) {
 				if eHash.IsMinuteMarker() == true {
 					continue
 				}
+
 				entry, err := dbo.FetchEntry(eHash)
 				if err != nil {
 					panic(err)
 				}
 				if entry == nil {
 					missingCount++
-					fmt.Printf("Missing entry %v!\n", eHash.String())
+					exists, err := dbo.DoesKeyExist(databaseOverlay.ENTRY, eHash.Bytes())
+					if err != nil {
+						panic(err)
+					}
+					if exists == true {
+						fmt.Printf("Missing entry %v!, but the key exists\n", eHash.String())
+					} else {
+						fmt.Printf("Missing entry %v!\n", eHash.String())
+					}
 				} else {
 					checkCount++
 				}
