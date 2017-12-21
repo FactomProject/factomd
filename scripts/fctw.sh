@@ -2,5 +2,5 @@
 
 while true ;
 do
-	fctwallet
+	factom-walletd
 done

@@ -231,9 +231,6 @@ skipreview:
 	for len(process) > 0 {
 		msg := <-process
 		s.executeMsg(vm, msg)
-		if !msg.IsPeer2Peer() {
-			msg.SendOut(s, msg)
-		}
 		s.UpdateState()
 	}
 
@@ -345,7 +342,8 @@ func (s *State) ReviewHolding() {
 		}
 
 		_, ok = s.Replay.Valid(constants.INTERNAL_REPLAY, v.GetRepeatHash().Fixed(), v.GetTimestamp(), s.GetTimestamp())
-		if !ok {
+		ok2 := s.FReplay.IsHashUnique(constants.BLOCK_REPLAY, v.GetRepeatHash().Fixed())
+		if !ok || !ok2 {
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, k)
 			continue
@@ -374,7 +372,6 @@ func (s *State) ReviewHolding() {
 		TotalXReviewQueueInputs.Inc()
 		s.XReview = append(s.XReview, v)
 		TotalHoldingQueueOutputs.Inc()
-		delete(s.Holding, k)
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
 	TotalReviewHoldingTime.Add(float64(reviewHoldingTime.Nanoseconds()))
@@ -468,6 +465,15 @@ func (s *State) FollowerExecuteEOM(m interfaces.IMsg) {
 
 	if m.IsLocal() {
 		return // This is an internal EOM message.  We are not a leader so ignore.
+	}
+
+	eom, ok := m.(*messages.EOM)
+	if !ok {
+		return
+	}
+
+	if eom.DBHeight == s.ProcessLists.Lists[0].DBHeight && int(eom.Minute) < s.CurrentMinute {
+		return
 	}
 
 	FollowerEOMExecutions.Inc()
@@ -639,6 +645,26 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 		}
 	}
 
+	for _, ebs := range dbstatemsg.EBlocks {
+		blktime := dbstatemsg.DirectoryBlock.GetTimestamp()
+		for _, e := range ebs.GetEntryHashes() {
+			if e.IsMinuteMarker() {
+				continue
+			}
+			s.FReplay.IsTSValid_(
+				constants.BLOCK_REPLAY,
+				e.Fixed(),
+				blktime,
+				blktime)
+			s.Replay.IsTSValid_(
+				constants.INTERNAL_REPLAY,
+				e.Fixed(),
+				blktime,
+				blktime)
+
+		}
+	}
+
 	// Only set the flag if we know the whole block is valid.  We know it is because we checked them all in the loop
 	// above
 	for _, fct := range dbstatemsg.FactoidBlock.GetTransactions() {
@@ -745,30 +771,19 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
-	_, okr := s.Replay.Valid(constants.INTERNAL_REPLAY, ack.GetRepeatHash().Fixed(), ack.GetTimestamp(), s.GetTimestamp())
-	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 
 	if pl == nil {
 		return
 	}
+	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 
 	TotalAcksInputs.Inc()
-	s.Acks[ack.GetHash().Fixed()] = ack
 
-	// Put these messages and ackowledgements that I have not seen yet back into the queues to process.
-	if okr {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, ack)
-	}
 	if okm {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, msg)
+		msg.FollowerExecute(s)
 	}
 
-	// If I've seen both, put them in the process list.
-	if !okr && !okm {
-		pl.AddToProcessList(ack, msg)
-	}
+	ack.FollowerExecute(s)
 
 	s.MissingResponseAppliedCnt++
 
@@ -875,8 +890,6 @@ func (s *State) FollowerExecuteCommitChain(m interfaces.IMsg) {
 	cc := m.(*messages.CommitChainMsg)
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
-		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -887,7 +900,6 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
 		re.SendOut(s, re)
 	}
 }
@@ -895,6 +907,11 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
+
+	if s.Commits.Get(m.GetMsgHash().Fixed()) != nil {
+		m.SendOut(s, m)
+	}
+
 	s.Holding[m.GetMsgHash().Fixed()] = m
 	ack, _ := s.Acks[m.GetMsgHash().Fixed()].(*messages.Ack)
 
@@ -905,10 +922,20 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		m.SetMinute(ack.Minute)
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
-		pl.AddToProcessList(ack, m)
 		if pl == nil {
 			return
 		}
+
+		// Add the message and ack to the process list.
+		pl.AddToProcessList(ack, m)
+
+		// The message might not have gone in.  Make sure it did.  Get the list where it goes
+		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
+		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
+		if int(ack.Height) < len(list) || list[ack.Height] == nil {
+			return
+		}
+
 		msg := m.(*messages.RevealEntryMsg)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(msg.Entry.GetHash().Fixed()) // 	delete(s.Commits, msg.Entry.GetHash().Fixed())
@@ -1000,7 +1027,7 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 	m.SetLocal(false)
 	s.FollowerExecuteEOM(m)
 	s.UpdateState()
-	delete(s.Acks, ack.GetMsgHash().Fixed())
+	delete(s.Acks, ack.GetHash().Fixed())
 	delete(s.Holding, m.GetMsgHash().Fixed())
 }
 
@@ -1110,6 +1137,7 @@ func (s *State) LeaderExecuteRevealEntry(m interfaces.IMsg) {
 		s.Replay.IsTSValid_(constants.REVEAL_REPLAY, eh.Fixed(), m.GetTimestamp(), now)
 		TotalCommitsOutputs.Inc()
 		s.Commits.Delete(eh.Fixed()) // delete(s.Commits, eh.Fixed())
+		delete(s.Holding, eh.Fixed())
 	}
 }
 
@@ -1179,6 +1207,7 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
+			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)
@@ -1203,6 +1232,7 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 		s.PutCommit(h, c)
 		entry := s.Holding[h.Fixed()]
 		if entry != nil {
+			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
 			s.XReview = append(s.XReview, entry)

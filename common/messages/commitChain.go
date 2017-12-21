@@ -24,8 +24,9 @@ type CommitChainMsg struct {
 	Signature interfaces.IFullSignature
 
 	// Not marshaled... Just used by the leader
-	count    int
-	validsig bool
+	count        int
+	validsig     bool
+	marshalCache []byte
 }
 
 var _ interfaces.IMsg = (*CommitChainMsg)(nil)
@@ -168,6 +169,7 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			err = fmt.Errorf("Error unmarshalling Commit Chain Message: %v", r)
 		}
 	}()
+
 	newData = data
 	if newData[0] != m.Type() {
 		return nil, fmt.Errorf("Invalid Message type")
@@ -188,6 +190,8 @@ func (m *CommitChainMsg) UnmarshalBinaryData(data []byte) (newData []byte, err e
 			return nil, err
 		}
 	}
+
+	m.marshalCache = data[:len(data)-len(newData)]
 
 	return newData, nil
 }
@@ -212,6 +216,11 @@ func (m *CommitChainMsg) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *CommitChainMsg) MarshalBinary() (data []byte, err error) {
+
+	if m.marshalCache != nil {
+		return m.marshalCache, nil
+	}
+
 	resp, err := m.MarshalForSignature()
 	if err != nil {
 		return nil, err
