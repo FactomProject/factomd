@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 // dLogger is for DirectoryBlockSignature Messages and extends packageLogger
@@ -42,7 +43,7 @@ type DirectoryBlockSignature struct {
 }
 
 var _ interfaces.IMsg = (*DirectoryBlockSignature)(nil)
-var _ Signable = (*DirectoryBlockSignature)(nil)
+var _ interfaces.Signable = (*DirectoryBlockSignature)(nil)
 
 func (a *DirectoryBlockSignature) IsSameAs(b *DirectoryBlockSignature) bool {
 	if b == nil {

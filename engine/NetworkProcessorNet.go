@@ -86,7 +86,7 @@ func Peers(fnode *FactomNode) {
 	for {
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
-			if msg != nil {
+
 				if msg == nil {
 					continue
 				}
@@ -115,7 +115,6 @@ func Peers(fnode *FactomNode) {
 				} else {
 					RepeatMsgs.Inc()
 				}
-			}
 		}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue

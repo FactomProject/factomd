@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //A placeholder structure for messages

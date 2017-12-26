@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 // Communicate a Admin Block Change
@@ -30,7 +31,7 @@ type ChangeServerKeyMsg struct {
 }
 
 var _ interfaces.IMsg = (*ChangeServerKeyMsg)(nil)
-var _ Signable = (*ChangeServerKeyMsg)(nil)
+var _ interfaces.Signable = (*ChangeServerKeyMsg)(nil)
 
 func (m *ChangeServerKeyMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()

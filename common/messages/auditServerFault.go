@@ -6,12 +6,12 @@ package messages
 
 import (
 	"fmt"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //A placeholder structure for messages
@@ -26,7 +26,7 @@ type AuditServerFault struct {
 }
 
 var _ interfaces.IMsg = (*AuditServerFault)(nil)
-var _ Signable = (*AuditServerFault)(nil)
+var _ interfaces.Signable = (*AuditServerFault)(nil)
 
 func (m *AuditServerFault) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()

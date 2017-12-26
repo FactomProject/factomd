@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //A placeholder structure for messages
@@ -34,7 +35,7 @@ type CommitEntryMsg struct {
 }
 
 var _ interfaces.IMsg = (*CommitEntryMsg)(nil)
-var _ Signable = (*CommitEntryMsg)(nil)
+var _ interfaces.Signable = (*CommitEntryMsg)(nil)
 
 func (a *CommitEntryMsg) IsSameAs(b *CommitEntryMsg) bool {
 	if a == nil || b == nil {

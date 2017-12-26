@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 var _ = log.Printf
@@ -39,7 +40,7 @@ type EOM struct {
 }
 
 //var _ interfaces.IConfirmation = (*EOM)(nil)
-var _ Signable = (*EOM)(nil)
+var _ interfaces.Signable = (*EOM)(nil)
 var _ interfaces.IMsg = (*EOM)(nil)
 
 func (a *EOM) IsSameAs(b *EOM) bool {
@@ -285,7 +286,6 @@ func (m *EOM) MarshalForSignature() (data []byte, err error) {
 }
 
 func (m *EOM) MarshalBinary() (data []byte, err error) {
-	var buf primitives.Buffer
 
 	if m.marshalCache != nil {
 		return m.marshalCache, nil

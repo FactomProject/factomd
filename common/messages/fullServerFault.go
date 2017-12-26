@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/messages/msgbase"
 )
 
 //A placeholder structure for messages
@@ -56,7 +57,7 @@ type SigList struct {
 }
 
 var _ interfaces.IMsg = (*FullServerFault)(nil)
-var _ Signable = (*FullServerFault)(nil)
+var _ interfaces.Signable = (*FullServerFault)(nil)
 
 func (m *FullServerFault) GetAmINegotiator() bool {
 	return m.AmINegotiator
