@@ -13,8 +13,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	log "github.com/sirupsen/logrus"
 )
 
 // dLogger is for DirectoryBlockSignature Messages and extends packageLogger

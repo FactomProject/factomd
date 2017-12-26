@@ -5,7 +5,6 @@
 package messages
 
 import (
-
 	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"

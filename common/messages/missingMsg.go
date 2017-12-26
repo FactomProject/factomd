@@ -12,8 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
+	log "github.com/sirupsen/logrus"
 )
 
 //Structure to request missing messages in a node's process list

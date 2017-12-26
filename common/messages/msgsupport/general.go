@@ -14,7 +14,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/messages/electionMsgs"
-	log "github.com/sirupsen/logrus"
 )
 
 func UnmarshalMessage(data []byte) (interfaces.IMsg, error) {

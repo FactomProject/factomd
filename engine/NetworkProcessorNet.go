@@ -87,34 +87,34 @@ func Peers(fnode *FactomNode) {
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
 
-				if msg == nil {
-					continue
-				}
-				repeatHash := msg.GetRepeatHash()
-				if repeatHash == nil {
-					fmt.Println("dddd ERROR!", msg.String())
-					continue
-				}
-				cnt++
-				msg.SetOrigin(0)
+			if msg == nil {
+				continue
+			}
+			repeatHash := msg.GetRepeatHash()
+			if repeatHash == nil {
+				fmt.Println("dddd ERROR!", msg.String())
+				continue
+			}
+			cnt++
+			msg.SetOrigin(0)
 
-				// Make sure message isn't a FCT transaction in a block
-				_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
-					msg.GetRepeatHash().Fixed(),
-					msg.GetTimestamp(),
-					fnode.State.GetTimestamp())
+			// Make sure message isn't a FCT transaction in a block
+			_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
+				msg.GetRepeatHash().Fixed(),
+				msg.GetTimestamp(),
+				fnode.State.GetTimestamp())
 
-				if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
-					repeatHash.Fixed(),
-					msg.GetTimestamp(),
-					fnode.State.GetTimestamp()) {
-					//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-					if fnode.State.InMsgQueue().Length() < 9000 {
-						fnode.State.InMsgQueue().Enqueue(msg)
-					}
-				} else {
-					RepeatMsgs.Inc()
+			if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
+				repeatHash.Fixed(),
+				msg.GetTimestamp(),
+				fnode.State.GetTimestamp()) {
+				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
+				if fnode.State.InMsgQueue().Length() < 9000 {
+					fnode.State.InMsgQueue().Enqueue(msg)
 				}
+			} else {
+				RepeatMsgs.Inc()
+			}
 		}
 
 		// Put any broadcasts from our peers into our BroadcastIn queue
