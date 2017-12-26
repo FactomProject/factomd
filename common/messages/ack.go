@@ -16,6 +16,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// packageLogger is the general logger for all message related logs. You can add additional fields,
+// or create more context loggers off of this
+var packageLogger = log.WithFields(log.Fields{"package": "messages"})
+
 //General acknowledge message
 type Ack struct {
 	msgbase.MessageBase
