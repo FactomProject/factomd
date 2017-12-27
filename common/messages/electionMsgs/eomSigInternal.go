@@ -50,10 +50,20 @@ type Elections struct {
 }
 */
 
+func Title() string {
+	return fmt.Sprintf("%10s %10s %10s %10s",
+		"Msg DBHt",
+		"Msg Min",
+		"Elect DBHt",
+		"Elect Min")
+}
+
 func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections) // Could check, but a nil pointer error is just as good.
 	s := is.(*state.State)            // Same here.
 
+	// We only do this once, as we transition into a sync event.
+	// Either the height has incremented, or the minute has incremented.
 	if int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
 		// Set our Identity Chain (Just in case it has changed.)
 		e.ServerID = s.IdentityChainID
@@ -61,27 +71,24 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)
 		e.Sync = make([]bool, len(e.Federated))
+		// Set the title in the state
+		s.Election0 = Title()
 
 		// Start our timer to timeout this sync
 		go Fault(e, int(m.DBHeight), int(m.Minute), 0)
-		fmt.Printf("eee %10s %20s m.DBHeight %d e.DBHeight %d m.Minute %d e.Minute \n",
-			is.GetFactomNodeName(),
-			"Start Fault",
+		s.Election1 = fmt.Sprintf("%10d %10d %10d %10d",
 			m.DBHeight,
 			e.DBHeight,
 			m.Minute,
 			e.Minute)
+		s.Election2 = "  "
+		for i := 0; i < len(e.Federated)+len(e.Audit); i++ {
+			s.Election2 = s.Election2 + "   "
+		}
 	}
 	idx := e.LeaderIndex(m.ServerID)
-	fmt.Printf("eee %10s %20s Idx %d len(sync) %d ServerID %x dbheight %5d %2d\n",
-		is.GetFactomNodeName(),
-		"EOM",
-		idx,
-		len(e.Sync),
-		m.ServerID.Bytes()[2:4],
-		e.DBHeight,
-		e.Minute)
-
+	newe2 := make([]byte, len(s.Election2))
+	copy(newe2, []byte(s.Election2))
 	if idx >= 0 {
 		e.Sync[idx] = true // Mark the leader at idx as synced.
 	} else {

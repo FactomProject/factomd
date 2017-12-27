@@ -25,6 +25,31 @@ type Elections struct {
 	Round     []int
 	Electing  int // This is the federated Server index that we are looking to replace
 	State     interfaces.IState
+	feedback  []string
+}
+
+func (e *Elections) NewFeedback() {
+	e.feedback = make([]string, len(e.Federated)+len(e.Audit))
+}
+
+func (e *Elections) FeedBackStr(v string, index int) string {
+
+	// If I have no feedback, then get some.
+	if e.feedback == nil || len(e.feedback) == 0 {
+		e.NewFeedback()
+	}
+
+	// Add the status if it is in my known range.
+	if index >= 0 && index < len(e.feedback) {
+		e.feedback[index] = v
+	}
+
+	// Make a string of the status.
+	r := ""
+	for _, v := range e.feedback {
+		r = r + fmt.Sprintf("%2s ", v)
+	}
+	return r
 }
 
 func (e *Elections) String() string {
@@ -64,6 +89,7 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 	return -1
 }
 
+// Runs the main loop for elections for this instance of factomd
 func Run(s *state.State) {
 	e := new(Elections)
 	e.State = s
