@@ -81,14 +81,9 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 			e.DBHeight,
 			m.Minute,
 			e.Minute)
-		s.Election2 = "  "
-		for i := 0; i < len(e.Federated)+len(e.Audit); i++ {
-			s.Election2 = s.Election2 + "   "
-		}
 	}
 	idx := e.LeaderIndex(m.ServerID)
-	newe2 := make([]byte, len(s.Election2))
-	copy(newe2, []byte(s.Election2))
+	s.Election2 = e.FeedBackStr("R",idx)
 	if idx >= 0 {
 		e.Sync[idx] = true // Mark the leader at idx as synced.
 	} else {
@@ -99,8 +94,9 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 			return // If any leader is not yet synced, then return.
 		}
 	}
+	e.NewFeedback()
+	s.Election2 = e.FeedBackStr("",0)
 	e.Round = e.Round[:0] // Get rid of any previous round counting.
-	fmt.Printf("eee %10s %20s dbheight %5d %2d\n", is.GetFactomNodeName(), "EOM", e.DBHeight, e.Minute)
 }
 
 func (m *EomSigInternal) GetServerID() interfaces.IHash {
