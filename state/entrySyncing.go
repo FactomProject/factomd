@@ -6,7 +6,6 @@ package state
 
 import (
 	"fmt"
-
 	"math/rand"
 	"time"
 
@@ -24,7 +23,16 @@ func has(s *State, entry interfaces.IHash) bool {
 			time.Sleep(30 * time.Millisecond)
 		}
 	}
-	exists, _ := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
+	exists, err := s.DB.DoesKeyExist(databaseOverlay.ENTRY, entry.Bytes())
+	if exists {
+		if err != nil {
+			return false
+		}
+		entry, err2 := s.DB.FetchEntry(entry)
+		if err2 != nil || entry == nil {
+			return false
+		}
+	}
 	return exists
 }
 
@@ -177,6 +185,8 @@ func (s *State) GoSyncEntries() {
 
 	lastfirstmissing := 0
 
+	found := 0
+
 	for {
 
 		ESMissing.Set(float64(len(missingMap)))
@@ -189,6 +199,7 @@ func (s *State) GoSyncEntries() {
 
 		for k := range missingMap {
 			if has(s, missingMap[k]) {
+				found++
 				delete(missingMap, k)
 			}
 		}
@@ -247,6 +258,7 @@ func (s *State) GoSyncEntries() {
 
 					// If I have the entry, then remove it from the Missing Entries list.
 					if has(s, entryhash) {
+						found++
 						delete(missingMap, entryhash.Fixed())
 						continue
 					}
@@ -273,6 +285,16 @@ func (s *State) GoSyncEntries() {
 						entryMissing++
 						missingMap[entryhash.Fixed()] = entryhash
 						s.MissingEntries <- &v
+					}
+				}
+			}
+
+			if s.EntryDBHeightComplete%1000 == 0 {
+				if firstMissing < 0 {
+					//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
+					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
+					if err != nil {
+						fmt.Printf("ERROR: %v\n", err)
 					}
 				}
 			}
