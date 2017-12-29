@@ -77,6 +77,7 @@ func GetFocus() *FactomNode {
 func SimControl(listenTo int, listenStdin bool) {
 	var _ = time.Sleep
 	var summary int
+	var elections int
 	var watchPL int
 	var watchMessages int
 	var rotate int
@@ -249,6 +250,15 @@ func SimControl(listenTo int, listenStdin bool) {
 				} else {
 					os.Stderr.WriteString("--Print Summary Off--\n")
 				}
+			case 'E' == b[0]:
+				elections++
+				if elections%2 == 1 {
+					os.Stderr.WriteString("--Print Elections On--\n")
+					go printElections(&elections, elections, &ListenTo, &wsapiNode)
+				} else {
+					os.Stderr.WriteString("--Print Elections Off--\n")
+				}
+
 			case 'p' == b[0]:
 				if len(b) > 1 {
 					ht, err := strconv.Atoi(string(b[1:]))

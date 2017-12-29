@@ -51,11 +51,12 @@ type Elections struct {
 */
 
 func Title() string {
-	return fmt.Sprintf("%10s %10s %10s %10s",
-		"Msg DBHt",
-		"Msg Min",
-		"Elect DBHt",
-		"Elect Min")
+	return fmt.Sprintf("%10s %8s %8s %8s %8s",
+		"Node",
+		"M:DBHt",
+		"M:Min",
+		"E:DBHt",
+		"E:Min")
 }
 
 func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
@@ -76,14 +77,15 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 
 		// Start our timer to timeout this sync
 		go Fault(e, int(m.DBHeight), int(m.Minute), 0)
-		s.Election1 = fmt.Sprintf("%10d %10d %10d %10d",
+		s.Election1 = fmt.Sprintf("%10s %8d %8d %8d %8d",
+			s.FactomNodeName,
 			m.DBHeight,
-			e.DBHeight,
 			m.Minute,
+			e.DBHeight,
 			e.Minute)
 	}
 	idx := e.LeaderIndex(m.ServerID)
-	s.Election2 = e.FeedBackStr("R",idx)
+	s.Election2 = e.FeedBackStr("m", idx)
 	if idx >= 0 {
 		e.Sync[idx] = true // Mark the leader at idx as synced.
 	} else {
@@ -95,7 +97,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 		}
 	}
 	e.NewFeedback()
-	s.Election2 = e.FeedBackStr("",0)
+	s.Election2 = e.FeedBackStr("", 0)
 	e.Round = e.Round[:0] // Get rid of any previous round counting.
 }
 

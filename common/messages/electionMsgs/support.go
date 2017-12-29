@@ -56,18 +56,8 @@ func MaxIdx(priority []interfaces.IHash) (idx int) {
 }
 
 func Fault(e *elections.Elections, dbheight int, minute int, round int) {
-	/*
-		fmt.Printf("eee %10s %20s %20s dbheight %d minute %d round %d\n",
-			e.Name,
-			"Fault Start",
-			time.Now().String(),
-			dbheight,
-			minute,
-			round)
-	*/
 
 	time.Sleep(10 * time.Second)
-
 	timeout := new(TimeoutInternal)
 	timeout.Minute = minute
 	timeout.DBHeight = dbheight

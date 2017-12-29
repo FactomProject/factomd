@@ -125,6 +125,7 @@ type State struct {
 
 	// Elections are managed through the Elections Structure
 	EFactory  interfaces.IElectionsFactory
+	Elections interfaces.IElections
 	Election0 string // Title
 	Election1 string // Election state for display
 	Election2 string // Election state for display

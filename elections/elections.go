@@ -47,7 +47,7 @@ func (e *Elections) FeedBackStr(v string, index int) string {
 	// Make a string of the status.
 	r := ""
 	for _, v := range e.feedback {
-		r = r + fmt.Sprintf("%2s ", v)
+		r = r + fmt.Sprintf("%3s ", v)
 	}
 	return r
 }
@@ -92,6 +92,7 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 // Runs the main loop for elections for this instance of factomd
 func Run(s *state.State) {
 	e := new(Elections)
+	s.Elections = e
 	e.State = s
 	e.Name = s.FactomNodeName
 	e.Input = s.ElectionsQueue()

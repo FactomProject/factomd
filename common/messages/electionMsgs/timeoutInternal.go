@@ -57,20 +57,9 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		panic("Invalid elections object")
 	}
 
-	// We have advanced, so do nothing.
+	// We have advanced, so do nothing.  We can't reset anything because there
+	// can be a timeout process that started before we got here (with short minutes)
 	if e.DBHeight > m.DBHeight || e.Minute > m.Minute {
-
-		fmt.Printf("eee %10s %20s e.DBHeight %d m.DBHeight %d e.Minute %d m.Minute %d m.Round %d\n",
-			e.State.GetFactomNodeName(),
-			"Close Timeout",
-			e.DBHeight,
-			m.DBHeight,
-			e.Minute,
-			m.Minute,
-			m.Round)
-
-		e.Round = e.Round[:0]
-		e.Electing = -1
 		return
 	}
 
@@ -89,6 +78,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
+	e.FeedBackStr("E", e.Electing)
+
 	for len(e.Round) <= e.Electing {
 		e.Round = append(e.Round, 0)
 	}
@@ -98,14 +89,6 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
 	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
-
-	fmt.Printf("eee %10s %20s Server Index: %d Round: %d %10s Feds Faulting: %d\n",
-		e.State.GetFactomNodeName(),
-		"Timeout",
-		e.Electing,
-		e.Round[e.Electing],
-		e.Name,
-		cnt)
 
 	// Can we see a majority of the federated servers?
 	if cnt >= (len(e.Federated)+1)/2 {
