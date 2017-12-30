@@ -59,17 +59,16 @@ func TestMissingMessageResponseMarshaling(t *testing.T) {
 	for i := 0; i < 1; i++ {
 		b := new(Bounce)
 		b.Timestamp = primitives.NewTimestampNow()
-		m := NewMissingMsgResponse(s, b, NewSignedAck())
-		m.GetHash()
-		m.GetMsgHash()
+		m := NewMissingMsgResponse(s, b, NewSignedAck()).(*MissingMsgResponse)
+
 		d, err := m.MarshalBinary()
 		if err != nil {
 			t.Error(err)
 		}
 
-		m2 := new(MissingMsgResponse)
+		m1 := new(MissingMsgResponse)
 		fmt.Printf("%x\n", d)
-		nd, err := m2.UnmarshalBinaryData(d)
+		nd, err := m1.UnmarshalBinaryData(d)
 		if err != nil {
 			t.Error(err)
 		}
@@ -78,10 +77,27 @@ func TestMissingMessageResponseMarshaling(t *testing.T) {
 			t.Errorf("Should not have leftover bytes, found %d", len(nd))
 		}
 
-		m1 := m.(*MissingMsgResponse)
-		if !m1.IsSameAs(m2) {
+		if !m.IsSameAs(m1) {
 			t.Error("Unmarshal gave back a different message")
 		}
+		fmt.Println("************")
+		fmt.Printf("%x\n",d)
+		fmt.Println("************")
+		d2, _ := m1.MarshalBinary()
+		fmt.Printf("%x\n",d2)
+		fmt.Println("************")
+		d3, _ := m.AckResponse.MarshalBinary()
+		d4, _ := m1.AckResponse.MarshalBinary()
+		ak2 := NewSignedAck()
+		ak2.UnmarshalBinary(d4)
+		d5, _ := ak2.MarshalBinary()
+		fmt.Println("************")
+		fmt.Printf("%x\n",d3)
+		fmt.Println("************")
+		fmt.Printf("%x\n",d4)
+		fmt.Println("************")
+		fmt.Printf("%x\n",d5)
+		fmt.Println("************")
 	}
 
 }

@@ -6,6 +6,7 @@ package messages
 
 import (
 	"fmt"
+	"encoding/binary"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -138,7 +139,43 @@ func (m *MissingMsgResponse) UnmarshalBinary(data []byte) error {
 	return err
 }
 
+func (m *MissingMsgResponse) MarshalBinaryOld() ([]byte, error) {
+	var buf primitives.Buffer
+
+	binary.Write(&buf, binary.BigEndian, m.Type())
+
+	data, err := m.GetTimestamp().MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(data)
+
+	if m.AckResponse == nil {
+		buf.WriteByte(0)
+	} else {
+		buf.WriteByte(1)
+
+		ackData, err := m.AckResponse.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(ackData)
+	}
+
+	msgData, err := m.MsgResponse.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(msgData)
+
+	bb := buf.DeepCopyBytes()
+
+	return bb, nil
+}
+
+
 func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
+
 	var buf primitives.Buffer
 
 	buf.PushByte(m.Type())
