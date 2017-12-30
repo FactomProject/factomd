@@ -101,3 +101,25 @@ func TestMissingMessageResponseMarshaling(t *testing.T) {
 	}
 
 }
+
+func TestSillyMarshaling(t *testing.T) {
+	
+		ack := NewSignedAck()
+		ack1 := NewSignedAck()
+		ack2 := NewSignedAck()
+		ack3 := NewSignedAck()
+
+		d, _ := ack.MarshalBinary()
+		ack1.UnmarshalBinary(d)
+		d1, _ := ack.MarshalBinary()
+		ack2.UnmarshalBinary(d1)
+		d2, _ := ack.MarshalBinary()
+		ack3.UnmarshalBinary(d2)
+		d3, _ := ack.MarshalBinary()
+
+		fmt.Printf("ack  %x\n",d)
+		fmt.Printf("ack1 %x\n",d1)
+		fmt.Printf("ack2 %x\n",d2)
+		fmt.Printf("ack3 %x\n",d3)
+
+}
