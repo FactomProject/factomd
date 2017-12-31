@@ -245,7 +245,7 @@ func (m *Ack) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 		}
 	}
 
-	m.marshalCache = data[:len(data)-len(newData)]
+	m.marshalCache = append(m.marshalCache, data[:len(data)-len(newData)]...)
 
 	return
 }

@@ -167,74 +167,45 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	}()
 
 	buf := primitives.NewBuffer(data)
-	cnt := 0
-	cnt++
-	fmt.Println("Here at", cnt)
 	if t, e := buf.PopByte(); e != nil || t != constants.VOLUNTEERAUDIT {
 		return nil, errors.New("Not a Volunteer Audit type")
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.TS, err = buf.PopTimestamp(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.Name, err = buf.PopString(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.EOM, err = buf.PopBool(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.ServerID, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at 7 ", cnt)
 	if m.Weight, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.DBHeight, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.VMIndex, err = buf.PopInt(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.Round, err = buf.PopInt(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at", cnt)
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
-	cnt++
-	fmt.Println("Here at 12 ", cnt)
-	if m.Missing, err = buf.PopMsg(); err != nil {
-		return nil, err
-	}
-	cnt++
-	fmt.Println("Here at", cnt)
-	if m.Ack, err = buf.PopMsg(); err != nil {
-		return nil, err
-	}
-	cnt++
-	fmt.Println("Here at", cnt)
+	//	if m.Ack, err = buf.PopMsg(); err != nil {
+	//		return nil, err
+	//	}
+	//	if m.Missing, err = buf.PopMsg(); err != nil {
+	//		return nil, err
+	//	}
 	return buf.PopBytes()
 }
 
@@ -279,12 +250,12 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
-	if e := buf.PushMsg(m.Ack); e != nil {
-		return nil, e
-	}
-	if e := buf.PushMsg(m.Missing); e != nil {
-		return nil, e
-	}
+	//if e := buf.PushMsg(m.Ack); e != nil {
+	//	return nil, e
+	//}
+	//if e := buf.PushMsg(m.Missing); e != nil {
+	//	return nil, e
+	//}
 	return buf.DeepCopyBytes(), nil
 }
 

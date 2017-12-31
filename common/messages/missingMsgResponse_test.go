@@ -81,10 +81,10 @@ func TestMissingMessageResponseMarshaling(t *testing.T) {
 			t.Error("Unmarshal gave back a different message")
 		}
 		fmt.Println("************")
-		fmt.Printf("%x\n",d)
+		fmt.Printf("%x\n", d)
 		fmt.Println("************")
 		d2, _ := m1.MarshalBinary()
-		fmt.Printf("%x\n",d2)
+		fmt.Printf("%x\n", d2)
 		fmt.Println("************")
 		d3, _ := m.AckResponse.MarshalBinary()
 		d4, _ := m1.AckResponse.MarshalBinary()
@@ -92,34 +92,49 @@ func TestMissingMessageResponseMarshaling(t *testing.T) {
 		ak2.UnmarshalBinary(d4)
 		d5, _ := ak2.MarshalBinary()
 		fmt.Println("************")
-		fmt.Printf("%x\n",d3)
+		fmt.Printf("%x\n", d3)
 		fmt.Println("************")
-		fmt.Printf("%x\n",d4)
+		fmt.Printf("%x\n", d4)
 		fmt.Println("************")
-		fmt.Printf("%x\n",d5)
+		fmt.Printf("%x\n", d5)
 		fmt.Println("************")
 	}
 
 }
 
 func TestSillyMarshaling(t *testing.T) {
-	
-		ack := NewSignedAck()
-		ack1 := NewSignedAck()
-		ack2 := NewSignedAck()
-		ack3 := NewSignedAck()
 
-		d, _ := ack.MarshalBinary()
-		ack1.UnmarshalBinary(d)
-		d1, _ := ack.MarshalBinary()
-		ack2.UnmarshalBinary(d1)
-		d2, _ := ack.MarshalBinary()
-		ack3.UnmarshalBinary(d2)
-		d3, _ := ack.MarshalBinary()
+	const cnt = 10
+	b := new(Bounce)
+	b.Timestamp = primitives.NewTimestampNow()
 
-		fmt.Printf("ack  %x\n",d)
-		fmt.Printf("ack1 %x\n",d1)
-		fmt.Printf("ack2 %x\n",d2)
-		fmt.Printf("ack3 %x\n",d3)
+	var ack []*Ack
+	var mmr []*MissingMsgResponse
+	var data [][]byte
+	var data2 [][]byte
+
+	s := testHelper.CreateEmptyTestState()
+
+	for i := 0; i < cnt; i++ {
+		ack = append(ack, NewSignedAck())
+		for j := 0; j < 8; j++ {
+			ack[i].Salt[j] = byte(j + 1)
+		}
+		mmr = append(mmr, NewMissingMsgResponse(s, b, ack[i]).(*MissingMsgResponse))
+		d, _ := mmr[i].MarshalBinary()
+		mmr2 := NewMissingMsgResponse(s, b, ack[i]).(*MissingMsgResponse)
+		mmr2.UnmarshalBinary(d)
+		d2, _ := mmr2.MarshalBinary()
+		data = append(data, d)
+		data2 = append(data2, d2)
+	}
+
+	for i, d := range data {
+		ack := mmr[i].AckResponse
+		ad, _ := ack.MarshalBinary()
+		fmt.Printf("mmr  %d %x\n", i, d)
+		fmt.Printf("ack  %d %x\n", i, ad)
+		fmt.Printf("mmr2 %d %x\n", i, data2[i])
+	}
 
 }

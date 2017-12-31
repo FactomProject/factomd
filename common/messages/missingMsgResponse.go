@@ -5,8 +5,8 @@
 package messages
 
 import (
-	"fmt"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -172,7 +172,6 @@ func (m *MissingMsgResponse) MarshalBinaryOld() ([]byte, error) {
 
 	return bb, nil
 }
-
 
 func (m *MissingMsgResponse) MarshalBinary() ([]byte, error) {
 
