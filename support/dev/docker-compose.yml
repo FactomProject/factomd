@@ -1,0 +1,120 @@
+version: "3"
+
+services:
+    factomd_1:
+        container_name: factomd_1
+        build: ../../
+        depends_on:
+            - prometheus
+            - logstash
+        expose:
+            - "8088"
+            - "8110"
+        ports:
+            - "8090:8090"
+        volumes:
+            - ./factomd/factomd_1.conf:/root/.factom/m2/factomd.conf
+        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -peers="factomd_2:8110 factomd_3:8110" -logstash -logurl=logstash:8345
+        networks:
+            - factomd
+
+    factomd_2:
+        container_name: factomd_2
+        build: ../../
+        depends_on:
+            - prometheus
+            - logstash
+        expose:
+            - "8088"
+            - "8110"
+        ports:
+            - "8190:8090"
+        volumes:
+            - ./factomd/factomd_2.conf:/root/.factom/m2/factomd.conf
+        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -peers="factomd_1:8110 factomd_3:8110" -logstash -logurl=logstash:8345
+        networks:
+            - factomd
+
+    factomd_3:
+        container_name: factomd_3
+        build: ../../
+        depends_on:
+            - prometheus
+            - logstash
+        expose:
+            - "8088"
+            - "8110"
+        ports:
+            - "8290:8090"
+        volumes:
+            - ./factomd/factomd_3.conf:/root/.factom/m2/factomd.conf
+        command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -peers="factomd_1:8110 factomd_2:8110" -logstash -logurl=logstash:8345
+        networks:
+            - factomd
+
+    elasticsearch:
+        container_name: elasticsearch
+        build:
+            context: elasticsearch/
+        volumes:
+            - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+        ports:
+            - "9200:9200"
+            - "9300:9300"
+        environment:
+            ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+        networks:
+            - elk
+
+    logstash:
+        container_name: logstash
+        build:
+            context: logstash/
+        volumes:
+            - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+            - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+        ports:
+            - "5000:5000"
+        environment:
+            LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+        networks:
+            - elk
+            - factomd
+        depends_on:
+            - elasticsearch
+
+    kibana:
+        container_name: kibana
+        build:
+            context: kibana/
+        volumes:
+            - ./kibana/config/:/usr/share/kibana/config:ro
+        ports:
+            - "5601:5601"
+        networks:
+            - elk
+        depends_on:
+            - elasticsearch
+
+    prometheus:
+        container_name: prometheus
+        build:
+            context: prometheus/
+        volumes:
+            - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        ports:
+            - "9090:9090"
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+        networks:
+            - prometheus
+            - factomd
+
+
+networks:
+    elk:
+        driver: bridge
+    prometheus:
+        driver: bridge
+    factomd:
+        driver: bridge
