@@ -58,6 +58,7 @@ type FactomParams struct {
 	useLogstash              bool
 	logstashURL              string
 	Sync2                    int
+	DebugConsole             bool
 }
 
 func (f *FactomParams) Init() {
@@ -109,6 +110,7 @@ func (f *FactomParams) Init() {
 	f.Sim_Stdin = true
 	f.exposeProfiling = false
 	f.Sync2 = -1
+	f.DebugConsole = false
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -176,6 +178,8 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	sync2Ptr := flag.Int("sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
 
+	DebugConsolePtr :=flag.Bool("DebugConsole",false,"Enable DebugConsole")
+
 	flag.CommandLine.Parse(args)
 
 	p.AckbalanceHash = *ackBalanceHashPtr
@@ -230,6 +234,7 @@ func ParseCmdLine(args []string) *FactomParams {
 	p.logstashURL = *logstashURL
 
 	p.Sync2 = *sync2Ptr
+	p.DebugConsole = *DebugConsolePtr
 
 	if *factomHomePtr != "" {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)
