@@ -5,7 +5,6 @@ services:
         container_name: factomd_1
         build: ../../
         depends_on:
-            - prometheus
             - logstash
         expose:
             - "8088"
@@ -22,7 +21,6 @@ services:
         container_name: factomd_2
         build: ../../
         depends_on:
-            - prometheus
             - logstash
         expose:
             - "8088"
@@ -39,7 +37,6 @@ services:
         container_name: factomd_3
         build: ../../
         depends_on:
-            - prometheus
             - logstash
         expose:
             - "8088"
@@ -58,9 +55,9 @@ services:
             context: elasticsearch/
         volumes:
             - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-        ports:
-            - "9200:9200"
-            - "9300:9300"
+        expose:
+            - "9200"
+            - "9300"
         environment:
             ES_JAVA_OPTS: "-Xmx256m -Xms256m"
         networks:
@@ -107,14 +104,14 @@ services:
         command:
             - '--config.file=/etc/prometheus/prometheus.yml'
         networks:
-            - prometheus
             - factomd
-
+        depends_on:
+            - factomd_1
+            - factomd_2
+            - factomd_3
 
 networks:
     elk:
-        driver: bridge
-    prometheus:
         driver: bridge
     factomd:
         driver: bridge
