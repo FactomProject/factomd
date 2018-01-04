@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net"
 )
 
 // Data structures and functions related to peers (eg other nodes in the network)
@@ -34,6 +35,15 @@ const ( // iota is reset to 0
 )
 
 func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
+
+	if net.ParseIP(address) == nil {
+		ipAddress, err := net.LookupHost(address)
+		if err != nil {
+			verbose("peer", "Init: LookupHost(%v) failed. %v ", address, err)
+		}
+		address = ipAddress[0]
+	}
+
 	p.Address = address
 	p.Port = port
 	p.QualityScore = quality
