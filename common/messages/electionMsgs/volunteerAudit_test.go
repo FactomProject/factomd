@@ -64,8 +64,6 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 
 		if va.IsSameAs(va2) == false {
 			t.Error(num + " Acks are not the same")
-			fmt.Println(va.String())
-			fmt.Println(va2.String())
 		}
 	}
 

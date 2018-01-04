@@ -35,7 +35,6 @@ type SyncMsg struct {
 }
 
 func (m *SyncMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	fmt.Printf("eee %10s %s\n", is.GetFactomNodeName(), m.String())
 }
 
 var _ interfaces.IMsg = (*SyncMsg)(nil)
@@ -130,10 +129,6 @@ func (m *SyncMsg) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
-	fmt.Printf("eee %10s %20s %s\n",
-		is.GetFactomNodeName(),
-		"Sync Message",
-		m.String())
 	s := is.(*state.State)
 
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
@@ -151,7 +146,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.DBHeight = m.DBHeight
 	va.Minute = m.Minute
 	va.Round = m.Round
-	fmt.Printf("eee %10s %20s %s\n", is.GetFactomNodeName(), "I'm an Audit Server Volunteer!", va.String())
+
 	va.SendOut(is, va)
 	is.ElectionsQueue().Enqueue(va)
 }

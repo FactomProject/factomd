@@ -44,7 +44,6 @@ type LeaderAck struct {
 }
 
 func (m *LeaderAck) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	fmt.Printf("eee %10s %s\n", is.GetFactomNodeName(), m.String())
 }
 
 var _ interfaces.IMsg = (*LeaderAck)(nil)
@@ -139,10 +138,6 @@ func (m *LeaderAck) LeaderExecute(state interfaces.IState) {
 }
 
 func (m *LeaderAck) FollowerExecute(is interfaces.IState) {
-	fmt.Printf("eee %10s %20s %s\n",
-		is.GetFactomNodeName(),
-		"Leader Ack Volunteer Message",
-		m.String())
 	s := is.(*state.State)
 
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
@@ -158,8 +153,9 @@ func (m *LeaderAck) FollowerExecute(is interfaces.IState) {
 	va.DBHeight = m.DBHeight
 	va.Minute = m.Minute
 	va.Round = m.Round
-	fmt.Printf("eee %10s %20s %s\n", is.GetFactomNodeName(), "I'm an Audit Server Volunteer!", va.String())
+
 	va.SendOut(is, va)
+
 	is.ElectionsQueue().Enqueue(va)
 }
 

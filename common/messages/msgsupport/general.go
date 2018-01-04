@@ -88,16 +88,13 @@ func UnmarshalMessageData(data []byte) (newdata []byte, msg interfaces.IMsg, err
 		return nil, nil, fmt.Errorf("No data provided")
 	}
 	messageType := data[0]
-	fmt.Println("messagetype", messageType, MessageName(messageType))
 	msg = CreateMsg(messageType)
 	if msg == nil {
-		fmt.Sprintf("Transaction Failed to Validate %x", data[0])
 		return data, nil, fmt.Errorf("Unknown message type %d %x", messageType, data[0])
 	}
 
 	newdata, err = msg.UnmarshalBinaryData(data[:])
 	if err != nil {
-		fmt.Sprintf("Transaction Failed to Unmarshal %x", data[0])
 		return data, nil, err
 	}
 

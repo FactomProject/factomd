@@ -16,6 +16,10 @@ import (
 	"github.com/FactomProject/factomd/state"
 
 	log "github.com/sirupsen/logrus"
+	"io"
+	"net"
+	"bufio"
+	"os/exec"
 )
 
 var _ = fmt.Print
@@ -50,6 +54,11 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 		}
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
+	}
+
+	// launch debug console if requested
+	if (params.DebugConsole) {
+		launchDebugServer()
 	}
 
 	//  Go Optimizations...
@@ -87,4 +96,118 @@ func isCompilerVersionOK() bool {
 		goodenough = true
 	}
 	return goodenough
+}
+
+func launchDebugServer() {
+	// start a go routine to tee stdout to out.txt
+	go func() {
+		outfile, err := os.Create("./out.txt")
+		if err != nil {
+			panic(err)
+		}
+		defer outfile.Close()
+		defer os.Stdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+		defer time.Sleep(100 * time.Millisecond) // Let the output all complete
+		outfile.WriteString("test\n")
+		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+		oldStdout := os.Stdout
+		os.Stdout = w
+		for { // for ever ....
+			_, err := io.Copy(io.MultiWriter(outfile, oldStdout), r) // tee stdout to out.txt
+			if err != nil {
+				panic(err)
+			}
+		}
+	}()
+
+	// start a go routine to tee stderr to err.txt and the debug console
+	stdErrPipe_r, stdErrPipe_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+
+	go func() {
+		outfile, err := os.Create("./err.txt")
+		if err != nil {
+			panic(err)
+		}
+		defer outfile.Close()
+		defer os.Stderr.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+		defer time.Sleep(100 * time.Millisecond) // Let the output all complete
+		outfile.WriteString("test error\n")
+
+		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+		oldStderr := os.Stderr
+		os.Stderr = w
+		for { // for ever ....
+			_, err := io.Copy(io.MultiWriter(outfile, oldStderr, stdErrPipe_w), r)
+			if err != nil {
+				panic(err)
+			}
+
+		}
+	}()
+
+	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
+
+	// test tee
+	os.Stdout.WriteString("This is stdout!\n")
+	os.Stderr.WriteString("This is stderr!\n")
+
+	// Start a listener port to connect to the debug server
+	ln, err := net.Listen("tcp", ":8091")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Debug Server is ready. ")
+
+	newStdIn_r, newStdIn_w, _ := os.Pipe() // Can't use the reader directly as os.Stdin so make a pipe
+
+	// Accept
+	go func() {
+		connection, err := ln.Accept()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Debug server accepted a connection.")
+
+		writer := bufio.NewWriter(connection) // if we want to send something back to the telnet
+		reader := bufio.NewReader(connection)
+
+		writer.WriteString("Hello User\n")
+		writer.Flush()
+		for {
+			// copy stderr to debug console
+			go func() {
+				_, err := io.Copy(writer, stdErrPipe_r)
+				if err != nil {
+					fmt.Printf("Error copying stderr to debug consol: %v\n", err)
+				}
+			}()
+
+			// copy input from debug console to stdin
+			if false {
+				_, err = io.Copy(newStdIn_w, reader) // not sure why this doesn't work
+				if  err != nil {
+					break
+				}
+			} else {
+				buf, err := reader.ReadString('\n')
+				if err != nil {
+					break
+				}
+				newStdIn_w.WriteString(string(buf))
+			}
+		}
+		fmt.Printf("Client disconnected., %v\n", err)
+	}()
+
+	cmd := exec.Command("/usr/bin/gnome-terminal", "-x", "telnet", "localhost", "8091")
+	err = cmd.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Debug terminal pid %v\n", cmd.Process.Pid)
+
+	os.Stdin = newStdIn_r              // start using the pipe as input
+	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
+
 }

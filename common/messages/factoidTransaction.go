@@ -134,7 +134,6 @@ func (m *FactoidTransaction) Process(dbheight uint32, state interfaces.IState) b
 	m.processed = true
 	err := state.GetFactoidState().AddTransaction(1, m.Transaction)
 	if err != nil {
-		fmt.Println(err)
 		return false
 	}
 

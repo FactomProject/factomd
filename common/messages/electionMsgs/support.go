@@ -3,11 +3,9 @@ package electionMsgs
 import (
 	"bytes"
 	"fmt"
-	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
 )
 
 var _ = fmt.Print
@@ -55,13 +53,4 @@ func MaxIdx(priority []interfaces.IHash) (idx int) {
 	return
 }
 
-func Fault(e *elections.Elections, dbheight int, minute int, round int) {
 
-	time.Sleep(10 * time.Second)
-	timeout := new(TimeoutInternal)
-	timeout.Minute = minute
-	timeout.DBHeight = dbheight
-	timeout.Round = round
-	e.Input.Enqueue(timeout)
-
-}

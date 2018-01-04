@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 //General acknowledge message
@@ -57,6 +58,17 @@ func Title() string {
 		"M:Min",
 		"E:DBHt",
 		"E:Min")
+}
+
+func Fault(e *elections.Elections, dbheight int, minute int, round int) {
+
+	time.Sleep(10 * time.Second)
+	timeout := new(TimeoutInternal)
+	timeout.Minute = minute
+	timeout.DBHeight = dbheight
+	timeout.Round = round
+	e.Input.Enqueue(timeout)
+
 }
 
 func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {

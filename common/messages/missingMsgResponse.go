@@ -46,12 +46,10 @@ func (a *MissingMsgResponse) IsSameAs(b *MissingMsgResponse) bool {
 	bh := b.MsgResponse.GetHash()
 
 	if !ah.IsSameAs(bh) {
-		fmt.Println("MissingMsgResponse IsNotSameAs because MsgResp GetHash mismatch")
 		return false
 	}
 
 	if !a.AckResponse.GetHash().IsSameAs(b.AckResponse.GetHash()) {
-		fmt.Println("MissingMsgResponse IsNotSameAs because Ack GetHash mismatch")
 		return false
 	}
 

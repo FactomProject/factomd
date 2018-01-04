@@ -38,7 +38,6 @@ type VolunteerAudit struct {
 
 func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	e := elect.(*elections.Elections)
-	fmt.Printf("eee %10s %s\n", is.GetFactomNodeName(), m.String())
 	idx := e.LeaderIndex(is.GetIdentityChainID())
 	if idx > 0 {
 
