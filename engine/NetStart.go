@@ -26,7 +26,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-
 )
 
 var _ = fmt.Print
@@ -37,6 +36,7 @@ type FactomNode struct {
 	Peers []interfaces.IPeer
 	MLog  *MsgLog
 }
+
 var fnodesMu sync.Mutex
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
@@ -47,9 +47,9 @@ var logPort string
 func GetFnodes() []*FactomNode {
 	fnodesMu.Lock()
 	defer fnodesMu.Unlock()
-	for(fnodes == nil){ // wait for it to be allocated
+	for (fnodes == nil) { // wait for it to be allocated
 		fnodesMu.Unlock()
-		time.Sleep(50*time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		fnodesMu.Lock()
 	}
 	return fnodes
@@ -167,7 +167,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
 		fnodesMu.Lock()
-		defer fnodesMu.Unlock()
 		for _, fnode := range fnodes {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 			fnode.State.ShutdownChan <- 0
@@ -366,9 +365,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.SetDebugMode(p.Netdebug)
 		if 0 < p.Netdebug {
 			go p2pProxy.PeriodicStatusReport(fnodes)
-			p2pNetwork.StartLogging(uint8(p.Netdebug))
+			p2pNetwork.StartLogging(uint32(p.Netdebug))
 		} else {
-			p2pNetwork.StartLogging(uint8(0))
+			p2pNetwork.StartLogging(0)
 		}
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
@@ -520,6 +519,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	fnodesMu.Unlock()
 	SimControl(p.ListenTo, listenToStdin)
+	fnodesMu.Lock() // lok it so the deferred Unlock is good
 
 }
 
@@ -531,7 +531,7 @@ func makeServer(s *state.State) *FactomNode {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
 	newState := s
-    // fnodesMu is already locked...
+	// fnodesMu is already locked...
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
 		time.Sleep(10 * time.Millisecond)
@@ -547,8 +547,7 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(load bool) {
-	fnodesMu.Lock()
-	defer fnodesMu.Unlock()
+	// fnodesMu is already locked...
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()
@@ -603,7 +602,6 @@ func setupFirstAuthority(s *state.State) {
 	s.Authorities = append(s.Authorities, &auth)
 }
 
-// called from controller in main loop to avoid race on c.connections
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)

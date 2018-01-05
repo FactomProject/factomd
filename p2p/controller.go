@@ -50,8 +50,8 @@ type Controller struct {
 
 	discovery Discovery // Our discovery structure
 
-	numberOutgoingConnections  int       // In PeerManagmeent we track this to know whent to dial out.
-	numberIncommingConnections int       // In PeerManagmeent we track this and refuse incomming connections when we have too many.
+	numberOutgoingConnections  int       // In PeerManagement we track this to know when to dial out.
+	numberIncomingConnections int       // In PeerManagement we track this and refuse incoming connections when we have too many.
 	lastPeerManagement         time.Time // Last time we ran peer management.
 	lastDiscoveryRequest       time.Time
 	NodeID                     uint64
@@ -147,7 +147,7 @@ func (e *CommandDisconnect) String() string {
 
 // CommandChangeLogging is used to instruct the Controller to takve various actions.
 type CommandChangeLogging struct {
-	Level uint8
+	Level uint32
 }
 
 func (e *CommandChangeLogging) JSONByte() ([]byte, error) {
@@ -232,14 +232,14 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	}
 }
 
-func (c *Controller) StartLogging(level uint8) {
+func (c *Controller) StartLogging(level uint32) {
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) StopLogging() {
 	level := Silence
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
-func (c *Controller) ChangeLogLevel(level uint8) {
+func (c *Controller) ChangeLogLevel(level uint32) {
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 
@@ -309,11 +309,11 @@ func (c *Controller) acceptLoop(listener net.Listener) {
 		switch err {
 		case nil:
 			switch {
-			case c.numberIncommingConnections < MaxNumberIncommingConnections:
+			case c.numberIncomingConnections < MaxNumberIncomingConnections:
 				c.AddPeer(conn) // Sends command to add the peer to the peers list
 				note("ctrlr", "Controller.acceptLoop() new peer: %+v", conn)
 			default:
-				note("ctrlr", "Controller.acceptLoop() new peer, but too many incomming connections. %d", c.numberIncommingConnections)
+				note("ctrlr", "Controller.acceptLoop() new peer, but too many incoming connections. %d", c.numberIncomingConnections)
 				conn.Close()
 			}
 		default:
@@ -342,8 +342,8 @@ func (c *Controller) runloop() {
 		significant("ctrlr", "     Command Queue: %d", len(c.commandChannel))
 		significant("ctrlr", "         ToNetwork: %d", len(c.ToNetwork))
 		significant("ctrlr", "       FromNetwork: %d", len(c.FromNetwork))
-		significant("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
-		significant("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
+		significant("ctrlr", "        Total RECV: %d", TotalMessagesReceived)
+		significant("ctrlr", "  Application RECV: %d", ApplicationMessagesReceived)
 		significant("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
 		significant("ctrlr", "###################################")
 		significant("ctrlr", "@@@@@@@@@@ Controller.runloop() is terminated!")
@@ -396,12 +396,12 @@ func (c *Controller) runloop() {
 		dot("@@11\n")
 
 	}
-	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
+	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesReceived: %d TotalMessagesSent: %d", TotalMessagesReceived, TotalMessagesSent)
 }
 
 // Route pulls all of the messages from the application and sends them to the appropriate
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
-// route also passes incomming messages on to the application.
+// route also passes incoming messages on to the application.
 func (c *Controller) route() {
 	// Recieve messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
@@ -506,18 +506,18 @@ func (c *Controller) doDirectedSend(parcel Parcel) {
 
 // handleParcelReceive takes a parcel from the network and annotates it for the application then routes it.
 func (c *Controller) handleParcelReceive(message interface{}, peerHash string, connection Connection) {
-	TotalMessagesRecieved++
+	TotalMessagesReceived++
 	parameters := message.(ConnectionParcel)
 	parcel := parameters.Parcel
 	parcel.Header.TargetPeer = peerHash // Set the connection ID so the application knows which peer the message is from.
 	switch parcel.Header.Type {
 	case TypeMessage: // Application message, send it on.
-		ApplicationMessagesRecieved++
+		ApplicationMessagesReceived++
 		BlockFreeChannelSend(c.FromNetwork, parcel)
 	case TypeMessagePart: // A part of the application message, handle by assembler and if we have the full message, send it on.
 		assembled := c.partsAssembler.handlePart(parcel)
 		if assembled != nil {
-			ApplicationMessagesRecieved++
+			ApplicationMessagesReceived++
 			BlockFreeChannelSend(c.FromNetwork, *assembled)
 		}
 	case TypePeerRequest: // send a response to the connection over its connection.SendChannel
@@ -577,7 +577,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
-		CurrentLoggingLevelVar = parameters.Level
+		atomic.StoreUint32(&CurrentLoggingLevelVar, uint32(parameters.Level)) // really a uint8 but still got reported as a race...
 	case CommandAdjustPeerQuality:
 		parameters := command.(CommandAdjustPeerQuality)
 		peerHash := parameters.PeerHash
@@ -594,7 +594,7 @@ func (c *Controller) handleCommand(command interface{}) {
 			BlockFreeChannelSend(connection.SendChannel, ConnectionCommand{Command: ConnectionShutdownNow})
 		}
 	default:
-		logfatal("ctrlr", "Unkown p2p.Controller command recieved: %+v", commandType)
+		logfatal("ctrlr", "Unkown p2p.Controller command received: %+v", commandType)
 	}
 }
 
@@ -650,13 +650,13 @@ func (c *Controller) updateConnectionCounts() {
 	// If we are low on outgoing onnections, attempt to connect to some more.
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
-	c.numberIncommingConnections = 0
+	c.numberIncomingConnections = 0
 	for _, connection := range c.connections {
 		switch {
 		case connection.IsOutGoing() && connection.IsOnline():
 			c.numberOutgoingConnections++
 		case !connection.IsOutGoing() && connection.IsOnline():
-			c.numberIncommingConnections++
+			c.numberIncomingConnections++
 		default: // we don't count offline connections for these purposes.
 		}
 	}
@@ -745,10 +745,10 @@ func (c *Controller) networkStatusReport() {
 		c.updateConnectionAddressMap()
 		silence("ctrlr", "     # Connections: %d", c.GetNumberConnections())
 		silence("ctrlr", "Unique Connections: %d", c.getNumberConnectionsByAddress())
-		silence("ctrlr", "    In Connections: %d", c.numberIncommingConnections)
+		silence("ctrlr", "    In Connections: %d", c.numberIncomingConnections)
 		silence("ctrlr", "   Out Connections: %d (only online are counted)", c.numberOutgoingConnections)
-		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
-		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesRecieved)
+		silence("ctrlr", "        Total RECV: %d", TotalMessagesReceived)
+		silence("ctrlr", "  Application RECV: %d", ApplicationMessagesReceived)
 		silence("ctrlr", "        Total XMIT: %d", TotalMessagesSent)
 		silence("ctrlr", " ")
 		silence("ctrlr", "\tPeer\t\t\t\tDuration\tStatus\t\tNotes")
