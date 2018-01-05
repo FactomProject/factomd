@@ -10,6 +10,7 @@ import (
 
 // DB Signature Entry -------------------------
 type AddAuditServer struct {
+	AdminIDType     uint32           `json:"adminidtype"`
 	IdentityChainID interfaces.IHash `json:"identitychainid"`
 	DBHeight        uint32           `json:"dbheight"`
 }
@@ -112,10 +113,12 @@ func (e *AddAuditServer) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *AddAuditServer) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *AddAuditServer) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

@@ -9,6 +9,7 @@ import (
 )
 
 type RevealMatryoshkaHash struct {
+	AdminIDType     uint32           `json:"adminidtype"`
 	IdentityChainID interfaces.IHash `json:"identitychainid"`
 	MHash           interfaces.IHash `json:"mhash"`
 }
@@ -92,10 +93,12 @@ func (e *RevealMatryoshkaHash) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *RevealMatryoshkaHash) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *RevealMatryoshkaHash) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

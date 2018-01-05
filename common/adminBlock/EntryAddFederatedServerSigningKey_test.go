@@ -97,3 +97,31 @@ func TestAddFederatedServerSigningKeyMarshalUnmarshal(t *testing.T) {
 		t.Errorf("Invalid PublicKey")
 	}
 }
+
+func TestAddFedServerSignMisc(t *testing.T) {
+	a := new(AddFederatedServerSigningKey)
+	if a.String() != "    E:        AddFederatedServerSigningKey --   IdentityChainID     0000  KeyPriority        0    PublicKey 00000000     DBHeight 0" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":8,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"keypriority\":0,\"publickey\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":8,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"keypriority\":0,\"publickey\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}

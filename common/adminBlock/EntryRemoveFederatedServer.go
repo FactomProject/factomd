@@ -10,6 +10,7 @@ import (
 
 // DB Signature Entry -------------------------
 type RemoveFederatedServer struct {
+	AdminIDType     uint32           `json:"adminidtype"`
 	IdentityChainID interfaces.IHash `json:"identitychainid"`
 	DBHeight        uint32           `json:"dbheight"`
 }
@@ -111,10 +112,12 @@ func (e *RemoveFederatedServer) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *RemoveFederatedServer) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *RemoveFederatedServer) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

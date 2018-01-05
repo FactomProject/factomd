@@ -10,6 +10,7 @@ import (
 
 // DB Signature Entry -------------------------
 type AddFederatedServerBitcoinAnchorKey struct {
+	AdminIDType     uint32                 `json:"adminidtype"`
 	IdentityChainID interfaces.IHash       `json:"identitychainid"`
 	KeyPriority     byte                   `json:"keypriority"`
 	KeyType         byte                   `json:"keytype"` //0=P2PKH 1=P2SH
@@ -123,10 +124,12 @@ func (e *AddFederatedServerBitcoinAnchorKey) UnmarshalBinary(data []byte) (err e
 }
 
 func (e *AddFederatedServerBitcoinAnchorKey) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *AddFederatedServerBitcoinAnchorKey) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

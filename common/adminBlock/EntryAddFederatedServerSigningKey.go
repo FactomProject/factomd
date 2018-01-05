@@ -10,6 +10,7 @@ import (
 
 // DB Signature Entry -------------------------
 type AddFederatedServerSigningKey struct {
+	AdminIDType     uint32               `json:"adminidtype"`
 	IdentityChainID interfaces.IHash     `json:"identitychainid"`
 	KeyPriority     byte                 `json:"keypriority"`
 	PublicKey       primitives.PublicKey `json:"publickey"`
@@ -116,10 +117,12 @@ func (e *AddFederatedServerSigningKey) UnmarshalBinary(data []byte) (err error) 
 }
 
 func (e *AddFederatedServerSigningKey) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *AddFederatedServerSigningKey) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
