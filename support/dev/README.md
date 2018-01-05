@@ -9,6 +9,8 @@ Starts the following:
  - a full ELK (*Elasticsearch* + *Logstash* + *Kibana*) stack that gathers logs
    from the network
  - a *Prometheus* instance for gathering metrics from the nodes
+ - an *nginx* instance to serve a list of peers so that the *factomd* instaces
+   can find each other
 
 > Warning: This setup is for development environment only and should not be
 > used in production. Specifically the data for all services are not persisted
@@ -83,6 +85,14 @@ This command:
 Once the environment is properly built and started you can start using it for
 monitoring the running factomd network.
 
+### Factomd instances
+
+The Control Panel web UI for all 3 instances are mapped to the ports on the
+host machine, so they are available at the following addresses:
+ * *factomd_1* - http://localhost:8090
+ * *factomd_2* - http://localhost:8190
+ * *factomd_3* - http://localhost:8290
+
 ### Logging
 
 All the factomd instances are set up to log to the created *Logstash* instance
@@ -115,6 +125,15 @@ list of logs created by all *factomd* nodes in the network ordered by the
  * The search box allows filtering the entries by the content using the
    *Lucene* query syntax, e.g. entering `NOT eom` will filter out all messages
    the contain the string `eom` in the log message.
+
+#### Stdout output
+
+Additionally you can view the *stdout* output for all the services using
+*docker* and *docker-compose* commands, e.g.:
+
+```
+docker logs factomd_1
+```
 
 ### Metrics
 
@@ -175,6 +194,15 @@ To kill the container:
 docker kill <container_name>
 ```
 
+### Getting IP addresses
+
+Display all containers with all networks they belong to and their static /
+assigned IP addresses in a network:
+
+```
+docker inspect -f '{{.Name}} - {{range $name, $net := .NetworkSettings.Networks}}{{$name}}:{{$net.IPAddress}} {{end}}' $(docker ps -aq)
+```
+
 ## Service setup details
 
 The environment is created using *docker* containers that are put together
@@ -202,6 +230,19 @@ can be used as leaders in the network (see `IdentityChainID`,
 All the nodes are set up to log to the provided *Logstash* instances by adding
 the command line parameters: `-logstash -logurl=logstash:8345` (see the
 `command` section in the `docker-compose.yml` file.
+
+All the instances have static IP addresses assigned to them. When each of the
+instances start, they connect to an *nginx* instance provided as one of the
+services, which serves the list of IP addresses for all the nodes, so that all
+instances connect to each other.
+
+The default assignment of IP addresses for *factomd* instances:
+ * *factomd_1* - `10.7.0.1`
+ * *factomd_2* - `10.7.0.2`
+ * *factomd_3* - `10.7.0.3`
+
+All other services present in the `factomd` docker network have their IPs
+assigned automatically in `10.7.1.0/24`.
 
 ### ELK stack
 
@@ -273,6 +314,6 @@ instances and labels them using the instance name.
   proxy starting the userland proxy
   ```
 
-  Unfortunately this is an unresolved *Docker for Mac* issue that cannot be
-  removed (restarting does not help) and there is no good solution for this
-  removing all data from docker and re-run everything again.
+  Unfortunately this is an unresolved *Docker for Mac* issue for which there is
+  no good solution (restarting does not help), you'll need to retry until it
+  succeeds.
