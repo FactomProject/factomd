@@ -25,6 +25,7 @@ func (e *AddReplaceMatryoshkaHash) Init() {
 	if e.MHash == nil {
 		e.MHash = primitives.NewZeroHash()
 	}
+	e.AdminIDType = uint32(e.Type())
 }
 
 func (e *AddReplaceMatryoshkaHash) String() string {

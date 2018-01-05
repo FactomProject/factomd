@@ -33,6 +33,8 @@ func NewEndOfMinuteEntry(minuteNumber byte) *EndOfMinuteEntry {
 
 func (e *EndOfMinuteEntry) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
+	
+	e.AdminIDType = uint32(e.Type())
 
 	err := buf.PushByte(e.Type())
 	if err != nil {

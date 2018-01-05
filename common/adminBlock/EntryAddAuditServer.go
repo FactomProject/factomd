@@ -22,6 +22,7 @@ func (e *AddAuditServer) Init() {
 	if e.IdentityChainID == nil {
 		e.IdentityChainID = primitives.NewZeroHash()
 	}
+	e.AdminIDType = uint32(e.Type())
 }
 
 func (e *AddAuditServer) String() string {

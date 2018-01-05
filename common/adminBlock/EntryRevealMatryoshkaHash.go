@@ -25,6 +25,7 @@ func (e *RevealMatryoshkaHash) Init() {
 	if e.MHash == nil {
 		e.MHash = primitives.NewZeroHash()
 	}
+	e.AdminIDType = uint32(e.Type())
 }
 
 func (m *RevealMatryoshkaHash) Type() byte {

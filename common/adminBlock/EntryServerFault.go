@@ -32,6 +32,7 @@ func (e *ServerFault) Init() {
 	if e.AuditServerID == nil {
 		e.AuditServerID = primitives.NewZeroHash()
 	}
+	e.AdminIDType = uint32(e.Type())
 }
 
 var _ interfaces.IABEntry = (*ServerFault)(nil)

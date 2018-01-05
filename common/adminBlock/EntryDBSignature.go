@@ -23,6 +23,7 @@ func (e *DBSignatureEntry) Init() {
 		e.IdentityAdminChainID = primitives.NewZeroHash()
 	}
 	e.PrevDBSig.Init()
+	e.AdminIDType = uint32(e.Type())
 }
 
 func (c *DBSignatureEntry) UpdateState(state interfaces.IState) error {

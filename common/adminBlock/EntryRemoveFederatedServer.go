@@ -22,6 +22,7 @@ func (e *RemoveFederatedServer) Init() {
 	if e.IdentityChainID == nil {
 		e.IdentityChainID = primitives.NewZeroHash()
 	}
+	e.AdminIDType = uint32(e.Type())
 }
 
 func (e *RemoveFederatedServer) String() string {
