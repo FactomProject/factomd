@@ -13,7 +13,7 @@ services:
         ports:
             - "8090:8090"
         volumes:
-            - ./factomd/factomd_1.conf:/root/.factom/m2/factomd.conf
+            - ./factom/factomd_1.conf:/root/.factom/m2/factomd.conf
         command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
         networks:
             factomd:
@@ -31,7 +31,7 @@ services:
         ports:
             - "8190:8090"
         volumes:
-            - ./factomd/factomd_2.conf:/root/.factom/m2/factomd.conf
+            - ./factom/factomd_2.conf:/root/.factom/m2/factomd.conf
         command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
         networks:
             factomd:
@@ -49,7 +49,7 @@ services:
         ports:
             - "8290:8090"
         volumes:
-            - ./factomd/factomd_3.conf:/root/.factom/m2/factomd.conf
+            - ./factom/factomd_3.conf:/root/.factom/m2/factomd.conf
         command: -sim_stdin=false -customnet=net -network=CUSTOM -startdelay=10 -logstash -logurl=logstash:8345
         networks:
             factomd:

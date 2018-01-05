@@ -222,10 +222,10 @@ so they will need to be started manually.
 
 The created *factomd* network is using 3 *factomd* instances that are set up as
 peers in a custom *factomd* network. The configuration files for all the
-instances are located in the `factomd` directory. Note that each of the
+instances are located in the `factom` directory. Note that each of the
 instances has a different identity set up in the config file, so that all nodes
 can be used as leaders in the network (see `IdentityChainID`,
-`LocalServerPrivKey`, `LocalServerPublicKey` in `factomd/factomd_*.conf`).
+`LocalServerPrivKey`, `LocalServerPublicKey` in `factom/factomd_*.conf`).
 
 All the nodes are set up to log to the provided *Logstash* instances by adding
 the command line parameters: `-logstash -logurl=logstash:8345` (see the
