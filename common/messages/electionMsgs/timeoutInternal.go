@@ -78,7 +78,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
-	e.FeedBackStr("E", e.Electing)
+	e.State.(*state.State).Election2 = e.FeedBackStr("E", e.Electing)
 
 	for len(e.Round) <= e.Electing {
 		e.Round = append(e.Round, 0)
