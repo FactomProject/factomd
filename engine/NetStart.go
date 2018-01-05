@@ -13,6 +13,8 @@ import (
 	"math"
 	"os"
 	"time"
+	"sync"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -25,7 +27,6 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 
-	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
@@ -36,7 +37,7 @@ type FactomNode struct {
 	Peers []interfaces.IPeer
 	MLog  *MsgLog
 }
-
+var fnodesMu sync.Mutex
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
@@ -44,6 +45,13 @@ var p2pNetwork *p2p.Controller
 var logPort string
 
 func GetFnodes() []*FactomNode {
+	fnodesMu.Lock()
+	defer fnodesMu.Unlock()
+	for(fnodes == nil){ // wait for it to be allocated
+		fnodesMu.Unlock()
+		time.Sleep(50*time.Millisecond)
+		fnodesMu.Lock()
+	}
 	return fnodes
 }
 
@@ -158,10 +166,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
+		fnodesMu.Lock()
+		defer fnodesMu.Unlock()
 		for _, fnode := range fnodes {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 			fnode.State.ShutdownChan <- 0
 		}
+		fnodesMu.Unlock()
 		if p.EnableNet {
 			p2pNetwork.NetworkStop()
 			// NODE_TALK_FIX
@@ -274,6 +285,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	//************************************************
 	// Actually setup the Network
 	//************************************************
+	fnodesMu.Lock()
+	defer fnodesMu.Unlock()
 
 	// Make p.cnt Factom nodes
 	for i := 0; i < p.Cnt; i++ {
@@ -289,7 +302,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	}
 
-	// Start the P2P netowork
+	// Start the P2P network
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
 	switch s.Network {
@@ -471,7 +484,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	}
 
-	// Initate dbstate plugin if enabled. Only does so for first node,
+	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	fnodes[0].State.SetTorrentUploader(p.torUpload)
 	if p.torManage {
@@ -505,6 +518,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 
+	fnodesMu.Unlock()
 	SimControl(p.ListenTo, listenToStdin)
 
 }
@@ -517,7 +531,7 @@ func makeServer(s *state.State) *FactomNode {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
 	newState := s
-
+    // fnodesMu is already locked...
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
 		time.Sleep(10 * time.Millisecond)
@@ -533,6 +547,8 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(load bool) {
+	fnodesMu.Lock()
+	defer fnodesMu.Unlock()
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()
@@ -587,6 +603,7 @@ func setupFirstAuthority(s *state.State) {
 	s.Authorities = append(s.Authorities, &auth)
 }
 
+// called from controller in main loop to avoid race on c.connections
 func networkHousekeeping() {
 	for {
 		time.Sleep(1 * time.Second)

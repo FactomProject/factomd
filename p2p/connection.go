@@ -565,7 +565,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 		c.attempts = 0                  // reset since we are clearly in touch now.
 		c.peer.merit()                  // Increase peer quality score.
 		debug(c.peer.PeerIdent(), "Connection.handleParcel() got ParcelValid %s", parcel.MessageType())
-		if Notes <= CurrentLoggingLevel {
+		if Notes <= CurrentLoggingLevel() {
 			parcel.PrintMessageType()
 		}
 		c.handleParcelTypes(parcel) // handles both network commands and application messages

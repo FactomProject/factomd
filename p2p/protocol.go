@@ -44,7 +44,7 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentLoggingLevelVar        uint8  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                       = TestNet
 	NetworkListenPort                    = "8108"
 	BroadcastFlag                        = "<BROADCAST>"
@@ -77,6 +77,10 @@ var (
 	RandomGenerator *rand.Rand // seeded pseudo-random number generator
 
 )
+
+func CurrentLoggingLevel() uint8 {
+	return CurrentLoggingLevelVar
+}
 
 const (
 	// ProtocolVersion is the latest version this package supports
@@ -135,7 +139,7 @@ var LoggingLevels = map[uint8]string{
 }
 
 func dot(dot string) {
-	if 4 < CurrentLoggingLevel {
+	if Notes < CurrentLoggingLevel() {
 		switch dot {
 		case "":
 			fmt.Printf(".")
@@ -175,7 +179,7 @@ func logP(level uint8, component string, format string, v ...interface{}) {
 	// fmt.Fprintf(os.Stdout, "%s, %s, %d, %s, (%s), %d/%d, %s \n", now.String(), host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
 
 	now := time.Now().Format("2006-01-02 15:04:05")
-	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
+	if level <= CurrentLoggingLevel() { // lower level means more severe. "Silence" level always printed, overriding silence.
 		fmt.Printf("%s, %s, %s \n", now, component, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}

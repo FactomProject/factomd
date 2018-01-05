@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 	"unicode"
-
-	"github.com/FactomProject/factomd/common/primitives"
+	"sync/atomic"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/common/primitives"
 )
 
 // packageLogger is the general logger for all p2p related logs. You can add additional fields,
@@ -31,10 +31,11 @@ var packageLogger = log.WithFields(log.Fields{"package": "p2p"})
 type Controller struct {
 	keepRunning bool // Indicates its time to shut down when false.
 
-	listenPort           string                 // port we listen on for new connections
-	connections          map[string]*Connection // map of the connections indexed by peer hash
-	connectionsByAddress map[string]*Connection // map of the connections indexed by peer address
-	NumConnections       int                    // Number of Connections we are managing.
+	listenPort              string                 // port we listen on for new connections
+	connections             map[string]*Connection // map of the connections indexed by peer hash
+	numConnections          uint32                 // Number of Connections we are managing.
+	connectionsByAddress    map[string]*Connection // map of the connections indexed by peer address
+	numConnectionsByAddress uint32                 // Number of Connections in the by address table
 
 	// After launching the network, the management is done via these channels.
 	commandChannel chan interface{} // Application use controller public API to send commands on this channel to controllers goroutines.
@@ -269,7 +270,10 @@ func (c *Controller) Disconnect(peerHash string) {
 }
 
 func (c *Controller) GetNumberConnections() int {
-	return len(c.connections)
+	return int(atomic.LoadUint32(&c.numConnections))
+}
+func (c *Controller) getNumberConnectionsByAddress() int {
+	return int(atomic.LoadUint32(&c.numConnectionsByAddress))
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -333,8 +337,8 @@ func (c *Controller) runloop() {
 		significant("ctrlr", "###################################")
 		significant("ctrlr", " Network Controller Status Report:")
 		significant("ctrlr", "===================================")
-		significant("ctrlr", "     # Connections: %d", len(c.connections))
-		significant("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
+		significant("ctrlr", "     # Connections: %d", c.GetNumberConnections())
+		significant("ctrlr", "Unique Connections: %d", c.getNumberConnectionsByAddress())
 		significant("ctrlr", "     Command Queue: %d", len(c.commandChannel))
 		significant("ctrlr", "         ToNetwork: %d", len(c.ToNetwork))
 		significant("ctrlr", "       FromNetwork: %d", len(c.FromNetwork))
@@ -359,10 +363,11 @@ func (c *Controller) runloop() {
 
 	for c.keepRunning { // Run until we get the exit command
 
-		c.NumConnections = len(c.connections)
-		p2pControllerNumConnections.Set(float64(c.NumConnections))
+		atomic.StoreUint32(&c.numConnections, uint32(len(c.connections)))
+		atomic.StoreUint32(&c.numConnectionsByAddress, uint32(len(c.connectionsByAddress)))
+		p2pControllerNumConnections.Set(float64(c.GetNumberConnections()))
 		p2pControllerNumMetrics.Set(float64(len(c.connectionMetrics)))
-		p2pControllerNumConnectionsByAddress.Set(float64(len(c.connectionsByAddress)))
+		p2pControllerNumConnectionsByAddress.Set(float64(c.getNumberConnectionsByAddress()))
 
 		dot("@@1\n")
 	commandloop:
@@ -382,13 +387,14 @@ func (c *Controller) runloop() {
 		// Manage peers
 		c.managePeers()
 		dot("@@5\n")
-		if CurrentLoggingLevel > 0 {
+		if CurrentLoggingLevel() > 0 {
 			dot("@@6\n")
 			c.networkStatusReport()
 		}
 		dot("@@7\n")
 		c.updateMetrics()
 		dot("@@11\n")
+
 	}
 	significant("ctrlr", "runloop() - Final network statistics: TotalMessagesRecieved: %d TotalMessagesSent: %d", TotalMessagesRecieved, TotalMessagesSent)
 }
@@ -425,7 +431,7 @@ func (c *Controller) route() {
 			// First off, how many nodes are we broadcasting to?  At least 4, if possible.  But 1/4 of the
 			// number of connections if that is more than 4.
 			num := NumberPeersToBroadcast
-			clen := len(c.connections)
+			clen := c.GetNumberConnections()
 			if clen == 0 {
 				return
 			} else if clen < num {
@@ -465,11 +471,11 @@ func (c *Controller) route() {
 			StartingPoint.Set(float64(start))
 
 		case RandomPeerFlag: // Find a random peer, send to that peer.
-			debug("ctrlr", "Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, len(c.connections))
+			debug("ctrlr", "Controller.route() Directed FINDING RANDOM Target: %s Type: %s #Number Connections: %d", parcel.Header.TargetPeer, parcel.Header.AppType, c.GetNumberConnections())
 			bestKey := ""
 		search:
-			for i := 0; i < len(c.connections)*3; i++ {
-				guess := (rand.Int() % len(c.connections))
+			for i := 0; i < c.GetNumberConnections()*3; i++ {
+				guess := (rand.Int() % c.GetNumberConnections())
 				i := 0
 				for key := range c.connections {
 					if i == guess {
@@ -571,7 +577,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
-		CurrentLoggingLevel = parameters.Level
+		CurrentLoggingLevelVar = parameters.Level
 	case CommandAdjustPeerQuality:
 		parameters := command.(CommandAdjustPeerQuality)
 		peerHash := parameters.PeerHash
@@ -737,8 +743,8 @@ func (c *Controller) networkStatusReport() {
 		silence("ctrlr", " Network Controller Status Report:")
 		silence("ctrlr", "===================================")
 		c.updateConnectionAddressMap()
-		silence("ctrlr", "     # Connections: %d", len(c.connections))
-		silence("ctrlr", "Unique Connections: %d", len(c.connectionsByAddress))
+		silence("ctrlr", "     # Connections: %d", c.GetNumberConnections())
+		silence("ctrlr", "Unique Connections: %d", c.getNumberConnectionsByAddress())
 		silence("ctrlr", "    In Connections: %d", c.numberIncommingConnections)
 		silence("ctrlr", "   Out Connections: %d (only online are counted)", c.numberOutgoingConnections)
 		silence("ctrlr", "        Total RECV: %d", TotalMessagesRecieved)
