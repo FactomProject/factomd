@@ -15,10 +15,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 
+	"bufio"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
-	"bufio"
 	"os/exec"
 )
 
@@ -57,7 +57,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	}
 
 	// launch debug console if requested
-	if (params.DebugConsole) {
+	if params.DebugConsole {
 		launchDebugServer()
 	}
 
@@ -185,7 +185,7 @@ func launchDebugServer() {
 			// copy input from debug console to stdin
 			if false {
 				_, err = io.Copy(newStdIn_w, reader) // not sure why this doesn't work
-				if  err != nil {
+				if err != nil {
 					break
 				}
 			} else {

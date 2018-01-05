@@ -178,7 +178,7 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	sync2Ptr := flag.Int("sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
 
-	DebugConsolePtr :=flag.Bool("debugconsole",false,"Enable DebugConsole")
+	DebugConsolePtr := flag.Bool("debugconsole", false, "Enable DebugConsole")
 
 	if err := flag.CommandLine.Parse(args); err != nil {
 		panic(err.Error())

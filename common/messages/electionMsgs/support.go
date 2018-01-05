@@ -52,5 +52,3 @@ func MaxIdx(priority []interfaces.IHash) (idx int) {
 	}
 	return
 }
-
-
