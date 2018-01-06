@@ -10,7 +10,8 @@ import (
 
 // DB Signature Entry -------------------------
 type IncreaseServerCount struct {
-	Amount byte `json:"amount"`
+	AdminIDType uint32 `json:"adminidtype"`
+	Amount      byte   `json:"amount"`
 }
 
 var _ interfaces.IABEntry = (*IncreaseServerCount)(nil)
@@ -33,6 +34,8 @@ func (e *IncreaseServerCount) Type() byte {
 
 func (e *IncreaseServerCount) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
+	
+	e.AdminIDType = uint32(e.Type())
 
 	err := buf.PushByte(e.Type())
 	if err != nil {
@@ -70,10 +73,12 @@ func (e *IncreaseServerCount) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *IncreaseServerCount) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *IncreaseServerCount) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

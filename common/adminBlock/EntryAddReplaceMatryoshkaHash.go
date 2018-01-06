@@ -9,6 +9,7 @@ import (
 )
 
 type AddReplaceMatryoshkaHash struct {
+	AdminIDType     uint32           `json:"adminidtype"`
 	IdentityChainID interfaces.IHash `json:"identitychainid"`
 	MHash           interfaces.IHash `json:"mhash"`
 }
@@ -24,6 +25,7 @@ func (e *AddReplaceMatryoshkaHash) Init() {
 	if e.MHash == nil {
 		e.MHash = primitives.NewZeroHash()
 	}
+	e.AdminIDType = uint32(e.Type())
 }
 
 func (e *AddReplaceMatryoshkaHash) String() string {
@@ -103,10 +105,12 @@ func (e *AddReplaceMatryoshkaHash) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *AddReplaceMatryoshkaHash) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *AddReplaceMatryoshkaHash) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

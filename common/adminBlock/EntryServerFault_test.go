@@ -130,6 +130,34 @@ func TestServerFaultMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+func TestFaultMisc(t *testing.T) {
+	a := new(ServerFault)
+	if a.String() != "    E:                    EntryServerFault -- DBheight 0s ServerID     0000 AuditServer     0000, #sigs 0, VMIndex 0" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":10,\"timestamp\":0,\"serverid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"auditserverid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vmindex\":0,\"dbheight\":0,\"height\":0,\"signaturelist\":{\"Length\":0,\"List\":null}}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":10,\"timestamp\":0,\"serverid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"auditserverid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vmindex\":0,\"dbheight\":0,\"height\":0,\"signaturelist\":{\"Length\":0,\"List\":null}}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}
+
 // This test always fails
 // func TestServerFaultUpdateState(t *testing.T) {
 // 	sigs := 10
