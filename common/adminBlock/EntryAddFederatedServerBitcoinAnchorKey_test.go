@@ -108,3 +108,31 @@ func TestAddFederatedServerBitcoinAnchorKeyMarshalUnmarshal(t *testing.T) {
 		t.Errorf("Invalid ECDSAPublicKey")
 	}
 }
+
+func TestAddFedServerBTCMisc(t *testing.T) {
+	a := new(AddFederatedServerBitcoinAnchorKey)
+	if a.String() != "    E:  AddFederatedServerBitcoinAnchorKey --   IdentityChainID     0000  KeyPriority        0      KeyType        0 ECDSAPublicKey 00000000" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":9,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"keypriority\":0,\"keytype\":0,\"ecdsapublickey\":\"0000000000000000000000000000000000000000\"}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":9,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"keypriority\":0,\"keytype\":0,\"ecdsapublickey\":\"0000000000000000000000000000000000000000\"}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}

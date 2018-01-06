@@ -9,7 +9,8 @@ import (
 )
 
 type ServerFault struct {
-	Timestamp interfaces.Timestamp `json:"timestamp"`
+	AdminIDType uint32               `json:"adminidtype"`
+	Timestamp   interfaces.Timestamp `json:"timestamp"`
 	// The following 4 fields represent the "Core" of the message
 	// This should match the Core of ServerFault messages
 	ServerID      interfaces.IHash `json:"serverid"`
@@ -31,6 +32,7 @@ func (e *ServerFault) Init() {
 	if e.AuditServerID == nil {
 		e.AuditServerID = primitives.NewZeroHash()
 	}
+	e.AdminIDType = uint32(e.Type())
 }
 
 var _ interfaces.IABEntry = (*ServerFault)(nil)
@@ -245,10 +247,12 @@ func (m *ServerFault) UnmarshalBinary(data []byte) error {
 }
 
 func (e *ServerFault) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *ServerFault) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

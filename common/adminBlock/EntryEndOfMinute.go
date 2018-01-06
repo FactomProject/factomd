@@ -9,7 +9,8 @@ import (
 )
 
 type EndOfMinuteEntry struct {
-	MinuteNumber byte `json:"minutenumber"`
+	AdminIDType  uint32 `json:"adminidtype"`
+	MinuteNumber byte   `json:"minutenumber"`
 }
 
 var _ interfaces.Printable = (*EndOfMinuteEntry)(nil)
@@ -32,6 +33,8 @@ func NewEndOfMinuteEntry(minuteNumber byte) *EndOfMinuteEntry {
 
 func (e *EndOfMinuteEntry) MarshalBinary() ([]byte, error) {
 	var buf primitives.Buffer
+	
+	e.AdminIDType = uint32(e.Type())
 
 	err := buf.PushByte(e.Type())
 	if err != nil {
@@ -69,10 +72,12 @@ func (e *EndOfMinuteEntry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *EndOfMinuteEntry) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *EndOfMinuteEntry) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 
