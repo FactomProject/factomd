@@ -143,6 +143,100 @@ select one of the metrics from the dropdown and hit the *Execute* button. The
 metrics for all instances are labeled using the hostname/port that was used for
 scraping the metrics, e.g. `instance=factomd_1:9876`.
 
+### Networking
+
+The current setup allows manipulating the connectivity between containers to
+test e.g. various network conditions by inserting and removing *iptables*
+rules. In addition to the commands described here, please consult the
+*iptables* and *docker* documentation.
+
+#### Linux
+
+When hosting the setup on Linux, you should be able to manipulate the
+*iptables* directly from your host machine, note however that you will most
+likely need to run all the commands as root.
+
+#### Mac OS / Windows
+
+When hosting the setup on Mac or Windows (using *Docker for Mac* or *Docker for
+Windows* respectively), you need to take into account that the docker engine is
+running inside a Linux VM, so on the host machine you will not have access e.g.
+the list of running processes or *iptables* setup.
+
+On Mac OS you can attach to the VM shell using this command:
+
+```
+screen ~/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/tty
+```
+
+To detach: `CTRL-a CTRL-\` and hit `y`.
+
+Alternatively on both Windows and Mac OS you can start a priviledged container
+that will give you access to the host, see this article:
+https://blog.jongallant.com/2017/11/ssh-into-docker-vm-windows/.
+
+#### Viewing the iptable rules
+
+To view all tables and rules:
+
+```
+iptables -L
+```
+
+This will show all currently set up *iptables* rules. If everything is set up
+correctly, you should see entries created by docker in the `DOCKER` chain,
+e.g.:
+
+```
+Chain DOCKER (3 references)
+
+...
+
+ACCEPT     tcp  --  anywhere             10.7.0.3             tcp dpt:8090
+ACCEPT     tcp  --  anywhere             10.7.0.2             tcp dpt:8090
+ACCEPT     tcp  --  anywhere             10.7.0.1             tcp dpt:8090
+```
+
+#### Dropping connections
+
+To drop the connections between two containers, get their IP addresses first
+(see commands below) and add the following rule:
+
+```
+iptables -I FORWARD 1 -s 10.7.0.1 -d 10.7.0.2 -j DROP
+```
+
+This will drop all connections from `10.7.0.1` (`factomd_1`) to `10.7.0.2`
+(`factomd_2`). It is important to use `-I`, so that the rule gets inserted
+first and it will match a given network packet before it is matched by rules
+created by docker.
+
+#### Restoring connections
+
+To restore the connectivity, remove the previously added rule. To do this you
+need to first obtain the current number of the added rule
+
+```
+iptables -L --line-numbers
+```
+
+```
+...
+
+Chain FORWARD (policy DROP)
+num  target     prot opt source               destination
+1    DROP       all  --  10.7.0.1             10.7.0.2
+
+...
+```
+
+The previously added rule has number 1 in the `FORWARD` chain, so we can drop
+it with:
+
+```
+iptables -R FORWARD 1
+```
+
 ## Useful commands
 
 ### Listing containers
