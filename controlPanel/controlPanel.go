@@ -498,7 +498,7 @@ func toggleDCT() {
 	}
 }
 
-// Gets all the recent transctions. Will only keep the most recent 100.
+// Gets all the recent transactions. Will only keep the most recent 100.
 func getRecentTransactions(time.Time) {
 	/*defer func() {
 		if r := recover(); r != nil {

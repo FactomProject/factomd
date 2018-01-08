@@ -103,9 +103,9 @@ func InitNetwork() {
 	p2pProxy.SetDebugMode(netdebug)
 
 	if netdebug > 0 {
-		p2pNetwork.StartLogging(uint8(netdebug))
+		p2pNetwork.StartLogging(uint32(netdebug))
 	} else {
-		p2pNetwork.StartLogging(uint8(0))
+		p2pNetwork.StartLogging(uint32(0))
 	}
 	p2pProxy.StartProxy()
 	// Command line peers lets us manually set special peers
