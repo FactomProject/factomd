@@ -80,10 +80,10 @@ func NewDisplayState() *DisplayState {
 
 // Sends the copy of State over channel to control panel
 func (s *State) CopyStateToControlPanel() error {
-	if !s.ControlPanelDataRequest {
+	if !s.ControlPanelDataRequest.LoadBool() {
 		return nil
 	}
-	s.ControlPanelDataRequest = false
+	s.ControlPanelDataRequest.StoreBool(false)
 	if len(s.ControlPanelChannel) < ControlPanelAllowedSize {
 		ds, err := DeepStateDisplayCopy(s)
 		if err != nil {
