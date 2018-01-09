@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+	"sync/atomic"
 )
 
 func has(s *State, entry interfaces.IHash) bool {
@@ -153,12 +154,13 @@ func (s *State) MakeMissingEntryRequests() {
 			}
 		}
 		if sent == 0 {
-			if s.GetHighestKnownBlock()-s.GetHighestSavedBlk() > 100 {
+			h :=  atomic.LoadUint32(&s.DBStates.HighestSavedBlock)
+			if atomic.LoadUint32(&s.DBStates.HighestKnownBlock)-h > 100 {
 				time.Sleep(10 * time.Second)
 			} else {
 				time.Sleep(100 * time.Millisecond)
 			}
-			if s.EntryDBHeightComplete == s.GetHighestSavedBlk() {
+			if s.EntryDBHeightComplete == h {
 				time.Sleep(20 * time.Second)
 			}
 		}
@@ -215,7 +217,7 @@ func (s *State) GoSyncEntries() {
 
 			if firstMissing < 0 {
 				if scan > 1 {
-					s.EntryDBHeightComplete = scan - 1
+					atomic.StoreUint32(&s.EntryDBHeightComplete, scan - 1)
 					start = scan
 				}
 			}
@@ -301,7 +303,7 @@ func (s *State) GoSyncEntries() {
 		}
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
-			s.EntryDBHeightComplete = s.GetHighestSavedBlk()
+			atomic.StoreUint32(&s.EntryDBHeightComplete, s.GetHighestSavedBlk())
 			time.Sleep(5 * time.Second)
 		}
 

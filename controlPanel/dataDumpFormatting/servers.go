@@ -36,7 +36,7 @@ func Authorities(copyDS state.DisplayState) string {
 	for c, i := range copyDS.Authorities {
 		num := fmt.Sprintf("%d", c)
 		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
-		stat := returnStatString(i.Status)
+		stat := returnStatString(i.Status.LoadUint8())
 		prt = prt + fmt.Sprint("Server Status: ", stat, "\n")
 		prt = prt + fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n")
 		prt = prt + fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n")

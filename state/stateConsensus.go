@@ -20,6 +20,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 
 	log "github.com/sirupsen/logrus"
+	"sync/atomic"
 )
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
@@ -2137,7 +2138,7 @@ func (s *State) SetHighestAck(dbht uint32) {
 
 // This is the highest block signed off and recorded in the Database.
 func (s *State) GetHighestSavedBlk() uint32 {
-	v := s.DBStates.GetHighestSavedBlk()
+	v := atomic.LoadUint32(&s.DBStates.HighestSavedBlock)
 	HighestSaved.Set(float64(v))
 	return v
 }
@@ -2156,12 +2157,15 @@ func (s *State) GetLeaderHeight() uint32 {
 
 // The highest block for which we have received a message.  Sometimes the same as
 // BuildingBlock(), but can be different depending or the order messages are recieved.
-func (s *State) GetHighestKnownBlock() uint32 {
+func (s *State) GetHighestKnownBlock() (rval uint32) {
 	if s.ProcessLists == nil {
-		return 0
-	}
-	HighestKnown.Set(float64(s.HighestKnown))
-	return s.HighestKnown
+		rval = 0
+	} else {
+		rval = s.HighestKnown
+}
+    atomic.StoreUint32(&s.DBStates.HighestKnownBlock, rval)
+	HighestKnown.Set(float64(rval))
+	return rval
 }
 
 func (s *State) GetF(rt bool, adr [32]byte) (v int64) {

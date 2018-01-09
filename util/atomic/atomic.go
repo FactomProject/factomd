@@ -20,6 +20,15 @@ func (a *AtomicBool) LoadBool() (v bool) {
 	return v
 }
 
+type AtomicUint8 int32
+
+func (a *AtomicUint8) StoreUint8(x uint8) {
+	atomic.StoreInt32((*int32)(a), int32(x))
+}
+
+func (a *AtomicUint8) LoadUint8()  uint8 {
+	return uint8(atomic.LoadInt32((*int32)(a)))
+}
 
 /*
 func main() {
