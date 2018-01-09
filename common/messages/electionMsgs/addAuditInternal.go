@@ -36,7 +36,7 @@ func (m *AddAuditInternal) ElectionProcess(is interfaces.IState, elect interface
 	}
 	if e.AuditIndex(m.ServerID) < 0 {
 		e.Audit = append(e.Audit, &state.Server{ChainID: m.ServerID, Online: true})
-		Sort(e.Audit)
+		elections.Sort(e.Audit)
 	}
 }
 

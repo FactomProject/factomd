@@ -30,32 +30,15 @@ type TimeoutInternal struct {
 
 var _ interfaces.IMsg = (*TimeoutInternal)(nil)
 
-/*
-type Elections struct {
-	ServerID  interfaces.IHash
-	Name      string
-	Sync      []bool
-	Federated []interfaces.IServer
-	Audit     []interfaces.IServer
-	FPriority []interfaces.IHash
-	APriority []interfaces.IHash
-	DBHeight  int
-	Minute    int
-	Input     interfaces.IQueue
-	Output    interfaces.IQueue
-	Round     []int
-	Electing  int
-
-	LeaderElecting  int // This is the federated Server we are electing, if we are a leader
-	LeaderVolunteer int // This is the volunteer that we expect
-}
-*/
-
 func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+	s := is.(*state.State)
+
 	e, ok := elect.(*elections.Elections)
 	if !ok {
 		panic("Invalid elections object")
 	}
+
+	aidx := e.AuditIndex(e.ServerID)
 
 	// We have advanced, so do nothing.  We can't reset anything because there
 	// can be a timeout process that started before we got here (with short minutes)
@@ -78,7 +61,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
-	e.State.(*state.State).Election2 = e.FeedBackStr("E", e.Electing)
+	e.State.(*state.State).Election2 = e.FeedBackStr("E", true, e.Electing)
 
 	for len(e.Round) <= e.Electing {
 		e.Round = append(e.Round, 0)
@@ -96,15 +79,13 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		return
 	}
 
-	// Get the priority order list of audit servers in the priority order
-	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
+	auditIdx := e.AuditPriority()
 
-	idx := e.AuditIndex(e.ServerID)
-	if idx >= 0 {
+	if aidx >= 0 {
 		serverMap := state.MakeMap(len(e.Federated), uint32(e.DBHeight))
 		vm := state.FedServerVM(serverMap, len(e.Federated), e.Minute, e.Electing)
-		auditIdx := MaxIdx(e.APriority)
-		if idx == auditIdx {
+
+		if aidx == auditIdx {
 			Sync := new(SyncMsg)
 			Sync.SetLocal(true)
 			Sync.VMIndex = vm
@@ -112,13 +93,19 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.Name = e.Name
 			Sync.ServerIdx = uint32(e.Electing)
 			Sync.ServerID = e.ServerID
-			Sync.Weight = e.APriority[idx]
+			Sync.Weight = e.APriority[auditIdx]
 			Sync.DBHeight = uint32(e.DBHeight)
 			Sync.Minute = byte(e.Minute)
 			Sync.Round = e.Round[e.Electing]
-			is.InMsgQueue().Enqueue(Sync)
+			s.InMsgQueue().Enqueue(Sync)
+			s.Election2 = e.FeedBackStr(fmt.Sprintf("%d", e.Round[e.Electing]), false, auditIdx)
 		}
 	}
+
+	if aidx != auditIdx {
+		s.Election2 = e.FeedBackStr(fmt.Sprintf("%d%d",e.Round[e.Electing],auditIdx), true, e.Electing)
+	}
+
 }
 
 func (m *TimeoutInternal) GetServerID() interfaces.IHash {

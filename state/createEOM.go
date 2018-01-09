@@ -7,7 +7,7 @@ import (
 
 func (s *State) CreateEOM(m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack interfaces.IMsg) {
 
-	if m == nil {
+	if m == nil || m.(*messages.EOM) == nil {
 		eom = new(messages.EOM)
 	} else {
 		eom = m.(*messages.EOM)
@@ -61,5 +61,7 @@ func (s *State) CreateEOM(m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack 
 	eom.Sign(s)
 	eom.MsgHash = nil
 	ack = s.NewAck(eom, nil).(*messages.Ack)
+	eom.MsgHash = nil
+	eom.RepeatHash = nil
 	return eom, ack
 }

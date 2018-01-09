@@ -206,8 +206,8 @@ func (m *MissingMsgResponse) LogFields() log.Fields {
 			"msghash": "nil"}
 	} else {
 		var ahash, mshash string
-		if m.Ack != nil {
-			ahash = m.Ack.GetMsgHash().String()
+		if m.AckResponse != nil {
+			ahash = m.AckResponse.GetMsgHash().String()
 		} else {
 			ahash = "nil"
 		}

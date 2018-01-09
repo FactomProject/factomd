@@ -53,7 +53,10 @@ func printElections(elects *int, value int, listenTo *int, wsapiNode *int) {
 
 		prt = prt + "\n" + fnodes[0].State.Election0
 		for i, _ := range eo.Federated {
-			prt = prt + fmt.Sprintf("%3d ", i)
+			prt = prt + fmt.Sprintf("%4d ", i)
+		}
+		for i, _ := range eo.Audit {
+			prt = prt + fmt.Sprintf("%4d ", i)
 		}
 		prt = prt + "\n"
 		for _, fn := range fnodes {

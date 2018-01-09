@@ -32,7 +32,11 @@ func (e *Elections) NewFeedback() {
 	e.feedback = make([]string, len(e.Federated)+len(e.Audit))
 }
 
-func (e *Elections) FeedBackStr(v string, index int) string {
+func (e *Elections) FeedBackStr(v string, fed bool, index int) string {
+
+	if !fed {
+		index = index + len(e.Federated)
+	}
 
 	// If I have no feedback, then get some.
 	if e.feedback == nil || len(e.feedback) == 0 {
@@ -47,7 +51,7 @@ func (e *Elections) FeedBackStr(v string, index int) string {
 	// Make a string of the status.
 	r := ""
 	for _, v := range e.feedback {
-		r = r + fmt.Sprintf("%3s ", v)
+		r = r + fmt.Sprintf("%4s ", v)
 	}
 	return r
 }
@@ -87,6 +91,17 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 		}
 	}
 	return -1
+}
+
+func (e *Elections) AuditPriority() int {
+	// Get the priority order list of audit servers in the priority order
+	for len(e.Round)<= e.Electing {
+		e.Round = append(e.Round,0)
+	}
+	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
+
+	auditIdx := MaxIdx(e.APriority)
+	return auditIdx
 }
 
 // Runs the main loop for elections for this instance of factomd

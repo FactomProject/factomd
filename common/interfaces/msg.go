@@ -18,9 +18,6 @@ type IMsg interface {
 	Printable
 	BinaryMarshallable
 
-	GetAck() IMsg
-	PutAck(IMsg)
-
 	// Returns a byte indicating the type of message.
 	Type() byte
 

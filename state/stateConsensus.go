@@ -975,6 +975,10 @@ func (s *State) LeaderExecuteEOM(m interfaces.IMsg) {
 
 	eom, ack := s.CreateEOM(m, s.LeaderVMIndex)
 
+	if eom == nil {
+		return
+	}
+
 	TotalAcksInputs.Inc()
 	s.Acks[eom.GetMsgHash().Fixed()] = ack
 	m.SetLocal(false)

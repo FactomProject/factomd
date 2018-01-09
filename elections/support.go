@@ -1,4 +1,4 @@
-package electionMsgs
+package elections
 
 import (
 	"bytes"

@@ -15,6 +15,8 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
+	//"github.com/FactomProject/factomd/state"
+	"time"
 )
 
 var _ = fmt.Print
@@ -25,6 +27,7 @@ type VolunteerAudit struct {
 	TS          interfaces.Timestamp // Message Timestamp
 	EOM         bool                 // True if an EOM, false if a DBSig
 	Name        string               // Server name
+	FedIdx      uint32               // Index of Fed Server to replace
 	ServerIdx   uint32               // Index of Server replacing
 	ServerID    interfaces.IHash     // Volunteer Server ChainID
 	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
@@ -36,11 +39,32 @@ type VolunteerAudit struct {
 	messageHash interfaces.IHash
 }
 
+func delayVol(is interfaces.IState, e *elections.Elections, m *VolunteerAudit) {
+	if e.DBHeight > int(m.DBHeight) || e.Minute > int(m.Minute) {
+		return
+	}
+	time.Sleep(100*time.Millisecond)
+	is.ElectionsQueue().Enqueue(m)
+}
+
 func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+	//s := is.(*state.State)
 	e := elect.(*elections.Elections)
+	if e.Electing < 0 {
+		go delayVol(is,e,m)
+		return
+	}
 	idx := e.LeaderIndex(is.GetIdentityChainID())
+	//if m.DBHeight < uint32(e.DBHeight) || m.Minute < byte(e.Minute) || m.Round < e.Round[m.ServerIdx] {
+	//	return
+	//}
+	auditIdx := e.AuditPriority()
+	if auditIdx != int(m.ServerIdx) {
+
+	}
 	if idx > 0 {
 
+//		e.FeedBackStr("")
 	}
 }
 
@@ -199,12 +223,12 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
-	//	if m.Ack, err = buf.PopMsg(); err != nil {
-	//		return nil, err
-	//	}
-	//	if m.Missing, err = buf.PopMsg(); err != nil {
-	//		return nil, err
-	//	}
+		if m.Ack, err = buf.PopMsg(); err != nil {
+			return nil, err
+		}
+		if m.Missing, err = buf.PopMsg(); err != nil {
+			return nil, err
+		}
 	return buf.PopBytes()
 }
 
@@ -249,12 +273,12 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
-	//if e := buf.PushMsg(m.Ack); e != nil {
-	//	return nil, e
-	//}
-	//if e := buf.PushMsg(m.Missing); e != nil {
-	//	return nil, e
-	//}
+	if e := buf.PushMsg(m.Ack); e != nil {
+		return nil, e
+	}
+	if e := buf.PushMsg(m.Missing); e != nil {
+		return nil, e
+	}
 	return buf.DeepCopyBytes(), nil
 }
 
