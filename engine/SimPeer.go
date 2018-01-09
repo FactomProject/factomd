@@ -36,7 +36,7 @@ type SimPeer struct {
 	Delayed *SimPacket
 
 	bytesOut int // Bytes sent out
-	bytesIn  int // Bytes recieved
+	bytesIn  int // Bytes Received
 
 	Last int64 // Last time reset (nano seconds)
 
@@ -51,7 +51,7 @@ func (f *SimPeer) BytesOut() int {
 	return f.RateOut
 }
 
-// Bytes recieved per second from this peer
+// Bytes Received per second from this peer
 func (f *SimPeer) BytesIn() int {
 	return f.RateIn
 }
@@ -102,7 +102,7 @@ func (f *SimPeer) computeBandwidth() {
 	now := time.Now().UnixNano()
 	delta := (now - f.Last) / 1000000000 // Make delta seconds
 	if delta < 5 {
-		// Wait atleast 5 seconds.
+		// Wait at least 5 seconds.
 		return
 	}
 	f.RateIn = int(int64(f.bytesIn) / delta)
@@ -128,7 +128,7 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 }
 
 // Non-blocking return value from channel.
-func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
+func (f *SimPeer) Receive() (interfaces.IMsg, error) {
 	if f.Delayed == nil {
 		select {
 		case packet, ok := <-f.BroadcastIn:

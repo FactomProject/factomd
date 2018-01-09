@@ -312,7 +312,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 
 	//Only check if we're not loading from the database
-	if state.DBFinished == true {
+	if state.DBFinished.LoadBool()  {
 		// If the timestamp is over a day old, then there is really no point in saving the state of
 		// historical data.
 		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {

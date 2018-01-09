@@ -66,7 +66,7 @@ func Peers(fnode *FactomNode) {
 			case constants.EOM_MSG:
 				return true
 			case constants.MISSING_DATA:
-				if !fnode.State.DBFinished {
+				if !fnode.State.DBFinished.LoadBool() {
 					return true
 				} else if fnode.State.InMsgQueue().Length() > 4000 {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
@@ -127,11 +127,11 @@ func Peers(fnode *FactomNode) {
 				preReceiveTime := time.Now()
 
 				if !fnode.State.GetNetStateOff() {
-					msg, err = peer.Recieve()
+					msg, err = peer.Receive()
 				}
 
 				if msg == nil {
-					// Recieve is not blocking; nothing to do, we get a nil.
+					// Receive is not blocking; nothing to do, we get a nil.
 					break
 				}
 
@@ -162,7 +162,7 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
-					//	fnode.State.Println("In Comming!! ",msg)
+					//	fnode.State.Println("Incoming!! ",msg)
 					//}
 					in := "PeerIn"
 					if msg.IsPeer2Peer() {

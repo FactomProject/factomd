@@ -34,7 +34,7 @@ import (
 	"github.com/FactomProject/logrustash"
 
 	"errors"
-
+	"github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -175,7 +175,7 @@ type State struct {
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
-	DBFinished      bool
+	DBFinished      atomic.AtomicBool
 	RunLeader       bool
 	BootTime        int64 // Time in seconds that we last booted
 
