@@ -53,7 +53,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelPort", state.ControlPanelPort)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelSetting", state.ControlPanelSetting)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelChannel", state.ControlPanelChannel)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelDataRequest", state.ControlPanelDataRequest)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelDataRequest", state.ControlPanelDataRequest.LoadBool())
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Network", state.Network)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MainNetworkPort", state.MainNetworkPort)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "PeersFile", state.PeersFile)

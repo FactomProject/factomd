@@ -82,7 +82,7 @@ type State struct {
 	ControlPanelPort        int
 	ControlPanelSetting     int
 	ControlPanelChannel     chan DisplayState
-	ControlPanelDataRequest bool // If true, update Display state
+	ControlPanelDataRequest atomic.AtomicBool // If true, update Display state
 
 	// Network Configuration
 	Network                 string
@@ -1723,7 +1723,7 @@ func (s *State) UpdateState() (progress bool) {
 	progress = progress || p2
 
 	s.SetString()
-	if s.ControlPanelDataRequest {
+	if s.ControlPanelDataRequest.LoadBool() {
 		s.CopyStateToControlPanel()
 	}
 
