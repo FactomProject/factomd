@@ -22,6 +22,7 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/wsapi"
 	"runtime"
+	"sync"
 )
 
 var _ = fmt.Print
@@ -31,6 +32,7 @@ var verboseAuthoritySet = false
 var verboseAuthorityDeltas = false
 var totalServerFaults int
 var lastcmd []string
+var ListenToMu sync.RWMutex
 var ListenTo int
 
 // Used for signing messages
@@ -83,15 +85,21 @@ func SimControl(listenTo int, listenStdin bool) {
 	var wsapiNode int
 	var faulting bool
 
-	ListenTo = listenTo
+	ListenToMu.Lock() // wait till I can write this
+	ListenTo = listenTo // only when locked()
+	ListenToMu.Unlock() // Tell everyone I'm done writing it
 
+	ListenToMu.RLock() // Now claim I am now reading it
+	defer ListenToMu.RUnlock() // Signal I am done
 	for {
 		// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
 		parseFunc := func(c rune) bool {
 			return !unicode.IsLetter(c) && !unicode.IsNumber(c) && !unicode.IsPunct(c)
 		}
 		// cmd is not a list of the parameters, much like command line args show up in args[]
+		ListenToMu.RUnlock() // Not reading it if I am waiting on Input
 		cmd := strings.FieldsFunc(GetLine(listenStdin), parseFunc)
+		ListenToMu.RLock() // Now claim I am now reading it
 		// fmt.Printf("Parsing command, found %d elements.  The first element is: %+v / %s \n Full command: %+v\n", len(cmd), b[0], string(b), cmd)
 
 		switch {
@@ -109,7 +117,13 @@ func SimControl(listenTo int, listenStdin bool) {
 
 		v, err := strconv.Atoi(string(b))
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[ListenTo].State != nil {
-			ListenTo = v
+
+			ListenToMu.RUnlock() // as a thread I am not going to read this now ...
+			ListenToMu.Lock() // wait till I can write this
+			ListenTo = v	// Only when locked
+			ListenToMu.Unlock() // Tell everyone I'm done writing it
+			ListenToMu.RLock() // Now claim I am reading it
+
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 			// Update which node will be displayed on the controlPanel page
 			connectionMetricsChannel := make(chan interface{}, p2p.StandardChannelSize)
@@ -126,7 +140,7 @@ func SimControl(listenTo int, listenStdin bool) {
 
 			case 'b' == b[0]:
 				if len(b) == 1 {
-					os.Stderr.WriteString("specifivy how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
+					os.Stderr.WriteString("specifically how long a block will be recorded (in nanoseconds).  1 records all blocks.\n")
 					break
 				}
 				delay, err := strconv.Atoi(string(b[1:]))
@@ -759,9 +773,19 @@ func SimControl(listenTo int, listenStdin bool) {
 				fallthrough
 			case 'n' == b[0]:
 				fnodes[ListenTo].State.SetOut(false)
-				ListenTo++
+
+				ListenToMu.RUnlock() // as a thread I am not going to read this now ...
+				ListenToMu.Lock() // wait till I can write this
+				ListenTo++	// Only when locked
+				ListenToMu.Unlock() // Tell everyone I'm done writing it
+				ListenToMu.RLock() // Now claim I am reading it
+
 				if ListenTo >= len(fnodes) {
-					ListenTo = 0
+					ListenToMu.RUnlock() // as a thread I am not going to read this now ...
+					ListenToMu.Lock() // wait till I can write this
+					ListenTo = 0	// Only when locked
+					ListenToMu.Unlock() // Tell everyone I'm done writing it
+					ListenToMu.RLock() // Now claim I am reading it
 				}
 				fnodes[ListenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))
@@ -836,7 +860,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						if amt != -1 && c == amt {
 							break
 						}
-						stat := returnStatString(ident.Status)
+						stat := returnStatString(ident.Status.LoadUint8())
 						if show == 5 {
 							if c != amt {
 							} else {

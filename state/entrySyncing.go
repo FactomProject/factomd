@@ -160,7 +160,7 @@ func (s *State) MakeMissingEntryRequests() {
 			} else {
 				time.Sleep(100 * time.Millisecond)
 			}
-			if s.EntryDBHeightComplete == h {
+			if atomic.LoadInt32(&s.EntryDBHeightComplete) == h {
 				time.Sleep(20 * time.Second)
 			}
 		}

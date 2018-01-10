@@ -403,9 +403,9 @@ func (c *Controller) runloop() {
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
 // route also passes incoming messages on to the application.
 func (c *Controller) route() {
-	// Recieve messages from the peers & forward to application.
+	// Receive messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
-		// Empty the recieve channel, stuff the application channel.
+		// Empty the receive channel, stuff the application channel.
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
 			message := <-connection.ReceiveChannel
 			switch message.(type) {

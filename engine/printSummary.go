@@ -11,6 +11,9 @@ import (
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	out := ""
 
+	ListenToMu.RLock() // Now claim I am reading it
+	defer ListenToMu.RUnlock() // as a thread I am not going to read this now ...
+
 	if *listenTo < 0 || *listenTo >= len(fnodes) {
 		return
 	}
@@ -40,7 +43,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		eCommits := 0
 
 		for _, f := range pnodes {
-			f.State.Status = 1
+			f.State.Status.StoreUint8( 1)
 		}
 
 		time.Sleep(time.Second)
@@ -283,7 +286,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 			out = prt
 		}
 
+		ListenToMu.RUnlock() // Not reading in my sleep
 		time.Sleep(time.Second)
+		ListenToMu.RLock() // Now claim I am reading it
 	}
 }
 

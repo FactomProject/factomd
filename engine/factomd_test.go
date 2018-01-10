@@ -8,6 +8,8 @@ import (
 
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"os/user"
+	"fmt"
 )
 
 var _ = Factomd
@@ -58,6 +60,31 @@ func TestSetupANetwork(t *testing.T) {
 		InputChan <- cmd
 		v := endCap()
 		return v
+	}
+
+
+
+	usr, err := user.Current()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Uid : ", usr.Uid)
+
+	fmt.Println("Gid : ", usr.Gid)
+
+	fmt.Println("Username : ", usr.Username)
+
+	fmt.Println("Name : ", usr.Name)
+
+	fmt.Println("HomeDir: ", usr.HomeDir)
+	
+	if u,err := user.Current(); err != nil || u.Name  == "clay" {
+		go func() {
+			time.Sleep(120 * time.Second) // Die after two minutes
+			t.Fatal("Failed to shut down factomd via ShutdownChan")
+		}()
 	}
 
 	args := append([]string{},

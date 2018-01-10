@@ -20,7 +20,7 @@ func (s *State) FixMissingKeys(id *Identity) error {
 	if id.IdentityChainID.IsSameAs(s.GetNetworkBootStrapIdentity()) {
 		return nil
 	}
-	if !statusIsFedOrAudit(id.Status) {
+	if !statusIsFedOrAudit(id.Status.LoadUint8()) {
 		//return
 	}
 	// Rebuilds identity

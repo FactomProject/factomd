@@ -10,6 +10,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 //https://github.com/FactomProject/FactomDocs/blob/master/Identity.md
@@ -27,7 +28,7 @@ type Identity struct {
 	Key3                 interfaces.IHash
 	Key4                 interfaces.IHash
 	SigningKey           interfaces.IHash
-	Status               uint8
+	Status               atomic.AtomicUint8
 	AnchorKeys           []AnchorSigningKey
 }
 
@@ -49,7 +50,7 @@ func RandomIdentity() *Identity {
 	id.Key3 = primitives.RandomHash()
 	id.Key4 = primitives.RandomHash()
 	id.SigningKey = primitives.RandomHash()
-	id.Status = random.RandUInt8()
+	id.Status.StoreUint8( random.RandUInt8())
 
 	l := random.RandIntBetween(0, 10)
 	for i := 0; i < l; i++ {
@@ -96,7 +97,7 @@ func (e *Identity) IsSameAs(b *Identity) bool {
 	if e.SigningKey.IsSameAs(b.SigningKey) == false {
 		return false
 	}
-	if e.Status != b.Status {
+	if e.Status.LoadUint8() != b.Status.LoadUint8() {
 		return false
 	}
 	if len(e.AnchorKeys) != len(b.AnchorKeys) {
@@ -189,7 +190,7 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushByte(byte(e.Status))
+	err = buf.PushByte(byte(e.Status.LoadUint8()))
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +264,7 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status = uint8(b)
+	e.Status.StoreUint8( uint8(b))
 
 	l, err := buf.PopVarInt()
 	if err != nil {

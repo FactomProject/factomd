@@ -21,6 +21,8 @@ import (
 	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
+	"sync/atomic"
+	"unsafe"
 )
 
 // Initiates control panel variables and controls the http requests
@@ -41,10 +43,10 @@ var (
 	mux   *http.ServeMux
 	index int = 0
 
-	DisplayState state.DisplayState
-	StatePointer *state.State
-	Controller   *p2p.Controller // Used for Disconnect
-	GitAndVer    *GitBuildAndVersion
+	DisplayState          state.DisplayState
+	ProtectedStatePointer unsafe.Pointer
+	Controller            *p2p.Controller // Used for Disconnect
+	GitAndVer             *GitBuildAndVersion
 
 	LastRequest     time.Time
 	TimeRequestHold float64 = 3 // Amount of time in seconds before can request data again
@@ -55,6 +57,13 @@ var (
 	TemplateMutex     sync.Mutex
 	DisplayStateMutex sync.RWMutex
 )
+
+func GetStatePointer() *state.State {
+	return (*state.State)(atomic.LoadPointer(&ProtectedStatePointer))
+}
+func SetStatePointer(newPtr *state.State) {
+	atomic.StorePointer(&ProtectedStatePointer, unsafe.Pointer(newPtr))
+}
 
 func directoryExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
@@ -88,7 +97,7 @@ func InitTemplates() {
 	TemplateMutex.Unlock()
 }
 
-// Main function. This intiates appropriate variables and starts the control panel serving
+// Main function. This initiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -98,8 +107,9 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			}
 		}
 	}()
-	StatePointer = statePointer
-	StatePointer.ControlPanelDataRequest.StoreBool(true) // Request initial State
+	SetStatePointer(statePointer)
+
+	GetStatePointer().ControlPanelDataRequest.StoreBool(true) // Request initial State
 	// Wait for initial State
 	select {
 	case DisplayState = <-displayStateChannel:
@@ -111,7 +121,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
-		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
+		fmt.Println("Control Panel has been disabled within the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
 		return
 	}
 
@@ -119,12 +129,12 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 
 	GitAndVer = new(GitBuildAndVersion)
 	GitAndVer.GitBuild = gitBuild
-	GitAndVer.Version = statePointer.GetFactomdVersion()
+	GitAndVer.Version = GetStatePointer().GetFactomdVersion()
 	portStr := ":" + strconv.Itoa(port)
 	Controller = controller
 	InitTemplates()
 
-	// Updated Globals. A seperate GoRoutine updates these, we just initialize
+	// Updated Globals. A separate GoRoutine updates these, we just initialize
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
@@ -141,7 +151,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	http.HandleFunc("/factomd", factomdHandler)
 	http.HandleFunc("/factomdBatch", factomdBatchHandler)
 
-	tlsIsEnabled, tlsPrivate, tlsPublic := StatePointer.GetTlsInfo()
+	tlsIsEnabled, tlsPrivate, tlsPublic := GetStatePointer().GetTlsInfo()
 	if tlsIsEnabled {
 	waitfortls:
 		for {
@@ -155,10 +165,10 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			time.Sleep(100 * time.Millisecond)
 		}
 		fmt.Println("Starting encrypted Control Panel on https://localhost" + portStr + "/  Please note the HTTPS in the browser.")
-		http.ListenAndServeTLS(portStr, tlsPublic, tlsPrivate, nil)
+		http.ListenAndServeTLS(string(portStr), tlsPublic, tlsPrivate, nil) // copy the portStr so I don't have races when I change it
 	} else {
 		fmt.Println("Starting Control Panel on http://localhost" + portStr + "/")
-		http.ListenAndServe(portStr, nil)
+		http.ListenAndServe(string(portStr), nil) // copy the portStr so I don't have races when I change it
 	}
 }
 
@@ -222,9 +232,9 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), *StatePointer)
+		found, response := searchDB(r.FormValue("search"), *GetStatePointer())
 		if found {
-			w.Write([]byte(respose))
+			w.Write([]byte(response))
 			return
 		} else {
 			if r.FormValue("known") == "factoidack" {
@@ -323,7 +333,7 @@ func RequestData() {
 		return
 	}
 	LastRequest = time.Now()
-	StatePointer.ControlPanelDataRequest.StoreBool(true)
+	GetStatePointer().ControlPanelDataRequest.StoreBool(true)
 	requestMutex = false
 }
 
@@ -512,7 +522,7 @@ func getRecentTransactions(time.Time) {
 	toggleDCT()
 	defer toggleDCT()
 
-	if StatePointer == nil {
+	if GetStatePointer() == nil {
 		return
 	}
 
@@ -591,9 +601,9 @@ func getRecentTransactions(time.Time) {
 		}
 		if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000f" {
 			mr := entry.GetKeyMR()
-			dbase := StatePointer.GetAndLockDB()
+			dbase := GetStatePointer().GetAndLockDB()
 			fblock, err := dbase.FetchFBlock(mr)
-			StatePointer.UnlockDB()
+			GetStatePointer().UnlockDB()
 			if err != nil || fblock == nil {
 				continue
 			}
@@ -621,9 +631,9 @@ func getRecentTransactions(time.Time) {
 		} else if entry.GetChainID().String() == "000000000000000000000000000000000000000000000000000000000000000c" {
 			mr := entry.GetKeyMR()
 
-			dbase := StatePointer.GetAndLockDB()
+			dbase := GetStatePointer().GetAndLockDB()
 			ecblock, err := dbase.FetchECBlock(mr)
-			StatePointer.UnlockDB()
+			GetStatePointer().UnlockDB()
 			if err != nil || ecblock == nil {
 				continue
 			}
@@ -699,9 +709,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		if next.IsSameAs(zero) {
 			break
 		}
-		dbase := StatePointer.GetAndLockDB()
+		dbase := GetStatePointer().GetAndLockDB()
 		dblk, err := dbase.FetchDBlock(next)
-		StatePointer.UnlockDB()
+		GetStatePointer().UnlockDB()
 		if err != nil || dblk == nil {
 			break
 		}
@@ -709,9 +719,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 		ents := dblk.GetDBEntries()
 		if len(ents) > 3 && eNeeded > 0 {
 			for _, eblock := range ents[3:] {
-				dbase := StatePointer.GetAndLockDB()
+				dbase := GetStatePointer().GetAndLockDB()
 				eblk, err := dbase.FetchEBlock(eblock.GetKeyMR())
-				StatePointer.UnlockDB()
+				GetStatePointer().UnlockDB()
 				if err != nil || eblk == nil {
 					break
 				}
@@ -732,9 +742,9 @@ func getPastEntries(last interfaces.IDirectoryBlock, eNeeded int, fNeeded int) {
 			fChain := primitives.NewHash(constants.FACTOID_CHAINID)
 			for _, entry := range ents {
 				if entry.GetChainID().IsSameAs(fChain) {
-					dbase := StatePointer.GetAndLockDB()
+					dbase := GetStatePointer().GetAndLockDB()
 					fblk, err := dbase.FetchFBlock(entry.GetKeyMR())
-					StatePointer.UnlockDB()
+					GetStatePointer().UnlockDB()
 					if err != nil || fblk == nil {
 						break
 					}
@@ -796,7 +806,7 @@ func checkControlPanelPassword(response http.ResponseWriter, request *http.Reque
 }
 
 func checkAuthHeader(r *http.Request) bool {
-	if "" == StatePointer.GetRpcUser() {
+	if "" == GetStatePointer().GetRpcUser() {
 		//no username was specified in the config file or command line, meaning factomd control panel is open access
 		return true
 	}
@@ -806,7 +816,7 @@ func checkAuthHeader(r *http.Request) bool {
 		return false
 	}
 
-	correctAuth := StatePointer.GetRpcAuthHash()
+	correctAuth := GetStatePointer().GetRpcAuthHash()
 
 	h := sha256.New()
 	h.Write([]byte(authhdr[0]))

@@ -12,9 +12,8 @@ import (
 	"os"
 	"strings"
 	"time"
-
+	"errors"
 	"sync"
-
 	"crypto/rand"
 	"encoding/binary"
 
@@ -32,9 +31,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/logrustash"
-
-	"errors"
 	"github.com/FactomProject/factomd/util/atomic"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,12 +43,12 @@ var packageLogger = log.WithFields(log.Fields{"package": "state"})
 var _ = fmt.Print
 
 type State struct {
-	Logger           *log.Entry
-	IsRunning        bool
-	filename         string
-	NetworkControler *p2p.Controller
-	Salt             interfaces.IHash
-	Cfg              interfaces.IFactomConfig
+	Logger            *log.Entry
+	IsRunning         bool
+	filename          string
+	NetworkController *p2p.Controller
+	Salt              interfaces.IHash
+	Cfg               interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -105,9 +103,9 @@ type State struct {
 	Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
-	// Just to print (so debugging doesn't drive functionaility)
-	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
-	serverPrt   string
+	// Just to print (so debugging doesn't drive functionality)
+	Status      atomic.AtomicUint8 // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
+	serverPrt   atomic.AtomicString
 	StatusMutex sync.Mutex
 	StatusStrs  []string
 	starttime   time.Time
@@ -236,7 +234,7 @@ type State struct {
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages      map[[32]byte]interfaces.IMsg
@@ -2196,18 +2194,18 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	str := "\n===============================================================\n" + s.serverPrt
+	str := "\n===============================================================\n" + s.serverPrt.LoadString()
 	str = fmt.Sprintf("\n%s\n  Leader Height: %d\n", str, s.LLeaderHeight)
 	str = str + "===============================================================\n"
 	return str
 }
 
 func (s *State) ShortString() string {
-	return s.serverPrt
+	return s.serverPrt.LoadString()
 }
 
 func (s *State) SetString() {
-	switch s.Status {
+	switch s.Status.LoadUint8() {
 	case 0:
 		return
 	case 1:
@@ -2216,7 +2214,7 @@ func (s *State) SetString() {
 		s.SetStringConsensus()
 	}
 
-	s.Status = 0
+	s.Status.StoreUint8(0)
 
 }
 
@@ -2246,12 +2244,10 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	str := fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5])
-
-	s.serverPrt = str
+	s.serverPrt.StoreString(fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5]))
 }
 
-// CalculateTransactionRate caculates how many transactions this node is processing
+// CalculateTransactionRate calculates how many transactions this node is processing
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
@@ -2398,9 +2394,7 @@ func (s *State) SetStringQueues() {
 		str = str + " -"
 	}
 
-	str = str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3])
-
-	s.serverPrt = str
+	s.serverPrt.StoreString(str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3]))
 
 	authoritiesString := ""
 	for _, str := range s.ConstructAuthoritySetString() {

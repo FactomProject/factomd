@@ -37,9 +37,9 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 		}
 		height := uint32(heightInt)
 		if height < DisplayState.CurrentNodeHeight {
-			dbase := StatePointer.GetAndLockDB()
+			dbase := GetStatePointer().GetAndLockDB()
 			dBlock, err := dbase.FetchDBlockByHeight(height)
-			StatePointer.UnlockDB()
+			GetStatePointer().UnlockDB()
 			if err != nil {
 				return false, ""
 			}

@@ -26,6 +26,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 var _ = fmt.Print
@@ -355,7 +356,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
-		fnodes[0].State.NetworkControler = p2pNetwork
+		fnodes[0].State.NetworkController = p2pNetwork
 		p2pNetwork.StartNetwork()
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
@@ -590,7 +591,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Key2 = primitives.NewZeroHash()
 	id.Key3 = primitives.NewZeroHash()
 	id.Key4 = primitives.NewZeroHash()
-	id.Status = 1
+	id.Status.StoreUint8(constants.IDENTITY_FEDERATED_SERVER) // Used to be the "1"
 	s.Identities = append(s.Identities, &id)
 
 	var auth identity.Authority
