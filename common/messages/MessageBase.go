@@ -39,9 +39,13 @@ type MessageBase struct {
 }
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
+//	p2p.WhereAmI("resend()",1)
 	for i := 0; i < cnt; i++ {
+//		fmt.Printf("state %10T:%p msg %10T:%p\n", state, state, msg, msg)
 		state.NetworkOutMsgQueue().Enqueue(msg)
-		time.Sleep(time.Duration(delay) * time.Second)
+		if(i<cnt) {
+			time.Sleep(time.Duration(delay) * time.Second)
+		}
 	}
 }
 

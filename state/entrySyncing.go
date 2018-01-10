@@ -160,7 +160,7 @@ func (s *State) MakeMissingEntryRequests() {
 			} else {
 				time.Sleep(100 * time.Millisecond)
 			}
-			if atomic.LoadInt32(&s.EntryDBHeightComplete) == h {
+			if s.EntryDBHeightComplete.LoadUint32() == h {
 				time.Sleep(20 * time.Second)
 			}
 		}
@@ -176,8 +176,8 @@ func (s *State) GoSyncEntries() {
 	// Once I have found all the entries, we quit searching so much for missing entries.
 	start := uint32(1)
 
-	if s.EntryDBHeightComplete > 0 {
-		start = s.EntryDBHeightComplete
+	if s.EntryDBHeightComplete.LoadUint32() > 0 {
+		start = s.EntryDBHeightComplete.LoadUint32()
 	}
 
 	entryMissing := 0
@@ -193,7 +193,7 @@ func (s *State) GoSyncEntries() {
 
 		ESMissing.Set(float64(len(missingMap)))
 		ESMissingQueue.Set(float64(len(s.MissingEntries)))
-		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete))
+		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete.LoadUint32()))
 		ESFirstMissing.Set(float64(lastfirstmissing))
 		ESHighestMissing.Set(float64(s.GetHighestSavedBlk()))
 
@@ -217,7 +217,7 @@ func (s *State) GoSyncEntries() {
 
 			if firstMissing < 0 {
 				if scan > 1 {
-					atomic.StoreUint32(&s.EntryDBHeightComplete, scan - 1)
+					s.EntryDBHeightComplete.StoreUint32(scan - 1)
 					start = scan
 				}
 			}
@@ -291,10 +291,10 @@ func (s *State) GoSyncEntries() {
 				}
 			}
 
-			if s.EntryDBHeightComplete%1000 == 0 {
+			if s.EntryDBHeightComplete.LoadUint32()%1000 == 0 {
 				if firstMissing < 0 {
 					//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
-					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
+					err := s.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete.LoadUint32())
 					if err != nil {
 						fmt.Printf("ERROR: %v\n", err)
 					}
@@ -303,7 +303,7 @@ func (s *State) GoSyncEntries() {
 		}
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
-			atomic.StoreUint32(&s.EntryDBHeightComplete, s.GetHighestSavedBlk())
+			s.EntryDBHeightComplete.StoreUint32(s.GetHighestSavedBlk())
 			time.Sleep(5 * time.Second)
 		}
 

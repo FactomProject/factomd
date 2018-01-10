@@ -77,6 +77,7 @@ func directoryExists(path string) bool {
 }
 
 func DisplayStateDrain(channel chan state.DisplayState) {
+//	fmt.Printf("DisplayStateDrain(%T:%p)\n", channel, channel)
 	for {
 		select {
 		case ds := <-channel:

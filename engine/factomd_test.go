@@ -70,17 +70,8 @@ func TestSetupANetwork(t *testing.T) {
 		panic(err)
 	}
 
-	fmt.Println("Uid : ", usr.Uid)
-
-	fmt.Println("Gid : ", usr.Gid)
-
-	fmt.Println("Username : ", usr.Username)
-
-	fmt.Println("Name : ", usr.Name)
-
-	fmt.Println("HomeDir: ", usr.HomeDir)
-	
-	if u,err := user.Current(); err != nil || u.Name  == "clay" {
+	if  usr.Name  == "clay" {
+		fmt.Println("Starting two minute timeout for Clay")
 		go func() {
 			time.Sleep(120 * time.Second) // Die after two minutes
 			t.Fatal("Failed to shut down factomd via ShutdownChan")

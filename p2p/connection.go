@@ -21,7 +21,7 @@ import (
 	"sync/atomic"
 )
 
-func whereAmI(msg string, depth int) {
+func WhereAmI(msg string, depth int) {
 	_, fn, line, _ := runtime.Caller(depth)
 	log.Printf("[%s] %s:%d", msg, fn, line)
 }
@@ -158,7 +158,7 @@ const (
 //////////////////////////////
 
 func (c *Connection) lock() {
-//	whereAmI("lock   "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
+//	WhereAmI("lock   "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
 	if (atomic.LoadInt32(&c.dummyLock) != 0) {
 //		fmt.Print("Already Locked!")
 	}
@@ -166,7 +166,7 @@ func (c *Connection) lock() {
 	atomic.StoreInt32(&c.dummyLock, 1)
 }
 func (c *Connection) unlock() {
-//	whereAmI("unlock "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
+//	WhereAmI("unlock "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
 	if (atomic.LoadInt32(&c.dummyLock) == 0) {
 		fmt.Print("Already Unlocked!")
 		// think this will panic()

@@ -2,7 +2,6 @@ package atomic
 
 import (
 	"sync/atomic"
-	"unsafe"
 	"sync"
 )
 
@@ -24,15 +23,26 @@ func (a *AtomicBool) LoadBool() (v bool) {
 	return v
 }
 
-type AtomicUint8 int32
+type AtomicUint8 uint32
 
 func (a *AtomicUint8) StoreUint8(x uint8) {
-	atomic.StoreInt32((*int32)(a), int32(x))
+	atomic.StoreUint32((*uint32)(a), uint32(x))
 }
 
 func (a *AtomicUint8) LoadUint8()  uint8 {
-	return uint8(atomic.LoadInt32((*int32)(a)))
+	return uint8(atomic.LoadUint32((*uint32)(a)))
 }
+
+type AtomicUint32 uint32
+
+func (a *AtomicUint32) StoreUint32(x uint32) {
+	atomic.StoreUint32((*uint32)(a), x)
+}
+
+func (a *AtomicUint32) LoadUint32()  uint32 {
+	return uint32(atomic.LoadUint32((*uint32)(a)))
+}
+
 
 type AtomicString struct {
 	s string

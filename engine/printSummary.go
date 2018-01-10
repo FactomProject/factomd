@@ -65,7 +65,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		if *listenTo < len(fnodes) {
 			f := fnodes[*listenTo]
-			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryDBHeightComplete, totalServerFaults)
+			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryDBHeightComplete.LoadUint32(), totalServerFaults)
 		}
 
 		sumOut := 0

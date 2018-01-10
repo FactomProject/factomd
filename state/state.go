@@ -304,9 +304,9 @@ type State struct {
 
 	MissingEntryRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
+	EntryDBHeightComplete atomic.AtomicUint32
 	// DBlock Height at which we have started asking for or have all entries
-	EntryDBHeightProcessing uint32
+	EntryDBHeightProcessing atomic.AtomicUint32
 	// Height in the Directory Block where we have
 	// Entries we don't have that we are asking our neighbors for
 	MissingEntries chan *MissingEntry
@@ -974,7 +974,7 @@ func (s *State) GetFaultWait() int {
 }
 
 func (s *State) GetEntryDBHeightComplete() uint32 {
-	return s.EntryDBHeightComplete
+	return s.EntryDBHeightComplete.LoadUint32()
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
