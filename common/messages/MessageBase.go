@@ -9,7 +9,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type MessageBase struct {
@@ -40,7 +39,7 @@ type MessageBase struct {
 }
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
-	atomic.WhereAmI("resend()",1)
+//	atomic.WhereAmI("resend()",1)
 	for i := 0; i < cnt; i++ {
 //		fmt.Printf("state %10T:%p msg %10T:%p\n", state, state, msg, msg)
 		state.NetworkOutMsgQueue().Enqueue(msg)
