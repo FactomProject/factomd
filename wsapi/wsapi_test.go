@@ -178,7 +178,7 @@ func TestHandleEntryBlock(t *testing.T) {
 		t.Error(err)
 	}
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
 	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	blocks, err := dbo.FetchAllEBlocksByChain(chain)
@@ -449,7 +449,7 @@ func TestHandleGetReceipt(t *testing.T) {
 		return
 	}
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
 	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	receipt := j["receipt"].(map[string]interface{})
@@ -478,7 +478,7 @@ func TestHandleGetUnanchoredReceipt(t *testing.T) {
 		return
 	}
 
-	dbo := context.Server.Env["state"].(interfaces.IState).GetAndLockDB()
+	dbo := context.Server.Env["state"].(interfaces.IState).GetDB()
 	defer context.Server.Env["state"].(interfaces.IState).UnlockDB()
 
 	receipt := j["receipt"].(map[string]interface{})

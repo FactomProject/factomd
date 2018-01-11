@@ -114,8 +114,8 @@ func (m *EntryBlockResponse) FollowerExecute(state interfaces.IState) {
 		return
 	}
 
-	db := state.GetAndLockDB()
-	defer state.UnlockDB()
+	db := state.GetDB()
+
 
 	db.StartMultiBatch()
 	for _, v := range m.EBlocks {

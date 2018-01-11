@@ -132,7 +132,7 @@ func (m *RevealEntryMsg) Validate(state interfaces.IState) int {
 		}
 
 		// Make sure we have a chain.  If we don't, then bad things happen.
-		db := state.GetAndLockDB()
+		db := state.GetDB()
 		dbheight := state.GetLeaderHeight()
 		eb := state.GetNewEBlocks(dbheight, m.Entry.GetChainID())
 		if eb == nil {

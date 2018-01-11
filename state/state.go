@@ -1006,11 +1006,8 @@ func (s *State) GetEBlockKeyMRFromEntryHash(entryHash interfaces.IHash) interfac
 	return nil
 }
 
-func (s *State) GetAndLockDB() interfaces.DBOverlaySimple {
+func (s *State) GetDB() interfaces.DBOverlaySimple {
 	return s.DB
-}
-
-func (s *State) UnlockDB() {
 }
 
 // Checks ChainIDs to determine if we need their entries to process entries and transactions.

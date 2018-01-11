@@ -258,8 +258,8 @@ func TestHandleV2GetReceipt(t *testing.T) {
 		return
 	}
 
-	dbo := state.GetAndLockDB()
-	defer state.UnlockDB()
+	dbo := state.GetDB()
+
 
 	marshalled, err := json.Marshal(resp.(*ReceiptResponse).Receipt)
 	if err != nil {
