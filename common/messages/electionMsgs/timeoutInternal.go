@@ -38,7 +38,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		panic("Invalid elections object")
 	}
 
-	aidx := e.AuditIndex(e.ServerID)
+	aidx := e.AuditIndex(e.FedID)
 
 	// We have advanced, so do nothing.  We can't reset anything because there
 	// can be a timeout process that started before we got here (with short minutes)
@@ -91,8 +91,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.VMIndex = vm
 			Sync.TS = primitives.NewTimestampNow()
 			Sync.Name = e.Name
-			Sync.ServerIdx = uint32(e.Electing)
-			Sync.ServerID = e.ServerID
+			Sync.FedIdx = uint32(e.Electing)
+			Sync.FedID = e.FedID
 			Sync.Weight = e.APriority[auditIdx]
 			Sync.DBHeight = uint32(e.DBHeight)
 			Sync.Minute = byte(e.Minute)
@@ -103,7 +103,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	}
 
 	if aidx != auditIdx {
-		s.Election2 = e.FeedBackStr(fmt.Sprintf("%d%d",e.Round[e.Electing],auditIdx), true, e.Electing)
+		s.Election2 = e.FeedBackStr(fmt.Sprintf("%d-%d",e.Round[e.Electing],auditIdx), true, e.Electing)
 	}
 
 }

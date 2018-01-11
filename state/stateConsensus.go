@@ -1859,7 +1859,7 @@ func (s *State) ProcessFullServerFault(dbheight uint32, msg interfaces.IMsg) boo
 				}
 				// Any updates required to the state as established by the AdminBlock are applied here.
 				pl.State.SetAuthoritySetString(authoritiesString)
-				authorityDeltaString := fmt.Sprintf("FULL FAULT SUCCESSFULLY PROCESSED DBHt: %d SysHt: %d ServerID %s AuditServerID %s",
+				authorityDeltaString := fmt.Sprintf("FULL FAULT SUCCESSFULLY PROCESSED DBHt: %d SysHt: %d FedID %s AuditServerID %s",
 					fullFault.DBHeight,
 					fullFault.SystemHeight,
 					fullFault.ServerID.String()[4:12],

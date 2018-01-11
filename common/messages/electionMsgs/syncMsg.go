@@ -25,8 +25,15 @@ type SyncMsg struct {
 	TS          interfaces.Timestamp // Message Timestamp
 	EOM         bool                 // True if EOM message, false if DBSig
 	Name        string               // Server name
+
+	// Server that is faulting
+	FedIdx      uint32               // Server faulting
+	FedID       interfaces.IHash     // Server faulting
+
+	// Audit server to replace faulting server
 	ServerIdx   uint32               // Index of Server replacing
 	ServerID    interfaces.IHash     // Volunteer Server ChainID
+
 	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
 	DBHeight    uint32               // Directory Block Height that owns this ack
 	Minute      byte                 // Minute (-1 for dbsig)
@@ -134,9 +141,16 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
 	eom, ack := s.CreateEOM(eom, m.VMIndex)
 
+	aidx := m.ServerIdx
+	if eom == nil {
+		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
+		return
+	}
 	va := new(VolunteerAudit)
 	va.Missing = eom
 	va.Ack = ack
+
+	va.FedIdx =
 	va.VMIndex = m.VMIndex
 	va.TS = primitives.NewTimestampNow()
 	va.Name = m.Name

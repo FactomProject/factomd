@@ -270,7 +270,7 @@ func (e *ServerFault) Hash() interfaces.IHash {
 
 func (e *ServerFault) String() string {
 	e.Init()
-	str := fmt.Sprintf("    E: %35s -- DBheight %ds ServerID %8x AuditServer %8x, #sigs %d, VMIndex %d",
+	str := fmt.Sprintf("    E: %35s -- DBheight %ds FedID %8x AuditServer %8x, #sigs %d, VMIndex %d",
 		"EntryServerFault",
 		e.DBHeight,
 		e.ServerID.Bytes()[3:5],

@@ -32,7 +32,7 @@ var _ interfaces.IMsg = (*EomSigInternal)(nil)
 
 /*
 type Elections struct {
-	ServerID  interfaces.IHash
+	FedID  interfaces.IHash
 	Name      string
 	Sync      []bool
 	Federated []interfaces.IServer
@@ -79,7 +79,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 	// Either the height has incremented, or the minute has incremented.
 	if int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
 		// Set our Identity Chain (Just in case it has changed.)
-		e.ServerID = s.IdentityChainID
+		e.FedID = s.IdentityChainID
 
 		e.DBHeight = int(m.DBHeight)
 		e.Minute = int(m.Minute)

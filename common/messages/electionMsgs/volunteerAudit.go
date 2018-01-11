@@ -62,9 +62,8 @@ func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.
 	if auditIdx != int(m.ServerIdx) {
 
 	}
-	if idx > 0 {
-
-//		e.FeedBackStr("")
+	if idx >= 0 {
+		s.Election2 = e.FeedBackStr(fmt.Sprintf("V%d", e.), false, auditIdx)
 	}
 }
 

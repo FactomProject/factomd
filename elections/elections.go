@@ -11,7 +11,7 @@ var _ = fmt.Print
 var _ = time.Tick
 
 type Elections struct {
-	ServerID  interfaces.IHash
+	FedID     interfaces.IHash
 	Name      string
 	Sync      []bool
 	Federated []interfaces.IServer
