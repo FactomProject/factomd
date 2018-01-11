@@ -542,7 +542,6 @@ func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 			dbase := st.GetDB()
 			dblk, err := dbase.FetchDBlockByHeight(height)
 
-
 			if err == nil && dblk != nil && dblk.GetHeader().GetTimestamp().GetTimeSeconds() != 0 {
 				if !CheckTimestamp(extIDs[4], dblk.GetHeader().GetTimestamp().GetTimeSeconds()) {
 					return errors.New("New Block Signing key for identity  [" + chainID.String()[:10] + "] timestamp is too old")

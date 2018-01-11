@@ -158,8 +158,6 @@ func searchDB(searchitem string, st state.State) (bool, string) {
 			}
 		}
 
-
-
 		// This search takes too long to make it worth it
 		// Search for Entry Transaction
 		/*ackReq := new(wsapi.AckRequest)

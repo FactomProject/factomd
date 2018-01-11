@@ -60,7 +60,6 @@ func main() {
 	}
 	dbo := state.GetDB().(interfaces.DBOverlay)
 
-
 	if chainID != "" {
 		err := be.ExportEChain(chainID, dbo)
 		if err != nil {

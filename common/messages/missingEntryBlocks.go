@@ -103,7 +103,6 @@ func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
 	}
 	db := state.GetDB()
 
-
 	resp := NewEntryBlockResponse(state).(*EntryBlockResponse)
 
 	for i := start; i <= end; i++ {

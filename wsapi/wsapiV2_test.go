@@ -260,7 +260,6 @@ func TestHandleV2GetReceipt(t *testing.T) {
 
 	dbo := state.GetDB()
 
-
 	marshalled, err := json.Marshal(resp.(*ReceiptResponse).Receipt)
 	if err != nil {
 		t.Error(err)

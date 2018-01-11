@@ -116,7 +116,6 @@ func (m *EntryBlockResponse) FollowerExecute(state interfaces.IState) {
 
 	db := state.GetDB()
 
-
 	db.StartMultiBatch()
 	for _, v := range m.EBlocks {
 		err := db.ProcessEBlockMultiBatchWithoutHead(v, true)

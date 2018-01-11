@@ -58,7 +58,6 @@ func main() {
 	}
 	dbo := state.GetDB().(interfaces.DBOverlay)
 
-
 	if entryID != "" {
 		err := ExportEntryReceipt(entryID, dbo)
 		if err != nil {

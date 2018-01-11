@@ -25,7 +25,6 @@ func TestCheckDatabaseFromWSAPI(t *testing.T) {
 	state := ctx.Server.Env["state"].(interfaces.IState)
 	dbase := state.GetDB().(interfaces.DBOverlay)
 
-
 	CheckDatabase(dbase)
 }
 

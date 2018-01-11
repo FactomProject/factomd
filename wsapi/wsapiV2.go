@@ -197,7 +197,6 @@ func HandleV2DBlockByHeight(state interfaces.IState, params interface{}) (interf
 
 	dbase := state.GetDB()
 
-
 	block, err := dbase.FetchDBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
 		return nil, NewInternalDatabaseError()
@@ -239,7 +238,6 @@ func HandleV2EntryCreditBlock(state interfaces.IState, params interface{}) (inte
 
 	dbase := state.GetDB()
 
-
 	block, err := dbase.FetchECBlock(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
@@ -262,7 +260,6 @@ func HandleV2ECBlockByHeight(state interfaces.IState, params interface{}) (inter
 	}
 
 	dbase := state.GetDB()
-
 
 	block, err := dbase.FetchECBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -319,7 +316,6 @@ func HandleV2FactoidBlock(state interfaces.IState, params interface{}) (interfac
 
 	dbase := state.GetDB()
 
-
 	block, err := dbase.FetchFBlock(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
@@ -354,7 +350,6 @@ func HandleV2FBlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	dbase := state.GetDB()
-
 
 	block, err := dbase.FetchFBlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -430,7 +425,6 @@ func HandleV2AdminBlock(state interfaces.IState, params interface{}) (interface{
 
 	dbase := state.GetDB()
 
-
 	block, err := dbase.FetchABlock(h)
 	if err != nil {
 		return nil, NewInvalidHashError()
@@ -453,7 +447,6 @@ func HandleV2ABlockByHeight(state interfaces.IState, params interface{}) (interf
 	}
 
 	dbase := state.GetDB()
-
 
 	block, err := dbase.FetchABlockByHeight(uint32(heightRequest.Height))
 	if err != nil {
@@ -700,7 +693,6 @@ func HandleV2RawData(state interfaces.IState, params interface{}) (interface{}, 
 	if b == nil {
 		dbase := state.GetDB()
 
-
 		// try to find the block data in db and return the first one found
 		if block, _ = dbase.FetchFBlock(h); block != nil {
 			b, _ = block.MarshalBinary()
@@ -743,7 +735,6 @@ func HandleV2Receipt(state interfaces.IState, params interface{}) (interface{}, 
 
 	dbase := state.GetDB()
 
-
 	receipt, err := receipts.CreateFullReceipt(dbase, h)
 	if err != nil {
 		return nil, NewReceiptError()
@@ -770,7 +761,6 @@ func HandleV2DirectoryBlock(state interfaces.IState, params interface{}) (interf
 	}
 
 	dbase := state.GetDB()
-
 
 	block, err := dbase.FetchDBlock(h)
 	if err != nil {
@@ -811,7 +801,6 @@ func HandleV2EntryBlock(state interfaces.IState, params interface{}) (interface{
 	}
 
 	dbase := state.GetDB()
-
 
 	block, err := dbase.FetchEBlock(h)
 	if err != nil {
@@ -889,7 +878,6 @@ func HandleV2Entry(state interfaces.IState, params interface{}) (interface{}, *p
 	if entry == nil {
 		dbase := state.GetDB()
 
-
 		entry, err = dbase.FetchEntry(h)
 		if err != nil {
 			return nil, NewInvalidHashError()
@@ -923,7 +911,6 @@ func HandleV2ChainHead(state interfaces.IState, params interface{}) (interface{}
 	}
 
 	dbase := state.GetDB()
-
 
 	c := new(ChainHeadResponse)
 
@@ -1201,7 +1188,6 @@ func HandleV2GetTranasction(state interfaces.IState, params interface{}) (interf
 	}
 
 	dbase := state.GetDB()
-
 
 	if fTx == nil {
 		fTx, err = dbase.FetchFactoidTransaction(h)
