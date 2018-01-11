@@ -73,10 +73,13 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	if  usr.Username  == "clay" {
-		fmt.Println("Starting two minute timeout for Clay")
 		go func() {
-			time.Sleep(120 * time.Second) // Die after two minutes
-			t.Fatal("Clay's imeout timed out")
+			fmt.Println("Starting two minute timeout for Clay")
+			for i:=0; i<10; i++ {
+				fmt.Println(i)
+				time.Sleep(5 * time.Second) // Die after two minutes
+			}
+			t.Fatal("Clay's Timeout timed out")
 			panic("Clay's Timeout")
 		}()
 	} else {
