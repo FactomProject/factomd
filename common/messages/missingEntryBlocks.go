@@ -102,8 +102,7 @@ func (m *MissingEntryBlocks) FollowerExecute(state interfaces.IState) {
 	if end-start > 20 {
 		end = start + 20
 	}
-	db := state.GetAndLockDB()
-	defer state.UnlockDB()
+	db := state.GetDB()
 
 	resp := NewEntryBlockResponse(state).(*EntryBlockResponse)
 
