@@ -194,7 +194,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			//fmt.Println("Error when Making Identity,", err)
 		}
 		AuthorityIndex = st.AddAuthorityFromChainID(f.IdentityChainID)
-		st.Authorities[AuthorityIndex].Status.StoreUint8(constants.IDENTITY_FEDERATED_SERVER)
+		st.Authorities[AuthorityIndex].Status.Store(constants.IDENTITY_FEDERATED_SERVER)
 		// check Identity status
 		UpdateIdentityStatus(f.IdentityChainID, constants.IDENTITY_FEDERATED_SERVER, st)
 	case constants.TYPE_ADD_AUDIT_SERVER:
@@ -208,7 +208,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			//fmt.Println("Error when Making Identity,", err)
 		}
 		AuthorityIndex = st.AddAuthorityFromChainID(a.IdentityChainID)
-		st.Authorities[AuthorityIndex].Status.StoreUint8(constants.IDENTITY_AUDIT_SERVER)
+		st.Authorities[AuthorityIndex].Status.Store(constants.IDENTITY_AUDIT_SERVER)
 		// check Identity status
 		UpdateIdentityStatus(a.IdentityChainID, constants.IDENTITY_AUDIT_SERVER, st)
 	case constants.TYPE_REMOVE_FED_SERVER:
@@ -225,7 +225,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			IdentityIndex := st.isIdentityChain(f.IdentityChainID)
 			if IdentityIndex != -1 && IdentityIndex < len(st.Identities) {
 				if st.Identities[IdentityIndex].IdentityChainID.IsSameAs(st.GetNetworkSkeletonIdentity()) {
-					st.Identities[IdentityIndex].Status.StoreUint8(constants.IDENTITY_SKELETON)
+					st.Identities[IdentityIndex].Status.Store(constants.IDENTITY_SKELETON)
 				} else {
 					st.removeIdentity(IdentityIndex)
 				}
@@ -267,7 +267,7 @@ func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = F
 	if index == -1 {
 		return -1
 	}
-	status := st.Authorities[index].Status.LoadUint8()
+	status := st.Authorities[index].Status.Load()
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_PENDING_FEDERATED_SERVER {
 		return 0
@@ -321,7 +321,7 @@ func (st *State) createAuthority(chainID interfaces.IHash) int {
 	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
 		newAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
 	}
-	newAuth.Status.StoreUint8(constants.IDENTITY_PENDING_FULL)
+	newAuth.Status.Store(constants.IDENTITY_PENDING_FULL)
 
 	st.Authorities = append(st.Authorities, newAuth)
 	return len(st.Authorities) - 1
@@ -342,7 +342,7 @@ func (s *State) RepairAuthorities() {
 			}
 			if idIndex != -1 {
 				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
-				s.Identities[idIndex].Status.StoreUint8(s.Authorities[i].Status.LoadUint8())
+				s.Identities[idIndex].Status.Store(s.Authorities[i].Status.Load())
 			}
 		}
 	}

@@ -12,19 +12,11 @@ import (
 	"net"
 	"os"
 	"time"
-
 	"github.com/FactomProject/factomd/common/primitives"
 
+	atomic2 "github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
-	"runtime"
-	"sync"
-	"sync/atomic"
 )
-
-func WhereAmI(msg string, depth int) {
-	_, fn, line, _ := runtime.Caller(depth)
-	log.Printf("[%s] %s:%d", msg, fn, line)
-}
 
 // conLogger is the general logger for all connection related logs. You can add additional fields,
 // or create more context loggers off of this
@@ -34,8 +26,7 @@ var conLogger = packageLogger.WithFields(log.Fields{"subpack": "connection"})
 // via two channels, send and receive.  These channels take structs of type ConnectionCommand or ConnectionParcel
 // (defined below).
 type Connection struct {
-	mu             sync.Mutex // lock this connection
-	dummyLock      int32      // int32 so I can use the atomic package on it
+	mu             atomic2.DebugMutex // lock this connection
 	conn           net.Conn
 	Errors         chan error              // handle errors from connections.
 	Commands       chan *ConnectionCommand // handle connection commands
@@ -58,6 +49,7 @@ type Connection struct {
 	isPersistent    bool              // Persistent connections we always redial.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
+	metricsMutex    atomic2.DebugMutex
 	Logger          *log.Entry
 }
 
@@ -158,22 +150,10 @@ const (
 //////////////////////////////
 
 func (c *Connection) lock() {
-//	WhereAmI("lock   "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
-	if (atomic.LoadInt32(&c.dummyLock) != 0) {
-//		fmt.Print("Already Locked!")
-	}
-	c.mu.Lock()
-	atomic.StoreInt32(&c.dummyLock, 1)
+	c.mu.Lock() // used to be debug code here
 }
 func (c *Connection) unlock() {
-//	WhereAmI("unlock "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
-	if (atomic.LoadInt32(&c.dummyLock) == 0) {
-		fmt.Print("Already Unlocked!")
-		// think this will panic()
-	}
-	atomic.StoreInt32(&c.dummyLock, 0)
-	c.mu.Unlock()
-
+	c.mu.Unlock() // used to be debug code here
 }
 
 // InitWithConn is called from our accept loop when a peer dials into us and we already have a network conn
@@ -244,7 +224,9 @@ func (c *Connection) commonInit(peer Peer) {
 	c.SendChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveChannel = make(chan interface{}, StandardChannelSize)
 	c.ReceiveParcel = make(chan *Parcel, StandardChannelSize)
-	c.metrics = ConnectionMetrics{MomentConnected: time.Now()}
+	c.metricsMutex.Lock()
+	c.metrics = ConnectionMetrics{MomentConnected: time.Now()} // L
+	c.metricsMutex.Unlock()
 	now := time.Now()
 	c.timeLastMetrics = now
 	c.timeLastAttempt = now
@@ -419,11 +401,11 @@ func (c *Connection) goOffline() {
 func (c *Connection) goShutdown() {
 	c.goOffline()
 	c.updatePeer()
+	c.lock()
+	defer c.unlock()
 	if nil != c.conn {
 		defer c.conn.Close()
 	}
-	c.lock()
-	defer c.unlock()
 	c.decoder = nil
 	c.encoder = nil
 	c.state = ConnectionShuttingDown
@@ -524,8 +506,10 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	c.lock()
 	switch {
 	case nil == err:
-		c.metrics.BytesSent += parcel.Header.Length
-		c.metrics.MessagesSent += 1
+		c.metricsMutex.Lock()
+		c.metrics.BytesSent += parcel.Header.Length //L
+		c.metrics.MessagesSent += 1                 //L
+		c.metricsMutex.Unlock()
 	default:
 		c.Errors <- err
 	}
@@ -560,8 +544,10 @@ func (c *Connection) processReceives() {
 				c.lock()
 				switch {
 				case nil == err:
-					c.metrics.BytesReceived += message.Header.Length
-					c.metrics.MessagesReceived += 1
+					c.metricsMutex.Lock()
+					c.metrics.BytesReceived += message.Header.Length //L
+					c.metrics.MessagesReceived += 1                  //L
+					c.metricsMutex.Unlock()
 					message.Header.PeerAddress = c.peer.Address
 					c.ReceiveParcel <- &message
 					c.TimeLastPacket = time.Now()
@@ -742,14 +728,16 @@ func (c *Connection) updatePeer() {
 }
 
 func (c *Connection) updateStats() {
+	c.metricsMutex.Lock()
+	defer c.metricsMutex.Unlock()
 	if time.Second < time.Since(c.timeLastMetrics) {
-		c.timeLastMetrics = time.Now()
-		c.metrics.PeerAddress = c.peer.Address
-		c.metrics.PeerQuality = c.peer.QualityScore
-		c.metrics.ConnectionState = connectionStateStrings[c.state]
-		c.metrics.ConnectionNotes = c.notes
-		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived)
-		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdateMetrics, Metrics: c.metrics})
+		c.timeLastMetrics = time.Now()                                                                                                                                // L
+		c.metrics.PeerAddress = c.peer.Address                                                                                                                        // L
+		c.metrics.PeerQuality = c.peer.QualityScore                                                                                                                   // L
+		c.metrics.ConnectionState = connectionStateStrings[c.state]                                                                                                   // L
+		c.metrics.ConnectionNotes = c.notes                                                                                                                           // L
+		verbose(c.peer.PeerIdent(), "updatePeer() SENDING ConnectionUpdateMetrics - Bytes Sent: %d Bytes Received: %d", c.metrics.BytesSent, c.metrics.BytesReceived) // L
+		BlockFreeChannelSend(c.ReceiveChannel, ConnectionCommand{Command: ConnectionUpdateMetrics, Metrics: c.metrics})                                               // L
 	}
 }
 
@@ -761,6 +749,8 @@ func (c *Connection) connectionStatusReport() {
 	reportDuration := time.Since(c.timeLastStatus)
 	if reportDuration > ConnectionStatusInterval {
 		c.timeLastStatus = time.Now()
-		significant("connection-report", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n\tConnStatusInterval:\t%s\n\treportDuration:\t\t%s\n\tTime Online:\t\t%s \nMsgs/Bytes: %d / %d \n==============================================================================\n\n", c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel), ConnectionStatusInterval.String(), reportDuration.String(), time.Since(c.timeLastAttempt), c.metrics.MessagesReceived+c.metrics.MessagesSent, c.metrics.BytesSent+c.metrics.BytesReceived)
+		c.metricsMutex.Lock()
+		significant("connection-report", "\n\n===============================================================================\n     Connection: %s\n          State: %s\n          Notes: %s\n           Hash: %s\n     Persistent: %t\n       Outgoing: %t\n ReceiveChannel: %d\n    SendChannel: %d\n\tConnStatusInterval:\t%s\n\treportDuration:\t\t%s\n\tTime Online:\t\t%s \nMsgs/Bytes: %d / %d \n==============================================================================\n\n",
+			c.peer.AddressPort(), c.ConnectionState(), c.Notes(), c.peer.Hash[0:12], c.IsPersistent(), c.IsOutGoing(), len(c.ReceiveChannel), len(c.SendChannel), ConnectionStatusInterval.String(), reportDuration.String(), time.Since(c.timeLastAttempt), c.metrics.MessagesReceived+c.metrics.MessagesSent, c.metrics.BytesSent+c.metrics.BytesReceived)
 	}
 }

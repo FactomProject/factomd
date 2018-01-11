@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/wsapi"
 	"runtime"
 	"sync"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
@@ -82,7 +83,7 @@ func SimControl(listenTo int, listenStdin bool) {
 	var watchPL int
 	var watchMessages int
 	var rotate int
-	var wsapiNode int
+	var wsapiNode atomic.AtomicInt
 	var faulting bool
 
 	ListenToMu.Lock() // wait till I can write this
@@ -158,23 +159,23 @@ func SimControl(listenTo int, listenStdin bool) {
 						break
 					}
 					if b[1] == 'f' {
-						fundWallet(fnodes[wsapiNode].State, uint64(200*5e7))
+						fundWallet(fnodes[wsapiNode.Load()].State, uint64(200*5e7))
 						break
 					}
 				}
 				if ListenTo < 0 || ListenTo > len(fnodes) {
 					break
 				}
-				wsapiNode = ListenTo
-				wsapi.SetState(fnodes[wsapiNode].State)
+				wsapiNode.Store(ListenTo)
+				wsapi.SetState(fnodes[wsapiNode.Load()].State)
 
 				if nextAuthority == -1 {
-					err := fundWallet(fnodes[wsapiNode].State, 2e7)
+					err := fundWallet(fnodes[wsapiNode.Load()].State, 2e7)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 						break
 					}
-					setUpAuthorites(fnodes[wsapiNode].State, true)
+					setUpAuthorites(fnodes[wsapiNode.Load()].State, true)
 					os.Stderr.WriteString(fmt.Sprintf("%d Authorities added to the stack and funds are in wallet\n", len(authStack)))
 				}
 				if len(b) == 1 {
@@ -189,12 +190,12 @@ func SimControl(listenTo int, listenStdin bool) {
 							os.Stderr.WriteString(fmt.Sprint("You can only pop a max of 100 off the stack at a time."))
 							count = 100
 						}
-						err := fundWallet(fnodes[wsapiNode].State, uint64(count*5e7))
+						err := fundWallet(fnodes[wsapiNode.Load()].State, uint64(count*5e7))
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
 							break
 						}
-						auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode].State)
+						auths, skipped, err := authorityToBlockchain(count, fnodes[wsapiNode.Load()].State)
 						if err != nil {
 							os.Stderr.WriteString(fmt.Sprintf("Error making authorites, %s\n", err.Error()))
 						}
@@ -213,9 +214,9 @@ func SimControl(listenTo int, listenStdin bool) {
 				}
 			case 'w' == b[0]:
 				if ListenTo >= 0 && ListenTo < len(fnodes) {
-					wsapiNode = ListenTo
-					wsapi.SetState(fnodes[wsapiNode].State)
-					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode].State.FactomNodeName))
+					wsapiNode.Store(ListenTo)
+					wsapi.SetState(fnodes[wsapiNode.Load()].State)
+					os.Stderr.WriteString(fmt.Sprintf("--Listen to %s --\n", fnodes[wsapiNode.Load()].State.FactomNodeName))
 				}
 			case 'W' == b[0]:
 				if ListenTo < 0 || ListenTo > len(fnodes) {
@@ -303,7 +304,7 @@ func SimControl(listenTo int, listenStdin bool) {
 					go rotateWSAPI(&rotate, rotate, &wsapiNode)
 				} else {
 					os.Stderr.WriteString("--Stop Rotation of the WSAPI around the nodes.  Now --\n")
-					wsapi.SetState(fnodes[wsapiNode].State)
+					wsapi.SetState(fnodes[wsapiNode.Load()].State)
 				}
 			case 'a' == b[0]:
 				mLog.all = false
@@ -860,7 +861,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						if amt != -1 && c == amt {
 							break
 						}
-						stat := returnStatString(ident.Status.LoadUint8())
+						stat := returnStatString(ident.Status.Load())
 						if show == 5 {
 							if c != amt {
 							} else {
@@ -924,8 +925,8 @@ func SimControl(listenTo int, listenStdin bool) {
 					if auth == nil {
 						break
 					}
-					wsapiNode = ListenTo
-					wsapi.SetState(fnodes[wsapiNode].State)
+					wsapiNode.Store(ListenTo)
+					wsapi.SetState(fnodes[wsapiNode.Load()].State)
 					err := fundWallet(fnodes[ListenTo].State, 1e8)
 					if err != nil {
 						os.Stderr.WriteString(fmt.Sprintf("Error in funding the wallet, %s\n", err.Error()))
@@ -993,7 +994,7 @@ func SimControl(listenTo int, listenStdin bool) {
 				for _, i := range fnodes[ListenTo].State.Authorities {
 					os.Stderr.WriteString("-------------------------------------------------------------------------------\n")
 					var stat string
-					stat = returnStatString(i.Status.LoadUint8())
+					stat = returnStatString(i.Status.Load())
 					os.Stderr.WriteString(fmt.Sprint("Server Status: ", stat, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n"))
 					os.Stderr.WriteString(fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n"))
@@ -1091,7 +1092,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintf("%2d DBState            nil\n", i))
 					} else {
 						os.Stderr.WriteString(fmt.Sprintf("%2d DBState                          Eht: [%5d] IsNew[%5v]  ReadyToSave [%5v] Locked [%5v] Signed [%5v] Saved [%5v]\n%v", i,
-							s.EntryDBHeightComplete.LoadUint32(),
+							s.EntryDBHeightComplete.Load(),
 							dbs.IsNew,
 							dbs.ReadyToSave,
 							dbs.Locked,
@@ -1184,9 +1185,9 @@ func returnStatString(i uint8) string {
 
 // Allows us to scatter transactions across all nodes.
 //
-func rotateWSAPI(rotate *int, value int, wsapiNode *int) {
+func rotateWSAPI(rotate *int, value int, wsapiNode *atomic.AtomicInt) {
 	for *rotate == value { // Only if true
-		*wsapiNode = rand.Int() % len(fnodes)
+		wsapiNode.Store(rand.Int() % len(fnodes))
 		fnode := fnodes[*wsapiNode]
 		wsapi.SetState(fnode.State)
 		time.Sleep(3 * time.Second)

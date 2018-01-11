@@ -188,7 +188,7 @@ type State struct {
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
 	OneLeader       bool
-	OutputAllowed   bool
+	OutputAllowed   atomic.AtomicBool
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
@@ -219,7 +219,7 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
+	NetStateOff     atomic.AtomicBool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
 	FactoidTrans    int
 	ECCommits       int
@@ -234,6 +234,7 @@ type State struct {
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReviewMutex  sync.RWMutex
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -529,11 +530,11 @@ func (s *State) GetAuthorityDeltas() string {
 }
 
 func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
-	return s.NetStateOff
+	return s.NetStateOff.Load()
 }
 
 func (s *State) SetNetStateOff(net bool) {
-	s.NetStateOff = net
+	s.NetStateOff.Store(net)
 }
 
 func (s *State) GetRpcUser() string {
@@ -974,7 +975,7 @@ func (s *State) GetFaultWait() int {
 }
 
 func (s *State) GetEntryDBHeightComplete() uint32 {
-	return s.EntryDBHeightComplete.LoadUint32()
+	return s.EntryDBHeightComplete.Load()
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
@@ -1721,7 +1722,7 @@ func (s *State) UpdateState() (progress bool) {
 	progress = progress || p2
 
 	s.SetString()
-	if s.ControlPanelDataRequest.LoadBool() {
+	if s.ControlPanelDataRequest.Load() {
 		s.CopyStateToControlPanel()
 	}
 
@@ -2194,18 +2195,18 @@ func (s *State) InitMapDB() error {
 }
 
 func (s *State) String() string {
-	str := "\n===============================================================\n" + s.serverPrt.LoadString()
+	str := "\n===============================================================\n" + s.serverPrt.Load()
 	str = fmt.Sprintf("\n%s\n  Leader Height: %d\n", str, s.LLeaderHeight)
 	str = str + "===============================================================\n"
 	return str
 }
 
 func (s *State) ShortString() string {
-	return s.serverPrt.LoadString()
+	return s.serverPrt.Load()
 }
 
 func (s *State) SetString() {
-	switch s.Status.LoadUint8() {
+	switch s.Status.Load() {
 	case 0:
 		return
 	case 1:
@@ -2214,7 +2215,7 @@ func (s *State) SetString() {
 		s.SetStringConsensus()
 	}
 
-	s.Status.StoreUint8(0)
+	s.Status.Store(0)
 
 }
 
@@ -2244,7 +2245,7 @@ func (s *State) SummaryHeader() string {
 }
 
 func (s *State) SetStringConsensus() {
-	s.serverPrt.StoreString(fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5]))
+	s.serverPrt.Store(fmt.Sprintf("%10s[%x_%x] ", s.FactomNodeName, s.IdentityChainID.Bytes()[:2], s.IdentityChainID.Bytes()[2:5]))
 }
 
 // CalculateTransactionRate calculates how many transactions this node is processing
@@ -2311,7 +2312,7 @@ func (s *State) SetStringQueues() {
 			}
 		}
 	}
-	if s.NetStateOff {
+	if s.NetStateOff.Load() {
 		X = "X"
 	}
 	if !s.RunLeader && found {
@@ -2394,7 +2395,7 @@ func (s *State) SetStringQueues() {
 		str = str + " -"
 	}
 
-	s.serverPrt.StoreString(str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3]))
+	s.serverPrt.Store(str + fmt.Sprintf(" %x", s.Balancehash.Bytes()[:3]))
 
 	authoritiesString := ""
 	for _, str := range s.ConstructAuthoritySetString() {
@@ -2442,7 +2443,7 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
-	if s.OutputAllowed {
+	if s.OutputAllowed.Load() {
 		str := ""
 		for _, v := range a {
 			str = str + fmt.Sprintf("%v", v)
@@ -2462,7 +2463,7 @@ func (s *State) Print(a ...interface{}) (n int, err error) {
 }
 
 func (s *State) Println(a ...interface{}) (n int, err error) {
-	if s.OutputAllowed {
+	if s.OutputAllowed.Load() {
 		str := ""
 		for _, v := range a {
 			str = str + fmt.Sprintf("%v", v)
@@ -2483,11 +2484,11 @@ func (s *State) Println(a ...interface{}) (n int, err error) {
 }
 
 func (s *State) GetOut() bool {
-	return s.OutputAllowed
+	return s.OutputAllowed.Load()
 }
 
 func (s *State) SetOut(o bool) {
-	s.OutputAllowed = o
+	s.OutputAllowed.Store(o)
 }
 
 func (s *State) GetSystemHeight(dbheight uint32) int {

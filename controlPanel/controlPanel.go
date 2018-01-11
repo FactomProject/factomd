@@ -110,7 +110,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	}()
 	SetStatePointer(statePointer)
 
-	GetStatePointer().ControlPanelDataRequest.StoreBool(true) // Request initial State
+	GetStatePointer().ControlPanelDataRequest.Store(true) // Request initial State
 	// Wait for initial State
 	select {
 	case DisplayState = <-displayStateChannel:
@@ -334,7 +334,7 @@ func RequestData() {
 		return
 	}
 	LastRequest = time.Now()
-	GetStatePointer().ControlPanelDataRequest.StoreBool(true)
+	GetStatePointer().ControlPanelDataRequest.Store(true)
 	requestMutex = false
 }
 

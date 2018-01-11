@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
-func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
+func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.AtomicInt) {
 	out := ""
 
 	ListenToMu.RLock() // Now claim I am reading it
@@ -43,7 +44,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		eCommits := 0
 
 		for _, f := range pnodes {
-			f.State.Status.StoreUint8( 1)
+			f.State.Status.Store( 1)
 		}
 
 		time.Sleep(time.Second)
@@ -56,7 +57,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 			if f.Index == *listenTo {
 				in = "f"
 			}
-			if f.Index == *wsapiNode {
+			if f.Index == wsapiNode.Load() {
 				api = "w"
 			}
 
@@ -65,7 +66,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		if *listenTo < len(fnodes) {
 			f := fnodes[*listenTo]
-			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryDBHeightComplete.LoadUint32(), totalServerFaults)
+			prt = fmt.Sprintf("%s EB Complete %d EB Processing %d Entries Complete %d Faults %d\n", prt, f.State.EntryBlockDBHeightComplete, f.State.EntryBlockDBHeightProcessing, f.State.EntryDBHeightComplete.Load(), totalServerFaults)
 		}
 
 		sumOut := 0
@@ -109,7 +110,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
+			f.State.XReviewMutex.RLock()
+			list = list + fmt.Sprintf(" %3d", len(f.State.XReview)) // RL
+			f.State.XReviewMutex.RUnlock()
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 

@@ -65,7 +65,9 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
-				s.XReview = append(s.XReview, msg)
+				s.XReviewMutex.Lock()
+				s.XReview = append(s.XReview, msg) // WL
+				s.XReviewMutex.Unlock()
 			} else {
 				msg.LeaderExecute(s)
 			}
@@ -108,7 +110,7 @@ func (s *State) Process() (progress bool) {
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
-			if s.DBFinished.LoadBool() {
+			if s.DBFinished.Load() {
 				s.RunLeader = true
 				if !s.IgnoreDone {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing
@@ -212,7 +214,8 @@ emptyLoop:
 	// Process last first
 skipreview:
 	for {
-		for _, msg := range s.XReview {
+		s.XReviewMutex.RLock()
+		for _, msg := range s.XReview { // RL
 			if !room() {
 				break skipreview
 			}
@@ -222,7 +225,12 @@ skipreview:
 			process <- msg
 			progress = s.executeMsg(vm, msg) || progress
 		}
-		s.XReview = s.XReview[:0]
+		s.XReviewMutex.RUnlock()
+
+		s.XReviewMutex.Lock()
+		s.XReview = s.XReview[:0] // WL
+		s.XReviewMutex.Unlock()
+
 		break
 	}
 	processXReviewTime := time.Since(preProcessXReviewTime)
@@ -265,9 +273,12 @@ func CheckDBKeyMR(s *State, ht uint32, hash string) error {
 // responsibility
 func (s *State) ReviewHolding() {
 	preReviewHoldingTime := time.Now()
-	if len(s.XReview) > 0 {
+	s.XReviewMutex.RLock()
+	if len(s.XReview) > 0 { // RL
+ 		s.XReviewMutex.RUnlock()
 		return
 	}
+	s.XReviewMutex.RUnlock()
 
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
@@ -285,7 +296,9 @@ func (s *State) ReviewHolding() {
 
 	s.ResendHolding = now
 	// Anything we are holding, we need to reprocess.
-	s.XReview = make([]interfaces.IMsg, 0)
+	s.XReviewMutex.Lock()
+	s.XReview = make([]interfaces.IMsg, 0) // WL
+	s.XReviewMutex.Unlock()
 
 	highest := s.GetHighestKnownBlock()
 	saved := s.GetHighestSavedBlk()
@@ -371,7 +384,10 @@ func (s *State) ReviewHolding() {
 			continue
 		}
 		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, v)
+		s.XReviewMutex.Lock()
+		s.XReview = append(s.XReview, v) // WL
+		s.XReviewMutex.Unlock()
+
 		TotalHoldingQueueOutputs.Inc()
 	}
 	reviewHoldingTime := time.Since(preReviewHoldingTime)
@@ -518,7 +534,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	height := dbmsg.DirectoryBlock.GetDatabaseHeight()
 
-	if s.EntryDBHeightComplete.LoadUint32() > height {
+	if s.EntryDBHeightComplete.Load() > height {
 		return
 	}
 	// If no Eblocks, leave
@@ -565,7 +581,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// ignore if too old. If its under EntryDBHeightComplete
-	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete.LoadUint32() {
+	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete.Load() {
 		return
 	}
 
@@ -740,14 +756,19 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 				if okff {
 					TotalXReviewQueueInputs.Inc()
-					s.XReview = append(s.XReview, fullFault)
+					s.XReviewMutex.Lock()
+					s.XReview = append(s.XReview, fullFault) // WL
+					s.XReviewMutex.Unlock()
+
 				} else {
 					pl.AddToSystemList(fullFault)
 				}
 				s.MissingResponseAppliedCnt++
 			} else if pl != nil && int(fullFault.Height) >= pl.System.Height {
 				TotalXReviewQueueInputs.Inc()
-				s.XReview = append(s.XReview, fullFault)
+				s.XReviewMutex.Lock()
+				s.XReview = append(s.XReview, fullFault) // WL
+				s.XReviewMutex.Unlock()
 				s.MissingResponseAppliedCnt++
 			}
 
@@ -1082,7 +1103,9 @@ func (s *State) LeaderExecuteCommitChain(m interfaces.IMsg) {
 	re := s.Holding[cc.CommitChain.EntryHash.Fixed()]
 	if re != nil {
 		TotalXReviewQueueInputs.Inc()
-		s.XReview = append(s.XReview, re)
+		s.XReviewMutex.Lock()
+		s.XReview = append(s.XReview, re) // WL
+		s.XReviewMutex.Unlock()
 		re.SendOut(s, re)
 	}
 }
@@ -1092,7 +1115,9 @@ func (s *State) LeaderExecuteCommitEntry(m interfaces.IMsg) {
 	ce := m.(*messages.CommitEntryMsg)
 	re := s.Holding[ce.CommitEntry.EntryHash.Fixed()]
 	if re != nil {
-		s.XReview = append(s.XReview, re)
+		s.XReviewMutex.Lock()
+		s.XReview = append(s.XReview, re) // WL
+		s.XReviewMutex.Unlock()
 		re.SendOut(s, re)
 	}
 }
@@ -1211,7 +1236,9 @@ func (s *State) ProcessCommitChain(dbheight uint32, commitChain interfaces.IMsg)
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, entry)
+			s.XReviewMutex.Lock()
+			s.XReview = append(s.XReview, entry) // WL
+			s.XReviewMutex.Unlock()
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}
@@ -1236,7 +1263,9 @@ func (s *State) ProcessCommitEntry(dbheight uint32, commitEntry interfaces.IMsg)
 			entry.FollowerExecute(s)
 			entry.SendOut(s, entry)
 			TotalXReviewQueueInputs.Inc()
-			s.XReview = append(s.XReview, entry)
+			s.XReviewMutex.Lock()
+			s.XReview = append(s.XReview, entry) // WL
+			s.XReviewMutex.Unlock()
 			TotalHoldingQueueOutputs.Inc()
 			delete(s.Holding, h.Fixed())
 		}

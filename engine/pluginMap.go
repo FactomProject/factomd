@@ -135,14 +135,14 @@ func manageDrain(inQueue interfaces.IQueue, man interfaces.IManagerController, s
 					}
 
 					// Already processed this height completely
-					if dbMsg.DirectoryBlock.GetDatabaseHeight() < s.EntryDBHeightComplete.LoadUint32() {
+					if dbMsg.DirectoryBlock.GetDatabaseHeight() < s.EntryDBHeightComplete.Load() {
 						continue
 					}
 
 					if !cm.CompleteHeight(int(dbMsg.DirectoryBlock.GetDatabaseHeight())) {
 						continue
 					}
-					cm.ClearTo(int(s.EntryDBHeightComplete.LoadUint32()))
+					cm.ClearTo(int(s.EntryDBHeightComplete.Load()))
 
 					inQueue.Enqueue(dbMsg)
 				}

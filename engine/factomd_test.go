@@ -1,7 +1,7 @@
 package engine_test
 
 import (
-	"io/ioutil"
+//	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -38,26 +38,28 @@ func WaitMinutes(s *state.State, min int) {
 
 func TestSetupANetwork(t *testing.T) {
 
-	rescueStdout := os.Stdout
-	r, w, _ := os.Pipe()
+//	rescueStdout := os.Stdout
+//	r, w, _ := os.Pipe()
 
-	startCap := func() {
-		rescueStdout = os.Stdout
-		r, w, _ = os.Pipe()
-		os.Stdout = w
-	}
+//	startCap := func() {
+//		rescueStdout = os.Stdout // Clay -- killed the stdout capture stuff to avoid it reporting as race
+//      r, w, _ = os.Pipe()
+//		os.Stdout = w
+//	}
 	endCap := func() string {
 		<-ProcessChan
-		w.Close()
-		out, _ := ioutil.ReadAll(r)
-		os.Stdout = rescueStdout
-		return string(out)
+//		w.Close()
+//		out, _ := ioutil.ReadAll(r)
+//		os.Stdout = rescueStdout
+//		return string(out)
+	return ""
 	}
 
 	runCmd := func(cmd string) string {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
-		startCap()
+	//	startCap()
 		InputChan <- cmd
+		time.Sleep(100*time.Millisecond)
 		v := endCap()
 		return v
 	}
@@ -70,12 +72,16 @@ func TestSetupANetwork(t *testing.T) {
 		panic(err)
 	}
 
-	if  usr.Name  == "clay" {
+	if  usr.Username  == "clay" {
 		fmt.Println("Starting two minute timeout for Clay")
 		go func() {
 			time.Sleep(120 * time.Second) // Die after two minutes
-			t.Fatal("Failed to shut down factomd via ShutdownChan")
+			t.Fatal("Clay's imeout timed out")
+			panic("Clay's Timeout")
 		}()
+	} else {
+		fmt.Println("Not starting two minute timeout for Clay -- [%v]", usr.Username)
+
 	}
 
 	args := append([]string{},

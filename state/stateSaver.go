@@ -40,7 +40,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	defer sss.Mutex.Unlock()
 
 	//Don't save States after the server has booted - it might start it in a wrong state
-	if ss.State.DBFinished.LoadBool(){
+	if ss.State.DBFinished.Load(){
 		return nil
 	}
 

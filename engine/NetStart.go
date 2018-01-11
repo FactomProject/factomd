@@ -228,13 +228,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.SetDropRate(p.DropRate)
 
 	if p.Sync2 >= 0 {
-		s.EntryDBHeightComplete.StoreUint32(uint32(p.Sync2))
+		s.EntryDBHeightComplete.Store(uint32(p.Sync2))
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("ERROR: %v", err))
 		} else {
-			s.EntryDBHeightComplete.StoreUint32(height)
+			s.EntryDBHeightComplete.Store(height)
 		}
 	}
 
@@ -271,7 +271,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete.LoadUint32()))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete.Load()))
 
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
@@ -591,7 +591,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Key2 = primitives.NewZeroHash()
 	id.Key3 = primitives.NewZeroHash()
 	id.Key4 = primitives.NewZeroHash()
-	id.Status.StoreUint8(constants.IDENTITY_FEDERATED_SERVER) // Used to be the "1"
+	id.Status.Store(constants.IDENTITY_FEDERATED_SERVER) // Used to be the "1"
 	s.Identities = append(s.Identities, &id)
 
 	var auth identity.Authority

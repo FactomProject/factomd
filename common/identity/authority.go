@@ -36,7 +36,7 @@ func RandomAuthority() *Authority {
 	a.MatryoshkaHash = primitives.RandomHash()
 
 	a.SigningKey = *primitives.RandomPrivateKey().Pub
-	a.Status.StoreUint8( random.RandUInt8())
+	a.Status.Store( random.RandUInt8())
 
 	l := random.RandIntBetween(1, 10)
 	for i := 0; i < l; i++ {
@@ -177,7 +177,7 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status.StoreUint8( uint8(status))
+	e.Status.Store( uint8(status))
 
 	l, err := buf.PopVarInt()
 	if err != nil {
@@ -216,9 +216,9 @@ func (e *Authority) UnmarshalBinary(p []byte) error {
 
 // 1 if fed, 0 if audit, -1 if neither
 func (auth *Authority) Type() int {
-	if auth.Status.LoadUint8() == constants.IDENTITY_FEDERATED_SERVER {
+	if auth.Status.Load() == constants.IDENTITY_FEDERATED_SERVER {
 		return 1
-	} else if auth.Status.LoadUint8() == constants.IDENTITY_AUDIT_SERVER {
+	} else if auth.Status.Load() == constants.IDENTITY_AUDIT_SERVER {
 		return 0
 	}
 	return -1
@@ -264,7 +264,7 @@ func (auth *Authority) MarshalJSON() ([]byte, error) {
 		ManagementChainID: auth.ManagementChainID,
 		MatryoshkaHash:    auth.MatryoshkaHash,
 		SigningKey:        auth.SigningKey.String(),
-		Status:            statusToJSONString(auth.Status.LoadUint8()),
+		Status:            statusToJSONString(auth.Status.Load()),
 		AnchorKeys:        auth.AnchorKeys,
 	})
 }
