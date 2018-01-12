@@ -50,7 +50,7 @@ func RandomIdentity() *Identity {
 	id.Key3 = primitives.RandomHash()
 	id.Key4 = primitives.RandomHash()
 	id.SigningKey = primitives.RandomHash()
-	id.Status.Store(random.RandUInt8())
+	id.Status.Store( random.RandUInt8())
 
 	l := random.RandIntBetween(0, 10)
 	for i := 0; i < l; i++ {

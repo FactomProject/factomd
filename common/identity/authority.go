@@ -36,7 +36,7 @@ func RandomAuthority() *Authority {
 	a.MatryoshkaHash = primitives.RandomHash()
 
 	a.SigningKey = *primitives.RandomPrivateKey().Pub
-	a.Status.Store(random.RandUInt8())
+	a.Status.Store( random.RandUInt8())
 
 	l := random.RandIntBetween(1, 10)
 	for i := 0; i < l; i++ {
@@ -177,7 +177,7 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status.Store(uint8(status))
+	e.Status.Store( uint8(status))
 
 	l, err := buf.PopVarInt()
 	if err != nil {
