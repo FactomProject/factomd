@@ -97,7 +97,7 @@ func (e *Identity) IsSameAs(b *Identity) bool {
 	if e.SigningKey.IsSameAs(b.SigningKey) == false {
 		return false
 	}
-	if e.Status != b.Status {
+	if e.Status.Load() != b.Status.Load() {
 		return false
 	}
 	if len(e.AnchorKeys) != len(b.AnchorKeys) {
@@ -190,7 +190,7 @@ func (e *Identity) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = buf.PushByte(byte(e.Status))
+	err = buf.PushByte(byte(e.Status.Load()))
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +264,7 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status.Store(uint8(b))
+	e.Status.Store( uint8(b))
 
 	l, err := buf.PopVarInt()
 	if err != nil {
