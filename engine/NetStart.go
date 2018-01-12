@@ -13,7 +13,6 @@ import (
 	"math"
 	"os"
 	"time"
-	"sync"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/identity"
@@ -26,6 +25,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
@@ -37,7 +37,7 @@ type FactomNode struct {
 	MLog  *MsgLog
 }
 
-var fnodesMu sync.Mutex
+var fnodesMu atomic.DebugMutex
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
