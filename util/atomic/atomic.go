@@ -1,13 +1,12 @@
 package atomic
 
 import (
-	"sync/atomic"
-	"sync"
-	"runtime"
-	"fmt"
-	"unsafe"
-	"strings"
-	"time"
+"sync/atomic"
+"sync"
+"runtime"
+"fmt"
+"strings"
+"time"
 )
 
 type AtomicBool int32
@@ -113,68 +112,91 @@ func WhereAmIString(msg string, depth int) string {
 }
 
 func WhereAmI(msg string, depth int) {
-	fmt.Println(WhereAmIString(msg,depth+1))
+	fmt.Println("\n"+WhereAmIString(msg, depth+1))
 }
 
 type DebugMutex struct {
-	Name      string
-	mu        sync.Mutex
-	DummyLock AtomicBool
+	name AtomicString
+	mu   sync.Mutex
+	lock AtomicBool
 }
 
-func (c *DebugMutex) Lock() {
-	if(c.Name == "") {
-		c.Name = WhereAmIString("DebugMutex ",1) // name Mutex for first lock... can't get construction
-	}
+ var flag bool = false
 
-	if (c.DummyLock.Load()) {
-		fmt.Println(c.Name + ":Already Locked!")
-		WhereAmI("lock   "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
-		// Make a timer to whine if I am starving!
-		done := make(chan struct{})
-		go func() {
-			for {
-				for i := 0; i < 30; i++ {
-					select {
-					case <-done:
-						return
+func (c *DebugMutex) Lock() {
+	if (c.lock.Load()) {
+		WhereAmI("Already Locked:"+c.name.Load(), 2)
+		if flag {
+			// Make a timer to whine if I am starving!
+			done := make(chan struct{})
+			go func() {
+				for {
+					for i := 0; i < 30; i++ {
+						select {
+						case <-done:
+							return
+						default:
+							time.Sleep(100 * time.Millisecond)
+						}
 					}
-					time.Sleep(100 * time.Millisecond)
+					WhereAmI(c.name.Load()+" Lock starving!\n", 2)
 				}
-				WhereAmI(c.Name + " Lock starving!\n", 2)
-			}
-		}()
-		defer func () {done <- struct{}{}}() // End the timer when I get the lock
+			}()
+			defer func() { done <- struct{}{} }() // End the timer when I get the lock
+		}
 	}
 	// It is possible to loose the lock after the check and before here and starve anyway
 	c.mu.Lock()
-	c.DummyLock.Store(true)
+	c.lock.Store(true)
+	// set the name of the lock the first time it is acquired
+	if (c.name.Load() == "") {
+		c.name.Store(WhereAmIString("DebugMutex ", 1))
+	}
 }
 func (c *DebugMutex) Unlock() {
-	if (c.DummyLock.Load()==false) {
-		fmt.Print("Already Unlocked!")
-		WhereAmI(c.Name+":Unlock "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
-		// think this will panic()
+	if (c.lock.Load()==false) {
+		WhereAmI("Already Unlocked:"+c.name.Load(), 2)
+		panic("Double Unlock")
 	}
-	c.DummyLock.Store(false)
+	c.lock.Store(false)
 	c.mu.Unlock()
 }
 
-/*
-type DebugMutex struct {
-	Name      string
-//	mu        sync.Mutex
-	DummyLock AtomicBool
+
+func main() {
+	fmt.Println("Begin Main")
+
+	var l  DebugMutex
+
+	go func() {
+		//		fmt.Println("Start 1")
+		for i := 0; i < 20; i++ {
+			l.Lock()
+			fmt.Printf("[%d]", i)
+			l.Unlock()
+			time.Sleep(2 * time.Second)
+		}
+	}()
+
+	//	fmt.Println("Start main")
+	for i := 0; i < 20; i++ {
+		fmt.Printf("<%d>", i)
+		if (i == 5) {
+			l.Lock()
+		}
+		if (i == 15) {
+			l.Unlock()
+		}
+		time.Sleep(1 * time.Second)
+
+	}
 }
 
+/*
 func (c *DebugMutex) Lock() {
-	if(c.Name == "") {
-		c.Name = WhereAmIString("DebugMutex ",1) // name Mutex for first lock... can't get construction
-	}
-
-	if (c.DummyLock.Load()) {
-		fmt.Println(c.Name + ":Already Locked!")
-		WhereAmI("lock   "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
+	b := atomic.CompareAndSwapInt32(&c.lock, 0, 1)
+	if (!b) {
+		WhereAmI("Already Locked:"+c.name.Load(), 2)
 		// Make a timer to whine if I am starving!
 		done := make(chan struct{})
 		go func() {
@@ -183,27 +205,42 @@ func (c *DebugMutex) Lock() {
 					select {
 					case <-done:
 						return
+					default:
+						time.Sleep(100 * time.Millisecond)
+						//						fmt.Printf("+")
 					}
-					time.Sleep(100 * time.Millisecond)
 				}
-				WhereAmI(c.Name + " Lock starving!\n", 2)
+				WhereAmI("Lock Starving:"+c.name.Load(), 2)
 			}
 		}()
-		defer func () {done <- struct{}{}}() // End the timer when I get the lock
+		defer func() { done <- struct{}{} }() // End the timer when I get the lock
+		for {
+			b := atomic.CompareAndSwapInt32(&c.lock, 0, 1)
+			if (b) {
+				//				fmt.Printf("!")
+				break
+			}
+			//			fmt.Printf(".")
+			time.Sleep(100 * time.Millisecond)
+		} // sit and spin }
 	}
-	// It is possible to loose the lock after the check and before here and starve anyway
-//	c.mu.Lock()
-	c.DummyLock.Store(true)
+	c.mu.Lock()
+	// set the name of the lock the first time it is acquired
+	if (c.name.Load() == "") {
+		c.name.Store(WhereAmIString("DebugMutex ", 1))
+	}
 }
+
 func (c *DebugMutex) Unlock() {
-	if (c.DummyLock.Load()==false) {
-		fmt.Print("Already Unlocked!")
-		WhereAmI(c.Name+":Unlock "+fmt.Sprint(unsafe.Pointer(&c.mu)), 2)
-		// think this will panic()
+    c.mu.Unlock()
+	b := atomic.CompareAndSwapInt32(&c.lock, 1, 0)
+	if (!b) {
+		WhereAmI("Already Unlocked:"+c.name.Load(), 2)
+		panic("Double Unlock")
 	}
-	c.DummyLock.Store(false)
-//	c.mu.Unlock()
 }
+
+
 
 func main() {
 	fmt.Println("Begin Main")
