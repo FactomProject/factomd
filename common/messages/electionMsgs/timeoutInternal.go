@@ -103,7 +103,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	}
 
 	if aidx != auditIdx {
-		s.Election2 = e.FeedBackStr(fmt.Sprintf("%d-%d",e.Round[e.Electing],auditIdx), true, e.Electing)
+		s.Election2 = e.FeedBackStr(fmt.Sprintf("%d-%d", e.Round[e.Electing], auditIdx), true, e.Electing)
 	}
 
 }

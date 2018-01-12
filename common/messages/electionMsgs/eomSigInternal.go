@@ -97,7 +97,7 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 			e.Minute)
 	}
 	idx := e.LeaderIndex(m.ServerID)
-	s.Election2 = e.FeedBackStr("m",true, idx)
+	s.Election2 = e.FeedBackStr("m", true, idx)
 	if idx >= 0 {
 		e.Sync[idx] = true // Mark the leader at idx as synced.
 	} else {

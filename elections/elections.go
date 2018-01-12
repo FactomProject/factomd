@@ -95,8 +95,8 @@ func (e *Elections) AuditIndex(server interfaces.IHash) int {
 
 func (e *Elections) AuditPriority() int {
 	// Get the priority order list of audit servers in the priority order
-	for len(e.Round)<= e.Electing {
-		e.Round = append(e.Round,0)
+	for len(e.Round) <= e.Electing {
+		e.Round = append(e.Round, 0)
 	}
 	e.APriority = Order(e.Audit, e.DBHeight, e.Minute, e.Electing, e.Round[e.Electing])
 
