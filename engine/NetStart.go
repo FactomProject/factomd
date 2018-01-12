@@ -505,7 +505,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	// Start the webserver
-	go wsapi.Start(fnodes[0].State)
+	wsapi.Start(fnodes[0].State)
 
 	// Start prometheus on port
 	launchPrometheus(9876)
