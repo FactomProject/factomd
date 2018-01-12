@@ -836,7 +836,7 @@ func SimControl(listenTo int, listenStdin bool) {
 						if amt != -1 && c == amt {
 							break
 						}
-						stat := returnStatString(ident.Status)
+						stat := returnStatString(ident.Status.Load())
 						if show == 5 {
 							if c != amt {
 							} else {
