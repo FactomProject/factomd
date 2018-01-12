@@ -1,13 +1,15 @@
 package engine_test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 
 	. "github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/state"
+	"os/user"
+	"fmt"
+	"io/ioutil"
 )
 
 var _ = Factomd
@@ -56,8 +58,31 @@ func TestSetupANetwork(t *testing.T) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
 		startCap()
 		InputChan <- cmd
+//		time.Sleep(1000*time.Millisecond) // Uncommenting this makes us ill at this point.
 		v := endCap()
 		return v
+	}
+
+
+
+	usr, err := user.Current()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if  usr.Username  == "clay" {
+		go func() {
+			fmt.Println("Starting two minute timeout for Clay")
+			for i:=0; i<10; i++ {
+				fmt.Println("Clay -- ", i)
+				time.Sleep(5 * time.Second) // Die after two minutes
+			}
+			panic("Clay's Timeout")
+		}()
+	} else {
+		fmt.Println("Not starting two minute timeout for Clay -- [%v]", usr.Username)
+
 	}
 
 	args := append([]string{},

@@ -21,6 +21,8 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/util/atomic"
+
 
 	log "github.com/sirupsen/logrus"
 )
@@ -61,9 +63,9 @@ type ProcessList struct {
 
 	// Temporary balances from updating transactions in real time.
 	FactoidBalancesT      map[[32]byte]int64
-	FactoidBalancesTMutex sync.Mutex
+	FactoidBalancesTMutex atomic.DebugMutex
 	ECBalancesT           map[[32]byte]int64
-	ECBalancesTMutex      sync.Mutex
+	ECBalancesTMutex      atomic.DebugMutex
 
 	State        *State
 	VMs          []*VM       // Process list for each server (up to 32)
@@ -76,7 +78,7 @@ type ProcessList struct {
 
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
-	oldmsgslock *sync.Mutex
+	oldmsgslock *atomic.DebugMutex
 
 	// Chains that are executed, but not processed. There is a small window of a pending chain that the ack
 	// will pass and the chainhead will fail. This covers that window. This is only used by WSAPI,
@@ -84,11 +86,11 @@ type ProcessList struct {
 	PendingChainHeads *SafeMsgMap
 
 	OldAcks     map[[32]byte]interfaces.IMsg
-	oldackslock *sync.Mutex
+	oldackslock *atomic.DebugMutex
 
 	// Entry Blocks added within 10 minutes (follower and leader)
 	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
-	neweblockslock *sync.Mutex
+	neweblockslock *atomic.DebugMutex
 
 	NewEntriesMutex sync.RWMutex
 	NewEntries      map[[32]byte]interfaces.IEntry
@@ -1299,12 +1301,12 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.PendingChainHeads = NewSafeMsgMap()
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
-	pl.oldmsgslock = new(sync.Mutex)
+	pl.oldmsgslock = new(atomic.DebugMutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
-	pl.oldackslock = new(sync.Mutex)
+	pl.oldackslock = new(atomic.DebugMutex)
 
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
-	pl.neweblockslock = new(sync.Mutex)
+	pl.neweblockslock = new(atomic.DebugMutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
 	pl.DBSignatures = make([]DBSig, 0)

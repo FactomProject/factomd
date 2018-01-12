@@ -6,10 +6,11 @@ package state
 
 import (
 	"fmt"
-	"sync"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
-var cntsMutex sync.Mutex
+var cntsMutex atomic.DebugMutex
 var cnts map[string]int
 
 func PrintState(state *State) {
