@@ -23,7 +23,7 @@ import (
 var _ = fmt.Print
 
 func SetDBFinished(s *State) {
-	s.DBFinished.StoreBool(true)
+	s.DBFinished.Store(true)
 }
 
 func LoadDatabase(s *State) {

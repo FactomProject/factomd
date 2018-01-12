@@ -66,7 +66,7 @@ func Peers(fnode *FactomNode) {
 			case constants.EOM_MSG:
 				return true
 			case constants.MISSING_DATA:
-				if !fnode.State.DBFinished.LoadBool() {
+				if !fnode.State.DBFinished.Load() {
 					return true
 				} else if fnode.State.InMsgQueue().Length() > 4000 {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind

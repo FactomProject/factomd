@@ -107,7 +107,7 @@ func (s *State) Process() (progress bool) {
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
-			if s.DBFinished.LoadBool() {
+			if s.DBFinished.Load() {
 				s.RunLeader = true
 				if !s.IgnoreDone {
 					s.StartDelay = now // Reset StartDelay for Ignore Missing

@@ -23,7 +23,7 @@ import (
 func (st *State) VerifyAuthoritySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte, dbheight uint32) (int, error) {
 	feds := st.GetFedServers(dbheight)
 	if feds == nil {
-		return -1, fmt.Errorf("Federated Servers are unknown at directory block hieght %d", dbheight)
+		return -1, fmt.Errorf("Federated Servers are unknown at directory block height %d", dbheight)
 	}
 	auds := st.GetAuditServers(dbheight)
 
