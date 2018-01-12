@@ -194,7 +194,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			//fmt.Println("Error when Making Identity,", err)
 		}
 		AuthorityIndex = st.AddAuthorityFromChainID(f.IdentityChainID)
-		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_FEDERATED_SERVER
+		st.Authorities[AuthorityIndex].Status.Store(constants.IDENTITY_FEDERATED_SERVER)
 		// check Identity status
 		UpdateIdentityStatus(f.IdentityChainID, constants.IDENTITY_FEDERATED_SERVER, st)
 	case constants.TYPE_ADD_AUDIT_SERVER:
@@ -208,7 +208,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			//fmt.Println("Error when Making Identity,", err)
 		}
 		AuthorityIndex = st.AddAuthorityFromChainID(a.IdentityChainID)
-		st.Authorities[AuthorityIndex].Status = constants.IDENTITY_AUDIT_SERVER
+		st.Authorities[AuthorityIndex].Status.Store(constants.IDENTITY_AUDIT_SERVER)
 		// check Identity status
 		UpdateIdentityStatus(a.IdentityChainID, constants.IDENTITY_AUDIT_SERVER, st)
 	case constants.TYPE_REMOVE_FED_SERVER:
@@ -267,7 +267,7 @@ func (st *State) GetAuthorityServerType(chainID interfaces.IHash) int { // 0 = F
 	if index == -1 {
 		return -1
 	}
-	status := st.Authorities[index].Status
+	status := st.Authorities[index].Status.Load()
 	if status == constants.IDENTITY_FEDERATED_SERVER ||
 		status == constants.IDENTITY_PENDING_FEDERATED_SERVER {
 		return 0
@@ -321,7 +321,7 @@ func (st *State) createAuthority(chainID interfaces.IHash) int {
 	if idIndex != -1 && st.Identities[idIndex].ManagementChainID != nil {
 		newAuth.ManagementChainID = st.Identities[idIndex].ManagementChainID
 	}
-	newAuth.Status = constants.IDENTITY_PENDING_FULL
+	newAuth.Status.Store(constants.IDENTITY_PENDING_FULL)
 
 	st.Authorities = append(st.Authorities, newAuth)
 	return len(st.Authorities) - 1
@@ -342,7 +342,7 @@ func (s *State) RepairAuthorities() {
 			}
 			if idIndex != -1 {
 				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
-				s.Identities[idIndex].Status = s.Authorities[i].Status
+				s.Identities[idIndex].Status = s.Authorities[i].Status.Load()
 			}
 		}
 	}
