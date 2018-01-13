@@ -27,9 +27,15 @@ type VolunteerAudit struct {
 	TS          interfaces.Timestamp // Message Timestamp
 	EOM         bool                 // True if an EOM, false if a DBSig
 	Name        string               // Server name
-	FedIdx      uint32               // Index of Fed Server to replace
+
+                                    // Server that is faulting
+	FedIdx      uint32               // Server faulting
+	FedID       interfaces.IHash     // Server faulting
+
+                                    // Audit server to replace faulting server
 	ServerIdx   uint32               // Index of Server replacing
 	ServerID    interfaces.IHash     // Volunteer Server ChainID
+
 	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
 	DBHeight    uint32               // Directory Block Height that owns this ack
 	Minute      byte                 // Minute (-1 for dbsig)
@@ -63,7 +69,7 @@ func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.
 
 	}
 	if idx >= 0 {
-		s.Election2 = e.FeedBackStr(fmt.Sprintf("V%d", e.), false, auditIdx)
+		//s.Election2 = e.FeedBackStr(fmt.Sprintf("V%d", e.), false, auditIdx)
 	}
 }
 
@@ -125,6 +131,7 @@ func (m *VolunteerAudit) GetRepeatHash() interfaces.IHash {
 }
 
 // We have to return the haswh of the underlying message.
+
 func (m *VolunteerAudit) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
@@ -182,7 +189,6 @@ func (e *VolunteerAudit) JSONString() (string, error) {
 
 func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
@@ -228,7 +234,8 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 		if m.Missing, err = buf.PopMsg(); err != nil {
 			return nil, err
 		}
-	return buf.PopBytes()
+	newData, err = buf.PopBytes()
+	return
 }
 
 func (m *VolunteerAudit) UnmarshalBinary(data []byte) error {
@@ -239,8 +246,8 @@ func (m *VolunteerAudit) UnmarshalBinary(data []byte) error {
 func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
-	if e := buf.PushByte(constants.VOLUNTEERAUDIT); e != nil {
-		return nil, e
+	if err = buf.PushByte(constants.VOLUNTEERAUDIT); err != nil {
+		return nil, err
 	}
 	if e := buf.PushTimestamp(m.TS); e != nil {
 		return nil, e
@@ -278,7 +285,8 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushMsg(m.Missing); e != nil {
 		return nil, e
 	}
-	return buf.DeepCopyBytes(), nil
+	data = buf.DeepCopyBytes()
+	return data, nil
 }
 
 func (m *VolunteerAudit) String() string {

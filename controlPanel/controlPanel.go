@@ -98,6 +98,9 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 			}
 		}
 	}()
+
+	time.Sleep(15*time.Second)
+
 	StatePointer = statePointer
 	StatePointer.ControlPanelDataRequest = true // Request initial State
 	// Wait for initial State

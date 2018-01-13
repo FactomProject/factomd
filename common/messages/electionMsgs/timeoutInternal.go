@@ -93,6 +93,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.Name = e.Name
 			Sync.FedIdx = uint32(e.Electing)
 			Sync.FedID = e.FedID
+			Sync.ServerIdx = uint32(aidx)
+			Sync.ServerID = is.GetIdentityChainID()
 			Sync.Weight = e.APriority[auditIdx]
 			Sync.DBHeight = uint32(e.DBHeight)
 			Sync.Minute = byte(e.Minute)

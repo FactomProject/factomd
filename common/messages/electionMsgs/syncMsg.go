@@ -141,7 +141,6 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
 	eom, ack := s.CreateEOM(eom, m.VMIndex)
 
-	aidx := m.ServerIdx
 	if eom == nil {
 		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
 		return
@@ -150,12 +149,15 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.Missing = eom
 	va.Ack = ack
 
-	va.FedIdx =
+	va.FedIdx = m.FedIdx
+	va.FedID = va.FedID
+
+	va.ServerIdx = uint32(m.ServerIdx)
+	va.ServerID = m.ServerID
+
 	va.VMIndex = m.VMIndex
 	va.TS = primitives.NewTimestampNow()
 	va.Name = m.Name
-	va.ServerIdx = uint32(m.ServerIdx)
-	va.ServerID = m.ServerID
 	va.Weight = m.Weight
 	va.DBHeight = m.DBHeight
 	va.Minute = m.Minute
