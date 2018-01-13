@@ -40,7 +40,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		eCommits := 0
 
 		for _, f := range pnodes {
-			f.State.Status = 1
+			f.State.Status.Store( 1)
 		}
 
 		time.Sleep(time.Second)
