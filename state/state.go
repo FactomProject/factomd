@@ -236,6 +236,7 @@ type State struct {
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReviewMutex  atomic.DebugMutex
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
