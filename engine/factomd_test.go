@@ -109,7 +109,7 @@ func TestSetupANetwork(t *testing.T) {
 		"-network=LOCAL",
 		"-net=alot+",
 		"-enablenet=true",
-		"-blktime=3",
+		"-blktime=10",
 		"-count="+fmt.Sprintf("%d", nodeCount),
 		"-logPort=37000",
 		"-port=37001",
