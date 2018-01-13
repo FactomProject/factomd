@@ -6,9 +6,22 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"os"
 )
 
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
+
+	defer func() {
+		if false {
+			if r := recover(); r != nil {
+				os.Stderr.WriteString(fmt.Sprintf("Error in printSummary: %v\n", r))
+				time.Sleep(1 * time.Second)
+				// Restart the print on an error.
+				printSummary(summary, value, listenTo, wsapiNode)
+			}
+		}
+	}()
+
 	out := ""
 
 	if *listenTo < 0 || *listenTo >= len(fnodes) {
@@ -124,7 +137,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
+			if f.State != nil && f.State.LeaderPL != nil && f.State.LeaderPL.NewEBlocks != nil {
+				list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
+			}
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
 
