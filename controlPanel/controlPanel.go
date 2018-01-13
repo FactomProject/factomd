@@ -88,7 +88,7 @@ func InitTemplates() {
 	TemplateMutex.Unlock()
 }
 
-// Main function. This intiates appropriate variables and starts the control panel serving
+// Main function. This initiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -111,7 +111,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
-		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
+		fmt.Println("Control Panel has been disabled within the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
 		return
 	}
 
@@ -124,7 +124,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	Controller = controller
 	InitTemplates()
 
-	// Updated Globals. A seperate GoRoutine updates these, we just initialize
+	// Updated Globals. A separate GoRoutine updates these, we just initialize
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
@@ -222,9 +222,9 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), *StatePointer)
+		found, response := searchDB(r.FormValue("search"), *StatePointer)
 		if found {
-			w.Write([]byte(respose))
+			w.Write([]byte(response))
 			return
 		} else {
 			if r.FormValue("known") == "factoidack" {

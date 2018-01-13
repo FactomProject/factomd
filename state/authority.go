@@ -225,7 +225,7 @@ func (st *State) UpdateAuthorityFromABEntry(entry interfaces.IABEntry) error {
 			IdentityIndex := st.isIdentityChain(f.IdentityChainID)
 			if IdentityIndex != -1 && IdentityIndex < len(st.Identities) {
 				if st.Identities[IdentityIndex].IdentityChainID.IsSameAs(st.GetNetworkSkeletonIdentity()) {
-					st.Identities[IdentityIndex].Status = constants.IDENTITY_SKELETON
+					st.Identities[IdentityIndex].Status.Store(constants.IDENTITY_SKELETON)
 				} else {
 					st.removeIdentity(IdentityIndex)
 				}
@@ -342,7 +342,7 @@ func (s *State) RepairAuthorities() {
 			}
 			if idIndex != -1 {
 				s.Authorities[i].ManagementChainID = s.Identities[idIndex].ManagementChainID
-				s.Identities[idIndex].Status = s.Authorities[i].Status.Load()
+				s.Identities[idIndex].Status.Store(s.Authorities[i].Status.Load())
 			}
 		}
 	}
