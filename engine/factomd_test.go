@@ -123,7 +123,8 @@ func TestSetupANetwork(t *testing.T) {
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
-	time.Sleep(15 * time.Second)
+	time.Sleep(3 * time.Second)
+
 
 	t.Logf("Allocated %d nodes", nodeCount)
 	if len(GetFnodes()) != nodeCount {
@@ -142,12 +143,15 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("g10")         // Create 10 identity (one FCT transaction and a pile of chain and entry creation)
 
 	WaitBlocks(state0, 3) // wait till the dust settles
-
 	// Allocate leaders
 	WaitMinutes(state0, 3) // don't start at the beginning of the block (third minute absolute)
 	runCmd("1")            // select node 1
 	for i := 0; i < expectedLeaderCount-1; i++ {
-		runCmd("l") // make current node a leader, advance to next node
+		if(i==0) {
+			runCmd("l")// make current node a leader, advance to next node
+		} else {
+			runCmd("") // Repeat make current node a leader, advance to next node
+		}
 	}
 
 	// Allocate audit servers
@@ -155,8 +159,9 @@ func TestSetupANetwork(t *testing.T) {
 		runCmd("o") // make current node an audit, advance to next node
 	}
 
-	WaitBlocks(state0, 1)  // wait till the dust settles (relative one block)
+	WaitBlocks(state0, 2)  // wait till the dust settles (relative one block)
 	WaitMinutes(state0, 1) // don't start at the beginning of the block (third minute absolute)
+	WaitMinutes(state0, 2) // don't start at the beginning of the block (third minute absolute)
 
 	leadercnt := 0
 	auditcnt := 0
@@ -191,8 +196,9 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("g10")
 
 	fn1 := GetFocus()
-	if fn1.State.FactomNodeName != "FNode07" {
-		t.Fatalf("Expected FNode07, but got %s", fn1.State.FactomNodeName)
+	expectedName := fmt.Sprintf("FNode%02d",expectedLeaderCount+expectedAuditCount)
+	if fn1.State.FactomNodeName != expectedName {
+		t.Fatalf("Expected %s, but got %s",expectedName, fn1.State.FactomNodeName)
 	}
 	runCmd("g1")
 	WaitMinutes(state0, 3)
@@ -300,7 +306,7 @@ func TestBasicSetup(t *testing.T) {
 	}
 	endTimeout := func() { done <- struct{}{} }
 
-	nodeCount := 1
+	nodeCount := 3
 	expectedLeaderCount := nodeCount / 2
 	expectedAuditCount := expectedLeaderCount + 1
 

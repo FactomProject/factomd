@@ -22,7 +22,7 @@ import (
 var p2pProxy *engine.P2PProxy
 
 var old []map[[32]byte]int
-var oldsync sync.Mutex
+var oldsync atomic.DebugMutex
 
 var oldcnt int
 

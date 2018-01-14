@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
-
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 type StateSaverStruct struct {
@@ -18,7 +18,7 @@ type StateSaverStruct struct {
 	FastBootLocation string
 
 	TmpState []byte
-	Mutex    sync.Mutex
+	Mutex    atomic.DebugMutex
 	Stop     bool
 }
 

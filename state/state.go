@@ -108,7 +108,7 @@ type State struct {
 	// Just to print (so debugging doesn't drive functionality)
 	Status      atomic.AtomicInt // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
-	StatusMutex sync.Mutex
+	StatusMutex atomic.DebugMutex
 	StatusStrs  []string
 	starttime   time.Time
 	transCnt    int
@@ -284,9 +284,9 @@ type State struct {
 
 	// Permanent balances from processing blocks.
 	FactoidBalancesP      map[[32]byte]int64
-	FactoidBalancesPMutex sync.Mutex
+	FactoidBalancesPMutex atomic.DebugMutex
 	ECBalancesP           map[[32]byte]int64
-	ECBalancesPMutex      sync.Mutex
+	ECBalancesPMutex      atomic.DebugMutex
 	TempBalanceHash       interfaces.IHash
 	Balancehash           interfaces.IHash
 

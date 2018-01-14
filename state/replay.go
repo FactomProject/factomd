@@ -7,13 +7,14 @@ package state
 import (
 	"fmt"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 const Range = 60                // Double this for the period we protect, i.e. 120 means +/- 120 minutes
@@ -23,7 +24,7 @@ var _ = time.Now()
 var _ = fmt.Print
 
 type Replay struct {
-	Mutex    sync.Mutex
+	Mutex    atomic.DebugMutex
 	Buckets  [numBuckets]map[[32]byte]int
 	Basetime int // hours since 1970
 	Center   int // Hour of the current time.
