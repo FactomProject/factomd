@@ -302,7 +302,7 @@ type BlockSet struct {
 	EBlocks []interfaces.IEntryBlock
 	Entries []interfaces.IEBEntry
 
-	Mutex sync.Mutex
+	Mutex atomic.DebugMutex
 }
 
 func SaveToDBLoop(input chan []BlockSet, done chan int) {

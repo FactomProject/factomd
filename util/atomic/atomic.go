@@ -83,24 +83,14 @@ func (a *AtomicString) Load() string {
 	return a.s
 }
 
-/*
-func main() {
 
-	var t AtomicBool
-
-	fmt.Printf("%v, %v\n", t, t.Load())
-	t.Store(true)
-	fmt.Printf("%v, %v\n", t, t.Load())
-	t.Store(false)
-	fmt.Printf("%v, %v\n", t, t.Load())
-}
-*/
+// Hacky debugging stuff... probably not a great home for it
 
 func Goid() string {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
 	s := string(buf[:n])
-	idField := s[:strings.Index(s, "[")]
+	idField := s[:strings.Index(s,"[")]
 	return idField
 }
 
