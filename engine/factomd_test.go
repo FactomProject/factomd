@@ -107,9 +107,9 @@ func TestSetupANetwork(t *testing.T) {
 	args := append([]string{},
 		"-db=Map",
 		"-network=LOCAL",
-		"-net=alot+",
+		"-net=tree",
 		"-enablenet=true",
-		"-blktime=10",
+		"-blktime=20",
 		"-count="+fmt.Sprintf("%d", nodeCount),
 		"-logPort=37000",
 		"-port=37001",
@@ -133,18 +133,18 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	runCmd("s") // start display of status
+	WaitMinutes(state0,3)
+	runCmd("g10")         // Create 10 identity (one FCT transaction and a pile of chain and entry creation)
 	runCmd("9") // select 9
 	runCmd("x") // take it offline
 	runCmd("w") // make the API point to current (for code coverage, there is no traffic)
 	runCmd("10")
 	runCmd("8")
 	runCmd("w")           // make the API point to 8 it will
-	WaitBlocks(state0, 1) // wait one block  (relative one block)
-	runCmd("g10")         // Create 10 identity (one FCT transaction and a pile of chain and entry creation)
 
-	WaitBlocks(state0, 3) // wait till the dust settles
+	WaitBlocks(state0, 2) // wait till the dust settles
 	// Allocate leaders
-	WaitMinutes(state0, 3) // don't start at the beginning of the block (third minute absolute)
+	WaitMinutes(state0, 1) // don't start at the beginning of the block (third minute absolute)
 	runCmd("1")            // select node 1
 	for i := 0; i < expectedLeaderCount-1; i++ {
 		if(i==0) {
@@ -160,8 +160,8 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	WaitBlocks(state0, 2)  // wait till the dust settles (relative one block)
-	WaitMinutes(state0, 1) // don't start at the beginning of the block (third minute absolute)
 	WaitMinutes(state0, 2) // don't start at the beginning of the block (third minute absolute)
+	WaitMinutes(state0, 1) // don't start at the beginning of the block (third minute absolute)
 
 	leadercnt := 0
 	auditcnt := 0
