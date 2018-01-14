@@ -27,6 +27,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 var _ = fmt.Print
@@ -601,7 +602,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Key2 = primitives.NewZeroHash()
 	id.Key3 = primitives.NewZeroHash()
 	id.Key4 = primitives.NewZeroHash()
-	id.Status = 1
+	id.Status.Store(constants.IDENTITY_FEDERATED_SERVER) // Used to be the "1"
 	s.Identities = append(s.Identities, &id)
 
 	var auth identity.Authority

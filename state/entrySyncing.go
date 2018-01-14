@@ -13,6 +13,7 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
+
 	"sync"
 )
 
@@ -188,7 +189,7 @@ func (s *State) GoSyncEntries(wg *sync.WaitGroup) {
 
 	found := 0
 
-	wg.Done()
+    wg.Done()
 
 	for {
 

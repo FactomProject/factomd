@@ -7,9 +7,10 @@ import (
 
 	"github.com/FactomProject/factomd/common/constants"
 	"os"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
-func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
+func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.AtomicInt) {
 
 	defer func() {
 		if false {
@@ -66,7 +67,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 			if f.Index == *listenTo {
 				in = "f"
 			}
-			if f.Index == *wsapiNode {
+			if f.Index == wsapiNode.Load() {
 				api = "w"
 			}
 
@@ -119,7 +120,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
+			f.State.XReviewMutex.Lock()
+			list = list + fmt.Sprintf(" %3d", len(f.State.XReview)) // RL
+			f.State.XReviewMutex.Unlock()
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 

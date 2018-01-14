@@ -12,7 +12,6 @@ import (
 	"net"
 	"os"
 	"time"
-
 	"github.com/FactomProject/factomd/common/primitives"
 
 	atomic2 "github.com/FactomProject/factomd/util/atomic"

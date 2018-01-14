@@ -82,7 +82,7 @@ type State struct {
 	ControlPanelPort        int
 	ControlPanelSetting     int
 	ControlPanelChannel     chan DisplayState
-	ControlPanelDataRequest bool // If true, update Display state
+	ControlPanelDataRequest atomic.AtomicBool // If true, update Display state
 
 	// Network Configuration
 	Network                 string
@@ -190,7 +190,7 @@ type State struct {
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
 	OneLeader       bool
-	OutputAllowed   bool
+	OutputAllowed   atomic.AtomicBool
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
@@ -221,7 +221,7 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
+	NetStateOff     atomic.AtomicBool // Disable if true, Enable if false
 	DebugConsensus  bool // If true, dump consensus trace
 	FactoidTrans    int
 	ECCommits       int
@@ -532,11 +532,11 @@ func (s *State) GetAuthorityDeltas() string {
 }
 
 func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
-	return s.NetStateOff
+	return s.NetStateOff.Load()
 }
 
 func (s *State) SetNetStateOff(net bool) {
-	s.NetStateOff = net
+	s.NetStateOff.Store(net)
 }
 
 func (s *State) GetRpcUser() string {
@@ -1724,7 +1724,7 @@ func (s *State) UpdateState() (progress bool) {
 	progress = progress || p2
 
 	s.SetString()
-	if s.ControlPanelDataRequest {
+	if s.ControlPanelDataRequest.Load() {
 		s.CopyStateToControlPanel()
 	}
 
@@ -2217,7 +2217,7 @@ func (s *State) SetString() {
 		s.SetStringConsensus()
 	}
 
-	s.Status = 0
+	s.Status.Store(0)
 
 }
 
@@ -2252,7 +2252,7 @@ func (s *State) SetStringConsensus() {
 	s.serverPrt = str
 }
 
-// CalculateTransactionRate caculates how many transactions this node is processing
+// CalculateTransactionRate calculates how many transactions this node is processing
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
@@ -2316,7 +2316,7 @@ func (s *State) SetStringQueues() {
 			}
 		}
 	}
-	if s.NetStateOff {
+	if s.NetStateOff.Load() {
 		X = "X"
 	}
 	if !s.RunLeader && found {
@@ -2449,7 +2449,7 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
-	if s.OutputAllowed {
+	if s.OutputAllowed.Load() {
 		str := ""
 		for _, v := range a {
 			str = str + fmt.Sprintf("%v", v)
@@ -2469,7 +2469,7 @@ func (s *State) Print(a ...interface{}) (n int, err error) {
 }
 
 func (s *State) Println(a ...interface{}) (n int, err error) {
-	if s.OutputAllowed {
+	if s.OutputAllowed.Load() {
 		str := ""
 		for _, v := range a {
 			str = str + fmt.Sprintf("%v", v)
@@ -2490,11 +2490,11 @@ func (s *State) Println(a ...interface{}) (n int, err error) {
 }
 
 func (s *State) GetOut() bool {
-	return s.OutputAllowed
+	return s.OutputAllowed.Load()
 }
 
 func (s *State) SetOut(o bool) {
-	s.OutputAllowed = o
+	s.OutputAllowed.Store(o)
 }
 
 func (s *State) GetSystemHeight(dbheight uint32) int {

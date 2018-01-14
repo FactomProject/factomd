@@ -71,7 +71,7 @@ type SaveState struct {
 
 	Holding map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview []interfaces.IMsg            // After the EOM, we must review the messages in Holding
-	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
+	Acks    map[[32]byte]interfaces.IMsg // Hold Acknowledgements
 	Commits *SafeMsgMap                  // map[[32]byte]interfaces.IMsg // Commit Messages
 
 	InvalidMessages map[[32]byte]interfaces.IMsg
@@ -312,7 +312,7 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	}
 
 	//Only check if we're not loading from the database
-	if state.DBFinished.Load()  {
+	if state.DBFinished.Load() {
 		// If the timestamp is over a day old, then there is really no point in saving the state of
 		// historical data.
 		if int(state.GetHighestKnownBlock())-int(state.GetHighestSavedBlk()) > 144 {
@@ -372,8 +372,9 @@ func SaveFactomdState(state *State, d *DBState) (ss *SaveState) {
 	//for k := range state.Holding {
 	//ss.Holding[k] = state.Holding[k]
 	//}
-
-	ss.XReview = append(ss.XReview, state.XReview...)
+	state.XReviewMutex.Lock()
+	ss.XReview = append(ss.XReview, state.XReview...) //RL
+	state.XReviewMutex.Unlock()
 
 	ss.Acks = make(map[[32]byte]interfaces.IMsg)
 	//for k := range state.Acks {
@@ -480,7 +481,9 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 		for k := range ss.Holding {
 			state.Holding[k] = pss.Holding[k]
 		}
-		state.XReview = append(state.XReview[:0], pss.XReview...)
+	    state.XReviewMutex.Lock()
+		state.XReview = append(state.XReview[:0], pss.XReview...) // WL
+	    state.XReviewMutex.Unlock()
 	*/
 
 	/**
@@ -505,7 +508,9 @@ func (ss *SaveState) TrimBack(state *State, d *DBState) {
 	for k := range ss.Holding {
 		state.Holding[k] = pss.Holding[k]
 	}
-	state.XReview = append(state.XReview[:0], pss.XReview...)
+	state.XReviewMutex.Lock()
+	state.XReview = append(state.XReview[:0], pss.XReview...) // L
+    state.XReviewMutex.Unlock()
 
 	state.Acks = make(map[[32]byte]interfaces.IMsg)
 	for k := range pss.Acks {
@@ -636,7 +641,9 @@ func (ss *SaveState) RestoreFactomdState(state *State) { //, d *DBState) {
 	for k := range ss.Holding {
 		state.Holding[k] = ss.Holding[k]
 	}
-	state.XReview = append(state.XReview[:0], ss.XReview...)
+	state.XReviewMutex.Lock()
+	state.XReview = append(state.XReview[:0], ss.XReview...) // WL
+	state.XReviewMutex.Unlock()
 
 	state.Acks = make(map[[32]byte]interfaces.IMsg)
 	for k := range ss.Acks {
@@ -828,7 +835,7 @@ func (ss *SaveState) MarshalBinary() ([]byte, error) {
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
 		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
 		InvalidMessages map[[32]byte]interfaces.IMsg
@@ -1112,7 +1119,7 @@ func (ss *SaveState) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	/*
 		Holding map[[32]byte]interfaces.IMsg   // Hold Messages
 		XReview []interfaces.IMsg              // After the EOM, we must review the messages in Holding
-		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgemets
+		Acks    map[[32]byte]interfaces.IMsg   // Hold Acknowledgements
 		Commits map[[32]byte][]interfaces.IMsg // Commit Messages
 
 		InvalidMessages map[[32]byte]interfaces.IMsg

@@ -50,15 +50,15 @@ type Controller struct {
 
 	discovery Discovery // Our discovery structure
 
-	numberOutgoingConnections  int       // In PeerManagement we track this to know when to dial out.
+	numberOutgoingConnections int       // In PeerManagement we track this to know when to dial out.
 	numberIncomingConnections int       // In PeerManagement we track this and refuse incoming connections when we have too many.
-	lastPeerManagement         time.Time // Last time we ran peer management.
-	lastDiscoveryRequest       time.Time
-	NodeID                     uint64
-	lastStatusReport           time.Time
-	lastPeerRequest            time.Time       // Last time we asked peers about the peers they know about.
-	specialPeersString         string          // configuration set special peers
-	partsAssembler             *PartsAssembler // a data structure that assembles full messages from received message parts
+	lastPeerManagement        time.Time // Last time we ran peer management.
+	lastDiscoveryRequest      time.Time
+	NodeID                    uint64
+	lastStatusReport          time.Time
+	lastPeerRequest           time.Time       // Last time we asked peers about the peers they know about.
+	specialPeersString        string          // configuration set special peers
+	partsAssembler            *PartsAssembler // a data structure that assembles full messages from received message parts
 }
 
 type ControllerInit struct {
@@ -403,16 +403,16 @@ func (c *Controller) runloop() {
 // peer. Broadcast messages go to everyone, directed messages go to the named peer.
 // route also passes incoming messages on to the application.
 func (c *Controller) route() {
-	// Recieve messages from the peers & forward to application.
+	// Receive messages from the peers & forward to application.
 	for peerHash, connection := range c.connections {
-		// Empty the recieve channel, stuff the application channel.
+		// Empty the receive channel, stuff the application channel.
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
 			message := <-connection.ReceiveChannel
 			switch message.(type) {
 			case ConnectionCommand:
-				c.handleConnectionCommand(message.(ConnectionCommand), *connection)
+				c.handleConnectionCommand(message.(ConnectionCommand), connection) // Used to pass a copy of the connection
 			case ConnectionParcel:
-				c.handleParcelReceive(message, peerHash, *connection)
+				c.handleParcelReceive(message, peerHash, connection) // Used to pass a copy of the connection
 			default:
 				logfatal("ctrlr", "route() unknown message?: %+v ", message)
 			}
@@ -505,7 +505,7 @@ func (c *Controller) doDirectedSend(parcel Parcel) {
 }
 
 // handleParcelReceive takes a parcel from the network and annotates it for the application then routes it.
-func (c *Controller) handleParcelReceive(message interface{}, peerHash string, connection Connection) {
+func (c *Controller) handleParcelReceive(message interface{}, peerHash string, connection *Connection) {
 	TotalMessagesReceived++
 	parameters := message.(ConnectionParcel)
 	parcel := parameters.Parcel
@@ -535,7 +535,7 @@ func (c *Controller) handleParcelReceive(message interface{}, peerHash string, c
 
 }
 
-func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection Connection) {
+func (c *Controller) handleConnectionCommand(command ConnectionCommand, connection *Connection) {
 	switch command.Command {
 	case ConnectionUpdateMetrics:
 		c.connectionMetrics[connection.peer.Hash] = command.Metrics
