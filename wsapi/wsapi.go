@@ -17,7 +17,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/btcutil/certs"
@@ -25,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 )
 
 var Servers map[int]*web.Server
-var ServersMutex sync.Mutex
+var ServersMutex atomic.DebugMutex
 
 func Start(state interfaces.IState) {
 	RegisterPrometheus()

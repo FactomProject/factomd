@@ -14,8 +14,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type Discovery struct {
@@ -27,7 +27,7 @@ type Discovery struct {
 	seedURL       string     // URL to the source of a list of peers
 }
 
-var UpdateKnownPeers sync.Mutex
+var UpdateKnownPeers atomic.DebugMutex
 
 // Discovery provides the code for sharing and managing peers,
 // namely keeping track of all the peers we know about (not just the ones

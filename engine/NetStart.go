@@ -13,6 +13,8 @@ import (
 	"math"
 	"os"
 	"time"
+	"sync"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -24,9 +26,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-
-	log "github.com/sirupsen/logrus"
-	"sync"
 	"github.com/FactomProject/factomd/util/atomic"
 )
 

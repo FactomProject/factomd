@@ -21,6 +21,8 @@ import (
 	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 // Initiates control panel variables and controls the http requests
@@ -52,7 +54,7 @@ var (
 	DisplayStateChannel chan state.DisplayState
 
 	// Sync Mutex
-	TemplateMutex     sync.Mutex
+	TemplateMutex     atomic.DebugMutex
 	DisplayStateMutex sync.RWMutex
 )
 
@@ -488,7 +490,7 @@ var RecentTransactions *LastDirectoryBlockTransactions
 
 // Flag to tell if RecentTransactions is already being built
 var DoingRecentTransactions bool
-var RecentTransactionsMutex sync.Mutex
+var RecentTransactionsMutex atomic.DebugMutex
 
 func toggleDCT() {
 	if DoingRecentTransactions {
