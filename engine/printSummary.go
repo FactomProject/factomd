@@ -209,16 +209,16 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		if f.State.MessageTally {
 			prt = prt + "\nType:"
-			for i := 0; i < constants.NUM_MESSAGES; i++ {
+			for i := 0; i < int(constants.NUM_MESSAGES); i++ {
 				prt = prt + fmt.Sprintf("%5d ", i)
 			}
 			prt = prt + "\nRecd:"
 
-			for i := 0; i < constants.NUM_MESSAGES; i++ {
+			for i := 0; i < int(constants.NUM_MESSAGES); i++ {
 				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesReceived(i))
 			}
 			prt = prt + "\nSent:"
-			for i := 0; i < constants.NUM_MESSAGES; i++ {
+			for i := 0; i < int(constants.NUM_MESSAGES); i++ {
 				prt = prt + fmt.Sprintf("%5d ", f.State.GetMessageTalliesSent(i))
 			}
 

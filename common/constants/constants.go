@@ -55,9 +55,9 @@ const (
 	VOLUNTEERAUDIT
 	SYNC_MSG
 	LEADER_ACK_VOLUNTEER
-)
 
-const NUM_MESSAGES = 29
+	NUM_MESSAGES // Not used, just a counter for the number of messages.
+)
 
 const (
 	// Limits for keeping inputs from flooding our execution
