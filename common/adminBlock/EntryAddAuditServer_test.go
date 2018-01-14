@@ -102,15 +102,15 @@ func TestAddAuditServerMisc(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if as != "{\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
+	if as != "{\"adminidtype\":6,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
 		t.Error("Unexpected JSON string:", as)
 	}
 	ab, err := a.JSONByte()
 	if err != nil {
 		t.Error(err)
 	}
-	if string(ab) != "{\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
-		t.Error("Unexpected JSON bytes:", as)
+	if string(ab) != "{\"adminidtype\":6,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
 	}
 
 	if a.IsInterpretable() {

@@ -13,8 +13,6 @@ import (
 	"math"
 	"os"
 	"time"
-	"sync"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -26,6 +24,10 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
+
+	log "github.com/sirupsen/logrus"
+	"sync"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
@@ -37,7 +39,7 @@ type FactomNode struct {
 	MLog  *MsgLog
 }
 
-var fnodesMu sync.Mutex
+var fnodesMu atomic.DebugMutex
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
@@ -552,13 +554,23 @@ func startServers(load bool) {
 		if i > 0 {
 			fnode.State.Init()
 		}
-		go NetworkProcessorNet(fnode)
-		if load {
-			go state.LoadDatabase(fnode.State)
-		}
-		go fnode.State.GoSyncEntries()
-		go Timer(fnode.State)
+		var wg sync.WaitGroup
+
+		NetworkProcessorNet(fnode)
+		
 		go fnode.State.ValidatorLoop()
+
+		wg.Add(1)
+		go Timer(fnode.State, &wg)
+		wg.Wait()
+
+		wg.Add(1)
+		go fnode.State.GoSyncEntries(&wg)
+		wg.Wait()
+
+		if load {
+			go state.LoadDatabase(fnode.State, &wg)
+		}
 	}
 }
 

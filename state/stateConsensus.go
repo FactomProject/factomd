@@ -88,7 +88,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// Should comment this as to why each consideration is interesting-- clay
 		if s.RunLeader && s.Leader && !s.Saving && vm != nil && int(vm.Height) == len(vm.List) && (!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) && s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-			if len(vm.List) == 0 {
+			if len(vm.List) == 0 && s.GetHighestKnownBlock()!=0 {
 				if executeMsg_debug {
 					fmt.Printf(">%7s:%14s executeMsg() Review:        msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
 				}
