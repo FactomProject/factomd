@@ -76,7 +76,7 @@ func main() {
 func FindHeads(f Fetcher) {
 	chainHeads := make(map[string]interfaces.IHash)
 
-	var allEblockLock sync.Mutex
+	var allEblockLock atomic.DebugMutex
 	allEblks := make(map[string]interfaces.IHash)
 
 	var err error

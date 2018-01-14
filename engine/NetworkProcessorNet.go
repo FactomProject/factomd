@@ -13,20 +13,24 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
+	"sync"
 )
 
 var _ = log.Printf
 var _ = fmt.Print
 
 func NetworkProcessorNet(fnode *FactomNode) {
-	go Peers(fnode)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go Peers(fnode,&wg)
+	wg.Wait()
 	go NetworkOutputs(fnode)
 	go InvalidOutputs(fnode)
 }
 
-func Peers(fnode *FactomNode) {
+func Peers(fnode *FactomNode, wg *sync.WaitGroup) {
 	cnt := 0
-
+	done := false
 	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
 	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
@@ -186,6 +190,10 @@ func Peers(fnode *FactomNode) {
 			time.Sleep(50 * time.Millisecond)
 		}
 		cnt = 0
+		if !done {
+			wg.Done()
+			done = true
+		}
 	}
 }
 

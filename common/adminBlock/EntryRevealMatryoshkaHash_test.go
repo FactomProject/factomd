@@ -92,3 +92,31 @@ func TestRevealMatryoshkaHashMarshalUnmarshal(t *testing.T) {
 		t.Errorf("Invalid MHash")
 	}
 }
+
+func TestRevealMhashMisc(t *testing.T) {
+	a := new(RevealMatryoshkaHash)
+	if a.String() != "    E:                RevealMatryoshkaHash --   IdentityChainID     0000         Hash 0000000000" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":2,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"mhash\":\"0000000000000000000000000000000000000000000000000000000000000000\"}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":2,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"mhash\":\"0000000000000000000000000000000000000000000000000000000000000000\"}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}

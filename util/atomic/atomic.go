@@ -83,24 +83,14 @@ func (a *AtomicString) Load() string {
 	return a.s
 }
 
-/*
-func main() {
 
-	var t AtomicBool
-
-	fmt.Printf("%v, %v\n", t, t.Load())
-	t.Store(true)
-	fmt.Printf("%v, %v\n", t, t.Load())
-	t.Store(false)
-	fmt.Printf("%v, %v\n", t, t.Load())
-}
-*/
+// Hacky debugging stuff... probably not a great home for it
 
 func Goid() string {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
 	s := string(buf[:n])
-	idField := s[:strings.Index(s, "[")]
+	idField := s[:strings.Index(s,"[")]
 	return idField
 }
 
@@ -120,7 +110,7 @@ type DebugMutex struct {
 	lockBool AtomicBool   // lock for detecting starvation when not trusting the debug lock functionality
 }
 
-var yeaOfLittleFaith1 AtomicBool = AtomicBool(1) // true means mutex lock instead of CAS lock
+var yeaOfLittleFaith1 AtomicBool = AtomicBool(0) // true means mutex lock instead of CAS lock
 var yeaOfLittleFaith2 AtomicBool = AtomicBool(0) //  true mean mutex lock inside of CAS lock
 var enableStarvationDetection AtomicBool = AtomicBool(1)
 var enableAlreadyLockedDetection AtomicBool = AtomicBool(0)
@@ -134,16 +124,17 @@ func (c *DebugMutex) lockCAS() {
 			done := make(chan struct{})
 			go func() {
 				for {
-					for i := 0; i < 30; i++ {
+					for i := 0; i < 1000; i++ {
 						select {
 						case <-done:
 							return
 						default:
-							time.Sleep(100 * time.Millisecond)
+							time.Sleep(3 * time.Millisecond)
 							//						fmt.Printf("+")
 						}
 					}
 					WhereAmI(c.name.Load()+":Lock starving!\n", 3)
+					// should set a flag if I starve and report when I get the lock
 				}
 			}()
 			defer func() { done <- struct{}{} }() // End the timer when I get the lock
@@ -155,7 +146,7 @@ func (c *DebugMutex) lockCAS() {
 				break // Yea! we got the lock
 			}
 
-			time.Sleep(100 * time.Millisecond) // sit and spin
+			time.Sleep(10 * time.Millisecond) // sit and spin
 		}
 	}
 	if yeaOfLittleFaith2.Load() {
@@ -187,15 +178,14 @@ func (c *DebugMutex) lockMutex() {
 			done := make(chan struct{})
 			go func() {
 				for {
-					for i := 0; i < 30; i++ {
+					for i := 0; i < 1000; i++ {
 						select {
 						case <-done:
 							return
 						default:
-							time.Sleep(100 * time.Millisecond)
+							time.Sleep(3 * time.Millisecond)
 						}
 					}
-					time.Sleep(100 * time.Millisecond)
 					WhereAmI(c.name.Load()+":Lock starving!\n", 3)
 				}
 			}()
@@ -227,6 +217,7 @@ func (c *DebugMutex) Lock() {
 	} else {
 		c.lockCAS()
 	}
+	//time.Sleep(20 * time.Millisecond) // Hog the lock -- debug -- clay
 }
 func (c *DebugMutex) Unlock() {
 	if yeaOfLittleFaith1.Load() {

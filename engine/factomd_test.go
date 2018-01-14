@@ -107,7 +107,7 @@ func TestSetupANetwork(t *testing.T) {
 	args := append([]string{},
 		"-db=Map",
 		"-network=LOCAL",
-		"-net=tree",
+		"-net=alot+",
 		"-enablenet=true",
 		"-blktime=20",
 		"-count="+fmt.Sprintf("%d", nodeCount),

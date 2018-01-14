@@ -13,6 +13,7 @@ import (
 	"math"
 	"os"
 	"time"
+	"sync"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/identity"
@@ -26,6 +27,7 @@ import (
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 var _ = fmt.Print
@@ -552,13 +554,23 @@ func startServers(load bool) {
 		if i > 0 {
 			fnode.State.Init()
 		}
-		go NetworkProcessorNet(fnode)
-		if load {
-			go state.LoadDatabase(fnode.State)
-		}
-		go fnode.State.GoSyncEntries()
-		go Timer(fnode.State)
+		var wg sync.WaitGroup
+
+		NetworkProcessorNet(fnode)
+		
 		go fnode.State.ValidatorLoop()
+
+		wg.Add(1)
+		go Timer(fnode.State, &wg)
+		wg.Wait()
+
+		wg.Add(1)
+		go fnode.State.GoSyncEntries(&wg)
+		wg.Wait()
+
+		if load {
+			go state.LoadDatabase(fnode.State, &wg)
+		}
 	}
 }
 
@@ -590,7 +602,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Key2 = primitives.NewZeroHash()
 	id.Key3 = primitives.NewZeroHash()
 	id.Key4 = primitives.NewZeroHash()
-	id.Status = 1
+	id.Status.Store(constants.IDENTITY_FEDERATED_SERVER) // Used to be the "1"
 	s.Identities = append(s.Identities, &id)
 
 	var auth identity.Authority
