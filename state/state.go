@@ -349,11 +349,10 @@ type State struct {
 	FastBootLocation        string
 
 	ShareWithEntrySyncStatic // All the info needed by entrySync() thread that is static
-	ShareWithEntrySync       // All the info needed by entrySync() thread
+	ShareWithEntrySyncInfo   // All the info needed by entrySync() thread
 } // struct State {...}
 
 type ShareWithEntrySyncStatic struct {
-
 	MakeMissingEntryRequestsStatic
 
 	// synchronized accessed via the IFace ... so sort of static
@@ -377,30 +376,34 @@ type MakeMissingEntryRequestsStatic struct {
 	// Database
 	DB         interfaces.DBOverlaySimple
 	WriteEntry chan interfaces.IEBEntry
+
 	// unsafe zone -- to be dealt with
 	state interfaces.IState
 }
 
 // the things that have to be updated for entrySync() thread
-type ShareWithEntrySync struct {
+type ShareWithEntrySyncInfo struct {
 	MakeMissingEntryRequestsInfo // Get all the info needed MakeMissingEntryRequests() thread too
 }
 
 type MakeMissingEntryRequestsInfo struct {
-	useTorrents       bool
-	HighestSavedBlk   uint32
-	HighestKnownBlock uint32
-	LLeaderHeight     uint32
-	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
+	useTorrents           bool
+	HighestSavedBlk       uint32              // written once per validator loop so not always up to date
+	HighestKnownBlock     uint32              // written once per validator loop so not always up to date
+	LLeaderHeight         uint32              // written once per validator loop so not always up to date
+	// Technically this is only atomic in state itself. The version going to MakeMissingEntryRequests() can be normal
+	// But it's unclear how to code that without jumping thru hoops
+	EntryDBHeightComplete atomic.AtomicUint32 // written by GoEntrySync()
 }
 
 // this is not atomic and needs to go
 func (s *MakeMissingEntryRequestsStatic) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBlock { return s.state.GetDirectoryBlockByHeight(height) }
 
 // Returns a millisecond timestamp
-func (s *MakeMissingEntryRequestsStatic) GetTimestamp() interfaces.Timestamp {return s.state.GetTimestamp()
+func (s *MakeMissingEntryRequestsStatic) GetTimestamp() interfaces.Timestamp {
+	return s.state.GetTimestamp()
 }
+
 // Info needed by MakeMissingEntryRequests thread
 
 type EntryUpdate struct {
@@ -1023,7 +1026,7 @@ func (s *State) GetFaultWait() int {
 }
 
 func (s *State) GetEntryDBHeightComplete() uint32 {
-	return s.EntryDBHeightComplete
+	return s.EntryDBHeightComplete.Load()
 }
 
 func (s *State) GetMissingEntryCount() uint32 {

@@ -13,8 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (state *State) ValidatorLoop() {
+func (state *State) ValidatorLoop(ShareWithEntrySyncChannel chan ShareWithEntrySyncInfo) {
 	timeStruct := new(Timer)
+
 	for {
 		// Check if we should shut down.
 		select {
@@ -82,9 +83,15 @@ func (state *State) ValidatorLoop() {
 			}
 		}
 
-		// Update the part of state used by EntrySync TODO: Make this a channel
-		state.HighestKnownBlock     = state.GetHighestKnownBlock()
-		state.LLeaderHeight         = state.GetLeaderHeight()
+		fmt.Printf("Validator sending GoSyncInfo\n")
+		// Update the part of state used by EntrySync
+		//state.useTorrents is already valid
+		state.HighestKnownBlock = state.GetHighestKnownBlock()
+		state.LLeaderHeight = state.GetLeaderHeight()
+		state.HighestSavedBlk = state.GetHighestSavedBlk()
+		//state.EntryDBHeightComplete is already valid
+
+		ShareWithEntrySyncChannel <- state.ShareWithEntrySyncInfo
 
 	}
 }

@@ -572,7 +572,7 @@ func (s *State) FollowerExecuteAck(msg interfaces.IMsg) {
 func (s *State) ExecuteEntriesInDBState(dbmsg *messages.DBStateMsg) {
 	height := dbmsg.DirectoryBlock.GetDatabaseHeight()
 
-	if s.EntryDBHeightComplete > height {
+	if s.EntryDBHeightComplete.Load() > height {
 		return
 	}
 	// If no Eblocks, leave
@@ -619,7 +619,7 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 	dbheight := dbstatemsg.DirectoryBlock.GetHeader().GetDBHeight()
 
 	// ignore if too old. If its under EntryDBHeightComplete
-	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete {
+	if dbheight > 0 && dbheight <= s.GetHighestSavedBlk() && dbheight < s.EntryDBHeightComplete.Load() {
 		return
 	}
 

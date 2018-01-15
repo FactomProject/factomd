@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"os/user"
 	"fmt"
-	"io/ioutil"
 )
 
 var _ = Factomd
@@ -38,29 +37,32 @@ func WaitMinutes(s *state.State, min int) {
 
 func TestSetupANetwork(t *testing.T) {
 
-	rescueStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	/*	rescueStdout := os.Stdout
+		r, w, _ := os.Pipe()
 
-	startCap := func() {
-		rescueStdout = os.Stdout
-		r, w, _ = os.Pipe()
-		os.Stdout = w
-	}
-	endCap := func() string {
-		<-ProcessChan
-		w.Close()
-		out, _ := ioutil.ReadAll(r)
-		os.Stdout = rescueStdout
-		return string(out)
-	}
+		startCap := func() {
+			rescueStdout = os.Stdout
+			r, w, _ = os.Pipe()
+			os.Stdout = w
+		}
+		endCap := func() string {
+			<-ProcessChan
+			w.Close()
+			out, _ := ioutil.ReadAll(r)
+			os.Stdout = rescueStdout
+			return string(out)
+		}
+	*/
 
-	runCmd := func(cmd string) string {
+	//	runCmd := func(cmd string) string {
+	runCmd := func(cmd string) {
 		os.Stderr.WriteString("Executing: " + cmd + "\n")
-		startCap()
+		//		startCap()
 		InputChan <- cmd
 		//		time.Sleep(1000*time.Millisecond) // Uncommenting this makes us ill at this point.
-		v := endCap()
-		return v
+		//		v := endCap()
+		//		return v
+		return
 	}
 
 	usr, err := user.Current()
@@ -119,12 +121,10 @@ func TestSetupANetwork(t *testing.T) {
 		"faulttimeout=15",
 		" -netdebug 4")
 
-
 	params := ParseCmdLine(args)
 	state0 := Factomd(params, false).(*state.State)
 	state0.MessageTally = true
 	time.Sleep(3 * time.Second)
-
 
 	t.Logf("Allocated %d nodes", nodeCount)
 	if len(GetFnodes()) != nodeCount {
@@ -133,22 +133,22 @@ func TestSetupANetwork(t *testing.T) {
 	}
 
 	runCmd("s") // start display of status
-	WaitMinutes(state0,3)
-	runCmd("g10")         // Create 10 identity (one FCT transaction and a pile of chain and entry creation)
-	runCmd("9") // select 9
-	runCmd("x") // take it offline
-	runCmd("w") // make the API point to current (for code coverage, there is no traffic)
+	WaitMinutes(state0, 3)
+	runCmd("g10") // Create 10 identity (one FCT transaction and a pile of chain and entry creation)
+	runCmd("9")   // select 9
+	runCmd("x")   // take it offline
+	runCmd("w")   // make the API point to current (for code coverage, there is no traffic)
 	runCmd("10")
 	runCmd("8")
-	runCmd("w")           // make the API point to 8 it will
+	runCmd("w") // make the API point to 8 it will
 
 	WaitBlocks(state0, 2) // wait till the dust settles
 	// Allocate leaders
 	WaitMinutes(state0, 1) // don't start at the beginning of the block (third minute absolute)
 	runCmd("1")            // select node 1
 	for i := 0; i < expectedLeaderCount-1; i++ {
-		if(i==0) {
-			runCmd("l")// make current node a leader, advance to next node
+		if (i == 0) {
+			runCmd("l") // make current node a leader, advance to next node
 		} else {
 			runCmd("") // Repeat make current node a leader, advance to next node
 		}
@@ -196,9 +196,9 @@ func TestSetupANetwork(t *testing.T) {
 	runCmd("g10")
 
 	fn1 := GetFocus()
-	expectedName := fmt.Sprintf("FNode%02d",expectedLeaderCount+expectedAuditCount)
+	expectedName := fmt.Sprintf("FNode%02d", expectedLeaderCount+expectedAuditCount)
 	if fn1.State.FactomNodeName != expectedName {
-		t.Fatalf("Expected %s, but got %s",expectedName, fn1.State.FactomNodeName)
+		t.Fatalf("Expected %s, but got %s", expectedName, fn1.State.FactomNodeName)
 	}
 	runCmd("g1")
 	WaitMinutes(state0, 3)
@@ -290,7 +290,7 @@ func TestBasicSetup(t *testing.T) {
 					return
 				default:
 					fmt.Printf("\nTimeout in %02d:%02d:%02d timeout\n", int(seconds/3600), int(seconds/60)%60, seconds%60)
-					s := seconds%updatePeriod
+					s := seconds % updatePeriod
 					if s != 0 { // get delay aligned to period
 						time.Sleep(time.Duration(s) * time.Second)
 						seconds -= s

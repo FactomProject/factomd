@@ -229,13 +229,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.SetDropRate(p.DropRate)
 
 	if p.Sync2 >= 0 {
-		s.EntryDBHeightComplete = uint32(p.Sync2)
+		s.EntryDBHeightComplete.Store(uint32(p.Sync2))
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("ERROR: %v", err))
 		} else {
-			s.EntryDBHeightComplete = height
+			s.EntryDBHeightComplete.Store(height)
 		}
 	}
 
@@ -272,7 +272,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete.Load()))
 
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
@@ -557,16 +557,20 @@ func startServers(load bool) {
 		var wg sync.WaitGroup
 
 		NetworkProcessorNet(fnode)
-		
-		go fnode.State.ValidatorLoop()
+
+		// ValidatorLoop(0 will feed for worker thread GoSyncEntries so it needs this channel
+		var ShareWithEntrySyncChannel chan state.ShareWithEntrySyncInfo = make(chan state.ShareWithEntrySyncInfo)// Info needed by ShareWithEntrySync()
+
+		go fnode.State.ValidatorLoop(ShareWithEntrySyncChannel)
 
 		wg.Add(1)
 		go Timer(fnode.State, &wg)
 		wg.Wait()
 
 		wg.Add(1)
+
 		// Start the database sync thread and hand him the relevant static portion of the state
-		go fnode.State.GoSyncEntries(&wg, &fnode.State.ShareWithEntrySyncStatic)
+		go state.GoSyncEntries(&wg, &fnode.State.ShareWithEntrySyncStatic, ShareWithEntrySyncChannel)
 		wg.Wait()
 
 		if load {

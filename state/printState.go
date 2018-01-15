@@ -188,8 +188,9 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryBlockDBHeightProcessing", state.EntryBlockDBHeightProcessing)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryBlocks", state.MissingEntryBlocks)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryRepeat", state.MissingEntryRepeat)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightComplete", state.EntryDBHeightComplete)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryHeightComplete", state.EntryDBHeightComplete)
+	// TODO: WHy are these two the same???? -- clay
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightComplete", state.EntryDBHeightComplete.Load())
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryHeightComplete", state.EntryDBHeightComplete.Load())
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntries", state.MissingEntries)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrint", state.LastPrint)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrintCnt", state.LastPrintCnt)

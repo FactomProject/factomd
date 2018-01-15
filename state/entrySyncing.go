@@ -53,7 +53,7 @@ type MakeMissingEntryRequestsInfo struct {
 
 // This go routine checks every so often to see if we have any missing entries or entry blocks.  It then requests
 // them if it finds entries in the missing lists.
-func (s *ShareWithEntrySync) MakeMissingEntryRequests(MakeMissingEntryRequestsInfoChannel chan MakeMissingEntryRequestsInfo, ss *MakeMissingEntryRequestsStatic) {
+func MakeMissingEntryRequests(MakeMissingEntryRequestsInfoChannel chan MakeMissingEntryRequestsInfo, ss *MakeMissingEntryRequestsStatic) {
 
 	var info MakeMissingEntryRequestsInfo
 
@@ -72,7 +72,7 @@ func (s *ShareWithEntrySync) MakeMissingEntryRequests(MakeMissingEntryRequestsIn
 
 		// Look through our map, and remove any entries we now have in our database.
 		for k := range MissingEntryMap {
-			if s.has(ss.DB, MissingEntryMap[k].EntryHash) {
+			if info.has(ss.DB, MissingEntryMap[k].EntryHash) {
 				found++
 				delete(MissingEntryMap, k)
 			} else {
@@ -168,6 +168,7 @@ func (s *ShareWithEntrySync) MakeMissingEntryRequests(MakeMissingEntryRequestsIn
 
 		// get info check if we need to make missing entries
 		info := <-MakeMissingEntryRequestsInfoChannel // block if no update available
+		fmt.Printf("MakeMissingEntryRequests() go %+v\n", info)
 
 		if sent == 0 {
 			if info.HighestKnownBlock-info.HighestSavedBlk > 100 {
@@ -175,16 +176,14 @@ func (s *ShareWithEntrySync) MakeMissingEntryRequests(MakeMissingEntryRequestsIn
 			} else {
 				time.Sleep(100 * time.Millisecond)
 			}
-			if info.EntryDBHeightComplete == info.HighestSavedBlk {
+			if info.EntryDBHeightComplete.Load() == info.HighestSavedBlk {
 				time.Sleep(20 * time.Second)
 			}
 		}
 	}
 }
 
-
-
-func (s *ShareWithEntrySync) GoSyncEntries(wg *sync.WaitGroup, ss *ShareWithEntrySyncStatic) {
+func  GoSyncEntries(wg *sync.WaitGroup, ss *ShareWithEntrySyncStatic, ShareWithEntrySyncChan chan ShareWithEntrySyncInfo) {
 
 	// Feeds for worker threads
 	var MakeMissingEntryRequestsInfoChannel chan MakeMissingEntryRequestsInfo = make(chan MakeMissingEntryRequestsInfo) // Info needed by MakeMissingEntries()
@@ -193,11 +192,7 @@ func (s *ShareWithEntrySync) GoSyncEntries(wg *sync.WaitGroup, ss *ShareWithEntr
 	missingMap := make(map[[32]byte]interfaces.IHash)
 
 	// Once I have found all the entries, we quit searching so much for missing entries.
-	start := uint32(1)
-
-	if s.EntryDBHeightComplete > 0 {
-		start = s.EntryDBHeightComplete
-	}
+	start := uint32(0xFFFFFFFF) // -1 means we need to set it to an initial value from the first info packet
 
 	entryMissing := 0
 
@@ -205,26 +200,42 @@ func (s *ShareWithEntrySync) GoSyncEntries(wg *sync.WaitGroup, ss *ShareWithEntr
 	firstMissing := -1
 
 	lastfirstmissing := 0
+	HeightComplete := uint32(0)
 
 	found := 0
 
 	wg.Done()
 
 	// start a thread to make requests for missing entries (rely on GoSync being started late enough for the necessary init to be done.
-	go s.MakeMissingEntryRequests(MakeMissingEntryRequestsInfoChannel, &ss.MakeMissingEntryRequestsStatic) // Start the MakeMissingEntryRequests() thread ..
-
-
+	go MakeMissingEntryRequests(MakeMissingEntryRequestsInfoChannel, &ss.MakeMissingEntryRequestsStatic) // Start the MakeMissingEntryRequests() thread ..
 
 	for {
+
+		// get working data from validatorLoop()
+		var s ShareWithEntrySyncInfo = <-ShareWithEntrySyncChan
+		fmt.Printf("GoSync got %+v\n", s)
+
+		// Start tracks where we are and once I have found all the entries, we for missing entries less often
+		if start == 0xFFFFFFFF {
+			// -1 means we need to set it to an initial value from the first info packet
+			HeightComplete = s.EntryDBHeightComplete.Load()
+			if HeightComplete > 0 {
+				start = HeightComplete
+			} else {
+				start = 1
+			}
+		}
+
 		// Update Prometheus Stats
 		ESMissing.Set(float64(len(missingMap)))
 		ESMissingQueue.Set(float64(len(ss.MissingEntries)))
-		ESDBHTComplete.Set(float64(s.EntryDBHeightComplete))
+		ESDBHTComplete.Set(float64(HeightComplete))
 		ESFirstMissing.Set(float64(lastfirstmissing))
 		ESHighestMissing.Set(float64(s.HighestSavedBlk))
 
-		// feed the MakeMissingEntryRequests() thread
+		// feed the MakeMissingEntryRequests() thread some working data
 		// Send all the fields MakeMissingEntryRequests cares about
+		fmt.Printf("GoSyncInfo sending info to MakeMissingEntryRequests()\n")
 		MakeMissingEntryRequestsInfoChannel <- s.MakeMissingEntryRequestsInfo
 
 		entryMissing = 0
@@ -246,8 +257,9 @@ func (s *ShareWithEntrySync) GoSyncEntries(wg *sync.WaitGroup, ss *ShareWithEntr
 
 			if firstMissing < 0 {
 				if scan > 1 {
-					s.EntryDBHeightComplete = scan - 1
+					HeightComplete = scan - 1
 					start = scan
+					s.EntryDBHeightComplete.Store(HeightComplete)
 				}
 			}
 
@@ -320,10 +332,11 @@ func (s *ShareWithEntrySync) GoSyncEntries(wg *sync.WaitGroup, ss *ShareWithEntr
 				}
 			}
 
-			if s.EntryDBHeightComplete%1000 == 0 {
+			if HeightComplete%1000 == 0 {
 				if firstMissing < 0 {
 					//Only save EntryDBHeightComplete IF it's a multiple of 1000 AND there are no missing entries
-					err := ss.DB.SaveDatabaseEntryHeight(s.EntryDBHeightComplete)
+					s.EntryDBHeightComplete.Store(HeightComplete) // update state
+					err := ss.DB.SaveDatabaseEntryHeight(HeightComplete) // update database
 					if err != nil {
 						fmt.Printf("ERROR: %v\n", err)
 					}
@@ -332,7 +345,7 @@ func (s *ShareWithEntrySync) GoSyncEntries(wg *sync.WaitGroup, ss *ShareWithEntr
 		}
 		lastfirstmissing = firstMissing
 		if firstMissing < 0 {
-			s.EntryDBHeightComplete = s.HighestSavedBlk
+			s.EntryDBHeightComplete.Store(s.HighestSavedBlk) // Update state for other users
 			time.Sleep(5 * time.Second)
 		}
 

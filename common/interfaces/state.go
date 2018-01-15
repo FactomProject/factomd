@@ -241,7 +241,7 @@ type IState interface {
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
-	ValidatorLoop()
+//	ValidatorLoop(chan ShareWithEntrySyncInfo) // doesn't need to be in the interface
 
 	UpdateECs(IEntryCreditBlock)
 	SetIsReplaying()
