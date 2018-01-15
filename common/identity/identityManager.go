@@ -36,7 +36,7 @@ func (im *IdentityManager) SetSkeletonKey(key string) error {
 	if err != nil {
 		return err
 	}
-	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+	auth.Status.Store(constants.IDENTITY_FEDERATED_SERVER)
 
 	im.SetAuthority(primitives.NewZeroHash(), auth)
 	return nil
@@ -142,7 +142,7 @@ func (im *IdentityManager) RemoveAuthority(chainID interfaces.IHash) bool {
 	if auth == nil {
 		return false
 	}
-	auth.Status = constants.IDENTITY_UNASSIGNED
+	auth.Status.Store(constants.IDENTITY_UNASSIGNED)
 	im.SetAuthority(chainID, auth)
 
 	return true

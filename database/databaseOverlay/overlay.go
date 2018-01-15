@@ -11,12 +11,11 @@ package databaseOverlay
 import (
 	"encoding/binary"
 	"fmt"
-	"sync"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/blockExtractor"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 // the "table" prefix
@@ -117,7 +116,7 @@ type Overlay struct {
 	ExportData     bool
 	ExportDataPath string
 
-	BatchSemaphore sync.Mutex
+	BatchSemaphore atomic.DebugMutex
 	MultiBatch     []interfaces.Record
 	BlockExtractor blockExtractor.BlockExtractor
 }

@@ -23,6 +23,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 var _ = hex.EncodeToString
@@ -58,6 +60,7 @@ type DBState struct {
 
 	FinalExchangeRate uint64
 	NextTimestamp     interfaces.Timestamp
+	HighestSavedBlock uint32
 }
 
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
@@ -453,7 +456,11 @@ type DBStateList struct {
 	State         *State
 	Base          uint32
 	Complete      uint32
-	DBStates      []*DBState
+	DBStates      []*DBState // shared bu validator and server
+	DBStateMutex atomic.DebugMutex // incomplete, unused mutex....
+
+	HighestSavedBlock atomic.AtomicUint32 // used by entrySync Thread
+	HighestKnownBlock atomic.AtomicUint32 // used by entrySync Thread
 }
 
 var _ interfaces.BinaryMarshallable = (*DBStateList)(nil)
@@ -811,10 +818,11 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
-				return ht
+				break
 			}
 		}
 	}
+	list.HighestSavedBlock.Store(uint32(ht))
 	return ht
 }
 
@@ -978,7 +986,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 
 	// If we are locked, the block has already been processed.  If the block IsNew then it has not yet had
 	// its links patched, so we can't process it.  But if this is a repeat block (we have already processed
-	// at this height) then we simpy return.
+	// at this height) then we simply return.
 	if d.Locked || d.IsNew || d.Repeat {
 		return
 	}
@@ -1039,7 +1047,7 @@ func (list *DBStateList) ProcessBlocks(d *DBState) (progress bool) {
 	prt("pln 1st", pln)
 
 	//
-	// ***** Apply the AdminBlock chainges to the next DBState
+	// ***** Apply the AdminBlock changes to the next DBState
 	//
 	//list.State.AddStatus(fmt.Sprintf("PROCESSBLOCKS:  Processing Admin Block at dbht: %d", d.AdminBlock.GetDBHeight()))
 	err := d.AdminBlock.UpdateState(list.State)
@@ -1208,6 +1216,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			return
 		}
 	}
+
+	// Let message.SendOut know we are behind or not
+	list.State.Behind.Store(list.State.GetHighestKnownBlock()-list.State.GetHighestSavedBlk() > 4)
 
 	if d.Saved {
 		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())

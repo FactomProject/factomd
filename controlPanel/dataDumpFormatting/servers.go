@@ -13,7 +13,7 @@ func Identities(copyDS state.DisplayState) string {
 	for c, i := range copyDS.Identities {
 		num := fmt.Sprintf("%d", c)
 		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
-		stat := returnStatString(i.Status)
+		stat := returnStatString(i.Status.Load())
 		prt = prt + fmt.Sprint("Server Status: ", stat, "\n")
 		prt = prt + fmt.Sprint("Identity Chain: ", i.IdentityChainID, "\n")
 		prt = prt + fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n")
@@ -36,7 +36,7 @@ func Authorities(copyDS state.DisplayState) string {
 	for c, i := range copyDS.Authorities {
 		num := fmt.Sprintf("%d", c)
 		prt = prt + "------------------------------------" + num + "---------------------------------------\n"
-		stat := returnStatString(i.Status)
+		stat := returnStatString(i.Status.Load())
 		prt = prt + fmt.Sprint("Server Status: ", stat, "\n")
 		prt = prt + fmt.Sprint("Identity Chain: ", i.AuthorityChainID, "\n")
 		prt = prt + fmt.Sprint("Management Chain: ", i.ManagementChainID, "\n")

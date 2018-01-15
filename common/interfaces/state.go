@@ -106,7 +106,7 @@ type IState interface {
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
-	// Journalling
+	// Journaling
 	JournalMessage(IMsg)
 	GetJournalMessages() [][]byte
 
@@ -241,7 +241,7 @@ type IState interface {
 	Print(a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
 
-	ValidatorLoop()
+//	ValidatorLoop(chan ShareWithEntrySyncInfo) // doesn't need to be in the interface
 
 	UpdateECs(IEntryCreditBlock)
 	SetIsReplaying()
@@ -315,4 +315,6 @@ type IState interface {
 	// Plugins
 	UsingTorrent() bool
 	GetMissingDBState(height uint32) error
+
+	BehindGet() bool
 }

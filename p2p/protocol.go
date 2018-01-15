@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
+	"sync/atomic"
 )
 
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
@@ -44,7 +45,7 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevel                  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentLoggingLevelVar        uint32  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
 	CurrentNetwork                       = TestNet
 	NetworkListenPort                    = "8108"
 	BroadcastFlag                        = "<BROADCAST>"
@@ -57,7 +58,7 @@ var (
 	NetworkDeadline                      = time.Duration(30) * time.Second
 	NumberPeersToConnect                 = 32
 	NumberPeersToBroadcast               = 100
-	MaxNumberIncommingConnections        = 150
+	MaxNumberIncomingConnections        = 150
 	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
 	StandardChannelSize                  = 5000
 	NetworkStatusInterval                = time.Second * 9
@@ -69,14 +70,18 @@ var (
 	PeerDiscoveryInterval                = time.Hour * 4
 
 	// Testing metrics
-	TotalMessagesRecieved       uint64
+	TotalMessagesReceived       uint64
 	TotalMessagesSent           uint64
-	ApplicationMessagesRecieved uint64
+	ApplicationMessagesReceived uint64
 
 	CRCKoopmanTable = crc32.MakeTable(crc32.Koopman)
 	RandomGenerator *rand.Rand // seeded pseudo-random number generator
 
 )
+
+func CurrentLoggingLevel() uint32 {
+	return atomic.LoadUint32(&CurrentLoggingLevelVar) // really a uint8 but still got reported as a race...
+}
 
 const (
 	// ProtocolVersion is the latest version this package supports
@@ -114,7 +119,7 @@ func (n *NetworkID) String() string {
 }
 
 const ( // iota is reset to 0
-	Silence     uint8 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
+	Silence     uint32 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
 	Significant              // 1 Significant messages that should be logged in normal ops
 	Fatal                    // 2 Log only fatal errors (fatal errors are always logged even on "Silence")
 	Errors                   // 3 Log all errors (many errors may be expected)
@@ -124,7 +129,7 @@ const ( // iota is reset to 0
 )
 
 // Map of network ids to strings for easy printing of network ID
-var LoggingLevels = map[uint8]string{
+var LoggingLevels = map[uint32]string{
 	Silence:     "Silence",     // Say nothing. A log output with level "Silence" is ALWAYS printed.
 	Significant: "Significant", // Significant things that should be printed, but aren't necessary errors.
 	Fatal:       "Fatal",       // Log only fatal errors (fatal errors are always logged even on "Silence")
@@ -135,7 +140,7 @@ var LoggingLevels = map[uint8]string{
 }
 
 func dot(dot string) {
-	if 4 < CurrentLoggingLevel {
+	if Notes < CurrentLoggingLevel() {
 		switch dot {
 		case "":
 			fmt.Printf(".")
@@ -168,19 +173,19 @@ func verbose(component string, format string, v ...interface{}) {
 }
 
 // logP is the base log function to produce parsable log output for mass metrics consumption
-func logP(level uint8, component string, format string, v ...interface{}) {
+func logP(level uint32, component string, format string, v ...interface{}) {
 	message := strings.Replace(fmt.Sprintf(format, v...), ",", "-", -1) // Make CSV parsable.
 	// levelStr := LoggingLevels[level]
 	// host, _ := os.Hostname()
 	// fmt.Fprintf(os.Stdout, "%s, %s, %d, %s, (%s), %d/%d, %s \n", now.String(), host, os.Getpid(), component, levelStr, level, CurrentLoggingLevel, message)
 
 	now := time.Now().Format("2006-01-02 15:04:05")
-	if level <= CurrentLoggingLevel { // lower level means more severe. "Silence" level always printed, overriding silence.
+	if level <= CurrentLoggingLevel() { // lower level means more severe. "Silence" level always printed, overriding silence.
 		fmt.Printf("%s, %s, %s \n", now, component, message)
 		// fmt.Fprintf(os.Stdout, "%s, %d, %s, (%s), %s\n", host, os.Getpid(), component, levelStr, message)
 	}
 	if level == Fatal {
-		fmt.Println("===== SIGNIFICNAT ERROR ====== \n Something is very wrong, and should be looked into!")
+		fmt.Println("===== SIGNIFICANT ERROR ====== \n Something is very wrong, and should be looked into!")
 		fmt.Fprintf(os.Stderr, "%s, %s, %s \n", now, component, message)
 		panic(message)
 	}

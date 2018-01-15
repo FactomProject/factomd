@@ -21,6 +21,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	//"github.com/FactomProject/factomd/database/databaseOverlay"
+	"github.com/FactomProject/factomd/util/atomic"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -61,9 +62,9 @@ type ProcessList struct {
 
 	// Temporary balances from updating transactions in real time.
 	FactoidBalancesT      map[[32]byte]int64
-	FactoidBalancesTMutex sync.Mutex
+	FactoidBalancesTMutex atomic.DebugMutex
 	ECBalancesT           map[[32]byte]int64
-	ECBalancesTMutex      sync.Mutex
+	ECBalancesTMutex      atomic.DebugMutex
 
 	State        *State
 	VMs          []*VM       // Process list for each server (up to 32)
@@ -76,7 +77,7 @@ type ProcessList struct {
 
 	// messages processed in this list
 	OldMsgs     map[[32]byte]interfaces.IMsg
-	oldmsgslock *sync.Mutex
+	oldmsgslock atomic.DebugMutex
 
 	// Chains that are executed, but not processed. There is a small window of a pending chain that the ack
 	// will pass and the chainhead will fail. This covers that window. This is only used by WSAPI,
@@ -84,11 +85,11 @@ type ProcessList struct {
 	PendingChainHeads *SafeMsgMap
 
 	OldAcks     map[[32]byte]interfaces.IMsg
-	oldackslock *sync.Mutex
+	oldackslock atomic.DebugMutex
 
 	// Entry Blocks added within 10 minutes (follower and leader)
 	NewEBlocks     map[[32]byte]interfaces.IEntryBlock
-	neweblockslock *sync.Mutex
+	neweblockslock atomic.DebugMutex
 
 	NewEntriesMutex sync.RWMutex
 	NewEntries      map[[32]byte]interfaces.IEntry
@@ -536,9 +537,7 @@ func (p *ProcessList) GetOldMsgs(key interfaces.IHash) interfaces.IMsg {
 	if p == nil {
 		return nil
 	}
-	if p.oldmsgslock == nil {
-		return nil
-	}
+
 	p.oldmsgslock.Lock()
 	defer p.oldmsgslock.Unlock()
 	return p.OldMsgs[key.Fixed()]
@@ -803,7 +802,7 @@ func (p *ProcessList) Process(state *State) (progress bool) {
 
 			// So here is the deal.  After we have processed a block, we have to allow the DirectoryBlockSignatures a chance to save
 			// to disk.  Then we can insist on having the entry blocks.
-			diff := p.DBHeight - state.EntryDBHeightComplete
+			diff := p.DBHeight - state.EntryDBHeightComplete.Load()
 
 			// Keep in mind, the process list is processing at a height one greater than the database. 1 is caught up.  2 is one behind.
 			// Until the first couple signatures are processed, we will be 2 behind.
@@ -1060,7 +1059,7 @@ func (p *ProcessList) AddDBSig(serverID interfaces.IHash, sig interfaces.IFullSi
 	dbsig.ChainID = serverID
 	dbsig.Signature = sig
 	found, dbsig.VMIndex = p.GetVirtualServers(0, serverID) //set the vmindex of the dbsig to the vm this server should sign
-	if !found {                                             // Should never happen.
+	if !found { // Should never happen.
 		return
 	}
 	p.DBSignatures = append(p.DBSignatures, *dbsig)
@@ -1094,7 +1093,7 @@ func (p *ProcessList) String() string {
 			p.State.DBSig,
 			p.State.EOM,
 			saved,
-			p.State.EntryDBHeightComplete))
+			p.State.EntryDBHeightComplete.Load()))
 
 		for i := 0; i < len(p.FedServers); i++ {
 			vm := p.VMs[i]
@@ -1172,6 +1171,7 @@ func (p *ProcessList) Reset() bool {
 	p.SortFedServers()
 	p.SortAuditServers()
 
+	// empty my maps --
 	p.OldMsgs = make(map[[32]byte]interfaces.IMsg)
 	p.OldAcks = make(map[[32]byte]interfaces.IMsg)
 
@@ -1299,12 +1299,8 @@ func NewProcessList(state interfaces.IState, previous *ProcessList, dbheight uin
 
 	pl.PendingChainHeads = NewSafeMsgMap()
 	pl.OldMsgs = make(map[[32]byte]interfaces.IMsg)
-	pl.oldmsgslock = new(sync.Mutex)
 	pl.OldAcks = make(map[[32]byte]interfaces.IMsg)
-	pl.oldackslock = new(sync.Mutex)
-
 	pl.NewEBlocks = make(map[[32]byte]interfaces.IEntryBlock)
-	pl.neweblockslock = new(sync.Mutex)
 	pl.NewEntries = make(map[[32]byte]interfaces.IEntry)
 
 	pl.DBSignatures = make([]DBSig, 0)

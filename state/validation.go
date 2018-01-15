@@ -13,8 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (state *State) ValidatorLoop() {
+func (state *State) ValidatorLoop(ShareWithEntrySyncChannel chan ShareWithEntrySyncInfo) {
 	timeStruct := new(Timer)
+
 	for {
 		// Check if we should shut down.
 		select {
@@ -70,15 +71,28 @@ func (state *State) ValidatorLoop() {
 
 		// Sort the messages.
 		if msg != nil {
-			if state.IsReplaying == true {
-				state.ReplayTimestamp = msg.GetTimestamp()
+			state.getTimestampMutex.Lock()
+			if state.IsReplaying == true { //L
+				state.ReplayTimestamp = msg.GetTimestamp() //L
 			}
+			state.getTimestampMutex.Unlock()
 			if _, ok := msg.(*messages.Ack); ok {
 				state.ackQueue <- msg
 			} else {
 				state.msgQueue <- msg
 			}
 		}
+
+		fmt.Printf("Validator sending GoSyncInfo\n")
+		// Update the part of state used by EntrySync
+		//state.useTorrents is already valid
+		state.HighestKnownBlock = state.GetHighestKnownBlock()
+		state.LLeaderHeight = state.GetLeaderHeight()
+		state.HighestSavedBlk = state.GetHighestSavedBlk()
+		//state.EntryDBHeightComplete is already valid
+
+		ShareWithEntrySyncChannel <- state.ShareWithEntrySyncInfo
+
 	}
 }
 

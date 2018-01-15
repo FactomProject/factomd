@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"sync"
+
 
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factom"
@@ -92,7 +94,12 @@ func CreateAndPopulateTestStateForFER(testEntries []FEREntryWithHeight, desiredH
 		panic(err)
 	}*/
 	s.SetFactoshisPerEC(1)
-	state.LoadDatabase(s)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	state.LoadDatabase(s, &wg)
+	wg.Wait()
+
 	s.FERChainId = "111111118d918a8be684e0dac725493a75862ef96d2d3f43f84b26969329bf03"
 	s.UpdateState()
 	go s.ValidatorLoop()

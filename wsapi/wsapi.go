@@ -17,7 +17,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/btcutil/certs"
@@ -25,6 +24,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/web"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 )
 
 var Servers map[int]*web.Server
-var ServersMutex sync.Mutex
+var ServersMutex atomic.DebugMutex
 
 func Start(state interfaces.IState) {
 	RegisterPrometheus()
@@ -122,9 +122,10 @@ func SetState(state interfaces.IState) {
 	wait := func() {
 		ServersMutex.Lock()
 		defer ServersMutex.Unlock()
-
-		for Servers == nil && Servers[state.GetPort()] != nil {
-			time.Sleep(10 * time.Millisecond)
+		for Servers == nil || Servers[state.GetPort()] == nil {
+			ServersMutex.Unlock() // unlock it so it can be updated ...
+			time.Sleep(10 * time.Millisecond) // wait till the server exists
+			ServersMutex.Lock()
 		}
 		Servers[state.GetPort()].Env["state"] = state
 	}

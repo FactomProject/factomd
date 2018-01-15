@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
-
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 type StateSaverStruct struct {
@@ -18,7 +18,7 @@ type StateSaverStruct struct {
 	FastBootLocation string
 
 	TmpState []byte
-	Mutex    sync.Mutex
+	Mutex    atomic.DebugMutex
 	Stop     bool
 }
 
@@ -40,7 +40,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	defer sss.Mutex.Unlock()
 
 	//Don't save States after the server has booted - it might start it in a wrong state
-	if ss.State.DBFinished == true {
+	if ss.State.DBFinished.Load(){
 		return nil
 	}
 

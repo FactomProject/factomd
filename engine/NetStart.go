@@ -13,6 +13,8 @@ import (
 	"math"
 	"os"
 	"time"
+	"sync"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -24,8 +26,8 @@ import (
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
 	"github.com/FactomProject/factomd/wsapi"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 var _ = fmt.Print
@@ -37,6 +39,7 @@ type FactomNode struct {
 	MLog  *MsgLog
 }
 
+var fnodesMu atomic.DebugMutex
 var fnodes []*FactomNode
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
@@ -44,6 +47,13 @@ var p2pNetwork *p2p.Controller
 var logPort string
 
 func GetFnodes() []*FactomNode {
+	fnodesMu.Lock()
+	defer fnodesMu.Unlock()
+	for (fnodes == nil) { // wait for it to be allocated
+		fnodesMu.Unlock()
+		time.Sleep(50 * time.Millisecond)
+		fnodesMu.Lock()
+	}
 	return fnodes
 }
 
@@ -158,10 +168,12 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	AddInterruptHandler(func() {
 		fmt.Print("<Break>\n")
 		fmt.Print("Gracefully shutting down the server...\n")
+		fnodesMu.Lock()
 		for _, fnode := range fnodes {
 			fmt.Print("Shutting Down: ", fnode.State.FactomNodeName, "\r\n")
 			fnode.State.ShutdownChan <- 0
 		}
+		fnodesMu.Unlock()
 		if p.EnableNet {
 			p2pNetwork.NetworkStop()
 			// NODE_TALK_FIX
@@ -217,13 +229,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	s.SetDropRate(p.DropRate)
 
 	if p.Sync2 >= 0 {
-		s.EntryDBHeightComplete = uint32(p.Sync2)
+		s.EntryDBHeightComplete.Store(uint32(p.Sync2))
 	} else {
 		height, err := s.DB.FetchDatabaseEntryHeight()
 		if err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("ERROR: %v", err))
 		} else {
-			s.EntryDBHeightComplete = height
+			s.EntryDBHeightComplete.Store(height)
 		}
 	}
 
@@ -260,7 +272,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "tls", s.FactomdTLSEnable))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %v\n", "selfaddr", s.FactomdLocations))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "rpcuser", s.RpcUser))
-	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete))
+	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "Start 2nd Sync at ht", s.EntryDBHeightComplete.Load()))
 
 	if "" == s.RpcPass {
 		os.Stderr.WriteString(fmt.Sprintf("%20s %s\n", "rpcpass", "is blank"))
@@ -274,6 +286,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	//************************************************
 	// Actually setup the Network
 	//************************************************
+	fnodesMu.Lock()
+	defer fnodesMu.Unlock()
 
 	// Make p.cnt Factom nodes
 	for i := 0; i < p.Cnt; i++ {
@@ -289,7 +303,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		fnodes[i].State.IntiateNetworkSkeletonIdentity()
 	}
 
-	// Start the P2P netowork
+	// Start the P2P network
 	var networkID p2p.NetworkID
 	var seedURL, networkPort, specialPeers string
 	switch s.Network {
@@ -343,7 +357,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 			ConnectionMetricsChannel: connectionMetricsChannel,
 		}
 		p2pNetwork = new(p2p.Controller).Init(ci)
-		fnodes[0].State.NetworkControler = p2pNetwork
+		fnodes[0].State.NetworkController = p2pNetwork
 		p2pNetwork.StartNetwork()
 		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
@@ -353,9 +367,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.SetDebugMode(p.Netdebug)
 		if 0 < p.Netdebug {
 			go p2pProxy.PeriodicStatusReport(fnodes)
-			p2pNetwork.StartLogging(uint8(p.Netdebug))
+			p2pNetwork.StartLogging(uint32(p.Netdebug))
 		} else {
-			p2pNetwork.StartLogging(uint8(0))
+			p2pNetwork.StartLogging(0)
 		}
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
@@ -471,7 +485,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	}
 
-	// Initate dbstate plugin if enabled. Only does so for first node,
+	// Initiate dbstate plugin if enabled. Only does so for first node,
 	// any more nodes on sim control will use default method
 	fnodes[0].State.SetTorrentUploader(p.torUpload)
 	if p.torManage {
@@ -493,7 +507,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	}
 
 	// Start the webserver
-	go wsapi.Start(fnodes[0].State)
+	wsapi.Start(fnodes[0].State)
 
 	// Start prometheus on port
 	launchPrometheus(9876)
@@ -505,7 +519,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	go controlPanel.ServeControlPanel(fnodes[0].State.ControlPanelChannel, fnodes[0].State, connectionMetricsChannel, p2pNetwork, Build)
 
+	fnodesMu.Unlock()
 	SimControl(p.ListenTo, listenToStdin)
+	fnodesMu.Lock() // lok it so the deferred Unlock is good
 
 }
 
@@ -517,7 +533,7 @@ func makeServer(s *state.State) *FactomNode {
 	// All other states are clones of the first state.  Which this routine
 	// gets passed to it.
 	newState := s
-
+	// fnodesMu is already locked...
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
 		time.Sleep(10 * time.Millisecond)
@@ -533,17 +549,33 @@ func makeServer(s *state.State) *FactomNode {
 }
 
 func startServers(load bool) {
+	// fnodesMu is already locked...
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()
 		}
-		go NetworkProcessorNet(fnode)
+		var wg sync.WaitGroup
+
+		NetworkProcessorNet(fnode)
+
+		// ValidatorLoop(0 will feed for worker thread GoSyncEntries so it needs this channel
+		var ShareWithEntrySyncChannel chan state.ShareWithEntrySyncInfo = make(chan state.ShareWithEntrySyncInfo)// Info needed by ShareWithEntrySync()
+
+		go fnode.State.ValidatorLoop(ShareWithEntrySyncChannel)
+
+		wg.Add(1)
+		go Timer(fnode.State, &wg)
+		wg.Wait()
+
+		wg.Add(1)
+
+		// Start the database sync thread and hand him the relevant static portion of the state
+		go state.GoSyncEntries(&wg, &fnode.State.ShareWithEntrySyncStatic, ShareWithEntrySyncChannel)
+		wg.Wait()
+
 		if load {
-			go state.LoadDatabase(fnode.State)
+			go state.LoadDatabase(fnode.State, &wg)
 		}
-		go fnode.State.GoSyncEntries()
-		go Timer(fnode.State)
-		go fnode.State.ValidatorLoop()
 	}
 }
 
@@ -575,7 +607,7 @@ func setupFirstAuthority(s *state.State) {
 	id.Key2 = primitives.NewZeroHash()
 	id.Key3 = primitives.NewZeroHash()
 	id.Key4 = primitives.NewZeroHash()
-	id.Status = 1
+	id.Status.Store(constants.IDENTITY_FEDERATED_SERVER) // Used to be the "1"
 	s.Identities = append(s.Identities, &id)
 
 	var auth identity.Authority
