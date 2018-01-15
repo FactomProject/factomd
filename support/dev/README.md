@@ -9,6 +9,8 @@ Starts the following:
  - a full ELK (*Elasticsearch* + *Logstash* + *Kibana*) stack that gathers logs
    from the network
  - a *Prometheus* instance for gathering metrics from the nodes
+ - an *nginx* instance to serve a list of peers so that the *factomd* instaces
+   can find each other
 
 > Warning: This setup is for development environment only and should not be
 > used in production. Specifically the data for all services are not persisted
@@ -83,6 +85,14 @@ This command:
 Once the environment is properly built and started you can start using it for
 monitoring the running factomd network.
 
+### Factomd instances
+
+The Control Panel web UI for all 3 instances are mapped to the ports on the
+host machine, so they are available at the following addresses:
+ * *factomd_1* - http://localhost:8090
+ * *factomd_2* - http://localhost:8190
+ * *factomd_3* - http://localhost:8290
+
 ### Logging
 
 All the factomd instances are set up to log to the created *Logstash* instance
@@ -116,6 +126,15 @@ list of logs created by all *factomd* nodes in the network ordered by the
    *Lucene* query syntax, e.g. entering `NOT eom` will filter out all messages
    the contain the string `eom` in the log message.
 
+#### Stdout output
+
+Additionally you can view the *stdout* output for all the services using
+*docker* and *docker-compose* commands, e.g.:
+
+```
+docker logs factomd_1
+```
+
 ### Metrics
 
 Metrics are pulled from *factomd* instances into *Prometheus*. To view the
@@ -123,6 +142,100 @@ collected metrics open the *Prometheus* web UI at: http://localhost:9090/,
 select one of the metrics from the dropdown and hit the *Execute* button. The
 metrics for all instances are labeled using the hostname/port that was used for
 scraping the metrics, e.g. `instance=factomd_1:9876`.
+
+### Networking
+
+The current setup allows manipulating the connectivity between containers to
+test e.g. various network conditions by inserting and removing *iptables*
+rules. In addition to the commands described here, please consult the
+*iptables* and *docker* documentation.
+
+#### Linux
+
+When hosting the setup on Linux, you should be able to manipulate the
+*iptables* directly from your host machine, note however that you will most
+likely need to run all the commands as root.
+
+#### Mac OS / Windows
+
+When hosting the setup on Mac or Windows (using *Docker for Mac* or *Docker for
+Windows* respectively), you need to take into account that the docker engine is
+running inside a Linux VM, so on the host machine you will not have access e.g.
+the list of running processes or *iptables* setup.
+
+On Mac OS you can attach to the VM shell using this command:
+
+```
+screen ~/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/tty
+```
+
+To detach: `CTRL-a CTRL-\` and hit `y`.
+
+Alternatively on both Windows and Mac OS you can start a priviledged container
+that will give you access to the host, see this article:
+https://blog.jongallant.com/2017/11/ssh-into-docker-vm-windows/.
+
+#### Viewing the iptable rules
+
+To view all tables and rules:
+
+```
+iptables -L
+```
+
+This will show all currently set up *iptables* rules. If everything is set up
+correctly, you should see entries created by docker in the `DOCKER` chain,
+e.g.:
+
+```
+Chain DOCKER (3 references)
+
+...
+
+ACCEPT     tcp  --  anywhere             10.7.0.3             tcp dpt:8090
+ACCEPT     tcp  --  anywhere             10.7.0.2             tcp dpt:8090
+ACCEPT     tcp  --  anywhere             10.7.0.1             tcp dpt:8090
+```
+
+#### Dropping connections
+
+To drop the connections between two containers, get their IP addresses first
+(see commands below) and add the following rule:
+
+```
+iptables -I FORWARD 1 -s 10.7.0.1 -d 10.7.0.2 -j DROP
+```
+
+This will drop all connections from `10.7.0.1` (`factomd_1`) to `10.7.0.2`
+(`factomd_2`). It is important to use `-I`, so that the rule gets inserted
+first and it will match a given network packet before it is matched by rules
+created by docker.
+
+#### Restoring connections
+
+To restore the connectivity, remove the previously added rule. To do this you
+need to first obtain the current number of the added rule
+
+```
+iptables -L --line-numbers
+```
+
+```
+...
+
+Chain FORWARD (policy DROP)
+num  target     prot opt source               destination
+1    DROP       all  --  10.7.0.1             10.7.0.2
+
+...
+```
+
+The previously added rule has number 1 in the `FORWARD` chain, so we can drop
+it with:
+
+```
+iptables -R FORWARD 1
+```
 
 ## Useful commands
 
@@ -175,6 +288,15 @@ To kill the container:
 docker kill <container_name>
 ```
 
+### Getting IP addresses
+
+Display all containers with all networks they belong to and their static /
+assigned IP addresses in a network:
+
+```
+docker inspect -f '{{.Name}} - {{range $name, $net := .NetworkSettings.Networks}}{{$name}}:{{$net.IPAddress}} {{end}}' $(docker ps -aq)
+```
+
 ## Service setup details
 
 The environment is created using *docker* containers that are put together
@@ -194,14 +316,27 @@ so they will need to be started manually.
 
 The created *factomd* network is using 3 *factomd* instances that are set up as
 peers in a custom *factomd* network. The configuration files for all the
-instances are located in the `factomd` directory. Note that each of the
+instances are located in the `factom` directory. Note that each of the
 instances has a different identity set up in the config file, so that all nodes
 can be used as leaders in the network (see `IdentityChainID`,
-`LocalServerPrivKey`, `LocalServerPublicKey` in `factomd/factomd_*.conf`).
+`LocalServerPrivKey`, `LocalServerPublicKey` in `factom/factomd_*.conf`).
 
 All the nodes are set up to log to the provided *Logstash* instances by adding
 the command line parameters: `-logstash -logurl=logstash:8345` (see the
 `command` section in the `docker-compose.yml` file.
+
+All the instances have static IP addresses assigned to them. When each of the
+instances start, they connect to an *nginx* instance provided as one of the
+services, which serves the list of IP addresses for all the nodes, so that all
+instances connect to each other.
+
+The default assignment of IP addresses for *factomd* instances:
+ * *factomd_1* - `10.7.0.1`
+ * *factomd_2* - `10.7.0.2`
+ * *factomd_3* - `10.7.0.3`
+
+All other services present in the `factomd` docker network have their IPs
+assigned automatically in `10.7.1.0/24`.
 
 ### ELK stack
 
@@ -273,6 +408,6 @@ instances and labels them using the instance name.
   proxy starting the userland proxy
   ```
 
-  Unfortunately this is an unresolved *Docker for Mac* issue that cannot be
-  removed (restarting does not help) and there is no good solution for this
-  removing all data from docker and re-run everything again.
+  Unfortunately this is an unresolved *Docker for Mac* issue for which there is
+  no good solution (restarting does not help), you'll need to retry until it
+  succeeds.
