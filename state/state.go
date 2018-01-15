@@ -38,19 +38,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var _ = fmt.Print // force fmt into the import list
+var _ interfaces.IState = (*State)(nil)
+
 // packageLogger is the general logger for all package related logs. You can add additional fields,
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
-var _ = fmt.Print
-
 type State struct {
-	Logger           *log.Entry
-	IsRunning        bool
-	filename         string
+	Logger            *log.Entry
+	IsRunning         bool
+	filename          string
 	NetworkController *p2p.Controller
-	Salt             interfaces.IHash
-	Cfg              interfaces.IFactomConfig
+	Salt              interfaces.IHash
+	Cfg               interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -148,7 +149,6 @@ type State struct {
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             InMsgMSGQueue
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
@@ -222,7 +222,7 @@ type State struct {
 	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     atomic.AtomicBool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
+	DebugConsensus  bool              // If true, dump consensus trace
 	FactoidTrans    int
 	ECCommits       int
 	ECommits        int
@@ -256,7 +256,7 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB     interfaces.DBOverlaySimple
+	//	DB     interfaces.DBOverlaySimple
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -293,10 +293,6 @@ type State struct {
 	// Web Services
 	Port int
 
-	// For Replay / journal
-	IsReplaying     bool
-	ReplayTimestamp interfaces.Timestamp
-
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
 	EntryBlockDBHeightComplete uint32
@@ -306,18 +302,16 @@ type State struct {
 	MissingEntryBlocks []MissingEntryBlock
 
 	MissingEntryRepeat interfaces.Timestamp
-	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
+
 	// DBlock Height at which we have started asking for or have all entries
 	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
-	// Entries we don't have that we are asking our neighbors for
-	MissingEntries chan *MissingEntry
 
 	// Holds leaders and followers up until all missing entries are processed, if true
 	WaitForEntries  bool
 	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
 	WriteEntry      chan interfaces.IEBEntry
+
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -346,25 +340,77 @@ type State struct {
 	LogstashURL string
 
 	// Plugins
-	useTorrents             bool
+	//	useTorrents             bool
 	torrentUploader         bool
 	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
 	DBStateManager          interfaces.IManagerController
 	HighestCompletedTorrent uint32
 	FastBoot                bool
 	FastBootLocation        string
+
+	ShareWithEntrySyncStatic // All the info needed by entrySync() thread that is static
+	ShareWithEntrySync       // All the info needed by entrySync() thread
+} // struct State {...}
+
+type ShareWithEntrySyncStatic struct {
+
+	MakeMissingEntryRequestsStatic
+
+	// synchronized accessed via the IFace ... so sort of static
+	Behind atomic.AtomicBool // Let message.SendOut know we are behind or not
+	// For Replay / journal
+	IsReplaying       bool
+	ReplayTimestamp   interfaces.Timestamp
+	getTimestampMutex sync.Mutex
+
+	// unsafe zone -- to be dealt with
+	state interfaces.IState
 }
 
-var _ interfaces.IState = (*State)(nil)
+type MakeMissingEntryRequestsStatic struct {
+	// Safe shared structures
+	inMsgQueue InMsgMSGQueue
+	// Entrys we don't have that we are asking our neighbors for
+	MissingEntries  chan *MissingEntry
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
+
+	// Database
+	DB         interfaces.DBOverlaySimple
+	WriteEntry chan interfaces.IEBEntry
+	// unsafe zone -- to be dealt with
+	state interfaces.IState
+}
+
+// the things that have to be updated for entrySync() thread
+type ShareWithEntrySync struct {
+	MakeMissingEntryRequestsInfo // Get all the info needed MakeMissingEntryRequests() thread too
+}
+
+type MakeMissingEntryRequestsInfo struct {
+	useTorrents       bool
+	HighestSavedBlk   uint32
+	HighestKnownBlock uint32
+	LLeaderHeight     uint32
+	// DBlock Height at which node has a complete set of eblocks+entries
+	EntryDBHeightComplete uint32
+}
+
+// this is not atomic and needs to go
+func (s *MakeMissingEntryRequestsStatic) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBlock { return s.state.GetDirectoryBlockByHeight(height) }
+
+// Returns a millisecond timestamp
+func (s *MakeMissingEntryRequestsStatic) GetTimestamp() interfaces.Timestamp {return s.state.GetTimestamp()
+}
+// Info needed by MakeMissingEntryRequests thread
 
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
 }
 
-func (s *State) Running() bool {
-	return s.IsRunning
-}
+func (s *State) BehindGet() bool { return s.Behind.Load() }
+
+func (s *State) Running() bool { return s.IsRunning }
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState := new(State)
@@ -763,7 +809,7 @@ func (s *State) Init() {
 	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
 	fmt.Print(salt)
 
-	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are up to date
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
@@ -787,7 +833,7 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for Factom application messages
 	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
@@ -1924,19 +1970,25 @@ func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 }
 
 func (s *State) SetIsReplaying() {
-	s.IsReplaying = true
+	s.getTimestampMutex.Lock()
+	defer s.getTimestampMutex.Unlock()
+	s.IsReplaying = true //L
 }
 
 func (s *State) SetIsDoneReplaying() {
-	s.IsReplaying = false
-	s.ReplayTimestamp = nil
+	s.getTimestampMutex.Lock()
+	defer s.getTimestampMutex.Unlock()
+	s.IsReplaying = false   //L
+	s.ReplayTimestamp = nil //L
 }
 
 // Returns a millisecond timestamp
 func (s *State) GetTimestamp() interfaces.Timestamp {
-	if s.IsReplaying == true {
-		fmt.Println("^^^^^^^^ IsReplying is true")
-		return s.ReplayTimestamp
+	s.getTimestampMutex.Lock()
+	defer s.getTimestampMutex.Unlock()
+	if s.IsReplaying == true { //L
+		fmt.Println("^^^^^^^^ IsReplaying is true")
+		return s.ReplayTimestamp //L
 	}
 	return primitives.NewTimestampNow()
 }
@@ -2081,7 +2133,7 @@ func (s *State) GetNetworkID() uint32 {
 	return uint32(0)
 }
 
-// The inital public key that can sign the first block
+// The initial public key that can sign the first block
 func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
@@ -2103,7 +2155,7 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 	return primitives.NewZeroHash()
 }
 
-// The inital identity that can sign the first block
+// The initial identity that can sign the first block
 func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:

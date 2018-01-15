@@ -106,7 +106,7 @@ type IState interface {
 	NetworkOutMsgQueue() IQueue
 	NetworkInvalidMsgQueue() chan IMsg
 
-	// Journalling
+	// Journaling
 	JournalMessage(IMsg)
 	GetJournalMessages() [][]byte
 
@@ -315,4 +315,6 @@ type IState interface {
 	// Plugins
 	UsingTorrent() bool
 	GetMissingDBState(height uint32) error
+
+	BehindGet() bool
 }

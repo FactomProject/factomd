@@ -23,7 +23,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
-	"sync/atomic"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 var _ = hex.EncodeToString
@@ -455,9 +456,11 @@ type DBStateList struct {
 	State         *State
 	Base          uint32
 	Complete      uint32
-	DBStates      []*DBState
-	HighestSavedBlock uint32 // used by entrySync Thread
-	HighestKnownBlock uint32 // used by entrySync Thread
+	DBStates      []*DBState // shared bu validator and server
+	DBStateMutex atomic.DebugMutex // incomplete, unused mutex....
+
+	HighestSavedBlock atomic.AtomicUint32 // used by entrySync Thread
+	HighestKnownBlock atomic.AtomicUint32 // used by entrySync Thread
 }
 
 var _ interfaces.BinaryMarshallable = (*DBStateList)(nil)
@@ -819,7 +822,7 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 			}
 		}
 	}
-	atomic.StoreUint32(&list.HighestSavedBlock, uint32(ht))
+	list.HighestSavedBlock.Store(uint32(ht))
 	return ht
 }
 
@@ -1213,6 +1216,9 @@ func (list *DBStateList) SaveDBStateToDB(d *DBState) (progress bool) {
 			return
 		}
 	}
+
+	// Let message.SendOut know we are behind or not
+	list.State.Behind.Store(list.State.GetHighestKnownBlock()-list.State.GetHighestSavedBlk() > 4)
 
 	if d.Saved {
 		Havedblk, err := list.State.DB.DoesKeyExist(databaseOverlay.DIRECTORYBLOCK, d.DirectoryBlock.GetKeyMR().Bytes())

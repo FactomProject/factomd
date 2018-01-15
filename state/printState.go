@@ -178,8 +178,10 @@ func PrintState(state *State) {
 	//str = fmt.Sprintf("%s %35s = %+v\n", str, "ECBalancesP", state.ECBalancesP)
 	//str = fmt.Sprintf("%s %35s = %+v\n", str, "ECBalancesPMutex", state.ECBalancesPMutex)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Port", state.Port)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "IsReplaying", state.IsReplaying)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "ReplayTimestamp", state.ReplayTimestamp)
+	state.getTimestampMutex.Lock()
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "IsReplaying", state.IsReplaying) //L
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "ReplayTimestamp", state.ReplayTimestamp) //L
+	state.getTimestampMutex.Unlock()
 
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryBlockRepeat", state.MissingEntryBlockRepeat)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryBlockDBHeightComplete", state.EntryBlockDBHeightComplete)

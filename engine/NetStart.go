@@ -565,7 +565,8 @@ func startServers(load bool) {
 		wg.Wait()
 
 		wg.Add(1)
-		go fnode.State.GoSyncEntries(&wg)
+		// Start the database sync thread and hand him the relevant static portion of the state
+		go fnode.State.GoSyncEntries(&wg, &fnode.State.ShareWithEntrySyncStatic)
 		wg.Wait()
 
 		if load {

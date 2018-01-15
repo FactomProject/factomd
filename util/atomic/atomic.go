@@ -173,7 +173,7 @@ func (c *DebugMutex) unlockCAS() {
 func (c *DebugMutex) lockMutex() {
 	if (c.lockBool.Load()) {
 		if enableAlreadyLockedDetection.Load() {WhereAmI(c.name.Load()+":Already Locked", 3)}
-		if enableStarvationDetection.Load() || true {
+		if enableStarvationDetection.Load() {
 			// Make a timer to whine if I am starving!
 			done := make(chan struct{})
 			go func() {

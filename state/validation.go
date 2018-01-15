@@ -70,15 +70,22 @@ func (state *State) ValidatorLoop() {
 
 		// Sort the messages.
 		if msg != nil {
-			if state.IsReplaying == true {
-				state.ReplayTimestamp = msg.GetTimestamp()
+			state.getTimestampMutex.Lock()
+			if state.IsReplaying == true { //L
+				state.ReplayTimestamp = msg.GetTimestamp() //L
 			}
+			state.getTimestampMutex.Unlock()
 			if _, ok := msg.(*messages.Ack); ok {
 				state.ackQueue <- msg
 			} else {
 				state.msgQueue <- msg
 			}
 		}
+
+		// Update the part of state used by EntrySync TODO: Make this a channel
+		state.HighestKnownBlock     = state.GetHighestKnownBlock()
+		state.LLeaderHeight         = state.GetLeaderHeight()
+
 	}
 }
 
