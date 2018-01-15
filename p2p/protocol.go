@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
-	"sync/atomic"
+	atomic2 "github.com/FactomProject/factomd/util/atomic"
 )
 
 // This file contains the global variables and utility functions for the p2p network operation.  The global variables and constants can be tweaked here.
@@ -45,29 +45,29 @@ func BlockFreeChannelSend(channel chan interface{}, message interface{}) int {
 
 // Global variables for the p2p protocol
 var (
-	CurrentLoggingLevelVar        uint32  = Errors // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
-	CurrentNetwork                       = TestNet
-	NetworkListenPort                    = "8108"
-	BroadcastFlag                        = "<BROADCAST>"
-	RandomPeerFlag                       = "<RANDOMPEER>"
-	NodeID                        uint64 = 0           // Random number used for loopback protection
-	MinumumQualityScore           int32  = -200        // if a peer's score is less than this we ignore them.
-	BannedQualityScore            int32  = -2147000000 // Used to ban a peer
-	MinumumSharingQualityScore    int32  = 20          // if a peer's score is less than this we don't share them.
-	OnlySpecialPeers                     = false
-	NetworkDeadline                      = time.Duration(30) * time.Second
-	NumberPeersToConnect                 = 32
-	NumberPeersToBroadcast               = 100
-	MaxNumberIncomingConnections        = 150
-	MaxNumberOfRedialAttempts            = 5 // How many missing pings (and other) before we give up and close.
-	StandardChannelSize                  = 5000
-	NetworkStatusInterval                = time.Second * 9
-	ConnectionStatusInterval             = time.Second * 122
-	PingInterval                         = time.Second * 15
-	TimeBetweenRedials                   = time.Second * 20
-	PeerSaveInterval                     = time.Second * 30
-	PeerRequestInterval                  = time.Second * 180
-	PeerDiscoveryInterval                = time.Hour * 4
+	CurrentLoggingLevelVar       atomic2.AtomicUint8 = atomic2.AtomicUint8(Errors) // Start at verbose because it takes a few seconds for the controller to adjust to what you set.
+	CurrentNetwork                                   = TestNet
+	NetworkListenPort                                = "8108"
+	BroadcastFlag                                    = "<BROADCAST>"
+	RandomPeerFlag                                   = "<RANDOMPEER>"
+	NodeID                       uint64              = 0           // Random number used for loopback protection
+	MinimumQualityScore          int32               = -200        // if a peer's score is less than this we ignore them.
+	BannedQualityScore           int32               = -2147000000 // Used to ban a peer
+	MinimumSharingQualityScore   int32               = 20          // if a peer's score is less than this we don't share them.
+	OnlySpecialPeers                                 = false
+	NetworkDeadline                                  = time.Duration(30) * time.Second
+	NumberPeersToConnect                             = 32
+	NumberPeersToBroadcast                           = 100
+	MaxNumberIncomingConnections                     = 150
+	MaxNumberOfRedialAttempts                        = 5 // How many missing pings (and other) before we give up and close.
+	StandardChannelSize                              = 5000
+	NetworkStatusInterval                            = time.Second * 9
+	ConnectionStatusInterval                         = time.Second * 122
+	PingInterval                                     = time.Second * 15
+	TimeBetweenRedials                               = time.Second * 20
+	PeerSaveInterval                                 = time.Second * 30
+	PeerRequestInterval                              = time.Second * 180
+	PeerDiscoveryInterval                            = time.Hour * 4
 
 	// Testing metrics
 	TotalMessagesReceived       uint64
@@ -79,8 +79,8 @@ var (
 
 )
 
-func CurrentLoggingLevel() uint32 {
-	return atomic.LoadUint32(&CurrentLoggingLevelVar) // really a uint8 but still got reported as a race...
+func CurrentLoggingLevel() uint8 {
+	return CurrentLoggingLevelVar.Load()
 }
 
 const (
@@ -119,7 +119,7 @@ func (n *NetworkID) String() string {
 }
 
 const ( // iota is reset to 0
-	Silence     uint32 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
+	Silence     uint8 = iota // 0 Say nothing. A log output with level "Silence" is ALWAYS printed.
 	Significant              // 1 Significant messages that should be logged in normal ops
 	Fatal                    // 2 Log only fatal errors (fatal errors are always logged even on "Silence")
 	Errors                   // 3 Log all errors (many errors may be expected)
@@ -129,7 +129,7 @@ const ( // iota is reset to 0
 )
 
 // Map of network ids to strings for easy printing of network ID
-var LoggingLevels = map[uint32]string{
+var LoggingLevels = map[uint8]string{
 	Silence:     "Silence",     // Say nothing. A log output with level "Silence" is ALWAYS printed.
 	Significant: "Significant", // Significant things that should be printed, but aren't necessary errors.
 	Fatal:       "Fatal",       // Log only fatal errors (fatal errors are always logged even on "Silence")
@@ -173,7 +173,7 @@ func verbose(component string, format string, v ...interface{}) {
 }
 
 // logP is the base log function to produce parsable log output for mass metrics consumption
-func logP(level uint32, component string, format string, v ...interface{}) {
+func logP(level uint8, component string, format string, v ...interface{}) {
 	message := strings.Replace(fmt.Sprintf(format, v...), ",", "-", -1) // Make CSV parsable.
 	// levelStr := LoggingLevels[level]
 	// host, _ := os.Hostname()

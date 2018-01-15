@@ -367,7 +367,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.SetDebugMode(p.Netdebug)
 		if 0 < p.Netdebug {
 			go p2pProxy.PeriodicStatusReport(fnodes)
-			p2pNetwork.StartLogging(uint32(p.Netdebug))
+			p2pNetwork.StartLogging(uint8(p.Netdebug))
 		} else {
 			p2pNetwork.StartLogging(0)
 		}
@@ -536,7 +536,7 @@ func makeServer(s *state.State) *FactomNode {
 	// fnodesMu is already locked...
 	if len(fnodes) > 0 {
 		newState = s.Clone(len(fnodes)).(*state.State)
-		time.Sleep(10 * time.Millisecond)
+//		time.Sleep(10 * time.Millisecond)
 		newState.Init()
 	}
 
@@ -557,7 +557,7 @@ func startServers(load bool) {
 		var wg sync.WaitGroup
 
 		NetworkProcessorNet(fnode)
-		
+
 		go fnode.State.ValidatorLoop()
 
 		wg.Add(1)
@@ -569,7 +569,7 @@ func startServers(load bool) {
 		wg.Wait()
 
 		if load {
-			go state.LoadDatabase(fnode.State, &wg)
+			go state.LoadDatabase(fnode.State)
 		}
 	}
 }

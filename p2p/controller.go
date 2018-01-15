@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 	"unicode"
-	"sync/atomic"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 // packageLogger is the general logger for all p2p related logs. You can add additional fields,
@@ -33,9 +33,9 @@ type Controller struct {
 
 	listenPort              string                 // port we listen on for new connections
 	connections             map[string]*Connection // map of the connections indexed by peer hash
-	numConnections          uint32                 // Number of Connections we are managing.
+	numConnections          atomic.AtomicUint32                 // Number of Connections we are managing.
 	connectionsByAddress    map[string]*Connection // map of the connections indexed by peer address
-	numConnectionsByAddress uint32                 // Number of Connections in the by address table
+	numConnectionsByAddress atomic.AtomicUint32                 // Number of Connections in the by address table
 
 	// After launching the network, the management is done via these channels.
 	commandChannel chan interface{} // Application use controller public API to send commands on this channel to controllers goroutines.
@@ -147,7 +147,7 @@ func (e *CommandDisconnect) String() string {
 
 // CommandChangeLogging is used to instruct the Controller to takve various actions.
 type CommandChangeLogging struct {
-	Level uint32
+	Level uint8
 }
 
 func (e *CommandChangeLogging) JSONByte() ([]byte, error) {
@@ -232,14 +232,14 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	}
 }
 
-func (c *Controller) StartLogging(level uint32) {
+func (c *Controller) StartLogging(level uint8) {
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) StopLogging() {
 	level := Silence
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
-func (c *Controller) ChangeLogLevel(level uint32) {
+func (c *Controller) ChangeLogLevel(level uint8) {
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 
@@ -270,10 +270,10 @@ func (c *Controller) Disconnect(peerHash string) {
 }
 
 func (c *Controller) GetNumberConnections() int {
-	return int(atomic.LoadUint32(&c.numConnections))
+	return int(c.numConnections.Load())
 }
 func (c *Controller) getNumberConnectionsByAddress() int {
-	return int(atomic.LoadUint32(&c.numConnectionsByAddress))
+	return int(c.numConnectionsByAddress.Load())
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -363,8 +363,9 @@ func (c *Controller) runloop() {
 
 	for c.keepRunning { // Run until we get the exit command
 
-		atomic.StoreUint32(&c.numConnections, uint32(len(c.connections)))
-		atomic.StoreUint32(&c.numConnectionsByAddress, uint32(len(c.connectionsByAddress)))
+		c.numConnections.Store(uint32(len(c.connections)))
+		c.numConnectionsByAddress.Store(uint32(len(c.connectionsByAddress)))
+
 		p2pControllerNumConnections.Set(float64(c.GetNumberConnections()))
 		p2pControllerNumMetrics.Set(float64(len(c.connectionMetrics)))
 		p2pControllerNumConnectionsByAddress.Set(float64(c.getNumberConnectionsByAddress()))
@@ -480,7 +481,10 @@ func (c *Controller) route() {
 				for key := range c.connections {
 					if i == guess {
 						connection := c.connections[key]
-						if connection.metrics.BytesReceived > 0 {
+						connection.metricsMutex.Lock()
+						bytes := connection.metrics.BytesReceived
+						connection.metricsMutex.Unlock()
+						if bytes > 0 {
 							bestKey = key
 							break search
 						}
@@ -577,7 +581,7 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.shutdown()
 	case CommandChangeLogging:
 		parameters := command.(CommandChangeLogging)
-		atomic.StoreUint32(&CurrentLoggingLevelVar, uint32(parameters.Level)) // really a uint8 but still got reported as a race...
+		CurrentLoggingLevelVar.Store(parameters.Level) // really a uint8 but still got reported as a race...
 	case CommandAdjustPeerQuality:
 		parameters := command.(CommandAdjustPeerQuality)
 		peerHash := parameters.PeerHash
