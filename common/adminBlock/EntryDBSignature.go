@@ -10,6 +10,7 @@ import (
 
 // DB Signature Entry -------------------------
 type DBSignatureEntry struct {
+	AdminIDType          uint32               `json:"adminidtype"`
 	IdentityAdminChainID interfaces.IHash     `json:"identityadminchainid"`
 	PrevDBSig            primitives.Signature `json:"prevdbsig"`
 }
@@ -22,6 +23,7 @@ func (e *DBSignatureEntry) Init() {
 		e.IdentityAdminChainID = primitives.NewZeroHash()
 	}
 	e.PrevDBSig.Init()
+	e.AdminIDType = uint32(e.Type())
 }
 
 func (c *DBSignatureEntry) UpdateState(state interfaces.IState) error {
@@ -102,10 +104,12 @@ func (e *DBSignatureEntry) UnmarshalBinary(data []byte) (err error) {
 }
 
 func (e *DBSignatureEntry) JSONByte() ([]byte, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSON(e)
 }
 
 func (e *DBSignatureEntry) JSONString() (string, error) {
+	e.AdminIDType = uint32(e.Type())
 	return primitives.EncodeJSONString(e)
 }
 

@@ -102,3 +102,31 @@ func TestIncreaseServerCountMarshalUnmarshal(t *testing.T) {
 		t.Errorf("Invalid Amount")
 	}
 }
+
+func TestIncreaseServerMisc(t *testing.T) {
+	a := new(IncreaseServerCount)
+	if a.String() != "    E:               Increase Server Count -- by 0" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":4,\"amount\":0}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":4,\"amount\":0}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}

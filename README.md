@@ -17,7 +17,7 @@ We are very much at an Alpha level of development.  This is the M2 codebase, whi
 
 You need to set up Go environment with golang 1.5 or 1.6. You also need to install the latest version of git, and it doesn't hurt to set up a github account.
 
-###Install the m2 repository
+### Install the m2 repository
 
 Get the M2 database, with the following command
 
@@ -25,7 +25,7 @@ Get the M2 database, with the following command
 
 You should now be ready to execute factomd
 
-###Testing M2
+### Testing M2
 
 The test team is working on the master branch, while the developers are working on the m2 branch.  But because of shared repositories (some of which have some m2 changes), moving between milestone 1 code, m2s, and m2 is a bit complicated.  The all.sh script is your friend.  Follow these steps to get M2 setup and running for test:
 
