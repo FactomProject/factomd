@@ -43,7 +43,7 @@ type P2PProxy struct {
 	logging   chan interface{} // NODE_TALK_FIX
 	NumPeers  int
 	bytesOut  int // bandwidth used by applicaiton without netowrk fan out
-	bytesIn   int // bandwidth recieved by application from network
+	bytesIn   int // bandwidth received by application from network
 }
 
 type FactomMessage struct {
@@ -141,7 +141,7 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 }
 
 // Non-blocking return value from channel.
-func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
+func (f *P2PProxy) Receive() (interfaces.IMsg, error) {
 	select {
 	case data, ok := <-f.BroadcastIn:
 		if ok {
@@ -150,7 +150,7 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 			switch data.(type) {
 			case FactomMessage:
 				fmessage := data.(FactomMessage)
-				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
+				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Receive()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 
 				if err != nil {
@@ -219,7 +219,7 @@ func (p *P2PProxy) stopProxy() {
 
 type MessageLog struct {
 	Hash     string // string(GetMsgHash().Bytes())
-	Received bool   // true if logging a recieved message, false if sending
+	Received bool   // true if logging a received message, false if sending
 	Time     int64
 	Target   string // the id of the targetted node (value may only have local meaning)
 	Mtype    byte   /// message type (types defined in constants.go)
@@ -350,7 +350,7 @@ func (f *P2PProxy) InstantaneousStatusReport(fnodes []*FactomNode) {
 	fmt.Println(" Periodic Status Report")
 	fmt.Println("-------------------------------------------------------------------------------")
 	for _, f := range fnodes {
-		f.State.Status = 1
+		f.State.Status.Store(1)
 	}
 	time.Sleep(100 * time.Millisecond)
 	for _, f := range fnodes {

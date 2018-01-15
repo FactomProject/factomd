@@ -6,10 +6,11 @@ package state
 
 import (
 	"fmt"
-	"sync"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
-var cntsMutex sync.Mutex
+var cntsMutex atomic.DebugMutex
 var cnts map[string]int
 
 func PrintState(state *State) {
@@ -53,7 +54,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelPort", state.ControlPanelPort)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelSetting", state.ControlPanelSetting)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelChannel", state.ControlPanelChannel)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelDataRequest", state.ControlPanelDataRequest)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "ControlPanelDataRequest", state.ControlPanelDataRequest.Load())
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Network", state.Network)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MainNetworkPort", state.MainNetworkPort)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "PeersFile", state.PeersFile)
@@ -137,7 +138,7 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "DBSigFails", state.DBSigFails)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Saving", state.Saving)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Syncing", state.Syncing)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "NetStateOff", state.NetStateOff)
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "NetStateOff", state.NetStateOff.Load())
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "DebugConsensus", state.DebugConsensus)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "FactoidTrans", state.FactoidTrans)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "ECCommits", state.ECCommits)
@@ -148,7 +149,9 @@ func PrintState(state *State) {
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LeaderTimestamp", state.LeaderTimestamp)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "resendHolding", state.ResendHolding)
 	//str = fmt.Sprintf("%s %35s = %+v\n", str, "Holding", state.Holding)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "XReview", state.XReview)
+	state.XReviewMutex.Lock()
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "XReview", state.XReview) // RL
+	state.XReviewMutex.Unlock()
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Acks", state.Acks)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Commits", state.Commits)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "InvalidMessages", state.InvalidMessages)
@@ -175,16 +178,19 @@ func PrintState(state *State) {
 	//str = fmt.Sprintf("%s %35s = %+v\n", str, "ECBalancesP", state.ECBalancesP)
 	//str = fmt.Sprintf("%s %35s = %+v\n", str, "ECBalancesPMutex", state.ECBalancesPMutex)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "Port", state.Port)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "IsReplaying", state.IsReplaying)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "ReplayTimestamp", state.ReplayTimestamp)
+	state.getTimestampMutex.Lock()
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "IsReplaying", state.IsReplaying) //L
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "ReplayTimestamp", state.ReplayTimestamp) //L
+	state.getTimestampMutex.Unlock()
 
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryBlockRepeat", state.MissingEntryBlockRepeat)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryBlockDBHeightComplete", state.EntryBlockDBHeightComplete)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryBlockDBHeightProcessing", state.EntryBlockDBHeightProcessing)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryBlocks", state.MissingEntryBlocks)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntryRepeat", state.MissingEntryRepeat)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightComplete", state.EntryDBHeightComplete)
-	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryHeightComplete", state.EntryDBHeightComplete)
+	// TODO: WHy are these two the same???? -- clay
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryDBHeightComplete", state.EntryDBHeightComplete.Load())
+	str = fmt.Sprintf("%s %35s = %+v\n", str, "EntryHeightComplete", state.EntryDBHeightComplete.Load())
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "MissingEntries", state.MissingEntries)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrint", state.LastPrint)
 	str = fmt.Sprintf("%s %35s = %+v\n", str, "LastPrintCnt", state.LastPrintCnt)

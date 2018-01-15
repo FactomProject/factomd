@@ -39,7 +39,7 @@ type DBStateMsg struct {
 
 	SignatureList SigList
 
-	//Not marshalled
+	//Not marshaled
 	IgnoreSigs bool
 	Sent       interfaces.Timestamp
 	IsInDB     bool

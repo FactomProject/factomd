@@ -50,7 +50,7 @@ func (st *State) GetSigningKey(id interfaces.IHash) (interfaces.IHash, int) {
 
 	for _, identity := range st.Identities {
 		if identity.IdentityChainID.IsSameAs(id) {
-			return identity.SigningKey, getReturnStatInt(identity.Status)
+			return identity.SigningKey, getReturnStatInt(identity.Status.Load())
 		}
 	}
 	return nil, -1
@@ -204,7 +204,7 @@ func (st *State) RemoveIdentity(chainID interfaces.IHash) {
 }
 
 func (st *State) removeIdentity(i int) {
-	if st.Identities[i].Status == constants.IDENTITY_SKELETON {
+	if st.Identities[i].Status.Load() == constants.IDENTITY_SKELETON {
 		return // Do not remove skeleton identity
 	}
 	st.Identities = append(st.Identities[:i], st.Identities[i+1:]...)
@@ -321,9 +321,9 @@ func (st *State) CreateBlankFactomIdentity(chainID interfaces.IHash) int {
 	}
 	oneID.IdentityChainID = chainID
 
-	oneID.Status = constants.IDENTITY_UNASSIGNED
+	oneID.Status.Store(constants.IDENTITY_UNASSIGNED)
 	if chainID.IsSameAs(st.GetNetworkSkeletonIdentity()) {
-		oneID.Status = constants.IDENTITY_SKELETON
+		oneID.Status.Store(constants.IDENTITY_SKELETON)
 	}
 	oneID.IdentityRegistered = 0
 	oneID.IdentityCreated = 0
@@ -413,8 +413,8 @@ func addIdentity(entry interfaces.IEBEntry, height uint32, st *State) error {
 // is a federated or audit server. Returning an err makes the identity be removed, so return nil
 // if we don't want it removed
 func checkIdentityForFull(identityIndex int, st *State) error {
-	status := st.Identities[identityIndex].Status
-	if statusIsFedOrAudit(st.Identities[identityIndex].Status) || status == constants.IDENTITY_PENDING_FULL || status == constants.IDENTITY_SKELETON {
+	status := st.Identities[identityIndex].Status.Load()
+	if statusIsFedOrAudit(status) || status == constants.IDENTITY_PENDING_FULL || status == constants.IDENTITY_SKELETON {
 		return nil // If already full, we don't need to check. If it is fed or audit, we do not need to check
 	}
 
@@ -558,7 +558,7 @@ func RegisterBlockSigningKey(entry interfaces.IEBEntry, initial bool, height uin
 			//		Not the initial load
 			//		A Federated or Audit server
 			//		This node is charge of admin block
-			status := st.Identities[IdentityIndex].Status
+			status := st.Identities[IdentityIndex].Status.Load()
 			if !initial && statusIsFedOrAudit(status) && st.GetLeaderVM() == st.ComputeVMIndex(entry.GetChainID().Bytes()) {
 				key := primitives.NewHash(extIDs[3])
 				msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_FED_SERVER_KEY, 0, 0, key)
@@ -626,7 +626,7 @@ func UpdateMatryoshkaHash(entry interfaces.IEBEntry, initial bool, height uint32
 			mhash := primitives.NewHash(extIDs[3])
 			st.Identities[IdentityIndex].MatryoshkaHash = mhash
 			// Add to admin block
-			status := st.Identities[IdentityIndex].Status
+			status := st.Identities[IdentityIndex].Status.Load()
 			if !initial && statusIsFedOrAudit(status) && st.GetLeaderVM() == st.ComputeVMIndex(entry.GetChainID().Bytes()) {
 				//if st.LeaderPL.VMIndexFor(constants.ADMIN_CHAINID) == st.GetLeaderVM() {
 				msg := messages.NewChangeServerKeyMsg(st, chainID, constants.TYPE_ADD_MATRYOSHKA, 0, 0, mhash)
@@ -721,7 +721,7 @@ func RegisterAnchorSigningKey(entry interfaces.IEBEntry, initial bool, height ui
 				st.Identities[IdentityIndex].AnchorKeys = newAsk
 			}
 			// Add to admin block
-			status := st.Identities[IdentityIndex].Status
+			status := st.Identities[IdentityIndex].Status.Load()
 			if !initial && statusIsFedOrAudit(status) && st.GetLeaderVM() == st.ComputeVMIndex(entry.GetChainID().Bytes()) {
 				copy(key[:20], extIDs[5][:20])
 				extIDs[5] = append(extIDs[5], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...)
@@ -760,10 +760,10 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	if index != -1 {
 		id := st.Identities[index]
 		zero := primitives.NewZeroHash()
-
+	status:= id.Status.Load()
 		if id.SigningKey == nil || id.SigningKey.IsSameAs(zero) {
 			flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Block Signing Key associated to it")
-			if !statusIsFedOrAudit(id.Status) {
+			if !statusIsFedOrAudit(status) {
 				st.removeIdentity(index)
 			}
 			return true
@@ -773,7 +773,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 		if id.AnchorKeys == nil {
 			flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an BTC Anchor Key associated to it")
-			if !statusIsFedOrAudit(id.Status) {
+			if !statusIsFedOrAudit(status) {
 				st.removeIdentity(index)
 			}
 			return true
@@ -787,7 +787,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 
 		if id.MatryoshkaHash == nil || id.MatryoshkaHash.IsSameAs(zero) {
 			flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Matryoshka Key associated to it")
-			if !statusIsFedOrAudit(id.Status) {
+			if !statusIsFedOrAudit(status) {
 				st.removeIdentity(index)
 			}
 			return true
@@ -795,9 +795,9 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 		matryoshkaHash = id.MatryoshkaHash
 
 		if servertype == 0 {
-			id.Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+			id.Status.Store(constants.IDENTITY_PENDING_FEDERATED_SERVER)
 		} else if servertype == 1 {
-			id.Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+			id.Status.Store(constants.IDENTITY_PENDING_AUDIT_SERVER)
 		}
 		st.Identities[index] = id
 	} else {
@@ -808,10 +808,10 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	// Add to admin block
 	if servertype == 0 {
 		st.LeaderPL.AdminBlock.AddFedServer(chainID)
-		st.Identities[index].Status = constants.IDENTITY_PENDING_FEDERATED_SERVER
+		st.Identities[index].Status.Store(constants.IDENTITY_PENDING_FEDERATED_SERVER)
 	} else if servertype == 1 {
 		st.LeaderPL.AdminBlock.AddAuditServer(chainID)
-		st.Identities[index].Status = constants.IDENTITY_PENDING_AUDIT_SERVER
+		st.Identities[index].Status.Store(constants.IDENTITY_PENDING_AUDIT_SERVER)
 	}
 	st.LeaderPL.AdminBlock.AddFederatedServerSigningKey(chainID, blockSigningKey)
 	st.LeaderPL.AdminBlock.AddMatryoshkaHash(chainID, matryoshkaHash)
@@ -832,5 +832,5 @@ func UpdateIdentityStatus(ChainID interfaces.IHash, StatusTo uint8, st *State) {
 	if IdentityIndex == -1 {
 		return
 	}
-	st.Identities[IdentityIndex].Status = StatusTo
+	st.Identities[IdentityIndex].Status.Store(StatusTo)
 }

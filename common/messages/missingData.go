@@ -187,11 +187,11 @@ func (e *MissingData) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func NewMissingData(state interfaces.IState, requestHash interfaces.IHash) interfaces.IMsg {
+func NewMissingData(timestamp interfaces.Timestamp, requestHash interfaces.IHash) interfaces.IMsg {
 	msg := new(MissingData)
 
 	msg.Peer2Peer = true // Always a peer2peer request.
-	msg.Timestamp = state.GetTimestamp()
+	msg.Timestamp = timestamp
 	msg.RequestHash = requestHash
 
 	return msg

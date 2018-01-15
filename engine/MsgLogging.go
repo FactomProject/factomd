@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
-	"sync"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 var _ = log.Printf
@@ -26,7 +27,7 @@ type msglist struct {
 
 type MsgLog struct {
 	Enable  bool
-	sem     sync.Mutex
+	sem     atomic.DebugMutex
 	MsgList []*msglist
 	Last    interfaces.Timestamp
 	all     bool

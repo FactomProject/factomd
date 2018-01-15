@@ -34,23 +34,24 @@ import (
 	"github.com/FactomProject/logrustash"
 
 	"errors"
-
+	"github.com/FactomProject/factomd/util/atomic"
 	log "github.com/sirupsen/logrus"
 )
+
+var _ = fmt.Print // force fmt into the import list
+var _ interfaces.IState = (*State)(nil)
 
 // packageLogger is the general logger for all package related logs. You can add additional fields,
 // or create more context loggers off of this
 var packageLogger = log.WithFields(log.Fields{"package": "state"})
 
-var _ = fmt.Print
-
 type State struct {
-	Logger           *log.Entry
-	IsRunning        bool
-	filename         string
-	NetworkControler *p2p.Controller
-	Salt             interfaces.IHash
-	Cfg              interfaces.IFactomConfig
+	Logger            *log.Entry
+	IsRunning         bool
+	filename          string
+	NetworkController *p2p.Controller
+	Salt              interfaces.IHash
+	Cfg               interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -82,7 +83,7 @@ type State struct {
 	ControlPanelPort        int
 	ControlPanelSetting     int
 	ControlPanelChannel     chan DisplayState
-	ControlPanelDataRequest bool // If true, update Display state
+	ControlPanelDataRequest atomic.AtomicBool // If true, update Display state
 
 	// Network Configuration
 	Network                 string
@@ -105,10 +106,10 @@ type State struct {
 	Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
-	// Just to print (so debugging doesn't drive functionaility)
-	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
+	// Just to print (so debugging doesn't drive functionality)
+	Status      atomic.AtomicInt // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
-	StatusMutex sync.Mutex
+	StatusMutex atomic.DebugMutex
 	StatusStrs  []string
 	starttime   time.Time
 	transCnt    int
@@ -148,7 +149,6 @@ type State struct {
 	MaxTimeOffset          interfaces.Timestamp
 	networkOutMsgQueue     NetOutMsgQueue
 	networkInvalidMsgQueue chan interfaces.IMsg
-	inMsgQueue             InMsgMSGQueue
 	apiQueue               APIMSGQueue
 	ackQueue               chan interfaces.IMsg
 	msgQueue               chan interfaces.IMsg
@@ -175,7 +175,7 @@ type State struct {
 	// Server State
 	StartDelay      int64 // Time in Milliseconds since the last DBState was applied
 	StartDelayLimit int64
-	DBFinished      bool
+	DBFinished      atomic.AtomicBool
 	RunLeader       bool
 	BootTime        int64 // Time in seconds that we last booted
 
@@ -190,7 +190,7 @@ type State struct {
 	LeaderPL        *ProcessList
 	PLProcessHeight uint32
 	OneLeader       bool
-	OutputAllowed   bool
+	OutputAllowed   atomic.AtomicBool
 	CurrentMinute   int
 
 	// These are the start times for blocks and minutes
@@ -221,8 +221,8 @@ type State struct {
 	Saving  bool // True if we are in the process of saving to the database
 	Syncing bool // Looking for messages from leaders to sync
 
-	NetStateOff     bool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
+	NetStateOff     atomic.AtomicBool // Disable if true, Enable if false
+	DebugConsensus  bool              // If true, dump consensus trace
 	FactoidTrans    int
 	ECCommits       int
 	ECommits        int
@@ -236,6 +236,7 @@ type State struct {
 	ResendHolding interfaces.Timestamp         // Timestamp to gate resending holding to neighbors
 	Holding       map[[32]byte]interfaces.IMsg // Hold Messages
 	XReview       []interfaces.IMsg            // After the EOM, we must review the messages in Holding
+	XReviewMutex  atomic.DebugMutex
 	Acks          map[[32]byte]interfaces.IMsg // Hold Acknowledgemets
 	Commits       *SafeMsgMap                  //  map[[32]byte]interfaces.IMsg // Commit Messages
 
@@ -255,7 +256,7 @@ type State struct {
 	NetworkNumber int // Encoded into Directory Blocks(s.Cfg.(*util.FactomdConfig)).String()
 
 	// Database
-	DB     interfaces.DBOverlaySimple
+	//	DB     interfaces.DBOverlaySimple
 	Anchor interfaces.IAnchor
 
 	// Directory Block State
@@ -283,18 +284,14 @@ type State struct {
 
 	// Permanent balances from processing blocks.
 	FactoidBalancesP      map[[32]byte]int64
-	FactoidBalancesPMutex sync.Mutex
+	FactoidBalancesPMutex atomic.DebugMutex
 	ECBalancesP           map[[32]byte]int64
-	ECBalancesPMutex      sync.Mutex
+	ECBalancesPMutex      atomic.DebugMutex
 	TempBalanceHash       interfaces.IHash
 	Balancehash           interfaces.IHash
 
 	// Web Services
 	Port int
-
-	// For Replay / journal
-	IsReplaying     bool
-	ReplayTimestamp interfaces.Timestamp
 
 	MissingEntryBlockRepeat interfaces.Timestamp
 	// DBlock Height at which node has a complete set of eblocks+entries
@@ -305,18 +302,16 @@ type State struct {
 	MissingEntryBlocks []MissingEntryBlock
 
 	MissingEntryRepeat interfaces.Timestamp
-	// DBlock Height at which node has a complete set of eblocks+entries
-	EntryDBHeightComplete uint32
+
 	// DBlock Height at which we have started asking for or have all entries
 	EntryDBHeightProcessing uint32
 	// Height in the Directory Block where we have
-	// Entries we don't have that we are asking our neighbors for
-	MissingEntries chan *MissingEntry
 
 	// Holds leaders and followers up until all missing entries are processed, if true
 	WaitForEntries  bool
 	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
 	WriteEntry      chan interfaces.IEBEntry
+
 	// MessageTally causes the node to keep track of (and display) running totals of each
 	// type of message received during the tally interval
 	MessageTally           bool
@@ -345,25 +340,80 @@ type State struct {
 	LogstashURL string
 
 	// Plugins
-	useTorrents             bool
+	//	useTorrents             bool
 	torrentUploader         bool
 	Uploader                *UploadController // Controls the uploads of torrents. Prevents backups
 	DBStateManager          interfaces.IManagerController
 	HighestCompletedTorrent uint32
 	FastBoot                bool
 	FastBootLocation        string
+
+	ShareWithEntrySyncStatic // All the info needed by entrySync() thread that is static
+	ShareWithEntrySyncInfo   // All the info needed by entrySync() thread
+} // struct State {...}
+
+type ShareWithEntrySyncStatic struct {
+	MakeMissingEntryRequestsStatic
+
+	// synchronized accessed via the IFace ... so sort of static
+	Behind atomic.AtomicBool // Let message.SendOut know we are behind or not
+	// For Replay / journal
+	IsReplaying       bool
+	ReplayTimestamp   interfaces.Timestamp
+	getTimestampMutex sync.Mutex
+
+	// unsafe zone -- to be dealt with
+	state interfaces.IState
 }
 
-var _ interfaces.IState = (*State)(nil)
+type MakeMissingEntryRequestsStatic struct {
+	// Safe shared structures
+	inMsgQueue InMsgMSGQueue
+	// Entrys we don't have that we are asking our neighbors for
+	MissingEntries  chan *MissingEntry
+	UpdateEntryHash chan *EntryUpdate // Channel for updating entry Hashes tracking (repeats and such)
+
+	// Database
+	DB         interfaces.DBOverlaySimple
+	WriteEntry chan interfaces.IEBEntry
+
+	// unsafe zone -- to be dealt with
+	state interfaces.IState
+}
+
+// the things that have to be updated for entrySync() thread
+type ShareWithEntrySyncInfo struct {
+	MakeMissingEntryRequestsInfo // Get all the info needed MakeMissingEntryRequests() thread too
+}
+
+type MakeMissingEntryRequestsInfo struct {
+	useTorrents           bool
+	HighestSavedBlk       uint32              // written once per validator loop so not always up to date
+	HighestKnownBlock     uint32              // written once per validator loop so not always up to date
+	LLeaderHeight         uint32              // written once per validator loop so not always up to date
+	// Technically this is only atomic in state itself. The version going to MakeMissingEntryRequests() can be normal
+	// But it's unclear how to code that without jumping thru hoops
+	EntryDBHeightComplete atomic.AtomicUint32 // written by GoEntrySync()
+}
+
+// this is not atomic and needs to go
+func (s *MakeMissingEntryRequestsStatic) GetDirectoryBlockByHeight(height uint32) interfaces.IDirectoryBlock { return s.state.GetDirectoryBlockByHeight(height) }
+
+// Returns a millisecond timestamp
+func (s *MakeMissingEntryRequestsStatic) GetTimestamp() interfaces.Timestamp {
+	return s.state.GetTimestamp()
+}
+
+// Info needed by MakeMissingEntryRequests thread
 
 type EntryUpdate struct {
 	Hash      interfaces.IHash
 	Timestamp interfaces.Timestamp
 }
 
-func (s *State) Running() bool {
-	return s.IsRunning
-}
+func (s *State) BehindGet() bool { return s.Behind.Load() }
+
+func (s *State) Running() bool { return s.IsRunning }
 
 func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState := new(State)
@@ -531,11 +581,11 @@ func (s *State) GetAuthorityDeltas() string {
 }
 
 func (s *State) GetNetStateOff() bool { //	If true, all network communications are disabled
-	return s.NetStateOff
+	return s.NetStateOff.Load()
 }
 
 func (s *State) SetNetStateOff(net bool) {
-	s.NetStateOff = net
+	s.NetStateOff.Store(net)
 }
 
 func (s *State) GetRpcUser() string {
@@ -762,7 +812,7 @@ func (s *State) Init() {
 	salt := fmt.Sprintf("The Instance ID of this node is %s\n", s.Salt.String()[:16])
 	fmt.Print(salt)
 
-	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We cant start as a leader until we know we are upto date
+	s.StartDelay = s.GetTimestamp().GetTimeMilli() // We can't start as a leader until we know we are up to date
 	s.RunLeader = false
 	s.IgnoreMissing = true
 	s.BootTime = s.GetTimestamp().GetTimeSeconds()
@@ -786,7 +836,7 @@ func (s *State) Init() {
 	s.networkInvalidMsgQueue = make(chan interfaces.IMsg, 100) //incoming message queue from the network messages
 	s.InvalidMessages = make(map[[32]byte]interfaces.IMsg, 0)
 	s.networkOutMsgQueue = NewNetOutMsgQueue(1000)      //Messages to be broadcast to the network
-	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for factom application messages
+	s.inMsgQueue = NewInMsgQueue(10000)                 //incoming message queue for Factom application messages
 	s.apiQueue = NewAPIQueue(100)                       //incoming message queue from the API
 	s.ackQueue = make(chan interfaces.IMsg, 100)        //queue of Leadership messages
 	s.msgQueue = make(chan interfaces.IMsg, 400)        //queue of Follower messages
@@ -976,7 +1026,7 @@ func (s *State) GetFaultWait() int {
 }
 
 func (s *State) GetEntryDBHeightComplete() uint32 {
-	return s.EntryDBHeightComplete
+	return s.EntryDBHeightComplete.Load()
 }
 
 func (s *State) GetMissingEntryCount() uint32 {
@@ -1723,7 +1773,7 @@ func (s *State) UpdateState() (progress bool) {
 	progress = progress || p2
 
 	s.SetString()
-	if s.ControlPanelDataRequest {
+	if s.ControlPanelDataRequest.Load() {
 		s.CopyStateToControlPanel()
 	}
 
@@ -1923,19 +1973,25 @@ func (s *State) GetAuditHeartBeats() []interfaces.IMsg {
 }
 
 func (s *State) SetIsReplaying() {
-	s.IsReplaying = true
+	s.getTimestampMutex.Lock()
+	defer s.getTimestampMutex.Unlock()
+	s.IsReplaying = true //L
 }
 
 func (s *State) SetIsDoneReplaying() {
-	s.IsReplaying = false
-	s.ReplayTimestamp = nil
+	s.getTimestampMutex.Lock()
+	defer s.getTimestampMutex.Unlock()
+	s.IsReplaying = false   //L
+	s.ReplayTimestamp = nil //L
 }
 
 // Returns a millisecond timestamp
 func (s *State) GetTimestamp() interfaces.Timestamp {
-	if s.IsReplaying == true {
-		fmt.Println("^^^^^^^^ IsReplying is true")
-		return s.ReplayTimestamp
+	s.getTimestampMutex.Lock()
+	defer s.getTimestampMutex.Unlock()
+	if s.IsReplaying == true { //L
+		fmt.Println("^^^^^^^^ IsReplaying is true")
+		return s.ReplayTimestamp //L
 	}
 	return primitives.NewTimestampNow()
 }
@@ -2080,7 +2136,7 @@ func (s *State) GetNetworkID() uint32 {
 	return uint32(0)
 }
 
-// The inital public key that can sign the first block
+// The initial public key that can sign the first block
 func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
@@ -2102,7 +2158,7 @@ func (s *State) GetNetworkBootStrapKey() interfaces.IHash {
 	return primitives.NewZeroHash()
 }
 
-// The inital identity that can sign the first block
+// The initial identity that can sign the first block
 func (s *State) GetNetworkBootStrapIdentity() interfaces.IHash {
 	switch s.NetworkNumber {
 	case constants.NETWORK_MAIN:
@@ -2216,7 +2272,7 @@ func (s *State) SetString() {
 		s.SetStringConsensus()
 	}
 
-	s.Status = 0
+	s.Status.Store(0)
 
 }
 
@@ -2251,7 +2307,7 @@ func (s *State) SetStringConsensus() {
 	s.serverPrt = str
 }
 
-// CalculateTransactionRate caculates how many transactions this node is processing
+// CalculateTransactionRate calculates how many transactions this node is processing
 //		totalTPS	: Transaction rate over life of node (totaltime / totaltrans)
 //		instantTPS	: Transaction rate weighted over last 3 seconds
 func (s *State) CalculateTransactionRate() (totalTPS float64, instantTPS float64) {
@@ -2315,7 +2371,7 @@ func (s *State) SetStringQueues() {
 			}
 		}
 	}
-	if s.NetStateOff {
+	if s.NetStateOff.Load() {
 		X = "X"
 	}
 	if !s.RunLeader && found {
@@ -2448,7 +2504,7 @@ func (s *State) GetTrueLeaderHeight() uint32 {
 }
 
 func (s *State) Print(a ...interface{}) (n int, err error) {
-	if s.OutputAllowed {
+	if s.OutputAllowed.Load() {
 		str := ""
 		for _, v := range a {
 			str = str + fmt.Sprintf("%v", v)
@@ -2468,7 +2524,7 @@ func (s *State) Print(a ...interface{}) (n int, err error) {
 }
 
 func (s *State) Println(a ...interface{}) (n int, err error) {
-	if s.OutputAllowed {
+	if s.OutputAllowed.Load() {
 		str := ""
 		for _, v := range a {
 			str = str + fmt.Sprintf("%v", v)
@@ -2489,11 +2545,11 @@ func (s *State) Println(a ...interface{}) (n int, err error) {
 }
 
 func (s *State) GetOut() bool {
-	return s.OutputAllowed
+	return s.OutputAllowed.Load()
 }
 
 func (s *State) SetOut(o bool) {
-	s.OutputAllowed = o
+	s.OutputAllowed.Store(o)
 }
 
 func (s *State) GetSystemHeight(dbheight uint32) int {

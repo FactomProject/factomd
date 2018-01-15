@@ -14,8 +14,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type Discovery struct {
@@ -27,7 +27,7 @@ type Discovery struct {
 	seedURL       string     // URL to the source of a list of peers
 }
 
-var UpdateKnownPeers sync.Mutex
+var UpdateKnownPeers atomic.DebugMutex
 
 // Discovery provides the code for sharing and managing peers,
 // namely keeping track of all the peers we know about (not just the ones
@@ -119,7 +119,7 @@ func (d *Discovery) SavePeers() {
 			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. Last Contact greater than 168 hours. Peer: %+v", peer)
 			break
 		case MinumumQualityScore > peer.QualityScore:
-			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. MinumumQualityScore: %d > Peer quality score.  Peer: %+v", MinumumQualityScore, peer)
+			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. MinimumQualityScore: %d > Peer quality score.  Peer: %+v", MinumumQualityScore, peer)
 			break
 		default:
 			qualityPeers[peer.AddressPort()] = peer
@@ -128,10 +128,10 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Unlock()
 	encoder.Encode(qualityPeers)
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
+	note("discovery", "SavePeers() saved %d peers in peers.json.\n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
-// LearnPeers recieves a set of peers from other hosts
+// LearnPeers receive a set of peers from other hosts
 // The unique peers are added to our peer list.
 // The peers are in a json encoded string as a byte slice
 func (d *Discovery) LearnPeers(parcel Parcel) {
@@ -152,7 +152,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 		default:
 			value.Source = map[string]time.Time{parcel.Header.PeerAddress: time.Now()}
 			d.updatePeer(value)
-			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
+			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discovered new PEER!   %+v ", value)
 		}
 	}
 	d.SavePeers()
