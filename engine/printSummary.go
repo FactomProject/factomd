@@ -6,9 +6,23 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
+	"os"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
-func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
+func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.AtomicInt) {
+
+	defer func() {
+		if false {
+			if r := recover(); r != nil {
+				os.Stderr.WriteString(fmt.Sprintf("Error in printSummary: %v\n", r))
+				time.Sleep(1 * time.Second)
+				// Restart the print on an error.
+				printSummary(summary, value, listenTo, wsapiNode)
+			}
+		}
+	}()
+
 	out := ""
 
 	if *listenTo < 0 || *listenTo >= len(fnodes) {
@@ -40,7 +54,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 		eCommits := 0
 
 		for _, f := range pnodes {
-			f.State.Status = 1
+			f.State.Status.Store( 1)
 		}
 
 		time.Sleep(time.Second)
@@ -53,7 +67,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 			if f.Index == *listenTo {
 				in = "f"
 			}
-			if f.Index == *wsapiNode {
+			if f.Index == wsapiNode.Load() {
 				api = "w"
 			}
 
@@ -106,7 +120,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.XReview))
+			f.State.XReviewMutex.Lock()
+			list = list + fmt.Sprintf(" %3d", len(f.State.XReview)) // RL
+			f.State.XReviewMutex.Unlock()
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 
@@ -124,7 +140,9 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 
 		list = ""
 		for _, f := range pnodes {
-			list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
+			if f.State != nil && f.State.LeaderPL != nil && f.State.LeaderPL.NewEBlocks != nil {
+				list = list + fmt.Sprintf(" %3d", len(f.State.LeaderPL.NewEBlocks))
+			}
 		}
 		prt = prt + fmt.Sprintf(fmtstr, "Pending EBs", list)
 

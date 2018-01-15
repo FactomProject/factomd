@@ -15,7 +15,7 @@ func (s *State) StartTorrentSyncing() error {
 	}
 
 	// Wait for loading from disk to finish
-	for !s.DBFinished {
+	for !s.DBFinished.Load() {
 		time.Sleep(1 * time.Second)
 	}
 

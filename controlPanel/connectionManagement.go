@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var AllConnections *ConnectionsMap
@@ -36,7 +36,7 @@ type ConnectionsMap struct {
 	disconnected map[string]p2p.ConnectionMetrics
 
 	Totals AllConnectionsTotals
-	Lock   sync.Mutex
+	Lock   atomic.DebugMutex
 }
 
 func NewConnectionsMap() *ConnectionsMap {

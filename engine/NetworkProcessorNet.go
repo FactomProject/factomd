@@ -13,20 +13,24 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/log"
+	"sync"
 )
 
 var _ = log.Printf
 var _ = fmt.Print
 
 func NetworkProcessorNet(fnode *FactomNode) {
-	go Peers(fnode)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go Peers(fnode,&wg)
+	wg.Wait()
 	go NetworkOutputs(fnode)
 	go InvalidOutputs(fnode)
 }
 
-func Peers(fnode *FactomNode) {
+func Peers(fnode *FactomNode, wg *sync.WaitGroup) {
 	cnt := 0
-
+	done := false
 	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
 	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
@@ -66,7 +70,7 @@ func Peers(fnode *FactomNode) {
 			case constants.EOM_MSG:
 				return true
 			case constants.MISSING_DATA:
-				if !fnode.State.DBFinished {
+				if !fnode.State.DBFinished.Load() {
 					return true
 				} else if fnode.State.InMsgQueue().Length() > 4000 {
 					// If > 4000, we won't get to this in time anyway. Just drop it since we are behind
@@ -127,11 +131,11 @@ func Peers(fnode *FactomNode) {
 				preReceiveTime := time.Now()
 
 				if !fnode.State.GetNetStateOff() {
-					msg, err = peer.Recieve()
+					msg, err = peer.Receive()
 				}
 
 				if msg == nil {
-					// Recieve is not blocking; nothing to do, we get a nil.
+					// Receive is not blocking; nothing to do, we get a nil.
 					break
 				}
 
@@ -162,7 +166,7 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
-					//	fnode.State.Println("In Comming!! ",msg)
+					//	fnode.State.Println("Incoming!! ",msg)
 					//}
 					in := "PeerIn"
 					if msg.IsPeer2Peer() {
@@ -186,6 +190,10 @@ func Peers(fnode *FactomNode) {
 			time.Sleep(50 * time.Millisecond)
 		}
 		cnt = 0
+		if !done {
+			wg.Done()
+			done = true
+		}
 	}
 }
 

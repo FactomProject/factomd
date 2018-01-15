@@ -23,6 +23,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/log"
+	"sync/atomic"
 )
 
 var _ = hex.EncodeToString
@@ -58,6 +59,7 @@ type DBState struct {
 
 	FinalExchangeRate uint64
 	NextTimestamp     interfaces.Timestamp
+	HighestSavedBlock uint32
 }
 
 var _ interfaces.BinaryMarshallable = (*DBState)(nil)
@@ -454,6 +456,8 @@ type DBStateList struct {
 	Base          uint32
 	Complete      uint32
 	DBStates      []*DBState
+	HighestSavedBlock uint32 // used by entrySync Thread
+	HighestKnownBlock uint32 // used by entrySync Thread
 }
 
 var _ interfaces.BinaryMarshallable = (*DBStateList)(nil)
@@ -811,10 +815,11 @@ func (list *DBStateList) GetHighestSavedBlk() uint32 {
 			ht = list.Base + uint32(i)
 		} else {
 			if dbstate == nil {
-				return ht
+				break
 			}
 		}
 	}
+	atomic.StoreUint32(&list.HighestSavedBlock, uint32(ht))
 	return ht
 }
 

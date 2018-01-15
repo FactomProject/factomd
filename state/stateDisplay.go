@@ -80,10 +80,10 @@ func NewDisplayState() *DisplayState {
 
 // Sends the copy of State over channel to control panel
 func (s *State) CopyStateToControlPanel() error {
-	if !s.ControlPanelDataRequest {
+	if !s.ControlPanelDataRequest.Load() {
 		return nil
 	}
-	s.ControlPanelDataRequest = false
+	s.ControlPanelDataRequest.Store(false)
 	if len(s.ControlPanelChannel) < ControlPanelAllowedSize {
 		ds, err := DeepStateDisplayCopy(s)
 		if err != nil {
@@ -196,7 +196,7 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 	}
 
 	prt := "===SummaryStart===\n"
-	s.Status = 1
+	s.Status.Store(1)
 	prt = prt + fmt.Sprintf("%s \n", s.ShortString())
 	fnodes := make([]*State, 0)
 	fnodes = append(fnodes, s)
@@ -289,7 +289,9 @@ func messageLists(fnodes []*State) string {
 
 	list = ""
 	for _, f := range fnodes {
-		list = list + fmt.Sprintf(" %3d", len(f.XReview))
+		f.XReviewMutex.Lock()
+		list = list + fmt.Sprintf(" %3d", len(f.XReview)) // RL
+  		f.XReviewMutex.Unlock()
 	}
 	prt = prt + fmt.Sprintf(fmtstr, "Review", list)
 

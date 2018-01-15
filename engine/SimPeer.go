@@ -11,6 +11,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"math/rand"
 	"time"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
@@ -35,25 +36,25 @@ type SimPeer struct {
 	// Were we hold delayed packets
 	Delayed *SimPacket
 
-	bytesOut int // Bytes sent out
-	bytesIn  int // Bytes recieved
+	bytesOut atomic.AtomicInt // Bytes sent out
+	bytesIn  atomic.AtomicInt // Bytes Received
 
-	Last int64 // Last time reset (nano seconds)
+	Last atomic.AtomicInt64 // Last time reset (nano seconds)
 
-	RateOut int // Rate of Bytes output per ms
-	RateIn  int // Rate of Bytes input per ms
+	RateOut atomic.AtomicInt // Rate of Bytes output per ms
+	RateIn  atomic.AtomicInt // Rate of Bytes input per ms
 }
 
 var _ interfaces.IPeer = (*SimPeer)(nil)
 
 // Bytes sent out per second from this peer
 func (f *SimPeer) BytesOut() int {
-	return f.RateOut
+	return f.RateOut.Load()
 }
 
-// Bytes recieved per second from this peer
+// Bytes Received per second from this peer
 func (f *SimPeer) BytesIn() int {
-	return f.RateIn
+	return f.RateIn.Load()
 }
 
 func (*SimPeer) Weight() int {
@@ -87,7 +88,7 @@ func (f *SimPeer) Init(fromName, toName string) interfaces.IPeer {
 	f.ToName = toName
 	f.FromName = fromName
 	f.BroadcastOut = make(chan *SimPacket, 10000)
-	f.Last = time.Now().UnixNano()
+	f.Last.Store(time.Now().UnixNano())
 	return f
 }
 
@@ -100,21 +101,21 @@ func (f *SimPeer) GetNameTo() string {
 
 func (f *SimPeer) computeBandwidth() {
 	now := time.Now().UnixNano()
-	delta := (now - f.Last) / 1000000000 // Make delta seconds
+	delta := (now - f.Last.Load()) / 1000000000 // Make delta seconds
 	if delta < 5 {
-		// Wait atleast 5 seconds.
+		// Wait at least 5 seconds.
 		return
 	}
-	f.RateIn = int(int64(f.bytesIn) / delta)
-	f.RateOut = int(int64(f.bytesOut) / delta)
-	f.bytesIn = 0
-	f.bytesOut = 0
-	f.Last = now
+	f.RateIn.Store(int(int64(f.bytesIn) / delta))
+	f.RateOut.Store(int(int64(f.bytesOut) / delta))
+	f.bytesIn.Store(0)
+	f.bytesOut.Store(0)
+	f.Last.Store(now)
 }
 
 func (f *SimPeer) Send(msg interfaces.IMsg) error {
 	data, err := msg.MarshalBinary()
-	f.bytesOut += len(data)
+	f.bytesOut.Store(f.bytesOut.Load() + len(data))
 	f.computeBandwidth()
 	if err != nil {
 		fmt.Println("ERROR on Send: ", err)
@@ -128,7 +129,7 @@ func (f *SimPeer) Send(msg interfaces.IMsg) error {
 }
 
 // Non-blocking return value from channel.
-func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
+func (f *SimPeer) Receive() (interfaces.IMsg, error) {
 	if f.Delayed == nil {
 		select {
 		case packet, ok := <-f.BroadcastIn:
@@ -156,7 +157,7 @@ func (f *SimPeer) Recieve() (interfaces.IMsg, error) {
 			fmt.Printf("SimPeer ERROR: %s %x %s\n", err.Error(), data[:8], messages.MessageName(data[0]))
 		}
 
-		f.bytesIn += len(data)
+		f.bytesIn.Store(f.bytesIn.Load() + len(data))
 		f.computeBandwidth()
 		return msg, err
 	} else {
@@ -172,6 +173,7 @@ func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
 		i1 >= len(fnodes) ||
 		i2 >= len(fnodes) ||
 		i1 == i2 {
+		fmt.Printf("AddSimPeer(%p,%v,%v) error: Unresonable value\n", fnodes, i1, i2)
 		return
 	}
 
@@ -179,13 +181,13 @@ func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
 	for _, p1 := range fnodes[i1].Peers {
 		for _, p2 := range fnodes[i2].Peers {
 			if p1.Equals(p2) {
+				// this happens normally in some configs because the links are picked by formula
+				// and as the node count changes the %Node Count can wrap the links back around
+				// to nodes that already have links
+			    //	fmt.Printf("AddSimPeer(%p,%v,%v) error: Duplicate\n", fnodes, i1, i2)
 				return
 			}
 		}
-	}
-
-	if i1 >= len(fnodes) || i2 >= len(fnodes) {
-		return
 	}
 
 	f1 := fnodes[i1]

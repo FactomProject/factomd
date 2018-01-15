@@ -21,6 +21,8 @@ import (
 	"github.com/FactomProject/factomd/controlPanel/files"
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
+	"github.com/FactomProject/factomd/util/atomic"
+
 )
 
 // Initiates control panel variables and controls the http requests
@@ -52,7 +54,7 @@ var (
 	DisplayStateChannel chan state.DisplayState
 
 	// Sync Mutex
-	TemplateMutex     sync.Mutex
+	TemplateMutex     atomic.DebugMutex
 	DisplayStateMutex sync.RWMutex
 )
 
@@ -88,7 +90,7 @@ func InitTemplates() {
 	TemplateMutex.Unlock()
 }
 
-// Main function. This intiates appropriate variables and starts the control panel serving
+// Main function. This initiates appropriate variables and starts the control panel serving
 func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer *state.State, connections chan interface{}, controller *p2p.Controller, gitBuild string) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -99,7 +101,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 		}
 	}()
 	StatePointer = statePointer
-	StatePointer.ControlPanelDataRequest = true // Request initial State
+	StatePointer.ControlPanelDataRequest.Store(true) // Request initial State
 	// Wait for initial State
 	select {
 	case DisplayState = <-displayStateChannel:
@@ -111,7 +113,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	DisplayStateMutex.RUnlock()
 
 	if controlPanelSetting == 0 { // 0 = Disabled
-		fmt.Println("Control Panel has been disabled withing the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
+		fmt.Println("Control Panel has been disabled within the config file and will not be served. This is recommended for any public server, if you wish to renable it, check your config file.")
 		return
 	}
 
@@ -124,7 +126,7 @@ func ServeControlPanel(displayStateChannel chan state.DisplayState, statePointer
 	Controller = controller
 	InitTemplates()
 
-	// Updated Globals. A seperate GoRoutine updates these, we just initialize
+	// Updated Globals. A separate GoRoutine updates these, we just initialize
 	RecentTransactions = new(LastDirectoryBlockTransactions)
 	AllConnections = NewConnectionsMap()
 
@@ -222,9 +224,9 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	switch method {
 	case "search":
-		found, respose := searchDB(r.FormValue("search"), *StatePointer)
+		found, response := searchDB(r.FormValue("search"), *StatePointer)
 		if found {
-			w.Write([]byte(respose))
+			w.Write([]byte(response))
 			return
 		} else {
 			if r.FormValue("known") == "factoidack" {
@@ -323,7 +325,7 @@ func RequestData() {
 		return
 	}
 	LastRequest = time.Now()
-	StatePointer.ControlPanelDataRequest = true
+	StatePointer.ControlPanelDataRequest.Store(true)
 	requestMutex = false
 }
 
@@ -488,7 +490,7 @@ var RecentTransactions *LastDirectoryBlockTransactions
 
 // Flag to tell if RecentTransactions is already being built
 var DoingRecentTransactions bool
-var RecentTransactionsMutex sync.Mutex
+var RecentTransactionsMutex atomic.DebugMutex
 
 func toggleDCT() {
 	if DoingRecentTransactions {
@@ -498,7 +500,7 @@ func toggleDCT() {
 	}
 }
 
-// Gets all the recent transctions. Will only keep the most recent 100.
+// Gets all the recent transactions. Will only keep the most recent 100.
 func getRecentTransactions(time.Time) {
 	/*defer func() {
 		if r := recover(); r != nil {

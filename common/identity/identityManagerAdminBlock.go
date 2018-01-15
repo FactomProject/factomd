@@ -70,7 +70,7 @@ func (im *IdentityManager) ApplyAddFederatedServer(entry interfaces.IABEntry) er
 		auth = new(Authority)
 	}
 
-	auth.Status = constants.IDENTITY_FEDERATED_SERVER
+	auth.Status.Store(constants.IDENTITY_FEDERATED_SERVER)
 	auth.AuthorityChainID = e.IdentityChainID.(*primitives.Hash)
 
 	im.SetAuthority(e.IdentityChainID, auth)
@@ -85,7 +85,7 @@ func (im *IdentityManager) ApplyAddAuditServer(entry interfaces.IABEntry) error 
 		auth = new(Authority)
 	}
 
-	auth.Status = constants.IDENTITY_AUDIT_SERVER
+	auth.Status.Store(constants.IDENTITY_AUDIT_SERVER)
 	auth.AuthorityChainID = e.IdentityChainID.(*primitives.Hash)
 
 	im.SetAuthority(e.IdentityChainID, auth)
