@@ -22,22 +22,23 @@ var _ = fmt.Print
 //General acknowledge message
 type SyncMsg struct {
 	msgbase.MessageBase
-	TS          interfaces.Timestamp // Message Timestamp
-	EOM         bool                 // True if EOM message, false if DBSig
-	Name        string               // Server name
+	TS   interfaces.Timestamp // Message Timestamp
+	EOM  bool                 // True if EOM message, false if DBSig
+	Name string               // Server name
 
 	// Server that is faulting
-	FedIdx      uint32               // Server faulting
-	FedID       interfaces.IHash     // Server faulting
+	FedIdx uint32           // Server faulting
+	FedID  interfaces.IHash // Server faulting
 
 	// Audit server to replace faulting server
-	ServerIdx   uint32               // Index of Server replacing
-	ServerID    interfaces.IHash     // Volunteer Server ChainID
+	ServerIdx  uint32           // Index of Server replacing
+	ServerID   interfaces.IHash // Volunteer Server ChainID
+	ServerName string           // Name of the Volunteer
 
-	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
-	DBHeight    uint32               // Directory Block Height that owns this ack
-	Minute      byte                 // Minute (-1 for dbsig)
-	Round       int                  // Voting Round
+	Weight      interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
+	DBHeight    uint32           // Directory Block Height that owns this ack
+	Minute      byte             // Minute (-1 for dbsig)
+	Round       int              // Voting Round
 	messageHash interfaces.IHash
 }
 
@@ -139,7 +140,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	s := is.(*state.State)
 
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
-	eom, ack := s.CreateEOM(eom, m.VMIndex)
+	eom, ack := s.CreateEOM(true, eom, m.VMIndex)
 
 	if eom == nil {
 		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
@@ -150,10 +151,11 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 	va.Ack = ack
 
 	va.FedIdx = m.FedIdx
-	va.FedID = va.FedID
+	va.FedID = m.FedID
 
 	va.ServerIdx = uint32(m.ServerIdx)
 	va.ServerID = m.ServerID
+	va.ServerName = m.ServerName
 
 	va.VMIndex = m.VMIndex
 	va.TS = primitives.NewTimestampNow()

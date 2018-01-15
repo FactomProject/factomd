@@ -26,6 +26,19 @@ type Elections struct {
 	Electing  int // This is the federated Server index that we are looking to replace
 	State     interfaces.IState
 	feedback  []string
+	VName     string
+	Msg       interfaces.IMsg
+	Ack       interfaces.IMsg
+
+	Sigs [][]interfaces.IHash // Signatures from the Federated Servers for a given round.
+
+}
+
+// Add the given sig list to the list of signatures for the given round.
+func (e *Elections) AddSigs(round int, sigs []interfaces.IHash) {
+	for len(e.Sigs) <= round {
+		e.Sigs = append(e.Sigs)
+	}
 }
 
 func (e *Elections) NewFeedback() {
@@ -52,6 +65,10 @@ func (e *Elections) FeedBackStr(v string, fed bool, index int) string {
 	r := ""
 	for _, v := range e.feedback {
 		r = r + fmt.Sprintf("%4s ", v)
+	}
+	if e.Msg != nil {
+		r = r + " " + e.VName
+		r = r + " " + e.Msg.String()
 	}
 	return r
 }

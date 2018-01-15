@@ -2358,7 +2358,7 @@ func (s *State) SetStringQueues() {
 
 	str := fmt.Sprintf("%10s[%6x] %4s%4s %2d/%2d %2d.%01d%% %2d.%03d",
 		s.FactomNodeName,
-		s.IdentityChainID.Bytes()[2:5],
+		s.IdentityChainID.Bytes()[3:6],
 		stype,
 		vmIndex,
 		s.ResetTryCnt,

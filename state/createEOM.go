@@ -5,7 +5,7 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 )
 
-func (s *State) CreateEOM(m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack interfaces.IMsg) {
+func (s *State) CreateEOM(force bool, m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack interfaces.IMsg) {
 
 	if m == nil || m.(*messages.EOM) == nil {
 		eom = new(messages.EOM)
@@ -30,7 +30,7 @@ func (s *State) CreateEOM(m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack 
 		}
 	}
 
-	if s.Syncing && vm.Synced {
+	if !force && s.Syncing && vm.Synced {
 		return nil, nil
 	} else if !s.Syncing {
 		s.Syncing = true
@@ -45,7 +45,7 @@ func (s *State) CreateEOM(m interfaces.IMsg, vmIdx int) (eom *messages.EOM, ack 
 		s.EOMMinute = int(s.CurrentMinute)
 	}
 
-	if vm.EomMinuteIssued >= s.CurrentMinute+1 {
+	if !force && vm.EomMinuteIssued >= s.CurrentMinute+1 {
 		//os.Stderr.WriteString(fmt.Sprintf("Bump detected %s minute %2d\n", s.FactomNodeName, s.CurrentMinute))
 		return nil, nil
 	}

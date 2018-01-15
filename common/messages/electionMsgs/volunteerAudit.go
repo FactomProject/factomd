@@ -24,53 +24,67 @@ var _ = fmt.Print
 //General acknowledge message
 type VolunteerAudit struct {
 	msgbase.MessageBase
-	TS          interfaces.Timestamp // Message Timestamp
-	EOM         bool                 // True if an EOM, false if a DBSig
-	Name        string               // Server name
+	TS   interfaces.Timestamp // Message Timestamp
+	EOM  bool                 // True if an EOM, false if a DBSig
+	Name string               // Server name
 
-                                    // Server that is faulting
-	FedIdx      uint32               // Server faulting
-	FedID       interfaces.IHash     // Server faulting
+	// Server that is faulting
+	FedIdx uint32           // Server faulting
+	FedID  interfaces.IHash // Server faulting
 
-                                    // Audit server to replace faulting server
-	ServerIdx   uint32               // Index of Server replacing
-	ServerID    interfaces.IHash     // Volunteer Server ChainID
+	// Audit server to replace faulting server
+	ServerIdx  uint32           // Index of Server replacing
+	ServerID   interfaces.IHash // Volunteer Server ChainID
+	ServerName string           // Volunteer Name
 
-	Weight      interfaces.IHash     // Computed Weight at this DBHeight, Minute, Round
-	DBHeight    uint32               // Directory Block Height that owns this ack
-	Minute      byte                 // Minute (-1 for dbsig)
-	Round       int                  // Voting Round
-	Missing     interfaces.IMsg      // The Missing DBSig or EOM
-	Ack         interfaces.IMsg      // The acknowledgement for the missing message
+	Weight   interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
+	DBHeight uint32           // Directory Block Height that owns this ack
+	Minute   byte             // Minute (-1 for dbsig)
+	Round    int              // Voting Round
+	Missing  interfaces.IMsg  // The Missing DBSig or EOM
+	Ack      interfaces.IMsg  // The acknowledgement for the missing message
+
+	Sigs []interfaces.IHash // Federated Server signatures.
+
 	messageHash interfaces.IHash
 }
 
 func delayVol(is interfaces.IState, e *elections.Elections, m *VolunteerAudit) {
-	if e.DBHeight > int(m.DBHeight) || e.Minute > int(m.Minute) {
-		return
-	}
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	is.ElectionsQueue().Enqueue(m)
 }
 
 func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	//s := is.(*state.State)
 	e := elect.(*elections.Elections)
-	if e.Electing < 0 {
-		go delayVol(is,e,m)
+
+	if e.DBHeight > int(m.DBHeight) || e.Minute > int(m.Minute) {
 		return
 	}
+
+	// If we don't have a timeout ourselves, then wait on this for a bit and try again.
+	if e.Electing < 0 {
+		go delayVol(is, e, m)
+		return
+	}
+
 	idx := e.LeaderIndex(is.GetIdentityChainID())
+	aidx := e.AuditIndex(is.GetIdentityChainID())
+
 	//if m.DBHeight < uint32(e.DBHeight) || m.Minute < byte(e.Minute) || m.Round < e.Round[m.ServerIdx] {
 	//	return
 	//}
 	auditIdx := e.AuditPriority()
-	if auditIdx != int(m.ServerIdx) {
-
+	if aidx >= 0 && auditIdx == aidx {
+		e.FeedBackStr(fmt.Sprintf("V%d", m.ServerIdx), false, aidx)
+	} else if idx >= 0 {
+		e.FeedBackStr(fmt.Sprintf("V%d", m.ServerIdx), true, idx)
+	} else if aidx >= 0 {
+		e.FeedBackStr(fmt.Sprintf("*%d", m.ServerIdx), false, aidx)
 	}
-	if idx >= 0 {
-		//s.Election2 = e.FeedBackStr(fmt.Sprintf("V%d", e.), false, auditIdx)
-	}
+	e.Msg = m.Missing
+	e.Ack = m.Ack
+	e.VName = m.ServerName
 }
 
 var _ interfaces.IMsg = (*VolunteerAudit)(nil)
@@ -213,6 +227,15 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	if m.ServerID, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
+	if m.ServerName, err = buf.PopString(); err != nil {
+		return nil, err
+	}
+	if m.FedIdx, err = buf.PopUInt32(); err != nil {
+		return nil, err
+	}
+	if m.FedID, err = buf.PopIHash(); err != nil {
+		return nil, err
+	}
 	if m.Weight, err = buf.PopIHash(); err != nil {
 		return nil, err
 	}
@@ -228,12 +251,12 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	if m.Minute, err = buf.PopByte(); err != nil {
 		return nil, err
 	}
-		if m.Ack, err = buf.PopMsg(); err != nil {
-			return nil, err
-		}
-		if m.Missing, err = buf.PopMsg(); err != nil {
-			return nil, err
-		}
+	if m.Ack, err = buf.PopMsg(); err != nil {
+		return nil, err
+	}
+	if m.Missing, err = buf.PopMsg(); err != nil {
+		return nil, err
+	}
 	newData, err = buf.PopBytes()
 	return
 }
@@ -262,6 +285,15 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 		return nil, e
 	}
 	if e := buf.PushIHash(m.ServerID); e != nil {
+		return nil, e
+	}
+	if e := buf.PushString(m.ServerName); e != nil {
+		return nil, e
+	}
+	if e := buf.PushUInt32(m.FedIdx); e != nil {
+		return nil, e
+	}
+	if e := buf.PushIHash(m.FedID); e != nil {
 		return nil, e
 	}
 	if e := buf.PushIHash(m.Weight); e != nil {

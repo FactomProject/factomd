@@ -21,6 +21,7 @@ import (
 type EomSigInternal struct {
 	msgbase.MessageBase
 	NName       string
+	SigType     bool             // True of EOM, False if DBSig
 	ServerID    interfaces.IHash // Hash of message acknowledged
 	DBHeight    uint32           // Directory Block Height that owns this ack
 	Minute      uint32
@@ -30,29 +31,9 @@ type EomSigInternal struct {
 
 var _ interfaces.IMsg = (*EomSigInternal)(nil)
 
-/*
-type Elections struct {
-	FedID  interfaces.IHash
-	Name      string
-	Sync      []bool
-	Federated []interfaces.IServer
-	Audit     []interfaces.IServer
-	FPriority []interfaces.IHash
-	APriority []interfaces.IHash
-	DBHeight  int
-	Minute    int
-	Input     interfaces.IQueue
-	Output    interfaces.IQueue
-	Round     []int
-	Electing  int
-
-	LeaderElecting  int // This is the federated Server we are electing, if we are a leader
-	LeaderVolunteer int // This is the volunteer that we expect
-}
-*/
-
 func Title() string {
-	return fmt.Sprintf("%10s %8s %8s %8s %8s",
+	return fmt.Sprintf("%6s %10s %8s %8s %8s %8s",
+		"Type",
 		"Node",
 		"M:DBHt",
 		"M:Min",
@@ -77,7 +58,8 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 
 	// We only do this once, as we transition into a sync event.
 	// Either the height has incremented, or the minute has incremented.
-	if int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute {
+	mv := int(m.DBHeight) > e.DBHeight || int(m.Minute) > e.Minute
+	if mv {
 		// Set our Identity Chain (Just in case it has changed.)
 		e.FedID = s.IdentityChainID
 
@@ -89,7 +71,12 @@ func (m *EomSigInternal) ElectionProcess(is interfaces.IState, elect interfaces.
 
 		// Start our timer to timeout this sync
 		go Fault(e, int(m.DBHeight), int(m.Minute), 0)
-		s.Election1 = fmt.Sprintf("%10s %8d %8d %8d %8d",
+		t := "EOM"
+		if !m.SigType {
+			t = "DBSig"
+		}
+		s.Election1 = fmt.Sprintf("%6s %10s %8d %8d %8d %8d",
+			t,
 			s.FactomNodeName,
 			m.DBHeight,
 			m.Minute,
@@ -198,7 +185,12 @@ func (m *EomSigInternal) String() string {
 	if m.ServerID == nil {
 		m.ServerID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf(" %10s %20s %x dbheight %5d minute %2d", m.NName, "EOM", m.ServerID.Bytes(), m.DBHeight, m.Minute)
+	return fmt.Sprintf("%6s %10s %20s %x dbheight %5d minute %2d",
+		m.NName,
+		"EOM",
+		m.ServerID.Bytes(),
+		m.DBHeight,
+		m.Minute)
 }
 
 func (a *EomSigInternal) IsSameAs(b *EomSigInternal) bool {

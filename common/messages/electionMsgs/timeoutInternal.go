@@ -22,6 +22,7 @@ var _ = state.MakeMap
 type TimeoutInternal struct {
 	msgbase.MessageBase
 	Name        string
+	SigType     bool // True for EOM, false for DBSig
 	DBHeight    int
 	Minute      int
 	Round       int
@@ -38,7 +39,8 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 		panic("Invalid elections object")
 	}
 
-	aidx := e.AuditIndex(e.FedID)
+	// This server's possible identity as an audit server. -1 means we are not an audit server.
+	aidx := e.AuditIndex(is.GetIdentityChainID())
 
 	// We have advanced, so do nothing.  We can't reset anything because there
 	// can be a timeout process that started before we got here (with short minutes)
@@ -91,10 +93,14 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 			Sync.VMIndex = vm
 			Sync.TS = primitives.NewTimestampNow()
 			Sync.Name = e.Name
+
 			Sync.FedIdx = uint32(e.Electing)
 			Sync.FedID = e.FedID
+
 			Sync.ServerIdx = uint32(aidx)
 			Sync.ServerID = is.GetIdentityChainID()
+			Sync.ServerName = is.GetFactomNodeName()
+
 			Sync.Weight = e.APriority[auditIdx]
 			Sync.DBHeight = uint32(e.DBHeight)
 			Sync.Minute = byte(e.Minute)
