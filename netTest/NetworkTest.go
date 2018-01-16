@@ -63,7 +63,7 @@ func InitNetwork() {
 	name = *namePtr
 	port := *networkPortOverridePtr
 	peers := *peersPtr
-	netdebug := *netdebugPtr
+	netdebug := uint8(*netdebugPtr)
 	exclusive := *exclusivePtr
 	logPort = *logportPtr
 	p2p.NetworkDeadline = time.Duration(*deadlinePtr) * time.Millisecond
@@ -101,12 +101,12 @@ func InitNetwork() {
 	p2pProxy = new(engine.P2PProxy).Init("testnode", "P2P Network").(*engine.P2PProxy)
 	p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 	p2pProxy.ToNetwork = p2pNetwork.ToNetwork
-	p2pProxy.SetDebugMode(netdebug)
+	p2pProxy.SetDebugMode(int(netdebug))
 
 	if netdebug > 0 {
-		p2pNetwork.StartLogging(uint32(netdebug))
+		p2pNetwork.StartLogging(netdebug)
 	} else {
-		p2pNetwork.StartLogging(uint32(0))
+		p2pNetwork.StartLogging(0)
 	}
 	p2pProxy.StartProxy()
 	// Command line peers lets us manually set special peers
