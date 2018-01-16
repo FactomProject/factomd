@@ -760,7 +760,7 @@ func ProcessIdentityToAdminBlock(st *State, chainID interfaces.IHash, servertype
 	if index != -1 {
 		id := st.Identities[index]
 		zero := primitives.NewZeroHash()
-	status:= id.Status.Load()
+		status := id.Status.Load()
 		if id.SigningKey == nil || id.SigningKey.IsSameAs(zero) {
 			flog.Errorf("Failed to process AddServerMessage: %s", "New Fed/Audit server ["+chainID.String()[:10]+"] does not have an Block Signing Key associated to it")
 			if !statusIsFedOrAudit(status) {

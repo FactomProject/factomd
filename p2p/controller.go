@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"sync/atomic"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/common/primitives"
@@ -232,14 +233,14 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	}
 }
 
-func (c *Controller) StartLogging(level uint8) {
+func (c *Controller) StartLogging(level uint32) {
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 func (c *Controller) StopLogging() {
 	level := Silence
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
-func (c *Controller) ChangeLogLevel(level uint8) {
+func (c *Controller) ChangeLogLevel(level uint32) {
 	BlockFreeChannelSend(c.commandChannel, CommandChangeLogging{Level: level})
 }
 
@@ -270,10 +271,10 @@ func (c *Controller) Disconnect(peerHash string) {
 }
 
 func (c *Controller) GetNumberConnections() int {
-	return int(c.numConnections.Load())
+	return int(atomic.LoadUint32(&c.numConnections))
 }
 func (c *Controller) getNumberConnectionsByAddress() int {
-	return int(c.numConnectionsByAddress.Load())
+	return int(atomic.LoadUint32(&c.numConnectionsByAddress))
 }
 
 //////////////////////////////////////////////////////////////////////

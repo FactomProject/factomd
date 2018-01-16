@@ -31,12 +31,12 @@ func TestDisplay(t *testing.T) {
 		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
 	}
 
-	s.ControlPanelDataRequest = false
+	s.ControlPanelDataRequest.Store(false)
 	err := s.CopyStateToControlPanel()
 	if err != nil {
 		t.Error("CopyState failed")
 	}
-	s.ControlPanelDataRequest = true
+	s.ControlPanelDataRequest.Store(true)
 	err = s.CopyStateToControlPanel()
 	if err != nil {
 		t.Error("CopyState failed when requested")

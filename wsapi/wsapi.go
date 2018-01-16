@@ -23,8 +23,8 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"github.com/FactomProject/web"
 	"github.com/FactomProject/factomd/util/atomic"
+	"github.com/FactomProject/web"
 )
 
 const (
@@ -123,7 +123,7 @@ func SetState(state interfaces.IState) {
 		ServersMutex.Lock()
 		defer ServersMutex.Unlock()
 		for Servers == nil || Servers[state.GetPort()] == nil {
-			ServersMutex.Unlock() // unlock it so it can be updated ...
+			ServersMutex.Unlock()             // unlock it so it can be updated ...
 			time.Sleep(10 * time.Millisecond) // wait till the server exists
 			ServersMutex.Lock()
 		}

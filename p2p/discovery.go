@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"github.com/FactomProject/factomd/util/atomic"
 	"math/rand"
 	"net/http"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 type Discovery struct {

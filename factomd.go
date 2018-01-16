@@ -5,10 +5,10 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"time"
 	"github.com/FactomProject/factomd/engine"
+	"os"
+	"time"
 )
 
 func main() {

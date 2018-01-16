@@ -22,7 +22,6 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util/atomic"
-
 )
 
 // Initiates control panel variables and controls the http requests

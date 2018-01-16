@@ -65,7 +65,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		fmt.Printf("s.Leader=%v && ", s.Leader)
 		fmt.Printf("!s.Saving=%v && ", !s.Saving)
 		fmt.Printf("(vm != nil)==%v && ", vm != nil)
-		if (vm != nil) {
+		if vm != nil {
 			fmt.Printf("(int(vm.Height)=%v == ", int(vm.Height))
 			fmt.Printf("len(vm.List)=%v && )", len(vm.List))
 			fmt.Printf("!s.Syncing=%v || ", !s.Syncing)
@@ -88,7 +88,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		// Should comment this as to why each consideration is interesting-- clay
 		if s.RunLeader && s.Leader && !s.Saving && vm != nil && int(vm.Height) == len(vm.List) && (!s.Syncing || !vm.Synced) &&
 			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) && s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-			if len(vm.List) == 0 && s.GetHighestKnownBlock()!=0 {
+			if len(vm.List) == 0 && s.GetHighestKnownBlock() != 0 {
 				if executeMsg_debug {
 					fmt.Printf(">%7s:%14s executeMsg() Review:        msg:%T:%p [%x]\n", s.FactomNodeName, atomic.Goid(), msg, msg, hash)
 				}

@@ -15,6 +15,7 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/database/hybridDB"
+	atomic2 "github.com/FactomProject/factomd/util/atomic"
 )
 
 var CheckFloating bool
@@ -76,7 +77,7 @@ func main() {
 func FindHeads(f Fetcher) {
 	chainHeads := make(map[string]interfaces.IHash)
 
-	var allEblockLock atomic.DebugMutex
+	var allEblockLock atomic2.DebugMutex
 	allEblks := make(map[string]interfaces.IHash)
 
 	var err error

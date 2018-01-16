@@ -21,12 +21,12 @@ func TestAuthorityType(t *testing.T) {
 		t.Errorf("Invalid type returned - %v", auth.Type())
 	}
 
-	auth.Status.Store( constants.IDENTITY_FEDERATED_SERVER)
+	auth.Status.Store(constants.IDENTITY_FEDERATED_SERVER)
 	if auth.Type() != 1 {
 		t.Errorf("Invalid type returned - %v", auth.Type())
 	}
 
-	auth.Status.Store( constants.IDENTITY_AUDIT_SERVER)
+	auth.Status.Store(constants.IDENTITY_AUDIT_SERVER)
 	if auth.Type() != 0 {
 		t.Errorf("Invalid type returned - %v", auth.Type())
 	}
@@ -40,7 +40,7 @@ func TestAuthoritySignature(t *testing.T) {
 
 	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
 	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
-	s.Authorities[index].Status.Store( 1)
+	s.Authorities[index].Status.Store(1)
 
 	ack := new(messages.Ack)
 	ack.DBHeight = s.LLeaderHeight
@@ -75,7 +75,7 @@ func TestMarshalJSON(t *testing.T) {
 
 	index := s.AddAuthorityFromChainID(primitives.NewZeroHash())
 	s.Authorities[index].SigningKey = *(s.GetServerPublicKey())
-	s.Authorities[index].Status.Store( 1)
+	s.Authorities[index].Status.Store(1)
 
 	j, err := s.Authorities[index].MarshalJSON()
 	if err != nil {
@@ -122,10 +122,10 @@ func TestVerify(t *testing.T) {
 		auth := new(Authority)
 		if i%2 == 0 {
 			pl.AddAuditServer(id)
-			auth.Status.Store( constants.IDENTITY_AUDIT_SERVER)
+			auth.Status.Store(constants.IDENTITY_AUDIT_SERVER)
 		} else {
 			pl.AddFedServer(id)
-			auth.Status.Store( constants.IDENTITY_FEDERATED_SERVER)
+			auth.Status.Store(constants.IDENTITY_FEDERATED_SERVER)
 		}
 		auth.AuthorityChainID = id
 		auth.SigningKey = *(p.Pub)
@@ -197,11 +197,11 @@ func TestSameAuth(t *testing.T) {
 	}
 	a.SigningKey = b.SigningKey
 
-	a.Status.Store( b.status.LoadUint8() + 1)
+	a.Status.Store(b.Status.Load() + 1)
 	if a.IsSameAs(b) {
 		t.Error("Diff Status chains, should be different")
 	}
-	a.Status.Store( b.Status.Load())
+	a.Status.Store(b.Status.Load())
 
 	a.AnchorKeys = append(a.AnchorKeys, AnchorSigningKey{})
 	if a.IsSameAs(b) {

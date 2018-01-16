@@ -7,7 +7,6 @@ package state
 import (
 	"fmt"
 	"github.com/FactomProject/factomd/util/atomic"
-
 )
 
 var cntsMutex atomic.DebugMutex
