@@ -100,7 +100,7 @@ func TestSearching(t *testing.T) {
 	var err error
 	InitTemplates()
 	s := CreateAndPopulateTestState()
-	SetStatePointer(s)
+	StatePointer = s // used to call SetStatePointer(s)
 
 	c := new(SearchedStruct)
 	c.Type = "entry"

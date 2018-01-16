@@ -6,17 +6,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/engine"
 	"github.com/FactomProject/factomd/p2p"
-	"math/rand"
-	"net/http"
-	"os"
-	"strings"
-	"sync"
-	"time"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var p2pProxy *engine.P2PProxy
@@ -148,7 +149,7 @@ func SetMsg(msg interfaces.IMsg) {
 
 func listen() {
 	for {
-		msg, err := p2pProxy.Recieve()
+		msg, err := p2pProxy.Receive()
 		if err != nil || msg == nil {
 			time.Sleep(1 * time.Millisecond)
 			continue

@@ -264,7 +264,7 @@ func (e *Identity) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 	if err != nil {
 		return
 	}
-	e.Status.Store( uint8(b))
+	e.Status.Store(uint8(b))
 
 	l, err := buf.PopVarInt()
 	if err != nil {

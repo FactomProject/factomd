@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/constants"
-	"os"
 	"github.com/FactomProject/factomd/util/atomic"
+	"os"
 )
 
 func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.AtomicInt) {
@@ -54,7 +54,7 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *atomic.Atom
 		eCommits := 0
 
 		for _, f := range pnodes {
-			f.State.Status.Store( 1)
+			f.State.Status.Store(1)
 		}
 
 		time.Sleep(time.Second)

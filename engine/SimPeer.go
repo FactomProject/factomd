@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/util/atomic"
 	"math/rand"
 	"time"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
@@ -184,7 +184,7 @@ func AddSimPeer(fnodes []*FactomNode, i1 int, i2 int) {
 				// this happens normally in some configs because the links are picked by formula
 				// and as the node count changes the %Node Count can wrap the links back around
 				// to nodes that already have links
-			    //	fmt.Printf("AddSimPeer(%p,%v,%v) error: Duplicate\n", fnodes, i1, i2)
+				//	fmt.Printf("AddSimPeer(%p,%v,%v) error: Duplicate\n", fnodes, i1, i2)
 				return
 			}
 		}

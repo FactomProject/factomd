@@ -7,13 +7,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/FactomProject/factomd/common/interfaces"
-	//"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
+	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var cfg *util.FactomdConfig

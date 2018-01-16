@@ -15,12 +15,12 @@ import (
 	"math/rand"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode"
-	"sync/atomic"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/common/primitives"
+	log "github.com/sirupsen/logrus"
 )
 
 // packageLogger is the general logger for all p2p related logs. You can add additional fields,

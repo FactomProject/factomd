@@ -22,7 +22,7 @@ var _ = fmt.Print
 func NetworkProcessorNet(fnode *FactomNode) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go Peers(fnode,&wg)
+	go Peers(fnode, &wg)
 	wg.Wait()
 	go NetworkOutputs(fnode)
 	go InvalidOutputs(fnode)

@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/log"
 	"github.com/FactomProject/factomd/util/atomic"
-
 )
 
 var _ = log.Printf

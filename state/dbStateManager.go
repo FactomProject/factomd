@@ -447,15 +447,15 @@ func (dbs *DBState) UnmarshalBinary(p []byte) error {
 type DBStateList struct {
 	SrcNetwork bool // True if I got this block from the network.
 
-	LastEnd       int
-	LastBegin     int
-	TimeToAsk     interfaces.Timestamp
-	ProcessHeight uint32
-	SavedHeight   uint32
-	State         *State
-	Base          uint32
-	Complete      uint32
-	DBStates      []*DBState
+	LastEnd           int
+	LastBegin         int
+	TimeToAsk         interfaces.Timestamp
+	ProcessHeight     uint32
+	SavedHeight       uint32
+	State             *State
+	Base              uint32
+	Complete          uint32
+	DBStates          []*DBState
 	HighestSavedBlock uint32 // used by entrySync Thread
 	HighestKnownBlock uint32 // used by entrySync Thread
 }

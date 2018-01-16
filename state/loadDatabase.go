@@ -18,7 +18,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"sync"
 )
 
 var _ = fmt.Print
@@ -27,7 +26,7 @@ func SetDBFinished(s *State) {
 	s.DBFinished.Store(true)
 }
 
-func LoadDatabase(s *State, wg *sync.WaitGroup) {
+func LoadDatabase(s *State) {
 
 	defer SetDBFinished(s)
 
@@ -45,8 +44,6 @@ func LoadDatabase(s *State, wg *sync.WaitGroup) {
 	if start > 10 {
 		start = start - 10
 	}
-
-	done := false
 
 	for i := int(start); i <= int(blkCnt); i++ {
 		if i > 0 && i%1000 == 0 {
@@ -75,9 +72,7 @@ func LoadDatabase(s *State, wg *sync.WaitGroup) {
 			}
 		}
 
-		if done {
-			wg.Done()
-		}
+
 		s.Print("\r", "\\|/-"[i%4:i%4+1])
 	}
 

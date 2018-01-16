@@ -6,11 +6,10 @@ package state
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/util/atomic"
-
+	"io/ioutil"
+	"os"
 )
 
 type StateSaverStruct struct {
@@ -40,7 +39,7 @@ func (sss *StateSaverStruct) SaveDBStateList(ss *DBStateList, networkName string
 	defer sss.Mutex.Unlock()
 
 	//Don't save States after the server has booted - it might start it in a wrong state
-	if ss.State.DBFinished.Load(){
+	if ss.State.DBFinished.Load() {
 		return nil
 	}
 

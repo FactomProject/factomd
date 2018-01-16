@@ -45,12 +45,12 @@ var packageLogger = log.WithFields(log.Fields{"package": "state"})
 var _ = fmt.Print
 
 type State struct {
-	Logger           *log.Entry
-	IsRunning        bool
-	filename         string
+	Logger            *log.Entry
+	IsRunning         bool
+	filename          string
 	NetworkController *p2p.Controller
-	Salt             interfaces.IHash
-	Cfg              interfaces.IFactomConfig
+	Salt              interfaces.IHash
+	Cfg               interfaces.IFactomConfig
 
 	Prefix            string
 	FactomNodeName    string
@@ -222,7 +222,7 @@ type State struct {
 	Syncing bool // Looking for messages from leaders to sync
 
 	NetStateOff     atomic.AtomicBool // Disable if true, Enable if false
-	DebugConsensus  bool // If true, dump consensus trace
+	DebugConsensus  bool              // If true, dump consensus trace
 	FactoidTrans    int
 	ECCommits       int
 	ECommits        int

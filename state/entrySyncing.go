@@ -189,7 +189,7 @@ func (s *State) GoSyncEntries(wg *sync.WaitGroup) {
 
 	found := 0
 
-    wg.Done()
+	wg.Done()
 
 	for {
 

@@ -20,10 +20,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/controlPanel"
 	"github.com/FactomProject/factomd/p2p"
+	"github.com/FactomProject/factomd/util/atomic"
 	"github.com/FactomProject/factomd/wsapi"
 	"runtime"
 	"sync"
-	"github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Print
@@ -86,11 +86,11 @@ func SimControl(listenTo int, listenStdin bool) {
 	var wsapiNode atomic.AtomicInt
 	var faulting bool
 
-	ListenToMu.Lock() // wait till I can write this
+	ListenToMu.Lock()   // wait till I can write this
 	ListenTo = listenTo // only when locked()
 	ListenToMu.Unlock() // Tell everyone I'm done writing it
 
-	ListenToMu.RLock() // Now claim I am now reading it
+	ListenToMu.RLock()         // Now claim I am now reading it
 	defer ListenToMu.RUnlock() // Signal I am done
 	for {
 		// This splits up the command at anycodepoint that is not a letter, number or punctuation, so usually by spaces.
@@ -120,10 +120,10 @@ func SimControl(listenTo int, listenStdin bool) {
 		if err == nil && v >= 0 && v < len(fnodes) && fnodes[ListenTo].State != nil {
 
 			ListenToMu.RUnlock() // as a thread I am not going to read this now ...
-			ListenToMu.Lock() // wait till I can write this
-			ListenTo = v	// Only when locked
-			ListenToMu.Unlock() // Tell everyone I'm done writing it
-			ListenToMu.RLock() // Now claim I am reading it
+			ListenToMu.Lock()    // wait till I can write this
+			ListenTo = v         // Only when locked
+			ListenToMu.Unlock()  // Tell everyone I'm done writing it
+			ListenToMu.RLock()   // Now claim I am reading it
 
 			os.Stderr.WriteString(fmt.Sprintf("Switching to Node %d\n", ListenTo))
 			// Update which node will be displayed on the controlPanel page
@@ -776,17 +776,17 @@ func SimControl(listenTo int, listenStdin bool) {
 				fnodes[ListenTo].State.SetOut(false)
 
 				ListenToMu.RUnlock() // as a thread I am not going to read this now ...
-				ListenToMu.Lock() // wait till I can write this
-				ListenTo++	// Only when locked
-				ListenToMu.Unlock() // Tell everyone I'm done writing it
-				ListenToMu.RLock() // Now claim I am reading it
+				ListenToMu.Lock()    // wait till I can write this
+				ListenTo++           // Only when locked
+				ListenToMu.Unlock()  // Tell everyone I'm done writing it
+				ListenToMu.RLock()   // Now claim I am reading it
 
 				if ListenTo >= len(fnodes) {
 					ListenToMu.RUnlock() // as a thread I am not going to read this now ...
-					ListenToMu.Lock() // wait till I can write this
-					ListenTo = 0	// Only when locked
-					ListenToMu.Unlock() // Tell everyone I'm done writing it
-					ListenToMu.RLock() // Now claim I am reading it
+					ListenToMu.Lock()    // wait till I can write this
+					ListenTo = 0         // Only when locked
+					ListenToMu.Unlock()  // Tell everyone I'm done writing it
+					ListenToMu.RLock()   // Now claim I am reading it
 				}
 				fnodes[ListenTo].State.SetOut(true)
 				os.Stderr.WriteString(fmt.Sprint("\r\nSwitching to Node ", ListenTo, "\r\n"))

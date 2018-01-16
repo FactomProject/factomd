@@ -9,13 +9,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math"
 	"os"
-	"time"
 	"sync"
-	log "github.com/sirupsen/logrus"
+	"time"
 
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/identity"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
@@ -25,9 +26,8 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 	"github.com/FactomProject/factomd/state"
 	"github.com/FactomProject/factomd/util"
-	"github.com/FactomProject/factomd/wsapi"
 	"github.com/FactomProject/factomd/util/atomic"
-	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/wsapi"
 )
 
 var _ = fmt.Print
@@ -49,7 +49,7 @@ var logPort string
 func GetFnodes() []*FactomNode {
 	fnodesMu.Lock()
 	defer fnodesMu.Unlock()
-	for (fnodes == nil) { // wait for it to be allocated
+	for fnodes == nil { // wait for it to be allocated
 		fnodesMu.Unlock()
 		time.Sleep(50 * time.Millisecond)
 		fnodesMu.Lock()
@@ -557,7 +557,7 @@ func startServers(load bool) {
 		var wg sync.WaitGroup
 
 		NetworkProcessorNet(fnode)
-		
+
 		go fnode.State.ValidatorLoop()
 
 		wg.Add(1)
@@ -569,7 +569,7 @@ func startServers(load bool) {
 		wg.Wait()
 
 		if load {
-			go state.LoadDatabase(fnode.State, &wg)
+			go state.LoadDatabase(fnode.State)
 		}
 	}
 }
