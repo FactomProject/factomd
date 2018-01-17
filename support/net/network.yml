@@ -1,0 +1,18 @@
+---
+
+nodes:
+    - name: node1
+      seed: true
+      identity_chain_id: 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
+      server_priv_key: 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
+      server_public_key: cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
+
+    - name: node2
+      identity_chain_id: 888888367795422bb2b15bae1af83396a94efa1cecab8cd171197eabd4b4bf9b
+      server_priv_key: 5319e64e156893ed32e0a863b2622821d2d59ce7cf644fdbe93bf5a065af52fc
+      server_public_key: ad6f634018389a29da51586ef69f747bb4608d29e19c40242f1b1c3bd4cede16
+
+    - name: node3
+      identity_chain_id: 888888fc37fa418395eeccb95ab0a4c64d528b2aeefa0d1632c8a116a0e4f5b1
+      server_priv_key: 9112a3e619262f36cb7e5e704e0875b5eb3c24cd4e0deb06523f37440ddd352c
+      server_public_key: c845f47df202a649e2262d3da0e35556aab62e361425ad7d2e7813a215c8f277
