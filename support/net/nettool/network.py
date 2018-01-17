@@ -1,82 +1,53 @@
 """
-Library for manipulating a network of factomd nodes.
+Module for manipulating the docker network that allows connectivity between
+nodes.
 """
-from nettool import log, services
+import docker as docker_lib
+
+from nettool import log
+
+
+NETWORK_NAME = "nettool"
 
 
 class Network(object):
-    """
-    Represents a network of factomd nodes along with some of the supporting
-    services.
-    """
-    def __init__(self, config, docker):
-        self.config = config
-        self.docker = docker
-        self.gateway = services.Gateway()
-        self.seeds = services.SeedServer()
-        self.nodes = []
-        self._populate_nodes()
 
-    def print_info(self):
-        """
-        Prints the current status of the network.
-        """
-        log.section("Network info")
+    def __init__(self, env):
+        self.env = env
+        self.name = NETWORK_NAME
+        self.docker_network = None
 
-        for container in self._containers:
-            container.print_info(self.docker)
+    def is_up(self, docker):
+        self._refresh_network_status(docker)
+        return self.docker_network is not None
 
-    def up(self, build_mode=False):
-        """
-        Ensures that all necessary components in the network are up and
-        running. If build_mode pareamter is set to True, forces a rebuild of
-        existing images.
-        """
-        log.section("Starting the network")
-        if build_mode:
-            for image in self._images:
-                image.build(self.docker, rebuild=True)
+    def up(self, docker):
+        if self.is_up(docker):
+            return
 
-        for container in self._containers:
-            container.up(self.docker, restart=build_mode)
+        with log.step("Creating network"):
+            ipam_pool = docker_lib.types.IPAMPool(
+                subnet="10.12.0.0/16",
+                gateway="10.12.0.254",
+                iprange="10.12.1.0/24"
+            )
+            ipam_config = docker_lib.types.IPAMConfig(
+                pool_configs=[ipam_pool]
+            )
+            self.docker_network = docker.networks.create(
+                self.name,
+                driver='bridge',
+                ipam=ipam_config
+            )
 
-    def down(self, destroy_mode=False):
-        """
-        Ensures that all network components are stopped. If destroy_mode
-        parameter is set to True, also removes all previously created
-        containers and images.
-        """
-        if destroy_mode:
-            log.section("Destroying all artifacts")
-        else:
-            log.section("Stopping the network")
+    def down(self, docker, destroy=False):
+        if destroy and self.is_up(docker):
+            with log.step("Removing network"):
+                self.docker_network.remove()
+                self.docker_network = None
 
-        for container in self._containers:
-            container.down(self.docker, destroy=destroy_mode)
-
-        if destroy_mode:
-            for image in self._images:
-                image.destroy(self.docker)
-
-    def _populate_nodes(self):
-        for node_cfg in self.config.nodes:
-            node = services.Factomd(node_cfg)
-            self.nodes.append(node)
-            if node_cfg.seed:
-                self.seeds.add(node)
-
-    @property
-    def _containers(self):
-        yield self.gateway
-        yield self.seeds
-
-        for node in self.nodes:
-            yield node
-
-    @property
-    def _images(self):
-        return [
-            services.Gateway,
-            services.SeedServer,
-            services.Factomd
-        ]
+    def _refresh_network_status(self, docker):
+        try:
+            self.docker_network = docker.networks.get(self.name)
+        except docker_lib.errors.NotFound:
+            self.docker_network = None

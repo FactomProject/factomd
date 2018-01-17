@@ -24,7 +24,7 @@ def read_file(config_path):
     """
     cfg = _read_yaml(config_path)
     _validate_schema(cfg)
-    return NetworkConfig(cfg)
+    return EnvironmentConfig(cfg)
 
 
 def _read_yaml(path):
@@ -39,9 +39,9 @@ def _validate_schema(cfg):
         log.fatal(exc)
 
 
-class NetworkConfig(object):
+class EnvironmentConfig(object):
     """
-    An object holding the configuration for the network.
+    An object holding the configuration for the environment.
     """
 
     def __init__(self, cfg):
@@ -50,7 +50,7 @@ class NetworkConfig(object):
 
 class NodeConfig(object):
     """
-    An object holding the configuration for the network node.
+    An object holding the configuration for the factomd node.
     """
 
     def __init__(self, cfg):

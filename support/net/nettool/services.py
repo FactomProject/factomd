@@ -3,12 +3,10 @@ Provides classes that describe services used in the network setup. Each service
 class corresponds to a single docker image and each instance of the class to
 a docker container.
 """
+import os.path
+
 from nettool import log
 from nettool.container import Container
-
-
-SEEDS_CTX = ""
-FACTOMD_CTX = ""
 
 
 class Gateway(Container):
@@ -59,6 +57,8 @@ class SeedServer(Container):
     NAME = "seeds_server"
     IMAGE_TAG = "nettool_nginx"
     CTX_PATH = "docker/seeds"
+    SEEDS_FILE_LOCAL = "docker/seeds/seeds"
+    SEEDS_FILE_REMOTE = "/usr/share/nginx/html/seeds"
 
     @classmethod
     def _build_image(cls, docker):
@@ -68,14 +68,23 @@ class SeedServer(Container):
             rm=True
         )
 
-    def __init__(self):
+    def __init__(self, env):
+        super().__init__(env)
         self.seed_nodes = []
 
     def _run_container(self, docker):
+        self.generate_seeds_file(docker)
         return docker.containers.run(
             self.IMAGE_TAG,
             name=self.instance_name,
             hostname=self.instance_name,
+            network=self.env.network.name,
+            volumes={
+                os.path.abspath(self.SEEDS_FILE_LOCAL): {
+                    'bind': self.SEEDS_FILE_REMOTE,
+                    'mode': 'ro'
+                }
+            },
             detach=True
         )
 
@@ -97,10 +106,19 @@ class SeedServer(Container):
         """
         self.seed_nodes.append(node)
 
+    def generate_seeds_file(self, docker):
+        """
+        Write all currently know seeds to a file that is mapped to a file in
+        the container, so that the server seed list gets updated.
+        """
+        entries = [n.seed_entry(docker) for n in self.seed_nodes]
+        with open(self.SEEDS_FILE_LOCAL, "w") as seed_file:
+            seed_file.writelines(entries)
+
 
 class Factomd(Container):
     """
-    A factomd instance which is part of the network.
+    A factomd instance.
     """
     NAME = "factomd"
     IMAGE_TAG = "nettool_factomd"
@@ -114,18 +132,27 @@ class Factomd(Container):
             rm=True
         )
 
-    def __init__(self, config):
+    def __init__(self, config, env):
+        super().__init__(env)
         self.config = config
 
     @property
     def instance_name(self):
         return self.config.name
 
+    def seed_entry(self, docker):
+        """
+        Create an entry in the seed list for this node.
+        """
+        ip_address = self.ip_address(docker)
+        return f"{ip_address}:8110"
+
     def _run_container(self, docker):
         return docker.containers.run(
             self.IMAGE_TAG,
             name=self.instance_name,
             hostname=self.instance_name,
+            network=self.env.network.name,
             detach=True
         )
 
