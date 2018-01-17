@@ -92,12 +92,18 @@ class Container(ABC):
         """
         pass
 
+    def __init__(self, env):
+        self.env = env
+
     @property
     def instance_name(self):
         """
         Name of the container.
         """
         return self.NAME
+
+    def ip_address(self, docker):
+        return self._get_ip_for(docker, self.env.network.name)
 
     def print_container_info(self, docker):
         """
@@ -110,7 +116,7 @@ class Container(ABC):
             log.info("Container status:", colored("DOWN", "red"))
         log.info("Container name:", self.instance_name)
         log.info("Image tag:", self.IMAGE_TAG)
-
+        log.info("IP:", self.ip_address(docker))
 
     def status(self, docker):
         """
@@ -120,7 +126,6 @@ class Container(ABC):
         self._refresh_container_status(docker)
         if not self.container:
             return Status.DELETED
-
         return Status(self.container.status)
 
     def up(self, docker, restart=False):
@@ -220,3 +225,13 @@ class Container(ABC):
         else:
             log.fatal("Timeout when waiting for the container",
                       self.instance_name, "to move to another state")
+
+    def _get_ip_for(self, docker, network_name):
+        if self.status(docker) != Status.RUNNING:
+            return None
+
+        net_info = self.container.attrs["NetworkSettings"]["Networks"]
+        net_attrs = net_info.get(network_name)
+
+        if net_attrs:
+            return net_attrs.get("IPAddress")
