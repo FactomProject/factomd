@@ -1490,6 +1490,10 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		case s.CurrentMinute < 10:
 			if s.CurrentMinute == 1 {
 				dbstate := s.GetDBState(dbheight - 1)
+				// Panic had arose when leaders would reboot and the follower was on a future minute
+				if dbstate == nil {
+					return false
+				}
 				if !dbstate.Saved {
 					dbstate.ReadyToSave = true
 				}
