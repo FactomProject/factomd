@@ -18,7 +18,6 @@ CONFIG_SCHEMA = Schema({
 })
 
 
-
 def read_file(config_path):
     """
     Reads the network setup from the config file.
