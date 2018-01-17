@@ -1,12 +1,39 @@
 """
 Base library for managing service containers.
 """
+from enum import Enum
 from abc import ABC, abstractmethod
+import time
 
 from termcolor import colored
 import docker as docker_lib
 
 from nettool import log
+
+
+TRANSITION_WAIT_TIME = 1   # seconds
+MAX_TRANSITION_WAITS = 10  # will wait for max 10 * TRANSITION_WAIT_TIME
+
+
+class Status(Enum):
+    """
+    Possible container statuses.
+    """
+    CREATED = "created"
+    RESTARTING = "restarting"
+    RUNNING = "running"
+    REMOVING = "removing"
+    PAUSED = "paused"
+    EXITED = "exited"
+    DEAD = "dead"
+    DELETED = "deleted"
+
+    @staticmethod
+    def is_transition(status):
+        """
+        Indicates if we should wait for the container to exit temporary state.
+        """
+        return status in [Status.RESTARTING, Status.REMOVING]
 
 
 class Container(ABC):
@@ -72,12 +99,12 @@ class Container(ABC):
         """
         return self.NAME
 
-    def print_container_status(self, docker):
+    def print_container_info(self, docker):
         """
         Prints the status of the docker container corresponding to this
         instance.
         """
-        if self.is_up(docker):
+        if self.status(docker) == Status.RUNNING:
             log.info("Container status:", colored("UP", "green"))
         else:
             log.info("Container status:", colored("DOWN", "red"))
@@ -85,14 +112,16 @@ class Container(ABC):
         log.info("Image tag:", self.IMAGE_TAG)
 
 
-    def is_up(self, docker):
+    def status(self, docker):
         """
         Retrieves the current status of the docker container corresponding to
         this service instance and returns True if it is running.
         """
         self._refresh_container_status(docker)
-        return self.container is not None \
-            and self.container.status == "running"
+        if not self.container:
+            return Status.DELETED
+
+        return Status(self.container.status)
 
     def up(self, docker, restart=False):
         """
@@ -106,13 +135,29 @@ class Container(ABC):
         restarted from scratch.
         """
         self.__class__.build(docker)
+
         if restart:
             self.down(docker, destroy=True)
-        if not self.is_up(docker) or restart:
-            with log.step("Starting", self.instance_name):
-                self._start_container(docker)
-        else:
-            log.info("Container", self.instance_name, "is already up")
+
+        with log.step("Starting", self.instance_name):
+            self._wait_for_transition(docker)
+
+            if self.status(docker) == Status.DELETED:
+                self._run_container(docker)
+
+            if self.status(docker) in [Status.CREATED, Status.EXITED]:
+                self.container.start()
+
+            if self.status(docker) == Status.PAUSED:
+                self.container.unpause()
+
+            if self.status(docker) == Status.RUNNING:
+                return
+
+            if self.status(docker) == Status.DEAD:
+                log.fatal("Container", self.instance_name,
+                          "is in a dead state")
+
 
     def down(self, docker, destroy=False):
         """
@@ -121,20 +166,28 @@ class Container(ABC):
          - if the container is running, stops it
          - if the destroy parameter is set to true, also removes the container.
         """
-        if self.is_up(docker):
-            with log.step("Stopping", self.instance_name):
-                self.container.stop()
-        else:
-            log.info("Container", self.instance_name, "already stopped.")
+        with log.step("Stopping", self.instance_name):
+            self._wait_for_transition(docker)
 
-        if self.container and destroy:
-            with log.step("Removing", self.instance_name):
-                self.container.remove()
-        else:
-            log.info("Container", self.instance_name, "already removed.")
+            if self.status(docker) in [Status.RUNNING, Status.PAUSED]:
+                self.container.stop()
+                if not destroy:
+                    return
+
+            if self.status(docker) in [Status.CREATED, Status.EXITED]:
+                self.container.remove(v=True)
+
+            self._wait_for_transition(docker)
+
+            if self.status(docker) == Status.DELETED:
+                return
+
+            if self.status(docker) == Status.DEAD:
+                log.fatal("Container", self.instance_name,
+                          "is in a dead state")
 
     @abstractmethod
-    def print_status(self, docker):
+    def print_info(self, docker):
         """
         Prints the status of this service instance. To be overwritten in the
         inherited classes.
@@ -142,9 +195,8 @@ class Container(ABC):
         pass
 
     @abstractmethod
-    def _start_container(self, docker):
+    def _run_container(self, docker):
         pass
-
 
     @classmethod
     def _refresh_image_status(cls, docker):
@@ -158,3 +210,13 @@ class Container(ABC):
             self.container = docker.containers.get(self.instance_name)
         except docker_lib.errors.NotFound:
             self.container = None
+
+    def _wait_for_transition(self, docker):
+        for _ in range(MAX_TRANSITION_WAITS):
+            if Status.is_transition(self.status(docker)):
+                time.sleep(TRANSITION_WAIT_TIME)
+            else:
+                break
+        else:
+            log.fatal("Timeout when waiting for the container",
+                      self.instance_name, "to move to another state")

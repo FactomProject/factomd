@@ -17,14 +17,14 @@ class Network(object):
         self.nodes = []
         self._populate_nodes()
 
-    def print_status(self):
+    def print_info(self):
         """
         Prints the current status of the network.
         """
-        log.section("Network status")
+        log.section("Network info")
 
         for container in self._containers:
-            container.print_status(self.docker)
+            container.print_info(self.docker)
 
     def up(self, build_mode=False):
         """

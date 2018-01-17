@@ -7,6 +7,10 @@ from nettool import log
 from nettool.container import Container
 
 
+SEEDS_CTX = ""
+FACTOMD_CTX = ""
+
+
 class Gateway(Container):
     """
     A gateway is a special container that runs in the privileged mode and
@@ -18,16 +22,17 @@ class Gateway(Container):
     """
     NAME = "gateway"
     IMAGE_TAG = "nettool_gateway"
+    CTX_PATH = "docker/gateway"
 
     @classmethod
     def _build_image(cls, docker):
         return docker.images.build(
-            path="docker/gateway",
+            path=cls.CTX_PATH,
             tag=cls.IMAGE_TAG,
             rm=True
         )
 
-    def _start_container(self, docker):
+    def _run_container(self, docker):
         return docker.containers.run(
             self.IMAGE_TAG,
             name=self.instance_name,
@@ -41,9 +46,9 @@ class Gateway(Container):
             detach=True
         )
 
-    def print_status(self, docker):
+    def print_info(self, docker):
         log.section("Gateway")
-        self.print_container_status(docker)
+        self.print_container_info(docker)
 
 
 class SeedServer(Container):
@@ -53,11 +58,12 @@ class SeedServer(Container):
     """
     NAME = "seeds_server"
     IMAGE_TAG = "nettool_nginx"
+    CTX_PATH = "docker/seeds"
 
     @classmethod
     def _build_image(cls, docker):
         return docker.images.build(
-            path="docker/seeds",
+            path=cls.CTX_PATH,
             tag=cls.IMAGE_TAG,
             rm=True
         )
@@ -65,12 +71,17 @@ class SeedServer(Container):
     def __init__(self):
         self.seed_nodes = []
 
-    def _start_container(self, docker):
-        pass
+    def _run_container(self, docker):
+        return docker.containers.run(
+            self.IMAGE_TAG,
+            name=self.instance_name,
+            hostname=self.instance_name,
+            detach=True
+        )
 
-    def print_status(self, docker):
+    def print_info(self, docker):
         log.section("Seeds server")
-        self.print_container_status(docker)
+        self.print_container_info(docker)
         log.info()
 
         if not self.seed_nodes:
@@ -93,11 +104,12 @@ class Factomd(Container):
     """
     NAME = "factomd"
     IMAGE_TAG = "nettool_factomd"
+    CTX_PATH = "../../"
 
     @classmethod
     def _build_image(cls, docker):
         return docker.images.build(
-            path="../../",
+            path=cls.CTX_PATH,
             tag=cls.IMAGE_TAG,
             rm=True
         )
@@ -109,7 +121,7 @@ class Factomd(Container):
     def instance_name(self):
         return self.config.name
 
-    def _start_container(self, docker):
+    def _run_container(self, docker):
         return docker.containers.run(
             self.IMAGE_TAG,
             name=self.instance_name,
@@ -117,6 +129,6 @@ class Factomd(Container):
             detach=True
         )
 
-    def print_status(self, docker):
+    def print_info(self, docker):
         log.section("Node", self.config.name)
-        self.print_container_status(docker)
+        self.print_container_info(docker)

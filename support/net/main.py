@@ -58,7 +58,7 @@ def main(args):
 
 def _print_status(network_file):
     net = _network_from_file(network_file)
-    net.print_status()
+    net.print_info()
 
 
 def _network_up(network_file, build_mode):
