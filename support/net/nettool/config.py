@@ -8,12 +8,19 @@ from nettool import log
 
 
 CONFIG_SCHEMA = Schema({
+    "network": {
+        "name": str,
+        "subnet": str,
+        "iprange": str,
+        Optional("gateway"): str
+    },
     "nodes": [
         {"name": str,
          "identity_chain_id": str,
          "server_priv_key": str,
          "server_public_key": str,
-         Optional("seed"): bool}
+         Optional("seed"): bool,
+         Optional("server_port"):int}
     ]
 })
 
@@ -45,8 +52,19 @@ class EnvironmentConfig(object):
     """
 
     def __init__(self, cfg):
+        self.network = NetworkConfig(cfg["network"])
         self.nodes = [NodeConfig(node_cfg) for node_cfg in cfg["nodes"]]
 
+
+class NetworkConfig(object):
+    """
+    An object holding the configuration for the network.
+    """
+    def __init__(self, cfg):
+        self.name = cfg["name"]
+        self.subnet = cfg["subnet"]
+        self.iprange = cfg["iprange"]
+        self.gateway = cfg["gateway"]
 
 class NodeConfig(object):
     """
@@ -59,3 +77,4 @@ class NodeConfig(object):
         self.server_priv_key = cfg["server_priv_key"]
         self.server_public_key = cfg["server_public_key"]
         self.seed = cfg.get("seed", False)
+        self.server_port = cfg.get("server_port", 8110)

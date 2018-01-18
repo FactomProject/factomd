@@ -22,16 +22,20 @@ class Gateway(Container):
     IMAGE_TAG = "nettool_gateway"
     CTX_PATH = "docker/gateway"
 
+    def __init__(self):
+        super().__init__()
+        self.in_network = False
+
     @classmethod
-    def _build_image(cls, docker):
-        return docker.images.build(
+    def _build_image(cls):
+        return cls.env.docker.images.build(
             path=cls.CTX_PATH,
             tag=cls.IMAGE_TAG,
             rm=True
         )
 
-    def _run_container(self, docker):
-        return docker.containers.run(
+    def _create_container(self):
+        return self.env.docker.containers.create(
             self.IMAGE_TAG,
             name=self.instance_name,
             hostname=self.instance_name,
@@ -44,9 +48,9 @@ class Gateway(Container):
             detach=True
         )
 
-    def print_info(self, docker):
+    def print_info(self):
         log.section("Gateway")
-        self.print_container_info(docker)
+        self.print_container_info()
 
 
 class SeedServer(Container):
@@ -61,24 +65,24 @@ class SeedServer(Container):
     SEEDS_FILE_REMOTE = "/usr/share/nginx/html/seeds"
 
     @classmethod
-    def _build_image(cls, docker):
-        return docker.images.build(
+    def _build_image(cls):
+        return cls.env.docker.images.build(
             path=cls.CTX_PATH,
             tag=cls.IMAGE_TAG,
             rm=True
         )
 
-    def __init__(self, env):
-        super().__init__(env)
-        self.seed_nodes = []
+    def __init__(self, nodes):
+        super().__init__()
+        self.seed_nodes = [node for node in nodes if node.is_seed]
 
-    def _run_container(self, docker):
-        self.generate_seeds_file(docker)
-        return docker.containers.run(
+    def _create_container(self):
+        return self.env.docker.containers.create(
             self.IMAGE_TAG,
             name=self.instance_name,
             hostname=self.instance_name,
             network=self.env.network.name,
+
             volumes={
                 os.path.abspath(self.SEEDS_FILE_LOCAL): {
                     'bind': self.SEEDS_FILE_REMOTE,
@@ -88,9 +92,10 @@ class SeedServer(Container):
             detach=True
         )
 
-    def print_info(self, docker):
+    def print_info(self):
         log.section("Seeds server")
-        self.print_container_info(docker)
+
+        self.print_container_info()
         log.info()
 
         if not self.seed_nodes:
@@ -106,12 +111,12 @@ class SeedServer(Container):
         """
         self.seed_nodes.append(node)
 
-    def generate_seeds_file(self, docker):
+    def generate_seeds_file(self):
         """
         Write all currently know seeds to a file that is mapped to a file in
         the container, so that the server seed list gets updated.
         """
-        entries = [n.seed_entry(docker) for n in self.seed_nodes]
+        entries = [n.seed_entry for n in self.seed_nodes]
         with open(self.SEEDS_FILE_LOCAL, "w") as seed_file:
             seed_file.writelines(entries)
 
@@ -125,30 +130,44 @@ class Factomd(Container):
     CTX_PATH = "../../"
 
     @classmethod
-    def _build_image(cls, docker):
-        return docker.images.build(
+    def _build_image(cls):
+        return cls.env.docker.images.build(
             path=cls.CTX_PATH,
             tag=cls.IMAGE_TAG,
             rm=True
         )
 
-    def __init__(self, config, env):
-        super().__init__(env)
+    def __init__(self, config):
+        super().__init__()
         self.config = config
 
     @property
     def instance_name(self):
         return self.config.name
 
-    def seed_entry(self, docker):
+    @property
+    def is_seed(self):
         """
-        Create an entry in the seed list for this node.
+        If True, this node will be added to the list of seeds.
         """
-        ip_address = self.ip_address(docker)
-        return f"{ip_address}:8110"
+        return self.config.seed
 
-    def _run_container(self, docker):
-        return docker.containers.run(
+    @property
+    def server_port(self):
+        """
+        Gets the port for communication between servers.
+        """
+        return self.config.server_port
+
+    @property
+    def seed_entry(self):
+        """
+        Gets a string for an entry in the seed list for this node.
+        """
+        return f"{self.ip_address}:{self.server_port}"
+
+    def _create_container(self):
+        return self.env.docker.containers.create(
             self.IMAGE_TAG,
             name=self.instance_name,
             hostname=self.instance_name,
@@ -156,6 +175,6 @@ class Factomd(Container):
             detach=True
         )
 
-    def print_info(self, docker):
+    def print_info(self):
         log.section("Node", self.config.name)
-        self.print_container_info(docker)
+        self.print_container_info()

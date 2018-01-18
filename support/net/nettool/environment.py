@@ -1,22 +1,24 @@
 """
 Library for manipulating an environment hosting a network of factomd nodes.
 """
-from nettool import log, network, services
+from nettool import log, container, network, services
 
 
 class Environment(object):
     """
-    Represents an environment hosting a  network of factomd nodes along with
-    some supporting services.
+    Represents an environment hosting a network of factomd nodes along with
+    supporting services.
     """
     def __init__(self, config, docker):
+        container.Container.env = self
+        network.Network.env = self
+
         self.config = config
         self.docker = docker
-        self.network = network.Network(self)
-        self.gateway = services.Gateway(self)
-        self.seeds = services.SeedServer(self)
-        self.nodes = []
-        self._populate_nodes()
+        self.gateway = services.Gateway()
+        self.nodes = [services.Factomd(node) for node in self.config.nodes]
+        self.seeds = services.SeedServer(self.nodes)
+        self.network = network.Network(config.network, self._containers)
 
     def print_info(self):
         """
@@ -25,7 +27,9 @@ class Environment(object):
         log.section("Info")
 
         for container in self._containers:
-            container.print_info(self.docker)
+            container.print_info()
+
+        self.network.print_info()
 
     def up(self, build_mode=False):
         """
@@ -34,14 +38,16 @@ class Environment(object):
         existing images.
         """
         log.section("Starting the environment")
+
         if build_mode:
             for image in self._images:
-                image.build(self.docker, rebuild=True)
+                image.build(rebuild=True)
 
-        self.network.up(self.docker)
+        self.network.up()
+        self.seeds.generate_seeds_file()
 
         for container in self._containers:
-            container.up(self.docker, restart=build_mode)
+            container.up(restart=build_mode)
 
     def down(self, destroy_mode=False):
         """
@@ -55,20 +61,13 @@ class Environment(object):
             log.section("Stopping the environment")
 
         for container in self._containers:
-            container.down(self.docker, destroy=destroy_mode)
+            container.down(destroy=destroy_mode)
 
-        self.network.down(self.docker, destroy=destroy_mode)
+        self.network.down(destroy=destroy_mode)
 
         if destroy_mode:
             for image in self._images:
-                image.destroy(self.docker)
-
-    def _populate_nodes(self):
-        for node_cfg in self.config.nodes:
-            node = services.Factomd(node_cfg, self)
-            self.nodes.append(node)
-            if node_cfg.seed:
-                self.seeds.add(node)
+                image.destroy()
 
     @property
     def _containers(self):
