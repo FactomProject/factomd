@@ -11,23 +11,21 @@ package atomic_test
  * Benchmark reports
  *
  * 					Normal
- * BenchmarkMutexSimple-4             	100000000	        20.8 ns/op
- * BenchmarkDebugMutexUncontended-4   	30000000	        50.5 ns/op
- * BenchmarkMutex-4                   	20000000	       118 ns/op
- * BenchmarkMutexSlack-4              	10000000	       165 ns/op
- * BenchmarkMutexWork-4               	10000000	       135 ns/op
- * BenchmarkMutexWorkSlack-4          	10000000	       170 ns/op
- * BenchmarkMutexNoSpin-4             	 3000000	       571 ns/op
- * BenchmarkMutexSpin-4               	  500000	      2513 ns/op
+ * BenchmarkMutexSimple-4             	100000000	        20.3 ns/op
+ * BenchmarkMutexUncontended-4        	200000000	         8.53 ns/op
+ * BenchmarkMutex-4                   	10000000	       114 ns/op
+ * BenchmarkMutexSlack-4              	10000000	       169 ns/op
+ * BenchmarkMutexWork-4               	10000000	       143 ns/op
+ * BenchmarkMutexWorkSlack-4          	10000000	       167 ns/op
+ * BenchmarkMutexNoSpin-4             	 3000000	       563 ns/op
+ * BenchmarkMutexSpin-4               	  500000	      2441 ns/op
  *
- * 					Debug
- * BenchmarkDebugMutexSimple-4        	10000000	       123 ns/op
- * BenchmarkDebugMutex-4              	10000000	       128 ns/op
- * BenchmarkDebugMutexSlack-4         	 5000000	       228 ns/op
- * BenchmarkDebugMutexWork-4          	10000000	       195 ns/op
- * BenchmarkDebugMutexWorkSlack-4     	 5000000	       291 ns/op
- * BenchmarkDebugMutexNoSpin-4        	  500000	      3353 ns/op
- * BenchmarkDebugMutexSpin-4          	  200000	      6217 ns/op
+ * BenchmarkDebugMutexSimple-4        	20000000	       120 ns/op
+ * BenchmarkDebugMutexUncontended-4   	30000000	        48.2 ns/op
+ * BenchmarkDebugMutex-4              	  200000	      9781 ns/op
+ * BenchmarkDebugMutexSlack-4         	  100000	     12356 ns/op
+ * BenchmarkDebugMutexWork-4          	  200000	      5147 ns/op
+ * BenchmarkDebugMutexWorkSlack-4     	  200000	      6259 ns/op
  */
 
 import (
@@ -35,21 +33,12 @@ import (
 	"runtime"
 	"sync"
 	"testing"
-	"time"
+	// "time"
 
 	. "github.com/FactomProject/factomd/util/atomic"
 )
 
 var _ = fmt.Sprint
-
-func BenchmarkMutexSimple(b *testing.B) {
-	var m sync.Mutex
-	for i := 0; i < b.N; i++ {
-		//m.Validate(s)
-		m.Lock()
-		m.Unlock()
-	}
-}
 
 func HammerMutex(m *DebugMutex, loops int, cdone chan bool) {
 	for i := 0; i < loops; i++ {
@@ -107,9 +96,18 @@ func TestDebugMutex(t *testing.T) {
 	}
 }*/
 
-func BenchmarkDebugMutexUncontended(b *testing.B) {
+func BenchmarkMutexSimple(b *testing.B) {
+	var m sync.Mutex
+	for i := 0; i < b.N; i++ {
+		//m.Validate(s)
+		m.Lock()
+		m.Unlock()
+	}
+}
+
+func BenchmarkMutexUncontended(b *testing.B) {
 	type PaddedMutex struct {
-		DebugMutex
+		sync.Mutex
 		pad [128]uint8
 	}
 	b.RunParallel(func(pb *testing.PB) {
@@ -213,6 +211,20 @@ func BenchmarkMutexSpin(b *testing.B) {
 			for i := 0; i < len(data); i += 4 {
 				data[i]++
 			}
+		}
+	})
+}
+
+func BenchmarkDebugMutexUncontended(b *testing.B) {
+	type PaddedMutex struct {
+		DebugMutex
+		pad [128]uint8
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		var mu PaddedMutex
+		for pb.Next() {
+			mu.Lock()
+			mu.Unlock()
 		}
 	})
 }
