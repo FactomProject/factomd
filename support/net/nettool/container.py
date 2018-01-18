@@ -44,11 +44,12 @@ class Container(ABC):
     NAME = "unknown"
     IMAGE_TAG = "unknown"
 
+    env = None
     image = None
     container = None
 
     @classmethod
-    def is_built(cls, docker):
+    def is_built(cls):
         """
         Retrieves the current status of the docker image corresponding to this
         service and returns True if it was already built.
@@ -56,44 +57,45 @@ class Container(ABC):
         Note that this does not mean that the image is up to date, only that it
         exists.
         """
-        cls._refresh_image_status(docker)
+        cls._refresh_image_status()
         return cls.image is not None
 
     @classmethod
-    def build(cls, docker, rebuild=False):
+    def build(cls, rebuild=False):
         """
         Builds the docker image for the service unless it already exists. If
         the rebuild parameter is set to True, builds the image even if it
         exists.
         """
-        if not cls.is_built(docker) or rebuild:
+        if not cls.is_built() or rebuild:
             with log.step("Building image", cls.IMAGE_TAG):
-                cls.image = cls._build_image(docker)
+                cls.image = cls._build_image()
 
     @classmethod
-    def destroy(cls, docker):
+    def destroy(cls):
         """
         Destroys the docker image for the service, unless it was already
         destroyed.
         """
-        if cls.is_built(docker):
+        if cls.is_built():
             with log.step("Removing image", cls.IMAGE_TAG):
+                docker = cls.env.docker
                 cls.image = docker.images.remove(cls.IMAGE_TAG, force=True)
         else:
             log.info("Image", cls.IMAGE_TAG, "already removed")
 
-
     @classmethod
     @abstractmethod
-    def _build_image(cls, docker):
+    def _build_image(cls):
         """
         Builds the docker image for the current service. To be overwritten in
         inherited classes.
         """
         pass
 
-    def __init__(self, env):
-        self.env = env
+    def __init__(self):
+        self.ip_address = None
+        self.in_network = True
 
     @property
     def instance_name(self):
@@ -102,69 +104,65 @@ class Container(ABC):
         """
         return self.NAME
 
-    def ip_address(self, docker):
-        return self._get_ip_for(docker, self.env.network.name)
+    @property
+    def status(self):
+        """
+        Retrieves the current status of the docker container corresponding to
+        this service instance and returns True if it is running.
+        """
+        self._refresh_container_status()
+        if not self.container:
+            return Status.DELETED
+        return Status(self.container.status)
 
-    def print_container_info(self, docker):
+    def print_container_info(self):
         """
         Prints the status of the docker container corresponding to this
         instance.
         """
-        if self.status(docker) == Status.RUNNING:
+        if self.status == Status.RUNNING:
             log.info("Container status:", colored("UP", "green"))
         else:
             log.info("Container status:", colored("DOWN", "red"))
         log.info("Container name:", self.instance_name)
         log.info("Image tag:", self.IMAGE_TAG)
-        log.info("IP:", self.ip_address(docker))
+        log.info("Assigned IP:", self.ip_address)
+        self._print_actual_network_info()
 
-    def status(self, docker):
-        """
-        Retrieves the current status of the docker container corresponding to
-        this service instance and returns True if it is running.
-        """
-        self._refresh_container_status(docker)
-        if not self.container:
-            return Status.DELETED
-        return Status(self.container.status)
 
-    def up(self, docker, restart=False):
+    def up(self, restart=False):
         """
         Ensures that the docker container corresponding to this service is
-        currently running:
-         - builds the docker image if it doesn't exist yet
-         - checks if the container is in the running state
-         - if the container is not running, starts it.
-
-        If the restart parameter is set to true, the container is always
+        running. If the restart parameter is set to true, the container is
         restarted from scratch.
         """
-        self.__class__.build(docker)
+        self.__class__.build()
 
         if restart:
-            self.down(docker, destroy=True)
+            self.down(destroy=True)
 
         with log.step("Starting", self.instance_name):
-            self._wait_for_transition(docker)
+            self._wait_for_transition()
 
-            if self.status(docker) == Status.DELETED:
-                self._run_container(docker)
+            if self.status == Status.DELETED:
+                self.container = self._create_container()
 
-            if self.status(docker) in [Status.CREATED, Status.EXITED]:
+            if self.status in [Status.CREATED, Status.EXITED]:
+                self._connect_to_network()
                 self.container.start()
 
-            if self.status(docker) == Status.PAUSED:
+            if self.status == Status.PAUSED:
                 self.container.unpause()
 
-            if self.status(docker) == Status.RUNNING:
+            if self.status == Status.RUNNING:
                 return
 
-            if self.status(docker) == Status.DEAD:
+            if self.status == Status.DEAD:
                 log.fatal("Container", self.instance_name,
                           "is in a dead state")
 
 
-    def down(self, docker, destroy=False):
+    def down(self, destroy=False):
         """
         Ensures that the docker container corresponding to this service is
         currently not running:
@@ -172,27 +170,28 @@ class Container(ABC):
          - if the destroy parameter is set to true, also removes the container.
         """
         with log.step("Stopping", self.instance_name):
-            self._wait_for_transition(docker)
+            self._wait_for_transition()
 
-            if self.status(docker) in [Status.RUNNING, Status.PAUSED]:
+            if self.status in [Status.RUNNING, Status.PAUSED]:
                 self.container.stop()
+                self._disconnect_from_networks()
                 if not destroy:
                     return
 
-            if self.status(docker) in [Status.CREATED, Status.EXITED]:
+            if self.status in [Status.CREATED, Status.EXITED]:
                 self.container.remove(v=True)
 
-            self._wait_for_transition(docker)
+            self._wait_for_transition()
 
-            if self.status(docker) == Status.DELETED:
+            if self.status == Status.DELETED:
                 return
 
-            if self.status(docker) == Status.DEAD:
+            if self.status == Status.DEAD:
                 log.fatal("Container", self.instance_name,
                           "is in a dead state")
 
     @abstractmethod
-    def print_info(self, docker):
+    def print_info(self):
         """
         Prints the status of this service instance. To be overwritten in the
         inherited classes.
@@ -200,25 +199,25 @@ class Container(ABC):
         pass
 
     @abstractmethod
-    def _run_container(self, docker):
+    def _create_container(self):
         pass
 
     @classmethod
-    def _refresh_image_status(cls, docker):
+    def _refresh_image_status(cls):
         try:
-            cls.image = docker.images.get(cls.IMAGE_TAG)
+            cls.image = cls.env.docker.images.get(cls.IMAGE_TAG)
         except docker_lib.errors.ImageNotFound:
             cls.image = None
 
-    def _refresh_container_status(self, docker):
+    def _refresh_container_status(self):
         try:
-            self.container = docker.containers.get(self.instance_name)
+            self.container = self.env.docker.containers.get(self.instance_name)
         except docker_lib.errors.NotFound:
             self.container = None
 
-    def _wait_for_transition(self, docker):
+    def _wait_for_transition(self):
         for _ in range(MAX_TRANSITION_WAITS):
-            if Status.is_transition(self.status(docker)):
+            if Status.is_transition(self.status):
                 time.sleep(TRANSITION_WAIT_TIME)
             else:
                 break
@@ -226,12 +225,33 @@ class Container(ABC):
             log.fatal("Timeout when waiting for the container",
                       self.instance_name, "to move to another state")
 
-    def _get_ip_for(self, docker, network_name):
-        if self.status(docker) != Status.RUNNING:
-            return None
-
+    def _connected_networks(self):
         net_info = self.container.attrs["NetworkSettings"]["Networks"]
-        net_attrs = net_info.get(network_name)
+        network_names = [key for key, _ in net_info.items()]
+        return [self.env.docker.networks.get(name) for name in network_names]
 
-        if net_attrs:
-            return net_attrs.get("IPAddress")
+    def _disconnect_from_networks(self):
+        if not self.in_network:
+            return
+
+        for network in self._connected_networks():
+            network.disconnect(self.container)
+
+    def _connect_to_network(self):
+        if not self.in_network:
+            return
+
+        self._disconnect_from_networks()
+
+        self.env.network.docker_network.connect(
+            self.container,
+            ipv4_address=self.ip_address
+        )
+
+    def _print_actual_network_info(self):
+        if self.status == Status.RUNNING:
+            net_info = self.container.attrs["NetworkSettings"]["Networks"]
+            log.info("Networks: ")
+            for net_name, net_attrs in net_info.items():
+                net_ip = net_attrs.get("IPAddress")
+                log.info(" -", net_name, "(", net_ip, ")")

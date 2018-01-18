@@ -1,8 +1,15 @@
 ---
 
+network:
+    name: "nettool"
+    subnet: "10.12.0.0/16"
+    gateway: "10.12.0.254"
+    iprange: "10.12.1.0/24"
+
 nodes:
     - name: node1
       seed: true
+      server_port: 8110
       identity_chain_id: 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
       server_priv_key: 4c38c72fc5cdad68f13b74674d3ffb1f3d63a112710868c9b08946553448d26d
       server_public_key: cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
