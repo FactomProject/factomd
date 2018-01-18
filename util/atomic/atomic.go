@@ -109,9 +109,9 @@ type DebugMutex struct {
 	lockBool AtomicBool   // lock for detecting starvation when not trusting the debug lock functionality
 }
 
-var yeaOfLittleFaith1 AtomicBool = AtomicBool(0) // true means mutex lock instead of CAS lock
+var yeaOfLittleFaith1 AtomicBool = AtomicBool(1) // true means mutex lock instead of CAS lock
 var yeaOfLittleFaith2 AtomicBool = AtomicBool(0) //  true mean mutex lock inside of CAS lock
-var enableStarvationDetection AtomicBool = AtomicBool(1)
+var enableStarvationDetection AtomicBool = AtomicBool(0)
 var enableAlreadyLockedDetection AtomicBool = AtomicBool(0)
 
 func (c *DebugMutex) lockCAS() {
