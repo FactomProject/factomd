@@ -318,9 +318,9 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		for i := range fnodes {
 			fnodes[i].State.CustomNetworkID = p.customNet
 		}
-		seedURL = s.LocalSeedURL
-		networkPort = s.LocalNetworkPort
-		specialPeers = s.LocalSpecialPeers
+		seedURL = s.CustomSeedURL
+		networkPort = s.CustomNetworkPort
+		specialPeers = s.CustomSpecialPeers
 	default:
 		panic("Invalid Network choice in Config File or command line. Choose MAIN, TEST, LOCAL, or CUSTOM")
 	}
