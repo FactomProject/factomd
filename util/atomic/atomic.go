@@ -93,13 +93,17 @@ func Goid() string {
 	return idField
 }
 
-func WhereAmIString(msg string, depth int) string {
-	_, fn, line, _ := runtime.Caller(depth)
-	return fmt.Sprintf("[%s]%v-%s:%d", msg, Goid(), fn, line)
+func WhereAmIString(depth int) string {
+	_, fn, line, _ := runtime.Caller(depth+1)
+	return fmt.Sprintf("%v-%s:%d", Goid(), fn, line)
 }
 
-func WhereAmI(msg string, depth int) {
-	fmt.Println("\n" + WhereAmIString(msg, depth+1))
+func WhereAmI(msg string) {
+	fmt.Printf("\n[%v] %v", msg, WhereAmIString(1))
+}
+
+func WhereAmI2(msg string, depth int) {
+	fmt.Printf("\n[%v] %v", msg, WhereAmIString(depth+1))
 }
 
 type DebugMutex struct {
@@ -107,18 +111,21 @@ type DebugMutex struct {
 	lock     int32        // lock for debug lock functionality
 	mu       sync.Mutex   // lock for not trusting the debug lock functionality or for traditional locking
 	lockBool AtomicBool   // lock for detecting starvation when not trusting the debug lock functionality
+	owner AtomicString    // owner of the lock at the moment
 }
 
 var yeaOfLittleFaith1 AtomicBool = AtomicBool(1) // true means mutex lock instead of CAS lock
 var yeaOfLittleFaith2 AtomicBool = AtomicBool(0) //  true mean mutex lock inside of CAS lock
 var enableStarvationDetection AtomicBool = AtomicBool(0)
 var enableAlreadyLockedDetection AtomicBool = AtomicBool(0)
+var enableOwnerTracking AtomicBool = enableStarvationDetection // no point in tracking owners if not detecting starvation
+var enableLockNames AtomicBool = AtomicBool(0)
 
 func (c *DebugMutex) lockCAS() {
 	b := atomic.CompareAndSwapInt32(&c.lock, 0, 1) // set lock to 1 iff it is 0
 	if !b {
 		if enableAlreadyLockedDetection.Load() {
-			WhereAmI(c.name.Load()+":Already Locked", 3)
+			WhereAmI2(c.name.Load()+":Already Locked", 2)
 		}
 		if enableStarvationDetection.Load() {
 			// Make a timer to whine if I am starving!
@@ -134,7 +141,7 @@ func (c *DebugMutex) lockCAS() {
 							//						fmt.Printf("+")
 						}
 					}
-					WhereAmI(c.name.Load()+":Lock starving!\n", 3)
+					WhereAmI2(c.name.Load()+":Lock starving!\n", 2)
 					// should set a flag if I starve and report when I get the lock
 				}
 			}()
@@ -153,10 +160,6 @@ func (c *DebugMutex) lockCAS() {
 	if yeaOfLittleFaith2.Load() {
 		c.mu.Lock()
 	}
-	// set the name of the lockBool the first time it is acquired
-	if c.name.Load() == "" {
-		c.name.Store(WhereAmIString("DebugMutex ", 3))
-	}
 }
 
 func (c *DebugMutex) unlockCAS() {
@@ -165,18 +168,19 @@ func (c *DebugMutex) unlockCAS() {
 	}
 	b := atomic.CompareAndSwapInt32(&c.lock, 1, 0) // set lock to 0 iff it is 1
 	if !b {
-		WhereAmI(c.name.Load()+":Already Unlocked", 3)
+		WhereAmI2(c.name.Load()+":Already Unlocked", 2)
 		panic("Double Unlock")
 	}
+	runtime.Gosched() // swap to ensure fairness
 }
 
 // try and detect bad behaviors using a traditional lock
 func (c *DebugMutex) lockMutex() {
 	if c.lockBool.Load() {
 		if enableAlreadyLockedDetection.Load() {
-			WhereAmI(c.name.Load()+":Already Locked", 3)
+			WhereAmI2(c.name.Load()+":Already Locked", 2)
 		}
-		if enableStarvationDetection.Load() || true {
+		if enableStarvationDetection.Load() {
 			// Make a timer to whine if I am starving!
 			done := make(chan struct{})
 			go func() {
@@ -189,7 +193,7 @@ func (c *DebugMutex) lockMutex() {
 							time.Sleep(3 * time.Millisecond)
 						}
 					}
-					WhereAmI(c.name.Load()+":Lock starving!\n", 3)
+					WhereAmI2(c.name.Load()+":Lock starving!\n", 2)
 				}
 			}()
 			defer func() { done <- struct{}{} }() // End the timer when I get the lockBool
@@ -198,15 +202,11 @@ func (c *DebugMutex) lockMutex() {
 	// It is possible to loose the lock after the check and before here and starve anyway undetected but ...
 	c.mu.Lock()
 	c.lockBool.Store(true)
-
-	// set the name of the lock the first time it is acquired
-	if c.name.Load() == "" {
-		c.name.Store(WhereAmIString("DebugMutex ", 1))
-	}
 }
+
 func (c *DebugMutex) unlockMutex() {
 	if c.lockBool.Load() == false {
-		WhereAmI(c.name.Load()+":Already Unlocked", 3)
+		WhereAmI2(c.name.Load()+":Already Unlocked", 2)
 		panic("Double Unlock")
 	}
 	c.lockBool.Store(false)
@@ -220,7 +220,12 @@ func (c *DebugMutex) Lock() {
 	} else {
 		c.lockCAS()
 	}
+	if(enableOwnerTracking.Load()) {c.owner.Store(WhereAmIString(1))}
 	//time.Sleep(20 * time.Millisecond) // Hog the lock -- debug -- clay
+	if enableLockNames.Load() && c.name.Load() == "" {
+		// set the name of the lockBool the first time it is acquired
+		c.name.Store("[DebugMutex "+WhereAmIString( 2)+"]")
+	}
 }
 func (c *DebugMutex) Unlock() {
 	if yeaOfLittleFaith1.Load() {
@@ -228,6 +233,7 @@ func (c *DebugMutex) Unlock() {
 	} else {
 		c.unlockCAS()
 	}
+	if(enableOwnerTracking.Load()) {c.owner.Store("unlocked")}
 }
 
 func main() {
