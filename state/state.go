@@ -76,6 +76,7 @@ type State struct {
 	PortNumber              int
 	Replay                  *Replay
 	FReplay                 *Replay
+	CrossReplay             *CrossReplayFilter
 	DropRate                int
 	Delay                   int64 // Simulation delays sending messages this many milliseconds
 
@@ -865,6 +866,14 @@ func (s *State) Init() {
 
 	if s.ExportData {
 		s.DB.SetExportData(s.ExportDataSubpath)
+	}
+
+	// Cross Boot Replay
+	switch s.DBType {
+	case "Map":
+		s.SetupCrossBootReplay("Map")
+	default:
+		s.SetupCrossBootReplay("Bolt")
 	}
 
 	//Network

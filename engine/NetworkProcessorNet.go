@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -26,6 +27,7 @@ func NetworkProcessorNet(fnode *FactomNode) {
 
 func Peers(fnode *FactomNode) {
 	cnt := 0
+	sinceBoot := primitives.NewTimestampNow().GetTimeSeconds() - fnode.State.BootTime
 
 	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
@@ -80,10 +82,51 @@ func Peers(fnode *FactomNode) {
 				ackHeight = amsg.(*messages.Ack).DBHeight
 			}
 		}
+
+		// If we are not syncing, we may ignore some old messages if we are rebooting
+		if sinceBoot < 600 { // 10min
+			switch amsg.Type() {
+			case constants.EOM_MSG:
+				break
+				eom := amsg.(*messages.EOM)
+				replay, _ := fnode.State.CrossReplayExists(eom.DBHeight, eom.MsgHash)
+				if replay {
+					//fmt.Printf("[EOM] Toss replay for height %d, %s\n", eom.DBHeight, eom.MsgHash.String())
+				}
+				return replay // true means replay and ignore
+			case constants.ACK_MSG:
+				ack := amsg.(*messages.Ack)
+				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
+				if replaySalt {
+					//fmt.Printf("[ACK] Toss replay for height %d, %s\n", ack.DBHeight, ack.MsgHash.String())
+				}
+				return replaySalt // true means replay and ignore
+
+				break
+				replay, _ := fnode.State.CrossReplayExists(ack.DBHeight, ack.MsgHash)
+				if replay {
+					//fmt.Printf("[ACK] Toss replay for height %d, %s\n", ack.DBHeight, ack.MsgHash.String())
+				}
+				return replay // true means replay and ignore
+			case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+				break
+				dbsig := amsg.(*messages.DirectoryBlockSignature)
+				replay, _ := fnode.State.CrossReplayExists(dbsig.DBHeight, dbsig.MsgHash)
+				if replay {
+					//fmt.Printf("[DBSIG] Toss replay for height %d, %s\n", dbsig.DBHeight, dbsig.MsgHash.String())
+				}
+				return replay // true means replay and ignore
+			}
+
+		}
+
 		return false
 	}
 
 	for {
+		// fmt.Println("Sinceboot", sinceBoot)
+		sinceBoot = primitives.NewTimestampNow().GetTimeSeconds() - fnode.State.BootTime
+
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
 			if msg != nil {

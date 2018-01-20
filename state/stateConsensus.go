@@ -454,6 +454,10 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 
 		pl := s.ProcessLists.Get(ack.DBHeight)
 		pl.AddToProcessList(ack, m)
+
+		// Cross Boot Replay
+		s.CrossReplayAddHash(ack.DBHeight, ack.MsgHash)
+		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
 	}
 }
 
@@ -1418,6 +1422,8 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 		s.SendHeartBeat()
 
+		// Cross Boot Replay
+		s.CrossReplayAddHash(e.DBHeight, e.MsgHash)
 		return true
 	}
 
@@ -1648,6 +1654,9 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		}
 		vm.Signed = true
 		//s.LeaderPL.AdminBlock
+
+		// Cross Boot Replay
+		s.CrossReplayAddHash(dbs.DBHeight, dbs.MsgHash)
 		return true
 	}
 
