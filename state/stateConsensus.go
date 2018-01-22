@@ -456,8 +456,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, m)
 
 		// Cross Boot Replay
-		s.CrossReplayAddHash(ack.DBHeight, ack.MsgHash)
-		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
+		s.CrossReplayAddSalt(ack.Salt)
 	}
 }
 
@@ -1421,10 +1420,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 		}
 		s.SendHeartBeat()
-
-		// Cross Boot Replay
-		s.CrossReplayAddHash(e.DBHeight, e.MsgHash)
-		return true
 	}
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
@@ -1655,8 +1650,6 @@ func (s *State) ProcessDBSig(dbheight uint32, msg interfaces.IMsg) bool {
 		vm.Signed = true
 		//s.LeaderPL.AdminBlock
 
-		// Cross Boot Replay
-		s.CrossReplayAddHash(dbs.DBHeight, dbs.MsgHash)
 		return true
 	}
 
