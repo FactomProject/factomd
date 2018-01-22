@@ -29,6 +29,22 @@ func Peers(fnode *FactomNode) {
 	cnt := 0
 	saltReplayFilterOn := true
 
+	crossBootIgnore := func(amsg interfaces.IMsg) bool {
+		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
+		if saltReplayFilterOn {
+			switch amsg.Type() {
+			case constants.ACK_MSG:
+				ack := amsg.(*messages.Ack)
+				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
+				if replaySalt {
+					fmt.Println("Found a replay")
+				}
+				return replaySalt // true means replay and ignore
+			}
+		}
+		return false
+	}
+
 	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
 	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
@@ -80,19 +96,6 @@ func Peers(fnode *FactomNode) {
 				}
 				// Set the highest ack height seen and allow through
 				ackHeight = amsg.(*messages.Ack).DBHeight
-			}
-		}
-
-		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
-		if saltReplayFilterOn {
-			switch amsg.Type() {
-			case constants.ACK_MSG:
-				ack := amsg.(*messages.Ack)
-				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
-				if replaySalt {
-					fmt.Println("Found a replay")
-				}
-				return replaySalt // true means replay and ignore
 			}
 		}
 
@@ -194,7 +197,9 @@ func Peers(fnode *FactomNode) {
 
 					// Ignore messages if there are too many.
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
-						fnode.State.InMsgQueue().Enqueue(msg)
+						if !crossBootIgnore(msg) {
+							fnode.State.InMsgQueue().Enqueue(msg)
+						}
 					}
 				} else {
 					RepeatMsgs.Inc()

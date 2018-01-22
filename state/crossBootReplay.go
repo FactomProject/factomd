@@ -16,9 +16,7 @@ var _ = fmt.Println
 
 // DB Buckets
 var (
-	heightBucket = []byte("Heights")
-	lowest       = []byte("LowestHeight")
-	saltBucket   = []byte("AllSalts")
+	saltBucket = []byte("AllSalts")
 )
 
 // SetupCrossBootReplay will construct the database
@@ -117,7 +115,7 @@ func (c *CrossReplayFilter) ExistOldSalt(salt [8]byte) bool {
 
 // Exists check if the hash is in the replay filter, and if it encounters a db error, it will report false
 //
-func (c *CrossReplayFilter) ExistSalt(height uint32, salt [8]byte) (bool, error) {
+func (c *CrossReplayFilter) ExistSalt(salt [8]byte) (bool, error) {
 	return c.db.DoesKeyExist(saltBucket, salt[:])
 }
 
