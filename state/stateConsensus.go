@@ -56,22 +56,27 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	case 1:
 		if s.RunLeader &&
 			s.Leader &&
-			!s.Saving &&
-			vm != nil && int(vm.Height) == len(vm.List) &&
-			(!s.Syncing || !vm.Synced) &&
-			(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
-			s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
+			vm != nil && int(vm.Height) == len(vm.List) {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				s.XReview = append(s.XReview, msg)
-			} else {
-				msg.LeaderExecute(s)
 			}
+
+			if !s.Saving &&
+				(!s.Syncing || !vm.Synced) &&
+				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
+				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
+				msg.LeaderExecute(s)
+			} else {
+				msg.FollowerExecute(s)
+			}
+
 		} else {
 			msg.FollowerExecute(s)
 		}
 		ret = true
+
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
@@ -104,6 +109,12 @@ func (s *State) Process() (progress bool) {
 	// If we are not running the leader, then look to see if we have waited long enough to
 	// start running the leader.  If we are, start the clock on Ignoring Missing Messages.  This
 	// is so we don't conflict with past version of the network if we have to reboot the network.
+	if s.CurrentMinute > 9 {
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
+	} else {
+		s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
+	}
+
 	if !s.RunLeader {
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
@@ -116,18 +127,9 @@ func (s *State) Process() (progress bool) {
 			}
 		}
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		if s.CurrentMinute > 9 {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-		} else {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		}
+
 	} else if s.IgnoreMissing {
 		s.LeaderPL = s.ProcessLists.Get(s.LLeaderHeight)
-		if s.CurrentMinute > 9 {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(9, s.IdentityChainID)
-		} else {
-			s.Leader, s.LeaderVMIndex = s.LeaderPL.GetVirtualServers(s.CurrentMinute, s.IdentityChainID)
-		}
 		now := s.GetTimestamp().GetTimeMilli() // Timestamps are in milliseconds, so wait 20
 		if now-s.StartDelay > s.StartDelayLimit {
 			s.IgnoreMissing = false
