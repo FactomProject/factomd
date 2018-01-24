@@ -201,7 +201,7 @@ func createTestDBStateList(blockCount int, s *State) ([]interfaces.IMsg, []inter
 
 		prev = testHelper.CreateTestBlockSetWithNetworkID(prev, s.GetNetworkID(), false)
 		if i == 0 {
-			dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
+			dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID(), nil)
 			msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 			msg.(*messages.DBStateMsg).IgnoreSigs = true
 			prev.DBlock = dblk.(*directoryBlock.DirectoryBlock)

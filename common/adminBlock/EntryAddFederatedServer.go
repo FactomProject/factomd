@@ -38,7 +38,14 @@ func (e *AddFederatedServer) String() string {
 
 func (c *AddFederatedServer) UpdateState(state interfaces.IState) error {
 	c.Init()
-	state.AddFedServer(c.DBHeight, c.IdentityChainID)
+	fmt.Printf("height: %v\n", c.DBHeight)
+	if c.DBHeight == 1 {
+		//use the bootstrap identity for the process list following the genesis block
+		id := state.GetNetworkBootStrapIdentity()
+		state.AddFedServer(c.DBHeight, id)
+	} else {
+		state.AddFedServer(c.DBHeight, c.IdentityChainID)
+	}
 	authorityDeltaString := fmt.Sprintf("AdminBlock (AddFedMsg DBHt: %d) \n ^ %s", c.DBHeight, c.IdentityChainID.String()[5:10])
 	state.AddStatus(authorityDeltaString)
 	state.AddAuthorityDelta(authorityDeltaString)
