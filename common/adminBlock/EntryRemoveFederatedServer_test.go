@@ -92,3 +92,31 @@ func TestRemoveFederatedServerMarshalUnmarshal(t *testing.T) {
 		t.Errorf("Invalid IdentityChainID")
 	}
 }
+
+func TestRemoveServerMisc(t *testing.T) {
+	a := new(RemoveFederatedServer)
+	if a.String() != "    E:             Remove Federated Server --   IdentityChainID     0000     DBHeight        0" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":7,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":7,\"identitychainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"dbheight\":0}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}

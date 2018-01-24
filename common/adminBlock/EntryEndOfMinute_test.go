@@ -116,3 +116,24 @@ func TestEOMMarshalUnmarshal(t *testing.T) {
 		t.Errorf("Invalid MinuteNumber")
 	}
 }
+
+func TestEOMjsonMisc(t *testing.T) {
+	a := new(EndOfMinuteEntry)
+	if a.String() != "    E:                    EndOfMinuteEntry --            Minute 0" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":0,\"minutenumber\":0}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":0,\"minutenumber\":0}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+}

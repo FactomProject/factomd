@@ -91,3 +91,31 @@ func TestDBSEGenesisBlock(t *testing.T) {
 		t.Errorf("Invalid signature")
 	}
 }
+
+func TestDBsigMisc(t *testing.T) {
+	a := new(DBSignatureEntry)
+	if a.String() != "    E:         DB Signature --   IdentityChainID     0000       PubKey 00000000    Signature 3030303030303030" {
+		t.Error("Unexpected string:", a.String())
+	}
+	as, err := a.JSONString()
+	if err != nil {
+		t.Error(err)
+	}
+	if as != "{\"adminidtype\":1,\"identityadminchainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"prevdbsig\":{\"pub\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"sig\":\"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\"}}" {
+		t.Error("Unexpected JSON string:", as)
+	}
+	ab, err := a.JSONByte()
+	if err != nil {
+		t.Error(err)
+	}
+	if string(ab) != "{\"adminidtype\":1,\"identityadminchainid\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"prevdbsig\":{\"pub\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"sig\":\"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\"}}" {
+		t.Error("Unexpected JSON bytes:", string(ab))
+	}
+
+	if a.IsInterpretable() {
+		t.Error("IsInterpretable should return false")
+	}
+	if a.Interpret() != "" {
+		t.Error("Interpret should return empty string")
+	}
+}
