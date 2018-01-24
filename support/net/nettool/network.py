@@ -9,6 +9,9 @@ from nettool import log
 
 
 NETWORK_NAME = "nettool"
+NETWORK_SUBNET = "10.12.0.0/24"
+NETWORK_GATEWAY = "10.12.0.254"
+NETWORK_IPRANGE = "10.12.1.0/24"
 
 
 class Network(object):
@@ -18,14 +21,20 @@ class Network(object):
     """
     env = None
 
-    def __init__(self, cfg, containers):
-        self.name = cfg.name
+    def __init__(self, containers):
+        self.name = NETWORK_NAME
         self.docker_network = None
-        self.ip_pool = IPPool(cfg)
-        self.rules = IptablesRules()
+        self.ip_pool = IPPool()
 
         self.containers = []
         self._assign_ips(containers)
+
+    @property
+    def address(self):
+        """
+        Get the address of the network.
+        """
+        return ip_network(NETWORK_SUBNET)
 
     def print_info(self):
         """
@@ -33,7 +42,6 @@ class Network(object):
         """
         log.section("Network")
         log.info("Name:", self.name)
-        self.rules.print_info()
 
     def is_up(self):
         """
@@ -85,26 +93,18 @@ class Network(object):
                 self.containers.append(container)
                 ip = self.ip_pool.add(container)
                 container.ip_address = ip
-                log.info("adding ", container.instance_name, "ip:", ip)
 
 
 class IPPool(object):
     """
     Manages IP addresses for all containers in the network.
     """
-
-    _NETWORK_GATEWAY_KEY = "__reserved__network_gateway"
-
-    def __init__(self, cfg):
-        self.subnet = ip_network(cfg.subnet)
-        self.iprange = ip_network(cfg.iprange)
-        self.gateway = ip_address(cfg.gateway) if not None else self.subnet[-1]
-        self.name_to_ip = {
-            "network_gateway": self.gateway
-        }
-        self.ip_to_name = {
-            self.gateway: "network_gateway"
-        }
+    def __init__(self):
+        self.subnet = ip_network(NETWORK_SUBNET)
+        self.iprange = ip_network(NETWORK_IPRANGE)
+        self.gateway = ip_address(NETWORK_GATEWAY)
+        self.name_to_ip = {}
+        self.ip_to_name = {}
 
     def add(self, container):
         """
@@ -135,39 +135,26 @@ class IPPool(object):
         """
         return str(self.iprange)
 
-    def get_ip_for_container(self, container):
-        """
-        Get the string representation of the IP address for a given container,
-        None if does not exist.
-        """
-        return str(self.ip_to_name.get(container.instance_name))
-
-    def get_ip_for_container_name(self, container):
+    def get_ip_for_container_name(self, name):
         """
         Get the string representation of the IP address for a given container
         name, None if does not exist.
         """
-        return str(self.ip_to_name.get(container.instance_name))
+        return str(self.name_to_ip.get(name))
 
     def get_container_name_for_ip(self, ip):
         """
         Get the name of the container for a given IP address.
         """
-        return self.name_to_ip.get(ip_address(ip))
+        return self.ip_to_name.get(ip_address(ip))
 
     def _get_next_free_ip(self):
         for address in self.subnet.hosts():
             if address not in self.ip_to_name.keys() \
-                and address not in self.iprange:
-                log.info("generating IP: ", address)
+                and address not in self.iprange \
+                    and address != self.gateway:
                 return address
 
         log.fatal("the IP address pool is too small to assign another IP,"
                   "change the network settings or the number of nodes")
         return None
-
-
-class IptablesRules(object):
-
-    def __init__(self):
-        pass

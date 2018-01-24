@@ -1,28 +1,42 @@
 """
 Module for reading and validating the network configuration file.
 """
-from schema import Schema, SchemaError, Optional
+from collections import namedtuple
+from schema import Schema, SchemaError, Optional, Or
 import yaml
 
 from nettool import log
 
 
-CONFIG_SCHEMA = Schema({
-    "network": {
-        "name": str,
-        "subnet": str,
-        "iprange": str,
-        Optional("gateway"): str
-    },
-    "nodes": [
-        {"name": str,
-         "identity_chain_id": str,
-         "server_priv_key": str,
-         "server_public_key": str,
-         Optional("seed"): bool,
-         Optional("server_port"):int}
-    ]
+NODE = Schema({
+    "name": str,
+    Optional("seed"): bool
 })
+
+
+RULE = Schema({
+    "action": Or("allow", "deny"),
+    Optional("source"): str,
+    Optional("target"): str,
+    Optional("one-way"): bool
+})
+
+
+CONFIG = Schema({
+    "nodes": [NODE],
+    "network": {
+        "rules": [RULE]
+    },
+})
+
+
+Environment = namedtuple("Environment", "nodes, network")
+
+Node = namedtuple("Node", "name, seed")
+
+Network = namedtuple("Network", "rules")
+
+Rule = namedtuple("Rule", "source, target, action")
 
 
 def read_file(config_path):
@@ -31,7 +45,7 @@ def read_file(config_path):
     """
     cfg = _read_yaml(config_path)
     _validate_schema(cfg)
-    return EnvironmentConfig(cfg)
+    return _parse_env_config(cfg)
 
 
 def _read_yaml(path):
@@ -41,40 +55,33 @@ def _read_yaml(path):
 
 def _validate_schema(cfg):
     try:
-        CONFIG_SCHEMA.validate(cfg)
+        CONFIG.validate(cfg)
     except SchemaError as exc:
         log.fatal(exc)
 
 
-class EnvironmentConfig(object):
-    """
-    An object holding the configuration for the environment.
-    """
-
-    def __init__(self, cfg):
-        self.network = NetworkConfig(cfg["network"])
-        self.nodes = [NodeConfig(node_cfg) for node_cfg in cfg["nodes"]]
+def _parse_env_config(cfg):
+    return Environment(
+        nodes=[_parse_node(node) for node in cfg["nodes"]],
+        network=_parse_network(cfg["network"])
+    )
 
 
-class NetworkConfig(object):
-    """
-    An object holding the configuration for the network.
-    """
-    def __init__(self, cfg):
-        self.name = cfg["name"]
-        self.subnet = cfg["subnet"]
-        self.iprange = cfg["iprange"]
-        self.gateway = cfg["gateway"]
+def _parse_node(cfg):
+    return Node(name=cfg["name"], seed=cfg.get("seed", False))
 
-class NodeConfig(object):
-    """
-    An object holding the configuration for the factomd node.
-    """
 
-    def __init__(self, cfg):
-        self.name = cfg["name"]
-        self.identity_chain_id = cfg["identity_chain_id"]
-        self.server_priv_key = cfg["server_priv_key"]
-        self.server_public_key = cfg["server_public_key"]
-        self.seed = cfg.get("seed", False)
-        self.server_port = cfg.get("server_port", 8110)
+def _parse_network(cfg):
+    rules = []
+
+    for rule_cfg in cfg["rules"]:
+        source = rule_cfg.get("source", "*")
+        target = rule_cfg.get("target", "*")
+        action = rule_cfg.get("action", "deny")
+        one_way = rule_cfg.get("one-way", False)
+
+        rules.append(Rule(source, target, action))
+        if not one_way:
+            rules.append(Rule(target, source, action))
+
+    return Network(rules=rules)
