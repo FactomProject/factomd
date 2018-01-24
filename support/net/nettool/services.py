@@ -52,6 +52,15 @@ class Gateway(Container):
         log.section("Gateway")
         self.print_container_info()
 
+    def exec_run(self, cmd):
+        """
+        Execute a custom command on the gateway.
+        """
+        if not self.is_running:
+            return ""
+
+        return self.container.exec_run(cmd).decode("ascii")
+
 
 class SeedServer(Container):
     """
@@ -164,7 +173,7 @@ class Factomd(Container):
         """
         Gets a string for an entry in the seed list for this node.
         """
-        return f"{self.ip_address}:{self.server_port}"
+        return f"{self.ip_address}:8110"
 
     def _create_container(self):
         return self.env.docker.containers.create(

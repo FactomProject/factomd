@@ -115,12 +115,19 @@ class Container(ABC):
             return Status.DELETED
         return Status(self.container.status)
 
+    @property
+    def is_running(self):
+        """
+        Checks if container is currently running.
+        """
+        return self.status == Status.RUNNING
+
     def print_container_info(self):
         """
         Prints the status of the docker container corresponding to this
         instance.
         """
-        if self.status == Status.RUNNING:
+        if self.is_running:
             log.info("Container status:", colored("UP", "green"))
         else:
             log.info("Container status:", colored("DOWN", "red"))
@@ -128,7 +135,6 @@ class Container(ABC):
         log.info("Image tag:", self.IMAGE_TAG)
         log.info("Assigned IP:", self.ip_address)
         self._print_actual_network_info()
-
 
     def up(self, restart=False):
         """
@@ -160,7 +166,6 @@ class Container(ABC):
             if self.status == Status.DEAD:
                 log.fatal("Container", self.instance_name,
                           "is in a dead state")
-
 
     def down(self, destroy=False):
         """
@@ -249,9 +254,9 @@ class Container(ABC):
         )
 
     def _print_actual_network_info(self):
-        if self.status == Status.RUNNING:
+        if self.is_running:
             net_info = self.container.attrs["NetworkSettings"]["Networks"]
             log.info("Networks: ")
             for net_name, net_attrs in net_info.items():
                 net_ip = net_attrs.get("IPAddress")
-                log.info(" -", net_name, "(", net_ip, ")")
+                log.info(" - ", net_name + ":", net_ip)
