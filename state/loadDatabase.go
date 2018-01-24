@@ -79,12 +79,14 @@ func LoadDatabase(s *State) {
 		s.Println("******* New Database **************")
 		s.Println("***********************************\n")
 
-		customIdentity, err := primitives.HexToHash(s.CustomBootstrapIdentity)
-		if err != nil {
-			panic(fmt.Sprintf("Could not decode Custom Bootstrap Identity (likely in config file) found: %s\n", s.CustomBootstrapIdentity))
+		var customIdentity interfaces.IHash
+		if s.Network == "CUSTOM" {
+			customIdentity, err = primitives.HexToHash(s.CustomBootstrapIdentity)
+			if err != nil {
+				panic(fmt.Sprintf("Could not decode Custom Bootstrap Identity (likely in config file) found: %s\n", s.CustomBootstrapIdentity))
+			}
 		}
 		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID(), customIdentity)
-
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 		s.InMsgQueue().Enqueue(msg)
 	}
