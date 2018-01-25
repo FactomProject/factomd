@@ -15,10 +15,10 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 
+	"bufio"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
-	"bufio"
 	"os/exec"
 )
 
@@ -57,7 +57,7 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	}
 
 	// launch debug console if requested
-	if (params.DebugConsole) {
+	if params.DebugConsole {
 		launchDebugServer()
 	}
 
@@ -147,7 +147,7 @@ func launchDebugServer() {
 	os.Stderr.WriteString("This is stderr!\n")
 
 	// Start a listener port to connect to the debug server
-	ln, err := net.Listen("tcp", ":8091");
+	ln, err := net.Listen("tcp", ":8091")
 	if err != nil {
 		panic(err)
 	}
