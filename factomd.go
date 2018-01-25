@@ -9,23 +9,23 @@ import (
 
 	"fmt"
 	. "github.com/FactomProject/factomd/engine"
-	"time"
-	"runtime"
 	log "github.com/sirupsen/logrus"
+	"runtime"
+	"time"
 
 	"bufio"
 	"io"
-	"os/exec"
-	"strings"
-	"strconv"
 	"net"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
 func main() {
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
-	if (params.StdoutLog != "" || params.StderrLog != "") {
+	if params.StdoutLog != "" || params.StderrLog != "" {
 		handleLogfiles(params.StdoutLog, params.StderrLog)
 	}
 
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	// launch debug console if requested
-	if (params.DebugConsole != "") {
+	if params.DebugConsole != "" {
 		launchDebugServer(params.DebugConsole)
 	}
 
@@ -140,7 +140,7 @@ func handleLogfiles(stdoutlog string, stderrlog string) {
 func launchDebugServer(service string) {
 
 	// start a go routine to tee stderr to the debug console
-	stdErrPipe_r, stdErrPipe_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
+	debugConsole_r, debugConsole_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
 
 	go func() {
 
@@ -150,7 +150,19 @@ func launchDebugServer(service string) {
 		defer oldStderr.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
 		defer time.Sleep(100 * time.Millisecond) // let the output all complete
 
-		if _, err := io.Copy(io.MultiWriter(oldStderr, stdErrPipe_w), r); err != nil { // copy till EOF
+		if _, err := io.Copy(io.MultiWriter(oldStderr, debugConsole_w), r); err != nil { // copy till EOF
+			panic(err)
+		}
+	}() // stderr redirect func
+	go func() {
+
+		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
+		oldStdout := os.Stdout
+		os.Stdout = w
+		defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
+		defer time.Sleep(100 * time.Millisecond) // let the output all complete
+
+		if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
 			panic(err)
 		}
 	}() // stderr redirect func
@@ -158,12 +170,12 @@ func launchDebugServer(service string) {
 	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
 
 	host, port := "localhost", "8093" // defaults
-	if (service != "") {
+	if service != "" {
 		parts := strings.Split(service, ":")
-		if (len(parts) == 1) { // No port
+		if len(parts) == 1 { // No port
 			parts = append(parts, port) // use default
 		}
-		if (parts[0] == "") { //no
+		if parts[0] == "" { //no
 			parts[0] = host // use default
 		}
 		host, port = parts[0], parts[1]
@@ -175,7 +187,7 @@ func launchDebugServer(service string) {
 	}
 
 	// Start a listener port to connect to the debug server
-	ln, err := net.Listen("tcp", ":"+port);
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		panic(err)
 	}
@@ -200,7 +212,7 @@ func launchDebugServer(service string) {
 			writer.Flush()
 			// copy stderr to debug console
 			go func() {
-				if _, err := io.Copy(writer, stdErrPipe_r); err != nil { // copy till EOF
+				if _, err := io.Copy(writer, debugConsole_r); err != nil { // copy till EOF
 					fmt.Printf("Error copying stderr to debug consol: %v\n", err)
 				}
 			}()
