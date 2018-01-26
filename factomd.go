@@ -19,6 +19,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func main() {
@@ -87,38 +88,41 @@ func isCompilerVersionOK() bool {
 func handleLogfiles(stdoutlog string, stderrlog string) {
 	var outfile *os.File
 	var err error
+	var wait sync.WaitGroup
+
 	if stdoutlog != "" {
 		// start a go routine to tee stdout to out.txt
 		outfile, err = os.Create(stdoutlog)
 		if err != nil {
 			panic(err)
 		}
-		outfile.WriteString("STDOUT Log\n") // Write any file header you want here e.g. node name and date and ...
 
-		go func() {
+		wait.Add(1)
+		go func(outfile *os.File) {
 			defer outfile.Close()
 			defer os.Stdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
 			defer time.Sleep(100 * time.Millisecond) // Let the output all complete
 			r, w, _ := os.Pipe()                     // Can't use the writer directly as os.Stdout so make a pipe
 			oldStdout := os.Stdout
 			os.Stdout = w
+			wait.Done()
 			// tee stdout to out.txt
 			if _, err := io.Copy(io.MultiWriter(outfile, oldStdout), r); err != nil { // copy till EOF
 				panic(err)
 			}
-		}() // stdout redirect func
+		}(outfile) // stdout redirect func
 	}
 
 	if stderrlog != "" {
 		if stderrlog != stdoutlog {
-			outfile, err = os.Create("./err.txt")
+			outfile, err = os.Create(stderrlog)
 			if err != nil {
 				panic(err)
 			}
 		}
-		outfile.WriteString("STDERR Log\n") // Write any file header you want here e.g. node name and date and ...
 
-		go func() {
+		wait.Add(1)
+		go func(outfile *os.File) {
 			if stderrlog != stdoutlog {
 				defer outfile.Close()
 			}
@@ -128,13 +132,16 @@ func handleLogfiles(stdoutlog string, stderrlog string) {
 			r, w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
 			oldStderr := os.Stderr
 			os.Stderr = w
-
+			wait.Done()
 			if _, err := io.Copy(io.MultiWriter(outfile, oldStderr), r); err != nil { // copy till EOF
 				panic(err)
 			}
-		}() // stderr redirect func
+		}(outfile) // stderr redirect func
 	}
 
+	wait.Wait() // wait for the redirects to be active
+	os.Stdout.WriteString("STDOUT Log\n") // Write any file header you want here e.g. node name and date and ...
+	os.Stderr.WriteString("STDERR Log\n") // Write any file header you want here e.g. node name and date and ...
 }
 
 func launchDebugServer(service string) {
