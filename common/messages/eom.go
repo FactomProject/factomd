@@ -46,6 +46,7 @@ func (a *EOM) IsSameAs(b *EOM) bool {
 	if b == nil {
 		return false
 	}
+
 	if a.Timestamp.GetTimeMilli() != b.Timestamp.GetTimeMilli() {
 		return false
 	}

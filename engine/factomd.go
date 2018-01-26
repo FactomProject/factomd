@@ -12,6 +12,7 @@ import (
 	"github.com/FactomProject/factomd/state"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/globals"
 )
 
 var _ = fmt.Print
@@ -41,7 +42,8 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 
+	globals.NodeName = state0.FactomNodeName // Used to name logfile
+
 	go NetStart(state0, params, listenToStdin)
 	return state0
 }
-

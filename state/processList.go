@@ -1033,6 +1033,10 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.ListAck = append(vm.ListAck, nil)
 	}
 
+	if int(ack.Height) - len(vm.List) > 1{
+		fmt.Println("unexpected nil")
+	}
+
 	delete(p.State.Acks, m.GetMsgHash().Fixed())
 	p.VMs[ack.VMIndex].List[ack.Height] = m
 	p.VMs[ack.VMIndex].ListAck[ack.Height] = ack

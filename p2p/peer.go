@@ -32,7 +32,7 @@ const ( // iota is reset to 0
 	SpecialPeer
 )
 
-func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
+func (p *Peer) Init(address string, port string, quality int32, peerType uint8) *Peer {
 
 	if net.ParseIP(address) == nil {
 		ipAddress, err := net.LookupHost(address)

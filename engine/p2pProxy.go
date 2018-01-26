@@ -18,6 +18,9 @@ import (
 	"github.com/FactomProject/factomd/p2p"
 
 	log "github.com/sirupsen/logrus"
+	"strconv"
+	"github.com/FactomProject/factomd/globals"
+	"github.com/FactomProject/factomd/common/constants"
 )
 
 var _ = fmt.Print
@@ -140,6 +143,8 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	return nil
 }
 
+var myfile *os.File
+
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 	select {
@@ -152,6 +157,31 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				fmessage := data.(FactomMessage)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
+				//TODO: Log here -- clay
+
+				if myfile == nil {
+					name := globals.NodeName +"_broadcast_i" +  ".txt"
+					fmt.Println("Opening " + name)
+					var err error
+					myfile, err = os.Create(name)
+					if err != nil {
+						panic(err)
+					}
+				}
+				if myfile != nil {
+					t, _ := strconv.Atoi(fmessage.AppType)
+					myfile.WriteString(fmt.Sprintf("%20s[%2s]:%v\n", messages.MessageName(byte(t)), fmessage.AppType, fmessage.AppHash))
+					if msg.Type() == constants.MISSING_MSG_RESPONSE {
+						m := msg.(*messages.MissingMsgResponse).MsgResponse
+						myfile.WriteString(fmt.Sprintf("Missing:%20s[%2s]:%v\n", messages.MessageName(m.Type()), m.Type(), m.GetHash()))
+
+					}
+
+				}
+
+
+
+
 
 				if err != nil {
 					proxyLogger.WithField("receive-error", err).Error()

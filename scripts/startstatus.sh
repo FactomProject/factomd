@@ -6,4 +6,4 @@ file=$1
 fi
 
 reset
-tail -f $file | gawk -f scripts/status.awk
+tail -f -n 9999999 $file | gawk -f scripts/status.awk

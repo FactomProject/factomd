@@ -221,10 +221,10 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	peerAddresses := strings.FieldsFunc(peersString, parseFunc)
 	for _, peerAddress := range peerAddresses {
 		address, port, err := net.SplitHostPort(peerAddress)
-		if err != nil{
+		if err != nil {
 			logerror("Controller", "DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
-			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
+			peer := new(Peer).Init(address, port, 0, SpecialPeer)
 			peer.Source["Local-Configuration"] = time.Now()
 			c.DialPeer(*peer, true) // these are persistent connections
 		}
@@ -402,6 +402,7 @@ func (c *Controller) route() {
 		// Empty the recieve channel, stuff the application channel.
 		for 0 < len(connection.ReceiveChannel) { // effectively "While there are messages"
 			message := <-connection.ReceiveChannel
+
 			switch message.(type) {
 			case ConnectionCommand:
 				c.handleConnectionCommand(message.(ConnectionCommand), *connection)
@@ -555,12 +556,11 @@ func (c *Controller) handleCommand(command interface{}) {
 		c.connections[conn.peer.Hash] = conn
 		c.connectionsByAddress[conn.peer.Address] = conn
 	case CommandAddPeer: // parameter is a Connection. This message is sent by the accept loop which is in a different goroutine
-
 		parameters := command.(CommandAddPeer)
 		conn := parameters.conn // net.Conn
 		addPort := strings.Split(conn.RemoteAddr().String(), ":")
 		// Port initially stored will be the connection port (not the listen port), but peer will update it on first message.
-		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer, 0)
+		peer := new(Peer).Init(addPort[0], addPort[1], 0, RegularPeer)
 		peer.Source["Accept()"] = time.Now()
 		connection := new(Connection).InitWithConn(conn, *peer)
 		connection.Start()
@@ -641,7 +641,7 @@ func (c *Controller) managePeers() {
 }
 
 func (c *Controller) updateConnectionCounts() {
-	// If we are low on outgoing onnections, attempt to connect to some more.
+	// If we are low on outgoing connections, attempt to connect to some more.
 	// If the connection is not online, we don't count it as connected.
 	c.numberOutgoingConnections = 0
 	c.numberIncommingConnections = 0

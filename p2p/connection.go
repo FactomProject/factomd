@@ -13,8 +13,11 @@ import (
 	"time"
 
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/common/messages"
 
 	log "github.com/sirupsen/logrus"
+	"strconv"
+	"github.com/FactomProject/factomd/globals"
 )
 
 // conLogger is the general logger for all connection related logs. You can add additional fields,
@@ -22,32 +25,34 @@ import (
 var conLogger = packageLogger.WithFields(log.Fields{"subpack": "connection"})
 
 // Connection represents a single connection to another peer over the network. It communicates with the application
-// via two channels, send and recieve.  These channels take structs of type ConnectionCommand or ConnectionParcel
+// via two channels, send and receive.  These channels take structs of type ConnectionCommand or ConnectionParcel
 // (defined below).
 type Connection struct {
 	conn           net.Conn
 	Errors         chan error              // handle errors from connections.
 	Commands       chan *ConnectionCommand // handle connection commands
 	SendChannel    chan interface{}        // Send means "towards the network" Channel sends Parcels and ConnectionCommands
-	ReceiveChannel chan interface{}        // Recieve means "from the network" Channel recieves Parcels and ConnectionCommands
+	ReceiveChannel chan interface{}        // receive means "from the network" Channel receives Parcels and ConnectionCommands
 	ReceiveParcel  chan *Parcel            // Parcels to be handled.
 	// and as "address" for sending messages to specific nodes.
 	encoder         *gob.Encoder      // Wire format is gobs in this version, may switch to binary
 	decoder         *gob.Decoder      // Wire format is gobs in this version, may switch to binary
 	peer            Peer              // the datastructure representing the peer we are talking to. defined in peer.go
 	attempts        int               // reconnection attempts
-	TimeLastpacket  time.Time         // Time we last successfully recieved a packet or command.
+	TimeLastpacket  time.Time         // Time we last successfully received a packet or command.
 	timeLastAttempt time.Time         // time of last attempt to connect via dial
 	timeLastPing    time.Time         // time of last ping sent
 	timeLastUpdate  time.Time         // time of last peer update sent
 	timeLastStatus  time.Time         // last time we printed our status for debugging.
 	timeLastMetrics time.Time         // last time we updated metrics
 	state           uint8             // Current state of the connection. Private. Only communication
-	isOutGoing      bool              // We keep track of outgoing dial() vs incomming accept() connections
-	isPersistent    bool              // Persistent connections we always redail.
+	isOutGoing      bool              // We keep track of outgoing dial() vs incoming accept() connections
+	isPersistent    bool              // Persistent connections we always redial.
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
 	Logger          *log.Entry
+	infile          *os.File
+	outfile         *os.File
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -62,7 +67,7 @@ const (
 	ConnectionInitialized  uint8 = iota //Structure created, have peer info. Dial command moves us to Online or Shutdown (depending)
 	ConnectionOnline                    // We're connected to the other side.  Normal state
 	ConnectionOffline                   // We've been disconnected for whatever reason.  Attempt to reconnect some number of times. Moves to Online if successful, Shutdown if not.
-	ConnectionShuttingDown              // We're shutting down, the recieves loop exits.
+	ConnectionShuttingDown              // We're shutting down, the receives loop exits.
 	ConnectionClosed                    // We're shut down, the runloop sets this state right before exiting. Controller can clean us up.
 )
 
@@ -96,10 +101,10 @@ func (e *ConnectionParcel) String() string {
 // ConnectionMetrics is used to encapsulate various metrics about the connection.
 type ConnectionMetrics struct {
 	MomentConnected  time.Time // when the connection started.
-	BytesSent        uint32    // Keeping track of the data sent/recieved for console
-	BytesReceived    uint32    // Keeping track of the data sent/recieved for console
-	MessagesSent     uint32    // Keeping track of the data sent/recieved for console
-	MessagesReceived uint32    // Keeping track of the data sent/recieved for console
+	BytesSent        uint32    // Keeping track of the data sent/received for console
+	BytesReceived    uint32    // Keeping track of the data sent/received for console
+	MessagesSent     uint32    // Keeping track of the data sent/received for console
+	MessagesReceived uint32    // Keeping track of the data sent/received for console
 	PeerAddress      string    // Peer IP Address
 	PeerQuality      int32     // Quality of the connection.
 	// Red: Below -50
@@ -130,14 +135,14 @@ func (e *ConnectionCommand) String() string {
 	return str
 }
 
-// These are the commands that connections can send/recieve
+// These are the commands that connections can send/receive
 const (
-	ConnectionIsClosed uint8 = iota // Notifies the controller that we are shut down and can be released
+	ConnectionIsClosed          uint8 = iota // Notifies the controller that we are shut down and can be released
 	ConnectionShutdownNow
 	ConnectionUpdatingPeer
 	ConnectionAdjustPeerQuality
 	ConnectionUpdateMetrics
-	ConnectionGoOffline // Notifies the connection it should go offinline (eg from another goroutine)
+	ConnectionGoOffline          // Notifies the connection it should go offinline (eg from another goroutine)
 )
 
 //////////////////////////////
@@ -359,6 +364,8 @@ func (c *Connection) goOffline() {
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
+	c.infile.Close()
+	c.outfile.Close()
 }
 
 func (c *Connection) goShutdown() {
@@ -394,6 +401,7 @@ func (c *Connection) processSends() {
 			// on a 0 length channel, and this is still possible if use a select and close the channel when we
 			// close the connection.
 			message := <-c.SendChannel
+
 			switch message.(type) {
 			case ConnectionParcel:
 				if nil == c.decoder || nil == c.conn {
@@ -436,7 +444,7 @@ func (c *Connection) handleCommand() {
 				c.goShutdown()
 			}
 		case ConnectionGoOffline:
-			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command recieved", c.peer.PeerIdent())
+			debug(c.peer.PeerIdent(), "handleCommand() disconnecting peer: %s goOffline command received", c.peer.PeerIdent())
 			c.goOffline()
 		default:
 			logfatal(c.peer.PeerIdent(), "handleCommand() unknown command?: %+v ", command)
@@ -458,6 +466,23 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	//c.conn.SetWriteDeadline(deadline)
 	encode := c.encoder
 	err := encode.Encode(parcel)
+
+	if c.outfile == nil {
+		name := globals.NodeName + "_connection_o_" + c.conn.LocalAddr().String() + ".log"
+		fmt.Printf("From %+v to %+v\n", c.conn.LocalAddr(), c.conn.RemoteAddr())
+		fmt.Println("Opening " + name)
+		c.outfile, err = os.Create(name)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if c.outfile != nil {
+		m := parcel
+		t, _ := strconv.Atoi(m.Header.AppType)
+		c.outfile.WriteString(fmt.Sprintf("%20s[%2s]:%v\n", messages.MessageName(byte(t)), m.Header.AppType, m.Header.AppHash))
+	}
+
 	switch {
 	case nil == err:
 		c.metrics.BytesSent += parcel.Header.Length
@@ -545,6 +570,25 @@ func (c *Connection) handleParcel(parcel Parcel) {
 
 	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
+
+	if c.infile == nil {
+		name := globals.NodeName + "_connection_i_" + c.conn.RemoteAddr().String() + ".txt"
+		fmt.Println("Opening " + name)
+		fmt.Printf("From %+v to %+v\n", c.conn.LocalAddr(), c.conn.RemoteAddr())
+		var err error
+		c.infile, err = os.Create(name)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if c.infile != nil {
+		m := parcel
+		t, _ := strconv.Atoi(m.Header.AppType)
+		c.infile.WriteString(fmt.Sprintf("%20s[%2s]:%v\n", messages.MessageName(byte(t)), m.Header.AppType, m.Header.AppHash))
+	}
+
+
+
 	switch validity {
 	case InvalidDisconnectPeer:
 		parcel.Trace("Connection.handleParcel()-InvalidDisconnectPeer", "I")
@@ -580,8 +624,8 @@ func (c *Connection) handleParcel(parcel Parcel) {
 // These constants support the multiple penalties and responses for Parcel validation
 const (
 	ParcelValid           uint8 = iota
-	InvalidPeerDemerit          // The peer sent an invalid message
-	InvalidDisconnectPeer       // Eg they are on the wrong network or wrong version of the software
+	InvalidPeerDemerit     // The peer sent an invalid message
+	InvalidDisconnectPeer  // Eg they are on the wrong network or wrong version of the software
 )
 
 func (c *Connection) parcelValidity(parcel Parcel) uint8 {
