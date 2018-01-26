@@ -63,7 +63,7 @@ type FactomParams struct {
 	StderrLog                string
 }
 
-func (f *FactomParams) Init() { // maybe used by test code
+func (f *FactomParams) Init() {
 	f.AckbalanceHash = true
 	f.EnableNet = true
 	f.WaitEntries = false

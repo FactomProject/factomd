@@ -7,6 +7,7 @@ package engine
 import (
 	"fmt"
 	"runtime"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
@@ -38,12 +39,13 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	log.Printf("Using build: %s\n", Build)
 	log.Printf("Version: %s\n", FactomdVersion)
 
+
 	state0 := new(state.State)
 	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 
 	globals.NodeName = state0.FactomNodeName // Used to name logfile
-
 	go NetStart(state0, params, listenToStdin)
 	return state0
+
 }
