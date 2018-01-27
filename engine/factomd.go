@@ -112,13 +112,11 @@ func launchDebugServer() {
 		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
 		oldStdout := os.Stdout
 		os.Stdout = w
-		for { // for ever ....
-			_, err := io.Copy(io.MultiWriter(outfile, oldStdout), r) // tee stdout to out.txt
-			if err != nil {
-				panic(err)
-			}
+		// tee stdout to out.txt
+		if _, err := io.Copy(io.MultiWriter(outfile, oldStdout), r); err != nil { // copy till EOF
+			panic(err)
 		}
-	}()
+	}() // stdout redirect func
 
 	// start a go routine to tee stderr to err.txt and the debug console
 	stdErrPipe_r, stdErrPipe_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
@@ -136,14 +134,11 @@ func launchDebugServer() {
 		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
 		oldStderr := os.Stderr
 		os.Stderr = w
-		for { // for ever ....
-			_, err := io.Copy(io.MultiWriter(outfile, oldStderr, stdErrPipe_w), r)
-			if err != nil {
-				panic(err)
-			}
 
+		if _, err := io.Copy(io.MultiWriter(outfile, oldStderr, stdErrPipe_w), r); err != nil { // copy till EOF
+			panic(err)
 		}
-	}()
+	}() // stderr redirect func
 
 	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
 
@@ -158,56 +153,63 @@ func launchDebugServer() {
 	}
 	fmt.Printf("Debug Server is ready. ")
 
-	newStdIn_r, newStdIn_w, _ := os.Pipe() // Can't use the reader directly as os.Stdin so make a pipe
+	newStdInR, newStdInW, _ := os.Pipe() // Can't use the reader directly as os.Stdin so make a pipe
 
-	// Accept
+	// Accept connections (one at a time)
 	go func() {
-		connection, err := ln.Accept()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("Debug server accepted a connection.")
-
-		writer := bufio.NewWriter(connection) // if we want to send something back to the telnet
-		reader := bufio.NewReader(connection)
-
-		writer.WriteString("Hello User\n")
-		writer.Flush()
 		for {
+			fmt.Printf("Debug server waiting for connection.") // Does not accept a reconnect not sure why ... revist
+			connection, err := ln.Accept()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("Debug server accepted a connection.")
+
+			writer := bufio.NewWriter(connection) // if we want to send something back to the telnet
+			reader := bufio.NewReader(connection)
+
+			writer.WriteString("Hello from Factom Debug Console\n")
+			writer.Flush()
 			// copy stderr to debug console
 			go func() {
-				_, err := io.Copy(writer, stdErrPipe_r)
-				if err != nil {
+				if _, err := io.Copy(writer, stdErrPipe_r); err != nil { // copy till EOF
 					fmt.Printf("Error copying stderr to debug consol: %v\n", err)
 				}
 			}()
 
 			// copy input from debug console to stdin
-			if false {
-				_, err = io.Copy(newStdIn_w, reader) // not sure why this doesn't work
-				if err != nil {
-					break
+			if false { // not sure why this doesn't work -- revist down the road
+				if _, err = io.Copy(newStdInW, reader); err != nil {
+					panic(err)
 				}
 			} else {
-				buf, err := reader.ReadString('\n')
-				if err != nil {
-					break
+				for { // copy input from debug console to stdin until eof
+
+					if buf, err := reader.ReadString('\n'); err != nil {
+						if err == io.EOF {
+							break
+						} // This connection is closed
+						if err != nil {
+							panic(err)
+						} // This listen has an error
+					} else {
+						newStdInW.WriteString(string(buf))
+					}
 				}
-				newStdIn_w.WriteString(string(buf))
 			}
+			fmt.Printf("Client disconnected.\n")
 		}
-		fmt.Printf("Client disconnected., %v\n", err)
-	}()
+	}() // the accept routine
 
 	cmd := exec.Command("/usr/bin/gnome-terminal", "-x", "telnet", "localhost", "8091")
 	err = cmd.Start()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	fmt.Printf("Debug terminal pid %v\n", cmd.Process.Pid)
 
-	os.Stdin = newStdIn_r              // start using the pipe as input
+	os.Stdin = newStdInR               // start using the pipe as input
 	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
 
 }
