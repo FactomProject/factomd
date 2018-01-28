@@ -18,7 +18,11 @@ func printSummary(summary *int, value int, listenTo *int, wsapiNode *int) {
 	for *summary == value {
 		prt := "===SummaryStart===\n\n"
 		loc := time.Now().Location()
-		prt = fmt.Sprintf("%sTime: %d %s\n", prt, time.Now().Unix(), loc)
+		nettype := ""
+		if len(fnodes) > 1 {
+			nettype = "Network: " + networkpattern
+		}
+		prt = fmt.Sprintf("%sTime: %d %s %s\n", prt, time.Now().Unix(), loc, nettype)
 
 		for i, f := range fnodes {
 			f.Index = i

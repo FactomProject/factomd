@@ -143,7 +143,7 @@ func (m *LeaderAck) FollowerExecute(is interfaces.IState) {
 	eom := messages.General.CreateMsg(constants.EOM_MSG)
 	eom, _ = s.CreateEOM(false, eom, m.VMIndex)
 
-	va := new(VolunteerAudit)
+	va := new(FedVoteMsg)
 	va.VMIndex = m.VMIndex
 	va.TS = primitives.NewTimestampNow()
 	va.Name = m.Name

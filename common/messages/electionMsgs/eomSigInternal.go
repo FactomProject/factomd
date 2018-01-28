@@ -7,6 +7,8 @@ package electionMsgs
 import (
 	"fmt"
 
+	"time"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -14,7 +16,6 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 //General acknowledge message
@@ -43,7 +44,7 @@ func Title() string {
 
 func Fault(e *elections.Elections, dbheight int, minute int, round int) {
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(e.Timeout)
 	timeout := new(TimeoutInternal)
 	timeout.Minute = minute
 	timeout.DBHeight = dbheight

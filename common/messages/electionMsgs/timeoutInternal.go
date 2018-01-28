@@ -14,6 +14,7 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 var _ = state.MakeMap
@@ -73,7 +74,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	e.Round[e.Electing]++
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
-	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
+	go NewRound(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
 
 	// Can we see a majority of the federated servers?
 	if cnt >= (len(e.Federated)+1)/2 {
@@ -210,4 +211,19 @@ func (m *TimeoutInternal) String() string {
 
 func (a *TimeoutInternal) IsSameAs(b *TimeoutInternal) bool {
 	return true
+}
+
+func newRound(e *elections.Elections, dbheight int, minute int, round int) {
+
+	time.Sleep(e.Timeout)
+	if e.DBHeight > dbheight || e.Minute > minute {
+		return
+	}
+
+	timeout := new(TimeoutInternal)
+	timeout.Minute = minute
+	timeout.DBHeight = dbheight
+	timeout.Round = round
+	e.Input.Enqueue(timeout)
+
 }

@@ -41,6 +41,7 @@ type FactomNode struct {
 }
 
 var fnodes []*FactomNode
+var networkpattern string
 var mLog = new(MsgLog)
 var p2pProxy *P2PProxy
 var p2pNetwork *p2p.Controller
@@ -366,6 +367,8 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 		go networkHousekeeping() // This goroutine executes once a second to keep the proxy apprised of the network status.
 	}
+
+	networkpattern = p.Net
 
 	switch p.Net {
 	case "file":

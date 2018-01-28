@@ -2,9 +2,10 @@ package elections
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/state"
-	"time"
 )
 
 var _ = fmt.Print
@@ -13,7 +14,7 @@ var _ = time.Tick
 type Elections struct {
 	FedID     interfaces.IHash
 	Name      string
-	Sync      []bool
+	Sync      []bool // List of servers that have Synced
 	Federated []interfaces.IServer
 	Audit     []interfaces.IServer
 	FPriority []interfaces.IHash
@@ -30,8 +31,12 @@ type Elections struct {
 	Msg       interfaces.IMsg
 	Ack       interfaces.IMsg
 
-	Sigs [][]interfaces.IHash // Signatures from the Federated Servers for a given round.
+	IKill     bool                 // This server has killed the round
+	ISync     bool                 // This server has synced; Can't kill and Sync both
+	Sigs      [][]interfaces.IHash // Signatures from the Federated Servers for a given round.
+	KillRound [][]interfaces.IHash // Signatures from the Federated Servers to kill a given round.
 
+	Timeout time.Duration
 }
 
 // Add the given sig list to the list of signatures for the given round.
@@ -129,6 +134,10 @@ func Run(s *state.State) {
 	e.Name = s.FactomNodeName
 	e.Input = s.ElectionsQueue()
 	e.Output = s.InMsgQueue()
+
+	e.Timeout = 10 * time.Second
+
+	// Actually run the elections
 	for {
 		msg := e.Input.BlockingDequeue().(interfaces.IElectionMsg)
 		msg.ElectionProcess(s, e)

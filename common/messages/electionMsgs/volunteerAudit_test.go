@@ -26,7 +26,7 @@ func TestUnmarshalfolunteerAudit_test(t *testing.T) {
 	messages.General = new(msgsupport.GeneralFactory)
 	primitives.General = messages.General
 
-	a := new(VolunteerAudit)
+	a := new(FedVoteMsg)
 	err := a.UnmarshalBinary(nil)
 	if err == nil {
 		t.Error("Error is nil when it shouldn't be")
@@ -39,7 +39,7 @@ func TestUnmarshalfolunteerAudit_test(t *testing.T) {
 }
 
 func TestMarshalUnmarshalAck(t *testing.T) {
-	test := func(va *VolunteerAudit, num string) {
+	test := func(va *FedVoteMsg, num string) {
 		_, err := va.JSONString()
 		if err != nil {
 			t.Error(err)
@@ -67,7 +67,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 		}
 	}
 
-	va := new(VolunteerAudit)
+	va := new(FedVoteMsg)
 	va.Minute = 5
 	va.Name = "bob"
 	va.DBHeight = 10

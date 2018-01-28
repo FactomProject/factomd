@@ -19,7 +19,9 @@ import (
 
 var _ = fmt.Print
 
-//General acknowledge message
+// SyncMsg
+// If we have timed out on a message, then we sync with the other leaders on 1) the Federated Server that we
+// need to replace, and 2) the audit server that we will replace it with.
 type SyncMsg struct {
 	msgbase.MessageBase
 	TS   interfaces.Timestamp // Message Timestamp
@@ -90,7 +92,7 @@ func (m *SyncMsg) GetServerID() interfaces.IHash {
 }
 
 func (m *SyncMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "VolunteerAudit", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
+	return log.Fields{"category": "message", "messagetype": "FedVoteMsg", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
 func (m *SyncMsg) GetRepeatHash() interfaces.IHash {
@@ -122,6 +124,7 @@ func (m *SyncMsg) Type() byte {
 }
 
 func (m *SyncMsg) Validate(state interfaces.IState) int {
+	//TODO: Must be validated
 	return 1
 }
 
@@ -146,7 +149,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
-	va := new(VolunteerAudit)
+	va := new(FedVoteMsg)
 	va.Missing = eom
 	va.Ack = ack
 

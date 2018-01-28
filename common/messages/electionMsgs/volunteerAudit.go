@@ -21,40 +21,41 @@ import (
 
 var _ = fmt.Print
 
-//General acknowledge message
-type VolunteerAudit struct {
+// FedVoteMsg
+// We vote on the Audit Server to replace a Federated Server that fails
+// We vote to move to the next round, if the audit server fails.
+// Could make these two messages, but for now we will do it in one.
+type FedVoteMsg struct {
 	msgbase.MessageBase
-	TS   interfaces.Timestamp // Message Timestamp
-	EOM  bool                 // True if an EOM, false if a DBSig
-	Name string               // Server name
-
-	// Server that is faulting
-	FedIdx uint32           // Server faulting
-	FedID  interfaces.IHash // Server faulting
-
-	// Audit server to replace faulting server
+	TS       interfaces.Timestamp // Message Timestamp
+	Type     byte                 // Can be either a Volunteer from an Audit Server, or End of round
+	DBHeight uint32               // Directory Block Height that owns this ack
+	Minute   byte                 // Minute (-1 for dbsig)
+	Round    int                  // Voting Round
+	Sigs     []interfaces.IHash   // Federated Server signatures.
+	// End of Round Fields
+	NewRound int // The new Round of elections (requires a majority)
+	// Volunteer fields
+	EOM        bool             // True if an EOM, false if a DBSig
+	Name       string           // Server name
+	FedIdx     uint32           // Server faulting
+	FedID      interfaces.IHash // Server faulting
 	ServerIdx  uint32           // Index of Server replacing
 	ServerID   interfaces.IHash // Volunteer Server ChainID
 	ServerName string           // Volunteer Name
-
-	Weight   interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
-	DBHeight uint32           // Directory Block Height that owns this ack
-	Minute   byte             // Minute (-1 for dbsig)
-	Round    int              // Voting Round
-	Missing  interfaces.IMsg  // The Missing DBSig or EOM
-	Ack      interfaces.IMsg  // The acknowledgement for the missing message
-
-	Sigs []interfaces.IHash // Federated Server signatures.
+	Weight     interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
+	Missing    interfaces.IMsg  // The Missing DBSig or EOM
+	Ack        interfaces.IMsg  // The acknowledgement for the missing message
 
 	messageHash interfaces.IHash
 }
 
-func delayVol(is interfaces.IState, e *elections.Elections, m *VolunteerAudit) {
+func delayVol(is interfaces.IState, e *elections.Elections, m *FedVoteMsg) {
 	time.Sleep(100 * time.Millisecond)
 	is.ElectionsQueue().Enqueue(m)
 }
 
-func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
+func (m *FedVoteMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
 	//s := is.(*state.State)
 	e := elect.(*elections.Elections)
 
@@ -87,10 +88,10 @@ func (m *VolunteerAudit) ElectionProcess(is interfaces.IState, elect interfaces.
 	e.VName = m.ServerName
 }
 
-var _ interfaces.IMsg = (*VolunteerAudit)(nil)
+var _ interfaces.IMsg = (*FedVoteMsg)(nil)
 
-func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
-	b, ok := msg.(*VolunteerAudit)
+func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
+	b, ok := msg.(*FedVoteMsg)
 	if !ok {
 		return false
 	}
@@ -132,29 +133,29 @@ func (a *VolunteerAudit) IsSameAs(msg interfaces.IMsg) bool {
 	return true
 }
 
-func (m *VolunteerAudit) GetServerID() interfaces.IHash {
+func (m *FedVoteMsg) GetServerID() interfaces.IHash {
 	return m.ServerID
 }
 
-func (m *VolunteerAudit) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "VolunteerAudit", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
+func (m *FedVoteMsg) LogFields() log.Fields {
+	return log.Fields{"category": "message", "messagetype": "FedVoteMsg", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
 }
 
-func (m *VolunteerAudit) GetRepeatHash() interfaces.IHash {
+func (m *FedVoteMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
 // We have to return the haswh of the underlying message.
 
-func (m *VolunteerAudit) GetHash() interfaces.IHash {
+func (m *FedVoteMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-func (m *VolunteerAudit) GetTimestamp() interfaces.Timestamp {
+func (m *FedVoteMsg) GetTimestamp() interfaces.Timestamp {
 	return m.TS
 }
 
-func (m *VolunteerAudit) GetMsgHash() interfaces.IHash {
+func (m *FedVoteMsg) GetMsgHash() interfaces.IHash {
 	if m.MsgHash == nil {
 		data, err := m.MarshalBinary()
 		if err != nil {
@@ -165,43 +166,43 @@ func (m *VolunteerAudit) GetMsgHash() interfaces.IHash {
 	return m.MsgHash
 }
 
-func (m *VolunteerAudit) Type() byte {
+func (m *FedVoteMsg) Type() byte {
 	return constants.VOLUNTEERAUDIT
 }
 
-func (m *VolunteerAudit) Validate(state interfaces.IState) int {
+func (m *FedVoteMsg) Validate(state interfaces.IState) int {
 	return 1
 }
 
 // Returns true if this is a message for this server to execute as
 // a leader.
-func (m *VolunteerAudit) ComputeVMIndex(state interfaces.IState) {
+func (m *FedVoteMsg) ComputeVMIndex(state interfaces.IState) {
 }
 
 // Execute the leader functions of the given message
 // Leader, follower, do the same thing.
-func (m *VolunteerAudit) LeaderExecute(state interfaces.IState) {
+func (m *FedVoteMsg) LeaderExecute(state interfaces.IState) {
 	m.FollowerExecute(state)
 }
 
-func (m *VolunteerAudit) FollowerExecute(state interfaces.IState) {
+func (m *FedVoteMsg) FollowerExecute(state interfaces.IState) {
 	state.ElectionsQueue().Enqueue(m)
 }
 
 // Acknowledgements do not go into the process list.
-func (e *VolunteerAudit) Process(dbheight uint32, state interfaces.IState) bool {
+func (e *FedVoteMsg) Process(dbheight uint32, state interfaces.IState) bool {
 	panic("Ack object should never have its Process() method called")
 }
 
-func (e *VolunteerAudit) JSONByte() ([]byte, error) {
+func (e *FedVoteMsg) JSONByte() ([]byte, error) {
 	return primitives.EncodeJSON(e)
 }
 
-func (e *VolunteerAudit) JSONString() (string, error) {
+func (e *FedVoteMsg) JSONString() (string, error) {
 	return primitives.EncodeJSONString(e)
 }
 
-func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
+func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
@@ -261,12 +262,12 @@ func (m *VolunteerAudit) UnmarshalBinaryData(data []byte) (newData []byte, err e
 	return
 }
 
-func (m *VolunteerAudit) UnmarshalBinary(data []byte) error {
+func (m *FedVoteMsg) UnmarshalBinary(data []byte) error {
 	_, err := m.UnmarshalBinaryData(data)
 	return err
 }
 
-func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
+func (m *FedVoteMsg) MarshalBinary() (data []byte, err error) {
 	var buf primitives.Buffer
 
 	if err = buf.PushByte(constants.VOLUNTEERAUDIT); err != nil {
@@ -321,7 +322,7 @@ func (m *VolunteerAudit) MarshalBinary() (data []byte, err error) {
 	return data, nil
 }
 
-func (m *VolunteerAudit) String() string {
+func (m *FedVoteMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
