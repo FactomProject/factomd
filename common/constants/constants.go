@@ -10,7 +10,7 @@ import (
 
 // Messages
 const (
-	notused byte = iota
+	INVALID_MSG byte = iota
 	EOM_MSG
 	ACK_MSG
 	FED_SERVER_FAULT_MSG
@@ -54,7 +54,6 @@ const (
 
 	VOLUNTEERAUDIT
 	SYNC_MSG
-	LEADER_ACK_VOLUNTEER
 
 	NUM_MESSAGES // Not used, just a counter for the number of messages.
 )

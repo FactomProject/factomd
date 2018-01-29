@@ -12,11 +12,9 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/goleveldb/leveldb/errors"
 	log "github.com/sirupsen/logrus"
 	//"github.com/FactomProject/factomd/state"
-	"time"
 )
 
 var _ = fmt.Print
@@ -33,62 +31,13 @@ type FedVoteMsg struct {
 	Minute   byte                 // Minute (-1 for dbsig)
 	Round    int                  // Voting Round
 	Sigs     []interfaces.IHash   // Federated Server signatures.
-	// End of Round Fields
-	NewRound int // The new Round of elections (requires a majority)
-	// Volunteer fields
-	EOM        bool             // True if an EOM, false if a DBSig
-	Name       string           // Server name
-	FedIdx     uint32           // Server faulting
-	FedID      interfaces.IHash // Server faulting
-	ServerIdx  uint32           // Index of Server replacing
-	ServerID   interfaces.IHash // Volunteer Server ChainID
-	ServerName string           // Volunteer Name
-	Weight     interfaces.IHash // Computed Weight at this DBHeight, Minute, Round
-	Missing    interfaces.IMsg  // The Missing DBSig or EOM
-	Ack        interfaces.IMsg  // The acknowledgement for the missing message
-
-	messageHash interfaces.IHash
-}
-
-func delayVol(is interfaces.IState, e *elections.Elections, m *FedVoteMsg) {
-	time.Sleep(100 * time.Millisecond)
-	is.ElectionsQueue().Enqueue(m)
 }
 
 func (m *FedVoteMsg) ElectionProcess(is interfaces.IState, elect interfaces.IElections) {
-	//s := is.(*state.State)
-	e := elect.(*elections.Elections)
-
-	if e.DBHeight > int(m.DBHeight) || e.Minute > int(m.Minute) {
-		return
-	}
-
-	// If we don't have a timeout ourselves, then wait on this for a bit and try again.
-	if e.Electing < 0 {
-		go delayVol(is, e, m)
-		return
-	}
-
-	idx := e.LeaderIndex(is.GetIdentityChainID())
-	aidx := e.AuditIndex(is.GetIdentityChainID())
-
-	//if m.DBHeight < uint32(e.DBHeight) || m.Minute < byte(e.Minute) || m.Round < e.Round[m.ServerIdx] {
-	//	return
-	//}
-	auditIdx := e.AuditPriority()
-	if aidx >= 0 && auditIdx == aidx {
-		e.FeedBackStr(fmt.Sprintf("V%d", m.ServerIdx), false, aidx)
-	} else if idx >= 0 {
-		e.FeedBackStr(fmt.Sprintf("V%d", m.ServerIdx), true, idx)
-	} else if aidx >= 0 {
-		e.FeedBackStr(fmt.Sprintf("*%d", m.ServerIdx), false, aidx)
-	}
-	e.Msg = m.Missing
-	e.Ack = m.Ack
-	e.VName = m.ServerName
 }
 
 var _ interfaces.IMsg = (*FedVoteMsg)(nil)
+var _ interfaces.IElectionMsg = (*FedVoteMsg)(nil)
 
 func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
 	b, ok := msg.(*FedVoteMsg)
@@ -96,21 +45,6 @@ func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
 		return false
 	}
 	if a.TS.GetTimeMilli() != b.TS.GetTimeMilli() {
-		return false
-	}
-	if a.Name != b.Name {
-		return false
-	}
-	if a.EOM != b.EOM {
-		return false
-	}
-	if a.ServerIdx != b.ServerIdx {
-		return false
-	}
-	if a.ServerID.Fixed() != b.ServerID.Fixed() {
-		return false
-	}
-	if a.Weight.Fixed() != b.Weight.Fixed() {
 		return false
 	}
 	if a.DBHeight != b.DBHeight {
@@ -133,26 +67,24 @@ func (a *FedVoteMsg) IsSameAs(msg interfaces.IMsg) bool {
 	return true
 }
 
-func (m *FedVoteMsg) GetServerID() interfaces.IHash {
-	return m.ServerID
+//func (m *FedVoteMsg) GetServerID() interfaces.IHash {
+//	return nil
+//}
+
+func (m *FedVoteMsg) GetTimestamp() interfaces.Timestamp {
+	return m.TS
 }
 
 func (m *FedVoteMsg) LogFields() log.Fields {
-	return log.Fields{"category": "message", "messagetype": "FedVoteMsg", "dbheight": m.DBHeight, "newleader": m.ServerID.String()[4:12]}
+	return log.Fields{"category": "message", "messagetype": "FedVoteMsg", "dbheight": m.DBHeight}
 }
 
 func (m *FedVoteMsg) GetRepeatHash() interfaces.IHash {
 	return m.GetMsgHash()
 }
 
-// We have to return the haswh of the underlying message.
-
 func (m *FedVoteMsg) GetHash() interfaces.IHash {
 	return m.GetMsgHash()
-}
-
-func (m *FedVoteMsg) GetTimestamp() interfaces.Timestamp {
-	return m.TS
 }
 
 func (m *FedVoteMsg) GetMsgHash() interfaces.IHash {
@@ -167,7 +99,7 @@ func (m *FedVoteMsg) GetMsgHash() interfaces.IHash {
 }
 
 func (m *FedVoteMsg) Type() byte {
-	return constants.VOLUNTEERAUDIT
+	return constants.INVALID_MSG
 }
 
 func (m *FedVoteMsg) Validate(state interfaces.IState) int {
@@ -216,30 +148,6 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 	if m.TS, err = buf.PopTimestamp(); err != nil {
 		return nil, err
 	}
-	if m.Name, err = buf.PopString(); err != nil {
-		return nil, err
-	}
-	if m.EOM, err = buf.PopBool(); err != nil {
-		return nil, err
-	}
-	if m.ServerIdx, err = buf.PopUInt32(); err != nil {
-		return nil, err
-	}
-	if m.ServerID, err = buf.PopIHash(); err != nil {
-		return nil, err
-	}
-	if m.ServerName, err = buf.PopString(); err != nil {
-		return nil, err
-	}
-	if m.FedIdx, err = buf.PopUInt32(); err != nil {
-		return nil, err
-	}
-	if m.FedID, err = buf.PopIHash(); err != nil {
-		return nil, err
-	}
-	if m.Weight, err = buf.PopIHash(); err != nil {
-		return nil, err
-	}
 	if m.DBHeight, err = buf.PopUInt32(); err != nil {
 		return nil, err
 	}
@@ -250,12 +158,6 @@ func (m *FedVoteMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error
 		return nil, err
 	}
 	if m.Minute, err = buf.PopByte(); err != nil {
-		return nil, err
-	}
-	if m.Ack, err = buf.PopMsg(); err != nil {
-		return nil, err
-	}
-	if m.Missing, err = buf.PopMsg(); err != nil {
 		return nil, err
 	}
 	newData, err = buf.PopBytes()
@@ -276,30 +178,6 @@ func (m *FedVoteMsg) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushTimestamp(m.TS); e != nil {
 		return nil, e
 	}
-	if e := buf.PushString(m.Name); e != nil {
-		return nil, e
-	}
-	if e := buf.PushBool(m.EOM); e != nil {
-		return nil, e
-	}
-	if e := buf.PushUInt32(m.ServerIdx); e != nil {
-		return nil, e
-	}
-	if e := buf.PushIHash(m.ServerID); e != nil {
-		return nil, e
-	}
-	if e := buf.PushString(m.ServerName); e != nil {
-		return nil, e
-	}
-	if e := buf.PushUInt32(m.FedIdx); e != nil {
-		return nil, e
-	}
-	if e := buf.PushIHash(m.FedID); e != nil {
-		return nil, e
-	}
-	if e := buf.PushIHash(m.Weight); e != nil {
-		return nil, e
-	}
 	if e := buf.PushUInt32(m.DBHeight); e != nil {
 		return nil, e
 	}
@@ -312,12 +190,6 @@ func (m *FedVoteMsg) MarshalBinary() (data []byte, err error) {
 	if e := buf.PushByte(m.Minute); e != nil {
 		return nil, e
 	}
-	if e := buf.PushMsg(m.Ack); e != nil {
-		return nil, e
-	}
-	if e := buf.PushMsg(m.Missing); e != nil {
-		return nil, e
-	}
 	data = buf.DeepCopyBytes()
 	return data, nil
 }
@@ -326,15 +198,5 @@ func (m *FedVoteMsg) String() string {
 	if m.LeaderChainID == nil {
 		m.LeaderChainID = primitives.NewZeroHash()
 	}
-	return fmt.Sprintf("%19s %20s %20s ID: %x WT: %x serverIdx: %d vmIdx: %d round: %d dbheight: %d minute: %d ",
-		m.Name,
-		"Volunteer Audit",
-		m.TS.String(),
-		m.ServerID.Bytes()[2:5],
-		m.Weight.Bytes()[2:5],
-		m.ServerIdx,
-		m.VMIndex,
-		m.Round,
-		m.DBHeight,
-		m.Minute)
+	return ""
 }

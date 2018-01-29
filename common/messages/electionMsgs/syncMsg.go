@@ -149,7 +149,7 @@ func (m *SyncMsg) FollowerExecute(is interfaces.IState) {
 		is.(*state.State).Holding[m.GetMsgHash().Fixed()] = m
 		return
 	}
-	va := new(FedVoteMsg)
+	va := new(FedVoteVolunteerMsg)
 	va.Missing = eom
 	va.Ack = ack
 
@@ -187,7 +187,6 @@ func (e *SyncMsg) JSONString() (string, error) {
 
 func (m *SyncMsg) UnmarshalBinaryData(data []byte) (newData []byte, err error) {
 	defer func() {
-		return
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error unmarshalling: %v", r)
 		}
