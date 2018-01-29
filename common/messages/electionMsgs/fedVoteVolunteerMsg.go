@@ -25,7 +25,7 @@ var _ = fmt.Print
 // We vote to move to the next round, if the audit server fails.
 // Could make these two messages, but for now we will do it in one.
 type FedVoteVolunteerMsg struct {
-	*FedVoteMsg
+	FedVoteMsg
 	// Volunteer fields
 	EOM        bool             // True if an EOM, false if a DBSig
 	Name       string           // Server name
@@ -89,7 +89,7 @@ func (a *FedVoteVolunteerMsg) IsSameAs(msg interfaces.IMsg) bool {
 	if !ok {
 		return false
 	}
-	if !a.FedVoteMsg.IsSameAs(b.FedVoteMsg) {
+	if !a.FedVoteMsg.IsSameAs(&b.FedVoteMsg) {
 		return false
 	}
 

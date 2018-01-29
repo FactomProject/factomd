@@ -7,8 +7,6 @@ package electionMsgs_test
 import (
 	"testing"
 
-	"fmt"
-
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/messages"
 	. "github.com/FactomProject/factomd/common/messages/electionMsgs"
@@ -39,7 +37,7 @@ func TestUnmarshalfolunteerAudit_test(t *testing.T) {
 }
 
 func TestMarshalUnmarshalAck(t *testing.T) {
-	test := func(va *FedVoteMsg, num string) {
+	test := func(va *FedVoteVolunteerMsg, num string) {
 		_, err := va.JSONString()
 		if err != nil {
 			t.Error(err)
@@ -67,7 +65,7 @@ func TestMarshalUnmarshalAck(t *testing.T) {
 		}
 	}
 
-	va := new(FedVoteMsg)
+	va := new(FedVoteVolunteerMsg)
 	va.Minute = 5
 	va.Name = "bob"
 	va.DBHeight = 10
