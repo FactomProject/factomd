@@ -33,6 +33,17 @@ func Peers(fnode *FactomNode) {
 		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
 		if saltReplayFilterOn {
 			switch amsg.Type() {
+			case constants.MISSING_MSG_RESPONSE:
+				mmrsp := amsg.(*messages.MissingMsgResponse)
+				if mmrsp.Ack == nil {
+					return false
+				}
+				ack := mmrsp.Ack.(*messages.Ack)
+				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
+				if replaySalt {
+					fmt.Println("Found a replay")
+				}
+				return replaySalt // true means replay and ignore
 			case constants.ACK_MSG:
 				ack := amsg.(*messages.Ack)
 				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
@@ -198,6 +209,7 @@ func Peers(fnode *FactomNode) {
 					// Ignore messages if there are too many.
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						if !crossBootIgnore(msg) {
+							fmt.Println("InMsg <-:", msg.String())
 							fnode.State.InMsgQueue().Enqueue(msg)
 						}
 					}
