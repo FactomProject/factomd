@@ -28,7 +28,7 @@ var _ = fmt.Print
 type FedVoteMsg struct {
 	msgbase.MessageBase
 	TS       interfaces.Timestamp // Message Timestamp
-	Type     byte                 // Can be either a Volunteer from an Audit Server, or End of round
+	TypeMsg  byte                 // Can be either a Volunteer from an Audit Server, or End of round
 	DBHeight uint32               // Directory Block Height that owns this ack
 	Minute   byte                 // Minute (-1 for dbsig)
 	Round    int                  // Voting Round

@@ -7,6 +7,8 @@ package electionMsgs
 import (
 	"fmt"
 
+	"time"
+
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages/msgbase"
@@ -14,7 +16,6 @@ import (
 	"github.com/FactomProject/factomd/elections"
 	"github.com/FactomProject/factomd/state"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 var _ = state.MakeMap
@@ -74,7 +75,7 @@ func (m *TimeoutInternal) ElectionProcess(is interfaces.IState, elect interfaces
 	e.Round[e.Electing]++
 
 	// If we don't have all our sync messages, we will have to come back around and see if all is well.
-	go NewRound(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
+	go Fault(e, int(m.DBHeight), int(m.Minute), e.Round[e.Electing])
 
 	// Can we see a majority of the federated servers?
 	if cnt >= (len(e.Federated)+1)/2 {
