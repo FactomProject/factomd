@@ -909,7 +909,6 @@ func (s *State) FollowerExecuteCommitEntry(m interfaces.IMsg) {
 	}
 }
 
-//noinspection ALL
 func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 	FollowerExecutions.Inc()
 	TotalHoldingQueueInputs.Inc()
