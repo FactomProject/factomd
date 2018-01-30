@@ -79,8 +79,12 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
+
+	// ackloop in stateConsensus.go only checks for a 1 return so the 0 return in an unhandled case -- clay
+
 	// If too old, it isn't valid.
-	if m.DBHeight <= state.GetHighestSavedBlk() {
+	h:=state.GetHighestSavedBlk()
+	if m.DBHeight <= h && h > 1 {
 		return -1
 	}
 

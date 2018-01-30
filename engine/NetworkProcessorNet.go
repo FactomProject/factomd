@@ -14,6 +14,9 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
+	"github.com/FactomProject/factomd/globals"
+	"os"
+	"github.com/FactomProject/factomd/traceMessages"
 )
 
 var _ = log.Printf
@@ -24,6 +27,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 	go NetworkOutputs(fnode)
 	go InvalidOutputs(fnode)
 }
+
+var myfile2 *os.File
 
 func Peers(fnode *FactomNode) {
 	cnt := 0
@@ -45,9 +50,9 @@ func Peers(fnode *FactomNode) {
 		return false
 	}
 
-	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
+	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
 	ackHeight := uint32(0)
-	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
+	// When syncing from disk/network we want to selectively ignore certain msgs to allow
 	// factom to focus on syncing. The following msgs will be ignored:
 	//		Acks:
 	//				Ignore acks below the ackheight, which is set if we get an ack at a height higher than
@@ -64,7 +69,7 @@ func Peers(fnode *FactomNode) {
 	//				Only helpful at the latest height
 	//
 	//		MissingData:
-	//				We should fufill some of these requests, but we should also focus on ourselves while we are syncing.
+	//				We should fulfill some of these requests, but we should also focus on ourselves while we are syncing.
 	//				If our inmsg queue has too many msgs, then don't help others.
 	ignoreMsg := func(amsg interfaces.IMsg) bool {
 		// Stop uint32 underflow
@@ -185,7 +190,7 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
-					//	fnode.State.Println("In Comming!! ",msg)
+					//	fnode.State.Println("In Coming!! ",msg)
 					//}
 					in := "PeerIn"
 					if msg.IsPeer2Peer() {
@@ -195,11 +200,26 @@ func Peers(fnode *FactomNode) {
 
 					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
+					//TODO: Log here -- clay
+					logName := globals.NodeName + "_InMsgQueue_i.txt"
+					traceMessages.LogMessage(logName, "", msg)
+
+					ignore := ignoreMsg(msg)
+					if ignore {
+						traceMessages.LogMessage(logName, "ignore", msg)
+					}
+					if !(fnode.State.InMsgQueue().Length() < 9000) {
+						traceMessages.LogMessage(logName, "drop", msg)
+					}
+					if crossBootIgnore(msg) {
+						traceMessages.LogMessage(logName, "crossBootIgnore", msg)
+					}
+
 					// Ignore messages if there are too many.
-					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
-						if !crossBootIgnore(msg) {
-							fnode.State.InMsgQueue().Enqueue(msg)
-						}
+					if fnode.State.InMsgQueue().Length() < 9000 && !ignore && !crossBootIgnore(msg) {
+						//TODO: Log here -- clay
+						traceMessages.LogMessage(logName, "enqueue", msg)
+						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				} else {
 					RepeatMsgs.Inc()

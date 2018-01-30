@@ -20,6 +20,8 @@ import (
 	"github.com/FactomProject/factomd/util"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/FactomProject/factomd/globals"
+	"github.com/FactomProject/factomd/traceMessages"
 )
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
@@ -35,11 +37,22 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
+
+
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
+
+	var debugExec bool = (globals.NodeName == "xFNode0")
+
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
 	if !ok {
 		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
+
+		if debugExec {
+			logName := globals.NodeName + "_executeMsg" + ".txt"
+			traceMessages.LogMessage(logName, "replayInvalid", msg)
+		}
+
 		return
 	}
 	s.SetString()
@@ -48,6 +61,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	if s.IgnoreMissing {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
+			if debugExec {
+				logName := globals.NodeName + "_executeMsg" + ".txt"
+				traceMessages.LogMessage(logName, "ignoreMissing", msg)
+			}
 			return
 		}
 	}
@@ -60,6 +77,10 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			if len(vm.List) == 0 {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
+				if debugExec {
+					logName := globals.NodeName + "_executeMsg" + ".txt"
+					traceMessages.LogMessage(logName, "XReview", msg)
+				}
 				s.XReview = append(s.XReview, msg)
 			}
 
@@ -67,12 +88,24 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-				msg.LeaderExecute(s)
+				logName := globals.NodeName + "_executeMsg" + ".txt"
+				if debugExec {
+					traceMessages.LogMessage(logName, "LeaderExecute", msg)
+					msg.LeaderExecute(s)
+				}
 			} else {
+				if debugExec {
+					logName := globals.NodeName + "_executeMsg" + ".txt"
+					traceMessages.LogMessage(logName, "FollowerExecute1", msg)
+				}
 				msg.FollowerExecute(s)
 			}
 
 		} else {
+			if debugExec {
+				logName := globals.NodeName + "_executeMsg" + ".txt"
+				traceMessages.LogMessage(logName, "FollowerExecute2", msg)
+			}
 			msg.FollowerExecute(s)
 		}
 		ret = true
@@ -80,13 +113,27 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 	case 0:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
+		if debugExec {
+			logName := globals.NodeName + "_executeMsg" + ".txt"
+			traceMessages.LogMessage(logName, "Holding1", msg)
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 	default:
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
+		if debugExec {
+			logName := globals.NodeName + "_executeMsg" + ".txt"
+			traceMessages.LogMessage(logName, "Holding2", msg)
+		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
+
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
+			if debugExec {
+				logName := globals.NodeName + "_executeMsg" + ".txt"
+				traceMessages.LogMessage(logName, "InvalidMsg", msg)
+			}
 			s.networkInvalidMsgQueue <- msg
 		}
 	}
@@ -170,16 +217,23 @@ ackLoop:
 	for room() {
 		select {
 		case ack := <-s.ackQueue:
+			logName := globals.NodeName + "_ackQueue_o" + ".txt"
+			traceMessages.LogMessage(logName, "",ack)
+
 			a := ack.(*messages.Ack)
-			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
+			if  ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
 						s.executeMsg(vm, ack)
+					} else {
+						traceMessages.LogMessage(logName, "Drop1",ack)
 					}
 				} else {
 					s.executeMsg(vm, ack)
 				}
+			} else {
+				traceMessages.LogMessage(logName, "Drop2",ack) // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
@@ -197,6 +251,8 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
+			logName := globals.NodeName + "_msgQueue_o" + ".txt"
+			traceMessages.LogMessage(logName, "",msg)
 
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
@@ -937,7 +993,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if int(ack.Height) < len(list) || list[ack.Height] == nil {
+		if int(ack.Height) >= len(list) || (int(ack.Height) < len(list) && list[ack.Height] == nil) {
 			return
 		}
 

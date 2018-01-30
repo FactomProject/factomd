@@ -44,7 +44,8 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	state0.IsRunning = true
 	state0.SetLeaderTimestamp(primitives.NewTimestampFromMilliseconds(0))
 
-	globals.NodeName = state0.FactomNodeName // Used to name logfile
+	globals.NodeName = params.prefix + "FNode0" // Used to name logfile
+
 	go NetStart(state0, params, listenToStdin)
 	return state0
 

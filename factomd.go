@@ -19,10 +19,14 @@ import (
 	"strings"
 	"strconv"
 	"net"
+	"github.com/FactomProject/factomd/traceMessages"
+	"github.com/FactomProject/factomd/globals"
 )
 
 
 func main() {
+	defer traceMessages.Cleanup()
+
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
@@ -197,7 +201,7 @@ func launchDebugServer(service string) {
 			writer := bufio.NewWriter(connection) // if we want to send something back to the telnet
 			reader := bufio.NewReader(connection)
 
-			writer.WriteString("Hello from Factom Debug Console\n")
+			writer.WriteString("Hello from Factom " + globals.NodeName + " Debug Console\n")
 			writer.Flush()
 			// copy stderr to debug console
 			go func() {

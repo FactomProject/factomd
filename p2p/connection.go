@@ -18,6 +18,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"github.com/FactomProject/factomd/globals"
+	"github.com/FactomProject/factomd/traceMessages"
+	"strings"
 )
 
 // conLogger is the general logger for all connection related logs. You can add additional fields,
@@ -51,8 +53,6 @@ type Connection struct {
 	notes           string            // Notes about the connection, for debugging (eg: error)
 	metrics         ConnectionMetrics // Metrics about this connection
 	Logger          *log.Entry
-	infile          *os.File
-	outfile         *os.File
 }
 
 // Each connection is a simple state machine.  The state is managed by a single goroutine which also does netowrking.
@@ -364,8 +364,6 @@ func (c *Connection) goOffline() {
 	c.state = ConnectionOffline
 	c.attempts = 0
 	c.peer.demerit()
-	c.infile.Close()
-	c.outfile.Close()
 }
 
 func (c *Connection) goShutdown() {
@@ -453,6 +451,14 @@ func (c *Connection) handleCommand() {
 	}
 }
 
+func Parcel2String(msg *Parcel) string {
+	t, _ := strconv.Atoi(msg.Header.AppType)
+	embeddedHash := ""
+
+	r := fmt.Sprintf("%p %20s[%2v]:%v%v", msg, messages.MessageName(byte(t)), t, msg.Header.AppHash, embeddedHash)
+	return r
+}
+
 func (c *Connection) sendParcel(parcel Parcel) {
 
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.
@@ -467,21 +473,9 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	encode := c.encoder
 	err := encode.Encode(parcel)
 
-	if c.outfile == nil {
-		name := globals.NodeName + "_connection_o_" + c.conn.LocalAddr().String() + ".log"
-		fmt.Printf("From %+v to %+v\n", c.conn.LocalAddr(), c.conn.RemoteAddr())
-		fmt.Println("Opening " + name)
-		c.outfile, err = os.Create(name)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	if c.outfile != nil {
-		m := parcel
-		t, _ := strconv.Atoi(m.Header.AppType)
-		c.outfile.WriteString(fmt.Sprintf("%20s[%2s]:%v\n", messages.MessageName(byte(t)), m.Header.AppType, m.Header.AppHash))
-	}
+	// TODO: add logging here -- clay
+	logName := globals.NodeName + "_connection_o_" + strings.Replace(c.conn.LocalAddr().String(), ":", "-", 1) + ".txt"
+	traceMessages.LogParcel(logName, "", Parcel2String(&parcel))
 
 	switch {
 	case nil == err:
@@ -571,23 +565,9 @@ func (c *Connection) handleParcel(parcel Parcel) {
 	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
 
-	if c.infile == nil {
-		name := globals.NodeName + "_connection_i_" + c.conn.RemoteAddr().String() + ".txt"
-		fmt.Println("Opening " + name)
-		fmt.Printf("From %+v to %+v\n", c.conn.LocalAddr(), c.conn.RemoteAddr())
-		var err error
-		c.infile, err = os.Create(name)
-		if err != nil {
-			panic(err)
-		}
-	}
-	if c.infile != nil {
-		m := parcel
-		t, _ := strconv.Atoi(m.Header.AppType)
-		c.infile.WriteString(fmt.Sprintf("%20s[%2s]:%v\n", messages.MessageName(byte(t)), m.Header.AppType, m.Header.AppHash))
-	}
-
-
+	// TODO: add logging here -- clay
+	logName := globals.NodeName + "_connection_i_" + strings.Replace(c.conn.RemoteAddr().String(), ":", "-", 1) + ".txt"
+	traceMessages.LogParcel(logName, "", Parcel2String(&parcel))
 
 	switch validity {
 	case InvalidDisconnectPeer:
