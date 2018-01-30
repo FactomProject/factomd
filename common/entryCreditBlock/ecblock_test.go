@@ -11,6 +11,7 @@ import (
 	. "github.com/FactomProject/factomd/common/entryCreditBlock"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/go-spew/spew"
+	"time"
 )
 
 var _ = fmt.Sprint("testing")
@@ -41,6 +42,7 @@ func TestUnmarshalLarge(t *testing.T) {
 			t.Errorf("Panic caught during the test - %v", r)
 		}
 	}()
+	start := time.Now()
 
 	ecb := createECBlockWithNum(10000)
 	data, err := ecb.MarshalBinary()
@@ -54,8 +56,13 @@ func TestUnmarshalLarge(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(a.GetEntries()) < 30000 {
+	if len(a.GetEntries()) < 10000 {
 		t.Errorf("Should have > 30000 entries, found %d", len(a.GetEntries()))
+	}
+
+	took := time.Since(start).Seconds()
+	if took > 20 {
+		t.Errorf("It took too long. Took %fs, should be < 10", took)
 	}
 
 }
