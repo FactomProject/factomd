@@ -9,7 +9,7 @@ import (
 )
 
 /**************************
- * IRCD  Interface for Redeem Condition Datastructures (RCD)
+ * IRCD  Interface for Redeem Condition Data Structures (RCD)
  *
  * https://github.com/FactomProject/FactomDocs/blob/master/factomDataStructureDetails.md#factoid-transaction
  **************************/
@@ -115,4 +115,5 @@ type IMsg interface {
 
 	// Equivalent to String() for logging
 	LogFields() log.Fields
+
 }

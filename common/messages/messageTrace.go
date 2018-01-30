@@ -1,12 +1,11 @@
-package traceMessages
+package messages
 
 import (
-	"os"
-	"sync"
 	"fmt"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"os"
+	"sync"
 	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
 )
 
 var (
@@ -46,14 +45,16 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 
 	switch msg.Type() {
 	case constants.ACK_MSG:
-		m := msg.(*messages.Ack)
-		embeddedHash = fmt.Sprintf(" EmbeddedMsg %20v[%2v]:%v", messages.MessageName(m.Type()), m.Type(), m.MessageHash.String()[:8])
+		m := msg.(*Ack)
+		embeddedHash = fmt.Sprintf(" EmbeddedMsg %26v[%2v]:%v", MessageName(m.Type()), m.Type(), m.MessageHash.String()[:8])
 	case constants.MISSING_MSG_RESPONSE:
-		m := msg.(*messages.MissingMsgResponse).MsgResponse
-		embeddedHash = fmt.Sprintf(" EmbeddedMsg %20v[%2v]:%v", messages.MessageName(m.Type()), m.Type(), m.GetHash().String()[:8])
+		m := msg.(*MissingMsgResponse).MsgResponse
+		embeddedHash = fmt.Sprintf(" EmbeddedMsg %26v[%2v]:%v", MessageName(m.Type()), m.Type(), m.GetHash().String()[:8])
 	}
 
-	myfile.WriteString(fmt.Sprintf("%5v %20s %v %20s[%2v]:%v%v\n", seq, note, msg.GetMsgHash().String()[:8], messages.MessageName(byte(t)), t, msg.GetHash().String()[:8], embeddedHash))
+
+	myfile.WriteString(fmt.Sprintf("%5v %20s %v %26s[%2v]:%v%v {%v}\n", seq, note, msg.GetMsgHash().String()[:8], MessageName(byte(t)), t, msg.GetHash().String()[:8], embeddedHash, msg.String()))
+
 }
 
 // stringify it in the caller to avoid having to deal with the import loop
@@ -64,9 +65,10 @@ func LogParcel(name string, note string, msg string) {
 	sequence++
 	seq := sequence
 
-	myfile.WriteString(fmt.Sprintf("%5v %20s %s\n", seq, note, msg))
+	myfile.WriteString(fmt.Sprintf("%5v %26s %s\n", seq, note, msg))
 }
 
+// unused -- of.File is written by direct calls to write and not buffered and the os closes the files on exit.
 func Cleanup() {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
@@ -75,4 +77,3 @@ func Cleanup() {
 		f.Close()
 	}
 }
-//1049                      0xc420cbe100 Missing Msg Response[19]:a1db719314ced94a84b8f1e7bebc0fb563e0434b2115ad78da6a85395f58b5ce EmbeddedMsg Directory Block Signature[ 7]:cc36eb2f78ba0e9fd7501ce7401dd349325d949cf5733fe55a32fe1f8f30eb9d

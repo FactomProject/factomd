@@ -7,8 +7,8 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
-	"time"
 	"net"
+	"time"
 )
 
 // Data structures and functions related to peers (eg other nodes in the network)
@@ -87,7 +87,7 @@ func (p *Peer) PeerFixedIdent() string {
 func (p *Peer) LocationFromAddress() (location uint32) {
 	location = 0
 	// Split the IPv4 octets
-	ip:= net.ParseIP(p.Address)
+	ip := net.ParseIP(p.Address)
 	if ip == nil {
 		ipAddress, err := net.LookupHost(p.Address)
 		if err != nil {
@@ -97,15 +97,15 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 		p.Address = ipAddress[0]
 		ip = net.ParseIP(p.Address)
 	}
-	if(len(ip) == 16) { // If we got back an IP6 (16 byte) address, use the last 4 byte
+	if len(ip) == 16 { // If we got back an IP6 (16 byte) address, use the last 4 byte
 		ip = ip[12:]
 	}
-		// Turn into uint32
-		location += uint32(ip[0]) << 24
-		location += uint32(ip[1]) << 16
-		location += uint32(ip[2]) << 8
-		location += uint32(ip[3])
-		verbose("peer", "Peer: %s has Location: %d", p.Hash, location)
+	// Turn into uint32
+	location += uint32(ip[0]) << 24
+	location += uint32(ip[1]) << 16
+	location += uint32(ip[2]) << 8
+	location += uint32(ip[3])
+	verbose("peer", "Peer: %s has Location: %d", p.Hash, location)
 	return location
 }
 

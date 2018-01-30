@@ -9,28 +9,25 @@ import (
 
 	"fmt"
 	. "github.com/FactomProject/factomd/engine"
-	"time"
-	"runtime"
 	log "github.com/sirupsen/logrus"
+	"runtime"
+	"time"
 
 	"bufio"
-	"io"
-	"os/exec"
-	"strings"
-	"strconv"
-	"net"
-	"github.com/FactomProject/factomd/traceMessages"
 	"github.com/FactomProject/factomd/globals"
+	"io"
+	"net"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
-
 func main() {
-	defer traceMessages.Cleanup()
 
 	// uncomment StartProfiler() to run the pprof tool (for testing)
 	params := ParseCmdLine(os.Args[1:])
 
-	if (params.StdoutLog != "" || params.StderrLog != "") {
+	if params.StdoutLog != "" || params.StderrLog != "" {
 		handleLogfiles(params.StdoutLog, params.StderrLog)
 	}
 
@@ -45,7 +42,7 @@ func main() {
 	}
 
 	// launch debug console if requested
-	if (params.DebugConsole != "") {
+	if params.DebugConsole != "" {
 		launchDebugServer(params.DebugConsole)
 	}
 
@@ -163,12 +160,12 @@ func launchDebugServer(service string) {
 	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
 
 	host, port := "localhost", "8093" // defaults
-	if (service != "") {
+	if service != "" {
 		parts := strings.Split(service, ":")
-		if (len(parts) == 1) { // No port
+		if len(parts) == 1 { // No port
 			parts = append(parts, port) // use default
 		}
-		if (parts[0] == "") { //no
+		if parts[0] == "" { //no
 			parts[0] = host // use default
 		}
 		host, port = parts[0], parts[1]
@@ -180,7 +177,7 @@ func launchDebugServer(service string) {
 	}
 
 	// Start a listener port to connect to the debug server
-	ln, err := net.Listen("tcp", ":"+port);
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		panic(err)
 	}

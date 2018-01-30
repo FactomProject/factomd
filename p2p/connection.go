@@ -12,13 +12,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/messages"
+	"github.com/FactomProject/factomd/common/primitives"
 
+	"github.com/FactomProject/factomd/globals"
 	log "github.com/sirupsen/logrus"
 	"strconv"
-	"github.com/FactomProject/factomd/globals"
-	"github.com/FactomProject/factomd/traceMessages"
 	"strings"
 )
 
@@ -137,12 +136,12 @@ func (e *ConnectionCommand) String() string {
 
 // These are the commands that connections can send/receive
 const (
-	ConnectionIsClosed          uint8 = iota // Notifies the controller that we are shut down and can be released
+	ConnectionIsClosed uint8 = iota // Notifies the controller that we are shut down and can be released
 	ConnectionShutdownNow
 	ConnectionUpdatingPeer
 	ConnectionAdjustPeerQuality
 	ConnectionUpdateMetrics
-	ConnectionGoOffline          // Notifies the connection it should go offinline (eg from another goroutine)
+	ConnectionGoOffline // Notifies the connection it should go offinline (eg from another goroutine)
 )
 
 //////////////////////////////
@@ -455,7 +454,7 @@ func Parcel2String(msg *Parcel) string {
 	t, _ := strconv.Atoi(msg.Header.AppType)
 	embeddedHash := ""
 
-	r := fmt.Sprintf("%p %20s[%2v]:%v%v", msg, messages.MessageName(byte(t)), t, msg.Header.AppHash, embeddedHash)
+	r := fmt.Sprintf("%s %26s[%2v]:%v%v", msg.Header.AppHash[:8], messages.MessageName(byte(t)), t, msg.Header.AppHash[:8], embeddedHash)
 	return r
 }
 
@@ -475,7 +474,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 
 	// TODO: add logging here -- clay
 	logName := globals.NodeName + "_connection_o_" + strings.Replace(c.conn.LocalAddr().String(), ":", "-", 1) + ".txt"
-	traceMessages.LogParcel(logName, "", Parcel2String(&parcel))
+	messages.LogParcel(logName, "", Parcel2String(&parcel))
 
 	switch {
 	case nil == err:
@@ -567,7 +566,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 
 	// TODO: add logging here -- clay
 	logName := globals.NodeName + "_connection_i_" + strings.Replace(c.conn.RemoteAddr().String(), ":", "-", 1) + ".txt"
-	traceMessages.LogParcel(logName, "", Parcel2String(&parcel))
+	messages.LogParcel(logName, "", Parcel2String(&parcel))
 
 	switch validity {
 	case InvalidDisconnectPeer:
@@ -604,8 +603,8 @@ func (c *Connection) handleParcel(parcel Parcel) {
 // These constants support the multiple penalties and responses for Parcel validation
 const (
 	ParcelValid           uint8 = iota
-	InvalidPeerDemerit     // The peer sent an invalid message
-	InvalidDisconnectPeer  // Eg they are on the wrong network or wrong version of the software
+	InvalidPeerDemerit          // The peer sent an invalid message
+	InvalidDisconnectPeer       // Eg they are on the wrong network or wrong version of the software
 )
 
 func (c *Connection) parcelValidity(parcel Parcel) uint8 {

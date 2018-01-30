@@ -19,9 +19,8 @@ import (
 	"github.com/FactomProject/factomd/database/databaseOverlay"
 	"github.com/FactomProject/factomd/util"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/globals"
-	"github.com/FactomProject/factomd/traceMessages"
+	log "github.com/sirupsen/logrus"
 )
 
 // consenLogger is the general logger for all consensus related logs. You can add additional fields,
@@ -37,8 +36,6 @@ var _ = (*hash.Hash32)(nil)
 // Returns true if some message was processed.
 //***************************************************************
 
-
-
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 	var debugExec bool = (globals.NodeName == "xFNode0")
@@ -50,7 +47,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 		if debugExec {
 			logName := globals.NodeName + "_executeMsg" + ".txt"
-			traceMessages.LogMessage(logName, "replayInvalid", msg)
+			messages.LogMessage(logName, "replayInvalid", msg)
 		}
 
 		return
@@ -63,7 +60,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			if debugExec {
 				logName := globals.NodeName + "_executeMsg" + ".txt"
-				traceMessages.LogMessage(logName, "ignoreMissing", msg)
+				messages.LogMessage(logName, "ignoreMissing", msg)
 			}
 			return
 		}
@@ -79,7 +76,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				TotalXReviewQueueInputs.Inc()
 				if debugExec {
 					logName := globals.NodeName + "_executeMsg" + ".txt"
-					traceMessages.LogMessage(logName, "XReview", msg)
+					messages.LogMessage(logName, "XReview", msg)
 				}
 				s.XReview = append(s.XReview, msg)
 			}
@@ -90,13 +87,13 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
 				logName := globals.NodeName + "_executeMsg" + ".txt"
 				if debugExec {
-					traceMessages.LogMessage(logName, "LeaderExecute", msg)
+					messages.LogMessage(logName, "LeaderExecute", msg)
 					msg.LeaderExecute(s)
 				}
 			} else {
 				if debugExec {
 					logName := globals.NodeName + "_executeMsg" + ".txt"
-					traceMessages.LogMessage(logName, "FollowerExecute1", msg)
+					messages.LogMessage(logName, "FollowerExecute1", msg)
 				}
 				msg.FollowerExecute(s)
 			}
@@ -104,7 +101,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		} else {
 			if debugExec {
 				logName := globals.NodeName + "_executeMsg" + ".txt"
-				traceMessages.LogMessage(logName, "FollowerExecute2", msg)
+				messages.LogMessage(logName, "FollowerExecute2", msg)
 			}
 			msg.FollowerExecute(s)
 		}
@@ -115,7 +112,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		TotalHoldingQueueRecycles.Inc()
 		if debugExec {
 			logName := globals.NodeName + "_executeMsg" + ".txt"
-			traceMessages.LogMessage(logName, "Holding1", msg)
+			messages.LogMessage(logName, "Holding1", msg)
 		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 
@@ -124,7 +121,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		TotalHoldingQueueRecycles.Inc()
 		if debugExec {
 			logName := globals.NodeName + "_executeMsg" + ".txt"
-			traceMessages.LogMessage(logName, "Holding2", msg)
+			messages.LogMessage(logName, "Holding2", msg)
 		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
 
@@ -132,7 +129,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 			msg.MarkSentInvalid(true)
 			if debugExec {
 				logName := globals.NodeName + "_executeMsg" + ".txt"
-				traceMessages.LogMessage(logName, "InvalidMsg", msg)
+				messages.LogMessage(logName, "InvalidMsg", msg)
 			}
 			s.networkInvalidMsgQueue <- msg
 		}
@@ -218,22 +215,22 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			logName := globals.NodeName + "_ackQueue_o" + ".txt"
-			traceMessages.LogMessage(logName, "",ack)
+			messages.LogMessage(logName, "", ack)
 
 			a := ack.(*messages.Ack)
-			if  ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
+			if ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
 						s.executeMsg(vm, ack)
 					} else {
-						traceMessages.LogMessage(logName, "Drop1",ack)
+						messages.LogMessage(logName, "Drop tooOld", ack)
 					}
 				} else {
 					s.executeMsg(vm, ack)
 				}
 			} else {
-				traceMessages.LogMessage(logName, "Drop2",ack) // Maybe put it back in the ask queue ? -- clay
+				messages.LogMessage(logName, "Drop2", ack) // Maybe put it back in the ask queue ? -- clay
 			}
 			progress = true
 		default:
@@ -252,7 +249,7 @@ emptyLoop:
 		select {
 		case msg := <-s.msgQueue:
 			logName := globals.NodeName + "_msgQueue_o" + ".txt"
-			traceMessages.LogMessage(logName, "",msg)
+			messages.LogMessage(logName, "", msg)
 
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
@@ -920,6 +917,10 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse := messages.NewMissingMsgResponse(s, pl.System.List[m.SystemHeight], nil)
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+
+		logName := globals.NodeName + "_NetworkOutMsgQueue_i" + ".txt"
+		messages.LogMessage(logName, "enqueue2", msg)
+
 		s.NetworkOutMsgQueue().Enqueue(msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
@@ -933,6 +934,9 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
+			logName := globals.NodeName + "_NetworkOutMsgQueue_i" + ".txt"
+			messages.LogMessage(logName, "enqueue3", msgResponse)
+
 			s.NetworkOutMsgQueue().Enqueue(msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true

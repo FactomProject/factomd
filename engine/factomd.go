@@ -12,8 +12,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/state"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/globals"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
@@ -38,7 +38,6 @@ func Factomd(params *FactomParams, listenToStdin bool) interfaces.IState {
 	log.Printf("Go compiler version: %s\n", runtime.Version())
 	log.Printf("Using build: %s\n", Build)
 	log.Printf("Version: %s\n", FactomdVersion)
-
 
 	state0 := new(state.State)
 	state0.IsRunning = true

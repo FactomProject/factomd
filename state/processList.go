@@ -1033,7 +1033,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 		vm.ListAck = append(vm.ListAck, nil)
 	}
 
-	if int(ack.Height) - len(vm.List) > 1{
+	if int(ack.Height)-len(vm.List) > 1 {
 		fmt.Println("unexpected nil")
 	}
 

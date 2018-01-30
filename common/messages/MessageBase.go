@@ -9,6 +9,7 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
+	"github.com/FactomProject/factomd/globals"
 )
 
 type MessageBase struct {
@@ -40,6 +41,8 @@ type MessageBase struct {
 
 func resend(state interfaces.IState, msg interfaces.IMsg, cnt int, delay int) {
 	for i := 0; i < cnt; i++ {
+		logName := globals.NodeName + "_NetworkOutMsgQueue_i" + ".txt"
+		LogMessage(logName, "enqueue",msg)
 		state.NetworkOutMsgQueue().Enqueue(msg)
 		time.Sleep(time.Duration(delay) * time.Second)
 	}
@@ -54,15 +57,20 @@ func (m *MessageBase) PutAck(ack interfaces.IMsg) {
 }
 
 func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
+	logName := globals.NodeName + "_NetworkOutMsgQueue_i" + ".txt"
+
 	// Don't resend if we are behind
 	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
+		LogMessage(logName, "drop1",msg)
 		return
 	}
 	if m.NoResend {
+		LogMessage(logName, "drop NoResend",msg)
 		return
 	}
 
 	if m.ResendCnt > 4 {
+		LogMessage(logName, "drop ResendCnt>4",msg)
 		return
 	}
 	m.ResendCnt++

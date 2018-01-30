@@ -17,9 +17,8 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/FactomProject/factomd/globals"
-	"github.com/FactomProject/factomd/traceMessages"
+	log "github.com/sirupsen/logrus"
 )
 
 var _ = fmt.Print
@@ -157,8 +156,8 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 				//TODO: Log here -- clay
-				logName := globals.NodeName +"_broadcast_i" +  ".txt"
-				traceMessages.LogMessage(logName,"",msg)
+				logName := globals.NodeName + "_broadcast_i" + ".txt"
+				messages.LogMessage(logName, "", msg)
 
 				if err != nil {
 					proxyLogger.WithField("receive-error", err).Error()
