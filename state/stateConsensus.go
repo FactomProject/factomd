@@ -169,7 +169,7 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
+			if ack.Validate(s) == 1 {
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
