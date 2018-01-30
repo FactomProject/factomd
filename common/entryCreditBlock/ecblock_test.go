@@ -34,6 +34,32 @@ func TestUnmarshalNilECBlock(t *testing.T) {
 	}
 }
 
+// A test of speed
+func TestUnmarshalLarge(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic caught during the test - %v", r)
+		}
+	}()
+
+	ecb := createECBlockWithNum(10000)
+	data, err := ecb.MarshalBinary()
+	if err != nil {
+		t.Error(err)
+	}
+
+	a := new(ECBlock)
+	err = a.UnmarshalBinary(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(a.GetEntries()) < 30000 {
+		t.Errorf("Should have > 30000 entries, found %d", len(a.GetEntries()))
+	}
+
+}
+
 type TestECBlock struct {
 	Raw   string
 	KeyMR string
@@ -141,6 +167,10 @@ func TestECBlockHashingConsistency(t *testing.T) {
 }
 
 func createECBlock() *ECBlock {
+	return createECBlockWithNum(1)
+}
+
+func createECBlockWithNum(ccount int) *ECBlock {
 	ecb1 := NewECBlock().(*ECBlock)
 
 	// build a CommitChain for testing
@@ -169,7 +199,9 @@ func createECBlock() *ECBlock {
 	ecb1.Header.(*ECBlockHeader).ObjectCount = 0
 
 	// add the CommitChain to the ECBlock
-	ecb1.AddEntry(cc)
+	for i := 0; i < ccount; i++ {
+		ecb1.AddEntry(cc)
+	}
 
 	m1 := NewMinuteNumber(0x01)
 	ecb1.AddEntry(m1)
