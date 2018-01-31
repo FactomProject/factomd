@@ -32,27 +32,38 @@ func Peers(fnode *FactomNode) {
 	crossBootIgnore := func(amsg interfaces.IMsg) bool {
 		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
 		if saltReplayFilterOn {
-			switch amsg.Type() {
-			case constants.MISSING_MSG_RESPONSE:
-				mmrsp := amsg.(*messages.MissingMsgResponse)
-				if mmrsp.Ack == nil {
-					return false
-				}
-				ack := mmrsp.Ack.(*messages.Ack)
-				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
-				if replaySalt {
-					fmt.Println("Found a replay")
-				}
-				return replaySalt // true means replay and ignore
-			case constants.ACK_MSG:
+			//var ack *messages.Ack
+			//switch amsg.Type() {
+			//case constants.MISSING_MSG_RESPONSE:
+			//	mmrsp := amsg.(*messages.MissingMsgResponse)
+			//	if mmrsp.Ack == nil {
+			//		return false
+			//	}
+			//	ack = mmrsp.Ack.(*messages.Ack)
+			//case constants.ACK_MSG:
+			//	ack = amsg.(*messages.Ack)
+			//case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+			//	dbs := amsg.(*messages.DirectoryBlockSignature)
+			//	if dbs.Ack == nil {
+			//		return false
+			//	}
+			//	ack = dbs.Ack.(*messages.Ack)
+			//}
+
+			if amsg.Type() == constants.ACK_MSG && amsg != nil {
 				ack := amsg.(*messages.Ack)
-				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
-				if replaySalt {
-					fmt.Println("Found a replay")
+				if replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt); replaySalt {
+					return true
 				}
+			}
+
+			if ackMsg := amsg.GetAck(); ackMsg != nil {
+				ack := amsg.GetAck().(*messages.Ack)
+				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
 				return replaySalt // true means replay and ignore
 			}
 		}
+
 		return false
 	}
 

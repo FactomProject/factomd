@@ -99,7 +99,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
-
 	if s.ResetRequest {
 		s.ResetRequest = false
 		s.DoReset()
@@ -458,7 +457,7 @@ func (s *State) FollowerExecuteMsg(m interfaces.IMsg) {
 		pl.AddToProcessList(ack, m)
 
 		// Cross Boot Replay
-		s.CrossReplayAddSalt(ack.Salt)
+		s.CrossReplayAddSalt(ack.DBHeight, ack.Salt)
 	}
 }
 

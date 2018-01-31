@@ -16,7 +16,9 @@ var _ = fmt.Println
 
 // DB Buckets
 var (
-	saltBucket = []byte("AllSalts")
+	heightBucket = []byte("Heights")
+	lowest       = []byte("LowestHeight")
+	saltBucket   = []byte("AllSalts")
 )
 
 // SetupCrossBootReplay will construct the database
@@ -35,8 +37,8 @@ func (s *State) SetupCrossBootReplay(path string) {
 }
 
 // CrossReplayAddSalt adds the salt to the DB
-func (s *State) CrossReplayAddSalt(salt [8]byte) error {
-	return s.CrossReplay.AddSalt(salt)
+func (s *State) CrossReplayAddSalt(height uint32, salt [8]byte) error {
+	return s.CrossReplay.AddSalt(height, salt)
 }
 
 // CrossReplayFilter checks for old messages across reboots based on the salts
@@ -45,6 +47,9 @@ func (s *State) CrossReplayAddSalt(salt [8]byte) error {
 // After the duration, no new salts are saved (extra overhead we don't need) and will stop
 // ignoring messages based on salts (so a single leader reboot will rejoin the network).
 type CrossReplayFilter struct {
+	Currentheight int
+	LowestHeight  int
+
 	// Indicates we have been running for awhile
 	// and should already have the salts
 	stopAddingSalts  bool
@@ -70,6 +75,11 @@ func NewCrossReplayFilter(path string) *CrossReplayFilter {
 	c.loadOldSalts()
 	c.bootTime = time.Now()
 
+	var m MarshalableUint32
+	c.db.Get(heightBucket, lowest, &m)
+	c.LowestHeight = int(m)
+	c.Currentheight = int(m)
+
 	return c
 }
 
@@ -86,7 +96,7 @@ func (c *CrossReplayFilter) loadOldSalts() {
 }
 
 // AddSalt will add the salt to the replay filter that is used on reboot
-func (c *CrossReplayFilter) AddSalt(salt [8]byte) error {
+func (c *CrossReplayFilter) AddSalt(height uint32, salt [8]byte) error {
 	// We don't need to add any more salts to the db
 	if c.stopAddingSalts {
 		return nil
@@ -128,7 +138,27 @@ func (c *CrossReplayFilter) Run() {
 			c.stopAddingSalts = true
 			return
 		}
+		c.collectGarbage()
 	}
+}
+
+// collectGarbage will delete buckets for older heights that we no longer care about
+func (c *CrossReplayFilter) collectGarbage() {
+	// fmt.Printf("Cross Replay Cleanup: %d -> %d\n", c.LowestHeight, c.Currentheight)
+	// Have more than 5 blocks worth of data
+	if c.LowestHeight < c.Currentheight-5 {
+		for i := c.LowestHeight; i < c.Currentheight-5; i++ {
+			bucket, err := Uint32ToBytes(uint32(i))
+			if err != nil {
+				continue
+			}
+			c.db.Clear(bucket)
+			c.db.Clear(append([]byte("salt"), bucket...))
+			c.LowestHeight = i + 1
+		}
+	}
+	var m MarshalableUint32 = MarshalableUint32(uint32(c.LowestHeight))
+	c.db.Put(heightBucket, lowest, &m)
 }
 
 func (c *CrossReplayFilter) Close() {
