@@ -97,6 +97,9 @@ type State struct {
 	LocalNetworkPort        string
 	LocalSeedURL            string
 	LocalSpecialPeers       string
+	CustomNetworkPort       string
+	CustomSeedURL           string
+	CustomSpecialPeers      string
 	CustomNetworkID         []byte
 	CustomBootstrapIdentity string
 	CustomBootstrapKey      string
@@ -419,6 +422,9 @@ func (s *State) Clone(cloneNumber int) interfaces.IState {
 	newState.LocalNetworkPort = s.LocalNetworkPort
 	newState.LocalSeedURL = s.LocalSeedURL
 	newState.LocalSpecialPeers = s.LocalSpecialPeers
+	newState.CustomNetworkPort = s.CustomNetworkPort
+	newState.CustomSeedURL = s.CustomSeedURL
+	newState.CustomSpecialPeers = s.CustomSpecialPeers
 	newState.StartDelayLimit = s.StartDelayLimit
 	newState.CustomNetworkID = s.CustomNetworkID
 
@@ -652,6 +658,9 @@ func (s *State) LoadConfig(filename string, networkFlag string) {
 		s.LocalSeedURL = cfg.App.LocalSeedURL
 		s.LocalSpecialPeers = cfg.App.LocalSpecialPeers
 		s.LocalServerPrivKey = cfg.App.LocalServerPrivKey
+		s.CustomNetworkPort = cfg.App.CustomNetworkPort
+		s.CustomSeedURL = cfg.App.CustomSeedURL
+		s.CustomSpecialPeers = cfg.App.CustomSpecialPeers
 		s.FactoshisPerEC = cfg.App.ExchangeRate
 		s.DirectoryBlockInSeconds = cfg.App.DirectoryBlockInSeconds
 		s.PortNumber = cfg.App.PortNumber

@@ -53,6 +53,9 @@ type FactomdConfig struct {
 		LocalNetworkPort        string
 		LocalSeedURL            string
 		LocalSpecialPeers       string
+		CustomNetworkPort       string
+		CustomSeedURL           string
+		CustomSpecialPeers      string
 		CustomBootstrapIdentity string
 		CustomBootstrapKey      string
 		FactomdTlsEnabled       bool
@@ -130,6 +133,9 @@ TestSpecialPeers     = ""
 LocalNetworkPort     = 8110
 LocalSeedURL         = "https://raw.githubusercontent.com/FactomProject/factomproject.github.io/master/seed/localseed.txt"
 LocalSpecialPeers    = ""
+CustomNetworkPort    = 8110
+CustomSeedURL        = ""
+CustomSpecialPeers   = ""
 CustomBootstrapIdentity     = 38bab1455b7bd7e5efd15c53c777c79d0c988e9210f1da49a99d95b3a6417be9
 CustomBootstrapKey          = cc1985cdfae4e32b5a454dfda8ce5e1361558482684f3367649c3ad852c8e31a
 ; --------------- NodeMode: FULL | SERVER ----------------
@@ -219,6 +225,9 @@ func (s *FactomdConfig) String() string {
 	out.WriteString(fmt.Sprintf("\n    LocalNetworkPort        %v", s.App.LocalNetworkPort))
 	out.WriteString(fmt.Sprintf("\n    LocalSeedURL            %v", s.App.LocalSeedURL))
 	out.WriteString(fmt.Sprintf("\n    LocalSpecialPeers       %v", s.App.LocalSpecialPeers))
+	out.WriteString(fmt.Sprintf("\n    CustomNetworkPort       %v", s.App.CustomNetworkPort))
+	out.WriteString(fmt.Sprintf("\n    CustomSeedURL           %v", s.App.CustomSeedURL))
+	out.WriteString(fmt.Sprintf("\n    CustomSpecialPeers      %v", s.App.CustomSpecialPeers))
 	out.WriteString(fmt.Sprintf("\n    CustomBootstrapIdentity %v", s.App.CustomBootstrapIdentity))
 	out.WriteString(fmt.Sprintf("\n    CustomBootstrapKey      %v", s.App.CustomBootstrapKey))
 	out.WriteString(fmt.Sprintf("\n    NodeMode                %v", s.App.NodeMode))

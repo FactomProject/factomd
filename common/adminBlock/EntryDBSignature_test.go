@@ -78,7 +78,7 @@ func TestDBSEGenesisBlock(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	dBlock, _, _, _ := state.GenerateGenesisBlocks(constants.MAIN_NETWORK_ID)
+	dBlock, _, _, _ := state.GenerateGenesisBlocks(constants.MAIN_NETWORK_ID, nil)
 	if dBlock == nil {
 		t.Errorf("DBlock is nil")
 		t.FailNow()

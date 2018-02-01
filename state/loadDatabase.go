@@ -79,27 +79,44 @@ func LoadDatabase(s *State) {
 		s.Println("******* New Database **************")
 		s.Println("***********************************\n")
 
-		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID())
-
+		var customIdentity interfaces.IHash
+		if s.Network == "CUSTOM" {
+			customIdentity, err = primitives.HexToHash(s.CustomBootstrapIdentity)
+			if err != nil {
+				panic(fmt.Sprintf("Could not decode Custom Bootstrap Identity (likely in config file) found: %s\n", s.CustomBootstrapIdentity))
+			}
+		}
+		dblk, ablk, fblk, ecblk := GenerateGenesisBlocks(s.GetNetworkID(), customIdentity)
 		msg := messages.NewDBStateMsg(s.GetTimestamp(), dblk, ablk, fblk, ecblk, nil, nil, nil)
 		s.InMsgQueue().Enqueue(msg)
 	}
 	s.Println(fmt.Sprintf("Loaded %d directory blocks on %s", blkCnt, s.FactomNodeName))
 }
 
-func GenerateGenesisBlocks(networkID uint32) (interfaces.IDirectoryBlock, interfaces.IAdminBlock, interfaces.IFBlock, interfaces.IEntryCreditBlock) {
+func GenerateGenesisBlocks(networkID uint32, bootstrapIdentity interfaces.IHash) (interfaces.IDirectoryBlock, interfaces.IAdminBlock, interfaces.IFBlock, interfaces.IEntryCreditBlock) {
 	dblk := directoryBlock.NewDirectoryBlock(nil)
 	ablk := adminBlock.NewAdminBlock(nil)
 	fblk := factoid.GetGenesisFBlock(networkID)
 	ecblk := entryCreditBlock.NewECBlock()
 
-	if networkID != constants.MAIN_NETWORK_ID {
-		if networkID == constants.TEST_NETWORK_ID {
-			ablk.AddFedServer(primitives.NewZeroHash())
-		} else {
-			ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
-		}
-	} else {
+	//decide if a default server identity needs to be added into the genesis block
+	n:
+	switch networkID {
+	case constants.MAIN_NETWORK_ID:
+		//no identities were added in the M1 genesis block
+		break n
+	case constants.TEST_NETWORK_ID:
+		ablk.AddFedServer(primitives.NewZeroHash())
+	case constants.LOCAL_NETWORK_ID:
+		ablk.AddFedServer(primitives.Sha([]byte("FNode0")))
+	default:  //we must be using a custom network, where the network ID is based on the customnet name, not one of the three predetermined values above
+		// add the config file identity to the genesis block
+		ablk.AddFedServer(bootstrapIdentity)
+	}
+
+	//for the mainnet genesis block, support the original minute markers and server index markers from M1
+	//don't add these items to a genesis block generated with M2 code
+	if networkID == constants.MAIN_NETWORK_ID {
 		ecblk.GetBody().AddEntry(entryCreditBlock.NewServerIndexNumber())
 		for i := 1; i < 11; i++ {
 			minute := entryCreditBlock.NewMinuteNumber(uint8(i))
