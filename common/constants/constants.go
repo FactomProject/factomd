@@ -24,31 +24,32 @@ const (
 	INVALID_ACK_MSG                           // 11
 	INVALID_DIRECTORY_BLOCK_MSG               // 12
 
-	REVEAL_ENTRY_MSG      // 13
-	REQUEST_BLOCK_MSG     // 14
-	SIGNATURE_TIMEOUT_MSG // 15
-	MISSING_MSG           // 16
-	MISSING_DATA          // 17
-	DATA_RESPONSE         // 18
-	MISSING_MSG_RESPONSE  //19
+	REVEAL_ENTRY_MSG       // 13
+	REQUEST_BLOCK_MSG      // 14
+	SIGNATURE_TIMEOUT_MSG  // 15
+	MISSING_MSG            // 16
+	MISSING_DATA           // 17
+	DATA_RESPONSE          // 18
+	MISSING_MSG_RESPONSE   //19
 
-	DBSTATE_MSG          // 20
-	DBSTATE_MISSING_MSG  // 21
-	ADDSERVER_MSG        // 22
-	CHANGESERVER_KEY_MSG // 23
-	REMOVESERVER_MSG     // 24
+	DBSTATE_MSG           // 20
+	DBSTATE_MISSING_MSG   // 21
+	ADDSERVER_MSG         // 22
+	CHANGESERVER_KEY_MSG  // 23
+	REMOVESERVER_MSG      // 24
 
-	BOUNCE_MSG      // 25	test message
-	BOUNCEREPLY_MSG // 26	test message
+	BOUNCE_MSG       // 25	test message
+	BOUNCEREPLY_MSG  // 26	test message
 
-	MISSING_ENTRY_BLOCKS //27
-	ENTRY_BLOCK_RESPONSE //28
+	MISSING_ENTRY_BLOCKS  //27
+	ENTRY_BLOCK_RESPONSE  //28
 )
 
 const NUM_MESSAGES = 29
 
 const (
 	// Limits for keeping inputs from flooding our execution
+	INMSGQUEUE_MAX  = 9000
 	INMSGQUEUE_HIGH = 1000
 	INMSGQUEUE_MED  = 500
 	INMSGQUEUE_LOW  = 100

@@ -2,7 +2,6 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
-	"github.com/FactomProject/factomd/globals"
 )
 
 // NetOutMsgQueue counts incoming and outgoing messages for netout queue

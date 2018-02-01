@@ -12,12 +12,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 
-	"github.com/FactomProject/factomd/globals"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 // conLogger is the general logger for all connection related logs. You can add additional fields,
@@ -464,10 +461,6 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	encode := c.encoder
 	err := encode.Encode(parcel)
 
-	// TODO: add logging here -- clay
-	logName := globals.FactomNodeName + "_connection_o_" + strings.Replace(c.conn.LocalAddr().String(), ":", "-", 1) + ".txt"
-	messages.LogParcel(logName, "", Parcel2String(&parcel))
-
 	switch {
 	case nil == err:
 		c.metrics.BytesSent += parcel.Header.Length
@@ -555,10 +548,6 @@ func (c *Connection) handleParcel(parcel Parcel) {
 
 	c.peer.Port = parcel.Header.PeerPort // Peers communicate their port in the header. Could be moved to a handshake
 	validity := c.parcelValidity(parcel)
-
-	// TODO: add logging here -- clay
-	logName := globals.FactomNodeName + "_connection_i_" + strings.Replace(c.conn.RemoteAddr().String(), ":", "-", 1) + ".txt"
-	messages.LogParcel(logName, "", Parcel2String(&parcel))
 
 	switch validity {
 	case InvalidDisconnectPeer:

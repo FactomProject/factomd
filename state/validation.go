@@ -10,7 +10,6 @@ import (
 
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/globals"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,10 +58,6 @@ func (state *State) ValidatorLoop() {
 				msg = state.InMsgQueue().Dequeue()
 
 				if msg != nil {
-					//TODO: Log here -- clay
-					logName := globals.FactomNodeName + "_InMsgQueue_o" + ".txt"
-					messages.LogMessage(logName, "", msg)
-
 					state.JournalMessage(msg)
 					break loop
 				} else {
@@ -80,12 +75,8 @@ func (state *State) ValidatorLoop() {
 				state.ReplayTimestamp = msg.GetTimestamp()
 			}
 			if _, ok := msg.(*messages.Ack); ok {
-				logName := globals.FactomNodeName + "_ackQueue_i" + ".txt"
-				messages.LogMessage(logName, "", msg)
 				state.ackQueue <- msg
 			} else {
-				logName := globals.FactomNodeName + "_msgQueue_i" + ".txt"
-				messages.LogMessage(logName, "", msg)
 				state.msgQueue <- msg
 			}
 		}

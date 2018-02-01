@@ -13,7 +13,6 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
-	"github.com/FactomProject/factomd/globals"
 	"github.com/FactomProject/factomd/log"
 	"os"
 )
@@ -30,7 +29,6 @@ func NetworkProcessorNet(fnode *FactomNode) {
 var myfile2 *os.File
 
 func Peers(fnode *FactomNode) {
-	debugExec := (fnode.State.FactomNodeName == "xFNode0" || fnode.State.FactomNodeName == "FNode0")
 
 	cnt := 0
 	saltReplayFilterOn := true
@@ -116,10 +114,6 @@ func Peers(fnode *FactomNode) {
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
 
-			if debugExec {
-				logName := globals.FactomNodeName + "_APIQueue_0" + ".txt"
-				messages.LogMessage(logName, "", msg)
-			}
 
 			if msg != nil {
 				if msg == nil {
@@ -144,7 +138,7 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-					if fnode.State.InMsgQueue().Length() < 9000 {
+					if fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				} else {
@@ -207,25 +201,21 @@ func Peers(fnode *FactomNode) {
 
 					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
-					//TODO: Log here -- clay
-					logName := globals.FactomNodeName + "_InMsgQueue_i.txt"
-					messages.LogMessage(logName, "", msg)
 
 					ignore := ignoreMsg(msg)
 					if ignore {
-						messages.LogMessage(logName, "ignore", msg)
+//						messages.LogMessage(logName, "ignore", msg)
 					}
-					if !(fnode.State.InMsgQueue().Length() < 9000) {
-						messages.LogMessage(logName, "drop", msg)
+					if !(fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX) {
+//						messages.LogMessage(logName, "drop", msg)
 					}
 					if crossBootIgnore(msg) {
-						messages.LogMessage(logName, "crossBootIgnore", msg)
+//						messages.LogMessage(logName, "crossBootIgnore", msg)
 					}
 
 					// Ignore messages if there are too many.
-					if fnode.State.InMsgQueue().Length() < 9000 && !ignore && !crossBootIgnore(msg) {
-						//TODO: Log here -- clay
-						messages.LogMessage(logName, "enqueue", msg)
+					if fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX && !ignore && !crossBootIgnore(msg) {
+//						messages.LogMessage(logName, "enqueue", msg)
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				} else {
@@ -248,8 +238,6 @@ func NetworkOutputs(fnode *FactomNode) {
 		// }
 		//msg := <-fnode.State.NetworkOutMsgQueue()
 		msg := fnode.State.NetworkOutMsgQueue().BlockingDequeue()
-		logName := globals.FactomNodeName + "_NetworkOutMsgQueue_o" + ".txt"
-		messages.LogMessage(logName, "", msg)
 
 		NetworkOutTotalDequeue.Inc()
 
@@ -260,10 +248,10 @@ func NetworkOutputs(fnode *FactomNode) {
 			// Don't do a rand int if drop rate is 0
 			if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 				//drop the message, rather than processing it normally
-				messages.LogMessage(logName, "Drop onPurpose", msg)
+//				messages.LogMessage(logName, "Drop onPurpose", msg)
 			} else {
 				if msg.GetRepeatHash() == nil {
-					messages.LogMessage(logName, "Drop nilRepeatHash", msg)
+//					messages.LogMessage(logName, "Drop nilRepeatHash", msg)
 					continue
 				}
 
@@ -292,7 +280,7 @@ func NetworkOutputs(fnode *FactomNode) {
 							}
 							fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 							preSendTime := time.Now()
-							messages.LogMessage(logName, "Send to peer", msg)
+//							messages.LogMessage(logName, "Send to peer", msg)
 							fnode.Peers[p].Send(msg)
 							sendTime := time.Since(preSendTime)
 							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
@@ -300,7 +288,7 @@ func NetworkOutputs(fnode *FactomNode) {
 								fnode.State.TallySent(int(msg.Type()))
 							}
 						} else {
-							messages.LogMessage(logName, "Drop noPeers", msg)
+//							messages.LogMessage(logName, "Drop noPeers", msg)
 						}
 					} else {
 						for i, peer := range fnode.Peers {
@@ -325,11 +313,11 @@ func NetworkOutputs(fnode *FactomNode) {
 						} // for all peers
 					}
 				} else {
-					messages.LogMessage(logName, "Drop networkOff", msg)
+//					messages.LogMessage(logName, "Drop networkOff", msg)
 				}
 			}
 		} else {
-			messages.LogMessage(logName, "Drop isLocal", msg)
+//			messages.LogMessage(logName, "Drop isLocal", msg)
 		}
 	} // forever ...
 }

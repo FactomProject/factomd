@@ -267,52 +267,52 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 					}
 					copy(pub[:], histTemp)
 
-					if pub[0] == ZeroKey[0] {
-						fmt.Println("zero key byte")
-					}
 					if pub == ZeroKey {
 						fmt.Println("zero key whole key")
 					}
 
-
 					if pub != ZeroKey {
 						if ed.VerifyCanonical((*[32] byte)(&pub), msg, sig) {
-							failsMutex.Lock()
-							pc, ok := fails[*sig]
-							failsMutex.Unlock()
-							if ok {
-								logName := globals.FactomNodeName + "_executeMsg" + ".txt"
-								messages.LogPrint(logName,
-									fmt.Sprintf("VerifySig false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
-										fmt.Sprintf("VerifySig true1 key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+							if false {
+								failsMutex.Lock()
+								pc, ok := fails[*sig]
+								failsMutex.Unlock()
+								if ok {
+									logName := globals.FactomNodeName + "_executeMsg" + ".txt"
+									messages.LogPrint(logName,
+										fmt.Sprintf("VerifySig false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg) + "\n"+
+											fmt.Sprintf("VerifySig true1 key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+								}
 							}
-
 							return true, nil
 						}
 					}
 				}
 			} else {
-				failsMutex.Lock()
-				pc, ok := fails[*sig]
-				failsMutex.Unlock()
-				if ok {
-					logName := globals.FactomNodeName + "_executeMsg" + ".txt"
-					messages.LogPrint(logName,
-						fmt.Sprintf("VerifySig2 false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
-						fmt.Sprintf("VerifySig2  true key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+				if false {
+					failsMutex.Lock()
+					pc, ok := fails[*sig]
+					failsMutex.Unlock()
+					if ok {
+						logName := globals.FactomNodeName + "_executeMsg" + ".txt"
+						messages.LogPrint(logName,
+							fmt.Sprintf("VerifySig2 false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg) + "\n"+
+								fmt.Sprintf("VerifySig2  true key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+					}
 				}
 				return true, nil
 			}
 		}
-
-		//	logName := globals.FactomNodeName + "_executeMsg" + ".txt"
-		//	messages.LogPrint(logName, fmt.Sprintf("VerifySig false   key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
-		failsMutex.Lock()
-		if (fails == nil) {
-			fails = make(map[[64]byte]foo)
+		if false {
+			//	logName := globals.FactomNodeName + "_executeMsg" + ".txt"
+			//	messages.LogPrint(logName, fmt.Sprintf("VerifySig false   key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+			failsMutex.Lock()
+			if (fails == nil) {
+				fails = make(map[[64]byte]foo)
+			}
+			fails[*sig] = foo{pub, msg}
+			failsMutex.Unlock()
 		}
-		fails[*sig] = foo{pub, msg}
-		failsMutex.Unlock()
 	}
 	return false, nil
 }

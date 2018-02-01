@@ -17,7 +17,6 @@ import (
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/p2p"
 
-	"github.com/FactomProject/factomd/globals"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,7 +31,7 @@ type P2PProxy struct {
 	ToName   string
 	FromName string
 	// Channels that define the connection:
-	BroadcastOut chan interface{} // FactomMessage ToNetwork from factomd
+	BroadcastOut chan interface{} // FactomMessage ToNetwork from Factomd
 	BroadcastIn  chan interface{} // FactomMessage FromNetwork for Factomd
 
 	ToNetwork   chan interface{} // p2p.Parcel From p2pProxy to the p2p Controller
@@ -155,9 +154,6 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				fmessage := data.(FactomMessage)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
-
-				logName := globals.FactomNodeName + "BroadcastIn_o" + ".txt"
-				messages.LogMessage(logName, "", msg)
 
 				if err != nil {
 					proxyLogger.WithField("receive-error", err).Error()

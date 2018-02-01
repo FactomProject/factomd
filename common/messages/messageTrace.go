@@ -55,6 +55,7 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 	myfile.WriteString(fmt.Sprintf("%5v %20s %v %26s[%2v]:%v%v {%v}\n", seq, note, msg.GetMsgHash().String()[:8], MessageName(byte(t)), t,
 		msg.GetHash().String()[:8], embeddedHash, msg.String()))
 }
+
 func LogPrint(name string, note string) {
 	traceMutex.Lock()
 	defer traceMutex.Unlock()
