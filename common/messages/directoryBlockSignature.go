@@ -142,11 +142,11 @@ func (m *DirectoryBlockSignature) Validate(state interfaces.IState) int {
 	}
 
 	raw, _ := m.MarshalBinary()
-	if m.DBHeight <= state.GetHighestSavedBlk() {
-		vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
-		// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
-		return -1
-	}
+	//if m.DBHeight <= state.GetHighestSavedBlk() {
+	//	vlog("[1] Validate Fail %s -- RAW: %x", m.String(), raw)
+	//	// state.Logf("error", "DirectoryBlockSignature: Fail dbstate ht: %v < dbht: %v  %s\n  [%s] RAW: %x", m.DBHeight, state.GetHighestSavedBlk(), m.String(), m.GetMsgHash().String(), raw)
+	//	return -1
+	//}
 
 	found, _ := state.GetVirtualServers(m.DBHeight, 9, m.ServerIdentityChainID)
 
