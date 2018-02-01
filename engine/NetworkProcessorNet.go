@@ -14,7 +14,6 @@ import (
 	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
-	"os"
 )
 
 var _ = log.Printf
@@ -26,32 +25,14 @@ func NetworkProcessorNet(fnode *FactomNode) {
 	go InvalidOutputs(fnode)
 }
 
-var myfile2 *os.File
-
 func Peers(fnode *FactomNode) {
-
 	cnt := 0
 	saltReplayFilterOn := true
 
-	crossBootIgnore := func(amsg interfaces.IMsg) bool {
-		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
-		if saltReplayFilterOn {
-			switch amsg.Type() {
-			case constants.ACK_MSG:
-				ack := amsg.(*messages.Ack)
-				replaySalt := fnode.State.CrossReplay.ExistOldSalt(ack.Salt)
-				if replaySalt {
-					fmt.Println("Found a replay")
-				}
-				return replaySalt // true means replay and ignore
-			}
-		}
-		return false
-	}
 
-	// ackHeight is used in ignoreMsg to determine if we should ignore an acknowledgment
+	// ackHeight is used in ignoreMsg to determine if we should ignore an ackowledgment
 	ackHeight := uint32(0)
-	// When syncing from disk/network we want to selectively ignore certain msgs to allow
+	// When syncing from disk/network we want to selectivly ignore certain msgs to allow
 	// factom to focus on syncing. The following msgs will be ignored:
 	//		Acks:
 	//				Ignore acks below the ackheight, which is set if we get an ack at a height higher than
@@ -68,7 +49,7 @@ func Peers(fnode *FactomNode) {
 	//				Only helpful at the latest height
 	//
 	//		MissingData:
-	//				We should fulfill some of these requests, but we should also focus on ourselves while we are syncing.
+	//				We should fufill some of these requests, but we should also focus on ourselves while we are syncing.
 	//				If our inmsg queue has too many msgs, then don't help others.
 	ignoreMsg := func(amsg interfaces.IMsg) bool {
 		// Stop uint32 underflow
@@ -113,8 +94,6 @@ func Peers(fnode *FactomNode) {
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
-
-
 			if msg != nil {
 				if msg == nil {
 					continue
@@ -191,7 +170,7 @@ func Peers(fnode *FactomNode) {
 					msg.GetTimestamp(),
 					fnode.State.GetTimestamp()) {
 					//if state.GetOut() {
-					//	fnode.State.Println("In Coming!! ",msg)
+					//	fnode.State.Println("In Comming!! ",msg)
 					//}
 					in := "PeerIn"
 					if msg.IsPeer2Peer() {
@@ -201,7 +180,7 @@ func Peers(fnode *FactomNode) {
 
 					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
-
+					// Ignore messages if there are too many.
 					ignore := ignoreMsg(msg)
 					if ignore {
 //						messages.LogMessage(logName, "ignore", msg)
@@ -214,9 +193,8 @@ func Peers(fnode *FactomNode) {
 					}
 
 					// Ignore messages if there are too many.
-					if fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX && !ignore && !crossBootIgnore(msg) {
-//						messages.LogMessage(logName, "enqueue", msg)
-						fnode.State.InMsgQueue().Enqueue(msg)
+					if fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX && !ignore{
+							fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				} else {
 					RepeatMsgs.Inc()
@@ -238,7 +216,6 @@ func NetworkOutputs(fnode *FactomNode) {
 		// }
 		//msg := <-fnode.State.NetworkOutMsgQueue()
 		msg := fnode.State.NetworkOutMsgQueue().BlockingDequeue()
-
 		NetworkOutTotalDequeue.Inc()
 
 		// Local Messages are Not broadcast out.  This is mostly the block signature
@@ -248,10 +225,10 @@ func NetworkOutputs(fnode *FactomNode) {
 			// Don't do a rand int if drop rate is 0
 			if fnode.State.GetDropRate() > 0 && rand.Int()%1000 < fnode.State.GetDropRate() {
 				//drop the message, rather than processing it normally
-//				messages.LogMessage(logName, "Drop onPurpose", msg)
 			} else {
+				
 				if msg.GetRepeatHash() == nil {
-//					messages.LogMessage(logName, "Drop nilRepeatHash", msg)
+messages.LogMessage(logName, "Drop nilRepeatHash", msg)
 					continue
 				}
 
@@ -261,26 +238,28 @@ func NetworkOutputs(fnode *FactomNode) {
 				//_, ok := msg.(*messages.Ack)
 				//if ok {
 				// Add the ACK to the replay filter as a side effect of calling this test
-				fnode.State.Replay.IsTSValid_(
-					constants.NETWORK_REPLAY,
-					msg.GetRepeatHash().Fixed(),
-					msg.GetTimestamp(),
-					fnode.State.GetTimestamp())
+					fnode.State.Replay.IsTSValid_(
+						constants.NETWORK_REPLAY,
+						msg.GetRepeatHash().Fixed(),
+						msg.GetTimestamp(),
+						fnode.State.GetTimestamp())
+// We don't care about the result, but we do want to log that we have
+				// seen this message before, because we might have generated the message
+				// ourselves.
 				//}
 
 				p := msg.GetOrigin() - 1
 
 				if !fnode.State.GetNetStateOff() {
-					if msg.IsPeer2Peer() {
-						// Must have a Peer to send a message to a peer
-						numPeers := len(fnode.Peers)
-						if numPeers > 0 {
-							if p < 0 {
-								p = rand.Int() % len(fnode.Peers) // randomly pick a peer
-							}
-							fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+				if msg.IsPeer2Peer() {
+					// Must have a Peer to send a message to a peer
+					if len(fnode.Peers) > 0 {
+						if p < 0 {
+							p = rand.Int() % len(fnode.Peers)
+						}
+						fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
+						if !fnode.State.GetNetStateOff() {
 							preSendTime := time.Now()
-//							messages.LogMessage(logName, "Send to peer", msg)
 							fnode.Peers[p].Send(msg)
 							sendTime := time.Since(preSendTime)
 							TotalSendTime.Add(float64(sendTime.Nanoseconds()))
@@ -290,28 +269,29 @@ func NetworkOutputs(fnode *FactomNode) {
 						} else {
 //							messages.LogMessage(logName, "Drop noPeers", msg)
 						}
-					} else {
-						for i, peer := range fnode.Peers {
-							wt := 1
-							if p >= 0 {
-								wt = fnode.Peers[p].Weight()
-							}
-							// Don't resend to the node that sent it to you.
-							if i != p || wt > 1 {
-								bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-								fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-								if !fnode.State.GetNetStateOff() {
-									preSendTime := time.Now()
-									peer.Send(msg)
-									sendTime := time.Since(preSendTime)
-									TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-									if fnode.State.MessageTally {
-										fnode.State.TallySent(int(msg.Type()))
-									}
+					
+				} else {
+					for i, peer := range fnode.Peers {
+						wt := 1
+						if p >= 0 {
+							wt = fnode.Peers[p].Weight()
+						}
+						// Don't resend to the node that sent it to you.
+						if i != p || wt > 1 {
+							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+							fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+							if !fnode.State.GetNetStateOff() {
+								preSendTime := time.Now()
+								peer.Send(msg)
+								sendTime := time.Since(preSendTime)
+								TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+								if fnode.State.MessageTally {
+									fnode.State.TallySent(int(msg.Type()))
 								}
 							}
-						} // for all peers
-					}
+						}
+					}// for all peers
+                                  }
 				} else {
 //					messages.LogMessage(logName, "Drop networkOff", msg)
 				}
@@ -325,15 +305,18 @@ func NetworkOutputs(fnode *FactomNode) {
 // Just throw away the trash
 func InvalidOutputs(fnode *FactomNode) {
 	for {
-		time.Sleep(1 * time.Millisecond) // TODO: Isn't this pointless since the channel will block? -- Clay
+		time.Sleep(1 * time.Millisecond)
 		invalidMsg := <-fnode.State.NetworkInvalidMsgQueue()
 		//fmt.Println(invalidMsg)
 
 		// The following code was giving a demerit for each instance of a message in the NetworkInvalidMsgQueue.
-		// However the consensus system is not properly limiting the messages going into this queue to be ones
+		// However the concensus system is not properly limiting the messages going into this queue to be ones
 		//  indicating an attack.  So the demerits are turned off for now.
+		// if len(invalidMsg.GetNetworkOrigin()) > 0 {
+		// 	p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
+		// }
 		if false && len(invalidMsg.GetNetworkOrigin()) > 0 {
 			p2pNetwork.AdjustPeerQuality(invalidMsg.GetNetworkOrigin(), -2)
 		}
-	} // forever
+	}
 }

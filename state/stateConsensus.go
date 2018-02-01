@@ -1491,7 +1491,6 @@ func (s *State) ProcessEOM(dbheight uint32, msg interfaces.IMsg) bool {
 			s.TempBalanceHash = s.FactoidState.GetBalanceHash(true)
 		}
 		s.SendHeartBeat()
-		return true
 	}
 
 	// What I do once  for all VMs at the beginning of processing a particular EOM
