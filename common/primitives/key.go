@@ -186,9 +186,7 @@ func (k *PublicKey) Verify(msg []byte, sig *[ed25519.SignatureSize]byte) bool {
 }
 
 func (k *PublicKey) MarshalBinary() ([]byte, error) {
-	var buf Buffer
-	buf.Write(k[:])
-	return buf.DeepCopyBytes(), nil
+	return k[:], nil
 }
 
 func (k *PublicKey) UnmarshalBinaryData(p []byte) ([]byte, error) {

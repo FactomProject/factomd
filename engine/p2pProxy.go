@@ -155,8 +155,8 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 				fmessage := data.(FactomMessage)
 				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
-				//TODO: Log here -- clay
-				logName := globals.NodeName + "_broadcast_i" + ".txt"
+
+				logName := globals.FactomNodeName + "BroadcastIn_o" + ".txt"
 				messages.LogMessage(logName, "", msg)
 
 				if err != nil {
@@ -295,7 +295,9 @@ func (p *P2PProxy) ManageLogging() {
 
 // manageOutChannel takes messages from the f.broadcastOut channel and sends them to the network.
 func (f *P2PProxy) ManageOutChannel() {
+
 	for data := range f.BroadcastOut {
+
 		switch data.(type) {
 		case FactomMessage:
 			fmessage := data.(FactomMessage)

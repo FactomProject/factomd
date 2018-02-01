@@ -17,7 +17,6 @@ import (
 
 	"github.com/FactomProject/factomd/globals"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 	"strings"
 )
 
@@ -79,7 +78,7 @@ var connectionStateStrings = map[uint8]string{
 	ConnectionClosed:       "Closed",
 }
 
-// ConnectionParcel is sent to convey an appication message destined for the network.
+// ConnectionParcel is sent to convey an application message destined for the network.
 type ConnectionParcel struct {
 	Parcel Parcel
 }
@@ -450,13 +449,6 @@ func (c *Connection) handleCommand() {
 	}
 }
 
-func Parcel2String(msg *Parcel) string {
-	t, _ := strconv.Atoi(msg.Header.AppType)
-	embeddedHash := ""
-
-	r := fmt.Sprintf("%s %26s[%2v]:%v%v", msg.Header.AppHash[:8], messages.MessageName(byte(t)), t, msg.Header.AppHash[:8], embeddedHash)
-	return r
-}
 
 func (c *Connection) sendParcel(parcel Parcel) {
 
@@ -473,7 +465,7 @@ func (c *Connection) sendParcel(parcel Parcel) {
 	err := encode.Encode(parcel)
 
 	// TODO: add logging here -- clay
-	logName := globals.NodeName + "_connection_o_" + strings.Replace(c.conn.LocalAddr().String(), ":", "-", 1) + ".txt"
+	logName := globals.FactomNodeName + "_connection_o_" + strings.Replace(c.conn.LocalAddr().String(), ":", "-", 1) + ".txt"
 	messages.LogParcel(logName, "", Parcel2String(&parcel))
 
 	switch {
@@ -565,7 +557,7 @@ func (c *Connection) handleParcel(parcel Parcel) {
 	validity := c.parcelValidity(parcel)
 
 	// TODO: add logging here -- clay
-	logName := globals.NodeName + "_connection_i_" + strings.Replace(c.conn.RemoteAddr().String(), ":", "-", 1) + ".txt"
+	logName := globals.FactomNodeName + "_connection_i_" + strings.Replace(c.conn.RemoteAddr().String(), ":", "-", 1) + ".txt"
 	messages.LogParcel(logName, "", Parcel2String(&parcel))
 
 	switch validity {

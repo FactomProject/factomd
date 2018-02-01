@@ -1,0 +1,2 @@
+#!/bin/bash
+  grep -E "$1" $2*.txt | awk ' {f = substr($1,0,index($1,":")); printf "%-212s:%s\n", substr($0,length(f)+1),f}' | sort -n | grep --color=always -E "$1" | less -R

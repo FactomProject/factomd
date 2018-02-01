@@ -106,7 +106,7 @@ type State struct {
 	Authorities          []*Authority     // Identities of all servers in management chain
 	AuthorityServerCount int              // number of federated or audit servers allowed
 
-	// Just to print (so debugging doesn't drive functionaility)
+	// Just to print (so debugging doesn't drive functionality)
 	Status      int // Return a status (0 do nothing, 1 provide queues, 2 provide consensus data)
 	serverPrt   string
 	StatusMutex sync.Mutex

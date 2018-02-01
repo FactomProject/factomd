@@ -251,7 +251,7 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 	}
 ValidSignatures: // Goto here if signatures pass
 
-	// ValidateData will ensure all the data given matches the DBlock
+// ValidateData will ensure all the data given matches the DBlock
 	return m.ValidateData(state)
 }
 
@@ -340,10 +340,18 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 	// If there is a repeat signature, we do not count it twice
 	sigmap := make(map[string]bool)
 	for _, sig := range m.SignatureList.List {
+
+		// check expected signature
 		if sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] {
 			continue // Toss duplicate signatures
 		}
 		sigmap[fmt.Sprintf("%x", sig.GetSignature()[:])] = true
+		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
+		if err == nil && check >= 0 {
+			validSigCount++
+			continue
+		}
+		// it was not the expected signature check the boot strap
 		//Check signature against the Skeleton key
 		authoritativeKey := state.GetNetworkBootStrapKey()
 		if authoritativeKey != nil {
@@ -354,13 +362,7 @@ func (m *DBStateMsg) SigTally(state interfaces.IState) int {
 				}
 			}
 		}
-
-		check, err := state.VerifyAuthoritySignature(data, sig.GetSignature(), dbheight)
-		if err == nil && check >= 0 {
-			validSigCount++
-			continue
-		}
-
+		// save the unverified sig so we can check for leadership changes later on
 		if sig.Verify(data) {
 			remainingSig = append(remainingSig, sig)
 		}
@@ -677,12 +679,12 @@ func (m *DBStateMsg) String() string {
 
 func (m *DBStateMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dbstate",
-		"dbheight":    m.DirectoryBlock.GetHeader().GetDBHeight(),
-		"dblockhash":  m.DirectoryBlock.GetKeyMR().String(),
-		"ablockhash":  m.AdminBlock.GetHash().String(),
-		"fblockhash":  m.FactoidBlock.GetHash().String(),
+		"dbheight": m.DirectoryBlock.GetHeader().GetDBHeight(),
+		"dblockhash": m.DirectoryBlock.GetKeyMR().String(),
+		"ablockhash": m.AdminBlock.GetHash().String(),
+		"fblockhash": m.FactoidBlock.GetHash().String(),
 		"ecblockhash": m.EntryCreditBlock.GetHash().String(),
-		"hash":        m.GetHash().String()}
+		"hash": m.GetHash().String()}
 }
 
 func NewDBStateMsg(timestamp interfaces.Timestamp,

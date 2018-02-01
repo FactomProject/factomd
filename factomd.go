@@ -198,7 +198,7 @@ func launchDebugServer(service string) {
 			writer := bufio.NewWriter(connection) // if we want to send something back to the telnet
 			reader := bufio.NewReader(connection)
 
-			writer.WriteString("Hello from Factom " + globals.NodeName + " Debug Console\n")
+			writer.WriteString("Hello from Factom " + globals.FactomNodeName + " Debug Console\n")
 			writer.Flush()
 			// copy stderr to debug console
 			go func() {

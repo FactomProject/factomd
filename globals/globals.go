@@ -1,3 +1,3 @@
 package globals
 
-var NodeName string
+var FactomNodeName string

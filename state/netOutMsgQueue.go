@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/globals"
 )
 
 // NetOutMsgQueue counts incoming and outgoing messages for netout queue
@@ -25,6 +26,8 @@ func (q NetOutMsgQueue) Cap() int {
 // Enqueue adds item to channel and instruments based on type
 func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
 	measureMessage(TotalMessageQueueNetOutMsgGeneralVec, m, true)
+
+
 	q <- m
 }
 

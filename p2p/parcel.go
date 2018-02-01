@@ -10,6 +10,8 @@ import (
 	"hash/crc32"
 	"strconv"
 	"time"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 )
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
@@ -188,4 +190,56 @@ func (p *Parcel) String() string {
 	output = fmt.Sprintf("%s\t NodeID:\t%d\n", output, p.Header.NodeID)
 	output = fmt.Sprintf("%s\t Payload: %s\n", output, s)
 	return output
+}
+
+func Parcel2String(p *Parcel) string {
+	extraInfo :=""
+	r:=""
+	switch p.Header.Type {
+	case TypeHeartbeat,   // "Note, I'm still alive"
+		TypePing,         // "Are you there?"
+		TypePong,         // "yes, I'm here"
+		TypePeerRequest,  // "Please share some peers"
+		TypePeerResponse, // "Here's some peers I know about."
+		TypeAlert:        // network wide alerts (used in bitcoin to indicate criticalities)
+		r = fmt.Sprintf("%s %26s[%2v]", p.Header.AppHash[:8], CommandStrings[p.Header.Type], p.Header.Type)
+
+	case TypeMessage: // Application level message
+		msgType, _ := strconv.Atoi(p.Header.AppType)
+		switch byte(msgType) {
+		case constants.EOM_MSG:
+		case constants.ACK_MSG:
+		case constants.AUDIT_SERVER_FAULT_MSG:
+		case constants.FED_SERVER_FAULT_MSG:
+		case constants.FULL_SERVER_FAULT_MSG:
+		case constants.COMMIT_CHAIN_MSG:
+		case constants.COMMIT_ENTRY_MSG:
+		case constants.DIRECTORY_BLOCK_SIGNATURE_MSG:
+		case constants.EOM_TIMEOUT_MSG:
+		case constants.FACTOID_TRANSACTION_MSG:
+		case constants.HEARTBEAT_MSG:
+		case constants.INVALID_ACK_MSG:
+		case constants.INVALID_DIRECTORY_BLOCK_MSG:
+		case constants.MISSING_MSG:
+		case constants.MISSING_MSG_RESPONSE:
+		case constants.MISSING_DATA:
+		case constants.DATA_RESPONSE:
+		case constants.REVEAL_ENTRY_MSG:
+		case constants.REQUEST_BLOCK_MSG:
+		case constants.SIGNATURE_TIMEOUT_MSG:
+		case constants.DBSTATE_MISSING_MSG:
+		case constants.DBSTATE_MSG:
+		case constants.BOUNCE_MSG:
+		case constants.BOUNCEREPLY_MSG:
+		default:
+		}
+		r = fmt.Sprintf("%s %26s[%2v]", p.Header.AppHash[:8], messages.MessageName(byte(msgType)))
+
+	case TypeMessagePart:                   // Application level message that was split into multiple parts
+		debug("Parcel2String","unexpected TypeMessagePart") // we don't do this at this point
+	default:
+		r = fmt.Sprintf("%s %26s[%2v]", "UnknownParcelType", p.Header.AppHash[:8],  p.Header.Type)
+	}
+
+	return r+extraInfo
 }

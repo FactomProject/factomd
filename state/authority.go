@@ -375,6 +375,7 @@ func registerAuthAnchor(chainID interfaces.IHash, signingKey []byte, keyType byt
 	st.Authorities[AuthorityIndex].AnchorKeys = newASK
 }
 
+
 func addServerSigningKey(chainID interfaces.IHash, key interfaces.IHash, height uint32, st *State) {
 	AuthorityIndex := st.AddAuthorityFromChainID(chainID)
 	if st.IdentityChainID.IsSameAs(chainID) && len(st.serverPendingPrivKeys) > 0 {
@@ -398,10 +399,12 @@ func addServerSigningKey(chainID interfaces.IHash, key interfaces.IHash, height 
 		}
 	}
 	// Add Key History
-	st.Authorities[AuthorityIndex].KeyHistory = append(st.Authorities[AuthorityIndex].KeyHistory, struct {
-		ActiveDBHeight uint32
-		SigningKey     primitives.PublicKey
-	}{height, st.Authorities[AuthorityIndex].SigningKey})
+	if st.Authorities[AuthorityIndex].SigningKey != ZeroKey {
+		st.Authorities[AuthorityIndex].KeyHistory = append(st.Authorities[AuthorityIndex].KeyHistory, struct {
+			ActiveDBHeight uint32
+			SigningKey     primitives.PublicKey
+		}{height, st.Authorities[AuthorityIndex].SigningKey})
+	}
 	// Replace Active Key
 	st.Authorities[AuthorityIndex].SigningKey = primitives.PubKeyFromString(key.String())
 }

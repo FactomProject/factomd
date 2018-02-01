@@ -38,7 +38,8 @@ var _ = (*hash.Hash32)(nil)
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
-	var debugExec bool = (globals.NodeName == "xFNode0")
+	debugExec := (s.FactomNodeName == "xFNode0" || s.FactomNodeName == "FNode0")
+	logName := s.FactomNodeName + "_executeMsg" + ".txt"
 
 	preExecuteMsgTime := time.Now()
 	_, ok := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -46,7 +47,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		consenLogger.WithFields(msg.LogFields()).Debug("ExecuteMsg (Replay Invalid)")
 
 		if debugExec {
-			logName := globals.NodeName + "_executeMsg" + ".txt"
 			messages.LogMessage(logName, "replayInvalid", msg)
 		}
 
@@ -59,14 +59,14 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		now := s.GetTimestamp().GetTimeSeconds()
 		if now-msg.GetTimestamp().GetTimeSeconds() > 60*15 {
 			if debugExec {
-				logName := globals.NodeName + "_executeMsg" + ".txt"
 				messages.LogMessage(logName, "ignoreMissing", msg)
 			}
 			return
 		}
 	}
 
-	switch msg.Validate(s) {
+	valid := msg.Validate(s)
+	switch valid {
 	case 1:
 		if s.RunLeader &&
 			s.Leader &&
@@ -75,7 +75,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				s.SendDBSig(s.LLeaderHeight, s.LeaderVMIndex)
 				TotalXReviewQueueInputs.Inc()
 				if debugExec {
-					logName := globals.NodeName + "_executeMsg" + ".txt"
 					messages.LogMessage(logName, "XReview", msg)
 				}
 				s.XReview = append(s.XReview, msg)
@@ -85,14 +84,13 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 				(!s.Syncing || !vm.Synced) &&
 				(msg.IsLocal() || msg.GetVMIndex() == s.LeaderVMIndex) &&
 				s.LeaderPL.DBHeight+1 >= s.GetHighestKnownBlock() {
-				logName := globals.NodeName + "_executeMsg" + ".txt"
 				if debugExec {
 					messages.LogMessage(logName, "LeaderExecute", msg)
-					msg.LeaderExecute(s)
 				}
+				msg.LeaderExecute(s)
+
 			} else {
 				if debugExec {
-					logName := globals.NodeName + "_executeMsg" + ".txt"
 					messages.LogMessage(logName, "FollowerExecute1", msg)
 				}
 				msg.FollowerExecute(s)
@@ -100,7 +98,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
 		} else {
 			if debugExec {
-				logName := globals.NodeName + "_executeMsg" + ".txt"
 				messages.LogMessage(logName, "FollowerExecute2", msg)
 			}
 			msg.FollowerExecute(s)
@@ -111,7 +108,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
 		if debugExec {
-			logName := globals.NodeName + "_executeMsg" + ".txt"
 			messages.LogMessage(logName, "Holding1", msg)
 		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
@@ -120,7 +116,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		TotalHoldingQueueInputs.Inc()
 		TotalHoldingQueueRecycles.Inc()
 		if debugExec {
-			logName := globals.NodeName + "_executeMsg" + ".txt"
 			messages.LogMessage(logName, "Holding2", msg)
 		}
 		s.Holding[msg.GetMsgHash().Fixed()] = msg
@@ -128,7 +123,6 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 		if !msg.SentInvalid() {
 			msg.MarkSentInvalid(true)
 			if debugExec {
-				logName := globals.NodeName + "_executeMsg" + ".txt"
 				messages.LogMessage(logName, "InvalidMsg", msg)
 			}
 			s.networkInvalidMsgQueue <- msg
@@ -143,6 +137,7 @@ func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 }
 
 func (s *State) Process() (progress bool) {
+	var debugExec bool = (s.FactomNodeName == "xFNode0" || s.FactomNodeName == "FNode0")
 
 	if s.ResetRequest {
 		s.ResetRequest = false
@@ -214,9 +209,9 @@ ackLoop:
 	for room() {
 		select {
 		case ack := <-s.ackQueue:
-			logName := globals.NodeName + "_ackQueue_o" + ".txt"
-			messages.LogMessage(logName, "", ack)
-
+			if debugExec {
+				messages.LogMessage(globals.FactomNodeName+ "_ackQueue_o" + ".txt", "", ack)
+			}
 			a := ack.(*messages.Ack)
 			if ack.Validate(s) == 1 { // took out a.DBHeight >= s.LLeaderHeight &&
 				if s.IgnoreMissing {
@@ -224,13 +219,17 @@ ackLoop:
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
 						s.executeMsg(vm, ack)
 					} else {
-						messages.LogMessage(logName, "Drop tooOld", ack)
+						if debugExec {
+							messages.LogMessage(globals.FactomNodeName+ "_ackQueue_o" + ".txt", "Drop tooOld", ack)
+						}
 					}
 				} else {
 					s.executeMsg(vm, ack)
 				}
 			} else {
-				messages.LogMessage(logName, "Drop2", ack) // Maybe put it back in the ask queue ? -- clay
+				if debugExec {
+					messages.LogMessage(globals.FactomNodeName+ "_ackQueue_o" + ".txt", "Drop2", ack) // Maybe put it back in the ask queue ? -- clay
+					 }
 			}
 			progress = true
 		default:
@@ -248,8 +247,9 @@ emptyLoop:
 	for room() {
 		select {
 		case msg := <-s.msgQueue:
-			logName := globals.NodeName + "_msgQueue_o" + ".txt"
-			messages.LogMessage(logName, "", msg)
+			if debugExec {
+				messages.LogMessage(globals.FactomNodeName+ "_msgQueue_o" + ".txt", "", msg)
+			}
 
 			if s.executeMsg(vm, msg) && !msg.IsPeer2Peer() {
 				msg.SendOut(s, msg)
@@ -779,9 +779,22 @@ func (s *State) FollowerExecuteDBState(msg interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
+	var debugExec bool = (s.FactomNodeName == "xFNode0" || s.FactomNodeName == "FNode0")
+	logName := globals.FactomNodeName + "_executeMsg" + ".txt"
 
 	// Just ignore missing messages for a period after going off line or starting up.
 	if s.IgnoreMissing || s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+		//TODO: Log here -- clay
+		if s.IgnoreMissing {
+			if debugExec {
+				messages.LogMessage(logName, "Drop IgnoreMissing", m)
+			}
+		}
+		if s.inMsgQueue.Length() > constants.INMSGQUEUE_HIGH {
+			if debugExec {
+				messages.LogMessage(logName, "Drop INMSGQUEUE_HIGH", m)
+			}
+		}
 		return
 	}
 
@@ -818,6 +831,7 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 
 	// If we don't need this message, we don't have to do everything else.
 	if !ok || ack.Validate(s) == -1 {
+		messages.LogMessage(logName, "Drop noAck", m)
 		return
 	}
 
@@ -825,12 +839,14 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	msg := mmr.MsgResponse
 
 	if msg == nil {
+		messages.LogMessage(logName, "Drop nil message", m)
 		return
 	}
 
 	pl := s.ProcessLists.Get(ack.DBHeight)
 
 	if pl == nil {
+		messages.LogMessage(logName, "Drop No Processlist", m)
 		return
 	}
 	_, okm := s.Replay.Valid(constants.INTERNAL_REPLAY, msg.GetRepeatHash().Fixed(), msg.GetTimestamp(), s.GetTimestamp())
@@ -838,11 +854,16 @@ func (s *State) FollowerExecuteMMR(m interfaces.IMsg) {
 	TotalAcksInputs.Inc()
 
 	if okm {
+		if debugExec {
+			messages.LogMessage(logName, "FollowerExecute3", msg)
+		}
 		msg.FollowerExecute(s)
 	}
 
-	ack.FollowerExecute(s)
-
+	{
+		messages.LogMessage(logName, "FollowerExecute4", ack)
+		ack.FollowerExecute(s)
+	}
 	s.MissingResponseAppliedCnt++
 
 }
@@ -898,6 +919,8 @@ func (s *State) FollowerExecuteDataResponse(m interfaces.IMsg) {
 }
 
 func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
+	var debugExec bool = (s.FactomNodeName == "xFNode0" || s.FactomNodeName == "FNode0")
+
 	// Don't respond to missing messages if we are behind.
 	if s.inMsgQueue.Length() > constants.INMSGQUEUE_LOW {
 		return
@@ -918,9 +941,10 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 		msgResponse.SetOrigin(m.GetOrigin())
 		msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
 
-		logName := globals.NodeName + "_NetworkOutMsgQueue_i" + ".txt"
-		messages.LogMessage(logName, "enqueue2", msg)
-
+		if debugExec {
+			logName := globals.FactomNodeName + "_NetworkOutMsgQueue_i" + ".txt"
+			messages.LogMessage(logName, "enqueue2", msg)
+		}
 		s.NetworkOutMsgQueue().Enqueue(msgResponse)
 		s.MissingRequestReplyCnt++
 		sent = true
@@ -934,9 +958,10 @@ func (s *State) FollowerExecuteMissingMsg(msg interfaces.IMsg) {
 			msgResponse := messages.NewMissingMsgResponse(s, missingmsg, ackMsg)
 			msgResponse.SetOrigin(m.GetOrigin())
 			msgResponse.SetNetworkOrigin(m.GetNetworkOrigin())
-			logName := globals.NodeName + "_NetworkOutMsgQueue_i" + ".txt"
-			messages.LogMessage(logName, "enqueue3", msgResponse)
-
+			if debugExec {
+				logName := globals.FactomNodeName + "_NetworkOutMsgQueue_i" + ".txt"
+				messages.LogMessage(logName, "enqueue3", msgResponse)
+			}
 			s.NetworkOutMsgQueue().Enqueue(msgResponse)
 			s.MissingRequestReplyCnt++
 			sent = true

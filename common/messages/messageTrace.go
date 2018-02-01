@@ -52,10 +52,17 @@ func LogMessage(name string, note string, msg interfaces.IMsg) {
 		embeddedHash = fmt.Sprintf(" EmbeddedMsg %26v[%2v]:%v", MessageName(m.Type()), m.Type(), m.GetHash().String()[:8])
 	}
 
-
-	myfile.WriteString(fmt.Sprintf("%5v %20s %v %26s[%2v]:%v%v {%v}\n", seq, note, msg.GetMsgHash().String()[:8], MessageName(byte(t)), t, msg.GetHash().String()[:8], embeddedHash, msg.String()))
-
+	myfile.WriteString(fmt.Sprintf("%5v %20s %v %26s[%2v]:%v%v {%v}\n", seq, note, msg.GetMsgHash().String()[:8], MessageName(byte(t)), t,
+		msg.GetHash().String()[:8], embeddedHash, msg.String()))
 }
+func LogPrint(name string, note string) {
+	traceMutex.Lock()
+	defer traceMutex.Unlock()
+	myfile := getTraceFile(name)
+	seq := sequence
+	myfile.WriteString(fmt.Sprintf("%5v %s\n", seq, note))
+}
+
 
 // stringify it in the caller to avoid having to deal with the import loop
 func LogParcel(name string, note string, msg string) {

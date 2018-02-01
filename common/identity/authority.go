@@ -12,6 +12,10 @@ import (
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/FactomProject/factomd/globals"
+	"github.com/FactomProject/factomd/common/messages"
+	"fmt"
+	"sync"
 )
 
 type Authority struct {
@@ -24,6 +28,8 @@ type Authority struct {
 
 	KeyHistory []HistoricKey
 }
+
+var ZeroKey primitives.PublicKey // all zero public key
 
 var _ interfaces.BinaryMarshallable = (*Authority)(nil)
 
@@ -201,7 +207,9 @@ func (e *Authority) UnmarshalBinaryData(p []byte) (newData []byte, err error) {
 		if err != nil {
 			return
 		}
-		e.KeyHistory = append(e.KeyHistory, hk)
+		if hk.SigningKey != ZeroKey {
+			e.KeyHistory = append(e.KeyHistory, hk)
+		}
 	}
 
 	newData = buf.DeepCopyBytes()
@@ -223,29 +231,88 @@ func (auth *Authority) Type() int {
 	return -1
 }
 
+type foo struct {
+	Key [32]byte;
+	Msg []byte
+}
+
+var failsMutex sync.Mutex
+var fails map[[64]byte]foo
+
 func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LENGTH]byte) (bool, error) {
 	//return true, nil // Testing
-	var pub [32]byte
-	tmp, err := auth.SigningKey.MarshalBinary()
-	if err != nil {
-		return false, err
-	} else {
-		copy(pub[:], tmp)
-		valid := ed.VerifyCanonical(&pub, msg, sig)
-		if !valid {
-			for _, histKey := range auth.KeyHistory {
-				histTemp, err := histKey.SigningKey.MarshalBinary()
-				if err != nil {
-					continue
-				}
-				copy(pub[:], histTemp)
-				if ed.VerifyCanonical(&pub, msg, sig) {
-					return true, nil
-				}
-			}
+	var pub primitives.PublicKey
+
+	for i := 0; i < 2; i++ {
+		tmp, err := auth.SigningKey.MarshalBinary()
+
+		if err != nil {
+			return false, err
 		} else {
-			return true, nil
+			copy(pub[:], tmp)
+
+			if pub[0] == ZeroKey[0] {
+				fmt.Println("zero key byte")
+			}
+			if pub == ZeroKey {
+				fmt.Println("zero key whole key")
+			}
+
+			valid := ed.VerifyCanonical((*[32] byte)(&pub), msg, sig)
+			if !valid {
+				for _, histKey := range auth.KeyHistory {
+					histTemp, err := histKey.SigningKey.MarshalBinary()
+					if err != nil {
+						continue
+					}
+					copy(pub[:], histTemp)
+
+					if pub[0] == ZeroKey[0] {
+						fmt.Println("zero key byte")
+					}
+					if pub == ZeroKey {
+						fmt.Println("zero key whole key")
+					}
+
+
+					if pub != ZeroKey {
+						if ed.VerifyCanonical((*[32] byte)(&pub), msg, sig) {
+							failsMutex.Lock()
+							pc, ok := fails[*sig]
+							failsMutex.Unlock()
+							if ok {
+								logName := globals.FactomNodeName + "_executeMsg" + ".txt"
+								messages.LogPrint(logName,
+									fmt.Sprintf("VerifySig false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
+										fmt.Sprintf("VerifySig true1 key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+							}
+
+							return true, nil
+						}
+					}
+				}
+			} else {
+				failsMutex.Lock()
+				pc, ok := fails[*sig]
+				failsMutex.Unlock()
+				if ok {
+					logName := globals.FactomNodeName + "_executeMsg" + ".txt"
+					messages.LogPrint(logName,
+						fmt.Sprintf("VerifySig2 false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
+						fmt.Sprintf("VerifySig2  true key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+				}
+				return true, nil
+			}
 		}
+
+		//	logName := globals.FactomNodeName + "_executeMsg" + ".txt"
+		//	messages.LogPrint(logName, fmt.Sprintf("VerifySig false   key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+		failsMutex.Lock()
+		if (fails == nil) {
+			fails = make(map[[64]byte]foo)
+		}
+		fails[*sig] = foo{pub, msg}
+		failsMutex.Unlock()
 	}
 	return false, nil
 }

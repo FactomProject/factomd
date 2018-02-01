@@ -81,7 +81,7 @@ func (m *Ack) VerifySignature() (bool, error) {
 //  0   -- Cannot tell if message is Valid
 //  1   -- Message is valid
 func (m *Ack) Validate(state interfaces.IState) int {
-	logName := globals.NodeName + "_ackQueue_o" + ".txt"
+	logName := globals.FactomNodeName + "_ackQueue_o" + ".txt"
 
 	// ackloop in stateConsensus.go only checks for a 1 return so the 0 return in an unhandled case -- clay
 

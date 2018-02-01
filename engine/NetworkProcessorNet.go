@@ -30,6 +30,8 @@ func NetworkProcessorNet(fnode *FactomNode) {
 var myfile2 *os.File
 
 func Peers(fnode *FactomNode) {
+	debugExec := (fnode.State.FactomNodeName == "xFNode0" || fnode.State.FactomNodeName == "FNode0")
+
 	cnt := 0
 	saltReplayFilterOn := true
 
@@ -113,6 +115,12 @@ func Peers(fnode *FactomNode) {
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
+
+			if debugExec {
+				logName := globals.FactomNodeName + "_APIQueue_0" + ".txt"
+				messages.LogMessage(logName, "", msg)
+			}
+
 			if msg != nil {
 				if msg == nil {
 					continue
@@ -200,7 +208,7 @@ func Peers(fnode *FactomNode) {
 					fnode.MLog.Add2(fnode, false, peer.GetNameTo(), nme, true, msg)
 
 					//TODO: Log here -- clay
-					logName := globals.NodeName + "_InMsgQueue_i.txt"
+					logName := globals.FactomNodeName + "_InMsgQueue_i.txt"
 					messages.LogMessage(logName, "", msg)
 
 					ignore := ignoreMsg(msg)
@@ -240,7 +248,7 @@ func NetworkOutputs(fnode *FactomNode) {
 		// }
 		//msg := <-fnode.State.NetworkOutMsgQueue()
 		msg := fnode.State.NetworkOutMsgQueue().BlockingDequeue()
-		logName := globals.NodeName + "_NetworkOutMsgQueue_o" + ".txt"
+		logName := globals.FactomNodeName + "_NetworkOutMsgQueue_o" + ".txt"
 		messages.LogMessage(logName, "", msg)
 
 		NetworkOutTotalDequeue.Inc()
