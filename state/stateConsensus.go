@@ -1354,7 +1354,6 @@ func (s *State) SendDBSig(dbheight uint32, vmIndex int) {
 				dbs.SetVMHash(nil)
 				dbs.SetVMIndex(vmIndex)
 				dbs.SetLocal(true)
-				dbs.Sign(s)
 				err := dbs.Sign(s)
 				if err != nil {
 					panic(err)
