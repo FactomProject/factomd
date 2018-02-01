@@ -220,7 +220,6 @@ func Peers(fnode *FactomNode) {
 					// Ignore messages if there are too many.
 					if fnode.State.InMsgQueue().Length() < 9000 && !ignoreMsg(msg) {
 						if !crossBootIgnore(msg) {
-							fmt.Println("InMsg <-:", msg.String())
 							fnode.State.InMsgQueue().Enqueue(msg)
 						}
 					}
