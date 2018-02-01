@@ -77,11 +77,6 @@ const (
 	//==================
 	// Limit on size of keys, since Maps in Go can't handle variable length keys.
 
-	// Cross Boot Replay
-	//==================
-	// This is the salt filter on rebooting leaders. How long should the filter last for?
-	CROSSBOOT_SALT_REPLAY_DURATION = time.Minute * 10
-
 	// Wallet
 	//==================
 	// Holds the root seeds for address generation

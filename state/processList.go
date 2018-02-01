@@ -956,7 +956,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	//
 	if !ack.Response && ack.LeaderChainID.IsSameAs(p.State.IdentityChainID) {
 		now := p.State.GetTimestamp()
-		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 30 {
+		if now.GetTimeSeconds()-ack.Timestamp.GetTimeSeconds() > 120 {
 			// Us and too old?  Just ignore.
 			return
 		}

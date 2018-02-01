@@ -247,7 +247,9 @@ type IState interface {
 	SetIsReplaying()
 	SetIsDoneReplaying()
 
-	CrossReplayAddSalt(salt [8]byte) error
+	CrossReplayAddHash(height uint32, hash IHash) error
+	CrossReplayExists(height uint32, hash IHash) (bool, error)
+	CrossReplayAddSalt(height uint32, salt [8]byte) error
 
 	// No Entry Yet returns true if no Entry Hash is found in the Replay structs.
 	// Returns false if we have seen an Entry Replay in the current period.
