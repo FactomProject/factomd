@@ -1,3 +1,3 @@
 package globals
 
-var FactomNodeName string
+var FactomNodeName string // only right for single node systems

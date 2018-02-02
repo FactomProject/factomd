@@ -93,8 +93,8 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 		if err != nil {
 			verbose("peer", "LocationFromAddress(%v) failed. %v ", p.Address, err)
 			silence("peer", "Invalid Peer Address: %v", p.Address)
-                        verbose("peer", "Peer: %s has Location: %d", p.Hash, 0)
-                        return 0
+			verbose("peer", "Peer: %s has Location: %d", p.Hash, location)
+                        return location // We use location on 0 to say invalid
 		}
 		p.Address = ipAddress[0]
 		ip = net.ParseIP(p.Address)

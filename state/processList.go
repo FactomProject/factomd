@@ -1034,7 +1034,7 @@ func (p *ProcessList) AddToProcessList(ack *messages.Ack, m interfaces.IMsg) {
 	}
 
 	if int(ack.Height)-len(vm.List) > 1 {
-		fmt.Println("unexpected nil")
+		fmt.Println("unexpected nil") // A place to put a breakpoint
 	}
 
 	delete(p.State.Acks, m.GetMsgHash().Fixed())

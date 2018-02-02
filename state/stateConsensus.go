@@ -38,7 +38,7 @@ var _ = (*hash.Hash32)(nil)
 
 func (s *State) executeMsg(vm *VM, msg interfaces.IMsg) (ret bool) {
 
-	debugExec := (s.FactomNodeName == "xFNode0" || s.FactomNodeName == "FNode0")
+	debugExec := false && (s.FactomNodeName == "xFNode0" || s.FactomNodeName == "FNode0")
 	logName := s.FactomNodeName + "_executeMsg" + ".txt"
 
 	preExecuteMsgTime := time.Now()

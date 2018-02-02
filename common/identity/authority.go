@@ -5,9 +5,8 @@
 package identity
 
 import (
-	"encoding/json"
-
 	"fmt"
+	"encoding/json"
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
@@ -243,55 +242,57 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 	//return true, nil // Testing
 	var pub primitives.PublicKey
 
-	for i := 0; i < 2; i++ {
-		tmp, err := auth.SigningKey.MarshalBinary()
+	tmp, err := auth.SigningKey.MarshalBinary()
 
-		if err != nil {
-			return false, err
-		} else {
-			copy(pub[:], tmp)
-
-			if pub[0] == ZeroKey[0] {
-				fmt.Println("zero key byte")
-			}
-			if pub == ZeroKey {
-				fmt.Println("zero key whole key")
-			}
-
-			valid := ed.VerifyCanonical((*[32]byte)(&pub), msg, sig)
-			if !valid {
-				for _, histKey := range auth.KeyHistory {
-					histTemp, err := histKey.SigningKey.MarshalBinary()
-					if err != nil {
-						continue
-					}
-					copy(pub[:], histTemp)
-
-					if pub == ZeroKey {
-						fmt.Println("zero key whole key")
-					}
-
-					if pub != ZeroKey {
-						if ed.VerifyCanonical((*[32]byte)(&pub), msg, sig) {
-							if false {
-								failsMutex.Lock()
-								pc, ok := fails[*sig]
-								failsMutex.Unlock()
-								if ok {
-									logName := globals.FactomNodeName + "_executeMsg" + ".txt"
-									messages.LogPrint(logName,
-										fmt.Sprintf("VerifySig false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
-											fmt.Sprintf("VerifySig true1 key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
-								}
-							}
-							return true, nil
-						}
-					}
-			} else {
-				return true, nil
-		}
+	if err != nil {
+		fmt.Println("Can't unmarshal a key!")
+		return false, err
 	}
-	return false, nil
+	copy(pub[:], tmp)
+
+	if pub == ZeroKey {
+		fmt.Println("zero key whole key")
+		return false, err
+	}
+
+	valid := ed.VerifyCanonical((*[32]byte)(&pub), msg, sig)
+	if valid {
+		return true, nil
+	}
+
+	// check the historical keys
+	for _, histKey := range auth.KeyHistory {
+		histTemp, err := histKey.SigningKey.MarshalBinary()
+		if err != nil {
+			continue
+		}
+		copy(pub[:], histTemp)
+
+		if pub == ZeroKey {
+			fmt.Println("zero key whole key")
+		}
+
+		if pub != ZeroKey {
+			if ed.VerifyCanonical((*[32]byte)(&pub), msg, sig) {
+				// debug ...
+				if false {
+					failsMutex.Lock()
+					pc, ok := fails[*sig]
+					failsMutex.Unlock()
+					if ok {
+						logName := globals.FactomNodeName + "_executeMsg" + ".txt"
+						messages.LogPrint(logName,
+							fmt.Sprintf("VerifySig false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg) + "\n"+
+								fmt.Sprintf("VerifySig true1 key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
+					}
+				}
+				// debug ...
+				return true, nil
+			}
+		}
+	} // for all the historical keys
+
+	return false, nil // Didn't find a key among the historical keys
 }
 
 func (auth *Authority) MarshalJSON() ([]byte, error) {
@@ -331,6 +332,7 @@ func statusToJSONString(status uint8) string {
 		return "none"
 	case constants.IDENTITY_SKELETON:
 		return "skeleton"
+	default:
+		return fmt.Sprintf("Unknown status 0x%x", status)
 	}
-	return "NA"
 }
