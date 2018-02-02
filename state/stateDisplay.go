@@ -48,6 +48,7 @@ type DisplayState struct {
 	// DataDump
 	RawSummary   string
 	PrintMap     string
+	ProcessList0 string
 	ProcessList  string
 	ProcessList2 string
 }
@@ -218,14 +219,18 @@ func DeepStateDisplayCopy(s *State) (*DisplayState, error) {
 		}
 	}
 
+	pl0 := s.ProcessLists.GetSafe(b + 1)
+	if pl0 != nil {
+		ds.ProcessList0 = pl0.String()
+	} else {
+		ds.ProcessList0 = fmt.Sprintf("Process list %d is nil\n", b+1)
+
+	}
+
 	var pl2 *ProcessList
-	if b > 3 {
-		b--
-		pl2 = s.ProcessLists.GetSafe(b)
-		if pl == nil {
-			b--
-			pl2 = s.ProcessLists.GetSafe(b)
-		}
+	pl2 = s.ProcessLists.GetSafe(b - 1)
+	if pl2 == nil {
+		ds.ProcessList2 = fmt.Sprintf("Process list %d is nil\n", b-1)
 	}
 
 	if pl != nil && pl.FedServers != nil {
@@ -273,6 +278,8 @@ func (d *DisplayState) Clone() *DisplayState {
 	ds.RawSummary = d.RawSummary
 	ds.PrintMap = d.PrintMap
 	ds.ProcessList = d.ProcessList
+	ds.ProcessList2 = d.ProcessList2
+	ds.ProcessList0 = d.ProcessList0
 
 	return ds
 }
