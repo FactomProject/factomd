@@ -7,14 +7,14 @@ package identity
 import (
 	"encoding/json"
 
+	"fmt"
 	ed "github.com/FactomProject/ed25519"
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
+	"github.com/FactomProject/factomd/common/messages"
 	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/FactomProject/factomd/globals"
-	"github.com/FactomProject/factomd/common/messages"
-	"fmt"
 	"sync"
 )
 
@@ -232,7 +232,7 @@ func (auth *Authority) Type() int {
 }
 
 type foo struct {
-	Key [32]byte;
+	Key [32]byte
 	Msg []byte
 }
 
@@ -258,7 +258,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 				fmt.Println("zero key whole key")
 			}
 
-			valid := ed.VerifyCanonical((*[32] byte)(&pub), msg, sig)
+			valid := ed.VerifyCanonical((*[32]byte)(&pub), msg, sig)
 			if !valid {
 				for _, histKey := range auth.KeyHistory {
 					histTemp, err := histKey.SigningKey.MarshalBinary()
@@ -272,7 +272,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 					}
 
 					if pub != ZeroKey {
-						if ed.VerifyCanonical((*[32] byte)(&pub), msg, sig) {
+						if ed.VerifyCanonical((*[32]byte)(&pub), msg, sig) {
 							if false {
 								failsMutex.Lock()
 								pc, ok := fails[*sig]
@@ -280,7 +280,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 								if ok {
 									logName := globals.FactomNodeName + "_executeMsg" + ".txt"
 									messages.LogPrint(logName,
-										fmt.Sprintf("VerifySig false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg) + "\n"+
+										fmt.Sprintf("VerifySig false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
 											fmt.Sprintf("VerifySig true1 key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
 								}
 							}
@@ -296,7 +296,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 					if ok {
 						logName := globals.FactomNodeName + "_executeMsg" + ".txt"
 						messages.LogPrint(logName,
-							fmt.Sprintf("VerifySig2 false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg) + "\n"+
+							fmt.Sprintf("VerifySig2 false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
 								fmt.Sprintf("VerifySig2  true key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
 					}
 				}
@@ -307,7 +307,7 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 			//	logName := globals.FactomNodeName + "_executeMsg" + ".txt"
 			//	messages.LogPrint(logName, fmt.Sprintf("VerifySig false   key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
 			failsMutex.Lock()
-			if (fails == nil) {
+			if fails == nil {
 				fails = make(map[[64]byte]foo)
 			}
 			fails[*sig] = foo{pub, msg}

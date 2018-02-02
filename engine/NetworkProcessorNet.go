@@ -12,7 +12,6 @@ import (
 	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"github.com/FactomProject/factomd/common/messages"
-	"github.com/FactomProject/factomd/common/primitives"
 	"github.com/FactomProject/factomd/log"
 )
 
@@ -82,12 +81,13 @@ func Peers(fnode *FactomNode) {
 			}
 		}
 
-		// If we are not syncing, we may ignore some old messages if we are rebooting based on salts
+		// If we are not syncing, we may ignore some old messages if we are rebooting
 
 		return false
 	}
 
 	for {
+		// fmt.Println("Sinceboot", sinceBoot)
 
 		for i := 0; i < 100 && fnode.State.APIQueue().Length() > 0; i++ {
 			msg := fnode.State.APIQueue().Dequeue()
@@ -180,17 +180,14 @@ func Peers(fnode *FactomNode) {
 					// Ignore messages if there are too many.
 					ignore := ignoreMsg(msg)
 					if ignore {
-//						messages.LogMessage(logName, "ignore", msg)
+						//						messages.LogMessage(logName, "ignore", msg)
 					}
 					if !(fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX) {
-//						messages.LogMessage(logName, "drop", msg)
-					}
-					if crossBootIgnore(msg) {
-//						messages.LogMessage(logName, "crossBootIgnore", msg)
+						//						messages.LogMessage(logName, "drop", msg)
 					}
 
 					// Ignore messages if there are too many.
-					if fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX && !ignore{
+					if fnode.State.InMsgQueue().Length() < constants.INMSGQUEUE_MAX && !ignore {
 						fnode.State.InMsgQueue().Enqueue(msg)
 					}
 				} else {
@@ -227,27 +224,26 @@ func NetworkOutputs(fnode *FactomNode) {
 				// seen this message before, because we might have generated the message
 				// ourselves.
 				if msg.GetRepeatHash() == nil {
-messages.LogMessage(logName, "Drop nilRepeatHash", msg)
+					//					messages.LogMessage(logName, "Drop nilRepeatHash", msg)
 					continue
 				}
 
-					fnode.State.Replay.IsTSValid_(
-						constants.NETWORK_REPLAY,
-						msg.GetRepeatHash().Fixed(),
-						msg.GetTimestamp(),
-						fnode.State.GetTimestamp())
+				fnode.State.Replay.IsTSValid_(
+					constants.NETWORK_REPLAY,
+					msg.GetRepeatHash().Fixed(),
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp())
 
 				p := msg.GetOrigin() - 1
 
 				if !fnode.State.GetNetStateOff() {
-				if msg.IsPeer2Peer() {
-					// Must have a Peer to send a message to a peer
-					if len(fnode.Peers) > 0 {
-						if p < 0 {
-							p = rand.Int() % len(fnode.Peers)
-						}
-						fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
-						
+					if msg.IsPeer2Peer() {
+						// Must have a Peer to send a message to a peer
+						if len(fnode.Peers) > 0 {
+							if p < 0 {
+								p = rand.Int() % len(fnode.Peers)
+							}
+							fnode.MLog.Add2(fnode, true, fnode.Peers[p].GetNameTo(), "P2P out", true, msg)
 							preSendTime := time.Now()
 							fnode.Peers[p].Send(msg)
 							sendTime := time.Since(preSendTime)
@@ -256,34 +252,36 @@ messages.LogMessage(logName, "Drop nilRepeatHash", msg)
 								fnode.State.TallySent(int(msg.Type()))
 							}
 						} else {
-//							messages.LogMessage(logName, "Drop noPeers", msg)
+							//							messages.LogMessage(logName, "Drop noPeers", msg)
 						}
-									} else {
-					for i, peer := range fnode.Peers {
-						wt := 1
-						if p >= 0 {
-							wt = fnode.Peers[p].Weight()
-						}
-						// Don't resend to the node that sent it to you.
-						if i != p || wt > 1 {
-							bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
-							fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
-							if !fnode.State.GetNetStateOff() {
-								preSendTime := time.Now()
-								peer.Send(msg)
-								sendTime := time.Since(preSendTime)
-								TotalSendTime.Add(float64(sendTime.Nanoseconds()))
-								if fnode.State.MessageTally {
-									fnode.State.TallySent(int(msg.Type()))
+					} else { // it's broadcast
+						for i, peer := range fnode.Peers {
+							wt := 1
+							if p >= 0 {
+								wt = fnode.Peers[p].Weight()
+							}
+							// Don't resend to the node that sent it to you.
+							if i != p || wt > 1 {
+								bco := fmt.Sprintf("%s/%d/%d", "BCast", p, i)
+								fnode.MLog.Add2(fnode, true, peer.GetNameTo(), bco, true, msg)
+								if !fnode.State.GetNetStateOff() {
+									preSendTime := time.Now()
+									peer.Send(msg)
+									sendTime := time.Since(preSendTime)
+									TotalSendTime.Add(float64(sendTime.Nanoseconds()))
+									if fnode.State.MessageTally {
+										fnode.State.TallySent(int(msg.Type()))
+									}
 								}
 							}
-						}
+						} // all peers
 					}
 				} else {
-//					messages.LogMessage(logName, "Drop networkOff", msg)
+					// messages.LogMessage(logName, "Drop networkOff", msg)
 				}
-			} else {
-//			messages.LogMessage(logName, "Drop isLocal", msg)
+			}
+		} else {
+			// messages.LogMessage(logName, "Drop isLocal", msg)
 		}
 	} // forever ...}
 }

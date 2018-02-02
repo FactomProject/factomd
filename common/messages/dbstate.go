@@ -251,7 +251,7 @@ func (m *DBStateMsg) ValidateSignatures(state interfaces.IState) int {
 	}
 ValidSignatures: // Goto here if signatures pass
 
-// ValidateData will ensure all the data given matches the DBlock
+	// ValidateData will ensure all the data given matches the DBlock
 	return m.ValidateData(state)
 }
 
@@ -679,12 +679,12 @@ func (m *DBStateMsg) String() string {
 
 func (m *DBStateMsg) LogFields() log.Fields {
 	return log.Fields{"category": "message", "messagetype": "dbstate",
-		"dbheight": m.DirectoryBlock.GetHeader().GetDBHeight(),
-		"dblockhash": m.DirectoryBlock.GetKeyMR().String(),
-		"ablockhash": m.AdminBlock.GetHash().String(),
-		"fblockhash": m.FactoidBlock.GetHash().String(),
+		"dbheight":    m.DirectoryBlock.GetHeader().GetDBHeight(),
+		"dblockhash":  m.DirectoryBlock.GetKeyMR().String(),
+		"ablockhash":  m.AdminBlock.GetHash().String(),
+		"fblockhash":  m.FactoidBlock.GetHash().String(),
 		"ecblockhash": m.EntryCreditBlock.GetHash().String(),
-		"hash": m.GetHash().String()}
+		"hash":        m.GetHash().String()}
 }
 
 func NewDBStateMsg(timestamp interfaces.Timestamp,

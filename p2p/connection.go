@@ -446,7 +446,6 @@ func (c *Connection) handleCommand() {
 	}
 }
 
-
 func (c *Connection) sendParcel(parcel Parcel) {
 
 	parcel.Header.NodeID = NodeID // Send it out with our ID for loopback.

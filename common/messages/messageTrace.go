@@ -2,10 +2,10 @@ package messages
 
 import (
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
 	"github.com/FactomProject/factomd/common/interfaces"
 	"os"
 	"sync"
-	"github.com/FactomProject/factomd/common/constants"
 )
 
 var (
@@ -63,7 +63,6 @@ func LogPrint(name string, note string) {
 	seq := sequence
 	myfile.WriteString(fmt.Sprintf("%5v %s\n", seq, note))
 }
-
 
 // stringify it in the caller to avoid having to deal with the import loop
 func LogParcel(name string, note string, msg string) {

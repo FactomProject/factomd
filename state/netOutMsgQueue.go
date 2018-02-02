@@ -26,7 +26,6 @@ func (q NetOutMsgQueue) Cap() int {
 func (q NetOutMsgQueue) Enqueue(m interfaces.IMsg) {
 	measureMessage(TotalMessageQueueNetOutMsgGeneralVec, m, true)
 
-
 	q <- m
 }
 

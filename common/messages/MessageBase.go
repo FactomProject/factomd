@@ -57,16 +57,16 @@ func (m *MessageBase) SendOut(state interfaces.IState, msg interfaces.IMsg) {
 
 	// Don't resend if we are behind
 	if m.ResendCnt > 1 && state.GetHighestKnownBlock()-state.GetHighestSavedBlk() > 4 {
-//		LogMessage(logName, "drop1",msg)
+		//		LogMessage(logName, "drop1",msg)
 		return
 	}
 	if m.NoResend {
-//		LogMessage(logName, "drop NoResend",msg)
+		//		LogMessage(logName, "drop NoResend",msg)
 		return
 	}
 
 	if m.ResendCnt > 4 {
-//		LogMessage(logName, "drop ResendCnt>4",msg)
+		//		LogMessage(logName, "drop ResendCnt>4",msg)
 		return
 	}
 	m.ResendCnt++

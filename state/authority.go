@@ -375,7 +375,6 @@ func registerAuthAnchor(chainID interfaces.IHash, signingKey []byte, keyType byt
 	st.Authorities[AuthorityIndex].AnchorKeys = newASK
 }
 
-
 func addServerSigningKey(chainID interfaces.IHash, key interfaces.IHash, height uint32, st *State) {
 	AuthorityIndex := st.AddAuthorityFromChainID(chainID)
 	if st.IdentityChainID.IsSameAs(chainID) && len(st.serverPendingPrivKeys) > 0 {

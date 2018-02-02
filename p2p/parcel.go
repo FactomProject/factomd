@@ -7,11 +7,11 @@ package p2p
 import (
 	"bytes"
 	"fmt"
+	"github.com/FactomProject/factomd/common/constants"
+	"github.com/FactomProject/factomd/common/messages"
 	"hash/crc32"
 	"strconv"
 	"time"
-	"github.com/FactomProject/factomd/common/constants"
-	"github.com/FactomProject/factomd/common/messages"
 )
 
 // Parcel is the atomic level of communication for the p2p network.  It contains within it the necessary info for
@@ -193,10 +193,10 @@ func (p *Parcel) String() string {
 }
 
 func Parcel2String(p *Parcel) string {
-	extraInfo :=""
-	r:=""
+	extraInfo := ""
+	r := ""
 	switch p.Header.Type {
-	case TypeHeartbeat,   // "Note, I'm still alive"
+	case TypeHeartbeat, // "Note, I'm still alive"
 		TypePing,         // "Are you there?"
 		TypePong,         // "yes, I'm here"
 		TypePeerRequest,  // "Please share some peers"
@@ -235,11 +235,11 @@ func Parcel2String(p *Parcel) string {
 		}
 		r = fmt.Sprintf("%s %26s[%2v]", p.Header.AppHash[:8], messages.MessageName(byte(msgType)))
 
-	case TypeMessagePart:                   // Application level message that was split into multiple parts
-		debug("Parcel2String","unexpected TypeMessagePart") // we don't do this at this point
+	case TypeMessagePart: // Application level message that was split into multiple parts
+		debug("Parcel2String", "unexpected TypeMessagePart") // we don't do this at this point
 	default:
-		r = fmt.Sprintf("%s %26s[%2v]", "UnknownParcelType", p.Header.AppHash[:8],  p.Header.Type)
+		r = fmt.Sprintf("%s %26s[%2v]", "UnknownParcelType", p.Header.AppHash[:8], p.Header.Type)
 	}
 
-	return r+extraInfo
+	return r + extraInfo
 }
