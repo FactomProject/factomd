@@ -92,7 +92,10 @@ function updataDataDumps() {
     $("#dump1 #dumpShort").text(obj.DataDump1.ShortDump)
     $("#dump1 #dumpRaw").text(obj.DataDump1.RawDump)
 
-    $("#dump2 #dumpRaw").text(obj.DataDump2.RawDump)
+    $("#dump2 #dumpRawProc").text(obj.DataDump2.RawDump)
+    $("#dump2 #dumpNext").text(obj.DataDump2.NextDump)
+    $("#dump2 #dumpPrev").text(obj.DataDump2.PrevDump)
+
 
     $("#dump3 #dumpRaw").text(obj.DataDump3.RawDump)
 
