@@ -32,7 +32,7 @@ const ( // iota is reset to 0
 	SpecialPeer
 )
 
-func (p *Peer) Init(address string, port string, quality int32, peerType uint8) *Peer {
+func (p *Peer) Init(address string, port string, quality int32, peerType uint8, connections int) *Peer {
 
 	if net.ParseIP(address) == nil {
 		ipAddress, err := net.LookupHost(address)
@@ -93,6 +93,8 @@ func (p *Peer) LocationFromAddress() (location uint32) {
 		if err != nil {
 			verbose("peer", "LocationFromAddress(%v) failed. %v ", p.Address, err)
 			silence("peer", "Invalid Peer Address: %v", p.Address)
+                        verbose("peer", "Peer: %s has Location: %d", p.Hash, 0)
+                        return 0
 		}
 		p.Address = ipAddress[0]
 		ip = net.ParseIP(p.Address)

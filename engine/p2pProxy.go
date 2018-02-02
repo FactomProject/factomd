@@ -140,7 +140,6 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	return nil
 }
 
-var myfile *os.File
 
 // Non-blocking return value from channel.
 func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {

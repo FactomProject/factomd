@@ -72,7 +72,7 @@ func TestConnectionCommandString(t *testing.T) {
 
 // NodeID is global, so we will only have loopbacks and go offline
 func TestConnectionLoopBack(t *testing.T) {
-	peer1 := new(Peer).Init("1.1.1.1", "1111", 0, RegularPeer)
+	peer1 := new(Peer).Init("1.1.1.1", "1111", 0, RegularPeer, 0)
 	peer1.Source["Accept()"] = time.Now()
 
 	con1, con2 := net.Pipe()
@@ -80,7 +80,7 @@ func TestConnectionLoopBack(t *testing.T) {
 	c1 := new(Connection)
 	c1.InitWithConn(con1, *peer1)
 
-	peer2 := new(Peer).Init("2.2.2.2", "1111", 0, RegularPeer)
+	peer2 := new(Peer).Init("2.2.2.2", "1111", 0, RegularPeer, 0)
 	peer2.Source["Accept()"] = time.Now()
 
 	c2 := new(Connection)

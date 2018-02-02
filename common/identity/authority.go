@@ -287,31 +287,8 @@ func (auth *Authority) VerifySignature(msg []byte, sig *[constants.SIGNATURE_LEN
 							return true, nil
 						}
 					}
-				}
 			} else {
-				if false {
-					failsMutex.Lock()
-					pc, ok := fails[*sig]
-					failsMutex.Unlock()
-					if ok {
-						logName := globals.FactomNodeName + "_executeMsg" + ".txt"
-						messages.LogPrint(logName,
-							fmt.Sprintf("VerifySig2 false key <%x> sig <%x> %3d[%x]", pc.Key, sig, len(pc.Msg), pc.Msg)+"\n"+
-								fmt.Sprintf("VerifySig2  true key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
-					}
-				}
 				return true, nil
-			}
-		}
-		if false {
-			//	logName := globals.FactomNodeName + "_executeMsg" + ".txt"
-			//	messages.LogPrint(logName, fmt.Sprintf("VerifySig false   key <%x> sig <%x> %3d[%x]", pub, sig, len(msg), msg))
-			failsMutex.Lock()
-			if fails == nil {
-				fails = make(map[[64]byte]foo)
-			}
-			fails[*sig] = foo{pub, msg}
-			failsMutex.Unlock()
 		}
 	}
 	return false, nil
