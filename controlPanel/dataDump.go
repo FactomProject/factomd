@@ -13,6 +13,7 @@ type DataDump struct {
 		RawDump   string
 	}
 	DataDump2 struct {
+		NextDump string
 		RawDump  string
 		PrevDump string
 	}
@@ -39,6 +40,7 @@ func GetDataDumps() []byte {
 	holder.DataDump1.ShortDump = "Currently disabled"
 	holder.DataDump1.RawDump = DsCopy.RawSummary
 
+	holder.DataDump2.NextDump = DsCopy.ProcessList0
 	holder.DataDump2.RawDump = DsCopy.ProcessList
 	holder.DataDump2.PrevDump = DsCopy.ProcessList2
 

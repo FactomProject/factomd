@@ -24,11 +24,17 @@
 				</div>
 				<div class="tabs-panel" id="dump2">
 	            	<ul class="tabs dump-tabs" data-tabs id="example-tabs">
-						<li class="dump-tab tabs-title is-active"><a href="#dumpRaw" aria-selected="true">Raw</a></li>
+						<li class="dump-tab tabs-title is-active"><a href="#dumpRawProc" aria-selected="true">Current</a></li>
+                        <li class="dump-tab tabs-title"><a href="#dumpPrev" aria-selected="true">Prev</a></li>
+                        <li class="dump-tab tabs-title"><a href="#dumpNext" aria-selected="true">Next</a></li>
+
+
 					</ul>
 					<div id="dump-container">
 						<img id="fullscreen-option" class="absolute-fullscreen-option" src="img/fullscreen.svg"></img>
-						<textarea disabled spellcheck="false" class="tabs-panel is-active" id="dumpRaw"></textarea>
+						<textarea disabled spellcheck="false" class="tabs-panel is-active" id="dumpRawProc"></textarea>
+                        <textarea disabled spellcheck="false" class="tabs-panel" id="dumpNext"></textarea>
+                        <textarea disabled spellcheck="false" class="tabs-panel" id="dumpPrev"></textarea>
 					</div>
 				</div>
 				<div class="tabs-panel" id="dump3">
