@@ -169,7 +169,7 @@ ackLoop:
 		select {
 		case ack := <-s.ackQueue:
 			a := ack.(*messages.Ack)
-			if a.DBHeight >= s.LLeaderHeight && ack.Validate(s) == 1 {
+			if ack.Validate(s) == 1 {
 				if s.IgnoreMissing {
 					now := s.GetTimestamp().GetTimeSeconds()
 					if now-a.GetTimestamp().GetTimeSeconds() < 60*15 {
@@ -932,7 +932,7 @@ func (s *State) FollowerExecuteRevealEntry(m interfaces.IMsg) {
 		// The message might not have gone in.  Make sure it did.  Get the list where it goes
 		list := s.ProcessLists.Get(ack.DBHeight).VMs[ack.VMIndex].List
 		// Check to make sure the list isn't empty.  If it is, then it didn't go in.
-		if int(ack.Height) < len(list) || list[ack.Height] == nil {
+		if (int(ack.Height) >= len(list)) || (list[ack.Height] == nil) {
 			return
 		}
 
