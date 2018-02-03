@@ -51,6 +51,11 @@ func GetFnodes() []*FactomNode {
 	return fnodes
 }
 
+func Init() {
+	messages.General = new(msgsupport.GeneralFactory)
+	primitives.General = messages.General
+}
+
 func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 
 	s.PortNumber = 8088
@@ -542,8 +547,6 @@ func startServers(load bool) {
 	for i, fnode := range fnodes {
 		if i > 0 {
 			fnode.State.Init()
-			messages.General = new(msgsupport.GeneralFactory)
-			primitives.General = messages.General
 		}
 		fnode.State.EFactory = new(electionMsgs.ElectionsFactory)
 		go NetworkProcessorNet(fnode)
