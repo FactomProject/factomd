@@ -143,23 +143,23 @@ func Peers(fnode *FactomNode) {
 				cnt++
 				msg.SetOrigin(0)
 
-				//Make sure message isn't a FCT transaction in a block
-				//_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
-				//	msg.GetRepeatHash().Fixed(),
-				//	msg.GetTimestamp(),
-				//	fnode.State.GetTimestamp())
-				//
-				//if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
-				//	repeatHash.Fixed(),
-				//	msg.GetTimestamp(),
-				//	fnode.State.GetTimestamp()) {
-				//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
-				if fnode.State.InMsgQueue().Length() < 9000 {
-					fnode.State.InMsgQueue().Enqueue(msg)
+				// Make sure message isn't a FCT transaction in a block
+				_, bv := fnode.State.Replay.Valid(constants.BLOCK_REPLAY,
+					msg.GetRepeatHash().Fixed(),
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp())
+
+				if bv && fnode.State.Replay.IsTSValid_(constants.NETWORK_REPLAY,
+					repeatHash.Fixed(),
+					msg.GetTimestamp(),
+					fnode.State.GetTimestamp()) {
+					//fnode.MLog.add2(fnode, false, fnode.State.FactomNodeName, "API", true, msg)
+					if fnode.State.InMsgQueue().Length() < 9000 {
+						fnode.State.InMsgQueue().Enqueue(msg)
+					}
+				} else {
+					RepeatMsgs.Inc()
 				}
-				//} else {
-				//	RepeatMsgs.Inc()
-				//}
 			}
 		}
 
