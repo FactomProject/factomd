@@ -480,6 +480,7 @@ func (s *State) Reset() {
 
 // Set to reprocess all messages and states
 func (s *State) DoReset() {
+	return
 	s.ResetTryCnt++
 	//s.AddStatus(fmt.Sprintf("RESET: Trying to Reset for the %d time", s.ResetTryCnt))
 	index := len(s.DBStates.DBStates) - 1
