@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 	"unicode"
 
@@ -979,6 +980,12 @@ func SimControl(listenTo int, listenStdin bool) {
 						os.Stderr.WriteString(fmt.Sprintf("Anchor Key: {'%s' L%x T%x K:%x}\n", a.BlockChain, a.KeyLevel, a.KeyType, a.SigningKey))
 					}
 				}
+			case 'C' == b[0]:
+				fmt.Println("Cleaning up")
+				interruptChannel <- syscall.SIGINT
+			case 'Q' == b[0]:
+				fmt.Println("Quiting forcefully")
+				os.Exit(0)
 			case 'q' == b[0]:
 				var eHashes interface{}
 				if len(b) > 1 {

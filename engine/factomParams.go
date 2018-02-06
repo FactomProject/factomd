@@ -58,10 +58,12 @@ type FactomParams struct {
 	useLogstash              bool
 	logstashURL              string
 	Sync2                    int
-	DebugConsole             bool
+	DebugConsole             string
+	StdoutLog                string
+	StderrLog                string
 }
 
-func (f *FactomParams) Init() {
+func (f *FactomParams) Init() { // maybe used by test code
 	f.AckbalanceHash = true
 	f.EnableNet = true
 	f.WaitEntries = false
@@ -110,7 +112,9 @@ func (f *FactomParams) Init() {
 	f.Sim_Stdin = true
 	f.exposeProfiling = false
 	f.Sync2 = -1
-	f.DebugConsole = false
+	f.DebugConsole = "foobar" //TODO: pretty sure this value is overridden by the default in the flag -- clay
+	f.StdoutLog = "out.txt"
+	f.StderrLog = "err.txt"
 }
 
 func ParseCmdLine(args []string) *FactomParams {
@@ -178,7 +182,10 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	sync2Ptr := flag.Int("sync2", -1, "Set the initial blockheight for the second Sync pass. Used to force a total sync, or skip unnecessary syncing of entries.")
 
-	DebugConsolePtr := flag.Bool("DebugConsole", false, "Enable DebugConsole")
+	DebugConsolePtr := flag.String("debugconsole", "", "Enable DebugConsole on port. localhost:8093 open 8093 and spawns a telnet console, remotehost:8093 open 8093")
+
+	StdoutLogPtr := flag.String("stdoutlog", "", "Log stdout to a file")
+	StderrLogPtr := flag.String("stderrlog", "", "Log stderr to a file, optionally the same file as stdout")
 
 	flag.CommandLine.Parse(args)
 
@@ -235,6 +242,8 @@ func ParseCmdLine(args []string) *FactomParams {
 
 	p.Sync2 = *sync2Ptr
 	p.DebugConsole = *DebugConsolePtr
+	p.StdoutLog = *StdoutLogPtr
+	p.StderrLog = *StderrLogPtr
 
 	if *factomHomePtr != "" {
 		os.Setenv("FACTOM_HOME", *factomHomePtr)
