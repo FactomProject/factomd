@@ -4,50 +4,71 @@ import (
 	. "github.com/FactomProject/electiontesting/primitives"
 )
 
+type SignedMessage struct {
+	Signer Identity
+}
+
 type EomMessage struct {
 	Vm     int
 	Minute int
 	Height int
-	Id     Identity
+	SignedMessage
 }
 
 type DbsigMessage struct {
 	Prev Hash
 	Eom  EomMessage
-	Id   Identity
+	SignedMessage
 }
 
 type AuthChangeMessage struct {
 	Id     Identity
 	Status int //0 < audit and >0 is leader
+	SignedMessage
 }
 
 type VolunteerMessage struct {
 	Eom EomMessage
-	Id  Identity
+	SignedMessage
 }
 
 type VoteMessage struct {
-	Vote VolunteerMessage
-	Id   Identity
+	Volunteer VolunteerMessage
+	SignedMessage
 
 	// Other votes you may have seen. Help
 	// pass them along
 	OtherVotes []VoteMessage
 }
 
+func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
+	var vote VoteMessage
+	vote.Volunteer = vol
+	vote.Signer = self
+
+	return vote
+}
+
 type MajorityDecisionMessage struct {
 	MajorityVotes []VoteMessage
-	Signer        Identity
+	SignedMessage
 
 	// Other MajorityDecisions you may have seen. Help
 	// pass them along
 	OtherMajorityDecisions []MajorityDecisionMessage
 }
 
+func NewMajorityDecisionMessage(votes []VoteMessage, self Identity) MajorityDecisionMessage {
+	var mj MajorityDecisionMessage
+	mj.MajorityVotes = votes
+	mj.Signer = self
+
+	return mj
+}
+
 type InsistMessage struct {
 	MajorityMajorityDecision []MajorityDecisionMessage
-	Signer                   Identity
+	SignedMessage
 
 	// Other InsistMessages you may have seen. Help
 	// pass them along
@@ -57,7 +78,7 @@ type InsistMessage struct {
 type IAckMessage struct {
 	// This tells you to whom you are iacking
 	Insist InsistMessage
-	Signer Identity
+	SignedMessage
 
 	// If you see other IAck's to the same person, we can help accumulate them
 	OtherIAckMessages []IAckMessage
@@ -66,4 +87,5 @@ type IAckMessage struct {
 type PublishMessage struct {
 	Insist               InsistMessage
 	MajorityIAckMessages []IAckMessage
+	SignedMessage
 }
