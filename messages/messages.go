@@ -13,12 +13,10 @@ type EomMessage struct {
 	SignedMessage
 }
 
-func NewEomMessage(vm, minute, height int) EomMessage {
+func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 	var e EomMessage
-	e.Vm = vm
-	e.Minute = minute
-	e.Height = height
-
+	e.Signer = identity
+	e.ProcessListLocation = loc
 	return e
 }
 

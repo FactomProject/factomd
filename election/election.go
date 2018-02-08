@@ -13,6 +13,16 @@ const (
 	ElectionState_Publishing
 )
 
+func ElectionStateString(state int) string {
+	switch state {
+	case ElectionState_Publishing:
+		return "ElectionState_Publishing"
+	case ElectionState_Working:
+		return "ElectionState_Working"
+	}
+	return "Not Found"
+}
+
 // TODO: Add Dbsig kill code
 
 type Election struct {
@@ -122,7 +132,7 @@ func (e *Election) executeWorking(msg imessage.IMessage, r int) []imessage.IMess
 	}
 
 	panic("Should not reach this in executeWorking")
-	return nil
+	//	return nil
 }
 
 // executeInRound is guarenteed the election round exists

@@ -25,6 +25,26 @@ const (
 	RoundState_Publishing
 )
 
+func RoundStateString(state int) string {
+	switch state {
+	case RoundState_FedStart:
+		return "RoundState_FedStart"
+	case RoundState_MajorityDecsion:
+		return "RoundState_MajorityDecsion"
+	case RoundState_Insistence:
+		return "RoundState_Insistence"
+	case RoundState_AudStart:
+		return "RoundState_AudStart"
+	case RoundState_WaitForPublish:
+		return "RoundState_WaitForPublish"
+	case RoundState_WaitForTimeout:
+		return "RoundState_WaitForTimeout"
+	case RoundState_Publishing:
+		return "RoundState_Publishing"
+	}
+	return "NotFound"
+}
+
 type Round struct {
 	Volunteer         *messages.VolunteerMessage
 	Votes             map[Identity]messages.VoteMessage
@@ -56,17 +76,13 @@ func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessag
 
 	// Am I a fed or an audit?
 	r.Self = self
-	index, ok := r.IdentityMap[r.Self]
-	if !ok {
-		panic("I'm not a authority?")
-	}
 
-	if r.StatusArray[index] <= 0 {
-		// Audit
-		r.State = RoundState_AudStart
-	} else {
+	if r.IsLeader(r.Self) {
 		// Fed
 		r.State = RoundState_FedStart
+	} else {
+		// Audit
+		r.State = RoundState_AudStart
 	}
 
 	r.Votes = make(map[Identity]messages.VoteMessage)
