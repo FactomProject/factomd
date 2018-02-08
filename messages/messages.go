@@ -114,6 +114,7 @@ type IAckMessage struct {
 func NewIAckMessage(insist InsistMessage, identity Identity) IAckMessage {
 	var iack IAckMessage
 	iack.Insist = insist
+	iack.Signers = make(map[Identity]bool)
 	iack.Signers[identity] = true
 
 	return iack

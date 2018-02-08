@@ -166,14 +166,22 @@ func (v *VoteFactory) InsistenceListWithMajority() []InsistMessage {
 func (v *VoteFactory) NextFed() Identity {
 	f := v.FedList[v.index]
 	v.index++
+	v.index = v.index % len(v.FedList)
 	return f
 }
 
 func (v *VoteFactory) MajorityIAck(i InsistMessage) IAckMessage {
 	iack := NewIAckMessage(i, v.NextFed())
 	for i := 0; i < v.Majority(); i++ {
-		iack.Signers[v.NextFed()] = true
+		f := v.NextFed()
+		iack.Signers[f] = true
+		if len(iack.Signers) == v.Majority() {
+			// Since we sign the iack ourselves too, we might have
+			// maj+1 in this loop. Check for that
+			break
+		}
 	}
+
 	return iack
 }
 

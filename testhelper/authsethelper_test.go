@@ -1,12 +1,15 @@
 package testhelper_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	. "github.com/FactomProject/electiontesting/testhelper"
 )
+
+var _ = fmt.Println
 
 func TestMajority(t *testing.T) {
 	ah := NewAuthSetHelper(5, 5)
@@ -43,18 +46,19 @@ func TestVoteFactory(t *testing.T) {
 	}
 
 	if len(vf.VotesListWithMajority()) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", len(vf.VotesListWithMajority()), ah.Majority())
+		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.VotesListWithMajority()))
 	}
 
 	if len(vf.MajorityDecisionListWithMajority()) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", len(vf.MajorityDecisionListWithMajority()), ah.Majority())
+		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.MajorityDecisionListWithMajority()))
 	}
 
 	if len(vf.InsistenceListWithMajority()) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", len(vf.InsistenceListWithMajority()), ah.Majority())
+		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.InsistenceListWithMajority()))
 	}
 
-	if len(vf.VotesListWithMajority()) != ah.Majority() {
-		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", len(vf.VotesListWithMajority()), ah.Majority())
+	fmt.Println(vf.NextPublish().MajorityIAckMessages)
+	if len(vf.NextPublish().MajorityIAckMessages) != ah.Majority() {
+		t.Errorf("Number of votes in majority is not correct. Exp %d, got %d", ah.Majority(), len(vf.NextPublish().MajorityIAckMessages))
 	}
 }
