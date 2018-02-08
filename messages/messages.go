@@ -10,6 +10,8 @@ type SignedMessage struct {
 	Signer Identity
 }
 
+var dummySignedMessage SignedMessage
+
 func (m *SignedMessage) String() string {
 	return fmt.Sprintf("%s", m.Signer.String())
 }
@@ -24,10 +26,10 @@ type EomMessage struct {
 }
 
 func (m *EomMessage) String() string {
-	return fmt.Sprintf("EOM %s %s", m.ProcessListLocation.String(), m.SignedMessage.String())
+	return fmt.Sprintf("EOM %v %v", m.ProcessListLocation, m.SignedMessage)
 }
 
-func (m *EomMessage) ReadString(s string) string {
+func (m *EomMessage) ReadString(s string)  {
 	var (
 		pl string
 		sm string
@@ -55,10 +57,10 @@ type FaultMsg struct {
 }
 
 func (m *FaultMsg) String() string {
-	return fmt.Sprintf("FAULT %s %s %s", m.FaultId.String(), m.ProcessListLocation.String(), m.SignedMessage.String())
+	return fmt.Sprintf("FAULT %v %v %v", m.FaultId, m.ProcessListLocation, m.SignedMessage)
 }
 
-func (m *FaultMsg) ReadString(s string) string {
+func (m *FaultMsg) ReadString(s string)  {
 	var (
 		id string
 		pl string
@@ -74,7 +76,7 @@ func (m *FaultMsg) ReadString(s string) string {
 }
 
 func NewFault(loc ProcessListLocation) FaultMsg {
-	return FaultMsg{loc}
+	return FaultMsg{0,loc, dummySignedMessage}
 }
 
 type DbsigMessage struct {
@@ -82,6 +84,26 @@ type DbsigMessage struct {
 	Eom  EomMessage
 	SignedMessage
 }
+
+func (m *DbsigMessage) String() string {
+	return fmt.Sprintf("DBSIG %v <%v> %v", m.Prev, m.Eom, m.SignedMessage)
+}
+
+func (m *DbsigMessage) ReadString(s string)  {
+	var (
+		prev string
+		eom string
+		sm string
+	)
+	n, err := fmt.Scanf(s, "DBSIG %s <%[^>]s> %s", &prev, &eom, &sm)
+	if err != nil || n != 3 {
+		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
+	}
+	m.Prev.ReadString(prev)
+	m.Eom.ReadString(eom)
+	m.SignedMessage.ReadString(sm)
+}
+
 
 type AuthChangeMessage struct {
 	Id     Identity

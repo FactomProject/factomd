@@ -39,24 +39,23 @@ func TestExecute(t *testing.T) {
 	test_messages := []imessage.IMessage{volunteerMessage, voteMessage, majorityDecisionMessage}
 	ids := []Identity{leaderId, auditId}
 
-	var rounds map[Identity]Round = make(map[Identity]Round)
+	var rounds map[Identity]*Round = make(map[Identity]*Round)
 
 	for _, id := range ids {
-		rounds[id] :=
-		NewRound(authSet, id, volunteerMessage, loc)
+		rounds[id] = NewRound(authSet, id, volunteerMessage, loc)
 		if authSet.IsLeader(id) {
 			if rounds[id].State != RoundState_FedStart {
-				HandleErrorf("Expect to start in RoundState_FedStart, found %s", RoundStateString(rounds[id].State))
+				HandleErrorf("Expect to start in RoundState_FedStart, found %s", rounds[id].State.String())
 			}
 		} else {
 			if rounds[id].State != RoundState_AudStart {
-				HandleErrorf("Expect to start in RoundState_AudStart, found %s", RoundStateString(rounds[id].State))
+				HandleErrorf("Expect to start in RoundState_AudStart, found %s", rounds[id].State.String())
 			}
 
 		}
-	}
-	// test leader state transitions
+	}// for all Ids ...
 
+	// test leader state transitions
 	leader_round := rounds[leaderId]
 	for _, message := range test_messages {
 

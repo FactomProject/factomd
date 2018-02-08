@@ -29,6 +29,7 @@ func TestIsLeader(t *testing.T) {
 	}
 }
 
+/*
 func TestAuthSetSort(t *testing.T) {
 	a := NewAuthSetHelper(10, 10)
 	a.Sort()
@@ -38,3 +39,25 @@ func TestAuthSetSort(t *testing.T) {
 		}
 	}
 }
+*/
+
+func TestIdentityReadString(t *testing.T) {
+
+	var i Identity
+	s := "ID-89abcdef"
+	i.ReadString(s)
+	if i.String() !=  s {
+		t.Errorf("Identity.ReadString(\"%s\")",s)
+	}
+}
+
+func TestHashReadString(t *testing.T) {
+
+	var h Hash
+	s := "-000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f-"
+	h.ReadString(s)
+	if(h.String() != s){
+		t.Errorf("Hash.ReadString(\"%s\")",s)
+	}
+}
+

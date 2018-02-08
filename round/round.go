@@ -11,6 +11,9 @@ import (
 
 var _ = fmt.Println
 
+
+type RoundState int
+
 const (
 	_ RoundState = iota
 	// Fed States
@@ -23,21 +26,20 @@ const (
 	RoundState_WaitForPublish
 	RoundState_WaitForTimeout
 
+	// Common states
 	RoundState_Publishing
 
+	// Like the names says
 	RoundState_Invalid
 )
 
-type RoundState struct {
-	int
-}
 
-func (state *RoundState) String() string {
+func (state RoundState) String() string {
 	switch state {
 	case RoundState_FedStart:
 		return "FedStart"
 	case RoundState_MajorityDecsion:
-		return "MajorityDecsion"
+		return "MajorityDecision"
 	case RoundState_Insistence:
 		return "Insistence"
 	case RoundState_AudStart:
@@ -50,50 +52,30 @@ func (state *RoundState) String() string {
 		return "Publishing"
 	default:
 		HandleErrorf("RoundState.String(%v) invalid", state)
-		return fmt.Sprintf("BadRoundState %d", *state)
+		return fmt.Sprintf("BadRoundState %d", state)
 	}
 }
 
-func (s *RoundState) ReadString(state string) {
+func (s RoundState) ReadString(state string) {
 	switch state {
 	case "FedStart":
-		*s = RoundState_FedStart
+		s = RoundState_FedStart
 	case "MajorityDecsion":
-		*s = RoundState_MajorityDecsion
+		s = RoundState_MajorityDecsion
 	case "Insistence":
-		*s = RoundState_Insistence
+		s = RoundState_Insistence
 	case "AudStart":
-		*s = RoundState_AudStart
+		s = RoundState_AudStart
 	case "WaitForPublish":
-		*s = RoundState_WaitForPublish
+		s = RoundState_WaitForPublish
 	case "WaitForTimeout":
-		*s = RoundState_WaitForTimeout
+		s = RoundState_WaitForTimeout
 	case "Publishing":
-		*s = RoundState_Publishing
+		s = RoundState_Publishing
 	default:
 		HandleErrorf("RoundState.ReadString(%v) failed", s)
-		*s = RoundState_Invalid // Bad Round State
+		s = RoundState_Invalid // Bad Round State
 	}
-}
-
-func RoundStateString(state int) string {
-	switch state {
-	case RoundState_FedStart:
-		return "RoundState_FedStart"
-	case RoundState_MajorityDecsion:
-		return "RoundState_MajorityDecsion"
-	case RoundState_Insistence:
-		return "RoundState_Insistence"
-	case RoundState_AudStart:
-		return "RoundState_AudStart"
-	case RoundState_WaitForPublish:
-		return "RoundState_WaitForPublish"
-	case RoundState_WaitForTimeout:
-		return "RoundState_WaitForTimeout"
-	case RoundState_Publishing:
-		return "RoundState_Publishing"
-	}
-	return "NotFound"
 }
 
 type Round struct {

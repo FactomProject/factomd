@@ -3,8 +3,8 @@ package primitives
 import (
 	"crypto/sha256"
 	"fmt"
-	"golang.org/x/text/message"
 	. "github.com/FactomProject/electiontesting/errorhandling"
+	"encoding/hex"
 )
 
 type ProcessListLocation struct {
@@ -76,11 +76,11 @@ func (a *AuthSet) IsLeader(id Identity) bool {
 type Identity int
 
 func (i *Identity)String() string{
-	return fmt.Sprintf("ID-%08x", i)
+	return fmt.Sprintf("ID-%08x", *i)
 }
 
 func (i *Identity)ReadString(s string) {
-	n,err:= fmt.Sscanf(s,"ID-%x", &i)
+	n,err:= fmt.Sscanf(s,"ID-%x", i)
 	if err != nil || n != 1 {
 		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
 	}
@@ -90,3 +90,20 @@ func (i *Identity)ReadString(s string) {
 func (a Identity) less(b Identity) bool { 	return a < b}
 
 type Hash [sha256.Size]byte
+
+func (h *Hash) String()string{
+	return fmt.Sprintf("-%s-", hex.EncodeToString(h[:]))
+}
+
+func (h *Hash) ReadString(s string) {
+	n, err:= fmt.Sscanf(s,"-%[^-]s",&s) // drop the delimiters
+	if(err != nil || n != 1) {
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+	}
+	b, err := hex.DecodeString(s) // decode the hash in hex
+	n = len(b)
+	if(err != nil || n !=sha256.Size) {
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+	}
+	copy(h[:],b[:])
+}
