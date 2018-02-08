@@ -44,18 +44,14 @@ type Round struct {
 	majorityNumber int
 
 	// EOM Info
-	Vm     int
-	Minute int
-	Height int
+	ProcessListLocation
 }
 
-func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessage, minute int, vm int, height int) *Round {
+func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessage, loc ProcessListLocation) *Round {
 	r := new(Round)
 
 	r.AuthSet = authSet
-	r.Minute = minute
-	r.Vm = vm
-	r.Height = height
+	r.ProcessListLocation = loc
 	r.Volunteer = &volunteer
 
 	// Am I a fed or an audit?
@@ -86,7 +82,7 @@ func (r *Round) Execute(msg imessage.IMessage) []imessage.IMessage {
 	case RoundState_FedStart:
 		return r.fedStartExecute(msg)
 	case RoundState_AudStart:
-		// This means we are an audit. Let's broadcast our volunteer message
+		// This means we are an audit. Let's broadcast the volunteer message
 		return imessage.MakeMessageArray(msg, *r.Volunteer)
 	case RoundState_MajorityDecsion:
 		return r.majorityDecisionExecute(msg)
@@ -102,9 +98,9 @@ func (r *Round) Execute(msg imessage.IMessage) []imessage.IMessage {
 		return imessage.MakeMessageArray(msg, *r.Volunteer)
 	case RoundState_Publishing:
 		return imessage.MakeMessageArray(*r.Publish)
+	default:
+		panic("Round hit a state that is not defined")
 	}
-
-	return nil
 }
 
 func (r *Round) fedStartExecute(msg imessage.IMessage) []imessage.IMessage {
@@ -151,6 +147,7 @@ func (r *Round) fedStartExecute(msg imessage.IMessage) []imessage.IMessage {
 	return nil
 }
 
+// majorityDecisionExecute executes a message from the Majority Decision state
 func (r *Round) majorityDecisionExecute(msg imessage.IMessage) []imessage.IMessage {
 	switch msg.(type) {
 	case messages.VolunteerMessage:
@@ -188,6 +185,7 @@ func (r *Round) majorityDecisionExecute(msg imessage.IMessage) []imessage.IMessa
 	return nil
 }
 
+// insistExecute executes a msg from the Insistence state
 func (r *Round) insistExecute(msg imessage.IMessage) []imessage.IMessage {
 	switch msg.(type) {
 	case messages.VolunteerMessage:

@@ -9,9 +9,7 @@ type SignedMessage struct {
 }
 
 type EomMessage struct {
-	Vm     int
-	Minute int
-	Height int
+	ProcessListLocation
 	SignedMessage
 }
 
@@ -22,6 +20,15 @@ func NewEomMessage(vm, minute, height int) EomMessage {
 	e.Height = height
 
 	return e
+}
+
+// Start faulting
+type FaultMsg struct {
+	ProcessListLocation
+}
+
+func NewFault(loc ProcessListLocation) FaultMsg {
+	return FaultMsg{loc}
 }
 
 type DbsigMessage struct {
