@@ -2,12 +2,26 @@ package primitives
 
 import (
 	"crypto/sha256"
+	"fmt"
+	"golang.org/x/text/message"
+	. "github.com/FactomProject/electiontesting/errorhandling"
 )
 
 type ProcessListLocation struct {
 	Vm     int
 	Minute int
 	Height int
+}
+
+func (p *ProcessListLocation) String() string {
+	return fmt.Sprintf("%d/%d/%d", p.Height,p.Minute,p.Vm)
+}
+
+func (p *ProcessListLocation) ReadString(s string) {
+	n,err := fmt.Sscanf(s,"%d/%d/%d", &p.Height,&p.Minute,&p.Vm)
+	if err != nil || n != 3 {
+		HandleErrorf("ProcessListLocation.ReadString(%v) failed: %d %v",s,n,err)
+	}
 }
 
 type AuthSet struct {
@@ -25,8 +39,7 @@ func NewAuthSet() *AuthSet {
 func (a *AuthSet) Sort() {
 	for i := 1; i < len(a.IdentityList); i++ {
 		for j := 0; j < len(a.IdentityList)-i; j++ {
-			if a.IdentityList[j+1].Less(a.IdentityList[j]) {
-				// Swap in both lists, change the index in the map
+			if a.IdentityList[j+1].less(a.IdentityList[j]) {				// Swap in both lists, change the index in the map
 				a.IdentityList[j], a.IdentityList[j+1] = a.IdentityList[j+1], a.IdentityList[j]
 				a.StatusArray[j], a.StatusArray[j+1] = a.StatusArray[j+1], a.StatusArray[j]
 				a.IdentityMap[a.IdentityList[j]] = j
@@ -41,6 +54,7 @@ func (a *AuthSet) New() {
 	a.StatusArray = make([]int, 0)
 	a.IdentityMap = make(map[Identity]int)
 }
+
 func (a *AuthSet) Add(id Identity, status int) int {
 	index := len(a.IdentityList)
 	a.IdentityMap[id] = index
@@ -61,8 +75,18 @@ func (a *AuthSet) IsLeader(id Identity) bool {
 
 type Identity int
 
-func (a Identity) Less(b Identity) bool {
-	return a < b
+func (i *Identity)String() string{
+	return fmt.Sprintf("ID-%08x", i)
 }
+
+func (i *Identity)ReadString(s string) {
+	n,err:= fmt.Sscanf(s,"ID-%x", &i)
+	if err != nil || n != 1 {
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+	}
+}
+
+//todo:  Hmm, this only makes sense in the context of an round so it has to know the authset and the dbsig and the round -- clay
+func (a Identity) less(b Identity) bool { 	return a < b}
 
 type Hash [sha256.Size]byte

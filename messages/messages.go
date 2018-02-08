@@ -2,15 +2,42 @@ package messages
 
 import (
 	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/electiontesting/errorhandling"
+	"fmt"
 )
 
 type SignedMessage struct {
 	Signer Identity
 }
 
+func (m *SignedMessage) String() string {
+	return fmt.Sprintf("%s", m.Signer.String())
+}
+
+func (m *SignedMessage) ReadString(s string) {
+	m.Signer.ReadString(s)
+}
+
 type EomMessage struct {
 	ProcessListLocation
 	SignedMessage
+}
+
+func (m *EomMessage) String() string {
+	return fmt.Sprintf("EOM %s %s", m.ProcessListLocation.String(), m.SignedMessage.String())
+}
+
+func (m *EomMessage) ReadString(s string) string {
+	var (
+		pl string
+		sm string
+	)
+	n, err := fmt.Scanf(s, "EOM %s %s", &pl, &sm)
+	if err != nil || n != 2 {
+		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
+	}
+	m.ProcessListLocation.ReadString(pl)
+	m.SignedMessage.ReadString(sm)
 }
 
 func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
@@ -22,7 +49,28 @@ func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 
 // Start faulting
 type FaultMsg struct {
+	FaultId Identity
 	ProcessListLocation
+	SignedMessage
+}
+
+func (m *FaultMsg) String() string {
+	return fmt.Sprintf("FAULT %s %s %s", m.FaultId.String(), m.ProcessListLocation.String(), m.SignedMessage.String())
+}
+
+func (m *FaultMsg) ReadString(s string) string {
+	var (
+		id string
+		pl string
+		sm string
+	)
+	n, err := fmt.Scanf(s, "FAULT %s %s %s", &id, &pl, &sm)
+	if err != nil || n != 3 {
+		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
+	}
+	m.FaultId.ReadString(id)
+	m.ProcessListLocation.ReadString(pl)
+	m.SignedMessage.ReadString(sm)
 }
 
 func NewFault(loc ProcessListLocation) FaultMsg {

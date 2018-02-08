@@ -6,12 +6,13 @@ import (
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/electiontesting/errorhandling"
 )
 
 var _ = fmt.Println
 
 const (
-	_ int = iota
+	_ RoundState = iota
 	// Fed States
 	RoundState_FedStart
 	RoundState_MajorityDecsion
@@ -23,7 +24,57 @@ const (
 	RoundState_WaitForTimeout
 
 	RoundState_Publishing
+
+	RoundState_Invalid
 )
+
+type RoundState struct {
+	int
+}
+
+func (state *RoundState) String() string {
+	switch state {
+	case RoundState_FedStart:
+		return "FedStart"
+	case RoundState_MajorityDecsion:
+		return "MajorityDecsion"
+	case RoundState_Insistence:
+		return "Insistence"
+	case RoundState_AudStart:
+		return "AudStart"
+	case RoundState_WaitForPublish:
+		return "WaitForPublish"
+	case RoundState_WaitForTimeout:
+		return "WaitForTimeout"
+	case RoundState_Publishing:
+		return "Publishing"
+	default:
+		HandleErrorf("RoundState.String(%v) invalid", state)
+		return fmt.Sprintf("BadRoundState %d", *state)
+	}
+}
+
+func (s *RoundState) ReadString(state string) {
+	switch state {
+	case "FedStart":
+		*s = RoundState_FedStart
+	case "MajorityDecsion":
+		*s = RoundState_MajorityDecsion
+	case "Insistence":
+		*s = RoundState_Insistence
+	case "AudStart":
+		*s = RoundState_AudStart
+	case "WaitForPublish":
+		*s = RoundState_WaitForPublish
+	case "WaitForTimeout":
+		*s = RoundState_WaitForTimeout
+	case "Publishing":
+		*s = RoundState_Publishing
+	default:
+		HandleErrorf("RoundState.ReadString(%v) failed", s)
+		*s = RoundState_Invalid // Bad Round State
+	}
+}
 
 func RoundStateString(state int) string {
 	switch state {
@@ -60,7 +111,7 @@ type Round struct {
 	Publish          *messages.PublishMessage
 	IAcks            map[Identity]bool
 
-	State          int
+	State          RoundState
 	majorityNumber int
 
 	// EOM Info
