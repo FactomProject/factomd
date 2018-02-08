@@ -5,13 +5,16 @@ import (
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
+	"github.com/FactomProject/electiontesting/util"
 )
 
+// PollWorker controls only 1 minute, but all VMs in that minute. His job
+// is to get EOMs, or publishes if an EOM is not found
 type PollWorker struct {
 	// Each index is a VM
 	Elections []*election.Election
 	// Come from elections
-	ElectionEOMs []*messages.EomMessage
+	ElectionPublishes []*messages.PublishMessage
 	// Come from the original leader
 	TrumpEOMs []*messages.EomMessage
 
@@ -34,7 +37,7 @@ func NewPollWorker(self primitives.Identity, a primitives.AuthSet, location prim
 	numFeds := len(p.GetFeds())
 	p.Elections = make([]*election.Election, numFeds)
 	p.TrumpEOMs = make([]*messages.EomMessage, numFeds)
-	p.ElectionEOMs = make([]*messages.EomMessage, numFeds)
+	p.ElectionPublishes = make([]*messages.PublishMessage, numFeds)
 
 	return p
 }
@@ -54,8 +57,8 @@ func (p *PollWorker) Execute(msg imessage.IMessage) []imessage.IMessage {
 	}
 
 	// Election trump does not always win
-	if p.ElectionEOMs[vm] != nil {
-		response = imessage.MakeMessageArrayFromArray(response, *p.ElectionEOMs[vm])
+	if p.ElectionPublishes[vm] != nil {
+		response = imessage.MakeMessageArrayFromArray(response, *p.ElectionPublishes[vm])
 	}
 
 	switch msg.(type) {
@@ -97,8 +100,7 @@ func (p *PollWorker) acceptMsg(msgs []imessage.IMessage) []imessage.IMessage {
 		case messages.PublishMessage:
 			pub := msg.(messages.PublishMessage)
 			vol := messages.GetVolunteerMsg(pub)
-			p.ElectionEOMs[p.VMForIdentity(vol.Replacing, p.MinuteLocation)] = &vol.Eom
-
+			p.ElectionPublishes[p.VMForIdentity(vol.Replacing, p.MinuteLocation)] = &pub
 		}
 	}
 
@@ -106,13 +108,7 @@ func (p *PollWorker) acceptMsg(msgs []imessage.IMessage) []imessage.IMessage {
 }
 
 func (p *PollWorker) GetVMForMsg(msg imessage.IMessage) int {
-	// If there is no volunteer msg it is not a
-	vol := messages.GetVolunteerMsg(msg)
-	if vol == nil {
-		return -1
-	}
-
-	return p.VMForIdentity(vol.FaultMsg.Replacing, p.MinuteLocation)
+	return util.GetVMForMsg(msg, p.AuthSet, p.MinuteLocation)
 }
 
 // executeInElection guarantees the election exists

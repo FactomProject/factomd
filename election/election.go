@@ -23,8 +23,8 @@ func ElectionStateString(state int) string {
 	return "Not Found"
 }
 
-// TODO: Add Dbsig kill code
-
+// Election is focused on a particular height, min, vm. However it can maintain multiple rounds
+// and will select the best one it sees.
 type Election struct {
 	Rounds []*round.Round
 	// The key is the volunter for the election msg. The index is the round integer

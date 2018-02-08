@@ -45,7 +45,10 @@ func RoundStateString(state int) string {
 	return "NotFound"
 }
 
+// Round is used to find a replacement for a particular Height, Min, VM. It will try to
+// get consensus for the audit server for the round
 type Round struct {
+	// The audit server that we are trying to get majority to pass
 	Volunteer         *messages.VolunteerMessage
 	Votes             map[Identity]messages.VoteMessage
 	MajorityDecisions map[Identity]messages.MajorityDecisionMessage

@@ -29,8 +29,9 @@ type FaultMsg struct {
 }
 
 type DbsigMessage struct {
-	Prev Hash
-	Eom  EomMessage
+	Prev   Hash
+	Height int
+	Eom    EomMessage
 	SignedMessage
 }
 
