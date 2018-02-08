@@ -13,7 +13,7 @@ var authSet AuthSet
 
 func init() {
 	authSet.New()
-	// add three leaders nad two audit servers
+	// add three leaders and two audit servers
 	for i := 0; i < 5; i++ {
 		id := rand.Int()
 		authSet.Add(Identity(id), i%2)
@@ -26,7 +26,7 @@ func TestExecute(t *testing.T) {
 	leaderId := authSet.IdentityList[3]
 	auditId := authSet.IdentityList[0]
 
-	sm := messages.SignedMessage{leaderId}
+	sm := messages.SignedMessage{Signer: leaderId}
 
 	loc := ProcessListLocation{0, 0, 0}
 	eom := messages.NewEomMessage(sm.Signer, loc)
@@ -59,4 +59,7 @@ func TestExecute(t *testing.T) {
 	// m := r.Execute()
 }
 
-
+// Test jumping to MJ if receive one
+func TestAcceptMajorityDecision(t *testing.T) {
+	// mj := messages.NewMajorityDecisionMessage()
+}

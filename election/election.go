@@ -33,6 +33,9 @@ type Election struct {
 
 	// In/Out chan
 
+	// Prev DBSig
+	PrevDBSig messages.DbsigMessage
+
 	// Authority Information
 	AuthSet
 
