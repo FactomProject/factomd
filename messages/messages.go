@@ -41,7 +41,7 @@ type VolunteerMessage struct {
 	SignedMessage
 }
 
-func NewVolunterMessage(e EomMessage, identity Identity) VolunteerMessage {
+func NewVolunteerMessage(e EomMessage, identity Identity) VolunteerMessage {
 	var v VolunteerMessage
 	v.Eom = e
 	v.Signer = identity
