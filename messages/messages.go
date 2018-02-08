@@ -2,15 +2,43 @@ package messages
 
 import (
 	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/electiontesting/errorhandling"
+	"fmt"
 )
 
 type SignedMessage struct {
 	Signer Identity
 }
 
+var dummySignedMessage SignedMessage
+
+func (m *SignedMessage) String() string {
+	return fmt.Sprintf("%s", m.Signer.String())
+}
+
+func (m *SignedMessage) ReadString(s string) {
+	m.Signer.ReadString(s)
+}
 type EomMessage struct {
 	ProcessListLocation
 	SignedMessage
+}
+
+func (m *EomMessage) String() string {
+	return fmt.Sprintf("EOM %v %v", m.ProcessListLocation, m.SignedMessage)
+}
+
+func (m *EomMessage) ReadString(s string)  {
+	var (
+		pl string
+		sm string
+	)
+	n, err := fmt.Scanf(s, "EOM %s %s", &pl, &sm)
+	if err != nil || n != 2 {
+		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
+	}
+	m.ProcessListLocation.ReadString(pl)
+	m.SignedMessage.ReadString(sm)
 }
 
 func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
@@ -22,11 +50,32 @@ func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 
 // Start faulting
 type FaultMsg struct {
+	FaultId Identity
 	ProcessListLocation
 	Round     int
 	Replacing Identity
 	SignedMessage
 }
+
+func (m *FaultMsg) String() string {
+	return fmt.Sprintf("FAULT %v %v %v", m.FaultId, m.ProcessListLocation, m.SignedMessage)
+}
+
+func (m *FaultMsg) ReadString(s string)  {
+	var (
+		id string
+		pl string
+		sm string
+	)
+	n, err := fmt.Scanf(s, "FAULT %s %s %s", &id, &pl, &sm)
+	if err != nil || n != 3 {
+		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
+	}
+	m.FaultId.ReadString(id)
+	m.ProcessListLocation.ReadString(pl)
+	m.SignedMessage.ReadString(sm)
+}
+
 
 type DbsigMessage struct {
 	Prev   Hash
@@ -41,6 +90,25 @@ func NewDBSigMessage(identity Identity, eom EomMessage, prev Hash) DbsigMessage 
 	dbs.Eom = eom
 	dbs.Signer = identity
 	return dbs
+}
+
+func (m *DbsigMessage) String() string {
+	return fmt.Sprintf("DBSIG %v <%v> %v", m.Prev, m.Eom, m.SignedMessage)
+}
+
+func (m *DbsigMessage) ReadString(s string)  {
+	var (
+		prev string
+		eom string
+		sm string
+	)
+	n, err := fmt.Scanf(s, "DBSIG %s <%[^>]s> %s", &prev, &eom, &sm)
+	if err != nil || n != 3 {
+		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
+	}
+	m.Prev.ReadString(prev)
+	m.Eom.ReadString(eom)
+	m.SignedMessage.ReadString(sm)
 }
 
 type AuthChangeMessage struct {

@@ -6,12 +6,16 @@ import (
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/electiontesting/errorhandling"
 )
 
 var _ = fmt.Println
 
+
+type RoundState int
+
 const (
-	_ int = iota
+	_ RoundState = iota
 	// Fed States
 	RoundState_FedStart
 	RoundState_MajorityDecsion
@@ -22,27 +26,56 @@ const (
 	RoundState_WaitForPublish
 	RoundState_WaitForTimeout
 
+	// Common states
 	RoundState_Publishing
+
+	// Like the names says
+	RoundState_Invalid
 )
 
-func RoundStateString(state int) string {
+
+func (state RoundState) String() string {
 	switch state {
 	case RoundState_FedStart:
-		return "RoundState_FedStart"
+		return "FedStart"
 	case RoundState_MajorityDecsion:
-		return "RoundState_MajorityDecsion"
+		return "MajorityDecision"
 	case RoundState_Insistence:
-		return "RoundState_Insistence"
+		return "Insistence"
 	case RoundState_AudStart:
-		return "RoundState_AudStart"
+		return "AudStart"
 	case RoundState_WaitForPublish:
-		return "RoundState_WaitForPublish"
+		return "WaitForPublish"
 	case RoundState_WaitForTimeout:
-		return "RoundState_WaitForTimeout"
+		return "WaitForTimeout"
 	case RoundState_Publishing:
-		return "RoundState_Publishing"
+		return "Publishing"
+	default:
+		HandleErrorf("RoundState.String(%v) invalid", state)
+		return fmt.Sprintf("BadRoundState %d", state)
 	}
-	return "NotFound"
+}
+
+func (s RoundState) ReadString(state string) {
+	switch state {
+	case "FedStart":
+		s = RoundState_FedStart
+	case "MajorityDecsion":
+		s = RoundState_MajorityDecsion
+	case "Insistence":
+		s = RoundState_Insistence
+	case "AudStart":
+		s = RoundState_AudStart
+	case "WaitForPublish":
+		s = RoundState_WaitForPublish
+	case "WaitForTimeout":
+		s = RoundState_WaitForTimeout
+	case "Publishing":
+		s = RoundState_Publishing
+	default:
+		HandleErrorf("RoundState.ReadString(%v) failed", s)
+		s = RoundState_Invalid // Bad Round State
+	}
 }
 
 // Round is used to find a replacement for a particular Height, Min, VM. It will try to
@@ -63,7 +96,7 @@ type Round struct {
 	Publish          *messages.PublishMessage
 	IAcks            map[Identity]bool
 
-	State          int
+	State          RoundState
 	majorityNumber int
 
 	// EOM Info

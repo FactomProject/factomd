@@ -3,10 +3,12 @@ package primitives
 import (
 	"crypto/sha256"
 	"fmt"
+	. "github.com/FactomProject/electiontesting/errorhandling"
+	"encoding/hex"
 )
 
 type ProcessListLocation struct {
-	Vm int
+	Vm     int
 	MinuteLocation
 }
 
@@ -19,6 +21,16 @@ func (m *MinuteLocation) Sum() int {
 	return m.Height + m.Minute
 }
 
+func (p *ProcessListLocation) String() string {
+	return fmt.Sprintf("%d/%d/%d", p.Height,p.Minute,p.Vm)
+}
+
+func (p *ProcessListLocation) ReadString(s string) {
+	n,err := fmt.Sscanf(s,"%d/%d/%d", &p.Height,&p.Minute,&p.Vm)
+	if err != nil || n != 3 {
+		HandleErrorf("ProcessListLocation.ReadString(%v) failed: %d %v",s,n,err)
+	}
+}
 type AuthSet struct {
 	IdentityList []Identity
 	StatusArray  []int
@@ -70,7 +82,7 @@ func (a *AuthSet) VMForIdentity(id Identity, location MinuteLocation) int {
 func (a *AuthSet) Sort() {
 	for i := 1; i < len(a.IdentityList); i++ {
 		for j := 0; j < len(a.IdentityList)-i; j++ {
-			if a.IdentityList[j+1].Less(a.IdentityList[j]) {
+			if a.IdentityList[j+1].less(a.IdentityList[j]) {
 				// Swap in both lists, change the index in the map
 				a.IdentityList[j], a.IdentityList[j+1] = a.IdentityList[j+1], a.IdentityList[j]
 				a.StatusArray[j], a.StatusArray[j+1] = a.StatusArray[j+1], a.StatusArray[j]
@@ -125,8 +137,35 @@ func (a *AuthSet) Hash() Hash {
 
 type Identity int
 
-func (a Identity) Less(b Identity) bool {
+func (a Identity) less(b Identity) bool {
 	return a < b
 }
 
+func (i *Identity)String() string{
+	return fmt.Sprintf("ID-%08x", *i)
+}
+
+func (i *Identity)ReadString(s string) {
+	n,err:= fmt.Sscanf(s,"ID-%x", i)
+	if err != nil || n != 1 {
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+	}
+}
+
 type Hash [sha256.Size]byte
+func (h *Hash) String()string{
+	return fmt.Sprintf("-%s-", hex.EncodeToString(h[:]))
+}
+
+func (h *Hash) ReadString(s string) {
+	n, err:= fmt.Sscanf(s,"-%[^-]s",&s) // drop the delimiters
+	if(err != nil || n != 1) {
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+	}
+	b, err := hex.DecodeString(s) // decode the hash in hex
+	n = len(b)
+	if(err != nil || n !=sha256.Size) {
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+	}
+	copy(h[:],b[:])
+}
