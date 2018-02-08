@@ -28,3 +28,13 @@ func TestIsLeader(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthSetSort(t *testing.T) {
+	a := NewAuthSetHelper(10, 10)
+	a.Sort()
+	for i, v := range a.IdentityList {
+		if int(v) != i+1 {
+			t.Error("Sort did not work")
+		}
+	}
+}
