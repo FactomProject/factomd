@@ -73,6 +73,11 @@ func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessag
 		r.State = RoundState_FedStart
 	}
 
+	r.Votes = make(map[Identity]messages.VoteMessage)
+	r.MajorityDecisions = make(map[Identity]messages.MajorityDecisionMessage)
+	r.Insistences = make(map[Identity]messages.InsistMessage)
+	r.IAcks = make(map[Identity]bool)
+
 	return r
 }
 
