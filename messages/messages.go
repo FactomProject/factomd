@@ -19,7 +19,6 @@ func (m *SignedMessage) String() string {
 func (m *SignedMessage) ReadString(s string) {
 	m.Signer.ReadString(s)
 }
-
 type EomMessage struct {
 	ProcessListLocation
 	SignedMessage
@@ -53,6 +52,8 @@ func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 type FaultMsg struct {
 	FaultId Identity
 	ProcessListLocation
+	Round     int
+	Replacing Identity
 	SignedMessage
 }
 
@@ -75,14 +76,19 @@ func (m *FaultMsg) ReadString(s string)  {
 	m.SignedMessage.ReadString(sm)
 }
 
-func NewFault(loc ProcessListLocation) FaultMsg {
-	return FaultMsg{0,loc, dummySignedMessage}
-}
 
 type DbsigMessage struct {
 	Prev Hash
 	Eom  EomMessage
 	SignedMessage
+}
+
+func NewDBSigMessage(identity Identity, eom EomMessage, prev Hash) DbsigMessage {
+	var dbs DbsigMessage
+	dbs.Prev = prev
+	dbs.Eom = eom
+	dbs.Signer = identity
+	return dbs
 }
 
 func (m *DbsigMessage) String() string {
@@ -104,7 +110,6 @@ func (m *DbsigMessage) ReadString(s string)  {
 	m.SignedMessage.ReadString(sm)
 }
 
-
 type AuthChangeMessage struct {
 	Id     Identity
 	Status int //0 < audit and >0 is leader
@@ -114,6 +119,7 @@ type AuthChangeMessage struct {
 type VolunteerMessage struct {
 	Eom EomMessage
 	SignedMessage
+	FaultMsg
 }
 
 func NewVolunteerMessage(e EomMessage, identity Identity) VolunteerMessage {

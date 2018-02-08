@@ -51,26 +51,6 @@ func (a *AuthSetHelper) GetAuthSet() AuthSet {
 	return a.AuthSet
 }
 
-func (a *AuthSetHelper) GetFeds() []Identity {
-	var feds []Identity
-	for i, id := range a.IdentityList {
-		if a.StatusArray[i] > 0 {
-			feds = append(feds, id)
-		}
-	}
-	return feds
-}
-
-func (a *AuthSetHelper) GetAuds() []Identity {
-	var auds []Identity
-	for i, id := range a.IdentityList {
-		if a.StatusArray[i] <= 0 {
-			auds = append(auds, id)
-		}
-	}
-	return auds
-}
-
 func (a *AuthSetHelper) NewVoteFactory(vol VolunteerMessage) *VoteFactory {
 	return NewVoteFactory(a.GetFeds(), vol)
 }
