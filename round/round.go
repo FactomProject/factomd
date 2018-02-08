@@ -160,6 +160,7 @@ func (r *Round) fedStartExecute(msg imessage.IMessage) []imessage.IMessage {
 		return imessage.MakeMessageArrayFromArray(r.insistExecute(msg), myI)
 	}
 
+	panic("Should not get here in round")
 	return nil
 }
 
@@ -198,6 +199,7 @@ func (r *Round) majorityDecisionExecute(msg imessage.IMessage) []imessage.IMessa
 		return imessage.MakeMessageArrayFromArray(r.insistExecute(msg), myI)
 	}
 
+	panic("Should not get here in round")
 	return nil
 }
 
@@ -243,6 +245,8 @@ func (r *Round) insistExecute(msg imessage.IMessage) []imessage.IMessage {
 		r.CopyInsist(insist)
 		return imessage.MakeMessageArray(iack, r.makeInsist())
 	}
+
+	panic("Should not get here in round")
 	return nil
 }
 

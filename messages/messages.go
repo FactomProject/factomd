@@ -23,16 +23,23 @@ func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 // Start faulting
 type FaultMsg struct {
 	ProcessListLocation
-}
-
-func NewFault(loc ProcessListLocation) FaultMsg {
-	return FaultMsg{loc}
+	Round     int
+	Replacing Identity
+	SignedMessage
 }
 
 type DbsigMessage struct {
 	Prev Hash
 	Eom  EomMessage
 	SignedMessage
+}
+
+func NewDBSigMessage(identity Identity, eom EomMessage, prev Hash) DbsigMessage {
+	var dbs DbsigMessage
+	dbs.Prev = prev
+	dbs.Eom = eom
+	dbs.Signer = identity
+	return dbs
 }
 
 type AuthChangeMessage struct {
@@ -44,6 +51,7 @@ type AuthChangeMessage struct {
 type VolunteerMessage struct {
 	Eom EomMessage
 	SignedMessage
+	FaultMsg
 }
 
 func NewVolunteerMessage(e EomMessage, identity Identity) VolunteerMessage {

@@ -2,12 +2,21 @@ package primitives
 
 import (
 	"crypto/sha256"
+	"fmt"
 )
 
 type ProcessListLocation struct {
-	Vm     int
+	Vm int
+	MinuteLocation
+}
+
+type MinuteLocation struct {
 	Minute int
 	Height int
+}
+
+func (m *MinuteLocation) Sum() int {
+	return m.Height + m.Minute
 }
 
 type AuthSet struct {
@@ -20,6 +29,42 @@ func NewAuthSet() *AuthSet {
 	a := new(AuthSet)
 	a.New()
 	return a
+}
+
+func (a *AuthSet) GetFeds() []Identity {
+	var feds []Identity
+	for i, id := range a.IdentityList {
+		if a.StatusArray[i] > 0 {
+			feds = append(feds, id)
+		}
+	}
+	return feds
+}
+
+func (a *AuthSet) GetAuds() []Identity {
+	var auds []Identity
+	for i, id := range a.IdentityList {
+		if a.StatusArray[i] <= 0 {
+			auds = append(auds, id)
+		}
+	}
+	return auds
+}
+
+func (a *AuthSet) VMForIdentity(id Identity, location MinuteLocation) int {
+	count := -1
+	feds := a.GetFeds()
+	for i, f := range feds {
+		if f == id {
+			count = i
+			break
+		}
+	}
+	if count == -1 {
+		return -1
+	}
+
+	return (location.Sum() + count) % NumberOfMinutes
 }
 
 func (a *AuthSet) Sort() {
@@ -51,12 +96,31 @@ func (a *AuthSet) Add(id Identity, status int) int {
 	return index
 }
 
+func (a *AuthSet) Majority() int {
+	totalf := 0
+	for _, s := range a.StatusArray {
+		if s > 0 {
+			totalf++
+		}
+	}
+	return totalf/2 + 1
+}
+
 func (a *AuthSet) IsLeader(id Identity) bool {
 	index, ok := a.IdentityMap[id]
 	if !ok {
 		panic("Bad Identity")
 	}
 	return a.StatusArray[index] > 0
+}
+
+func (a *AuthSet) Hash() Hash {
+	str := ""
+	for _, i := range a.IdentityList {
+		str += fmt.Sprintf("%d%d", i, a.IdentityMap[i])
+	}
+
+	return sha256.Sum256([]byte(str))
 }
 
 type Identity int

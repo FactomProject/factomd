@@ -46,19 +46,19 @@ type Election struct {
 	State int
 }
 
-func NewElection(a AuthSet, loc ProcessListLocation) *Election {
+func NewElection(self Identity, a AuthSet, loc ProcessListLocation) *Election {
 	e := new(Election)
 	e.AuthSet = a
 	e.ProcessListLocation = loc
 	e.Rounds = make([]*round.Round, len(a.StatusArray))
 	e.State = ElectionState_Working
+	e.Self = self
 
 	return e
 }
 
 func (e *Election) ExecuteMsg(msg imessage.IMessage) []imessage.IMessage {
 	r := e.GetRoundFromMsg(msg)
-
 	// No matter the state, we check the publishing
 	if p, ok := msg.(messages.PublishMessage); ok {
 		// Set state if this is new
@@ -90,14 +90,18 @@ func (e *Election) ExecuteMsg(msg imessage.IMessage) []imessage.IMessage {
 	switch e.State {
 	case ElectionState_Working:
 		// Default to execute and look for publish
+		response = imessage.MakeMessageArrayFromArray(response, e.executeWorking(msg, r))
 	case ElectionState_Publishing:
-		// Lower round, let it through but add our publish message to the response
+		// Lower round, let it through if it is not an insist. We don't iack if we are publishing
+		switch msg.(type) {
+		case messages.InsistMessage:
+			return imessage.MakeMessageArray(*e.PublishMsg)
+		}
 		response = append(response, *e.PublishMsg)
 	default:
 		panic("Election does not have a valid state")
 	}
 
-	response = imessage.MakeMessageArrayFromArray(response, e.executeWorking(msg, r))
 	if pub := ContainsPublish(response); pub != nil {
 		e.setPublishing(*pub, r)
 	}
@@ -113,7 +117,13 @@ func (e *Election) setPublishing(msg messages.PublishMessage, r int) {
 func (e *Election) executeWorking(msg imessage.IMessage, r int) []imessage.IMessage {
 	switch msg.(type) {
 	case messages.FaultMsg:
-		// Should have a volunteer message
+		// Should make a volunteer msg if it is for us
+		if e.GetRound(e.Self) == r {
+			eom := messages.NewEomMessage(e.Self, e.ProcessListLocation)
+			vol := messages.NewVolunteerMessage(eom, e.Self)
+			vol.FaultMsg = msg.(messages.FaultMsg)
+			return e.executeInRound(vol, r)
+		}
 	default:
 		// This means it is an election msg.
 		vol := messages.GetVolunteerMsg(msg)
@@ -140,6 +150,9 @@ func (e *Election) executeWorking(msg imessage.IMessage, r int) []imessage.IMess
 
 // executeInRound is guarenteed the election round exists
 func (e *Election) executeInRound(msg imessage.IMessage, r int) []imessage.IMessage {
+	if e.Rounds[r] == nil {
+		e.Rounds[r] = round.NewRound(e.AuthSet, e.Self, *messages.GetVolunteerMsg(msg), e.ProcessListLocation)
+	}
 	return e.Rounds[r].Execute(msg)
 }
 
@@ -154,7 +167,11 @@ func (e *Election) GetRound(vol Identity) int {
 func (e *Election) GetRoundFromMsg(msg imessage.IMessage) int {
 	switch msg.(type) {
 	case messages.FaultMsg:
-		return 1
+		f := msg.(messages.FaultMsg)
+		if f.Round == 0 {
+			return 1
+		}
+		return f.Round
 	default:
 		// This means it is an election msg.
 		vol := messages.GetVolunteerMsg(msg)
