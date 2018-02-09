@@ -3,14 +3,13 @@ package round
 import (
 	"fmt"
 
+	. "github.com/FactomProject/electiontesting/errorhandling"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
-	. "github.com/FactomProject/electiontesting/errorhandling"
 )
 
 var _ = fmt.Println
-
 
 type RoundState int
 
@@ -32,7 +31,6 @@ const (
 	// Like the names says
 	RoundState_Invalid
 )
-
 
 func (state RoundState) String() string {
 	switch state {
@@ -82,7 +80,9 @@ func (s RoundState) ReadString(state string) {
 // get consensus for the audit server for the round
 type Round struct {
 	// The audit server that we are trying to get majority to pass
-	Volunteer         *messages.VolunteerMessage
+	Volunteer *messages.VolunteerMessage
+
+	// Message buckets. When this tip over a majority they trigger a state change
 	Votes             map[Identity]messages.VoteMessage
 	MajorityDecisions map[Identity]messages.MajorityDecisionMessage
 	Insistences       map[Identity]messages.InsistMessage
@@ -96,7 +96,10 @@ type Round struct {
 	Publish          *messages.PublishMessage
 	IAcks            map[Identity]bool
 
-	State          RoundState
+	State RoundState
+
+	// Never use this number, always use GetMajority. This is a cache
+	// for that function
 	majorityNumber int
 
 	// EOM Info
@@ -112,7 +115,6 @@ func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessag
 
 	// Am I a fed or an audit?
 	r.Self = self
-
 	if r.IsLeader(r.Self) {
 		// Fed
 		r.State = RoundState_FedStart
