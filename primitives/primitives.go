@@ -5,12 +5,14 @@ import (
 	"fmt"
 	. "github.com/FactomProject/electiontesting/errorhandling"
 	"encoding/hex"
+	"regexp"
 )
 
-type ProcessListLocation struct {
-	Vm     int
-	MinuteLocation
+var hashRegEx * regexp.Regexp
+func init() {
+	hashRegEx = regexp.MustCompile("-([0-9a-zA-Z]+)-") // RegEx to extra a hash from a string
 }
+
 
 type MinuteLocation struct {
 	Minute int
@@ -20,6 +22,23 @@ type MinuteLocation struct {
 func (m *MinuteLocation) Sum() int {
 	return m.Height + m.Minute
 }
+
+func (p *MinuteLocation) String() string {
+	return fmt.Sprintf("%d/%d", p.Height,p.Minute)
+}
+
+func (p *MinuteLocation) ReadString(s string) {
+	n,err := fmt.Sscanf(s,"%d/%d", & p.Height, &p.Minute)
+	if err != nil || n != 2 {
+		HandleErrorf("MinuteLocation.ReadString(%v) failed: %d %v",s,n,err)
+	}
+}
+
+type ProcessListLocation struct {
+	Vm     int
+	MinuteLocation
+}
+
 
 func (p *ProcessListLocation) String() string {
 	return fmt.Sprintf("%d/%d/%d", p.Height,p.Minute,p.Vm)
@@ -31,6 +50,7 @@ func (p *ProcessListLocation) ReadString(s string) {
 		HandleErrorf("ProcessListLocation.ReadString(%v) failed: %d %v",s,n,err)
 	}
 }
+
 type AuthSet struct {
 	IdentityList []Identity
 	StatusArray  []int
@@ -98,6 +118,7 @@ func (a *AuthSet) New() {
 	a.StatusArray = make([]int, 0)
 	a.IdentityMap = make(map[Identity]int)
 }
+
 func (a *AuthSet) Add(id Identity, status int) int {
 	index := len(a.IdentityList)
 	a.IdentityMap[id] = index
@@ -157,13 +178,15 @@ func (h *Hash) String()string{
 	return fmt.Sprintf("-%s-", hex.EncodeToString(h[:]))
 }
 
+
 func (h *Hash) ReadString(s string) {
-	n, err:= fmt.Sscanf(s,"-%[^-]s",&s) // drop the delimiters
-	if(err != nil || n != 1) {
-		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+	t := hashRegEx.FindStringSubmatch(s) // drop the delimiters
+	if(t == nil || len(t) != 2) {
+		HandleErrorf("Identity.ReadString(%v) failed",s)
+		return
 	}
-	b, err := hex.DecodeString(s) // decode the hash in hex
-	n = len(b)
+	b, err := hex.DecodeString(t[1]) // decode the hash in hex
+	n := len(b)
 	if(err != nil || n !=sha256.Size) {
 		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
 	}
