@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"github.com/FactomProject/electiontesting/imessage"
 )
 
 var embeddedMesssageRegEx *regexp.Regexp
@@ -229,18 +228,18 @@ type VoteMessage struct {
 	SignedMessage
 }
 
-func mapString(msgMap map[Identity]SignedMessage) (r string) {
+func voteMapString(msgMap map[Identity]SignedMessage) (r string) {
 	for id, m := range msgMap {
-		r += fmt.Sprintf("(%s : %s) ", id.String(), m.String())
+		r += fmt.Sprintf("(%s %s) ", id.String(), m.String())
 	}
 	return r
 }
 
 func voteMapReadString(s string) (msgMap map[Identity]SignedMessage) {
-	messageRegex := "<(.*)> ?"                            // must be greedy for messages that contain messages
+	messageRegex := "[(]([^)]+ [^)]+)[)] ?"                            // must be greedy for messages that contain messages
 	messageRegexRegEx := regexp.MustCompile(messageRegex) // RegEx split a msgMap from a string
 
-	votes := messageRegexRegEx.FindAllString(s,-1)
+	votes := messageRegexRegEx.FindAllStringSubmatch(s,-1)
 
 	if len(votes) == 0 {
 		HandleErrorf("VoteMessage.ReadString(%v) failed: no votes", s)
@@ -250,7 +249,7 @@ func voteMapReadString(s string) (msgMap map[Identity]SignedMessage) {
 	msgMap = make(map[Identity]SignedMessage, len(votes))
 	for _, pair := range votes {
 		var idString, sigString string
-		fmt.Sscanf(pair,"(%s : %s)", &idString, &sigString)
+		fmt.Sscanf(pair[1],"%s %s", &idString, &sigString)
 		var id Identity
 		var sig SignedMessage
 		id.ReadString(idString)
@@ -262,7 +261,7 @@ func voteMapReadString(s string) (msgMap map[Identity]SignedMessage) {
 }
 
 func (m *VoteMessage) String() string {
-	mapString := mapString(m.OtherVotes)
+	mapString := voteMapString(m.OtherVotes)
 	return fmt.Sprintf("VOTE <%v> {%v} %v", m.Volunteer.String(), mapString, m.SignedMessage.String())
 }
 
@@ -280,7 +279,7 @@ func (m *VoteMessage) ReadString(s string) {
 	VolunteerRegex := "VOTE " + messageRegex + messageMapRegex + idRegex
 	VolunteerMessageRegEx :=
 		regexp.MustCompile(VolunteerRegex) // RegEx split a VolunteerMessage from a string
-
+	VolunteerMessageRegEx.Longest() // Embedded message has embedded messages so be greedy
 	parts := VolunteerMessageRegEx.FindStringSubmatch(s) // Split the message
 
 	if (parts == nil || len(parts) != 4) {
@@ -288,7 +287,7 @@ func (m *VoteMessage) ReadString(s string) {
 		return
 	}
 	m.Volunteer.ReadString(parts[1])
-
+    m.OtherVotes =  voteMapReadString(parts[2])
 	m.Signer.ReadString(parts[3])
 }
 
