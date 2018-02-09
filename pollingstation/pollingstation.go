@@ -28,7 +28,9 @@ type PollingStation struct {
 	DBSigs map[primitives.Hash]map[primitives.Identity]messages.DbsigMessage
 
 	// If we a set of trump eom's for a vm/min we always send that back
-	TrumpEOMs [][]*messages.EomMessage
+	TrumpMinute int
+
+	// TODO: Get rid of the 2D array, switch to single array of Poll Workers
 	// This EOM's are subject to change
 	CurrentEOMs [][]*messages.EomMessage
 	// What EOM we are currently working on
@@ -54,7 +56,6 @@ func NewPollingStation(identity primitives.Identity, authset primitives.AuthSet,
 	p.WorkingEOM = 1
 
 	p.NumberOfFeds = len(authset.GetFeds())
-	p.TrumpEOMs = make([][]*messages.EomMessage, primitives.NumberOfMinutes+1, p.NumberOfFeds)
 	p.CurrentEOMs = make([][]*messages.EomMessage, primitives.NumberOfMinutes+1, p.NumberOfFeds)
 	return p
 }
@@ -81,7 +82,13 @@ func (p *PollingStation) Execute(msg imessage.IMessage) []imessage.IMessage {
 		// TODO: Add EOM hash for auth set
 
 		// If here we assume we agree, and it's a round 0 trump
-		p.addEOMFromInternal(eom)
+		complete := p.addEOMFromInternal(eom)
+		if complete {
+			// A full set of EOMs
+			if p.TrumpMinute < eom.Minute-2 {
+				p.TrumpMinute = eom.Minute - 2
+			}
+		}
 	case messages.DbsigMessage:
 
 		dbs := msg.(messages.DbsigMessage)
@@ -120,10 +127,6 @@ func (p *PollingStation) addEOMFromInternal(eom messages.EomMessage) bool {
 	// If we got here the minute is complete
 	if eom.Minute >= 2 {
 		// TODO: If less than 2 it affects the previous Polling station
-	}
-
-	for i, e := range p.CurrentEOMs[eom.Minute-2] {
-		p.TrumpEOMs[eom.Minute-2][i] = e
 	}
 
 	return true
