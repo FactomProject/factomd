@@ -1,3 +1,6 @@
 package imessage
 
-type IMessage interface{}
+type IMessage interface {
+	String() string
+	ReadString(s string)
+}
