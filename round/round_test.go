@@ -22,6 +22,67 @@ func init() {
 
 }
 
+/*
+type Round struct {
+	// The audit server that we are trying to get majority to pass
+	Volunteer         *messages.VolunteerMessage
+	Votes             map[Identity]messages.VoteMessage
+	MajorityDecisions map[Identity]messages.MajorityDecisionMessage
+	Insistences       map[Identity]messages.InsistMessage
+	AuthSet
+
+	// My Messages
+	Self             Identity
+	Vote             *messages.VoteMessage
+	MajorityDecision *messages.MajorityDecisionMessage
+	Insistence       *messages.InsistMessage
+	Publish          *messages.PublishMessage
+	IAcks            map[Identity]bool
+
+	State          RoundState
+	majorityNumber int
+
+	// EOM Info
+	ProcessListLocation
+}
+
+ */
+
+func TestRoundString(t *testing.T) {
+	var (
+		r         Round
+		volunteer messages.VolunteerMessage
+		vote messages.VoteMessage
+		id Identity
+	)
+	volunteer.ReadString("VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef")
+
+
+	r.Volunteer = &volunteer
+	r.Votes = make(map[Identity]messages.VoteMessage)
+	//create a vote
+	id.ReadString("ID-76543210")
+	vote.ReadString( "VOTE <VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef> {"+
+		"(ID-76543210 ID-76543210) "+
+		"(ID-76543211 ID-76543211)"+
+		" } " + id.String())
+	r.Votes[id] = vote
+	// change the ID and add another vote
+	id.ReadString("ID-FEDCBA89")
+    vote.Signer = id
+	r.Votes[id] = vote
+
+	r.Vote = &vote
+
+	r.MajorityDecisions = make(map[Identity]messages.MajorityDecisionMessage,0)
+	//r.MajorityDecision[] leave this empty for now
+
+	r.Insistences = make(map[Identity]messages.InsistMessage,0)
+	r.AuthSet.ReadString('{"IdentityList":[1985229328,19088743],"StatusArray":[1,0],"IdentityMap":{"19088743":1,"1985229328":0}}')
+
+    r.Self.ReadSTring("ID-00000001")
+
+}
 func TestExecute(t *testing.T) {
 	T = t // set ErrorHandling Test context for this test
 
@@ -53,7 +114,7 @@ func TestExecute(t *testing.T) {
 			}
 
 		}
-	}// for all Ids ...
+	} // for all Ids ...
 
 	// test leader state transitions
 	leader_round := rounds[leaderId]

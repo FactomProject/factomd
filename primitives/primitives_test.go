@@ -3,6 +3,7 @@ package primitives_test
 import (
 	. "github.com/FactomProject/electiontesting/primitives"
 	"testing"
+	"fmt"
 )
 
 func TestIsLeader(t *testing.T) {
@@ -70,4 +71,16 @@ func TestProcessListLocationReadString(t *testing.T) {
 	if (r != s) {
 		t.Errorf("ProcessListLocation.ReadString(\"%s\")", s)
 	}
+}
+
+func TestAuthSetReadString(t *testing.T) {
+	var a AuthSet
+	var id Identity
+	id.ReadString("ID-76543210")
+	a.New()
+	a.Add(id, 1)
+	id.ReadString("ID-01234567")
+	a.Add(id,0)
+	s:= a.String()
+	fmt.Print(s)
 }

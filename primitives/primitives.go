@@ -6,6 +6,7 @@ import (
 	. "github.com/FactomProject/electiontesting/errorhandling"
 	"encoding/hex"
 	"regexp"
+	"encoding/json"
 )
 
 var hashRegEx * regexp.Regexp
@@ -55,6 +56,22 @@ type AuthSet struct {
 	IdentityList []Identity
 	StatusArray  []int
 	IdentityMap  map[Identity]int
+	}
+
+
+func (r *AuthSet) String() string {
+	rval, err := json.Marshal(r)
+	if err != nil {
+		HandleErrorf("%T.String(...) failed: %v",r ,err)
+	}
+	return string(rval[:])
+}
+
+func (r *AuthSet) ReadString(s string) {
+	err := json.Unmarshal([]byte(s), r)
+	if err != nil {
+		HandleErrorf("%T.ReadString(%s) failed: %v",r,s,err)
+	}
 }
 
 func NewAuthSet() *AuthSet {

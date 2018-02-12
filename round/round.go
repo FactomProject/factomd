@@ -34,6 +34,8 @@ const (
 )
 
 
+
+
 func (state RoundState) String() string {
 	switch state {
 	case RoundState_FedStart:
@@ -103,6 +105,8 @@ type Round struct {
 	ProcessListLocation
 }
 
+
+
 func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessage, loc ProcessListLocation) *Round {
 	r := new(Round)
 
@@ -135,7 +139,7 @@ func (r *Round) Execute(msg imessage.IMessage) []imessage.IMessage {
 		return r.fedStartExecute(msg)
 	case RoundState_AudStart:
 		// This means we are an audit. Let's broadcast the volunteer message
-		return imessage.MakeMessageArray(msg, *r.Volunteer)
+		return imessage.MakeMessageArray(msg, r.Volunteer)
 	case RoundState_MajorityDecsion:
 		return r.majorityDecisionExecute(msg)
 	case RoundState_Insistence:
@@ -143,13 +147,13 @@ func (r *Round) Execute(msg imessage.IMessage) []imessage.IMessage {
 	case RoundState_WaitForPublish:
 		// If we get a publish, this round is over. just broadcast whatever we get.
 		// TODO: Add whatever we saw to the msg, help aggregate
-		return imessage.MakeMessageArray(msg, *r.Volunteer)
+		return imessage.MakeMessageArray(msg, r.Volunteer)
 	case RoundState_WaitForTimeout:
 		// We are waiting for timeout to start the next round. Just broadcast
 		// TODO: Add whatever we saw to the msg, help aggregate
-		return imessage.MakeMessageArray(msg, *r.Volunteer)
+		return imessage.MakeMessageArray(msg, r.Volunteer)
 	case RoundState_Publishing:
-		return imessage.MakeMessageArray(*r.Publish)
+		return imessage.MakeMessageArray(r.Publish)
 	default:
 		panic("Round hit a state that is not defined")
 	}
