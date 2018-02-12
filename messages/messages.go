@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"encoding/json"
 )
 
 var embeddedMesssageRegEx *regexp.Regexp
@@ -15,41 +16,35 @@ func init() {
 	embeddedMesssageRegEx.Longest()                      // Make it greedy so it will handle messages with nested messages embedded
 }
 
+func jsonMarshal(r interface{}) string {
+	rval, err := json.Marshal(r)
+	if err != nil {
+		fmt.Printf("%T.String(...) failed: %v", r, err)
+	}
+	return string(rval)
+}
+
+func jsonUnmarshal(r interface{},s string) {
+	err := json.Unmarshal([]byte(s), r)
+	if err != nil {
+		fmt.Printf("%T.ReadString(%s) failed: %v", r, s, err)
+	}
+}
+
+
+
 type SignedMessage struct {
 	Signer Identity
 }
-
-var dummySignedMessage SignedMessage
-
-func (m *SignedMessage) String() string {
-	return fmt.Sprintf("%s", m.Signer.String())
-}
-
-func (m *SignedMessage) ReadString(s string) {
-	m.Signer.ReadString(s)
-}
+func (r *SignedMessage) String() string {	return jsonMarshal(r)}
+func (r *SignedMessage) ReadString(s string) {jsonUnmarshal(r,s)}
 
 type EomMessage struct {
 	ProcessListLocation
 	SignedMessage
 }
-
-func (m *EomMessage) String() string {
-	return fmt.Sprintf("EOM %v %v", m.ProcessListLocation.String(), m.SignedMessage.String())
-}
-
-func (m *EomMessage) ReadString(s string) {
-	var (
-		pl string
-		sm string
-	)
-	n, err := fmt.Sscanf(s, "EOM %s %s", &pl, &sm)
-	if err != nil || n != 2 {
-		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
-	}
-	m.ProcessListLocation.ReadString(pl)
-	m.SignedMessage.ReadString(sm)
-}
+func (r *EomMessage) String() string {	return jsonMarshal(r)}
+func (r *EomMessage) ReadString(s string) {jsonUnmarshal(r,s)}
 
 func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 	var e EomMessage
@@ -65,27 +60,8 @@ type FaultMsg struct {
 	Round   int
 	SignedMessage
 }
-
-func (m *FaultMsg) String() string {
-	return fmt.Sprintf("FAULT %v %v %v %v", m.FaultId.String(), m.ProcessListLocation.String(), m.Round, m.SignedMessage.String())
-}
-
-func (m *FaultMsg) ReadString(s string) {
-	var (
-		id string
-		pl string
-		r  int
-		sm string
-	)
-	n, err := fmt.Sscanf(s, "FAULT %v %v %v %v", &id, &pl, &r, &sm)
-	if err != nil || n != 4 {
-		HandleErrorf("EomMessage.ReadString(%v) failed: %d %v", s, n, err)
-	}
-	m.FaultId.ReadString(id)
-	m.ProcessListLocation.ReadString(pl)
-	m.Round = r
-	m.SignedMessage.ReadString(sm)
-}
+func (r *FaultMsg) String() string {	return jsonMarshal(r)}
+func (r *FaultMsg) ReadString(s string) {jsonUnmarshal(r,s)}
 
 type DbsigMessage struct {
 	Prev   Hash
@@ -93,35 +69,9 @@ type DbsigMessage struct {
 	Eom    EomMessage
 	SignedMessage
 }
+func (r *DbsigMessage) String() string {	return jsonMarshal(r)}
+func (r *DbsigMessage) ReadString(s string) {jsonUnmarshal(r,s)}
 
-func (m *DbsigMessage) String() string {
-	return fmt.Sprintf("DBSIG %v %d <%v> %v", m.Prev.String(), m.Height, m.Eom.String(), m.SignedMessage.String())
-}
-
-func (m *DbsigMessage) ReadString(s string) {
-
-	// todo: Move all the regex's to init
-	//	mTypeRegex := "([A-Z]+) ?"
-	hashRegEx := "(-[0-9a-fA-F]+-) ?"
-	numberRegex := "([0-9]+) ?"
-	// may regret not including the <..> in the message itself and instead only using it when nesting
-	messageRegex := "<(.*)> ?" // must be greedy for messages that contain messages
-	idRegex := "(ID-[0-9a-fA-F]+) ?"
-
-	DbsigMessageRegEx := regexp.MustCompile("DBSIG " + hashRegEx + numberRegex + messageRegex + idRegex) // RegEx split a DbsigMessage from a string
-
-	parts := DbsigMessageRegEx.FindStringSubmatch(s) // Split the message
-
-	if (parts == nil || len(parts) != 5) {
-		HandleErrorf("DbsigMessage.ReadString(%v) failed: found %d parts", s, len(parts))
-		return
-	}
-
-	m.Prev.ReadString(parts[1])
-	m.Height, _ = strconv.Atoi(parts[2])
-	m.Eom.ReadString(parts[3])
-	m.SignedMessage.ReadString(parts[4])
-}
 
 func NewDBSigMessage(identity Identity, eom EomMessage, prev Hash) DbsigMessage {
 	var dbs DbsigMessage
@@ -182,11 +132,11 @@ type VolunteerMessage struct {
 	SignedMessage
 }
 
-func (m *VolunteerMessage) String() string {
+func (m VolunteerMessage) String() string {
 	return fmt.Sprintf("VOLUNTEER %v <%v> <%v> %v", m.Id.String(), m.Eom.String(), m.FaultMsg.String(), m.SignedMessage.String())
 }
 
-func (m *VolunteerMessage) ReadString(s string) {
+func (m VolunteerMessage) ReadString(s string) {
 
 	// todo: Move all the regex's to init
 	//	mTypeRegex := "([A-Z]+) ?"
@@ -260,12 +210,12 @@ func voteMapReadString(s string) (msgMap map[Identity]SignedMessage) {
 	return msgMap
 }
 
-func (m *VoteMessage) String() string {
+func (m VoteMessage) String() string {
 	mapString := voteMapString(m.OtherVotes)
 	return fmt.Sprintf("VOTE <%v> {%v} %v", m.Volunteer.String(), mapString, m.SignedMessage.String())
 }
 
-func (m *VoteMessage) ReadString(s string) {
+func (m VoteMessage) ReadString(s string) {
 
 	// todo: Move all the regex's to init
 	//	mTypeRegex := "([A-Z]+) ?"
@@ -302,7 +252,8 @@ func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
 // ------------------------------------------------------------------------------------------------------------------
 
 type MajorityDecisionMessage struct {
-	MajorityVotes map[Identity]VoteMessage
+	Volunteer VolunteerMessage
+	MajorityVotes map[Identity]SignedMessage
 	SignedMessage
 
 	// Other MajorityDecisions you may have seen. Help
@@ -310,8 +261,18 @@ type MajorityDecisionMessage struct {
 	OtherMajorityDecisions map[Identity]MajorityDecisionMessage
 }
 
-func NewMajorityDecisionMessage(votes map[Identity]VoteMessage, self Identity) MajorityDecisionMessage {
+func (m MajorityDecisionMessage) String()string{
+	panic("")
+	return ""
+}
+
+func (m MajorityDecisionMessage) ReadString(s string) {
+	panic("")
+}
+
+func NewMajorityDecisionMessage(volunteer VolunteerMessage, votes map[Identity]SignedMessage, self Identity) MajorityDecisionMessage {
 	var mj MajorityDecisionMessage
+	mj.Volunteer = volunteer
 	mj.MajorityVotes = votes
 	mj.Signer = self
 
@@ -326,7 +287,14 @@ type InsistMessage struct {
 	// pass them along
 	OtherInsists map[Identity]InsistMessage
 }
+func (m InsistMessage) String()string{
+	panic("")
+	return ""
+}
 
+func (m InsistMessage) ReadString(s string) {
+	panic("")
+}
 func NewInsistenceMessage(mds map[Identity]MajorityDecisionMessage, identity Identity) InsistMessage {
 	var i InsistMessage
 	i.MajorityMajorityDecisions = mds
@@ -340,6 +308,15 @@ type IAckMessage struct {
 	Insist InsistMessage
 	// IAcks can accumulate on the same message rather than broadcasting out a lot
 	Signers map[Identity]bool
+}
+
+func (m IAckMessage) String()string{
+	panic("")
+	return ""
+}
+
+func (m IAckMessage) ReadString(s string) {
+	panic("")
 }
 
 func NewIAckMessage(insist InsistMessage, identity Identity) IAckMessage {
@@ -356,6 +333,15 @@ type PublishMessage struct {
 	MajorityIAckMessages map[Identity]bool
 	SignedMessage
 }
+func (m PublishMessage) String()string{
+	panic("")
+	return ""
+}
+
+func (m PublishMessage) ReadString(s string) {
+	panic("")
+}
+
 
 func NewPublishMessage(insist InsistMessage, identity Identity, iackMap map[Identity]bool) PublishMessage {
 	var p PublishMessage

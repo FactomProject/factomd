@@ -98,7 +98,7 @@ func (v *VoteFactory) VotesListWithMajority() []VoteMessage {
 }
 
 func (v *VoteFactory) NextMajorityDecision() MajorityDecisionMessage {
-	return NewMajorityDecisionMessage(v.VotesMapWithMajority(), v.FedList[v.index])
+	return NewMajorityDecisionMessage(v.Volunteer, v.VotesMapWithMajority(), v.FedList[v.index])
 }
 
 func (v *VoteFactory) MajorityDecisionMapWithMajority() map[Identity]MajorityDecisionMessage {

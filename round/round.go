@@ -7,6 +7,7 @@ import (
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
 	. "github.com/FactomProject/electiontesting/errorhandling"
+	"encoding/json"
 )
 
 var _ = fmt.Println
@@ -32,8 +33,6 @@ const (
 	// Like the names says
 	RoundState_Invalid
 )
-
-
 
 
 func (state RoundState) String() string {
@@ -80,12 +79,14 @@ func (s RoundState) ReadString(state string) {
 	}
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 // Round is used to find a replacement for a particular Height, Min, VM. It will try to
 // get consensus for the audit server for the round
 type Round struct {
 	// The audit server that we are trying to get majority to pass
 	Volunteer         *messages.VolunteerMessage
-	Votes             map[Identity]messages.VoteMessage
+	// Message buckets. When this tip over a majority they trigger a state change
+	Votes             map[Identity]messages.SignedMessage
 	MajorityDecisions map[Identity]messages.MajorityDecisionMessage
 	Insistences       map[Identity]messages.InsistMessage
 	AuthSet
@@ -99,13 +100,28 @@ type Round struct {
 	IAcks            map[Identity]bool
 
 	State          RoundState
+	// Never use this number, always use GetMajority. This is a cache
+	// for that function
 	majorityNumber int
 
 	// EOM Info
 	ProcessListLocation
 }
 
+func (r *Round) String() string {
+	rval, err := json.Marshal(r)
+	if err != nil {
+		HandleErrorf("%T.String(...) failed: %v",r ,err)
+	}
+	return string(rval[:])
+}
 
+func (r *Round) ReadString(s string) {
+	err := json.Unmarshal([]byte(s), r)
+	if err != nil {
+		HandleErrorf("%T.ReadString(%s) failed: %v",r,s,err)
+	}
+}
 
 func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessage, loc ProcessListLocation) *Round {
 	r := new(Round)
@@ -125,7 +141,7 @@ func NewRound(authSet AuthSet, self Identity, volunteer messages.VolunteerMessag
 		r.State = RoundState_AudStart
 	}
 
-	r.Votes = make(map[Identity]messages.VoteMessage)
+	r.Votes = make(map[Identity]messages.SignedMessage)
 	r.MajorityDecisions = make(map[Identity]messages.MajorityDecisionMessage)
 	r.Insistences = make(map[Identity]messages.InsistMessage)
 	r.IAcks = make(map[Identity]bool)
@@ -290,7 +306,7 @@ func (r *Round) insistExecute(msg imessage.IMessage) []imessage.IMessage {
 	return nil
 }
 
-func (r *Round) CopyVotes(votes map[Identity]messages.VoteMessage) {
+func (r *Round) CopyVotes(votes map[Identity]messages.SignedMessage) {
 	for k, vote := range votes {
 		r.Votes[k] = vote
 	}
@@ -362,7 +378,7 @@ func (r *Round) makeVote(vol messages.VolunteerMessage) messages.VoteMessage {
 
 	vote := messages.NewVoteMessage(vol, r.Self)
 	vote.OtherVotes = r.Votes
-	r.Votes[r.Self] = vote
+	r.Votes[r.Self] = vote.SignedMessage
 	r.Vote = &vote
 	return vote
 }
@@ -373,7 +389,7 @@ func (r *Round) makeMajorityDecision() messages.MajorityDecisionMessage {
 		return *r.MajorityDecision
 	}
 
-	m := messages.NewMajorityDecisionMessage(r.Votes, r.Self)
+	m := messages.NewMajorityDecisionMessage(*r.Volunteer, r.Votes, r.Self)
 	m.OtherMajorityDecisions = r.MajorityDecisions
 	r.MajorityDecision = &m
 	r.MajorityDecisions[r.Self] = m
@@ -383,7 +399,7 @@ func (r *Round) makeMajorityDecision() messages.MajorityDecisionMessage {
 // AddVote returns true if we have a majority of votes
 func (r *Round) AddVote(vote messages.VoteMessage) bool {
 	// Todo: Add warning if add twice?
-	r.Votes[vote.Signer] = vote
+	r.Votes[vote.Signer] = vote.SignedMessage
 
 	return len(r.Votes) > r.GetMajority()
 }

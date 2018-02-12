@@ -11,12 +11,15 @@ func GetVolunteerMsg(msg interface{}) *VolunteerMessage {
 		return &v.Volunteer
 	case MajorityDecisionMessage:
 		md := msg.(MajorityDecisionMessage)
-		var vote VoteMessage
+		// ??? what's this
+		/*
+		var vote SignedMessage
 		for _, v := range md.MajorityVotes {
 			vote = v
 			break
 		}
-		return &vote.Volunteer
+*/
+		return &md.Volunteer
 	case InsistMessage:
 		insist := msg.(InsistMessage)
 		var md MajorityDecisionMessage

@@ -86,7 +86,7 @@ func (e *Election) ExecuteMsg(msg imessage.IMessage) []imessage.IMessage {
 	}
 
 	var response []imessage.IMessage
-	// Guarented any messaged here is lower than any we have publishing.
+	// Guaranteed any messaged here is lower than any we have publishing.
 	switch e.State {
 	case ElectionState_Working:
 		// Default to execute and look for publish

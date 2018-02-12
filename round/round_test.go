@@ -52,37 +52,41 @@ func TestRoundString(t *testing.T) {
 	var (
 		r         Round
 		volunteer messages.VolunteerMessage
-		vote messages.VoteMessage
-		id Identity
+		vote      messages.VoteMessage
+		id        Identity
 	)
 	volunteer.ReadString("VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef")
 
-
 	r.Volunteer = &volunteer
-	r.Votes = make(map[Identity]messages.VoteMessage)
+	r.Votes = make(map[Identity]messages.SignedMessage)
 	//create a vote
 	id.ReadString("ID-76543210")
-	vote.ReadString( "VOTE <VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef> {"+
-		"(ID-76543210 ID-76543210) "+
-		"(ID-76543211 ID-76543211)"+
+	vote.ReadString("VOTE <VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef> {" +
+		"(ID-76543210 ID-76543210) " +
+		"(ID-76543211 ID-76543211)" +
 		" } " + id.String())
-	r.Votes[id] = vote
+	r.Votes[id] = vote.SignedMessage
 	// change the ID and add another vote
 	id.ReadString("ID-FEDCBA89")
-    vote.Signer = id
-	r.Votes[id] = vote
+	vote.Signer = id
+	r.Votes[id] = vote.SignedMessage
 
 	r.Vote = &vote
 
-	r.MajorityDecisions = make(map[Identity]messages.MajorityDecisionMessage,0)
+	r.MajorityDecisions = make(map[Identity]messages.MajorityDecisionMessage, 0)
 	//r.MajorityDecision[] leave this empty for now
 
-	r.Insistences = make(map[Identity]messages.InsistMessage,0)
-	r.AuthSet.ReadString('{"IdentityList":[1985229328,19088743],"StatusArray":[1,0],"IdentityMap":{"19088743":1,"1985229328":0}}')
+	r.Insistences = make(map[Identity]messages.InsistMessage, 0)
+	r.AuthSet.ReadString(`{"IdentityList":[1985229328,19088743],"StatusArray":[1,0],"IdentityMap":{"19088743":1,"1985229328":0}}`)
 
-    r.Self.ReadSTring("ID-00000001")
+	r.Self.ReadString("ID-00000001")
+
+	s:= r.String()
+	_= s;
+
 
 }
+
 func TestExecute(t *testing.T) {
 	T = t // set ErrorHandling Test context for this test
 
@@ -91,11 +95,11 @@ func TestExecute(t *testing.T) {
 
 	sm := messages.SignedMessage{Signer: leaderId}
 
-	loc := ProcessListLocation{0, 0, 0}
+	loc := ProcessListLocation{0, MinuteLocation{0, 0}}
 	eom := messages.NewEomMessage(sm.Signer, loc)
 	volunteerMessage := messages.VolunteerMessage{Eom: eom, SignedMessage: sm}
 	voteMessage := messages.VoteMessage{Volunteer: volunteerMessage, SignedMessage: sm}
-	majorityDecisionMessage := messages.NewMajorityDecisionMessage(map[Identity]messages.VoteMessage{voteMessage.Signer: voteMessage}, voteMessage.Signer)
+	majorityDecisionMessage := messages.NewMajorityDecisionMessage(volunteerMessage, map[Identity]messages.SignedMessage{voteMessage.Signer: voteMessage.SignedMessage}, voteMessage.Signer)
 
 	test_messages := []imessage.IMessage{volunteerMessage, voteMessage, majorityDecisionMessage}
 	ids := []Identity{leaderId, auditId}
@@ -121,7 +125,7 @@ func TestExecute(t *testing.T) {
 	for _, message := range test_messages {
 
 		// copy the current set of votes
-		prevVotes := map[Identity]messages.VoteMessage
+		prevVotes := make(map[Identity]messages.SignedMessage, 0)
 		for k, v := range leader_round.Votes {
 			prevVotes[k] = v
 		}
@@ -133,9 +137,9 @@ func TestExecute(t *testing.T) {
 		case messages.VolunteerMessage:
 			switch prevState {
 			case RoundState_FedStart:
-				if len(rMessages) != 1) {
-			HandleError("Expected only a vote as output")
-			}
+				if len(rMessages) != 1 {
+					HandleError("Expected only a vote as output")
+				}
 			case RoundState_MajorityDecsion, RoundState_Insistence, RoundState_Publishing:
 				HandleError("Volunteer message unexpected in %v", )
 
@@ -143,7 +147,7 @@ func TestExecute(t *testing.T) {
 			if (len(leader_round.Votes) != 1) {
 				HandleError("Expected vote to be one after volunteer")
 			}
-			for rMessage := range rMessages {
+			for _, rMessage := range rMessages {
 				switch rMessage.(type) {
 				case messages.VolunteerMessage:
 					/* expected */
