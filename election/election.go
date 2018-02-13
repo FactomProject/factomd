@@ -14,6 +14,8 @@ type Election struct {
 	// Indexed by volunteer
 	VolunteerControls map[Identity]*volunteercontrol.VolunteerControl
 
+	CommitmentIndicator *DiamondShop
+
 	CurrentLevel int
 	CurrentVote  messages.LeaderLevelMessage
 	Self         Identity
@@ -35,6 +37,7 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	// Used to determine volunteer priority
 	e.ProcessListLocation = loc
 
+	e.CommitmentIndicator = NewDiamondShop(e.AuthSet)
 	return e
 }
 
@@ -85,6 +88,12 @@ func (e *Election) getVolunteerPriority(vol Identity) int {
 func (e *Election) executeLeaderLevelMessage(msg messages.LeaderLevelMessage) imessage.IMessage {
 	if e.VolunteerControls[msg.VolunteerMessage.Signer] == nil {
 		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
+	}
+
+	// If commit is true, then we are done. Return the EOM
+	commit := e.CommitmentIndicator.ShouldICommit(msg)
+	if commit {
+		return msg.VolunteerMessage.Eom
 	}
 
 	res := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)

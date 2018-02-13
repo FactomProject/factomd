@@ -49,8 +49,8 @@ type EomMessage struct {
 	SignedMessage
 }
 
-func (r *EomMessage) String() string      { return jsonMarshal(r) }
-func (r *EomMessage) ReadString(s string) { jsonUnmarshal(r, s) }
+func (r EomMessage) String() string      { return jsonMarshal(r) }
+func (r EomMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 	var e EomMessage

@@ -1,9 +1,11 @@
 package messages
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
+
+var _ = fmt.Println
 
 func TestEomMessageReadString(t *testing.T) {
 	var m EomMessage
@@ -56,7 +58,7 @@ func TestVolunteerMessageReadString(t *testing.T) {
 	s := "VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef"
 	m.ReadString(s)
 	r := m.String()
-//	fmt.Printf("s:%s:%d\nr:%s:%d\n",s,len(s),r,len(r))
+	//	fmt.Printf("s:%s:%d\nr:%s:%d\n",s,len(s),r,len(r))
 	if r != s {
 		t.Errorf("VolunteerMessage.ReadString(\"%s\")", s)
 	}
@@ -64,13 +66,13 @@ func TestVolunteerMessageReadString(t *testing.T) {
 
 func TestVoteMessageReadString(t *testing.T) {
 	var m VoteMessage
-	s := "VOTE <VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef> {"+
-	"(ID-76543210 ID-76543210) "+
-	"(ID-76543211 ID-76543211)"+
-	" } ID-89abcdef"
+	s := "VOTE <VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef> {" +
+		"(ID-76543210 ID-76543210) " +
+		"(ID-76543211 ID-76543211)" +
+		" } ID-89abcdef"
 	m.ReadString(s)
 	r := m.String()
-//	fmt.Printf("s:%s:%d\nr:%s:%d\n",s,len(s),r,len(r))
+	//	fmt.Printf("s:%s:%d\nr:%s:%d\n",s,len(s),r,len(r))
 	if r != s {
 		t.Errorf("VoteMessage.ReadString(\"%s\")", s)
 	}
