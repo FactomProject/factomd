@@ -19,12 +19,12 @@ type VolunteerControl struct {
 	Self      Identity
 	Volunteer *messages.VolunteerMessage
 
-	Votes map[Identity]messages.LeaderLevelMessage
+	Votes map[Identity]*messages.LeaderLevelMessage
 }
 
 func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 	v := new(VolunteerControl)
-	v.Votes = make(map[Identity]messages.LeaderLevelMessage)
+	v.Votes = make(map[Identity]*messages.LeaderLevelMessage)
 	v.Self = self
 	v.AuthSet = authset
 
@@ -33,7 +33,7 @@ func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 
 func (v *VolunteerControl) Execute(msg imessage.IMessage) imessage.IMessage {
 	// When we get a vote, we need to add it to our map
-	ll, ok := msg.(messages.LeaderLevelMessage)
+	ll, ok := msg.(*messages.LeaderLevelMessage)
 	if !ok {
 		return nil
 	}
@@ -51,7 +51,7 @@ func (v *VolunteerControl) Execute(msg imessage.IMessage) imessage.IMessage {
 }
 
 // addVote just adds the vote to the vote map
-func (v *VolunteerControl) addVote(msg messages.LeaderLevelMessage) {
+func (v *VolunteerControl) addVote(msg *messages.LeaderLevelMessage) {
 	// If we already have a vote from that leader for this audit, then we only replace ours if this is better
 	if cur, ok := v.Votes[msg.Signer]; ok {
 		if cur.Level == msg.Level {
@@ -61,7 +61,7 @@ func (v *VolunteerControl) addVote(msg messages.LeaderLevelMessage) {
 
 		if cur.Rank > msg.Rank {
 			// Greater rank is always better.
-			msg.Justification = []messages.LeaderLevelMessage{}
+			msg.Justification = []*messages.LeaderLevelMessage{}
 			v.Votes[msg.Signer] = msg
 		}
 	} else {
@@ -79,7 +79,7 @@ func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) imessage.IMessa
 		return msg
 	}
 
-	var justification []messages.LeaderLevelMessage
+	var justification []*messages.LeaderLevelMessage
 
 	// Majority votes exist, we need to find the lowest level, and issue back that level message
 	level := math.MaxInt32
@@ -101,5 +101,5 @@ func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) imessage.IMessa
 	llmsg := messages.NewLeaderLevelMessage(v.Self, level, -2, *v.Volunteer)
 	llmsg.Justification = justification
 
-	return llmsg
+	return &llmsg
 }

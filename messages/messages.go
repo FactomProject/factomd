@@ -3,9 +3,9 @@ package messages
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
-	. "github.com/FactomProject/electiontesting/primitives"
 	. "github.com/FactomProject/electiontesting/errorhandling"
+	. "github.com/FactomProject/electiontesting/primitives"
+	"regexp"
 	"strings"
 )
 
@@ -15,6 +15,7 @@ type NoMessage struct{}
 
 func (r *NoMessage) String() string      { return jsonMarshal(r) }
 func (r *NoMessage) ReadString(s string) { jsonUnmarshal(r, s) }
+
 var embeddedMesssageRegEx *regexp.Regexp
 
 func init() {
@@ -28,33 +29,33 @@ func jsonMarshal(r interface{}) string {
 		HandleErrorf("%T.String(...) failed: %v", r, err)
 	}
 	// get the expectedType excluding the "*messages." at the front (or what ever path is there)
-	expectedType := fmt.Sprintf("%T",r)
-	n := strings.LastIndex(expectedType,".")
+	expectedType := fmt.Sprintf("%T", r)
+	n := strings.LastIndex(expectedType, ".")
 	expectedType = expectedType[n+1:]
-	return fmt.Sprintf("%s %s",expectedType, json)
+	return fmt.Sprintf("%s %s", expectedType, json)
 }
 
 func jsonUnmarshal(r interface{}, jsonData string) {
 	var t, expectedType string
 
-	if(jsonData[0:1] != "{") {
+	if jsonData[0:1] != "{" {
 		//separate the type and the json data if the type is there
-		n, err:= fmt.Sscanf(jsonData, "%s ", &t)
-		if n!=1 || err != nil {
-			HandleErrorf("%T.ReadString(\"%s\") failed: %v",r, jsonData, err)
+		n, err := fmt.Sscanf(jsonData, "%s ", &t)
+		if n != 1 || err != nil {
+			HandleErrorf("%T.ReadString(\"%s\") failed: %v", r, jsonData, err)
 		}
 		// get the expectedType excluding the "*messages." at the front (or what ever path is there)
-		expectedType = fmt.Sprintf("%T",r)
-		n = strings.LastIndex(expectedType,".")
+		expectedType = fmt.Sprintf("%T", r)
+		n = strings.LastIndex(expectedType, ".")
 		expectedType = expectedType[n+1:]
 		if t != expectedType {
-			HandleErrorf("%T.ReadString(\"%s\") failed: Bad Type %s",r,jsonData, t)
+			HandleErrorf("%T.ReadString(\"%s\") failed: Bad Type %s", r, jsonData, t)
 		}
 		jsonData = jsonData[len(t)+1:] // remove type from string
 	}
 	err := json.Unmarshal([]byte(jsonData), r)
 	if err != nil {
-		HandleErrorf("%T.ReadString(\"%s\") failed: %v",r, jsonData, err)
+		HandleErrorf("%T.ReadString(\"%s\") failed: %v", r, jsonData, err)
 	}
 }
 
@@ -126,8 +127,6 @@ type AuthChangeMessage struct {
 func (r *AuthChangeMessage) String() string      { return jsonMarshal(r) }
 func (r *AuthChangeMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
-
-
 // ------------------------------------------------------------------------------------------------------------------
 type VolunteerMessage struct {
 	Id  Identity
@@ -153,12 +152,21 @@ type LeaderLevelMessage struct {
 	// to here
 	Rank int
 	// Leaders must never have 2 messages of the same level
-	Level int
+	Level             int
+	VolunteerPriority int
+
 	VolunteerMessage
 	SignedMessage
 
 	// messages used to justify
-	Justification []LeaderLevelMessage
+	Justification []*LeaderLevelMessage
+}
+
+func (a *LeaderLevelMessage) Less(b *LeaderLevelMessage) bool {
+	if a.Rank == b.Rank {
+		return a.VolunteerPriority < b.VolunteerPriority
+	}
+	return a.Rank < b.Rank
 }
 
 func (r *LeaderLevelMessage) String() string      { return jsonMarshal(r) }
@@ -171,7 +179,6 @@ func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) L
 	l.VolunteerMessage = v
 	return l
 }
-
 
 // ------------------------------------------------------------------------------------------------------------------
 type VoteMessage struct {

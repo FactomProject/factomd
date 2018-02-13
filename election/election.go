@@ -9,7 +9,7 @@ import (
 
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
-	VolunteerVotes map[Identity]map[Identity]messages.VoteMessage
+	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage
 
 	// Indexed by volunteer
 	VolunteerControls map[Identity]*volunteercontrol.VolunteerControl
@@ -25,7 +25,7 @@ type Election struct {
 
 func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
 	e := new(Election)
-	e.VolunteerVotes = make(map[Identity]map[Identity]messages.VoteMessage)
+	e.VolunteerVotes = make(map[Identity]map[Identity]*messages.VoteMessage)
 	e.VolunteerControls = make(map[Identity]*volunteercontrol.VolunteerControl)
 	e.Self = self
 	e.AuthSet = authset
@@ -43,13 +43,15 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 
 func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 	switch msg.(type) {
-	case messages.LeaderLevelMessage:
-		return e.executeLeaderLevelMessage(msg.(messages.LeaderLevelMessage))
-	case messages.VolunteerMessage:
-		return messages.NewVoteMessage(msg.(messages.VolunteerMessage), e.Self)
-	case messages.VoteMessage:
+	case *messages.LeaderLevelMessage:
+		return e.executeLeaderLevelMessage(msg.(*messages.LeaderLevelMessage))
+	case *messages.VolunteerMessage:
+		vol := msg.(*messages.VolunteerMessage)
+		vote := messages.NewVoteMessage(*vol, e.Self)
+		return &vote
+	case *messages.VoteMessage:
 		// Colecting these allows us to issue out 0.#
-		vote := msg.(messages.VoteMessage)
+		vote := msg.(*messages.VoteMessage)
 		vol := vote.Volunteer.Signer
 
 		e.VolunteerVotes[vol][vote.Signer] = vote
@@ -63,19 +65,19 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 
 			// If we have a rank 1+, we will not issue a rank 0
 			if e.CurrentVote.Rank > 0 {
-				return e.CurrentVote // forward our answer again
+				return &e.CurrentVote // forward our answer again
 			}
 
 			// If we have a rank 0, and higher priority volunteer (or same, don't vote again)
 			if e.CurrentVote.VolunteerPriority >= e.getVolunteerPriority(vol) {
-				return e.CurrentVote // forward our answer again
+				return &e.CurrentVote // forward our answer again
 			}
 
 		SendRank0:
 			ll := messages.NewLeaderLevelMessage(e.Self, 0, e.CurrentLevel, vote.Volunteer)
 			e.CurrentLevel++
 			e.CurrentVote = ll
-			return e.Execute(ll)
+			return e.Execute(&ll)
 		}
 	}
 	return nil
@@ -85,7 +87,7 @@ func (e *Election) getVolunteerPriority(vol Identity) int {
 	return e.GetVolunteerPriority(vol, e.ProcessListLocation)
 }
 
-func (e *Election) executeLeaderLevelMessage(msg messages.LeaderLevelMessage) imessage.IMessage {
+func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) imessage.IMessage {
 	if e.VolunteerControls[msg.VolunteerMessage.Signer] == nil {
 		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
 	}
@@ -99,7 +101,7 @@ func (e *Election) executeLeaderLevelMessage(msg messages.LeaderLevelMessage) im
 	res := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
 	if res != nil {
 		// If it is a vote from us, then we need to decide if we should send it
-		if ll, ok := res.(messages.LeaderLevelMessage); ok && ll.Signer == e.Self {
+		if ll, ok := res.(*messages.LeaderLevelMessage); ok && ll.Signer == e.Self {
 			// We need to set the volunteer priority for comparing
 			ll.VolunteerPriority = e.getVolunteerPriority(ll.VolunteerMessage.Signer)
 
@@ -115,7 +117,7 @@ func (e *Election) executeLeaderLevelMessage(msg messages.LeaderLevelMessage) im
 					ll.Level = e.CurrentLevel
 					e.CurrentLevel++
 				}
-				e.CurrentVote = ll
+				e.CurrentVote = *ll
 
 				// This vote may change our state, so call ourselves again
 				return e.Execute(ll)

@@ -32,7 +32,7 @@ func NewDiamondShop(authset primitives.AuthSet) *DiamondShop {
 
 // ShouldICommit will return a bool that tells you if you can commit to the election results.
 // True --> Use the EOM, we are done
-func (d *DiamondShop) ShouldICommit(msg messages.LeaderLevelMessage) bool {
+func (d *DiamondShop) ShouldICommit(msg *messages.LeaderLevelMessage) bool {
 	c := d.VoteHistories[msg.Signer].Add(msg)
 	d.Commitment[msg.Signer] = c
 
@@ -62,7 +62,7 @@ func NewLeaderVoteHistory() *LeaderVoteHistory {
 
 // Add returns true if the leader is good to commit. Only returns true
 // if we get 2 sequential levels with the same volunteer decision
-func (h *LeaderVoteHistory) Add(l messages.LeaderLevelMessage) int {
+func (h *LeaderVoteHistory) Add(l *messages.LeaderLevelMessage) int {
 	place := -1
 
 	// Check for nil. If a nil, we have an open spot
@@ -78,13 +78,13 @@ func (h *LeaderVoteHistory) Add(l messages.LeaderLevelMessage) int {
 	}
 
 	if place != -1 {
-		h.Votes[place] = &l
+		h.Votes[place] = l
 		h.sort()
 		return -1
 	}
 
 	// No nils, no duplicates, replace the lowest one
-	h.Votes[len(h.Votes)-1] = &l
+	h.Votes[len(h.Votes)-1] = l
 	h.sort()
 	return h.checkForComplete()
 }
