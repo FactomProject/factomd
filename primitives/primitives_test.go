@@ -80,7 +80,23 @@ func TestAuthSetReadString(t *testing.T) {
 	a.New()
 	a.Add(id, 1)
 	id.ReadString("ID-01234567")
-	a.Add(id,0)
-	s:= a.String()
+	a.Add(id, 0)
+	s := a.String()
 	fmt.Print(s)
+}
+
+func TestAuthorityStatusReadString(t *testing.T) {
+	var a AuthorityStatus
+
+	for n, s := range []string{"AUDIT", "LEADER", "INVALID:2"} {
+		a.ReadString(s)
+		if a != AuthorityStatus(n) {
+			t.Errorf("AuthorityStatus.ReadString(\"%s\")", s)
+		}
+		a = AuthorityStatus(n) // just in case the rad failed
+		if a.String() != s {
+			t.Errorf("AuthorityStatus.String() = \"%s\"", s)
+		}
+	}
+
 }

@@ -3,9 +3,10 @@ package messages
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/FactomProject/electiontesting/errorhandling"
-	. "github.com/FactomProject/electiontesting/primitives"
 	"regexp"
+	. "github.com/FactomProject/electiontesting/primitives"
+	. "github.com/FactomProject/electiontesting/errorhandling"
+	"strings"
 )
 
 var Nothing NoMessage
@@ -14,7 +15,6 @@ type NoMessage struct{}
 
 func (r *NoMessage) String() string      { return jsonMarshal(r) }
 func (r *NoMessage) ReadString(s string) { jsonUnmarshal(r, s) }
-
 var embeddedMesssageRegEx *regexp.Regexp
 
 func init() {
@@ -23,17 +23,38 @@ func init() {
 }
 
 func jsonMarshal(r interface{}) string {
-	rval, err := json.Marshal(r)
+	json, err := json.Marshal(r)
 	if err != nil {
-		fmt.Printf("%T.String(...) failed: %v", r, err)
+		HandleErrorf("%T.String(...) failed: %v", r, err)
 	}
-	return string(rval)
+	// get the expectedType excluding the "*messages." at the front (or what ever path is there)
+	expectedType := fmt.Sprintf("%T",r)
+	n := strings.LastIndex(expectedType,".")
+	expectedType = expectedType[n+1:]
+	return fmt.Sprintf("%s %s",expectedType, json)
 }
 
-func jsonUnmarshal(r interface{}, s string) {
-	err := json.Unmarshal([]byte(s), r)
+func jsonUnmarshal(r interface{}, jsonData string) {
+	var t, expectedType string
+
+	if(jsonData[0:1] != "{") {
+		//separate the type and the json data if the type is there
+		n, err:= fmt.Sscanf(jsonData, "%s ", &t)
+		if n!=1 || err != nil {
+			HandleErrorf("%T.ReadString(\"%s\") failed: %v",r, jsonData, err)
+		}
+		// get the expectedType excluding the "*messages." at the front (or what ever path is there)
+		expectedType = fmt.Sprintf("%T",r)
+		n = strings.LastIndex(expectedType,".")
+		expectedType = expectedType[n+1:]
+		if t != expectedType {
+			HandleErrorf("%T.ReadString(\"%s\") failed: Bad Type %s",r,jsonData, t)
+		}
+		jsonData = jsonData[len(t)+1:] // remove type from string
+	}
+	err := json.Unmarshal([]byte(jsonData), r)
 	if err != nil {
-		fmt.Printf("%T.ReadString(%s) failed: %v", r, s, err)
+		HandleErrorf("%T.ReadString(\"%s\") failed: %v",r, jsonData, err)
 	}
 }
 
@@ -59,6 +80,7 @@ func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 	return e
 }
 
+// ------------------------------------------------------------------------------------------------------------------
 // Start faulting
 type FaultMsg struct {
 	FaultId Identity
@@ -70,6 +92,12 @@ type FaultMsg struct {
 func (r *FaultMsg) String() string      { return jsonMarshal(r) }
 func (r *FaultMsg) ReadString(s string) { jsonUnmarshal(r, s) }
 
+func NewFaultMessage(victim Identity, pl ProcessListLocation, r int, signer Identity) FaultMsg {
+	var fault FaultMsg = FaultMsg{victim, pl, r, SignedMessage{signer}}
+	return fault
+}
+
+// ------------------------------------------------------------------------------------------------------------------
 type DbsigMessage struct {
 	Prev   Hash
 	Height int
@@ -88,50 +116,19 @@ func NewDBSigMessage(identity Identity, eom EomMessage, prev Hash) DbsigMessage 
 	return dbs
 }
 
+// ------------------------------------------------------------------------------------------------------------------
 type AuthChangeMessage struct {
 	Id     Identity
-	Status int //0 < audit and >0 is leader
+	Status AuthorityStatus //0 < audit and >0 is leader
 	SignedMessage
 }
 
-func (m *AuthChangeMessage) StatusString() string {
-	switch m.Status {
-	case 0:
-		return "AUDIT"
-	case 1:
-		return "LEADER"
-	default:
-		return fmt.Sprintf("UNKNOWN%d", m.Status)
-	}
-}
+func (r *AuthChangeMessage) String() string      { return jsonMarshal(r) }
+func (r *AuthChangeMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
-func (m *AuthChangeMessage) String() string {
-	return fmt.Sprintf("AUTH %v %v %v", m.Id.String(), m.StatusString(), m.SignedMessage.String())
-}
 
-func (m *AuthChangeMessage) ReadString(s string) {
-	var (
-		id     string
-		status string
-		sm     string
-	)
-	n, err := fmt.Sscanf(s, "AUTH %v %v %v", &id, &status, &sm)
-	if err != nil || n != 3 {
-		HandleErrorf("AuthChangeMessage.ReadString(%v) failed: %d %v", s, n, err)
-	}
-	m.Id.ReadString(id)
-	switch status {
-	case "AUDIT":
-		m.Status = 0
-	case "LEADER":
-		m.Status = 1
-	default:
-		HandleErrorf("AuthChangeMessage.ReadString(%v) bad status %v", s, status)
-		m.Status = -1
-	}
-	m.SignedMessage.ReadString(sm)
-}
 
+// ------------------------------------------------------------------------------------------------------------------
 type VolunteerMessage struct {
 	Id  Identity
 	Eom EomMessage
@@ -139,35 +136,8 @@ type VolunteerMessage struct {
 	SignedMessage
 }
 
-func (m VolunteerMessage) String() string {
-	return fmt.Sprintf("VOLUNTEER %v <%v> <%v> %v", m.Id.String(), m.Eom.String(), m.FaultMsg.String(), m.SignedMessage.String())
-}
-
-func (m VolunteerMessage) ReadString(s string) {
-
-	// todo: Move all the regex's to init
-	//	mTypeRegex := "([A-Z]+) ?"
-	//	hashRegEx := "(-[0-9a-fA-F]+-) ?"
-	//	numberRegex := "([0-9]+) ?"
-	// may regret not including the <..> in the message itself and instead only using it when nesting
-	messageRegex := "<(.*)> ?" // must be greedy for messages that contain messages
-	idRegex := "(ID-[0-9a-fA-F]+) ?"
-
-	VolunteerRegex := "VOLUNTEER " + idRegex + messageRegex + messageRegex + idRegex
-	VolunteerMessageRegEx :=
-		regexp.MustCompile(VolunteerRegex) // RegEx split a VolunteerMessage from a string
-
-	parts := VolunteerMessageRegEx.FindStringSubmatch(s) // Split the message
-
-	if parts == nil || len(parts) != 5 {
-		HandleErrorf("VolunteerMessage.ReadString(%v) failed: found %d parts", s, len(parts))
-		return
-	}
-	m.Id.ReadString(parts[1])
-	m.Eom.ReadString(parts[2])
-	m.FaultMsg.ReadString(parts[3])
-	m.SignedMessage.ReadString(parts[4])
-}
+func (r *VolunteerMessage) String() string      { return jsonMarshal(r) }
+func (r *VolunteerMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewVolunteerMessage(e EomMessage, identity Identity) VolunteerMessage {
 	var v VolunteerMessage
@@ -176,15 +146,14 @@ func NewVolunteerMessage(e EomMessage, identity Identity) VolunteerMessage {
 	return v
 }
 
+// ------------------------------------------------------------------------------------------------------------------
 type LeaderLevelMessage struct {
 	// Usually to prove your rank you have to explicitly show
 	// the votes you used to obtain that rank, however we don't have
 	// to here
 	Rank int
 	// Leaders must never have 2 messages of the same level
-	Level             int
-	VolunteerPriority int
-
+	Level int
 	VolunteerMessage
 	SignedMessage
 
@@ -192,6 +161,8 @@ type LeaderLevelMessage struct {
 	Justification []LeaderLevelMessage
 }
 
+func (r *LeaderLevelMessage) String() string      { return jsonMarshal(r) }
+func (r *LeaderLevelMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) LeaderLevelMessage {
 	var l LeaderLevelMessage
 	l.Signer = self
@@ -201,15 +172,6 @@ func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) L
 	return l
 }
 
-func (a LeaderLevelMessage) Less(b LeaderLevelMessage) bool {
-	if a.Rank == b.Rank {
-		return a.VolunteerPriority < b.VolunteerPriority
-	}
-	return a.Rank < b.Rank
-}
-
-func (r LeaderLevelMessage) String() string      { return jsonMarshal(r) }
-func (r LeaderLevelMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 // ------------------------------------------------------------------------------------------------------------------
 type VoteMessage struct {
@@ -220,68 +182,8 @@ type VoteMessage struct {
 	SignedMessage
 }
 
-func voteMapString(msgMap map[Identity]SignedMessage) (r string) {
-	for id, m := range msgMap {
-		r += fmt.Sprintf("(%s %s) ", id.String(), m.String())
-	}
-	return r
-}
-
-func voteMapReadString(s string) (msgMap map[Identity]SignedMessage) {
-	messageRegex := "[(]([^)]+ [^)]+)[)] ?"               // must be greedy for messages that contain messages
-	messageRegexRegEx := regexp.MustCompile(messageRegex) // RegEx split a msgMap from a string
-
-	votes := messageRegexRegEx.FindAllStringSubmatch(s, -1)
-
-	if len(votes) == 0 {
-		HandleErrorf("VoteMessage.ReadString(%v) failed: no votes", s)
-		return nil
-	}
-
-	msgMap = make(map[Identity]SignedMessage, len(votes))
-	for _, pair := range votes {
-		var idString, sigString string
-		fmt.Sscanf(pair[1], "%s %s", &idString, &sigString)
-		var id Identity
-		var sig SignedMessage
-		id.ReadString(idString)
-		sig.ReadString(sigString)
-		msgMap[id] = sig
-	}
-
-	return msgMap
-}
-
-func (m VoteMessage) String() string {
-	mapString := voteMapString(m.OtherVotes)
-	return fmt.Sprintf("VOTE <%v> {%v} %v", m.Volunteer.String(), mapString, m.SignedMessage.String())
-}
-
-func (m VoteMessage) ReadString(s string) {
-
-	// todo: Move all the regex's to init
-	//	mTypeRegex := "([A-Z]+) ?"
-	//	hashRegEx := "(-[0-9a-fA-F]+-) ?"
-	//	numberRegex := "([0-9]+) ?"
-	// may regret not including the <..> in the message itself and instead only using it when nesting
-	messageRegex := "<(.*)> ?" // must be greedy for messages that contain messages
-	idRegex := "(ID-[0-9a-fA-F]+) ?"
-	messageMapRegex := "{(.*)} ?" // must be greedy for messages that contain messages
-
-	VolunteerRegex := "VOTE " + messageRegex + messageMapRegex + idRegex
-	VolunteerMessageRegEx :=
-		regexp.MustCompile(VolunteerRegex) // RegEx split a VolunteerMessage from a string
-	VolunteerMessageRegEx.Longest()                      // Embedded message has embedded messages so be greedy
-	parts := VolunteerMessageRegEx.FindStringSubmatch(s) // Split the message
-
-	if parts == nil || len(parts) != 4 {
-		HandleErrorf("VoteMessage.ReadString(%v) failed: found %d parts", s, len(parts))
-		return
-	}
-	m.Volunteer.ReadString(parts[1])
-	m.OtherVotes = voteMapReadString(parts[2])
-	m.Signer.ReadString(parts[3])
-}
+func (r *VoteMessage) String() string      { return jsonMarshal(r) }
+func (r *VoteMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
 	var vote VoteMessage
@@ -303,14 +205,8 @@ type MajorityDecisionMessage struct {
 	OtherMajorityDecisions map[Identity]MajorityDecisionMessage
 }
 
-func (m MajorityDecisionMessage) String() string {
-	panic("")
-	return ""
-}
-
-func (m MajorityDecisionMessage) ReadString(s string) {
-	panic("")
-}
+func (r *MajorityDecisionMessage) String() string      { return jsonMarshal(r) }
+func (r *MajorityDecisionMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewMajorityDecisionMessage(volunteer VolunteerMessage, votes map[Identity]SignedMessage, self Identity) MajorityDecisionMessage {
 	var mj MajorityDecisionMessage
@@ -321,6 +217,7 @@ func NewMajorityDecisionMessage(volunteer VolunteerMessage, votes map[Identity]S
 	return mj
 }
 
+// ------------------------------------------------------------------------------------------------------------------
 type InsistMessage struct {
 	MajorityMajorityDecisions map[Identity]MajorityDecisionMessage
 	SignedMessage
@@ -330,14 +227,9 @@ type InsistMessage struct {
 	OtherInsists map[Identity]InsistMessage
 }
 
-func (m InsistMessage) String() string {
-	panic("")
-	return ""
-}
+func (r *InsistMessage) String() string      { return jsonMarshal(r) }
+func (r *InsistMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
-func (m InsistMessage) ReadString(s string) {
-	panic("")
-}
 func NewInsistenceMessage(mds map[Identity]MajorityDecisionMessage, identity Identity) InsistMessage {
 	var i InsistMessage
 	i.MajorityMajorityDecisions = mds
@@ -346,6 +238,7 @@ func NewInsistenceMessage(mds map[Identity]MajorityDecisionMessage, identity Ide
 	return i
 }
 
+// ------------------------------------------------------------------------------------------------------------------
 type IAckMessage struct {
 	// This tells you to whom you are iacking
 	Insist InsistMessage
@@ -353,14 +246,8 @@ type IAckMessage struct {
 	Signers map[Identity]bool
 }
 
-func (m IAckMessage) String() string {
-	panic("")
-	return ""
-}
-
-func (m IAckMessage) ReadString(s string) {
-	panic("")
-}
+func (r *IAckMessage) String() string      { return jsonMarshal(r) }
+func (r *IAckMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewIAckMessage(insist InsistMessage, identity Identity) IAckMessage {
 	var iack IAckMessage
@@ -371,20 +258,15 @@ func NewIAckMessage(insist InsistMessage, identity Identity) IAckMessage {
 	return iack
 }
 
+// ------------------------------------------------------------------------------------------------------------------
 type PublishMessage struct {
 	Insist               InsistMessage
 	MajorityIAckMessages map[Identity]bool
 	SignedMessage
 }
 
-func (m PublishMessage) String() string {
-	panic("")
-	return ""
-}
-
-func (m PublishMessage) ReadString(s string) {
-	panic("")
-}
+func (r *PublishMessage) String() string      { return jsonMarshal(r) }
+func (r *PublishMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewPublishMessage(insist InsistMessage, identity Identity, iackMap map[Identity]bool) PublishMessage {
 	var p PublishMessage

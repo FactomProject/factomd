@@ -1,15 +1,29 @@
 package messages
 
 import (
-	"fmt"
+	. "github.com/FactomProject/electiontesting/errorhandling"
+	. "github.com/FactomProject/electiontesting/primitives"
 	"testing"
 )
 
-var _ = fmt.Println
+// string to identity
+func s2i(s string) Identity {
+	var i Identity
+	i.ReadString(s)
+	return i
+}
+
+// string to process List Location
+func s2pl(s string) ProcessListLocation {
+	var i ProcessListLocation
+	i.ReadString(s)
+	return i
+}
 
 func TestEomMessageReadString(t *testing.T) {
+	T = t // Set test for error handling
 	var m EomMessage
-	s := "EOM 1/2/3 ID-89abcdef"
+	s := `EomMessage {"Vm":1,"Minute":2,"Height":3,"Signer":"ID-89abcdef"}`
 	m.ReadString(s)
 	r := m.String()
 	if r != s {
@@ -18,8 +32,9 @@ func TestEomMessageReadString(t *testing.T) {
 }
 
 func TestFaultMsgReadString(t *testing.T) {
+	T = t // Set test for error handling
 	var m FaultMsg
-	s := "FAULT ID-01234567 1/2/3 99 ID-89abcdef"
+	s := `FaultMsg {"FaultId":"ID-00000001","Vm":4,"Minute":3,"Height":2,"Round":1,"Signer":"ID-deadbeef"}`
 	m.ReadString(s)
 	r := m.String()
 	if r != s {
@@ -28,8 +43,9 @@ func TestFaultMsgReadString(t *testing.T) {
 }
 
 func TestDbsigMessageReadString(t *testing.T) {
+	T = t // Set test for error handling
 	var m DbsigMessage
-	s := "DBSIG -000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f- 99 <EOM 1/2/3 ID-89abcdef> ID-89abcdef"
+	s := `DbsigMessage {"Prev":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Height":0,"Eom":{"Vm":0,"Minute":0,"Height":0,"Signer":"ID-00000000"},"Signer":"ID-00000000"}`
 	m.ReadString(s)
 	r := m.String()
 	if r != s {
@@ -38,14 +54,16 @@ func TestDbsigMessageReadString(t *testing.T) {
 }
 
 func TestAuthChangeMessageReadString(t *testing.T) {
+	T = t // Set test for error handling
 	var m AuthChangeMessage
-	s := "AUTH ID-76543210 LEADER ID-89abcdef"
+
+	s := `AuthChangeMessage {"Id":"ID-01234567","Status":"LEADER","Signer":"ID-89abcdef"}`
 	m.ReadString(s)
 	r := m.String()
 	if r != s {
 		t.Errorf("AuthChangeMessage.ReadString(\"%s\")", s)
 	}
-	s = "AUTH ID-76543210 AUDIT ID-89abcedf"
+	s = `AuthChangeMessage {"Id":"ID-01234567","Status":"AUDIT","Signer":"ID-89abcdef"}`
 	m.ReadString(s)
 	r = m.String()
 	if r != s {
@@ -54,8 +72,10 @@ func TestAuthChangeMessageReadString(t *testing.T) {
 }
 
 func TestVolunteerMessageReadString(t *testing.T) {
+	T = t // Set test for error handling
 	var m VolunteerMessage
-	s := "VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef"
+
+	s := `VolunteerMessage {"Id":"ID-12345678","Eom":{"Vm":99,"Minute":98,"Height":97,"Signer":"ID-87654321"},"FaultId":"ID-deadbeef","Vm":96,"Minute":95,"Height":94,"Round":93,"Signer":"ID-12344321"}`
 	m.ReadString(s)
 	r := m.String()
 	//	fmt.Printf("s:%s:%d\nr:%s:%d\n",s,len(s),r,len(r))
@@ -65,11 +85,12 @@ func TestVolunteerMessageReadString(t *testing.T) {
 }
 
 func TestVoteMessageReadString(t *testing.T) {
+	T = t // Set test for error handling
 	var m VoteMessage
-	s := "VOTE <VOLUNTEER ID-76543210 <EOM 1/2/3 ID-89abcdef> <FAULT ID-01234567 1/2/3 99 ID-89abcdef> ID-89abcdef> {" +
-		"(ID-76543210 ID-76543210) " +
-		"(ID-76543211 ID-76543211)" +
-		" } ID-89abcdef"
+	x := m.String()
+	_ = x
+
+	s := `VoteMessage {"Volunteer":{"Id":"ID-00000000","Eom":{"Vm":0,"Minute":0,"Height":0,"Signer":"ID-00000000"},"FaultId":"ID-00000000","Vm":0,"Minute":0,"Height":0,"Round":0,"Signer":"ID-00000000"},"OtherVotes":null,"Signer":"ID-00000000"}`
 	m.ReadString(s)
 	r := m.String()
 	//	fmt.Printf("s:%s:%d\nr:%s:%d\n",s,len(s),r,len(r))

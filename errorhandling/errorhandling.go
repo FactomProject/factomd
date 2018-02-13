@@ -48,17 +48,19 @@ func HandleFatal(note string) {
 func HandleErrorf(format string, a ...interface{}) {
 	switch ErrorMode {
 	case "":
-		_, err := fmt.Printf(format, a ...)
+		_, err := fmt.Printf(format, a...)
 		if err != nil {
 			panic(err)
 		}
 	case "debug":
-		panic(fmt.Sprintf(format, a))
+		panic(fmt.Sprintf(format, a...))
 	case "testing":
 		if (T != nil) {
-			T.Errorf(format, a)
+			s:= fmt.Sprintf(format, a...)
+			_=s
+			T.Errorf(format, a...)
 		} else {
-			panic("Unset testing: " + fmt.Sprintf(format, a))
+			panic("Unset testing: " + fmt.Sprintf(format, a...))
 		}
 	}
 }
@@ -76,7 +78,7 @@ func HandleFatalf(format string, a ...interface{}) {
 		if (T != nil) {
 			T.Fatalf(format, a...)
 		} else {
-			panic("Unset testing: " + fmt.Sprintf(format, a))
+			panic("Unset testing: " + fmt.Sprintf(format, a...))
 		}
 	}
 }
