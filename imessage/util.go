@@ -2,7 +2,7 @@ package imessage
 
 // MakeMessageArray returns some arbitrary amount of messages as an array
 func MakeMessageArray(messages ...IMessage) []IMessage {
-	return make([]IMessage,0)
+	return messages
 }
 
 // MakeMessageArray returns some arbitrary amount of messages and an array as an array

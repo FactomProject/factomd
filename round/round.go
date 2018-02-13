@@ -3,15 +3,14 @@ package round
 import (
 	"fmt"
 
+	"encoding/json"
+	. "github.com/FactomProject/electiontesting/errorhandling"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
-	. "github.com/FactomProject/electiontesting/errorhandling"
-	"encoding/json"
 )
 
 var _ = fmt.Println
-
 
 type RoundState int
 
@@ -33,7 +32,6 @@ const (
 	// Like the names says
 	RoundState_Invalid
 )
-
 
 func (state RoundState) String() string {
 	switch state {
@@ -84,7 +82,7 @@ func (s RoundState) ReadString(state string) {
 // get consensus for the audit server for the round
 type Round struct {
 	// The audit server that we are trying to get majority to pass
-	Volunteer         *messages.VolunteerMessage
+	Volunteer *messages.VolunteerMessage
 	// Message buckets. When this tip over a majority they trigger a state change
 	Votes             map[Identity]messages.SignedMessage
 	MajorityDecisions map[Identity]messages.MajorityDecisionMessage
@@ -99,7 +97,7 @@ type Round struct {
 	Publish          *messages.PublishMessage
 	IAcks            map[Identity]bool
 
-	State          RoundState
+	State RoundState
 	// Never use this number, always use GetMajority. This is a cache
 	// for that function
 	majorityNumber int
@@ -111,7 +109,7 @@ type Round struct {
 func (r *Round) String() string {
 	rval, err := json.Marshal(r)
 	if err != nil {
-		HandleErrorf("%T.String(...) failed: %v",r ,err)
+		HandleErrorf("%T.String(...) failed: %v", r, err)
 	}
 	return string(rval[:])
 }
@@ -119,7 +117,7 @@ func (r *Round) String() string {
 func (r *Round) ReadString(s string) {
 	err := json.Unmarshal([]byte(s), r)
 	if err != nil {
-		HandleErrorf("%T.ReadString(%s) failed: %v",r,s,err)
+		HandleErrorf("%T.ReadString(%s) failed: %v", r, s, err)
 	}
 }
 

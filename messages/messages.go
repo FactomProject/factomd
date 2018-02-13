@@ -1,12 +1,11 @@
 package messages
 
 import (
-	. "github.com/FactomProject/electiontesting/primitives"
-	. "github.com/FactomProject/electiontesting/errorhandling"
-	"fmt"
-	"regexp"
-	"strconv"
 	"encoding/json"
+	"fmt"
+	. "github.com/FactomProject/electiontesting/errorhandling"
+	. "github.com/FactomProject/electiontesting/primitives"
+	"regexp"
 )
 
 var embeddedMesssageRegEx *regexp.Regexp
@@ -24,27 +23,27 @@ func jsonMarshal(r interface{}) string {
 	return string(rval)
 }
 
-func jsonUnmarshal(r interface{},s string) {
+func jsonUnmarshal(r interface{}, s string) {
 	err := json.Unmarshal([]byte(s), r)
 	if err != nil {
 		fmt.Printf("%T.ReadString(%s) failed: %v", r, s, err)
 	}
 }
 
-
-
 type SignedMessage struct {
 	Signer Identity
 }
-func (r *SignedMessage) String() string {	return jsonMarshal(r)}
-func (r *SignedMessage) ReadString(s string) {jsonUnmarshal(r,s)}
+
+func (r *SignedMessage) String() string      { return jsonMarshal(r) }
+func (r *SignedMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 type EomMessage struct {
 	ProcessListLocation
 	SignedMessage
 }
-func (r *EomMessage) String() string {	return jsonMarshal(r)}
-func (r *EomMessage) ReadString(s string) {jsonUnmarshal(r,s)}
+
+func (r *EomMessage) String() string      { return jsonMarshal(r) }
+func (r *EomMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 	var e EomMessage
@@ -57,11 +56,12 @@ func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 type FaultMsg struct {
 	FaultId Identity
 	ProcessListLocation
-	Round   int
+	Round int
 	SignedMessage
 }
-func (r *FaultMsg) String() string {	return jsonMarshal(r)}
-func (r *FaultMsg) ReadString(s string) {jsonUnmarshal(r,s)}
+
+func (r *FaultMsg) String() string      { return jsonMarshal(r) }
+func (r *FaultMsg) ReadString(s string) { jsonUnmarshal(r, s) }
 
 type DbsigMessage struct {
 	Prev   Hash
@@ -69,9 +69,9 @@ type DbsigMessage struct {
 	Eom    EomMessage
 	SignedMessage
 }
-func (r *DbsigMessage) String() string {	return jsonMarshal(r)}
-func (r *DbsigMessage) ReadString(s string) {jsonUnmarshal(r,s)}
 
+func (r *DbsigMessage) String() string      { return jsonMarshal(r) }
+func (r *DbsigMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 func NewDBSigMessage(identity Identity, eom EomMessage, prev Hash) DbsigMessage {
 	var dbs DbsigMessage
@@ -152,7 +152,7 @@ func (m VolunteerMessage) ReadString(s string) {
 
 	parts := VolunteerMessageRegEx.FindStringSubmatch(s) // Split the message
 
-	if (parts == nil || len(parts) != 5) {
+	if parts == nil || len(parts) != 5 {
 		HandleErrorf("VolunteerMessage.ReadString(%v) failed: found %d parts", s, len(parts))
 		return
 	}
@@ -168,6 +168,32 @@ func NewVolunteerMessage(e EomMessage, identity Identity) VolunteerMessage {
 	v.Signer = identity
 	return v
 }
+
+type LeaderLevelMessage struct {
+	// Usually to prove your rank you have to explicitly show
+	// the votes you used to obtain that rank, however we don't have
+	// to here
+	Rank int
+	// Leaders must never have 2 messages of the same level
+	Level int
+	VolunteerMessage
+	SignedMessage
+
+	// messages used to justify
+	Justification []LeaderLevelMessage
+}
+
+func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) LeaderLevelMessage {
+	var l LeaderLevelMessage
+	l.Signer = self
+	l.Rank = rank
+	l.Level = level
+	l.VolunteerMessage = v
+	return l
+}
+
+func (r LeaderLevelMessage) String() string      { return jsonMarshal(r) }
+func (r LeaderLevelMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
 // ------------------------------------------------------------------------------------------------------------------
 type VoteMessage struct {
@@ -186,10 +212,10 @@ func voteMapString(msgMap map[Identity]SignedMessage) (r string) {
 }
 
 func voteMapReadString(s string) (msgMap map[Identity]SignedMessage) {
-	messageRegex := "[(]([^)]+ [^)]+)[)] ?"                            // must be greedy for messages that contain messages
+	messageRegex := "[(]([^)]+ [^)]+)[)] ?"               // must be greedy for messages that contain messages
 	messageRegexRegEx := regexp.MustCompile(messageRegex) // RegEx split a msgMap from a string
 
-	votes := messageRegexRegEx.FindAllStringSubmatch(s,-1)
+	votes := messageRegexRegEx.FindAllStringSubmatch(s, -1)
 
 	if len(votes) == 0 {
 		HandleErrorf("VoteMessage.ReadString(%v) failed: no votes", s)
@@ -199,7 +225,7 @@ func voteMapReadString(s string) (msgMap map[Identity]SignedMessage) {
 	msgMap = make(map[Identity]SignedMessage, len(votes))
 	for _, pair := range votes {
 		var idString, sigString string
-		fmt.Sscanf(pair[1],"%s %s", &idString, &sigString)
+		fmt.Sscanf(pair[1], "%s %s", &idString, &sigString)
 		var id Identity
 		var sig SignedMessage
 		id.ReadString(idString)
@@ -229,15 +255,15 @@ func (m VoteMessage) ReadString(s string) {
 	VolunteerRegex := "VOTE " + messageRegex + messageMapRegex + idRegex
 	VolunteerMessageRegEx :=
 		regexp.MustCompile(VolunteerRegex) // RegEx split a VolunteerMessage from a string
-	VolunteerMessageRegEx.Longest() // Embedded message has embedded messages so be greedy
+	VolunteerMessageRegEx.Longest()                      // Embedded message has embedded messages so be greedy
 	parts := VolunteerMessageRegEx.FindStringSubmatch(s) // Split the message
 
-	if (parts == nil || len(parts) != 4) {
+	if parts == nil || len(parts) != 4 {
 		HandleErrorf("VoteMessage.ReadString(%v) failed: found %d parts", s, len(parts))
 		return
 	}
 	m.Volunteer.ReadString(parts[1])
-    m.OtherVotes =  voteMapReadString(parts[2])
+	m.OtherVotes = voteMapReadString(parts[2])
 	m.Signer.ReadString(parts[3])
 }
 
@@ -252,7 +278,7 @@ func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
 // ------------------------------------------------------------------------------------------------------------------
 
 type MajorityDecisionMessage struct {
-	Volunteer VolunteerMessage
+	Volunteer     VolunteerMessage
 	MajorityVotes map[Identity]SignedMessage
 	SignedMessage
 
@@ -261,7 +287,7 @@ type MajorityDecisionMessage struct {
 	OtherMajorityDecisions map[Identity]MajorityDecisionMessage
 }
 
-func (m MajorityDecisionMessage) String()string{
+func (m MajorityDecisionMessage) String() string {
 	panic("")
 	return ""
 }
@@ -287,7 +313,8 @@ type InsistMessage struct {
 	// pass them along
 	OtherInsists map[Identity]InsistMessage
 }
-func (m InsistMessage) String()string{
+
+func (m InsistMessage) String() string {
 	panic("")
 	return ""
 }
@@ -310,7 +337,7 @@ type IAckMessage struct {
 	Signers map[Identity]bool
 }
 
-func (m IAckMessage) String()string{
+func (m IAckMessage) String() string {
 	panic("")
 	return ""
 }
@@ -333,7 +360,8 @@ type PublishMessage struct {
 	MajorityIAckMessages map[Identity]bool
 	SignedMessage
 }
-func (m PublishMessage) String()string{
+
+func (m PublishMessage) String() string {
 	panic("")
 	return ""
 }
@@ -341,7 +369,6 @@ func (m PublishMessage) String()string{
 func (m PublishMessage) ReadString(s string) {
 	panic("")
 }
-
 
 func NewPublishMessage(insist InsistMessage, identity Identity, iackMap map[Identity]bool) PublishMessage {
 	var p PublishMessage
