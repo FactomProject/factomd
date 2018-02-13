@@ -6,10 +6,15 @@ import (
 	"regexp"
 	. "github.com/FactomProject/electiontesting/primitives"
 	. "github.com/FactomProject/electiontesting/errorhandling"
-
 	"strings"
 )
 
+var Nothing NoMessage
+
+type NoMessage struct{}
+
+func (r *NoMessage) String() string      { return jsonMarshal(r) }
+func (r *NoMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 var embeddedMesssageRegEx *regexp.Regexp
 
 func init() {
@@ -80,7 +85,7 @@ func NewEomMessage(identity Identity, loc ProcessListLocation) EomMessage {
 type FaultMsg struct {
 	FaultId Identity
 	ProcessListLocation
-	Round   int
+	Round int
 	SignedMessage
 }
 
@@ -112,8 +117,6 @@ func NewDBSigMessage(identity Identity, eom EomMessage, prev Hash) DbsigMessage 
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-
-
 type AuthChangeMessage struct {
 	Id     Identity
 	Status AuthorityStatus //0 < audit and >0 is leader
@@ -160,7 +163,6 @@ type LeaderLevelMessage struct {
 
 func (r *LeaderLevelMessage) String() string      { return jsonMarshal(r) }
 func (r *LeaderLevelMessage) ReadString(s string) { jsonUnmarshal(r, s) }
-
 func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) LeaderLevelMessage {
 	var l LeaderLevelMessage
 	l.Signer = self
@@ -169,6 +171,7 @@ func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) L
 	l.VolunteerMessage = v
 	return l
 }
+
 
 // ------------------------------------------------------------------------------------------------------------------
 type VoteMessage struct {
@@ -191,6 +194,7 @@ func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
+
 type MajorityDecisionMessage struct {
 	Volunteer     VolunteerMessage
 	MajorityVotes map[Identity]SignedMessage

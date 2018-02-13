@@ -25,16 +25,16 @@ func TestSimpleVolunteerControl(t *testing.T) {
 
 	for i := 0; i < as.Majority()-1; i++ {
 		msg := vc.Execute(messages.NewLeaderLevelMessage(as.NextIdentity(), 0, 1, vol))
-		if len(msg) != 0 {
+		if msg != nil {
 			t.Error("Do not expect any msgs to be returned")
 		}
 	}
 
 	result := vc.Execute(messages.NewLeaderLevelMessage(as.NextIdentity(), 0, 1, vol))
-	if len(result) == 0 {
+	if result == nil {
 		t.Error("Expected a message back")
 	} else {
-		ll := result[0].(messages.LeaderLevelMessage)
+		ll := result.(messages.LeaderLevelMessage)
 		if ll.Rank != 1 {
 			t.Errorf("Expect rank 1, got %d", ll.Rank)
 		}

@@ -4,182 +4,116 @@ import (
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
-	"github.com/FactomProject/electiontesting/round"
+	"github.com/FactomProject/electiontesting/volunteercontrol"
 )
 
-const (
-	_ int = iota
-	ElectionState_Working
-	ElectionState_Publishing
-)
-
-func ElectionStateString(state int) string {
-	switch state {
-	case ElectionState_Publishing:
-		return "ElectionState_Publishing"
-	case ElectionState_Working:
-		return "ElectionState_Working"
-	}
-	return "Not Found"
-}
-
-// Election is focused on a particular height, min, vm. However it can maintain multiple rounds
-// and will select the best one it sees.
 type Election struct {
-	Rounds []*round.Round
-	// The key is the volunter for the election msg. The index is the round integer
-	PublishingRound int
-	PublishMsg      *messages.PublishMessage
+	// Level 0 volunteer votes map[vol]map[leader]msg
+	VolunteerVotes map[Identity]map[Identity]messages.VoteMessage
 
-	// In/Out chan
+	// Indexed by volunteer
+	VolunteerControls map[Identity]*volunteercontrol.VolunteerControl
 
-	// Prev DBSig
-	PrevDBSig messages.DbsigMessage
-
-	// Authority Information
+	CurrentLevel int
+	CurrentVote  messages.LeaderLevelMessage
+	Self         Identity
 	AuthSet
-
-	// vm, min, height
 	ProcessListLocation
-
-	Self  Identity
-	State int
 }
 
-func NewElection(self Identity, a AuthSet, loc ProcessListLocation) *Election {
+func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
 	e := new(Election)
-	e.AuthSet = a
-	e.ProcessListLocation = loc
-	e.Rounds = make([]*round.Round, len(a.StatusArray))
-	e.State = ElectionState_Working
+	e.VolunteerVotes = make(map[Identity]map[Identity]messages.VoteMessage)
+	e.VolunteerControls = make(map[Identity]*volunteercontrol.VolunteerControl)
 	e.Self = self
+	e.AuthSet = authset
+	// Majority level starts at 1
+	e.CurrentLevel = 1
+	e.CurrentVote.Rank = -1
+	e.CurrentVote.VolunteerPriority = -1
+
+	// Used to determine volunteer priority
+	e.ProcessListLocation = loc
 
 	return e
 }
 
-func (e *Election) ExecuteMsg(msg imessage.IMessage) []imessage.IMessage {
-	r := e.GetRoundFromMsg(msg)
-	// No matter the state, we check the publishing
-	if p, ok := msg.(messages.PublishMessage); ok {
-		// Set state if this is new
-		if e.PublishMsg == nil {
-			e.State = ElectionState_Publishing
-		}
-
-		// Is this publish better than what we have?
-		if e.PublishMsg == nil || (e.PublishMsg != nil && e.PublishingRound > r) {
-			// No competing, set our publishing round
-			e.PublishingRound = r
-			e.PublishMsg = &p
-			return imessage.MakeMessageArray(p)
-		}
-
-		// We have something better (should not be nil)
-		return imessage.MakeMessageArray(*e.PublishMsg)
-	}
-
-	// We should filter all messages if we are publishing
-	if e.PublishMsg != nil {
-		if r >= e.PublishingRound {
-			return imessage.MakeMessageArray(*e.PublishMsg)
-		}
-	}
-
-	var response []imessage.IMessage
-	// Guaranteed any messaged here is lower than any we have publishing.
-	switch e.State {
-	case ElectionState_Working:
-		// Default to execute and look for publish
-		response = imessage.MakeMessageArrayFromArray(response, e.executeWorking(msg, r))
-	case ElectionState_Publishing:
-		// Lower round, let it through if it is not an insist. We don't iack if we are publishing
-		switch msg.(type) {
-		case messages.InsistMessage:
-			return imessage.MakeMessageArray(*e.PublishMsg)
-		}
-		response = append(response, *e.PublishMsg)
-	default:
-		panic("Election does not have a valid state")
-	}
-
-	if pub := ContainsPublish(response); pub != nil {
-		e.setPublishing(*pub, r)
-	}
-	return response
-}
-
-func (e *Election) setPublishing(msg messages.PublishMessage, r int) {
-	e.PublishingRound = r
-	e.PublishMsg = &msg
-	e.State = ElectionState_Publishing
-}
-
-func (e *Election) executeWorking(msg imessage.IMessage, r int) []imessage.IMessage {
+func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 	switch msg.(type) {
-	case messages.FaultMsg:
-		// Should make a volunteer msg if it is for us
-		if e.GetRound(e.Self) == r {
-			eom := messages.NewEomMessage(e.Self, e.ProcessListLocation)
-			vol := messages.NewVolunteerMessage(eom, e.Self)
-			vol.FaultMsg = msg.(messages.FaultMsg)
-			return e.executeInRound(vol, r)
-		}
-	default:
-		// This means it is an election msg.
-		vol := messages.GetVolunteerMsg(msg)
-		if vol == nil {
-			panic("All messages should have a volunteer msg in them")
-		}
+	case messages.LeaderLevelMessage:
+		return e.executeLeaderLevelMessage(msg.(messages.LeaderLevelMessage))
+	case messages.VolunteerMessage:
+		return messages.NewVoteMessage(msg.(messages.VolunteerMessage), e.Self)
+	case messages.VoteMessage:
+		// Colecting these allows us to issue out 0.#
+		vote := msg.(messages.VoteMessage)
+		vol := vote.Volunteer.Signer
 
-		r := e.GetRound(vol.Signer)
-		// Ensure round exists
-		if r > len(e.Rounds)-1 {
-			panic("This should never happen. The round is outside our round possibilities")
-		}
+		e.VolunteerVotes[vol][vote.Signer] = vote
+		if len(e.VolunteerVotes[vote.Volunteer.Signer]) > e.Majority() {
+			// We have a majority of level 0 votes and can issue a rank 0 LeaderLevel Message
 
-		if e.Rounds[r] == nil {
-			e.Rounds[r] = round.NewRound(e.AuthSet, e.Self, *vol, e.ProcessListLocation)
-		}
+			// No current vote, so send!
+			if e.CurrentVote.Rank == -1 {
+				goto SendRank0
+			}
 
-		return e.executeInRound(msg, r)
+			// If we have a rank 1+, we will not issue a rank 0
+			if e.CurrentVote.Rank > 0 {
+				return e.CurrentVote // forward our answer again
+			}
+
+			// If we have a rank 0, and higher priority volunteer (or same, don't vote again)
+			if e.CurrentVote.VolunteerPriority >= e.getVolunteerPriority(vol) {
+				return e.CurrentVote // forward our answer again
+			}
+
+		SendRank0:
+			ll := messages.NewLeaderLevelMessage(e.Self, 0, e.CurrentLevel, vote.Volunteer)
+			e.CurrentLevel++
+			e.CurrentVote = ll
+			return e.Execute(ll)
+		}
 	}
-
-	panic("Should not reach this in executeWorking")
-	//	return nil
+	return nil
 }
 
-// executeInRound is guarenteed the election round exists
-func (e *Election) executeInRound(msg imessage.IMessage, r int) []imessage.IMessage {
-	if e.Rounds[r] == nil {
-		e.Rounds[r] = round.NewRound(e.AuthSet, e.Self, *messages.GetVolunteerMsg(msg), e.ProcessListLocation)
-	}
-	return e.Rounds[r].Execute(msg)
+func (e *Election) getVolunteerPriority(vol Identity) int {
+	return e.GetVolunteerPriority(vol, e.ProcessListLocation)
 }
 
-func (e *Election) GetRound(vol Identity) int {
-	// TODO: Make a better round determinate
-	// Currently just their ID mod length of authority set
-	i := int(vol)
-	round := i % len(e.StatusArray)
-	return round
-}
-
-func (e *Election) GetRoundFromMsg(msg imessage.IMessage) int {
-	switch msg.(type) {
-	case messages.FaultMsg:
-		f := msg.(messages.FaultMsg)
-		if f.Round == 0 {
-			return 1
-		}
-		return f.Round
-	default:
-		// This means it is an election msg.
-		vol := messages.GetVolunteerMsg(msg)
-		if vol == nil {
-			panic("All messages should have a volunteer msg in them")
-		}
-
-		r := e.GetRound(vol.Signer)
-		return r
+func (e *Election) executeLeaderLevelMessage(msg messages.LeaderLevelMessage) imessage.IMessage {
+	if e.VolunteerControls[msg.VolunteerMessage.Signer] == nil {
+		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
 	}
+
+	res := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
+	if res != nil {
+		// If it is a vote from us, then we need to decide if we should send it
+		if ll, ok := res.(messages.LeaderLevelMessage); ok && ll.Signer == e.Self {
+			// We need to set the volunteer priority for comparing
+			ll.VolunteerPriority = e.getVolunteerPriority(ll.VolunteerMessage.Signer)
+
+			// We have a new vote we might be able to cast
+			if e.CurrentVote.Less(ll) {
+				// This vote is better than our current, let's pass it out.
+				if ll.Rank >= e.CurrentLevel {
+					// We cannot issue a rank 2 on level 2. It has to be on level 3
+					ll.Level = ll.Rank + 1
+					e.CurrentLevel = ll.Rank + 2
+				} else {
+					// Set level to our level, increment
+					ll.Level = e.CurrentLevel
+					e.CurrentLevel++
+				}
+				e.CurrentVote = ll
+
+				// This vote may change our state, so call ourselves again
+				return e.Execute(ll)
+			}
+		}
+	}
+
+	// return the result even if we didn't change our current vote
+	return res
 }

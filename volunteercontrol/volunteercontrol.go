@@ -11,8 +11,6 @@ import (
 
 var _ = fmt.Println
 
-var nothing = []imessage.IMessage{}
-
 // VolunteerControl will keep a record of all votes
 // for a given volunteer and produce the best vote
 // possible.
@@ -33,11 +31,11 @@ func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 	return v
 }
 
-func (v *VolunteerControl) Execute(msg imessage.IMessage) []imessage.IMessage {
+func (v *VolunteerControl) Execute(msg imessage.IMessage) imessage.IMessage {
 	// When we get a vote, we need to add it to our map
 	ll, ok := msg.(messages.LeaderLevelMessage)
 	if !ok {
-		return nothing
+		return nil
 	}
 
 	if v.Volunteer == nil {
@@ -75,10 +73,10 @@ func (v *VolunteerControl) addVote(msg messages.LeaderLevelMessage) {
 // that message to our votemap, as we may have not chosen to actually send that vote. If we decide to send that
 // vote, we will get it sent back to us
 // 		Returns a LeaderLevelMessage WITHOUT the level set. Don't forget to set it if you send it!
-func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) []imessage.IMessage {
-	// No majority, no bueno
+func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) imessage.IMessage {
+	// No majority, no bueno. Forward the msg that we got though
 	if len(v.Votes) < v.Majority() {
-		return nothing
+		return msg
 	}
 
 	var justification []messages.LeaderLevelMessage
@@ -103,5 +101,5 @@ func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) []imessage.IMes
 	llmsg := messages.NewLeaderLevelMessage(v.Self, level, -2, *v.Volunteer)
 	llmsg.Justification = justification
 
-	return imessage.MakeMessageArray(llmsg)
+	return llmsg
 }
