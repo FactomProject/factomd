@@ -95,9 +95,6 @@ func (f *P2PProxy) Init(fromName, toName string) interfaces.IPeer {
 
 	return f
 }
-func (f *P2PProxy) SetDebugMode(netdebug int) {
-	f.debugMode = netdebug
-}
 
 func (f *P2PProxy) GetNameFrom() string {
 	return f.FromName

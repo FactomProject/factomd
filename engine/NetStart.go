@@ -245,7 +245,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database", p.Db))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "database for clones", p.CloneDB))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%s\"\n", "peers", p.Peers))
-	os.Stderr.WriteString(fmt.Sprintf("%20s \"%d\"\n", "netdebug", p.Netdebug))
 	os.Stderr.WriteString(fmt.Sprintf("%20s \"%t\"\n", "exclusive", p.Exclusive))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "block time", p.BlkTime))
 	os.Stderr.WriteString(fmt.Sprintf("%20s %d\n", "faultTimeout", p.FaultTimeout))
@@ -350,13 +349,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 
 		fnodes[0].Peers = append(fnodes[0].Peers, p2pProxy)
-		p2pProxy.SetDebugMode(p.Netdebug)
-		if 0 < p.Netdebug {
-			go p2pProxy.PeriodicStatusReport(fnodes)
-			p2pNetwork.StartLogging(uint8(p.Netdebug))
-		} else {
-			p2pNetwork.StartLogging(uint8(0))
-		}
 		p2pProxy.StartProxy()
 		// Command line peers lets us manually set special peers
 		p2pNetwork.DialSpecialPeersString(p.Peers)
