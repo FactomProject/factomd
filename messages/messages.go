@@ -8,6 +8,13 @@ import (
 	"regexp"
 )
 
+var Nothing NoMessage
+
+type NoMessage struct{}
+
+func (r *NoMessage) String() string      { return jsonMarshal(r) }
+func (r *NoMessage) ReadString(s string) { jsonUnmarshal(r, s) }
+
 var embeddedMesssageRegEx *regexp.Regexp
 
 func init() {
@@ -175,7 +182,9 @@ type LeaderLevelMessage struct {
 	// to here
 	Rank int
 	// Leaders must never have 2 messages of the same level
-	Level int
+	Level             int
+	VolunteerPriority int
+
 	VolunteerMessage
 	SignedMessage
 
@@ -190,6 +199,13 @@ func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) L
 	l.Level = level
 	l.VolunteerMessage = v
 	return l
+}
+
+func (a LeaderLevelMessage) Less(b LeaderLevelMessage) bool {
+	if a.Rank == b.Rank {
+		return a.VolunteerPriority < b.VolunteerPriority
+	}
+	return a.Rank < b.Rank
 }
 
 func (r LeaderLevelMessage) String() string      { return jsonMarshal(r) }
