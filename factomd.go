@@ -139,7 +139,7 @@ func handleLogfiles(stdoutlog string, stderrlog string) {
 		}(outfile) // stderr redirect func
 	}
 
-	wait.Wait() // wait for the redirects to be active
+	wait.Wait()                           // wait for the redirects to be active
 	os.Stdout.WriteString("STDOUT Log\n") // Write any file header you want here e.g. node name and date and ...
 	os.Stderr.WriteString("STDERR Log\n") // Write any file header you want here e.g. node name and date and ...
 }
@@ -148,7 +148,8 @@ func launchDebugServer(service string) {
 
 	// start a go routine to tee stderr to the debug console
 	debugConsole_r, debugConsole_w, _ := os.Pipe() // Can't use the writer directly as os.Stdout so make a pipe
-
+	var wait sync.WaitGroup
+	wait.Add(2)
 	go func() {
 
 		r, w, _ := os.Pipe() // Can't use the writer directly as os.Stderr so make a pipe
@@ -156,7 +157,7 @@ func launchDebugServer(service string) {
 		os.Stderr = w
 		defer oldStderr.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
 		defer time.Sleep(100 * time.Millisecond) // let the output all complete
-
+		wait.Done()
 		if _, err := io.Copy(io.MultiWriter(oldStderr, debugConsole_w), r); err != nil { // copy till EOF
 			panic(err)
 		}
@@ -168,13 +169,13 @@ func launchDebugServer(service string) {
 		os.Stdout = w
 		defer oldStdout.Close()                  // since I'm taking this away from  OS I need to close it when the time comes
 		defer time.Sleep(100 * time.Millisecond) // let the output all complete
-
+		wait.Done()
 		if _, err := io.Copy(io.MultiWriter(oldStdout, debugConsole_w), r); err != nil { // copy till EOF
 			panic(err)
 		}
 	}() // stderr redirect func
 
-	time.Sleep(100 * time.Millisecond) // Let the redirection become active ...
+	wait.Wait() // Let the redirection become active ...
 
 	host, port := "localhost", "8093" // defaults
 	if service != "" {
