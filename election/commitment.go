@@ -1,10 +1,13 @@
 package election
 
 import (
+	"fmt"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"sort"
 )
+
+var _ = fmt.Println
 
 const NumberOfSequential int = 2
 
@@ -70,7 +73,9 @@ func (h *LeaderVoteHistory) Add(l *messages.LeaderLevelMessage) int {
 		// Found a spot
 		if v == nil && place == -1 {
 			place = i
+			break
 		}
+
 		// Need to check that we don't already have this vote
 		if v.Level == l.Level {
 			return -1
@@ -127,8 +132,15 @@ func (s SortByLeaderLevel) Less(i, j int) bool {
 		return false
 	}
 
+	// This means s[i] is not nil, therefore s[i] is less (less is better)
 	if s[j] == nil {
 		return true
 	}
+
+	// This means s[j] is not nil, therefor s[j] is less
+	if s[i] == nil {
+		return false
+	}
+
 	return s[i].Level > s[j].Level
 }

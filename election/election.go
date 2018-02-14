@@ -1,11 +1,15 @@
 package election
 
 import (
+	"fmt"
+
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
 	"github.com/FactomProject/electiontesting/volunteercontrol"
 )
+
+var _ = fmt.Println
 
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
@@ -21,6 +25,8 @@ type Election struct {
 	Self         Identity
 	AuthSet
 	ProcessListLocation
+
+	Display *Display
 }
 
 func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
@@ -41,7 +47,16 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	return e
 }
 
+// AddDisplay takes a global tracker. Send nil if you don't care about
+// a global state
+func (e *Election) AddDisplay(global *Display) *Display {
+	e.Display = NewDisplay(e, global)
+	return e.Display
+}
+
 func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
+	e.executeDisplay(msg)
+
 	switch msg.(type) {
 	case *messages.LeaderLevelMessage:
 		return e.executeLeaderLevelMessage(msg.(*messages.LeaderLevelMessage))
@@ -54,6 +69,9 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 		vote := msg.(*messages.VoteMessage)
 		vol := vote.Volunteer.Signer
 
+		if e.VolunteerVotes[vol] == nil {
+			e.VolunteerVotes[vol] = make(map[Identity]*messages.VoteMessage)
+		}
 		e.VolunteerVotes[vol][vote.Signer] = vote
 		if len(e.VolunteerVotes[vote.Volunteer.Signer]) > e.Majority() {
 			// We have a majority of level 0 votes and can issue a rank 0 LeaderLevel Message
@@ -77,6 +95,7 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 			ll := messages.NewLeaderLevelMessage(e.Self, 0, e.CurrentLevel, vote.Volunteer)
 			e.CurrentLevel++
 			e.CurrentVote = ll
+			e.executeDisplay(&ll)
 			return e.Execute(&ll)
 		}
 	}
@@ -87,9 +106,19 @@ func (e *Election) getVolunteerPriority(vol Identity) int {
 	return e.GetVolunteerPriority(vol, e.ProcessListLocation)
 }
 
+func (e *Election) executeDisplay(msg imessage.IMessage) {
+	if e.Display != nil {
+		e.Display.Execute(msg)
+	}
+}
+
 func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) imessage.IMessage {
 	if e.VolunteerControls[msg.VolunteerMessage.Signer] == nil {
 		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
+	}
+
+	if msg.Level <= 0 {
+		panic("Whuy")
 	}
 
 	// If commit is true, then we are done. Return the EOM
@@ -118,9 +147,15 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) i
 					e.CurrentLevel++
 				}
 				e.CurrentVote = *ll
+				e.executeDisplay(ll)
 
 				// This vote may change our state, so call ourselves again
 				return e.Execute(ll)
+			} else {
+				// This message was from us, and we decided not to sent it
+				if ll.Level <= 0 {
+					return nil
+				}
 			}
 		}
 	}

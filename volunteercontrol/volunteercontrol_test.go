@@ -24,20 +24,22 @@ func TestSimpleVolunteerControl(t *testing.T) {
 	vc := NewVolunteerControl(me, as.GetAuthSet())
 
 	for i := 0; i < as.Majority()-1; i++ {
-		msg := vc.Execute(messages.NewLeaderLevelMessage(as.NextIdentity(), 0, 1, vol))
-		if msg != nil {
+		f := as.NextIdentity()
+		l := messages.NewLeaderLevelMessage(f, 0, 1, vol)
+		msg := vc.Execute(&l)
+		if msg != nil && msg.(*messages.LeaderLevelMessage).Signer != f {
 			t.Error("Do not expect any msgs to be returned")
 		}
 	}
 
-	result := vc.Execute(messages.NewLeaderLevelMessage(as.NextIdentity(), 0, 1, vol))
+	l := messages.NewLeaderLevelMessage(as.NextIdentity(), 0, 1, vol)
+	result := vc.Execute(&l)
 	if result == nil {
 		t.Error("Expected a message back")
 	} else {
-		ll := result.(messages.LeaderLevelMessage)
+		ll := result.(*messages.LeaderLevelMessage)
 		if ll.Rank != 1 {
 			t.Errorf("Expect rank 1, got %d", ll.Rank)
 		}
 	}
-
 }

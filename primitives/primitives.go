@@ -2,18 +2,18 @@ package primitives
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	. "github.com/FactomProject/electiontesting/errorhandling"
-	"encoding/hex"
 	"regexp"
-	"encoding/json"
 )
 
-var hashRegEx * regexp.Regexp
+var hashRegEx *regexp.Regexp
+
 func init() {
 	hashRegEx = regexp.MustCompile("-([0-9a-zA-Z]+)-") // RegEx to extra a hash from a string
 }
-
 
 type MinuteLocation struct {
 	Minute int
@@ -25,30 +25,29 @@ func (m *MinuteLocation) Sum() int {
 }
 
 func (p *MinuteLocation) String() string {
-	return fmt.Sprintf("%d/%d", p.Height,p.Minute)
+	return fmt.Sprintf("%d/%d", p.Height, p.Minute)
 }
 
 func (p *MinuteLocation) ReadString(s string) {
-	n,err := fmt.Sscanf(s,"%d/%d", & p.Height, &p.Minute)
+	n, err := fmt.Sscanf(s, "%d/%d", &p.Height, &p.Minute)
 	if err != nil || n != 2 {
-		HandleErrorf("MinuteLocation.ReadString(%v) failed: %d %v",s,n,err)
+		HandleErrorf("MinuteLocation.ReadString(%v) failed: %d %v", s, n, err)
 	}
 }
 
 type ProcessListLocation struct {
-	Vm     int
+	Vm int
 	MinuteLocation
 }
 
-
 func (p *ProcessListLocation) String() string {
-	return fmt.Sprintf("%d/%d/%d", p.Height,p.Minute,p.Vm)
+	return fmt.Sprintf("%d/%d/%d", p.Height, p.Minute, p.Vm)
 }
 
 func (p *ProcessListLocation) ReadString(s string) {
-	n,err := fmt.Sscanf(s,"%d/%d/%d", &p.Height,&p.Minute,&p.Vm)
+	n, err := fmt.Sscanf(s, "%d/%d/%d", &p.Height, &p.Minute, &p.Vm)
 	if err != nil || n != 3 {
-		HandleErrorf("ProcessListLocation.ReadString(%v) failed: %d %v",s,n,err)
+		HandleErrorf("ProcessListLocation.ReadString(%v) failed: %d %v", s, n, err)
 	}
 }
 
@@ -56,13 +55,12 @@ type AuthSet struct {
 	IdentityList []Identity
 	StatusArray  []int
 	IdentityMap  map[Identity]int
-	}
-
+}
 
 func (r *AuthSet) String() string {
 	rval, err := json.Marshal(r)
 	if err != nil {
-		HandleErrorf("%T.String(...) failed: %v",r ,err)
+		HandleErrorf("%T.String(...) failed: %v", r, err)
 	}
 	return string(rval[:])
 }
@@ -70,7 +68,7 @@ func (r *AuthSet) String() string {
 func (r *AuthSet) ReadString(s string) {
 	err := json.Unmarshal([]byte(s), r)
 	if err != nil {
-		HandleErrorf("%T.ReadString(%s) failed: %v",r,s,err)
+		HandleErrorf("%T.ReadString(%s) failed: %v", r, s, err)
 	}
 }
 
@@ -177,93 +175,109 @@ func (a *AuthSet) Hash() Hash {
 func (a *AuthSet) GetVolunteerPriority(vol Identity, loc ProcessListLocation) int {
 	// TODO: Use processlist location
 	auds := a.GetAuds()
-	l := len(auds)
-	v := -1
 	for i, a := range auds {
 		if a == vol {
-			return l - i
+			return i
 		}
 	}
-	return v
+	return -1
+
+	// Reverse logic
+	//l := len(auds)
+	//v := -1
+	//for i, a := range auds {
+	//	if a == vol {
+	//		return l - i
+	//	}
+	//}
+	//return v
 }
+
 type Identity int
 
 func (a Identity) less(b Identity) bool {
 	return a < b
 }
 
-func (i *Identity)String() string{
+func (i *Identity) String() string {
 	return fmt.Sprintf("ID-%08x", *i)
 }
 
 func (i *Identity) MarshalJSON() ([]byte, error) {
-	s:=`"`+i.String()+`"`
+	s := `"` + i.String() + `"`
 	return []byte(s), nil
 }
 func (i *Identity) UnmarshalJSON(data []byte) error {
-	s:= string(data)
-	s = s[1:len(s)-1] // trim off the surrounding "'s
-	i.ReadString(s);
+	s := string(data)
+	s = s[1 : len(s)-1] // trim off the surrounding "'s
+	i.ReadString(s)
 	return nil
 }
 
-func (i *Identity)ReadString(s string) {
-	n,err:= fmt.Sscanf(s,"ID-%x", i)
+func (i *Identity) ReadString(s string) {
+	n, err := fmt.Sscanf(s, "ID-%x", i)
 	if err != nil || n != 1 {
-		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v", s, n, err)
 	}
 }
+
 // --------------------------------------------------------------------------------------------------------------------
 type AuthorityStatus int
 
-func (s *AuthorityStatus)String()string{
+func (s *AuthorityStatus) String() string {
 	switch *s {
-	case 0: return "AUDIT"
-	case 1: return "LEADER"
-	default: return fmt.Sprintf("INVALID:%d", *s)
+	case 0:
+		return "AUDIT"
+	case 1:
+		return "LEADER"
+	default:
+		return fmt.Sprintf("INVALID:%d", *s)
 	}
 }
 
-func (a *AuthorityStatus)ReadString(s string) {
+func (a *AuthorityStatus) ReadString(s string) {
 	switch s {
-	case "AUDIT": *a=0
-	case "LEADER": *a=1
+	case "AUDIT":
+		*a = 0
+	case "LEADER":
+		*a = 1
 	default:
-		_, err := fmt.Sscanf(s,"INVALID:%d", a)
-		if  err != nil {
+		_, err := fmt.Sscanf(s, "INVALID:%d", a)
+		if err != nil {
 			HandleErrorf("AuthorityStatus.ReadString(\"%s\") failed: %v", s, err)
 
 		}
 	}
 }
 func (i *AuthorityStatus) MarshalJSON() ([]byte, error) {
-	s:=`"`+i.String()+`"`
+	s := `"` + i.String() + `"`
 	return []byte(s), nil
 }
 func (i *AuthorityStatus) UnmarshalJSON(data []byte) error {
-	s:= string(data)
-	s = s[1:len(s)-1] // trim off the surrounding "'s
-	i.ReadString(s);
+	s := string(data)
+	s = s[1 : len(s)-1] // trim off the surrounding "'s
+	i.ReadString(s)
 	return nil
 }
+
 // --------------------------------------------------------------------------------------------------------------------
 
 type Hash [sha256.Size]byte
-func (h *Hash) String()string{
+
+func (h *Hash) String() string {
 	return fmt.Sprintf("-%s-", hex.EncodeToString(h[:]))
 }
-
 
 func (h *Hash) ReadString(s string) {
 	t := hashRegEx.FindStringSubmatch(s) // drop the delimiters
 	if t == nil || len(t) != 2 {
-		HandleErrorf("Identity.ReadString(%v) failed",s)
+		HandleErrorf("Identity.ReadString(%v) failed", s)
 		return
 	}
 	b, err := hex.DecodeString(t[1]) // decode the hash in hex
 	n := len(b)
 	if err != nil || n != sha256.Size {
-		HandleErrorf("Identity.ReadString(%v) failed: %d %v",s,n,err)
+		HandleErrorf("Identity.ReadString(%v) failed: %d %v", s, n, err)
 	}
-	copy(h[:],b[:])
+	copy(h[:], b[:])
 }
