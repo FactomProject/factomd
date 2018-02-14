@@ -60,12 +60,12 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 	e.CurrentVote = new
 }
 
-func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
+func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	e.executeDisplay(msg)
 
 	// We are done, never use anything else
 	if e.Committed {
-		return &e.CurrentVote
+		return &e.CurrentVote, false
 	}
 
 	switch msg.(type) {
@@ -74,7 +74,7 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 	case *messages.VolunteerMessage:
 		vol := msg.(*messages.VolunteerMessage)
 		vote := messages.NewVoteMessage(*vol, e.Self)
-		return &vote
+		return &vote, true
 	case *messages.VoteMessage:
 		// Colecting these allows us to issue out 0.#
 		vote := msg.(*messages.VoteMessage)
@@ -94,12 +94,12 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 
 			// If we have a rank 1+, we will not issue a rank 0
 			if e.CurrentVote.Rank > 0 {
-				return &e.CurrentVote // forward our answer again
+				return &e.CurrentVote, false // forward our answer again
 			}
 
 			// If we have a rank 0, and higher priority volunteer (or same, don't vote again)
 			if e.CurrentVote.VolunteerPriority >= e.getVolunteerPriority(vol) {
-				return &e.CurrentVote // forward our answer again
+				return &e.CurrentVote, false // forward our answer again
 			}
 
 		SendRank0:
@@ -112,7 +112,7 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 			return e.Execute(&ll)
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func (e *Election) getVolunteerPriority(vol Identity) int {
@@ -125,7 +125,7 @@ func (e *Election) executeDisplay(msg imessage.IMessage) {
 	}
 }
 
-func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) imessage.IMessage {
+func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (imessage.IMessage, bool) {
 	if e.VolunteerControls[msg.VolunteerMessage.Signer] == nil {
 		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
 	}
@@ -150,10 +150,10 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) i
 		ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank+1, lvl, msg.VolunteerMessage)
 		e.updateCurrentVote(ll)
 		e.executeDisplay(&ll)
-		return &ll
+		return &ll, true
 	}
 
-	res := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
+	res, change := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
 	if res != nil {
 		// If it is a vote from us, then we need to decide if we should send it
 		if ll, ok := res.(*messages.LeaderLevelMessage); ok && ll.Signer == e.Self {
@@ -177,16 +177,17 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) i
 				e.executeDisplay(ll)
 
 				// This vote may change our state, so call ourselves again
-				return e.Execute(ll)
+				resp, _ := e.Execute(ll)
+				return resp, true
 			} else {
 				// This message was from us, and we decided not to sent it
 				if ll.Level <= 0 {
-					return nil
+					return nil, change
 				}
 			}
 		}
 	}
 
 	// return the result even if we didn't change our current vote
-	return res
+	return res, change
 }

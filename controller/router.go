@@ -38,7 +38,7 @@ func (r *Router) Step() bool {
 	for i := range r.ElectionQueues {
 		if len(r.ElectionQueues[i]) > 0 {
 			msg := <-r.ElectionQueues[i]
-			resp := r.Elections[i].Execute(msg)
+			resp, _ := r.Elections[i].Execute(msg)
 			r.route(i, resp)
 		}
 	}

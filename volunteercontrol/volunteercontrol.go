@@ -31,52 +31,62 @@ func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 	return v
 }
 
-func (v *VolunteerControl) Execute(msg imessage.IMessage) imessage.IMessage {
+func (v *VolunteerControl) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	// When we get a vote, we need to add it to our map
 	ll, ok := msg.(*messages.LeaderLevelMessage)
 	if !ok {
-		return nil
+		return nil, false
 	}
 
 	if v.Volunteer == nil {
 		v.Volunteer = &ll.VolunteerMessage
 	}
 
-	for _, j := range ll.Justification {
-		v.addVote(j)
-	}
-	v.addVote(ll)
+	statechange := false
 
-	return v.checkVoteCount(msg)
+	for _, j := range ll.Justification {
+		change := v.addVote(j)
+		if change {
+			statechange = change
+		}
+	}
+	change := v.addVote(ll)
+	if change {
+		statechange = change
+	}
+
+	resp, checkChange := v.checkVoteCount(msg)
+	return resp, checkChange || statechange
 }
 
 // addVote just adds the vote to the vote map
-func (v *VolunteerControl) addVote(msg *messages.LeaderLevelMessage) {
+func (v *VolunteerControl) addVote(msg *messages.LeaderLevelMessage) bool {
 	// If we already have a vote from that leader for this audit, then we only replace ours if this is better
 	if cur, ok := v.Votes[msg.Signer]; ok {
 		if cur.Level == msg.Level {
 			// Same level, same message (we have  no malicious actors)
-			return
+			return false
 		}
 
 		if cur.Rank > msg.Rank {
 			// Greater rank is always better.
 			msg.Justification = []*messages.LeaderLevelMessage{}
 			v.Votes[msg.Signer] = msg
+			return true
 		}
-	} else {
-		v.Votes[msg.Signer] = msg
 	}
+	v.Votes[msg.Signer] = msg
+	return true
 }
 
 // checkVoteCount will check to see if we have enough votes to issue a ranked message. We will not add
 // that message to our votemap, as we may have not chosen to actually send that vote. If we decide to send that
 // vote, we will get it sent back to us
 // 		Returns a LeaderLevelMessage WITHOUT the level set. Don't forget to set it if you send it!
-func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) imessage.IMessage {
+func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) (imessage.IMessage, bool) {
 	// No majority, no bueno. Forward the msg that we got though
 	if len(v.Votes) < v.Majority() {
-		return msg
+		return msg, false
 	}
 
 	var justification []*messages.LeaderLevelMessage
@@ -101,5 +111,5 @@ func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) imessage.IMessa
 	llmsg := messages.NewLeaderLevelMessage(v.Self, level, -2, *v.Volunteer)
 	llmsg.Justification = justification
 
-	return &llmsg
+	return &llmsg, true
 }

@@ -123,7 +123,7 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 }
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
-	resp := c.Elections[node].Execute(msg)
+	resp, _ := c.Elections[node].Execute(msg)
 
 	if c.OutputsToRouter {
 		// Outputs get sent to Router so we can hit "run"
