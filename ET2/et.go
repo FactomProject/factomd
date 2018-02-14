@@ -1,9 +1,38 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/FactomProject/electiontesting/controller"
+	"github.com/FactomProject/electiontesting/election"
+	"github.com/FactomProject/electiontesting/messages"
+)
 
 func main() {
-	recruse(3, 3, 40)
+	recurse(3, 3, 40)
+}
+
+// newElections will return an array of elections (1 per leader) and an array
+// of volunteers messages to kick things off.
+//		Params:
+//			feds int   Number of Federated Nodes
+//			auds int   Number of Volunteers
+//			noDisplay  Passing a true here will reduce memory consumption, as it is a debugging tool
+//
+//		Returns:
+//			controller *Controller  This can used for debugging (Printing votes)
+//			elections []*election   Nodes you can execute on (returns msg, statchange)
+//			volmsgs   []*VoluntMsg	Volunteer msgs you can start things with
+func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*election.Election, []*messages.VolunteerMessage) {
+	con := controller.NewController(feds, auds)
+
+	if noDisplay {
+		for _, e := range con.Elections {
+			e.Display = nil
+		}
+		con.GlobalDisplay = nil
+	}
+
+	return con, con.Elections, con.Volunteers
 }
 
 var breath = 0
