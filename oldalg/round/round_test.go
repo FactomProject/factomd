@@ -1,13 +1,13 @@
 package round_test
 
 import (
-	"testing"
-	"math/rand"
 	. "github.com/FactomProject/electiontesting/errorhandling"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	. "github.com/FactomProject/electiontesting/primitives"
 	. "github.com/FactomProject/electiontesting/round"
+	"math/rand"
+	"testing"
 )
 
 var authSet AuthSet
@@ -46,7 +46,7 @@ type Round struct {
 	ProcessListLocation
 }
 
- */
+*/
 
 func TestRoundString(t *testing.T) {
 	var (
@@ -81,9 +81,8 @@ func TestRoundString(t *testing.T) {
 
 	r.Self.ReadString("ID-00000001")
 
-	s:= r.String()
-	_= s;
-
+	s := r.String()
+	_ = s
 
 }
 
@@ -141,10 +140,10 @@ func TestExecute(t *testing.T) {
 					HandleError("Expected only a vote as output")
 				}
 			case RoundState_MajorityDecsion, RoundState_Insistence, RoundState_Publishing:
-				HandleError("Volunteer message unexpected in %v", )
+				HandleError("Volunteer message unexpected in %v")
 
 			}
-			if (len(leader_round.Votes) != 1) {
+			if len(leader_round.Votes) != 1 {
 				HandleError("Expected vote to be one after volunteer")
 			}
 			for _, rMessage := range rMessages {
@@ -160,12 +159,12 @@ func TestExecute(t *testing.T) {
 			_, ok := prevVotes[v.Signer]
 
 			if ok {
-				if (len(leader_round.Votes) != len(prevVotes)) {
+				if len(leader_round.Votes) != len(prevVotes) {
 					HandleError("Don't double count votes")
 				}
 
 			} else {
-				if (len(leader_round.Votes) != len(prevVotes)+1) {
+				if len(leader_round.Votes) != len(prevVotes)+1 {
 					HandleError("Don't double count votes")
 				}
 			}
@@ -175,7 +174,7 @@ func TestExecute(t *testing.T) {
 			for k, v := range mj.MajorityVotes {
 				prevVotes[k] = v // copy the majority votes to my list
 			}
-			if (len(leader_round.Votes) != len(prevVotes)) {
+			if len(leader_round.Votes) != len(prevVotes) {
 				HandleError("votes")
 			}
 		}

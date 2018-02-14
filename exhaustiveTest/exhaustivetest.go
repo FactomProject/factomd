@@ -2,10 +2,10 @@ package exhaustiveTest
 
 import (
 	//	. "github.com/FactomProject/electiontesting/primitives"
-	"fmt"
-	. "github.com/FactomProject/electiontesting/errorhandling"
 	"bytes"
 	"encoding/gob"
+	"fmt"
+	. "github.com/FactomProject/electiontesting/errorhandling"
 )
 
 type DummyMessage struct {
@@ -25,7 +25,7 @@ func (e *DummyElection) Execute(m *DummyMessage) *DummyMessage {
 	// from my simplistic election this is just extra work
 	if _, ok := e.Seen[m]; ok {
 		return nil
-	}                // ignore messages I have seen
+	} // ignore messages I have seen
 	e.Seen[m] = true // remember message  have seen
 
 	if m.S > e.Best.S {
@@ -40,7 +40,7 @@ func (e *DummyElection) Execute(m *DummyMessage) *DummyMessage {
 var enc *gob.Encoder
 var dec *gob.Decoder
 
-func init(){
+func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
@@ -70,7 +70,7 @@ func clone2(src *DummyElection) *DummyElection {
 
 func factorial(n int) int {
 	factVal := 1
-	if (n < 0) {
+	if n < 0 {
 		HandleError("Factorial of negative number doesn't exist.")
 	} else {
 		for i := 1; i <= n; i++ {
@@ -140,10 +140,10 @@ func exhaustiveTest3(messages []*DummyMessage, nodes []*DummyElection, masks []i
 			newMessages := make([]*DummyMessage, 0)
 			newMessages = append(newMessages, messages[i:]...) // append the unprocessed input messages
 			for _, om := range outputMessages {
-				if (notIn(newMessages, om)) {
+				if notIn(newMessages, om) {
 					newMessages = append(newMessages, om) // append the non duplicate output messages
 				}
-			}                                                  // for all output messages
+			} // for all output messages
 			exhaustiveTest1(newMessages, nodes2)
 		}
 	} // for all messages
@@ -158,7 +158,7 @@ func exhaustiveTest2(messages []*DummyMessage, nodes []*DummyElection) {
 	nodes2 := clone(nodes)
 	nodes = nodes2
 	for i := 0; i < len(nodes)*mMax; i++ {
-		masks := make([] int, nCount)
+		masks := make([]int, nCount)
 		for j := 0; j < nCount; j++ {
 			masks[j] = (i >> uint(j*nCount)) % mMax
 		} // for each node
@@ -179,7 +179,7 @@ func mmstring(a []*DummyMessage) (rval string) {
 }
 
 func nString(n *DummyElection) string {
-	if (n.Best == nil) {
+	if n.Best == nil {
 		return fmt.Sprintf("%s< > ", nodeNames[n])
 
 	}
@@ -210,10 +210,10 @@ func exhaustiveTest1(messages []*DummyMessage, nodes []*DummyElection) {
 	fmt.Printf("Testing level %d messages[%+v] for nodes [%+v]\n", level, mmstring(messages), mnString(nodes))
 
 	go permute(messages, 0, len(messages)-1, results)
-	level ++
+	level++
 	//
 	for permutedMessages := range results {
 		exhaustiveTest2(permutedMessages, nodes)
 	} // for all message orders
-	level --
+	level--
 }
