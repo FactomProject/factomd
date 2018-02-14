@@ -128,6 +128,7 @@ func TestFlipFlop(t *testing.T) {
 	//1:         0.2
 	con.RouteLeaderSetLevelMessage(left, 1, left)
 
+	con.SendOutputsToRouter(true)
 	//(Global)
 	//Lvl  L0  L1  L2
 	//0:   1  12   2
@@ -163,6 +164,9 @@ func TestFlipFlop(t *testing.T) {
 	fmt.Println(con.ElectionStatus(0))
 	fmt.Println(con.ElectionStatus(1))
 	fmt.Println(con.ElectionStatus(2))
+
+	con.Router.Run()
+	fmt.Println("DONE!")
 }
 
 func expmsg(found bool, t *testing.T) {

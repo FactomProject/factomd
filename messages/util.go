@@ -1,5 +1,22 @@
 package messages
 
+import "github.com/FactomProject/electiontesting/primitives"
+
+func GetSigner(msg interface{}) primitives.Identity {
+	switch msg.(type) {
+	case VolunteerMessage:
+		v := msg.(*VolunteerMessage)
+		return v.Signer
+	case VoteMessage:
+		v := msg.(*VoteMessage)
+		return v.Signer
+	case LeaderLevelMessage:
+		v := msg.(*LeaderLevelMessage)
+		return v.Signer
+	}
+	return primitives.Identity(-1)
+}
+
 // GetVolunteerMsg gets the volunteer message from an election message, used to determine round
 func GetVolunteerMsg(msg interface{}) *VolunteerMessage {
 	switch msg.(type) {
@@ -13,12 +30,12 @@ func GetVolunteerMsg(msg interface{}) *VolunteerMessage {
 		md := msg.(MajorityDecisionMessage)
 		// ??? what's this
 		/*
-		var vote SignedMessage
-		for _, v := range md.MajorityVotes {
-			vote = v
-			break
-		}
-*/
+			var vote SignedMessage
+			for _, v := range md.MajorityVotes {
+				vote = v
+				break
+			}
+		*/
 		return &md.Volunteer
 	case InsistMessage:
 		insist := msg.(InsistMessage)

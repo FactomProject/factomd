@@ -28,6 +28,9 @@ type Controller struct {
 
 	Buffer        *MessageBuffer
 	GlobalDisplay *election.Display
+
+	Router          *Router
+	OutputsToRouter bool
 }
 
 // NewController creates all the elections and initial volunteer messages
@@ -57,7 +60,12 @@ func NewController(feds, auds int) *Controller {
 	c.feds = fedlist
 	c.auds = audlist
 
+	c.Router = NewRouter(c.Elections)
 	return c
+}
+
+func (c *Controller) SendOutputsToRouter(set bool) {
+	c.OutputsToRouter = set
 }
 
 func (c *Controller) ElectionStatus(node int) string {
@@ -116,6 +124,13 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
 	resp := c.Elections[node].Execute(msg)
+
+	if c.OutputsToRouter {
+		// Outputs get sent to Router so we can hit "run"
+		f := messages.GetSigner(msg)
+		c.Router.route(c.fedIDtoIndex(f), msg)
+
+	}
 	c.Buffer.Add(resp)
 }
 
@@ -126,11 +141,19 @@ func (c *Controller) indexToAudID(index int) primitives.Identity {
 
 }
 
+func (c *Controller) fedIDtoIndex(id primitives.Identity) int {
+	for i, f := range c.feds {
+		if f == id {
+			return i
+		}
+	}
+	return -1
+}
+
 // indexToFedID will take the human legible "Leader 1" and get the correct identity
 func (c *Controller) indexToFedID(index int) primitives.Identity {
 	// TODO: Actually implement some logic if this changes
 	return c.feds[index]
-
 }
 
 func (c *Controller) newVolunteer(id primitives.Identity) *messages.VolunteerMessage {

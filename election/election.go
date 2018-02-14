@@ -84,7 +84,6 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 			e.VolunteerVotes[vol] = make(map[Identity]*messages.VoteMessage)
 		}
 		e.VolunteerVotes[vol][vote.Signer] = vote
-		fmt.Println(len(e.VolunteerVotes[vol]), e.Majority())
 		if len(e.VolunteerVotes[vote.Volunteer.Signer]) >= e.Majority() {
 			// We have a majority of level 0 votes and can issue a rank 0 LeaderLevel Message
 
