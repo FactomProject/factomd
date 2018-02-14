@@ -27,6 +27,8 @@ type Election struct {
 	ProcessListLocation
 
 	Display *Display
+	// If I have committed to an answer and found enough to finish election
+	Committed bool
 }
 
 func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
@@ -54,8 +56,17 @@ func (e *Election) AddDisplay(global *Display) *Display {
 	return e.Display
 }
 
+func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
+	e.CurrentVote = new
+}
+
 func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 	e.executeDisplay(msg)
+
+	// We are done, never use anything else
+	if e.Committed {
+		return &e.CurrentVote
+	}
 
 	switch msg.(type) {
 	case *messages.LeaderLevelMessage:
@@ -93,9 +104,11 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 
 		SendRank0:
 			ll := messages.NewLeaderLevelMessage(e.Self, 0, e.CurrentLevel, vote.Volunteer)
+			ll.VolunteerPriority = e.getVolunteerPriority(vote.Volunteer.Signer)
 			e.CurrentLevel++
-			e.CurrentVote = ll
+			e.updateCurrentVote(ll)
 			e.executeDisplay(&ll)
+
 			return e.Execute(&ll)
 		}
 	}
@@ -118,13 +131,26 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) i
 	}
 
 	if msg.Level <= 0 {
-		panic("Whuy")
+		panic("level <= 0 should never happen")
 	}
 
 	// If commit is true, then we are done. Return the EOM
 	commit := e.CommitmentIndicator.ShouldICommit(msg)
 	if commit {
-		return msg.VolunteerMessage.Eom
+		// TODO: Add the justification for others to also agree
+		e.Committed = true
+		// Need to make our last leaderlevel message to go to commitment
+		lvl := e.CurrentLevel
+		if msg.Rank >= lvl {
+			lvl = msg.Rank + 1
+			e.CurrentLevel = msg.Rank + 1
+		} else {
+			e.CurrentLevel++
+		}
+		ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank+1, lvl, msg.VolunteerMessage)
+		e.updateCurrentVote(ll)
+		e.executeDisplay(&ll)
+		return &ll
 	}
 
 	res := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
@@ -146,11 +172,12 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) i
 					ll.Level = e.CurrentLevel
 					e.CurrentLevel++
 				}
-				e.CurrentVote = *ll
+
+				e.updateCurrentVote(*ll)
 				e.executeDisplay(ll)
 
 				// This vote may change our state, so call ourselves again
-				return e.Execute(ll)
+				return e.executeLeaderLevelMessage(ll)
 			} else {
 				// This message was from us, and we decided not to sent it
 				if ll.Level <= 0 {

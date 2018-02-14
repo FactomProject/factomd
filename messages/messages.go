@@ -160,9 +160,18 @@ type LeaderLevelMessage struct {
 
 	// messages used to justify
 	Justification []*LeaderLevelMessage
+	Committed     bool
 }
 
 func (a *LeaderLevelMessage) Less(b *LeaderLevelMessage) bool {
+	// Committed is trump. People won't even issue after that
+	if a.Committed {
+		return true
+	}
+	if b.Committed {
+		return false
+	}
+
 	if a.Rank == b.Rank {
 		return a.VolunteerPriority < b.VolunteerPriority
 	}

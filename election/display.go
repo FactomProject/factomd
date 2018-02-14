@@ -111,6 +111,9 @@ func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {
 }
 
 func (d *Display) formatLeaderLevelMsg(msg *messages.LeaderLevelMessage) string {
+	if msg.Committed {
+		return "EOM"
+	}
 	return fmt.Sprintf("%d.%d", msg.Rank, msg.VolunteerPriority)
 }
 

@@ -74,6 +74,7 @@ func (v *VolunteerControl) addVote(msg *messages.LeaderLevelMessage) {
 // vote, we will get it sent back to us
 // 		Returns a LeaderLevelMessage WITHOUT the level set. Don't forget to set it if you send it!
 func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) imessage.IMessage {
+
 	// No majority, no bueno. Forward the msg that we got though
 	if len(v.Votes) < v.Majority() {
 		return msg
