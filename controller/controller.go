@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
@@ -25,8 +26,8 @@ type Controller struct {
 	// Can be all 0s for now
 	primitives.ProcessListLocation
 
-	Buffer       *MessageBuffer
-	GobalDisplay *election.Display
+	Buffer        *MessageBuffer
+	GlobalDisplay *election.Display
 }
 
 // NewController creates all the elections and initial volunteer messages
@@ -39,10 +40,10 @@ func NewController(feds, auds int) *Controller {
 	for i, f := range fedlist {
 		c.Elections[i] = c.newElection(f)
 		if i == 0 {
-			c.GobalDisplay = election.NewDisplay(c.Elections[0], nil)
-			c.GobalDisplay.Identifier = "Global"
+			c.GlobalDisplay = election.NewDisplay(c.Elections[0], nil)
+			c.GlobalDisplay.Identifier = "Global"
 		}
-		c.Elections[i].AddDisplay(c.GobalDisplay)
+		c.Elections[i].AddDisplay(c.GlobalDisplay)
 	}
 
 	audlist := c.AuthSet.GetAuds()
@@ -57,6 +58,13 @@ func NewController(feds, auds int) *Controller {
 	c.auds = audlist
 
 	return c
+}
+
+func (c *Controller) ElectionStatus(node int) string {
+	if node == -1 {
+		return c.GlobalDisplay.String()
+	}
+	return c.Elections[node].Display.String()
 }
 
 func (c *Controller) RouteLeaderSetLevelMessage(from []int, level int, to []int) bool {
@@ -77,6 +85,24 @@ func (c *Controller) RouteLeaderLevelMessage(from int, level int, to []int) bool
 	return true
 }
 
+func (c *Controller) RouteLeaderSetVoteMessage(from []int, vol int, to []int) bool {
+	for _, f := range from {
+		if !c.RouteLeaderVoteMessage(f, vol, to) {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *Controller) RouteLeaderVoteMessage(from int, vol int, to []int) bool {
+	msg := c.Buffer.RetrieveLeaderVoteMessage(c.indexToFedID(from), c.indexToAudID(vol))
+	if msg == nil {
+		return false
+	}
+	c.RouteMessage(msg, to)
+	return true
+}
+
 func (c *Controller) RouteVolunteerMessage(vol int, nodes []int) {
 	c.RouteMessage(c.Volunteers[vol], nodes)
 }
@@ -89,7 +115,8 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 }
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
-	c.Buffer.Add(c.Elections[node].Execute(msg))
+	resp := c.Elections[node].Execute(msg)
+	c.Buffer.Add(resp)
 }
 
 // indexToAudID will take the human legible "Audit 1" and get the correct identity.

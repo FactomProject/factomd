@@ -84,7 +84,8 @@ func (e *Election) Execute(msg imessage.IMessage) imessage.IMessage {
 			e.VolunteerVotes[vol] = make(map[Identity]*messages.VoteMessage)
 		}
 		e.VolunteerVotes[vol][vote.Signer] = vote
-		if len(e.VolunteerVotes[vote.Volunteer.Signer]) > e.Majority() {
+		fmt.Println(len(e.VolunteerVotes[vol]), e.Majority())
+		if len(e.VolunteerVotes[vote.Volunteer.Signer]) >= e.Majority() {
 			// We have a majority of level 0 votes and can issue a rank 0 LeaderLevel Message
 
 			// No current vote, so send!
@@ -177,7 +178,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) i
 				e.executeDisplay(ll)
 
 				// This vote may change our state, so call ourselves again
-				return e.executeLeaderLevelMessage(ll)
+				return e.Execute(ll)
 			} else {
 				// This message was from us, and we decided not to sent it
 				if ll.Level <= 0 {

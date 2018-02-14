@@ -50,10 +50,6 @@ func (b *MessageBuffer) Add(msg imessage.IMessage) {
 }
 
 func (b *MessageBuffer) RetrieveLeaderLevelMessageByLevel(leader primitives.Identity, level int) imessage.IMessage {
-	if level == 0 {
-		return b.RetrieveLeaderVoteMessage(leader)
-	}
-
 	list := b.MessagesMap[leader]
 	for _, v := range list {
 		msg, _ := b.RetrieveIndex(v)
@@ -68,12 +64,13 @@ func (b *MessageBuffer) RetrieveLeaderLevelMessageByLevel(leader primitives.Iden
 	return nil
 }
 
-func (b *MessageBuffer) RetrieveLeaderVoteMessage(leader primitives.Identity) imessage.IMessage {
+// RetrieveLeaderVoteMessage takes a vol too as multiple vote 0s can be sent out
+func (b *MessageBuffer) RetrieveLeaderVoteMessage(leader primitives.Identity, vol primitives.Identity) imessage.IMessage {
 	list := b.MessagesMap[leader]
 	for _, v := range list {
 		msg, _ := b.RetrieveIndex(v)
 		if msg != nil {
-			if _, ok := msg.(*messages.VoteMessage); ok {
+			if v, ok := msg.(*messages.VoteMessage); ok && v.Volunteer.Signer == vol {
 				return msg
 			}
 		}
