@@ -2,6 +2,8 @@ package election
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
@@ -93,7 +95,12 @@ func (d *Display) insertVote0Message(msg *messages.VoteMessage) {
 	d.makeRow(row)
 
 	vol := d.election.getVolunteerPriority(msg.Volunteer.Signer)
-	d.Votes[row][col] = fmt.Sprintf("%d", vol)
+	vote0 := fmt.Sprintf("%d", vol)
+	if strings.Contains(d.Votes[row][col], vote0) {
+		return
+	}
+
+	d.Votes[row][col] += vote0
 }
 
 func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {
@@ -111,6 +118,9 @@ func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {
 }
 
 func (d *Display) formatLeaderLevelMsg(msg *messages.LeaderLevelMessage) string {
+	if msg.Committed {
+		return "EOM"
+	}
 	return fmt.Sprintf("%d.%d", msg.Rank, msg.VolunteerPriority)
 }
 

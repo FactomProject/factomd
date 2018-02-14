@@ -48,7 +48,7 @@ func (d *DiamondShop) ShouldICommit(msg *messages.LeaderLevelMessage) bool {
 		}
 	}
 
-	return tally > d.Majority()
+	return tally >= d.Majority()
 }
 
 type LeaderVoteHistory struct {
