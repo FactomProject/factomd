@@ -164,8 +164,6 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		}
 		if p.EnableNet {
 			p2pNetwork.NetworkStop()
-			// NODE_TALK_FIX
-			p2pProxy.stopProxy()
 		}
 		fmt.Print("Waiting...\r\n")
 		time.Sleep(3 * time.Second)
