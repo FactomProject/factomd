@@ -1,9 +1,9 @@
 package primitives_test
 
 import (
+	"fmt"
 	. "github.com/FactomProject/electiontesting/primitives"
 	"testing"
-	"fmt"
 )
 
 func TestIsLeader(t *testing.T) {
@@ -58,7 +58,7 @@ func TestHashReadString(t *testing.T) {
 	s := "-000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f-"
 	h.ReadString(s)
 	r := h.String()
-	if (r != s) {
+	if r != s {
 		t.Errorf("Hash.ReadString(\"%s\")", s)
 	}
 }
@@ -68,7 +68,7 @@ func TestProcessListLocationReadString(t *testing.T) {
 	s := "1/2/3"
 	p.ReadString(s)
 	r := p.String()
-	if (r != s) {
+	if r != s {
 		t.Errorf("ProcessListLocation.ReadString(\"%s\")", s)
 	}
 }
