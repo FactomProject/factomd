@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	recurse(3, 3, 2)
+	recurse(3, 3, 40)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -35,13 +35,15 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 		con.GlobalDisplay = nil
 	}
 	var msgs []*mymsg
+	fmt.Println("Starting")
 	for _, v := range con.Volunteers {
-		my := new(mymsg)
 		for i, _ := range con.Elections {
+			my := new(mymsg)
 			my.leaderIdx = i
 			my.msg = v
+			msgs = append(msgs, my)
+			fmt.Println(my.msg.String(), my.leaderIdx)
 		}
-		msgs = append(msgs, my)
 	}
 	return con, con.Elections, msgs
 }
@@ -66,15 +68,30 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		breath++
 		return
 	}
+	done := 0
+	for _,ldr := range leaders {
+		if ldr.Committed { done ++}
+	}
+	if done > len(leaders)/2 {
+		cuts[depth]++
+		fmt.Println("=====Solution Found!")
+	}
 
-	fmt.Println(leaders[0].Display.Global.String())
+//	fmt.Println("Height: ",depth)
+//	for _,v := range msgs {
+//		fmt.Println(v.msg, " to ",v.leaderIdx)
+//	}
 
+	fmt.Println("===============")
+	for _,ldr := range leaders {
+		fmt.Println(ldr.Display.String())
+	}
 	for d, v := range msgs {
 		msgs2 := append(msgs[0:d], msgs[d+1:]...)
 		ml2 := len(msgs2)
 		cl := CloneElection(leaders[v.leaderIdx])
 		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
-		fmt.Println(leaders[v.leaderIdx].Display.String())
+
 		if changed {
 			if msg != nil {
 				for i, _ := range leaders {
@@ -82,7 +99,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 						my := new(mymsg)
 						my.leaderIdx = i
 						my.msg = msg
-						msgs2 = append(msgs2, v)
+						msgs2 = append(msgs2, my)
 					}
 				}
 			}
