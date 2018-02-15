@@ -5,6 +5,7 @@
 package engine
 
 import (
+	"fmt"
 	"time"
 
 	// "github.com/FactomProject/factomd/common/constants"
@@ -95,7 +96,6 @@ func (f *P2PProxy) GetNameTo() string {
 }
 
 func (f *P2PProxy) Send(msg interfaces.IMsg) error {
-	f.logMessage(msg, false) // NODE_TALK_FIX
 	data, err := msg.MarshalBinary()
 	if err != nil {
 		proxyLogger.WithField("send-error", err).Error()
@@ -111,12 +111,9 @@ func (f *P2PProxy) Send(msg interfaces.IMsg) error {
 	switch {
 	case !msg.IsPeer2Peer():
 		message.PeerHash = p2p.BroadcastFlag
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - BroadcastFlag", "a")
 	case msg.IsPeer2Peer() && 0 == len(message.PeerHash): // directed, with no direction of who to send it to
 		message.PeerHash = p2p.RandomPeerFlag
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - RandomPeerFlag", "a")
 	default:
-		f.trace(message.AppHash, message.AppType, "P2PProxy.Send() - Addressed by hash", "a")
 	}
 	if msg.IsPeer2Peer() {
 		proxyLogger.Info("%s Sending directed to: %s message: %+v\n", time.Now().String(), message.PeerHash, msg.String())
@@ -136,7 +133,6 @@ func (f *P2PProxy) Recieve() (interfaces.IMsg, error) {
 			switch data.(type) {
 			case FactomMessage:
 				fmessage := data.(FactomMessage)
-				f.trace(fmessage.AppHash, fmessage.AppType, "P2PProxy.Recieve()", "N")
 				msg, err := messages.UnmarshalMessage(fmessage.Message)
 
 				if err != nil {
@@ -208,7 +204,6 @@ func (f *P2PProxy) ManageOutChannel() {
 				parcel.Header.TargetPeer = fmessage.PeerHash
 				parcel.Header.AppHash = fmessage.AppHash
 				parcel.Header.AppType = fmessage.AppType
-				parcel.Trace("P2PProxy.ManageOutChannel()", "b")
 				p2p.BlockFreeChannelSend(f.ToNetwork, parcel)
 			}
 		default:
@@ -223,7 +218,6 @@ func (f *P2PProxy) ManageInChannel() {
 		switch data.(type) {
 		case p2p.Parcel:
 			parcel := data.(p2p.Parcel)
-			f.trace(parcel.Header.AppHash, parcel.Header.AppType, "P2PProxy.ManageInChannel()", "M")
 			message := FactomMessage{Message: parcel.Payload, PeerHash: parcel.Header.TargetPeer, AppHash: parcel.Header.AppHash, AppType: parcel.Header.AppType}
 			removed := p2p.BlockFreeChannelSend(f.BroadcastIn, message)
 			BroadInCastQueue.Inc()
@@ -232,12 +226,5 @@ func (f *P2PProxy) ManageInChannel() {
 		default:
 			fmt.Printf("Garbage on f.FromNetwork. %+v", data)
 		}
-	}
-}
-
-func (p *P2PProxy) trace(appHash string, appType string, location string, sequence string) {
-	if 10 < p.debugMode {
-		time := time.Now().Unix()
-		fmt.Printf("\nParcelTrace, %s, %s, %s, Message, %s, %d \n", appHash, sequence, appType, location, time)
 	}
 }
