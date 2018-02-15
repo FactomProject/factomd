@@ -101,9 +101,11 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		return
 	}
 
-
-
-
+	if LoopingDetected(leaders[0].Display.Global) == len(leaders) {
+		// TODO: Paul you can move this check wherever you need
+		cuts[depth]++
+		return
+	}
 
 	fmt.Println("===============", depth, "solutions so far ", solutions, "global count", globalRunNumber)
 	fmt.Println(leaders[0].Display.Global.String())
@@ -132,11 +134,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		ml2 := len(msgs2)
 		globalRunNumber++
 
-		if LoopingDetected(leaders[v.leaderIdx].Display.Global) == len(leaders) {
-			// TODO: Paul you can move this check wherever you need
-			panic("loop!")
-		}
-
 		cl := CloneElection(leaders[v.leaderIdx])
 
 		//if !spewSame(cl, leaders[v.leaderIdx]) {
@@ -159,12 +156,12 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 				}
 			}
 			gl := leaders[v.leaderIdx].Display.Global
-			for _,ldr := range leaders {
+			for _, ldr := range leaders {
 				ldr.Display.Global = gl
 			}
 			// Recursive Dive
 			dive(msgs2, leaders, depth, limit)
-			for _,ldr := range leaders {
+			for _, ldr := range leaders {
 				ldr.Display.Global = cl.Display.Global
 			}
 			msgs2 = msgs2[:ml2]
@@ -219,8 +216,6 @@ func init() {
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
 }
-
-
 
 func CloneElection(src *election.Election) *election.Election {
 	return src.Copy()
