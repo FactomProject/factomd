@@ -17,7 +17,7 @@ var _ = reflect.DeepEqual
 
 //================ main =================
 func main() {
-	recurse(3, 3, 80)
+	recurse(2, 3, 40)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -76,7 +76,7 @@ var globalRunNumber = 0
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	depth++
 	if depth > limit {
-		fmt.Print("Breath ", breadth)
+		fmt.Print("Breadth ", breadth," --")
 		for _, v := range cuts {
 			fmt.Print(v, " ")
 		}
@@ -93,11 +93,12 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 			done++
 		}
 	}
-	if done > len(leaders)/2 {
+	if done > 0 {
 		cuts[depth]++
 		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
 		breadth++
 		solutions++
+		os.Exit(0)
 		return
 	}
 
@@ -118,7 +119,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		fmt.Println("Leader 1")
 		fmt.Println(leaders[1].PrintMessages())
 		fmt.Println("Leader 2")
-		fmt.Println(leaders[1].PrintMessages())
+		fmt.Println(leaders[2].PrintMessages())
 	}
 
 	for d, v := range msgs {
