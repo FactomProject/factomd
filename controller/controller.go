@@ -99,6 +99,10 @@ func (c *Controller) Shell() {
 		case "s":
 			c.Router.Step()
 			fmt.Println("< Steped")
+		case "n":
+			for i := range c.Elections {
+				fmt.Println(c.Router.NodeStack(i))
+			}
 		case "d":
 			num := grabInput(in)
 			if num != "a" {
@@ -115,6 +119,7 @@ func (c *Controller) Shell() {
 			fmt.Println(c.ElectionStatus(-1))
 			for i := range c.Elections {
 				fmt.Println(c.ElectionStatus(i))
+				fmt.Println(c.Elections[i].VolunteerControlString())
 			}
 		case "r":
 			fmt.Println(c.Router.Status())

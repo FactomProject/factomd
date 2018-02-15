@@ -95,10 +95,10 @@ func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) (imessage.IMess
 	var justification []*messages.LeaderLevelMessage
 
 	// Majority votes exist, we need to find the lowest level, and issue back that level message
-	level := math.MaxInt32
+	rank := math.MaxInt32
 	for _, vote := range v.Votes {
-		if vote.Level < level {
-			level = vote.Level
+		if vote.Level < rank {
+			rank = vote.Level
 		}
 		justification = append(justification, vote)
 	}
@@ -106,12 +106,12 @@ func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) (imessage.IMess
 	// Now we have the lowest level, any message at that level can no longer help us.
 	// We can only reuse votes at higher levels
 	for k, vote := range v.Votes {
-		if vote.Level == level {
+		if vote.Level == rank {
 			delete(v.Votes, k)
 		}
 	}
 
-	llmsg := messages.NewLeaderLevelMessage(v.Self, level, -2, *v.Volunteer)
+	llmsg := messages.NewLeaderLevelMessage(v.Self, rank, -2, *v.Volunteer)
 	llmsg.Justification = justification
 
 	return &llmsg, true

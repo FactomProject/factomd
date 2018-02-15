@@ -14,6 +14,7 @@ func main() {
 	mid := []int{1}
 	fright := []int{2} // far right
 
+	con.SendOutputsToRouter(true)
 	con.RouteVolunteerMessage(1, all)
 	con.RouteVolunteerMessage(2, all)
 
@@ -67,7 +68,6 @@ func main() {
 	//1:         0.2
 	con.RouteLeaderSetLevelMessage(left, 1, left)
 
-	con.SendOutputsToRouter(true)
 	//(Global)
 	//Lvl  L0  L1  L2
 	//0:   1  12   2

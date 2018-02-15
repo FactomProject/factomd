@@ -16,6 +16,7 @@ type Router struct {
 	Consumed       []int
 	Generated      []int
 	ElectionQueues []chan imessage.IMessage
+	RepeatedFilter []map[imessage.IMessage]struct{}
 	Elections      []*election.Election
 
 	Printing bool
@@ -27,9 +28,11 @@ func NewRouter(elections []*election.Election) *Router {
 	r.ElectionQueues = make([]chan imessage.IMessage, len(elections))
 	r.Consumed = make([]int, len(elections))
 	r.Generated = make([]int, len(elections))
+	r.RepeatedFilter = make([]map[imessage.IMessage]struct{}, len(elections))
 
 	for i := range r.ElectionQueues {
 		r.ElectionQueues[i] = make(chan imessage.IMessage, 10000)
+		r.RepeatedFilter[i] = make(map[imessage.IMessage]struct{})
 	}
 
 	return r
@@ -51,6 +54,29 @@ func center(str string) string {
 
 func (r *Router) PrintMode(active bool) {
 	r.Printing = active
+}
+
+// NodeStack will return the messages in the node's input queue
+func (r *Router) NodeStack(node int) string {
+	str := fmt.Sprintf("-- Node %d --\n", node)
+	msgs := make([]imessage.IMessage, len(r.ElectionQueues[node]))
+	i := 0
+ForLoop:
+	for {
+		select {
+		case m := <-r.ElectionQueues[node]:
+			str += fmt.Sprintf("%d: %s\n", i, r.Elections[0].Display.FormatMessage(m))
+			msgs[i] = m
+			i++
+		default:
+			break ForLoop
+		}
+	}
+
+	for _, m := range msgs {
+		r.ElectionQueues[node] <- m
+	}
+	return str
 }
 
 func (r *Router) Status() string {
@@ -107,13 +133,40 @@ func (r *Router) Step() bool {
 	return true
 }
 
+// routeIncoming forwards all incoming messages to all connected nodes. The incoming router needs
+// to not forward repeated messages to stop infinite recursive behavior
+func (r *Router) routeIncoming(from int, msg imessage.IMessage) {
+	if msg == nil {
+		return
+	}
+	// TODO: Adjust routing behavior
+	for i := range r.ElectionQueues {
+		r.acceptIncoming(i, msg)
+	}
+}
+
+// acceptIncoming takes a msg to a particular node. It will handle the onincoming behavior
+func (r *Router) acceptIncoming(to int, msg imessage.IMessage) {
+	if msg == nil {
+		return
+	}
+
+	if _, ok := r.RepeatedFilter[to][msg]; ok {
+		return
+	}
+
+	r.RepeatedFilter[to][msg] = struct{}{}
+	r.ElectionQueues[to] <- msg
+
+	r.routeIncoming(to, msg)
+}
+
 func (r *Router) route(from int, msg imessage.IMessage) {
 	if msg == nil {
 		return
 	}
 	// TODO: Adust routing behavior
-	for _, c := range r.ElectionQueues {
-		// fmt.Println(len(c))
-		c <- msg
+	for i := range r.ElectionQueues {
+		r.acceptIncoming(i, msg)
 	}
 }
