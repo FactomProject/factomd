@@ -50,6 +50,11 @@ func TestElectionSimpleScenario(t *testing.T) {
 	con.RouteLeaderSetLevelMessage(all, 1, all)
 	con.RouteLeaderSetLevelMessage(all, 2, all)
 
+	loop := con.GlobalDisplay.DetectVerticalLoop(0)
+	if loop {
+		t.Errorf("Detected a vert loop when there is not one")
+	}
+
 	runToComplete(con, t)
 }
 
@@ -206,6 +211,12 @@ func TestVerticalFlipFlop(t *testing.T) {
 	//t.Log(con.ElectionStatus(0))
 	//t.Log(con.ElectionStatus(1))
 	//t.Log(con.ElectionStatus(2))
+
+	t.Log(con.GlobalDisplay.String())
+	loop := con.GlobalDisplay.DetectVerticalLoop(0)
+	if !loop {
+		t.Errorf("Did not detect vertical loop when there was")
+	}
 
 	con.RouteLeaderSetLevelMessage(all, 2, all)
 

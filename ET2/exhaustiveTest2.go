@@ -53,8 +53,8 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 	}
 
 	global := con.Elections[0].Display.Global
-	for i,ldr := range con.Elections {
-		con.Elections[i]= CloneElection(ldr)
+	for i, ldr := range con.Elections {
+		con.Elections[i] = CloneElection(ldr)
 		con.Elections[i].Display.Global = global
 	}
 
@@ -82,7 +82,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		}
 		fmt.Println()
 		breadth++
-		if globalRunNumber > 471 && false {
+		if globalRunNumber > 12 {
 			os.Exit(0)
 		}
 		return
@@ -101,10 +101,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		return
 	}
 
-
-
-
-
 	fmt.Println("===============", depth, "solutions so far ", solutions, "global count", globalRunNumber)
 	fmt.Println(leaders[0].Display.Global.String())
 	for _, ldr := range leaders {
@@ -118,7 +114,11 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		fmt.Println("Leader 1")
 		fmt.Println(leaders[1].PrintMessages())
 		fmt.Println("Leader 2")
-		fmt.Println(leaders[1].PrintMessages())
+		fmt.Println(leaders[2].PrintMessages())
+	}
+
+	if !UniqueLeaders(leaders) {
+		panic("Not all leaders unique")
 	}
 
 	for d, v := range msgs {
@@ -128,7 +128,15 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		ml2 := len(msgs2)
 		globalRunNumber++
 
+		if LoopingDetected(leaders[v.leaderIdx].Display.Global) {
+			// TODO: Paul you can move this check wherever you need
+			panic("loop!")
+		}
+
 		cl := CloneElection(leaders[v.leaderIdx])
+		//if !UniqueLeaders(append(leaders, cl)) {
+		//	panic("Not all leaders unique")
+		//}
 
 		//if !spewSame(cl, leaders[v.leaderIdx]) {
 		//	fmt.Println("Clone Failed")
@@ -150,11 +158,12 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 				}
 			}
 			gl := leaders[v.leaderIdx].Display.Global
-			for _,ldr := range leaders {
+			for _, ldr := range leaders {
 				ldr.Display.Global = gl
 			}
+			// Recursive Dive
 			dive(msgs2, leaders, depth, limit)
-			for _,ldr := range leaders {
+			for _, ldr := range leaders {
 				ldr.Display.Global = cl.Display.Global
 			}
 			msgs2 = msgs2[:ml2]
@@ -169,7 +178,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 }
 
 func recurse(auds int, feds int, limit int) {
-
 	_, leaders, msgs := newElections(feds, auds, false)
 
 	dive(msgs, leaders, 0, limit)
@@ -179,13 +187,33 @@ func recurse(auds int, feds int, limit int) {
 var enc *gob.Encoder
 var dec *gob.Decoder
 
+// LoopingDetected will return true if any type of looping is detectd
+func LoopingDetected(global *election.Display) bool {
+	looped := false
+	for i := range global.Votes {
+		looped = looped || global.DetectLoop(i)
+
+	}
+	return looped
+}
+
+// UniqueLeaders returns true if all leaders are unique and copied correctly
+func UniqueLeaders(leaders []*election.Election) bool {
+	for i := 0; i < len(leaders); i++ {
+		for j := i + 1; j < len(leaders); j++ {
+			if !leaders[i].IsDifferent(leaders[j]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
 }
-
-
 
 func CloneElection(src *election.Election) *election.Election {
 	return src.Copy()
