@@ -9,13 +9,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"sync"
 	"time"
-	"net"
 )
 
 type Discovery struct {
@@ -326,8 +326,8 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 			peer.LastContact = time.Now()
 			d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
 		} else {
-			bad ++
-			logerror("discovery", "Bad peer in " + d.seedURL +" [" + line + "]")
+			bad++
+			logerror("discovery", "Bad peer in "+d.seedURL+" ["+line+"]")
 		}
 	}
 	note("discovery", "DiscoverPeersFromSeed got peers: %+v", lines)
