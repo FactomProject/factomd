@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	. "github.com/FactomProject/electiontesting/errorhandling"
+	"github.com/FactomProject/electiontesting/imessage"
 	. "github.com/FactomProject/electiontesting/primitives"
 	"regexp"
 	"strings"
@@ -135,6 +136,8 @@ type VolunteerMessage struct {
 	SignedMessage
 }
 
+var _ imessage.IMessage = (*VolunteerMessage)(nil)
+
 func (r *VolunteerMessage) String() string      { return jsonMarshal(r) }
 func (r *VolunteerMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 
@@ -157,6 +160,9 @@ type LeaderLevelMessage struct {
 
 	VolunteerMessage
 	SignedMessage
+
+	// For the rank 0 case
+	VoteMessage []*VoteMessage
 
 	// messages used to justify
 	Justification []*LeaderLevelMessage
@@ -186,6 +192,7 @@ func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) L
 	l.Rank = rank
 	l.Level = level
 	l.VolunteerMessage = v
+	// l.Justification = make([]*LeaderLevelMessage, 0)
 	return l
 }
 
@@ -205,6 +212,7 @@ func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
 	var vote VoteMessage
 	vote.Volunteer = vol
 	vote.Signer = self
+	vote.OtherVotes = make(map[Identity]SignedMessage)
 
 	return vote
 }

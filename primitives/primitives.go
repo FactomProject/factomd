@@ -172,6 +172,15 @@ func (a *AuthSet) Hash() Hash {
 	return sha256.Sum256([]byte(str))
 }
 
+func (a *AuthSet) FedIDtoIndex(id Identity) int {
+	for i, f := range a.GetFeds() {
+		if f == id {
+			return i
+		}
+	}
+	return -1
+}
+
 func (a *AuthSet) GetVolunteerPriority(vol Identity, loc ProcessListLocation) int {
 	// TODO: Use processlist location
 	auds := a.GetAuds()

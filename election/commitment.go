@@ -12,7 +12,7 @@ var _ = fmt.Println
 const NumberOfSequential int = 2
 
 // DiamondShop is the place you go too looking for commitment. It will determine
-// when you can commit an EOM and end an election.
+// when you can commit an EOM and end an Election.
 // AKA: When it has a diamond ring that is affordable
 type DiamondShop struct {
 	VoteHistories map[primitives.Identity]*LeaderVoteHistory
@@ -33,7 +33,7 @@ func NewDiamondShop(authset primitives.AuthSet) *DiamondShop {
 	return d
 }
 
-// ShouldICommit will return a bool that tells you if you can commit to the election results.
+// ShouldICommit will return a bool that tells you if you can commit to the Election results.
 // True --> Use the EOM, we are done
 func (d *DiamondShop) ShouldICommit(msg *messages.LeaderLevelMessage) bool {
 	c := d.VoteHistories[msg.Signer].Add(msg)
@@ -59,6 +59,12 @@ type LeaderVoteHistory struct {
 func NewLeaderVoteHistory() *LeaderVoteHistory {
 	h := new(LeaderVoteHistory)
 	h.Votes = make([]*messages.LeaderLevelMessage, NumberOfSequential, NumberOfSequential)
+	for i := range h.Votes {
+		// TODO: Fix this Steven. Gob made you not use nil
+		var v messages.VolunteerMessage
+		l := messages.NewLeaderLevelMessage(-10, -10, -10, v)
+		h.Votes[i] = &l
+	}
 
 	return h
 }
@@ -70,8 +76,8 @@ func (h *LeaderVoteHistory) Add(l *messages.LeaderLevelMessage) int {
 
 	// Check for nil. If a nil, we have an open spot
 	for i, v := range h.Votes {
-		// Found a spot
-		if v == nil && place == -1 {
+		// Found a spot (-10 == nil)
+		if v.Level == -10 && place == -1 {
 			place = i
 			break
 		}
@@ -99,7 +105,7 @@ func (h *LeaderVoteHistory) checkForComplete() int {
 
 	for i := 0; i < len(h.Votes)-1; i++ {
 		// Check levels are sequential
-		if h.Votes[i].Level != h.Votes[i+1].Level-1 {
+		if h.Votes[i].Level != h.Votes[i+1].Level+1 {
 			return -1
 		}
 

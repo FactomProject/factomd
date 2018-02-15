@@ -16,7 +16,6 @@ var messageMasks map[DummyMessage]uint32
 
 type DummyElection struct {
 	Best *DummyMessage
-
 	Seen map[string]bool
 }
 
@@ -24,7 +23,7 @@ func (e *DummyElection) Execute(m *DummyMessage) *DummyMessage {
 
 	if _, ok := e.Seen[m.S]; ok {
 		return nil
-	}                  // ignore messages I have seen
+	}                // ignore messages I have seen
 	e.Seen[m.S] = true // remember message  have seen
 
 	if m.S > e.Best.S {
@@ -39,7 +38,7 @@ func (e *DummyElection) Execute(m *DummyMessage) *DummyMessage {
 var enc *gob.Encoder
 var dec *gob.Decoder
 
-func init() {
+func init(){
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
@@ -105,11 +104,10 @@ func exhaustiveTest3(messages []*DummyMessage, nodes []*DummyElection, masks []i
 	for i := 0; i < len(messages); i++ {
 		m := messages[i] // get the next message
 		nodes2 := clone(nodes)
-   		for n := 0; n < len(nodes); n++ {
+		for n := 0; n < len(nodes); n++ {
    			mask := masks[n]
    			if mask == 0 {continue}
 			output := (mask & (1 << uint(i))) != 0 // check if we are sending this message
-
 			if output {
 				om := nodes2[n].Execute(m)
 				if(om==nil){
@@ -206,7 +204,6 @@ func permute(messages []*DummyMessage, l int, r int, results chan ([]*DummyMessa
 	permute2(messages, l, r, results)
 	close(results)
 }
-
 // test all permutation of message order
 func exhaustiveTest1(messages []*DummyMessage, nodes []*DummyElection) {
 	var results chan []*DummyMessage

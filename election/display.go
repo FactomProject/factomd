@@ -15,9 +15,9 @@ type Display struct {
 
 	Votes [][]string
 
-	election *Election
+	primitives.ProcessListLocation
 
-	fedList []primitives.Identity
+	FedList []primitives.Identity
 
 	primitives.AuthSet
 
@@ -27,11 +27,12 @@ type Display struct {
 func NewDisplay(ele *Election, global *Display) *Display {
 	d := new(Display)
 	d.Votes = make([][]string, 0)
-	d.election = ele
 	d.AuthSet = ele.AuthSet
-	d.fedList = d.GetFeds()
+	d.FedList = d.GetFeds()
 	d.Global = global
-	d.Identifier = fmt.Sprintf("Leader %d", d.getColumn(ele.Self))
+	d.ProcessListLocation = ele.ProcessListLocation
+
+	d.Identifier = fmt.Sprintf("Leader %d, ID: %d", d.getColumn(ele.Self), ele.Self)
 
 	return d
 }
@@ -58,7 +59,7 @@ func (d *Display) stringHeader() string {
 	str := fmt.Sprintf("(%s)\n", d.Identifier)
 	// 3 spaces | L# centered 4 slots
 	str += fmt.Sprintf(" %3s", "Lvl")
-	for f, _ := range d.fedList {
+	for f, _ := range d.FedList {
 		headerVal := fmt.Sprintf("L%d", f)
 		str += center(headerVal)
 	}
@@ -80,7 +81,7 @@ func (d *Display) String() string {
 }
 
 func center(str string) string {
-	return fmt.Sprintf("%-4s", fmt.Sprintf("%4s", str))
+	return fmt.Sprintf("%-6s", fmt.Sprintf("%6s", str))
 }
 
 func (d *Display) insertVote0Message(msg *messages.VoteMessage) {
@@ -94,13 +95,17 @@ func (d *Display) insertVote0Message(msg *messages.VoteMessage) {
 	// Make row will just ensure the row exists
 	d.makeRow(row)
 
-	vol := d.election.getVolunteerPriority(msg.Volunteer.Signer)
+	vol := d.getVolunteerPriority(msg.Volunteer.Signer)
 	vote0 := fmt.Sprintf("%d", vol)
 	if strings.Contains(d.Votes[row][col], vote0) {
 		return
 	}
 
 	d.Votes[row][col] += vote0
+}
+
+func (d *Display) getVolunteerPriority(id primitives.Identity) int {
+	return d.AuthSet.GetVolunteerPriority(id, d.ProcessListLocation)
 }
 
 func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {
@@ -114,10 +119,38 @@ func (d *Display) insertLeaderLevelMessage(msg *messages.LeaderLevelMessage) {
 	// Make row will just ensure the row exists
 	d.makeRow(row)
 
-	d.Votes[row][col] = d.formatLeaderLevelMsg(msg)
+	d.Votes[row][col] = d.FormatLeaderLevelMsgShort(msg)
 }
 
-func (d *Display) formatLeaderLevelMsg(msg *messages.LeaderLevelMessage) string {
+func (d *Display) FormatMessage(msg imessage.IMessage) string {
+	if msg == nil {
+		return "nil"
+	}
+	switch msg.(type) {
+	case *messages.LeaderLevelMessage:
+		return d.FormatLeaderLevelMsg(msg.(*messages.LeaderLevelMessage))
+	case *messages.VolunteerMessage:
+		return d.FormatVolunteerMsg(msg.(*messages.VolunteerMessage))
+	case *messages.VoteMessage:
+		return d.FormatVoteMsg(msg.(*messages.VoteMessage))
+	default:
+		return "na"
+	}
+}
+
+func (d *Display) FormatVoteMsg(msg *messages.VoteMessage) string {
+	return fmt.Sprintf("L%d:V%d", d.AuthSet.FedIDtoIndex(msg.Signer), d.getVolunteerPriority(msg.Volunteer.Signer))
+}
+
+func (d *Display) FormatVolunteerMsg(msg *messages.VolunteerMessage) string {
+	return fmt.Sprintf("V%d", d.getVolunteerPriority(msg.Signer))
+}
+
+func (d *Display) FormatLeaderLevelMsg(msg *messages.LeaderLevelMessage) string {
+	return fmt.Sprintf("L%d:%d]%s", d.AuthSet.FedIDtoIndex(msg.Signer), msg.Level, d.FormatLeaderLevelMsgShort(msg))
+}
+
+func (d *Display) FormatLeaderLevelMsgShort(msg *messages.LeaderLevelMessage) string {
 	if msg.Committed {
 		return "EOM"
 	}
@@ -133,13 +166,13 @@ func (d *Display) makeRow(level int) {
 	for len(d.Votes) <= level {
 		//if len(d.Votes) <= level {
 		// Need to add rows to get to level
-		d.Votes = append(d.Votes, make([]string, len(d.fedList)))
+		d.Votes = append(d.Votes, make([]string, len(d.FedList)))
 		//}
 	}
 }
 
 func (d *Display) getColumn(id primitives.Identity) int {
-	for i, f := range d.fedList {
+	for i, f := range d.FedList {
 		if f == id {
 			return i
 		}
