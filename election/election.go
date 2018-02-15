@@ -35,6 +35,9 @@ type Election struct {
 
 	// Some statistical info
 	TotalMessages int
+
+	// Each time I vote for the same vol in the next level
+	CommitmentTally int
 }
 
 func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
@@ -53,7 +56,7 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	// Used to determine volunteer priority
 	e.ProcessListLocation = loc
 
-	e.CommitmentIndicator = NewDiamondShop(e.AuthSet)
+	e.CommitmentIndicator = NewDiamondShop(e.Self, e.AuthSet)
 	return e
 }
 
@@ -121,6 +124,14 @@ func (e *Election) AddDisplay(global *Display) *Display {
 }
 
 func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
+	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
+		if e.CurrentVote.Rank+1 == new.Rank {
+			e.CommitmentTally++
+			e.CurrentVote = new
+			return
+		}
+	}
+	e.CommitmentTally = 0
 	e.CurrentVote = new
 }
 
@@ -258,8 +269,8 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	}
 
 	// If commit is true, then we are done. Return the EOM
-	commit := e.CommitmentIndicator.ShouldICommit(msg)
-	if commit {
+	// commit := e.CommitmentIndicator.ShouldICommit(msg)
+	if e.CommitmentTally >= 3 { //commit {
 		// TODO: Add the justification for others to also agree
 		e.Committed = true
 		// Need to make our last leaderlevel message to go to commitment

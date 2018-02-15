@@ -216,7 +216,6 @@ func TestVerticalFlipFlop(t *testing.T) {
 	//t.Log(con.ElectionStatus(1))
 	//t.Log(con.ElectionStatus(2))
 
-	t.Log(con.GlobalDisplay.String())
 	loop = con.GlobalDisplay.DetectVerticalLoop(con.Elections[0].Self)
 	if !loop {
 		t.Errorf("Did not detect vertical loop when there was")
@@ -228,7 +227,8 @@ func TestVerticalFlipFlop(t *testing.T) {
 }
 
 func runToComplete(con *Controller, t *testing.T) {
-	con.Router.Run()
+	con.Router.StepN(100)
+	t.Log(con.GlobalDisplay.String())
 	if !con.Complete() {
 		t.Errorf("Did not complete")
 	}
