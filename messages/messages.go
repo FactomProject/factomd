@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	. "github.com/FactomProject/electiontesting/errorhandling"
+	"github.com/FactomProject/electiontesting/imessage"
 	. "github.com/FactomProject/electiontesting/primitives"
 	"regexp"
 	"strings"
@@ -134,6 +135,8 @@ type VolunteerMessage struct {
 	FaultMsg
 	SignedMessage
 }
+
+var _ imessage.IMessage = (*VolunteerMessage)(nil)
 
 func (r *VolunteerMessage) String() string      { return jsonMarshal(r) }
 func (r *VolunteerMessage) ReadString(s string) { jsonUnmarshal(r, s) }
