@@ -103,11 +103,11 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 }
 
 func (e *Election) PrintMessages() string {
-	str := "-- In --"
+	str := "-- In --\n"
 	for i, m := range e.MsgListIn {
 		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
 	}
-	str += "-- Out --"
+	str += "-- Out --\n"
 	for i, m := range e.MsgListOut {
 		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
 	}
