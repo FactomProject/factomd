@@ -151,6 +151,67 @@ func TestFlipFlop(t *testing.T) {
 	runToComplete(con, t)
 }
 
+func TestStrange(t *testing.T) {
+	StartUnitTestErrorHandling(t)
+
+	con := NewController(3, 3)
+	all := []int{0, 1, 2}
+	span := []int{0, 1, 2, 1, 0}
+	con.SendOutputsToRouter(true)
+	con.RouteVolunteerMessage(0, span)
+	con.RouteVolunteerMessage(1, span)
+	con.RouteVolunteerMessage(2, span)
+
+	con.RouteLeaderSetVoteMessage(all, 0, span)
+	con.RouteLeaderSetVoteMessage(all, 1, span)
+	con.RouteLeaderSetVoteMessage(all, 2, []int{0, 2})
+
+	con.RouteLeaderSetLevelMessage(all, 1, []int{0})
+	con.RouteLeaderSetLevelMessage(all, 2, []int{0})
+	con.RouteLeaderSetLevelMessage(all, 3, []int{0})
+	con.RouteLeaderLevelMessage(2, 3, []int{0})
+
+	t.Log(con.ElectionStatus(-1))
+	t.Log(con.ElectionStatus(0))
+	t.Log(con.ElectionStatus(1))
+	t.Log(con.ElectionStatus(2))
+
+	//con.RouteLeaderSetLevelMessage(all, 2, all)
+
+	runToComplete(con, t)
+}
+
+func TestVerticalFlipFlop(t *testing.T) {
+	StartUnitTestErrorHandling(t)
+
+	con := NewController(3, 3)
+	all := []int{0, 1, 2, 1, 0}
+	con.SendOutputsToRouter(true)
+	con.RouteVolunteerMessage(0, all)
+	con.RouteVolunteerMessage(1, all)
+	con.RouteVolunteerMessage(2, all)
+
+	con.RouteLeaderSetVoteMessage(all, 0, all)
+	con.RouteLeaderSetVoteMessage(all, 1, all)
+	con.RouteLeaderSetVoteMessage(all, 2, all)
+
+	con.RouteLeaderSetLevelMessage(all, 1, all)
+	con.RouteLeaderSetLevelMessage(all, 2, all)
+	con.RouteLeaderSetLevelMessage(all, 3, all)
+	con.RouteLeaderSetLevelMessage(all, 4, all)
+	con.RouteLeaderSetLevelMessage(all, 5, all)
+	con.RouteLeaderSetLevelMessage(all, 6, all)
+
+	//t.Log(con.ElectionStatus(-1))
+	//t.Log(con.ElectionStatus(0))
+	//t.Log(con.ElectionStatus(1))
+	//t.Log(con.ElectionStatus(2))
+
+	con.RouteLeaderSetLevelMessage(all, 2, all)
+
+	runToComplete(con, t)
+}
+
 func runToComplete(con *Controller, t *testing.T) {
 	con.Router.Run()
 	if !con.Complete() {
