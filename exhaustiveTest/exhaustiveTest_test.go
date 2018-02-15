@@ -38,8 +38,8 @@ func TestClone2(t *testing.T) {
 	foo = new(DummyElection)
 	foo.Best = new(DummyMessage)
 	foo.Best.S = "ACB"
-	foo.Seen = make(map[*DummyMessage]bool)
-    foo.Seen[foo.Best] = true
+	foo.Seen = make(map[string]bool)
+    foo.Seen[foo.Best.S] = true
 
 	foo2 = clone2(foo)
 	foo3 = clone2(foo2)
@@ -57,14 +57,14 @@ func TestClone(t *testing.T) {
 	foo[0] = new(DummyElection)
 	foo[0].Best = new(DummyMessage)
 	foo[0].Best.S = "ABC"
-	foo[0].Seen = make(map[*DummyMessage]bool)
-	foo[0].Seen[foo[0].Best] = true
+	foo[0].Seen = make(map[string]bool)
+	foo[0].Seen[foo[0].Best.S] = true
 
 	foo[1] = new(DummyElection)
 	foo[1].Best = new(DummyMessage)
 	foo[1].Best.S = "CBA"
-	foo[1].Seen = make(map[*DummyMessage]bool)
-	foo[1].Seen[foo[1].Best] = true
+	foo[1].Seen = make(map[string]bool)
+	foo[1].Seen[foo[1].Best.S] = true
 
 
 
@@ -73,7 +73,7 @@ func TestClone(t *testing.T) {
 	spew.Printf("%v\n",foo)
 	spew.Printf("%v\n",foo2)
 	spew.Printf("%v\n",foo3)
-	fmt.Printf("%+v %+v %+v %v\n", foo, foo2, foo3, reflect.DeepEqual(foo,foo2), reflect.DeepEqual(foo,foo2))
+	fmt.Printf("%+v %+v %+v %v %v\n", foo, foo2, foo3, reflect.DeepEqual(foo,foo2), reflect.DeepEqual(foo,foo2))
 }
 
 
@@ -92,7 +92,7 @@ func TestRunExhaustiveTest(t *testing.T) {
 	// make a message for every volunteer
 	for i := 0; i < len(nodes); i++ {
 		nodes[i] = new(DummyElection)
-		nodes[i].Seen = make(map[*DummyMessage]bool, 0)
+		nodes[i].Seen = make(map[string]bool, 0)
 		nodes[i].Best = new(DummyMessage)
 	}
 	exhaustiveTest1(messages, nodes[:])
