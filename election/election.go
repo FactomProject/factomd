@@ -180,8 +180,10 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			e.CurrentLevel++
 		}
 		ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank+1, lvl, msg.VolunteerMessage)
+		ll.Committed = true
 		e.updateCurrentVote(ll)
 		e.Execute(&ll)
+		e.Display.Execute(&ll)
 		return &ll, true
 	}
 
@@ -190,6 +192,18 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		// If it is a vote from us, then we need to decide if we should send it
 		// If it already has a volunteer priority, then we decided to already send it out.
 		ll, ok := res.(*messages.LeaderLevelMessage)
+		if ok {
+			// We need to add the justifications to our map
+			if e.Display != nil {
+				for _, jl := range ll.Justification {
+					e.Display.Execute(jl)
+				}
+				for _, jv := range ll.VoteMessage {
+					e.Display.Execute(jv)
+				}
+			}
+		}
+
 		if ok && ll.Signer == e.Self && ll.Level < 0 {
 			// We need to set the volunteer priority for comparing
 			ll.VolunteerPriority = e.getVolunteerPriority(ll.VolunteerMessage.Signer)
@@ -209,12 +223,14 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 
 				e.updateCurrentVote(*ll)
 				e.executeDisplay(ll)
+				e.VolunteerControls[ll.VolunteerMessage.Signer].AddVote(ll)
 
 				// This vote may change our state, so call ourselves again
-				resp, _ := e.Execute(ll)
-				if resp != nil {
-					return resp, true
-				}
+				//resp, _ := e.Execute(ll)
+				//if resp != nil {
+				//	return resp, true
+				//}
+				//fmt.Println(e.Display.FormatMessage(ll))
 				return ll, true
 			} else {
 				// This message was from us, and we decided not to sent it
