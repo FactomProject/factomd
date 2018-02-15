@@ -1,73 +1,12 @@
-package controller_test
+package main
 
 import (
 	"fmt"
-	"testing"
 
 	. "github.com/FactomProject/electiontesting/controller"
-	. "github.com/FactomProject/electiontesting/errorhandling"
 )
 
-func TestSimpleController(t *testing.T) {
-	StartUnitTestErrorHandling(t)
-
-	con := NewController(3, 3)
-	all := []int{0, 1, 2}
-	con.RouteVolunteerMessage(1, all)
-
-}
-
-func TestElectionDisplay(t *testing.T) {
-	//StartUnitTestErrorHandling(t)
-	//
-	//con := NewController(3, 3)
-	//all := []int{0, 1, 2}
-	//con.RouteVolunteerMessage(1, all)
-	//fmt.Println(con.GlobalDisplay.String())
-	//
-	//ExpMsg(con.RouteLeaderSetLevelMessage(all, 0, all))
-	//fmt.Println(con.GlobalDisplay.String())
-	//
-	//fmt.Println(con.Elections[0].Display.String())
-	//
-	//ExpMsg(con.RouteLeaderLevelMessage(1, 0, all))
-	//ExpMsg(con.RouteLeaderLevelMessage(2, 0, all))
-	//
-	//ExpMsg(con.RouteLeaderLevelMessage(0, 2, all))
-
-	//fmt.Println(con.GlobalDisplay.String())
-}
-
-// TestElectionSimpleScenario will test 100% consensus
-func TestElectionSimpleScenario(t *testing.T) {
-	StartUnitTestErrorHandling(t)
-
-	con := NewController(3, 3)
-	all := []int{0, 1, 2}
-	con.RouteVolunteerMessage(1, all)
-	con.RouteLeaderSetVoteMessage(all, 1, all)
-	con.RouteLeaderSetLevelMessage(all, 1, all)
-	con.RouteLeaderSetLevelMessage(all, 2, all)
-	con.RouteLeaderSetLevelMessage(all, 3, all)
-
-	fmt.Println(con.GlobalDisplay.String())
-
-	//con.RouteLeaderSetLevelMessage(all, 1, all)
-	//fmt.Println(con.GlobalDisplay.String())
-	//
-	//con.RouteLeaderSetLevelMessage(all, 2, all)
-	//fmt.Println(con.GlobalDisplay.String())
-	//
-	//con.RouteLeaderSetLevelMessage(all, 3, all)
-	//con.RouteLeaderSetLevelMessage(all, 4, all)
-	//
-	//fmt.Println(con.GlobalDisplay.String())
-
-}
-
-func TestFlipFlop(t *testing.T) {
-	StartUnitTestErrorHandling(t)
-
+func main() {
 	con := NewController(3, 3)
 	all := []int{0, 1, 2}
 	left := []int{0, 1}
@@ -87,7 +26,6 @@ func TestFlipFlop(t *testing.T) {
 	//  0:   1   1
 	//  1:     0.1
 	con.RouteLeaderSetVoteMessage(left, 1, left)
-	fmt.Println(con.ElectionStatus(-1))
 
 	// We need L1 to switch to 2
 	//(Leader 1)
@@ -160,7 +98,6 @@ func TestFlipFlop(t *testing.T) {
 	con.RouteLeaderSetLevelMessage(mid, 2, right)
 	con.RouteLeaderSetLevelMessage(fright, 1, mid)
 
-	return
 	// Print end result
 	fmt.Println(con.GlobalDisplay.String())
 	fmt.Println(con.ElectionStatus(0))
@@ -172,8 +109,8 @@ func TestFlipFlop(t *testing.T) {
 	fmt.Println("DONE!")
 }
 
-func expmsg(found bool, t *testing.T) {
+func expmsg(found bool) {
 	if !found {
-		t.Errorf("Expected message, got nil")
+		fmt.Println("Expected message, got nil")
 	}
 }

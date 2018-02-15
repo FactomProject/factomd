@@ -27,7 +27,7 @@ type Election struct {
 	ProcessListLocation
 
 	Display *Display
-	// If I have committed to an answer and found enough to finish election
+	// If I have committed to an answer and found enough to finish Election
 	Committed bool
 }
 
@@ -74,6 +74,11 @@ func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	case *messages.VolunteerMessage:
 		vol := msg.(*messages.VolunteerMessage)
 		vote := messages.NewVoteMessage(*vol, e.Self)
+		msg, _ := e.Execute(&vote)
+		if ll, ok := msg.(*messages.LeaderLevelMessage); ok {
+			// TODO: Add votes to vote array in leader level message
+			var _ = ll
+		}
 		return &vote, true
 	case *messages.VoteMessage:
 		// Colecting these allows us to issue out 0.#

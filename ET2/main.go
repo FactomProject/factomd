@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+
 	"github.com/FactomProject/electiontesting/controller"
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
@@ -71,9 +72,9 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	for d, v := range msgs {
 		msgs2 := append(msgs[0:d], msgs[d+1:]...)
 		ml2 := len(msgs2)
-		cl := clone(leaders[v.leaderIdx])
-		fmt.Println(v.msg.String())
+		cl := CloneElection(leaders[v.leaderIdx])
 		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
+		fmt.Println(leaders[v.leaderIdx].Display.String())
 		if changed {
 			if msg != nil {
 				for i, _ := range leaders {
@@ -114,13 +115,15 @@ func init() {
 	dec = gob.NewDecoder(buff)
 }
 
-// need better reflect based deep copy
-func clone(src *election.Election) *election.Election {
+func CloneElection(src *election.Election) *election.Election {
 	dst := new(election.Election)
-	buff := new(bytes.Buffer)
-	enc := gob.NewEncoder(buff)
-	dec := gob.NewDecoder(buff)
-	enc.Encode(src)
-	dec.Decode(dst)
+	err := enc.Encode(src)
+	if err != nil {
+		panic(err)
+	}
+	err = dec.Decode(dst)
+	if err != nil {
+		panic(err)
+	}
 	return dst
 }

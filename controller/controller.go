@@ -2,12 +2,16 @@ package controller
 
 import (
 	"fmt"
+	"strconv"
 
+	"bufio"
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
 	"github.com/FactomProject/electiontesting/messages"
 	"github.com/FactomProject/electiontesting/primitives"
 	"github.com/FactomProject/electiontesting/testhelper"
+	"os"
+	"strings"
 )
 
 var _ = fmt.Println
@@ -62,6 +66,60 @@ func NewController(feds, auds int) *Controller {
 
 	c.Router = NewRouter(c.Elections)
 	return c
+}
+
+func grabInput(in *bufio.Reader) string {
+	input, err := in.ReadString('\n')
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return ""
+	}
+	return strings.TrimRight(input, "\n")
+}
+
+func (c *Controller) Shell() {
+	printflipflop := false
+
+	in := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print(">")
+		input := grabInput(in)
+
+		switch input {
+		case "exit":
+			fallthrough
+		case "quit":
+			fallthrough
+		case "q":
+			return
+		case "p":
+			printflipflop = !printflipflop
+			c.Router.PrintMode(printflipflop)
+			fmt.Printf("PrintingSteps: %t\n", printflipflop)
+		case "s":
+			c.Router.Step()
+			fmt.Println("< Steped")
+		case "d":
+			num := grabInput(in)
+			if num != "a" {
+				i, err := strconv.Atoi(num)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				fmt.Println(c.ElectionStatus(i))
+				continue
+			}
+			fallthrough
+		case "da":
+			fmt.Println(c.ElectionStatus(-1))
+			for i := range c.Elections {
+				fmt.Println(c.ElectionStatus(i))
+			}
+		case "r":
+			fmt.Println(c.Router.Status())
+		}
+	}
 }
 
 func (c *Controller) SendOutputsToRouter(set bool) {

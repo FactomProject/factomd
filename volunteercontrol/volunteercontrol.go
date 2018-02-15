@@ -44,12 +44,15 @@ func (v *VolunteerControl) Execute(msg imessage.IMessage) (imessage.IMessage, bo
 
 	statechange := false
 
-	for _, j := range ll.Justification {
-		change := v.addVote(j)
-		if change {
-			statechange = change
+	if ll.Justification != nil {
+		for _, j := range ll.Justification {
+			change := v.addVote(j)
+			if change {
+				statechange = change
+			}
 		}
 	}
+
 	change := v.addVote(ll)
 	if change {
 		statechange = change
@@ -70,7 +73,7 @@ func (v *VolunteerControl) addVote(msg *messages.LeaderLevelMessage) bool {
 
 		if cur.Rank > msg.Rank {
 			// Greater rank is always better.
-			msg.Justification = []*messages.LeaderLevelMessage{}
+			msg.Justification = nil
 			v.Votes[msg.Signer] = msg
 			return true
 		}

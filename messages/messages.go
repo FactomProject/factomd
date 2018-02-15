@@ -161,6 +161,9 @@ type LeaderLevelMessage struct {
 	VolunteerMessage
 	SignedMessage
 
+	// For the rank 0 case
+	VoteMessage []*VoteMessage
+
 	// messages used to justify
 	Justification []*LeaderLevelMessage
 	Committed     bool
@@ -189,6 +192,7 @@ func NewLeaderLevelMessage(self Identity, rank, level int, v VolunteerMessage) L
 	l.Rank = rank
 	l.Level = level
 	l.VolunteerMessage = v
+	// l.Justification = make([]*LeaderLevelMessage, 0)
 	return l
 }
 
@@ -208,6 +212,7 @@ func NewVoteMessage(vol VolunteerMessage, self Identity) VoteMessage {
 	var vote VoteMessage
 	vote.Volunteer = vol
 	vote.Signer = self
+	vote.OtherVotes = make(map[Identity]SignedMessage)
 
 	return vote
 }
