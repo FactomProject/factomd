@@ -46,14 +46,14 @@ func (v *VolunteerControl) Execute(msg imessage.IMessage) (imessage.IMessage, bo
 
 	if ll.Justification != nil {
 		for _, j := range ll.Justification {
-			change := v.addVote(j)
+			change := v.AddVote(j)
 			if change {
 				statechange = change
 			}
 		}
 	}
 
-	change := v.addVote(ll)
+	change := v.AddVote(ll)
 	if change {
 		statechange = change
 	}
@@ -63,7 +63,7 @@ func (v *VolunteerControl) Execute(msg imessage.IMessage) (imessage.IMessage, bo
 }
 
 // addVote just adds the vote to the vote map
-func (v *VolunteerControl) addVote(msg *messages.LeaderLevelMessage) bool {
+func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 	// If we already have a vote from that leader for this audit, then we only replace ours if this is better
 	if cur, ok := v.Votes[msg.Signer]; ok {
 		if cur.Level == msg.Level {
@@ -91,6 +91,11 @@ func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) (imessage.IMess
 	if len(v.Votes) < v.Majority() {
 		return msg, false
 	}
+
+	m := v.Majority()
+	l := len(v.Votes)
+
+	var _, _ = m, l
 
 	var justification []*messages.LeaderLevelMessage
 

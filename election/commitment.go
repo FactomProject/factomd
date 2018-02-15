@@ -105,7 +105,7 @@ func (h *LeaderVoteHistory) checkForComplete() int {
 
 	for i := 0; i < len(h.Votes)-1; i++ {
 		// Check levels are sequential
-		if h.Votes[i].Level != h.Votes[i+1].Level-1 {
+		if h.Votes[i].Level != h.Votes[i+1].Level+1 {
 			return -1
 		}
 

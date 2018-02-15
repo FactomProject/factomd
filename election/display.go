@@ -32,7 +32,7 @@ func NewDisplay(ele *Election, global *Display) *Display {
 	d.Global = global
 	d.ProcessListLocation = ele.ProcessListLocation
 
-	d.Identifier = fmt.Sprintf("Leader %d", d.getColumn(ele.Self))
+	d.Identifier = fmt.Sprintf("Leader %d, ID: %d", d.getColumn(ele.Self), ele.Self)
 
 	return d
 }

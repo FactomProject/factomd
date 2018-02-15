@@ -98,14 +98,25 @@ func main() {
 	con.RouteLeaderSetLevelMessage(mid, 2, right)
 	con.RouteLeaderSetLevelMessage(fright, 1, mid)
 
-	// Print end result
-	fmt.Println(con.GlobalDisplay.String())
-	fmt.Println(con.ElectionStatus(0))
-	fmt.Println(con.ElectionStatus(1))
-	fmt.Println(con.ElectionStatus(2))
+	// Added this to resolve
+	con.RouteLeaderSetLevelMessage(all, 3, all)
+	con.RouteLeaderSetLevelMessage(all, 4, all)
 
+	// Print end result
+	// fmt.Println(con.GlobalDisplay.String())
+	//fmt.Println(con.ElectionStatus(0))
+	//fmt.Println(con.ElectionStatus(1))
+	//fmt.Println(con.ElectionStatus(2))
+
+	// con.Shell()
+	con.Router.Run()
+	fmt.Println(con.GlobalDisplay.String())
 	con.Shell()
-	//con.Router.Run()
+
+	//fmt.Println(con.GlobalDisplay.String())
+	// fmt.Println(con.ElectionStatus(0))
+	//fmt.Println(con.ElectionStatus(1))
+	//fmt.Println(con.ElectionStatus(2))
 	fmt.Println("DONE!")
 }
 

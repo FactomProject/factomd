@@ -103,12 +103,14 @@ func (r *Router) Status() string {
 var c int = 0
 
 func (r *Router) Step() bool {
+	oneChange := false
 	for i := range r.ElectionQueues {
 		if len(r.ElectionQueues[i]) > 0 {
+			oneChange = true
 			r.Consumed[i]++
 			msg := <-r.ElectionQueues[i]
 			resp, _ := r.Elections[i].Execute(msg)
-			if resp == nil {
+			if resp != nil {
 				r.Generated[i]++
 				r.route(i, resp)
 			}
@@ -120,6 +122,10 @@ func (r *Router) Step() bool {
 				fmt.Println(str)
 			}
 		}
+	}
+
+	if !oneChange {
+		return true
 	}
 
 	// Check all for complete
