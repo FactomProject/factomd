@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	recurse(3, 3, 40)
+	recurse(3, 3, 120)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -53,19 +53,20 @@ type mymsg struct {
 	msg       imessage.IMessage
 }
 
-var breath = 0
+var solutions = 0
+var breadth = 0
 
 var cuts []int
 
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	depth++
 	if depth > limit {
-		fmt.Print("Breath ", breath)
+		fmt.Print("Breath ", breadth)
 		for _, v := range cuts {
 			fmt.Print(v, " ")
 		}
 		fmt.Println()
-		breath++
+		breadth++
 		return
 	}
 	done := 0
@@ -74,7 +75,10 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	}
 	if done > len(leaders)/2 {
 		cuts[depth]++
-		fmt.Println("=====Solution Found!")
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ",depth)
+		breadth++
+		solutions++
+		return
 	}
 
 //	fmt.Println("Height: ",depth)
@@ -82,7 +86,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 //		fmt.Println(v.msg, " to ",v.leaderIdx)
 //	}
 
-	fmt.Println("===============")
+	fmt.Println("===============", depth, "solutions so far ", solutions)
 	for _,ldr := range leaders {
 		fmt.Println(ldr.Display.String())
 	}
