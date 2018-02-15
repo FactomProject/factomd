@@ -1,7 +1,7 @@
 package common
 
 type Flags struct {
-	Immediate bool
+	Immediate  bool
 	Executable bool
 }
 
@@ -18,12 +18,12 @@ type Array struct {
 	Data []interface{}
 	Flags
 }
-func(a *Array)len()int{return len(a.Data)}
-func(a *Array)cap()int{return cap(a.Data)}
+
+func (a *Array) len() int { return len(a.Data) }
+func (a *Array) cap() int { return cap(a.Data) }
 
 type Name struct {
 	n string
 	Flags
 	d interface{}
 }
-

@@ -1,10 +1,10 @@
 package primitives
 
 import (
-	. "github.com/FactomProject/electiontesting/interpreter/interpreter"
-	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
 	"fmt"
 	. "github.com/FactomProject/electiontesting/interpreter/common"
+	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
+	. "github.com/FactomProject/electiontesting/interpreter/interpreter"
 )
 
 type Primitives struct {
@@ -143,4 +143,4 @@ ROT  N1 N2 N3 - N2 N3 N1
 Pull the third element down in the stack onto the top of
 the stack.
 
- */
+*/

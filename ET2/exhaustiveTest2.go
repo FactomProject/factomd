@@ -53,8 +53,8 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 	}
 
 	global := con.Elections[0].Display.Global
-	for i,ldr := range con.Elections {
-		con.Elections[i]= CloneElection(ldr)
+	for i, ldr := range con.Elections {
+		con.Elections[i] = CloneElection(ldr)
 		con.Elections[i].Display.Global = global
 	}
 
@@ -76,7 +76,7 @@ var globalRunNumber = 0
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	depth++
 	if depth > limit {
-		fmt.Print("Breadth ", breadth," --")
+		fmt.Print("Breadth ", breadth, " --")
 		for _, v := range cuts {
 			fmt.Print(v, " ")
 		}
@@ -101,10 +101,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		os.Exit(0)
 		return
 	}
-
-
-
-
 
 	fmt.Println("===============", depth, "solutions so far ", solutions, "global count", globalRunNumber)
 	fmt.Println(leaders[0].Display.Global.String())
@@ -151,11 +147,11 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 				}
 			}
 			gl := leaders[v.leaderIdx].Display.Global
-			for _,ldr := range leaders {
+			for _, ldr := range leaders {
 				ldr.Display.Global = gl
 			}
 			dive(msgs2, leaders, depth, limit)
-			for _,ldr := range leaders {
+			for _, ldr := range leaders {
 				ldr.Display.Global = cl.Display.Global
 			}
 			msgs2 = msgs2[:ml2]
@@ -185,8 +181,6 @@ func init() {
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
 }
-
-
 
 func CloneElection(src *election.Election) *election.Election {
 	return src.Copy()

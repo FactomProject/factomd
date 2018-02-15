@@ -6,4 +6,4 @@ func NewDictionary() Dictionary {
 	return make(map[string]interface{}, 0)
 }
 
-func (d Dictionary)Add(s string, e interface{}) {d[s]=e}
+func (d Dictionary) Add(s string, e interface{}) { d[s] = e }

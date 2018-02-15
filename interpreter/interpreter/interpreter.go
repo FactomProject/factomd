@@ -1,17 +1,17 @@
 package interpreter
 
 import (
-	. "github.com/FactomProject/electiontesting/interpreter/stack"
-	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
-	. "github.com/FactomProject/electiontesting/interpreter/common"
-	"fmt"
-	"strconv"
 	"bufio"
+	"fmt"
+	. "github.com/FactomProject/electiontesting/interpreter/common"
+	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
+	. "github.com/FactomProject/electiontesting/interpreter/stack"
 	"io"
+	"strconv"
 )
 
 type Interpreter struct {
-	Stack // Data stack is integral
+	Stack     // Data stack is integral
 	C         Stack
 	Compiling bool
 	DictStack []Dictionary
@@ -37,8 +37,10 @@ func (i *Interpreter) Lookup(s string) interface{} {
 }
 
 // Push a dictionary on the stack
-func (i *Interpreter) DictionaryPush(d Dictionary) { i.DictStack = append([]Dictionary{d}, i.DictStack...) }
-func (i *Interpreter) DictionaryPop()              { i.DictStack = i.DictStack[1:] }
+func (i *Interpreter) DictionaryPush(d Dictionary) {
+	i.DictStack = append([]Dictionary{d}, i.DictStack...)
+}
+func (i *Interpreter) DictionaryPop() { i.DictStack = i.DictStack[1:] }
 
 func (i *Interpreter) Exec3(x interface{}) {
 
@@ -59,7 +61,7 @@ func (i *Interpreter) Exec3(x interface{}) {
 	}
 
 	immediateFunc, executable := x.(ImmediateFunc) // Should not have to manually check this!!!
-	if(executable) {
+	if executable {
 		immediateFunc.Func()
 		return
 	}
@@ -90,17 +92,13 @@ func (i *Interpreter) Exec3(x interface{}) {
 func (i *Interpreter) Exec2(s string) {
 	if ii, err := strconv.Atoi(s); err == nil {
 		i.Exec3(ii)
-	} else
-	if b, err := strconv.ParseBool(s); err == nil {
+	} else if b, err := strconv.ParseBool(s); err == nil {
 		i.Exec3(b)
-	} else
-	if f, err := strconv.ParseFloat(s, 64); err == nil {
+	} else if f, err := strconv.ParseFloat(s, 64); err == nil {
 		i.Exec3(f)
-	} else
-	if ii, err := strconv.ParseInt(s, 10, 64); err == nil {
+	} else if ii, err := strconv.ParseInt(s, 10, 64); err == nil {
 		i.Exec3(ii)
-	} else
-	if u, err := strconv.ParseUint(s, 10, 64); err == nil {
+	} else if u, err := strconv.ParseUint(s, 10, 64); err == nil {
 		i.Exec3(u)
 	} else {
 		// Wasn't a literal
