@@ -1,0 +1,16 @@
+(*election.Election)({
+ VolunteerVotes: (map[primitives.Identity]map[primitives.Identity]*messages.VoteMessage) {
+ },
+ VolunteerControls: (map[primitives.Identity]*volunteercontrol.VolunteerControl) {
+ },
+ CommitmentIndicator: (*election.DiamondShop)({"IdentityList":["ID-00000001","ID-00000002","ID-00000003","ID-00000004","ID-00000005","ID-00000006"],"StatusArray":[1,1,1,0,0,0],"IdentityMap":{"1":0,"2":1,"3":2,"4":3,"5":4,"6":5}}),
+ CurrentLevel: (int) 1,
+ CurrentVote: (messages.LeaderLevelMessage) LeaderLevelMessage {"Rank":-1,"Level":0,"VolunteerPriority":-1,"Id":"ID-00000000","Eom":{"Vm":0,"Minute":0,"Height":0,"Signer":"ID-00000000"},"FaultId":"ID-00000000","Vm":0,"Minute":0,"Height":0,"Round":0,"Signer":"ID-00000000","VoteMessages":null,"Justification":[],"Committed":false},
+ Self: (primitives.Identity) ID-00000001,
+ AuthSet: (primitives.AuthSet) {"IdentityList":["ID-00000001","ID-00000002","ID-00000003","ID-00000004","ID-00000005","ID-00000006"],"StatusArray":[1,1,1,0,0,0],"IdentityMap":{"1":0,"2":1,"3":2,"4":3,"5":4,"6":5}},
+ ProcessListLocation: (primitives.ProcessListLocation) 0/0/0,
+ Display: (*election.Display)((Leader 0, ID: 1)
+ Lvl    L0    L1    L2
+),
+ Committed: (bool) false
+})

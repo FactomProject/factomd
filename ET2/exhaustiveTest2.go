@@ -8,9 +8,12 @@ import (
 	"github.com/FactomProject/electiontesting/controller"
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
+	"github.com/davecgh/go-spew/spew"
 	"os"
 	"reflect"
 )
+
+var _ = reflect.DeepEqual
 
 //================ main =================
 func main() {
@@ -61,6 +64,8 @@ var breadth = 0
 
 var cuts []int
 
+var globalRunNumber = 0
+
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	depth++
 	if depth > limit {
@@ -76,31 +81,45 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		return
 	}
 	done := 0
-	for _,ldr := range leaders {
-		if ldr.Committed { done ++}
+	for _, ldr := range leaders {
+		if ldr.Committed {
+			done++
+		}
 	}
 	if done > len(leaders)/2 {
 		cuts[depth]++
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ",depth)
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
 		breadth++
 		solutions++
 		return
 	}
 
-
 	fmt.Println("===============", depth, "solutions so far ", solutions)
-	for _,ldr := range leaders {
+	fmt.Println(leaders[0].Display.Global.String())
+	for _, ldr := range leaders {
 		fmt.Println(ldr.Display.String())
 	}
 	for d, v := range msgs {
 		msgs2 := append(msgs[0:d], msgs[d+1:]...)
 		ml2 := len(msgs2)
+		globalRunNumber++
+
 		cl := CloneElection(leaders[v.leaderIdx])
 
-		if !reflect.DeepEqual(cl, leaders[v.leaderIdx]){
-			fmt.Println("Clone Failed")
+		// Example of a run that has a werid msg state
+		if globalRunNumber == 472 {
+			fmt.Println("Leader 0")
+			fmt.Println(leaders[0].PrintMessages())
+			fmt.Println("Leader 1")
+			fmt.Println(leaders[1].PrintMessages())
 			os.Exit(0)
 		}
+
+		//if !spewSame(cl, leaders[v.leaderIdx]) {
+		//	fmt.Println("Clone Failed")
+		//	debugClone(cl, leaders[v.leaderIdx])
+		//	os.Exit(0)
+		//}
 
 		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
 
@@ -144,7 +163,34 @@ func init() {
 	dec = gob.NewDecoder(buff)
 }
 
+func spewSame(a *election.Election, b *election.Election) bool {
+	spew.Config.DisablePointerAddresses = true
+	spew.Config.SortKeys = true
+	as := spew.Sdump(a)
+	bs := spew.Sdump(b)
+
+	return as == bs
+}
+
+func debugClone(a *election.Election, b *election.Election) {
+	spew.Config.DisablePointerAddresses = true
+	spew.Config.SortKeys = true
+
+	af, _ := os.OpenFile("a", os.O_CREATE|os.O_RDWR, 0777)
+	bf, _ := os.OpenFile("b", os.O_CREATE|os.O_RDWR, 0777)
+
+	fmt.Println("a-------------------------------------")
+	as := spew.Sdump(a)
+	af.WriteString(as)
+	fmt.Println("b-------------------------------------")
+	bs := spew.Sdump(b)
+	bf.WriteString(bs)
+	fmt.Println("c-------------------------------------")
+
+}
+
 func CloneElection(src *election.Election) *election.Election {
+	return src.Copy()
 	dst := new(election.Election)
 	err := enc.Encode(src)
 	if err != nil {

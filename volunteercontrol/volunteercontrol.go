@@ -31,6 +31,20 @@ func NewVolunteerControl(self Identity, authset AuthSet) *VolunteerControl {
 	return v
 }
 
+func (a *VolunteerControl) Copy() *VolunteerControl {
+	b := NewVolunteerControl(a.Self, a.AuthSet.Copy())
+	if a.Volunteer != nil {
+		v := *a.Volunteer
+		b.Volunteer = &v
+	}
+
+	for k, v := range a.Votes {
+		b.Votes[k] = v.Copy()
+	}
+
+	return b
+}
+
 func (v *VolunteerControl) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	// When we get a vote, we need to add it to our map
 	ll, ok := msg.(*messages.LeaderLevelMessage)

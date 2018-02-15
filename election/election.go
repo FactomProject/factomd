@@ -26,9 +26,15 @@ type Election struct {
 	AuthSet
 	ProcessListLocation
 
+	MsgListIn  []*messages.LeaderLevelMessage
+	MsgListOut []*messages.LeaderLevelMessage
+
 	Display *Display
 	// If I have committed to an answer and found enough to finish Election
 	Committed bool
+
+	// Some statistical info
+	TotalMessages int
 }
 
 func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
@@ -41,12 +47,48 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	e.CurrentLevel = 1
 	e.CurrentVote.Rank = -1
 	e.CurrentVote.VolunteerPriority = -1
+	e.MsgListIn = make([]*messages.LeaderLevelMessage, 0)
+	e.MsgListOut = make([]*messages.LeaderLevelMessage, 0)
 
 	// Used to determine volunteer priority
 	e.ProcessListLocation = loc
 
 	e.CommitmentIndicator = NewDiamondShop(e.AuthSet)
 	return e
+}
+
+func (a *Election) Copy() *Election {
+	b := NewElection(a.Self, a.AuthSet.Copy(), a.ProcessListLocation)
+	b.TotalMessages = a.TotalMessages
+
+	for k, _ := range a.VolunteerVotes {
+		b.VolunteerVotes[k] = make(map[Identity]*messages.VoteMessage)
+		for k2, v2 := range a.VolunteerVotes[k] {
+			b.VolunteerVotes[k][k2] = v2.Copy()
+		}
+	}
+
+	for k, v := range a.VolunteerControls {
+		b.VolunteerControls[k] = v.Copy()
+	}
+
+	b.CommitmentIndicator = a.CommitmentIndicator.Copy()
+	b.CurrentLevel = a.CurrentLevel
+	b.CurrentVote = *(a.CurrentVote.Copy())
+	b.Display = a.Display.Copy(b)
+	b.Display.Global = a.Display.Global.Copy(b)
+	b.Committed = a.Committed
+	b.MsgListIn = make([]*messages.LeaderLevelMessage, len(a.MsgListIn))
+	for i, v := range a.MsgListIn {
+		b.MsgListIn[i] = v.Copy()
+	}
+
+	b.MsgListOut = make([]*messages.LeaderLevelMessage, len(a.MsgListIn))
+	for i, v := range a.MsgListOut {
+		b.MsgListOut[i] = v.Copy()
+	}
+
+	return b
 }
 
 // AddDisplay takes a global tracker. Send nil if you don't care about
@@ -60,7 +102,28 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 	e.CurrentVote = new
 }
 
+func (e *Election) PrintMessages() string {
+	str := "-- In --"
+	for i, m := range e.MsgListIn {
+		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+	}
+	str += "-- Out --"
+	for i, m := range e.MsgListOut {
+		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
+	}
+	return str
+}
+
 func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
+	resp, c := e.execute(msg)
+	if l, ok := msg.(*messages.LeaderLevelMessage); ok {
+		e.MsgListOut = append(e.MsgListOut, l)
+	}
+	return resp, c
+}
+
+func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
+	e.TotalMessages++
 	e.executeDisplay(msg)
 
 	// We are done, never use anything else
@@ -112,7 +175,7 @@ func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 			ll := messages.NewLeaderLevelMessage(e.Self, 0, e.CurrentLevel, vote.Volunteer)
 			ll.VolunteerPriority = e.getVolunteerPriority(vote.Volunteer.Signer)
 			for _, v := range e.VolunteerVotes[vote.Volunteer.Signer] {
-				ll.VoteMessage = append(ll.VoteMessage, v)
+				ll.VoteMessages = append(ll.VoteMessages, v)
 			}
 
 			e.CurrentLevel++
@@ -135,6 +198,10 @@ func (e *Election) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 	return nil, false
 }
 
+func (e *Election) stack(msg imessage.IMessage) {
+
+}
+
 func (e *Election) getVolunteerPriority(vol Identity) int {
 	return e.GetVolunteerPriority(vol, e.ProcessListLocation)
 }
@@ -150,6 +217,8 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		e.VolunteerControls[msg.VolunteerMessage.Signer] = volunteercontrol.NewVolunteerControl(e.Self, e.AuthSet)
 	}
 
+	e.MsgListIn = append(e.MsgListIn, msg)
+
 	if msg.Level <= 0 {
 		panic("level <= 0 should never happen")
 	}
@@ -157,10 +226,10 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 	// Did a vote change happen?
 	voteChange := false
 	// Votes exist, so we can add these to our vote map
-	if len(msg.VoteMessage) > 0 {
+	if len(msg.VoteMessages) > 0 {
 		// If we get a new current vote from this, we will get a vote change. In which case we will
 		// send out our current vote if nothing is better
-		for _, v := range msg.VoteMessage {
+		for _, v := range msg.VoteMessages {
 			_, v := e.Execute(v)
 			voteChange = v || voteChange
 		}
@@ -198,7 +267,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 				for _, jl := range ll.Justification {
 					e.Display.Execute(jl)
 				}
-				for _, jv := range ll.VoteMessage {
+				for _, jv := range ll.VoteMessages {
 					e.Display.Execute(jv)
 				}
 			}
