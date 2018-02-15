@@ -63,6 +63,7 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 func (a *Election) Copy() *Election {
 	b := NewElection(a.Self, a.AuthSet.Copy(), a.ProcessListLocation)
 	b.TotalMessages = a.TotalMessages
+	b.CommitmentTally = a.CommitmentTally
 
 	for k, _ := range a.VolunteerVotes {
 		b.VolunteerVotes[k] = make(map[Identity]*messages.VoteMessage)
