@@ -8,10 +8,13 @@ import (
 	"github.com/FactomProject/electiontesting/controller"
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
+	"os"
+	"reflect"
 )
 
+//================ main =================
 func main() {
-	recurse(3, 3, 120)
+	recurse(3, 3, 30)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -67,6 +70,9 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		}
 		fmt.Println()
 		breadth++
+		if breadth > 10000 {
+			os.Exit(0)
+		}
 		return
 	}
 	done := 0
@@ -81,10 +87,6 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		return
 	}
 
-//	fmt.Println("Height: ",depth)
-//	for _,v := range msgs {
-//		fmt.Println(v.msg, " to ",v.leaderIdx)
-//	}
 
 	fmt.Println("===============", depth, "solutions so far ", solutions)
 	for _,ldr := range leaders {
@@ -94,6 +96,12 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		msgs2 := append(msgs[0:d], msgs[d+1:]...)
 		ml2 := len(msgs2)
 		cl := CloneElection(leaders[v.leaderIdx])
+
+		if !reflect.DeepEqual(cl, leaders[v.leaderIdx]){
+			fmt.Println("Clone Failed")
+			os.Exit(0)
+		}
+
 		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
 
 		if changed {
