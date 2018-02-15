@@ -94,7 +94,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		}
 	}
 	if done > len(leaders)/2 {
-		cuts[depth]++
+		incCuts(depth)
 		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
 		breadth++
 		solutions++
@@ -103,7 +103,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 
 	if LoopingDetected(leaders[0].Display.Global) == len(leaders) {
 		// TODO: Paul you can move this check wherever you need
-		cuts[depth]++
+		incCuts(depth)
 		return
 	}
 
@@ -166,13 +166,17 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 			}
 			msgs2 = msgs2[:ml2]
 		} else {
-			for len(cuts) <= depth {
-				cuts = append(cuts, 0)
-			}
-			cuts[depth]++
+			incCuts(depth)
 		}
 		leaders[v.leaderIdx] = cl
 	}
+}
+
+func incCuts(depth int) {
+	for len(cuts) <= depth {
+		cuts = append(cuts, 0)
+	}
+	cuts[depth]++
 }
 
 func recurse(auds int, feds int, limit int) {
@@ -188,15 +192,7 @@ var dec *gob.Decoder
 
 // LoopingDetected will the number of looping leaders
 func LoopingDetected(global *election.Display) int {
-	looped := 0
-	for i := range global.Votes {
-		if global.DetectLoop(i) {
-			looped++
-		}
-
-	}
-
-	return looped
+	return global.DetectLoops()
 }
 
 // UniqueLeaders returns true if all leaders are unique and copied correctly

@@ -1,18 +1,29 @@
 package election
 
 import (
+	"fmt"
+	"github.com/FactomProject/electiontesting/primitives"
 	"strconv"
 	"strings"
 )
 
 // Detecting Looping
 
-func (d *Display) DetectLoop(leader int) bool {
+func (d *Display) DetectLoops() (loops int) {
+	for _, f := range d.GetFeds() {
+		if d.DetectLoopForLeader(f) {
+			loops++
+		}
+	}
+	return
+}
+
+func (d *Display) DetectLoopForLeader(leader primitives.Identity) bool {
 	return d.DetectVerticalLoop(leader)
 }
 
 // detectVerticalLoop detects if leader # is looping vertically
-func (d *Display) DetectVerticalLoop(leader int) bool {
+func (d *Display) DetectVerticalLoop(leader primitives.Identity) bool {
 	myVotes := d.getLeaderVotes(leader)
 	if len(myVotes) < 5 {
 		return false
@@ -33,9 +44,12 @@ func (d *Display) DetectVerticalLoop(leader int) bool {
 	return tally == 2
 }
 
-func (d *Display) getLeaderVotes(leader int) (myvotes []string) {
+func (d *Display) getLeaderVotes(leader primitives.Identity) (myvotes []string) {
 	for i := 0; i < len(d.Votes); i++ {
-		myvotes = append(myvotes, d.Votes[i][leader])
+		if d.FedIDtoIndex(leader) >= len(d.Votes[i]) {
+			fmt.Print()
+		}
+		myvotes = append(myvotes, d.Votes[i][d.FedIDtoIndex(leader)])
 	}
 	return
 }
