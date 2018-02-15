@@ -127,6 +127,15 @@ func (c *Controller) Shell() {
 	}
 }
 
+func (c *Controller) Complete() bool {
+	for _, e := range c.Elections {
+		if !e.Committed {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *Controller) SendOutputsToRouter(set bool) {
 	c.OutputsToRouter = set
 }

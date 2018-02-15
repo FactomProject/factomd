@@ -71,7 +71,7 @@ func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 			return false
 		}
 
-		if cur.Rank > msg.Rank {
+		if msg.Rank > cur.Rank {
 			// Greater rank is always better.
 			msg.Justification = nil
 			v.Votes[msg.Signer] = msg

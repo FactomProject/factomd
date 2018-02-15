@@ -44,25 +44,13 @@ func TestElectionSimpleScenario(t *testing.T) {
 
 	con := NewController(3, 3)
 	all := []int{0, 1, 2}
+	con.SendOutputsToRouter(true)
 	con.RouteVolunteerMessage(1, all)
 	con.RouteLeaderSetVoteMessage(all, 1, all)
 	con.RouteLeaderSetLevelMessage(all, 1, all)
 	con.RouteLeaderSetLevelMessage(all, 2, all)
-	con.RouteLeaderSetLevelMessage(all, 3, all)
 
-	fmt.Println(con.GlobalDisplay.String())
-
-	//con.RouteLeaderSetLevelMessage(all, 1, all)
-	//fmt.Println(con.GlobalDisplay.String())
-	//
-	//con.RouteLeaderSetLevelMessage(all, 2, all)
-	//fmt.Println(con.GlobalDisplay.String())
-	//
-	//con.RouteLeaderSetLevelMessage(all, 3, all)
-	//con.RouteLeaderSetLevelMessage(all, 4, all)
-	//
-	//fmt.Println(con.GlobalDisplay.String())
-
+	runToComplete(con, t)
 }
 
 func TestFlipFlop(t *testing.T) {
@@ -75,6 +63,7 @@ func TestFlipFlop(t *testing.T) {
 	mid := []int{1}
 	fright := []int{2} // far right
 
+	con.SendOutputsToRouter(true)
 	con.RouteVolunteerMessage(1, all)
 	con.RouteVolunteerMessage(2, all)
 
@@ -129,7 +118,6 @@ func TestFlipFlop(t *testing.T) {
 	//1:         0.2
 	con.RouteLeaderSetLevelMessage(left, 1, left)
 
-	con.SendOutputsToRouter(true)
 	//(Global)
 	//Lvl  L0  L1  L2
 	//0:   1  12   2
@@ -160,16 +148,15 @@ func TestFlipFlop(t *testing.T) {
 	con.RouteLeaderSetLevelMessage(mid, 2, right)
 	con.RouteLeaderSetLevelMessage(fright, 1, mid)
 
-	return
-	// Print end result
-	fmt.Println(con.GlobalDisplay.String())
-	fmt.Println(con.ElectionStatus(0))
-	fmt.Println(con.ElectionStatus(1))
-	fmt.Println(con.ElectionStatus(2))
+	runToComplete(con, t)
+}
 
-	con.Shell()
-	//con.Router.Run()
-	fmt.Println("DONE!")
+func runToComplete(con *Controller, t *testing.T) {
+	con.Router.Run()
+	if !con.Complete() {
+		t.Errorf("Did not complete")
+	}
+	t.Log(con.GlobalDisplay.String())
 }
 
 func expmsg(found bool, t *testing.T) {
