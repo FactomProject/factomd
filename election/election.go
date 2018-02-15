@@ -88,7 +88,7 @@ func (a *Election) Copy() *Election {
 		b.MsgListIn[i] = v.Copy()
 	}
 
-	b.MsgListOut = make([]*messages.LeaderLevelMessage, len(a.MsgListIn))
+	b.MsgListOut = make([]*messages.LeaderLevelMessage, len(a.MsgListOut))
 	for i, v := range a.MsgListOut {
 		b.MsgListOut[i] = v.Copy()
 	}

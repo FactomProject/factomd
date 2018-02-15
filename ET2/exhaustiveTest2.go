@@ -9,7 +9,6 @@ import (
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
 
-	"os"
 	"reflect"
 )
 
@@ -17,7 +16,7 @@ var _ = reflect.DeepEqual
 
 //================ main =================
 func main() {
-	recurse(3, 3, 80)
+	recurse(3, 3, 200)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -68,6 +67,7 @@ type mymsg struct {
 
 var solutions = 0
 var breadth = 0
+var loops = 0
 
 var cuts []int
 
@@ -82,9 +82,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		}
 		fmt.Println()
 		breadth++
-		if globalRunNumber > 12 {
-			os.Exit(0)
-		}
+
 		return
 	}
 	done := 0
@@ -93,7 +91,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 			done++
 		}
 	}
-	if done > len(leaders)/2 {
+	if done > 0 {
 		incCuts(depth)
 		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
 		breadth++
@@ -104,17 +102,23 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	if LoopingDetected(leaders[0].Display.Global) == len(leaders) {
 		// TODO: Paul you can move this check wherever you need
 		incCuts(depth)
+		loops++
 		return
 	}
 
-	fmt.Println("===============", depth, "solutions so far ", solutions, "global count", globalRunNumber)
+	fmt.Println("=============== Breadth", depth,
+		", solutions so far =", solutions,
+		", global count= ", globalRunNumber,
+		", loops detected=", loops)
+
 	fmt.Println(leaders[0].Display.Global.String())
+
 	for _, ldr := range leaders {
 		fmt.Println(ldr.Display.String())
 	}
 
 	// Example of a run that has a werid msg state
-	if globalRunNumber > -1 {
+	if globalRunNumber > -1 && false {
 		fmt.Println("Leader 0")
 		fmt.Println(leaders[0].PrintMessages())
 		fmt.Println("Leader 1")
