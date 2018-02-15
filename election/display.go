@@ -81,7 +81,7 @@ func (d *Display) String() string {
 }
 
 func center(str string) string {
-	return fmt.Sprintf("%-4s", fmt.Sprintf("%4s", str))
+	return fmt.Sprintf("%-6s", fmt.Sprintf("%6s", str))
 }
 
 func (d *Display) insertVote0Message(msg *messages.VoteMessage) {
