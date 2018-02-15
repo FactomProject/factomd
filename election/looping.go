@@ -11,6 +11,7 @@ import (
 
 func (d *Display) DetectLoops() (loops int) {
 	for _, f := range d.GetFeds() {
+		fmt.Println(f)
 		if d.DetectLoopForLeader(f) {
 			loops++
 		}
@@ -46,8 +47,8 @@ func (d *Display) DetectVerticalLoop(leader primitives.Identity) bool {
 
 func (d *Display) getLeaderVotes(leader primitives.Identity) (myvotes []string) {
 	for i := 0; i < len(d.Votes); i++ {
-		if d.FedIDtoIndex(leader) >= len(d.Votes[i]) {
-			fmt.Print()
+		if d.FedIDtoIndex(leader) == -1 {
+			panic("Leader was -1, but it should never be")
 		}
 		myvotes = append(myvotes, d.Votes[i][d.FedIDtoIndex(leader)])
 	}
