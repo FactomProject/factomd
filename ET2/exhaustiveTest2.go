@@ -128,7 +128,7 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		ml2 := len(msgs2)
 		globalRunNumber++
 
-		if LoopingDetected(leaders[v.leaderIdx].Display.Global) {
+		if LoopingDetected(leaders[v.leaderIdx].Display.Global) == len(leaders) {
 			// TODO: Paul you can move this check wherever you need
 			panic("loop!")
 		}
@@ -187,13 +187,16 @@ func recurse(auds int, feds int, limit int) {
 var enc *gob.Encoder
 var dec *gob.Decoder
 
-// LoopingDetected will return true if any type of looping is detectd
-func LoopingDetected(global *election.Display) bool {
-	looped := false
+// LoopingDetected will the number of looping leaders
+func LoopingDetected(global *election.Display) int {
+	looped := 0
 	for i := range global.Votes {
-		looped = looped || global.DetectLoop(i)
+		if global.DetectLoop(i) {
+			looped++
+		}
 
 	}
+
 	return looped
 }
 
