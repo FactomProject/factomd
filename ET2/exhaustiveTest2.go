@@ -68,6 +68,14 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		breath++
 		return
 	}
+	done := 0
+	for _,ldr := range leaders {
+		if ldr.Committed { done ++}
+	}
+	if done > len(leaders)/2 {
+		cuts[depth]++
+		fmt.Println("=====Solution Found!")
+	}
 
 //	fmt.Println("Height: ",depth)
 //	for _,v := range msgs {
@@ -76,15 +84,13 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 
 	fmt.Println("===============")
 	for _,ldr := range leaders {
-		fmt.Println(ldr.Display.Global.String())
+		fmt.Println(ldr.Display.String())
 	}
 	for d, v := range msgs {
 		msgs2 := append(msgs[0:d], msgs[d+1:]...)
 		ml2 := len(msgs2)
 		cl := CloneElection(leaders[v.leaderIdx])
 		msg, changed := leaders[v.leaderIdx].Execute(v.msg)
-
-		fmt.Println(leaders[v.leaderIdx].Display.String())
 
 		if changed {
 			if msg != nil {
