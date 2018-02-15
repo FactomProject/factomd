@@ -37,6 +37,24 @@ func NewDisplay(ele *Election, global *Display) *Display {
 	return d
 }
 
+func (a *Display) Copy(be *Election) *Display {
+	b := NewDisplay(be, nil)
+	b.Votes = make([][]string, len(a.Votes))
+	b.Identifier = a.Identifier
+	for i, v := range a.Votes {
+		b.Votes[i] = make([]string, len(v))
+		for i2, v2 := range a.Votes[i] {
+			b.Votes[i][i2] = v2
+		}
+	}
+
+	for i, f := range a.FedList {
+		b.FedList[i] = f
+	}
+
+	return b
+}
+
 func (d *Display) Execute(msg imessage.IMessage) {
 	if d.Global != nil {
 		d.Global.Execute(msg)
