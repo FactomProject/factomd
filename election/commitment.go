@@ -33,6 +33,20 @@ func NewDiamondShop(authset primitives.AuthSet) *DiamondShop {
 	return d
 }
 
+func (a *DiamondShop) Copy() *DiamondShop {
+	b := NewDiamondShop(a.AuthSet.Copy())
+
+	for k, v := range a.VoteHistories {
+		b.VoteHistories[k] = v.Copy()
+	}
+
+	for k, v := range a.Commitment {
+		b.Commitment[k] = v
+	}
+
+	return b
+}
+
 // ShouldICommit will return a bool that tells you if you can commit to the Election results.
 // True --> Use the EOM, we are done
 func (d *DiamondShop) ShouldICommit(msg *messages.LeaderLevelMessage) bool {
@@ -67,6 +81,16 @@ func NewLeaderVoteHistory() *LeaderVoteHistory {
 	}
 
 	return h
+}
+
+func (a *LeaderVoteHistory) Copy() *LeaderVoteHistory {
+	b := NewLeaderVoteHistory()
+	b.Votes = make([]*messages.LeaderLevelMessage, len(a.Votes))
+	for i, v := range a.Votes {
+		b.Votes[i] = v.Copy()
+	}
+
+	return b
 }
 
 // Add returns true if the leader is good to commit. Only returns true

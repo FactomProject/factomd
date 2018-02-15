@@ -90,11 +90,11 @@ func TestVoteMessageReadString(t *testing.T) {
 	x := m.String()
 	_ = x
 
-	s := `VoteMessage {"Volunteer":{"Id":"ID-00000000","Eom":{"Vm":0,"Minute":0,"Height":0,"Signer":"ID-00000000"},"FaultId":"ID-00000000","Vm":0,"Minute":0,"Height":0,"Round":0,"Signer":"ID-00000000"},"OtherVotes":null,"Signer":"ID-00000000"}`
+	s := `VoteMessages {"Volunteer":{"Id":"ID-00000000","Eom":{"Vm":0,"Minute":0,"Height":0,"Signer":"ID-00000000"},"FaultId":"ID-00000000","Vm":0,"Minute":0,"Height":0,"Round":0,"Signer":"ID-00000000"},"OtherVotes":null,"Signer":"ID-00000000"}`
 	m.ReadString(s)
 	r := m.String()
 	//	fmt.Printf("s:%s:%d\nr:%s:%d\n",s,len(s),r,len(r))
 	if r != s {
-		t.Errorf("VoteMessage.ReadString(\"%s\")", s)
+		t.Errorf("VoteMessages.ReadString(\"%s\")", s)
 	}
 }

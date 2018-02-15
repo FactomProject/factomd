@@ -26,14 +26,14 @@ func init() {
 type Round struct {
 	// The audit server that we are trying to get majority to pass
 	Volunteer         *messages.VolunteerMessage
-	Votes             map[Identity]messages.VoteMessage
+	Votes             map[Identity]messages.VoteMessages
 	MajorityDecisions map[Identity]messages.MajorityDecisionMessage
 	Insistences       map[Identity]messages.InsistMessage
 	AuthSet
 
 	// My Messages
 	Self             Identity
-	Vote             *messages.VoteMessage
+	Vote             *messages.VoteMessages
 	MajorityDecision *messages.MajorityDecisionMessage
 	Insistence       *messages.InsistMessage
 	Publish          *messages.PublishMessage

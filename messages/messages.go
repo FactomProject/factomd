@@ -162,7 +162,7 @@ type LeaderLevelMessage struct {
 	SignedMessage
 
 	// For the rank 0 case
-	VoteMessage []*VoteMessage
+	VoteMessages []*VoteMessage
 
 	// messages used to justify
 	Justification []*LeaderLevelMessage
@@ -182,6 +182,22 @@ func (a *LeaderLevelMessage) Less(b *LeaderLevelMessage) bool {
 		return a.VolunteerPriority < b.VolunteerPriority
 	}
 	return a.Rank < b.Rank
+}
+
+func (a *LeaderLevelMessage) Copy() *LeaderLevelMessage {
+	b := NewLeaderLevelMessage(a.Signer, a.Rank, a.Level, a.VolunteerMessage)
+	b.Justification = make([]*LeaderLevelMessage, len(a.Justification))
+	for i, v := range a.Justification {
+		b.Justification[i] = v.Copy()
+	}
+
+	b.VoteMessages = make([]*VoteMessage, len(a.VoteMessages))
+	for i, v := range a.VoteMessages {
+		b.VoteMessages[i] = v.Copy()
+	}
+	b.Committed = a.Committed
+	b.VolunteerPriority = a.VolunteerPriority
+	return &b
 }
 
 func (r *LeaderLevelMessage) String() string      { return jsonMarshal(r) }
@@ -205,6 +221,17 @@ type VoteMessage struct {
 	SignedMessage
 }
 
+func (a *VoteMessage) Copy() *VoteMessage {
+	b := new(VoteMessage)
+	b.Volunteer = a.Volunteer
+	b.OtherVotes = make(map[Identity]SignedMessage)
+	for k, v := range a.OtherVotes {
+		b.OtherVotes[k] = v
+	}
+	b.SignedMessage = a.SignedMessage
+
+	return b
+}
 func (r *VoteMessage) String() string      { return jsonMarshal(r) }
 func (r *VoteMessage) ReadString(s string) { jsonUnmarshal(r, s) }
 

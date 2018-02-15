@@ -57,6 +57,27 @@ type AuthSet struct {
 	IdentityMap  map[Identity]int
 }
 
+func (a AuthSet) Copy() AuthSet {
+	b := new(AuthSet)
+	b.IdentityMap = make(map[Identity]int)
+	b.IdentityList = make([]Identity, len(a.IdentityList))
+	b.StatusArray = make([]int, len(a.StatusArray))
+
+	for k, v := range a.IdentityMap {
+		b.IdentityMap[k] = v
+	}
+
+	for i, v := range a.IdentityList {
+		b.IdentityList[i] = v
+	}
+
+	for i, v := range a.StatusArray {
+		b.StatusArray[i] = v
+	}
+
+	return *b
+}
+
 func (r *AuthSet) String() string {
 	rval, err := json.Marshal(r)
 	if err != nil {
