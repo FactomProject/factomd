@@ -75,10 +75,15 @@ func (a *Election) Copy() *Election {
 	b.CommitmentIndicator = a.CommitmentIndicator.Copy()
 	b.CurrentLevel = a.CurrentLevel
 	b.CurrentVote = *(a.CurrentVote.Copy())
-	b.Display = a.Display.Copy(b)
-	b.Display.Global = a.Display.Global.Copy(b)
+	if a.Display == nil {
+		b.Display = nil
+	} else {
+		b.Display = a.Display.Copy(b)
+		b.Display.Global = a.Display.Global.Copy(b)
+	}
 	b.Committed = a.Committed
 	b.MsgListIn = make([]*messages.LeaderLevelMessage, len(a.MsgListIn))
+
 	for i, v := range a.MsgListIn {
 		b.MsgListIn[i] = v.Copy()
 	}
@@ -89,6 +94,23 @@ func (a *Election) Copy() *Election {
 	}
 
 	return b
+}
+
+// Returns false if it finds a similarity that we don't want
+func (a *Election) IsDifferent(b *Election) bool {
+	if fmt.Sprintf("%p", a.MsgListIn) == fmt.Sprintf("%p", b.MsgListIn) {
+		if len(a.MsgListIn)+len(b.MsgListIn) != 0 {
+			return false
+		}
+	}
+
+	if fmt.Sprintf("%p", a.MsgListOut) == fmt.Sprintf("%p", b.MsgListOut) {
+		if len(a.MsgListOut)+len(b.MsgListOut) != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 // AddDisplay takes a global tracker. Send nil if you don't care about
@@ -103,11 +125,11 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 }
 
 func (e *Election) PrintMessages() string {
-	str := "-- In --\n"
+	str := fmt.Sprintf("-- In -- (%p)\n", e.MsgListIn)
 	for i, m := range e.MsgListIn {
 		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
 	}
-	str += "-- Out --\n"
+	str += fmt.Sprintf("-- Out -- (%p)\n", e.MsgListOut)
 	for i, m := range e.MsgListOut {
 		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
 	}

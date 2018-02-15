@@ -17,7 +17,7 @@ var _ = reflect.DeepEqual
 
 //================ main =================
 func main() {
-	recurse(2, 3, 40)
+	recurse(3, 3, 80)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -76,13 +76,13 @@ var globalRunNumber = 0
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 	depth++
 	if depth > limit {
-		fmt.Print("Breadth ", breadth, " --")
+		fmt.Print("Breath ", breadth)
 		for _, v := range cuts {
 			fmt.Print(v, " ")
 		}
 		fmt.Println()
 		breadth++
-		if globalRunNumber > 471 && false {
+		if globalRunNumber > 12 {
 			os.Exit(0)
 		}
 		return
@@ -93,14 +93,17 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 			done++
 		}
 	}
-	if done > 0 {
+	if done > len(leaders)/2 {
 		cuts[depth]++
 		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
 		breadth++
 		solutions++
-		os.Exit(0)
 		return
 	}
+
+
+
+
 
 	fmt.Println("===============", depth, "solutions so far ", solutions, "global count", globalRunNumber)
 	fmt.Println(leaders[0].Display.Global.String())
@@ -118,12 +121,21 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		fmt.Println(leaders[2].PrintMessages())
 	}
 
+	if !UniqueLeaders(leaders) {
+		panic("Not all leaders unique")
+	}
+
 	for d, v := range msgs {
 		var msgs2 []*mymsg
 		msgs2 = append(msgs2, msgs[0:d]...)
 		msgs2 = append(msgs2, msgs[d+1:]...)
 		ml2 := len(msgs2)
 		globalRunNumber++
+
+		if LoopingDetected(leaders[v.leaderIdx].Display.Global) == len(leaders) {
+			// TODO: Paul you can move this check wherever you need
+			panic("loop!")
+		}
 
 		cl := CloneElection(leaders[v.leaderIdx])
 
@@ -147,11 +159,12 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 				}
 			}
 			gl := leaders[v.leaderIdx].Display.Global
-			for _, ldr := range leaders {
+			for _,ldr := range leaders {
 				ldr.Display.Global = gl
 			}
+			// Recursive Dive
 			dive(msgs2, leaders, depth, limit)
-			for _, ldr := range leaders {
+			for _,ldr := range leaders {
 				ldr.Display.Global = cl.Display.Global
 			}
 			msgs2 = msgs2[:ml2]
@@ -176,11 +189,38 @@ func recurse(auds int, feds int, limit int) {
 var enc *gob.Encoder
 var dec *gob.Decoder
 
+// LoopingDetected will the number of looping leaders
+func LoopingDetected(global *election.Display) int {
+	looped := 0
+	for i := range global.Votes {
+		if global.DetectLoop(i) {
+			looped++
+		}
+
+	}
+
+	return looped
+}
+
+// UniqueLeaders returns true if all leaders are unique and copied correctly
+func UniqueLeaders(leaders []*election.Election) bool {
+	for i := 0; i < len(leaders); i++ {
+		for j := i + 1; j < len(leaders); j++ {
+			if !leaders[i].IsDifferent(leaders[j]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
 }
+
+
 
 func CloneElection(src *election.Election) *election.Election {
 	return src.Copy()
