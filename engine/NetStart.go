@@ -326,11 +326,13 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 	p2p.NetworkDeadline = time.Duration(p.deadline) * time.Millisecond
 
 	if p.EnableNet {
+		nodeName := fnodes[0].State.FactomNodeName
 		if 0 < p.NetworkPortOverride {
 			networkPort = fmt.Sprintf("%d", p.NetworkPortOverride)
 		}
 
 		ci := p2p.ControllerInit{
+			NodeName:                 nodeName,
 			Port:                     networkPort,
 			PeersFile:                s.PeersFile,
 			Network:                  networkID,
@@ -342,7 +344,7 @@ func NetStart(s *state.State, p *FactomParams, listenToStdin bool) {
 		p2pNetwork = new(p2p.Controller).Init(ci)
 		fnodes[0].State.NetworkControler = p2pNetwork
 		p2pNetwork.StartNetwork()
-		p2pProxy = new(P2PProxy).Init(fnodes[0].State.FactomNodeName, "P2P Network").(*P2PProxy)
+		p2pProxy = new(P2PProxy).Init(nodeName, "P2P Network").(*P2PProxy)
 		p2pProxy.FromNetwork = p2pNetwork.FromNetwork
 		p2pProxy.ToNetwork = p2pNetwork.ToNetwork
 

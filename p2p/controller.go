@@ -60,9 +60,13 @@ type Controller struct {
 	lastPeerRequest            time.Time       // Last time we asked peers about the peers they know about.
 	specialPeersString         string          // configuration set special peers
 	partsAssembler             *PartsAssembler // a data structure that assembles full messages from received message parts
+
+	// logging
+	logger *log.Entry
 }
 
 type ControllerInit struct {
+	NodeName                 string           // Name of the current node
 	Port                     string           // Port to listen on
 	PeersFile                string           // Path to file to find / save peers
 	Network                  NetworkID        // Network - eg MainNet, TestNet etc.
@@ -174,8 +178,12 @@ func (e *CommandChangeLogging) String() string {
 //////////////////////////////////////////////////////////////////////
 
 func (c *Controller) Init(ci ControllerInit) *Controller {
-	note("ctrlr", "\n\n\n\n\nController.Init(%s) %#x", ci.Port, ci.Network)
-	note("ctrlr", "\n\n\n\n\nController.Init(%s) ci: %+v\n\n", ci.Port, ci)
+	c.logger = packageLogger.WithFields(log.Fields{
+		"node":    ci.NodeName,
+		"port":    ci.Port,
+		"network": fmt.Sprintf("%#x", ci.Network)})
+	c.logger.Info("Initializing network controller")
+	c.logger.Debugf("ControllerInit: %+v", ci)
 	RandomGenerator = rand.New(rand.NewSource(time.Now().UnixNano()))
 	NodeID = uint64(RandomGenerator.Int63()) // This is a global used by all connections
 	c.keepRunning = true
@@ -188,6 +196,7 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.connectionMetricsChannel = ci.ConnectionMetricsChannel
 	c.listenPort = ci.Port
 	NetworkListenPort = ci.Port
+	// Set this to the past so we will do peer management almost right away after starting up.
 	c.lastPeerManagement = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	c.lastPeerRequest = time.Now()
 	CurrentNetwork = ci.Network
@@ -198,14 +207,12 @@ func (c *Controller) Init(ci ControllerInit) *Controller {
 	c.partsAssembler = new(PartsAssembler).Init()
 	discovery := new(Discovery).Init(ci.PeersFile, ci.SeedURL)
 	c.discovery = *discovery
-	// Set this to the past so we will do peer management almost right away after starting up.
-	note("ctrlr", "\n\n\n\n\nController.Init(%s) Controller is: %+v\n\n", ci.Port, c)
 	return c
 }
 
 // StartNetwork configures the network, starts the runloop
 func (c *Controller) StartNetwork() {
-	significant("ctrlr", "Controller.StartNetwork(%s)", " ")
+	c.logger.Info("Starting network")
 	c.lastStatusReport = time.Now()
 	// start listening on port given
 	c.listen()
@@ -224,7 +231,7 @@ func (c *Controller) DialSpecialPeersString(peersString string) {
 	for _, peerAddress := range peerAddresses {
 		address, port, err := net.SplitHostPort(peerAddress)
 		if err != nil {
-			logerror("Controller", "DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
+			c.logger.Error("DialSpecialPeersString: %s is not a valid peer (%v), use format: 127.0.0.1:8999", peersString, err)
 		} else {
 			peer := new(Peer).Init(address, port, 0, SpecialPeer, 0)
 			peer.Source["Local-Configuration"] = time.Now()
