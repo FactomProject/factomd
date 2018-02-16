@@ -52,8 +52,8 @@ func (i *Interpreter) DictionaryPop() { i.DictStack = i.DictStack[1:] }
 func (i *Interpreter) Exec3(x interface{}) {
 	var flags FlagsStruct // assume its not immediate and not executable
 
-	fmt.Printf("Exec3(%v) ", x)
-	i.PStack()
+	//	fmt.Printf("Exec3(%v) ", x)
+	//	i.PStack()
 
 	// check for thing with no flags and create flags for them
 	f, ok := x.(func()) // is it a raw Go Function? Then it's executable but not immediate
@@ -102,6 +102,7 @@ func (i *Interpreter) Exec3(x interface{}) {
 
 // execute one thing (can recurse)
 func (i *Interpreter) Exec2(s string) {
+	//	fmt.Printf("Exec2(\"%s\")\n", s)
 	if ii, err := strconv.Atoi(s); err == nil {
 		i.Exec3(ii)
 	} else if b, err := strconv.ParseBool(s); err == nil {
@@ -121,30 +122,56 @@ func (i *Interpreter) Exec2(s string) {
 
 // execute one thing (can't recurse, catches panics)
 func (i *Interpreter) ExecString(s string) {
+	i.Exec2(s)
+}
+
+func (i *Interpreter) Interpret2(line string) {
+	//	fmt.Printf("Interpret(\"%s\")\n", line)
+	defer func() { i.Line = i.Line }()
+	i.Line = line
+
+	var s string
+	for {
+		// Scan a string from the current line (possible modified by execution)
+		line := i.Line
+		line = strings.TrimSpace(line)
+		n, err := fmt.Sscan(line, &s)
+		if n == 1 {
+			line = line[len(s):] // Trim off the string and the ws following
+			i.Line = line
+			if s != "" {
+				i.ExecString(s) // execute the string
+			}
+		}
+		if i.Line == "" {
+			break
+		}
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			panic(err)
+		}
+	} // Until we have done all the strings on the line
+} // till EOF or error
+
+func (i *Interpreter) Interpret(source io.Reader) {
+	defer func() { i.Input = i.Input }() // Reset i.Input when we exit
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Error:", r)
 		}
 	}()
-	i.Exec2(s)
-}
 
-func (i *Interpreter) Interpret(source io.Reader) {
-	var prevInput *bufio.Reader = i.Input
-	var prevLine = i.Line
-	var s string
-	i.Line = ""
 	i.Input = bufio.NewReader(source) // save the source off for primitives that need it
-
-readline:
 	for {
+		var line string
 		for {
-			line, isPrefix, err := i.Input.ReadLine()
-			i.Line += string(line) // append this piece of the line
-			if err == io.EOF || i.Line == "" {
-				break readline
+			chunk, isPrefix, err := i.Input.ReadLine()
+			line += string(chunk) // append this piece of the line
+			if err == io.EOF || line == "" {
+				return
 			}
-
 			if err != nil {
 				panic(err)
 			}
@@ -152,30 +179,6 @@ readline:
 				break
 			}
 		} // Until we get a whole line
-		i.Line = i.Line + " " // Insure there is training whitespace
-		for {
-			// Scan a string from the current line (possible modified by execution)
-			line := i.Line
-			n, err := fmt.Sscan(line, &s)
-			if n == 1 {
-				n := strings.Index(line, s)
-				line = line[n+len(s)+1:] // Trim off the string and the ws following
-				i.Line = line
-				if s != "" {
-					i.ExecString(s) // execute the string
-				}
-			}
-			if i.Line == "" {
-				break
-			}
-			if err == io.EOF {
-				return
-			}
-			if err != nil {
-				panic(err)
-			}
-		} // Until we have done all the strings on the line
-	} // till EOF or error
-	i.Input = prevInput
-	i.Line = prevLine
+		i.Interpret2(line)
+	}
 }

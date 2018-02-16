@@ -61,9 +61,7 @@ func NewPrimitives() *Primitives {
 	// executable array
 	dict.Add("{", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartXArray() }})
 	dict.Add("}", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndXArray() }})
-	dict.Add("exec", func() {
-		p.Exec3(p.Pop())
-	})
+	dict.Add("exec", func() { p.Exec() })
 	dict.Add("def", func() { p.Def() })
 
 	// Control Structures
@@ -84,6 +82,8 @@ func NewPrimitives() *Primitives {
 
 var mark Mark
 
+func (p *Primitives) Exec() { p.Exec3(p.Pop()) }
+
 func (p *Primitives) If() {
 	cond := p.Pop()
 	x := p.Pop()
@@ -98,8 +98,6 @@ func (p *Primitives) If() {
 		}
 	}
 }
-
-
 
 func (p *Primitives) Repeat() {
 	count := p.PopInt()
@@ -165,13 +163,14 @@ func (p *Primitives) Def() {
 
 // Strings
 func (p *Primitives) Quote() {
-	n := strings.IndexByte(p.Line, []byte("\"")[0])
+	line := p.Line[1:] // remove space after leading quote
+	n := strings.IndexByte(line, []byte("\"")[0])
 	if n == -1 {
 		panic("No closing \"")
 	}
-	s := p.Line[:n]       // exclude the  "
-	p.Line = p.Line[n+2:] // remove the scanned string and quote and ws
-	p.Push(s)             // Push the string
+	s := line[:n]       // exclude the leading whitespace and the trailing "
+	p.Line = line[n+1:] // remove the scanned string and quote
+	p.Push(s)           // Push the string
 }
 
 /*
