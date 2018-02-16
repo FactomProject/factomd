@@ -327,6 +327,10 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 				e.updateCurrentVote(*ll)
 				e.executeDisplay(ll)
 				e.VolunteerControls[ll.VolunteerMessage.Signer].AddVote(ll)
+				if e.CommitmentTally >= 3 {
+					ll.Committed = true
+				}
+				e.Committed = true
 
 				// This vote may change our state, so call ourselves again
 				//resp, _ := e.Execute(ll)
