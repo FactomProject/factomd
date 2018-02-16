@@ -24,7 +24,7 @@ func NewPrimitives() *Primitives {
 	dict.Add("-", func() {
 		a := p.PopInt()
 		p.Push(p.PopInt() - a)
-	})                                                        // ToDo: Handle float too
+	}) // ToDo: Handle float too
 	dict.Add("*", func() { p.Push(p.PopInt() * p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("/", func() { p.Push(p.PopInt() / p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("&", func() { p.Push(p.PopInt() & p.PopInt()) })
@@ -59,8 +59,10 @@ func NewPrimitives() *Primitives {
 	dict.Add("\"", func() { p.Quote() })
 
 	// executable array
-	dict.Add("{", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartXArray() }})
+	dict.Add("{", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartArray() }})
 	dict.Add("}", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndXArray() }})
+	dict.Add("[", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartArray() }})
+	dict.Add("]", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndArray() }})
 	dict.Add("exec", func() { p.Exec() })
 	dict.Add("def", func() { p.Def() })
 
@@ -124,14 +126,14 @@ func (p *Primitives) I() { p.Push(p.C.Peek()) }   // Copy I to data stack
 func (p *Primitives) J() { p.Push(p.C.PeekN(1)) } // Copy J to data stack
 func (p *Primitives) K() { p.Push(p.C.PeekN(2)) } // Copy K to data stack
 
-// executable arrays
-func (p *Primitives) StartXArray() {
+// arrays
+func (p *Primitives) StartArray() {
 	p.Compiling++
 	p.Push(mark)
 }
 
-func (p *Primitives) EndXArray() {
-	//	fmt.Print("EndXArray ")
+func (p *Primitives) EndArray() {
+	//	fmt.Print("EndArray ")
 	//	p.PStack()
 	p.Compiling--
 
@@ -151,6 +153,12 @@ func (p *Primitives) EndXArray() {
 	a.Data = append(a.Data, p.Data[start:p.Ptr]...)
 
 	p.PopN(i + 1) // drop everything to the mark
+	p.Push(a)
+}
+
+func (p *Primitives) EndXArray() {
+	p.EndArray()
+	a := p.Pop().(Array)
 	a.Flags.Executable = true
 	p.Push(a)
 }
