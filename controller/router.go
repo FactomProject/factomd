@@ -38,6 +38,12 @@ func NewRouter(elections []*election.Election) *Router {
 	return r
 }
 
+func (r *Router) StepN(step int) {
+	for i := 0; i < step; i++ {
+		r.Step()
+	}
+}
+
 func (r *Router) Run() {
 	for !r.Step() {
 		r.Step()

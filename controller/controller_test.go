@@ -50,6 +50,11 @@ func TestElectionSimpleScenario(t *testing.T) {
 	con.RouteLeaderSetLevelMessage(all, 1, all)
 	con.RouteLeaderSetLevelMessage(all, 2, all)
 
+	loop := con.GlobalDisplay.DetectVerticalLoop(con.Elections[0].Self)
+	if loop {
+		t.Errorf("Detected a vert loop when there is not one")
+	}
+
 	runToComplete(con, t)
 }
 
@@ -198,6 +203,10 @@ func TestVerticalFlipFlop(t *testing.T) {
 	con.RouteLeaderSetLevelMessage(all, 1, all)
 	con.RouteLeaderSetLevelMessage(all, 2, all)
 	con.RouteLeaderSetLevelMessage(all, 3, all)
+	loop := con.GlobalDisplay.DetectVerticalLoop(con.Elections[0].Self)
+	if !loop {
+		t.Errorf("Did not detect vertical loop when there was")
+	}
 	con.RouteLeaderSetLevelMessage(all, 4, all)
 	con.RouteLeaderSetLevelMessage(all, 5, all)
 	con.RouteLeaderSetLevelMessage(all, 6, all)
@@ -207,13 +216,19 @@ func TestVerticalFlipFlop(t *testing.T) {
 	//t.Log(con.ElectionStatus(1))
 	//t.Log(con.ElectionStatus(2))
 
+	loop = con.GlobalDisplay.DetectVerticalLoop(con.Elections[0].Self)
+	if !loop {
+		t.Errorf("Did not detect vertical loop when there was")
+	}
+
 	con.RouteLeaderSetLevelMessage(all, 2, all)
 
 	runToComplete(con, t)
 }
 
 func runToComplete(con *Controller, t *testing.T) {
-	con.Router.Run()
+	con.Router.StepN(100)
+	t.Log(con.GlobalDisplay.String())
 	if !con.Complete() {
 		t.Errorf("Did not complete")
 	}

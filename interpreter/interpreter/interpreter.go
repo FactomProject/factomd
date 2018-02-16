@@ -1,17 +1,15 @@
 package interpreter
 
 import (
-	"bufio"
-	"fmt"
-	"strconv"
-
-	"io"
-
-	"strings"
-
 	. "github.com/FactomProject/electiontesting/interpreter/common"
 	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
 	. "github.com/FactomProject/electiontesting/interpreter/stack"
+	//	. "github.com/FactomProject/electiontesting/interpreter/names"
+	"bufio"
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
 )
 
 type Interpreter struct {
@@ -21,6 +19,7 @@ type Interpreter struct {
 	DictStack []Dictionary
 	Input     *bufio.Reader
 	Line      string
+	//	NameManager
 }
 
 func NewInterpreter() Interpreter {
@@ -32,6 +31,8 @@ func NewInterpreter() Interpreter {
 }
 
 func (i *Interpreter) Lookup(s string) interface{} {
+	//	n := i.GetName(s)
+	// find the name in the dict stack
 	for _, d := range i.DictStack {
 		e, ok := d[s]
 		if ok {
@@ -49,54 +50,53 @@ func (i *Interpreter) DictionaryPush(d Dictionary) {
 func (i *Interpreter) DictionaryPop() { i.DictStack = i.DictStack[1:] }
 
 func (i *Interpreter) Exec3(x interface{}) {
-	var flags FlagsStruct
+	var flags FlagsStruct // assume its not immediate and not executable
 
 	fmt.Printf("Exec3(%v) ", x)
 	i.PStack()
 
-	f, executable := x.(func()) // is it a Go Function? Then it's executable
-	if executable {
-		if i.Compiling == 0 {
-			f()
+	// check for thing with no flags and create flags for them
+	f, ok := x.(func()) // is it a raw Go Function? Then it's executable but not immediate
+	if ok {
+		flags.Immediate = false
+		flags.Executable = true
+	} else {
+		immediateFunc, ok := x.(ImmediateFunc) // Should not have to manually check this!!!
+		if ok {
+			flags.Immediate = true
+			flags.Executable = true
+			immediateFunc.Func()
 			return
 		} else {
-			i.Push(x) // GoFuncs are never immediate
-			return
-		}
-		return
-	}
+			flagSrc, ok := x.(HasFlags) // Does it have flags (Array et.al.)?
+			if ok {
+				flags = flagSrc.GetFlags() // get them so we know what to do...
 
-	flagSrc, ok := x.(HasFlags) // Does it have flags (Array et.al.)?
-	if ok {
-		flags = flagSrc.GetFlags() // get them so we know what to do...
-	}
-
-	// If it's a literal or we are compiling and it's not immediate just push it
-	if !flags.Executable || (!flags.Immediate && i.Compiling > 0) {
-		i.Push(x)
-		return
-	}
-
-	// Got an executable thing
-	switch x.(type) {
-	case Array:
-		for _, y := range x.(Array).Data {
-
-			switch y.(type) {
-			case Array:
-				i.Push(y)
-			default:
-				i.Exec3(y)
 			}
+		}
+	}
 
-		} // for all elements of the executable array
-	case ImmediateFunc:
-		x.(ImmediateFunc).Func()
-	case func():
-		x.(func())() // execute the primitive
-	default:
-		panic(fmt.Sprintf("Exec3 of %#+v", x))
-	} // switch on type
+	if flags.Immediate || (flags.Executable && i.Compiling == 0) {
+		// Got an executable thing
+		switch x.(type) {
+		case Array:
+			for _, y := range x.(Array).Data {
+				switch y.(type) {
+				case Array:
+					i.Push(y)
+				default:
+					i.Exec3(y)
+				}
+			} // for all elements of the executable array
+		case func():
+			f() // execute the primitive
+		default:
+			i.Push(x) // Maybe should panic here but ...
+		} // switch on type
+
+	} else {
+		i.Push(x)
+	}
 
 }
 
@@ -144,6 +144,7 @@ readline:
 			if err == io.EOF || i.Line == "" {
 				break readline
 			}
+
 			if err != nil {
 				panic(err)
 			}

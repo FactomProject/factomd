@@ -8,8 +8,7 @@ import (
 	"github.com/FactomProject/electiontesting/controller"
 	"github.com/FactomProject/electiontesting/election"
 	"github.com/FactomProject/electiontesting/imessage"
-	"github.com/davecgh/go-spew/spew"
-	"os"
+
 	"reflect"
 )
 
@@ -17,7 +16,7 @@ var _ = reflect.DeepEqual
 
 //================ main =================
 func main() {
-	recurse(3, 3, 30)
+	recurse(3, 3, 2000)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -51,6 +50,13 @@ func newElections(feds, auds int, noDisplay bool) (*controller.Controller, []*el
 			fmt.Println(my.msg.String(), my.leaderIdx)
 		}
 	}
+
+	global := con.Elections[0].Display.Global
+	for i, ldr := range con.Elections {
+		con.Elections[i] = CloneElection(ldr)
+		con.Elections[i].Display.Global = global
+	}
+
 	return con, con.Elections, msgs
 }
 
@@ -61,59 +67,102 @@ type mymsg struct {
 
 var solutions = 0
 var breadth = 0
-
+var loops = 0
+var depths []int
 var cuts []int
+var hitlimit int
 
 var globalRunNumber = 0
 
+var extraPrints = true
+var insanePrints = false
+
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
+	incDepths(depth)
 	depth++
 	if depth > limit {
-		fmt.Print("Breath ", breadth)
-		for _, v := range cuts {
-			fmt.Print(v, " ")
+		if extraPrints {
+			fmt.Print("Loop/solution/limit at ", depth)
+			for _, v := range cuts {
+				fmt.Print(v, " ")
+			}
+			fmt.Println()
 		}
-		fmt.Println()
 		breadth++
-		if breadth > 10000 {
-			os.Exit(0)
-		}
+		hitlimit++
 		return
 	}
+
+	if LoopingDetected(leaders[0].Display.Global) == len(leaders) {
+		// TODO: Paul you can move this check wherever you need
+		incCuts(depth)
+		loops++
+		return
+	}
+
+	fmt.Println("=============== ",
+		" Depth=", depth,
+		", Hit the Limits=", hitlimit,
+		" Breadth=", breadth,
+		", solutions so far =", solutions,
+		", global count= ", globalRunNumber,
+		", loops detected=", loops)
+	fmt.Print("Loop/solution/limit at ", depth)
+	for _, v := range cuts {
+		fmt.Print(v, " ")
+	}
+	fmt.Println()
+	fmt.Print("Working at depth: ", depth)
+	for _, v := range depths {
+		fmt.Print(v, " ")
+	}
+	fmt.Println()
+
+	if extraPrints {
+		// Lots of printing... Not necessary....
+		fmt.Println(leaders[0].Display.Global.String())
+
+		for _, ldr := range leaders {
+			fmt.Println(ldr.Display.String())
+		}
+
+		if insanePrints {
+			// Example of a run that has a werid msg state
+			if globalRunNumber > -1 {
+				fmt.Println("Leader 0")
+				fmt.Println(leaders[0].PrintMessages())
+				fmt.Println("Leader 1")
+				fmt.Println(leaders[1].PrintMessages())
+				fmt.Println("Leader 2")
+				fmt.Println(leaders[2].PrintMessages())
+			}
+		}
+	}
+
 	done := 0
 	for _, ldr := range leaders {
 		if ldr.Committed {
 			done++
 		}
 	}
-	if done > len(leaders)/2 {
-		cuts[depth]++
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
+	if done == len(leaders)/2+1 {
+		incCuts(depth)
+		if extraPrints {
+			fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
+		}
 		breadth++
 		solutions++
 		return
 	}
 
-	fmt.Println("===============", depth, "solutions so far ", solutions)
-	fmt.Println(leaders[0].Display.Global.String())
-	for _, ldr := range leaders {
-		fmt.Println(ldr.Display.String())
-	}
 	for d, v := range msgs {
-		msgs2 := append(msgs[0:d], msgs[d+1:]...)
+		var msgs2 []*mymsg
+		msgs2 = append(msgs2, msgs[0:d]...)
+		msgs2 = append(msgs2, msgs[d+1:]...)
 		ml2 := len(msgs2)
 		globalRunNumber++
 
 		cl := CloneElection(leaders[v.leaderIdx])
-
-		// Example of a run that has a werid msg state
-		if globalRunNumber == 472 {
-			fmt.Println("Leader 0")
-			fmt.Println(leaders[0].PrintMessages())
-			fmt.Println("Leader 1")
-			fmt.Println(leaders[1].PrintMessages())
-			os.Exit(0)
-		}
 
 		//if !spewSame(cl, leaders[v.leaderIdx]) {
 		//	fmt.Println("Clone Failed")
@@ -134,16 +183,35 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 					}
 				}
 			}
+			gl := leaders[v.leaderIdx].Display.Global
+			for _, ldr := range leaders {
+				ldr.Display.Global = gl
+			}
+			// Recursive Dive
 			dive(msgs2, leaders, depth, limit)
+			for _, ldr := range leaders {
+				ldr.Display.Global = cl.Display.Global
+			}
 			msgs2 = msgs2[:ml2]
 		} else {
-			for len(cuts) <= depth {
-				cuts = append(cuts, 0)
-			}
-			cuts[depth]++
+			incCuts(depth)
 		}
 		leaders[v.leaderIdx] = cl
 	}
+}
+
+func incCuts(depth int) {
+	for len(cuts) <= depth {
+		cuts = append(cuts, 0)
+	}
+	cuts[depth]++
+}
+
+func incDepths(depth int) {
+	for len(depths) <= depth {
+		depths = append(depths, 0)
+	}
+	depths[depth]++
 }
 
 func recurse(auds int, feds int, limit int) {
@@ -157,36 +225,27 @@ func recurse(auds int, feds int, limit int) {
 var enc *gob.Encoder
 var dec *gob.Decoder
 
+// LoopingDetected will the number of looping leaders
+func LoopingDetected(global *election.Display) int {
+	return global.DetectLoops()
+}
+
+// UniqueLeaders returns true if all leaders are unique and copied correctly
+func UniqueLeaders(leaders []*election.Election) bool {
+	for i := 0; i < len(leaders); i++ {
+		for j := i + 1; j < len(leaders); j++ {
+			if !leaders[i].IsDifferent(leaders[j]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func init() {
 	buff := new(bytes.Buffer)
 	enc = gob.NewEncoder(buff)
 	dec = gob.NewDecoder(buff)
-}
-
-func spewSame(a *election.Election, b *election.Election) bool {
-	spew.Config.DisablePointerAddresses = true
-	spew.Config.SortKeys = true
-	as := spew.Sdump(a)
-	bs := spew.Sdump(b)
-
-	return as == bs
-}
-
-func debugClone(a *election.Election, b *election.Election) {
-	spew.Config.DisablePointerAddresses = true
-	spew.Config.SortKeys = true
-
-	af, _ := os.OpenFile("a", os.O_CREATE|os.O_RDWR, 0777)
-	bf, _ := os.OpenFile("b", os.O_CREATE|os.O_RDWR, 0777)
-
-	fmt.Println("a-------------------------------------")
-	as := spew.Sdump(a)
-	af.WriteString(as)
-	fmt.Println("b-------------------------------------")
-	bs := spew.Sdump(b)
-	bf.WriteString(bs)
-	fmt.Println("c-------------------------------------")
-
 }
 
 func CloneElection(src *election.Election) *election.Election {

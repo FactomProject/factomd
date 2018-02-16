@@ -76,6 +76,11 @@ func NewPrimitives() *Primitives {
 	return p
 }
 
+//func (p *Primitives) AddPrim(s string, f func(), immediate bool) {
+//	n := p.GetName(s)
+//
+//}
+
 var mark Mark
 
 func (p *Primitives) Repeat() {

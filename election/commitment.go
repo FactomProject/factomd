@@ -9,7 +9,7 @@ import (
 
 var _ = fmt.Println
 
-const NumberOfSequential int = 2
+const NumberOfSequential int = 3
 
 // DiamondShop is the place you go too looking for commitment. It will determine
 // when you can commit an EOM and end an Election.
@@ -18,9 +18,11 @@ type DiamondShop struct {
 	VoteHistories map[primitives.Identity]*LeaderVoteHistory
 	Commitment    map[primitives.Identity]int
 	primitives.AuthSet
+
+	Self primitives.Identity
 }
 
-func NewDiamondShop(authset primitives.AuthSet) *DiamondShop {
+func NewDiamondShop(self primitives.Identity, authset primitives.AuthSet) *DiamondShop {
 	d := new(DiamondShop)
 	d.VoteHistories = make(map[primitives.Identity]*LeaderVoteHistory)
 	d.AuthSet = authset
@@ -34,7 +36,7 @@ func NewDiamondShop(authset primitives.AuthSet) *DiamondShop {
 }
 
 func (a *DiamondShop) Copy() *DiamondShop {
-	b := NewDiamondShop(a.AuthSet.Copy())
+	b := NewDiamondShop(a.Self, a.AuthSet.Copy())
 
 	for k, v := range a.VoteHistories {
 		b.VoteHistories[k] = v.Copy()
@@ -50,6 +52,18 @@ func (a *DiamondShop) Copy() *DiamondShop {
 // ShouldICommit will return a bool that tells you if you can commit to the Election results.
 // True --> Use the EOM, we are done
 func (d *DiamondShop) ShouldICommit(msg *messages.LeaderLevelMessage) bool {
+	c := d.VoteHistories[msg.Signer].Add(msg)
+	if msg.Signer == d.Self {
+		if c != -1 {
+			d.Commitment[d.Self] = c
+			return true
+		}
+	}
+	return false
+}
+
+// GroupCommitment will return a bool if a majority leaders get a double majority
+func (d *DiamondShop) GroupCommitment(msg *messages.LeaderLevelMessage) bool {
 	c := d.VoteHistories[msg.Signer].Add(msg)
 	d.Commitment[msg.Signer] = c
 

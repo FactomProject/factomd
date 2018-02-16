@@ -35,6 +35,9 @@ type Election struct {
 
 	// Some statistical info
 	TotalMessages int
+
+	// Each time I vote for the same vol in the next level
+	CommitmentTally int
 }
 
 func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Election {
@@ -53,13 +56,14 @@ func NewElection(self Identity, authset AuthSet, loc ProcessListLocation) *Elect
 	// Used to determine volunteer priority
 	e.ProcessListLocation = loc
 
-	e.CommitmentIndicator = NewDiamondShop(e.AuthSet)
+	e.CommitmentIndicator = NewDiamondShop(e.Self, e.AuthSet)
 	return e
 }
 
 func (a *Election) Copy() *Election {
 	b := NewElection(a.Self, a.AuthSet.Copy(), a.ProcessListLocation)
 	b.TotalMessages = a.TotalMessages
+	b.CommitmentTally = a.CommitmentTally
 
 	for k, _ := range a.VolunteerVotes {
 		b.VolunteerVotes[k] = make(map[Identity]*messages.VoteMessage)
@@ -75,20 +79,42 @@ func (a *Election) Copy() *Election {
 	b.CommitmentIndicator = a.CommitmentIndicator.Copy()
 	b.CurrentLevel = a.CurrentLevel
 	b.CurrentVote = *(a.CurrentVote.Copy())
-	b.Display = a.Display.Copy(b)
-	b.Display.Global = a.Display.Global.Copy(b)
+	if a.Display == nil {
+		b.Display = nil
+	} else {
+		b.Display = a.Display.Copy(b)
+		b.Display.Global = a.Display.Global.Copy(b)
+	}
 	b.Committed = a.Committed
 	b.MsgListIn = make([]*messages.LeaderLevelMessage, len(a.MsgListIn))
+
 	for i, v := range a.MsgListIn {
 		b.MsgListIn[i] = v.Copy()
 	}
 
-	b.MsgListOut = make([]*messages.LeaderLevelMessage, len(a.MsgListIn))
+	b.MsgListOut = make([]*messages.LeaderLevelMessage, len(a.MsgListOut))
 	for i, v := range a.MsgListOut {
 		b.MsgListOut[i] = v.Copy()
 	}
 
 	return b
+}
+
+// Returns false if it finds a similarity that we don't want
+func (a *Election) IsDifferent(b *Election) bool {
+	if fmt.Sprintf("%p", a.MsgListIn) == fmt.Sprintf("%p", b.MsgListIn) {
+		if len(a.MsgListIn)+len(b.MsgListIn) != 0 {
+			return false
+		}
+	}
+
+	if fmt.Sprintf("%p", a.MsgListOut) == fmt.Sprintf("%p", b.MsgListOut) {
+		if len(a.MsgListOut)+len(b.MsgListOut) != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 // AddDisplay takes a global tracker. Send nil if you don't care about
@@ -99,15 +125,23 @@ func (e *Election) AddDisplay(global *Display) *Display {
 }
 
 func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
+	if new.VolunteerPriority == e.CurrentVote.VolunteerPriority {
+		if e.CurrentVote.Rank+1 == new.Rank {
+			e.CommitmentTally++
+			e.CurrentVote = new
+			return
+		}
+	}
+	e.CommitmentTally = 1
 	e.CurrentVote = new
 }
 
 func (e *Election) PrintMessages() string {
-	str := "-- In --"
+	str := fmt.Sprintf("-- In -- (%p)\n", e.MsgListIn)
 	for i, m := range e.MsgListIn {
 		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
 	}
-	str += "-- Out --"
+	str += fmt.Sprintf("-- Out -- (%p)\n", e.MsgListOut)
 	for i, m := range e.MsgListOut {
 		str += fmt.Sprintf("%d %s\n", i, e.Display.FormatMessage(m))
 	}
@@ -235,27 +269,6 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		}
 	}
 
-	// If commit is true, then we are done. Return the EOM
-	commit := e.CommitmentIndicator.ShouldICommit(msg)
-	if commit {
-		// TODO: Add the justification for others to also agree
-		e.Committed = true
-		// Need to make our last leaderlevel message to go to commitment
-		lvl := e.CurrentLevel
-		if msg.Rank >= lvl {
-			lvl = msg.Rank + 1
-			e.CurrentLevel = msg.Rank + 1
-		} else {
-			e.CurrentLevel++
-		}
-		ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank+1, lvl, msg.VolunteerMessage)
-		ll.Committed = true
-		e.updateCurrentVote(ll)
-		e.Execute(&ll)
-		e.Display.Execute(&ll)
-		return &ll, true
-	}
-
 	res, change := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
 	if res != nil {
 		// If it is a vote from us, then we need to decide if we should send it
@@ -293,6 +306,11 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 				e.updateCurrentVote(*ll)
 				e.executeDisplay(ll)
 				e.VolunteerControls[ll.VolunteerMessage.Signer].AddVote(ll)
+				//if e.CommitmentTally >= 3 {
+				//	ll.Committed = true
+				//}
+				//e.Committed = true
+				//e.updateCurrentVote(*ll)
 
 				// This vote may change our state, so call ourselves again
 				//resp, _ := e.Execute(ll)
@@ -300,7 +318,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 				//	return resp, true
 				//}
 				//fmt.Println(e.Display.FormatMessage(ll))
-				return ll, true
+				return e.commitIfLast(ll), true
 			} else {
 				// This message was from us, and we decided not to sent it
 				if ll.Level < 0 {
@@ -319,6 +337,30 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 
 	// return the result even if we didn't change our current vote
 	return res, change
+}
+
+func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.LeaderLevelMessage {
+	// If commit is true, then we are done. Return the EOM
+	// commit := e.CommitmentIndicator.ShouldICommit(msg)
+	if e.CommitmentTally > 2 { //commit {
+		e.Committed = true
+		//// Need to make our last leaderlevel message to go to commitment
+		//lvl := e.CurrentLevel
+		//if msg.Rank >= lvl {
+		//	lvl = msg.Rank + 1
+		//	e.CurrentLevel = msg.Rank + 1
+		//} else {
+		//	e.CurrentLevel++
+		//}
+		//ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank+1, lvl, msg.VolunteerMessage)
+		msg.Committed = true
+		e.CurrentVote = *msg
+		//e.updateCurrentVote(ll)
+		//e.Execute(&ll)
+		e.Display.Execute(msg)
+		return msg
+	}
+	return msg
 }
 
 func (e *Election) VolunteerControlString() string {
