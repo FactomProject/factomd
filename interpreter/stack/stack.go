@@ -1,10 +1,14 @@
 package stack
 
-import . "github.com/FactomProject/electiontesting/interpreter/common"
+import (
+	"fmt"
+
+	. "github.com/FactomProject/electiontesting/interpreter/common"
+)
 
 type Stack struct {
-	ptr  int
-	data []interface{}
+	Ptr  int
+	Data []interface{}
 }
 
 func NewStack() Stack {
@@ -14,33 +18,44 @@ func NewStack() Stack {
 
 //predecrement stackpointer
 func (s *Stack) pdec() int {
-	s.ptr--
-	return s.ptr
+	s.Ptr--
+	return s.Ptr
 }
 
 //postincrement stackpointer
 func (s *Stack) pinc() int {
-	p := s.ptr
-	s.ptr++
+	p := s.Ptr
+	s.Ptr++
 	return p
 }
 
+func (s *Stack) PStack() {
+	fmt.Print("-TOS- ")
+	for i := 0; i < s.Ptr; i++ {
+		fmt.Printf("%v ", s.PeekN(i))
+	}
+	fmt.Println("| ")
+}
+
 func (s *Stack) Push(values ...interface{}) {
-	if len(s.data) < s.ptr+len(values) {
-		if s.ptr+len(values) > 100 {
+	if len(s.Data) < s.Ptr+len(values) {
+		if s.Ptr+len(values) > 100 {
 			panic("stack overflow")
 		}
 		roomToGrow := make([]interface{}, len(values)+10)
-		s.data = append(s.data, roomToGrow...)
+		s.Data = append(s.Data, roomToGrow...)
 	}
 	for _, x := range values {
-		s.data[s.pinc()] = x
+		s.Data[s.pinc()] = x
 	}
 }
 
-func (s *Stack) Pop() interface{}  { return s.data[s.pdec()] }          // Todo: underflow ?
-func (s *Stack) Peek() interface{} { return s.data[s.ptr-1] }           // Todo: underflow ?
-func (s *Stack) PopBool() bool     { return s.data[s.pdec()].(bool) }   // Todo: underflow ?
-func (s *Stack) PopInt() int       { return s.data[s.pdec()].(int) }    // Todo: underflow ?
-func (s *Stack) PopString() string { return s.data[s.pdec()].(string) } // Todo: underflow ?
-func (s *Stack) PopArray() Array   { return s.data[s.pdec()].(Array) }  // Todo: underflow ?
+func (s *Stack) Pop() interface{}        { return s.Data[s.pdec()] }          // Todo: underflow ?
+func (s *Stack) Peek() interface{}       { return s.Data[s.Ptr-1] }           // Todo: underflow ?
+func (s *Stack) PeekN(n int) interface{} { return s.Data[s.Ptr-1-n] }         // Todo: underflow ?
+func (s *Stack) PopBool() bool           { return s.Data[s.pdec()].(bool) }   // Todo: underflow ?
+func (s *Stack) PopInt() int             { return s.Data[s.pdec()].(int) }    // Todo: underflow ?
+func (s *Stack) PopString() string       { return s.Data[s.pdec()].(string) } // Todo: underflow ?
+func (s *Stack) PopArray() Array         { return s.Data[s.pdec()].(Array) }  // Todo: underflow ?
+
+func (s *Stack) PopN(n int)              { s.Ptr -= n }                       // Todo: underflow ?

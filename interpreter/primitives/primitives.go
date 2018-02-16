@@ -1,10 +1,13 @@
 package primitives
 
 import (
-	. "github.com/FactomProject/electiontesting/interpreter/interpreter"
-	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
 	"fmt"
+
+	"strings"
+
 	. "github.com/FactomProject/electiontesting/interpreter/common"
+	. "github.com/FactomProject/electiontesting/interpreter/dictionary"
+	. "github.com/FactomProject/electiontesting/interpreter/interpreter"
 )
 
 type Primitives struct {
@@ -18,7 +21,10 @@ func NewPrimitives() *Primitives {
 	p.DictionaryPush(NewDictionary()) // User Dictionary
 
 	dict.Add("+", func() { p.Push(p.PopInt() + p.PopInt()) }) // ToDo: Handle float too
-	dict.Add("-", func() { p.Push(p.PopInt() - p.PopInt()) }) // ToDo: Handle float too
+	dict.Add("-", func() {
+		a := p.PopInt()
+		p.Push(p.PopInt() - a)
+	}) // ToDo: Handle float too
 	dict.Add("*", func() { p.Push(p.PopInt() * p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("/", func() { p.Push(p.PopInt() / p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("&", func() { p.Push(p.PopInt() & p.PopInt()) })
@@ -40,38 +46,109 @@ func NewPrimitives() *Primitives {
 			p.Push(x)
 		}
 	})
+	dict.Add("dup", func() { p.Push(p.Peek()) })
+	dict.Add("pick", func() { p.Push(p.PeekN(p.PopInt())) })
 	dict.Add("drop", func() { p.Pop() })
+	dict.Add(".s", func() { p.PStack() })
 	dict.Add("swap", func() {
 		x := p.Pop()
 		y := p.Pop()
 		p.Push(y, x)
 	})
 
+	dict.Add("\"", func() { p.Quote() })
+
 	// executable array
-	dict.Add("{", func() { p.StartXArray() })
-	dict.Add("}", ImmediateFunc{Flags{Immediate: true, Executable: true}, func() { p.EndXArray() }})
+	dict.Add("{", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.StartXArray() }})
+	dict.Add("}", ImmediateFunc{FlagsStruct{Immediate: true, Executable: true}, func() { p.EndXArray() }})
 	dict.Add("exec", func() {
 		p.Exec3(p.Pop())
 	})
+	dict.Add("def", func() { p.Def() })
+
+	// Control Structures
+	dict.Add("repeat", func() { p.Repeat() })
+	dict.Add("for", func() { p.For() })
+	dict.Add("I", func() { p.I() })
+	dict.Add("J", func() { p.J() })
+	dict.Add("K", func() { p.K() })
 
 	return p
 }
 
 var mark Mark
 
+func (p *Primitives) Repeat() {
+	count := p.PopInt()
+	x := p.Pop()
+	for i := 0; i < count; i++ {
+		p.Exec3(x)
+	}
+}
+
+func (p *Primitives) For() {
+	x := p.Pop() // Get what we execute
+	end := p.PopInt()
+	increment := p.PopInt()
+	start := p.PopInt()
+
+	for i := start; i < end; i += increment {
+		p.C.Push(i) // publish I
+		p.Exec3(x)
+		p.C.Pop() // remove old I
+	}
+}
+
+func (p *Primitives) I() { p.Push(p.C.Peek()) }   // Copy I to data stack
+func (p *Primitives) J() { p.Push(p.C.PeekN(1)) } // Copy J to data stack
+func (p *Primitives) K() { p.Push(p.C.PeekN(2)) } // Copy K to data stack
+
+// executable arrays
 func (p *Primitives) StartXArray() {
-	p.Compiling = true
-	p.Push()
+	p.Compiling++
+	p.Push(mark)
 }
 
 func (p *Primitives) EndXArray() {
-	var a Array
-	for p.Peek() != mark {
-		a.Data = append(a.Data, p.Pop())
+	//	fmt.Print("EndXArray ")
+	//	p.PStack()
+	p.Compiling--
+
+	var a Array = NewArray()
+	// count how far down the stack my mark is
+	var i int = 0
+	var start int = p.Ptr
+	for {
+		x := p.PeekN(i)
+		if x == mark {
+			break
+		}
+		start--
+		i++
 	}
-	p.Pop() // drop mark
-	a.Executable = true
+
+	a.Data = append(a.Data, p.Data[start:p.Ptr]...)
+
+	p.PopN(i + 1) // drop everything to the mark
+	a.Flags.Executable = true
 	p.Push(a)
+}
+
+func (p *Primitives) Def() {
+	name := p.PopString()
+	body := p.Pop()
+	p.DictStack[0].Add(name, body)
+}
+
+// Strings
+func (p *Primitives) Quote() {
+	n := strings.IndexByte(p.Line, []byte("\"")[0])
+	if n == -1 {
+		panic("No closing \"")
+	}
+	s := p.Line[:n]       // exclude the  "
+	p.Line = p.Line[n+2:] // remove the scanned string and quote and ws
+	p.Push(s)             // Push the string
 }
 
 /*
@@ -143,4 +220,4 @@ ROT  N1 N2 N3 - N2 N3 N1
 Pull the third element down in the stack onto the top of
 the stack.
 
- */
+*/
