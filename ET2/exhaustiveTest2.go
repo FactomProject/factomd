@@ -16,7 +16,7 @@ var _ = reflect.DeepEqual
 
 //================ main =================
 func main() {
-	recurse(3, 3, 200)
+	recurse(3, 3, 2000)
 }
 
 // newElections will return an array of elections (1 per leader) and an array
@@ -68,34 +68,28 @@ type mymsg struct {
 var solutions = 0
 var breadth = 0
 var loops = 0
-
+var depths []int
 var cuts []int
+var hitlimit int
 
 var globalRunNumber = 0
 
+var extraPrints = true
+var insanePrints = false
+
 func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
+	incDepths(depth)
 	depth++
 	if depth > limit {
-		fmt.Print("Breath ", breadth)
-		for _, v := range cuts {
-			fmt.Print(v, " ")
+		if extraPrints {
+			fmt.Print("Loop/solution/limit at ", depth)
+			for _, v := range cuts {
+				fmt.Print(v, " ")
+			}
+			fmt.Println()
 		}
-		fmt.Println()
 		breadth++
-
-		return
-	}
-	done := 0
-	for _, ldr := range leaders {
-		if ldr.Committed {
-			done++
-		}
-	}
-	if done > 0 {
-		incCuts(depth)
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
-		breadth++
-		solutions++
+		hitlimit++
 		return
 	}
 
@@ -106,29 +100,59 @@ func dive(msgs []*mymsg, leaders []*election.Election, depth int, limit int) {
 		return
 	}
 
-	fmt.Println("=============== Breadth", depth,
+	fmt.Println("=============== ",
+		" Depth=", depth,
+		", Hit the Limits=", hitlimit,
+		" Breadth=", breadth,
 		", solutions so far =", solutions,
 		", global count= ", globalRunNumber,
 		", loops detected=", loops)
+	fmt.Print("Loop/solution/limit at ", depth)
+	for _, v := range cuts {
+		fmt.Print(v, " ")
+	}
+	fmt.Println()
+	fmt.Print("Working at depth: ", depth)
+	for _, v := range depths {
+		fmt.Print(v, " ")
+	}
+	fmt.Println()
 
-	fmt.Println(leaders[0].Display.Global.String())
+	if extraPrints {
+		// Lots of printing... Not necessary....
+		fmt.Println(leaders[0].Display.Global.String())
 
+		for _, ldr := range leaders {
+			fmt.Println(ldr.Display.String())
+		}
+
+		if insanePrints {
+			// Example of a run that has a werid msg state
+			if globalRunNumber > -1 {
+				fmt.Println("Leader 0")
+				fmt.Println(leaders[0].PrintMessages())
+				fmt.Println("Leader 1")
+				fmt.Println(leaders[1].PrintMessages())
+				fmt.Println("Leader 2")
+				fmt.Println(leaders[2].PrintMessages())
+			}
+		}
+	}
+
+	done := 0
 	for _, ldr := range leaders {
-		fmt.Println(ldr.Display.String())
+		if ldr.Committed {
+			done++
+		}
 	}
-
-	// Example of a run that has a werid msg state
-	if globalRunNumber > -1 && false {
-		fmt.Println("Leader 0")
-		fmt.Println(leaders[0].PrintMessages())
-		fmt.Println("Leader 1")
-		fmt.Println(leaders[1].PrintMessages())
-		fmt.Println("Leader 2")
-		fmt.Println(leaders[2].PrintMessages())
-	}
-
-	if !UniqueLeaders(leaders) {
-		panic("Not all leaders unique")
+	if done == len(leaders)/2+1 {
+		incCuts(depth)
+		if extraPrints {
+			fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>> Solution Found @ ", depth)
+		}
+		breadth++
+		solutions++
+		return
 	}
 
 	for d, v := range msgs {
@@ -181,6 +205,13 @@ func incCuts(depth int) {
 		cuts = append(cuts, 0)
 	}
 	cuts[depth]++
+}
+
+func incDepths(depth int) {
+	for len(depths) <= depth {
+		depths = append(depths, 0)
+	}
+	depths[depth]++
 }
 
 func recurse(auds int, feds int, limit int) {
