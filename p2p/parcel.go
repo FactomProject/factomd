@@ -170,10 +170,6 @@ func (p *Parcel) MessageType() string {
 	return (fmt.Sprintf("[%s]", CommandStrings[p.Header.Type]))
 }
 
-func (p *Parcel) PrintMessageType() {
-	fmt.Printf("[%+v]", CommandStrings[p.Header.Type])
-}
-
 func (p *Parcel) String() string {
 	var output string
 	s := strconv.Quote(string(p.Payload))
