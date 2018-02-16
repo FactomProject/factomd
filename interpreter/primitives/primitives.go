@@ -68,6 +68,7 @@ func NewPrimitives() *Primitives {
 
 	// Control Structures
 	dict.Add("repeat", func() { p.Repeat() })
+	dict.Add("forall", func() { p.ForAll() })
 	dict.Add("for", func() { p.For() })
 	dict.Add("I", func() { p.I() })
 	dict.Add("J", func() { p.J() })
@@ -105,6 +106,15 @@ func (p *Primitives) Repeat() {
 	count := p.PopInt()
 	x := p.Pop()
 	for i := 0; i < count; i++ {
+		p.Exec3(x)
+	}
+}
+
+func (p *Primitives) ForAll() {
+	x := p.Pop()
+	y := p.PopArray()
+	for _, z := range y.Data {
+		p.Push(z)
 		p.Exec3(x)
 	}
 }

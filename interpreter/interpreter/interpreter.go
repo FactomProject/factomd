@@ -52,8 +52,8 @@ func (i *Interpreter) DictionaryPop() { i.DictStack = i.DictStack[1:] }
 func (i *Interpreter) Exec3(x interface{}) {
 	var flags FlagsStruct // assume its not immediate and not executable
 
-	//	fmt.Printf("Exec3(%v) ", x)
-	//	i.PStack()
+//	fmt.Printf("Exec3(%v) ", x)
+//	i.PStack()
 
 	// check for thing with no flags and create flags for them
 	f, ok := x.(func()) // is it a raw Go Function? Then it's executable but not immediate
@@ -100,8 +100,8 @@ func (i *Interpreter) Exec3(x interface{}) {
 
 }
 
-// execute one thing (can recurse)
-func (i *Interpreter) Exec2(s string) {
+// execute one thing
+func (i *Interpreter) ExecString(s string) {
 	//	fmt.Printf("Exec2(\"%s\")\n", s)
 	if ii, err := strconv.Atoi(s); err == nil {
 		i.Exec3(ii)
@@ -118,11 +118,6 @@ func (i *Interpreter) Exec2(s string) {
 		e := i.Lookup(s)
 		i.Exec3(e)
 	}
-}
-
-// execute one thing (can't recurse, catches panics)
-func (i *Interpreter) ExecString(s string) {
-	i.Exec2(s)
 }
 
 func (i *Interpreter) Interpret2(line string) {

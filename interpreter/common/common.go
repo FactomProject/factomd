@@ -1,8 +1,9 @@
 package common
 
 type FlagsStruct struct {
-	Immediate bool
-	Executable bool
+	Traced bool	// Object is being traced in the debugger
+	Immediate bool // Objects executed even when compiling
+	Executable bool // Object is executable
 }
 
 type HasFlags interface {
