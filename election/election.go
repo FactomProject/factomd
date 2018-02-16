@@ -331,6 +331,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 					ll.Committed = true
 				}
 				e.Committed = true
+				e.updateCurrentVote(*ll)
 
 				// This vote may change our state, so call ourselves again
 				//resp, _ := e.Execute(ll)
