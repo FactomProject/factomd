@@ -559,7 +559,6 @@ func (c *Controller) managePeers() {
 		if PeerSaveInterval < duration {
 			c.logger.Debug("Saving peers")
 			c.discovery.SavePeers()
-			c.discovery.PrintPeers() // No-op if debugging off.
 		}
 		duration = time.Since(c.lastPeerRequest)
 		if PeerRequestInterval < duration {
@@ -620,7 +619,6 @@ func (c *Controller) fillOutgoingSlots(openSlots int) {
 			c.DialPeer(peer, false)
 		}
 	}
-	c.discovery.PrintPeers()
 }
 
 func (c *Controller) updateMetrics() {

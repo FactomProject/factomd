@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Discovery struct {
@@ -25,6 +27,9 @@ type Discovery struct {
 	lastPeerSave  time.Time  // Last time we saved known peers.
 	rng           *rand.Rand // RNG = random number generator
 	seedURL       string     // URL to the source of a list of peers
+
+	// logging
+	logger *log.Entry
 }
 
 var UpdateKnownPeers sync.Mutex
@@ -36,6 +41,7 @@ var UpdateKnownPeers sync.Mutex
 // This ensures that all shared memory is accessed from that goroutine.
 
 func (d *Discovery) Init(peersFile string, seed string) *Discovery {
+	d.logger = packageLogger.WithFields(log.Fields{"logger": "discovery"})
 	UpdateKnownPeers.Lock()
 	d.knownPeers = map[string]Peer{}
 	UpdateKnownPeers.Unlock()
@@ -52,7 +58,7 @@ func (d *Discovery) Init(peersFile string, seed string) *Discovery {
 
 // UpdatePeer updates the values in our known peers. Creates peer if its not in there.
 func (d *Discovery) updatePeer(peer Peer) {
-	note("discovery", "Updating peer: %v", peer)
+	d.logger.Debugf("Updating peer: %v", peer)
 	UpdateKnownPeers.Lock()
 	d.knownPeers[peer.Address] = peer
 	UpdateKnownPeers.Unlock()
@@ -78,7 +84,7 @@ func (d *Discovery) isPeerPresent(peer Peer) bool {
 func (d *Discovery) LoadPeers() {
 	file, err := os.Open(d.peersFilePath)
 	if nil != err {
-		logerror("discovery", "Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
+		d.logger.Errorf("Discover.LoadPeers() File read error on file: %s, Error: %+v", d.peersFilePath, err)
 		return
 	}
 	dec := json.NewDecoder(bufio.NewReader(file))
@@ -91,7 +97,7 @@ func (d *Discovery) LoadPeers() {
 		d.knownPeers[peer.Address] = peer
 	}
 	UpdateKnownPeers.Unlock()
-	note("discovery", "LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
+	d.logger.Debugf("LoadPeers() found %d peers in peers.josn", len(d.knownPeers))
 	file.Close()
 }
 
@@ -101,7 +107,7 @@ func (d *Discovery) SavePeers() {
 	d.lastPeerSave = time.Now()
 	file, err := os.Create(d.peersFilePath)
 	if nil != err {
-		logerror("discovery", "Discover.SavePeers() File write error on file: %s, Error: %+v", d.peersFilePath, err)
+		d.logger.Errorf("Discover.SavePeers() File write error on file: %s, Error: %+v", d.peersFilePath, err)
 		return
 	}
 	defer file.Close()
@@ -113,13 +119,13 @@ func (d *Discovery) SavePeers() {
 		switch {
 		case SpecialPeer == peer.Type: // always save special peers, even if we haven't talked in awhile.
 			qualityPeers[peer.AddressPort()] = peer
-			note("discovery", "SavePeers() saved peer in peers.json: %+v", peer)
+			d.logger.Debugf("SavePeers() saved peer in peers.json: %+v", peer)
 
 		case time.Since(peer.LastContact) > time.Hour*168:
-			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. Last Contact greater than 168 hours. Peer: %+v", peer)
+			d.logger.Debugf("SavePeers() DID NOT SAVE peer in peers.json. Last Contact greater than 168 hours. Peer: %+v", peer)
 			break
 		case MinumumQualityScore > peer.QualityScore:
-			note("discovery", "SavePeers() DID NOT SAVE peer in peers.json. MinumumQualityScore: %d > Peer quality score.  Peer: %+v", MinumumQualityScore, peer)
+			d.logger.Debugf("SavePeers() DID NOT SAVE peer in peers.json. MinumumQualityScore: %d > Peer quality score.  Peer: %+v", MinumumQualityScore, peer)
 			break
 		default:
 			qualityPeers[peer.AddressPort()] = peer
@@ -128,7 +134,7 @@ func (d *Discovery) SavePeers() {
 	UpdateKnownPeers.Unlock()
 	encoder.Encode(qualityPeers)
 	writer.Flush()
-	note("discovery", "SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
+	d.logger.Debugf("SavePeers() saved %d peers in peers.json. \n They were: %+v", len(qualityPeers), qualityPeers)
 }
 
 // LearnPeers recieves a set of peers from other hosts
@@ -139,7 +145,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 	var peerArray []Peer
 	err := dec.Decode(&peerArray)
 	if nil != err {
-		logerror("discovery", "Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
+		d.logger.Errorf("Discovery.LearnPeers got an error unmarshalling json. error: %+v json: %+v", err, strconv.Quote(string(parcel.Payload)))
 		return
 	}
 	filteredArray := d.filterPeersFromOtherNetworks(peerArray)
@@ -152,7 +158,7 @@ func (d *Discovery) LearnPeers(parcel Parcel) {
 		default:
 			value.Source = map[string]time.Time{parcel.Header.PeerAddress: time.Now()}
 			d.updatePeer(value)
-			note("discovery", "Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
+			d.logger.Debugf("Discovery.LearnPeers !!!!!!!!!!!!! Discoverd new PEER!   %+v ", value)
 		}
 	}
 	d.SavePeers()
@@ -242,7 +248,7 @@ func (d *Discovery) GetOutgoingPeers() []Peer {
 	for _, v := range selectedPeers {
 		finalSet = append(finalSet, v)
 	}
-	note("discovery", "discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
+	d.logger.Debugf("discovery.GetOutgoingPeers() got the following peers: %+v", finalSet)
 	return finalSet
 }
 
@@ -298,9 +304,9 @@ func (d *Discovery) getPeerSelection() []byte {
 
 	json, err := json.Marshal(selectedPeers)
 	if nil != err {
-		logerror("discovery", "Discovery.getPeerSelection got an error marshalling json. error: %+v selectedPeers: %+v", err, selectedPeers)
+		d.logger.Errorf("Discovery.getPeerSelection got an error marshalling json. error: %+v selectedPeers: %+v", err, selectedPeers)
 	}
-	note("discovery", "peers we are sharing: %+v", string(json))
+	d.logger.Debugf("peers we are sharing: %+v", string(json))
 	return json
 }
 
@@ -308,7 +314,7 @@ func (d *Discovery) getPeerSelection() []byte {
 func (d *Discovery) DiscoverPeersFromSeed() {
 	resp, err := http.Get(d.seedURL)
 	if nil != err {
-		logerror("discovery", "DiscoverPeersFromSeed getting peers from %s produced error %+v", d.seedURL, err)
+		d.logger.Errorf("DiscoverPeersFromSeed getting peers from %s produced error %+v", d.seedURL, err)
 		return
 	}
 	defer resp.Body.Close()
@@ -327,19 +333,8 @@ func (d *Discovery) DiscoverPeersFromSeed() {
 			d.updatePeer(d.updatePeerSource(peer, "DNS-Seed"))
 		} else {
 			bad++
-			logerror("discovery", "Bad peer in "+d.seedURL+" ["+line+"]")
+			d.logger.Errorf("Bad peer in " + d.seedURL + " [" + line + "]")
 		}
 	}
-	note("discovery", "DiscoverPeersFromSeed got peers: %+v", lines)
-}
-
-// PrintPeers Print details about the known peers
-func (d *Discovery) PrintPeers() {
-	note("discovery", "Peer Report:")
-	UpdateKnownPeers.Lock()
-	for key, value := range d.knownPeers {
-		note("discovery", "%s \t Address: %s \t Port: %s \tQuality: %d Source: %+v", key, value.Address, value.Port, value.QualityScore, value.Source)
-	}
-	UpdateKnownPeers.Unlock()
-	note("discovery", "End Peer Report\n\n\n\n")
+	d.logger.Debugf("DiscoverPeersFromSeed got peers: %+v", lines)
 }
