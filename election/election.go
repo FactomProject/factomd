@@ -11,6 +11,31 @@ import (
 
 var _ = fmt.Println
 
+// RoutingElection is just an election that returns msgs for broadcasting
+type RoutingElection struct {
+	*Election
+}
+
+func NewRoutingElection(e *Election) *RoutingElection {
+	r := new(RoutingElection)
+	r.Election = e
+
+	return r
+}
+
+func (r *RoutingElection) Execute(msg imessage.IMessage) (imessage.IMessage, bool) {
+	resp, ch := r.Election.execute(msg)
+	if resp == nil && ch {
+		return msg, ch
+	}
+
+	if resp == nil && r.Election.CurrentVote.Level > 0 {
+		return &r.Election.CurrentVote, false
+	}
+
+	return resp, ch
+}
+
 type Election struct {
 	// Level 0 volunteer votes map[vol]map[leader]msg
 	VolunteerVotes map[Identity]map[Identity]*messages.VoteMessage
@@ -162,7 +187,7 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 	// We are done, never use anything else
 	if e.Committed {
-		return &e.CurrentVote, false
+		return nil, false
 	}
 
 	switch msg.(type) {
@@ -197,12 +222,12 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 
 			// If we have a rank 1+, we will not issue a rank 0
 			if e.CurrentVote.Rank > 0 {
-				return &e.CurrentVote, false // forward our answer again
+				return nil, false // forward our answer again
 			}
 
 			// If we have a rank 0, and higher priority volunteer (or same, don't vote again)
 			if e.CurrentVote.VolunteerPriority >= e.getVolunteerPriority(vol) {
-				return &e.CurrentVote, false // forward our answer again
+				return nil, false // forward our answer again
 			}
 
 		SendRank0:
@@ -269,10 +294,12 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		}
 	}
 
+	// Add their info to our map
+
+	// All responses if not nil is a message created by us
 	res, change := e.VolunteerControls[msg.VolunteerMessage.Signer].Execute(msg)
 	if res != nil {
-		// If it is a vote from us, then we need to decide if we should send it
-		// If it already has a volunteer priority, then we decided to already send it out.
+		// Adding things to the display
 		ll, ok := res.(*messages.LeaderLevelMessage)
 		if ok {
 			// We need to add the justifications to our map
@@ -286,57 +313,50 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 			}
 		}
 
-		if ok && ll.Signer == e.Self && ll.Level < 0 {
-			// We need to set the volunteer priority for comparing
-			ll.VolunteerPriority = e.getVolunteerPriority(ll.VolunteerMessage.Signer)
+		// We need to set the volunteer priority for comparing
+		ll.VolunteerPriority = e.getVolunteerPriority(ll.VolunteerMessage.Signer)
 
-			// We have a new vote we might be able to cast
-			if e.CurrentVote.Less(ll) {
-				// This vote is better than our current, let's pass it out.
-				if ll.Rank >= e.CurrentLevel {
-					// We cannot issue a rank 2 on level 2. It has to be on level 3
-					ll.Level = ll.Rank + 1
-					e.CurrentLevel = ll.Rank + 2
-				} else {
-					// Set level to our level, increment
-					ll.Level = e.CurrentLevel
-					e.CurrentLevel++
-				}
-
-				e.updateCurrentVote(*ll)
-				e.executeDisplay(ll)
-				e.VolunteerControls[ll.VolunteerMessage.Signer].AddVote(ll)
-				//if e.CommitmentTally >= 3 {
-				//	ll.Committed = true
-				//}
-				//e.Committed = true
-				//e.updateCurrentVote(*ll)
-
-				// This vote may change our state, so call ourselves again
-				//resp, _ := e.Execute(ll)
-				//if resp != nil {
-				//	return resp, true
-				//}
-				//fmt.Println(e.Display.FormatMessage(ll))
-				return e.commitIfLast(ll), true
+		// We have a new vote we might be able to cast
+		if e.CurrentVote.Less(ll) {
+			// This vote is better than our current, let's pass it out.
+			if ll.Rank >= e.CurrentLevel {
+				// We cannot issue a rank 2 on level 2. It has to be on level 3
+				ll.Level = ll.Rank + 1
+				e.CurrentLevel = ll.Rank + 2
 			} else {
-				// This message was from us, and we decided not to sent it
-				if ll.Level < 0 {
-					return nil, change
+				// Set level to our level, increment
+				ll.Level = e.CurrentLevel
+				e.CurrentLevel++
+			}
+
+			// This vote may change our next vote. First we need to check
+			// if this is our LAST vote
+			e.updateCurrentVote(*ll)
+
+			e.commitIfLast(ll)
+			if e.Committed {
+				return ll, true
+			}
+
+			// This is not our last vote, let's check if it triggers a new vote
+			msg, _ := e.Execute(ll)
+			if msg != nil {
+				if l2, ok := msg.(*messages.LeaderLevelMessage); ok {
+					return e.commitIfLast(l2), true
 				}
 			}
+
+			return ll, true
+		}
+
+		// We decided not to send the new msg
+		if ll.Level < 0 {
+			return nil, change
 		}
 	}
 
-	// No response, send our current vote because we had a change above
-	if res == nil {
-		if voteChange {
-			return &e.CurrentVote, voteChange
-		}
-	}
-
-	// return the result even if we didn't change our current vote
-	return res, change
+	// No msg generated
+	return nil, voteChange || change
 }
 
 func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.LeaderLevelMessage {
@@ -344,19 +364,7 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 	// commit := e.CommitmentIndicator.ShouldICommit(msg)
 	if e.CommitmentTally > 2 { //commit {
 		e.Committed = true
-		//// Need to make our last leaderlevel message to go to commitment
-		//lvl := e.CurrentLevel
-		//if msg.Rank >= lvl {
-		//	lvl = msg.Rank + 1
-		//	e.CurrentLevel = msg.Rank + 1
-		//} else {
-		//	e.CurrentLevel++
-		//}
-		//ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank+1, lvl, msg.VolunteerMessage)
 		msg.Committed = true
-		e.CurrentVote = *msg
-		//e.updateCurrentVote(ll)
-		//e.Execute(&ll)
 		e.Display.Execute(msg)
 		return msg
 	}
