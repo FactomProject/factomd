@@ -132,7 +132,7 @@ func (e *Election) updateCurrentVote(new messages.LeaderLevelMessage) {
 			return
 		}
 	}
-	e.CommitmentTally = 0
+	e.CommitmentTally = 1
 	e.CurrentVote = new
 }
 
@@ -342,7 +342,7 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.LeaderLevelMessage {
 	// If commit is true, then we are done. Return the EOM
 	// commit := e.CommitmentIndicator.ShouldICommit(msg)
-	if e.CommitmentTally >= 3 { //commit {
+	if e.CommitmentTally > 2 { //commit {
 		e.Committed = true
 		//// Need to make our last leaderlevel message to go to commitment
 		//lvl := e.CurrentLevel
@@ -354,6 +354,7 @@ func (e *Election) commitIfLast(msg *messages.LeaderLevelMessage) *messages.Lead
 		//}
 		//ll := messages.NewLeaderLevelMessage(e.Self, msg.Rank+1, lvl, msg.VolunteerMessage)
 		msg.Committed = true
+		e.CurrentVote = *msg
 		//e.updateCurrentVote(ll)
 		//e.Execute(&ll)
 		e.Display.Execute(msg)
