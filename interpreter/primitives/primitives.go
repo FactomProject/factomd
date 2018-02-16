@@ -24,7 +24,7 @@ func NewPrimitives() *Primitives {
 	dict.Add("-", func() {
 		a := p.PopInt()
 		p.Push(p.PopInt() - a)
-	}) // ToDo: Handle float too
+	})                                                        // ToDo: Handle float too
 	dict.Add("*", func() { p.Push(p.PopInt() * p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("/", func() { p.Push(p.PopInt() / p.PopInt()) }) // ToDo: Handle float too
 	dict.Add("&", func() { p.Push(p.PopInt() & p.PopInt()) })
@@ -72,6 +72,7 @@ func NewPrimitives() *Primitives {
 	dict.Add("I", func() { p.I() })
 	dict.Add("J", func() { p.J() })
 	dict.Add("K", func() { p.K() })
+	dict.Add("if", func() { p.If() })
 
 	return p
 }
@@ -82,6 +83,23 @@ func NewPrimitives() *Primitives {
 //}
 
 var mark Mark
+
+func (p *Primitives) If() {
+	cond := p.Pop()
+	x := p.Pop()
+	switch cond.(type) {
+	case bool:
+		if cond.(bool) {
+			p.Exec3(x)
+		}
+	case int:
+		if cond.(int) != 0 {
+			p.Exec3(x)
+		}
+	}
+}
+
+
 
 func (p *Primitives) Repeat() {
 	count := p.PopInt()
