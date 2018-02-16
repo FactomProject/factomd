@@ -195,12 +195,27 @@ func (e *Election) execute(msg imessage.IMessage) (imessage.IMessage, bool) {
 		return e.executeLeaderLevelMessage(msg.(*messages.LeaderLevelMessage))
 	case *messages.VolunteerMessage:
 		vol := msg.(*messages.VolunteerMessage)
+		if e.VolunteerVotes[vol.Signer] == nil {
+			e.VolunteerVotes[vol.Signer] = make(map[Identity]*messages.VoteMessage)
+		}
+
+		// already voted
+		if _, ok := e.VolunteerVotes[vol.Signer][e.Self]; ok {
+			fmt.Println("Votes!")
+			return nil, false
+		}
+
 		vote := messages.NewVoteMessage(*vol, e.Self)
+		e.VolunteerVotes[vol.Signer][e.Self] = &vote
+
 		msg, _ := e.Execute(&vote)
 		if ll, ok := msg.(*messages.LeaderLevelMessage); ok {
-			// TODO: Add votes to vote array in leader level message
-			var _ = ll
+			for _, v := range e.VolunteerVotes[vol.Signer] {
+				ll.VoteMessages = append(ll.VoteMessages, v)
+			}
+			return ll, true
 		}
+
 		return &vote, true
 	case *messages.VoteMessage:
 		// Colecting these allows us to issue out 0.#
@@ -282,14 +297,22 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		panic("level <= 0 should never happen")
 	}
 
+	// We may actually get a majority vote at rank 0 from this. We need to account for that
 	// Did a vote change happen?
 	voteChange := false
+	var rank0Vote *messages.LeaderLevelMessage
 	// Votes exist, so we can add these to our vote map
 	if len(msg.VoteMessages) > 0 {
 		// If we get a new current vote from this, we will get a vote change. In which case we will
 		// send out our current vote if nothing is better
 		for _, v := range msg.VoteMessages {
-			_, v := e.Execute(v)
+			resp, v := e.Execute(v)
+			if resp != nil && rank0Vote != nil {
+				vl, castok := resp.(*messages.LeaderLevelMessage)
+				if castok {
+					rank0Vote = vl
+				}
+			}
 			voteChange = v || voteChange
 		}
 	}
@@ -353,6 +376,10 @@ func (e *Election) executeLeaderLevelMessage(msg *messages.LeaderLevelMessage) (
 		if ll.Level < 0 {
 			return nil, change
 		}
+	}
+
+	if rank0Vote != nil {
+		return nil, voteChange || change
 	}
 
 	// No msg generated

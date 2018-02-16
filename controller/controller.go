@@ -150,6 +150,24 @@ func (c *Controller) ElectionStatus(node int) string {
 	return c.Elections[node].Display.String()
 }
 
+func (c *Controller) AddLeaderSetLevelMessageToRouter(from []int, level int) bool {
+	for _, f := range from {
+		if !c.AddLeaderLevelMessageToRouter(f, level) {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *Controller) AddLeaderLevelMessageToRouter(from int, level int) bool {
+	msg := c.Buffer.RetrieveLeaderLevelMessageByLevel(c.indexToFedID(from), level)
+	if msg == nil {
+		return false
+	}
+	c.routeToRouter(msg, from)
+	return true
+}
+
 func (c *Controller) RouteLeaderSetLevelMessage(from []int, level int, to []int) bool {
 	for _, f := range from {
 		if !c.RouteLeaderLevelMessage(f, level, to) {
@@ -202,11 +220,15 @@ func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
 
 	if c.OutputsToRouter {
 		// Outputs get sent to Router so we can hit "run"
-		f := messages.GetSigner(msg)
-		c.Router.route(c.fedIDtoIndex(f), msg)
-
+		//f := messages.GetSigner(msg)
+		//c.Router.route(c.fedIDtoIndex(f), msg)
+		c.Router.route(node, msg)
 	}
 	c.Buffer.Add(resp)
+}
+
+func (c *Controller) routeToRouter(msg imessage.IMessage, node int) {
+	c.Router.acceptIncoming(node, msg)
 }
 
 // indexToAudID will take the human legible "Audit 1" and get the correct identity.
