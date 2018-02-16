@@ -1,7 +1,6 @@
 package election
 
 import (
-	"fmt"
 	"github.com/FactomProject/electiontesting/primitives"
 	"strconv"
 	"strings"
@@ -11,7 +10,6 @@ import (
 
 func (d *Display) DetectLoops() (loops int) {
 	for _, f := range d.GetFeds() {
-		fmt.Println(f)
 		if d.DetectLoopForLeader(f) {
 			loops++
 		}
@@ -31,18 +29,20 @@ func (d *Display) DetectVerticalLoop(leader primitives.Identity) bool {
 	}
 	last3 := myVotes[len(myVotes)-3:]
 	vol := -1
+	rnk := -1
 	tally := 0
 	for i, v := range last3 {
-		_, nxtvol := parseVote(v)
+		nxtrnk, nxtvol := parseVote(v)
 		if i > 0 {
-			if nxtvol == vol+1 {
+			if nxtvol != vol && nxtrnk == rnk+1 {
 				tally++
 			}
 		}
 		vol = nxtvol
+		rnk = nxtrnk
 	}
 
-	return tally == 2
+	return tally >= 2
 }
 
 func (d *Display) getLeaderVotes(leader primitives.Identity) (myvotes []string) {
@@ -52,6 +52,15 @@ func (d *Display) getLeaderVotes(leader primitives.Identity) (myvotes []string) 
 		}
 		myvotes = append(myvotes, d.Votes[i][d.FedIDtoIndex(leader)])
 	}
+	// Now trim the end
+	for i := len(myvotes) - 1; i >= 0; i-- {
+		if myvotes[i] == "" {
+			myvotes = myvotes[:i]
+		} else {
+			break
+		}
+	}
+
 	return
 }
 
