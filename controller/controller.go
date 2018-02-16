@@ -21,8 +21,9 @@ var _ = fmt.Println
 type Controller struct {
 	AuthSet *testhelper.AuthSetHelper
 
-	Elections  []*election.Election
-	Volunteers []*messages.VolunteerMessage
+	RoutingElections []*election.RoutingElection
+	Elections        []*election.Election
+	Volunteers       []*messages.VolunteerMessage
 
 	feds []primitives.Identity
 	auds []primitives.Identity
@@ -43,6 +44,7 @@ func NewController(feds, auds int) *Controller {
 	c.AuthSet = testhelper.NewAuthSetHelper(feds, auds)
 	fedlist := c.AuthSet.GetFeds()
 	c.Elections = make([]*election.Election, len(fedlist))
+	c.RoutingElections = make([]*election.RoutingElection, len(fedlist))
 
 	for i, f := range fedlist {
 		c.Elections[i] = c.newElection(f)
@@ -51,6 +53,7 @@ func NewController(feds, auds int) *Controller {
 			c.GlobalDisplay.Identifier = "Global"
 		}
 		c.Elections[i].AddDisplay(c.GlobalDisplay)
+		c.RoutingElections[i] = election.NewRoutingElection(c.Elections[i])
 	}
 
 	audlist := c.AuthSet.GetAuds()
@@ -195,7 +198,7 @@ func (c *Controller) RouteMessage(msg imessage.IMessage, nodes []int) {
 }
 
 func (c *Controller) routeSingleNode(msg imessage.IMessage, node int) {
-	resp, _ := c.Elections[node].Execute(msg)
+	resp, _ := c.RoutingElections[node].Execute(msg)
 
 	if c.OutputsToRouter {
 		// Outputs get sent to Router so we can hit "run"

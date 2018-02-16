@@ -103,7 +103,7 @@ func (v *VolunteerControl) AddVote(msg *messages.LeaderLevelMessage) bool {
 func (v *VolunteerControl) checkVoteCount(msg imessage.IMessage) (imessage.IMessage, bool) {
 	// No majority, no bueno. Forward the msg that we got though
 	if len(v.Votes) < v.Majority() {
-		return msg, false
+		return nil, false
 	}
 
 	m := v.Majority()
